@@ -23,6 +23,7 @@ export default defineConfig({
             'apps/site-gateway/test/**/*.test.ts',
             'apps/simulators/test/**/*.test.ts',
             'apps/injectables-*/test/**/*.test.ts',
+            'apps/record-viewer/test/**/*.test.ts',
           ],
           exclude: ['**/node_modules/**', '**/fixtures/**', 'packages/ui-kit/**'],
           environment: 'node',

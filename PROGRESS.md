@@ -111,6 +111,11 @@ controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, r
   `check_engine_roles` dropped (recipe-core 1217-1218, 1224, site-services 1103). Review findings P7A-1 to -7 in
   `docs/build-plan/phase-7/review-backlog.md` (P7A-6 a residual). GB-T-01's due-date time bomb fixed (test only).
 
+**Resumed 18 October 2026** (paused earlier that day for other work). State and next steps in
+[docs/build-plan/phase-7/RESUME.md](docs/build-plan/phase-7/RESUME.md): merged so far 7-0 (#52), 7a (#53), 7b-1 (#54),
+resume notes (#55), 7b-2 (#56), 7c (this PR); every other slice is pushed on its branch with its state and what is left. Decision 0025 (every act has a screen, no
+terminal) added slice 7g.
+
 Next: the Phase 7 slices after 7a (7b-1, 7b-2, 7c and 7e in parallel, then 7d, then the 7f exit), built here
 (decision 0023), then the heavy test run on the pod; then Tablets v1.0.
 Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo

@@ -174,7 +174,8 @@ describe('report views (recipe-core 1070)', () => {
     // The eight 6g views, slice 6A-1's three analytics inputs (recipe-core 1115), slice 6A-2's two rate inputs
     // (recipe-core 1130: report.deviation_fact_v1, report.step_shift_v1), slice 6A-5's review fact (recipe-core 1160)
     // and slice 6A-6's series reference and reference-set views (recipe-core 1170: report.series_ref_v1,
-    // report.analytics_reference_v1).
-    expect(views.length).toBe(16);
+    // report.analytics_reference_v1), and slice 7b-2's closed records and evaluation entries and topics (kernel 1335,
+    // 1336: report.closed_record_v1, report.evaluation_entry_v1, report.evaluation_topic_v1).
+    expect(views.length).toBe(19);
   });
 });

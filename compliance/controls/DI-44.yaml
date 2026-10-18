@@ -26,6 +26,13 @@ catalog_test: The periodic readability report lists the sampled records, each op
 implemented_by: {}
 tests:
   - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the periodic readability report (kernel 1335, 1336) > [DI-44] the periodic readability report lists the seeded sample of closed records, each opened and rendered with its audit trail, with its result and render hash per record"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the periodic readability report (kernel 1335, 1336) > [DI-44] a sampled record whose stored row was altered is reported UNREADABLE with the finding, and the pack records it"
+  - "packages/kernel/test/records/full-export.test.ts > the closed records (kernel 1335) > [DI-08][DI-44] closed incidents and closed DI investigations are the kernel's closed records, read through the reporting path; an open one is not"
+  - "packages/kernel/test/records/full-export.test.ts > the closed records (kernel 1335) > [DI-44] the readability sample is seeded: the same seed gives the same records in the same order, another seed another order, and only records closed before the given time"
+  - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] a batch record is closed when its record is locked now, or when it is aborted or cancelled now; a completed, reopened, running or amended record is not"
+  - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] a closed batch record's archive package is every chain keyed by the batch, its record lock and amendments included, and the signature chains of its parts, record-lock amendments included"
+  - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44][IN-53] an export or a readability read of a closed batch holding controlled-substance rows needs CONTROLLED.READ with no site or product limit: a holder without it is refused, never served a partial copy"
 clauses:
   - clause: "The periodic readability report lists the sampled records, each opened with its audit trail."
     deferred:
