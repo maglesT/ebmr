@@ -445,6 +445,89 @@ Tests create their CA and certificates at run time
 ([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is
 committed.
 
+## Reconciliation and series gaps (Phase 7 slice 7b-1)
+
+Both raise an integration alarm on the integrations page; neither is acknowledged until someone has found out why
+(DI-31, DI-32; [integrations](modules/integrations.md#hardening-of-the-worker-and-the-gateway-phase-7-slice-7b-1)).
+
+**Reconciliation.** Each running adapter reconciles every closed hour of source time by itself, 10 minutes after the hour
+ends (at most 24 hours a run, so a long outage catches up run by run). The health page shows the last report: its
+period, what the source sent, what was accepted and refused, and Matched or Mismatch.
+- *Mismatch* (alarm RECONCILIATION_MISMATCH, details: period, source count, received count): the source published
+  messages in that hour that the eBMR neither accepted nor recorded as refused. Compare the adapter's messages and
+  refusals of the period with the source system's own log; a sequence gap alarm of the same adapter usually names the
+  missing numbers. Ask the source system's owner to resend them (a resend is de-duplicated by its key). The period is not
+  reconciled again by itself: once the messages are in, submit the period again from a worker
+  (`AdapterWorker.reconcile(from, to)`); the alarm stays in the record with its acknowledgment note.
+- *No report for hours*: the worker is down, the source is unreachable (the worker's last error says
+  `reconciliation: ...`), or it is working off a backlog of messages (it reconciles when it has caught up). The source must
+  serve `GET <base>/reconciliation?from&to`.
+
+**Series gaps.** After a gateway crash, the gateway completes the open chunk of each series from its spool
+(`<journal dir>/opcua/opcua-spool.jsonl`) and reports the rest as a gap: alarm SERIES_GAP (MAJOR) with the unit, the tag and
+the interval from the last sample spooled to the restart (epoch microseconds), and the gateway's local alarm log
+(`alarms.jsonl`) holds the same line.
+1. Find the batch and step that held the unit in that interval (the unit's use on the batch record).
+2. The samples of the interval are not in the eBMR. Decide with QA whether the step's result still stands on the samples
+   recorded around it, or whether the gap needs a deviation; cite it in the acknowledgment note.
+3. Find why the gateway stopped (its log, the host). A gateway that does not open after a crash with "the OPC UA feed
+   spool ... is damaged at line N" has a corrupt spool before its end: keep a copy of the file for the investigation, then
+   move it away and start the gateway; that series' open chunk is then lost, so record the gap by hand in the deviation.
+4. A local SPOOL_FAILED alarm means the gateway could not write its spool (disk full, permissions): samples of open chunks
+   are then in memory only until each chunk closes. Fix the disk and restart the gateway after a clean stop.
+
+**Samples without a timestamp or before their session.** The gateway alarms MISSING_TIMESTAMP when an endpoint sends a
+value with no OPC UA timestamp (kept BAD, dated when received) and BEFORE_SESSION when a value is dated more than seven
+days (the offline buffer) before the session opened (kept as the current value, not in the series). Repeated alarms mean the endpoint's
+clock or its timestamp settings are wrong: check its time synchronisation and that it returns source timestamps. The
+database refuses series, alarms and events from any other path, and sessions, older than the gateway's offline buffer (`integration.opcua_offline_buffer_s`, default 7 days;
+raise it under a change record before a planned longer outage).
+
+## Full export and periodic evaluation (Phase 7 slice 7b-2)
+
+The full export of the installation and the periodic evaluation pack of the system
+([kernel](modules/kernel.md#the-full-export-the-closed-records-and-the-periodic-evaluation-pack-phase-7-slice-7b-2-kernel-1335-1336),
+[record viewer](modules/record-viewer.md); DI-08, DI-11, DI-44). Both are run by the CSV / DI lead with the operators'
+command line [records-cli.ts](../../packages/kernel/src/records/records-cli.ts), as an open session of that person
+(`--actor-json`, the same form as the restore drill's). Exit code 0 is done, 1 a refusal (the message names the
+`EBMR-` code), 2 a usage error.
+
+**Make a full export** (at a contract's end, for an inspector, or to test the archive).
+1. `tsx packages/kernel/src/records/records-cli.ts full-export --url <app URL> --actor-json @lead.json --out <empty folder> --seal-key-file <the installation's seal key file>`.
+   The person needs RECORD.EXPORT (CSV / DI lead or read-only auditor), and CONTROLLED.READ with no site or product
+   limit when controlled-substance records are exported (the export is refused otherwise, never cut short). The seal key
+   file lets the installation record its own check of each HMAC seal; leave it out and the viewer shows those seals as
+   not checked. On any refusal nothing is registered and the folder is removed.
+2. Keep the printed export SHA-256 with the export (it is also in `records.full_export`). Give it to whoever opens the
+   export: the viewer compares the folder with it.
+3. Build the viewer once per release, `pnpm --filter @ebmr/record-viewer build`, and hand over
+   `apps/record-viewer/dist/record-viewer.html` with the export. It opens from the file system in a current browser.
+4. In the viewer: pick the export folder, type the export SHA-256, and read the verdict. "All checks passed" with "It
+   matches the expected export SHA-256" means every record shown is the registered copy. "NOT ANCHORED" means the
+   SHA-256 was not given: the files agree with each other, but their origin is not proven. Any failed record is listed
+   with its findings and not shown; treat it as a data-integrity event (raise an incident, DI-12).
+
+**Run the periodic evaluation** (DI-11 default: every 12 months; the readability sample DI-44 default: quarterly).
+1. Choose a period that has ended, for example `--from 2026-07-01T00:00:00+05:30 --to 2026-10-01T00:00:00+05:30`, and a
+   seed (any text, stored and signed with the pack so the sample can be repeated, for example `2026-Q3`). The sample
+   takes at least 10 records (every closed record when fewer are closed); a closed record is a locked batch record, an
+   aborted or cancelled one, a closed incident or a closed DI investigation.
+2. `tsx packages/kernel/src/records/records-cli.ts evaluation-pack --url <app URL> --report-url <URL of the role ebmr_report> --actor-json @lead.json --from <time> --to <time> --seed <text> --sample 10 --out pack-2026-Q3.json`.
+   The person needs VALIDATION.MANAGE and RECORD.EXPORT (the CSV / DI lead). The entries are read through the reporting
+   role (any other login is refused, EBMR-REC-160), and the database compares every entry's whole content with the
+   source logs before it stores the pack.
+3. The command prints the pack id, the entries per topic, the records sampled and how many were unreadable, and the
+   pack SHA-256. The database has stored the pack only after checking it against the source logs and the seeded sample
+   (EBMR-REC-152 to -157 name what did not match).
+4. Review the pack: every entry names its source log and row, so any entry can be traced (`select * from <source log>
+   where id = <row>`). An UNREADABLE record is a data-integrity event: raise an incident (DI-12) with the findings.
+5. QA (QA_REVIEWER or QA_MBR_APPROVER, not the person who generated it) signs the pack off with the
+   PERIODIC_EVALUATION_APPROVED signature over aggregate `evaluation_pack`, id the pack id, and records it with
+   `records.approve_evaluation_pack(pack id, signature id)`. The signature binds the pack SHA-256; a second sign-off is
+   refused. There is no screen for this sign-off yet (residual of slice 7b-2): until there is, the signature is made
+   through the kernel's signing flow (`esig.createChallenge`, the signer's SIGNATURE authentication, `esig.sign`) as the
+   test-kit's helpers do.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

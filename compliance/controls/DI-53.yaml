@@ -61,6 +61,8 @@ tests:
   - "packages/kernel/test/analytics/exit-review.test.ts > one flag-grouping design (kernel 1280; P6A7-1) > [DI-53][DI-52] a disposition on an audit-trail key closes its later raises in every reader, restricted to data-integrity review, and the monitor counts them dispositioned"
   - "packages/kernel/test/analytics/exit-review.test.ts > the review priority's audit-trail term (kernel 1281; P6A7-2) > [DI-53] the audit-trail term of a review priority is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
   - "packages/kernel/test/analytics/exit-review.test.ts > the verdicts of the audit-trail keys as an analytics input (kernel 1282; P6A5-2) > [DI-51][DI-53] the analytics role reads the current verdict of each audit-trail key from its allow-list; the application and reporting roles cannot, and the segregation check stays clean"
+  - "packages/analytics/test/review-priority.test.ts > REVIEW.PRIORITY v1 known answers (D-6A-13) > [DI-53] the top reasons are chosen among the terms every reader sees; the audit-trail reason comes after them (P6A7-6)"
+  - "packages/kernel/test/analytics/exit-review.test.ts > the audit-trail methods' counts (kernel 1322; P6A7-7) > [DI-53] the monitor and the run list show the flag counts of the audit-trail methods only to ANALYTICS.DI_REVIEW holders; others see the runs without them"
 clauses:
   - clause: "seed a late entry, a back-dated entry, a login on two terminals within a minute and a test repeated until a pass; each raises its rule's flag with its reasons, and the clean persons raise none;"
     tests:

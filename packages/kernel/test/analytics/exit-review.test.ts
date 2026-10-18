@@ -82,7 +82,7 @@ beforeAll(async () => {
     c.release();
   }
   [qa, diLead] = await Promise.all([seedActor(gmp, { roleCode: 'QA_REVIEWER' }), seedActor(gmp, { roleCode: 'CSV_DI_LEAD' })]);
-  for (const m of ['SPC.IMR', 'ATA.RULES', 'REVIEW.PRIORITY']) {
+  for (const m of ['SPC.IMR', 'ATA.RULES', 'ATA.BASELINE', 'REVIEW.PRIORITY']) {
     await withCommand(gmp.admin, again(underChange(qa)), (cc) =>
       cc.query(`insert into analytics.method_version (method, version, status, title, intended_use, acceptance, parameters, parameters_sha256, code_identity, validation_ref)
                 values ($1, 1, 'EFFECTIVE', 'Test method', 'advisory test', '{}', '{}', $2, '@ebmr/analytics 0.1.0', 'VAL-TEST-1')`, [m, SHA]));
@@ -151,9 +151,9 @@ describe('one flag-grouping design (kernel 1280; P6A7-1)', () => {
         [view.endsWith('disposition_v1') ? [first, later] : person]);
       expect(rows, view).toEqual([]);
     }
-    // The monitor counts both raises of the key as dispositioned FALSE_ALARM.
-    const { rows: m } = await gmp.app.query<{ flags: number; dispositioned_share: number; false_alarm_rate: number }>(
-      "select sum(flags)::int as flags, max(dispositioned_share) as dispositioned_share, max(false_alarm_rate) as false_alarm_rate from analytics.method_monitor_v1 where method = 'ATA.RULES'");
+    // The monitor counts both raises of the key as dispositioned FALSE_ALARM, for data-integrity review (kernel 1322).
+    const { rows: m } = await withCommand(gmp.app, again(diLead), (c) => c.query<{ flags: number; dispositioned_share: number; false_alarm_rate: number }>(
+      "select sum(flags)::int as flags, max(dispositioned_share) as dispositioned_share, max(false_alarm_rate) as false_alarm_rate from analytics.method_monitor_v1 where method = 'ATA.RULES'"));
     expect(m[0]).toEqual({ flags: 2, dispositioned_share: 1, false_alarm_rate: 1 });
   });
 
@@ -197,6 +197,32 @@ describe('the review priority\'s audit-trail term (kernel 1281; P6A7-2)', () => 
       `select array[analytics.audit_term_points('{"OPEN_AUDIT_FLAG.points": 4}'), analytics.audit_term_points('{"OPEN_AUDIT_FLAG.points": "4"}'),
                     analytics.audit_term_points('{"OPEN_AUDIT_FLAG.points": -2}'), analytics.audit_term_points('{}')] as p`);
     expect(pts[0]!.p).toEqual([4, 0, 0, 0]);
+  });
+});
+
+describe('the audit-trail methods\' counts (kernel 1322; P6A7-7)', () => {
+  it('[DI-53] the monitor and the run list show the flag counts of the audit-trail methods only to ANALYTICS.DI_REVIEW holders; others see the runs without them', async () => {
+    const person = randomUUID();
+    await run('ATA.BASELINE', [{ kind: 'PERSON', ref: person, rule: 'NIGHT_ENTRIES', reasons: [{ code: 'NIGHT_ENTRIES', text: 'entries at night', evidence: [{ kind: 'WEEK', ref: '2026-W41' }] }] }]);
+    await run('SPC.IMR', [{ kind: 'PRODUCT_ITEM', ref: `P|F|item-${randomUUID().slice(0, 8)}`, rule: 'NELSON_1', reasons: [{ code: 'NELSON_1', text: 'beyond the limit' }] }]);
+    interface Monitor { method: string; runs: number; flags: number | null; share: number | null; rate: number | null }
+    const monitorSql = `select method, sum(runs)::int as runs, sum(flags)::int as flags, max(dispositioned_share) as share, max(false_alarm_rate) as rate
+                          from analytics.method_monitor_v1 where method in ('ATA.BASELINE', 'SPC.IMR') group by method order by method`;
+    const runsSql = `select method, counts from analytics.run_v1 where method in ('ATA.BASELINE', 'SPC.IMR') and status = 'DONE' order by method, started_at desc`;
+    const as = <T extends pg.QueryResultRow>(ctx: ActorContext | null, text: string) =>
+      ctx === null ? gmp.app.query<T>(text).then((r) => r.rows) : withCommand(gmp.app, again(ctx), async (c) => (await c.query<T>(text)).rows);
+    for (const reader of [null, qa, sysAdmin]) {
+      const m = await as<Monitor>(reader, monitorSql);
+      expect(m.find((r) => r.method === 'ATA.BASELINE')).toMatchObject({ runs: 1, flags: null, share: null, rate: null });
+      expect(m.find((r) => r.method === 'SPC.IMR')?.flags).toBeGreaterThanOrEqual(1);
+      const r = await as<{ method: string; counts: Record<string, unknown> }>(reader, runsSql);
+      expect(r.filter((x) => x.method === 'ATA.BASELINE').map((x) => x.counts)).toEqual([{}]);
+      expect(r.find((x) => x.method === 'SPC.IMR')?.counts).toMatchObject({ flags: 1, outputs: 0 });
+    }
+    const m = await as<Monitor>(diLead, monitorSql);
+    expect(m.find((r) => r.method === 'ATA.BASELINE')).toMatchObject({ runs: 1, flags: 1, share: 0 });
+    const r = await as<{ method: string; counts: Record<string, unknown> }>(diLead, runsSql);
+    expect(r.filter((x) => x.method === 'ATA.BASELINE').map((x) => x.counts)).toEqual([{ flags: 1, outputs: 0 }]);
   });
 });
 

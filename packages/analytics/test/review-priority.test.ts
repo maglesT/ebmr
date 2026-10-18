@@ -136,6 +136,26 @@ describe('REVIEW.PRIORITY v1 known answers (D-6A-13)', () => {
     expect(r.outputs.find((o) => o.subjectRef === 'b')!.values['score']).toBe(0);
   });
 
+  it('[DI-53] the top reasons are chosen among the terms every reader sees; the audit-trail reason comes after them (P6A7-6)', () => {
+    const t = (min: number): string => new Date(Date.UTC(2026, 5, 3, 4, 30) + min * 60_000).toISOString();
+    const late = (id: string, recorded: number): AuditEvent => ({
+      eventId: id, chainKey: 'batch:a', recordedAt: t(recorded), recordedLocal: t(recorded).slice(0, 19), claimedAt: t(recorded - 47), personId: 'p-1', accountId: 'acc-1',
+      role: 'OPERATOR', terminal: 'T-1', action: 'INSERT', tableName: 'recipe.execution_command', field: `item.${id}`, isCorrection: false, reasonCode: null, batchId: 'a',
+      step: 's1', attempt: 1, failed: false, deviationLinked: false, configArea: null,
+    });
+    // The audit-trail term outscores every other term (three late entries, 9 points), and four other terms score.
+    const r = only(input({ records: [record('a', { exceptionsCritical: 1, deviations: 1, newOperators: 1, corrections: 1 })], audit: [late('1', 60), late('2', 180), late('3', 300)] }));
+    const a = r.outputs[0]!;
+    expect(a.values['OPEN_AUDIT_FLAG.points']).toBe(9);
+    expect(a.reasons.map((x) => [x.code, x.weight])).toEqual([['EXCEPTION_CRITICAL', 5], ['DEVIATION', 4], ['NEW_OPERATOR', 2], ['OPEN_AUDIT_FLAG', 9]]);
+    // What a reader without ANALYTICS.DI_REVIEW is left with (the database takes the term's reason out, kernel 1281): the
+    // same three top reasons as when the term does not score at all.
+    const visible = a.reasons.filter((x) => x.code !== 'OPEN_AUDIT_FLAG').map((x) => x.code);
+    const without = only(input({ records: [record('a', { exceptionsCritical: 1, deviations: 1, newOperators: 1, corrections: 1 })] })).outputs[0]!;
+    expect(visible).toEqual(without.reasons.map((x) => x.code));
+    expect(visible).toHaveLength(P.topReasons);
+  });
+
   it('[DI-52] a hit whose audit-trail flag key QA found to be a false alarm no longer counts; a true signal or one not assessable still does (P6A5-2)', () => {
     const t = (min: number): string => new Date(Date.UTC(2026, 5, 3, 4, 30) + min * 60_000).toISOString();
     const entry = (id: string, batch: string): AuditEvent => ({

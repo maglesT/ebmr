@@ -6,9 +6,43 @@
  * refused scale reading claim) carries it as an action to run after the rollback (`afterRollback`); both wrappers
  * run it once the command's transaction has rolled back and its connection is released, under the same actor.
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type pg from 'pg';
 import { commands, identity, type ActorContext } from '@ebmr/kernel';
 import { HttpRefusal } from '../http/refusal.ts';
+
+/**
+ * What the commands of one request did (Phase 7 slice 7b-1, owner observation O-T13-1): a route commits its command and
+ * then reads its answer outside it; when only that read fails, the answer must not say "nothing was saved". The route
+ * binder (http/bind.ts) runs each handler in a scope; the two command wrappers below note in it whether the request's
+ * latest command committed (or was answered from a stored result) and under which idempotency key. A failure after a
+ * committed command is answered "Saved; the result could not be shown" with that key (bind.ts savedNotShown).
+ */
+export interface CommandScope {
+  /** The latest command of the request committed (or replayed a stored result), and nothing failed in a command after it. */
+  committed: boolean;
+  /** The idempotency key of that command (an idempotent command), or null. */
+  commandId: string | null;
+}
+
+const commandScope = new AsyncLocalStorage<CommandScope>();
+
+/** Runs `work` (a route handler) in a fresh command scope, which it returns with the result or the error. */
+export async function inCommandScope<T>(work: () => Promise<T>): Promise<{ scope: CommandScope; outcome: { ok: true; value: T } | { ok: false; error: unknown } }> {
+  const scope: CommandScope = { committed: false, commandId: null };
+  try {
+    return { scope, outcome: { ok: true, value: await commandScope.run(scope, work) } };
+  } catch (error) {
+    return { scope, outcome: { ok: false, error } };
+  }
+}
+
+function noteCommand(committed: boolean, commandId: string | null): void {
+  const scope = commandScope.getStore();
+  if (!scope) return;
+  scope.committed = committed;
+  scope.commandId = committed ? commandId : null;
+}
 
 /** Work a refusal leaves to be done after its command rolled back: typically a guarded command of its own under `actor`. */
 export type AfterRollback = (pool: pg.Pool, actor: ActorContext) => Promise<void>;
@@ -35,9 +69,12 @@ async function runAfterRollback(pool: pg.Pool, actor: ActorContext, error: unkno
 /** `withActorCommand` = identity.withGuardedCommand, then the refusal's after-rollback action, if any. */
 export async function withActorCommand<T>(pool: pg.Pool, actor: ActorContext, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
-    return await identity.withGuardedCommand(pool, actor, work);
+    const out = await identity.withGuardedCommand(pool, actor, work);
+    noteCommand(true, null);
+    return out;
   } catch (error) {
     await runAfterRollback(pool, actor, error);
+    noteCommand(false, null);
     throw error;
   }
 }
@@ -77,7 +114,7 @@ export async function withIdempotentActorCommand<T extends commands.JsonValue>(
   options: IdempotentOptions<T> = {},
 ): Promise<IdempotentResult<T>> {
   try {
-    return await identity.withGuardedCommand(pool, actor, async (client) => {
+    const out = await identity.withGuardedCommand(pool, actor, async (client) => {
       const { rows } = await client.query<{ claim: { status: 'NEW' | 'REPLAY'; result_json?: string } }>('select platform.claim_idempotency_key($1, $2) as claim', [key, requestHash]);
       const claim = rows[0]?.claim;
       if (!claim) throw new Error('platform.claim_idempotency_key returned nothing');
@@ -93,8 +130,11 @@ export async function withIdempotentActorCommand<T extends commands.JsonValue>(
       await client.query('select platform.complete_idempotency_key($1, $2)', [key, json]);
       return { result: JSON.parse(json) as T, replayed: false };
     });
+    noteCommand(true, key);
+    return out;
   } catch (error) {
     await runAfterRollback(pool, actor, error);
+    noteCommand(false, null);
     if (error instanceof HttpRefusal) throw error;
     throw commands.asKernelError(error);
   }

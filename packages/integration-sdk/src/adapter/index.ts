@@ -17,7 +17,7 @@ export { LIMS } from './systems/lims.ts';
 export { LMS } from './systems/lms.ts';
 export { CMMS } from './systems/cmms.ts';
 export { EMS, EMS_TAGS, type EmsTag } from './systems/ems.ts';
-export { ENDPOINT_LOCATION_NODE, EndpointCode, OpcuaEndpointSessionV1, opcuaSetpointNodeId, opcuaActiveAlarmsNodeId, opcuaEventsNodeId, OPCUA, OPCUA_NAMESPACE_URI, OPCUA_SECURITY_POLICIES, OPCUA_TAG_MAP, OpcuaEndpoint, RECIPE_VERSION_TAG, EQUIPMENT_DATA_REFUSALS, opcuaNodeId, parseOpcuaNodeId, type OpcuaTagEntry } from './systems/opcua.ts';
+export { ENDPOINT_LOCATION_NODE, EndpointCode, OpcuaEndpointSessionV1, opcuaSetpointNodeId, opcuaActiveAlarmsNodeId, opcuaEventsNodeId, OPCUA, OPCUA_NAMESPACE_URI, OPCUA_SECURITY_POLICIES, OPCUA_TAG_MAP, OpcuaEndpoint, RECIPE_VERSION_TAG, EQUIPMENT_DATA_REFUSALS, opcuaNodeId, parseOpcuaNodeId, SeriesGapV1, type OpcuaTagEntry } from './systems/opcua.ts';
 export { L3, L3_MIRROR_CLASS, L3AggregationV1, L3DecommissionTaskV1 } from './systems/l3.ts';
 
 import type { SourceSystem } from './envelope.ts';

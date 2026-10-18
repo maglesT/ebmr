@@ -35,6 +35,17 @@
  * Reconciliation (AdapterWorker.reconcile): the source's count and checksum of a closed period of source time,
  * submitted with platform.record_reconciliation; a message the eBMR neither accepted nor recorded as refused shows as a
  * RECONCILIATION_MISMATCH alarm (no silent loss).
+ *
+ * The reconciliation schedule (Phase 7 slice 7b-1, owner observation O-T12-1; DI-31): the worker reconciles every closed
+ * period itself (AdapterWorker.reconcileDue, from a cycle at most once a minute). A period is an hour of source time
+ * aligned to the hour (UTC epoch); it is closed once the database's clock (tab.now_micros, injectable for tests) has
+ * passed its end plus a grace of 10 minutes, so messages of the period still in flight arrive first. The worker starts
+ * after the last period the database holds a report for (platform.reconciliation_report), or at the hour of the adapter's
+ * registration, and submits each closed period in order, at most 24 a run (a backlog of periods catches up run by run);
+ * a report the source cannot give (TRANSPORT) ends the run and the period is asked again next time. It does not
+ * reconcile while it is working off a backlog of messages (not caught up but receiving): those periods would mismatch
+ * only because their messages are still queued; a source whose head stays ahead without delivering is reconciled, so
+ * what it never sends shows as a mismatch. The health page shows the last report (period, counts, matched).
  */
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -53,6 +64,7 @@ import {
 import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import type { AppContext } from '../../../platform/context.ts';
+import { dbNowUs } from '../../../platform/db/commands.ts';
 import { mtlsFetch, type FetchFn } from './transport.ts';
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -249,6 +261,43 @@ export interface CycleReport {
   after: string;
   /** The after-cycle work's failure, if any (retried next cycle). */
   afterCycleError?: string;
+  /** The closed periods reconciled this cycle (O-T12-1), when the schedule ran. */
+  reconciled?: ReconcileRun;
+}
+
+/** One reconciled period (epoch microseconds of source time, [from, to)). */
+export interface ReconciledPeriod {
+  from: string;
+  to: string;
+  reportId: string;
+  matched: boolean;
+}
+
+/** What one run of the reconciliation schedule did. */
+export interface ReconcileRun {
+  periods: ReconciledPeriod[];
+  /** Why the run stopped before the last closed period (the source or the database could not be reached), or null. */
+  error: string | null;
+}
+
+/** The reconciliation schedule (header): hourly periods, closed after a grace, at most `maxPeriods` a run. */
+export interface ReconcileSchedule {
+  periodUs: bigint;
+  graceUs: bigint;
+  maxPeriods: number;
+  /** Milliseconds between two runs started from cycles (the process's monotonic clock; operational only). */
+  everyMs: number;
+}
+
+export const RECONCILE_SCHEDULE: ReconcileSchedule = { periodUs: 3_600_000_000n, graceUs: 600_000_000n, maxPeriods: 24, everyMs: 60_000 };
+
+export interface AdapterWorkerOptions {
+  pageSize?: number;
+  maxPages?: number;
+  /** The database's clock in epoch microseconds (default tab.now_micros()); tests inject their own. */
+  nowUs?: () => Promise<bigint>;
+  /** The reconciliation schedule, or false for an adapter whose source has no reconciliation endpoint. */
+  reconcile?: Partial<ReconcileSchedule> | false;
 }
 
 export interface AdapterHealth {
@@ -294,15 +343,23 @@ export class AdapterWorker {
   private readonly refusedKeys = new Map<string, string>();
   /** The TLS peer of the page being handled (slice 7a), recorded with each of its messages; null over plain HTTP. */
   private pagePeer: string | null = null;
+  private readonly nowUs: () => Promise<bigint>;
+  private readonly schedule: ReconcileSchedule | null;
+  /** The end of the last period reconciled (epoch microseconds), read from the database at the first run. */
+  private reconciledTo: bigint | null = null;
+  /** performance.now() before which no cycle starts a reconciliation run (operational only). */
+  private nextReconcileAt = 0;
   readonly healthState: AdapterHealth;
 
-  constructor(pool: pg.Pool, def: AdapterDefinition, feed: FeedClient, openActor: () => Promise<ActorContext>, opts: { pageSize?: number; maxPages?: number } = {}) {
+  constructor(pool: pg.Pool, def: AdapterDefinition, feed: FeedClient, openActor: () => Promise<ActorContext>, opts: AdapterWorkerOptions = {}) {
     this.pool = pool;
     this.def = def;
     this.feed = feed;
     this.openActor = openActor;
     this.pageSize = opts.pageSize ?? 100;
     this.maxPages = opts.maxPages ?? 10;
+    this.nowUs = opts.nowUs ?? (() => dbNowUs(pool));
+    this.schedule = opts.reconcile === false ? null : { ...RECONCILE_SCHEDULE, ...(opts.reconcile ?? {}) };
     this.healthState = { code: def.code, system: def.system, state: 'IDLE', cursor: '0', head: null, cycles: 0, attempts: 0, lastError: null, accepted: 0, duplicates: 0, refused: 0 };
   }
 
@@ -385,6 +442,13 @@ export class AdapterWorker {
       this.healthState.state = kind === 'UNCLASSIFIED' ? 'BLOCKED' : 'RETRYING';
       this.healthState.lastError = message;
       this.notBefore = performance.now() + retryDelayMs(this.healthState.attempts);
+    }
+    // O-T12-1 (DI-31): the closed periods, at most once a minute, unless the source is unreachable or the worker is
+    // working off a backlog of messages (header).
+    const backlog = !report.caughtUp && report.received > 0;
+    if (this.schedule && report.stoppedBy === null && !backlog && performance.now() >= this.nextReconcileAt) {
+      this.nextReconcileAt = performance.now() + this.schedule.everyMs;
+      report.reconciled = await this.reconcileDue();
     }
     // The system's own work runs whatever happened to the feed (an ERP whose feed is cut may still take deliveries).
     if (this.def.afterCycle) {
@@ -470,6 +534,52 @@ export class AdapterWorker {
       const m = await c.query<{ matched: boolean }>('select matched from platform.reconciliation_report where id = $1', [id]);
       return { reportId: id, matched: m.rows[0]?.matched ?? false };
     });
+  }
+
+  /**
+   * Reconciles every closed period not yet reconciled, in order, at most `maxPeriods` (header, "The reconciliation
+   * schedule"). Never throws: a failure ends the run (the period is asked again next run) and is returned.
+   */
+  async reconcileDue(): Promise<ReconcileRun> {
+    const run: ReconcileRun = { periods: [], error: null };
+    const s = this.schedule;
+    if (!s) return run;
+    try {
+      const now = await this.nowUs();
+      const closedEnd = ((now - s.graceUs) / s.periodUs) * s.periodUs;
+      let from = this.reconciledTo ?? (await this.reconciledToInDatabase(s.periodUs));
+      while (run.periods.length < s.maxPeriods) {
+        const to = (from / s.periodUs) * s.periodUs + s.periodUs;
+        if (to > closedEnd) break;
+        const r = await this.reconcile(from, to);
+        run.periods.push({ from: from.toString(), to: to.toString(), reportId: r.reportId, matched: r.matched });
+        this.reconciledTo = to;
+        from = to;
+      }
+      this.reconciledTo = from;
+    } catch (error) {
+      run.error = error instanceof Error ? error.message : String(error);
+      // Review round 1 of 7b-1b (finding 4): the report may have committed even though its answer was lost (a connection
+      // cut after the commit); the next run starts again from the database's latest report, never from memory, so a
+      // period is never submitted twice.
+      this.reconciledTo = null;
+      if (!(error instanceof TransportError)) this.actor = null; // a lapsed or broken session is reopened next time
+      this.healthState.lastError = `reconciliation: ${run.error}`;
+    }
+    return run;
+  }
+
+  /** Where the schedule starts: the end of the latest report, or the start of the hour the adapter was registered in. */
+  private async reconciledToInDatabase(periodUs: bigint): Promise<bigint> {
+    const { rows } = await this.pool.query<{ last: string | null; registered: string }>(
+      `select (select (extract(epoch from max(r.period_to)) * 1000000)::bigint::text from platform.reconciliation_report r where r.adapter_code = a.code) as last,
+              (extract(epoch from a.registered_at) * 1000000)::bigint::text as registered
+       from iam.integration_adapter a where a.code = $1`,
+      [this.def.code],
+    );
+    const row = rows[0];
+    if (!row) throw new Error(`adapter ${this.def.code} is not registered`);
+    return row.last !== null ? BigInt(row.last) : (BigInt(row.registered) / periodUs) * periodUs;
   }
 
   /** Runs a cycle now and then every `intervalMs` (a failed cycle waits for its back-off). */
@@ -566,9 +676,18 @@ export function feedWorker(
   code: string,
   spec: FeedAdapterSpec,
   openActor: () => Promise<ActorContext>,
-  opts: { endpoint: string; timeoutMs?: number; fetchFn?: FetchFn; pageSize?: number } & AdapterTransportOptions,
+  opts: { endpoint: string; timeoutMs?: number; fetchFn?: FetchFn } & Pick<AdapterWorkerOptions, 'pageSize' | 'nowUs' | 'reconcile'> & AdapterTransportOptions,
 ): AdapterWorker {
   const fetchFn = opts.fetchFn ?? (opts.tls ? mtlsFetch(opts.tls) : undefined);
   const fetchOpts = { ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}), ...(fetchFn ? { fetchFn } : {}) };
-  return new AdapterWorker(pool, feedAdapterDefinition(code, spec), httpFeedClient(opts.endpoint, fetchOpts), openActor, opts.pageSize ? { pageSize: opts.pageSize } : {});
+  return new AdapterWorker(pool, feedAdapterDefinition(code, spec), httpFeedClient(opts.endpoint, fetchOpts), openActor, workerOptions(opts));
+}
+
+/** The worker options among a factory's options (only those given). */
+export function workerOptions(opts: Pick<AdapterWorkerOptions, 'pageSize' | 'nowUs' | 'reconcile'>): AdapterWorkerOptions {
+  return {
+    ...(opts.pageSize ? { pageSize: opts.pageSize } : {}),
+    ...(opts.nowUs ? { nowUs: opts.nowUs } : {}),
+    ...(opts.reconcile !== undefined ? { reconcile: opts.reconcile } : {}),
+  };
 }

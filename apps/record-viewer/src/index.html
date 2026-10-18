@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="%CSP%">
+<meta name="referrer" content="no-referrer">
+<title>Record viewer</title>
+<style>%STYLE%</style>
+</head>
+<body>
+<header class="top">
+  <h1>Record viewer</h1>
+  <p>Opens a full export of the installation and verifies it on this computer: every file against the export manifest, every audit trail from its first event, every signature against its seal. Nothing is shown until the checks are done, and a record that fails a check is not shown.</p>
+  <p class="readonly" data-testid="read-only">Read-only and offline: this page cannot change, sign or export anything, and it uses no network.</p>
+</header>
+<main>
+  <section class="open" aria-label="Open an export">
+    <label for="folder">Export folder</label>
+    <input id="folder" type="file" webkitdirectory multiple>
+    <label for="expected">Expected export SHA-256 (from the installation's export register; optional)</label>
+    <input id="expected" type="text" autocomplete="off" spellcheck="false" maxlength="64" placeholder="64 hexadecimal characters">
+  </section>
+  <div id="result" aria-live="polite"></div>
+</main>
+<script>%SCRIPT%</script>
+</body>
+</html>

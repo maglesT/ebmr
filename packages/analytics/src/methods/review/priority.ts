@@ -194,14 +194,25 @@ export function recordTerms(
   ];
 }
 
-/** The score and its top reasons: the larger points first, then the order of PRIORITY_TERMS. */
+/**
+ * The score and its top reasons: the larger points first, then the order of PRIORITY_TERMS. The top `topReasons` are
+ * chosen among the terms every reader sees; the audit-trail term (OPEN_AUDIT_FLAG), which only ANALYTICS.DI_REVIEW
+ * holders read (DI-53, kernel 1281), comes after them when it scores. So a reader without that permission, from whom
+ * the database leaves the term's reason out, still sees the same top reasons, and the count of reasons hints at nothing
+ * hidden (Phase 6A residual P6A7-6).
+ */
 export function scoreOf(terms: readonly TermScore[], p: ReviewPriorityParameters): { score: number; reasons: Reason[] } {
   const score = terms.reduce((s, t) => s + t.points, 0);
   const order = (t: TermScore): number => PRIORITY_TERMS.indexOf(t.term);
-  const reasons = terms.filter((t) => t.points > 0).sort((a, b) => b.points - a.points || order(a) - order(b)).slice(0, p.topReasons)
-    .map((t): Reason => ({ code: t.term, text: describe(t, p), weight: t.points, ...(t.evidence.length > 0 ? { evidence: t.evidence } : {}) }));
-  return { score, reasons };
+  const reason = (t: TermScore): Reason => ({ code: t.term, text: describe(t, p), weight: t.points, ...(t.evidence.length > 0 ? { evidence: t.evidence } : {}) });
+  const scoring = terms.filter((t) => t.points > 0);
+  const visible = scoring.filter((t) => t.term !== RESTRICTED_TERM).sort((a, b) => b.points - a.points || order(a) - order(b)).slice(0, p.topReasons);
+  const restricted = scoring.filter((t) => t.term === RESTRICTED_TERM);
+  return { score, reasons: [...visible, ...restricted].map(reason) };
 }
+
+/** The term whose reason only ANALYTICS.DI_REVIEW holders read (DI-53). */
+export const RESTRICTED_TERM: PriorityTerm = 'OPEN_AUDIT_FLAG';
 
 export function runReviewPriority(input: ReviewInput, p: ReviewPriorityParameters): MethodResult {
   const skipped: Skipped[] = [];

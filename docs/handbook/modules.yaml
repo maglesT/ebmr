@@ -53,7 +53,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_', '^1203_', '^1205_', '^1206_']
+      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_', '^1203_', '^1205_', '^1206_', '^1321_']
     src: [packages/kernel/src/esig]
     tests: ['packages/kernel/test/esig/**']
 
@@ -93,7 +93,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^04\d\d_']
+      packages/kernel/sql: ['^04\d\d_', '^133[56]_']
     src: [packages/kernel/src/records]
     tests: ['packages/kernel/test/records/**']
 
@@ -155,7 +155,7 @@ modules:
     page: modules/analytics.md
     package: packages/analytics
     migrations:
-      packages/kernel/sql: ['^124[0-4]_', '^128[0-9]_']
+      packages/kernel/sql: ['^124[0-4]_', '^128[0-9]_', '^1322_']
       packages/recipe-core/sql: ['^111[0-4]_']
       apps/tablets-server/sql: ['^133[0-4]_']
     contract:
@@ -270,7 +270,7 @@ modules:
     page: modules/integrations.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^118\d_', '^130[56]_']
+      packages/kernel/sql: ['^118\d_', '^130[56]_', '^1320_', '^132[89]_', '^1330_']
     tests: ['packages/kernel/test/inbound/**']
 
   - id: kernel-transfer
@@ -390,6 +390,8 @@ modules:
     title: Reporting views and change-impact DB tests (Phase 6 slice 6g)
     page: modules/recipe-core.md
     package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^1120_']
     tests: ['packages/site-services/test/reporting/**']
 
   - id: ss-receipt-erp-wms
@@ -397,7 +399,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^091\d_', '^1002_']
+      packages/site-services/sql: ['^091\d_', '^1002_', '^1110_']
     tests: ['packages/site-services/test/erp-wms/**']
 
   - id: ss-label-store
@@ -453,7 +455,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_']
+      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^123[2-5]_']
     tests: ['packages/recipe-core/test/integrations/plant-alarms-series.test.ts', 'packages/recipe-core/test/equipment-data/**', 'packages/recipe-core/test/plant-rules/**']
 
   - id: rc-mirrors
@@ -484,14 +486,14 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^109\d_']
+      packages/recipe-core/sql: ['^109\d_', '^1225_']
 
   - id: rc-reporting
     title: Reporting views and the change-impact query (Phase 6 slice 6g)
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^107\d_']
+      packages/recipe-core/sql: ['^107\d_', '^1240_']
 
   - id: rc-containers
     title: Output containers
@@ -899,7 +901,7 @@ modules:
     page: modules/integrations.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^140[56]_']
+      apps/tablets-server/sql: ['^140[56]_', '^1432_']
     server: [apps/tablets-server/src/features/integrations]
     contract: [packages/api-contract/src/ns/integrations.ts]
     screens: [apps/tablets-web/src/features/integrations]
@@ -995,7 +997,7 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^1275_', '^1276_']
+      apps/tablets-server/sql: ['^1275_', '^1276_', '^142[56]_']
     server: [apps/tablets-server/src/features/governance]
     contract: [packages/api-contract/src/ns/support.ts]
     screens: [apps/tablets-web/src/features/governance]
@@ -1210,6 +1212,13 @@ modules:
     src: [tools/handbook/src]
     tests: ['tools/handbook/test/**']
 
+  - id: tools-guides
+    title: User and administrator guide builder (Markdown to self-contained HTML and PDF; built in slice 7e)
+    page: modules/tools.md
+    package: tools/guides
+    src: [tools/guides/src]
+    tests: ['tools/guides/test/**']
+
   - id: tools-register
     title: Control register tooling
     page: modules/tools.md
@@ -1227,6 +1236,13 @@ modules:
     title: Validation pack tooling (evidence bundle, inventory, pack, IQ and OQ; built in slice 7c)
     page: modules/tools.md
     package: tools/validation
+
+  - id: record-viewer
+    title: Stand-alone record viewer (Phase 7 slice 7b-2) - offline page that verifies a full export and shows it read-only
+    page: modules/record-viewer.md
+    package: apps/record-viewer
+    src: [apps/record-viewer/src, apps/record-viewer/build.ts]
+    tests: ['apps/record-viewer/test/**']
 
   - id: tools-sql-mutation
     title: SQL mutation harness

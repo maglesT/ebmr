@@ -14,6 +14,7 @@ import type { TestDatabase } from '../../../../packages/kernel/test/support/db.t
 import { personaIn, startSigningServer } from '../esig/support.ts';
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
+import { tokenHash } from '../../src/platform/auth/session.ts';
 
 const S = routes.support;
 let server: TestServer;
@@ -130,9 +131,11 @@ describe('the India DSC step with a test CA over HTTP (IN-10)', () => {
     expect(enr).toMatchObject({ banner: esig.TEST_CA_BANNER, enrolments: [] });
     const enrolled = valueOf(await qa.call(routes.esig.enrolDsc, { body: { dsc: good(enr.statement ?? '') } }));
     expect(enrolled.enrolments).toEqual([expect.objectContaining({ live: true, leafSubject: expect.stringContaining('Meera Iyer') as unknown })]);
-    // Nobody else enrols the same certificate.
-    const enrOther = valueOf(await admin.call(routes.esig.dscEnrolment));
-    expect(codeOf(await admin.call(routes.esig.enrolDsc, { body: { dsc: good(enrOther.statement ?? '') } }))).toBe('EBMR-ESIG-086');
+    // Nobody else enrols the same certificate; an administrator enrols none at all (kernel 1321, 6jc-R6, DI-18).
+    const enrOther = valueOf(await it_.call(routes.esig.dscEnrolment));
+    expect(codeOf(await it_.call(routes.esig.enrolDsc, { body: { dsc: good(enrOther.statement ?? '') } }))).toBe('EBMR-ESIG-086');
+    const enrAdmin = valueOf(await admin.call(routes.esig.dscEnrolment));
+    expect(codeOf(await admin.call(routes.esig.enrolDsc, { body: { dsc: good(enrAdmin.statement ?? '') } }))).toBe('EBMR-IAM-042');
     const none = await sign(qa, act, creds, () => undefined);
     expect(none.banner).toBe(esig.TEST_CA_BANNER);
     expect(codeOf(none.result)).toBe('EBMR-ESIG-084');
@@ -198,4 +201,51 @@ describe('the contract giver\'s reviewer over HTTP (IN-30)', () => {
       "select count(*)::text as n from kernel.audit_event where payload -> 'actor' ->> 'account_id' = $1 and table_name not like 'iam.%' and table_name not like 'tab.%'", [reviewer.accountId]);
     expect(rows[0]?.n).toBe('0');
   }, 600_000);
+
+  it('[IN-30] the database\'s record reads refuse the contract giver\'s reviewer: its loan licence is read through its own logged reads only (6jc-R3, tablets 1425)', async () => {
+    const reviewer = await grantedPerson(server, 'CONTRACT_GIVER_REVIEWER', 'Contract Giver Reviewer');
+    const b = await loginOf(server, reviewer);
+    const hashOf = (x: TestBrowser): string => tokenHash(x.cookies.get(server.config.cookies.session) ?? '');
+    const problem = async (x: TestBrowser, type: string, id: string): Promise<string | null> =>
+      (await server.db.admin.query<{ p: string | null }>('select tab.record_read_problem(tab.reader_of($1), $2, $3) as p', [hashOf(x), type, id])).rows[0]?.p ?? null;
+    // The role holds RECORD.READ, but no RECORD-class or governance record is read here in it (a batch step, an MBR, an
+    // audit chain's record); QA reads the same record.
+    for (const type of ['batch_step', 'mbr_version', 'batch_review', 'deviation', 'di_investigation']) {
+      expect(await problem(b, type, randomUUID()), type).toMatch(/contract giver's reviewer reads only the batches of its loan licence, through its own logged reads \(IN-30\)/);
+    }
+    expect(await problem(qa, 'batch_step', randomUUID())).toBeNull();
+    // Through the application's own connection too (a direct call of the read definers, no route in between).
+    await expect(server.db.app.query('select * from tab.record_signatures($1, $2, $3)', [hashOf(b), 'mbr_version', randomUUID()])).rejects.toThrow(/EBMR-TAB-020/);
+  });
+
+  it('[IN-30] the database\'s audit-trail reads refuse the contract giver\'s reviewer: no chain, listing or entry outside its own logged reads; QA still reads (6jc-R3 round 1, tablets 1426)', async () => {
+    const reviewer = await grantedPerson(server, 'CONTRACT_GIVER_REVIEWER', 'Contract Giver Reviewer');
+    const b = await loginOf(server, reviewer);
+    const hashOf = (x: TestBrowser): string => tokenHash(x.cookies.get(server.config.cookies.session) ?? '');
+    // A RECORD-class chain QA may read (the role holds RECORD.READ, as the reviewer's does).
+    const { rows: chains } = await server.db.admin.query<{ k: string }>(
+      "select h.chain_key as k from kernel.audit_chain_head h where tab.audit_chain_class(h.chain_key) = 'RECORD' and tab.chain_read_problem(tab.reader_of($1), h.chain_key) is null order by h.chain_key limit 1",
+      [hashOf(qa)]);
+    const chain = chains[0]?.k;
+    if (!chain) throw new Error('no RECORD-class audit chain QA reads');
+    const problem = (x: TestBrowser) => server.db.admin.query<{ p: string | null }>('select tab.chain_read_problem(tab.reader_of($1), $2) as p', [hashOf(x), chain]).then((r) => r.rows[0]?.p ?? null);
+    expect(await problem(b)).toMatch(/contract giver's reviewer reads only the batches of its loan licence, through its own logged reads \(IN-30\)/);
+    expect(await problem(qa)).toBeNull();
+    // Through the application's own connection, each audit read the routes use.
+    const reads: [string, unknown[]][] = [
+      ['select * from tab.audit_events($1, null, null, null, null, null, null, null, 10)', []],
+      ['select * from tab.audit_events($1, $2, null, null, null, null, null, null, 10)', [chain]],
+      ['select * from tab.audit_chains($1, null, 10)', []],
+      ['select * from tab.audit_headless_chains($1, null)', []],
+      ['select tab.audit_chain_length($1, $2)', [chain]],
+      ['select * from tab.audit_verify_chain($1, $2)', [chain]],
+    ];
+    for (const [sql, rest] of reads) {
+      await expect(server.db.app.query(sql, [hashOf(b), ...rest]), sql).rejects.toThrow(/EBMR-TAB-020/);
+    }
+    // QA reads the same chain and the listings.
+    expect((await server.db.app.query('select * from tab.audit_events($1, $2, null, null, null, null, null, null, 10)', [hashOf(qa), chain])).rows.length).toBeGreaterThan(0);
+    expect((await server.db.app.query('select * from tab.audit_chains($1, null, 10)', [hashOf(qa)])).rows.length).toBeGreaterThan(0);
+    await server.db.app.query('select * from tab.audit_headless_chains($1, null)', [hashOf(qa)]);
+  });
 });

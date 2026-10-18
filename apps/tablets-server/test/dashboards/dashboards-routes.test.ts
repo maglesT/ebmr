@@ -6,7 +6,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildPath, routes, type AnyRoute } from '@ebmr/api-contract';
-import { refusalOf, valueOf } from '../esig/support.ts';
+import { personaIn, refusalOf, valueOf } from '../esig/support.ts';
+import { trainingAttemptOf } from '../../src/features/training/index.ts';
 import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
 
 let gmp: TestServer;
@@ -170,5 +171,21 @@ describe('training mode over HTTP (SANDBOX; DI-05)', () => {
     expect(rows[0]).toEqual({ who: 'ebmr_sandbox', kind: 'SANDBOX' });
     expect((await gmp.db.admin.query('select count(*)::int as n from sandbox.training_attempt')).rows[0]).toEqual({ n: 0 });
     expect((await sbx.db.admin.query('select count(*)::int as n from sandbox.training_attempt where id = $1', [started.attemptId])).rows[0]).toEqual({ n: 1 });
+  });
+
+  it('[DI-05] the training attempt read answers the person\'s own attempt only; another person\'s is refused as no attempt of theirs (6jc-R15)', async () => {
+    const started = valueOf(await trainee.call(routes.training.start, { body: { exerciseCode: 'EX-AUDIT-READ' } }));
+    const own = await trainingAttemptOf(sbx.built.ctx, sbx.db.app, started.attemptId, personaIn(sbx, 'head1').personId);
+    expect(own).toMatchObject({ attemptId: started.attemptId, exerciseCode: 'EX-AUDIT-READ' });
+    const refusedFor = async (personId: string, id: string) => {
+      try {
+        await trainingAttemptOf(sbx.built.ctx, sbx.db.app, id, personId);
+        return null;
+      } catch (error) {
+        return error as { statusCode?: number; refusal?: { code?: string } };
+      }
+    };
+    expect(await refusedFor(personaIn(sbx, 'qareviewer1').personId, started.attemptId)).toMatchObject({ refusal: { code: 'EBMR-SBX-040' } });
+    expect(await refusedFor(personaIn(sbx, 'head1').personId, randomUUID())).toMatchObject({ refusal: { code: 'EBMR-SBX-040' } });
   });
 });

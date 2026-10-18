@@ -99,6 +99,27 @@ export const NativeSample = z.strictObject({
 });
 export type NativeSample = z.infer<typeof NativeSample>;
 
+/**
+ * Phase 7 slice 7b-1 (6jc-R13, DI-32): the status of a sample whose value came without any OPC UA timestamp. OPC UA's
+ * Bad_InvalidTimestamp: the gateway dates such a sample when it received it and marks it BAD (it shows no value), never
+ * epoch 0.
+ */
+export const MISSING_TIMESTAMP_STATUS = '0x80230000';
+
+/**
+ * The skew the database allows between a source's clock and its own, both ways (recipe-core 0960 refuses a source time
+ * more than this ahead of the database clock; 7b-1 refuses one more than this before the endpoint session's start).
+ */
+export const SOURCE_TIME_SKEW_US = 300_000_000n;
+
+/**
+ * The default of the gateway's offline buffer (kernel 1330, setting integration.opcua_offline_buffer_s, 7 days): the
+ * oldest an OPC UA record may be before the endpoint session it stands on (recipe-core 1235). A value unchanged since
+ * before the session (the current value sent at subscription) or held while the gateway was down is genuine data within
+ * it; a time from a clock at 1970 is not.
+ */
+export const OPCUA_OFFLINE_BUFFER_US = 604_800_000_000n;
+
 /** Whose data a series, an alarm or an event is: a unit of plant.equipment or a room or line of plant.area. */
 export const SUBJECT_KINDS = ['EQUIPMENT', 'AREA'] as const;
 export const SubjectKind = z.enum(SUBJECT_KINDS);
