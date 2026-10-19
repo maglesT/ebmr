@@ -91,6 +91,11 @@ export interface StartStackOptions {
    * configuration (`pnpm demo`; the E2E stack runs the scale alone).
    */
   demoDevices?: boolean;
+  /**
+   * The public origins the browsers use, when a reverse proxy terminates HTTPS in front of the servers (the hosted
+   * demo); the servers still listen on `host` and their ports. Default: http://<host>:<port>.
+   */
+  publicOrigins?: { gmp: string; sandbox: string };
 }
 
 export interface RunningStack {
@@ -194,7 +199,7 @@ export function writeGatewayConfig(opts: StartStackOptions): string {
 
 export async function startStack(opts: StartStackOptions): Promise<RunningStack> {
   const host = opts.host ?? 'localhost';
-  const origins = { gmp: `http://${host}:${opts.ports.gmp}`, sandbox: `http://${host}:${opts.ports.sandbox}` };
+  const origins = opts.publicOrigins ?? { gmp: `http://${host}:${opts.ports.gmp}`, sandbox: `http://${host}:${opts.ports.sandbox}` };
   const processes: RunningProcess[] = [];
   const missing: string[] = [];
   const stop = async () => {
