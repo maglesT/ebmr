@@ -70,6 +70,7 @@ tests:
   - "apps/tablets-server/test/market/market-config-routes.test.ts > site values > [IN-52][ST-01][DI-09] the steward sets a tighter site value under an approved change record; a loosening of a guidance value needs a justification and QA's signature of exactly it; QA holds no MARKET.SITE_VALUE_SET"
   - "apps/tablets-web/test/market/market-screens.test.tsx > market policies > [INV-47][DI-09] lists a policy with its versions; a new version carries its change reference, change record and reason; a loosening first asks another person's approval through the ceremony"
   - "apps/tablets-web/test/market/market-screens.test.tsx > site values > [IN-52][ST-01][DI-09] previews a site value; a loosening with a justification offers QA's approval through the ceremony; the value is set under a change record"
+  - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-16][DI-18][DI-09] the administrator requests a permission for a role; the process owner approves it under the change record; the administrator removes it"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

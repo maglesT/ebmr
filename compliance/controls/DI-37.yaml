@@ -362,6 +362,8 @@ tests:
   - "apps/tablets-web/test/operations/wp2-operations.test.tsx > the restore procedure (DI-45) > [DI-45][DI-37] a named approver approves the restore through the ceremony (RESTORE_APPROVE); the operator is offered no approval; the administrator completes an approved restore"
   - "apps/tablets-server/test/market/market-config-routes.test.ts > the EU qualified-person register (QP_REGISTER) > [ST-10][DI-37] QA registers the EU QP on a registered importer's authorisation with QP_REGISTERED; a QA MBR approver may not sign it; nobody registers themselves; the same registration twice is refused"
   - "apps/tablets-server/test/market/market-config-routes.test.ts > compendial rule sets and reference documents > [IN-34][DI-37] QA records the verification of a rule set version against the official text and signs it (COMPENDIAL_RULE_SET_VERIFIED); a QA reviewer holds no MBR.APPROVE; another person cannot sign QA's verification"
+  - "apps/tablets-server/test/esig/signing-meanings-7g.test.ts > the signing meanings of slice 7g (tablets 1491, 1493, 1496, 1525) > [DI-37] every meaning a slice 7g work package added resolves for its record type, and is an active meaning type of the catalogue"
+  - "apps/tablets-server/test/esig/signing-meanings-7g.test.ts > decision D-P7R-6: the QP register and the compendial rule sets stay GOVERNANCE class > [DI-17][DI-37] a role with only RECORD.READ reads neither a qp_register nor a compendial_rule_set record; the QA MBR approver who signs a rule set reads it"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

@@ -138,6 +138,8 @@ tests:
   - "apps/tablets-server/test/transfers/identity-and-revocation.test.ts > the revocation of a trusted peer > [DI-31][DI-18] QA revokes an approved peer with the reason; the administrator may not; a peer not approved is refused, and so is a reason under 10 characters"
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > roles and people > [DI-18][DI-17] the administrator creates a role with no permission (its permissions are requested afterwards); a person who left is rehired with the reason"
   - "apps/tablets-web/test/operations/wp2-operations.test.tsx > the restore procedure (DI-45) > [DI-45][DI-18] the administrator secures the identifiers, then records the restore naming an approver who is never themself"
+  - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-16][DI-18][DI-09] the administrator requests a permission for a role; the process owner approves it under the change record; the administrator removes it"
+  - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [IN-05][DI-35][DI-18] the authorised person delegates the manufacturer release to a deputy; the process owner approves it; the delegator revokes it"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

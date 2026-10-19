@@ -441,6 +441,7 @@ tests:
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > an adapter's status and a peer's revocation > [DI-31] the administrator blocks an adapter with the reason on its page"
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > an adapter's status and a peer's revocation > [DI-31] QA revokes an approved peer with a reason of at least 10 characters"
   - "apps/tablets-web/test/operations/wp2-operations.test.tsx > this installation's identity (the first-run set-up's next step) > [DI-31] the administrator sets the identity from the server's key with the site and a reason; a sandbox has none"
+  - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-19][DI-20][DI-31] the administrator registers a kiosk and attests it, registers a balance and a gateway, enrols the gateway key, binds the balance behind it and binds an OPC UA adapter to the gateway feed"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

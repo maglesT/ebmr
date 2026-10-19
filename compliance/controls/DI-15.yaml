@@ -103,6 +103,8 @@ tests:
   - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-14][DI-15] the administrator records a person; an issued password is hidden until shown to its owner, then removed; the directory shows credentials as metadata only"
   - "apps/tablets-web/test/administration/governance.test.tsx > the US e-signature certification > [DI-15] the process owner records the letter; the page says whether a legal entity without one is blocked"
   - "apps/tablets-web/test/administration/governance.test.tsx > the US e-signature certification > [DI-15] the system administrator is not offered the record"
+  - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-14][DI-15][DI-16] the administrator creates a person and an account and requests a grant; the process owner approves it; the new person signs in, changes the password and works in the role"
+  - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-15] the process owner records the US e-signature certification letter; the page says a legal entity without one is blocked"
 clauses:
   - clause: "Create an account with a deactivated user's ID. Blocked."
     tests:

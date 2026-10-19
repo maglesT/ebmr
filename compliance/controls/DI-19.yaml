@@ -206,6 +206,7 @@ tests:
   - "apps/tablets-server/test/administration/wp2-routes.test.ts > the device configuration (deviceRegistry) > [DI-19][DI-17] the administrator sets the per-entry attribution of a kiosk class and revokes a kiosk's hardening attestation with the reason; the process owner may do neither"
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > security alerts (DI-19) > [DI-19] an alert about another person is acknowledged with a comment; an alert about the person signed in is not offered to them"
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > the device configuration > [DI-19][DI-20][DI-31] the administrator sets a kiosk class's attribution, revokes a hardening attestation, retires an OPC UA endpoint and links a process device to its unit, each with the reason"
+  - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-19][DI-20][DI-31] the administrator registers a kiosk and attests it, registers a balance and a gateway, enrols the gateway key, binds the balance behind it and binds an OPC UA adapter to the gateway feed"
 clauses:
   - clause: "Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time."
     tests:

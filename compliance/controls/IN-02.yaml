@@ -59,6 +59,7 @@ tests:
   - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > master records, quality and release > [IN-02] an evidence document is stored with its bytes; the database's SHA-256, size and id are shown"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > master records, quality and release > [IN-02] a file of a type the database does not store is not sent"
+  - "tools/e2e/specs/administration/screen-gaps.spec.ts > screens for the remaining routes (slice 7g-5) > [PR-43][IN-27][DI-08][IN-02] QA records a shelf-life basis and a hazard class, exports a report view, sees the reference documents, stores an evidence document and opens the equipment records"
 clauses:
   - clause: "classify a deviation as minor without a rationale; saving is refused."
     tests:

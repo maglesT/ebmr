@@ -70,6 +70,7 @@ tests:
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [DI-08] a report view is exported with the server's SHA-256, and the download is the text that hash covers"
   - "apps/tablets-server/test/validation/export-routes.test.ts > the full export (kernel 1335) > [DI-08] the CSV lead starts the full export as a background job; it is registered with the SHA-256 of its manifest, which the folder holds"
   - "apps/tablets-web/test/validation/exports.test.tsx > the full export > [DI-08] lists each export with its SHA-256; one is started with a reason and followed until its job has ended"
+  - "tools/e2e/specs/administration/screen-gaps.spec.ts > screens for the remaining routes (slice 7g-5) > [PR-43][IN-27][DI-08][IN-02] QA records a shelf-life basis and a hazard class, exports a report view, sees the reference documents, stores an evidence document and opens the equipment records"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
     tests:
