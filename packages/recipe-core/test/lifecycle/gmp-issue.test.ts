@@ -488,3 +488,156 @@ describe('plant and output containers on a GMP batch (DI-17, IN-21, IN-25; slice
     expect((await q<{ s: Json }>('select plant.batch_scope($1) as s', [done.batchId]))[0]?.s).toEqual({ product: m.product, site: SITE });
   });
 });
+
+describe('the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4)', () => {
+  /** A superuser change committed by another connection, with the database's triggers off (a writer that bypassed them). */
+  async function tamper(sqlText: string, params: unknown[]): Promise<void> {
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query(sqlText, params);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+  }
+  /**
+   * The issue as `issue` makes it, with `roles` in the request; `beforeIssue` runs (committed, from another connection)
+   * after recipe.begin_gmp_issue and before recipe.issue_gmp_execution in the issuing command, and `edit` changes the
+   * request the command hands the database.
+   */
+  function issueVia(who: SeededActor, batchId: string, signatureId: string, opts: { roles?: string[]; beforeIssue?: () => Promise<void>; edit?: (r: Json) => Json } = {}) {
+    return w.run(
+      who,
+      (c) => {
+        const client = new Proxy(c, {
+          get(target, prop, receiver) {
+            if (prop !== 'query') {
+              const v = Reflect.get(target, prop, receiver) as unknown;
+              return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(target) : v;
+            }
+            return async (text: unknown, params?: unknown[]) => {
+              if (typeof text === 'string' && text.includes('recipe.issue_gmp_execution') && params) {
+                await opts.beforeIssue?.();
+                // As the server derives engine roles (tab.engine_roles): the map's permission evaluated in this command at
+                // the actor's location (the issuer's session is at SITE-1, in no room).
+                if (opts.roles?.length) await target.query('select iam.require_permission($1, $2::jsonb)', ['BATCH.ISSUE', JSON.stringify({ site: SITE })]);
+                if (opts.edit) params = params.map((p, i) => (i === 3 ? JSON.stringify(opts.edit!(JSON.parse(String(p)) as Json)) : p));
+              }
+              return target.query(text as string, params);
+            };
+          },
+        }) as pg.PoolClient;
+        return execution.issueGmpBatch(client, {
+          batchId,
+          signatureId,
+          define: (content) => define(content, { installation: 'GMP', justifications: FIXTURE_JUSTIFICATIONS }),
+          request: { inputs: FIXTURE_INPUTS[FIXTURE], issuedBy: { id: who.personId, kind: 'PERSON', roles: opts.roles ?? [] } },
+        });
+      },
+      reason('batch issued for the test'),
+    );
+  }
+  const begin = (who: SeededActor, batchId: string) => w.run(who, (c) => c.query('select recipe.begin_gmp_issue($1)', [batchId]), reason('batch issued for the test'));
+  const message = async (p: Promise<unknown>): Promise<string> => p.then(() => 'ok', (e: unknown) => (e instanceof Error ? e.message : String(e)));
+  const NOT_PLANNED = /^There is no GMP batch planned with this id; .*\[EBMR-EXE-192\]$/;
+  let master: Awaited<ReturnType<typeof effectiveMaster>>;
+  async function planned(): Promise<{ batchId: string; signatureId: string; number: string }> {
+    master ??= await effectiveMaster(['IN']);
+    const batchId = randomUUID();
+    const p = await plan(w.cast.issuer, batchId, { familyId: master.familyId, markets: ['IN'] });
+    return { batchId, signatureId: await signIssue(w.cast.issuer, batchId), number: p.batchNumber };
+  }
+  const PARTS = [['link', 'recipe.batch_allocation_link'], ['pin', 'recipe.batch_mbr_pin'], ['control recipe', 'recipe.control_recipe']] as const;
+
+  it('[INV-01][DI-05] a planned batch missing its register link, its pin or its control recipe is not begun, and not issued when one goes between the two steps', async () => {
+    for (const [part, table] of PARTS) {
+      const a = await planned();
+      await tamper(`delete from ${table} where batch_id = $1`, [a.batchId]);
+      expect(await message(begin(w.cast.issuer, a.batchId)), `begin without its ${part}`).toMatch(NOT_PLANNED);
+      const b = await planned();
+      expect(await message(issueVia(w.cast.issuer, b.batchId, b.signatureId, { beforeIssue: () => tamper(`delete from ${table} where batch_id = $1`, [b.batchId]) })), `issue without its ${part}`)
+        .toMatch(NOT_PLANNED);
+      expect(await q('select 1 from recipe.batch_execution where id = any($1)', [[a.batchId, b.batchId]])).toEqual([]);
+    }
+  });
+
+  it('[INV-27][IN-18] the issue refuses a register link whose number changed after the issue began', async () => {
+    const a = await planned();
+    expect(await message(issueVia(w.cast.issuer, a.batchId, a.signatureId, { beforeIssue: () => tamper('update recipe.batch_allocation_link set batch_number = batch_number || $2 where batch_id = $1', [a.batchId, 'X']) })))
+      .toMatch(new RegExp(`^Batch number ${a.number} is not the number the site's register allocated for this batch .*\\[EBMR-EXE-191\\]$`));
+  });
+
+  it('[DI-03][INV-01] the issue itself refuses when the validation summary stops covering the release after the issue began', async () => {
+    const a = await planned();
+    const name = `9999_test_upgrade_${randomUUID().slice(0, 8)}.sql`;
+    try {
+      expect(await message(issueVia(w.cast.issuer, a.batchId, a.signatureId, {
+        beforeIssue: () => db.admin.query("insert into public.schema_migration (namespace, name, checksum) values ('recipe-core', $1, repeat('a', 64))", [name]).then(() => undefined),
+      }))).toMatch(/^EBMR-VAL-001 release .* has no approved validation summary/);
+    } finally {
+      await db.admin.query("delete from public.schema_migration where namespace = 'recipe-core' and name = $1", [name]);
+    }
+    expect(await q('select 1 from recipe.batch_execution where id = $1', [a.batchId])).toEqual([]);
+  });
+
+  it('[DI-34] a planned batch that is no longer PLANNED is not begun, even with no execution yet', async () => {
+    const a = await planned();
+    await tamper("update recipe.stub_batch set status = 'CANCELLED' where id = $1", [a.batchId]);
+    expect(await message(begin(w.cast.issuer, a.batchId))).toMatch(/is CANCELLED; a GMP batch is issued once \(DI-34\)\. \[EBMR-EXE-197\]$/);
+  });
+
+  it('[DI-34] a batch id planned already is not planned again', async () => {
+    const a = await planned();
+    expect(await message(plan(w.cast.issuer, a.batchId, { familyId: master.familyId, markets: ['IN'] })))
+      .toMatch(/^A batch with this id exists already; a batch is planned and issued once \(DI-34\)\. \[EBMR-EXE-197\]$/);
+  });
+
+  it('[DI-35][DI-14] the issue function itself refuses an ISSUED signature of another person, before the row guard does', async () => {
+    const a = await planned();
+    const byOther = await signIssue(issuer2, a.batchId);
+    expect(await message(issueVia(w.cast.issuer, a.batchId, byOther)))
+      .toMatch(/^The ISSUED signature of batch \S+ is another person's; the person who issues the batch signs it \(DI-35, DI-14\)\. \[EBMR-EXE-193\]$/);
+  });
+
+  it('[INV-01][DI-17] a batch planned for one site is not issued from a session at another site', async () => {
+    const a = await planned();
+    const byOther = await signIssue(issuer2, a.batchId);
+    await tamper("update iam.session set site_code = 'SITE-2' where id = $1", [issuer2.sessionId]);
+    try {
+      expect(await message(issueVia(issuer2, a.batchId, byOther)))
+        .toMatch(/^Batch \S+ is planned for site SITE-1; it is issued at that site, not at SITE-2 \(INV-01\)\. \[EBMR-EXE-194\]$/);
+    } finally {
+      await tamper('update iam.session set site_code = $2 where id = $1', [issuer2.sessionId, SITE]);
+    }
+    expect(await q('select 1 from recipe.batch_execution where id = $1', [a.batchId])).toEqual([]);
+  });
+
+  it('[DI-14] the issue request must name this batch: a request naming another batch id is refused', async () => {
+    const a = await planned();
+    expect(await message(issueVia(w.cast.issuer, a.batchId, a.signatureId, { edit: (r) => ({ ...r, batchId: randomUUID() }) })))
+      .toMatch(/^The issue request names another person, batch or number than this command \(DI-14\)\. \[EBMR-EXE-015\]$/);
+  });
+
+  it('[INV-26][DI-17][D4] an engine role in the issue request is given only through a map row of the declared role whose permission this command evaluated; the evidence is stored', async () => {
+    // Each request below is made in a command that evaluated BATCH.ISSUE at the actor's location (as the server does).
+    // As an edition's release would (apps/tablets-server/test/execution/db-guards-issuer.test.ts for the sandbox issue):
+    // the issuing role gets an engine role through BATCH.ISSUE, and another kernel role one through the same permission.
+    await tamper("insert into recipe.engine_role_permission (engine_role, permission) values ('BATCH_ISSUER', 'BATCH.ISSUE'), ('ISSUE_OF_ANOTHER_ROLE', 'BATCH.ISSUE')", []);
+    await tamper(`insert into recipe.engine_role_map (kernel_role, engine_role, via_permission)
+                  values ('BATCH_ISSUER', 'BATCH_ISSUER', 'BATCH.ISSUE'), ('HEAD_OF_PRODUCTION', 'ISSUE_OF_ANOTHER_ROLE', 'BATCH.ISSUE')`, []);
+    for (const role of ['ISSUE_OF_ANOTHER_ROLE', 'NO_SUCH_ENGINE_ROLE', 'PRODUCTION_SUPERVISOR']) {
+      const a = await planned();
+      expect(await message(issueVia(w.cast.issuer, a.batchId, a.signatureId, { roles: [role] })), role)
+        .toMatch(new RegExp(`^The issue request gives the issuer engine role ${role} without a stored authority evaluation .*\\[EBMR-EXE-037\\]$`));
+    }
+    const ok = await planned();
+    await issueVia(w.cast.issuer, ok.batchId, ok.signatureId, { roles: ['BATCH_ISSUER'] });
+    const roles = (await q<{ roles: Json[] }>('select roles from recipe.execution_command where batch_id = $1 and seq = 1', [ok.batchId]))[0]?.roles ?? [];
+    expect(roles.map((r) => [r['role'], r['permission']])).toEqual([['BATCH_ISSUER', 'BATCH.ISSUE']]);
+    const ev = (await q<{ p: string; c: string }>('select person_id::text as p, correlation_id::text as c from iam.authority_evaluation where id = $1', [roles[0]?.['evaluationId']]))[0];
+    const exe = (await q<{ c: string }>('select correlation_id::text as c from recipe.batch_execution where id = $1', [ok.batchId]))[0];
+    expect(ev).toEqual({ p: w.cast.issuer.personId, c: exe?.c });
+  });
+});
