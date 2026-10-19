@@ -66,6 +66,8 @@
  * Phase 6 slice 6i (site services 0981, kernel 1220; ns/transfers.ts):
  *  - TRANSFER_RECEIPT_DECIDE   transfer_receipt <receipt id>   TRANSFER_RECEIPT_ACCEPTED or _REFUSED (local QA), state RECEIVED
  *  - PEER_INSTALLATION_APPROVE peer_installation <peer id>     PEER_INSTALLATION_APPROVED (QA), state PROPOSED
+ * Phase 7 slice 7g, work package 2 (kernel 0600, 0720; ns/operations.ts):
+ *  - RESTORE_APPROVE  restore_event <restore event id>  RESTORE_APPROVED (a named approver, never the operator), state RECORDED
  * Phase 4 slice 6c (recipe-core 0910; ns/pqr.ts):
  *  - PQR_SIGN_OFF  pqr_extract <extract id>  PQR_SIGNED_OFF (AP, outside the reviewed batches' records), state EXTRACTED
  * Phase 4 slice 6b (kernel 1170, 1171; ns/archive.ts):
@@ -470,7 +472,7 @@ export const SignableAction = z.discriminatedUnion('kind', [
   // replaces its placeholder with the real payload and registers the server handler; until then no handler is
   // registered, so the server refuses a signature for any of them.
   //  WP1: VALIDATION_SUMMARY_APPROVE, EVALUATION_PACK_APPROVE, RECORDS_ACT
-  //  WP2: RESTORE_APPROVE
+  //  WP2: RESTORE_APPROVE (replaced: the restore event's id)
   //  WP3: QP_REGISTER, RULE_SET_VERIFY, MARKET_LOOSENING
   //  WP4: LOT_DESTRUCTION_WITNESS
   // WP1 (slice 7g-3, ns/validation.ts; kernel 1300, 1336, 0400, 0440, 0430):
@@ -494,7 +496,15 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['RECORD_TYPE_APPROVE', 'DISPOSAL_APPROVE', 'DI_INVESTIGATION_CLOSE']),
     input: RecordsActInput,
   }),
-  z.strictObject({ /** WP2 placeholder. */ kind: z.literal('RESTORE_APPROVE'), subjectId: Uuid }),
+  z.strictObject({
+    /**
+     * Phase 7 slice 7g, work package 2 (kernel 0600, 0720; DI-45, DI-18, DI-37): a person named as approver when the restore
+     * was recorded approves it with their own RESTORE_APPROVED signature of the event as hashed; never the operator, never
+     * an administrator (continuity.approve_restore_event).
+     */
+    kind: z.literal('RESTORE_APPROVE'),
+    restoreEventId: Uuid,
+  }),
   z.strictObject({ /** WP3 placeholder. */ kind: z.literal('QP_REGISTER'), subjectId: Uuid }),
   z.strictObject({ /** WP3 placeholder. */ kind: z.literal('RULE_SET_VERIFY'), subjectId: Uuid }),
   z.strictObject({ /** WP3 placeholder. */ kind: z.literal('MARKET_LOOSENING'), subjectId: Uuid }),

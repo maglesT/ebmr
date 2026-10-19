@@ -14,6 +14,14 @@ export const GRANT_READS: readonly string[] = [routes.people.grants.id, routes.p
 export const RECERT_READS: readonly string[] = [routes.people.recertification.id, routes.people.grants.id, routes.people.directory.id];
 export const BREAK_GLASS_READS: readonly string[] = [routes.people.breakGlass.id];
 export const DEVICE_READS: readonly string[] = [routes.deviceRegistry.list.id];
+// Slice 7g, work package 2.
+export const ALERT_READS: readonly string[] = [routes.people.alerts.id];
+export const QUALIFICATION_READS: readonly string[] = [routes.people.qualifications.id];
+export const DEVICE_CONFIGURATION_READS: readonly string[] = [routes.deviceRegistry.configuration.id, routes.deviceRegistry.list.id];
+/** Roles offered the training coordinator's acts on the qualification matrix (TRAINING.MANAGE). */
+export const TRAINING_COORDINATORS = /^TRAINING_COORDINATOR$/;
+/** Roles offered the kiosk attribution setting (IAM.POLICY_MANAGE) and the hardening revocation (CONTINUITY.HARDENING_ATTEST). */
+export const POLICY_MANAGERS = /^SYSTEM_ADMINISTRATOR$/;
 
 /** Roles offered the administrator's acts (IAM.PERSON_MANAGE, ACCOUNT_MANAGE, CREDENTIAL_ISSUE, GRANT_REQUEST, DEVICE_MANAGE). */
 export const ADMINISTRATORS = /^(SYSTEM_ADMINISTRATOR)$/;

@@ -256,6 +256,172 @@ export const SimulatorsView = z.strictObject({
 });
 export type SimulatorsView = z.infer<typeof SimulatorsView>;
 
+// ------------------------------------------------------------------------------------------------ continuity alarms
+
+export const ContinuityAlarmView = z.strictObject({
+  alarmId: Uuid,
+  /** BACKUP_JOB_FAILED, RESTORE_DRILL_FAILED, UPGRADE_DRILL_FAILED, HARDENING_CHECK_FAILED, AUDIT_CHAIN_BROKEN, ... */
+  code: z.string(),
+  severity: z.enum(['CRITICAL', 'HIGH', 'WARNING']),
+  subject: z.string(),
+  /** The alarm's details as recorded (JSON text). */
+  details: z.string(),
+  raisedAt: Instant,
+  acknowledgement: z.strictObject({ by: z.string(), comment: z.string(), at: Instant }).nullable(),
+});
+export type ContinuityAlarmView = z.infer<typeof ContinuityAlarmView>;
+
+// ------------------------------------------------------------------------------------------------ restore procedure
+
+export const RestoreEventKind = z.enum(['FULL_RESTORE', 'POINT_IN_TIME_RESTORE', 'FAILOVER', 'CLUSTER_MIGRATION']);
+export type RestoreEventKind = z.infer<typeof RestoreEventKind>;
+
+/** One identifier source moved past the external ledger's high-water mark (continuity.sequence_bump). */
+export const RestoreMoveView = z.strictObject({
+  sequenceKey: z.string(),
+  sourceKind: z.enum(['PG_SEQUENCE', 'COUNTER']),
+  valueBefore: WholeText,
+  externalValue: WholeText.nullable(),
+  valueAfter: WholeText,
+});
+export type RestoreMoveView = z.infer<typeof RestoreMoveView>;
+
+export const RestoreEventView = z.strictObject({
+  restoreEventId: Uuid,
+  eventKind: RestoreEventKind,
+  backupId: z.string().nullable(),
+  backupTakenAt: Instant.nullable(),
+  restorePoint: Instant.nullable(),
+  performedAt: Instant,
+  reason: z.string(),
+  changeReference: z.string(),
+  operatorPersonId: Uuid,
+  operator: z.string(),
+  /** The persons named to approve, in order, each with the time of their approval once given. */
+  approvers: z.array(z.strictObject({ personId: Uuid, legalName: z.string(), approvedAt: Instant.nullable() })),
+  /** RECORDED until every named approver approved, then APPROVED, then COMPLETED. */
+  status: z.enum(['RECORDED', 'APPROVED', 'COMPLETED']),
+  /** The SHA-256 of the event as recorded, which each approval signs (hex). */
+  contentHash: z.string(),
+  /** The external anchors the database found discardable (history after the restore point). */
+  discardedAnchorIds: z.array(z.string()),
+  affectedChainKeys: z.array(z.string()),
+  anchorComparison: z.array(z.strictObject({ anchorId: z.string(), status: z.enum(['MATCH', 'DISCARDABLE', 'UNEXPLAINED']), problems: z.array(z.string()) })),
+  recordedAt: Instant,
+  completedAt: Instant.nullable(),
+  /** The moves of the completion (empty before it). */
+  moves: z.array(RestoreMoveView),
+});
+export type RestoreEventView = z.infer<typeof RestoreEventView>;
+
+export const RestoreView = z.strictObject({
+  /** The server can run the restore procedure: it holds the external continuity ledger (EBMR_NUMBER_LEDGER_FILE). */
+  configured: z.boolean(),
+  problem: z.string().nullable(),
+  /** This database's incarnation (a restored, copied or failed-over database has a new one). */
+  incarnation: z.string(),
+  /** False in a restored, copied or failed-over database until its identifiers are secured (nothing else is written before). */
+  identifiersSecured: z.boolean(),
+  events: z.array(RestoreEventView),
+  /** Persons who may be named as approvers (a live grant of a role holding CONTINUITY.RESTORE_APPROVE). */
+  approverCandidates: z.array(z.strictObject({ personId: Uuid, legalName: z.string() })),
+});
+export type RestoreView = z.infer<typeof RestoreView>;
+
+const IsoTime = z.iso.datetime({ offset: true });
+
+// ------------------------------------------------------------------------------------------------ drills and hardening
+
+export const DrillJobView = z.strictObject({
+  state: z.enum(['IDLE', 'RUNNING', 'DONE', 'FAILED']),
+  kind: z.enum(['RESTORE', 'UPGRADE']).nullable(),
+  step: z.string().nullable(),
+  error: z.string().nullable(),
+  elapsedSeconds: WholeText.nullable(),
+});
+export type DrillJobView = z.infer<typeof DrillJobView>;
+
+export const RestoreDrillView = z.strictObject({
+  drillId: z.string(),
+  sourceDatabase: z.string(),
+  restoredDatabase: z.string(),
+  backupSha256: z.string().nullable(),
+  result: z.enum(['PASS', 'FAIL']),
+  failures: z.array(z.string()),
+  tablesCompared: WholeText,
+  tablesMatching: WholeText,
+  chainsVerified: WholeText,
+  reportSha256: z.string(),
+  reportUri: z.string(),
+  startedAt: Instant,
+  finishedAt: Instant,
+  recordedAt: Instant,
+});
+export type RestoreDrillView = z.infer<typeof RestoreDrillView>;
+
+export const UpgradeDrillView = z.strictObject({
+  drillId: z.string(),
+  requestId: Uuid,
+  sourceDatabase: z.string(),
+  fromRelease: z.string(),
+  result: z.enum(['PASS', 'FAIL']),
+  failures: z.array(z.string()),
+  tablesCompared: WholeText,
+  tablesChanged: WholeText,
+  chainsVerified: WholeText,
+  migrationsApplied: WholeText,
+  reportSha256: z.string(),
+  reportUri: z.string(),
+  recordedAt: Instant,
+});
+export type UpgradeDrillView = z.infer<typeof UpgradeDrillView>;
+
+export const DrillRequestView = z.strictObject({
+  requestId: Uuid,
+  kind: z.enum(['RESTORE', 'UPGRADE']),
+  reason: z.string(),
+  sourceDatabase: z.string().nullable(),
+  by: z.string(),
+  recordedAt: Instant,
+});
+
+export const HardeningCheckView = z.strictObject({
+  id: z.string(),
+  area: z.string(),
+  title: z.string(),
+  status: z.enum(['PASS', 'FAIL', 'WARN', 'NOT_APPLICABLE']),
+  evidence: z.string(),
+});
+export type HardeningCheckView = z.infer<typeof HardeningCheckView>;
+
+export const HardeningRunView = z.strictObject({
+  checkRunId: Uuid,
+  result: z.enum(['PASS', 'FAIL']),
+  checks: z.array(HardeningCheckView),
+  reportSha256: z.string(),
+  reason: z.string(),
+  by: z.string(),
+  recordedAt: Instant,
+});
+export type HardeningRunView = z.infer<typeof HardeningRunView>;
+
+/** Whether this server can run one kind of drill or check from the screen, and why not. */
+const Runnable = z.strictObject({ runnable: z.boolean(), problem: z.string().nullable() });
+
+export const DrillsView = z.strictObject({
+  installation: InstallationKind,
+  restore: Runnable,
+  /** Decision D-P7R-4: never runnable on a GMP installation (the screen shows the records only). */
+  upgrade: Runnable,
+  hardening: Runnable,
+  job: DrillJobView,
+  restoreDrills: z.array(RestoreDrillView),
+  upgradeDrills: z.array(UpgradeDrillView),
+  requests: z.array(DrillRequestView),
+  hardeningChecks: z.array(HardeningRunView),
+});
+export type DrillsView = z.infer<typeof DrillsView>;
+
 export const operations = {
   setupState: defineRoute({
     id: 'operations.setupState',
@@ -407,5 +573,124 @@ export const operations = {
     params: z.strictObject({ simulator: SimulatorCode }),
     body: z.strictObject({ fault: z.string().regex(/^[A-Z][A-Z_]{1,40}$/), on: z.boolean(), reason: ReasonText }),
     response: SimulatorView,
+  }),
+  // Phase 7 slice 7g, work package 2: continuity alarms, the restore procedure, the drills and the hardening check.
+  alarms: defineRoute({
+    id: 'operations.alarms',
+    method: 'GET',
+    path: '/api/operations/alarms',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The continuity alarms (backup, drill, hardening and audit-chain alarms), open first, with their acknowledgements',
+    response: z.strictObject({ alarms: z.array(ContinuityAlarmView) }),
+  }),
+  acknowledgeAlarm: defineRoute({
+    id: 'operations.acknowledgeAlarm',
+    method: 'POST',
+    path: '/api/operations/alarms/:alarmId/acknowledgement',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Acknowledge a continuity alarm with a comment (CONTINUITY.ALARM_ACKNOWLEDGE); an alarm is acknowledged once',
+    params: z.strictObject({ alarmId: Uuid }),
+    body: z.strictObject({ comment: ReasonText }),
+    response: ContinuityAlarmView,
+  }),
+  restore: defineRoute({
+    id: 'operations.restore',
+    method: 'GET',
+    path: '/api/operations/restore',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The restore procedure of this database: its incarnation, whether its identifiers are secured, every restore event with its approvals (CONTINUITY.RESTORE_OPERATE or RESTORE_APPROVE)',
+    response: RestoreView,
+  }),
+  secureIdentifiers: defineRoute({
+    id: 'operations.secureIdentifiers',
+    method: 'POST',
+    path: '/api/operations/restore/identifiers',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'First step in a restored, copied or failed-over database: every protected identifier moves past the external ledger and its login names are reserved (CONTINUITY.RESTORE_OPERATE)',
+    body: z.strictObject({ reason: ReasonText }),
+    response: z.strictObject({ moves: z.array(RestoreMoveView) }),
+  }),
+  recordRestoreEvent: defineRoute({
+    id: 'operations.recordRestoreEvent',
+    method: 'POST',
+    path: '/api/operations/restore/events',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Record a restore or failover with its change record and named approvers; the database compares the external anchors itself (CONTINUITY.RESTORE_OPERATE)',
+    body: z.strictObject({
+      eventKind: RestoreEventKind,
+      backupId: z.string().trim().regex(/^[A-Za-z0-9._:-]{1,128}$/).optional(),
+      backupTakenAt: IsoTime.optional(),
+      restorePoint: IsoTime.optional(),
+      performedAt: IsoTime,
+      reason: ReasonText,
+      changeReference: z.string().trim().min(1).max(200),
+      approverPersonIds: z.array(Uuid).min(1).max(5),
+    }),
+    response: RestoreEventView,
+  }),
+  completeRestore: defineRoute({
+    id: 'operations.completeRestore',
+    method: 'POST',
+    path: '/api/operations/restore/events/:restoreEventId/completion',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Complete an approved restore: every protected source moves past the external ledger and number issue resumes (CONTINUITY.RESTORE_OPERATE)',
+    params: z.strictObject({ restoreEventId: Uuid }),
+    body: z.strictObject({ reason: ReasonText }),
+    response: z.strictObject({ event: RestoreEventView, moves: z.array(RestoreMoveView) }),
+  }),
+  drills: defineRoute({
+    id: 'operations.drills',
+    method: 'GET',
+    path: '/api/operations/drills',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The restore and upgrade drill records, the hardening checks, what this server can run and the job in progress (CONTINUITY.BACKUP_READ)',
+    response: DrillsView,
+  }),
+  runRestoreDrill: defineRoute({
+    id: 'operations.runRestoreDrill',
+    method: 'POST',
+    path: '/api/operations/drills/restore',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'A restore drill now: a backup restored into an isolated database and compared, recorded by the backup service identity (CONTINUITY.BACKUP_RUN)',
+    body: z.strictObject({ reason: ReasonText }),
+    response: z.strictObject({ requestId: Uuid, job: DrillJobView }),
+  }),
+  runUpgradeDrill: defineRoute({
+    id: 'operations.runUpgradeDrill',
+    method: 'POST',
+    path: '/api/operations/drills/upgrade',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'An upgrade drill on a copy of a database at an earlier release (sandbox or staging only, D-P7R-4; CONTINUITY.BACKUP_RUN)',
+    body: z.strictObject({ reason: ReasonText, sourceDatabase: DatabaseName, fromRelease: z.string().trim().min(1).max(200) }),
+    response: z.strictObject({ requestId: Uuid, job: DrillJobView }),
+  }),
+  runHardeningCheck: defineRoute({
+    id: 'operations.runHardeningCheck',
+    method: 'POST',
+    path: '/api/operations/hardening',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'The installation hardening check now (PostgreSQL settings, client authentication, roles, demo traces, the server configuration, open ports), recorded (PLATFORM.OPERATE)',
+    body: z.strictObject({ reason: ReasonText, allowedPorts: z.array(z.string().regex(/^[1-9][0-9]{0,4}$/)).max(32) }),
+    response: HardeningRunView,
   }),
 } as const;

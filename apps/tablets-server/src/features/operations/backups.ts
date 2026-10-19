@@ -27,13 +27,13 @@ export const BACKUP_TERMINALS = { GMP: 'SRV-BACKUP-01', SANDBOX: 'TEST-SRV-BACKU
 /** The largest artefact the screen hands over (larger ones are fetched from the backup store). */
 export const MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024;
 
-interface BackupIdentity {
+export interface BackupIdentity {
   loginName: string;
   serviceKey: string;
   fingerprint: string;
 }
 
-function backupIdentityOf(app: AppContext): BackupIdentity | null {
+export function backupIdentityOf(app: AppContext): BackupIdentity | null {
   const file = app.config.serviceKeysFile;
   if (!file || !existsSync(file)) return null;
   const parsed = JSON.parse(readFileSync(file, 'utf8')) as { services?: { terminal: string; loginName: string; serviceKey: string; fingerprint?: string | null; terminalKey?: { fingerprint?: string } | null }[] };
@@ -120,8 +120,16 @@ export function assertBackupRunnable(app: AppContext, tier: 'RETENTION_GRADE' | 
   if (problem) throw notConfigured(problem);
 }
 
-/** The backup service identity's SYSTEM context (SERVICE_ACCOUNT holds CONTINUITY.BACKUP_RECORD, kernel 0700). */
-async function backupServiceActor(app: AppContext, who: BackupIdentity, requestId: string): Promise<ActorContext & { deviceId: string }> {
+/**
+ * The backup service identity's SYSTEM context (SERVICE_ACCOUNT holds CONTINUITY.BACKUP_RECORD, kernel 0700); the drills
+ * (drills.ts) record theirs with it too, under their own reason.
+ */
+export async function backupServiceActor(
+  app: AppContext,
+  who: BackupIdentity,
+  requestId: string,
+  reason: { code: string; text: string } = { code: 'BACKUP_REQUEST', text: `backup requested from the operations screen (request ${requestId})` },
+): Promise<ActorContext & { deviceId: string }> {
   const siteZone = app.siteZone.current();
   const ev = await identity.authenticate(app.pools.authn, { method: 'SERVICE_KEY', identifier: who.loginName, secret: who.serviceKey, deviceFingerprint: who.fingerprint, purpose: 'LOGIN' });
   const s = await identity.openSession(app.pools.app, ev.authEventId, who.fingerprint);
@@ -133,7 +141,7 @@ async function backupServiceActor(app: AppContext, who: BackupIdentity, requestI
   if (!p) throw new Error(`the backup service account ${who.loginName} does not exist`);
   return {
     personId: p.person_id, accountId: p.account_id, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'SYSTEM', siteZone,
-    legalName: p.legal_name, reasonCode: 'BACKUP_REQUEST', reasonText: `backup requested from the operations screen (request ${requestId})`,
+    legalName: p.legal_name, reasonCode: reason.code, reasonText: reason.text,
   };
 }
 

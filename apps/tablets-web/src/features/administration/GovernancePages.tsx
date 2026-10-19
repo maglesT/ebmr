@@ -48,6 +48,7 @@ export function RolePermissionsPage() {
         never combines administration and GMP permissions. A role&apos;s permissions are configuration: an approval and a removal are written under a change record QA has approved.
       </p>
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      {offeredTo(role, ADMINISTRATORS) ? <CreateRole /> : null}
       {offeredTo(role, ADMINISTRATORS) && q.data ? <RequestRolePermission data={q.data} /> : null}
       <Section title="Waiting for a decision" testId="role-permission-requested">
         {q.data && open.length === 0 ? <p>No request is waiting.</p> : null}
@@ -390,5 +391,56 @@ function RecordCertification() {
       />
       <ActResult error={record.error} done={record.done} label="The letter is recorded." />
     </Section>
+  );
+}
+
+const ROLE_GROUPS = ['MASTER_RECORDS', 'EXECUTION', 'QUALITY_RELEASE', 'ADMINISTRATION_SECURITY'] as const;
+const ACCOUNT_KINDS = ['HUMAN', 'SERVICE', 'INTEGRATION', 'READONLY_DISPLAY'] as const;
+
+/**
+ * Slice 7g, work package 2: a customer role is created with no permission (iam.create_role: IAM.ROLE_MANAGE); each of its
+ * permissions is then requested here and approved by a second person under a change record.
+ */
+function CreateRole() {
+  const create = useCommand(routes.people.createRole, [...ROLE_PERMISSION_READS, routes.people.grants.id], 'creating a role');
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [group, setGroup] = useState('');
+  const [description, setDescription] = useState('');
+  const [kinds, setKinds] = useState<string[]>(['HUMAN']);
+  const [reason, setReason] = useState('');
+  const [changeRecord, setChangeRecord] = useState('');
+  const g = ROLE_GROUPS.find((x) => x === group);
+  const cr = changeRecord.trim();
+  const ok = /^[A-Z][A-Z0-9_]{1,63}$/.test(code.trim()) && name.trim() !== '' && g !== undefined && description.trim() !== '' && kinds.length > 0 && reason.trim() !== '' && cr !== '';
+  return (
+    <details data-testid="role-create">
+      <summary style={SUMMARY_STYLE}>Create a role</summary>
+      <p>A role is configuration: it is created under a change record QA has approved. It starts with no permission; request each permission for it below, and a second person approves it.</p>
+      <Row>
+        <Field name="role-code" label="Code (e.g. LINE_SUPERVISOR)" value={code} onChange={(x) => setCode(x.toUpperCase())} />
+        <Field name="role-name" label="Name" value={name} onChange={setName} />
+      </Row>
+      <Select name="role-group" label="Group" value={group} onChange={setGroup} options={ROLE_GROUPS.map((x) => ({ value: x, label: words(x) }))} />
+      <Field name="role-description" label="Description" value={description} onChange={setDescription} />
+      <fieldset>
+        <legend>Account kinds that may hold it</legend>
+        {ACCOUNT_KINDS.map((k) => (
+          <Check key={k} name={`role-kind-${k}`} label={words(k)} checked={kinds.includes(k)} onChange={(on) => setKinds((x) => (on ? [...x, k] : x.filter((y) => y !== k)))} />
+        ))}
+      </fieldset>
+      <Field name="role-reason" label="Reason" value={reason} onChange={setReason} />
+      <Field name="role-change-record" label="Change record approved for roles" value={changeRecord} onChange={setChangeRecord} />
+      <ActButton
+        label="Create the role"
+        disabled={!ok || create.busy}
+        onPress={() =>
+          g
+            ? create.run({ body: { code: code.trim(), name: name.trim(), group: g, description: description.trim(), accountKinds: ACCOUNT_KINDS.filter((k) => kinds.includes(k)), reason: reason.trim(), changeRecord: cr } })
+            : null
+        }
+      />
+      <ActResult error={create.error} done={create.done} label="The role is created, with no permission yet." />
+    </details>
   );
 }

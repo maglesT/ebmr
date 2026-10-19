@@ -133,6 +133,11 @@ tests:
   - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [DI-35][DI-18] an approver who is not involved approves; the database's refusal is shown in its words"
   - "apps/tablets-server/test/validation/records-register-routes.test.ts > record types (kernel 0400) > [DI-18] the system administrator does not define record types (administrators are independent of GMP records)"
   - "apps/tablets-server/test/validation/validation-routes.test.ts > the system description (kernel 1300) > [DI-18] the system administrator does not describe interfaces (administrators are independent of GMP records)"
+  - "apps/tablets-server/test/administration/wp2-routes.test.ts > security alerts, roles, rehiring (people) > [DI-18][DI-17] the administrator creates a role with no permission; a permission for it is only requested, and a second person decides it; QA may not create a role"
+  - "apps/tablets-server/test/operations/restore-and-alarms.test.ts > the restore procedure (DI-45) > [DI-45][DI-18][DI-37] the administrator records the restore naming a QA approver, never themself; only the named approver approves it with their own signature, never the administrator; then the administrator completes it and the ledger holds both"
+  - "apps/tablets-server/test/transfers/identity-and-revocation.test.ts > the revocation of a trusted peer > [DI-31][DI-18] QA revokes an approved peer with the reason; the administrator may not; a peer not approved is refused, and so is a reason under 10 characters"
+  - "apps/tablets-web/test/administration/wp2-administration.test.tsx > roles and people > [DI-18][DI-17] the administrator creates a role with no permission (its permissions are requested afterwards); a person who left is rehired with the reason"
+  - "apps/tablets-web/test/operations/wp2-operations.test.tsx > the restore procedure (DI-45) > [DI-45][DI-18] the administrator secures the identifiers, then records the restore naming an approver who is never themself"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

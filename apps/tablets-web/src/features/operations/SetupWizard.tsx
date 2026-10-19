@@ -57,6 +57,12 @@ export function SetupWizard() {
           </p>
           <p>{done.sealKeyId ? `The e-signature seal key ${done.sealKeyId} was generated and registered.` : 'No seal key was generated: signatures are refused until one is configured.'}</p>
           <p>Next: the administrator registers the terminals and the people (requests their roles), and the process owner approves the role grants.</p>
+          {sandbox ? null : (
+            <p data-testid="setup-next-identity">
+              On this GMP installation the administrator then sets the installation&apos;s identity, its code and key, on Operations, &quot;This installation&apos;s identity&quot;
+              (/operations/installation), the set-up&apos;s last step.
+            </p>
+          )}
         </Banner>
         <Button variant="primary" onPress={() => boot.restart()}>
           Go to the sign-in

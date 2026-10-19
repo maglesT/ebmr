@@ -6,6 +6,11 @@ export const DEMO_READS = [O.demo.id, O.demoJob.id] as const;
 export const BACKUP_READS = [O.backups.id] as const;
 export const WORKER_READS = [O.workers.id, routes.integrations.adapters.id, routes.integrations.adapter.id] as const;
 export const SIMULATOR_READS = [O.simulators.id] as const;
+// Slice 7g, work package 2.
+export const RESTORE_READS = [O.restore.id] as const;
+export const DRILL_READS = [O.drills.id, O.alarms.id] as const;
+export const ALARM_READS = [O.alarms.id] as const;
+export const IDENTITY_READS = [routes.transfers.peers.id] as const;
 
 /** A byte count as people read it (1 024 bytes a KiB), from whole-number text. */
 export function bytes(text: string): string {

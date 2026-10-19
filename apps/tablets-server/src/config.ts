@@ -120,6 +120,12 @@ export const EnvSchema = z.object({
   EBMR_VALIDATION_BUNDLE: z.string().optional(),
   EBMR_EXPORT_DIR: z.string().optional(),
   EBMR_DB_REPORT_URL: z.string().optional(),
+  /**
+   * Phase 7 slice 7g, work package 2: the login the installation hardening check reads PostgreSQL's settings, client
+   * authentication rules and roles with (a monitoring role: pg_read_all_settings and pg_read_all_data, or a superuser on
+   * a sandbox); default EBMR_PG_ADMIN_URL. Without either the screen runs no hardening check.
+   */
+  EBMR_HARDENING_DB_URL: z.string().optional(),
 });
 
 /** What the environment configures (parseConfig). */
@@ -170,6 +176,8 @@ export interface EnvConfig {
   backup: { dir: string; keyFile: string | null; keyRef: string; sourceUrl: string | null } | null;
   /** Phase 7 slice 7g-3: the shipped evidence bundle, the full-export folder and the reporting login (null: not configured). */
   validation: { bundleFile: string | null; exportDir: string; reportUrl: string | null };
+  /** Slice 7g, work package 2: the hardening check's database login (EBMR_HARDENING_DB_URL, else EBMR_PG_ADMIN_URL), or null. */
+  hardeningDbUrl: string | null;
 }
 
 /** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
@@ -222,7 +230,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   // Slice 7d (P7D-6; DI-13, security-baseline.md a): a production database URL must authenticate the server over TLS
   // (sslmode=verify-full; verify-ca and require pass with a warning), as the kernel's baseline rules say.
   if (production) {
-    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL };
+    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL, EBMR_HARDENING_DB_URL: e.EBMR_HARDENING_DB_URL };
     const socket = { allowLocalSocket: e.EBMR_DB_ALLOW_LOCAL_SOCKET };
     const refused = Object.entries(urls).flatMap(([name, url]) => (url ? continuity.checkDatabaseUrl(url, name, socket).filter((f) => f.severity === 'ERROR') : []));
     if (refused.length > 0) throw new ConfigError(`EBMR_ENV=production refuses a database connection without verified TLS: ${refused.map((f) => `${f.code} ${f.path}: ${f.message}`).join('; ')} (DI-13)`);
@@ -289,6 +297,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     logPretty: e.EBMR_LOG_PRETTY,
     cookies: cookieNames(e.EBMR_INSTALLATION, https),
     adminUrl: e.EBMR_PG_ADMIN_URL ?? null,
+    hardeningDbUrl: e.EBMR_HARDENING_DB_URL ?? e.EBMR_PG_ADMIN_URL ?? null,
     keysDir: e.EBMR_KEYS_DIR ?? (e.EBMR_DEMO_KEYS_FILE ? dirname(e.EBMR_DEMO_KEYS_FILE) : null),
     backup: e.EBMR_BACKUP_DIR
       ? {

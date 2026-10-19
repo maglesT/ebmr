@@ -1599,4 +1599,12 @@ export const TARGETS: Target[] = [
     tests: [s('validation/records-register-routes.test.ts')],
     threshold: 90,
   },
+  // Phase 7 slice 7g, work package 2: drill requests and records, hardening checks (kernel 1395), and the restore and
+  // drill reads by permission (tablets 1525).
+  {
+    group: 'operations-drills-restore',
+    functions: ['continuity.request_drill', 'continuity.record_upgrade_drill', 'continuity.record_hardening_check', 'tab.restore_overview', 'tab.drill_overview'],
+    tests: [s('operations/drills.test.ts'), s('operations/restore-and-alarms.test.ts')],
+    threshold: 90,
+  },
 ];

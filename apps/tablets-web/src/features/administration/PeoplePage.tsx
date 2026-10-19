@@ -89,6 +89,7 @@ function PersonCard({ p, role, technologies }: { p: PersonView; role: string | n
       {admin && p.status === 'ACTIVE' ? <CreateAccount p={p} /> : null}
       {admin && p.status === 'ACTIVE' ? <Rename p={p} /> : null}
       {admin && p.status === 'ACTIVE' && p.kind === 'NATURAL' ? <Leaver p={p} /> : null}
+      {admin && p.status === 'LEFT' ? <Rehire p={p} /> : null}
     </li>
   );
 }
@@ -316,6 +317,21 @@ function Leaver({ p }: { p: PersonView }) {
       <Field name={`leaver-${p.personId}`} label="Reason" value={reason} onChange={setReason} />
       <ActButton label={`Process ${p.legalName} as a leaver`} primary={false} disabled={reason.trim() === '' || leave.busy} onPress={() => leave.run({ params: { personId: p.personId }, body: { reason: reason.trim() } })} />
       <ActResult error={leave.error} done={leave.done} label="Processed as a leaver." />
+    </details>
+  );
+}
+
+/** Slice 7g, work package 2: a person who left is rehired (iam.rehire_person); a REHIRE identity check comes next. */
+function Rehire({ p }: { p: PersonView }) {
+  const rehire = useCommand(routes.people.rehirePerson, PEOPLE_READS);
+  const [reason, setReason] = useState('');
+  return (
+    <details>
+      <summary style={SUMMARY_STYLE}>Rehire {p.legalName}</summary>
+      <p>The person is active again; record a new identity check (purpose Rehire) before any account is opened or used again. The old accounts stay disabled.</p>
+      <Field name={`rehire-${p.personId}`} label="Reason" value={reason} onChange={setReason} />
+      <ActButton label={`Rehire ${p.legalName}`} primary={false} disabled={reason.trim() === '' || rehire.busy} onPress={() => rehire.run({ params: { personId: p.personId }, body: { reason: reason.trim() } })} />
+      <ActResult error={rehire.error} done={rehire.done} label="Rehired: record the identity check next." />
     </details>
   );
 }

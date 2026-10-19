@@ -23,8 +23,20 @@ import { compact } from '../common/people.ts';
 import { certificationStatus, certificationViews, delegableMeanings, delegationViews, personOfLogin, requestViews, roleApprovesDelegations, rolePermissionsView } from './governance.ts';
 import { adapterViews, bindingViews, DEVICE_REASON, gatewayKeyViews, oneAdapter, oneTerminal, registryView } from './devices.ts';
 import {
+  ALERT_READERS,
+  alertViews,
+  deviceConfigurationView,
+  oneAlert,
+  oneOpcuaEndpoint,
+  oneRequirement,
+  QUALIFICATION_READERS,
+  qualificationsView,
+  qualificationTypes,
+} from './configuration.ts';
+import {
   ACCESS_REASON,
   ADMIN_READERS,
+  roleOptions as roleList,
   badgeTechnologies,
   grantViews,
   issueSecret,
@@ -264,6 +276,56 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       });
       return oneWindow(app, pool, params.windowId);
     },
+    // Slice 7g, work package 2.
+    alerts: async ({ requireRole }) => {
+      requireRole(...ALERT_READERS);
+      return { alerts: await alertViews(app, pool) };
+    },
+    acknowledgeAlert: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: 'SECURITY_ALERT', reasonText: body.comment }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.acknowledge_alert($1, $2)', [params.alertId, body.comment]);
+      });
+      return oneAlert(app, pool, params.alertId);
+    },
+    createRole: async ({ body, actor, idempotencyKey, requestHash }) => {
+      // The role is created with no permission; each is then requested and approved by a second person (slice 7g-5).
+      const who = { ...actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), changeRecord: body.changeRecord };
+      await act(pool, who, idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.create_role($1, $2, $3, $4, $5::text[])', [body.code, body.name, body.group, body.description, body.accountKinds]);
+      });
+      return one((await roleList(pool)).filter((r) => r.code === body.code), 'role');
+    },
+    rehirePerson: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.rehire_person($1, $2)', [params.personId, body.reason]);
+      });
+      return onePerson(app, pool, params.personId);
+    },
+    qualifications: async ({ requireRole }) => {
+      requireRole(...QUALIFICATION_READERS);
+      return qualificationsView(app, pool);
+    },
+    createQualificationType: async ({ body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: 'TRAINING_MATRIX', reasonText: `qualification type ${body.code}` }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.create_qualification_type($1, $2, $3)', [body.code, body.name, body.description]);
+      });
+      return one(await qualificationTypes(pool, body.code), 'qualification type');
+    },
+    addQualificationRequirement: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const id = await act(pool, actor({ reasonCode: 'TRAINING_MATRIX', reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        const { rows } = await c.query<{ id: string }>('select iam.add_qualification_requirement($1, $2, $3, $4::jsonb, $5)::text as id', [
+          body.qualificationCode, body.roleCode ?? null, body.permissionCode ?? null, JSON.stringify(compact(body.scope)), body.reason,
+        ]);
+        return rows[0]?.id ?? null;
+      });
+      return oneRequirement(app, pool, id ?? '');
+    },
+    endQualificationRequirement: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: 'TRAINING_MATRIX', reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.end_qualification_requirement($1)', [params.requirementId]);
+      });
+      return oneRequirement(app, pool, params.requirementId);
+    },
   });
 
   const D = routes.deviceRegistry;
@@ -360,6 +422,49 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return rows[0]?.id ?? null;
       });
       return one(await adapterViews(app, pool, body.code), 'adapter');
+    },
+    // Slice 7g, work package 2.
+    configuration: async ({ requireRole }) => {
+      requireRole(...ADMIN_READERS);
+      return deviceConfigurationView(app, pool);
+    },
+    setAttributionMethod: async ({ body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: DEVICE_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select tab.set_attribution_method($1, $2, $3)', [body.deviceClass, body.method, body.reason]);
+      });
+      return deviceConfigurationView(app, pool);
+    },
+    revokeHardening: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: DEVICE_REASON, reasonText: body.reason }), idempotencyKey, requestHash, (c) => continuity.revokeHardeningAttestation(c, params.attestationId, body.reason));
+      const device = await pool.query<{ device_id: string }>('select device_id from continuity.device_hardening_attestation where id = $1', [params.attestationId]);
+      const deviceId = device.rows[0]?.device_id;
+      if (!deviceId) throw notFound('hardening attestation');
+      return oneTerminal(app, pool, deviceId);
+    },
+    enrolOpcuaEndpoint: async ({ body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: DEVICE_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select plant.enrol_opcua_endpoint($1, $2, $3, $4::text[], $5)', [body.deviceCode, body.endpointUrl, body.securityPolicy, body.equipmentCodes, body.reason]);
+      });
+      return oneOpcuaEndpoint(app, pool, body.deviceCode);
+    },
+    retireOpcuaEndpoint: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: DEVICE_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select plant.retire_opcua_endpoint($1, $2)', [params.deviceCode, body.reason]);
+      });
+      return oneOpcuaEndpoint(app, pool, params.deviceCode);
+    },
+    linkProcessDeviceUnit: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await act(pool, actor({ reasonCode: DEVICE_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select tab.link_process_device_unit($1, $2)', [params.bindingId, body.equipmentCode]);
+      });
+      return deviceConfigurationView(app, pool);
+    },
+    setAdapterStatus: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      // The database checks the right first; an unknown code reaches it as no adapter (EBMR-INT-016).
+      await act(pool, actor({ reasonCode: DEVICE_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.set_integration_adapter_status((select id from iam.integration_adapter where code = $1), $2, $3)', [params.adapterCode, body.status, body.reason]);
+      });
+      return oneAdapter(app, pool, params.adapterCode);
     },
   });
 

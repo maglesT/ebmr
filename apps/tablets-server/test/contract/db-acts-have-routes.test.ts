@@ -39,13 +39,7 @@ const SERVICE_OR_INTERNAL: Readonly<Record<string, string>> = {
 /** Persons' acts whose screens later parts of slice 7g build (each removed by the slice that adds its route and screen). */
 const PENDING_7G: Readonly<Record<string, string>> = {
   // WP1 (validation, export, records): none
-  // WP2 (continuity, platform, access configuration)
-  'continuity.after_restore': '7g-4: backups and restore (the completion of a restore)',
-  'continuity.approve_restore_event': '7g-4: backups and restore (the second person\'s approval of a restore)',
-  'continuity.record_restore_event': '7g-4: backups and restore (the record of a restore with its external anchors)',
-  'continuity.secure_identifiers': '7g-4: backups and restore (identifiers moved past the external high-water marks before work resumes)',
-  'iam.set_integration_adapter_status': '7g-4: adapters started and stopped (an integration adapter\'s status)',
-  'platform.set_installation_identity': '7g-4: the first-run set-up (this installation\'s code and key)',
+  // WP2 (continuity, platform, access configuration): none
   // WP3 (master record, market and plant configuration): none
   // WP4 (floor, materials, batch numbers): none
 };
@@ -53,20 +47,7 @@ const PENDING_7G: Readonly<Record<string, string>> = {
 /** Persons' acts this test found with no route and no screen, that no part of slice 7g names yet (defect log 7g5-1). */
 const NO_ROUTE_YET: Readonly<Record<string, string>> = {
   // WP1 (validation, export, records): none
-  // WP2 (continuity, platform, access configuration)
-  'continuity.acknowledge_alarm': 'acknowledging a continuity alarm (backup, clock and audit-chain alarms; CONTINUITY.ALARM_ACKNOWLEDGE)',
-  'continuity.revoke_hardening_attestation': 'revoking a kiosk hardening attestation (the device screen of 7g-1 records one)',
-  'iam.acknowledge_alert': 'acknowledging a security alert (DI-19: acknowledgement tracked, unanswered alerts escalate)',
-  'iam.add_qualification_requirement': 'a qualification an act or role requires (TRAINING.MANAGE)',
-  'iam.create_qualification_type': 'a qualification type of the matrix (TRAINING.MANAGE; area authorisations have their own route)',
-  'iam.create_role': 'a customer role (IAM.ROLE_MANAGE); its permissions then follow the role-permission requests of slice 7g-5',
-  'iam.end_qualification_requirement': 'ending a qualification requirement (TRAINING.MANAGE)',
-  'iam.rehire_person': 'rehiring a person who left (IAM.PERSON_MANAGE; a new identity check follows)',
-  'plant.enrol_opcua_endpoint': 'enrolling an OPC UA endpoint\'s identity (IAM.DEVICE_MANAGE)',
-  'plant.retire_opcua_endpoint': 'retiring an OPC UA endpoint (IAM.DEVICE_MANAGE)',
-  'platform.revoke_peer_installation': 'revoking a trusted peer installation (TRANSFER.PEER_APPROVE); the proposal and approval have screens',
-  'tab.link_process_device_unit': 'linking a process device to its plant unit',
-  'tab.set_attribution_method': 'the per-entry attribution of a device class (IAM.POLICY_MANAGE; decision D8)',
+  // WP2 (continuity, platform, access configuration): none
   // WP3 (master record, market and plant configuration)
   'market.apply_policy_tightening': 'applying a tightened market policy to an issued batch (MARKET.POLICY_TIGHTEN_BATCH)',
   'market.define_policy': 'defining a market policy (the kernel\'s market policies)',

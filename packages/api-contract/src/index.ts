@@ -366,4 +366,16 @@ export {
   SimulatorsView,
   WorkerView,
   WorkersView,
+  // Phase 7 slice 7g, work package 2.
+  ContinuityAlarmView,
+  DrillJobView,
+  DrillsView,
+  HardeningCheckView,
+  HardeningRunView,
+  RestoreDrillView,
+  RestoreEventKind,
+  RestoreEventView,
+  RestoreMoveView,
+  RestoreView,
+  UpgradeDrillView,
 } from './ns/operations.ts';

@@ -1,6 +1,6 @@
 /**
  * One adapter (Phase 6 slice 6a; DI-31): its health, the newest accepted messages, the newest refusals (each with its
- * alarm), and its reconciliation reports.
+ * alarm), and its reconciliation reports. Slice 7g work package 2: its registration status (AdapterStatusPanel.tsx).
  */
 import { routes } from '@ebmr/api-contract';
 import { StatusChip } from '@ebmr/ui-kit';
@@ -8,6 +8,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { useRouteParams } from '../floor/params.ts';
 import { Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { AdapterStatusPanel } from './AdapterStatusPanel.tsx';
 import { age, freshnessText, words } from './reads.ts';
 
 export function AdapterPage() {
@@ -38,6 +39,7 @@ export function AdapterPage() {
           </li>
         ))}
       </ul>
+      <AdapterStatusPanel adapterCode={h.adapterCode} status={h.status} />
       <Section title="Messages accepted (newest first)" testId="adapter-messages">
         <table>
           <thead>

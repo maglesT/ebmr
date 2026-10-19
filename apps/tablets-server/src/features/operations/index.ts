@@ -8,21 +8,49 @@
  */
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
-import { routes, type DemoView, type SimulatorsView } from '@ebmr/api-contract';
+import { routes, type ContinuityAlarmView, type DemoView, type SimulatorsView } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
 import type { ActorContext } from '@ebmr/kernel';
 import type { AppContext } from '../../platform/context.ts';
+import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { assertBackupRunnable, backupFile, backupsView, requestedRun, runRequestedBackup } from './backups.ts';
 import { DemoJobs, recreateInstallation } from './demo.ts';
+import { assertDrillRunnable, DRILL_REASON, DrillJobs, drillsView, runHardeningCheck, startRestoreDrill, startUpgradeDrill } from './drills.ts';
 import { OPERATIONS_GUIDANCE } from './guidance.ts';
+import { completeRestore, recordRestoreEvent, RESTORE_REASON, restoreApproveHandler, restoreView, secureIdentifiers } from './restore.ts';
 import { runSetup, setupState } from './setup.ts';
 import { SimulatorManager, SimulatorRefusal } from './simulators.ts';
 import { ANALYTICS_WORKER, controlWorker, workerRefused, workersView, workerView } from './workers.ts';
 
 export const guidance = OPERATIONS_GUIDANCE;
+
+/** Slice 7g work package 2: the second person's approval of a restore (RESTORE_APPROVE), on both installations. */
+export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
+  registry.register(restoreApproveHandler(app));
+}
+
+/** The roles that read the continuity alarms: those who acknowledge them or read the backups (kernel 0600, 1376). */
+const ALARM_READERS = ['SYSTEM_ADMINISTRATOR', 'PROCESS_OWNER', 'QA_REVIEWER'] as const;
+
+/** The continuity alarms, open first, newest first within each (the last 100), or the one alarm `alarmId`. */
+async function alarmViews(app: AppContext, alarmId?: string): Promise<ContinuityAlarmView[]> {
+  const { rows } = await app.pools.app.query<{ id: string; code: string; severity: ContinuityAlarmView['severity']; subject: string; details: unknown; us: string; ack: { by: string; comment: string; us: string } | null }>(
+    `select a.id, a.alarm_code as code, a.severity, a.subject, a.details, (extract(epoch from a.recorded_at) * 1000000)::bigint::text as us,
+            (select jsonb_build_object('by', coalesce(p.legal_name, '(unknown)'), 'comment', k.comment, 'us', (extract(epoch from k.recorded_at) * 1000000)::bigint::text)
+               from continuity.alarm_acknowledgement k left join iam.person p on p.id = k.acknowledged_by_person_id where k.alarm_id = a.id) as ack
+       from continuity.alarm a
+      where $1::uuid is null or a.id = $1::uuid
+      order by (exists (select 1 from continuity.alarm_acknowledgement k where k.alarm_id = a.id)), a.recorded_at desc, a.id limit 100`,
+    [alarmId ?? null],
+  );
+  return rows.map((r) => ({
+    alarmId: r.id, code: r.code, severity: r.severity, subject: r.subject, details: JSON.stringify(r.details ?? {}), raisedAt: app.formatInstant(r.us),
+    acknowledgement: r.ack ? { by: r.ack.by, comment: r.ack.comment, at: app.formatInstant(r.ack.us) } : null,
+  }));
+}
 
 /** The first-run set-up's rate limit per address (the token is long and single-use; this keeps guessing slow too). */
 export const SETUP_RATE_LIMIT = { max: 10, timeWindow: '1 minute' } as const;
@@ -90,10 +118,12 @@ async function simulatorsView(app: AppContext, sims: SimulatorManager): Promise<
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
   const jobs = new DemoJobs();
+  const drillJobs = new DrillJobs();
   const sims = new SimulatorManager(join(app.config.exchangeDir, 'simulators'));
   scope.addHook('onClose', async () => {
     await sims.stopAll();
     await jobs.settled(120_000);
+    await drillJobs.settled(120_000);
   });
 
   /** Records a demo convenience (tablets 1485: refused on GMP unless a demo installation, then PLATFORM.OPERATE). */
@@ -120,6 +150,17 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     if (!app.config.adminUrl || !app.operations.demoTooling) throw demoNotPossible('This server has no administration connection (EBMR_PG_ADMIN_URL), so it cannot recreate its database.');
     if (jobs.running()) throw demoNotPossible('A demo load or reset is already running.');
   };
+
+  /**
+   * A drill request (continuity.request_drill: CONTINUITY.BACKUP_RUN; an upgrade drill refused on a GMP installation,
+   * EBMR-OPS-041), then whether this server can run it: a refusal of either records nothing.
+   */
+  const requestDrillChecked = async (who: ActorContext, kind: 'RESTORE' | 'UPGRADE', reason: string, sourceDatabase: string | null): Promise<string> =>
+    withActorCommand(pool, who, async (c) => {
+      const { rows } = await c.query<{ id: string }>('select continuity.request_drill($1, $2, $3)::text as id', [kind, reason, sourceDatabase]);
+      assertDrillRunnable(app, drillJobs, kind);
+      return rows[0]?.id ?? '';
+    });
 
   bindRoutes(
     scope,
@@ -205,6 +246,42 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           if (e instanceof SimulatorRefusal) throw simulatorRefused(e.message);
           throw e;
         }
+      },
+      alarms: async ({ requireRole }) => {
+        requireRole(...ALARM_READERS);
+        return { alarms: await alarmViews(app) };
+      },
+      acknowledgeAlarm: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+        await withIdempotentActorCommand(pool, actor({ reasonCode: 'ALARM_ACKNOWLEDGEMENT', reasonText: body.comment }), idempotencyKey ?? '', requestHash, async (c) => {
+          await c.query('select continuity.acknowledge_alarm($1, $2)', [params.alarmId, body.comment]);
+          return params.alarmId;
+        });
+        const [a] = await alarmViews(app, params.alarmId);
+        if (!a) throw refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: 'The alarm was not found.', why: `No alarm ${params.alarmId}.`, whatYouCanDo: ['Reload the alarms.'] });
+        return a;
+      },
+      restore: async ({ requireSession }) => restoreView(app, requireSession().tokenHash),
+      secureIdentifiers: async ({ body, actor, idempotencyKey, requestHash }) => ({
+        moves: await secureIdentifiers(app, actor({ reasonCode: RESTORE_REASON, reasonText: body.reason }), { idempotencyKey, requestHash }),
+      }),
+      recordRestoreEvent: async ({ body, actor, requireSession, idempotencyKey, requestHash }) =>
+        recordRestoreEvent(app, actor({ reasonCode: RESTORE_REASON, reasonText: body.reason }), requireSession().tokenHash, body, { idempotencyKey, requestHash }),
+      completeRestore: async ({ params, body, actor, requireSession, idempotencyKey, requestHash }) =>
+        completeRestore(app, actor({ reasonCode: RESTORE_REASON, reasonText: body.reason }), requireSession().tokenHash, params.restoreEventId, { idempotencyKey, requestHash }),
+      drills: async ({ requireSession }) => drillsView(app, drillJobs, requireSession().tokenHash),
+      runRestoreDrill: async ({ body, actor }) => {
+        // The database's right first (a person without it is refused for that), then what the server lacks.
+        const requestId = await requestDrillChecked(actor({ reasonCode: DRILL_REASON, reasonText: body.reason }), 'RESTORE', body.reason, null);
+        return { requestId, job: startRestoreDrill(app, drillJobs, requestId) };
+      },
+      runUpgradeDrill: async ({ body, actor }) => {
+        const requestId = await requestDrillChecked(actor({ reasonCode: DRILL_REASON, reasonText: body.reason }), 'UPGRADE', body.reason, body.sourceDatabase);
+        return { requestId, job: startUpgradeDrill(app, drillJobs, requestId, body.sourceDatabase, body.fromRelease) };
+      },
+      runHardeningCheck: async ({ body, actor, requireSession }) => {
+        // PLATFORM.OPERATE before anything runs (kernel 1376); the check's record needs it again.
+        await withActorCommand(pool, actor(), (c) => c.query("select iam.require_permission('PLATFORM.OPERATE', '{}'::jsonb)"));
+        return runHardeningCheck(app, actor({ reasonCode: 'HARDENING_CHECK', reasonText: body.reason }), requireSession().tokenHash, body.reason, body.allowedPorts);
       },
     },
     { rateLimits: { setup: SETUP_RATE_LIMIT } },

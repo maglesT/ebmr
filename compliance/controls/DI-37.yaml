@@ -358,6 +358,8 @@ tests:
   - "apps/tablets-web/test/validation/records-register.test.tsx > retention, holds and disposal > [DI-47][DI-37] the disposal is approved with a signature naming the record and the reason"
   - "apps/tablets-web/test/validation/records-register.test.tsx > data-integrity investigations > [DI-37] an investigation is opened, a record linked with a note, the scope read again, and the closure signed with the conclusion and remediation"
   - "apps/tablets-web/test/validation/validation.test.tsx > the validation summary > [DI-03][DI-37] shows the problem and the document; QA signs the approval of exactly that release and document"
+  - "apps/tablets-server/test/operations/restore-and-alarms.test.ts > the restore procedure (DI-45) > [DI-45][DI-18][DI-37] the administrator records the restore naming a QA approver, never themself; only the named approver approves it with their own signature, never the administrator; then the administrator completes it and the ledger holds both"
+  - "apps/tablets-web/test/operations/wp2-operations.test.tsx > the restore procedure (DI-45) > [DI-45][DI-37] a named approver approves the restore through the ceremony (RESTORE_APPROVE); the operator is offered no approval; the administrator completes an approved restore"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

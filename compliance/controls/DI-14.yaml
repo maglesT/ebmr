@@ -280,6 +280,7 @@ tests:
   - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-14] an account for a person the installation does not hold is refused as not found (404), never 500; without the right it is refused for the right"
   - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-14][DI-15] the administrator records a person; an issued password is hidden until shown to its owner, then removed; the directory shows credentials as metadata only"
   - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-14] a person in a GMP role is offered no administration act"
+  - "apps/tablets-server/test/administration/wp2-routes.test.ts > security alerts, roles, rehiring (people) > [DI-14][DI-17] the administrator rehires a person who left, with the reason; a person who has not left is refused; QA may not rehire"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:
