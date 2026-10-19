@@ -616,3 +616,231 @@ describe('the runner functions (kernel 1242) and the read views (kernel 1243)', 
     ]);
   });
 });
+
+// ---- Phase 7 exit, focused SQL mutation campaign (D-P7-1 item 4): the guards the first run left untested. ----
+
+/** Runs `body` on one admin connection inside a transaction under the software release's context, then rolls back. */
+async function rolledBackAsRelease(db: TestDatabase, body: (c: pg.PoolClient, attemptSql: (sql: string) => Promise<string | null>) => Promise<void>): Promise<void> {
+  const c = await db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query(`select kernel.set_actor_context(${RELEASE})`);
+    const attemptSql = async (sql: string): Promise<string | null> => {
+      await c.query('savepoint s');
+      try {
+        await c.query(sql);
+        await c.query('release savepoint s');
+        return null;
+      } catch (e) {
+        await c.query('rollback to savepoint s');
+        return (e as Error).message;
+      }
+    };
+    await body(c, attemptSql);
+  } finally {
+    await c.query('rollback');
+    c.release();
+  }
+}
+
+/** An open connection as ebmr_analytics (closed by the caller). */
+async function analyticsClient(db: TestDatabase): Promise<pg.Client> {
+  const client = new pg.Client({ connectionString: urlFor(db.name, ANALYTICS_LOGIN) });
+  await client.connect();
+  return client;
+}
+
+describe('the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign)', () => {
+  it('[DI-51][DI-52] an input is registered only as a report view at its version that reads no volatile function, or a non-volatile report row function; exactly that is granted', async () => {
+    await rolledBackAsRelease(gmp, async (c, attemptSql) => {
+      await c.query(`
+        set local role ebmr_owner;
+        create function report.t_mut_stable() returns integer language sql stable as 'select 1';
+        create function report.t_mut_row_v1(integer) returns integer language sql stable as 'select $1';
+        create function report.t_mut_volatile() returns integer language sql volatile as 'select 1';
+        create function kernel.t_mut_public_fn() returns integer language sql stable as 'select 1';
+        revoke all on function report.t_mut_stable(), report.t_mut_row_v1(integer), report.t_mut_volatile(), kernel.t_mut_public_fn() from public;
+        create view report.t_mut_ok_v1 as select report.t_mut_stable() as x;
+        create view report.t_mut_vol_v1 as select report.t_mut_volatile() as x;
+        create table report.t_mut_table_v1 (x integer);
+        create view kernel.t_mut_public_v1 as select 1 as x;
+        reset role`);
+      const reg = (kind: string, name: string, version = 1) =>
+        attemptSql(`select analytics.register_input('${kind}', '${name}', ${version}, '6A-9', 'test grain', 'mutation campaign input')`);
+      for (const name of ['report.t_mut_table_v1', 'kernel.t_mut_public_v1', 'report.t_mut_missing_v1']) {
+        expect(await reg('VIEW', name), name).toMatch(/EBMR-ANA-012 .* is not a view of the report schema/);
+      }
+      expect(await reg('VIEW', 'report.t_mut_ok_v1', 2)).toMatch(/EBMR-ANA-012 view report\.t_mut_ok_v1 is not version 2 of its name/);
+      expect(await reg('VIEW', 'report.t_mut_vol_v1')).toMatch(/EBMR-ANA-012 view report\.t_mut_vol_v1 reads the volatile function report\.t_mut_volatile\(\)/);
+      for (const name of ['report.t_mut_volatile()', 'kernel.t_mut_public_fn()', 'report.t_mut_missing()']) {
+        expect(await reg('FUNCTION', name), name).toMatch(/EBMR-ANA-012 .* is not a non-volatile row function of the report schema/);
+      }
+      expect(await reg('TABLE', 'report.t_mut_table_v1')).toMatch(/EBMR-ANA-012 an input is a VIEW or a FUNCTION, not TABLE/);
+      expect(await reg('VIEW', 'report.t_mut_ok_v1')).toBeNull();
+      expect(await reg('FUNCTION', 'report.t_mut_row_v1(integer)')).toBeNull();
+      const { rows: registry } = await c.query<{ name: string; kind: string; version: number }>(
+        "select name, kind, version from analytics.input_registry where name like 'report.t_mut%' order by name");
+      expect(registry).toEqual([
+        { name: 'report.t_mut_ok_v1', kind: 'VIEW', version: 1 },
+        { name: 'report.t_mut_row_v1(integer)', kind: 'FUNCTION', version: 1 },
+      ]);
+      const { rows: [grants] } = await c.query<Record<string, boolean>>(`select
+        has_table_privilege('ebmr_analytics', 'report.t_mut_ok_v1', 'select') as ok_view,
+        has_table_privilege('ebmr_analytics', 'report.t_mut_vol_v1', 'select') as vol_view,
+        has_function_privilege('ebmr_analytics', 'report.t_mut_stable()', 'execute') as view_fn,
+        has_function_privilege('ebmr_analytics', 'report.t_mut_row_v1(integer)', 'execute') as row_fn,
+        has_function_privilege('ebmr_analytics', 'report.t_mut_volatile()', 'execute') as volatile_fn`);
+      expect(grants).toEqual({ ok_view: true, vol_view: false, view_fn: true, row_fn: true, volatile_fn: false });
+    });
+  });
+
+  it('[DI-51] the segregation check accepts EXECUTE on a function a catalogued view reads, and reports it on a function only an uncatalogued view reads', async () => {
+    await rolledBackAsRelease(gmp, async (c) => {
+      await c.query(`
+        set local role ebmr_owner;
+        create function report.t_rp_okfn() returns integer language sql stable as 'select 1';
+        create function report.t_rp_fn() returns integer language sql stable as 'select 2';
+        revoke all on function report.t_rp_okfn(), report.t_rp_fn() from public;
+        create view report.t_rp_ok_v1 as select report.t_rp_okfn() as x;
+        create view report.t_rp_other_v1 as select report.t_rp_fn() as x;
+        reset role`);
+      await c.query("select analytics.register_input('VIEW', 'report.t_rp_ok_v1', 1, '6A-9', 'test grain', 'mutation campaign input')");
+      const problems = async () => (await c.query<{ p: string }>('select p from analytics.role_problems() p')).rows.map((r) => r.p);
+      expect((await problems()).filter((p) => p.includes('t_rp_'))).toEqual([]);
+      await c.query('grant execute on function report.t_rp_fn() to ebmr_analytics');
+      const found = (await problems()).filter((p) => p.includes('t_rp_'));
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatch(/ebmr_analytics holds EXECUTE on routine report\.t_rp_fn\(\)/);
+    });
+  });
+
+  it('[DI-52] a run\'s inputs carry every field, the version as a number and the filter as an object or null; its runtime names a package, a commit and a node', async () => {
+    const begin = (inputs: unknown, runtime: unknown = RUNTIME, refSet: string | null = null) =>
+      analyticsQuery(gmp, "select analytics.begin_run('SPC.IMR', 1, $1, 'ON_DEMAND', $2::jsonb, $3::jsonb)", [refSet, JSON.stringify(inputs), JSON.stringify(runtime)]);
+    const { filter: _f, ...noFilter } = input()[0]!;
+    void _f;
+    await expect(begin([noFilter])).rejects.toThrow(/EBMR-ANA-003/);
+    await expect(begin(input({ version: '1' }))).rejects.toThrow(/EBMR-ANA-003/);
+    await expect(begin(input({ filter: 5 }))).rejects.toThrow(/EBMR-ANA-003/);
+    await expect(begin(input({ filter: { batch: 'B1' } }))).resolves.toHaveLength(1);
+    for (const field of ['package', 'commit', 'node'] as const) {
+      const { [field]: _x, ...missing } = RUNTIME;
+      void _x;
+      await expect(begin(input(), missing), `${field} missing`).rejects.toThrow(/EBMR-ANA-003 a run records its runtime/);
+      await expect(begin(input(), { ...RUNTIME, [field]: '  ' }), `${field} blank`).rejects.toThrow(/EBMR-ANA-003 a run records its runtime/);
+    }
+    // Only a reference set in force is accepted: the id of an EFFECTIVE method version is not one.
+    const { rows: [mv] } = await gmp.admin.query<{ id: string }>("select id::text from analytics.method_version where method = 'SPC.IMR' and version = 1");
+    await expect(begin(input(), RUNTIME, mv!.id)).rejects.toThrow(/EBMR-ANA-002/);
+  });
+
+  it('[DI-52][DI-53] an output names its reference and kind; a flag names its subject, rule and severity and needs reasons, each an object with a code and a text', async () => {
+    const run = await beginRun(gmp);
+    const ref = randomUUID();
+    const out = (subjectRef: string, kind: string | null) =>
+      analyticsQuery(gmp, "select analytics.record_output($1, 'BATCH', $2, $3, '{}', '[]')", [run, subjectRef, kind]);
+    await expect(out('  ', 'CONTROL_CHART')).rejects.toThrow(/EBMR-ANA-011/);
+    await expect(out(ref, null)).rejects.toThrow(/EBMR-ANA-011/);
+    const flag = (kind: string, subjectRef: string, rule: string, severity: string, reasons: string | null = '[{"code": "R", "text": "why"}]') =>
+      analyticsQuery(gmp, 'select analytics.record_flag($1, null, $2, $3, $4, $5, $6::jsonb)', [run, kind, subjectRef, rule, severity, reasons]);
+    await expect(flag('OPERATOR', ref, 'NELSON_1', 'HIGH')).rejects.toThrow(/EBMR-ANA-011 a flag names/);
+    await expect(flag('BATCH', ' ', 'NELSON_1', 'HIGH')).rejects.toThrow(/EBMR-ANA-011 a flag names/);
+    await expect(flag('BATCH', ref, 'nelson_1', 'HIGH')).rejects.toThrow(/EBMR-ANA-011 a flag names/);
+    await expect(flag('BATCH', ref, 'NELSON_1', 'CRITICAL')).rejects.toThrow(/EBMR-ANA-011 a flag names/);
+    for (const reasons of [null, '[{"text": "no code"}]', '[{"code": 5, "text": "x"}]', '[{"code": "R", "text": " "}]', '[{"code": "R", "text": 5}]', '["R"]', '[null]']) {
+      await expect(flag('BATCH', ref, 'NELSON_1', 'HIGH', reasons), String(reasons)).rejects.toThrow(/EBMR-ANA-004/);
+    }
+    await expect(flag('PERSON', ref, 'NELSON_1', 'INFO')).resolves.toHaveLength(1);
+  });
+
+  it('[DI-52] a run ends once also when two ends race: the second waits for the first, on the run itself, and is refused as already ended', async () => {
+    for (const [first, second] of [['finish', 'finish'], ['fail', 'fail'], ['finish', 'fail']] as const) {
+      const run = await beginRun(gmp);
+      const endSql = (how: string) => (how === 'finish' ? 'select analytics.finish_run($1, $2, $3)' : "select analytics.fail_run($1, 'timed out')");
+      const endArgs = (how: string) => (how === 'finish' ? [run, SHA, '{}'] : [run]);
+      const [a, b] = await Promise.all([analyticsClient(gmp), analyticsClient(gmp)]);
+      try {
+        await a.query('begin');
+        await a.query(endSql(first), endArgs(first));
+        const pid = (await b.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]!.pid;
+        const racing = b.query(endSql(second), endArgs(second)).then(() => null, (e: Error) => e.message);
+        // Wait until the second end is blocked behind the first, then let the first commit.
+        for (let i = 0; i < 100; i++) {
+          const { rows } = await gmp.admin.query("select 1 from pg_stat_activity where pid = $1 and wait_event_type = 'Lock'", [pid]);
+          if (rows.length > 0) break;
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        await a.query('commit');
+        expect(await racing, `${first} then ${second}`).toMatch(/EBMR-ANA-006/);
+      } finally {
+        await Promise.allSettled([a.end(), b.end()]);
+      }
+    }
+  });
+
+  it('[DI-52] the writers of one run share it: an open flag writer does not hold back another output or flag of the run', async () => {
+    const run = await beginRun(gmp);
+    const [a, b] = await Promise.all([analyticsClient(gmp), analyticsClient(gmp)]);
+    const flagSql = "select analytics.record_flag($1, null, 'BATCH', $2, 'NELSON_1', 'INFO', '[{\"code\": \"R\", \"text\": \"why\"}]')";
+    try {
+      await a.query('begin');
+      await a.query(flagSql, [run, 'B-1']);
+      await b.query("set lock_timeout = '500ms'");
+      await expect(b.query("select analytics.record_output($1, 'BATCH', 'B-2', 'CONTROL_CHART', '{}', '[]')", [run])).resolves.toBeDefined();
+      await expect(b.query(flagSql, [run, 'B-3'])).resolves.toBeDefined();
+    } finally {
+      await Promise.allSettled([a.query('rollback')]);
+      await Promise.allSettled([a.end(), b.end()]);
+    }
+  });
+
+  it('[DI-52] a disposition is refused on a flag of a run that is open or failed; its cause is at least 10 characters; a deviation reference given is not blank', async () => {
+    const dispose = (flagId: string, cause: string, deviation: string | null = null) =>
+      withCommand(gmp.app, again(qa), (c) => c.query("select analytics.record_disposition($1, 'FALSE_ALARM', $2, $3, null, null)", [flagId, cause, deviation]));
+    const flagOf = async (run: string) => (await analyticsQuery<{ id: string }>(gmp,
+      "select analytics.record_flag($1, null, 'BATCH', $2, 'NELSON_1', 'HIGH', '[{\"code\": \"R\", \"text\": \"why\"}]') as id", [run, randomUUID()]))[0]!.id;
+    const openRun = await beginRun(gmp);
+    const onOpen = await flagOf(openRun);
+    await finishedFlag(gmp); // a DONE run exists besides
+    await expect(dispose(onOpen, 'the run has not ended yet')).rejects.toThrow(/EBMR-ANA-009 flag .* is not a flag of a completed run/);
+    const failedRun = await beginRun(gmp);
+    const onFailed = await flagOf(failedRun);
+    await analyticsQuery(gmp, "select analytics.fail_run($1, 'input view timed out')", [failedRun]);
+    await expect(dispose(onFailed, 'the run failed, no verdict')).rejects.toThrow(/EBMR-ANA-009 flag .* is not a flag of a completed run/);
+    await expect(dispose((await finishedFlag(gmp)).flag, 'too short')).rejects.toThrow(/EBMR-ANA-009 a disposition/);
+    await expect(dispose((await finishedFlag(gmp)).flag, 'ten chars!')).resolves.toBeDefined();
+    await expect(dispose((await finishedFlag(gmp)).flag, 'deviation reference blank', '  ')).rejects.toThrow(/EBMR-ANA-009 a disposition/);
+    await expect(dispose((await finishedFlag(gmp)).flag, 'deviation reference given', 'DEV-2026-0042')).resolves.toBeDefined();
+  });
+
+  it('[DI-53] person flags are read over a valid period, half-open, of restricted flags of completed runs only', async () => {
+    const read = (from: string | null, to: string | null) => withCommand(gmp.app, again(diLead), async (c) =>
+      (await c.query<{ id: string }>('select id::text from analytics.person_flags($1::timestamptz, $2::timestamptz)', [from, to])).rows.map((r) => r.id));
+    const now = '2026-10-19T00:00:00Z';
+    await expect(read(null, now)).rejects.toThrow(/EBMR-ANA-011 a period/);
+    await expect(read(now, null)).rejects.toThrow(/EBMR-ANA-011 a period/);
+    await expect(read('2026-10-19T00:00:01Z', now)).rejects.toThrow(/EBMR-ANA-011 a period/);
+    await expect(read(now, now)).resolves.toEqual([]);
+    // A restricted flag of a completed run, a BATCH flag raised just before it, and person flags of an open and a failed run.
+    await finishedFlag(gmp, 'BATCH');
+    const { flag } = await finishedFlag(gmp, 'PERSON', randomUUID());
+    const at = (await gmp.admin.query<{ t: string; next: string; before: string }>(
+      "select raised_at::text as t, (raised_at + interval '1 microsecond')::text as next, (raised_at - interval '1 second')::text as before from analytics.flag where id = $1", [flag])).rows[0]!;
+    expect(await read(at.t, at.next)).toEqual([flag]);
+    expect(await read(at.before, at.t)).not.toContain(flag);
+    const open = await beginRun(gmp, 'ATA.RULES');
+    const onOpen = (await analyticsQuery<{ id: string }>(gmp,
+      "select analytics.record_flag($1, null, 'PERSON', $2, 'NELSON_1', 'HIGH', '[{\"code\": \"R\", \"text\": \"why\"}]') as id", [open, randomUUID()]))[0]!.id;
+    const failed = await beginRun(gmp, 'ATA.RULES');
+    const onFailed = (await analyticsQuery<{ id: string }>(gmp,
+      "select analytics.record_flag($1, null, 'PERSON', $2, 'NELSON_1', 'HIGH', '[{\"code\": \"R\", \"text\": \"why\"}]') as id", [failed, randomUUID()]))[0]!.id;
+    await analyticsQuery(gmp, "select analytics.fail_run($1, 'input view timed out')", [failed]);
+    const wide = await read('2000-01-01T00:00:00Z', '2100-01-01T00:00:00Z');
+    expect(wide).toContain(flag);
+    expect(wide).not.toContain(onOpen);
+    expect(wide).not.toContain(onFailed);
+    expect(new Set(wide).size).toBe(wide.length);
+    const { rows: unrestricted } = await gmp.admin.query<{ id: string }>('select id::text from analytics.flag where not restricted');
+    for (const u of unrestricted) expect(wide).not.toContain(u.id);
+  });
+});
