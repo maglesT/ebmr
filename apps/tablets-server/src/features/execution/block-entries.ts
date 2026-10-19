@@ -195,6 +195,21 @@ export async function resolveBlockEntry(ctx: BlockEntryContext, entryKind: Table
       for (const k of FROM_READING) entry[k] = r[k];
     }
   }
+  // Phase 7 slice 7g (WP4; DI-49): the G-06 acknowledgement of an alarm captured from the equipment is the person's
+  // acknowledgement of that reading, recorded in the entry's own command (tab.acknowledge_process_alarm, tablets 0820:
+  // once, by a person, with the comment; the database refuses an ALARM_ACK entry without it and an acknowledgement
+  // outside the entry, EBMR-EXE-211 and EBMR-DEV-148). An alarm entered by hand has no reading to acknowledge.
+  if (entryKind === 'ALARM_ACK' && ctx.step && typeof data['alarm'] === 'string') {
+    const readingId = await one<string>(
+      ctx.client,
+      `select s.state -> 'entries' -> $2 -> 'data' ->> 'readingId' as r from recipe.execution_state s
+        where s.batch_id = $1 and s.state -> 'entries' -> $2 ->> 'kind' = 'ALARM'`,
+      [ctx.batchId, data['alarm']],
+    );
+    if (uuidOf(readingId)) {
+      await ctx.client.query('select tab.acknowledge_process_alarm($1::uuid, $2, $3, $4)', [readingId, ctx.batchId, ctx.step, typeof data['comment'] === 'string' ? data['comment'] : '']);
+    }
+  }
   if (entryKind === 'ADDITION' && filled.includes('source')) {
     const container = uuidOf(data['container']);
     const facts = container ? await one<Record<string, unknown>>(ctx.client, 'select recipe.source_container_facts($1::uuid, $2) as r', [container, ctx.batchId]) : null;

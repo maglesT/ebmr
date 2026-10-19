@@ -29,6 +29,7 @@ import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.
 import { bindRoutes, type Handlers } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { floorActHandlers } from './floor-acts.ts';
 import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent, stepTarget } from './intents.ts';
@@ -394,8 +395,19 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     planBatch: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
       requireSession();
-      return planGmpBatch(app, actor(), idempotencyKey ?? '', requestHash, { familyId: body.familyId, markets: [...new Set(body.markets)], site: body.site, line: body.line, batchSize: body.batchSize });
+      return planGmpBatch(app, actor(), idempotencyKey ?? '', requestHash, {
+        familyId: body.familyId,
+        markets: [...new Set(body.markets)],
+        site: body.site,
+        line: body.line,
+        batchSize: body.batchSize,
+        // Phase 7 slice 7g (WP4; PR-47): a whole-batch reprocessing batch with the quality unit's authorised request.
+        ...(body.reprocessingRequest !== undefined ? { reprocessingRequest: body.reprocessingRequest } : {}),
+      });
     },
+
+    // Phase 7 slice 7g (WP4): packaging batch data, its check, the print job, the detector challenge (floor-acts.ts).
+    ...floorActHandlers(app),
 
     runs: async ({ requireSession }) => {
       requireSession();

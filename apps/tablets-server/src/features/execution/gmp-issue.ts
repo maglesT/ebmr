@@ -47,6 +47,37 @@ export interface PlanInput {
   erpOrder?: string;
   /** A packaging order (record kind PACKAGING): the issued processing batch it packs (D-S4-2; Phase 4 slice 2c route). */
   parentBatch?: string;
+  /**
+   * Phase 7 slice 7g (WP4; PR-47, IN-19): a whole-batch reprocessing batch on a REPROCESSING master, planned with the
+   * quality unit's authorised request through recipe.prepare_reprocessing_issue (recipe-core 0624), which checks the
+   * request (authorised by the QCU, a concluded investigation, a stored risk evaluation, the product's permission, used
+   * once) before the GMP plan and links the parent batches.
+   */
+  reprocessingRequest?: string;
+}
+
+/** recipe.prepare_reprocessing_issue's answer read as the GMP plan's (it adds the parents and the request). */
+async function prepareReprocessingIssue(client: Db, batchId: string, plan: PlanInput & { erpOrder: string }): Promise<execution.PlannedGmpBatch> {
+  const { rows } = await client.query<{ r: Record<string, unknown> }>('select recipe.prepare_reprocessing_issue($1, $2::jsonb) as r', [batchId, JSON.stringify(plan)]);
+  const r = rows[0]?.r ?? {};
+  const str = (k: string): string => {
+    const v = r[k];
+    return typeof v === 'string' ? v : v === undefined || v === null ? '' : JSON.stringify(v);
+  };
+  return {
+    batchId: str('batch_id'),
+    batchNumber: str('batch_number'),
+    allocationId: str('allocation_id'),
+    pinId: str('pin_id'),
+    versionId: str('version_id'),
+    versionNumber: Number(str('version_number')),
+    contentHash: str('content_hash'),
+    rule: str('rule'),
+    markets: Array.isArray(r['markets']) ? (r['markets'] as unknown[]).map(String) : [],
+    controlRecipeId: str('control_recipe_id'),
+    snapshotHash: str('snapshot_hash'),
+    erpOrder: str('erp_order'),
+  };
 }
 
 /** The external ledger of protected numbers (EBMR_NUMBER_LEDGER_FILE; DEMO-ONLY file, write-once storage in production). */
@@ -99,7 +130,7 @@ export async function planGmpBatch(app: AppContext, actor: ActorContext, key: st
     try {
       const out = await withIdempotentActorCommand(pool, actor, key, requestHash, async (client) => {
         const erpOrder = plan.erpOrder ?? (await openErpOrder(client, plan));
-        const planned = await execution.prepareGmpIssue(client, batchId, { ...plan, erpOrder });
+        const planned = plan.reprocessingRequest !== undefined ? await prepareReprocessingIssue(client, batchId, { ...plan, erpOrder }) : await execution.prepareGmpIssue(client, batchId, { ...plan, erpOrder });
         return planned as unknown as commands.JsonValue;
       });
       const planned = out.result as unknown as execution.PlannedGmpBatch;

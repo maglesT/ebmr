@@ -3,9 +3,12 @@
  * reprocessing authorisations and the closed containers the quality unit may reserve as reusable residue (recipe-core
  * 0621, 0624). Read-only; the signed acts on them are the REPROCESSING_ACT signable action.
  */
-import type { PersonRef, ReprocessingAuthorisationView, ReprocessingRequestView, ResidueContainerView } from '@ebmr/api-contract';
+import type { PersonRef, ReprocessingAuthorisationView, ReprocessingRequestView, ResidueContainerView, routes } from '@ebmr/api-contract';
+import type { ActorContext, commands } from '@ebmr/kernel';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
+import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import type { Handlers } from '../../platform/http/bind.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 
@@ -101,4 +104,26 @@ export async function residueContainers(app: AppContext, db: Db, product?: strin
     closedAt: app.formatInstant(r['closed_us'] ?? '0'),
     reservedAt: r['reserved_us'] ? app.formatInstant(r['reserved_us']) : null,
   }));
+}
+
+/**
+ * Phase 7 slice 7g (WP4, decision 0025; PR-47, IN-19): the proposals the quality unit then authorises with its signature
+ * (REPROCESSING_ACT): a reprocessing or recovery step of a batch in execution (recipe.propose_reprocessing_authorisation,
+ * REPROCESSING.AUTHORISE: only a closed container of an earlier batch record is a source, citing the investigation and
+ * the risk evaluation), and a whole-batch reprocessing on a REPROCESSING master (recipe.propose_reprocessing_request,
+ * BATCH.ISSUE: the parents, the investigation and the stored risk evaluation). Every rule and right is the database's.
+ */
+export function reprocessingProposalHandlers(pool: pg.Pool): Handlers<Pick<typeof routes.quality, 'proposeReprocessingAuthorisation' | 'proposeReprocessingRequest'>> {
+  const command = async (actor: ActorContext, key: string | null, hash: string, sql: string, params: unknown[]): Promise<{ id?: string }> =>
+    ((await withIdempotentActorCommand(pool, actor, key ?? '', hash, async (c) => ((await c.query<{ r: commands.JsonValue }>(sql, params)).rows[0]?.r ?? null))).result ?? {}) as { id?: string };
+  return {
+    proposeReprocessingAuthorisation: async ({ body: b, actor, idempotencyKey, requestHash }) => {
+      const r = await command(actor(), idempotencyKey, requestHash, 'select recipe.propose_reprocessing_authorisation($1, $2, $3, $4, $5) as r', [b.batchId, b.step, b.containerId ?? null, b.investigationRef, b.riskEvaluationRef]);
+      return { authorisationId: r.id ?? '' };
+    },
+    proposeReprocessingRequest: async ({ body: b, actor, idempotencyKey, requestHash }) => {
+      const r = await command(actor(), idempotencyKey, requestHash, 'select recipe.propose_reprocessing_request($1, $2, $3::uuid[], $4, $5) as r', [b.familyId, b.site, b.parentBatchIds, b.investigationRef, b.riskEvaluationId]);
+      return { requestId: r.id ?? '' };
+    },
+  };
 }
