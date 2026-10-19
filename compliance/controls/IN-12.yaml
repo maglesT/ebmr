@@ -20,9 +20,9 @@ tests:
   - "tools/validation/test/validation.test.ts > the evidence bundle of a migrated database (tools/validation) > [IN-12] a real bundle of a migrated database gives every document of the validation package, the same bytes each time"
 clauses:
   - clause: "the package contains each listed artefact and the SMF paragraph."
-    deferred:
-      phase: 7
-      reason: "The validation package and the site master file paragraph are generated with the validation pack in Phase 7 (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
+    tests:
+      - "packages/validation-kit/test/pack.test.ts > the validation package (IN-12) > [IN-12] the validation package contains each listed artefact and the SMF paragraph"
+      - "tools/validation/test/validation.test.ts > the evidence bundle of a migrated database (tools/validation) > [IN-12] a real bundle of a migrated database gives every document of the validation package, the same bytes each time"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

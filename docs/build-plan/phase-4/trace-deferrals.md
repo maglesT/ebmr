@@ -200,3 +200,27 @@ No clause stays deferred to Phase 6. No control text, catalog test, target phase
   question 7 the trace counts a deferral to phase 5 as not started while `phase.yaml` editions leave injectables
   out (`deferralStarted` in `tools/register/src/trace.ts`, a `[meta]` test in `tools/register/test/register.test.ts`).
 - **Moved to Phase 7:** none. The Phase 7 deferrals listed above are unchanged.
+
+## Phase 7 exit: the trace at 7 (slice 7f, 19 October 2026)
+
+`compliance/phase.yaml` is at 7. No clause stays deferred to Phase 7 (the schema's last phase). No control text, catalog
+test, target phase or `expert_decision` changed: each of the twelve Phase 7 deferrals above is replaced by the clause's
+passing tests, from final run 1 on the pod (7,379 passed, 0 failed; golden 51/51).
+
+| Control | Clause | Tests now named (proven in) |
+|---|---|---|
+| DI-02 | 1, export and restore into an isolated environment | the restore drill test of `tools/drills` (7d) |
+| DI-03 | 2, GMP batch refused without an approved validation summary | the two validation-summary gate tests of recipe-core 1250 (7c) |
+| DI-06 | 1, drift alarm for an undescribed interface | the kernel 1350 interlock tests and the adapter start-up test (7c) |
+| DI-06 | 2, boundary-test evidence for every critical limit | the trace-matrix test of the validation kit (7c) |
+| DI-08 | 2, full export re-opens in the stand-alone viewer | the record viewer's verification tests and the kernel 1335 full-export test (7b-2) |
+| DI-11 | 1, evaluation pack traced to source logs | the kernel 1336 evaluation-pack test (7b-2) |
+| DI-44 | 1, periodic readability report | the two readability-report tests (7b-2) |
+| DI-46 | 2, upgrade, retrieve and render | the upgrade drill test (7d) |
+| DI-48 | 1, migration dry run | the two dry-run tests (7d) |
+| IN-09 | 3, restore to a test instance, a closed batch renders | the restore drill test (7d) |
+| IN-12 | 1, the package holds each artefact and the SMF paragraph | the pack manifest test and the bundle-of-a-migrated-database test (7c) |
+| PR-60 | 1, AI feature inventory | the generated inventory test and the analytics catalogue route test (7c, 6A) |
+
+The four 6A drafts (DI-51, DI-52, DI-53, PR-61) are due at 7 and pass. PR-15, PR-26 and PR-28 keep their Phase 5 parts
+(Injectables). `pnpm trace` at 7: ok, 156/246 controls with passing tests.

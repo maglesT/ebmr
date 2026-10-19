@@ -79,9 +79,10 @@ clauses:
       - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] a revoked grant ends at once; a session opened from an older login event is refused"
       - "apps/tablets-server/test/governance/governance-routes.test.ts > vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it"
   - clause: "A full tenant export re-opens in the stand-alone viewer with audit trails and signature manifestations intact."
-    deferred:
-      phase: 7
-      reason: "The stand-alone viewer for a full tenant export and its hosting documentation are built with the Phase 7 validation pack (owner decision 0011; Phase 4 plan, slice 7)."
+    tests:
+      - "apps/record-viewer/test/verify-export.test.ts > the record viewer verifies a full export before it shows anything (DI-08) > [DI-08] an intact export passes every check: each record with its audit trail and its signature manifestations, an Ed25519 seal verified offline, an HMAC seal with the installation's check"
+      - "apps/record-viewer/test/verify-export.test.ts > the record viewer verifies a full export before it shows anything (DI-08) > [DI-08] the viewer's verifier and the kernel's agree on every bundle of the export and on altered copies of each"
+      - "packages/kernel/test/records/full-export.test.ts > the full export (kernel 1335) > [DI-08] a full export holds every closed record's archive package with its audit trail, its signatures with their seals and the seal keys, each file listed with its SHA-256, and is registered with the manifest's SHA-256"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

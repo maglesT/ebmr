@@ -30,9 +30,9 @@ tests:
   - "packages/validation-kit/test/pack.test.ts > the AI feature inventory (PR-60) > [PR-60] the AI feature inventory lists every analytics method and none changes GMP data without a human e-signature"
 clauses:
   - clause: "In the AI feature inventory, no feature changes GMP data without a human e-signature."
-    deferred:
-      phase: 7
-      reason: "The build has no AI features; the AI feature inventory is a document of the Phase 7 validation pack (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
+    tests:
+      - "packages/validation-kit/test/pack.test.ts > the AI feature inventory (PR-60) > [PR-60] the AI feature inventory lists every analytics method and none changes GMP data without a human e-signature"
+      - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [PR-60] the analytics catalogue lists every method and none changes GMP data"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

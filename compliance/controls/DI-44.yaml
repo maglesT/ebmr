@@ -37,9 +37,9 @@ tests:
   - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-44] a pack is generated for a period typed with its offset, a seed and a sample size"
 clauses:
   - clause: "The periodic readability report lists the sampled records, each opened with its audit trail."
-    deferred:
-      phase: 7
-      reason: "The periodic readability report is part of the periodic evaluation pack (DI-11) generated in Phase 7 (build outline 11); Phase 4 has the integrity checks it would sample."
+    tests:
+      - "packages/kernel/test/records/evaluation-pack.test.ts > the periodic readability report (kernel 1335, 1336) > [DI-44] the periodic readability report lists the seeded sample of closed records, each opened and rendered with its audit trail, with its result and render hash per record"
+      - "packages/kernel/test/records/evaluation-pack.test.ts > the periodic readability report (kernel 1335, 1336) > [DI-44] a sampled record whose stored row was altered is reported UNREADABLE with the finding, and the pack records it"
   - clause: "Deliberately corrupt a record in a test environment. The check detects it."
     tests:
       - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
