@@ -137,7 +137,7 @@ test.describe('administration: people and devices', () => {
     const hex = (s: string) => createHash('sha256').update(s).digest('hex');
 
     await page.goto(`${base}/admin/devices`);
-    await expect(page.getByRole('heading', { name: 'Terminals and devices' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Terminals and devices', exact: true })).toBeVisible();
     await axe.check(page);
 
     await evidence.step('Register a shared kiosk and attest its hardening', 'The kiosk shows the attestation with its evidence reference', async () => {

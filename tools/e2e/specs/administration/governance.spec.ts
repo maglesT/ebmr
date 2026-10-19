@@ -23,6 +23,9 @@ async function signInAs(page: Page, p: { loginName: string; password: string }):
 /** A local instant `days` from now as the screen takes it (ISO 8601 with offset; the browser's clock, for the test only). */
 const isoIn = (days: number): string => new Date(Date.now() + days * 86_400_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
+/** The role whose read permission is requested, approved and removed. */
+const ROLE = 'QA_REVIEWER';
+
 test.describe('administration: access governance', () => {
   let admin: GrantedPerson;
   let owner: GrantedPerson;
@@ -36,13 +39,14 @@ test.describe('administration: access governance', () => {
       const adm = await administration(db, seed);
       const { rows } = await db.admin.query<{ code: string }>(
         `select p.code from iam.permission p
-          where p.domain = 'GMP' and p.effect = 'READ'
-            and not exists (select 1 from iam.role_permission rp where rp.role_code = 'QA_REVIEWER' and rp.permission_code = p.code and rp.removed_at is null)
-            and not exists (select 1 from iam.role_permission_request r where r.role_code = 'QA_REVIEWER' and r.permission_code = p.code and r.status = 'REQUESTED')
+          where p.effect = 'READ'
+            and not exists (select 1 from iam.role_permission rp where rp.role_code = $1 and rp.permission_code = p.code and rp.removed_at is null)
+            and not exists (select 1 from iam.role_permission_request r where r.role_code = $1 and r.permission_code = p.code and r.status = 'REQUESTED')
           order by p.code limit 1`,
+        [ROLE],
       );
       const code = rows[0]?.code;
-      if (!code) throw new Error('every GMP read permission is already held by QA_REVIEWER');
+      if (!code) throw new Error(`every read permission is already held by ${ROLE}`);
       return [
         await grantedPerson(db, seed, adm, 'SYSTEM_ADMINISTRATOR', 'Ira Admin'),
         await grantedPerson(db, seed, adm, 'PROCESS_OWNER', 'Omar Owner'),
@@ -64,40 +68,40 @@ test.describe('administration: access governance', () => {
 
     await evidence.step('Request the permission for the QA reviewer role', 'The request waits for a second person; the administrator is not offered its decision', async () => {
       const form = page.getByTestId('role-permission-request');
-      await form.getByLabel('Role').selectOption('QA_REVIEWER');
+      await form.getByLabel('Role', { exact: true }).selectOption(ROLE);
       await form.getByLabel('Permission').selectOption(permission);
       await form.getByRole('textbox', { name: 'Reason' }).fill('reviewers read the new register');
       await form.getByRole('button', { name: 'Request the permission' }).click();
-      await expect(page.getByTestId('role-permission-requested').getByTestId(`role-permission-QA_REVIEWER-${permission}`)).toHaveAttribute('data-status', 'REQUESTED');
+      await expect(page.getByTestId('role-permission-requested').getByTestId(`role-permission-${ROLE}-${permission}`)).toHaveAttribute('data-status', 'REQUESTED');
       await expect(page.getByTestId('role-permission-requested')).toContainText('You requested this, so a second person decides it.');
-      await expect(page.getByRole('button', { name: `Approve ${permission} for QA_REVIEWER` })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: `Approve ${permission} for ${ROLE}` })).toHaveCount(0);
     }, page);
 
     const ownerPage = await officePage('GMP', OFFICE);
     await signInAs(ownerPage, owner);
     await evidence.step('The process owner approves it under the approved change record', 'The request is approved by the process owner; the role holds the permission', async () => {
       await ownerPage.goto(`${base}/admin/role-permissions`);
-      const open = ownerPage.getByTestId('role-permission-requested').getByTestId(`role-permission-QA_REVIEWER-${permission}`);
-      await open.getByRole('textbox', { name: `Reason (${permission} for QA_REVIEWER)` }).fill('agreed with QA');
+      const open = ownerPage.getByTestId('role-permission-requested').getByTestId(`role-permission-${ROLE}-${permission}`);
+      await open.getByRole('textbox', { name: `Reason (${permission} for ${ROLE})` }).fill('agreed with QA');
       await open.getByRole('textbox', { name: /^Change record approved for role permissions/ }).fill(changeRecord);
-      await open.getByRole('button', { name: `Approve ${permission} for QA_REVIEWER` }).click();
-      await expect(ownerPage.getByTestId('role-permission-decided').getByTestId(`role-permission-QA_REVIEWER-${permission}`).first()).toContainText('Approved by Omar Owner');
-      await ownerPage.getByTestId('role-QA_REVIEWER').getByText(/^QA_REVIEWER/).click();
-      await expect(ownerPage.getByTestId('role-QA_REVIEWER')).toContainText(permission);
+      await open.getByRole('button', { name: `Approve ${permission} for ${ROLE}` }).click();
+      await expect(ownerPage.getByTestId('role-permission-decided').getByTestId(`role-permission-${ROLE}-${permission}`).first()).toContainText('Approved by Omar Owner');
+      await ownerPage.getByTestId(`role-${ROLE}`).getByText(new RegExp(`^${ROLE}`)).click();
+      await expect(ownerPage.getByTestId(`role-${ROLE}`)).toContainText(permission);
     }, ownerPage);
     await axe.check(ownerPage);
 
     await evidence.step('The administrator removes the permission again under the change record', 'The role no longer holds it', async () => {
       await page.reload();
       const form = page.getByTestId('role-permission-remove');
-      await form.getByLabel('Role').selectOption('QA_REVIEWER');
+      await form.getByLabel('Role', { exact: true }).selectOption(ROLE);
       await form.getByLabel('Permission it holds').selectOption(permission);
       await form.getByRole('textbox', { name: 'Change record approved for role permissions' }).fill(changeRecord);
       await form.getByRole('textbox', { name: 'Reason for the removal' }).fill('the register is retired');
       await form.getByRole('button', { name: 'Remove the permission' }).click();
       await expect(form).toContainText('Removed.');
-      await page.getByTestId('role-QA_REVIEWER').getByText(/^QA_REVIEWER/).click();
-      await expect(page.getByTestId('role-QA_REVIEWER')).not.toContainText(permission);
+      await page.getByTestId(`role-${ROLE}`).getByText(new RegExp(`^${ROLE}`)).click();
+      await expect(page.getByTestId(`role-${ROLE}`)).not.toContainText(permission);
     }, page);
   });
 
@@ -115,7 +119,7 @@ test.describe('administration: access governance', () => {
       const form = page.getByTestId('delegation-request');
       await form.getByRole('textbox', { name: "Delegate's user ID" }).fill(deputy.loginName);
       await form.getByRole('checkbox', { name: /\(MANUFACTURER_RELEASE\)$/ }).check();
-      await form.getByRole('checkbox', { name: 'IN' }).check();
+      await form.getByRole('checkbox', { name: 'IN', exact: true }).check();
       await form.getByRole('textbox', { name: /^Valid from/ }).fill(isoIn(0));
       await form.getByRole('textbox', { name: /^Valid to/ }).fill(isoIn(14));
       await form.getByRole('textbox', { name: /SOP reference/ }).fill(sop);

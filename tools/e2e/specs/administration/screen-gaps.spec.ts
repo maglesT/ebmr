@@ -2,7 +2,7 @@
  * The smaller screens slice 7g-5 gave the routes that had none (decision 0025), through the real screens on the GMP
  * installation: the QA MBR approver records a shelf-life basis and a product's hazard class (a made-up product, class
  * NONE, so no other flow is restricted), exports a report view with the server's SHA-256, sees the reference documents
- * of the master records, stores an evidence document and opens the equipment records; the QC analyst records a reagent
+ * of the master records and opens the equipment records, and a QA reviewer stores an evidence document; the QC analyst records a reagent
  * lot and withdraws it. The database decides every act.
  */
 import { axe, expect, signIn, test } from '../../fixtures/index.ts';
@@ -51,15 +51,18 @@ test.describe('screens for the remaining routes (slice 7g-5)', () => {
       await axe.check(page);
     }, page);
 
+    // The QA MBR approver holds no EVIDENCE.STORE (site services 0731): a QA reviewer stores the document.
+    const reviewerPage = await officePage('GMP', OFFICE);
+    await signIn.office(reviewerPage, persona('GMP', 'qaInvestigator'));
     await evidence.step('Store an evidence document', 'The database computed its SHA-256 and size; its id is shown for a record to cite', async () => {
-      await page.goto(`${base}/quality/deviations`);
-      const box = page.getByTestId('evidence-document');
+      await reviewerPage.goto(`${base}/quality/deviations`);
+      const box = reviewerPage.getByTestId('evidence-document');
       await box.getByRole('textbox', { name: 'Title' }).fill(`Investigation report ${product}`);
       await box.getByLabel('Document (at most 4 MB)').setInputFiles({ name: 'report.txt', mimeType: 'text/plain', buffer: Buffer.from(`root cause of ${product}: worn punch`) });
       await box.getByRole('button', { name: 'Store the document' }).click();
       await expect(box.getByTestId('evidence-document-stored')).toContainText('SHA-256');
       await expect(box.getByTestId('evidence-document-stored')).toContainText(`Investigation report ${product}`);
-    }, page);
+    }, reviewerPage);
 
     await evidence.step('Open the equipment records', 'The equipment events and the batch choice are shown', async () => {
       await page.goto(`${base}/equipment-records`);
@@ -79,7 +82,9 @@ test.describe('screens for the remaining routes (slice 7g-5)', () => {
     await evidence.step('Record a buffer lot, then withdraw it', 'The lot is in date, then withdrawn with its reason', async () => {
       const form = page.getByTestId('reagent-lot-record');
       await form.getByRole('textbox', { name: 'Lot code' }).fill(lot);
-      await form.getByRole('radio', { name: 'Buffer' }).click();
+      // The floor choice group's label covers its visually hidden input: the person clicks the label.
+      await form.getByText('Buffer', { exact: true }).click();
+      await expect(form.getByRole('radio', { name: 'Buffer' })).toBeChecked();
       await form.getByRole('textbox', { name: 'Reagent code' }).fill('PH7');
       await form.getByRole('textbox', { name: 'Name' }).fill('pH 7 buffer');
       await form.getByRole('textbox', { name: /^Prepared at/ }).fill(new Date(Date.now() - 3_600_000).toISOString());
