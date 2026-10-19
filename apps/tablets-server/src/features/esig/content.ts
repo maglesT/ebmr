@@ -54,6 +54,18 @@ export async function recordContentForSigning(db: pg.Pool | pg.PoolClient, aggre
   return contentOf(aggregateType, aggregateId, rows[0]?.r ?? {});
 }
 
+/**
+ * The content of a GOVERNANCE-class record for the signer's own session, inside the signing command (tab.content_for_signing:
+ * the session's role must read the record and may sign the meaning; EBMR-TAB-019/020 otherwise). The restore approval
+ * (slice 7g WP2) and, by decision D-P7R-6, the QP register and the compendial rule-set verification read this way.
+ */
+export async function sessionContentForSigning(db: pg.Pool | pg.PoolClient, ctx: SignableContext | undefined, aggregateType: string, aggregateId: string, meaning: string): Promise<esig.ContentForSigning> {
+  // No signing context: no session, so the database reads for none (EBMR-TAB-018).
+  const tokenHash = (ctx as Partial<EsigSignableContext> | undefined)?.tokenHash ?? '';
+  const { rows } = await db.query<{ r: Record<string, unknown> }>('select tab.content_for_signing($1, $2, $3, $4) as r', [tokenHash, aggregateType, aggregateId, meaning]);
+  return contentOf(aggregateType, aggregateId, rows[0]?.r ?? {});
+}
+
 /** The meaning code of a preview intent (`<meaning>` or `<meaning>|<decision>`). */
 export const meaningOfIntent = (intent: string): string => {
   const bar = intent.indexOf('|');

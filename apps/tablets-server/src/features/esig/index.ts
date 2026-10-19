@@ -487,7 +487,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
                 const result: SignWork = { refused };
                 return result as unknown as commands.JsonValue;
               }
-              const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
+              const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action, ctx) : null);
               const delegationId = handler.delegationOf?.(body.action);
               const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState, ...(delegationId ? { delegationId } : {}) }, sealKey);
               // IN-10 (kernel 1203): the DSC over the same content hash, verified against the configured anchor before it is

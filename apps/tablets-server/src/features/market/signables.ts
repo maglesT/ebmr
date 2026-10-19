@@ -28,6 +28,8 @@ const NO_RECORD = 'none';
 export function qpRegisterHandler(app: AppContext): SignableActionHandler<QpRegister> {
   return dbActHandler<QpRegister>(app, {
     kind: 'QP_REGISTER',
+    // D-P7R-6: GOVERNANCE class (tablets 1161); the signer reads it in their own session (tablets 1493).
+    readForSigner: true,
     aggregateTypes: ['qp_register'],
     target: (a) => ({ aggregateType: 'qp_register', aggregateId: `${a.personId}/${a.action}/${a.importerCode}/${a.miaNumber}`, meaning: 'QP_REGISTERED' }),
     async apply(client, _ctx, a, signatureId) {
@@ -40,6 +42,8 @@ export function qpRegisterHandler(app: AppContext): SignableActionHandler<QpRegi
 export function ruleSetVerifyHandler(app: AppContext): SignableActionHandler<RuleSetVerify> {
   return dbActHandler<RuleSetVerify>(app, {
     kind: 'RULE_SET_VERIFY',
+    // D-P7R-6: GOVERNANCE class (tablets 1161); the signer reads it in their own session (tablets 1493).
+    readForSigner: true,
     aggregateTypes: ['compendial_rule_set'],
     target: (a) => ({ aggregateType: 'compendial_rule_set', aggregateId: `${a.code}:${String(a.version)}`, meaning: 'COMPENDIAL_RULE_SET_VERIFIED' }),
     async apply(client, _ctx, a, signatureId) {

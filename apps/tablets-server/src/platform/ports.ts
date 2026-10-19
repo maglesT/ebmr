@@ -56,8 +56,9 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   /**
    * Phase 3 slice 6: the record's state the signature expects, read inside the sign command, for a handler whose
    * describe() names none (a signed act whose rule is the database's; the content version and hash bind what was seen).
+   * `ctx` is the signing step's context, for a handler that reads the record for the signer's session (D-P7R-6).
    */
-  expectedStateNow?(client: pg.PoolClient, action: A): Promise<string | null>;
+  expectedStateNow?(client: pg.PoolClient, action: A, ctx?: SignableContext): Promise<string | null>;
   /**
    * The signer's own reason the sign command carries, both halves, for an action whose change needs one (the kernel
    * refuses such a change without it, EBMR-AUDIT-002): taken from the action the person sent, never written by the

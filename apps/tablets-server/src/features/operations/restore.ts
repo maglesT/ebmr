@@ -28,7 +28,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableContext } from '../../platform/ports.ts';
-import { contentOf, type EsigSignableContext } from '../esig/content.ts';
+import { sessionContentForSigning } from '../esig/content.ts';
 import { dbActHandler, refusedOutcome } from '../esig/db-acts.ts';
 
 export const RESTORE_REASON = 'RESTORE_PROCEDURE';
@@ -245,9 +245,7 @@ export function restoreApproveHandler(app: AppContext): SignableActionHandler<Re
   // (tab.content_for_signing: a role that operates or approves restores, and that may sign RESTORE_APPROVED), never
   // through the record path the other signed acts use (tab.record_content_for_signing, RECORD class only).
   const sessionContent = async (client: pg.PoolClient, ctx: SignableContext, a: RestoreApprove) => {
-    const tokenHash = (ctx as Partial<EsigSignableContext>).tokenHash ?? '';
-    const { rows } = await client.query<{ r: Record<string, unknown> }>("select tab.content_for_signing($1, 'restore_event', $2, 'RESTORE_APPROVED') as r", [tokenHash, a.restoreEventId]);
-    return contentOf('restore_event', a.restoreEventId, rows[0]?.r ?? {});
+    return sessionContentForSigning(client, ctx, 'restore_event', a.restoreEventId, 'RESTORE_APPROVED');
   };
   return {
     ...base,

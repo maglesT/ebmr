@@ -66,6 +66,11 @@ Decisions taken on resume (owner's standing instruction to decide and record):
   creates databases); on a GMP installation the screen shows the drill records and runs the restore drill as a job.
 - D-P7R-5: IQ (`runIq`) moves into `packages/validation-kit` so a route can run it and store its record; the CLI
   keeps working by importing it.
+- D-P7R-6: WP3's reclassification (tablets 1493) of `compendial_rule_set` and `qp_register` from GOVERNANCE to RECORD
+  in `tab.aggregate_read_class` is rejected: it widened read access to every RECORD.READ role and reversed tablets 1161
+  without a control review. Both stay GOVERNANCE; the signer reads what they sign in their own session (tablets 1493
+  re-creates `tab.record_read_problem`: a role that may sign the meaning, or a governance role; the handlers read through
+  `tab.content_for_signing` with `readForSigner`, as RESTORE_APPROVE does). Test: `test/esig/signing-meanings-7g.test.ts`.
 
 ### 7g state (18 October, evening)
 
