@@ -15,6 +15,7 @@
 import { z } from 'zod';
 import { Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { ChangeRecordNumber } from './config.ts';
 
 const Text = (max: number) => z.string().trim().min(1).max(max);
 const Code = z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/, 'a code of letters, digits, dot, underscore or hyphen');
@@ -152,6 +153,52 @@ export const IssuedCredentialView = z.strictObject({
   expiresAt: Instant.nullable(),
 });
 export type IssuedCredentialView = z.infer<typeof IssuedCredentialView>;
+
+// Phase 7 slice 7g, work package 2: security alerts, customer roles, rehiring, the qualification matrix.
+
+export const SecurityAlertView = z.strictObject({
+  alertId: Uuid,
+  kind: z.string(),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  /** Who or what the alert is about (account login, person, terminal), as recorded. */
+  loginName: z.string().nullable(),
+  person: PersonRef.nullable(),
+  deviceCode: z.string().nullable(),
+  /** The alert's details as recorded (JSON text). */
+  details: z.string(),
+  raisedAt: Instant,
+  /** Unanswered alerts escalate (iam.escalate_overdue_alerts, DI-19). */
+  escalated: z.boolean(),
+  acknowledgement: z.strictObject({ by: PersonRef, comment: z.string(), at: Instant }).nullable(),
+});
+export type SecurityAlertView = z.infer<typeof SecurityAlertView>;
+
+export const QualificationTypeView = z.strictObject({ code: z.string(), name: z.string(), description: z.string() });
+export type QualificationTypeView = z.infer<typeof QualificationTypeView>;
+
+export const QualificationRequirementView = z.strictObject({
+  requirementId: Uuid,
+  qualificationCode: z.string(),
+  /** Exactly one of a role and a permission. */
+  roleCode: z.string().nullable(),
+  permissionCode: z.string().nullable(),
+  scope: z.strictObject({ site: z.string().nullable(), area: z.string().nullable(), product: z.string().nullable() }),
+  reason: z.string(),
+  effectiveFrom: Instant,
+  effectiveTo: Instant.nullable(),
+  createdBy: PersonRef,
+});
+export type QualificationRequirementView = z.infer<typeof QualificationRequirementView>;
+
+export const QualificationsView = z.strictObject({
+  types: z.array(QualificationTypeView),
+  requirements: z.array(QualificationRequirementView),
+  roles: z.array(RoleOption),
+  permissions: z.array(z.string()),
+});
+export type QualificationsView = z.infer<typeof QualificationsView>;
+
+const QualificationCode = z.string().trim().regex(/^[A-Z0-9][A-Z0-9_.-]{0,63}$/, 'a code of capitals, digits, dot, underscore or hyphen');
 
 const personParams = z.strictObject({ personId: Uuid });
 const accountParams = z.strictObject({ accountId: Uuid });
@@ -480,6 +527,117 @@ export const people = {
     params: windowParams,
     body: withAttribution({ outcome: z.enum(['NO_FINDINGS', 'FINDINGS_RAISED']), comment: Text(2000) }),
     response: BreakGlassWindowView,
+  }),
+  // Phase 7 slice 7g, work package 2.
+  alerts: defineRoute({
+    id: 'people.alerts',
+    method: 'GET',
+    path: '/api/admin/security-alerts',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Security alerts (failed sign-ins, locked or blocked use, break-glass use), unanswered first, with their acknowledgement and escalation',
+    response: z.strictObject({ alerts: z.array(SecurityAlertView) }),
+  }),
+  acknowledgeAlert: defineRoute({
+    id: 'people.acknowledgeAlert',
+    method: 'POST',
+    path: '/api/admin/security-alerts/:alertId/acknowledgement',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Acknowledge a security alert with a comment (IAM.ALERT_ACKNOWLEDGE; nobody acknowledges an alert about themselves)',
+    params: z.strictObject({ alertId: Uuid }),
+    body: withAttribution({ comment: Text(2000) }),
+    response: SecurityAlertView,
+  }),
+  createRole: defineRoute({
+    id: 'people.createRole',
+    method: 'POST',
+    path: '/api/admin/roles',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Create a customer role with no permission under an approved change record (IAM.ROLE_MANAGE); each permission is then requested for it and approved by a second person',
+    body: withAttribution({
+      code: z.string().trim().regex(/^[A-Z][A-Z0-9_]{1,63}$/, 'capitals, digits and underscores, starting with a capital'),
+      name: Text(200),
+      group: z.enum(['MASTER_RECORDS', 'EXECUTION', 'QUALITY_RELEASE', 'ADMINISTRATION_SECURITY']),
+      description: Text(1000),
+      accountKinds: z.array(AccountKind).min(1).max(4),
+      reason: Text(2000),
+      /** A role is configuration (area ROLE): it is created under a change record QA has approved (DI-09). */
+      changeRecord: ChangeRecordNumber,
+    }),
+    response: RoleOption,
+  }),
+  rehirePerson: defineRoute({
+    id: 'people.rehirePerson',
+    method: 'POST',
+    path: '/api/admin/people/:personId/rehire',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Rehire a person who left (IAM.PERSON_MANAGE); a new identity check (REHIRE) comes before any account is used again',
+    params: personParams,
+    body: withAttribution({ reason: Text(2000) }),
+    response: PersonView,
+  }),
+  qualifications: defineRoute({
+    id: 'people.qualifications',
+    method: 'GET',
+    path: '/api/admin/qualifications',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The qualification matrix: qualification types and the qualifications a role or a permission requires',
+    response: QualificationsView,
+  }),
+  createQualificationType: defineRoute({
+    id: 'people.createQualificationType',
+    method: 'POST',
+    path: '/api/admin/qualification-types',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Add a qualification type to the matrix (TRAINING.MANAGE; area authorisations have their own route)',
+    body: withAttribution({ code: QualificationCode, name: Text(200), description: Text(1000) }),
+    response: QualificationTypeView,
+  }),
+  addQualificationRequirement: defineRoute({
+    id: 'people.addQualificationRequirement',
+    method: 'POST',
+    path: '/api/admin/qualification-requirements',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Require a qualification for a role or a permission, optionally in a site, area or product, with the reason (TRAINING.MANAGE)',
+    body: withAttribution({
+      qualificationCode: QualificationCode,
+      roleCode: z.string().trim().regex(/^[A-Z][A-Z0-9_]{1,63}$/).optional(),
+      permissionCode: z.string().trim().regex(/^[A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*$/).optional(),
+      scope: z.strictObject({ site: Code.optional(), area: Code.optional(), product: Code.optional() }),
+      reason: Text(2000),
+    }),
+    response: QualificationRequirementView,
+  }),
+  endQualificationRequirement: defineRoute({
+    id: 'people.endQualificationRequirement',
+    method: 'POST',
+    path: '/api/admin/qualification-requirements/:requirementId/end',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'End a qualification requirement from now on (TRAINING.MANAGE)',
+    params: z.strictObject({ requirementId: Uuid }),
+    body: withAttribution({ reason: Text(2000) }),
+    response: QualificationRequirementView,
   }),
 } as const;
 

@@ -288,6 +288,30 @@ export const transfers = {
     body: withAttribution({ note: z.string().trim().min(1).max(1000) }),
     response: InstallationAlarmView,
   }),
+  // Phase 7 slice 7g, work package 2: this installation's identity (the first-run set-up's next step) and the revocation of a peer.
+  setInstallationIdentity: defineRoute({
+    id: 'transfers.setInstallationIdentity',
+    method: 'POST',
+    path: '/api/transfers/installation',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Set this installation\'s identity from the server\'s installation key: its code and public key, with its site (SYSTEM.CONFIGURE; the code, site and edition never change, only the key)',
+    body: z.strictObject({ siteCode: z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,15}$/), reason: z.string().trim().min(3).max(1000) }),
+    response: InstallationIdentityView,
+  }),
+  revokePeer: defineRoute({
+    id: 'transfers.revokePeer',
+    method: 'POST',
+    path: '/api/transfers/peers/:peerId/revocation',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'QA revokes a trusted peer installation with the reason (TRANSFER.PEER_APPROVE; never an administrator): nothing sealed with its key is taken in afterwards',
+    params: z.strictObject({ peerId: Uuid }),
+    body: z.strictObject({ reason: z.string().trim().min(10).max(1000) }),
+    response: PeerInstallationView,
+  }),
 } as const;
 
 export const federation = {

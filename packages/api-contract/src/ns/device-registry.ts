@@ -98,6 +98,34 @@ export const DeviceRegistryView = z.strictObject({
 });
 export type DeviceRegistryView = z.infer<typeof DeviceRegistryView>;
 
+// Phase 7 slice 7g, work package 2: per-entry attribution, OPC UA endpoint identities, process devices' plant units.
+
+export const OpcuaEndpointView = z.strictObject({
+  deviceCode: z.string(),
+  version: z.number().int().positive(),
+  status: z.enum(['ENROLLED', 'RETIRED']),
+  endpointUrl: z.string(),
+  securityPolicy: z.string(),
+  certificateThumbprint: z.string(),
+  equipmentCodes: z.array(z.string()),
+  reason: z.string(),
+  recordedBy: PersonRef,
+  recordedAt: Instant,
+});
+export type OpcuaEndpointView = z.infer<typeof OpcuaEndpointView>;
+
+export const DeviceConfigurationView = z.strictObject({
+  /** The per-entry attribution of each kiosk class now (decision D8): TAP or TAP_PIN. */
+  attribution: z.array(z.strictObject({ deviceClass: z.enum(['SHARED', 'GRADE_A_B']), method: z.enum(['TAP', 'TAP_PIN']) })),
+  /** Each OPC UA endpoint's enrolment in force (its latest version). */
+  opcuaEndpoints: z.array(OpcuaEndpointView),
+  /** Each active process device binding with the plant unit it is linked to (null before the link). */
+  processDeviceUnits: z.array(z.strictObject({ bindingId: Uuid, deviceCode: z.string(), equipmentCode: z.string().nullable() })),
+});
+export type DeviceConfigurationView = z.infer<typeof DeviceConfigurationView>;
+
+const SecurityPolicy = z.enum(['Basic256Sha256', 'Aes128_Sha256_RsaOaep', 'Aes256_Sha256_RsaPss']);
+
 const deviceParams = z.strictObject({ deviceId: Uuid });
 const reason = { reason: Text(2000) };
 
@@ -261,6 +289,99 @@ export const deviceRegistry = {
     attribution: 'FRESH_ON_SHARED',
     summary: 'Register an integration adapter under an INTEGRATION account on an active SERVER device (IAM.DEVICE_MANAGE)',
     body: withAttribution({ code: Code, sourceSystem: Code, accountId: Uuid, deviceId: Uuid, description: Text(500) }),
+    response: AdapterView,
+  }),
+  // Phase 7 slice 7g, work package 2.
+  configuration: defineRoute({
+    id: 'deviceRegistry.configuration',
+    method: 'GET',
+    path: '/api/admin/device-configuration',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The per-entry attribution of each kiosk class, the OPC UA endpoint identities and the plant unit of each process device (administration roles)',
+    response: DeviceConfigurationView,
+  }),
+  setAttributionMethod: defineRoute({
+    id: 'deviceRegistry.setAttributionMethod',
+    method: 'POST',
+    path: '/api/admin/attribution-methods',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Set the per-entry attribution of a kiosk class, a badge tap or a tap with a PIN (IAM.POLICY_MANAGE; decision D8)',
+    body: withAttribution({ deviceClass: z.enum(['SHARED', 'GRADE_A_B']), method: z.enum(['TAP', 'TAP_PIN']), ...reason }),
+    response: DeviceConfigurationView,
+  }),
+  revokeHardening: defineRoute({
+    id: 'deviceRegistry.revokeHardening',
+    method: 'POST',
+    path: '/api/admin/hardening-attestations/:attestationId/revocation',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Revoke a kiosk\'s hardening attestation with the reason; the kiosk is no longer attested (CONTINUITY.HARDENING_ATTEST)',
+    params: z.strictObject({ attestationId: Uuid }),
+    body: withAttribution({ ...reason }),
+    response: TerminalView,
+  }),
+  enrolOpcuaEndpoint: defineRoute({
+    id: 'deviceRegistry.enrolOpcuaEndpoint',
+    method: 'POST',
+    path: '/api/admin/opcua-endpoints',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Enrol an OPC UA endpoint\'s identity: a registered instrument, its opc.tcp URL under SignAndEncrypt, the units it serves (IAM.DEVICE_MANAGE)',
+    body: withAttribution({
+      deviceCode: Code,
+      endpointUrl: z.string().trim().regex(/^opc\.tcp:\/\/[!-~]{1,200}$/, 'an opc.tcp URL'),
+      securityPolicy: SecurityPolicy,
+      equipmentCodes: z.array(Code).min(1).max(64),
+      ...reason,
+    }),
+    response: OpcuaEndpointView,
+  }),
+  retireOpcuaEndpoint: defineRoute({
+    id: 'deviceRegistry.retireOpcuaEndpoint',
+    method: 'POST',
+    path: '/api/admin/opcua-endpoints/:deviceCode/retirement',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Retire an enrolled OPC UA endpoint with the reason (IAM.DEVICE_MANAGE)',
+    params: z.strictObject({ deviceCode: Code }),
+    body: withAttribution({ ...reason }),
+    response: OpcuaEndpointView,
+  }),
+  linkProcessDeviceUnit: defineRoute({
+    id: 'deviceRegistry.linkProcessDeviceUnit',
+    method: 'POST',
+    path: '/api/admin/device-bindings/:bindingId/unit',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Link an active process device binding to the PROCESS unit of the plant it is (IAM.DEVICE_MANAGE; one device per unit)',
+    params: z.strictObject({ bindingId: Uuid }),
+    body: withAttribution({ equipmentCode: Code, ...reason }),
+    response: DeviceConfigurationView,
+  }),
+  setAdapterStatus: defineRoute({
+    id: 'deviceRegistry.setAdapterStatus',
+    method: 'POST',
+    path: '/api/admin/adapters/:adapterCode/status',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Block, re-activate or decommission an integration adapter with the reason (IAM.DEVICE_MANAGE)',
+    params: z.strictObject({ adapterCode: Code }),
+    body: withAttribution({ status: z.enum(['ACTIVE', 'BLOCKED', 'DECOMMISSIONED']), ...reason }),
     response: AdapterView,
   }),
 } as const;
