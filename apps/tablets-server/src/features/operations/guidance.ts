@@ -50,4 +50,29 @@ export const OPERATIONS_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: ['The system administrator'],
     controls: ['DI-45', 'DI-17'],
   },
+  // Phase 7 slice 7g, work package 2 (kernel 1395, tablets 1525).
+  'EBMR-OPS-041': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The upgrade drill is not run on a GMP installation. Nothing was done.',
+    whatYouCanDo: ['Run the upgrade drill on a sandbox or staging installation; this screen shows its records.'],
+    whoCanHelp: ['The system administrator'],
+    controls: ['DI-45'],
+  },
+  'EBMR-OPS-050': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'You cannot read the restore procedure in this role.',
+    whatYouCanDo: ['Ask the system administrator or a person who approves restores.'],
+    whoCanHelp: ['The system administrator'],
+    controls: ['DI-45', 'DI-17'],
+  },
+  'EBMR-OPS-051': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'You cannot read the drill records in this role.',
+    whatYouCanDo: ['Ask the system administrator, the process owner or QA.'],
+    whoCanHelp: ['The system administrator'],
+    controls: ['DI-45', 'DI-17'],
+  },
 };

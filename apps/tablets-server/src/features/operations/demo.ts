@@ -33,15 +33,21 @@ export interface DemoJobOptions {
   setupToken?: string;
 }
 
-/** The one demo job of this server process. */
-export class DemoJobs {
+/** A job's view: the demo job's, with the kinds of the job runner's own use (the drills' jobs use the same runner). */
+export type JobView<K extends string> = Omit<DemoJobView, 'kind'> & { kind: K | null };
+
+/**
+ * The one demo job of this server process. The drills (drills.ts, slice 7g work package 2) run their jobs on their own
+ * instance of the same runner, with their own kinds; the demo job's contract is unchanged.
+ */
+export class DemoJobs<K extends string = DemoJobKind> {
   #state: DemoJobView['state'] = 'IDLE';
-  #kind: DemoJobKind | null = null;
+  #kind: K | null = null;
   #step: string | null = null;
   #error: string | null = null;
   #startedMs: number | null = null;
 
-  view(): DemoJobView {
+  view(): JobView<K> {
     return {
       state: this.#state,
       kind: this.#kind,
@@ -56,7 +62,7 @@ export class DemoJobs {
   }
 
   /** Starts `work` as the job (the caller checked that none runs); returns at once with the job's view. */
-  start(kind: DemoJobKind, work: (step: (s: string) => void) => Promise<void>): DemoJobView {
+  start(kind: K, work: (step: (s: string) => void) => Promise<void>): JobView<K> {
     this.#state = 'RUNNING';
     this.#kind = kind;
     this.#step = 'starting';
@@ -78,7 +84,7 @@ export class DemoJobs {
   }
 
   /** Waits for the job in progress (tests and the server's close). */
-  async settled(timeoutMs = 600_000): Promise<DemoJobView> {
+  async settled(timeoutMs = 600_000): Promise<JobView<K>> {
     const deadline = performance.now() + timeoutMs;
     while (this.#state === 'RUNNING' && performance.now() < deadline) await new Promise((r) => setTimeout(r, 100));
     return this.view();

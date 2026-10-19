@@ -87,6 +87,28 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         (await c.query<{ id: string }>('select platform.propose_peer_installation($1::jsonb)::text as id', [JSON.stringify(body)])).rows[0]!.id);
       return (await peers(app, pool, id))[0]!;
     },
+    // Slice 7g, work package 2: the identity of this installation, from the key this server holds (SYSTEM.CONFIGURE), and
+    // QA's revocation of a trusted peer (TRANSFER.PEER_APPROVE; never an administrator, DI-18).
+    setInstallationIdentity: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const key = installationKey(app);
+      if (!key) throw noKey();
+      await withIdempotentActorCommand(pool, actor({ reasonCode: 'INSTALLATION_IDENTITY', reasonText: body.reason }), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query("select platform.set_installation_identity($1, $2, 'TABLETS', $3)", [key.installationCode, body.siteCode, key.publicKey]);
+        return key.installationCode;
+      });
+      const me = await identity(pool, key);
+      if (!me) throw new Error('the installation identity was not recorded');
+      return me;
+    },
+    revokePeer: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await withIdempotentActorCommand(pool, actor({ reasonCode: 'PEER_REVOCATION', reasonText: body.reason }), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select platform.revoke_peer_installation($1, $2)', [params.peerId, body.reason]);
+        return params.peerId;
+      });
+      const [p] = await peers(app, pool, params.peerId);
+      if (!p) throw new Error('the revoked peer was not found');
+      return p;
+    },
     packages: async ({ requireSession }) => {
       requireSession();
       return { packages: await packages(app, pool) };
