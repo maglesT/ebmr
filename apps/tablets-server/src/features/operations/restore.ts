@@ -25,7 +25,7 @@ import type pg from 'pg';
 import { continuity, type ActorContext } from '@ebmr/kernel';
 import type { RestoreEventView, RestoreMoveView, RestoreView, SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
-import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableContext } from '../../platform/ports.ts';
 import { contentOf, type EsigSignableContext } from '../esig/content.ts';
@@ -55,10 +55,15 @@ const notConfigured = (why: string) =>
     whoCanHelp: ['The system administrator'],
   });
 
-function ledgerOrRefuse(app: AppContext): continuity.ExternalLedger {
+/**
+ * The ledger, or the refusal: a person without CONTINUITY.RESTORE_OPERATE is refused for that first (the database's own
+ * check), so the server's configuration is told only to those who run the procedure.
+ */
+async function ledgerOrRefuse(app: AppContext, actor: ActorContext): Promise<continuity.ExternalLedger> {
   const ledger = restoreLedger(app);
-  if (!ledger) throw notConfigured(restoreProblem(app) ?? '');
-  return ledger;
+  if (ledger) return ledger;
+  await withActorCommand(app.pools.app, actor, (c) => c.query("select iam.require_permission('CONTINUITY.RESTORE_OPERATE', '{}'::jsonb)"));
+  throw notConfigured(restoreProblem(app) ?? '');
 }
 
 interface EventRow {
@@ -164,7 +169,7 @@ interface Idem {
 
 /** Step 1 (header): the moves made (none when this incarnation is bound or secured already). */
 export async function secureIdentifiers(app: AppContext, actor: ActorContext, idem: Idem): Promise<RestoreMoveView[]> {
-  const marks = await externalMarks(ledgerOrRefuse(app));
+  const marks = await externalMarks(await ledgerOrRefuse(app, actor));
   const { result } = await withIdempotentActorCommand(app.pools.app, actor, idem.idempotencyKey ?? '', idem.requestHash, async (c) => {
     const { rows } = await c.query<MoveRow>(`select ${MOVES} from continuity.secure_identifiers($1::jsonb, $2::jsonb, $3)`, [marks.highWater, marks.loginNames, '1000000']);
     return rows.map(moveView);
@@ -185,7 +190,7 @@ export interface RestoreEventInput {
 
 /** Step 2 (header): the recorded event's id; the event is copied to the ledger once recorded (not again on a resend). */
 export async function recordRestoreEvent(app: AppContext, actor: ActorContext, tokenHash: string, body: RestoreEventInput, idem: Idem): Promise<RestoreEventView> {
-  const ledger = ledgerOrRefuse(app);
+  const ledger = await ledgerOrRefuse(app, actor);
   const anchors = JSON.stringify(await continuity.ledgerAnchors(ledger));
   const event = {
     event_kind: body.eventKind,
@@ -210,7 +215,7 @@ export async function recordRestoreEvent(app: AppContext, actor: ActorContext, t
 
 /** Step 4 (header): the moves of the completion; copied to the ledger once (not again on a resend). */
 export async function completeRestore(app: AppContext, actor: ActorContext, tokenHash: string, restoreEventId: string, idem: Idem): Promise<{ event: RestoreEventView; moves: RestoreMoveView[] }> {
-  const ledger = ledgerOrRefuse(app);
+  const ledger = await ledgerOrRefuse(app, actor);
   const marks = await externalMarks(ledger);
   const { result: moves, replayed } = await withIdempotentActorCommand(app.pools.app, actor, idem.idempotencyKey ?? '', idem.requestHash, async (c) => {
     const { rows } = await c.query<MoveRow>(`select ${MOVES} from continuity.after_restore($1, $2::jsonb, $3, $4::jsonb)`, [restoreEventId, marks.highWater, '1000000', marks.loginNames]);

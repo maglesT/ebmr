@@ -476,6 +476,9 @@ export const EXAMPLES = {
   'transfers-import-refused': { schema: r.transfers.import.response, data: xf.importRefused },
   'transfers-alarms': { schema: r.transfers.alarms.response, data: { alarms: [xf.alarm] }, routeId: r.transfers.alarms.id },
   'transfers-acknowledge-alarm': { schema: r.transfers.acknowledgeAlarm.response, data: xf.alarmAcknowledged, routeId: r.transfers.acknowledgeAlarm.id },
+  // Phase 7 slice 7g, work package 2: the installation identity set from the server's key, a peer revoked by QA.
+  'transfers-set-installation-identity': { schema: r.transfers.setInstallationIdentity.response, data: xf.installation, routeId: r.transfers.setInstallationIdentity.id },
+  'transfers-revoke-peer': { schema: r.transfers.revokePeer.response, data: { ...xf.peers[1], state: 'REVOKED' }, routeId: r.transfers.revokePeer.id },
   // Phase 4 slice 6b: retention, contingency packs, evidence export and the inspection workspace.
   'archive-batches': { schema: r.archive.batches.response, data: ar.batches, routeId: r.archive.batches.id },
   'archive-batch': { schema: r.archive.batch.response, data: ar.batch, routeId: r.archive.batch.id },

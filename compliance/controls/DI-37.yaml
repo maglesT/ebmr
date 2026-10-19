@@ -348,6 +348,8 @@ tests:
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: review signatures, the QMS item and container links (mutation triage T11; INV-05, DI-37, DI-31, PR-53) > [INV-05][DI-37] a QA review signature that no longer stands keeps G1.REVIEW RED, even when a later review of another batch stands"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] signing one run off leaves another in state RUN, so the other is still signed in the state it is in"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] a run that no longer reproduces as of its own instant (a transaction straddled it) is not signed off, even with a valid signature"
+  - "apps/tablets-server/test/operations/restore-and-alarms.test.ts > the restore procedure (DI-45) > [DI-45][DI-18][DI-37] the administrator records the restore naming a QA approver, never themself; only the named approver approves it with their own signature, never the administrator; then the administrator completes it and the ledger holds both"
+  - "apps/tablets-web/test/operations/wp2-operations.test.tsx > the restore procedure (DI-45) > [DI-45][DI-37] a named approver approves the restore through the ceremony (RESTORE_APPROVE); the operator is offered no approval; the administrator completes an approved restore"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

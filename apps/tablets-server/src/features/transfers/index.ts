@@ -91,7 +91,11 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     // QA's revocation of a trusted peer (TRANSFER.PEER_APPROVE; never an administrator, DI-18).
     setInstallationIdentity: async ({ body, actor, idempotencyKey, requestHash }) => {
       const key = installationKey(app);
-      if (!key) throw noKey();
+      if (!key) {
+        // The right first (the database's), so the server's configuration is told only to those who set the identity.
+        await withActorCommand(pool, actor(), (c) => c.query("select iam.require_permission('SYSTEM.CONFIGURE', '{}'::jsonb)"));
+        throw noKey();
+      }
       await withIdempotentActorCommand(pool, actor({ reasonCode: 'INSTALLATION_IDENTITY', reasonText: body.reason }), idempotencyKey ?? '', requestHash, async (c) => {
         await c.query("select platform.set_installation_identity($1, $2, 'TABLETS', $3)", [key.installationCode, body.siteCode, key.publicKey]);
         return key.installationCode;
