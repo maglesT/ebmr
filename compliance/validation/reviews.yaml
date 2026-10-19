@@ -16,6 +16,83 @@
 # The slice quick reviews (R-6a to R-6i, 6A-0 to 6A-6) are not seeded here; their residuals are in each slice's
 # section of the phase plans.
 reviews:
+  - id: 1-exit
+    date: "2026-09-28"
+    # Phase 1 exit review (wf_2867a725-d77, docs/build-plan/phase-1-exit/review-results-2026-09-28.json): the kernel.
+    # 88 findings, 55 confirmed (4 critical, 15 high, 36 medium), 14 plausible, 19 rejected. All confirmed ones were
+    # taken by the fix agents K, E, I, M, R, P, C with reproducers (history, 28 September); counted fixed. Low: none recorded.
+    scope:
+      - "packages/kernel/**"
+    findings:
+      critical: { open: 0, fixed: 4 }
+      high: { open: 0, fixed: 15 }
+      medium: { open: 0, fixed: 36 }
+      low: { open: 0, fixed: 0 }
+  - id: 2-exit
+    date: "2026-09-30"
+    # Phase 2 exit review (wf_915b8c27-4a5, read at the phase-2/recipe-core wave-1 commit): the expression and flow
+    # engine, recipe-core, the Tablets server and web and the gateway as Phase 2 built them. 27 confirmed, 13
+    # plausible, 2 critic findings; 45 of 46 items closed with tests. The severity split is not recorded in the
+    # backlog or history, so the counts stay at zero; the open item is listed in docs/build-plan/phase-2-exit/review-backlog.md.
+    scope:
+      - "packages/expr/**"
+      - "packages/recipe-core/**"
+      - "apps/tablets-server/**"
+      - "apps/tablets-web/**"
+      - "apps/site-gateway/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 0, fixed: 0 }
+      low: { open: 0, fixed: 0 }
+  - id: 3-exit
+    date: "2026-10-11"
+    # Phase 3 exit review (Opus, decision 0009; docs/build-plan/phase-3/review-backlog.md): the Tablets edition as
+    # Phase 3 built it. No critical; HIGH-1 to HIGH-4 fixed, HIGH-5 moved to recipe-core by ADR-0019 (counted open);
+    # four medium in the backlog (typed container close, container release vs hold, GMP sweeper, trigger performance).
+    scope:
+      - "apps/tablets-server/**"
+      - "apps/tablets-web/**"
+      - "apps/simulators/**"
+      - "packages/recipe-core/sql/**"
+      - "packages/kernel/sql/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 1, fixed: 4 }
+      medium: { open: 4, fixed: 0 }
+      low: { open: 0, fixed: 0 }
+  - id: 4-exit
+    date: "2026-10-13"
+    # Phase 4 exit review (one pass, decision 0008; history 13 October): the Phase 4 release, review, records and
+    # package work. No critical or high. Medium and low findings were fixed or listed per slice (see 4-slices).
+    scope:
+      - "packages/recipe-core/sql/**"
+      - "packages/kernel/sql/**"
+      - "packages/kernel/src/records/**"
+      - "packages/site-services/sql/**"
+      - "packages/api-contract/**"
+      - "apps/tablets-server/**"
+      - "apps/tablets-web/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 0, fixed: 0 }
+      low: { open: 0, fixed: 0 }
+  - id: 4-slices
+    date: "2026-10-12"
+    # The Phase 4 slice quick reviews 1 to 4 (docs/build-plan/phase-4/review-backlog.md): record review, deviations
+    # and exceptions, release core, QP package and shipping. One high fixed (slice 4); the eight core mediums of slice 4
+    # fixed, two mediums open (slice 2); low bullets counted open, one per backlog bullet (six).
+    scope:
+      - "packages/recipe-core/sql/**"
+      - "packages/kernel/sql/**"
+      - "packages/site-services/sql/**"
+      - "apps/tablets-server/src/features/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 1 }
+      medium: { open: 2, fixed: 8 }
+      low: { open: 6, fixed: 0 }
   - id: 6A-7
     date: "2026-10-17"
     # The 6A migrations (kernel 1240-1271, recipe-core 1110-1170, tablets 1330), the analytics package and the runner.
