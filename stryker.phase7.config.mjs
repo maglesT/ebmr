@@ -15,7 +15,7 @@ const A = 'packages/analytics/src';
 const R = 'apps/tablets-server/src/analytics';
 
 /**
- * @typedef {{ kind: 'db' | 'server' | 'unit', high: string[], other: string[], tests: string[] }} Feature
+ * @typedef {{ kind: 'db' | 'server' | 'unit', high: string[], other: string[], tests: string[], aliases?: Record<string, string> }} Feature
  * @type {Record<string, Feature>}
  */
 export const FEATURES = {
@@ -52,6 +52,8 @@ export const FEATURES = {
     high: ['packages/validation-kit/src/iq/iq.ts'],
     other: ['packages/validation-kit/src/iq/db-inventory.ts'],
     tests: ['tools/validation/test/validation.test.ts'],
+    // The test imports runIq through the package name (D-P7R-5); see vitest.stryker-phase6.config.ts.
+    aliases: { '@ebmr/validation-kit': 'packages/validation-kit/src/index.ts' },
   },
   'build-status': {
     kind: 'unit',
@@ -92,7 +94,7 @@ let config = {};
 if (!isMain) {
   if (!feature) throw new Error(`set EBMR_STRYKER_FEATURE to one of: ${Object.keys(FEATURES).join(', ')}`);
   config = featureOptions(feature, process.env['EBMR_STRYKER_HIGH_RISK_ONLY'] === '1');
-  process.env['EBMR_STRYKER_PHASE6_TESTS'] = JSON.stringify({ kind: FEATURES[feature].kind, tests: FEATURES[feature].tests });
+  process.env['EBMR_STRYKER_PHASE6_TESTS'] = JSON.stringify({ kind: FEATURES[feature].kind, tests: FEATURES[feature].tests, aliases: FEATURES[feature].aliases });
 }
 export default config;
 
