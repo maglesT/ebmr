@@ -338,3 +338,32 @@ describe('the exception register (recipe-core 0440)', () => {
     expect(await entry(d.runId, breach)).toMatchObject({ status: 'OPEN', dispositionedBy: null });
   }, 300_000);
 });
+
+describe('recipe.review_exception as Phase 6A re-creates it (recipe-core 1217; D-P7-1 item 4)', () => {
+  it('[DI-26][INV-03][INV-41] review acts: an answer needs an open query and another person than the asker, in a role holding either answering permission; the raiser does not conclude; a disposition of another batch does not count; a blank note is stored as none', async () => {
+    const { d, breach } = await blendRun('17');
+    await d.ok('supervisor1', { type: 'RAISE_EXCEPTION', description: 'Blender room door found open', severity: 'ALERT' });
+    const open = (await register(d.runId)).find((x) => x.exceptionType === 'OPERATOR_RAISED')?.exceptionId ?? '';
+    await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: breach, outcome: 'NO_IMPACT', justification: 'Within the action limits' });
+    await grantRole('verifier1', 'QA_REVIEWER');
+    await grantRole('supervisor1', 'QA_REVIEWER');
+    const reviewer = await asPersonaInRole(sbx, 'verifier1', 'QA_REVIEWER');
+    // One session per person: the supervisor's QA session supersedes the supervisor's own, and the other way round.
+    const asSupervisor = () => asPersonaInRole(sbx, 'supervisor1', 'SHIFT_SUPERVISOR');
+    const asQa = () => asPersonaInRole(sbx, 'supervisor1', 'QA_REVIEWER');
+
+    expect(await review(await asSupervisor(), 'supervisor1', d.runId, breach, 'RESPONDED', 'Nothing was asked yet')).toMatch(/has no open query to respond to \(DI-26\)\. \[EBMR-EXE-164\]$/);
+    expect(await review(await asQa(), 'supervisor1', d.runId, breach, 'QUERIED', 'Why no impact on the blend?')).toBe('ok');
+    expect(await review(await asSupervisor(), 'supervisor1', d.runId, breach, 'RESPONDED', 'Because the band is advisory')).toMatch(/asked the query on exception \S+ and cannot answer it too \(INV-03, DI-26\)\. \[EBMR-EXE-165\]$/);
+    // The head of production holds RECORD.PRODUCTION_APPROVE, the second of RESPONDED's permissions, and not the first.
+    expect(await review(await asPersonaInRole(sbx, 'head1', 'HEAD_OF_PRODUCTION'), 'head1', d.runId, breach, 'RESPONDED', 'The value is inside the action limits; the alert band is advisory')).toBe('ok');
+    // The supervisor raised the door exception: as QA they do not conclude its review.
+    expect(await review(await asQa(), 'supervisor1', d.runId, open, 'ESCALATED', 'Door left open during blending', 'TEST-DEV-0444')).toMatch(/cannot conclude its review \(INV-03, DI-26\)\. \[EBMR-EXE-165\]$/);
+    expect(await review(reviewer, 'verifier1', d.runId, breach, 'ACCEPTED_BY_QA', '   ')).toBe('ok');
+    expect((await sbx.db.admin.query("select note from recipe.exception_register_act where batch_id = $1 and exception_id = $2 and act = 'ACCEPTED_BY_QA'", [d.runId, breach])).rows).toEqual([{ note: null }]);
+    // A second run raises the same exception id, not dispositioned there: the first run's disposition does not count.
+    const e = await blendRun('17');
+    expect(e.breach).toBe(breach);
+    expect(await review(reviewer, 'verifier1', e.d.runId, e.breach, 'ACCEPTED_BY_QA', null)).toMatch(/is still open; QA accepts an exception in review only after its disposition.*\[EBMR-EXE-164\]$/);
+  }, 300_000);
+});

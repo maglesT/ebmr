@@ -395,4 +395,12 @@ describe('the exception-register acts in review in the batch\'s product scope (6
     expect(await codeOf(w.run(operator, (c) => c.query("select recipe.review_exception($1, 'NO-SUCH', 'QUERIED', 'x', null)", [approved.batchId])))).toBe('EBMR-IAM-040');
     expect(await codeOf(w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, 'NO-SUCH', 'QUERIED', 'x', null)", [approved.batchId])))).toBe('EBMR-EXE-164');
   });
+
+  it('[INV-30][DI-26] on a GMP batch a query belongs to the QA review: one asked before the production approval is refused (recipe-core 1217; D-P7-1 item 4)', async () => {
+    const batchId = await issuedBatch();
+    const ex = await raise(batchId, 'Label roll found torn at the line');
+    expect(await messageOf(w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, $2, 'QUERIED', $3, null)", [batchId, ex, 'Why was the roll torn?']))))
+      .toMatch(/^EBMR-REV-065 the record is \S+; on a GMP batch a query and its answer belong to the QA review, after the production approval \(INV-30, DI-26\)$/);
+    expect((await db.admin.query('select 1 from recipe.exception_register_act where batch_id = $1 and exception_id = $2 and act = $3', [batchId, ex, 'QUERIED'])).rowCount).toBe(0);
+  }, 300_000);
 });
