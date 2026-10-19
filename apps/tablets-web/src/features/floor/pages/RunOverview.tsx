@@ -17,6 +17,7 @@ import { useRouteParams } from '../params.ts';
 import { ExceptionList } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
+import { MergeContainers } from '../components/StepFloorActs.tsx';
 import { HoldBatchDialog, LinkDeviationDialog, RaiseExceptionDialog, ReleaseHoldDialog } from '../dialogs/CommandDialogs.tsx';
 import { DispositionDialog } from '../dialogs/SignDialogs.tsx';
 import { isGmpFloor } from '../family.ts';
@@ -196,6 +197,8 @@ export function RunOverviewPage() {
       </section>
 
       {isGmpFloor() ? <BatchWorkQueue batchId={runId} /> : null}
+      {/* Phase 7 slice 7g (WP4): a merge of two scanned containers of the batch. */}
+      {isGmpFloor() ? <MergeContainers /> : null}
 
       <ExceptionList exceptions={view.exceptions} actions={view.actions} perform={perform} busy={signed.busy} />
 
