@@ -20,8 +20,8 @@ import { routes, type SignatureCredentials } from '@ebmr/api-contract';
 import { sha256Hex } from '@ebmr/expr';
 import { continuity, esig, identity, withCommand, type MigrationSource } from '@ebmr/kernel';
 import {
-  ADMIN_URL, bootstrapInstallation, onServer, createGmpDatabase, dropDatabase, editionMigrationSources, generateDeviceKey, openDatabase, openPersonaSession, openServiceSession, passwordActor,
-  personaOf, seedDemoSite, uniqueSuffix, type DatabaseHandle, type SiteSeed,
+  ADMIN_URL, approveValidationSummary, bootstrapInstallation, onServer, createGmpDatabase, dropDatabase, editionMigrationSources, generateDeviceKey, openDatabase, openPersonaSession, openServiceSession, passwordActor,
+  personaOf, seedDemoSite, seededValidationActs, uniqueSuffix, type DatabaseHandle, type SiteSeed,
 } from '@ebmr/test-kit';
 import { postOrder } from '../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell } from '../../../packages/recipe-core/test/lifecycle/support.ts';
@@ -118,6 +118,9 @@ export async function buildSite(o: { sessions: number; offices: number; log: (m:
   // Each persona set holds two kiosk operators (operator1, operator2) of their own.
   const sets = Math.max(1, Math.ceil(o.sessions / 2));
   const seed = await seedDemoSite(db, 'GMP', boot, { personaSets: sets });
+  // Slice 7c (DI-03, D-P7-12): GMP batches are issued only on a release with an approved validation summary; QA approves
+  // the run's DEMO-ONLY summary of its release through the real signed act, as the test templates do.
+  await approveValidationSummary(await seededValidationActs(db, seed));
   const kiosks = Array.from({ length: o.sessions }, (_, i) => `KIOSK-LOAD-${String(i + 1).padStart(2, '0')}`);
   const offices = Array.from({ length: o.offices + 9 }, (_, i) => `PC-LOAD-${String(i + 1).padStart(2, '0')}`);
   await addTerminals(db, seed, [...kiosks.map((code) => ({ code, cls: 'SHARED' as const, room: 'DISP-1' })), ...offices.map((code) => ({ code, cls: 'PERSONAL' as const }))]);
