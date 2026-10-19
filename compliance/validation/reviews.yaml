@@ -48,7 +48,8 @@ reviews:
   - id: 3-exit
     date: "2026-10-11"
     # Phase 3 exit review (Opus, decision 0009; docs/build-plan/phase-3/review-backlog.md): the Tablets edition as
-    # Phase 3 built it. No critical; HIGH-1 to HIGH-4 fixed, HIGH-5 moved to recipe-core by ADR-0019 (counted open);
+    # Phase 3 built it. No critical; HIGH-1 to HIGH-4 fixed; HIGH-5 closed by ADR-0019 (the generic-block guards are in
+    # force in the Tablets edition; their move to recipe-core is scheduled before Phase 5, Injectables);
     # four medium in the backlog (typed container close, container release vs hold, GMP sweeper, trigger performance).
     scope:
       - "apps/tablets-server/**"
@@ -58,7 +59,7 @@ reviews:
       - "packages/kernel/sql/**"
     findings:
       critical: { open: 0, fixed: 0 }
-      high: { open: 1, fixed: 4 }
+      high: { open: 0, fixed: 5 }
       medium: { open: 4, fixed: 0 }
       low: { open: 0, fixed: 0 }
   - id: 4-exit
