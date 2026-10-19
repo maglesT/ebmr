@@ -84,6 +84,17 @@ export async function sealKeys(app: AppContext, db: Db): Promise<SealKeyView[]> 
 
 export async function retireSealKey(app: AppContext, actor: ActorContext, keyId: string, body: { changeRecord: string; reason: string }): Promise<SealKeyView[]> {
   const ctx = { ...actor, reasonCode: 'SEAL_KEY_RETIRE', reasonText: `${body.reason} (change record ${body.changeRecord})`, changeRecord: body.changeRecord };
-  await withActorCommand(app.pools.app, ctx, (c) => c.query('select esig.retire_seal_key($1, $2)', [keyId, body.reason]));
+  await withActorCommand(app.pools.app, ctx, async (c) => {
+    try {
+      await c.query('select esig.retire_seal_key($1, $2)', [keyId, body.reason]);
+    } catch (e) {
+      // The kernel checks SYSTEM.CONFIGURE first; then its keys (foreign key) and the single retirement per key (primary
+      // key) refuse an unknown or already retired key. Said in plain words instead of an internal error; nothing is saved.
+      const code = (e as { code?: string }).code;
+      if (code === '23503') throw refusal(404, { code: 'NOT_FOUND', kind: 'NOT_ALLOWED', whatHappened: `Seal key ${keyId} was not found. Nothing was retired.`, why: 'It is not a record-seal key of this installation.', controls: ['DI-36'], whatYouCanDo: ['Reload the list.'] });
+      if (code === '23505') throw refusal(409, { code: 'ALREADY_RETIRED', kind: 'STALE', whatHappened: `Seal key ${keyId} is already retired. Nothing was changed.`, why: 'A key is retired once.', controls: ['DI-36'], whatYouCanDo: ['Reload the list.'] });
+      throw e;
+    }
+  });
   return sealKeys(app, app.pools.app);
 }

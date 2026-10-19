@@ -6,7 +6,7 @@
  * scope does not see (withCommand, withGuardedCommand straight from the kernel).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import ts from 'typescript';
 
 export interface LaterRead {
@@ -93,5 +93,14 @@ function isBound(sf: ts.SourceFile, obj: ts.Node): boolean {
     if (ts.isCallExpression(n) && calleeName(n) === 'bindRoutes') return true;
   }
   // `const handlers = {...}` / `function handlers() { return {...} }` passed to bindRoutes in the same file.
-  return sf.text.includes('bindRoutes(');
+  if (sf.text.includes('bindRoutes(')) return true;
+  // Handlers kept in their own file of the feature (`export function masterRecordHandlers(app) { return {...} }`) and
+  // spread into the bindRoutes call of a sibling file that imports it (the feature's index.ts).
+  const dir = dirname(sf.fileName);
+  const spec = `'./${basename(sf.fileName)}'`;
+  return readdirSync(dir).some((f) => {
+    if (!f.endsWith('.ts') || join(dir, f) === sf.fileName) return false;
+    const text = readFileSync(join(dir, f), 'utf8');
+    return text.includes('bindRoutes(') && text.includes(spec);
+  });
 }

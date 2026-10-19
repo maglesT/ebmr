@@ -22,6 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { allRoutes, routes, type AnyRoute } from '@ebmr/api-contract';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
+import { tokenHash } from '../../src/platform/auth/session.ts';
 import { validRequest } from './samples.ts';
 
 const MATRIX_FILE = new URL('./fixtures/route-role-matrix.json', import.meta.url);
@@ -116,11 +117,29 @@ beforeAll(async () => {
   sessions.GMP = await roleSessions(gmp);
   sessions.SANDBOX = await roleSessions(sbx);
   for (const m of [sessions.GMP, sessions.SANDBOX]) for (const [role, b] of m) roleOf.set(b, role);
+  // The kernel locks a session once its idle time (900 s on an office device) has passed since its last command; the
+  // reads and refused writes of the matrix are not commands. The sessions of both installations are opened before the
+  // GMP pass, so on a slow run the later ones locked midway and their cells turned into L. Each pass keeps its sessions
+  // open, at most a minute apart, through the database function the keep-alive route runs (the route itself is
+  // rate-limited per terminal, and every matrix session shares one).
+  const keepAlive = async (server: TestServer): Promise<void> => {
+    for (const [role, b] of sessions[server.kind]) {
+      const hash = tokenHash(b.cookies.get(server.config.cookies.session) ?? '');
+      await server.db.app.query('select tab.keep_session_alive($1, null)', [hash]).catch((e: unknown) => {
+        throw new Error(`SETUP: the ${server.kind} ${role} session could not be kept open: ${String(e)}`);
+      });
+    }
+  };
   for (const server of [gmp, sbx]) {
     const kind = server.kind;
     const mine = allRoutes(routes).filter((r) => r.installation === 'ANY' || r.installation === kind).sort((a, b) => a.id.localeCompare(b.id));
+    let keptAt = -Infinity;
     for (const route of mine) {
       if (route.stream) continue;
+      if (performance.now() - keptAt > 60_000) {
+        await keepAlive(server);
+        keptAt = performance.now();
+      }
       unauth[kind][route.id] = (await call(server, null, route)).cell;
       if (SESSION_PLUMBING(route) || route.auth !== 'SESSION') continue;
       const row: Record<string, Cell> = {};

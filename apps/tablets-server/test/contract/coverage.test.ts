@@ -51,6 +51,9 @@ const EXAMPLE_PARAMS: Record<string, string> = {
   // Phase 7 slice 7g-2 (market authorisations, incidents).
   authorisationId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   incidentId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  // Slice 7g-3 (WP1): the stored IQ record and periodic evaluation pack files.
+  iqId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  packId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
 };
 
 function samplePath(route: AnyRoute): string {

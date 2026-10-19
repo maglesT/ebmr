@@ -76,12 +76,17 @@ describe('F34: GET /api/esig/content and /api/esig/signatures read only what the
     }
   });
 
-  it('[DI-17][DI-50] a QA reviewer may read the investigation\'s signatures, but its content is served by no signing flow of this installation', async () => {
+  it('[DI-17][DI-50] a QA reviewer may read the investigation\'s signatures, and its content only for the closure QA signs (DI_INVESTIGATION_CLOSED, tablets 1491), never with another meaning', async () => {
     const sigs = await qaBrowser.call(routes.esig.signatures, { query: { aggregateType: 'di_investigation', aggregateId: investigationId } });
     expect(outcome(sigs)).toBe('ok');
     const r = await qaBrowser.call(routes.esig.content, { query: { aggregateType: 'di_investigation', aggregateId: investigationId, intent: 'DI_INVESTIGATION_CLOSED' } });
-    expect(outcome(r)).toBe('404:EBMR-TAB-019');
-    expect(leaked(r)).not.toContain('back-dating');
+    // Since slice 7g-3 (tablets 1491) QA signs the closure through the kernel's provider, so QA reads what it signs (DI-37).
+    expect(outcome(r)).toBe('ok');
+    expect(leaked(r)).toContain('back-dating');
+    // With a meaning not signed that way here, nothing is served.
+    const prepared = await qaBrowser.call(routes.esig.content, { query: { aggregateType: 'di_investigation', aggregateId: investigationId, intent: 'PREPARED' } });
+    expect(outcome(prepared)).toMatch(/^4\d\d:/);
+    expect(leaked(prepared)).not.toContain('back-dating');
     // Never the investigation about the reviewer: it has no signatures for the reviewer, as an investigation that is not
     // there has none (tablets 0530, default F35.3).
     const own = await qaBrowser.call(routes.esig.signatures, { query: { aggregateType: 'di_investigation', aggregateId: ownInvestigationId } });
@@ -144,7 +149,9 @@ describe('F34: the database (tablets 0410)', () => {
     // The subject: role without a governance permission.
     const subjectProblem = (await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [subject, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { p: string | null };
     expect(subjectProblem.p).toMatch(/read only in a role that reviews audit trails/);
-    await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [subject, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rejects.toThrow(/EBMR-TAB-019/);
+    // The closure is signed through the kernel's provider since tablets 1491: the subject is refused for want of the read.
+    await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [subject, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rejects.toThrow(/EBMR-TAB-020/);
+    await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [subject, 'di_investigation', investigationId, 'PREPARED'])).rejects.toThrow(/EBMR-TAB-019/);
     await expect(q('select * from tab.record_signatures($1, $2, $3)', [subject, 'di_investigation', investigationId])).rejects.toThrow(/EBMR-TAB-020/);
     // The QA reviewer may read and close an investigation, but never the one about the reviewer: its signatures and
     // content are those of an investigation that is not there (tablets 0530, default F35.3), and its preview is decided
@@ -153,8 +160,13 @@ describe('F34: the database (tablets 0410)', () => {
     expect(((await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [reviewer, 'di_investigation', ownInvestigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { p: string | null }).p).toBeNull();
     expect((await q('select * from tab.record_signatures($1, $2, $3)', [reviewer, 'di_investigation', ownInvestigationId])).rows).toEqual([]);
     expect((await q('select * from tab.record_signatures($1, $2, $3)', [reviewer, 'di_investigation', investigationId])).rows).toEqual([]);
-    // The kernel provider serves only the pairs signed that way here, and only to a role that signs the meaning.
-    await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [reviewer, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rejects.toThrow(/EBMR-TAB-019/);
+    // The kernel provider serves only the pairs signed that way here (since tablets 1491 the closure), and only to a role
+    // that signs the meaning; the investigation about the reviewer is one that is not there.
+    await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [reviewer, 'di_investigation', investigationId, 'PREPARED'])).rejects.toThrow(/EBMR-TAB-019/);
+    const served = (await q('select tab.content_for_signing($1, $2, $3, $4) as r', [reviewer, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { r: Record<string, unknown> };
+    expect(served.r['exists']).toBe(true);
+    const own = (await q('select tab.content_for_signing($1, $2, $3, $4) as r', [reviewer, 'di_investigation', ownInvestigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { r: Record<string, unknown> };
+    expect(own.r).toEqual({ exists: false, aggregate_type: 'di_investigation', aggregate_id: ownInvestigationId });
   });
 
   it('[DI-17][DI-50] the application role sees no signing request or signature of a GOVERNANCE-class record, and since tablets 0610 selects none at all (row-level security showed it the RECORD-class ones until then); the owner sees them, and the session that made a RECORD-class request reads it', async () => {
@@ -458,7 +470,8 @@ describe('F34: the person a DI investigation is about is answered as a colleague
     const colleague = await answers(controlBrowser, absent);
     expect(subject).toEqual(colleague);
     expect(colleague.signatures).toBe(JSON.stringify({ ok: true, status: 200, value: { signatures: [] } }));
-    expect(colleague.closure).toMatch(/"status":404[^]*"code":"EBMR-TAB-019"/);
+    // Since tablets 1491 the closure is signed through the kernel's provider: both answer as for a record not there.
+    expect(colleague.closure).toMatch(/"status":404[^]*"code":"ESIG_CONTENT_NOT_FOUND"/);
     expect(colleague.prepared).toMatch(/"status":403[^]*"code":"ESIG_PREVIEW_NOT_ALLOWED"/);
   });
 
@@ -478,7 +491,10 @@ describe('F34: the person a DI investigation is about is answered as a colleague
     expect(subject).toMatchObject({ closure: [{ p: null }], signatures: [] });
     // The investigation about the reviewer has a signature (the colleague's), which the colleague reads.
     expect((await q('select meaning_code from tab.record_signatures($1, $2, $3)', [colleague, 'di_investigation', ownInvestigationId])).rows).toEqual([{ meaning_code: 'DI_INVESTIGATION_CLOSED' }]);
-    expect(subject.content).toMatch(/EBMR-TAB-019/);
+    // Since tablets 1491 the closure is signed through the kernel's provider: both are answered as a record not there.
+    expect(subject.content).toBe('resolved');
+    const own = (await q('select tab.content_for_signing($1, $2, $3, $4) as r', [reviewer, 'di_investigation', ownInvestigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { r: Record<string, unknown> };
+    expect(own.r).toEqual({ exists: false, aggregate_type: 'di_investigation', aggregate_id: ownInvestigationId });
     // Were this installation to sign investigations through the kernel's provider (a later signing flow), the reviewer's
     // session would be served the investigation about the reviewer as one that is not there; the colleague its content.
     const c = await gmp.db.admin.connect();
