@@ -12,13 +12,14 @@
  *     defined for GMP (no SANDBOX_ONLY block: DI-05, INV-18), recipe.issue_gmp_execution (the issuer's own valid ISSUED
  *     signature, the ISSUE row). The command carries the issuer's own reason, both halves, from the action
  *     (EBMR-AUDIT-002). The dry run checks what can be checked before the seal (the batch still PLANNED, the definition,
- *     every header input) and signs nothing on a refusal.
+ *     every header input) and signs nothing on a refusal. In the same command the market policies in force are pinned for
+ *     the batch (market.pin_policies_for_batch; INV-47; slice 7g WP3).
  * The evidence of the ISSUE row is empty (no test package; recipe-core 0335 row_evidence_problem). Test packages stay
  * sandbox-only (the import routes are not bound here), and the database refuses all of this in the sandbox
  * (EBMR-SBX-010).
  */
 import { randomUUID } from 'node:crypto';
-import { continuity, type ActorContext, type commands } from '@ebmr/kernel';
+import { continuity, market, type ActorContext, type commands } from '@ebmr/kernel';
 import { execution, type engine, type flow } from '@ebmr/recipe-core';
 import type { PlannedBatchView, SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
@@ -205,6 +206,9 @@ export function gmpIssueHandler(app: AppContext): SignableActionHandler<IssueAct
         define: () => def,
         request: { variants: { ...a.variants }, inputs: inputsOf(def, a, await loginNameOf(client, ctx.actor.accountId)), issuedBy: engineActor(ctx.actor.personId, roles) },
       });
+      // The market policies in force now are pinned for the batch in the same command (kernel 0350; INV-47): afterwards
+      // only a tightening reaches it, never a loosening (slice 7g WP3; no other path of the GMP issue pinned them).
+      await market.pinPoliciesForBatch(client, a.batchId);
       return { runId: a.batchId, batchNumber: r.batchNumber };
     },
   };

@@ -48,25 +48,7 @@ const PENDING_7G: Readonly<Record<string, string>> = {
 const NO_ROUTE_YET: Readonly<Record<string, string>> = {
   // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration): none
-  // WP3 (master record, market and plant configuration)
-  'market.apply_policy_tightening': 'applying a tightened market policy to an issued batch (MARKET.POLICY_TIGHTEN_BATCH)',
-  'market.define_policy': 'defining a market policy (the kernel\'s market policies)',
-  'market.pin_policies_for_batch': 'pinning the market policies of a batch at issue; no GMP batch issue calls it (to be decided whether v1.0 uses the kernel\'s market policies)',
-  'market.set_policy_version': 'a new version of a market policy (a loosening needs an approver\'s signature)',
-  'market.set_site_value': 'a site value of the market configuration (area SITE_VALUE, under change control)',
-  'plant.close_campaign': 'closing an equipment campaign (MASTERDATA.CHANGE)',
-  'plant.define_alarm_code': 'configuring a plant alarm code (GMP-critical, deviation required; MASTERDATA.CHANGE)',
-  'plant.open_campaign': 'opening an equipment campaign (MASTERDATA.CHANGE)',
-  'plant.set_utility_feed_age': 'the maximum age of a utility feed\'s reading',
-  'recipe.add_change_regulatory': 'the regulatory assessment of an MBR change per market (MBR.CHANGE_RECORD; PR-04)',
-  'recipe.add_change_validation': 'the validation assessment of an MBR change (MBR.CHANGE_RECORD)',
-  'recipe.record_periodic_review': 'the periodic review of an approved MBR version (MBR.APPROVE; PR-05)',
-  'recipe.register_qp': 'registering an EU qualified person (RECORD.QA_REVIEW)',
-  'recipe.unlink_risk_assessment': 'unlinking a risk assessment from an MBR version (MBR.AUTHOR)',
-  'tab.record_line_isolation': 'a line isolation of the blister register',
-  'tab.record_rule_set_verification': 'QA\'s verification of a compendial rule set version (MBR.APPROVE)',
-  'tab.retire_reference_document': 'retiring or withdrawing a reference document version (MASTERDATA.CHANGE); the list has a screen since slice 7g-5',
-  'tab.sign_rule_set_verification': 'binding QA\'s signature to a rule-set verification (MBR.APPROVE)',
+  // WP3 (master record, market and plant configuration): none (routes in ns/market-config.ts; market.pin_policies_for_batch runs in the GMP batch issue, execution/gmp-issue.ts)
   // WP4 (floor, materials, batch numbers)
   'plant.bind_step_equipment': 'binding the plant unit a step uses (STEP.EXECUTE), which alarms and series of the batch follow',
   'plant.merge_container': 'merging output containers (STEP.EXECUTE)',

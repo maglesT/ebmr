@@ -21,7 +21,9 @@ behaviour: |-
   - Exceptional entry of an unqualified person (for example a contractor) into Grade B, or into Grade A in operation, needs an "exceptional supervised entry" record: person, reason, times in and out, supervising authorised person (whose qualification is checked), and a cleanliness impact assessment. The record links to every batch in progress in that area and appears in batch review.
 catalog_test: Set a medical exclusion → filling signatures refused until clearance. Record a contractor entry during filling → impact assessment mandatory and entry visible in batch review.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > the EU qualified-person register (QP_REGISTER) > [ST-10][DI-37] QA registers the EU QP on a registered importer's authorisation with QP_REGISTERED; a QA MBR approver may not sign it; nobody registers themselves; the same registration twice is refused"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > the QP register and the compendial rule sets > [ST-10] QA signs a QP register entry for a person of the EU QP role on an importer's authorisation (QP_REGISTER)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

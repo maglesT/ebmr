@@ -49,6 +49,8 @@ tests:
   - "apps/tablets-server/test/mutation/packaging-blister.test.ts > a passing in-process check rests on a passing check entry of its step, unit and stream, once (tablets 0972) > [PR-29][IN-35][IN-38] the passing entries of TB-21, TB-22, TB-11 and TB-06 vouch for their own unit and stream"
   - "apps/tablets-server/test/mutation/packaging-blister.test.ts > a passing in-process check rests on a passing check entry of its step, unit and stream, once (tablets 0972) > [PR-29][IN-35][IN-38] refused: a failing entry, another unit or stream, another step or block, an unknown entry, a malformed reference, the same reference twice"
   - "apps/tablets-server/test/mutation/packaging-blister.test.ts > a failed or missed check of a blister series holds the output since the last pass of that series (tablets 0972, tab.blister_hold) > [IN-38][PR-29][IN-35] the last PASS of this batch, machine and series only; every container of the machine open into (that pass, the check], and the containers they were merged into"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > plant configuration > [DI-49][IN-26][IN-38] the steward configures an alarm code, opens and closes a campaign with a reason, sets a utility feed age and records a line isolation; the database refuses an alarm that needs a deviation and is not GMP-critical; QA holds no MASTERDATA.CHANGE"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > plant configuration > [DI-49][IN-26][IN-38] saves an alarm code, opens and closes a campaign with a reason, sets a feed age and records a line isolation"
 clauses:
   - clause: "one user signs both \"performed\" and \"verified\" for blister clearance; refused."
     tests:

@@ -473,7 +473,7 @@ export const SignableAction = z.discriminatedUnion('kind', [
   // registered, so the server refuses a signature for any of them.
   //  WP1: VALIDATION_SUMMARY_APPROVE, EVALUATION_PACK_APPROVE, RECORDS_ACT
   //  WP2: RESTORE_APPROVE (replaced: the restore event's id)
-  //  WP3: QP_REGISTER, RULE_SET_VERIFY, MARKET_LOOSENING
+  //  WP3: QP_REGISTER, RULE_SET_VERIFY, MARKET_LOOSENING (real payloads, handlers in the server's market feature)
   //  WP4: LOT_DESTRUCTION_WITNESS
   // WP1 (slice 7g-3, ns/validation.ts; kernel 1300, 1336, 0400, 0440, 0430):
   //  VALIDATION_SUMMARY_APPROVE  validation_summary <schema release>@<summary sha256>  VALIDATION_SUMMARY_APPROVED (QA), state PROPOSED
@@ -505,9 +505,48 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('RESTORE_APPROVE'),
     restoreEventId: Uuid,
   }),
-  z.strictObject({ /** WP3 placeholder. */ kind: z.literal('QP_REGISTER'), subjectId: Uuid }),
-  z.strictObject({ /** WP3 placeholder. */ kind: z.literal('RULE_SET_VERIFY'), subjectId: Uuid }),
-  z.strictObject({ /** WP3 placeholder. */ kind: z.literal('MARKET_LOOSENING'), subjectId: Uuid }),
+  z.strictObject({
+    /**
+     * Slice 7g WP3 (recipe-core 0824; ST-10): QA registers a person as an EU qualified person on a registered importer's
+     * authorisation, or withdraws the registration (QP_REGISTERED on qp_register <person>/<action>/<importer>/<MIA>);
+     * recipe.register_qp decides (never oneself, the importer's own MIA number, the registration's current state).
+     */
+    kind: z.literal('QP_REGISTER'),
+    personId: Uuid,
+    action: z.enum(['REGISTER', 'WITHDRAW']),
+    importerCode: z.string().regex(/^[A-Z0-9][A-Z0-9-]{1,31}$/),
+    miaNumber: z.string().trim().min(1).max(64),
+  }),
+  z.strictObject({
+    /**
+     * Slice 7g WP3 (tablets 1161; IN-34): the QA person who recorded the verification of a compendial rule set version
+     * signs it (COMPENDIAL_RULE_SET_VERIFIED on compendial_rule_set <CODE>:<version>); tab.sign_rule_set_verification decides.
+     */
+    kind: z.literal('RULE_SET_VERIFY'),
+    code: z.string().regex(/^[A-Z][A-Z-]{1,39}$/),
+    version: z.number().int().min(1).max(999_999_999),
+  }),
+  z.strictObject({
+    /**
+     * Slice 7g WP3 (kernel 0320, 0350, 0360; INV-47, IN-52, DI-09): the approver's signature on a market loosening before
+     * it is made: the next version of a policy at a looser position (POLICY_LOOSENING_APPROVED on market_policy_version
+     * <policy>@<version>@<position>), or a site value that departs from a guidance value under a justification
+     * (SITE_VALUE_LOOSENING_APPROVED on market_site_loosening). The server names the record; the person making the change
+     * cannot approve it (the database refuses the change).
+     */
+    kind: z.literal('MARKET_LOOSENING'),
+    target: z.discriminatedUnion('subject', [
+      z.strictObject({ subject: z.literal('POLICY_VERSION'), policy: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/), position: z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}$/) }),
+      z.strictObject({
+        subject: z.literal('SITE_VALUE'),
+        site: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/),
+        key: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/),
+        value: z.string().trim().min(1).max(64),
+        effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        justificationRef: z.string().trim().min(1).max(120),
+      }),
+    ]),
+  }),
   z.strictObject({ /** WP4 placeholder. */ kind: z.literal('LOT_DESTRUCTION_WITNESS'), subjectId: Uuid }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

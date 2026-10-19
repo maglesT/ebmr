@@ -92,6 +92,7 @@ export * from './tablet-entries.ts';
 export * from './ns/people.ts';
 export * from './ns/device-registry.ts';
 export * from './ns/access-governance.ts';
+export * from './ns/market-config.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
 export { PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {

@@ -1363,7 +1363,9 @@ export const TARGETS: Target[] = [
             // Phase 7 slice 7g-2: tablets 1479 re-created both tab.* functions for the labelling specimen approval.
             s('designer/master-records.test.ts'),
             // Phase 7 slice 7g-3 (WP1): tablets 1491 re-created tab.kernel_signing_meanings for the validation and records acts.
-            s('validation/validation-routes.test.ts'), s('validation/records-register-routes.test.ts')],
+            s('validation/validation-routes.test.ts'), s('validation/records-register-routes.test.ts'),
+            // Phase 7 slice 7g WP3: tablets 1493 re-created both again (market loosenings, QP register, rule-set verification).
+            s('market/market-config-routes.test.ts')],
     threshold: 90,
   },
   // ---- 6A-0, analytics interfaces (kernel 1240-1244; ADR 0020): the runner's run lifecycle and output recording, the QA
