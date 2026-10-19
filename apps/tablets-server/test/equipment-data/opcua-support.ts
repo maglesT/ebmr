@@ -67,10 +67,10 @@ export async function opcuaWorld(server: TestServer, chainId: string, adm?: Admi
 }
 
 /**
- * The OPCUA adapter's INTEGRATION identity on its own SERVER device, registered for OPCUA (the kernel helper's, with the
+ * The OPCUA adapter's INTEGRATION identity on its own SERVER device, registered for OPCUA or `system` (the kernel helper's, with the
  * sandbox's TEST- labels, EBMR-SBX-022).
  */
-export async function sandboxOpcuaAdapter(server: TestServer, adm: Administration, site: string): Promise<TestAdapter> {
+export async function sandboxOpcuaAdapter(server: TestServer, adm: Administration, site: string, system: 'OPCUA' | 'EMS' = 'OPCUA'): Promise<TestAdapter> {
   const db = server.db as unknown as TestDatabase;
   const t = randomBytes(3).toString('hex').toUpperCase();
   const login = `test-svc-opcua-${t.toLowerCase()}`;
@@ -87,16 +87,16 @@ export async function sandboxOpcuaAdapter(server: TestServer, adm: Administratio
   await withCommand(db.app, withReason(adm.owner), (c) => decideRoleGrant(c, created.grantId, true, 'approved for test'));
   const ev = await authenticate(adm.authn ?? { pool: db.admin, setRole: 'ebmr_authn' }, { method: 'SERVICE_KEY', identifier: login, secret: created.secret, deviceFingerprint: fp, purpose: 'LOGIN' });
   const s = await openSession(db.app, ev.authEventId, fp);
-  const code = `TEST-OPCUA-${t}`;
+  const code = `TEST-${system}-${t}`;
   const id = await withCommand(db.app, withReason(adm.admin), async (c) =>
-    (await c.query<{ id: string }>("select iam.register_integration_adapter($1, 'OPCUA', $2, $3, 'TEST OPC UA adapter') as id", [code, created.accountId, s.deviceId])).rows[0]!.id,
+    (await c.query<{ id: string }>("select iam.register_integration_adapter($1, $4, $2, $3, 'TEST OPC UA adapter') as id", [code, created.accountId, s.deviceId, system])).rows[0]!.id,
   );
   const actor = {
     personId: created.personId, accountId: created.accountId, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'INTEGRATION' as const,
     siteZone: adm.admin.siteZone, legalName: `TEST-OPCUA-ADAPTER-${t}`,
     seed: { loginName: login, password: created.secret, deviceFingerprint: fp, deviceClass: 'SERVER' as const, grantId: created.grantId },
   };
-  return { system: 'OPCUA', code, id, actor, seq: 0 };
+  return { system, code, id, actor, seq: 0 };
 }
 
 /** The gateway reports a session of the world's endpoint (over: fields changed, e.g. another certificate). */

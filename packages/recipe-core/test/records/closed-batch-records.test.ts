@@ -126,6 +126,24 @@ describe('the closed batch records (recipe-core 1240)', () => {
     expect(await at(aborted)).toBe((await db.admin.query<{ t: string }>("select to_timestamp((1790000000000000 + 7 * 1000000)::numeric / 1000000)::text as t")).rows[0]!.t);
   });
 
+  it('[DI-08][DI-44] an aborted batch is closed at its own move to ABORTED: not at a later command of the batch, nor at another batch\'s later abort', async () => {
+    // Mutation campaign at the Phase 7 exit (D-P7-1 item 4).
+    const early = await batch({ moves: ['ABORTED'] });
+    // A later command of the same batch (no status change), at seq 9.
+    await fixture(
+      `insert into recipe.execution_command (batch_id, seq, kind, command_id, command_type, command, command_hash, actor_person, actor_account, actor_role, source,
+                                             session_id, device_class, now_us, accepted, state_version, state_hash, events_hash, event_count, prev_row_hash, row_hash, correlation_id)
+       values ($1, 9, 'COMMAND', $2, 'SIGN_OFF_STAGE', '{}', $3, $4, $4, 'HEAD_OF_PRODUCTION', 'UI', $4, 'PERSONAL', 1790000000000000 + 9 * 1000000, true, 1, $3, $3, 0, $3, $3, $4)`,
+      [early, randomUUID(), HASH, randomUUID()],
+    );
+    // Another batch aborted later (its move to ABORTED at seq 8).
+    const late = await batch({ moves: ['EXECUTION_COMPLETE', 'IN_PROGRESS', 'EXECUTION_COMPLETE', 'ABORTED'] });
+    const at = async (id: string) => (await db.admin.query<{ t: string }>("select closed_at::text as t from report.closed_record_v1 where record_type = 'batch' and record_id = $1", [id])).rows[0]!.t;
+    const second = async (n: number) => (await db.admin.query<{ t: string }>('select to_timestamp((1790000000000000 + $1::bigint * 1000000)::numeric / 1000000)::text as t', [n])).rows[0]!.t;
+    expect(await at(early)).toBe(await second(5));
+    expect(await at(late)).toBe(await second(8));
+  });
+
   it('[DI-08][DI-44] a closed batch record\'s archive package is every chain keyed by the batch, its record lock and amendments included, and the signature chains of its parts, record-lock amendments included', async () => {
     const complete = await batch({ moves: ['EXECUTION_COMPLETE'], locks: ['LOCKED', 'AMENDMENT_OPENED', 'AMENDMENT_CLOSED'] });
     const other = await batch({ moves: ['EXECUTION_COMPLETE'], locks: ['LOCKED'] });

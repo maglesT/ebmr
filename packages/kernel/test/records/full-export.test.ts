@@ -208,3 +208,110 @@ describe('the full export (kernel 1335)', () => {
     await expect(db.app.query('select * from records.full_export_scope limit 1')).rejects.toThrow(/permission denied/);
   });
 });
+
+// Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the bounds of each export read, the manifest's shape, and the
+// registration guards the migrations call.
+describe('the bounds and the registration guards of the full export (kernel 1335)', () => {
+  /** `sql` refused with `re` inside the open command `c`, which goes on (a savepoint). */
+  async function refusedIn(c: { query: (sql: string, params?: unknown[]) => Promise<unknown> }, sql: string, params: unknown[], re: RegExp): Promise<void> {
+    await c.query('savepoint t1');
+    await expect(c.query(sql, params), sql).rejects.toThrow(re);
+    await c.query('rollback to savepoint t1');
+  }
+
+  it('[DI-08][DI-44] a page, a snapshot, a readability sample and a readability snapshot are refused outside their bounds and served at their edges', async () => {
+    for (const [after, limit] of [[-1, 10], [null, 10], [0, 0], [0, null]]) {
+      await expect(inRun(w.lead, (run, q) => q('select records.full_export_records($1, $2, $3) as v', [run, after, limit])), `${String(after)},${String(limit)}`).rejects.toThrow(/EBMR-REC-142/);
+    }
+    await inRun(w.lead, async (run, q) => {
+      const page = await q<unknown[]>('select records.full_export_records($1, 0, 500) as v', [run]);
+      expect(page?.length).toBeGreaterThan(0);
+      return 1;
+    });
+    for (const keys of [null, [], [`incident:${closedA}`, null]]) {
+      await expect(inRun(w.lead, (run, q) => q('select records.full_export_snapshot($1, $2::text[]) as v', [run, keys])), JSON.stringify(keys)).rejects.toThrow(/EBMR-REC-142/);
+    }
+    await expect(inRun(w.lead, (run, q) => q('select records.full_export_snapshot($1, $2::text[]) as v', [run, Array.from({ length: 201 }, () => `incident:${closedA}`)]))).rejects.toThrow(/EBMR-REC-142/);
+    const edge = await inRun(w.lead, (run, q) => q<unknown[]>('select records.full_export_snapshot($1, $2::text[]) as v', [run, Array.from({ length: 200 }, () => `incident:${closedA}`)]));
+    expect(edge?.length).toBe(200);
+    // The run's summary counts the run's own records, not those of every run.
+    const summary = await withCommand(db.app, again(w.lead), async (c) => {
+      const b = (await c.query<{ b: { runId: string; records: number } }>('select records.begin_full_export() as b')).rows[0]!.b;
+      const all = (await c.query<{ v: unknown[] }>('select records.full_export_records($1, 0, 500) as v', [b.runId])).rows[0]!.v;
+      return { records: b.records, listed: all.length };
+    });
+    expect(summary.records).toBe(summary.listed);
+
+    const now = await w.now();
+    const sample = (seed: string, before: string | null, size: number | null) =>
+      w.report.query('select rank from report.readability_sample_rows_v1($1, $2::timestamptz, $3)', [seed, before, size]);
+    expect((await sample('s'.repeat(200), now, 1)).rows).toEqual([{ rank: 1 }]);
+    await expect(sample('s'.repeat(201), now, 1)).rejects.toThrow(/EBMR-REC-141/);
+    await expect(sample('s', null, 1)).rejects.toThrow(/EBMR-REC-141/);
+    await expect(sample('s', now, 1001)).rejects.toThrow(/EBMR-REC-141/);
+    // Closed before the given time: a record closed at that very instant is not in the sample.
+    const { rows } = await db.app.query<{ t: string }>("select to_char(closed_at, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as t from records.incident_current where id = $1", [closedB]);
+    const at = (await w.report.query<{ record_id: string }>('select record_id from report.readability_sample_rows_v1($1, $2::timestamptz, 1000)', ['s', rows[0]!.t])).rows;
+    expect(at.map((r) => r.record_id)).not.toContain(closedB);
+    for (const rank of [0, 999]) {
+      await expect(withCommand(db.app, again(w.lead), (c) => c.query('select records.readability_snapshot($1, $2::timestamptz, 10, $3)', ['s', now, rank])))
+        .rejects.toThrow(new RegExp(`EBMR-REC-149 the readability sample has no record of rank ${rank.toString()}`));
+    }
+  });
+
+  it('[DI-08] a manifest without its text, or without the arrays and the seals path of its format, or with a file of another kind or the seals file not where it says, is refused', async () => {
+    const { exp } = await w.export();
+    const variant = (change: (m: Record<string, unknown>) => void): string => {
+      const m = JSON.parse(exp.manifest) as Record<string, unknown>;
+      change(m);
+      return `${JSON.stringify(m, null, 2)}\n`;
+    };
+    const register = (text: string | null, hash: string) => inRun(w.lead, (run, q) => q<string>('select records.register_full_export($1, $2, $3) as v', [run, text, hash]));
+    await expect(register(null, sha('x'))).rejects.toThrow(/EBMR-REC-144 a full export is registered with its manifest and the manifest's SHA-256/);
+    const shape = /EBMR-REC-144 the manifest is no ebmr.full-export\/1 manifest/;
+    for (const [field, value] of [['records', 'x'], ['files', 'x'], ['sealKeys', 'x'], ['seals', 1]] as const) {
+      const t = variant((m) => { m[field] = value; });
+      await expect(register(t, sha(t)), field).rejects.toThrow(shape);
+    }
+    const files = (m: Record<string, unknown>) => m['files'] as { path: string; kind: string; sha256: string; bytes: number }[];
+    const extra = variant((m) => { files(m).push({ path: 'extra/notes.txt', kind: 'NOTES', sha256: sha('notes'), bytes: 5 }); });
+    await expect(register(extra, sha(extra))).rejects.toThrow(/EBMR-REC-148/);
+    const elsewhere = variant((m) => { m['seals'] = 'seals/elsewhere.json'; });
+    await expect(register(elsewhere, sha(elsewhere))).rejects.toThrow(/EBMR-REC-148/);
+  });
+
+  it('[DI-08] the export lists the seal keys that have their audit chain: a key row written around the audit trail is not listed as a chain', async () => {
+    class Rollback extends Error {}
+    let listed: string[] = [];
+    await expect(withCommand(db.admin, again(w.lead), async (c) => {
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query("insert into esig.seal_key (key_id, algorithm, description, registered_by_person, registered_by_account) values ('t1-no-chain', 'HMAC-SHA256', 'a key row without its audit chain', gen_random_uuid(), gen_random_uuid())");
+      await c.query("set local session_replication_role = 'origin'");
+      listed = (await c.query<{ b: { sealKeyChainKeys: string[] } }>('select records.begin_full_export() as b')).rows[0]!.b.sealKeyChainKeys;
+      throw new Rollback('rolled back on purpose');
+    })).rejects.toThrow(Rollback);
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed).not.toContain('esig_seal_key:t1-no-chain');
+  });
+
+  it('[DI-08][DI-44] the owner registers only a STABLE argument-free closed-record source of the agreed columns, and only an audited table with a known permission as restricted', async () => {
+    const cols = 'record_id text, label text, closed_at timestamptz, chain_keys text[]';
+    const free = (await db.admin.query<{ t: string }>(
+      'select a.table_name::text as t from kernel.audited_table a where not exists (select 1 from records.export_restricted_table r where r.table_name = a.table_name) order by 1 limit 1')).rows[0]!.t;
+    class Rollback extends Error {}
+    await expect(withCommand(db.admin, again(w.lead), async (c) => {
+      await c.query(`create function report.t1_src_good() returns table (${cols}) language sql stable as $f$ select null::text, null::text, null::timestamptz, null::text[] where false $f$`);
+      await c.query(`create function report.t1_src_volatile() returns table (${cols}) language sql volatile as $f$ select null::text, null::text, null::timestamptz, null::text[] where false $f$`);
+      await c.query(`create function report.t1_src_arg(p integer) returns table (${cols}) language sql stable as $f$ select null::text, null::text, null::timestamptz, null::text[] where false $f$`);
+      await c.query("create function report.t1_src_cols() returns table (record_id text, label text, closed_at timestamptz, chain_keys text) language sql stable as $f$ select null::text, null::text, null::timestamptz, null::text where false $f$");
+      for (const f of ['report.t1_src_volatile()', 'report.t1_src_arg(integer)', 'report.t1_src_cols()']) {
+        await refusedIn(c, 'select report.register_closed_record_source($1, $2::regprocedure, $3)', ['t1_bad', f, 'refused source'], /EBMR-REC-140/);
+      }
+      await c.query("select report.register_closed_record_source('t1_good', 'report.t1_src_good()'::regprocedure, 'a well-formed source')");
+      await refusedIn(c, 'select records.register_export_restricted_table($1::regclass, $2, $3)', ['pg_catalog.pg_class', 'RECORD.READ', 'not audited'], /EBMR-REC-140/);
+      await refusedIn(c, 'select records.register_export_restricted_table($1::regclass, $2, $3)', [free, 'NO.SUCH_PERMISSION', 'unknown permission'], /EBMR-REC-140/);
+      await c.query('select records.register_export_restricted_table($1::regclass, $2, $3)', [free, 'RECORD.READ', 'an audited table with a known permission']);
+      throw new Rollback('rolled back on purpose');
+    })).rejects.toThrow(Rollback);
+  });
+});

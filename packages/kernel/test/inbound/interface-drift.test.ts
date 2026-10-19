@@ -93,6 +93,18 @@ describe('the interface drift interlock (kernel 1350, DI-06)', () => {
     expect(await startCheck(described)).toBeNull();
   });
 
+  it('[DI-06] the drift alarm is raised when an adapter becomes active, not when an active adapter is set active again or one not active changes status', async () => {
+    // Mutation campaign at the Phase 7 exit (D-P7-1 item 4).
+    const a = await registerAdapter(db, 'CMMS', undefined, { described: false });
+    expect(await alarms(a)).toBe(1);
+    const status = (s: string) => withCommand(db.app, withReason(admin), (c) => c.query('select iam.set_integration_adapter_status($1, $2, $3)', [a.id, s, 'status change (test)']));
+    await status('ACTIVE');
+    expect(await alarms(a)).toBe(1);
+    await status('BLOCKED');
+    await status('DECOMMISSIONED');
+    expect(await alarms(a)).toBe(1);
+  });
+
   it('[DI-06] the drift check cannot be bypassed: the application and the adapter neither describe an interface nor silence the alarm', async () => {
     const a = await registerAdapter(db, 'LIMS', undefined, { described: false });
     // The adapter cannot describe its own interface (CONFIG.SYSTEM_DESCRIPTION is the system owner's), nor can the

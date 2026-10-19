@@ -155,6 +155,12 @@ describe('one flag-grouping design (kernel 1280; P6A7-1)', () => {
     const { rows: m } = await withCommand(gmp.app, again(diLead), (c) => c.query<{ flags: number; dispositioned_share: number; false_alarm_rate: number }>(
       "select sum(flags)::int as flags, max(dispositioned_share) as dispositioned_share, max(false_alarm_rate) as false_alarm_rate from analytics.method_monitor_v1 where method = 'ATA.RULES'"));
     expect(m[0]).toEqual({ flags: 2, dispositioned_share: 1, false_alarm_rate: 1 });
+    // Mutation campaign at the Phase 7 exit (D-P7-1 item 4): another person's key, dispositioned, is its own group:
+    // its verdict never covers this key, nor this key's verdict that one.
+    const [otherKey] = await run('ATA.RULES', [{ ...raise('5 corrections, above the 95th percentile 4.0'), ref: randomUUID() }]);
+    const otherVerdict = await dispose(diLead, otherKey!, 'FALSE_ALARM');
+    expect(await covering(diLead, later!)).toEqual([{ id: current, flag: first }]);
+    expect(await covering(diLead, otherKey!)).toEqual([{ id: otherVerdict, flag: otherKey }]);
   });
 
   it('[DI-52] the group of a flag is 6A-4\'s key for the audit-trail methods and 6A-3\'s signal for the others', async () => {
