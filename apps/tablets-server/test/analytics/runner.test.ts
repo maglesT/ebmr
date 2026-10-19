@@ -12,10 +12,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RUNTIME_LIBRARIES, defaultParameters } from '@ebmr/analytics';
 import { codeIdentity, parametersSha256 } from '../../src/analytics/catalog.ts';
 import { readSnapshot } from '../../src/analytics/inputs.ts';
-import { analyticsRoleProblems, createAnalyticsPool, type AnalyticsRoleFacts } from '../../src/analytics/pool.ts';
+import { analyticsRoleProblem, analyticsRoleProblems, connectRetrying, createAnalyticsPool, queryRetrying, type AnalyticsRoleFacts } from '../../src/analytics/pool.ts';
 import { IMPLEMENTATIONS } from '../../src/analytics/implementation.ts';
 import { AnalyticsRunner, type EffectiveVersion } from '../../src/analytics/runner.ts';
-import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
+import { ThreadedAnalyticsRunner, type AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { fixtureBatch, probe, releaseMethodVersion } from './support.ts';
 
@@ -257,3 +257,132 @@ describe('the analytics runner (apps/tablets-server/src/analytics)', () => {
     expect(ran).toHaveLength(4);
   });
 });
+
+// Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the role check kept in the worker thread (P6A7-8), which
+// Stryker's per-test coverage does not see, and the pool's own rules, checked directly.
+describe('the analytics runner\'s connection and its role check (pool.ts, threaded.ts)', () => {
+  const ok: AnalyticsRoleFacts = { current_user: 'ebmr_analytics', session_user: 'ebmr_analytics', rolsuper: false, rolcreaterole: false, rolcreatedb: false, rolreplication: false, rolbypassrls: false, member_of: [] };
+  /** A pool whose connect() answers from `script` in turn (an error code, or a client answering `rows`). */
+  const fakePool = (script: (string | readonly object[])[]) => {
+    let calls = 0;
+    const released: number[] = [];
+    const pool = {
+      connect: () => {
+        const step = script[Math.min(calls, script.length - 1)]!;
+        calls += 1;
+        if (typeof step === 'string') return Promise.reject(Object.assign(new Error(`code ${step}`), { code: step }));
+        return Promise.resolve({ query: () => Promise.resolve({ rows: step }), release: () => void released.push(calls) });
+      },
+    } as unknown as pg.Pool;
+    return { pool, calls: () => calls, released };
+  };
+
+  it('[DI-51] the worker thread\'s runner starts only on ebmr_analytics: on another login, or when the role cannot be read, it does not start (P6A7-8)', async () => {
+    const errors: string[] = [];
+    const log = { ...SILENT, error: (o: unknown, msg?: string) => void errors.push(`${JSON.stringify(o)} ${msg ?? ''}`) };
+    const make = (url: string) => new ThreadedAnalyticsRunner({ url, log, siteZone: () => 'Asia/Kolkata', commit: 'test', pollMs: 3_600_000 });
+    const wrong = make(analyticsUrl(gmp.database).replace('ebmr_analytics:ebmr_analytics@', 'ebmr_app:ebmr_app@'));
+    try {
+      expect(await wrong.start()).toBe(false);
+      expect(wrong.isRunning()).toBe(false);
+      expect(errors.join(' ')).toMatch(/connects as ebmr_app acting as ebmr_app, not as ebmr_analytics/);
+    } finally {
+      await wrong.stop();
+    }
+    errors.length = 0;
+    const unreadable = make(analyticsUrl(gmp.database).replace('ebmr_analytics:ebmr_analytics@', 'ebmr_analytics:not-the-password@'));
+    try {
+      expect(await unreadable.start()).toBe(false);
+      expect(unreadable.isRunning()).toBe(false);
+      expect(errors.join(' ')).toMatch(/its role could not be read: .*password.* analytics runner: not started, its database connection is not the analytics role alone/);
+    } finally {
+      await unreadable.stop();
+    }
+    // The in-process runner the same way.
+    errors.length = 0;
+    const inProcess = new AnalyticsRunner({ pool: createAnalyticsPool(analyticsUrl(gmp.database).replace('ebmr_analytics:ebmr_analytics@', 'ebmr_analytics:not-the-password@')), log, siteZone: () => 'UTC', commit: 'test', implementations: [] });
+    try {
+      expect(await inProcess.start()).toBe(false);
+      expect(inProcess.isRunning()).toBe(false);
+      expect(errors.join(' ')).toMatch(/its role could not be read: .*password.* analytics runner: not started, its database connection is not the analytics role alone/);
+    } finally {
+      await inProcess.stop();
+    }
+    errors.length = 0;
+    const own = make(analyticsUrl(gmp.database));
+    try {
+      expect(await own.start()).toBe(true);
+      expect(own.isRunning()).toBe(true);
+      // A second start keeps the one timer.
+      expect(await own.start()).toBe(true);
+      await own.pause();
+      expect(own.isRunning()).toBe(false);
+      expect(await own.resume()).toBe(true);
+      expect(own.isRunning()).toBe(true);
+    } finally {
+      await own.stop();
+    }
+    expect(own.isRunning()).toBe(false);
+    expect(await own.start()).toBe(false);
+    expect(errors).toEqual([]);
+    // A worker that ends unexpectedly ends the runner: the pending request and every later one are refused with the reason,
+    // the timer stops, and the end is logged.
+    const lost = make(analyticsUrl(gmp.database));
+    try {
+      expect(await lost.start()).toBe(true);
+      const pending = lost.nightlyDue();
+      await (lost as unknown as { worker: { terminate(): Promise<number> } }).worker.terminate();
+      await expect(pending).rejects.toThrow(/^the analytics worker stopped \(exit code 1\)$/);
+      await expect(lost.runAll('ON_DEMAND')).rejects.toThrow(/^the analytics worker stopped \(exit code 1\)$/);
+      expect(lost.isRunning()).toBe(false);
+      expect(await lost.start()).toBe(false);
+      expect(errors.join(' ')).toMatch(/"reason":"the analytics worker stopped \(exit code 1\)"/);
+    } finally {
+      await lost.stop();
+    }
+  });
+
+  it('[DI-51] each problem of the runner\'s role is named, and all are reported together', async () => {
+    expect(analyticsRoleProblems({ ...ok, rolsuper: true, rolbypassrls: true, member_of: ['ebmr_app', 'ebmr_owner'] })).toEqual([
+      'the role has the elevated attribute(s) superuser, bypass row-level security',
+      'the role is a member of ebmr_app, ebmr_owner',
+    ]);
+    // SET ROLE ebmr_analytics from another login is not the analytics login.
+    expect(analyticsRoleProblems({ ...ok, session_user: 'ebmr_owner' })).toEqual(['it connects as ebmr_owner acting as ebmr_analytics, not as ebmr_analytics']);
+    const two = fakePool([[{ ...ok, current_user: 'ebmr_app', session_user: 'ebmr_app', rolcreatedb: true }]]);
+    expect(await analyticsRoleProblem(two.pool)).toBe('it connects as ebmr_app acting as ebmr_app, not as ebmr_analytics; the role has the elevated attribute(s) create database');
+    expect(await analyticsRoleProblem(fakePool([[ok]]).pool)).toBeNull();
+    expect(await analyticsRoleProblem(fakePool([[]]).pool)).toBe('the database did not describe the connection\'s role');
+    // The runner's connection names itself to pg_stat_activity.
+    const pool = createAnalyticsPool(analyticsUrl(gmp.database));
+    try {
+      const { rows } = await queryRetrying<{ a: string }>(pool, "select current_setting('application_name') as a");
+      expect(rows).toEqual([{ a: 'ebmr-analytics-runner' }]);
+    } finally {
+      await pool.end();
+    }
+  });
+
+  it('[DI-51] the runner waits while the role\'s connection limit is reached, up to its attempts, and fails at once on any other error', async () => {
+    const busy = fakePool(['53300', '53300', [{ n: 1 }]]);
+    const client = await connectRetrying(busy.pool, 3, 1);
+    expect(busy.calls()).toBe(3);
+    client.release();
+    expect(busy.released).toEqual([3]);
+    const full = fakePool(['53300']);
+    await expect(connectRetrying(full.pool, 3, 1)).rejects.toMatchObject({ code: '53300' });
+    expect(full.calls()).toBe(3);
+    const other = fakePool(['28P01', [{ n: 1 }]]);
+    await expect(connectRetrying(other.pool, 3, 1)).rejects.toMatchObject({ code: '28P01' });
+    expect(other.calls()).toBe(1);
+    // The wait is real: two waits of 30 ms take at least that long.
+    const timed = fakePool(['53300', '53300', [{ n: 1 }]]);
+    const t0 = process.hrtime.bigint();
+    await connectRetrying(timed.pool, 5, 30);
+    expect(process.hrtime.bigint() - t0).toBeGreaterThanOrEqual(50_000_000n);
+    const q = fakePool([[{ n: 1 }]]);
+    expect((await queryRetrying(q.pool, 'select 1')).rows).toEqual([{ n: 1 }]);
+    expect(q.released).toEqual([1]);
+  });
+});
+
