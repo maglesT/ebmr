@@ -8,6 +8,11 @@
 # - 6A-7 (docs/build-plan/phase-6a/review-backlog.md): fixed high P6A7-1 to P6A7-3; open medium P6A7-4 and P6A7-5; open
 #   low P6A7-6 to P6A7-9. Not counted: P6A5-2 (a lead item from slice 6A-5 fixed with them, no severity given) and
 #   the item carried from 6A-3 without an id or severity. No critical finding is recorded.
+#
+# Phase 7 (slice 7f, 19 October 2026): one entry per review pass of docs/build-plan/phase-7/review-backlog.md, counts
+# read off its tables. A severity written as a range there (low-medium, medium-high) counts at the higher one. Not
+# counted: D-P7R-8 (no severity; an owner decision) and the 7b-1 and 7a residual lists of the builders (no id).
+# F-6jb-g1 (medium, fail-safe) is counted open in 7b-1. The 7f exit review is the pass the VERIFIED rule (D-P7-2) rests on.
 # The slice quick reviews (R-6a to R-6i, 6A-0 to 6A-6) are not seeded here; their residuals are in each slice's
 # section of the phase plans.
 reviews:
@@ -40,3 +45,121 @@ reviews:
       high: { open: 0, fixed: 3 }
       medium: { open: 4, fixed: 0 }
       low: { open: 10, fixed: 0 }
+  - id: 7a
+    date: "2026-10-17"
+    # The decision 0022 fixes (6jc-R2, R9, R10, R16): controlled-substance reads, the signed OPC UA feed, plant rules, batch-scope acts.
+    scope:
+      - "packages/kernel/sql/1[23]??_*.sql"
+      - "packages/recipe-core/sql/12??_*.sql"
+      - "apps/tablets-server/sql/14[01]?_*.sql"
+      - "apps/tablets-server/src/**"
+      - "apps/site-gateway/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 2 }
+      medium: { open: 0, fixed: 1 }
+      low: { open: 1, fixed: 3 }
+  - id: 7b-1
+    date: "2026-10-18"
+    # The hardening list: gap acknowledgment, DSC checks, insert-only outbound table, source-time bound, gateway spool, reconciliation.
+    scope:
+      - "packages/kernel/sql/13[2-3]?_*.sql"
+      - "packages/recipe-core/sql/123?_*.sql"
+      - "packages/site-services/sql/1110_*.sql"
+      - "apps/tablets-server/sql/142?_*.sql"
+      - "apps/site-gateway/src/**"
+      - "packages/adapter-framework/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 1, fixed: 3 }
+      low: { open: 0, fixed: 3 }
+  - id: 7b-2
+    date: "2026-10-18"
+    # The stand-alone viewer, the full export and the periodic evaluation pack.
+    scope:
+      - "packages/kernel/sql/133?_*.sql"
+      - "packages/site-services/sql/1120_*.sql"
+      - "packages/recipe-core/sql/1240_*.sql"
+      - "apps/tablets-server/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 2 }
+      medium: { open: 0, fixed: 5 }
+      low: { open: 0, fixed: 1 }
+  - id: 7c
+    date: "2026-10-18"
+    # Validation pack generators and the DI-03 and DI-06 interlocks; no findings.
+    scope:
+      - "packages/kernel/sql/1350_*.sql"
+      - "packages/recipe-core/sql/1250_*.sql"
+      - "tools/validation/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 0, fixed: 0 }
+      low: { open: 0, fixed: 0 }
+  - id: 7d
+    date: "2026-10-18"
+    # Drills, security and load tools, the analytics runner in a worker thread, the idle warning and the accessibility changes; no findings.
+    scope:
+      - "apps/tablets-server/src/analytics/**"
+      - "apps/tablets-server/sql/1460_*.sql"
+      - "tools/validation/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 0, fixed: 0 }
+      low: { open: 0, fixed: 0 }
+  - id: 7e
+    date: "2026-10-18"
+    # Branding, the guides and tools/guides (Markdown converter, catalogue, output paths).
+    scope:
+      - "tools/guides/**"
+      - "docs/guides/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 0, fixed: 0 }
+      low: { open: 0, fixed: 1 }
+  - id: 7f
+    date: "2026-10-19"
+    # The Phase 7 exit review: design and serious defects over bc46d55.. (PRs 52 to 60), the 48 re-created functions, the regulated core read.
+    scope:
+      - "packages/kernel/sql/**"
+      - "packages/recipe-core/sql/**"
+      - "packages/site-services/sql/**"
+      - "apps/tablets-server/sql/**"
+      - "apps/tablets-server/src/**"
+      - "apps/site-gateway/src/**"
+      - "packages/analytics/**"
+      - "tools/validation/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 1, fixed: 0 }
+      low: { open: 1, fixed: 0 }
+  - id: 7g
+    date: "2026-10-19"
+    # The administration screens and route matrix of 7g: segregation exemptions, write signal, session-checked reads, drill input.
+    scope:
+      - "apps/tablets-server/test/**"
+      - "apps/tablets-server/sql/148?_*.sql"
+      - "apps/tablets-server/sql/149?_*.sql"
+      - "apps/tablets-web/src/**"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 0 }
+      medium: { open: 0, fixed: 1 }
+      low: { open: 0, fixed: 5 }
+  - id: 7g-5
+    date: "2026-10-18"
+    # The US e-signature certification on the batch-issue path (kernel 0170 assert; recipe-core 1260).
+    scope:
+      - "packages/recipe-core/sql/1260_*.sql"
+      - "packages/kernel/sql/0170_*.sql"
+    findings:
+      critical: { open: 0, fixed: 0 }
+      high: { open: 0, fixed: 1 }
+      medium: { open: 0, fixed: 0 }
+      low: { open: 0, fixed: 0 }
