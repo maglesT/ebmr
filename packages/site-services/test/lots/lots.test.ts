@@ -239,6 +239,32 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
     expect(await refusal(w.consume({ id: '00000000-0000-4000-8000-000000000003', number: 'NOPE', markets: ['IN'] }, res, lot.materialCode, '1'))).toMatch(/EBMR-RCP-431/);
   });
 
+  it('[INV-13][PR-18] the consumption guard as site services 1103 re-creates it (D-P7-1 item 4): the reservation\'s batch number with its id, a lot not usable or changed since the reservation, a zero quantity, a lot holding less than the reservation', async () => {
+    const lot = await w.releasedLot('API');
+    const batch = await w.batch(['IN']);
+    const other = await w.batch(['IN']);
+    // A reservation naming the batch's id with another batch's number is not the batch's.
+    const mixed = await w.reserve(lot.lotId, { ...batch, number: other.number }, '1');
+    expect(await refusal(w.consume(batch, mixed, lot.materialCode, '1'))).toMatch(/EBMR-SITE-162 the reservation is for batch \S+, not batch/);
+    const res = await w.reserve(lot.lotId, batch, '3');
+    expect(await refusal(w.consume(batch, res, lot.materialCode, '0'))).toMatch(/EBMR-SITE-167 a consumption is a positive quantity/);
+    const state = (await db.admin.query<{ state: string; version: number }>("select state, version from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId])).rows[0]!;
+    try {
+      // The lot's stored state made unusable behind the triggers' back, its version unchanged.
+      await w.timeTravel("update platform.aggregate_state set state = 'QUARANTINE' where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId]);
+      expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-165 lot \S+ is QUARANTINE and cannot be used/);
+      // Usable again, but at another version than the reservation was granted on.
+      await w.timeTravel("update platform.aggregate_state set state = $2, version = version + 1 where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId, state.state]);
+      expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-163 the status of lot \S+ changed after the reservation was granted/);
+    } finally {
+      await w.timeTravel("update platform.aggregate_state set state = $2, version = $3 where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId, state.state, state.version]);
+    }
+    // A reservation larger than the lot (rewritten behind the triggers' back): the lot's own quantity still bounds it.
+    await w.timeTravel('update site.lot_reservation set quantity = 50 where id = $1', [res]);
+    expect(await refusal(w.consume(batch, res, lot.materialCode, '20'))).toMatch(/EBMR-SITE-168 lot \S+ holds 10(\.000)? kg; 20 kg cannot be consumed/);
+    expect((await db.admin.query('select 1 from site.lot_consumption where lot_id = $1', [lot.lotId])).rowCount).toBe(0);
+  });
+
   it('[PR-18] a lot past its retest instant, or past expiry, is blocked at reservation and at consumption; the usage status shows RETEST_DUE / EXPIRED', async () => {
     const lot = await w.releasedLot('API', { retestAt: '2029-01-01T00:00:00Z' });
     const batch = await w.batch(['IN']);

@@ -517,3 +517,32 @@ describe('a direct write of the execution tables is refused (ADR 0012)', () => {
     expect((await stateOf(d)).status).toBe('ISSUED');
   }, 120_000);
 });
+
+describe('recipe.propose_act as Phase 6A re-creates it (recipe-core 1217; D-P7-1 item 4)', () => {
+  it('[DI-24][DI-35] an act asked for approval is an object of a known act type, without id, actor or signatures, requested by the asker and at most 16384 characters; a batch that does not exist has none', async () => {
+    const d = await newRun(dcMini());
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-clear@' });
+    const sup = personaIn(sbx, 'supervisor1');
+    const base = engine.approvedAct(abortCmd([])({ id: sup.personId, kind: 'PERSON', roles: [] }));
+    const propose = async (act: unknown, batch = d.runId): Promise<string> =>
+      messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('supervisor1'), 'supervisor1'), (c) => c.query('select recipe.propose_act($1, $2::jsonb)', [batch, JSON.stringify(act)])));
+    const SHAPE = /^An act asked for approval is a skip, a void, an invalidation, an abort or a hand-over, .*\[EBMR-EXE-179\]$/;
+    const { type: _type, ...untyped } = base;
+    void _type;
+    const cases: Record<string, unknown> = {
+      'no type': untyped,
+      'another command type': { ...base, type: 'START_STEP' },
+      'a signature in it': { ...base, signature: { id: randomUUID() } },
+      'requested by another person': { ...base, requestedBy: personaIn(sbx, 'head1').personId },
+      'longer than 16384 characters': { ...base, reason: 'x'.repeat(16400) },
+    };
+    for (const [name, act] of Object.entries(cases)) expect(await propose(act), name).toMatch(SHAPE);
+    // Exactly 16384 characters is accepted (the text as PostgreSQL writes the jsonb value).
+    const len = async (act: unknown): Promise<number> => (await sbx.db.admin.query<{ n: number }>('select length($1::jsonb::text) as n', [JSON.stringify(act)])).rows[0]!.n;
+    const pad = 16384 - (await len({ ...base, reason: '' }));
+    const exact = { ...base, reason: 'y'.repeat(pad) };
+    expect(await len(exact)).toBe(16384);
+    expect(await propose(exact)).toBe('ok');
+    expect(await propose(base, randomUUID())).toMatch(/^There is no test batch with this id \(DI-34\)\. \[EBMR-EXE-010\]$/);
+  });
+});

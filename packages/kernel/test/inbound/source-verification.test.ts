@@ -45,7 +45,8 @@ const messagesOf = (a: TestAdapter) => count(db, 'select count(*) as n from plat
 describe('the signing-source marker (kernel 1305)', () => {
   it('[DI-31] an OPCUA envelope that reaches the receiving half without its verification is refused (EBMR-INT-030) and leaves nothing', async () => {
     const before = await messagesOf(opcua);
-    await expectRefused(acceptAll(opcua, [envelopeFor(opcua, 'opcua.equipment_event', event(1))]), 'EBMR-INT-030');
+    // The refusal names the source's own verifier (D-P7-1 item 4).
+    await expectRefused(acceptAll(opcua, [envelopeFor(opcua, 'opcua.equipment_event', event(1))]), 'EBMR-INT-030', /taken only with its source's verified signature \(tab\.accept_gateway_envelope\)/);
     // accept_inbound, the uuid form, goes through the same check.
     const e = envelopeFor(opcua, 'opcua.equipment_event', event(2));
     await expectRefused(withCommand(db.app, ctxOf(opcua.actor), (c) => c.query('select platform.accept_inbound($1::jsonb)', [JSON.stringify(e)])), 'EBMR-INT-030');
