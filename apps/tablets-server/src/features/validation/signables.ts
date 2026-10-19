@@ -36,17 +36,17 @@ async function sessionContent(client: pg.PoolClient, ctx: SignableContext, t: Ac
 }
 
 /** A database act whose record the session reads: the challenge and the dry run read its content as the session does. */
-function sessionRead<A extends SignableAction>(h: SignableActionHandler<A>, targetOf: (db: pg.PoolClient, a: A) => Promise<ActTarget>, precheck?: (a: A) => DryRunOutcome | null): SignableActionHandler<A> {
+function sessionRead<A extends SignableAction>(h: SignableActionHandler<A>, targetOf: (db: pg.PoolClient, a: A, tokenHash?: string) => Promise<ActTarget>, precheck?: (a: A) => DryRunOutcome | null): SignableActionHandler<A> {
   return {
     ...h,
     async prepareForChallenge(client, ctx, a) {
-      const c = await sessionContent(client, ctx, await targetOf(client, a));
+      const c = await sessionContent(client, ctx, await targetOf(client, a, (ctx as Partial<EsigSignableContext>).tokenHash));
       return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
     },
     async dryRun(client, ctx, a) {
       const pre = precheck ? precheck(a) : null;
       if (pre) return pre;
-      const t = await targetOf(client, a);
+      const t = await targetOf(client, a, (ctx as Partial<EsigSignableContext>).tokenHash);
       const c = await sessionContent(client, ctx, t);
       if (!c.exists || !c.contentHash || !c.contentVersion) {
         return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${t.aggregateType} ${t.aggregateId} does not exist.`, ['DI-37'], ['Reload the screen.']);
@@ -91,9 +91,10 @@ const MEANING: Record<RecordsAct['act'], string> = {
 };
 
 /** The disposal record signed: the record key at the retain-until date the database computes now (with the true copy). */
-async function disposalTarget(db: pg.Pool | pg.PoolClient, a: RecordsAct): Promise<ActTarget> {
+async function disposalTarget(db: pg.Pool | pg.PoolClient, a: RecordsAct, tokenHash: string): Promise<ActTarget> {
   const key = a.input.recordKey ?? '';
-  const { rows } = await db.query<{ id: string | null }>('select tab.disposal_aggregate_id($1, $2) as id', [key, a.input.trueCopyId ?? null]);
+  // Read for the session (P7G-5): the database refuses a caller without an active session of a records reader.
+  const { rows } = await db.query<{ id: string | null }>('select tab.disposal_aggregate_id($1, $2, $3) as id', [tokenHash, key, a.input.trueCopyId ?? null]);
   // No schedule or no date yet: an id no disposal has, so the dry run answers "no record" (404).
   return { aggregateType: 'record_disposal', aggregateId: rows[0]?.id ?? `${key}@0000-00-00`, meaning: MEANING.DISPOSAL_APPROVE, expectedState: 'DISPOSABLE' };
 }
@@ -127,7 +128,7 @@ function inputRefusal(a: RecordsAct): DryRunOutcome | null {
     ['DI-37'], ['Reload the screen and sign again.']);
 }
 
-const recordsTarget = (db: pg.Pool | pg.PoolClient, a: RecordsAct): Promise<ActTarget> => (a.act === 'DISPOSAL_APPROVE' ? disposalTarget(db, a) : Promise.resolve(staticTarget(a)));
+const recordsTarget = (db: pg.Pool | pg.PoolClient, a: RecordsAct, tokenHash?: string): Promise<ActTarget> => (a.act === 'DISPOSAL_APPROVE' ? disposalTarget(db, a, tokenHash ?? '') : Promise.resolve(staticTarget(a)));
 
 export function recordsActHandler(app: AppContext): SignableActionHandler<RecordsAct> {
   return sessionRead(dbActHandler<RecordsAct>(app, {

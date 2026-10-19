@@ -50,9 +50,10 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   describe(action: A): { aggregateType: string; aggregateId: string; meaning: string; expectedState?: string };
   /**
    * Phase 3 slice 6: the same, when it depends on the record's state (e.g. the meaning of a lot rejection), read now for
-   * POST /api/esig/describe. Absent: describe() answers.
+   * POST /api/esig/describe. Absent: describe() answers. `tokenHash` is the session's, for a read the database checks
+   * against the session (P7G-5).
    */
-  describeNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<{ aggregateType: string; aggregateId: string; meaning: string; expectedState?: string }>;
+  describeNow?(db: pg.Pool | pg.PoolClient, action: A, tokenHash?: string): Promise<{ aggregateType: string; aggregateId: string; meaning: string; expectedState?: string }>;
   /**
    * Phase 3 slice 6: the record's state the signature expects, read inside the sign command, for a handler whose
    * describe() names none (a signed act whose rule is the database's; the content version and hash bind what was seen).

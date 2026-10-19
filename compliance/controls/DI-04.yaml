@@ -199,6 +199,8 @@ tests:
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 values > [DI-04][PR-14] the recipe check against the MBR's recipe and version; a mismatch stops the step until QA decides"
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 PERFORMED and definition > [DI-31][DI-04] PERFORMED needs a usable matching read-back of every setpoint, the recipe checked and a usable value of every collected tag"
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 PERFORMED and definition > [DI-31][DI-04] the definition: each tag once, ordered limits (equal allowed), a recipe when the interface is configured"
+  - "apps/tablets-web/test/designer/save-note-render.test.tsx > the save dialog keeps its change note to itself > [DI-04] typing the change note does not re-render the designer editor per key; the note typed is the note saved"
+  - "apps/tablets-web/test/designer/save-note-render.test.tsx > the save dialog keeps its change note to itself > [DI-04] a reopened save dialog starts with an empty note"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:

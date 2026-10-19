@@ -23,9 +23,11 @@
 --     person withholds from them (its blockers, its holds, the refusals naming it; tab.withheld_from, DI-50) is left out.
 --   * tab.legal_hold_overview(token hash): the legal holds in force, for such a reader (records.retention_hold is the
 --     owner's since 0430; an investigation's own holds are not legal holds and are not listed).
---   * tab.disposal_aggregate_id(record key, true copy): the id of the disposal a RECORD_DISPOSAL_APPROVED signature
+--   * tab.disposal_aggregate_id(token, record key, true copy): the id of the disposal a RECORD_DISPOSAL_APPROVED signature
 --     covers (records.approve_purge): the record key at its retain-until date (and the cited true copy), or null when the
 --     record has no schedule or no date yet. Only the date: nothing of a hold or an investigation.
+--     For the session behind the request only, a records reader as for tab.record_retention (EBMR-TAB-018, EBMR-TAB-020;
+--     review P7G-5).
 
 set local role ebmr_owner;
 
@@ -228,12 +230,18 @@ begin
 end
 $$;
 
-create function tab.disposal_aggregate_id(p_record_key text, p_true_copy uuid) returns text
-language plpgsql stable security definer set search_path = pg_catalog, records, pg_temp as $$
+create function tab.disposal_aggregate_id(p_token_hash text, p_record_key text, p_true_copy uuid) returns text
+language plpgsql stable security definer set search_path = pg_catalog, tab, records, pg_temp as $$
 declare
-  v_sched records.retention_schedule%rowtype;
-  v_until text;
+  v_reader  tab.reader := tab.reader_of(p_token_hash);
+  v_problem text := tab.records_reader_problem(v_reader);
+  v_sched   records.retention_schedule%rowtype;
+  v_until   text;
 begin
+  -- For the session behind the request only (P7G-5), as the other retention reads of this migration.
+  if v_problem is not null then
+    raise exception using errcode = 'P0001', message = format('This session may not read the retention of records: %s. [EBMR-TAB-020]', v_problem);
+  end if;
   select * into v_sched from records.retention_schedule s where s.record_key = p_record_key;
   if not found then
     return null;
@@ -244,8 +252,8 @@ end
 $$;
 
 revoke all on function tab.di_investigation_overview(text), tab.records_reader_problem(tab.reader), tab.record_retention(text, text, text),
-                       tab.legal_hold_overview(text), tab.disposal_aggregate_id(text, uuid) from public;
+                       tab.legal_hold_overview(text), tab.disposal_aggregate_id(text, text, uuid) from public;
 grant execute on function tab.di_investigation_overview(text), tab.record_retention(text, text, text), tab.legal_hold_overview(text),
-                          tab.disposal_aggregate_id(text, uuid) to ebmr_app;
+                          tab.disposal_aggregate_id(text, text, uuid) to ebmr_app;
 
 reset role;

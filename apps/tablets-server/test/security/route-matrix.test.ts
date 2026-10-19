@@ -6,7 +6,8 @@
  *    role lacks the right, in the database or at the route), never a 5xx and never 401 for a live session;
  * and the result is compared with the reviewed matrix (fixtures/route-role-matrix.json): a route whose roles change
  * fails here until the matrix is written again (EBMR_WRITE_MATRIX=1) and the change is reviewed. Segregation: the
- * system administrator and the read-only auditor are refused every GMP write.
+ * system administrator and the read-only auditor are refused every GMP write, except the administrator's own named
+ * administration routes and the auditor's named audited exports (D-P7R-8, D-P7R-9).
  *
  * Cells: S done (2xx), A refused about the record, not the right (404, 409, 422 with another code: the sampled ids name
  * nothing), F forbidden (403, or the database's refusal for want of a right, which the server answers 422: P7D-2),
@@ -193,18 +194,64 @@ describe('the route-by-role authorization matrix (slice 7d)', () => {
         for (const [role, c] of Object.entries(row)) expect(['E', 'U', 'L'], `${kind} ${id} as ${role}`).not.toContain(c);
       }
     }
-    // Segregation (DI-18) and the read-only auditor: no GMP write succeeds for either. The administration of people and
-    // devices (namespaces people and deviceRegistry, slice 7g-1) is the system administrator's own duty, not a GMP
-    // record write; a grant it requests is approved by a second person (administration-routes.test.ts). The auditor
-    // writes nothing at all.
-    const ADMINISTRATION = new Set(['people', 'deviceRegistry']);
+    // Segregation (DI-18) and the read-only auditor: no GMP write succeeds for either, except the routes listed here by
+    // name, each with its reason. A route not listed that succeeds for either role fails this test until it is reviewed.
+    //
+    // The system administrator's own duty (decision 0025, P7G-1 / D-P7R-9): the administration of people, accounts,
+    // credentials, devices, the creation of an empty customer role and the per-entry attribution method. None of these is
+    // a GMP record write. Granting authority is not in the list: a grant or a role permission takes effect only when a
+    // second person approves it, and the administrator never approves their own request nor one that grants themselves
+    // (administration-routes.test.ts, access-governance-routes.test.ts).
+    const ADMINISTRATOR_MAY_SUCCEED = new Map<string, string>([
+      ['people.createPerson', 'records a person (IAM.PERSON_MANAGE)'],
+      ['people.renamePerson', 'records a change of legal name; the old name stays in what it signed'],
+      ['people.processLeaver', 'ends the accounts, grants and badges of a leaver (removes access only)'],
+      ['people.rehirePerson', 'records a rehire; a new identity check comes before any account is used'],
+      ['people.createAccount', 'opens an account; it holds no right until a second person approves a grant'],
+      ['people.activateAccount', 'activates an account of a verified person'],
+      ['people.setAccountStatus', 'suspends, reinstates or deactivates an account'],
+      ['people.unlockAccount', 'unlocks another person\'s account (never their own)'],
+      ['people.issueCredential', 'issues a single-use initial secret, changed at first use'],
+      ['people.issueBadge', 'issues a badge against an identity check'],
+      ['people.recordBadgeTest', 'records a badge test'],
+      ['people.activateBadge', 'activates a tested badge'],
+      ['people.withdrawBadge', 'stops a lost or revoked badge'],
+      ['people.createRole', 'creates a customer role with no permission (each permission needs a second person)'],
+      ['deviceRegistry.registerTerminal', 'registers a terminal or device'],
+      ['deviceRegistry.relocateTerminal', 'moves a terminal; its sessions end'],
+      ['deviceRegistry.setTerminalStatus', 'blocks, re-activates or decommissions a terminal'],
+      ['deviceRegistry.bindDevice', 'binds an instrument behind a gateway key'],
+      ['deviceRegistry.endBinding', 'ends a device binding'],
+      ['deviceRegistry.enrolGatewayKey', 'enrols a gateway public key'],
+      ['deviceRegistry.revokeGatewayKey', 'revokes a gateway key'],
+      ['deviceRegistry.bindGatewayFeed', 'binds an adapter to an enrolled gateway feed'],
+      ['deviceRegistry.registerAdapter', 'registers an integration adapter'],
+      ['deviceRegistry.setAdapterStatus', 'blocks, re-activates or decommissions an adapter'],
+      ['deviceRegistry.enrolOpcuaEndpoint', 'enrols an OPC UA endpoint identity'],
+      ['deviceRegistry.retireOpcuaEndpoint', 'retires an OPC UA endpoint'],
+      ['deviceRegistry.linkProcessDeviceUnit', 'links a process device binding to its plant unit'],
+      ['deviceRegistry.setAttributionMethod', 'sets the per-entry attribution of a kiosk class (IAM.POLICY_MANAGE, decision D8)'],
+    ]);
+    // Audited reads (owner decision D-P7R-8): a route whose only effect is an export or copy of existing records with its
+    // audit entry changes no GMP record, so the read-only auditor may run it (kernel 1335 grants RECORD.EXPORT to the
+    // auditor, a reviewed 7b-2 design). The system administrator is still refused them.
+    const AUDITOR_AUDITED_READS = new Map<string, string>([
+      ['validation.startFullExport', 'the full export of closed records with audit trail and signatures (RECORD.EXPORT, kernel 1335)'],
+      ['archive.assembleExport', 'registers true copies and the evidence export of a batch; no batch record changes'],
+      ['controlled.runRegister', 'stores the register export of a controlled material for a period with its SHA-256'],
+    ]);
     for (const [id, row] of Object.entries(results.GMP)) {
       const route = allRoutes(routes).find((r) => r.id === id);
       if (!route?.mutating) continue;
       for (const role of ['SYSTEM_ADMINISTRATOR', 'AUDITOR_READONLY']) {
-        if (role === 'SYSTEM_ADMINISTRATOR' && ADMINISTRATION.has(id.split('.')[0] ?? '')) continue;
+        if (role === 'SYSTEM_ADMINISTRATOR' && ADMINISTRATOR_MAY_SUCCEED.has(id)) continue;
+        if (role === 'AUDITOR_READONLY' && AUDITOR_AUDITED_READS.has(id)) continue;
         if (row[role] !== undefined) expect(row[role], `${id} as ${role}`).not.toBe('S');
       }
+    }
+    // Every listed route exists and is a write of the contract (a renamed route cannot leave a stale exemption).
+    for (const id of [...ADMINISTRATOR_MAY_SUCCEED.keys(), ...AUDITOR_AUDITED_READS.keys()]) {
+      expect(allRoutes(routes).find((r) => r.id === id)?.mutating, id).toBe(true);
     }
     // Every role is refused somewhere: no role holds every right.
     for (const kind of ['GMP', 'SANDBOX'] as const) {

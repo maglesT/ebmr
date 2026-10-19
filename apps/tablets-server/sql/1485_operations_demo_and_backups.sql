@@ -13,7 +13,9 @@
 --   tab.record_demo_act(act, target, reason)  refuses on a GMP installation that is not a demo one (EBMR-OPS-010), then
 --                                          needs PLATFORM.OPERATE (kernel 1376); EBMR-OPS-011 for a malformed record.
 --                                          The server calls it before it acts, so a refused convenience does nothing.
---   tab.installation_contents()            what a reset or a demo load would remove (counts), for its confirmation
+--   tab.installation_contents(token)       what a reset or a demo load would remove (counts), for its confirmation; read
+--                                          by an active session working in a granted role (tab.reader_of, 0410;
+--                                          EBMR-TAB-018 otherwise; review P7G-5)
 --   tab.backup_overview(token)             the backup catalogue, the job runs and the requests, for the session behind
 --                                          the request (tab.reader_of, 0410) when its role holds CONTINUITY.BACKUP_READ
 --                                          (kernel 1376; EBMR-OPS-030 otherwise)
@@ -75,18 +77,22 @@ $$;
 revoke all on function tab.record_demo_act(text, text, text) from public;
 grant execute on function tab.record_demo_act(text, text, text) to ebmr_app;
 
-create function tab.installation_contents() returns jsonb
-language sql stable security definer set search_path = pg_catalog, tab, iam, esig, kernel, recipe, pg_temp as $$
-  select jsonb_build_object(
+create function tab.installation_contents(p_token_hash text) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, tab, iam, esig, kernel, recipe, pg_temp as $$
+begin
+  -- Only for the session behind the request (P7G-5): tab.reader_of refuses an unknown, ended or role-less session.
+  perform tab.reader_of(p_token_hash);
+  return jsonb_build_object(
     'persons', (select count(*) from iam.person p where p.kind = 'NATURAL')::text,
     'accounts', (select count(*) from iam.account)::text,
     'devices', (select count(*) from iam.device)::text,
     'batches', (select count(*) from recipe.batch_execution)::text,
     'signatures', (select count(*) from esig.signature)::text,
-    'auditEntries', (select count(*) from kernel.audit_event)::text)
+    'auditEntries', (select count(*) from kernel.audit_event)::text);
+end
 $$;
-revoke all on function tab.installation_contents() from public;
-grant execute on function tab.installation_contents() to ebmr_app;
+revoke all on function tab.installation_contents(text) from public;
+grant execute on function tab.installation_contents(text) to ebmr_app;
 
 create function tab.backup_overview(p_token_hash text) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, tab, continuity, iam, pg_temp as $$

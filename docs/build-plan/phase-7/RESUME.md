@@ -51,6 +51,9 @@ merge when green.
 3. Per slice steps as above; the golden batches on the clock cluster (GB-T-03 moves with the US letter); E2E specs
    phase7, operations, administration; one quick review; PR; merge when green.
 4. 7f exit: trace at 7, one review pass, the release-candidate checklist.
+   Migration numbers: the exit-fix ranges of the Phase 7 plan (kernel 1390-1399, tablets 1490-1499) are partly used by
+   7g (kernel 1395; tablets 1491, 1493, 1496), so a 7f exit fix takes the next number above the highest used in its
+   package at that time.
 
 Decisions taken on resume (owner's standing instruction to decide and record):
 - D-P7R-1: when the local golden cluster is busy, CI's golden job on the PR (same suite, same clock library) serves as
@@ -71,6 +74,22 @@ Decisions taken on resume (owner's standing instruction to decide and record):
   without a control review. Both stay GOVERNANCE; the signer reads what they sign in their own session (tablets 1493
   re-creates `tab.record_read_problem`: a role that may sign the meaning, or a governance role; the handlers read through
   `tab.content_for_signing` with `readForSigner`, as RESTORE_APPROVE does). Test: `test/esig/signing-meanings-7g.test.ts`.
+- D-P7R-7 (owner, 19 October): the full reference-site load test and the 4-hour soak move to deployment. The 10-minute
+  load smoke of 7d stays in the 7f pod run, and so does the focused mutation campaign of D-P7-1 item 4 (on Phase 6A and
+  Phase 7 code and anything they re-created). The release-candidate checklist reads "deferred to deployment (owner
+  decision D-P7R-7)" for the SLO and soak records. The pod run is about 17-18 hours instead of 24.
+- D-P7R-8 (owner's standing instruction): a route whose only effect is an audited export or copy of existing records
+  changes no GMP record, so the segregation check of `route-matrix.test.ts` counts it as an audited read for the
+  read-only auditor (kernel 1335 grants RECORD.EXPORT to the auditor, a reviewed 7b-2 design). The explicit, commented
+  list: `validation.startFullExport`, `archive.assembleExport` (true copies and the evidence export register),
+  `controlled.runRegister` (the stored register export). Every other write still fails the check for the auditor; the
+  system administrator stays refused all three.
+- D-P7R-9 (review P7G-1): the segregation check no longer exempts the whole `people` and `deviceRegistry` namespaces for
+  the system administrator; it names the routes that may succeed (person, account, credential and badge
+  administration, devices and gateways, the creation of an empty role, the attribution method), each with its reason.
+  Granting authority is not among them. The administrator keeps IAM.GRANT_APPROVE and IAM.ROLE_MANAGE (kernel 0120, a
+  Phase 1 design); new tests show they cannot approve a grant or role-permission request they made, nor one that grants
+  themselves (both refused by kernel 0120's triggers, EBMR-IAM-032; no new guard was needed).
 
 ### 7g state (18 October, evening)
 
@@ -91,6 +110,8 @@ not reach role or permission grants) and the idle-warning rule the 7g-5 merge dr
   set-up now records the letter; re-take a golden output once with the reason in the defect log if it moves, D-P7-12).
   Whether a loan licensee also needs its own letter is left to the DI-15 expert decision (owner).
 - A role-permission approval needs an approved change record (DI-09): the 7g-5 screen must lead the user through it.
+- Open question for the DI-18 expert decision (owner): whether the system administrator should keep IAM.GRANT_APPROVE
+  and IAM.ROLE_MANAGE at all (kernel 0120). The second-person rules hold today (D-P7R-9); the grant itself is unchanged.
 - P7A-6 (feed signature does not cover the envelope's source time and record id): residual, low.
 - F-6jb-g1 (record lock counts as a change since review): residual, fail-safe.
 
@@ -108,5 +129,5 @@ not reach role or permission grants) and the idle-warning rule the 7g-5 merge dr
 
 ## After Phase 7
 
-7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (24 pod hours,
-D-P7-3), then the demo server (owner to provide a server, SSH and a domain; decision 0021 and 0025), then Tablets v1.0.
+7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,
+D-P7-3 as amended by D-P7R-7), then the demo server (owner to provide a server, SSH and a domain; decision 0021 and 0025), then Tablets v1.0.

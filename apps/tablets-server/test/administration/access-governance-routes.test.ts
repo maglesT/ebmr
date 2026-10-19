@@ -9,6 +9,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type Result } from '@ebmr/api-contract';
+import { withCommand } from '@ebmr/kernel';
+import { passwordActor } from '@ebmr/test-kit';
 import { startSigningServer } from '../esig/support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -80,6 +82,26 @@ describe('role-permission requests over HTTP', () => {
     const removed = valueOf(await admin.call(G.removeRolePermission, { body: { roleCode: 'QA_REVIEWER', permissionCode: perm.code, reason: 'register retired', changeRecord: cr } }));
     expect(removed.roles.find((r) => r.code === 'QA_REVIEWER')!.permissions).not.toContain(perm.code);
     expect(codeOf(await admin.call(G.removeRolePermission, { body: { roleCode: 'QA_REVIEWER', permissionCode: perm.code, reason: 'twice', changeRecord: cr } }))).toBe('EBMR-IAM-030');
+  }, 120_000);
+
+  it('[DI-16][DI-18] P7G-1: an administrator cannot approve a permission for a role they hold (it would grant themselves), even with a change record', async () => {
+    // Only SYSTEM_ADMINISTRATOR holds IAM.ROLE_MANAGE and nobody requests for a role they hold, so the request of
+    // another person for the administrator's own role is written directly (the trigger still checks it).
+    const { rows } = await server.db.admin.query<{ code: string }>(
+      "select p.code from iam.permission p where p.domain = 'ADMINISTRATION' and not exists (select 1 from iam.role_permission rp where rp.role_code = 'SYSTEM_ADMINISTRATOR' and rp.permission_code = p.code and rp.removed_at is null) order by p.code limit 1",
+    );
+    const permissionCode = rows[0]!.code;
+    const requester = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint);
+    const ctx = { ...requester, reasonCode: 'TEST_SETUP', reasonText: 'P7G-1 test set-up', correlationId: randomUUID() };
+    const requestId = await withCommand(server.db.admin, ctx, async (c) => (await c.query<{ id: string }>(
+      "insert into iam.role_permission_request (role_code, permission_code, reason, status, requested_by_person, requested_by_account) values ('SYSTEM_ADMINISTRATOR', $1, 'administrators acknowledge alerts', 'REQUESTED', $2, $3) returning id",
+      [permissionCode, requester.personId, requester.accountId],
+    )).rows[0]!.id);
+    const cr = await approvedChangeRecord(['ROLE_PERMISSION']);
+    const self = await admin.call(G.decideRolePermission, { params: { requestId }, body: { approve: true, reason: 'self', changeRecord: cr } });
+    expect(codeOf(self)).toBe('EBMR-IAM-032');
+    const after = valueOf(await owner.call(G.rolePermissions));
+    expect(after.roles.find((r) => r.code === 'SYSTEM_ADMINISTRATOR')!.permissions).not.toContain(permissionCode);
   }, 120_000);
 });
 

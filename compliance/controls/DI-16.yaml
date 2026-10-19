@@ -108,6 +108,8 @@ tests:
   - "apps/tablets-web/test/administration/governance.test.tsx > role permissions > [DI-16] the administrator removes a permission a role holds, under a change record"
   - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-14][DI-15][DI-16] the administrator creates a person and an account and requests a grant; the process owner approves it; the new person signs in, changes the password and works in the role"
   - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-16][DI-18][DI-09] the administrator requests a permission for a role; the process owner approves it under the change record; the administrator removes it"
+  - "apps/tablets-server/test/administration/access-governance-routes.test.ts > role-permission requests over HTTP > [DI-16][DI-18] P7G-1: an administrator cannot approve a permission for a role they hold (it would grant themselves), even with a change record"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-16][DI-18] P7G-1: an administrator cannot approve a grant to their own account requested by another administrator; the process owner can"
 clauses:
   - clause: "Produce the role list as of a past date and reconcile it with the access-request records."
     tests:

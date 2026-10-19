@@ -26,7 +26,10 @@ export async function signAction(
   action: SignableAction,
   opts: { meaning?: string; tamper?: boolean; credentials?: SignatureCredentials } = {},
 ): Promise<Result<unknown>> {
-  const d = await describeAction(b, action);
+  // The server may refuse already at describe (a record the session may not read, e.g. P7G-5): that refusal is the result.
+  const described = await b.call(routes.esig.describe, { body: { action } });
+  if (!described.ok) return described;
+  const d = described.value;
   const meaning = opts.meaning ?? d.meaning ?? '';
   const preview = await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: meaning } });
   if (!preview.ok) return preview;

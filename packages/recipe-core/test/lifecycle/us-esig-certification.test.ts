@@ -154,4 +154,36 @@ describe('the US e-signature certification at GMP issue (DI-15, recipe-core 1260
       await setMode('BLOCK');
     }
   });
+
+  it('[DI-15] P7G-3: a US-market GMP batch whose licence holder cannot be determined is refused (fail closed), at the gate and at every writer of the batch row; a batch with no US market is not asked', async () => {
+    const m = await effectiveMaster(['IN', 'US']);
+    const us = await planned(m.familyId, ['IN', 'US']);
+    const india = await planned(m.familyId, ['IN']);
+    // Every licence that covers the product is suspended: no licence holder is resolvable now.
+    const product = (await q<{ product_code: string; strength: string }>('select product_code, strength from recipe.mbr_family where id = $1', [m.familyId]))[0]!;
+    const licences = await q<{ id: string }>('select l.id from site.manufacturing_licence l join site.licence_product p on p.licence_id = l.id where l.site_code = $1 and p.product_code = $2 and p.strength = $3',
+      [SITE, product.product_code, product.strength]);
+    expect(licences.length).toBeGreaterThan(0);
+    for (const l of licences) {
+      if ((await q<{ s: string }>('select site.licence_state($1) as s', [l.id]))[0]?.s === 'APPROVED') {
+        await w.run(w.cast.qa, (c) => c.query("select site.suspend_manufacturing_licence($1, 'Suspended by order of the licensing authority')", [l.id]));
+      }
+    }
+    expect((await q<{ b: unknown }>("select site.licence_basis($1, $2, $3, clock_timestamp()) as b", [SITE, product.product_code, product.strength]))[0]?.b).toBeNull();
+    expect((await q<{ e: string | null }>('select recipe.us_esig_issue_entity($1) as e', [us.batchId]))[0]?.e).toBe('');
+    expect((await q<{ e: string | null }>('select recipe.us_esig_issue_entity($1) as e', [india.batchId]))[0]?.e).toBeNull();
+    // Even in FLAG mode (which only reports a missing letter of a known holder) the unknown holder is refused.
+    await setMode('FLAG');
+    try {
+      expect(await codeOf(db.admin.query("insert into recipe.batch_execution (id, installation) values ($1, 'GMP')", [us.batchId]))).toBe('EBMR-IAM-170');
+      const gate = await q<{ p: string | null }>(
+        'select recipe.gmp_issue_problem(b, p, l) as p from recipe.stub_batch b join recipe.batch_mbr_pin p on p.batch_id = b.id left join recipe.batch_allocation_link l on l.batch_id = b.id where b.id = $1',
+        [us.batchId]);
+      // The India gate (0891) speaks first for a batch with no current licence; either way the batch is refused.
+      expect(gate[0]?.p ?? 'issued').toMatch(/EBMR-(IAM-170|IND-\d{3}|EXE-\d{3})/);
+    } finally {
+      await setMode('BLOCK');
+    }
+    expect(await q('select 1 from recipe.batch_execution where id = $1', [us.batchId])).toEqual([]);
+  });
 });

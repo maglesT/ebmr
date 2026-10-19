@@ -28,6 +28,11 @@ import { IntegrationSourceSystem } from './integrations.ts';
 const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,18})$/, 'a whole number as text');
 const ReasonText = z.string().trim().min(1).max(1000);
 const DatabaseName = z.string().regex(/^[a-z][a-z0-9_]{1,62}$/);
+/**
+ * A release label handed to the drill tool as a command-line value (review P7G-4): letters, digits and . _ + -, never a
+ * leading dash (it would read as an option), at most 200 characters.
+ */
+const ReleaseLabel = z.string().regex(/^[A-Za-z0-9._+][A-Za-z0-9._+-]{0,199}$/);
 
 // ------------------------------------------------------------------------------------------------ first-run set-up
 
@@ -679,7 +684,7 @@ export const operations = {
     auth: 'SESSION',
     mutating: true,
     summary: 'An upgrade drill on a copy of a database at an earlier release (sandbox or staging only, D-P7R-4; CONTINUITY.BACKUP_RUN)',
-    body: z.strictObject({ reason: ReasonText, sourceDatabase: DatabaseName, fromRelease: z.string().trim().min(1).max(200) }),
+    body: z.strictObject({ reason: ReasonText, sourceDatabase: DatabaseName, fromRelease: ReleaseLabel }),
     response: z.strictObject({ requestId: Uuid, job: DrillJobView }),
   }),
   runHardeningCheck: defineRoute({

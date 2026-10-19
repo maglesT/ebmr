@@ -282,6 +282,7 @@ tests:
   - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-14] a person in a GMP role is offered no administration act"
   - "apps/tablets-server/test/administration/wp2-routes.test.ts > security alerts, roles, rehiring (people) > [DI-14][DI-17] the administrator rehires a person who left, with the reason; a person who has not left is refused; QA may not rehire"
   - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-14][DI-15][DI-16] the administrator creates a person and an account and requests a grant; the process owner approves it; the new person signs in, changes the password and works in the role"
+  - "apps/tablets-server/test/operations/session-checked-reads.test.ts > session-checked reads of slice 7g (P7G-5) > [DI-17][DI-14] the installation contents are read only for an active session; the demo screen still shows them"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

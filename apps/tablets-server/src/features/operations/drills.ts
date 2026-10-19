@@ -215,6 +215,8 @@ interface UpgradeReport {
 /** The upgrade drill job (header): the tool's report is recorded by the backup service identity. */
 export function startUpgradeDrill(app: AppContext, jobs: DrillJobs, requestId: string, sourceDatabase: string, fromRelease: string): DrillJobView {
   const adminUrl = app.config.adminUrl;
+  // The contract allows only a release label (ReleaseLabel); checked again here because it becomes a command-line value.
+  if (!/^[A-Za-z0-9._+][A-Za-z0-9._+-]{0,199}$/.test(fromRelease)) throw new Error('the release label is not a release label (P7G-4)');
   return jobs.start('UPGRADE', async (step) => {
     if (!adminUrl) throw new Error(upgradeDrillProblem(app) ?? 'the upgrade drill is not configured');
     const dir = reportDir(app, 'upgrade');

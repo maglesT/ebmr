@@ -11,8 +11,10 @@
 --   recipe.us_esig_issue_entity    the legal entity whose letter a GMP batch needs: NULL when the batch has no US in its
 --                                  market set; otherwise the holder of the manufacturing licence the batch is issued
 --                                  under (site.licence_basis, the host licence for a loan-licence batch: its staff sign
---                                  the record). NULL when no current licence covers the batch, which the India gate
---                                  (0891) refuses on its own.
+--                                  the record). For a US-market batch whose holder cannot be resolved (no current
+--                                  licence, or a licence without a holder name) it returns '' instead: the gate and
+--                                  the trigger refuse that batch (fail closed, review P7G-3; EBMR-IAM-170), since no
+--                                  letter can be on file for an unknown entity, whatever esig.us_certification_mode is.
 --   recipe.gmp_issue_problem       CREATE OR REPLACE from its latest definition (1250) with the certification check
 --                                  added after the India gate; recipe.begin_gmp_issue and recipe.issue_gmp_execution
 --                                  (1218) both call it, so the issuer is told before the engine runs (EBMR-IAM-170).
@@ -33,7 +35,8 @@ begin
     return null;
   end if;
   select * into f from recipe.mbr_family where id = b.family_id;
-  return site.licence_basis(b.site, f.product_code, f.strength, clock_timestamp()) ->> 'holderName';
+  -- '' (never NULL) for a US-market batch whose licence holder is not resolvable: the callers refuse it (P7G-3).
+  return coalesce(btrim(site.licence_basis(b.site, f.product_code, f.strength, clock_timestamp()) ->> 'holderName'), '');
 end
 $$;
 
@@ -73,6 +76,10 @@ begin
   end if;
   -- Phase 7 slice 7g-5 (DI-15): a US-market batch needs the licence holder's 11.100(c) letter on file (policy BLOCK).
   v_entity := recipe.us_esig_issue_entity(b.id);
+  if v_entity = '' then
+    return format('Batch %s is not issued for the US market: the licence holder whose 21 CFR 11.100(c) certification it needs cannot be determined (no current manufacturing licence with a holder covers it) (DI-15). [EBMR-IAM-170]',
+                  b.batch_number);
+  end if;
   if v_entity is not null and (iam.us_esig_certification_status(v_entity) ->> 'blocking')::boolean then
     return format('Batch %s is not issued for the US market: no 21 CFR 11.100(c) certification is on file for %s, the licence holder (DI-15). [EBMR-IAM-170]',
                   b.batch_number, v_entity);
@@ -91,6 +98,10 @@ begin
     return new;
   end if;
   v_entity := recipe.us_esig_issue_entity(new.id);
+  if v_entity = '' then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-170 the licence holder of this US-market batch cannot be determined, so no 21 CFR 11.100(c) certification can be on file for it; US-market batches cannot be issued (P7G-3)';
+  end if;
   if v_entity is not null then
     perform iam.assert_us_esig_certification(v_entity);
   end if;

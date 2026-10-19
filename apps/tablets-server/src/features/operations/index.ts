@@ -93,10 +93,10 @@ async function demoProblem(app: AppContext): Promise<string | null> {
   return rows[0]?.p ?? null;
 }
 
-async function demoView(app: AppContext, jobs: DemoJobs): Promise<DemoView> {
+async function demoView(app: AppContext, jobs: DemoJobs, tokenHash: string): Promise<DemoView> {
   const problem = await demoProblem(app);
   const lacks = app.config.adminUrl && app.operations.demoTooling ? null : 'This server has no administration connection (EBMR_PG_ADMIN_URL), so it cannot recreate its database.';
-  const { rows } = await app.pools.app.query<{ c: DemoView['contents']; demo: boolean }>('select tab.installation_contents() as c, tab.is_demo_installation() as demo');
+  const { rows } = await app.pools.app.query<{ c: DemoView['contents']; demo: boolean }>('select tab.installation_contents($1) as c, tab.is_demo_installation() as demo', [tokenHash]);
   const row = rows[0];
   return {
     allowed: problem === null && lacks === null,
@@ -170,8 +170,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       setupState: () => setupState(app),
       setup: ({ body }) => runSetup(app, body),
       demo: async ({ requireSession }) => {
-        requireSession();
-        return demoView(app, jobs);
+        const s = requireSession();
+        return demoView(app, jobs, s.tokenHash);
       },
       demoLoad: async (ctx) => {
         const s = ctx.requireSession();

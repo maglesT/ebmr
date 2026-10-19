@@ -391,6 +391,10 @@ tests:
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > roles and people > [DI-18][DI-17] the administrator creates a role with no permission (its permissions are requested afterwards); a person who left is rehired with the reason"
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > the qualification matrix > [DI-17] the training coordinator adds a type and a requirement for a role, and ends a requirement with the reason; the administrator is offered none of these"
   - "apps/tablets-server/test/esig/signing-meanings-7g.test.ts > decision D-P7R-6: the QP register and the compendial rule sets stay GOVERNANCE class > [DI-17][DI-37] a role with only RECORD.READ reads neither a qp_register nor a compendial_rule_set record; the QA MBR approver who signs a rule set reads it"
+  - "apps/tablets-server/test/operations/session-checked-reads.test.ts > session-checked reads of slice 7g (P7G-5) > [DI-17][DI-14] the installation contents are read only for an active session; the demo screen still shows them"
+  - "apps/tablets-server/test/operations/session-checked-reads.test.ts > session-checked reads of slice 7g (P7G-5) > [DI-17][DI-50] the disposal id is read only for an active session of a records reader"
+  - "apps/tablets-web/test/api/on-write.test.ts > the write signal of the page > [DI-17] a POST to an auth-NONE route (device nonce, identify) does not push the idle estimate out; a session write does"
+  - "packages/api-contract/test/operations-drills.test.ts > the upgrade drill release label (P7G-4) > [DI-17] a release label is accepted; an option-like, spaced, empty or overlong label is refused at validation"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

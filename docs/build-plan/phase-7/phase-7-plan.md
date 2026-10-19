@@ -547,6 +547,7 @@ replace a function in a new one. Ranges ascend in the merge order of D-P7-9, so 
 - **D-P7-3 Order and box of the pod run:** the order of slice 7f; the whole pod session is boxed at 24 pod hours
   (final runs about 3 hours each, load and drills about 3, soak 4, mutation 10, fixes the rest). A container restart's
   lost time counts. When the box ends, what is left is a residual for the owner.
+  Amended by D-P7R-7 (owner, 19 October; `RESUME.md`): the reference-site load test and the soak move to deployment; the pod run is about 17-18 hours.
 - **D-P7-4 Reference site for the SLOs:** 100 batches a day and 20,000 data points a batch (outline 4.4 sizing), 50
   shop-floor sessions, 50 OPC UA tags at 1 Hz, the EMS feed and every 6a adapter at its simulator's default rate, a
   year of generated history. The pod's hardware is recorded with the results; the customer's PQ repeats the measurement

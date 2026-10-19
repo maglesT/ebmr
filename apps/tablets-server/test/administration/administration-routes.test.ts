@@ -107,6 +107,18 @@ describe('people and access over HTTP', () => {
     expect(valueOf(await admin.call(P.revokeGrant, { params: { grantId: g.grantId }, body: { reason: 'moved to another site' } }))).toMatchObject({ status: 'REVOKED', live: false });
   }, 120_000);
 
+  it('[DI-16][DI-18] P7G-1: an administrator cannot approve a grant to their own account requested by another administrator; the process owner can', async () => {
+    const self = await grantedPerson(server, 'SYSTEM_ADMINISTRATOR', 'Sana Selfgrant');
+    const selfAdmin = await loginOf(server, self);
+    const other = await loginOf(server, await grantedPerson(server, 'SYSTEM_ADMINISTRATOR', 'Tom Otheradmin'));
+    const g = valueOf(await other.call(P.requestGrant, { body: { accountId: self.accountId, roleCode: 'AUDITOR_READONLY', scope: {}, reason: 'reads the audit trail for the annual review' } }));
+    expect(g.status).toBe('REQUESTED');
+    // The grantee holds IAM.GRANT_APPROVE (kernel 0120) but never decides their own grant (DI-18 second person).
+    expect(codeOf(await selfAdmin.call(P.decideGrant, { params: { grantId: g.grantId }, body: { approve: true, reason: 'self' } }))).toBe('EBMR-IAM-032');
+    expect(codeOf(await other.call(P.decideGrant, { params: { grantId: g.grantId }, body: { approve: true, reason: 'own request' } }))).toBe('EBMR-IAM-032');
+    expect(valueOf(await owner.call(P.decideGrant, { params: { grantId: g.grantId }, body: { approve: false, reason: 'not needed' } })).status).toBe('REJECTED');
+  }, 120_000);
+
   it('[DI-14][DI-17] a GMP role holder is refused the administration reads and acts: the route names the roles, the database refuses the act', async () => {
     for (const r of [P.directory, P.grants, P.recertification, P.breakGlass, D.list] as const) {
       expect(codeOf(await qa.call(r)), r.id).toBe('ROLE_NOT_ALLOWED');

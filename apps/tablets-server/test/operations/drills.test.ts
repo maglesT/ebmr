@@ -103,12 +103,12 @@ describe('drills from the screen (DI-45, D-P7R-4)', () => {
     await copyDatabase(inject('serverTemplates').gmp.template, source);
     databases.push(source);
     expect(valueOf(await admin.call(O.drills)).upgrade).toEqual({ runnable: true, problem: null });
-    const started = valueOf(await admin.call(O.runUpgradeDrill, { body: { reason: 'release candidate upgrade check', sourceDatabase: source, fromRelease: 'this release' } }));
+    const started = valueOf(await admin.call(O.runUpgradeDrill, { body: { reason: 'release candidate upgrade check', sourceDatabase: source, fromRelease: 'this-release' } }));
     expect(started.job).toMatchObject({ state: 'RUNNING', kind: 'UPGRADE' });
     const after = await settled(admin);
     expect(after.job).toMatchObject({ state: 'DONE', kind: 'UPGRADE', error: null });
     const drill = after.upgradeDrills[0];
-    expect(drill).toMatchObject({ requestId: started.requestId, sourceDatabase: source, fromRelease: 'this release' });
+    expect(drill).toMatchObject({ requestId: started.requestId, sourceDatabase: source, fromRelease: 'this-release' });
     expect(drill?.reportSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(Number(drill?.tablesCompared)).toBeGreaterThan(50);
   }, 900_000);
