@@ -273,3 +273,33 @@ describe('tab.audit_events (tablets 0530): the bounds of a list of events', () =
     expect(await ids(null, null, first?.id ?? '', middle?.id ?? '')).toEqual([middle?.id]);
   });
 });
+
+describe('tab.record_read_problem and tab.reader_is_contract_giver as Phase 7 re-creates them (tablets 1426, 1493; D-P7-1 item 4)', () => {
+  const reader = (who: { personId: string; accountId: string }, role: string): string =>
+    `row(gen_random_uuid(), '${who.personId}'::uuid, '${who.accountId}'::uuid, '${role}', false)::tab.reader`;
+  const problem = async (r: string, type: string): Promise<string | null> =>
+    (await gmp.db.admin.query<{ p: string | null }>(`select tab.record_read_problem(${r}, $1, $2) as p`, [type, randomUUID()])).rows[0]!.p;
+
+  it('[IN-30][DI-17] an account that holds the contract giver\'s reviewer role reads no record here and counts as the contract giver, whatever role its session works in', async () => {
+    const reviewer = await grantedPerson(gmp, 'CONTRACT_GIVER_REVIEWER', 'Contract Giver Reviewer (second role)');
+    const asQa = reader(reviewer, 'QA_REVIEWER');
+    expect(await problem(asQa, 'esig_stub')).toMatch(/the contract giver's reviewer reads only the batches of its loan licence/);
+    expect((await gmp.db.admin.query<{ b: boolean }>(`select tab.reader_is_contract_giver(${asQa}) as b`)).rows[0]!.b).toBe(true);
+    // A QA reviewer's account that holds no such role is not the contract giver.
+    expect((await gmp.db.admin.query<{ b: boolean }>(`select tab.reader_is_contract_giver(${reader(control, 'QA_REVIEWER')}) as b`)).rows[0]!.b).toBe(false);
+  });
+
+  it('[DI-17][DI-37] a compendial rule set and a QP registration are read by a role that signs them and by a governance role, and by no other role (D-P7R-6)', async () => {
+    for (const [type, meaning] of [['compendial_rule_set', 'COMPENDIAL_RULE_SET_VERIFIED'], ['qp_register', 'QP_REGISTERED']] as const) {
+      const roles = (await gmp.db.admin.query<{ signer: string | null; gov: string | null; neither: string | null }>(
+        `with r as (select code, tab.role_may(code, (esig.current_meaning($1)).permissions) as signs, tab.role_may(code, tab.governance_read_permissions()) as gov from iam.role)
+         select (select code from r where signs and not gov order by code limit 1) as signer, (select code from r where gov and not signs order by code limit 1) as gov,
+                (select code from r where not signs and not gov order by code limit 1) as neither`, [meaning])).rows[0]!;
+      // A governance role that does not sign the meaning reads it (the signer roles may all be governance roles too).
+      expect(roles.gov && roles.neither).toBeTruthy();
+      if (roles.signer) expect(await problem(reader(control, roles.signer), type)).toBeNull();
+      expect(await problem(reader(control, roles.gov!), type)).toBeNull();
+      expect(await problem(reader(control, roles.neither!), type)).toMatch(new RegExp(`${type} records are read only by the roles that sign them`));
+    }
+  });
+});
