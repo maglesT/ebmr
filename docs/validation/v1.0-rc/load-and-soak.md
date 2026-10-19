@@ -25,6 +25,14 @@ by these figures. The per-command database cost seen with function timing (`EBMR
 overhead of about 30 to 40 ms (the session's resolution, the actor context and the audit-trigger checks of every command),
 with no part that grows with the history at this scale.
 
+**Outcome of the smoke on the pod (slice 7f, 19 October).** The reference-site run and the 4-hour soak are deferred to
+deployment (owner decision D-P7R-7); the 10-minute smoke stays in the exit. Its first try (10:34) stopped in the
+history: the load driver's site had no approved validation summary, so every history batch was refused by the DI-03
+gate (EBMR-VAL-001), which slice 7c added after the 7d smoke. The driver now has QA approve the run's DEMO-ONLY summary
+through the real signed act, as the test templates do (`tools/load/src/site.ts`); the gate is unchanged. The second
+smoke (10:40, 16 CPUs) passes every SLO: the shop-floor p95 198 ms, the review of a 1,030-entry batch opens in 1.5 s,
+the analytics run's longest event-loop block 10.6 ms, the flag views 29 ms, every feed reconciled.
+
 ## smoke run of 2026-10-18T05:31:25.149Z (an SLO FAILED)
 
 Commit `53dcb95eceeb87e78b60d61f3ffdb739351bd280`, host `vm` (4 CPUs, 16 GiB, Node v22.22.0, PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)). Record `.reports/load/load-smoke-2026-10-18T053125149Z.json`.
@@ -114,5 +122,75 @@ Inputs: 10 min of traffic at rate 0.5 and scale 0.02: 6 shop-floor and 2 office 
 | REVIEW | session.get | 1 | 0 | 29.4 ms | 29.4 ms | 29.4 ms | 29.4 ms |
 
 - The review batch holds 1021 audit-trail entries made by badge-tapped commands (alerts noted on an open step); its status was then set EXECUTION_COMPLETE by the superuser with the triggers off for that one update (LOAD-ONLY shortcut, as the demo's review batch sets it), so QA can open it in review.
+- The data points (5 tags at 1 Hz) reach the series store through the EMS feed and the EMS adapter worker (one chunk per tag and poll); the OPC UA path itself (simulator, gateway, signed feed, OPCUA adapter worker) is exercised by GB-T-03 and the OPC UA adapter tests, not by this driver.
+- SLO-3 is measured on the batch issue (plan, content, challenge and the ISSUED e-signature with its device proof, a protected number from the external ledger): the release act needs lots made READY by the full release path, which the driver does not build; see the residuals.
+
+## smoke run of 2026-10-19T10:34:56.333Z (STOPPED before its end)
+
+The run stopped: `history batch 16: EBMR-VAL-001`.
+
+Commit `32df51a41e5780df803743cab77e5892dfe75395`, host `c52a61c4aa9d` (32 CPUs, 125 GiB, Node v22.23.3, PostgreSQL 16.15 (Ubuntu 16.15-1.pgdg22.04+2)). Record `.reports/load/load-smoke-2026-10-19T103456333Z.json`.
+
+Inputs: 10 min of traffic at rate 0.5 and scale 0.02: 6 shop-floor and 2 office sessions, a command every 60 s and a screen refresh every 10 s per floor session; 730 history batches (365 days x 100 a day x scale); 400 data points a batch over 5 tags; a review batch of 1000 entries; 12 signed acts; feeds LMS, QMS, LIMS, CMMS, EMS every 20 s.
+
+| SLO | What | Target | Measured | Result |
+|---|---|---|---|---|
+| SLO-1 | the batch review of a ?-entry batch opens | under 5 s (50,000 entries at the reference site) | not measured | NOT_MEASURED |
+| SLO-2 | p95 of the shop-floor commands | under 300 ms on the loopback (an upper bound for a site LAN) | n/a over 0 commands (p50 n/a, p99 n/a) | NOT_MEASURED |
+| SLO-3 | a signed act commits under concurrent ingestion with at most one serialisation retry | in 99 of 100 acts | not measured | NOT_MEASURED |
+| SLO-4 | no message lost or duplicated (counts and checksums equal at the end) | every feed reconciles | not measured | NOT_MEASURED |
+| SLO-5 | the nightly analytics run finishes and blocks the event loop briefly | within 30 min; no block over 200 ms | not measured | NOT_MEASURED |
+| SLO-6 | each analytics flag view answers | under 1 s | not measured | NOT_MEASURED |
+| SOAK-1 | the server's memory is steady after the warm-up (a short run: informational; the soak runs 4 hours) | RSS growth under 10 % | n/a | NOT_MEASURED |
+| SOAK-2 | no file-handle leak (a short run: informational; the soak runs 4 hours) | open handles flat after the warm-up (within 16) | n/a | NOT_MEASURED |
+| SOAK-3 | no connection leak (a short run: informational; the soak runs 4 hours) | database connections bounded (the pools' sizes) | n/a | NOT_MEASURED |
+| SOAK-4 | no error in the server's log | no line at error or fatal level | 0 line(s) | PASS |
+
+| Actor | Route | Requests | Errors | p50 | p95 | p99 | max |
+|---|---|---|---|---|---|---|---|
+
+## smoke run of 2026-10-19T10:40:04.926Z (no SLO failed)
+
+Commit `32df51a41e5780df803743cab77e5892dfe75395`, host `c52a61c4aa9d` (32 CPUs, 125 GiB, Node v22.23.3, PostgreSQL 16.15 (Ubuntu 16.15-1.pgdg22.04+2); 1-minute load average 9.5 when the measured window began and 17.1 when it ended). Record `.reports/load/load-smoke-2026-10-19T104004926Z.json`.
+
+Inputs: 10 min of traffic at rate 0.5 and scale 0.02: 6 shop-floor and 2 office sessions, a command every 60 s and a screen refresh every 10 s per floor session; 730 history batches (365 days x 100 a day x scale); 400 data points a batch over 5 tags; a review batch of 1000 entries; 12 signed acts; feeds LMS, QMS, LIMS, CMMS, EMS every 20 s.
+
+| SLO | What | Target | Measured | Result |
+|---|---|---|---|---|
+| SLO-1 | the batch review of a 1030-entry batch opens | under 5 s (50,000 entries at the reference site) | 1480.1 ms (worst of 5) | PASS |
+| SLO-2 | p95 of the shop-floor commands | under 300 ms on the loopback (an upper bound for a site LAN) | 198.2 ms over 100 commands (p50 61 ms, p99 316 ms) | PASS |
+| SLO-3 | a signed act commits under concurrent ingestion with at most one serialisation retry | in 99 of 100 acts | 12 of 12 within one retry (6 retried once) | PASS |
+| SLO-4 | no message lost or duplicated (counts and checksums equal at the end) | every feed reconciles | LMS 30/30 reconciled, QMS 30/30 reconciled, LIMS 30/30 reconciled, CMMS 30/30 reconciled, EMS 360/360 reconciled | PASS |
+| SLO-5 | the nightly analytics run finishes and blocks the event loop briefly | within 30 min; no block over 200 ms | 10398.7 ms; longest block 10.6 ms; 10 method runs | PASS |
+| SLO-6 | each analytics flag view answers | under 1 s | 28.8 ms (worst of 3: analytics.flags, analyticsAudit.flags, analyticsReview.priority) | PASS |
+| SOAK-1 | the server's memory is steady after the warm-up (a short run: informational; the soak runs 4 hours) | RSS growth under 10 % | -1.0 % (255 to 253 MiB) | PASS |
+| SOAK-2 | no file-handle leak (a short run: informational; the soak runs 4 hours) | open handles flat after the warm-up (within 16) | 27 to 23 | PASS |
+| SOAK-3 | no connection leak (a short run: informational; the soak runs 4 hours) | database connections bounded (the pools' sizes) | 6 to 11 | PASS |
+| SOAK-4 | no error in the server's log | no line at error or fatal level | 0 line(s) | PASS |
+
+| Actor | Route | Requests | Errors | p50 | p95 | p99 | max |
+|---|---|---|---|---|---|---|---|
+| FLOOR | batches.batch | 420 | 0 | 24.4 ms | 65.4 ms | 136.3 ms | 182.8 ms |
+| FLOOR | batches.command | 50 | 0 | 117 ms | 294.2 ms | 465.9 ms | 465.9 ms |
+| FLOOR | batches.step | 360 | 0 | 21.7 ms | 57.1 ms | 84.3 ms | 94.6 ms |
+| FLOOR | session.deviceNonce | 50 | 0 | 19.6 ms | 62.7 ms | 124.2 ms | 124.2 ms |
+| ISSUER | esig.content | 12 | 0 | 19.1 ms | 55.4 ms | 55.4 ms | 55.4 ms |
+| ISSUER | esig.createChallenge | 12 | 0 | 40.1 ms | 91.5 ms | 91.5 ms | 91.5 ms |
+| ISSUER | esig.sign | 12 | 0 | 173.7 ms | 493.2 ms | 493.2 ms | 493.2 ms |
+| ISSUER | execution.planBatch | 18 | 0 | 86.2 ms | 263.6 ms | 263.6 ms | 263.6 ms |
+| ISSUER | session.deviceNonce | 12 | 0 | 12.9 ms | 69.3 ms | 69.3 ms | 69.3 ms |
+| OFFICE | integrations.adapters | 30 | 0 | 15.1 ms | 56.3 ms | 74.1 ms | 74.1 ms |
+| OFFICE | release.queue | 30 | 0 | 10.5 ms | 48.2 ms | 49.4 ms | 49.4 ms |
+| OFFICE | review.queue | 30 | 0 | 35 ms | 161.1 ms | 259.3 ms | 259.3 ms |
+| REVIEW | analytics.flags | 1 | 0 | 20.8 ms | 20.8 ms | 20.8 ms | 20.8 ms |
+| REVIEW | analyticsAudit.flags | 1 | 0 | 28.8 ms | 28.8 ms | 28.8 ms | 28.8 ms |
+| REVIEW | analyticsReview.priority | 1 | 0 | 27.9 ms | 27.9 ms | 27.9 ms | 27.9 ms |
+| REVIEW | batches.batch | 5 | 0 | 30.4 ms | 113.7 ms | 113.7 ms | 113.7 ms |
+| REVIEW | review.auditTrail | 5 | 0 | 164.7 ms | 585 ms | 585 ms | 585 ms |
+| REVIEW | review.batch | 5 | 0 | 179.3 ms | 686.5 ms | 686.5 ms | 686.5 ms |
+| REVIEW | review.register | 5 | 0 | 31.7 ms | 94.8 ms | 94.8 ms | 94.8 ms |
+| REVIEW | session.get | 1 | 0 | 13.3 ms | 13.3 ms | 13.3 ms | 13.3 ms |
+
+- The review batch holds 1030 audit-trail entries made by badge-tapped commands (alerts noted on an open step); its status was then set EXECUTION_COMPLETE by the superuser with the triggers off for that one update (LOAD-ONLY shortcut, as the demo's review batch sets it), so QA can open it in review.
 - The data points (5 tags at 1 Hz) reach the series store through the EMS feed and the EMS adapter worker (one chunk per tag and poll); the OPC UA path itself (simulator, gateway, signed feed, OPCUA adapter worker) is exercised by GB-T-03 and the OPC UA adapter tests, not by this driver.
 - SLO-3 is measured on the batch issue (plan, content, challenge and the ISSUED e-signature with its device proof, a protected number from the external ledger): the release act needs lots made READY by the full release path, which the driver does not build; see the residuals.
