@@ -4,10 +4,12 @@
  * residue; each act is QA's signature (REPROCESSING_ACT) through the ceremony. The database checks the case, the
  * product, the age and the risk evaluation; a refusal is shown in its words.
  */
+import { useState } from 'react';
 import { routes, type ReprocessingAuthorisationView, type ReprocessingRequestView, type ResidueContainerView } from '@ebmr/api-contract';
-import { StatusChip } from '@ebmr/ui-kit';
+import { Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
-import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
+import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
+import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 
@@ -18,10 +20,12 @@ export function ReprocessingPage() {
   const authorisations = useApiQuery(routes.quality.reprocessingAuthorisations, {});
   const residues = useApiQuery(routes.quality.residues, {});
   const qa = useOffered('QA');
+  const planning = useOffered('PLANNING');
   return (
     <>
       <h1>Reprocessing</h1>
       <Section title="Whole-batch reprocessing requests" testId="reprocessing-requests">
+        {planning ? <ProposeRequest /> : null}
         {requests.error ? <RefusalMessage error={requests.error.error} /> : null}
         <ul>
           {requests.data?.requests.map((r) => (
@@ -32,6 +36,22 @@ export function ReprocessingPage() {
         </ul>
       </Section>
       <Section title="Reprocessing authorisations" testId="reprocessing-authorisations">
+        {qa ? (
+          // Phase 7 slice 7g (WP4; PR-47, IN-19): the request of a step authorisation, which the quality unit then signs.
+          <DefineForm
+            title="Ask for the authorisation of a reprocessing or recovery step"
+            route={routes.quality.proposeReprocessingAuthorisation}
+            refresh={READS}
+            submitLabel="Ask for the authorisation"
+            fields={[
+              { name: 'batchId', label: 'Batch (id)', kind: 'text' },
+              { name: 'step', label: 'Step of the MBR (a G-24 or TB-08 step that declares its case)', kind: 'text' },
+              { name: 'containerId', label: 'Closed container of an earlier batch (id; when the step adds material)', kind: 'text', optional: true },
+              { name: 'investigationRef', label: 'Investigation', kind: 'text' },
+              { name: 'riskEvaluationRef', label: 'Risk evaluation', kind: 'text' },
+            ]}
+          />
+        ) : null}
         {authorisations.error ? <RefusalMessage error={authorisations.error.error} /> : null}
         <ul>
           {authorisations.data?.authorisations.map((a) => (
@@ -52,6 +72,43 @@ export function ReprocessingPage() {
         </ul>
       </Section>
     </>
+  );
+}
+
+/**
+ * Phase 7 slice 7g (WP4; PR-47, IN-18, IN-19): the planner asks for a whole-batch reprocessing on a REPROCESSING master,
+ * naming its parent batches, the investigation and the stored risk evaluation; the quality unit then authorises it.
+ */
+function ProposeRequest() {
+  const propose = useCommand(routes.quality.proposeReprocessingRequest, READS, 'a whole-batch reprocessing request');
+  const [familyId, setFamilyId] = useState('');
+  const [site, setSite] = useState('');
+  const [parents, setParents] = useState('');
+  const [investigationRef, setInvestigationRef] = useState('');
+  const [riskEvaluationId, setRiskEvaluationId] = useState('');
+  const parentBatchIds = [...new Set(parents.split(/[\s,]+/).map((x) => x.trim()).filter((x) => x !== ''))];
+  const body = { familyId: familyId.trim(), site: site.trim(), parentBatchIds, investigationRef: investigationRef.trim(), riskEvaluationId: riskEvaluationId.trim() };
+  const ok = routes.quality.proposeReprocessingRequest.body?.safeParse(body).success ?? false;
+  return (
+    <form aria-label="Ask for a whole-batch reprocessing" data-testid="propose-reprocessing-request" onSubmit={(e) => e.preventDefault()}>
+      <h3>Ask for a whole-batch reprocessing</h3>
+      <Field name="familyId" label="REPROCESSING master (family id)" value={familyId} onChange={setFamilyId} />
+      <Field name="site" label="Site" value={site} onChange={setSite} />
+      <Field name="parents" label="Parent batches (ids, separated by commas)" value={parents} onChange={setParents} />
+      <Field name="investigationRef" label="Concluded investigation" value={investigationRef} onChange={setInvestigationRef} />
+      <Field name="riskEvaluationId" label="Stored risk evaluation (document id)" value={riskEvaluationId} onChange={setRiskEvaluationId} />
+      <ActButton
+        label="Ask for the reprocessing"
+        disabled={!ok || propose.busy}
+        onPress={async () => {
+          if (await propose.run({ body })) {
+            setParents('');
+            setInvestigationRef('');
+          }
+        }}
+      />
+      <ActResult error={propose.error} done={propose.done} label="Requested: the quality unit authorises it." />
+    </form>
   );
 }
 

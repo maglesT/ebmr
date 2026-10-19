@@ -547,7 +547,9 @@ export const SignableAction = z.discriminatedUnion('kind', [
       }),
     ]),
   }),
-  z.strictObject({ /** WP4 placeholder. */ kind: z.literal('LOT_DESTRUCTION_WITNESS'), subjectId: Uuid }),
+  // WP4 (slice 7g): the witness's MATERIAL_DESTRUCTION_WITNESSED signature on a lot whose destruction is recorded (site
+  // services 0712; IN-24 (a)): signed by a witness other than the performer; the performer's destroy then names it.
+  z.strictObject({ kind: z.literal('LOT_DESTRUCTION_WITNESS'), lotId: Uuid }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
 export type SignableKind = SignableAction['kind'];

@@ -49,28 +49,7 @@ const NO_ROUTE_YET: Readonly<Record<string, string>> = {
   // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration): none
   // WP3 (master record, market and plant configuration): none (routes in ns/market-config.ts; market.pin_policies_for_batch runs in the GMP batch issue, execution/gmp-issue.ts)
-  // WP4 (floor, materials, batch numbers)
-  'plant.bind_step_equipment': 'binding the plant unit a step uses (STEP.EXECUTE), which alarms and series of the batch follow',
-  'plant.merge_container': 'merging output containers (STEP.EXECUTE)',
-  'recipe.prepare_reprocessing_issue': 'planning a whole-batch reprocessing batch (BATCH.ISSUE; PR-47)',
-  'recipe.propose_reprocessing_authorisation': 'asking the quality unit to authorise a reprocessing step (PR-47, IN-19)',
-  'recipe.propose_reprocessing_request': 'asking for the authorisation of a whole-batch reprocessing (PR-47, IN-18)',
-  'site.cancel_reservation': 'cancelling a material reservation (MATERIAL.HANDLE)',
-  'site.destroy_lot': 'the destruction of a lot, by the performer with the witness\'s signature (MATERIAL.HANDLE)',
-  'site.disable_vendor_route': 'disabling a supplier route (MATERIAL.QA_DISPOSITION)',
-  'site.link_lot_test_oos': 'linking the OOS record of an approved failure to a lot (QC.RESULT_RECORD)',
-  'site.record_lot_destruction': 'recording a witnessed lot destruction (MATERIAL.HANDLE)',
-  'site.recover_batch_number': 'recovering batch numbers after a restore (BATCH_NUMBER.RECOVER)',
-  'site.register_external_batch_number': 'registering a batch number issued outside the system (BATCH_NUMBER.REGISTER_EXTERNAL)',
-  'site.resolve_lot_location_exception': 'QA closing a stock-location exception with its deviation (MATERIAL.QA_DISPOSITION)',
-  'site.void_batch_number': 'voiding a batch number of the register (BATCH_NUMBER.VOID; the register shows voided numbers)',
-  'tab.acknowledge_process_alarm': 'acknowledging an ALARM reading of a process step (STEP.EXECUTE; DI-49)',
-  'tab.bind_step_device': 'binding the process device of a step (STEP.EXECUTE)',
-  'tab.check_packaging_batch_data': 'the second person\'s check of the packaging batch data (STEP.VERIFY; IN-31)',
-  'tab.record_detector_challenge': 'a metal-detector challenge with its test pieces (STEP.EXECUTE)',
-  'tab.record_packaging_batch_data': 'the batch data (MRP, expiry) of a packaging step (STEP.EXECUTE; IN-31)',
-  'tab.release_print_job': 'releasing a print job of a packaging step to its printer (STEP.EXECUTE; PR-36)',
-  'tab.request_setpoint_download': 'a step asking for its setpoint to be downloaded to the device (STEP.EXECUTE)',
+  // WP4 (floor, materials, batch numbers): none (slice 7g WP4 gave every one its route and screen)
 };
 
 const LISTS = { SERVICE_OR_INTERNAL, PENDING_7G, NO_ROUTE_YET };

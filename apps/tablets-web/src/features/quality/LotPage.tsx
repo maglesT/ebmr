@@ -20,6 +20,7 @@ import { useRouteParams } from '../floor/params.ts';
 import { DeviationReleaseChecklist } from './DeviationDetail.tsx';
 import { DEVIATION_READS } from './DeviationsPage.tsx';
 import { LotEvents, LotReleaseCheck, LotSamples } from './LotExtras.tsx';
+import { LotHandling } from './LotHandling.tsx';
 import { LOT_READS } from './LotsPage.tsx';
 
 type CallErr = Parameters<typeof RefusalMessage>[0]['error'];
@@ -77,6 +78,8 @@ export function LotPage() {
       <LotReleaseCheck lotId={lotId} />
       {qa && lot ? <LotEvents lot={lot} /> : null}
       <LotSamples lotId={lotId} canPull={qc} canDispose={qa} />
+      {/* Phase 7 slice 7g (WP4): destruction with its witness, reservations, stock-location exceptions. */}
+      {lot ? <LotHandling lot={lot} /> : null}
       <DeviationReleaseChecklist subjectKind="LOT" subjectId={lotId} />
     </>
   );
@@ -92,8 +95,10 @@ function ResultRow({ lotId, lotCode, result: r, qc }: { lotId: string; lotCode: 
     });
     if (!raised.ok) return setOos(raised.error);
     const linked = await api.call(routes.quality.linkDeviation, { params: { deviationId: raised.value.deviationId }, body: { subjectKind: 'LOT', subjectId: lotId } });
+    // Phase 7 slice 7g (WP4; IN-20): an approved failing result names its OOS record (the database checks both).
+    const named = linked.ok && r.state === 'APPROVED' ? await api.call(routes.quality.linkLotTestOos, { params: { resultId: r.resultId }, body: { deviationId: raised.value.deviationId } }) : null;
     await reread();
-    setOos(linked.ok ? { ref: raised.value.ref } : linked.error);
+    setOos(!linked.ok ? linked.error : named && !named.ok ? named.error : { ref: raised.value.ref });
   };
   const limits = [r.lowerLimit ? `from ${r.lowerLimit}` : '', r.upperLimit ? `to ${r.upperLimit}` : ''].filter(Boolean).join(' ');
   return (

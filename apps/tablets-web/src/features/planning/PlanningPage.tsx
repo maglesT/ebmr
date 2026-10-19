@@ -74,10 +74,15 @@ function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: 
   const plan = useCommand(routes.execution.planBatch, REFRESH);
   const areas = useApiQuery(routes.plant.areas);
   const lines = areas.data?.areas.filter((a) => a.kind === 'LINE') ?? [];
+  // Phase 7 slice 7g (WP4; PR-47): a REPROCESSING master is planned with the quality unit's authorised request.
+  const reprocessing = match?.recordKind === 'REPROCESSING';
+  const requests = useApiQuery(routes.quality.reprocessingRequests, {}, { enabled: reprocessing });
+  const [request, setRequest] = useState<string | null>(null);
+  const authorised = requests.data?.requests.filter((r) => r.familyId === match?.familyId && r.authorisedBy !== null) ?? [];
   const chosenSite = siteCode.trim() || site || '';
   if (!match) return null;
   const go = async () => {
-    const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId } });
+    const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, ...(reprocessing && request ? { reprocessingRequest: request } : {}) } });
     if (b) onPlanned(b);
   };
   return (
@@ -89,7 +94,21 @@ function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: 
       ) : (
         <Field name="line" label="Line" value={line} onChange={setLine} />
       )}
-      <ActButton label={`Plan a batch for ${order.orderNo}`} onPress={go} disabled={plan.busy || chosenSite === '' || line.trim() === ''} />
+      {reprocessing ? (
+        authorised.length === 0 ? (
+          <Banner tone="warning" title="No authorised reprocessing request for this master.">
+            A whole-batch reprocessing is planned only on a request the quality unit authorised (Quality, Reprocessing).
+          </Banner>
+        ) : (
+          <floor.ChoiceGroup
+            label="Authorised reprocessing request"
+            options={authorised.map((r) => ({ value: r.requestId, label: `${r.parents.map((p) => p.batchNumber).join(', ')} (${r.investigationRef})` }))}
+            value={request}
+            onChange={setRequest}
+          />
+        )
+      ) : null}
+      <ActButton label={`Plan a batch for ${order.orderNo}`} onPress={go} disabled={plan.busy || chosenSite === '' || line.trim() === '' || (reprocessing && !request)} />
       <ActResult error={plan.error} />
     </div>
   );

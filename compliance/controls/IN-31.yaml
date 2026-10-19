@@ -44,6 +44,8 @@ tests:
   - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] a template's status is its own events': another template's retirement does not retire it"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [IN-31] one label template version opens with its size and the place of each record field"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-36][IN-31] shows the labelling of a master and why it would fail approval; declares a cut label with its 211.122(g) control"
+  - "apps/tablets-server/test/execution/floor-acts-routes.test.ts > the batch data of a packaging step and its print job (IN-31, PR-36) > [IN-31][PR-36][DI-22] the giver of an MRP neither checks nor releases; a second person checks it; the job then carries the record's data; a change after set-up needs the person's reason and voids the job"
+  - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [IN-31][PR-36] records the batch data with the MRP, offers the second person's check of the version, asks a reason for a new version, and releases a print job"
 clauses:
   - clause: "load an India-domestic template without a manufacturing-date field; approval fails."
     tests:

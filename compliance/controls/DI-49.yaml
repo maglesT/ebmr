@@ -80,6 +80,8 @@ tests:
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [DI-49] one alarm opens in detail with its configuration, times, batches and acknowledgment"
   - "apps/tablets-server/test/market/market-config-routes.test.ts > plant configuration > [DI-49][IN-26][IN-38] the steward configures an alarm code, opens and closes a campaign with a reason, sets a utility feed age and records a line isolation; the database refuses an alarm that needs a deviation and is not GMP-critical; QA holds no MASTERDATA.CHANGE"
   - "apps/tablets-web/test/market/market-screens.test.tsx > plant configuration > [DI-49][IN-26][IN-38] saves an alarm code, opens and closes a campaign with a reason, sets a feed age and records a line isolation"
+  - "apps/tablets-server/test/devices/step-bindings-routes.test.ts > the bindings of a process step (tablets 0820, 0870; recipe-core 0960) > [PR-14][DI-49] the step binds the device of its unit once; a unit the batch has in use is bound to the step; an MBR setpoint is downloaded to the bound device, once while it waits; a person without STEP.EXECUTE is refused"
+  - "apps/tablets-server/test/devices/step-bindings-routes.test.ts > the bindings of a process step (tablets 0820, 0870; recipe-core 0960) > [DI-49] an alarm captured from the equipment is acknowledged by the ALARM_ACK entry: the server acknowledges the reading in the entry's own command, once, by the person, with the comment"
 clauses:
   - clause: "Simulate an excursion. It appears with raise and acknowledgment times, acknowledger identity and comment."
     tests:

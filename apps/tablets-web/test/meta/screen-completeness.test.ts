@@ -55,8 +55,7 @@ const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
   // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration): none
   // WP3 (master record, market and plant configuration): none
-  // WP4 (floor, materials, batch numbers)
-  LOT_DESTRUCTION_WITNESS: 'the witness\'s signature on a lot destruction',
+  // WP4 (floor, materials, batch numbers): none (the lot page sends LOT_DESTRUCTION_WITNESS)
 };
 
 function sourceText(): string {

@@ -28,6 +28,7 @@ import { DEVICES_GUIDANCE } from './guidance.ts';
 import { scaleStatusRows, scaleStatuses, type ScaleStatusRow } from './port.ts';
 import { runtimeOf } from './runtime.ts';
 import { processReadings } from './process-readings.ts';
+import { stepBindingHandlers } from './step-bindings.ts';
 
 interface ReadingRow {
   id: string;
@@ -224,5 +225,7 @@ export function bindDeviceRoutes(scope: FastifyInstance, app: AppContext): void 
     capture,
     live,
     processReadings: (ctx) => processReadings(app, ctx),
+    // Phase 7 slice 7g (WP4): the step's device and equipment bindings and the setpoint download.
+    ...stepBindingHandlers(app),
   });
 }

@@ -96,6 +96,28 @@ export interface Example {
 
 const r = routes;
 
+/** Phase 7 slice 7g (WP4): one number of the batch-number register (site services 0600). */
+const BATCH_NUMBER_EXAMPLE = {
+  allocationId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e60',
+  batchNumber: 'B26-0001',
+  siteCode: 'SITE-1',
+  edition: 'TABLETS',
+  batchKind: 'PROCESSING' as const,
+  parentBatchNumber: null,
+  productCode: 'PCM-500',
+  productName: 'Paracetamol tablets 500 mg',
+  batchSize: '100000',
+  batchSizeUnit: '{tbl}',
+  allocationDate: '2026-10-18',
+  source: 'GENERATED' as const,
+  ruleCode: 'G-PCM',
+  serial: '1',
+  externalReference: null,
+  status: 'ALLOCATED' as const,
+  voidReasonCode: null,
+  voidReasonText: null,
+};
+
 export const EXAMPLES = {
   'meta-gmp': { schema: r.meta.get.response, data: metaGmp, routeId: r.meta.get.id },
   'meta-sandbox': { schema: r.meta.get.response, data: metaSandbox, routeId: r.meta.get.id },
@@ -264,6 +286,12 @@ export const EXAMPLES = {
   'planning-packaging-orders': { schema: r.planning.packagingOrders.response, data: pk.orders, routeId: r.planning.packagingOrders.id },
   'planning-plan-packaging-order': { schema: r.planning.planPackagingOrder.response, data: pk.planned, routeId: r.planning.planPackagingOrder.id },
   'planning-packaging-bulk': { schema: r.planning.packagingBulk.response, data: pk.bulk, routeId: r.planning.packagingBulk.id },
+  // Phase 7 slice 7g (WP4): a merge of two containers (the target as it is now) and the batch-number register.
+  'containers-merge': { schema: r.containers.merge.response, data: { ...cn.closedTyped, state: 'OPEN', version: 3, netQuantity: null, closeBasis: null, closedBy: null, closedAt: null, usableProblem: 'container OC-B26-0001-0003 is still open' }, routeId: r.containers.merge.id },
+  'planning-batch-numbers': { schema: r.planning.batchNumbers.response, data: { numbers: [BATCH_NUMBER_EXAMPLE, { ...BATCH_NUMBER_EXAMPLE, allocationId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e61', batchNumber: 'B26-0002', status: 'VOIDED', voidReasonCode: 'ORDER_CANCELLED', voidReasonText: 'The ERP order was cancelled before issue' }] }, routeId: r.planning.batchNumbers.id },
+  'planning-register-external': { schema: r.planning.registerExternalBatchNumber.response, data: { ...BATCH_NUMBER_EXAMPLE, source: 'EXTERNAL', ruleCode: null, serial: null, externalReference: 'SAP-PO-4711' }, routeId: r.planning.registerExternalBatchNumber.id },
+  'planning-void-number': { schema: r.planning.voidBatchNumber.response, data: { ...BATCH_NUMBER_EXAMPLE, status: 'VOIDED', voidReasonCode: 'ORDER_CANCELLED', voidReasonText: 'The ERP order was cancelled before issue' }, routeId: r.planning.voidBatchNumber.id },
+  'planning-recover-number': { schema: r.planning.recoverBatchNumber.response, data: { ...BATCH_NUMBER_EXAMPLE, source: 'RECOVERED_AFTER_RESTORE', externalReference: 'Paper BMR cover sheet PB-0193' }, routeId: r.planning.recoverBatchNumber.id },
   'deviation-detail': { schema: r.quality.deviationDetail.response, data: dv.detail, routeId: r.quality.deviationDetail.id },
   'deviation-reclassify': { schema: r.quality.reclassifyDeviation.response, data: dv.detail, routeId: r.quality.reclassifyDeviation.id },
   'deviation-impact': { schema: r.quality.recordDeviationImpact.response, data: { ...dv.detail, state: 'UNDER_INVESTIGATION', impactCurrent: false }, routeId: r.quality.recordDeviationImpact.id },
