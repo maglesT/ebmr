@@ -82,7 +82,7 @@ of each database function.
 | [ts-session](#ts-session) | Sessions and sign-in | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 8 | 14 | 10 |
 | [ts-access](#ts-access) | Kiosk access, attribution and governance read doors | [modules/tablets-server.md](modules/tablets-server.md) | 7 | 4 | 9 | 12 |
 | [ts-audit](#ts-audit) | Audit trail reads | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 3 | 10 | 6 |
-| [ts-esig](#ts-esig) | Signing ceremony and signing meanings | [modules/tablets-server.md](modules/tablets-server.md) | 11 | 17 | 5 | 13 |
+| [ts-esig](#ts-esig) | Signing ceremony and signing meanings | [modules/tablets-server.md](modules/tablets-server.md) | 11 | 17 | 6 | 13 |
 | [ts-designer](#ts-designer) | MBR designer | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 17 | 36 | 29 |
 | [ts-market-config](#ts-market-config) | Master-record, market-policy, site-value and plant configuration acts (Phase 7 slice 7g WP3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 24 | 2 | 15 |
 | [ts-devices](#ts-devices) | Devices and scale or process readings | [modules/tablets-server.md](modules/tablets-server.md) | 21 | 8 | 31 | 24 |
@@ -1491,7 +1491,7 @@ of each database function.
 | POST | `/api/esig/sign` | `esig.sign` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 | GET | `/api/esig/signatures` | `esig.signatures` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 
-**Tests** (5): [catalogue-routes.test.ts](../../apps/tablets-server/test/esig/catalogue-routes.test.ts), [ceremony.test.ts](../../apps/tablets-server/test/esig/ceremony.test.ts), [disposition.test.ts](../../apps/tablets-server/test/esig/disposition.test.ts), [read-authorisation.test.ts](../../apps/tablets-server/test/esig/read-authorisation.test.ts), [refusal-one-command.test.ts](../../apps/tablets-server/test/esig/refusal-one-command.test.ts)
+**Tests** (6): [catalogue-routes.test.ts](../../apps/tablets-server/test/esig/catalogue-routes.test.ts), [ceremony.test.ts](../../apps/tablets-server/test/esig/ceremony.test.ts), [disposition.test.ts](../../apps/tablets-server/test/esig/disposition.test.ts), [read-authorisation.test.ts](../../apps/tablets-server/test/esig/read-authorisation.test.ts), [refusal-one-command.test.ts](../../apps/tablets-server/test/esig/refusal-one-command.test.ts), [signing-meanings-7g.test.ts](../../apps/tablets-server/test/esig/signing-meanings-7g.test.ts)
 
 **Controls** (13): [DI-05](../../compliance/controls/DI-05.yaml), [DI-09](../../compliance/controls/DI-09.yaml), [DI-13](../../compliance/controls/DI-13.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-19](../../compliance/controls/DI-19.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-36](../../compliance/controls/DI-36.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-38](../../compliance/controls/DI-38.yaml), [DI-50](../../compliance/controls/DI-50.yaml), [IN-53](../../compliance/controls/IN-53.yaml), [PR-49](../../compliance/controls/PR-49.yaml)
 
@@ -1551,7 +1551,7 @@ of each database function.
 
 **Database objects** created in these migrations:
 
-- Functions (2): `tab.aggregate_read_class`, `tab.kernel_signing_meanings`
+- Functions (2): `tab.kernel_signing_meanings`, `tab.record_read_problem`
 
 **Server files** (5): [index.ts](../../apps/tablets-server/src/features/market/index.ts), [master-records.ts](../../apps/tablets-server/src/features/market/master-records.ts), [plant.ts](../../apps/tablets-server/src/features/market/plant.ts), [policies.ts](../../apps/tablets-server/src/features/market/policies.ts), [signables.ts](../../apps/tablets-server/src/features/market/signables.ts)
 
