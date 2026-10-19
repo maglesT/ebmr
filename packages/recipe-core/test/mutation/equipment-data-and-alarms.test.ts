@@ -487,19 +487,26 @@ describe('the functions Phase 6A re-created (recipe-core 1217, 1232, 1233, 1234;
   });
 
   it('[DI-20] the session a unit\'s data stand on is the last one of its own endpoint on this adapter, not another endpoint\'s later session', async () => {
+    // Since recipe-core 1235 every OPC UA record may be as old as the gateway's offline buffer (7 days by default) before
+    // its session's start. A's session started six days ago, B's (another endpoint, same adapter) now: a sample of seven
+    // days and an hour ago stands on A's session, not on B's.
     const room = await w.room();
     const a = await w.press();
     const b = await w.press();
     const epA = await enrolEndpoint(db, room, [a.code]);
     const epB = await enrolEndpoint(db, room, [b.code]);
     const now = BigInt(nowUs());
-    expect(await reportSession(db, opcua, epA, { openedAt: (now - 3_600_000_000n).toString() })).toMatchObject({ applied: 'SESSION_VALID' });
+    const DAY = 86_400_000_000n;
+    expect(await reportSession(db, opcua, epA, { openedAt: (now - 6n * DAY).toString() })).toMatchObject({ applied: 'SESSION_VALID' });
     expect(await reportSession(db, opcua, epB, { openedAt: now.toString() })).toMatchObject({ applied: 'SESSION_VALID' });
-    const t0 = now - 1_800_000_000n; // half an hour after A's session started, half an hour before B's
+    const t0 = now - 7n * DAY - 3_600_000_000n;
     const samples = [{ sourceTime: t0.toString(), serverTime: null, raw: '12.5', value: '12.50', status: '0x00000000' }];
     const body = { subjectKind: 'EQUIPMENT', subjectCode: a.code, tag: 'force.main_kN', unit: 'kN', chunkNo: '1', samples };
     const hash = sha([['EQUIPMENT', a.code, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
     expect(await receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', { ...body, chunkHash: hash }))).toMatchObject({ outcome: 'ACCEPTED' });
+    // The same sample for B is more than the buffer before B's session.
+    const hb = sha([['EQUIPMENT', b.code, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
+    await expectRefused(receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', { ...body, subjectCode: b.code, chunkHash: hb })), 'EBMR-EQD-003', /before the start of the endpoint session/);
   });
 
   it('[DI-31][DI-49][DI-20] a series gap is refused for another message type, an unknown field, each malformed field on its own, an empty interval, a wrong tag and a unit without its session; a valid one raises the alarm', async () => {
