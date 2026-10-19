@@ -86,6 +86,14 @@ async function effective(markets: string[], licensed: boolean): Promise<Master> 
   return { familyId: v.familyId, versionId: v.versionId, content, product: content.header.product.code, strength: f };
 }
 
+/** Records the licence holder's US e-signature certification letter for `m` (DI-15; recipe-core 1260). */
+async function recordUsCertification(m: Master): Promise<void> {
+  const holder = (await db.app.query<{ h: string | null }>("select site.licence_basis($1, $2, $3, clock_timestamp()) ->> 'holderName' as h", [SITE, m.product, m.strength])).rows[0]?.h;
+  if (!holder) throw new Error('the licence of the test master names no holder');
+  const { owner } = await seedAdministration(db);
+  await withCommand(db.app, withReason(owner), (c) => c.query("select iam.record_us_esig_certification($1, 'LTR-TEST-11.100C', date '2026-03-01')", [holder]));
+}
+
 /** Plans batch `batchId` of `m` for `markets` (number from the register). */
 async function plan(m: Master, markets: string[]): Promise<string> {
   const batchId = randomUUID();
@@ -233,6 +241,9 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
   it('[IN-30] an export market needs a current export permission of the product and strength for it at issue and in G-REL item 6; IN needs none', async () => {
     const m = await effective(['IN', 'US'], false);
     await approveLicence(await recordLicence(licence(m)));
+    // The US e-signature certification of the licence holder is on file (recipe-core 1260, DI-15), so that the export
+    // permission is the only US gate this test meets.
+    await recordUsCertification(m);
     const b = await plan(m, ['IN', 'US']);
     expect(await messageOf(issue(b))).toMatch(/market US.*no export permission.*EBMR-IND-041/);
     const permission = await sqlAs<string>(w.cast.regulatory, 'select site.record_export_permission($1::jsonb) as r', [JSON.stringify({

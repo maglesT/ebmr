@@ -255,6 +255,10 @@ const KERNEL_WIDE: ScanRules = {
     'iam.actor_is_validated()': 'the check: whether the command was started with kernel.begin_command; writes nothing',
     'iam.assert_validated_actor()': 'the check: refuses a command not started with kernel.begin_command; writes nothing',
     'iam.assert_not_administrator()': 'the DI-18 check itself; writes nothing',
+    'iam.first_run_setup(text,jsonb)':
+      'the browser\'s first-run set-up (kernel 1375; decision 0025): there is no person or session yet, so no permission can be ' +
+      'checked; it refuses unless its token hashes to an unused, unexpired set-up token and refuses once the installation is set ' +
+      'up, and the token is used up in the same transaction',
     'iam.require_permission(text,jsonb)': 'the DI-17 check itself (it stores its evaluation, INV-26)',
     'iam.evaluate_authority(uuid,uuid,text,jsonb,timestamp with time zone,text)': 'the authority evaluation behind require_permission; stores the evaluation (INV-26) and changes nothing else',
     'iam.evaluate_segregation(text,uuid,uuid[],text)': 'the segregation evaluation behind assert_segregated; stores the evaluation and changes nothing else',
