@@ -1171,6 +1171,14 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   under `/api/test-runs/*` only (404 on the other installation); no delete route, a void with the person's reason and
   QA's approval of the act proposed (DI-24); a BLOCK_ENTRY of each tablet block reaching the engine; the entry-kind enum
   equal to the block registry; every new route parsed with its contract schema.
+- `floor-acts-routes.test.ts` (Phase 7 slice 7g, WP4; decision 0025): the floor acts beside the engine's entries over
+  HTTP: a G-21 packaging step's batch data, the second person's check of an MRP and the print job (tablets 0951, 1201;
+  IN-31, PR-36: the giver of an MRP neither checks nor releases it; a change after set-up carries a reason and voids the
+  jobs released on the earlier data), and a metal-detector challenge with certified test pieces (tablets 0872; IN-36:
+  a failure holds the press output); every call carries a fresh badge tap on the kiosk.
+- `us-esig-certification-issue.test.ts` (Phase 7 slice 7g, finding 7g-5; recipe-core 1260): the GMP issue route
+  refuses a US-market batch while the licence holder's e-signature certification letter is not on file, issues an
+  India-only batch, and issues the US batch once the letter is recorded (DI-15).
 - `block-entries.test.ts` (Phase 3 slice 6a; D-S6-2): the BLOCK_ENTRY forms with the block's own schema as JSON; the
   members the blocks mark serverFilled exactly those the server fills, refused when a client names one (DI-31, DI-32).
 - `packaging-planning-routes.test.ts` (Phase 4 slice 2c; recipe-core 0760-0762): a packaging order planned over HTTP from
