@@ -47,6 +47,8 @@ export interface SetupStackOptions {
   gmpReviewBatch?: boolean;
   /** GMP, DEMO-ONLY: with the review batch, the packaging-order demo (set-up CLI --gmp-packaging; Phase 4 slice 2c). */
   gmpPackaging?: boolean;
+  /** `pnpm demo:setup`: also register and bind the demo's simulated machines (DEMO_DEVICES) in the sandbox. */
+  demoDevices?: boolean;
 }
 
 /** Creates (or recreates) both databases and their DEMO-ONLY credentials. */
@@ -59,7 +61,7 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,
-    args: ['--installation', 'SANDBOX', '--database', opts.databases.SANDBOX, '--gateway-spki', gatewaySpki, ...common],
+    args: ['--installation', 'SANDBOX', '--database', opts.databases.SANDBOX, '--gateway-spki', gatewaySpki, ...(opts.demoDevices === true ? ['--demo-process-devices'] : []), ...common],
     env: {},
     echo: opts.echo ?? true,
   });

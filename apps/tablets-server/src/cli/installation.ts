@@ -71,6 +71,8 @@ export interface SetupOptions {
   recreate: boolean;
   /** The gateway's Ed25519 public key (SPKI DER, base64). */
   gatewaySpki?: string;
+  /** Sandbox, hosted demo only: also register and bind the demo's simulated machines to the gateway. */
+  demoProcessDevices?: boolean;
   /**
    * GMP, DEMO-ONLY (Phase 4 slice 1c): also build one GB-T-01 batch record ready for review (review-batch.ts), written to
    * `<keys>/gmp-review-batch.json` for the demo and the e2e specs.
@@ -257,6 +259,7 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       },
       exchangeDir: opts.exchangeDir,
       gatewaySpki: opts.gatewaySpki ?? null,
+      demoProcessDevices: opts.demoProcessDevices ?? false,
       log,
     };
     // The vendor rule tables (kernel and tablets) on both installations, before any feature seed needs them. Imported

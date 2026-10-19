@@ -14,7 +14,7 @@ import { DEMO_DATABASES, DEMO_PORTS, KEYS_DIR, REPO_ROOT, WEB_DIST } from './pat
 import { buildWeb, credentialCard, setupStack, startStack } from './stack.ts';
 
 async function setup(): Promise<void> {
-  await setupStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, personaSets: 1 });
+  await setupStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, personaSets: 1, demoDevices: true });
   await buildWeb();
   console.log('\nDemo set-up complete. Start it with: pnpm demo\n');
 }

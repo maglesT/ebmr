@@ -26,6 +26,7 @@ async function main(): Promise<void> {
       'persona-sets': { type: 'string', default: '1' },
       recreate: { type: 'boolean', default: false },
       'gateway-spki': { type: 'string' },
+      'demo-process-devices': { type: 'boolean', default: false },
       'gmp-review-batch': { type: 'boolean', default: false },
       'gmp-packaging': { type: 'boolean', default: false },
     },
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
     packaging: values['gmp-packaging'],
     backupIdentity: true,
     ...(values['gateway-spki'] ? { gatewaySpki: values['gateway-spki'] } : {}),
+    ...(values['demo-process-devices'] ? { demoProcessDevices: true } : {}),
   });
 }
 
