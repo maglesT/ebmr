@@ -295,6 +295,13 @@ modules:
     migrations:
       packages/kernel/sql: ['^137[56]_']
 
+  - id: kernel-validation-iq
+    title: The IQ record of an installation, run from the web app and stored with its SHA-256 (Phase 7 slice 7g-3)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^1381_']
+
   - id: kernel-installation
     title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
     page: modules/kernel.md
@@ -1102,6 +1109,21 @@ modules:
     contract: [packages/api-contract/src/ns/operations.ts]
     screens: [apps/tablets-web/src/features/operations]
     tests: ['apps/tablets-server/test/operations/**', 'apps/tablets-web/test/operations/**']
+
+  - id: ts-validation
+    title: Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1491_']
+    server: [apps/tablets-server/src/features/validation]
+    contract: [packages/api-contract/src/ns/validation.ts]
+    screens: [apps/tablets-web/src/features/validation]
+    tests:
+      - 'apps/tablets-server/test/validation/validation-routes.test.ts'
+      - 'apps/tablets-server/test/validation/export-routes.test.ts'
+      - 'apps/tablets-server/test/validation/records-register-routes.test.ts'
+      - 'apps/tablets-web/test/validation/**'
 
   - id: ts-administration
     title: People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5)

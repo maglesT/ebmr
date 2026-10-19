@@ -47,6 +47,13 @@ const SCREENS: Readonly<Record<string, Screen>> = {
   'apps/simulators/src/ems/main.ts': SIMULATORS('EMS'),
   'apps/simulators/src/serialisation/main.ts': SIMULATORS('L3'),
   'apps/simulators/src/opcua/main.ts': SIMULATORS('the OPC UA press and line'),
+  // Slice 7g-3, WP1 (validation, export, records; D-P7R-2, D-P7R-5):
+  'packages/kernel/src/records/records-cli.ts': { screen: `${WEB}/validation/ExportPages.tsx`, calls: ['validation.startFullExport', 'validation.fullExports', 'validation.runEvaluationPack'], does: 'full-export and evaluation-pack: the full export (a background job, each export with its SHA-256) and the periodic evaluation pages' },
+  'ebmr#validation:iq': { screen: `${WEB}/validation/ValidationPages.tsx`, calls: ['validation.runIq', 'validation.iqRecords'], does: 'the IQ checks of an installation and their record: the IQ page (the same code, validation kit runIq; the record stored with its SHA-256)' },
+  'ebmr#validation:bundle': { screen: `${WEB}/validation/ValidationPages.tsx`, calls: ['validation.evidence', 'validation.evidenceFile'], does: 'the evidence bundle of a release, built with the release: read and downloaded as shipped on the evidence page' },
+  'ebmr#validation:generate': { screen: `${WEB}/validation/ValidationPages.tsx`, calls: ['validation.evidence', 'validation.evidenceFile'], does: 'the validation pack generated from the bundle: every document listed and downloaded on the evidence page (the same bytes, validation kit generatePack)' },
+  'ebmr#validation:oq': { screen: `${WEB}/validation/ValidationPages.tsx`, calls: ['validation.evidence', 'validation.evidenceFile'], does: 'the OQ record of the release, from its regression, golden and browser suites: the OQ document of the validation pack on the evidence page' },
+  'tools/validation/src/cli.ts': { screen: `${WEB}/validation/ValidationPages.tsx`, calls: ['validation.runIq', 'validation.evidence', 'validation.evidenceFile'], does: 'iq: the IQ page; bundle, generate and oq: the evidence bundle and the validation pack on the evidence page' },
 };
 
 function SIMULATORS(what: string): Screen {
@@ -111,14 +118,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
 
 /** Commands whose screen comes with a later slice of decision 0025 (each names the slice). */
 const LATER: Readonly<Record<string, string>> = {
-  // WP1 (validation, export, records)
-  'packages/kernel/src/records/records-cli.ts': 'the full export and the periodic evaluation pack (slice 7b-2): slice 7g-3 (validation and records)',
-  'ebmr#validation:iq': 'the IQ check of an installation and its record (slice 7c): slice 7g-3 (validation and records)',
-  // D-P7R-2: the validation-pack builds are acts that wait for 7g-3's screens (pending, not exempt).
-  'ebmr#validation:bundle': 'the validation pack (slice 7c), the evidence bundle built from the test reports of a release: slice 7g-3 (validation and records)',
-  'ebmr#validation:generate': 'the validation pack (slice 7c), the documents generated from the evidence bundle: slice 7g-3 (validation and records)',
-  'ebmr#validation:oq': 'the validation pack (slice 7c), the OQ record written from the regression, golden and browser suites: slice 7g-3 (validation and records)',
-  'tools/validation/src/cli.ts': 'iq (the IQ check of an installation), bundle, generate and oq (the validation pack): slice 7g-3 (validation and records)',
+  // WP1 (validation, export, records): none (slice 7g-3 gave each its screen, SCREENS above)
   // WP2 (continuity, platform, access configuration)
   'ops/backup/drill.sh': 'the restore drill and its record: slice 7g-3, after 7d',
   'ebmr#drills': 'the restore and upgrade drills and their records (slice 7d): slice 7g-3 (validation and records)',
