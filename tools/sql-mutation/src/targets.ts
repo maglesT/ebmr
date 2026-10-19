@@ -1361,7 +1361,9 @@ export const TARGETS: Target[] = [
                 'tab.aggregate_read_class'],
     tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts'),
             // Phase 7 slice 7g-2: tablets 1479 re-created both tab.* functions for the labelling specimen approval.
-            s('designer/master-records.test.ts')],
+            s('designer/master-records.test.ts'),
+            // Phase 7 slice 7g-3 (WP1): tablets 1491 re-created tab.kernel_signing_meanings for the validation and records acts.
+            s('validation/validation-routes.test.ts'), s('validation/records-register-routes.test.ts')],
     threshold: 90,
   },
   // ---- 6A-0, analytics interfaces (kernel 1240-1244; ADR 0020): the runner's run lifecycle and output recording, the QA
@@ -1578,6 +1580,23 @@ export const TARGETS: Target[] = [
     group: 'operations-demo-backups',
     functions: ['tab.demo_conveniences_problem', 'tab.record_demo_act', 'tab.backup_overview'],
     tests: [s('operations/demo-and-simulators.test.ts'), s('operations/workers-and-backups.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-3 (WP1): the IQ record run from the web app, stored with the SHA-256 of its text and held to its
+  // checks (DI-03; kernel 1381).
+  {
+    group: 'iq-record',
+    functions: ['platform.record_iq'],
+    tests: [s('validation/validation-routes.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-3 (WP1): the records screens' reads behind the session's read rule (tablets 1491): the investigations,
+  // a record's retention and blockers and the legal holds, never what an investigation about the reader withholds (DI-50);
+  // and the id of the disposal a signature covers.
+  {
+    group: 'validation-records-reads',
+    functions: ['tab.di_investigation_overview', 'tab.records_reader_problem', 'tab.record_retention', 'tab.legal_hold_overview', 'tab.disposal_aggregate_id'],
+    tests: [s('validation/records-register-routes.test.ts')],
     threshold: 90,
   },
 ];
