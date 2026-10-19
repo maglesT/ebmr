@@ -131,6 +131,8 @@ tests:
   - "apps/tablets-web/test/administration/administration.test.tsx > recertification and break-glass > [DI-18] the holder requests a window for their own break-glass account; the process owner approves a request of another person and reviews an ended window"
   - "apps/tablets-web/test/administration/governance.test.tsx > role permissions > [DI-16][DI-18] the administrator requests a permission the role does not hold and is never offered the decision on their own request"
   - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [DI-35][DI-18] an approver who is not involved approves; the database's refusal is shown in its words"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > record types (kernel 0400) > [DI-18] the system administrator does not define record types (administrators are independent of GMP records)"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the system description (kernel 1300) > [DI-18] the system administrator does not describe interfaces (administrators are independent of GMP records)"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

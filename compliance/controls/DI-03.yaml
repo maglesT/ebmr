@@ -47,6 +47,14 @@ tests:
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the validated release (DI-03, recipe-core 1250) > [DI-03] a GMP batch is refused on a release without an approved validation summary"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the validated release (DI-03, recipe-core 1250) > [DI-03] the validation-summary gate holds for every writer of a GMP batch row, and the application cannot approve or fake a release"
   - "apps/tablets-server/test/execution/store.test.ts > the validated release (DI-03, slice 7c) > [DI-03] a sandbox, which training uses, is not gated: with no approved validation summary its test batch is issued; the GMP copy holds the approval its batches need"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the validation summary (kernel 1300) > [DI-03] the summary page shows the running release, its problem and the summary document of the shipped bundle (for another release here, so not approvable)"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the validation summary (kernel 1300) > [DI-03][DI-37] QA approves the running release's summary with a signature bound to the release and the document's SHA-256; the problem clears"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the validation summary (kernel 1300) > [DI-03] a summary of another release is refused by the database; nothing is signed"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the evidence bundle, the validation pack and the IQ > [DI-03] the CSV lead runs the IQ against the shipped bundle; the record is stored with its SHA-256 and each check; without the right nothing is run"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the evidence bundle, the validation pack and the IQ > [DI-03] the database stores an IQ record only with the SHA-256 of its text, and only as the checks wrote it for this database (kernel 1381)"
+  - "apps/tablets-web/test/validation/validation.test.tsx > the validation summary > [DI-03][DI-37] shows the problem and the document; QA signs the approval of exactly that release and document"
+  - "apps/tablets-web/test/validation/validation.test.tsx > the validation summary > [DI-03] a document of another release, or one already approved, is not offered for approval"
+  - "apps/tablets-web/test/validation/validation.test.tsx > the evidence bundle, the validation pack and the IQ > [DI-03] the IQ is run with a reason; each record shows every check, failed ones with their problems, and is downloaded"
 clauses:
   - clause: "In a test environment, change a DB row outside the application. The integrity job alarms and names the record."
     tests:
