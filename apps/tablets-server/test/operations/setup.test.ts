@@ -5,11 +5,14 @@
  * token, or once set up, nothing is created. The administrator then signs in on this browser's key with the first
  * password and must change it.
  */
+import { randomBytes } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { routes, type SetupRequest } from '@ebmr/api-contract';
-import { dropDatabase } from '@ebmr/test-kit';
+import { identity } from '@ebmr/kernel';
+import { sha256Hex } from '@ebmr/expr';
+import { asAdmin, dropDatabase } from '@ebmr/test-kit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { refusalOf, valueOf } from '../esig/support.ts';
 import { freshTemplate, startFreshServer, type FreshBrowser, type FreshServer } from './support.ts';
@@ -74,6 +77,8 @@ describe('the first-run set-up (decision 0025, kernel 1375)', () => {
     // The set-up's writes are attributed to the installation pipeline, with the set-up's reason.
     const audit = await s.db.admin.query<{ reason: string }>("select distinct payload ->> 'reason_code' as reason from kernel.audit_event where chain_key like 'installation_site:%'");
     expect(audit.rows).toEqual([{ reason: 'FIRST_RUN_SETUP' }]);
+    const by = await s.db.admin.query<{ name: string }>("select distinct payload -> 'actor' ->> 'legal_name' as name from kernel.audit_event where chain_key like 'installation_site:%'");
+    expect(by.rows).toEqual([{ name: 'Installation pipeline' }]);
     const meta = valueOf(await b.call(routes.meta.get));
     expect(meta).toMatchObject({ setupRequired: false, site: { code: 'BLR-1', zone: 'Asia/Kolkata' } });
 
@@ -154,6 +159,81 @@ describe('the first-run set-up (decision 0025, kernel 1375)', () => {
     expect(s.built.ctx.sealKey).not.toBeNull();
   });
 
+  it('[DI-18] the database issues a set-up token only as a SHA-256 of 64 lowercase hex digits valid for 5 minutes to 7 days, and takes a token of 32 to 256 characters with the set-up naming its site (a name of 1 to 200 characters), its administrator and its process owner; each part refused on its own', async () => {
+    const s = await start('GMP');
+    // Each call in its own transaction, rolled back: the installation stays as it is.
+    const inTx = (work: (c: { query: (sql: string, params?: unknown[]) => Promise<unknown> }) => Promise<unknown>): Promise<string> =>
+      asAdmin(s.database, async (c) => {
+        await c.query('begin');
+        try {
+          await work(c);
+          return 'ok';
+        } catch (e) {
+          return e instanceof Error ? e.message : String(e);
+        } finally {
+          await c.query('rollback');
+        }
+      });
+    const issue = (hash: string | null, minutes: number | null) => inTx((c) => c.query('select iam.issue_setup_token($1, $2)', [hash, minutes]));
+    const asSha = /^EBMR-SETUP-003 a set-up token is stored as its SHA-256/;
+    const valid = /^EBMR-SETUP-003 a set-up token is valid for 5 minutes to 7 days$/;
+    expect(await issue(null, 60)).toMatch(asSha);
+    expect(await issue('A'.repeat(64), 60)).toMatch(asSha);
+    expect(await issue('a'.repeat(63), 60)).toMatch(asSha);
+    expect(await issue('a'.repeat(64), null)).toMatch(valid);
+    expect(await issue('a'.repeat(64), 4)).toMatch(valid);
+    expect(await issue('a'.repeat(64), 10081)).toMatch(valid);
+    expect(await issue('a'.repeat(64), 5)).toBe('ok');
+    expect(await issue('a'.repeat(64), 10080)).toBe('ok');
+    expect((await s.db.admin.query('select 1 from iam.setup_token')).rows).toEqual([]);
+
+    const site = { code: 'BLR-1', name: 'Bengaluru tablets plant', zone: 'Asia/Kolkata' };
+    // The same person twice: a set-up that passes every check before the two-person rule ends with EBMR-SETUP-004.
+    const same = { legalName: 'Kavya Iyer', loginName: 'kavya.iyer', verifier: 'x', console: 'x' };
+    const def = (over: Record<string, unknown> = {}) => ({ site, administrator: same, processOwner: same, ...over });
+    const setup = (token: string | null, d: unknown, issued: string | null = token) =>
+      inTx(async (c) => {
+        if (issued !== null) await c.query('select iam.issue_setup_token($1, 60)', [sha256Hex(issued)]);
+        await c.query('select iam.first_run_setup($1, $2::jsonb)', [token, d === null ? null : JSON.stringify(d)]);
+      });
+    const notValid = /^EBMR-SETUP-002 /;
+    const passed = /^EBMR-SETUP-004 /;
+    expect(await setup(null, def(), 'a'.repeat(40))).toMatch(notValid);
+    expect(await setup('a'.repeat(31), def())).toMatch(notValid);
+    expect(await setup('a'.repeat(257), def())).toMatch(notValid);
+    expect(await setup('a'.repeat(32), def())).toMatch(passed);
+    expect(await setup('a'.repeat(256), def())).toMatch(passed);
+    expect(await setup('a'.repeat(40), def(), 'b'.repeat(40))).toMatch(notValid);
+
+    const names = /^EBMR-SETUP-003 the set-up names the site, the system administrator and the process owner$/;
+    const token = 't'.repeat(43);
+    expect(await setup(token, null)).toMatch(names);
+    expect(await setup(token, [def()])).toMatch(names);
+    expect(await setup(token, def({ site: undefined }))).toMatch(names);
+    expect(await setup(token, def({ site: 'BLR-1' }))).toMatch(names);
+    expect(await setup(token, def({ administrator: undefined }))).toMatch(names);
+    expect(await setup(token, def({ administrator: 'kavya.iyer' }))).toMatch(names);
+    expect(await setup(token, def({ processOwner: undefined }))).toMatch(names);
+    expect(await setup(token, def({ processOwner: ['rahul.menon'] }))).toMatch(names);
+    const siteName = /^EBMR-SETUP-003 the site name is 1 to 200 characters$/;
+    expect(await setup(token, def({ site: { ...site, name: '  ' } }))).toMatch(siteName);
+    expect(await setup(token, def({ site: { ...site, name: undefined } }))).toMatch(siteName);
+    expect(await setup(token, def({ site: { ...site, name: 'n'.repeat(201) } }))).toMatch(siteName);
+    expect(await setup(token, def({ site: { ...site, name: 'n'.repeat(200) } }))).toMatch(passed);
+
+    // A complete set-up (rolled back): the seal key names its id and HMAC-SHA256 or ED25519, never anything else.
+    const person = async (legalName: string, loginName: string) => ({ legalName, loginName, verifier: await identity.hashSecret(`${loginName}-Password-1`), console: randomBytes(32).toString('hex') });
+    const complete = { site, administrator: await person('Kavya Iyer', 'kavya.iyer'), processOwner: await person('Rahul Menon', 'rahul.menon') };
+    const sealKey = /^EBMR-SETUP-005 /;
+    expect(await setup(token, { ...complete, sealKey: { keyId: 'seal-000000000001', algorithm: 'RSA' } })).toMatch(sealKey);
+    expect(await setup(token, { ...complete, sealKey: { keyId: 'seal-000000000001' } })).toMatch(sealKey);
+    expect(await setup(token, { ...complete, sealKey: 'seal-000000000001' })).toMatch(sealKey);
+    expect(await setup(token, { ...complete, sealKey: ['HMAC-SHA256'] })).toMatch(sealKey);
+    expect(await setup(token, { ...complete, sealKey: { keyId: 'seal-000000000001', algorithm: 'HMAC-SHA256' } })).toBe('ok');
+    expect(await setup(token, { ...complete, sealKey: null })).toBe('ok');
+    expect(await accounts(s)).toBe(0);
+  });
+
   it('[DI-05] a sandbox is set up the same way, with its TEST- labels; a name that is not a test label is refused there', async () => {
     const s = await start('SANDBOX');
     const b = s.browser();
@@ -167,5 +247,7 @@ describe('the first-run set-up (decision 0025, kernel 1375)', () => {
       }),
     }));
     expect(done.consoleDeviceCode).toBe('TEST-BOOTSTRAP-CONSOLE-1');
+    const by = await s.db.admin.query<{ name: string }>("select distinct payload -> 'actor' ->> 'legal_name' as name from kernel.audit_event where chain_key like 'installation_site:%'");
+    expect(by.rows).toEqual([{ name: 'TEST-Installation pipeline' }]);
   });
 });

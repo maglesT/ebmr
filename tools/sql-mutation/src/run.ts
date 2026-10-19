@@ -10,7 +10,9 @@
  *   server  apps/tablets-server/test/support/global-setup.ts (kernel, site services, recipe-core, tablets): a GMP and a
  *           sandbox template, both seeded, for the `server` project; a mutant's copies reach the tests through
  *           EBMR_SERVER_TEMPLATES, a JSON file (mode 0600, in a private temporary directory removed at the end: the seeds
- *           hold DEMO-ONLY credentials and keys).
+ *           hold DEMO-ONLY credentials and keys). A server test that builds a database of its own from the migrations (the
+ *           first-run set-up's fresh templates, operations/support.ts) gets the mutant from EBMR_SQL_MUTANT, a file in the same
+ *           directory, and applies it there (applyPreparedMutant): without it no mutant of those tests' functions could be killed.
  * A mutant is applied to each copy in which its function exists, as the function's owner, with CREATE OR REPLACE: the
  * owner, the grants, SECURITY DEFINER and the SET search_path clause stay as they are (checked before the first mutant:
  * re-applying every unmutated definition leaves its pg_proc row unchanged). A target whose tests span both projects runs
@@ -46,7 +48,9 @@ import pg from 'pg';
 import { buildTemplate, templateSources } from '../../../packages/kernel/test/support/global-setup.ts';
 import {
   buildServerTemplates,
+  MUTANT_ENV,
   PREPARED_TEMPLATES_ENV,
+  type PreparedMutant,
   tabletsMigrationSources,
   type ServerTemplates,
 } from '../../../apps/tablets-server/test/support/global-setup.ts';
@@ -527,11 +531,22 @@ function runVitest(project: Project, tests: string[], env: Record<string, string
 }
 
 /** The environment that points a project's set-up at these databases (the file, for the server, is written here). */
-function envFor(project: Project, t: Templates, names: Partial<Record<Base, string>>): Record<string, string> {
+function envFor(project: Project, t: Templates, names: Partial<Record<Base, string>>, mutant?: PreparedMutant): Record<string, string> {
   if (project === 'db') return { EBMR_TEMPLATE_DB: names.db ?? templateOf(t, 'db') };
   if (!t.server) throw new Error('no server templates were built');
   const file = writeServerTemplates(secrets(), t.server, { gmp: names.gmp ?? templateOf(t, 'gmp'), sandbox: names.sandbox ?? templateOf(t, 'sandbox') });
-  return { [PREPARED_TEMPLATES_ENV]: file };
+  if (mutant === undefined) return { [PREPARED_TEMPLATES_ENV]: file };
+  return { [PREPARED_TEMPLATES_ENV]: file, [MUTANT_ENV]: writeMutant(secrets(), mutant) };
+}
+
+/**
+ * Writes the mutant file (mode 0600) a server test that builds its own database from the migrations applies there
+ * (MUTANT_ENV; operations/support.ts freshTemplate), so the first-run set-up's tests see the mutant too.
+ */
+export function writeMutant(dir: string, mutant: PreparedMutant): string {
+  const file = join(dir, `mutant-${randomBytes(6).toString('hex')}.json`);
+  writeFileSync(file, JSON.stringify(mutant), { mode: 0o600, flag: 'wx' });
+  return file;
 }
 
 /**
@@ -598,14 +613,17 @@ async function runMutant(t: Templates, placement: Placement, target: Target, lim
     } catch (e) {
       return { ...info, group: target.group, status: 'INVALID', detail: e instanceof Error ? e.message.slice(0, 200) : String(e), ms: elapsed() };
     }
+    const serverOwner = at.get('gmp') ?? at.get('sandbox');
+    const mutant = serverOwner === undefined ? undefined : { identity: def.identity, owner: serverOwner, statement: m.statement };
     for (const [project, tests] of byProject) {
-      const env = envFor(project, t, names);
+      const env = envFor(project, t, names, mutant);
       try {
         const r = await runVitest(project, tests, env, limits.limitMs[project] ?? MIN_TIMEOUT_MS);
         if (r.timedOut) return { ...info, group: target.group, status: 'TIMEOUT', detail: `${project} after ${r.ms} ms`, ms: elapsed() };
         if (r.code !== 0) return { ...info, group: target.group, status: 'KILLED', detail: `${project}: ${failures(r.tail, r.failed)}`, ms: elapsed() };
       } finally {
         if (env[PREPARED_TEMPLATES_ENV]) rmSync(env[PREPARED_TEMPLATES_ENV], { force: true });
+        if (env[MUTANT_ENV]) rmSync(env[MUTANT_ENV], { force: true });
       }
     }
     return { ...info, group: target.group, status: 'SURVIVED', ms: elapsed() };
