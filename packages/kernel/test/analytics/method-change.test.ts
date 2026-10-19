@@ -130,6 +130,11 @@ describe('method versions under change control (kernel 1245)', () => {
     for (const change of [{ parameters: { slopeWindow: 12 }, parametersSha256: 'd'.repeat(64) }, { intendedUse: 'another use' }, { codeIdentity: '@ebmr/analytics 0.2.0' }, {}]) {
       await expect(setVersion(underChange(qa), definition({ method, ...change })), JSON.stringify(change)).rejects.toThrow(/EBMR-ANA-013/);
     }
+    // Retiring it is no way to change it either: each of the four, changed alone, refuses the retirement (mutation
+    // campaign at the Phase 7 exit, D-P7-1 item 4).
+    for (const change of [{ parameters: { slopeWindow: 12 } }, { parametersSha256: 'd'.repeat(64) }, { intendedUse: 'another use' }, { codeIdentity: '@ebmr/analytics 0.2.0' }]) {
+      await expect(setVersion(underChange(qa), definition({ method, status: 'RETIRED', ...change })), `RETIRED ${JSON.stringify(change)}`).rejects.toThrow(/EBMR-ANA-013/);
+    }
     // Not in place either, even as the release (which passes the change-control guard), nor as a changed row.
     const asRelease = async (sql: string) => {
       const c = await db.admin.connect();
@@ -181,7 +186,7 @@ describe('method versions under change control (kernel 1245)', () => {
     await expect(set(underChange(operator))).rejects.toThrow(/EBMR-IAM-040/);
     await expect(set(qa)).rejects.toThrow(/EBMR-CFG-001/);
     await expect(set(underChange(qa), { modelSha256: 'e'.repeat(64) })).rejects.toThrow(/EBMR-ANA-010/);
-    for (const bad of [{ batchIds: [] }, { batchIds: ['x'] }, { candidateOutput: 'x' }, { scope: 'all' }, { id: 7 }]) {
+    for (const bad of [{ batchIds: [] }, { batchIds: ['x'] }, { batchIds: 'x' }, { candidateOutput: 'x' }, { scope: 'all' }, { id: 7 }, { id: 'not-a-uuid' }, { method: 'drift' }, { status: 'DRAFT' }]) {
       await expect(set(underChange(qa), bad), JSON.stringify(bad)).rejects.toThrow(/EBMR-ANA-015/);
     }
     await expect(set(underChange(qa), { id: randomUUID(), status: 'RETIRED' })).rejects.toThrow(/EBMR-ANA-014/);
@@ -193,6 +198,9 @@ describe('method versions under change control (kernel 1245)', () => {
     expect(run!.id).toMatch(/^[0-9a-f-]{36}$/);
     await expect(set(underChange(qa), { id, batchIds: [randomUUID()], status: 'RETIRED' })).rejects.toThrow(/EBMR-ANA-014/);
     await expect(set(underChange(qa), { id, batchIds: batches })).rejects.toThrow(/EBMR-ANA-014/);
+    // Retired with another scope, or another model, alone: refused (mutation campaign at the Phase 7 exit).
+    await expect(set(underChange(qa), { id, batchIds: batches, scope: { product: 'PCM-650' }, status: 'RETIRED' })).rejects.toThrow(/EBMR-ANA-014/);
+    await expect(set(underChange(qa), { id, batchIds: batches, model: { components: 3 }, status: 'RETIRED' })).rejects.toThrow(/EBMR-ANA-014/);
     await set(underChange(qa), { id, batchIds: batches, status: 'RETIRED' });
     await expect(set(underChange(qa), { id, batchIds: batches, status: 'RETIRED' })).rejects.toThrow(/EBMR-ANA-014/);
     const { rows } = await db.app.query<{ status: string; open: boolean; change_record: string }>(
