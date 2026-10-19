@@ -79,6 +79,7 @@ export default tseslint.config(
       '.dependency-cruiser.cjs',
       'stryker.config.mjs',
       'stryker.phase6.config.mjs',
+      'stryker.phase7.config.mjs',
       '.stryker-tmp/**',
       '.stryker-tmp-*/**',
       '**/node_modules/**',
