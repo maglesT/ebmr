@@ -395,6 +395,8 @@ tests:
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > golden fixtures of the coating blocks > [DI-34][PR-29][PR-49][INV-41] TB-20 Inspection, sorting and AQL: TB-20@2, the NO_PLAN path (D-P4-11): a manual belt sort of 3 tablets (0.003 kg) leaves 1 accepted tablet and 2 chipped ones for destruction; the sampling scheme has no plan for a lot of 1, so the AQL result is NO_PLAN with its deviation DEV-SITE-1-2026-00042 and raises AQL_NO_PLAN for QA"
   - "apps/tablets-web/test/floor/batch-work-queue.test.tsx > the work queue of one GMP batch > [DI-34] the GMP batch overview lists what this room may do now in the batch, greyed with the server's reason"
   - "apps/tablets-web/test/floor/batch-work-queue.test.tsx > the work queue of one GMP batch > [DI-34] the sandbox overview has no batch queue"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-34] a planned batch that is no longer PLANNED is not begun, even with no execution yet"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-34] a batch id planned already is not planned again"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:

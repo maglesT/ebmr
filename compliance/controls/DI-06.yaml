@@ -34,6 +34,7 @@ tests:
   - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-06] an interface not in the approved system description raises the drift alarm and is refused: the adapter does not start and its health says why (EBMR-INT-035)"
   - "apps/tablets-server/test/validation/validation-routes.test.ts > the system description (kernel 1300) > [DI-06][DI-09] the CSV lead describes an interface under an approved change record; without one, or without the right, nothing is written"
   - "apps/tablets-web/test/validation/validation.test.tsx > the validation hub and the system description > [DI-06][DI-09] lists the interfaces and the undescribed adapters; an interface is recorded with its change record and reason"
+  - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] the drift alarm is raised when an adapter becomes active, not when an active adapter is set active again or one not active changes status"
 clauses:
   - clause: "Enable an interface that is not in the approved description. The drift alarm fires."
     tests:

@@ -142,6 +142,7 @@ tests:
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][DI-24] the proposal of an act for approval: this product's requirement still applies, and once qualified the operator proposes"
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][DI-24] the proposal of an act for approval: a requirement without a product limit still applies"
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-31][DI-24] the proposal of an act for approval: a stale qualification source is still refused"
+  - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > recipe.propose_act as Phase 6A re-creates it (recipe-core 1217; D-P7-1 item 4) > [DI-24][DI-35] an act asked for approval is an object of a known act type, without id, actor or signatures, requested by the asker and at most 16384 characters; a batch that does not exist has none"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     tests:

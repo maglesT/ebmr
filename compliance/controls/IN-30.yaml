@@ -73,6 +73,7 @@ tests:
   - "apps/tablets-web/test/governance/governance.test.tsx > the contract giver's reviewer > [IN-30] the reviewer sees the batches of its loan licence and a record read-only, with no act offered"
   - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] the database's record reads refuse the contract giver's reviewer: its loan licence is read through its own logged reads only (6jc-R3, tablets 1425)"
   - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] the database's audit-trail reads refuse the contract giver's reviewer: no chain, listing or entry outside its own logged reads; QA still reads (6jc-R3 round 1, tablets 1426)"
+  - "apps/tablets-server/test/mutation/read-authorisation.test.ts > tab.record_read_problem and tab.reader_is_contract_giver as Phase 7 re-creates them (tablets 1426, 1493; D-P7-1 item 4) > [IN-30][DI-17] an account that holds the contract giver's reviewer role reads no record here and counts as the contract giver, whatever role its session works in"
 clauses:
   - clause: "create a loan-licence batch; both licence numbers appear"
     tests:

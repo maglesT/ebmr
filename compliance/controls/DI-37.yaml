@@ -364,6 +364,7 @@ tests:
   - "apps/tablets-server/test/market/market-config-routes.test.ts > compendial rule sets and reference documents > [IN-34][DI-37] QA records the verification of a rule set version against the official text and signs it (COMPENDIAL_RULE_SET_VERIFIED); a QA reviewer holds no MBR.APPROVE; another person cannot sign QA's verification"
   - "apps/tablets-server/test/esig/signing-meanings-7g.test.ts > the signing meanings of slice 7g (tablets 1491, 1493, 1496, 1525) > [DI-37] every meaning a slice 7g work package added resolves for its record type, and is an active meaning type of the catalogue"
   - "apps/tablets-server/test/esig/signing-meanings-7g.test.ts > decision D-P7R-6: the QP register and the compendial rule sets stay GOVERNANCE class > [DI-17][DI-37] a role with only RECORD.READ reads neither a qp_register nor a compendial_rule_set record; the QA MBR approver who signs a rule set reads it"
+  - "apps/tablets-server/test/mutation/read-authorisation.test.ts > tab.record_read_problem and tab.reader_is_contract_giver as Phase 7 re-creates them (tablets 1426, 1493; D-P7-1 item 4) > [DI-17][DI-37] a compendial rule set and a QP registration are read by a role that signs them and by a governance role, and by no other role (D-P7R-6)"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

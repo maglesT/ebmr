@@ -239,6 +239,7 @@ tests:
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-49] an alarm or equipment event that happened while the gateway was down lands within the offline buffer; one dated at 1970 is refused"
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-20] an endpoint session that starts more than the offline buffer before the database clock (a gateway clock at 1970) is refused; one pulled an hour late is taken"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [DI-32] equipment events of a batch and its original device records"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52][DI-32] a step's window is its own use's, bounded by that use's next binding; series and samples touching the window's edges are read inclusive of its start and exclusive of its end; deviations and alarms are the batch's own"
 clauses:
   - clause: "A weighing with direct capture stores a raw string that matches the display."
     tests:

@@ -41,6 +41,11 @@ tests:
   - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10][DI-38] a signing DSC that claims the signer's enrolled certificate while its chain carries another certificate is refused"
   - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10] a certificate live for one person is not enrolled for another while other enrolments have ended; a new enrolment ends the person's previous one"
   - "packages/kernel/test/mutation/india-dsc.test.ts > a replaced anchor is no longer trusted (kernel 1203) > [IN-10] after a new anchor is registered, a chain to the retired anchor is refused and a chain to the new one enrolled"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10] a chain of the signer certificate and the anchor alone is enough, for an enrolment and for a signing DSC"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a chain that is not base64 DER is refused, for an enrolment and for a signing DSC"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a DSC is not recorded on a signing whose meaning needs none, even from an enrolled signer"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10] an enrolment ends only with a reason"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] with the option off nothing is enrolled; with no live anchor nothing is enrolled and no DSC recorded"
 clauses:
   - clause: "sign a step, then alter the value directly in the test database; signature verification reports the record as altered."
     tests:

@@ -44,6 +44,10 @@ tests:
   - "apps/tablets-server/test/validation/export-routes.test.ts > the periodic evaluation pack (kernel 1336) > [DI-11] a period that has not ended is refused by the database; nothing is stored"
   - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-44] a pack is generated for a period typed with its offset, a seed and a sample size"
   - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-37] QA signs off a stored pack; a signed-off pack is not offered again"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the edges of the periodic evaluation pack (kernel 1336) > [DI-11] the period is from its start, inclusive, to its end, exclusive; an open entry counts when still open at the end; a period without both ends, or empty, is refused"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the edges of the periodic evaluation pack (kernel 1336) > [DI-11] each kernel source reports its own row: a change record with its own events, an investigation open or closed as it is, a batch review with its batch's number"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the edges of the periodic evaluation pack (kernel 1336) > [DI-11][DI-44] a pack without its text, its period ends, its topics or its readability seed and records, or with an empty period or an extra topic, is refused"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the edges of the periodic evaluation pack (kernel 1336) > [DI-11] the owner registers only a STABLE argument-free evaluation source of the agreed columns over an existing source log"
 clauses:
   - clause: "Generate the pack for a test period and trace 5 sampled entries per topic back to their source logs."
     tests:

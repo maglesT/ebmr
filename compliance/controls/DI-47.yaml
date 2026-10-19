@@ -156,6 +156,8 @@ tests:
   - "apps/tablets-server/test/validation/records-register-routes.test.ts > legal holds and disposal (kernel 0420, 0440) > [DI-47][DI-37] the disposal of a record whose retention ended is approved by another QA person with a signature of the record at its retain-until date, and the reason"
   - "apps/tablets-web/test/validation/records-register.test.tsx > retention, holds and disposal > [DI-47] a record's retention is shown; a legal hold is placed with the reason and a hold in force is released with one"
   - "apps/tablets-web/test/validation/records-register.test.tsx > retention, holds and disposal > [DI-47][DI-37] the disposal is approved with a signature naming the record and the reason"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > the records screens' reads in the database (tablets 1491) > [DI-50][DI-47] a record's retention, the legal holds and the disposal's record id are read only by a governance reader or a role that places holds, manages retention or approves disposal: the CSV lead (a governance reader holding none of those) reads them; the steward (neither) is refused by the database"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > the records screens' reads in the database (tablets 1491) > [DI-47] the retention of a record without a schedule says so: not scheduled, not purged, no refusals, and on hold only while a hold is placed on it"
 clauses:
   - clause: "Try to delete a batch record before its retention end. Blocked."
     tests:

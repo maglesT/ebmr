@@ -74,6 +74,7 @@ tests:
   - "apps/tablets-server/test/controlled/controlled-read.test.ts > controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2) > [IN-53] the audit trail shows controlled-substance entries only to a reader holding CONTROLLED.READ"
   - "apps/tablets-server/test/controlled/controlled-read.test.ts > controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2) > [IN-53] a write whose record the writer may not read back is refused and leaves nothing (6jc-R2 review)"
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44][IN-53] an export or a readability read of a closed batch holding controlled-substance rows needs CONTROLLED.READ with no site or product limit: a holder without it is refused, never served a partial copy"
+  - "apps/tablets-server/test/controlled/controlled-read.test.ts > controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2) > [IN-53] each controlled read shows the named record of its own batch, lot and session with its own approval, signatures and use; a reader that is no ordinary account never reads"
 clauses:
   - clause: "flag a product as controlled and have a second QA person approve it;"
     tests:

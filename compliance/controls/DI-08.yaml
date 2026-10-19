@@ -71,6 +71,11 @@ tests:
   - "apps/tablets-server/test/validation/export-routes.test.ts > the full export (kernel 1335) > [DI-08] the CSV lead starts the full export as a background job; it is registered with the SHA-256 of its manifest, which the folder holds"
   - "apps/tablets-web/test/validation/exports.test.tsx > the full export > [DI-08] lists each export with its SHA-256; one is started with a reason and followed until its job has ended"
   - "tools/e2e/specs/administration/screen-gaps.spec.ts > screens for the remaining routes (slice 7g-5) > [PR-43][IN-27][DI-08][IN-02] QA records a shelf-life basis and a hazard class, exports a report view, sees the reference documents, stores an evidence document and opens the equipment records"
+  - "packages/kernel/test/records/full-export.test.ts > the bounds and the registration guards of the full export (kernel 1335) > [DI-08][DI-44] a page, a snapshot, a readability sample and a readability snapshot are refused outside their bounds and served at their edges"
+  - "packages/kernel/test/records/full-export.test.ts > the bounds and the registration guards of the full export (kernel 1335) > [DI-08] a manifest without its text, or without the arrays and the seals path of its format, or with a file of another kind or the seals file not where it says, is refused"
+  - "packages/kernel/test/records/full-export.test.ts > the bounds and the registration guards of the full export (kernel 1335) > [DI-08] the export lists the seal keys that have their audit chain: a key row written around the audit trail is not listed as a chain"
+  - "packages/kernel/test/records/full-export.test.ts > the bounds and the registration guards of the full export (kernel 1335) > [DI-08][DI-44] the owner registers only a STABLE argument-free closed-record source of the agreed columns, and only an audited table with a known permission as restricted"
+  - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] an aborted batch is closed at its own move to ABORTED: not at a later command of the batch, nor at another batch's later abort"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
     tests:

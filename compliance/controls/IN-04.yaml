@@ -56,6 +56,7 @@ tests:
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-21][INV-13] the dispensing consumption: a requirement without a product limit still applies"
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-31][INV-13] the dispensing consumption: a stale qualification source is still refused"
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-17][INV-13] both checks of the consumption name the batch's product: the batch side at the actor's location, the site side in the lot's site"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the GMP batch issue in the order's product scope (6jc-R16) > [IN-04][DI-21] the issue command's check asks for the first of its catalogued permissions the issuer holds, and refuses when the catalogue has no issue command"
 clauses:
   - clause: "give one user production-head and QA-head roles on one batch; the conflict is refused."
     tests:
