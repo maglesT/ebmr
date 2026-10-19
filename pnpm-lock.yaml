@@ -181,6 +181,9 @@ importers:
       '@ebmr/test-kit':
         specifier: workspace:0.1.0
         version: link:../../packages/test-kit
+      '@ebmr/validation-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/validation-kit
       '@fastify/cookie':
         specifier: 11.1.2
         version: 11.1.2

@@ -158,6 +158,62 @@ export const SignableDescriptorView = z.strictObject({
 });
 export type SignableDescriptorView = z.infer<typeof SignableDescriptorView>;
 
+// ---------------------------------------------------------------------------------------------
+// Phase 7 slice 7g-3 (WP1; decision 0025): the signature catalogue and the seal keys from a screen (kernel 0210, 0220).
+
+const MeaningCategory = z.enum(['MASTER_RECORD', 'BATCH_RECORD', 'EXECUTION', 'VERIFICATION', 'EXCEPTION', 'LOGBOOK', 'LABORATORY', 'REVIEW', 'RELEASE', 'RECORDS']);
+const MeaningRoleClass = z.enum(['PERFORMER', 'VERIFIER', 'WITNESS', 'SUPERVISOR', 'AUTHORISER', 'APPROVER', 'REVIEWER', 'RELEASE']);
+const MeaningCode = z.string().regex(/^[A-Z][A-Z0-9_]{1,63}$/);
+const PermissionCode = z.string().regex(/^[A-Z][A-Z0-9_]*(\.[A-Z][A-Z0-9_]*)+$/);
+const CatalogueChangeRecord = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/, 'a change-record number (letters, digits, . _ / -)');
+
+/** One signature meaning type in force (its latest version), vendor (minimum) or customer. */
+export const MeaningTypeView = z.strictObject({
+  code: MeaningCode,
+  version: z.string(),
+  origin: z.enum(['VENDOR', 'CUSTOMER']),
+  status: z.enum(['ACTIVE', 'RETIRED']),
+  category: z.string(),
+  roleClass: z.string(),
+  title: z.string(),
+  meaningText: z.string(),
+  permissions: z.array(z.string()),
+  independentOf: z.array(z.string()),
+  excludesPerformers: z.boolean(),
+  excludesInvolved: z.boolean(),
+  witness: z.boolean(),
+  reauth: z.enum(['ALL_COMPONENTS', 'SESSION_RELAXABLE']),
+  delegable: z.boolean(),
+  definedAt: Instant,
+});
+export type MeaningTypeView = z.infer<typeof MeaningTypeView>;
+
+/** What a customer type, or a new version of a type, says (members left out keep their value; a new type's defaults are the database's). */
+export const MeaningTypeChanges = z.strictObject({
+  category: MeaningCategory.optional(),
+  roleClass: MeaningRoleClass.optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  meaningText: z.string().trim().min(1).max(500).optional(),
+  permissions: z.array(PermissionCode).min(1).max(20).optional(),
+  independentOf: z.array(MeaningCode).max(20).optional(),
+  excludesPerformers: z.boolean().optional(),
+  excludesInvolved: z.boolean().optional(),
+  witness: z.boolean().optional(),
+  reauth: z.enum(['ALL_COMPONENTS', 'SESSION_RELAXABLE']).optional(),
+  delegable: z.boolean().optional(),
+  status: z.enum(['ACTIVE', 'RETIRED']).optional(),
+});
+export type MeaningTypeChanges = z.infer<typeof MeaningTypeChanges>;
+
+export const SealKeyView = z.strictObject({
+  keyId: z.string(),
+  algorithm: z.enum(['HMAC-SHA256', 'ED25519']),
+  description: z.string(),
+  registeredAt: Instant,
+  retired: z.strictObject({ reason: z.string(), at: Instant }).nullable(),
+});
+export type SealKeyView = z.infer<typeof SealKeyView>;
+
 export const esig = {
   content: defineRoute({
     id: 'esig.content',
@@ -320,5 +376,65 @@ export const esig = {
     summary: 'End a DSC enrolment (a lost token, a new certificate): your own, or anyone\'s as QA (IN-10)',
     body: withAttribution({ enrolmentId: Uuid, reason: z.string().trim().min(1).max(2000) }),
     response: DscEnrolmentView,
+  }),
+  meaningTypes: defineRoute({
+    id: 'esig.meaningTypes',
+    method: 'GET',
+    path: '/api/esig/meaning-types',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The signature catalogue: every meaning type in force (latest version), the vendor minimum set and the customer types',
+    response: z.strictObject({ meaningTypes: z.array(MeaningTypeView) }),
+  }),
+  addMeaningType: defineRoute({
+    id: 'esig.addMeaningType',
+    method: 'POST',
+    path: '/api/esig/meaning-types',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'A customer signature point: a new meaning type under an approved change record covering ESIG_MEANING (MBR.APPROVE)',
+    body: z.strictObject({
+      code: MeaningCode,
+      definition: MeaningTypeChanges.extend({ category: MeaningCategory, roleClass: MeaningRoleClass, title: z.string().trim().min(1).max(200), meaningText: z.string().trim().min(1).max(500), permissions: z.array(PermissionCode).min(1).max(20) }).omit({ status: true }),
+      changeRecord: CatalogueChangeRecord,
+      reason: z.string().trim().min(1).max(2000),
+    }),
+    response: MeaningTypeView,
+  }),
+  configureMeaningType: defineRoute({
+    id: 'esig.configureMeaningType',
+    method: 'POST',
+    path: '/api/esig/meaning-types/:code',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'A new version of a meaning type (who may sign, independence, re-authentication; a customer type retired) under an approved change record (MBR.APPROVE)',
+    params: z.strictObject({ code: MeaningCode }),
+    body: z.strictObject({ changes: MeaningTypeChanges, changeRecord: CatalogueChangeRecord, reason: z.string().trim().min(1).max(2000) }),
+    response: MeaningTypeView,
+  }),
+  sealKeys: defineRoute({
+    id: 'esig.sealKeys',
+    method: 'GET',
+    path: '/api/esig/seal-keys',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The record-seal keys of the installation, each with its retirement',
+    response: z.strictObject({ sealKeys: z.array(SealKeyView) }),
+  }),
+  retireSealKey: defineRoute({
+    id: 'esig.retireSealKey',
+    method: 'POST',
+    path: '/api/esig/seal-keys/:keyId/retire',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Retire a record-seal key, with the reason and the change record it is done under (SYSTEM.CONFIGURE)',
+    params: z.strictObject({ keyId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/) }),
+    body: z.strictObject({ changeRecord: CatalogueChangeRecord, reason: z.string().trim().min(1).max(2000) }),
+    response: z.strictObject({ sealKeys: z.array(SealKeyView) }),
   }),
 } as const;

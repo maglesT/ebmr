@@ -38,8 +38,7 @@ const SERVICE_OR_INTERNAL: Readonly<Record<string, string>> = {
 
 /** Persons' acts whose screens later parts of slice 7g build (each removed by the slice that adds its route and screen). */
 const PENDING_7G: Readonly<Record<string, string>> = {
-  // WP1 (validation, export, records)
-  'platform.describe_interface': '7g-3: the approved system description of slice 7c (an interface described under a change record)',
+  // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration)
   'continuity.after_restore': '7g-4: backups and restore (the completion of a restore)',
   'continuity.approve_restore_event': '7g-4: backups and restore (the second person\'s approval of a restore)',
@@ -53,20 +52,7 @@ const PENDING_7G: Readonly<Record<string, string>> = {
 
 /** Persons' acts this test found with no route and no screen, that no part of slice 7g names yet (defect log 7g5-1). */
 const NO_ROUTE_YET: Readonly<Record<string, string>> = {
-  // WP1 (validation, export, records)
-  'records.approve_evaluation_pack': 'approving a periodic evaluation pack (PERIODIC_EVALUATION_APPROVED; today only the records CLI of slice 7b-2 calls it)',
-  'esig.add_meaning_type': 'a customer signature point: a new e-signature meaning type, under change control',
-  'esig.configure_meaning_type': 'a new version of an e-signature meaning type (who may sign, independence, re-authentication)',
-  'esig.retire_seal_key': 'retiring a record-seal key (SYSTEM.CONFIGURE)',
-  'records.approve_purge': 'approving the purge of records past retention (RECORD.DISPOSAL_APPROVE)',
-  'records.approve_record_type': 'approving a record type (RECORD.TYPE_APPROVE)',
-  'records.close_di_investigation': 'approving the closure of a data-integrity investigation (DI_INVESTIGATION.APPROVE_CLOSURE)',
-  'records.define_record_type': 'defining a record type of the records register (RECORD.TYPE_DEFINE)',
-  'records.link_di_investigation': 'linking records to a data-integrity investigation (VALIDATION.MANAGE)',
-  'records.open_di_investigation': 'opening a data-integrity investigation (VALIDATION.MANAGE)',
-  'records.place_legal_hold': 'placing a legal hold on a record (RECORD.LEGAL_HOLD)',
-  'records.refresh_di_investigation_scope': 'reading a data-integrity investigation\'s scope again (VALIDATION.MANAGE)',
-  'records.release_legal_hold': 'releasing a legal hold (RECORD.LEGAL_HOLD)',
+  // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration)
   'continuity.acknowledge_alarm': 'acknowledging a continuity alarm (backup, clock and audit-chain alarms; CONTINUITY.ALARM_ACKNOWLEDGE)',
   'continuity.revoke_hardening_attestation': 'revoking a kiosk hardening attestation (the device screen of 7g-1 records one)',
