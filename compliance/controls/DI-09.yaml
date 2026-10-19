@@ -60,6 +60,10 @@ tests:
   - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-09] a reference set without an approved change record is refused"
   - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-27][DI-09] the set-up confirms the site time zone it showed, the one in force; it does not change it (a change is made afterwards under a change record), so another zone is refused and nothing is created"
   - "apps/tablets-web/test/administration/governance.test.tsx > role permissions > [DI-16][DI-09] the process owner approves under the change record; the database's refusal without one is shown in its words"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > market policies (decision D-P7R-3) and the batch issue > [INV-47][DI-09][DI-35] QA defines a policy under an approved change record; the GMP batch issue pins it; a tightening reaches the issued batch; a loosening needs another person's signature and never reaches the batch"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > site values > [IN-52][ST-01][DI-09] the steward sets a tighter site value under an approved change record; a loosening of a guidance value needs a justification and QA's signature of exactly it; QA holds no MARKET.SITE_VALUE_SET"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > market policies > [INV-47][DI-09] lists a policy with its versions; a new version carries its change reference, change record and reason; a loosening first asks another person's approval through the ceremony"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > site values > [IN-52][ST-01][DI-09] previews a site value; a loosening with a justification offers QA's approval through the ceremony; the value is set under a change record"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

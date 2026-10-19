@@ -348,6 +348,8 @@ tests:
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: review signatures, the QMS item and container links (mutation triage T11; INV-05, DI-37, DI-31, PR-53) > [INV-05][DI-37] a QA review signature that no longer stands keeps G1.REVIEW RED, even when a later review of another batch stands"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] signing one run off leaves another in state RUN, so the other is still signed in the state it is in"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] a run that no longer reproduces as of its own instant (a transaction straddled it) is not signed off, even with a valid signature"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > the EU qualified-person register (QP_REGISTER) > [ST-10][DI-37] QA registers the EU QP on a registered importer's authorisation with QP_REGISTERED; a QA MBR approver may not sign it; nobody registers themselves; the same registration twice is refused"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > compendial rule sets and reference documents > [IN-34][DI-37] QA records the verification of a rule set version against the official text and signs it (COMPENDIAL_RULE_SET_VERIFIED); a QA reviewer holds no MBR.APPROVE; another person cannot sign QA's verification"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

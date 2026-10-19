@@ -28,6 +28,8 @@ tests:
   - "packages/kernel/test/review/f24.test.ts > F24: approvals behind a loosening must be verified e-signatures, not free UUIDs > [IN-52][DI-35][DI-09][INV-47][ST-01] source correction, site-value loosening and policy loosening are refused without real signed approvals"
   - "packages/kernel/test/review/f25.test.ts > F25 approved site loosening bound to the resolution it was approved against > [IN-52] [ST-01] an approved loosening is not re-applied after a new table version tightens the value it loosens, and it appears on the change-impact list"
   - "packages/kernel/test/review/f76.test.ts > F76: market-engine loosening approvals must be real, verified approvals > [IN-52][ST-01] loosening a GUIDANCE site value is refused when its QA approval id is the UUID of nothing"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > site values > [IN-52][ST-01][DI-09] the steward sets a tighter site value under an approved change record; a loosening of a guidance value needs a justification and QA's signature of exactly it; QA holds no MARKET.SITE_VALUE_SET"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > site values > [IN-52][ST-01][DI-09] previews a site value; a loosening with a justification offers QA's approval through the ceremony; the value is set under a change record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -86,6 +86,8 @@ tests:
   - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the regulatory confirmation and Approved, and its market authorisation, by different people; a labelling specimen approved by QA @office"
   - "apps/tablets-web/test/slice7g2/master-records.test.tsx > market authorisations > [PR-04] a proposed authorisation offers the regulatory confirmation and QA's authorisation, which carries QA's own reason"
   - "apps/tablets-web/test/slice7g2/master-records.test.tsx > market authorisations > [PR-04][PR-05] QA proposes an authorisation for a market of the master and scope; an active one shows who confirmed and authorised it and can be withdrawn with a reason"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > master records: change assessments, periodic review, risk links > [PR-04] the regulatory-conformity signer records the regulatory assessment of an MBR change per market and QA its validation; the MBR author holds no MBR.CHANGE_RECORD and is refused"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-04] records the validation and a market's regulatory assessment of a change record"
 clauses:
   - clause: "Widening a registered CPP range with no variation reference is blocked."
     tests:

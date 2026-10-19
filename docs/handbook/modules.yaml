@@ -744,6 +744,19 @@ modules:
       - 'apps/tablets-web/test/slice7g2/master-records.test.tsx'
       - 'apps/tablets-server/test/mutation/designer-guards.test.ts'
 
+  - id: ts-market-config
+    title: Master-record, market-policy, site-value and plant configuration acts (Phase 7 slice 7g WP3)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1493_']
+    server: [apps/tablets-server/src/features/market]
+    contract: [packages/api-contract/src/ns/market-config.ts]
+    screens: [apps/tablets-web/src/features/market]
+    tests:
+      - 'apps/tablets-server/test/market/**'
+      - 'apps/tablets-web/test/market/**'
+
   - id: ts-devices
     title: Devices and scale or process readings
     page: modules/tablets-server.md

@@ -37,9 +37,7 @@ const SERVICE_ONLY: Readonly<Record<string, string>> = {
 const PENDING_7G2: Readonly<Record<string, string>> = {
   // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration): none
-  // WP3 (master record, market and plant configuration)
-  'labels.masterLabelling': 'the labelling of an MBR version (labelling specimens)',
-  'labels.declareLabelling': 'the declaration of an MBR version\'s labelling (labelling specimens)',
+  // WP3 (master record, market and plant configuration): none (master-records LabellingPage)
   // WP4 (floor, materials, batch numbers): none
 };
 
@@ -60,10 +58,7 @@ const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
   RECORDS_ACT: 'the signed acts of the records register',
   // WP2 (continuity, platform, access configuration)
   RESTORE_APPROVE: 'the second person\'s approval of a restore',
-  // WP3 (master record, market and plant configuration)
-  QP_REGISTER: 'registering an EU qualified person',
-  RULE_SET_VERIFY: 'QA\'s verification of a compendial rule set version',
-  MARKET_LOOSENING: 'the approver\'s signature on a loosened market policy version',
+  // WP3 (master record, market and plant configuration): none
   // WP4 (floor, materials, batch numbers)
   LOT_DESTRUCTION_WITNESS: 'the witness\'s signature on a lot destruction',
 };
