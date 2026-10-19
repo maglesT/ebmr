@@ -582,6 +582,28 @@ describe('the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe
     expect(await q('select 1 from recipe.batch_execution where id = $1', [a.batchId])).toEqual([]);
   });
 
+  it('[INV-27][IN-18] the issue itself refuses a number voided in the register after the issue began, with its own reason', async () => {
+    const a = await planned();
+    const voidIt = () => tamper(`insert into site.batch_number_void (allocation_id, site_code, reason_code, reason_text, voided_by_person_id, voided_by_account_id, correlation_id)
+                                 select l.allocation_id, $2, 'TEST_VOID', 'voided between the two steps of the issue', $3, $4, gen_random_uuid()
+                                   from recipe.batch_allocation_link l where l.batch_id = $1`, [a.batchId, SITE, w.cast.issuer.personId, w.cast.issuer.accountId]);
+    expect(await message(issueVia(w.cast.issuer, a.batchId, a.signatureId, { beforeIssue: voidIt })))
+      .toMatch(new RegExp(`^The batch number of batch ${a.number} is not the register's: batch number ${a.number} was voided in the register.*\\[EBMR-EXE-191\\]$`));
+  });
+
+  it('[INV-17][INV-01] planning holds its family against a market authorisation being activated until the plan commits', async () => {
+    master ??= await effectiveMaster(['IN']);
+    const erpOrder = await familyOrder(db, erp, master.familyId, BS);
+    let probe = '';
+    await withProtectedNumbers(db.app, await cmd(db, w.cast.issuer), ledger, async (c) => {
+      const r = await execution.prepareGmpIssue(c, randomUUID(), { markets: ['IN'], site: SITE, line: 'L1', batchSize: BS, familyId: master.familyId, erpOrder });
+      // An activation locks the family FOR UPDATE (recipe-core 0290); here a superuser asks for the same lock without waiting.
+      probe = await message(db.admin.query('select 1 from recipe.mbr_family where id = $1 for update nowait', [master.familyId]));
+      return r;
+    });
+    expect(probe).toMatch(/could not obtain lock on row in relation "mbr_family"/);
+  });
+
   it('[DI-34] a planned batch that is no longer PLANNED is not begun, even with no execution yet', async () => {
     const a = await planned();
     await tamper("update recipe.stub_batch set status = 'CANCELLED' where id = $1", [a.batchId]);
