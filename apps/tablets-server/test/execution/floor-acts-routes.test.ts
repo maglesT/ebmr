@@ -31,7 +31,7 @@ const refused = (r: Result<unknown>): string => `${refusalOf(r)?.code ?? ''} ${r
 async function post<R extends AnyRoute>(b: TestBrowser, key: string, route: R, body: Record<string, unknown>): Promise<Result<RouteResponse<R>>> {
   vi.advanceTimersByTime(7_000);
   const attribution = await tapFor(b, personaIn(sbx, key), 'POST', route.path, body);
-  return (await b.call(route as never, { body, attribution } as never)) as Result<RouteResponse<R>>;
+  return (await b.call(route as never, { body, attribution } as never));
 }
 
 async function issue(phases: Record<string, unknown>[]): Promise<RunDriver> {
