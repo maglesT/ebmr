@@ -22,7 +22,7 @@ async function recordedSiteCode(app: Pick<AppContext, 'pools'>): Promise<string 
   return rows[0]?.code ?? null;
 }
 
-export const SERVER_VERSION = '0.1.0';
+export const SERVER_VERSION = '1.0.0-rc.1';
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   bindRoutes(scope, app, routes.meta, {
