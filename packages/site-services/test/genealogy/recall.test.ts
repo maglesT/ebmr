@@ -142,6 +142,12 @@ describe('mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2)', () => {
     const signOff = await w.run<string>(w.ap, 'select recipe.sign_off_mock_recall($1, $2)::text as r', [id, apSig]);
     expect(signOff).toMatch(/^[0-9a-f-]{36}$/);
     expect(await refusal(w.run(w.ap, 'select recipe.sign_off_mock_recall($1, $2)::text as r', [id, apSig]))).toMatch(/EBMR-RCL-011/);
+    // The destinations still to ask (recipe-core 1225; D-P7-1 item 4): none for a mock recall that is not there or is
+    // signed off; another, unsigned mock recall still answers (here with no transfer to ask).
+    const destinations = (who: typeof w.cast.qa, recall: string) => w.run<string>(who, 'select recipe.mock_recall_destinations($1)::text as r', [recall]);
+    expect(await refusal(destinations(w.cast.qa, id))).toMatch(/^EBMR-RCL-020 the mock recall is signed off/);
+    expect(await refusal(destinations(w.cast.qa, '00000000-0000-4000-8000-00000000d0d0'))).toMatch(/^EBMR-RCL-010 there is no mock recall 00000000-0000-4000-8000-00000000d0d0/);
+    expect(await destinations(w.cast.qa, await run())).toBe('[]');
     const { rows } = await db.app.query<{ role_code: string; result_sha256: string }>('select role_code, result_sha256 from recipe.mock_recall_signoff where mock_recall_id = $1', [id]);
     expect(rows).toEqual([{ role_code: 'AUTHORISED_PERSON', result_sha256: (await stored(id)).result_sha256 }]);
     // A mock recall never changes a lot (D-P6d-2): F1 is still released.
