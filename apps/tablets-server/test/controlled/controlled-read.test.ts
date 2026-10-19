@@ -258,6 +258,12 @@ describe('controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2)
     await expect(preview(otherProduct)).rejects.toThrow(/EBMR-CSM-061/);
     await expect(preview(qa)).resolves.toBeDefined();
     await expect(preview(operator)).rejects.toThrow(/EBMR-TAB-020/);
+    // Only the four record-type and meaning pairs are previewed: a meaning QA signs, asked on another record type, is
+    // refused before any content or scope is read (EBMR-TAB-019; D-P7-1 item 4).
+    for (const [type, id] of [['controlled_custody', productRecordId], ['esig_stub', productRecordId]] as const) {
+      await expect(db.app.query('select tab.controlled_preview($1, $2, $3, $4)', [hashOf(qa), type, id, 'CONTROLLED_PRODUCT_APPROVED']), type)
+        .rejects.toThrow(new RegExp(`A ${type} record is not signed CONTROLLED_PRODUCT_APPROVED \\(IN-53\\)\\. \\[EBMR-TAB-019\\]`));
+    }
   });
   it('[IN-53] the register exports are read only with a grant without a site or product limit: an export covers every site (tablets 1415)', async () => {
     // recipe.controlled_register_v1 reads the material's lots at every site and an export carries no site; it is run in
