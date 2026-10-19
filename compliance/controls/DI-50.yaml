@@ -113,6 +113,7 @@ tests:
   - "apps/tablets-server/test/mutation/read-authorisation.test.ts > what an investigation about the session's person withholds is that investigation's only (tablets 0440, 0530) > [DI-17][DI-50] the hold another investigation placed on its own person's account is shown to the subject as to a colleague (tab.entry_withheld); the subject's own hold is not"
   - "apps/tablets-server/test/mutation/read-authorisation.test.ts > what an investigation about the session's person withholds is that investigation's only (tablets 0440, 0530) > [DI-17][DI-50] tab.chain_is_about names the chains withheld from a person and no other: the subject's hold chain and the lead's account, not the other person's account or the subject's own record"
   - "apps/tablets-server/test/mutation/read-authorisation.test.ts > what an investigation about the session's person withholds is that investigation's only (tablets 0440, 0530) > [DI-17][DI-22][DI-23][DI-50] the subject's verification of a record chain they read, which is not withheld, names its tamper as the colleague's does (tab.audit_verify_chain)"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > data-integrity investigations (kernel 0430) > [DI-37][DI-50] the CSV lead opens an investigation, links a record and reads the scope again; QA closes it with a signature, never the investigator; the person investigated reads none"
 clauses:
   - clause: "Open a DI investigation for a user and date range. The system lists every record that user created or changed."
     tests:

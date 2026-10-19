@@ -35,6 +35,7 @@ of each database function.
 | [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
 | [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-operations](#kernel-operations) | First-run set-up with the installer's one-time token, operations acts and backup requests (Phase 7 slice 7g-4) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
+| [kernel-validation-iq](#kernel-validation-iq) | The IQ record of an installation, run from the web app and stored with its SHA-256 (Phase 7 slice 7g-3) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 83 | 41 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
@@ -81,7 +82,7 @@ of each database function.
 | [ts-session](#ts-session) | Sessions and sign-in | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 8 | 14 | 10 |
 | [ts-access](#ts-access) | Kiosk access, attribution and governance read doors | [modules/tablets-server.md](modules/tablets-server.md) | 7 | 4 | 9 | 12 |
 | [ts-audit](#ts-audit) | Audit trail reads | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 3 | 10 | 6 |
-| [ts-esig](#ts-esig) | Signing ceremony and signing meanings | [modules/tablets-server.md](modules/tablets-server.md) | 10 | 12 | 4 | 12 |
+| [ts-esig](#ts-esig) | Signing ceremony and signing meanings | [modules/tablets-server.md](modules/tablets-server.md) | 10 | 17 | 5 | 12 |
 | [ts-designer](#ts-designer) | MBR designer | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 17 | 36 | 29 |
 | [ts-devices](#ts-devices) | Devices and scale or process readings | [modules/tablets-server.md](modules/tablets-server.md) | 21 | 4 | 30 | 24 |
 | [ts-blocks](#ts-blocks) | Tablets block versions (TB-01 to TB-24) | [modules/tablets-server.md](modules/tablets-server.md) | 43 | 0 | 69 | 65 |
@@ -113,6 +114,7 @@ of each database function.
 | [ts-india](#ts-india) | India features (licences, labels, expiry rule) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 15 | 5 | 8 |
 | [ts-execution](#ts-execution) | Execution on the shop floor (batches, entries, lots) | [modules/tablets-server.md](modules/tablets-server.md) | 17 | 25 | 99 | 48 |
 | [ts-operations](#ts-operations) | Operations screens without a terminal (set-up, demo data, backups, workers, simulators, API reference; Phase 7 slice 7g-4) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 14 | 6 | 9 |
+| [ts-validation](#ts-validation) | Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 24 | 7 | 0 |
 | [ts-administration](#ts-administration) | People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 45 | 4 | 12 |
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 2 | 0 | 0 |
 | [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 31 | 50 |
@@ -616,6 +618,19 @@ of each database function.
 
 - Tables (5): `continuity.backup_download`, `continuity.backup_request`, `iam.installation_site`, `iam.setup_token`, `platform.operations_act`
 - Functions (7): `continuity.record_backup_download`, `continuity.request_backup`, `iam.first_run_setup`, `iam.is_bootstrapped`, `iam.issue_setup_token`, `iam.setup_state`, `platform.record_operations_act`
+
+## kernel-validation-iq
+
+**The IQ record of an installation, run from the web app and stored with its SHA-256 (Phase 7 slice 7g-3).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
+
+**Migrations** (1):
+
+- `packages/kernel/sql`: [1381_iq_records.sql](../../packages/kernel/sql/1381_iq_records.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (1): `platform.iq_record`
+- Functions (1): `platform.record_iq`
 
 ## kernel-installation
 
@@ -1449,11 +1464,11 @@ of each database function.
 - Types (1): `tab.reader`
 - Functions (14): `tab.aggregate_read_class`, `tab.content_for_signing`, `tab.governance_read_permissions`, `tab.kernel_signing_meanings`, `tab.reader_of`, `tab.record_content_for_signing`, `tab.record_read_problem`, `tab.record_signatures`, `tab.record_signing_failure`, `tab.role_may`, `tab.signature_rows`, `tab.signatures_of`, `tab.signing_preview_problem`, `tab.signing_preview_problem_for`
 
-**Server files** (8): [badges.ts](../../apps/tablets-server/src/features/esig/badges.ts), [content.ts](../../apps/tablets-server/src/features/esig/content.ts), [db-acts.ts](../../apps/tablets-server/src/features/esig/db-acts.ts), [dsc.ts](../../apps/tablets-server/src/features/esig/dsc.ts), [guidance.ts](../../apps/tablets-server/src/features/esig/guidance.ts), [index.ts](../../apps/tablets-server/src/features/esig/index.ts), [stub.ts](../../apps/tablets-server/src/features/esig/stub.ts), [views.ts](../../apps/tablets-server/src/features/esig/views.ts)
+**Server files** (9): [badges.ts](../../apps/tablets-server/src/features/esig/badges.ts), [catalogue.ts](../../apps/tablets-server/src/features/esig/catalogue.ts), [content.ts](../../apps/tablets-server/src/features/esig/content.ts), [db-acts.ts](../../apps/tablets-server/src/features/esig/db-acts.ts), [dsc.ts](../../apps/tablets-server/src/features/esig/dsc.ts), [guidance.ts](../../apps/tablets-server/src/features/esig/guidance.ts), [index.ts](../../apps/tablets-server/src/features/esig/index.ts), [stub.ts](../../apps/tablets-server/src/features/esig/stub.ts), [views.ts](../../apps/tablets-server/src/features/esig/views.ts)
 
 **Contract** (1): [esig.ts](../../packages/api-contract/src/ns/esig.ts)
 
-**Routes** (12):
+**Routes** (17):
 
 | Method | Path | Route | Contract file |
 |---|---|---|---|
@@ -1467,10 +1482,15 @@ of each database function.
 | POST | `/api/esig/dsc/enrolment/end` | `esig.endDscEnrolment` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 | POST | `/api/esig/dsc/meanings` | `esig.setDscMeaning` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 | POST | `/api/esig/dsc/mode` | `esig.setDscMode` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
+| GET | `/api/esig/meaning-types` | `esig.meaningTypes` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
+| POST | `/api/esig/meaning-types` | `esig.addMeaningType` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
+| POST | `/api/esig/meaning-types/:code` | `esig.configureMeaningType` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
+| GET | `/api/esig/seal-keys` | `esig.sealKeys` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
+| POST | `/api/esig/seal-keys/:keyId/retire` | `esig.retireSealKey` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 | POST | `/api/esig/sign` | `esig.sign` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 | GET | `/api/esig/signatures` | `esig.signatures` | [esig.ts](../../packages/api-contract/src/ns/esig.ts) |
 
-**Tests** (4): [ceremony.test.ts](../../apps/tablets-server/test/esig/ceremony.test.ts), [disposition.test.ts](../../apps/tablets-server/test/esig/disposition.test.ts), [read-authorisation.test.ts](../../apps/tablets-server/test/esig/read-authorisation.test.ts), [refusal-one-command.test.ts](../../apps/tablets-server/test/esig/refusal-one-command.test.ts)
+**Tests** (5): [catalogue-routes.test.ts](../../apps/tablets-server/test/esig/catalogue-routes.test.ts), [ceremony.test.ts](../../apps/tablets-server/test/esig/ceremony.test.ts), [disposition.test.ts](../../apps/tablets-server/test/esig/disposition.test.ts), [read-authorisation.test.ts](../../apps/tablets-server/test/esig/read-authorisation.test.ts), [refusal-one-command.test.ts](../../apps/tablets-server/test/esig/refusal-one-command.test.ts)
 
 **Controls** (12): [DI-05](../../compliance/controls/DI-05.yaml), [DI-13](../../compliance/controls/DI-13.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-19](../../compliance/controls/DI-19.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-36](../../compliance/controls/DI-36.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-38](../../compliance/controls/DI-38.yaml), [DI-50](../../compliance/controls/DI-50.yaml), [IN-53](../../compliance/controls/IN-53.yaml), [PR-49](../../compliance/controls/PR-49.yaml)
 
@@ -2554,6 +2574,55 @@ of each database function.
 
 **Controls** (9): [DI-05](../../compliance/controls/DI-05.yaml), [DI-09](../../compliance/controls/DI-09.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-19](../../compliance/controls/DI-19.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-27](../../compliance/controls/DI-27.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-45](../../compliance/controls/DI-45.yaml)
 
+## ts-validation
+
+**Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Migrations** (1):
+
+- `apps/tablets-server/sql`: [1491_validation_signing_meanings.sql](../../apps/tablets-server/sql/1491_validation_signing_meanings.sql)
+
+**Database objects** created in these migrations:
+
+- Functions (6): `tab.di_investigation_overview`, `tab.disposal_aggregate_id`, `tab.kernel_signing_meanings`, `tab.legal_hold_overview`, `tab.record_retention`, `tab.records_reader_problem`
+
+**Server files** (4): [evidence.ts](../../apps/tablets-server/src/features/validation/evidence.ts), [index.ts](../../apps/tablets-server/src/features/validation/index.ts), [reads.ts](../../apps/tablets-server/src/features/validation/reads.ts), [signables.ts](../../apps/tablets-server/src/features/validation/signables.ts)
+
+**Contract** (1): [validation.ts](../../packages/api-contract/src/ns/validation.ts)
+
+**Routes** (24):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/validation/di-investigations` | `validation.diInvestigations` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/di-investigations` | `validation.openDiInvestigation` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/di-investigations/:investigationId/links` | `validation.linkDiInvestigation` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/di-investigations/:investigationId/refresh` | `validation.refreshDiInvestigationScope` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/evaluation-packs` | `validation.evaluationPacks` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/evaluation-packs` | `validation.runEvaluationPack` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/evaluation-packs/:packId/file` | `validation.evaluationPackFile` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/evidence` | `validation.evidence` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/evidence/file` | `validation.evidenceFile` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/full-exports` | `validation.fullExports` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/full-exports` | `validation.startFullExport` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/full-exports/:exportId/manifest` | `validation.fullExportManifest` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/iq` | `validation.iqRecords` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/iq` | `validation.runIq` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/iq/:iqId/file` | `validation.iqRecordFile` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/legal-holds` | `validation.legalHolds` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/legal-holds` | `validation.placeLegalHold` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/legal-holds/:holdId/release` | `validation.releaseLegalHold` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/record-types` | `validation.recordTypes` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/record-types` | `validation.defineRecordType` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/retention` | `validation.retention` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/summary` | `validation.summary` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| GET | `/api/validation/system-description` | `validation.systemDescription` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+| POST | `/api/validation/system-description` | `validation.describeInterface` | [validation.ts](../../packages/api-contract/src/ns/validation.ts) |
+
+**Screens** (6): [CataloguePages.tsx](../../apps/tablets-web/src/features/validation/CataloguePages.tsx), [ExportPages.tsx](../../apps/tablets-web/src/features/validation/ExportPages.tsx), [RecordsRegisterPages.tsx](../../apps/tablets-web/src/features/validation/RecordsRegisterPages.tsx), [ValidationPages.tsx](../../apps/tablets-web/src/features/validation/ValidationPages.tsx), [index.tsx](../../apps/tablets-web/src/features/validation/index.tsx), [shared.tsx](../../apps/tablets-web/src/features/validation/shared.tsx)
+
+**Tests** (7): [tablets-server/test/validation/export-routes.test.ts](../../apps/tablets-server/test/validation/export-routes.test.ts), [tablets-server/test/validation/records-register-routes.test.ts](../../apps/tablets-server/test/validation/records-register-routes.test.ts), [tablets-server/test/validation/validation-routes.test.ts](../../apps/tablets-server/test/validation/validation-routes.test.ts), [tablets-web/test/validation/catalogue.test.tsx](../../apps/tablets-web/test/validation/catalogue.test.tsx), [tablets-web/test/validation/exports.test.tsx](../../apps/tablets-web/test/validation/exports.test.tsx), [tablets-web/test/validation/records-register.test.tsx](../../apps/tablets-web/test/validation/records-register.test.tsx), [tablets-web/test/validation/validation.test.tsx](../../apps/tablets-web/test/validation/validation.test.tsx)
+
 ## ts-administration
 
 **People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5).** Package `apps/tablets-server`. Handbook: [modules/tablets-web.md](modules/tablets-web.md).
@@ -2659,7 +2728,7 @@ of each database function.
 
 **Tablets screens shell (app, API client, devices).** Package `apps/tablets-web`. Handbook: [modules/tablets-web.md](modules/tablets-web.md).
 
-**Source** (34): [api/client.ts](../../apps/tablets-web/src/api/client.ts), [api/deadline.ts](../../apps/tablets-web/src/api/deadline.ts), [api/examples.ts](../../apps/tablets-web/src/api/examples.ts), [api/fixture-fetch.ts](../../apps/tablets-web/src/api/fixture-fetch.ts), [api/hooks.ts](../../apps/tablets-web/src/api/hooks.ts), [api/page-binding.ts](../../apps/tablets-web/src/api/page-binding.ts), [api/signables.ts](../../apps/tablets-web/src/api/signables.ts), [app/App.tsx](../../apps/tablets-web/src/app/App.tsx), [app/acts.tsx](../../apps/tablets-web/src/app/acts.tsx), [app/app.module.css](../../apps/tablets-web/src/app/app.module.css), [app/boot.tsx](../../apps/tablets-web/src/app/boot.tsx), [app/brand.tsx](../../apps/tablets-web/src/app/brand.tsx), [app/classes.ts](../../apps/tablets-web/src/app/classes.ts), [app/clock.ts](../../apps/tablets-web/src/app/clock.ts), [app/define-form.tsx](../../apps/tablets-web/src/app/define-form.tsx), [app/feature-context.ts](../../apps/tablets-web/src/app/feature-context.ts), [app/feature.ts](../../apps/tablets-web/src/app/feature.ts), [app/features.ts](../../apps/tablets-web/src/app/features.ts), [app/installation.ts](../../apps/tablets-web/src/app/installation.ts), [app/maintenance.ts](../../apps/tablets-web/src/app/maintenance.ts), [app/not-found.tsx](../../apps/tablets-web/src/app/not-found.tsx), [app/ports.tsx](../../apps/tablets-web/src/app/ports.tsx), [app/refusal.tsx](../../apps/tablets-web/src/app/refusal.tsx), [app/roles.ts](../../apps/tablets-web/src/app/roles.ts), [app/router.tsx](../../apps/tablets-web/src/app/router.tsx), [app/session-reads.tsx](../../apps/tablets-web/src/app/session-reads.tsx), [app/shell.tsx](../../apps/tablets-web/src/app/shell.tsx), [app/sign-out-mark.ts](../../apps/tablets-web/src/app/sign-out-mark.ts), [app/sign-out.tsx](../../apps/tablets-web/src/app/sign-out.tsx), [device/base64.ts](../../apps/tablets-web/src/device/base64.ts), [device/keystore.ts](../../apps/tablets-web/src/device/keystore.ts), [device/proof.ts](../../apps/tablets-web/src/device/proof.ts), [index.ts](../../apps/tablets-web/src/index.ts), [main.tsx](../../apps/tablets-web/src/main.tsx)
+**Source** (35): [api/client.ts](../../apps/tablets-web/src/api/client.ts), [api/deadline.ts](../../apps/tablets-web/src/api/deadline.ts), [api/examples.ts](../../apps/tablets-web/src/api/examples.ts), [api/fixture-fetch.ts](../../apps/tablets-web/src/api/fixture-fetch.ts), [api/hooks.ts](../../apps/tablets-web/src/api/hooks.ts), [api/page-binding.ts](../../apps/tablets-web/src/api/page-binding.ts), [api/signables.ts](../../apps/tablets-web/src/api/signables.ts), [app/App.tsx](../../apps/tablets-web/src/app/App.tsx), [app/acts.tsx](../../apps/tablets-web/src/app/acts.tsx), [app/app.module.css](../../apps/tablets-web/src/app/app.module.css), [app/boot.tsx](../../apps/tablets-web/src/app/boot.tsx), [app/brand.tsx](../../apps/tablets-web/src/app/brand.tsx), [app/classes.ts](../../apps/tablets-web/src/app/classes.ts), [app/clock.ts](../../apps/tablets-web/src/app/clock.ts), [app/define-form.tsx](../../apps/tablets-web/src/app/define-form.tsx), [app/feature-context.ts](../../apps/tablets-web/src/app/feature-context.ts), [app/feature.ts](../../apps/tablets-web/src/app/feature.ts), [app/features.ts](../../apps/tablets-web/src/app/features.ts), [app/installation.ts](../../apps/tablets-web/src/app/installation.ts), [app/maintenance.ts](../../apps/tablets-web/src/app/maintenance.ts), [app/not-found.tsx](../../apps/tablets-web/src/app/not-found.tsx), [app/ports.tsx](../../apps/tablets-web/src/app/ports.tsx), [app/refusal.tsx](../../apps/tablets-web/src/app/refusal.tsx), [app/roles.ts](../../apps/tablets-web/src/app/roles.ts), [app/router.tsx](../../apps/tablets-web/src/app/router.tsx), [app/session-reads.tsx](../../apps/tablets-web/src/app/session-reads.tsx), [app/shell.tsx](../../apps/tablets-web/src/app/shell.tsx), [app/sign-out-mark.ts](../../apps/tablets-web/src/app/sign-out-mark.ts), [app/sign-out.tsx](../../apps/tablets-web/src/app/sign-out.tsx), [device/base64.ts](../../apps/tablets-web/src/device/base64.ts), [device/keystore.ts](../../apps/tablets-web/src/device/keystore.ts), [device/proof.ts](../../apps/tablets-web/src/device/proof.ts), [features/market/index.tsx](../../apps/tablets-web/src/features/market/index.tsx), [index.ts](../../apps/tablets-web/src/index.ts), [main.tsx](../../apps/tablets-web/src/main.tsx)
 
 **Tests** (12): [api.test.ts](../../apps/tablets-web/test/api.test.ts), [api/contract-examples.test.tsx](../../apps/tablets-web/test/api/contract-examples.test.tsx), [app/not-found.test.tsx](../../apps/tablets-web/test/app/not-found.test.tsx), [app/page-binding.test.tsx](../../apps/tablets-web/test/app/page-binding.test.tsx), [app/page-title.test.tsx](../../apps/tablets-web/test/app/page-title.test.tsx), [app/session-reads.test.tsx](../../apps/tablets-web/test/app/session-reads.test.tsx), [app/sign-out-screen.test.tsx](../../apps/tablets-web/test/app/sign-out-screen.test.tsx), [meta/commands-have-screens.test.ts](../../apps/tablets-web/test/meta/commands-have-screens.test.ts), [meta/screen-completeness.test.ts](../../apps/tablets-web/test/meta/screen-completeness.test.ts), [office/screen-gaps.test.tsx](../../apps/tablets-web/test/office/screen-gaps.test.tsx), [package.test.ts](../../apps/tablets-web/test/package.test.ts), [shell.test.tsx](../../apps/tablets-web/test/shell.test.tsx)
 
@@ -2669,7 +2738,7 @@ of each database function.
 
 **Route table and shared shapes.** Package `packages/api-contract`. Handbook: [modules/api-contract.md](modules/api-contract.md).
 
-**Source** (12): [analytics-namespaces.ts](../../packages/api-contract/src/analytics-namespaces.ts), [client.ts](../../packages/api-contract/src/client.ts), [common.ts](../../packages/api-contract/src/common.ts), [examples.ts](../../packages/api-contract/src/examples.ts), [index.ts](../../packages/api-contract/src/index.ts), [intents.ts](../../packages/api-contract/src/intents.ts), [route.ts](../../packages/api-contract/src/route.ts), [routes.ts](../../packages/api-contract/src/routes.ts), [signable.ts](../../packages/api-contract/src/signable.ts), [strict-csp.ts](../../packages/api-contract/src/strict-csp.ts), [tablet-entries.ts](../../packages/api-contract/src/tablet-entries.ts), [vocab/roles.ts](../../packages/api-contract/src/vocab/roles.ts)
+**Source** (13): [analytics-namespaces.ts](../../packages/api-contract/src/analytics-namespaces.ts), [client.ts](../../packages/api-contract/src/client.ts), [common.ts](../../packages/api-contract/src/common.ts), [examples.ts](../../packages/api-contract/src/examples.ts), [index.ts](../../packages/api-contract/src/index.ts), [intents.ts](../../packages/api-contract/src/intents.ts), [ns/market-config.ts](../../packages/api-contract/src/ns/market-config.ts), [route.ts](../../packages/api-contract/src/route.ts), [routes.ts](../../packages/api-contract/src/routes.ts), [signable.ts](../../packages/api-contract/src/signable.ts), [strict-csp.ts](../../packages/api-contract/src/strict-csp.ts), [tablet-entries.ts](../../packages/api-contract/src/tablet-entries.ts), [vocab/roles.ts](../../packages/api-contract/src/vocab/roles.ts)
 
 **Tests** (6): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [controlled.test.ts](../../packages/api-contract/test/controlled.test.ts), [dashboards.test.ts](../../packages/api-contract/test/dashboards.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 
@@ -2739,7 +2808,7 @@ of each database function.
 
 **Validation kit (evidence bundle schema and types, pack generators).** Package `packages/validation-kit`. Handbook: [modules/validation-kit.md](modules/validation-kit.md).
 
-**Source** (12): [bundle/bundle.schema.json](../../packages/validation-kit/src/bundle/bundle.schema.json), [bundle/types.ts](../../packages/validation-kit/src/bundle/types.ts), [bundle/validate.ts](../../packages/validation-kit/src/bundle/validate.ts), [index.ts](../../packages/validation-kit/src/index.ts), [pack/doc.ts](../../packages/validation-kit/src/pack/doc.ts), [pack/facts.ts](../../packages/validation-kit/src/pack/facts.ts), [pack/pack.ts](../../packages/validation-kit/src/pack/pack.ts), [pack/qualification.ts](../../packages/validation-kit/src/pack/qualification.ts), [pack/release.ts](../../packages/validation-kit/src/pack/release.ts), [pack/requirements.ts](../../packages/validation-kit/src/pack/requirements.ts), [pack/specs.ts](../../packages/validation-kit/src/pack/specs.ts), [pack/trace.ts](../../packages/validation-kit/src/pack/trace.ts)
+**Source** (14): [bundle/bundle.schema.json](../../packages/validation-kit/src/bundle/bundle.schema.json), [bundle/types.ts](../../packages/validation-kit/src/bundle/types.ts), [bundle/validate.ts](../../packages/validation-kit/src/bundle/validate.ts), [index.ts](../../packages/validation-kit/src/index.ts), [iq/db-inventory.ts](../../packages/validation-kit/src/iq/db-inventory.ts), [iq/iq.ts](../../packages/validation-kit/src/iq/iq.ts), [pack/doc.ts](../../packages/validation-kit/src/pack/doc.ts), [pack/facts.ts](../../packages/validation-kit/src/pack/facts.ts), [pack/pack.ts](../../packages/validation-kit/src/pack/pack.ts), [pack/qualification.ts](../../packages/validation-kit/src/pack/qualification.ts), [pack/release.ts](../../packages/validation-kit/src/pack/release.ts), [pack/requirements.ts](../../packages/validation-kit/src/pack/requirements.ts), [pack/specs.ts](../../packages/validation-kit/src/pack/specs.ts), [pack/trace.ts](../../packages/validation-kit/src/pack/trace.ts)
 
 **Tests** (3): [bundle.test.ts](../../packages/validation-kit/test/bundle.test.ts), [pack.test.ts](../../packages/validation-kit/test/pack.test.ts), [package.test.ts](../../packages/validation-kit/test/package.test.ts)
 

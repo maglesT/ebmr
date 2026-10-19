@@ -348,6 +348,16 @@ tests:
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: review signatures, the QMS item and container links (mutation triage T11; INV-05, DI-37, DI-31, PR-53) > [INV-05][DI-37] a QA review signature that no longer stands keeps G1.REVIEW RED, even when a later review of another batch stands"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] signing one run off leaves another in state RUN, so the other is still signed in the state it is in"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] a run that no longer reproduces as of its own instant (a transaction straddled it) is not signed off, even with a valid signature"
+  - "apps/tablets-server/test/validation/export-routes.test.ts > the periodic evaluation pack (kernel 1336) > [DI-11][DI-44][DI-37] the CSV lead generates the pack of an ended period with its readability report; QA signs it off, never the person who generated it"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > record types (kernel 0400) > [DI-37] the CSV lead defines a record type and QA's MBR approver approves it with a signature of exactly that version"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > legal holds and disposal (kernel 0420, 0440) > [DI-47][DI-37] the disposal of a record whose retention ended is approved by another QA person with a signature of the record at its retain-until date, and the reason"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > data-integrity investigations (kernel 0430) > [DI-37][DI-50] the CSV lead opens an investigation, links a record and reads the scope again; QA closes it with a signature, never the investigator; the person investigated reads none"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the validation summary (kernel 1300) > [DI-03][DI-37] QA approves the running release's summary with a signature bound to the release and the document's SHA-256; the problem clears"
+  - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-37] QA signs off a stored pack; a signed-off pack is not offered again"
+  - "apps/tablets-web/test/validation/records-register.test.tsx > record types > [DI-37] a defined version is approved with a signature of exactly that version"
+  - "apps/tablets-web/test/validation/records-register.test.tsx > retention, holds and disposal > [DI-47][DI-37] the disposal is approved with a signature naming the record and the reason"
+  - "apps/tablets-web/test/validation/records-register.test.tsx > data-integrity investigations > [DI-37] an investigation is opened, a record linked with a note, the scope read again, and the closure signed with the conclusion and remediation"
+  - "apps/tablets-web/test/validation/validation.test.tsx > the validation summary > [DI-03][DI-37] shows the problem and the document; QA signs the approval of exactly that release and document"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

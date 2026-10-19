@@ -209,6 +209,22 @@ export const RecordLockActInput = z.strictObject({
 });
 export type RecordLockActInput = z.infer<typeof RecordLockActInput>;
 
+/** What a records-register act carries (slice 7g-3; members an act does not use are refused, 422). */
+export const RecordsActInput = z.strictObject({
+  /** RECORD_TYPE_APPROVE: the record type and the version approved. */
+  code: z.string().regex(/^[A-Z][A-Z0-9_]{1,63}$/).optional(),
+  version: z.string().regex(/^[1-9][0-9]{0,8}$/).optional(),
+  /** DISPOSAL_APPROVE: the record (its record key) whose retention has ended, the true copy it may cite, the reason. */
+  recordKey: z.string().min(3).max(300).optional(),
+  trueCopyId: Uuid.optional(),
+  reason: z.string().trim().min(10).max(2000).optional(),
+  /** DI_INVESTIGATION_CLOSE: the investigation, its conclusion and the remediation. */
+  investigationId: Uuid.optional(),
+  conclusion: z.string().trim().min(10).max(4000).optional(),
+  remediation: z.string().trim().min(10).max(4000).optional(),
+});
+export type RecordsActInput = z.infer<typeof RecordsActInput>;
+
 export const RELEASE_ACTS = [
   'MANUFACTURER_RELEASE',
   'MANUFACTURER_REJECT',
@@ -457,9 +473,27 @@ export const SignableAction = z.discriminatedUnion('kind', [
   //  WP2: RESTORE_APPROVE
   //  WP3: QP_REGISTER, RULE_SET_VERIFY, MARKET_LOOSENING
   //  WP4: LOT_DESTRUCTION_WITNESS
-  z.strictObject({ /** WP1 placeholder. */ kind: z.literal('VALIDATION_SUMMARY_APPROVE'), subjectId: Uuid }),
-  z.strictObject({ /** WP1 placeholder. */ kind: z.literal('EVALUATION_PACK_APPROVE'), subjectId: Uuid }),
-  z.strictObject({ /** WP1 placeholder. */ kind: z.literal('RECORDS_ACT'), subjectId: Uuid }),
+  // WP1 (slice 7g-3, ns/validation.ts; kernel 1300, 1336, 0400, 0440, 0430):
+  //  VALIDATION_SUMMARY_APPROVE  validation_summary <schema release>@<summary sha256>  VALIDATION_SUMMARY_APPROVED (QA), state PROPOSED
+  //  EVALUATION_PACK_APPROVE     evaluation_pack <pack id>   PERIODIC_EVALUATION_APPROVED (QA, never who generated it), state STORED
+  //  RECORDS_ACT RECORD_TYPE_APPROVE     record_type_version <code>:<version>  RECORD_TYPE_APPROVED (never its author), state DEFINED
+  //              DISPOSAL_APPROVE        record_disposal <record key>@<retain until>[@<true copy>]  RECORD_DISPOSAL_APPROVED
+  //                                      (QA, never an author of its retention), state DISPOSABLE; with the person's reason
+  //              DI_INVESTIGATION_CLOSE  di_investigation <id>  DI_INVESTIGATION_CLOSED (QA, never the investigator or the
+  //                                      person investigated), state OPEN; with the conclusion and the remediation
+  z.strictObject({
+    kind: z.literal('VALIDATION_SUMMARY_APPROVE'),
+    /** The running release and the SHA-256 of the validation summary document the person read (DI-03). */
+    schemaRelease: z.string().regex(/^[0-9a-f]{64}$/),
+    summarySha256: z.string().regex(/^[0-9a-f]{64}$/),
+    title: z.string().trim().min(1).max(200),
+  }),
+  z.strictObject({ kind: z.literal('EVALUATION_PACK_APPROVE'), /** The stored periodic evaluation pack QA signs off (DI-11). */ packId: Uuid }),
+  z.strictObject({
+    kind: z.literal('RECORDS_ACT'),
+    act: z.enum(['RECORD_TYPE_APPROVE', 'DISPOSAL_APPROVE', 'DI_INVESTIGATION_CLOSE']),
+    input: RecordsActInput,
+  }),
   z.strictObject({ /** WP2 placeholder. */ kind: z.literal('RESTORE_APPROVE'), subjectId: Uuid }),
   z.strictObject({ /** WP3 placeholder. */ kind: z.literal('QP_REGISTER'), subjectId: Uuid }),
   z.strictObject({ /** WP3 placeholder. */ kind: z.literal('RULE_SET_VERIFY'), subjectId: Uuid }),

@@ -9,7 +9,7 @@
  * an expectation checked against the policy: when it is set and differs, the server refuses to start.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { continuity } from '@ebmr/kernel';
 
@@ -111,6 +111,15 @@ export const EnvSchema = z.object({
   EBMR_BACKUP_KEY_REF: z.string().optional(),
   /** The connection pg_dump reads with (a backup role); default EBMR_PG_ADMIN_URL on this database. */
   EBMR_BACKUP_SOURCE_URL: z.string().optional(),
+  /**
+   * Phase 7 slice 7g-3: the validation screens. The release's evidence bundle as shipped (bundle.json of slice 7c; the
+   * validation pack is generated from it, the IQ checks against it), the folder the full exports are written to (default
+   * <EBMR_EXCHANGE_DIR>/full-exports), and the reporting role's login the periodic evaluation pack reads through
+   * (ebmr_report; the development credentials when unset, none in production).
+   */
+  EBMR_VALIDATION_BUNDLE: z.string().optional(),
+  EBMR_EXPORT_DIR: z.string().optional(),
+  EBMR_DB_REPORT_URL: z.string().optional(),
 });
 
 /** What the environment configures (parseConfig). */
@@ -159,6 +168,8 @@ export interface EnvConfig {
   keysDir: string | null;
   /** Backups from the operations screen, or null when no backup directory is configured. */
   backup: { dir: string; keyFile: string | null; keyRef: string; sourceUrl: string | null } | null;
+  /** Phase 7 slice 7g-3: the shipped evidence bundle, the full-export folder and the reporting login (null: not configured). */
+  validation: { bundleFile: string | null; exportDir: string; reportUrl: string | null };
 }
 
 /** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
@@ -211,7 +222,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   // Slice 7d (P7D-6; DI-13, security-baseline.md a): a production database URL must authenticate the server over TLS
   // (sslmode=verify-full; verify-ca and require pass with a warning), as the kernel's baseline rules say.
   if (production) {
-    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL };
+    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL };
     const socket = { allowLocalSocket: e.EBMR_DB_ALLOW_LOCAL_SOCKET };
     const refused = Object.entries(urls).flatMap(([name, url]) => (url ? continuity.checkDatabaseUrl(url, name, socket).filter((f) => f.severity === 'ERROR') : []));
     if (refused.length > 0) throw new ConfigError(`EBMR_ENV=production refuses a database connection without verified TLS: ${refused.map((f) => `${f.code} ${f.path}: ${f.message}`).join('; ')} (DI-13)`);
@@ -287,6 +298,11 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
           sourceUrl: e.EBMR_BACKUP_SOURCE_URL ?? (e.EBMR_PG_ADMIN_URL ? withDatabase(e.EBMR_PG_ADMIN_URL, e.EBMR_DATABASE) : null),
         }
       : null,
+    validation: {
+      bundleFile: e.EBMR_VALIDATION_BUNDLE ?? null,
+      exportDir: e.EBMR_EXPORT_DIR ?? join(e.EBMR_EXCHANGE_DIR, 'full-exports'),
+      reportUrl: e.EBMR_DB_REPORT_URL ?? (production ? null : devUrl(e.EBMR_PG_HOST, e.EBMR_PG_PORT, e.EBMR_DATABASE, 'ebmr_report')),
+    },
   };
 }
 

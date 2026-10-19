@@ -60,6 +60,12 @@ tests:
   - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-09] a reference set without an approved change record is refused"
   - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-27][DI-09] the set-up confirms the site time zone it showed, the one in force; it does not change it (a change is made afterwards under a change record), so another zone is refused and nothing is created"
   - "apps/tablets-web/test/administration/governance.test.tsx > role permissions > [DI-16][DI-09] the process owner approves under the change record; the database's refusal without one is shown in its words"
+  - "apps/tablets-server/test/esig/catalogue-routes.test.ts > the signature catalogue (kernel 0210, 1195) > [DI-09] QA's MBR approver adds a customer signature point under an approved change record covering ESIG_MEANING; without one, or without the right, nothing is added"
+  - "apps/tablets-server/test/esig/catalogue-routes.test.ts > the signature catalogue (kernel 0210, 1195) > [DI-09] a minimum (vendor) type is never retired, even under an approved change record"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the system description (kernel 1300) > [DI-06][DI-09] the CSV lead describes an interface under an approved change record; without one, or without the right, nothing is written"
+  - "apps/tablets-web/test/validation/catalogue.test.tsx > the signature catalogue > [DI-09] a customer signature point is added under a change record with the reason"
+  - "apps/tablets-web/test/validation/catalogue.test.tsx > the signature catalogue > [DI-09] a meaning type gets a new version under a change record; only a customer type can be retired"
+  - "apps/tablets-web/test/validation/validation.test.tsx > the validation hub and the system description > [DI-06][DI-09] lists the interfaces and the undescribed adapters; an interface is recorded with its change record and reason"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

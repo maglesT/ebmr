@@ -54,10 +54,7 @@ const NO_SLICE_YET: Readonly<Record<string, string>> = {};
 
 /** Signable actions not yet sent by a screen (the kinds the 7g work packages reserved; each removed with its screen). */
 const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
-  // WP1 (validation, export, records)
-  VALIDATION_SUMMARY_APPROVE: 'the approval of a validation summary',
-  EVALUATION_PACK_APPROVE: 'the approval of a periodic evaluation pack',
-  RECORDS_ACT: 'the signed acts of the records register',
+  // WP1 (validation, export, records): none
   // WP2 (continuity, platform, access configuration)
   RESTORE_APPROVE: 'the second person\'s approval of a restore',
   // WP3 (master record, market and plant configuration)
