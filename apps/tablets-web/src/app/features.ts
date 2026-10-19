@@ -11,8 +11,13 @@
  * Phase 6A slice 6A-2: analytics-spc (control charts, capability, deviation rates; GMP).
  * Phase 6A slice 6A-3: analytics-mspc (multivariate monitoring; GMP).
  * Phase 6A slice 6A-5: analytics-review (one record's review priority; the queue's priority note; GMP).
+ * Phase 7 slice 7g-1: administration (people and access, the device registry; both installations; decision 0025).
+ * Phase 7 slice 7g-2 (decision 0025): master-records (MBR signatures, market authorisations, labelling specimens),
+ * plant-rules (penicillin facility and beta-lactam proposals and QA approval) and incidents (register, CERT-In step); GMP.
+ * Phase 7 slice 7g-4: operations (the first-run set-up, demo data, backups, workers, simulators, API reference).
  */
 import * as access from '../features/access/index.tsx';
+import * as administration from '../features/administration/index.tsx';
 import * as analytics from '../features/analytics/index.tsx';
 import * as analyticsAudit from '../features/analytics-audit/index.tsx';
 import * as analyticsSpc from '../features/analytics/spc/index.tsx';
@@ -23,13 +28,17 @@ import * as audit from '../features/audit/index.tsx';
 import * as designer from '../features/designer/index.tsx';
 import * as devices from '../features/devices/index.tsx';
 import * as floor from '../features/floor/index.tsx';
+import * as incidents from '../features/incidents/index.tsx';
 import * as india from '../features/india/index.tsx';
 import * as integrations from '../features/integrations/index.tsx';
 import * as masterData from '../features/master-data/index.tsx';
+import * as masterRecords from '../features/master-records/index.tsx';
 import * as planning from '../features/planning/index.tsx';
 import * as plant from '../features/plant/index.tsx';
 import * as plantStatus from '../features/plant-status/index.tsx';
+import * as plantRules from '../features/plant-rules/index.tsx';
 import * as notifications from '../features/notifications/index.tsx';
+import * as operations from '../features/operations/index.tsx';
 import * as quality from '../features/quality/index.tsx';
 import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
@@ -45,6 +54,8 @@ import * as release from '../features/release/index.tsx';
 import * as review from '../features/review/index.tsx';
 import * as session from '../features/session/index.tsx';
 import * as training from '../features/training/index.tsx';
+import * as validation from '../features/validation/index.tsx';
+import * as market from '../features/market/index.tsx';
 import type { WebFeature } from './feature.ts';
 
 export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
@@ -81,4 +92,13 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['analytics-spc', analyticsSpc satisfies WebFeature],
   ['analytics-mspc', analyticsMspc satisfies WebFeature],
   ['analytics-review', analyticsReview satisfies WebFeature],
+  ['administration', administration satisfies WebFeature],
+  ['master-records', masterRecords satisfies WebFeature],
+  ['plant-rules', plantRules satisfies WebFeature],
+  ['incidents', incidents satisfies WebFeature],
+  // Phase 7 slice 7g-4 (decision 0025): operations without a terminal (set-up, demo data, backups, workers, simulators, API reference).
+  ['operations', operations satisfies WebFeature],
+  // Phase 7 slice 7g work packages: WP1 validation and WP3 market; empty until each package adds its screens.
+  ['validation', validation satisfies WebFeature],
+  ['market', market satisfies WebFeature],
 ];

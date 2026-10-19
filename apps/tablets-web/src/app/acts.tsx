@@ -28,6 +28,8 @@ export interface Command<R extends AnyRoute> {
   error: CallError | null;
   done: RouteResponse<R> | null;
   clear: () => void;
+  /** Forgets the last answer and refusal (slice 7g-1: an issued secret is dropped once it has been handed over). */
+  reset: () => void;
 }
 
 /**
@@ -66,7 +68,17 @@ export function useCommand<R extends AnyRoute>(route: R, refresh: readonly strin
       setBusy(false);
     }
   };
-  return { run, busy, error, done, clear: () => setError(null) };
+  return {
+    run,
+    busy,
+    error,
+    done,
+    clear: () => setError(null),
+    reset: () => {
+      setError(null);
+      setDone(null);
+    },
+  };
 }
 
 export type SignedOutcome = 'SIGNED' | 'CANCELLED' | 'REFUSED' | 'NOT_CONFIRMED';

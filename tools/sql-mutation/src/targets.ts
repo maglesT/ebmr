@@ -70,7 +70,7 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
-      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
@@ -608,7 +608,8 @@ export const TARGETS: Target[] = [
   {
     group: 'gmp-batch-issue',
     // Slice 7c (recipe-core 1250) re-creates recipe.gmp_issue_problem for the validation-summary interlock (DI-03); its
-    // test is lifecycle/gmp-issue.test.ts, already listed.
+    // test is lifecycle/gmp-issue.test.ts, already listed. Slice 7g-5 (recipe-core 1260) re-creates it again for the US
+    // e-signature certification (DI-15).
     functions: ['recipe.batch_record_identity_guard', 'recipe.execution_mbr_content', 'recipe.batch_mbr_content',
                 'recipe.content_for_mbr_hash', 'recipe.sandbox_only_blocks_in', 'recipe.batch_allocation_link_guard',
                 'recipe.control_recipe_sandbox_only_guard', 'recipe.batch_issue_content', 'recipe.gmp_batch_problem',
@@ -619,8 +620,10 @@ export const TARGETS: Target[] = [
                 'recipe.batch_product', 'recipe.packaging_parent_problem', 'recipe.packaging_link_guard',
                 'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
-                'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
-    tests: [r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
+                'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check',
+                // Phase 7 slice 7g-5 (recipe-core 1260): the US e-signature certification at issue (DI-15).
+                'recipe.us_esig_issue_entity', 'recipe.batch_execution_us_esig_gate'],
+    tests: [r('lifecycle/us-esig-certification.test.ts'), s('execution/us-esig-certification-issue.test.ts'), r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
             // The row checks 0502 replaced (recipe-core 0338, 0339, 0345): their Phase 2 tests.
             s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts'), r('review/batch-scope.test.ts')],
     threshold: 90,
@@ -1356,7 +1359,15 @@ export const TARGETS: Target[] = [
                 'recipe.record_federation_failure', 'recipe.record_federated_excerpt', 'recipe.mock_recall_result_v2',
                 'recipe.mock_recall_federation', 'recipe.record_mock_recall_remote', 'tab.kernel_signing_meanings',
                 'tab.aggregate_read_class'],
-    tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts')],
+    tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts'),
+            // Phase 7 slice 7g-2: tablets 1479 re-created both tab.* functions for the labelling specimen approval.
+            s('designer/master-records.test.ts'),
+            // Phase 7 slice 7g-3 (WP1): tablets 1491 re-created tab.kernel_signing_meanings for the validation and records acts.
+            s('validation/validation-routes.test.ts'), s('validation/records-register-routes.test.ts'),
+            // Phase 7 slice 7g WP3: tablets 1493 re-created both again (market loosenings, QP register, rule-set verification).
+            s('market/market-config-routes.test.ts'),
+            // Phase 7 slice 7g (WP4): tablets 1496 re-created tab.kernel_signing_meanings for the lot destruction's witness.
+            s('quality/lot-handling-routes.test.ts')],
     threshold: 90,
   },
   // ---- 6A-0, analytics interfaces (kernel 1240-1244; ADR 0020): the runner's run lifecycle and output recording, the QA
@@ -1541,6 +1552,63 @@ export const TARGETS: Target[] = [
     group: 'validation-summary-gate',
     functions: ['recipe.batch_execution_validation_gate'],
     tests: [r('lifecycle/gmp-issue.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-2 (decision 0025): QA's approval of a labelling specimen, its state and its signed content (DI-35;
+  // tablets 1479). The re-created tab.aggregate_read_class and tab.kernel_signing_meanings stay in their group.
+  {
+    group: 'specimen-approval',
+    functions: ['tab.approve_labelling_specimen', 'tab.labelling_specimen_state', 'tab.labelling_specimen_content'],
+    tests: [s('designer/master-records.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-4: the browser's first-run set-up of a new installation with the installer's one-time token
+  // (decision 0025 point 2; kernel 1375).
+  {
+    group: 'first-run-setup',
+    functions: ['iam.is_bootstrapped', 'iam.issue_setup_token', 'iam.first_run_setup'],
+    tests: [s('operations/setup.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-4: the operations acts of a person (worker start and stop, a backup now, a copy of a stored backup),
+  // recorded and attributed (DI-17, DI-18, DI-45; kernel 1376).
+  {
+    group: 'operations-acts',
+    functions: ['platform.record_operations_act', 'continuity.request_backup', 'continuity.record_backup_download'],
+    tests: [s('operations/workers-and-backups.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-4: the demo conveniences refused on a GMP installation that is not a demo one, and the backup
+  // catalogue read by permission (tablets 1485).
+  {
+    group: 'operations-demo-backups',
+    functions: ['tab.demo_conveniences_problem', 'tab.record_demo_act', 'tab.backup_overview'],
+    tests: [s('operations/demo-and-simulators.test.ts'), s('operations/workers-and-backups.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-3 (WP1): the IQ record run from the web app, stored with the SHA-256 of its text and held to its
+  // checks (DI-03; kernel 1381).
+  {
+    group: 'iq-record',
+    functions: ['platform.record_iq'],
+    tests: [s('validation/validation-routes.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-3 (WP1): the records screens' reads behind the session's read rule (tablets 1491): the investigations,
+  // a record's retention and blockers and the legal holds, never what an investigation about the reader withholds (DI-50);
+  // and the id of the disposal a signature covers.
+  {
+    group: 'validation-records-reads',
+    functions: ['tab.di_investigation_overview', 'tab.records_reader_problem', 'tab.record_retention', 'tab.legal_hold_overview', 'tab.disposal_aggregate_id'],
+    tests: [s('validation/records-register-routes.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g, work package 2: drill requests and records, hardening checks (kernel 1395), and the restore and
+  // drill reads by permission (tablets 1525).
+  {
+    group: 'operations-drills-restore',
+    functions: ['continuity.request_drill', 'continuity.record_upgrade_drill', 'continuity.record_hardening_check', 'tab.restore_overview', 'tab.drill_overview'],
+    tests: [s('operations/drills.test.ts'), s('operations/restore-and-alarms.test.ts')],
     threshold: 90,
   },
 ];

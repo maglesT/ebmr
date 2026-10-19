@@ -2,15 +2,19 @@
  * Rooms and lines (PR-15, PR-25, PR-27; DI-32, DI-49): each with its cleaning state, clean-hold time, controlled-area
  * flag and open spills; per room its latest temperature and humidity from the EMS (raw value, status, received time) and
  * its open alarms, and the record of a spill (the room is then CLEANING_REQUIRED until a verified cleaning).
+ * Slice 7g-5: a new version of a room's rules (controlled area, clean-hold time; plantRules.setRoomRule) and the
+ * adjacency and segregation of rooms and lines (plantRules.adjacencies, defineAdjacency; PR-35), by the master-data
+ * steward (MASTERDATA.CHANGE), each with its reason.
  */
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { routes, type RoomStateView } from '@ebmr/api-contract';
-import { Button, Dialog, Field, StatusChip } from '@ebmr/ui-kit';
+import { Button, Dialog, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
+import { useOffered } from '../../app/roles.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
-import { ROOM_READS, words } from './reads.ts';
+import { PLANT_CODE, ROOM_READS, words } from './reads.ts';
 import { cleaningTone } from './StatusBoardPage.tsx';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -39,7 +43,8 @@ export function RoomsPage() {
           <tbody>{q.data?.rooms.map((r) => <Row key={r.code} r={r} onOpen={() => setRoom(r.code)} />)}</tbody>
         </table>
       </Section>
-      {room ? <RoomConditions code={room} /> : null}
+      {room ? <RoomConditions code={room} rule={q.data?.rooms.find((r) => r.code === room) ?? null} /> : null}
+      <Adjacencies />
     </>
   );
 }
@@ -61,8 +66,9 @@ function Row({ r, onOpen }: { r: RoomStateView; onOpen: () => void }) {
   );
 }
 
-function RoomConditions({ code }: { code: string }) {
+function RoomConditions({ code, rule }: { code: string; rule: RoomStateView | null }) {
   const q = useApiQuery(routes.plantRules.roomConditions, { params: { code } });
+  const steward = useOffered('PLANT_MASTER');
   const [spill, setSpill] = useState(false);
   const v = q.data;
   return (
@@ -111,6 +117,88 @@ function RoomConditions({ code }: { code: string }) {
         <Button onPress={() => setSpill(true)}>Record a spill</Button>
       </p>
       {spill ? <SpillDialog code={code} onClose={() => setSpill(false)} /> : null}
+      {steward && rule ? <RoomRule key={`${code}-${rule.ruleVersion ?? ''}`} r={rule} /> : null}
+    </Section>
+  );
+}
+
+const WHOLE = /^(0|[1-9][0-9]{0,17})$/;
+
+/** A new version of the room's rules (plantRules.setRoomRule; MASTERDATA.CHANGE): controlled area and clean-hold time. */
+function RoomRule({ r }: { r: RoomStateView }) {
+  const set = useCommand(routes.plantRules.setRoomRule, ROOM_READS, 'the room rule');
+  const [controlled, setControlled] = useState(r.authorisationRequired ? 'YES' : 'NO');
+  const [seconds, setSeconds] = useState(r.cleanHoldSeconds ?? '');
+  const [reason, setReason] = useState('');
+  const h = seconds.trim();
+  const ok = (h === '' || WHOLE.test(h)) && reason.trim() !== '';
+  return (
+    <div data-testid="room-rule">
+      <h3>{`Rules of ${r.code}`}{r.ruleVersion ? ` (version ${r.ruleVersion})` : ''}</h3>
+      <floor.ChoiceGroup
+        label="Controlled area (work needs an area authorisation)"
+        options={[
+          { value: 'YES', label: 'Controlled' },
+          { value: 'NO', label: 'Not controlled' },
+        ]}
+        value={controlled}
+        onChange={setControlled}
+      />
+      <Field name="ruleHoldSeconds" label="Clean-hold time in seconds (e.g. 259200 for 72 h; blank: none)" value={seconds} onChange={setSeconds} />
+      <Field name="ruleReason" label="Reason for the change" value={reason} onChange={setReason} />
+      <ActButton
+        label={`Save the rules of ${r.code}`}
+        disabled={!ok || set.busy}
+        onPress={() =>
+          ok ? set.run({ params: { code: r.code }, body: { authorisationRequired: controlled === 'YES', cleanHoldSeconds: h === '' ? null : h, reason: reason.trim() } }) : null
+        }
+      />
+      <ActResult error={set.error} done={set.done} label="A new version of the rules is in force." />
+    </div>
+  );
+}
+
+/** The adjacency and segregation of each pair of rooms or lines (PR-35), and a new version of one pair. */
+function Adjacencies() {
+  const q = useApiQuery(routes.plantRules.adjacencies);
+  const steward = useOffered('PLANT_MASTER');
+  const define = useCommand(routes.plantRules.defineAdjacency, [routes.plantRules.adjacencies.id], 'the adjacency');
+  const [one, setOne] = useState('');
+  const [two, setTwo] = useState('');
+  const [adjacent, setAdjacent] = useState('YES');
+  const [segregated, setSegregated] = useState('NO');
+  const [why, setWhy] = useState('');
+  const a = one.trim().toUpperCase();
+  const b = two.trim().toUpperCase();
+  const ok = PLANT_CODE.test(a) && PLANT_CODE.test(b) && a !== b && (segregated === 'NO' || why.trim() !== '');
+  return (
+    <Section title="Adjacency and segregation" testId="adjacencies">
+      <p>Lines and rooms next to each other run only products that may share the space, unless they are segregated with a justification.</p>
+      {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      {q.data && q.data.adjacencies.length === 0 ? <p>No adjacency is recorded.</p> : null}
+      <ul>
+        {q.data?.adjacencies.map((x) => (
+          <li key={`${x.one}-${x.two}`} data-testid={`adjacency-${x.one}-${x.two}`}>
+            {x.one} and {x.two}: {x.adjacent ? 'adjacent' : 'not adjacent'}, {x.segregated ? `segregated (${x.justification ?? ''})` : 'not segregated'} · version {x.version}, {x.recordedAt.text}
+          </li>
+        ))}
+      </ul>
+      {steward ? (
+        <>
+          <h3>Record a pair</h3>
+          <Field name="adjOne" label="First room or line" value={one} onChange={setOne} />
+          <Field name="adjTwo" label="Second room or line" value={two} onChange={setTwo} />
+          <floor.ChoiceGroup label="Adjacent" options={[{ value: 'YES', label: 'Adjacent' }, { value: 'NO', label: 'Not adjacent' }]} value={adjacent} onChange={setAdjacent} />
+          <floor.ChoiceGroup label="Segregated" options={[{ value: 'YES', label: 'Segregated' }, { value: 'NO', label: 'Not segregated' }]} value={segregated} onChange={setSegregated} />
+          <Field name="adjJustification" label="Justification of the segregation" value={why} onChange={setWhy} />
+          <ActButton
+            label="Record the adjacency"
+            disabled={!ok || define.busy}
+            onPress={() => (ok ? define.run({ body: { one: a, two: b, adjacent: adjacent === 'YES', segregated: segregated === 'YES', ...(why.trim() ? { justification: why.trim() } : {}) } }) : null)}
+          />
+          <ActResult error={define.error} done={define.done} label="Recorded." />
+        </>
+      ) : null}
     </Section>
   );
 }

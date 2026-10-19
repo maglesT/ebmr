@@ -130,4 +130,17 @@ export const containers = {
     body: withAttribution({ expectedVersion: z.number().int().positive(), reason: Reason }),
     response: ContainerView,
   }),
+  // Phase 7 slice 7g (WP4, decision 0025): a merge of two scanned containers (recipe-core 0422; IN-26 (c), L-30).
+  merge: defineRoute({
+    id: 'containers.merge',
+    method: 'POST',
+    path: '/api/containers/merge',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Pour a usable container into an open, unheld container of the same batch, stage and unit, both named by their scanned labels (STEP.EXECUTE); the target as it is now',
+    body: withAttribution({ sourceLabel: z.string().trim().min(1).max(80), targetLabel: z.string().trim().min(1).max(80) }),
+    response: ContainerView,
+  }),
 } as const;

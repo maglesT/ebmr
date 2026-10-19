@@ -63,8 +63,6 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
   const [selected, setSelected] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialogs>(null);
-  const [note, setNote] = useState('');
-  const [justification, setJustification] = useState('');
   const [pkg, setPkg] = useState<PackageResult | null>(null);
   const [draftOffer, setDraftOffer] = useState<Draft | null>(() => loadDraft(personId, initial.versionId));
   const [restored, setRestored] = useState(false);
@@ -201,10 +199,7 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
           <Button
             variant="primary"
             isDisabled={readOnly || !dirty}
-            onPress={() => {
-              setNote('');
-              setDialog('save');
-            }}
+            onPress={() => setDialog('save')}
           >
             Save revision…
           </Button>
@@ -215,6 +210,7 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
             Send to sandbox…
           </Button>
           <a href={auditLink(saved.versionId)}>Audit trail</a>
+          <a href={`/mbr/versions/${saved.versionId}/signing`}>Signatures and markets</a>
         </div>
       </div>
 
@@ -331,7 +327,6 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
                 justifyBlocked={justifyBlocked}
                 onJump={jump}
                 onJustify={(f) => {
-                  setJustification('');
                   setDialog({ justify: f, revision: saved.revision, contentHash: saved.contentHash });
                 }}
                 locationLabel={locationLabel}
@@ -356,59 +351,35 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
         </aside>
       </div>
 
-      <CommandDialog
-        title={`Save revision ${saved.revision + 1}`}
+      <SaveRevisionDialog
+        // A fresh note for each opening (the note lives in the dialog, so typing re-renders only the dialog).
+        key={dialog === 'save' ? `save@${saved.revision}` : 'closed'}
         open={dialog === 'save'}
+        versionId={saved.versionId}
+        savedRevision={saved.revision}
+        wireContent={() => asWire(present)}
         onClose={() => setDialog(null)}
-        confirmLabel="Save revision"
-        canConfirm={note.trim().length > 0}
-        run={(idempotencyKey) =>
-          api.call(routes.designer.saveContent, { params: { versionId: saved.versionId }, body: { baseRevision: saved.revision, content: asWire(present), note: note.trim() }, idempotencyKey })
-        }
         onDone={(v) => {
           clearDraft(personId, v.versionId);
           setRestored(false);
           afterServerChange(v);
           setDialog(null);
         }}
-      >
-        <p>
-          The new revision replaces revision {saved.revision} as the version&apos;s content. Evidence gathered on the earlier content no longer applies to it.
-        </p>
-        <NoteField label="Change note (what changed and why)" value={note} onChange={setNote} max={2000} />
-      </CommandDialog>
+      />
 
-      <CommandDialog
-        title="Justify a warning"
-        open={justifying !== null}
+      <JustifyWarningDialog
+        // A fresh text for each opening (the text lives in the dialog, so typing re-renders only the dialog).
+        key={justifying ? `${justifying.justify.key}@${justifying.revision}` : 'closed'}
+        justifying={justifying}
+        versionId={saved.versionId}
+        savedRevision={saved.revision}
+        savedHash={saved.contentHash}
         onClose={() => setDialog(null)}
-        confirmLabel="Record the justification"
-        canConfirm={justification.trim().length > 0 && justifying !== null}
-        run={(idempotencyKey) =>
-          api.call(routes.designer.justify, {
-            params: { versionId: saved.versionId },
-            body: {
-              findingKey: justifying?.justify.key ?? '',
-              text: justification.trim(),
-              // The saved revision whose warning was on screen when the dialog opened: the server refuses when it
-              // was saved again since.
-              baseRevision: justifying?.revision ?? saved.revision,
-              contentHash: justifying?.contentHash ?? saved.contentHash,
-            },
-            idempotencyKey,
-          })
-        }
         onDone={(v) => {
           afterServerChange(v);
           setDialog(null);
         }}
-      >
-        {justifying ? <p>{justifying.justify.message}</p> : null}
-        <p className={dcls('small')}>
-          The justification is recorded with your name and the time, on the saved revision {justifying?.revision ?? saved.revision}; it travels with the version to verification and to the sandbox.
-        </p>
-        <NoteField label="Why the warning is acceptable" value={justification} onChange={setJustification} max={4000} />
-      </CommandDialog>
+      />
 
       <CommandDialog
         title="Start verification"
@@ -444,5 +415,83 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
         </p>
       </CommandDialog>
     </div>
+  );
+}
+
+/**
+ * The change note of a new revision (DI-04). The note the author types is this dialog's own state: a keystroke
+ * re-renders the dialog, not the whole editor behind it (the same fix as JustifyWarningDialog).
+ */
+function SaveRevisionDialog({ open, versionId, savedRevision, wireContent, onClose, onDone }: {
+  open: boolean;
+  versionId: string;
+  savedRevision: number;
+  wireContent: () => ReturnType<typeof asWire>;
+  onClose: () => void;
+  onDone: (v: VersionView) => void;
+}) {
+  const [note, setNote] = useState('');
+  return (
+    <CommandDialog
+      title={`Save revision ${savedRevision + 1}`}
+      open={open}
+      onClose={onClose}
+      confirmLabel="Save revision"
+      canConfirm={note.trim().length > 0}
+      run={(idempotencyKey) =>
+        api.call(routes.designer.saveContent, { params: { versionId }, body: { baseRevision: savedRevision, content: wireContent(), note: note.trim() }, idempotencyKey })
+      }
+      onDone={onDone}
+    >
+      <p>
+        The new revision replaces revision {savedRevision} as the version&apos;s content. Evidence gathered on the earlier content no longer applies to it.
+      </p>
+      <NoteField label="Change note (what changed and why)" value={note} onChange={setNote} max={2000} />
+    </CommandDialog>
+  );
+}
+
+/**
+ * The justification of a warning (IN-02, DI-04). The text the author types is this dialog's own state: a keystroke
+ * re-renders the dialog, not the whole editor behind it.
+ */
+function JustifyWarningDialog({ justifying, versionId, savedRevision, savedHash, onClose, onDone }: {
+  justifying: JustifyDialog | null;
+  versionId: string;
+  savedRevision: number;
+  savedHash: string;
+  onClose: () => void;
+  onDone: (v: VersionView) => void;
+}) {
+  const [justification, setJustification] = useState('');
+  return (
+    <CommandDialog
+      title="Justify a warning"
+      open={justifying !== null}
+      onClose={onClose}
+      confirmLabel="Record the justification"
+      canConfirm={justification.trim().length > 0 && justifying !== null}
+      run={(idempotencyKey) =>
+        api.call(routes.designer.justify, {
+          params: { versionId },
+          body: {
+            findingKey: justifying?.justify.key ?? '',
+            text: justification.trim(),
+            // The saved revision whose warning was on screen when the dialog opened: the server refuses when it
+            // was saved again since.
+            baseRevision: justifying?.revision ?? savedRevision,
+            contentHash: justifying?.contentHash ?? savedHash,
+          },
+          idempotencyKey,
+        })
+      }
+      onDone={onDone}
+    >
+      {justifying ? <p>{justifying.justify.message}</p> : null}
+      <p className={dcls('small')}>
+        The justification is recorded with your name and the time, on the saved revision {justifying?.revision ?? savedRevision}; it travels with the version to verification and to the sandbox.
+      </p>
+      <NoteField label="Why the warning is acceptable" value={justification} onChange={setJustification} max={4000} />
+    </CommandDialog>
   );
 }

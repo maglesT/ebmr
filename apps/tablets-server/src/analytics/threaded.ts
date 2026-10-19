@@ -25,6 +25,12 @@ import type { AnalyticsMessage, AnalyticsRequest, AnalyticsWorkerData } from './
 export interface AnalyticsRunnerApi {
   start(): Promise<boolean>;
   stop(): Promise<void>;
+  /** Phase 7 slice 7g-4 (operations screen): the timer runs (started, not paused, not stopped). */
+  isRunning(): boolean;
+  /** Phase 7 slice 7g-4: stops the timer and waits for the work in progress; the runner can resume. */
+  pause(): Promise<void>;
+  /** Phase 7 slice 7g-4: starts the timer again after pause() (never after stop()). */
+  resume(): Promise<boolean>;
   tick(): Promise<void>;
   nightlyDue(): Promise<boolean>;
   pollCompleted(): Promise<string[]>;
@@ -137,6 +143,23 @@ export class ThreadedAnalyticsRunner implements AnalyticsRunnerApi {
     this.timer.unref();
     void this.tick();
     return true;
+  }
+
+  /** Phase 7 slice 7g-4: the timer runs (started, not paused, not stopped, the worker alive). */
+  isRunning(): boolean {
+    return this.timer !== null && this.ended === null && this.stopping === null;
+  }
+
+  /** Phase 7 slice 7g-4: stops the timer and waits for the worker's work in progress; the worker and its pool stay. */
+  async pause(): Promise<void> {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    await this.ask({ op: 'pause' }).catch(() => undefined);
+  }
+
+  /** Phase 7 slice 7g-4: starts the timer again after pause() (never after stop() or the worker's end). */
+  resume(): Promise<boolean> {
+    return this.start();
   }
 
   /** Stops the timer, lets the worker finish the work in progress and close its pool, then ends the thread. */

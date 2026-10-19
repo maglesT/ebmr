@@ -1631,6 +1631,18 @@ the approval is the ceremony (MANUFACTURER_APPROVED on `approved_manufacturer <i
 [tablets 1259](../../../apps/tablets-server/sql/1259_signing_meanings_receipt.sql)). Tests:
 [receipt-routes.test.ts](../../../apps/tablets-server/test/quality/receipt-routes.test.ts).
 
+## ts-operations: operations without a terminal (Phase 7 slice 7g-4)
+
+[features/operations](../../../apps/tablets-server/src/features/operations/) serves the screens described in
+[tablets-web, operations](tablets-web.md#operations-set-up-demo-data-backups-workers-simulators-api-reference): the
+first-run set-up, the demo data load and reset, backups, the background workers, the simulators and the API reference.
+Contract: [ns/operations.ts](../../../packages/api-contract/src/ns/operations.ts).
+[1485_operations_demo_and_backups.sql](../../../apps/tablets-server/sql/1485_operations_demo_and_backups.sql) refuses
+the demo conveniences on a GMP installation that is not a demo one (`tab.demo_conveniences_problem`,
+`tab.record_demo_act`, EBMR-OPS-010) and reads the backup catalogue by permission (`tab.backup_overview`, EBMR-OPS-030).
+The server records each convenience before it acts, so a refused one does nothing. Tests:
+[test/operations](../../../apps/tablets-server/test/operations/); SQL mutation group `operations-demo-backups`.
+
 ## ts-meta: meta routes
 
 GET `/api/meta` (`meta.get`, contract [meta.ts](../../../packages/api-contract/src/ns/meta.ts)) tells the screens
@@ -1756,6 +1768,23 @@ is read for the session's person only (`trainingAttemptOf`; another person's is 
 **Pitfalls.** Periods are site-zone dates (the zone from `app.siteZone`); a start after the end is EBMR-RPT-001. The
 alarm list is capped at 500 rows but the counts never are. Tests: `apps/tablets-server/test/dashboards/`.
 
+## ts-administration: people, access and the device registry (Phase 7 slice 7g-1)
+
+Decision 0025. [features/administration](../../../apps/tablets-server/src/features/administration/index.ts) binds the
+`people` routes ([people.ts](../../../apps/tablets-server/src/features/administration/people.ts): people, identity checks,
+accounts, credentials, badges, role grants, recertification, break-glass windows) and the `deviceRegistry` routes
+([devices.ts](../../../apps/tablets-server/src/features/administration/devices.ts): terminals and their hardening
+attestation, gateway keys, balance, print and process-device bindings, integration adapters and the OPC UA feed binding
+of slice 7a) on both installations. Each act is the kernel's or the edition's own function (`iam.*`,
+`continuity.record_hardening_attestation`, `tab.bind_*`, `tab.enrol_gateway_key`, `tab.bind_gateway_feed`,
+`iam.register_integration_adapter`) as the person's command with a reason (`ACCESS_ADMINISTRATION`,
+`DEVICE_ADMINISTRATION`); no migration was needed. The reads are gated to SYSTEM_ADMINISTRATOR, PROCESS_OWNER and
+BREAK_GLASS_ADMIN (`ADMIN_READERS`, ROLE_NOT_ALLOWED otherwise). `issueCredential` calls `identity.issueInitialSecret`
+and returns the generated secret once; it and `issueBadge` (which carries the badge UID) are plain commands, not
+idempotent and not FRESH_ON_SHARED, so no stored answer or request hash keeps a secret (on a kiosk the kernel refuses
+them without a fresh tap). A unique-index refusal (23505) is answered as `EBMR-API-DUPLICATE` with the database's
+message. Tests: [administration-routes.test.ts](../../../apps/tablets-server/test/administration/administration-routes.test.ts).
+
 ## ts-core: the golden batches
 
 A **golden batch** is a whole batch run end to end, over HTTP, against a real database, whose every quantity, yield
@@ -1847,3 +1876,18 @@ Found while writing this page; none changes behaviour.
   [api-contract](api-contract.md), [tablets-web](tablets-web.md), [integrations](integrations.md).
 - Generated: [code map](../code-map.md), [database catalogue](../reference/db-catalogue.md),
   [control map](../reference/control-map.md), [error codes](../reference/error-codes.md).
+
+## ts-administration: access governance (Phase 7 slice 7g-5)
+
+Decision 0025. [governance.ts](../../../apps/tablets-server/src/features/administration/governance.ts) and the
+administration plugin bind the `accessGovernance` routes: role-permission requests, their decision and removal
+(`iam.add_role_permission`, `iam.decide_role_permission`, `iam.remove_role_permission`), delegations of signing
+authority (`iam.request_delegation`, `iam.decide_delegation`, `iam.revoke_delegation`) and the US e-signature
+certification letter (`iam.record_us_esig_certification`, `iam.us_esig_certification_status`), each as the person's
+command with the reason `ACCESS_ADMINISTRATION`; no migration was needed. An approval or removal of a role permission
+carries the body's change-record number in the actor context (`changeRecord`), which the configuration guard of kernel
+1195 requires for area ROLE_PERMISSION. A delegation names its delegate by user ID, resolved to the person (an unknown one
+is `EBMR-API-NOT-FOUND` before anything is recorded). Reads: role permissions and certifications to `ADMIN_READERS`;
+delegations to every session, all of them only when the session's role holds IAM.DELEGATION_APPROVE. Tests:
+[access-governance-routes.test.ts](../../../apps/tablets-server/test/administration/access-governance-routes.test.ts);
+the [meta] [db-acts-have-routes.test.ts](../../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts).

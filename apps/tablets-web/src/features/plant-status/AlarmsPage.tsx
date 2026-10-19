@@ -1,10 +1,12 @@
 /**
  * The plant alarm list (DI-49): alarms from Batchwright itself, OPC UA equipment and the EMS, newest first, open ones by default,
- * filtered by state, source and unit or room code; each open alarm is acknowledged here.
+ * filtered by state, source and unit or room code; each open alarm is acknowledged here. One alarm opens in detail
+ * (alarms.alarm; slice 7g-5): its configuration version, severity, tag, every time at the source and at receipt, the
+ * batches and steps it is bound to, and its acknowledgment.
  */
 import { useState } from 'react';
 import { routes, type PlantAlarmView } from '@ebmr/api-contract';
-import { Field, floor } from '@ebmr/ui-kit';
+import { Button, Field, floor } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -18,6 +20,7 @@ export function AlarmsPage() {
   const [state, setState] = useState<(typeof STATES)[number]>('OPEN');
   const [source, setSource] = useState<(typeof SOURCES)[number] | 'ANY'>('ANY');
   const [code, setCode] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
   const subjectCode = code.trim().toUpperCase();
   const q = useApiQuery(routes.alarms.list, {
     query: { state, ...(source !== 'ANY' ? { source } : {}), ...(PLANT_CODE.test(subjectCode) ? { subjectCode } : {}) },
@@ -60,18 +63,19 @@ export function AlarmsPage() {
               <th scope="col">Acknowledgment</th>
             </tr>
           </thead>
-          <tbody>{q.data?.alarms.map((a) => <Row key={a.alarmId} a={a} />)}</tbody>
+          <tbody>{q.data?.alarms.map((a) => <Row key={a.alarmId} a={a} onOpen={() => setOpen(a.alarmId)} />)}</tbody>
         </table>
       </Section>
+      {open ? <AlarmDetail alarmId={open} onClose={() => setOpen(null)} /> : null}
     </>
   );
 }
 
-function Row({ a }: { a: PlantAlarmView }) {
+function Row({ a, onOpen }: { a: PlantAlarmView; onOpen: () => void }) {
   return (
     <tr data-testid={`alarm-${a.alarmId}`} data-gmp-critical={String(a.gmpCritical)}>
       <th scope="row">
-        {a.source} {a.alarmCode}: {a.message} {reading(a)} <Flags a={a} />
+        {a.source} {a.alarmCode}: {a.message} {reading(a)} <Flags a={a} /> <Button onPress={onOpen}>{`Details of ${a.alarmCode} on ${a.subject.code}`}</Button>
       </th>
       <td>{a.subject.code}</td>
       <td>{a.raisedAtSource.text}</td>
@@ -81,5 +85,44 @@ function Row({ a }: { a: PlantAlarmView }) {
         <Acknowledgement a={a} />
       </td>
     </tr>
+  );
+}
+
+/** One alarm as the database holds it now (alarms.alarm), read again after an acknowledgment. */
+function AlarmDetail({ alarmId, onClose }: { alarmId: string; onClose: () => void }) {
+  const q = useApiQuery(routes.alarms.alarm, { params: { alarmId } });
+  const a = q.data;
+  return (
+    <Section title="Alarm in detail" testId="alarm-detail">
+      {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      {a ? (
+        <dl data-testid={`alarm-detail-${a.alarmId}`}>
+          <dt>Alarm</dt>
+          <dd>
+            {a.source} {a.alarmCode} (occurrence {a.occurrenceId}): {a.message} <Flags a={a} />
+          </dd>
+          <dt>Unit or room</dt>
+          <dd>
+            {a.subject.code} ({a.subject.kind === 'AREA' ? 'room or line' : 'equipment'}){a.tag ? `, tag ${a.tag}` : ''}
+          </dd>
+          <dt>Reading</dt>
+          <dd>{reading(a) || 'None sent'}</dd>
+          <dt>Configuration</dt>
+          <dd>{a.codeVersion ? `Version ${a.codeVersion} of the alarm code, severity ${a.severity}` : `Code not configured: treated as GMP-critical (severity ${a.severity})`}</dd>
+          <dt>Times</dt>
+          <dd>
+            Raised at the source {a.raisedAtSource.text}; received {a.receivedAt.text}; {a.clearedAtSource ? `cleared at the source ${a.clearedAtSource.text}` : 'not cleared'};{' '}
+            {a.sourceAcknowledgedAt ? `acknowledged at the source ${a.sourceAcknowledgedAt.text}` : 'not acknowledged at the source'}.
+          </dd>
+          <dt>Batches</dt>
+          <dd>{a.batches.map((b) => `${b.batchNumber}${b.step ? ` (${b.step})` : ''}`).join(', ') || 'None: the unit or room served no batch then'}</dd>
+          <dt>Acknowledgment in Batchwright</dt>
+          <dd>
+            <Acknowledgement a={a} />
+          </dd>
+        </dl>
+      ) : null}
+      <Button onPress={onClose}>Close the details</Button>
+    </Section>
   );
 }

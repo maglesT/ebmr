@@ -19,10 +19,15 @@
  * alarm and does not start (EBMR-INT-035), shown the same way.
  * Workers stop (their cycle ends, their session is closed) when the server closes; their health shows on the
  * integrations routes (AdapterHealthView.worker).
+ * Phase 7 slice 7g-4 (decision 0025): the operations screen starts, stops and restarts each worker (AdapterControl,
+ * platform/operations.ts). A start reads the service-keys file and the registration again, so an adapter configured after
+ * the server started can be started without a restart, and passes the same rules as at start-up: a MIRROR system, an
+ * ACTIVE registration, and on a GMP installation the transport rule (EBMR-INT-034, shown as the refusal).
  */
 import { adapterTransportProblem, type AdapterTls, type SourceSystem } from '@ebmr/integration-sdk/adapter';
 import type pg from 'pg';
 import type { AppContext } from '../../../platform/context.ts';
+import type { AdapterControl, AdapterWorkerState } from '../../../platform/operations.ts';
 import { CMMS_ADAPTER } from './cmms/index.ts';
 import { EMS_ADAPTER } from './ems/index.ts';
 import { ERP_WMS_ROLE, erpWmsWorker } from './erp-wms/index.ts';
@@ -80,20 +85,93 @@ export async function mirroredSystems(db: Pick<pg.Pool, 'query'>): Promise<Set<S
 
 /** The running adapters of this server process. */
 export interface AdapterRuntime {
-  workers: readonly AdapterWorker[];
+  /** The workers running now. */
+  readonly workers: readonly AdapterWorker[];
   /** The health of the worker of adapter `code` (BLOCKED, naming why, for one refused at start), or null when none runs. */
   health(code: string): AdapterHealth | null;
-  /** The adapters refused at start because of their transport (EBMR-INT-034, slice 7a) or of interface drift (EBMR-INT-035, slice 7c), with why. */
-  refusedAtStart: ReadonlyMap<string, string>;
+  /** The adapters refused at their last start because of their transport (EBMR-INT-034, slice 7a) or of interface drift (EBMR-INT-035, slice 7c), with why. */
+  readonly refusedAtStart: ReadonlyMap<string, string>;
+  /** Start, stop and list the workers (the operations screen, slice 7g-4). */
+  control: AdapterControl;
   stop(): Promise<void>;
 }
 
 type Log = { warn(obj: object, msg: string): void; info(obj: object, msg: string): void };
 
-/** Starts every configured adapter of a MIRROR system (header). Never throws: a slot that cannot start is logged. */
+interface Resolved {
+  slot: Slot;
+  entry: NonNullable<ReturnType<typeof adapterEntry>>;
+}
+
+/**
+ * Starts every configured adapter of a MIRROR system (header). Never throws: a slot that cannot start is logged. The
+ * runtime it returns starts and stops each one later (AdapterControl).
+ */
 export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000): Promise<AdapterRuntime> {
-  const workers: AdapterWorker[] = [];
+  const workers = new Map<string, AdapterWorker>();
   const refused = new Map<string, AdapterHealth>();
+  /** Why an adapter is not running when it was not started (STAND_IN, not configured), by code. */
+  const notStarted = new Map<string, string>();
+
+  /** The slot and service-keys entry of an ACTIVE adapter registration, read now; or why there is none. */
+  const resolve = async (code: string): Promise<Resolved | string> => {
+    const file = app.config.serviceKeysFile;
+    const { rows } = await app.pools.app.query<{ system: SourceSystem; login: string }>(
+      "select d.source_system as system, a.login_name as login from iam.integration_adapter d join iam.account a on a.id = d.account_id where d.code = $1 and d.status = 'ACTIVE'",
+      [code],
+    );
+    const reg = rows[0];
+    if (!reg) return `the adapter ${code} has no ACTIVE registration`;
+    if (!file) return `the adapter ${code} is not configured on this server: no service-keys file (EBMR_SERVICE_KEYS_FILE)`;
+    for (const slot of ADAPTER_SLOTS.filter((s) => s.system === reg.system)) {
+      const entry = adapterEntry(file, slot.terminal);
+      if (entry && entry.loginName === reg.login) return { slot, entry };
+    }
+    return `the adapter ${code} is not configured on this server: no entry of its account ${reg.login} with an endpoint in the service-keys file`;
+  };
+
+  /** Starts the worker of adapter `code` on `r`; the refusal, or null when it runs. */
+  const launch = async (code: string, r: Resolved, mirrored: Set<SourceSystem>): Promise<string | null> => {
+    if (!mirrored.has(r.slot.system)) {
+      const why = `the site runs ${r.slot.system} as STAND_IN: its adapter does not start (D-P6a-5)`;
+      notStarted.set(code, why);
+      return why;
+    }
+    // Slice 7a (6jc-R9, DI-31): mutual TLS from EBMR_ADAPTER_TLS_DIR; a GMP installation starts no adapter off loopback
+    // without it, and the health page names the refusal (EBMR-INT-034).
+    let tls: AdapterTls | undefined;
+    let problem: string | null;
+    try {
+      tls = adapterTlsOf(app.config.adapterTlsDir, code);
+      problem = adapterTransportProblem(r.entry.endpoint, tls, app.installation);
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+    }
+    if (problem !== null) {
+      log.warn({ adapter: code, system: r.slot.system, endpoint: r.entry.endpoint, code: 'EBMR-INT-034' }, problem);
+      refused.set(code, refusedHealth(code, r.slot.system, problem));
+      return problem;
+    }
+    refused.delete(code);
+    notStarted.delete(code);
+    const entry = r.entry;
+    const w = r.slot.make(app.pools.app, code, () => openAdapterActor(app, entry, r.slot.roleCode), entry.endpoint, tls);
+    // Slice 7c (DI-06, kernel 1350): the database checks the adapter against the approved system description as the
+    // adapter itself; on a GMP installation an interface not described raises the INTERFACE_DRIFT alarm and does not
+    // start (EBMR-INT-035), and the health page names the refusal.
+    const drift = await w.command(async (c) => (await c.query<{ p: string | null }>('select platform.check_adapter_start() as p')).rows[0]?.p ?? null);
+    if (drift !== null) {
+      await w.stop();
+      log.warn({ adapter: code, system: r.slot.system, code: 'EBMR-INT-035' }, drift);
+      refused.set(code, refusedHealth(code, r.slot.system, drift));
+      return drift;
+    }
+    w.start(intervalMs, log);
+    workers.set(code, w);
+    log.info({ adapter: code, system: r.slot.system, endpoint: entry.endpoint, mutualTls: tls !== undefined }, 'integration adapter started');
+    return null;
+  };
+
   const file = app.config.serviceKeysFile;
   const mirrored = file ? await mirroredSystems(app.pools.app) : new Set<SourceSystem>();
   for (const slot of file ? ADAPTER_SLOTS : []) {
@@ -113,47 +191,60 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
         log.warn({ terminal: slot.terminal, system: slot.system, account: entry.loginName }, 'the adapter account is not registered as an active adapter of its system; it does not start');
         continue;
       }
-      // Slice 7a (6jc-R9, DI-31): mutual TLS from EBMR_ADAPTER_TLS_DIR; a GMP installation starts no adapter off loopback
-      // without it, and the health page names the refusal (EBMR-INT-034).
-      let tls: AdapterTls | undefined;
-      let problem: string | null;
-      try {
-        tls = adapterTlsOf(app.config.adapterTlsDir, code);
-        problem = adapterTransportProblem(entry.endpoint, tls, app.installation);
-      } catch (e) {
-        problem = e instanceof Error ? e.message : String(e);
-      }
-      if (problem !== null) {
-        log.warn({ adapter: code, system: slot.system, endpoint: entry.endpoint, code: 'EBMR-INT-034' }, problem);
-        refused.set(code, refusedHealth(code, slot.system, problem));
-        continue;
-      }
-      const w = slot.make(app.pools.app, code, () => openAdapterActor(app, entry, slot.roleCode), entry.endpoint, tls);
-      // Slice 7c (DI-06, kernel 1350): the database checks the adapter against the approved system description as the
-      // adapter itself; on a GMP installation an interface not described raises the INTERFACE_DRIFT alarm and does not
-      // start (EBMR-INT-035), and the health page names the refusal.
-      const drift = await w.command(async (c) => (await c.query<{ p: string | null }>('select platform.check_adapter_start() as p')).rows[0]?.p ?? null);
-      if (drift !== null) {
-        await w.stop();
-        log.warn({ adapter: code, system: slot.system, code: 'EBMR-INT-035' }, drift);
-        refused.set(code, refusedHealth(code, slot.system, drift));
-        continue;
-      }
-      w.start(intervalMs, log);
-      workers.push(w);
-      log.info({ adapter: code, system: slot.system, endpoint: entry.endpoint, mutualTls: tls !== undefined }, 'integration adapter started');
+      await launch(code, { slot, entry }, mirrored);
     } catch (e) {
       log.warn({ terminal: slot.terminal, err: e instanceof Error ? e.message : String(e) }, 'the integration adapter could not start');
     }
   }
-  const byCode = new Map(workers.map((w) => [w.def.code, w]));
-  return {
-    workers,
-    health: (code) => byCode.get(code)?.health() ?? (refused.has(code) ? { ...(refused.get(code) as AdapterHealth) } : null),
-    refusedAtStart: new Map([...refused].map(([c, h]) => [c, h.lastError ?? ''])),
-    stop: async () => {
-      await Promise.all(workers.map((w) => w.stop()));
+
+  const stopOne = async (code: string): Promise<void> => {
+    const w = workers.get(code);
+    workers.delete(code);
+    if (w) await w.stop();
+  };
+  const stopAll = async (): Promise<void> => {
+    const all = [...workers.keys()];
+    await Promise.all(all.map((c) => stopOne(c)));
+  };
+
+  const control: AdapterControl = {
+    async list(): Promise<AdapterWorkerState[]> {
+      const { rows } = await app.pools.app.query<{ code: string; system: SourceSystem }>(
+        "select d.code, d.source_system as system from iam.integration_adapter d where d.status = 'ACTIVE' order by d.code collate \"C\"",
+      );
+      return rows.map((r) => {
+        const w = workers.get(r.code);
+        if (w) {
+          const h = w.health();
+          return { code: r.code, system: r.system, running: true, state: h.state, problem: h.lastError };
+        }
+        const why = refused.get(r.code)?.lastError ?? notStarted.get(r.code) ?? null;
+        return { code: r.code, system: r.system, running: false, state: 'STOPPED', problem: why };
+      });
     },
+    async start(code: string): Promise<string | null> {
+      if (workers.has(code)) return null;
+      const r = await resolve(code);
+      if (typeof r === 'string') {
+        notStarted.set(code, r);
+        return r;
+      }
+      return launch(code, r, await mirroredSystems(app.pools.app));
+    },
+    stop: stopOne,
+    stopAll,
+  };
+
+  return {
+    get workers() {
+      return [...workers.values()];
+    },
+    health: (code) => workers.get(code)?.health() ?? (refused.has(code) ? { ...(refused.get(code) as AdapterHealth) } : null),
+    get refusedAtStart() {
+      return new Map([...refused].map(([c, h]) => [c, h.lastError ?? '']));
+    },
+    control,
+    stop: stopAll,
   };
 }
 

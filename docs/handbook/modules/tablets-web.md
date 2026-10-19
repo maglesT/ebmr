@@ -910,6 +910,46 @@ mirrors with their mode, age and bound, a stale blocking mirror named with whom 
 acknowledged with a note, with a badge tap on a shared terminal) and one adapter (messages accepted, refusals with their
 class, reconciliation reports). Tests: [integrations.test.tsx](../../../apps/tablets-web/test/integrations/integrations.test.tsx).
 
+### operations: set-up, demo data, backups, workers, simulators, API reference
+
+[features/operations](../../../apps/tablets-web/src/features/operations/) (Phase 7 slice 7g-4; [decision 0025](../../decisions/0025-every-act-has-a-screen.md)
+point 2: nobody types a command to use the system). The routes are in
+[ns/operations.ts](../../../packages/api-contract/src/ns/operations.ts) and the server's
+[features/operations](../../../apps/tablets-server/src/features/operations/).
+
+- **The first-run set-up** ([SetupWizard.tsx](../../../apps/tablets-web/src/features/operations/SetupWizard.tsx)). While
+  `meta.setupRequired` is true (no administrator yet), the shell shows it instead of the sign-in (boot phase `setup`).
+  It shows the installation's kind (fixed when it was installed) and the site time zone in force, and asks for the
+  installer's one-time set-up token, the site code and name, the first system administrator and process owner with
+  their first passwords, and whether to generate the e-signature seal key. This browser makes a new terminal key and
+  sends only its public key: it becomes the administrator's console (`BOOTSTRAP-CONSOLE-1`). The token and the
+  passwords are read from their fields only when sent (SecretInput). The database decides everything
+  ([`iam.first_run_setup`](../../../packages/kernel/sql/1375_first_run_setup.sql#sym=iam.first_run_setup)).
+- **Operations** (`/operations`, a home tile) links the pages below. The installation's kind decides what they offer;
+  the database decides who may use them.
+- **Demo and test data** (`/operations/demo`): load the demo data or reset the installation, on a sandbox or a demo
+  installation only. The page names what is lost (persons, accounts, terminals, batches, signatures, audit entries),
+  and the person types the database name to confirm. Both acts recreate the database, so the page follows the job
+  (`operations.demoJob`, no session needed) and then starts the application again. A reset shows the new set-up token
+  once.
+- **Backups** (`/operations/backups`): take an operational backup with a reason; the catalogue lists each backup with
+  its size, time and SHA-256, the job runs and the requests; "Take a copy" offers the stored artefact (encrypted, as
+  stored) to save.
+- **Background workers** (`/operations/workers`, and a panel on the integration health page): start, stop or restart
+  each adapter's worker and the analytics runner with a reason. An adapter that may not start shows why
+  (`EBMR-INT-034`, a STAND_IN system, no configuration).
+- **Simulators** (`/operations/simulators`, demo and sandbox only): start and stop the ERP, WMS, QMS, LIMS, LMS, CMMS,
+  EMS, L3 and OPC UA simulators and switch their faults. The adapter endpoint each one serves is shown.
+- **API reference** (`/developer/api`, a home tile): the OpenAPI document of the contract as the server builds it
+  (`meta.openapi`), grouped by namespace, with a filter and each route's schemas on demand. It is rendered here: no
+  third-party viewer and nothing from another origin, so the strict CSP holds.
+
+Tests: [operations.test.tsx](../../../apps/tablets-web/test/operations/operations.test.tsx),
+[setup-wizard.test.tsx](../../../apps/tablets-web/test/operations/setup-wizard.test.tsx), the `[meta]` test that every
+command used to operate an installation has a screen
+([commands-have-screens.test.ts](../../../apps/tablets-web/test/meta/commands-have-screens.test.ts)), and the browser
+flows in [operations.spec.ts](../../../tools/e2e/specs/operations/operations.spec.ts).
+
 ### quality: receipt with supplier batches, the receipt record, approved manufacturers
 
 In [features/quality](../../../apps/tablets-web/src/features/quality/) (Phase 6 slice 6a, builder A; PR-17):
@@ -978,6 +1018,118 @@ kind and code and shows the lists with an export (JSON with the server's content
 server's TEST, NOT GMP watermark band (besides the shell's), the personas and the exercises; "Mark done" posts the step of
 the person's own attempt. Tests: `apps/tablets-web/test/dashboards/`.
 
+## People, access and devices (feature `administration`, Phase 7 slice 7g-1)
+
+[features/administration](../../../apps/tablets-web/src/features/administration/index.tsx) (decision 0025: every act a
+person performs has a screen) serves both installations over the contract namespaces `people` and `deviceRegistry`
+(server feature `administration`):
+
+- `/admin/people` ([PeoplePage](../../../apps/tablets-web/src/features/administration/PeoplePage.tsx)): record a person,
+  record an identity check, a change of legal name, open and activate an account, suspend, reinstate, deactivate or
+  unlock it, process a leaver; issue an initial password, PIN or service key; issue a badge against an identity check,
+  test it, activate it, report it lost or revoke it.
+- `/admin/grants` ([GrantsPage](../../../apps/tablets-web/src/features/administration/GrantsPage.tsx)): the administrator
+  requests a role for an account and scope; a second person approves or refuses it; the administrator revokes it.
+- `/admin/recertification` and `/admin/break-glass`
+  ([AccessReviewPages](../../../apps/tablets-web/src/features/administration/AccessReviewPages.tsx)): the process owner
+  recertifies an account's grants (or revokes them all); the holder of a break-glass account requests a window, the
+  process owner approves it and reviews it after it ends.
+- `/admin/devices` ([DevicesPage](../../../apps/tablets-web/src/features/administration/DevicesPage.tsx)): register a
+  terminal or device with its class, room and key fingerprint, move, block or decommission it, attest the hardening of a
+  shared or Grade A/B kiosk; enrol or revoke a gateway's Ed25519 key; bind a balance, printer or process device behind a
+  gateway key and end the binding; register an integration adapter and bind an OPC UA adapter to a gateway's feed
+  (slice 7a).
+
+Rules the screens keep, all of them also the database's: an act offered to a role is only a convenience (the
+[shared.tsx](../../../apps/tablets-web/src/features/administration/shared.tsx) role patterns); a grant or a break-glass
+window is never offered for decision to the person who requested it or receives it (the database refuses it with
+EBMR-IAM-032 or EBMR-IAM-130 anyway). **Secrets:** the directory shows credentials and badges as metadata only. An
+initial secret is generated by the server (only its argon2id verifier is stored) and returned once by the issuing call,
+which is not idempotent so that nothing keeps the answer; the screen shows it in `SecretHandover`, hidden until "Show it
+to the person" and dropped by "Handed over" (`useCommand(...).reset`, added for this). A badge UID is typed into a
+secret field and sent once; that call is not idempotent either (no request hash over the UID is kept). A row the
+database refuses as a duplicate by a unique index (an adapter code, one adapter per integration account) is answered as
+`EBMR-API-DUPLICATE` with the database's message, not as an internal error.
+
+**Completeness ([meta]):** [screen-completeness.test.ts](../../../apps/tablets-web/test/meta/screen-completeness.test.ts)
+fails unless every route of the contract and every signable action is called by a screen, or is listed with its reason
+(service-only, pending 7g-2 or 7g-3, or found without a slice). Tests:
+[administration.test.tsx](../../../apps/tablets-web/test/administration/administration.test.tsx), the server's
+[administration-routes.test.ts](../../../apps/tablets-server/test/administration/administration-routes.test.ts) and the
+browser suite's [administration.spec.ts](../../../tools/e2e/specs/administration/administration.spec.ts).
+
+## Master records, plant rules and incidents (Phase 7 slice 7g-2)
+
+Decision 0025 asks for a screen for every act a person performs. Slice 7g-2 added three features. Every act is offered
+to whoever opens the page: who may do what, and the separation of duties (the checker is not the author, the approver
+is neither, the approver of a plant rule is not its proposer), is the database's rule, and its refusal is shown in its
+own words ([How refusals are shown](#how-refusals-are-shown)).
+
+### master-records: MBR signatures, market authorisations and specimens
+
+**What the person does.** On `/mbr/versions/$versionId/signing` (the designer's toolbar links to it as "Signatures and
+markets") the author signs a version as *Prepared*, a checker as *Independently checked*, the regulatory-conformity
+signer confirms the registration references and QA approves it. For an approved version QA proposes the authorisation
+for a market and scope (site, line, batch size) with its regulatory basis; the regulatory signer confirms the market's
+registration; QA, another person, authorises it with its own reason, which makes it effective; QA may withdraw it with a
+reason. On `/mbr/specimens` (home tile **Labelling specimens**) QA approves a label or packaging specimen that the
+master-data steward recorded as a SPECIMEN reference document.
+
+**Screens.** [MbrSigningPage.tsx](../../../apps/tablets-web/src/features/master-records/MbrSigningPage.tsx),
+[SpecimensPage.tsx](../../../apps/tablets-web/src/features/master-records/SpecimensPage.tsx).
+
+**Routes.** `designer.version`, `esig.signatures`, `designer.marketAuthorisations`,
+`designer.proposeMarketAuthorisation`, `designer.withdrawMarketAuthorisation`, `designer.specimens`.
+
+**Signatures.** `MBR_TRANSITION` (SUBMIT: PREPARED, CHECK: CHECKED, REGULATORY_CONFIRM: REGULATORY_CONFIRMED, APPROVE:
+APPROVED, on the revision shown); `MBR_MARKET_ACT` (REGULATORY_CONFIRM: REGULATORY_CONFIRMED; AUTHORISE:
+MBR_MARKET_AUTHORISED with QA's reason, the same command activates the record); `SPECIMEN_ACT` APPROVE
+(SPECIMEN_APPROVED, never the person who recorded the specimen; tablets 1479).
+
+**Tests.** [slice7g2/master-records.test.tsx](../../../apps/tablets-web/test/slice7g2/master-records.test.tsx). Browser
+[phase7/master-records.spec.ts](../../../tools/e2e/specs/phase7/master-records.spec.ts) (four people from draft to an
+active IN authorisation; the author's own check refused; a specimen refused to the steward and approved by QA).
+
+### plant-rules: penicillin facility and beta-lactam rules
+
+**What the person does.** On `/plant-rules` (home tile **Penicillin and beta-lactam rules**) the master-data steward
+proposes that a site is (or is not) a penicillin facility, or that a material or product is (or is not) beta-lactam. A
+QA person who did not propose it approves the latest proposal. The screen shows, per subject, the value in force, whether
+a proposal waits for QA, and each version with its effect: a tightening (a site that is not a penicillin facility, a
+beta-lactam material) is in force at once; a loosening only once approved.
+
+**Screen.** [PlantRulesPage.tsx](../../../apps/tablets-web/src/features/plant-rules/PlantRulesPage.tsx).
+
+**Routes.** `plantRules.proposals` (new: the database's in-force views and every version), `plantRules.setFacilityRule`,
+`plantRules.classifyBetaLactam`.
+
+**Signature.** `INDIA_ACT` FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE (QA_APPROVED; recipe-core 1210).
+
+**Tests.** [slice7g2/plant-rules.test.tsx](../../../apps/tablets-web/test/slice7g2/plant-rules.test.tsx). Browser
+[phase7/plant-rules.spec.ts](../../../tools/e2e/specs/phase7/plant-rules.spec.ts) (the proposer refused, QA approves).
+
+### incidents: the incident register and the CERT-In step
+
+**What the person does.** On `/incidents` (home tile **Incident register**) anyone holding INCIDENT.RAISE raises an
+incident with its source, type, severity and an affected record, and sees the register with the CERT-In reports due and
+their deadlines. On `/incidents/$incidentId` QA links further records, starts the investigation, changes the severity
+with a justification, assesses the impact on each linked record (which lifts that record's disposition block), marks the
+incident reportable to CERT-In, records the report made (when, and CERT-In's acknowledgement) and closes it. The window,
+the deadline and whether it has passed are the database's (`records.cert_in_reporting_window`, not yet verified against
+the official text). The report time is a claimed time typed with its offset (seconds may be left out; the screen sends
+them as `:00`, the form the contract takes); the database alone checks that it lies between the occurrence and its own
+now, so the browser's clock decides nothing (7g-2 defect P7G2-2).
+
+**Screens.** [IncidentsPage.tsx](../../../apps/tablets-web/src/features/incidents/IncidentsPage.tsx),
+[IncidentPage.tsx](../../../apps/tablets-web/src/features/incidents/IncidentPage.tsx).
+
+**Routes.** `incidents.*` (new namespace, kernel 0410's commands): `register`, `detail`, `raise`, `link`,
+`startInvestigation`, `reclassify`, `assessImpact`, `markCertInReportable`, `recordCertInReport`, `close`.
+
+**Tests.** [slice7g2/incidents.test.tsx](../../../apps/tablets-web/test/slice7g2/incidents.test.tsx). Browser
+[phase7/incidents.spec.ts](../../../tools/e2e/specs/phase7/incidents.spec.ts) (raised by a batch issuer; the closure
+before the CERT-In report refused).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.
@@ -1041,3 +1193,60 @@ Found while writing this page; none changes behaviour.
   (the browser suite, the demo).
 - Generated: [code map](../code-map.md), [error codes](../reference/error-codes.md),
   [control map](../reference/control-map.md).
+
+## Access governance and the remaining screens (Phase 7 slice 7g-5)
+
+Decision 0025. Three acts had a database function and no route, so no screen; slice 7g-5 gave them the contract
+namespace `accessGovernance` ([ns/access-governance.ts](../../../packages/api-contract/src/ns/access-governance.ts)) and
+screens in [GovernancePages](../../../apps/tablets-web/src/features/administration/GovernancePages.tsx), on both
+installations:
+
+- `/admin/role-permissions`: the roles with the permissions they hold now; the system administrator requests a
+  permission for a role (`iam.add_role_permission`); a second person approves or refuses it (`iam.decide_role_permission`;
+  never the requester, never a holder of the role, and INV-11 holds), naming the approved change record covering
+  ROLE_PERMISSION, since a role's permissions are configuration (DI-09; without one the database refuses with
+  EBMR-CFG-001 and the screen shows it); the administrator removes a permission at once under a change record.
+- `/admin/delegations`: a holder of signing authority delegates delegable meanings (the e-signature catalogue's) to a
+  named user ID for a scope, markets and a window, citing the procedure; a third person approves it (never the delegator,
+  the delegate or the requester; EBMR-IAM-182); the delegator or an approver revokes it; nobody passes on a meaning held
+  only by delegation (EBMR-IAM-181). The read shows all delegations to a role holding IAM.DELEGATION_APPROVE, otherwise
+  the person's own.
+- `/admin/us-esig-certification`: the process owner records the legal entity's certification letter to the US agency
+  on electronic signatures (reference, submission date, acknowledgement); the page shows the policy mode and, for a
+  legal entity typed in, whether a letter is on file and whether US-market work is blocked (`iam.us_esig_certification_status`).
+
+The 25 routes the completeness test had found without a screen (defect log 7g1-1) each got one, mostly inside the screen
+where the act belongs:
+
+- the session's inactivity warning: the kiosk keep-alive (`access.keepAlive`) is wired into the warning slice 7d built
+  in [controller.tsx](../../../apps/tablets-web/src/features/access/controller.tsx) (A11Y-1; the 7g-5 copy of it was
+  dropped at the merge of main); on a kiosk the person taps their own badge, proved by the terminal key over the request;
+- the floor's batch overview on GMP: "What you can do now in this batch" (`batches.workQueue`);
+- `/india/product-rules` ([ProductRulesPage](../../../apps/tablets-web/src/features/india/ProductRulesPage.tsx)):
+  shelf-life bases (head of QC, QA) and hazard classes of products and dedicated rooms (QA), each approved by a second QA
+  person through the ceremony (INDIA_ACT HAZARD_APPROVE, DEDICATION_APPROVE);
+- the CAPA page: schedule another effectiveness check; the alarm list: one alarm in detail; `/equipment-records`
+  ([EquipmentRecordsPage](../../../apps/tablets-web/src/features/plant-status/EquipmentRecordsPage.tsx)): equipment events
+  and a batch's original device records; the rooms page: a new version of a room's rules and the adjacency and
+  segregation of rooms and lines (the master-data steward); `/reagent-lots`
+  ([ReagentLotsPage](../../../apps/tablets-web/src/features/plant-status/ReagentLotsPage.tsx)): record and withdraw a lot
+  (QC), record the lot a check used (the floor);
+- label templates: one version's layout in detail; transfers: the system administrator proposes a peer installation;
+  dashboards: the report views and their documented export, downloaded as exactly the text the server's SHA-256 covers;
+  analytics flags: every disposition of a flag; the master records library: the reference documents; deviations: store
+  an evidence document (the database computes its SHA-256 and size); the release cockpit's After release tab: the lot's
+  shipments with the states the interlock saw.
+
+**Completeness ([meta]):** the web test's `NO_SLICE_YET` list is empty, and the `accessGovernance` namespace is checked
+route by route like `people` and `deviceRegistry`. The server's
+[db-acts-have-routes.test.ts](../../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts) closes the gap the
+web test cannot see: every SECURITY DEFINER function the application role may execute whose permission a person's role
+holds must be called by a route (through the server's source, the package declarations it reaches and the SQL bodies
+and views those call), or be listed with its reason (service or Phase 2 stand-in, pending 7g-2/7g-3/7g-4, or found with
+no route yet: defect log 7g5-1). Tests: [governance.test.tsx](../../../apps/tablets-web/test/administration/governance.test.tsx),
+[screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx),
+[batch-work-queue.test.tsx](../../../apps/tablets-web/test/floor/batch-work-queue.test.tsx),
+[idle-warning.test.tsx](../../../apps/tablets-web/test/access/idle-warning.test.tsx), the server's
+[access-governance-routes.test.ts](../../../apps/tablets-server/test/administration/access-governance-routes.test.ts) and
+the browser suite's [governance.spec.ts](../../../tools/e2e/specs/administration/governance.spec.ts) and
+[screen-gaps.spec.ts](../../../tools/e2e/specs/administration/screen-gaps.spec.ts).

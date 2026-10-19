@@ -40,6 +40,10 @@ tests:
   - "packages/kernel/test/records/records-cli.test.ts > the records command line (Phase 7 slice 7b-2) > [DI-08][DI-11] full-export writes and registers the export; evaluation-pack stores the pack read through the reporting role; usage and refusals give exit codes 2 and 1"
   - "apps/tablets-server/test/validation/evaluation-permissions.test.ts > the periodic evaluation and the full export on the Tablets roles (kernel 1335, 1336) > [DI-11] VALIDATION.APPROVE_EVALUATION is held by the quality unit only, VALIDATION.MANAGE by the CSV and data-integrity lead"
   - "apps/tablets-server/test/validation/evaluation-permissions.test.ts > the periodic evaluation and the full export on the Tablets roles (kernel 1335, 1336) > [DI-08][DI-11] the Tablets database knows the closed batch records and every topic of the evaluation, with the source logs of each module"
+  - "apps/tablets-server/test/validation/export-routes.test.ts > the periodic evaluation pack (kernel 1336) > [DI-11][DI-44][DI-37] the CSV lead generates the pack of an ended period with its readability report; QA signs it off, never the person who generated it"
+  - "apps/tablets-server/test/validation/export-routes.test.ts > the periodic evaluation pack (kernel 1336) > [DI-11] a period that has not ended is refused by the database; nothing is stored"
+  - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-44] a pack is generated for a period typed with its offset, a seed and a sample size"
+  - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-37] QA signs off a stored pack; a signed-off pack is not offered again"
 clauses:
   - clause: "Generate the pack for a test period and trace 5 sampled entries per topic back to their source logs."
     deferred:

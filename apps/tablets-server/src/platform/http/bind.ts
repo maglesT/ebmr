@@ -388,6 +388,13 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     if (rl?.by === 'DEVICE') preHandlers.push(deviceRateGate(scope, app, route.id, rl));
 
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
+      // Phase 7 slice 7g-4: while a demo load or reset recreates the database only the open routes of app.ts reach here
+      // (all of them auth NONE), and the database is being dropped: no session is looked up, so following the job never
+      // depends on the old database (the sessions go with it).
+      if (app.operations.maintenance !== null && route.auth !== 'SESSION') {
+        request.ebmrSession = null;
+        return;
+      }
       const session = await sessionOf(app, request);
       if (route.auth !== 'SESSION') return;
       // F41 round 4: a session the page did not start with is served as nobody, and nothing of it is touched.

@@ -19,6 +19,7 @@ import { LotsPage } from './LotsPage.tsx';
 import { ReprocessingPage } from './ReprocessingPage.tsx';
 import { ReturnsPage } from './ReturnsPage.tsx';
 import { SpecificationsPage } from './SpecificationsPage.tsx';
+import { VendorRoutesPage } from './VendorRoutesPage.tsx';
 
 function QualityHome() {
   return (
@@ -52,6 +53,9 @@ function QualityHome() {
         <li>
           <Link to="/quality/erp">ERP import status</Link>
         </li>
+        <li>
+          <Link to="/quality/vendor-routes">Vendor-history routes</Link>
+        </li>
       </ul>
     </>
   );
@@ -68,6 +72,7 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/quality/returns', component: ReturnsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/extra-testing', component: BatchQualityPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/reprocessing', component: ReprocessingPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/vendor-routes', component: VendorRoutesPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/erp', component: ErpStatusPage }),
     // Phase 6 slice 6a builder A: receipt with supplier batches, the receipt record and the approved-manufacturer register (PR-17).
     createRoute({ getParentRoute: () => root, path: '/quality/receipt', component: DeliveryReceiptPage }),

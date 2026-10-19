@@ -5,7 +5,7 @@
  *
  * The demo device picker imports a seeded DEMO-ONLY private key as non-extractable (demo databases only).
  */
-import { base64ToBytes } from './base64.ts';
+import { base64ToBytes, bytesToBase64 } from './base64.ts';
 
 export interface StoredDeviceKey {
   privateKey: CryptoKey;
@@ -60,6 +60,19 @@ export async function forgetDeviceKey(): Promise<void> {
 export async function importDemoKey(privateKeyPkcs8: string, publicKeySpki: string, label: string): Promise<StoredDeviceKey> {
   const privateKey = await crypto.subtle.importKey('pkcs8', base64ToBytes(privateKeyPkcs8), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const stored = { privateKey, publicKeySpki, label };
+  await saveDeviceKey(stored);
+  return stored;
+}
+
+/**
+ * Phase 7 slice 7g-4: a new terminal key made in this browser (the first-run set-up's console): a non-extractable
+ * ECDSA P-256 private key, kept in IndexedDB as the device key; its public key (always exportable) is what the server
+ * registers.
+ */
+export async function generateDeviceKey(label: string): Promise<StoredDeviceKey> {
+  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
+  const spki = await crypto.subtle.exportKey('spki', pair.publicKey);
+  const stored = { privateKey: pair.privateKey, publicKeySpki: bytesToBase64(spki), label };
   await saveDeviceKey(stored);
   return stored;
 }

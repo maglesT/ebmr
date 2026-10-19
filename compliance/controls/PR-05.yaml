@@ -70,6 +70,13 @@ tests:
   - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [PR-05] an overdue review is in the report view the dashboard reads, with its days overdue; one not yet due is not"
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [PR-05] an overdue review appears on the dashboard, drilling to the MBR version"
+  - "apps/tablets-server/test/designer/master-records.test.ts > market authorisations (ADR 0014) > [PR-04][PR-05] QA proposes, the regulatory signer confirms, QA authorises (ACTIVE) and withdraws it with its own reason; the wrong person is refused at each step"
+  - "apps/tablets-web/test/slice7g2/master-records.test.tsx > market authorisations > [PR-04][PR-05] QA proposes an authorisation for a market of the master and scope; an active one shows who confirmed and authorised it and can be withdrawn with a reason"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > master records: change assessments, periodic review, risk links > [PR-05] QA records the periodic review of the approved version with a next due date in the future; a date not in the future is refused; the author holds no MBR.APPROVE"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > master records: change assessments, periodic review, risk links > [PR-05] the author unlinks a risk assessment from a draft once; QA holds no MBR.AUTHOR"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > compendial rule sets and reference documents > [PR-05][DI-22] the master-data steward retires a reference document version with a reason; a date before it took effect is refused; QA holds no MASTERDATA.CHANGE"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-05] records the periodic review with its outcome and next due date, and unlinks a risk assessment; a refusal is shown in the server's words"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-05][DI-22] the reference documents screen retires a version from a date with the reason"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

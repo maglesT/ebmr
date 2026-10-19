@@ -55,6 +55,9 @@ tests:
   - "apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts > packaging line completion, rule by rule (tablets 1230) > [PR-36] a rejection opens a stop while another order's stop is open, and again after its own stop was resolved; a stop is resolved by id with a reason of up to 2000 characters"
   - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > the labelling declaration, rule by rule (recipe-core 0990, D-P6c-8) > [PR-36] an unknown version, form, option or template is refused by name; a valid option on cut labels is declared"
   - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > the labelling declaration, rule by rule (recipe-core 0990, D-P6c-8) > [PR-36] a declared item the draft no longer prints is an approval problem; the labelling view reports the version's own state"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-36][IN-31] shows the labelling of a master and why it would fail approval; declares a cut label with its 211.122(g) control"
+  - "apps/tablets-server/test/execution/floor-acts-routes.test.ts > the batch data of a packaging step and its print job (IN-31, PR-36) > [IN-31][PR-36][DI-22] the giver of an MRP neither checks nor releases; a second person checks it; the job then carries the record's data; a change after set-up needs the person's reason and voids the job"
+  - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [IN-31][PR-36] records the batch data with the MRP, offers the second person's check of the version, asks a reason for a new version, and releases a print job"
 clauses:
   - clause: "Changing batch data after print set-up invalidates the job."
     tests:

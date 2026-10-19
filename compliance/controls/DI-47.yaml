@@ -152,6 +152,10 @@ tests:
   - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47] the batch supports the packaging batches packed from it and depends on the processing batches it was packed from, never on itself"
   - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [DI-47][IN-08] QA stores each batch's retention from its record, a second sync updates it, and the processing record follows the packaging record packed from it, whichever is stored first"
   - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [DI-41][DI-47][DI-17] a batch whose retention is stored still opens in the archive and is exported with its stored retention, read without the investigation-revealing kernel reader"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > legal holds and disposal (kernel 0420, 0440) > [DI-47] QA places a legal hold with the reason; the record is not disposable while it holds; the release needs a reason; without the right nothing is placed"
+  - "apps/tablets-server/test/validation/records-register-routes.test.ts > legal holds and disposal (kernel 0420, 0440) > [DI-47][DI-37] the disposal of a record whose retention ended is approved by another QA person with a signature of the record at its retain-until date, and the reason"
+  - "apps/tablets-web/test/validation/records-register.test.tsx > retention, holds and disposal > [DI-47] a record's retention is shown; a legal hold is placed with the reason and a hold in force is released with one"
+  - "apps/tablets-web/test/validation/records-register.test.tsx > retention, holds and disposal > [DI-47][DI-37] the disposal is approved with a signature naming the record and the reason"
 clauses:
   - clause: "Try to delete a batch record before its retention end. Blocked."
     tests:

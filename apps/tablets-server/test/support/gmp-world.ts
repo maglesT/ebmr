@@ -83,8 +83,13 @@ export interface GmpBatchWorld {
   gmp: ExecServer;
   familyId: string;
   content: flow.MbrContent;
-  /** Plans a batch of the effective version (an ERP order posted first). */
-  plan(issuer: TestBrowser): Promise<PlannedBatchView>;
+  /** The effective version and the life-cycle world over the server's database (slice 7g-5: more markets). */
+  versionId: string;
+  world: World;
+  /** Plans a batch of the effective version (an ERP order posted first), for India unless `markets` says otherwise. */
+  plan(issuer: TestBrowser, markets?: string[]): Promise<PlannedBatchView>;
+  /** The issuer's ISSUED signature on planned batch `batchId` through the ceremony, which issues it: the sign route's answer. */
+  signIssue(issuer: TestBrowser, batchId: string): Promise<Awaited<ReturnType<TestBrowser['call']>>>;
   /** Plans and issues a batch (the issuer's ISSUED signature through the ceremony); its id. */
   issued(issuer: TestBrowser): Promise<string>;
   close(): Promise<void>;
@@ -122,26 +127,32 @@ export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent()
     reason('numbering rule for the test'),
   );
   const password = (k: string): SignatureCredentials => ({ kind: 'PASSWORD', loginName: personaIn(gmp, k).loginName, password: personaIn(gmp, k).password });
-  const plan = async (issuer: TestBrowser) => {
+  const plan = async (issuer: TestBrowser, markets: string[] = ['IN']) => {
     await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), content, BATCH_SIZE);
-    return valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId: v.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE } }));
+    return valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId: v.familyId, markets, site: SITE, line: LINE, batchSize: BATCH_SIZE } }));
+  };
+  const signIssue = async (issuer: TestBrowser, batchId: string) => {
+    const preview = valueOf(await issuer.call(routes.esig.content, { query: { aggregateType: 'batch_issue', aggregateId: batchId, intent: 'ISSUED' } }));
+    const action = { kind: 'GMP_BATCH_ISSUE' as const, batchId, reason: { code: 'PRODUCTION_PLAN', text: 'Issued for the plan' }, variants: {}, inputs: INPUTS };
+    const challenge = valueOf(
+      await issuer.call(routes.esig.createChallenge, {
+        body: { aggregateType: 'batch_issue', aggregateId: batchId, contentVersion: preview.contentVersion, meaning: 'ISSUED', clientContentHash: sha256Hex(preview.canonicalText), action },
+      }),
+    );
+    const body = { challengeId: challenge.challengeId, credentials: password('issuer'), action };
+    return issuer.call(routes.esig.sign, { body: { ...body, proof: await issuer.proof('POST', '/api/esig/sign', body) } });
   };
   return {
     gmp,
     familyId: v.familyId,
+    versionId: v.versionId,
+    world,
     content,
     plan,
+    signIssue,
     async issued(issuer) {
       const p = await plan(issuer);
-      const preview = valueOf(await issuer.call(routes.esig.content, { query: { aggregateType: 'batch_issue', aggregateId: p.batchId, intent: 'ISSUED' } }));
-      const action = { kind: 'GMP_BATCH_ISSUE' as const, batchId: p.batchId, reason: { code: 'PRODUCTION_PLAN', text: 'Issued for the plan' }, variants: {}, inputs: INPUTS };
-      const challenge = valueOf(
-        await issuer.call(routes.esig.createChallenge, {
-          body: { aggregateType: 'batch_issue', aggregateId: p.batchId, contentVersion: preview.contentVersion, meaning: 'ISSUED', clientContentHash: sha256Hex(preview.canonicalText), action },
-        }),
-      );
-      const body = { challengeId: challenge.challengeId, credentials: password('issuer'), action };
-      valueOf(await issuer.call(routes.esig.sign, { body: { ...body, proof: await issuer.proof('POST', '/api/esig/sign', body) } }));
+      valueOf(await signIssue(issuer, p.batchId));
       return p.batchId;
     },
     close: () => gmp.close(),

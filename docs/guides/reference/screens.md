@@ -7,13 +7,29 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 106 screens, 53 home tiles.
+In all: 145 screens, 80 home tiles.
 
 ## access
 
 | Address | Screen | Home tile (shown on) | What it is for |
 |---|---|---|---|
 | `/esig/demo` | EsigDemo |  |  |
+
+## administration
+
+| Address | Screen | Home tile (shown on) | What it is for |
+|---|---|---|---|
+| `/admin/people` | PeoplePage | People and accounts () | Record people and identity checks, open accounts, issue first passwords, PINs and badges. |
+| `/admin/grants` | GrantsPage | Role grants () | Request a role for an account; a second person approves it. |
+| `/admin/recertification` | RecertificationPage | Access recertification () | Confirm that each account still needs its grants, or revoke them. |
+| `/admin/break-glass` | BreakGlassPage | Break-glass access () | Sealed emergency access: requested by its holder, approved and reviewed by a second person. |
+| `/admin/devices` | DevicesPage | Terminals and devices () | Register terminals and devices, attest kiosk hardening, enrol gateway keys, bind balances and the gateway feed. |
+| `/admin/role-permissions` | RolePermissionsPage | Role permissions () | Request a permission for a role; a second person approves it under a change record. |
+| `/admin/delegations` | DelegationsPage | Delegations of signing authority () | Delegate a delegable signature to a named person for a period; a third person approves it. |
+| `/admin/us-esig-certification` | UsEsigCertificationPage | US e-signature certification () | Record the legal entity's certification letter on electronic signatures to the US agency. |
+| `/admin/security-alerts` | SecurityAlertsPage | Security alerts () | Failed sign-ins, locked or blocked use, break-glass use: acknowledge each with what was found. |
+| `/admin/qualifications` | QualificationsPage | Qualification matrix () | Qualification types and the qualifications a role or a permission requires. |
+| `/admin/device-configuration` | DeviceConfigurationPage | Device configuration () | Kiosk attribution, hardening revocations, OPC UA endpoint identities and the plant unit of each process device. |
 
 ## analytics-audit
 
@@ -141,12 +157,20 @@ In all: 106 screens, 53 home tiles.
 | `/contract-giver` | ContractGiverBatchesPage | Batches made for you (GMP) | For a contract giver's reviewer: the records of the batches made under your loan licence, read-only. |
 | `/contract-giver/$batchId` | ContractGiverRecordPage |  |  |
 
+## incidents
+
+| Address | Screen | Home tile (shown on) | What it is for |
+|---|---|---|---|
+| `/incidents` | IncidentsPage | Incident register (GMP) | Incidents, their investigation and impact on records, and the CERT-In reporting step. |
+| `/incidents/$incidentId` | IncidentPage |  |  |
+
 ## india
 
 | Address | Screen | Home tile (shown on) | What it is for |
 |---|---|---|---|
 | `/india` | LicencesPage | Licences and export permissions (GMP) | Manufacturing and loan licences, export permissions, and what the issue gate says for a product. |
 | `/india/register` | AllocationRegisterPage | Batch-number register (GMP) | Every allocated batch number with its date, product, batch size and use, voided numbers included. |
+| `/india/product-rules` | ProductRulesPage | Shelf-life bases and hazard classes (GMP) | The stability basis of each shelf life, and hazard classes of products with the rooms dedicated to them. |
 | `/india/batches/$batchId` | BatchLabelPage |  |  |
 
 ## integrations
@@ -166,6 +190,16 @@ In all: 106 screens, 53 home tiles.
 | `/serialisation/serials` | SerialLookupPage | Serial lookup (GMP) | Ask the L3 system for a serial: its lot, expiry and status as the record holds them. |
 | `/serialisation/batches/$batchId` | BatchPoolsPage |  |  |
 
+## market
+
+| Address | Screen | Home tile (shown on) | What it is for |
+|---|---|---|---|
+| `/market/policies` | PoliciesPage | Market policies (GMP) | Policy switches, their versions and approvals, and what each batch pinned. |
+| `/market/site-values` | SiteValuesPage | Site values (GMP) | A site's own values for rule keys, and the approval of a loosening. |
+| `/qp-register` | QpRegisterPage | QP register (GMP) | The EU qualified persons registered on each importer's authorisation. |
+| `/compendial-rule-sets` | RuleSetsPage | Compendial rule sets (GMP) | QA's verification of each rule set against the official text. |
+| `/plant/configuration` | PlantConfigPage | Plant configuration (GMP) | Alarm codes, equipment campaigns, utility feed ages and line isolations. |
+
 ## master-data
 
 | Address | Screen | Home tile (shown on) | What it is for |
@@ -176,11 +210,36 @@ In all: 106 screens, 53 home tiles.
 | `/master-data/erp` | ErpMastersPage |  |  |
 | `/master-data/plant` | PlantMasterPage |  |  |
 
+## master-records
+
+| Address | Screen | Home tile (shown on) | What it is for |
+|---|---|---|---|
+| `/mbr/versions/$versionId/signing` | MbrSigningPage |  |  |
+| `/mbr/specimens` | SpecimensPage | Labelling specimens (GMP) | The label and printed packaging specimens and their QA approval. |
+| `/mbr/change-records` | ChangeRecordsPage | MBR change records (GMP) | The validation and per-market regulatory assessments of master-record changes. |
+| `/mbr/versions/$versionId/review` | VersionReviewPage |  |  |
+| `/mbr/versions/$versionId/labelling` | LabellingPage |  |  |
+
 ## notifications
 
 | Address | Screen | Home tile (shown on) | What it is for |
 |---|---|---|---|
 | `/notifications` | NotificationCentrePage | Notification centre (GMP) | Release and rejection notices for production and QA, acknowledged one by one. |
+
+## operations
+
+| Address | Screen | Home tile (shown on) | What it is for |
+|---|---|---|---|
+| `/operations` | OperationsPage | Operations (GMP, SANDBOX) | Run the installation without a terminal: backups, the background workers, and on demo and sandbox installations the demo data, a reset and the simulators. |
+| `/operations/demo` | DemoDataPage |  |  |
+| `/operations/backups` | BackupsPage |  |  |
+| `/operations/workers` | WorkersPage |  |  |
+| `/operations/simulators` | SimulatorsPage |  |  |
+| `/developer/api` | ApiReferencePage | API reference (GMP, SANDBOX) | For developers: every route of the API contract with its request and answer (the OpenAPI document). |
+| `/operations/drills` | DrillsPage |  |  |
+| `/operations/restore` | RestorePage |  |  |
+| `/operations/alarms` | AlarmsPage |  |  |
+| `/operations/installation` | InstallationIdentityPage |  |  |
 
 ## planning
 
@@ -188,8 +247,15 @@ In all: 106 screens, 53 home tiles.
 |---|---|---|---|
 | `/planning` | PlanningPage | Planning (GMP) | Open production orders, plan and issue batches. |
 | `/planning/batches` | BatchesPage | Batches (GMP) | GMP batches of the site and their states. |
+| `/planning/batch-numbers` | BatchNumbersPage | Batch numbers (GMP) | The batch-number register: register, void and recover numbers. |
 | `/planning/packaging` | PackagingOrdersPage | Packaging orders (GMP) | Packaging orders, their processing batch and the bulk issue. |
 | `/planning/packaging/$batchId` | BulkIssuePage |  |  |
+
+## plant-rules
+
+| Address | Screen | Home tile (shown on) | What it is for |
+|---|---|---|---|
+| `/plant-rules` | PlantRulesPage | Penicillin and beta-lactam rules (GMP) | Which sites are penicillin facilities and which materials and products are beta-lactam: proposals and QA approval. |
 
 ## plant-status
 
@@ -201,6 +267,8 @@ In all: 106 screens, 53 home tiles.
 | `/rooms` | RoomsPage | Rooms and lines (GMP) | Cleaning state, clean hold, controlled areas, spills, and each room's temperature and humidity. |
 | `/area-authorisations` | AreaAuthorisationsPage | Area authorisations (GMP) | Who may work in each controlled area: record, withdraw and see the current authorisations. |
 | `/trends` | TrendsPage | Trends (GMP) | Native equipment and room data of a batch, a unit or a room, zoomed over the samples as received. |
+| `/reagent-lots` | ReagentLotsPage | Reagent and buffer lots (GMP) | Reagent, buffer and standard lots with their expiry; record, withdraw, and record the lot a check used. |
+| `/equipment-records` | EquipmentRecordsPage | Equipment events and original records (GMP) | Equipment events of a unit or batch, and the original records of a batch's simple devices. |
 
 ## plant
 
@@ -228,6 +296,7 @@ In all: 106 screens, 53 home tiles.
 | `/quality/returns` | ReturnsPage |  |  |
 | `/quality/extra-testing` | BatchQualityPage |  |  |
 | `/quality/reprocessing` | ReprocessingPage |  |  |
+| `/quality/vendor-routes` | VendorRoutesPage |  |  |
 | `/quality/erp` | ErpStatusPage |  |  |
 | `/quality/receipt` | DeliveryReceiptPage |  |  |
 | `/quality/lots/$lotId/receipt` | LotReceiptPage |  |  |
@@ -279,3 +348,9 @@ In all: 106 screens, 53 home tiles.
 |---|---|---|---|
 | `/transfers` | TransfersPage | Inter-site transfers (GMP) | Sealed lot-transfer packages to and from the other site installations; received lots wait for local QA. |
 | `/transfers/receipts/$receiptId` | ReceiptPage |  |  |
+
+## Home tiles that open a screen of another part
+
+| Tile | Opens | Shown on | What it is for |
+|---|---|---|---|
+| Validation and records | `/validation` | GMP | The validation summary and system description, the evidence bundle, validation pack and IQ, the full export and periodic evaluation, the records register and the signature catalogue. |

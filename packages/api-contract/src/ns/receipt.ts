@@ -80,7 +80,7 @@ export const DeliveryReceivedView = z.strictObject({
 });
 export type DeliveryReceivedView = z.infer<typeof DeliveryReceivedView>;
 
-export const receiptRoutes = {
+const receiptOnlyRoutes = {
   approvedManufacturers: defineRoute({
     id: 'quality.approvedManufacturers',
     method: 'GET',
@@ -211,4 +211,208 @@ export const receiptRoutes = {
 } as const;
 
 /** The receipt routes' ids (each has an example in fixtures/receipt.json). */
-export const RECEIPT_ROUTE_IDS = Object.values(receiptRoutes).map((r) => r.id);
+export const RECEIPT_ROUTE_IDS = Object.values(receiptOnlyRoutes).map((r) => r.id);
+
+/**
+ * Phase 7 slice 7g (WP4, decision 0025): what is done with a material lot besides its receipt and release (site services
+ * 0712, 0740, 0911): the witnessed destruction of a rejected, returned or recalled lot (the performer records it, a
+ * witness other than the performer signs MATERIAL_DESTRUCTION_WITNESSED through the signable action
+ * LOT_DESTRUCTION_WITNESS, then the performer destroys the lot with that signature: IN-24 (a)), a reservation cancelled
+ * with the person's reason, a stock-location exception closed by QA with a deviation linked to the lot (PR-46), the OOS
+ * record of an approved failing result (IN-20), and the vendor-history routes QA enabled and may disable with the reason
+ * (IN-24 (c)). Every rule and right is the database's.
+ */
+export const LotHandlingView = z.strictObject({
+  lotId: Uuid,
+  destruction: z
+    .strictObject({
+      destructionId: Uuid,
+      method: z.string(),
+      reason: z.string(),
+      quantity: DecimalString,
+      unit: z.string(),
+      performedBy: PersonRef,
+      recordedAt: Instant,
+    })
+    .nullable(),
+  /** The witness's valid MATERIAL_DESTRUCTION_WITNESSED signature on the lot as it is now, for the performer's destroy. */
+  witness: z.strictObject({ signatureId: Uuid, signedBy: PersonRef }).nullable(),
+  reservations: z.array(
+    z.strictObject({
+      reservationId: Uuid,
+      batchNumber: z.string(),
+      quantity: DecimalString,
+      unit: z.string(),
+      expiresAt: Instant,
+      reservedBy: PersonRef,
+      reservedAt: Instant,
+      revoked: z.strictObject({ kind: z.string(), reason: z.string().nullable(), by: PersonRef, at: Instant }).nullable(),
+    }),
+  ),
+  locationExceptions: z.array(
+    z.strictObject({
+      exceptionId: Uuid,
+      problem: z.string(),
+      raisedAt: Instant,
+      resolved: z.strictObject({ deviationId: Uuid, note: z.string(), by: PersonRef, at: Instant }).nullable(),
+    }),
+  ),
+});
+export type LotHandlingView = z.infer<typeof LotHandlingView>;
+
+export const VendorRouteView = z.strictObject({
+  routeId: Uuid,
+  siteCode: z.string(),
+  materialCode: z.string(),
+  justification: z.string(),
+  statisticalReference: z.string(),
+  proposedBy: PersonRef,
+  proposedAt: Instant,
+  enabled: z.strictObject({ by: PersonRef, at: Instant }).nullable(),
+  disabled: z.strictObject({ reason: z.string(), by: PersonRef, at: Instant }).nullable(),
+});
+export type VendorRouteView = z.infer<typeof VendorRouteView>;
+
+const PersonsReason = z.string().trim().min(1).max(2000);
+
+export const lotHandlingRoutes = {
+  lotHandling: defineRoute({
+    id: 'quality.lotHandling',
+    method: 'GET',
+    path: '/api/lots/:lotId/handling',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'A lot\'s destruction record and witness signature, its reservations and its stock-location exceptions',
+    params: lotParams,
+    response: LotHandlingView,
+  }),
+  recordLotDestruction: defineRoute({
+    id: 'quality.recordLotDestruction',
+    method: 'POST',
+    path: '/api/lots/:lotId/destruction',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record the destruction of a rejected, returned or recalled lot with its method and the person\'s reason (MATERIAL.HANDLE); the recorder is its performer',
+    params: lotParams,
+    body: withAttribution({ method: z.string().trim().min(1).max(500), reason: PersonsReason }),
+    response: LotHandlingView,
+  }),
+  destroyLot: defineRoute({
+    id: 'quality.destroyLot',
+    method: 'POST',
+    path: '/api/lots/:lotId/destroy',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'The performer of the recorded destruction destroys the lot with the witness\'s MATERIAL_DESTRUCTION_WITNESSED signature (a witness other than the performer, IN-24)',
+    params: lotParams,
+    body: withAttribution({ expectedVersion: IntegerString, witnessSignatureId: Uuid }),
+    response: LotHandlingView,
+  }),
+  cancelReservation: defineRoute({
+    id: 'quality.cancelReservation',
+    method: 'POST',
+    path: '/api/quality/reservations/:reservationId/cancel',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Cancel an open reservation of a lot with the person\'s own reason (MATERIAL.HANDLE; DI-22)',
+    params: z.strictObject({ reservationId: Uuid }),
+    body: withAttribution({ reason: PersonsReason }),
+    response: LotHandlingView,
+  }),
+  resolveLotLocationException: defineRoute({
+    id: 'quality.resolveLotLocationException',
+    method: 'POST',
+    path: '/api/quality/location-exceptions/:exceptionId/resolve',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'QA closes a stock-location exception of a lot with a deviation linked to the lot and what was done (MATERIAL.QA_DISPOSITION; PR-46)',
+    params: z.strictObject({ exceptionId: Uuid }),
+    body: withAttribution({ deviationId: Uuid, note: PersonsReason }),
+    response: LotHandlingView,
+  }),
+  linkLotTestOos: defineRoute({
+    id: 'quality.linkLotTestOos',
+    method: 'POST',
+    path: '/api/quality/lot-results/:resultId/oos',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Link the OOS record (a deviation-lite record of kind OOS linked to the lot) to an approved failing result (QC.RESULT_RECORD; IN-20)',
+    params: z.strictObject({ resultId: Uuid }),
+    body: withAttribution({ deviationId: Uuid }),
+    response: z.strictObject({ resultId: Uuid, deviationId: Uuid }),
+  }),
+  vendorRoutes: defineRoute({
+    id: 'quality.vendorRoutes',
+    method: 'GET',
+    path: '/api/quality/vendor-routes',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The vendor-history routes of excipients: proposed, enabled by QA with the signed justification, or disabled with the reason',
+    response: z.strictObject({ routes: z.array(VendorRouteView) }),
+  }),
+  disableVendorRoute: defineRoute({
+    id: 'quality.disableVendorRoute',
+    method: 'POST',
+    path: '/api/quality/vendor-routes/:routeId/disable',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'QA disables an enabled vendor-history route with the reason (MATERIAL.QA_DISPOSITION; IN-24 (c)); its lots need the identity test again',
+    params: z.strictObject({ routeId: Uuid }),
+    body: withAttribution({ reason: PersonsReason }),
+    response: VendorRouteView,
+  }),
+  // Reprocessing proposals (recipe-core 0621, 0624; PR-47, IN-19): the quality unit then signs each (REPROCESSING_ACT).
+  proposeReprocessingAuthorisation: defineRoute({
+    id: 'quality.proposeReprocessingAuthorisation',
+    method: 'POST',
+    path: '/api/quality/reprocessing/authorisations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Ask the quality unit to authorise a reprocessing or recovery step of a batch in execution, citing the investigation and the risk evaluation; one use of a closed container of an earlier batch when the step adds material (REPROCESSING.AUTHORISE)',
+    body: withAttribution({
+      batchId: Uuid,
+      step: z.string().trim().min(1).max(200),
+      containerId: Uuid.optional(),
+      investigationRef: z.string().trim().min(1).max(200),
+      riskEvaluationRef: z.string().trim().min(1).max(200),
+    }),
+    response: z.strictObject({ authorisationId: Uuid }),
+  }),
+  proposeReprocessingRequest: defineRoute({
+    id: 'quality.proposeReprocessingRequest',
+    method: 'POST',
+    path: '/api/quality/reprocessing/requests',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Ask for the authorisation of a whole-batch reprocessing on a REPROCESSING master: its parent batches, the investigation and the stored risk evaluation (BATCH.ISSUE); the quality unit then signs it',
+    body: withAttribution({
+      familyId: Uuid,
+      site: z.string().trim().min(1).max(16),
+      parentBatchIds: z.array(Uuid).min(1).max(20),
+      investigationRef: z.string().trim().min(1).max(200),
+      riskEvaluationId: Uuid,
+    }),
+    response: z.strictObject({ requestId: Uuid }),
+  }),
+} as const;
+
+/** Spread into `quality` by ns/quality.ts. */
+export const receiptRoutes = { ...receiptOnlyRoutes, ...lotHandlingRoutes } as const;

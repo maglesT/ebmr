@@ -57,6 +57,8 @@ function siteZoneChanged(serverZone: string, policyZone: string | null): HttpRef
 export class SiteZoneGuard {
   #changedTo: { policyZone: string | null } | null = null;
   readonly #onChange = new Set<() => void>();
+  #zone: string;
+  #expected: string | null = null;
 
   /**
    * @param pool reads the site policy
@@ -65,9 +67,28 @@ export class SiteZoneGuard {
    */
   constructor(
     private readonly pool: Pick<pg.Pool, 'query'>,
-    readonly zone: string,
+    zone: string,
     private readonly log: SiteZoneAlertLog,
-  ) {}
+  ) {
+    this.#zone = zone;
+  }
+  /** The zone the server declares (ServerConfig.siteZone at start-up, or the one a first-run set-up recorded). */
+  get zone(): string {
+    return this.#zone;
+  }
+  /**
+   * Phase 7 slice 7g-4: a demo or sandbox installation recreated from the operations screen (a demo load or reset,
+   * features/operations/demo.ts) is a new installation: every session, record and time shown went with the old database,
+   * so its zone is not a change while the server runs. The zone the new installation holds is expected: when the policy
+   * is next read and names it, the server takes it instead of latching (every context from then on declares the policy's
+   * zone, DI-27). Any other zone latches as before. Returns the function that ends the expectation.
+   */
+  expectNewInstallationZone(zone: string): () => void {
+    this.#expected = zone;
+    return () => {
+      if (this.#expected === zone) this.#expected = null;
+    };
+  }
 
   /** The zone the policy was found to hold instead of the server's, or null while the two agree. */
   get changedTo(): { policyZone: string | null } | null {
@@ -107,6 +128,11 @@ export class SiteZoneGuard {
    * token is known; tablets 0350): on a change latches, raises the operations alert once and refuses.
    */
   observe(policyZone: string | null): void {
+    if (!this.#changedTo && policyZone !== this.zone && policyZone !== null && policyZone === this.#expected) {
+      this.#zone = policyZone;
+      this.#expected = null;
+      this.log.warn({ controls: ['DI-27'], siteZone: policyZone }, 'the recreated installation holds this site time zone; the server declares it from now on');
+    }
     if (!this.#changedTo && policyZone !== this.zone) {
       this.#changedTo = { policyZone };
       this.log.error(

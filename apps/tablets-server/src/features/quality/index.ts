@@ -17,7 +17,7 @@ import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { deviationHandlers } from './deviation.ts';
-import { receiptHandlers } from './receipt.ts';
+import { lotDestructionWitnessHandler, receiptHandlers } from './receipt.ts';
 import { deviationIds, erpMaterials, erpOrders, erpPending, erpProducts, extraTesting, lots } from './reads.ts';
 import { reprocessingAuthorisations, reprocessingRequests, residueContainers } from './reprocessing.ts';
 import { lotDecisionHandler, qualityActHandler, reprocessingActHandler } from './signables.ts';
@@ -27,6 +27,8 @@ export function registerSignableActions(registry: SignableActionRegistry, app: A
   registry.register(qualityActHandler(app));
   registry.register(lotDecisionHandler(app));
   registry.register(reprocessingActHandler(app));
+  // Phase 7 slice 7g (WP4): the witness's signature on a recorded lot destruction (receipt.ts).
+  registry.register(lotDestructionWitnessHandler(app));
 }
 
 type Db = Pick<pg.Pool, 'query'>;

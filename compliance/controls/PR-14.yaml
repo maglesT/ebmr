@@ -162,6 +162,8 @@ tests:
   - "apps/tablets-server/test/mutation/process-devices-gateway.test.ts > setpoint downloads (tablets 0820) > [PR-14][DI-31] a step asks for a setpoint its MBR approves (the first with that tag), of the device the step is bound to, a setpoint tag of its kind in the approved unit, one waiting download per tag and device"
   - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][PR-14][INV-33] at a G-24@2 step: no start data; an ADDITION stores exactly what its block writes from the command and needs the step's second-person check, then the database's addition rules; entries already in the row and other steps' entries are left alone"
   - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons"
+  - "apps/tablets-server/test/devices/step-bindings-routes.test.ts > the bindings of a process step (tablets 0820, 0870; recipe-core 0960) > [PR-14][DI-49] the step binds the device of its unit once; a unit the batch has in use is bound to the step; an MBR setpoint is downloaded to the bound device, once while it waits; a person without STEP.EXECUTE is refused"
+  - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the device and equipment of a process step > [PR-14] offers the server's devices and units in use, binds the chosen device, and downloads an MBR setpoint with a badge tap"
 clauses:
   - clause: "With the scale disconnected during an automated dispense, the step demands a second, different user."
     tests:

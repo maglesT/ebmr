@@ -1669,6 +1669,26 @@ evaluation topic is registered in its own module's migration with `report.regist
 edited. The source row functions must stay STABLE: the reporting role may run no volatile function
 (`sandbox.segregation_problems`).
 
+## First-run set-up and operations acts (Phase 7 slice 7g-4; kernel 1375, 1376)
+
+[1375_first_run_setup.sql](../../../packages/kernel/sql/1375_first_run_setup.sql) and
+[1376_operations_acts.sql](../../../packages/kernel/sql/1376_operations_acts.sql)
+([decision 0025](../../decisions/0025-every-act-has-a-screen.md) point 2: every act has a screen).
+
+- **First-run set-up.** The installer ([tools/install](tools.md)) stores only the SHA-256 of a one-time set-up token
+  (`iam.issue_setup_token`, owner only, refused once the installation is set up). The browser's set-up screen calls
+  `iam.first_run_setup`, which checks the token, records the site, confirms the site time zone in force (it does not
+  change it: that needs a change record) and creates the first system administrator and process owner, two different
+  persons, through the existing bootstrap. The token is used up in the same transaction. `iam.setup_state` tells the
+  screen what it may show before anyone signs in (no names, no token). Messages EBMR-SETUP-001 to 006.
+- **Operations acts.** A person's start, stop or restart of a background worker is recorded insert-only with the reason
+  and the outcome (`platform.record_operations_act`, PLATFORM.OPERATE). A backup now (`continuity.request_backup`) and a
+  copy of a stored backup (`continuity.record_backup_download`) need CONTINUITY.BACKUP_RUN; the catalogue needs
+  CONTINUITY.BACKUP_READ. Messages EBMR-OPS-001 to 003, 020, 021.
+- **Tests.** Through the server's routes:
+  [apps/tablets-server/test/operations](../../../apps/tablets-server/test/operations/); SQL mutation groups
+  `first-run-setup` and `operations-acts`.
+
 ## How to test the kernel
 
 | What | Command |

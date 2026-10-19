@@ -8,7 +8,7 @@ import type pg from 'pg';
 import type { SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { DryRunOutcome, SignableActionHandler, SignableContext } from '../../platform/ports.ts';
-import { kernelContent, recordContentForSigning, type EsigSignableContext } from './content.ts';
+import { kernelContent, recordContentForSigning, sessionContentForSigning, type EsigSignableContext } from './content.ts';
 
 export interface ActTarget {
   aggregateType: string;
@@ -24,13 +24,19 @@ export interface DbActSpec<A extends SignableAction> {
   /** What the action signs, from the action alone. */
   target(action: A): ActTarget;
   /** What the action signs, read now (the meaning when it depends on the record's state). */
-  targetNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<ActTarget>;
+  targetNow?(db: pg.Pool | pg.PoolClient, action: A, tokenHash?: string): Promise<ActTarget>;
   /** The person's own reason the signing command carries, when the act's record change needs one (EBMR-AUDIT-002). */
   reasonOf?(action: A): { reasonCode: string; reasonText: string } | undefined;
   /** The delegation the signer cites, when the act allows one (Phase 4 slice 3a). */
   delegationOf?(action: A): string | undefined;
   /** The second record the same person signs in the ceremony (Phase 4 slice 4, D-P4-5), when the action asks for one. */
   companionOf?(action: A): ActTarget | undefined;
+  /**
+   * Decision D-P7R-6: the record is GOVERNANCE class, so its content is read for the signer's own session
+   * (tab.content_for_signing: a role that reads it and may sign the meaning), never through tab.record_content_for_signing
+   * (RECORD class only), as the restore approval of slice 7g WP2 reads a restore event. Absent: the RECORD-class read.
+   */
+  readForSigner?: boolean;
   /** Checks the server makes before anything is signed (the database checks them again). */
   precheck?(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome | null>;
   /** The database command, with the signature just made. */
@@ -43,32 +49,37 @@ export function refusedOutcome(status: number, code: string, whatHappened: strin
 
 export function dbActHandler<A extends SignableAction>(app: AppContext, spec: DbActSpec<A>): SignableActionHandler<A> {
   // The record read now when the act's id depends on the database (Phase 4 slice 4: a market change's sequence).
-  const targetOf = (db: pg.Pool | pg.PoolClient, a: A): Promise<ActTarget> => (spec.targetNow ? spec.targetNow(db, a) : Promise.resolve(spec.target(a)));
+  // The session's token goes with it, for a read the database checks against the session (P7G-5).
+  const targetOf = (db: pg.Pool | pg.PoolClient, a: A, ctx?: SignableContext): Promise<ActTarget> =>
+    spec.targetNow ? spec.targetNow(db, a, (ctx as Partial<EsigSignableContext> | undefined)?.tokenHash) : Promise.resolve(spec.target(a));
+  // The content to be signed, inside the signing command: for the signer's session (D-P7R-6) or as a RECORD-class record.
+  const contentOf = (client: pg.PoolClient, ctx: SignableContext | undefined, t: ActTarget) =>
+    spec.readForSigner ? sessionContentForSigning(client, ctx, t.aggregateType, t.aggregateId, t.meaning) : recordContentForSigning(client, t.aggregateType, t.aggregateId);
   return {
     kind: spec.kind,
     aggregateTypes: spec.aggregateTypes,
     describe: (a) => spec.target(a),
     ...(spec.reasonOf ? { reasonOf: (a: A) => (spec.reasonOf as NonNullable<typeof spec.reasonOf>)(a) } : {}),
     ...(spec.delegationOf ? { delegationOf: (a: A) => (spec.delegationOf as NonNullable<typeof spec.delegationOf>)(a) } : {}),
-    ...(spec.targetNow ? { describeNow: (db: pg.Pool | pg.PoolClient, a: A) => (spec.targetNow as NonNullable<typeof spec.targetNow>)(db, a) } : {}),
+    ...(spec.targetNow ? { describeNow: (db: pg.Pool | pg.PoolClient, a: A, tokenHash?: string) => (spec.targetNow as NonNullable<typeof spec.targetNow>)(db, a, tokenHash) } : {}),
     ...(spec.companionOf ? { companionOf: (a: A) => (spec.companionOf as NonNullable<typeof spec.companionOf>)(a) } : {}),
-    async expectedStateNow(client, a) {
-      const t = await targetOf(client, a);
+    async expectedStateNow(client, a, ctx) {
+      const t = await targetOf(client, a, ctx);
       if (t.expectedState !== undefined) return t.expectedState;
-      return (await recordContentForSigning(client, t.aggregateType, t.aggregateId)).state ?? null;
+      return (await contentOf(client, ctx, t)).state ?? null;
     },
     previewContent: (ctx, query) => kernelContent(app.pools.app, (ctx as Partial<EsigSignableContext>).tokenHash ?? '', query),
-    async prepareForChallenge(client, _ctx, a) {
-      const t = await targetOf(client, a);
-      const c = await recordContentForSigning(client, t.aggregateType, t.aggregateId);
+    async prepareForChallenge(client, ctx, a) {
+      const t = await targetOf(client, a, ctx);
+      const c = await contentOf(client, ctx, t);
       return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
     },
     async dryRun(client, ctx, a) {
       // Input refusals come before any read of the record (DI-37: an act missing what it needs queries nothing).
       const pre = spec.precheck ? await spec.precheck(client, ctx, a) : null;
       if (pre) return pre;
-      const t = await targetOf(client, a);
-      const c = await recordContentForSigning(client, t.aggregateType, t.aggregateId);
+      const t = await targetOf(client, a, ctx);
+      const c = await contentOf(client, ctx, t);
       if (!c.exists || !c.contentHash || !c.contentVersion) {
         return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${t.aggregateType} ${t.aggregateId} does not exist.`, ['DI-37'], ['Reload the screen.']);
       }

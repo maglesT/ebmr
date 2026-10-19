@@ -172,6 +172,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       }, ctx.body.reason);
       return containerView(app, pool, ctx.params.containerId);
     },
+    // Phase 7 slice 7g (WP4, decision 0025): a merge of two scanned containers (recipe-core 0422; IN-26 (c), L-30): the
+    // database finds both labels, checks the right (STEP.EXECUTE for the product), the same batch, stage and unit, a
+    // usable source and an open, unheld target.
+    merge: async (ctx) => {
+      ctx.requireSession();
+      const target = await write(ctx, async (c) => (await one<{ target_id: string }>(c, 'select plant.merge_container($1, $2) as r', [ctx.body.sourceLabel, ctx.body.targetLabel])).target_id);
+      return containerView(app, pool, target);
+    },
   });
   return Promise.resolve();
 }

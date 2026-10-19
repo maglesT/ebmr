@@ -18,6 +18,8 @@ export const MetaView = z.strictObject({
   publicOrigin: z.string(),
   /** Link to the other installation's SPA (GMP -> sandbox), when configured. */
   otherInstallationUrl: z.string().nullable(),
+  /** Phase 7 slice 7g-4: the installation awaits its first-run set-up (no administrator yet); the SPA shows the wizard. */
+  setupRequired: z.boolean(),
 });
 export type MetaView = z.infer<typeof MetaView>;
 
@@ -31,5 +33,16 @@ export const meta = {
     mutating: false,
     summary: 'Installation kind, watermark, site, server time and demo flag',
     response: MetaView,
+  }),
+  /** Phase 7 slice 7g-4 (decision 0025): the OpenAPI document of this contract, for the API reference page. */
+  openapi: defineRoute({
+    id: 'meta.openapi',
+    method: 'GET',
+    path: '/api/meta/openapi',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The OpenAPI document of the API contract (the developers\' API reference page)',
+    response: z.record(z.string(), z.unknown()),
   }),
 } as const;

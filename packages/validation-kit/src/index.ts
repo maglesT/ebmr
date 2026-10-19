@@ -22,3 +22,7 @@ export { criticalLimitEvidence, traceMatrix, type LimitEvidence } from './pack/t
 export { IQ_CHECKS, type IqCheck } from './pack/qualification.ts';
 export { aiInventory, controlDelta, PackError, smfParagraphText } from './pack/release.ts';
 export { ARCHITECTURE_BOUNDARIES, mermaidStateChart } from './pack/specs.ts';
+
+/** The installation qualification (slice 7c; moved here from tools/validation in slice 7g-3, decision D-P7R-5). */
+export { databaseInventory, LOCKED_SETTINGS, RECORDED_SETTINGS, type DbInventory, type QueryClient } from './iq/db-inventory.ts';
+export { hostOfThisMachine, runIq, type IqCheckResult, type IqInputs, type IqRecord } from './iq/iq.ts';

@@ -118,6 +118,23 @@ export class AnalyticsRunner {
     return true;
   }
 
+  /** Phase 7 slice 7g-4: the runner's timer runs (started, not paused, not stopped). */
+  isRunning(): boolean {
+    return this.timer !== null && !this.stopped;
+  }
+
+  /** Phase 7 slice 7g-4 (operations screen): stops the timer and waits for the work in progress; the pool stays open. */
+  async pause(): Promise<void> {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    await this.busy.catch(() => undefined);
+  }
+
+  /** Phase 7 slice 7g-4 (operations screen): starts the timer again after pause() (never after stop()). */
+  resume(): Promise<boolean> {
+    return this.start();
+  }
+
   /** Stops the timer, waits for the work in progress, and closes the pool. */
   async stop(): Promise<void> {
     this.stopped = true;

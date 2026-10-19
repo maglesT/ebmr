@@ -33,6 +33,8 @@ tests:
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] a batch record is closed when its record is locked now, or when it is aborted or cancelled now; a completed, reopened, running or amended record is not"
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] a closed batch record's archive package is every chain keyed by the batch, its record lock and amendments included, and the signature chains of its parts, record-lock amendments included"
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44][IN-53] an export or a readability read of a closed batch holding controlled-substance rows needs CONTROLLED.READ with no site or product limit: a holder without it is refused, never served a partial copy"
+  - "apps/tablets-server/test/validation/export-routes.test.ts > the periodic evaluation pack (kernel 1336) > [DI-11][DI-44][DI-37] the CSV lead generates the pack of an ended period with its readability report; QA signs it off, never the person who generated it"
+  - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-44] a pack is generated for a period typed with its offset, a seed and a sample size"
 clauses:
   - clause: "The periodic readability report lists the sampled records, each opened with its audit trail."
     deferred:

@@ -7,6 +7,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
 import { Banner, Button, t } from '@ebmr/ui-kit';
 import { KioskLogin, NotEnrolled, OfficeLogin, RoleChoice, DemoPicker } from '../features/session/index.tsx';
+import { SetupWizard } from '../features/operations/SetupWizard.tsx';
 import { BootProvider, useBoot } from './boot.tsx';
 import { FeaturesContext } from './feature-context.ts';
 import { WEB_FEATURES } from './features.ts';
@@ -41,6 +42,13 @@ export function Gate() {
         <div className={cls('center')}>
           <Banner tone="error" title={t('app.installationMismatch')} />
         </div>
+      );
+    case 'setup':
+      // Phase 7 slice 7g-4: no administrator exists yet; the first-run set-up (decision 0025).
+      return (
+        <Frame withBanner={false}>
+          <SetupWizard />
+        </Frame>
       );
     case 'no-device':
       return <Frame withBanner={false}>{boot.meta?.demo ? <DemoPicker /> : <NotEnrolled problem={null} />}</Frame>;

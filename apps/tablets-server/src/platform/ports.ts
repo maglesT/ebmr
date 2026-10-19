@@ -7,7 +7,7 @@
  *  - SealKeyProvider: the DEMO-ONLY HMAC seal key from EBMR_SEAL_KEY_FILE (a KMS or HSM in production).
  *  - formatInstant: the {us, text} wire form of a GMP instant, formatted with the kernel's site time.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import type pg from 'pg';
 import { z } from 'zod';
 import { esig, time, type ActorContext } from '@ebmr/kernel';
@@ -50,14 +50,16 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   describe(action: A): { aggregateType: string; aggregateId: string; meaning: string; expectedState?: string };
   /**
    * Phase 3 slice 6: the same, when it depends on the record's state (e.g. the meaning of a lot rejection), read now for
-   * POST /api/esig/describe. Absent: describe() answers.
+   * POST /api/esig/describe. Absent: describe() answers. `tokenHash` is the session's, for a read the database checks
+   * against the session (P7G-5).
    */
-  describeNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<{ aggregateType: string; aggregateId: string; meaning: string; expectedState?: string }>;
+  describeNow?(db: pg.Pool | pg.PoolClient, action: A, tokenHash?: string): Promise<{ aggregateType: string; aggregateId: string; meaning: string; expectedState?: string }>;
   /**
    * Phase 3 slice 6: the record's state the signature expects, read inside the sign command, for a handler whose
    * describe() names none (a signed act whose rule is the database's; the content version and hash bind what was seen).
+   * `ctx` is the signing step's context, for a handler that reads the record for the signer's session (D-P7R-6).
    */
-  expectedStateNow?(client: pg.PoolClient, action: A): Promise<string | null>;
+  expectedStateNow?(client: pg.PoolClient, action: A, ctx?: SignableContext): Promise<string | null>;
   /**
    * The signer's own reason the sign command carries, both halves, for an action whose change needs one (the kernel
    * refuses such a change without it, EBMR-AUDIT-002): taken from the action the person sent, never written by the
@@ -198,9 +200,13 @@ const SealKeyFile = z.object({
   label: z.string().optional(),
 });
 
-/** Reads the DEMO-ONLY HMAC seal key; null when no file is configured. */
+/**
+ * Reads the DEMO-ONLY HMAC seal key; null when no file is configured, or (Phase 7 slice 7g-4) when the configured file
+ * does not exist yet: the first-run set-up generates it there (features/operations/setup.ts), and signatures are refused
+ * until then (the esig feature answers that no seal key is configured).
+ */
 export function sealKeyFromFile(file: string | null): esig.SealKeyProvider | null {
-  if (!file) return null;
+  if (!file || !existsSync(file)) return null;
   const parsed = SealKeyFile.parse(JSON.parse(readFileSync(file, 'utf8')));
   return esig.hmacSealKey(parsed.keyId, Buffer.from(parsed.secret, 'base64'));
 }

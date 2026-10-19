@@ -14,6 +14,7 @@ import { StepExceptions } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
 import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
+import { StepFloorActs } from '../components/StepFloorActs.tsx';
 import { correctableAttempts } from '../dialogs/CorrectEntryDialog.tsx';
 import { voidableAttempts } from '../dialogs/VoidAttemptDialog.tsx';
 import { useRunView, useStepView } from '../queries.ts';
@@ -53,6 +54,8 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
         <floor.StepHeader step={view.step} />
         <SignedResult result={signed.result} />
         <Renderer view={view} />
+        {/* Phase 7 slice 7g (WP4): the step's device and equipment, the packaging batch data and print jobs, the detector challenge. */}
+        <StepFloorActs view={view} />
         <StepExceptions view={view} perform={perform} busy={busy} />
         {view.signatures.length > 0 ? (
           <section className={wcls('section')} aria-label={st('signatures.title')}>

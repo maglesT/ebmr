@@ -274,6 +274,15 @@ tests:
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] no session fixation: a session cookie planted before sign-in is served as nobody, and the sign-in sets a new one"
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] the API ends a session at its absolute timeout and locks a kiosk session at its idle timeout"
   - "apps/tablets-server/test/access/session.test.ts > keep-alive > [DI-14][DI-38] the session view names the seconds until the idle lock and the absolute end by the database clock; a keep-alive restarts the idle time; a locked session names no idle lock (A11Y-1)"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-14][DI-15][DI-16] the administrator records a person, verifies the identity, opens and activates an account and issues an initial password returned once; the person changes it at the first sign-in"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-14][DI-17] a GMP role holder is refused the administration reads and acts: the route names the roles, the database refuses the act"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-14] the administrator suspends and reinstates an account and processes a leaver; the process owner recertifies, the administrator cannot"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-14] an account for a person the installation does not hold is refused as not found (404), never 500; without the right it is refused for the right"
+  - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-14][DI-15] the administrator records a person; an issued password is hidden until shown to its owner, then removed; the directory shows credentials as metadata only"
+  - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-14] a person in a GMP role is offered no administration act"
+  - "apps/tablets-server/test/administration/wp2-routes.test.ts > security alerts, roles, rehiring (people) > [DI-14][DI-17] the administrator rehires a person who left, with the reason; a person who has not left is refused; QA may not rehire"
+  - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-14][DI-15][DI-16] the administrator creates a person and an account and requests a grant; the process owner approves it; the new person signs in, changes the password and works in the role"
+  - "apps/tablets-server/test/operations/session-checked-reads.test.ts > session-checked reads of slice 7g (P7G-5) > [DI-17][DI-14] the installation contents are read only for an active session; the demo screen still shows them"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

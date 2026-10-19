@@ -1143,6 +1143,7 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 | 12 Oct | Deviation spec race | hardened (Phase 3 exit) | |
 | 12 Oct | GB-T-01 hashes changed by day | see "Time" above | fixed lot dates, placeholder year |
 | 11 Oct | `db-guards-free-text-shown` failed once under load, passed alone | suspected chance match of "2409" in generated text | **open**: root cause not yet found (Phase 3 backlog, slice 6c) |
+| 18 Oct | A sandbox system administrator made by the server tests' `grantedPerson` was refused (EBMR-SBX-024) | the user ID ended in eight hex digits of a UUID, which can have the form of a batch or lot number the sandbox refuses in any text that is not a TEST- identifier | the sandbox suffix is letters only ([granted-person.ts](../../apps/tablets-server/test/support/granted-person.ts); slice 7g-4) |
 
 Lessons: a retry is not a fix. Reproduce with the same load (see the `local-ci` skill), find the race, and then
 decide whether the race is in the test or in the product (two of the entries above were in the product).
@@ -1666,6 +1667,109 @@ A kiosk of the driver asked for more device nonces than the server allows (120 a
 while it made the review batch's entries, and the run stopped with RATE_LIMITED: the driver now paces itself at 110 a
 minute. A keep-alive socket the server had closed while idle failed at its next use (NETWORK): the driver sends such a
 request once more on a fresh socket. A run that stops now says so in its summary instead of "no SLO failed".
+
+## Slice 7g-1: a screen for every act of people and devices (Phase 7, decision 0025)
+
+### 7g1-1: person-facing routes with no screen (gap; found by the [meta] completeness test, 18 October 2026)
+
+**Symptom.** Decision 0025 asks for a screen for every act a person performs. The new [meta] test
+([screen-completeness.test.ts](../../apps/tablets-web/test/meta/screen-completeness.test.ts)) found, besides the people
+and device acts this slice built and the MBR, plant-rule and labelling acts slice 7g-2 builds, 25 routes of the contract
+that a person calls and no screen calls (for example the kiosk keep-alive, the India shelf-life bases and hazards, the
+reagent lots and room rules of plant rules, scheduling another CAPA check, proposing a peer installation, the dashboard
+export). **Cause.** Each was added with its server feature and tested over HTTP; nothing checked that a screen used it.
+**Fix.** Not fixed here: the test lists them by name in `NO_SLICE_YET`, so it passes now and fails on any new route
+without a screen; each entry is removed when its screen is built. **Lesson.** Completeness is a test over the contract,
+not a list in a document.
+**Closed in slice 7g-5 (18 October 2026):** each of the 25 routes got a screen (or was wired into the screen where it
+belongs: the keep-alive into the session's inactivity warning, the batch work queue into the floor's batch overview, the
+alarm into the alarm list's detail); `NO_SLICE_YET` is empty and no route was moved to the service-only list.
+
+## Slice 7g-5: the remaining screens and the acts with no route (Phase 7, decision 0025)
+
+### 7g5-1: database acts a person performs that no route calls (gap; found by the new [meta] test, 18 October 2026)
+
+**Symptom.** The web completeness test sees only routes. Three acts had a database function and no route at all
+(role-permission requests and their decision, delegation approval, the US e-signature certification); slice 7g-5 gave
+them routes and screens. The new [meta] test
+([db-acts-have-routes.test.ts](../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts)) lists every
+SECURITY DEFINER function the application role may execute whose permission a person's role holds, and found more that
+no route calls: besides service acts and the Phase 2 stub-batch stand-in, and the acts slices 7g-2, 7g-3 and 7g-4 build
+(incidents, market-authorisation withdrawal, the validation summary and system description, restore, first-run set-up,
+adapter status), 64 person acts, among them packaging floor acts of the Tablets blocks (print-job release, batch
+data and its check, detector challenge, setpoint download, process-alarm acknowledgment), records retention (legal holds,
+record types, purge approval), data-integrity investigations, batch-number void and recovery, lot destruction, MBR change
+assessments and periodic review, reprocessing requests, market policies, e-signature meaning types, qualification types,
+customer roles, security-alert and continuity-alarm acknowledgment. **Cause.** These were built and tested at the
+database (the SQL tests call them directly); no check asked for a route. **Fix.** Not fixed here (beyond the three acts):
+each is listed by name in `NO_ROUTE_YET` with what it does, so the test passes now and fails on a new such act without
+a route; an entry is removed when its route and screen are built. **Lesson.** A screen-completeness test must start from
+what the database lets a person do, not only from the API contract.
+
+### 7g5-2: a US-market batch was issued with no 21 CFR 11.100(c) certification on file (high; DI-15; recipe-core 1260)
+
+**Symptom.** Under the default policy BLOCK a US-market GMP batch must not be issued until the licence holder's
+certification letter to the US agency is recorded, but `iam.assert_us_esig_certification` (kernel 0170) was called on no
+issue path, so the batch was issued. **Cause.** The kernel kept the letters and the check; no issue gate asked.
+**Fix.** Recipe-core 1260 rebuilds `recipe.gmp_issue_problem` from 1250 with the check after the India gate (the legal
+entity is the holder of the licence the batch is issued under, `recipe.us_esig_issue_entity`) and adds a BEFORE INSERT
+trigger on `recipe.batch_execution` that calls the kernel's assert for every writer of a GMP batch row. **Tests.**
+[us-esig-certification.test.ts](../../packages/recipe-core/test/lifecycle/us-esig-certification.test.ts) and
+[us-esig-certification-issue.test.ts](../../apps/tablets-server/test/execution/us-esig-certification-issue.test.ts):
+refused without the letter (issue, the step before it, a superuser's direct write), issued once it is recorded, an
+India-only batch never asked, FLAG only reports. **Lesson.** A guard function is only a control once a path calls it; a
+test of the guard alone proved nothing about the issue.
+
+## Slice 7g-2: master records, plant rules and incidents on screen (Phase 7, decision 0025)
+
+### P7G2-1: the labelling specimen approval was a meaning without a record (found while building, 18 October 2026)
+
+**Symptom.** The e-signature catalogue had the meaning `SPECIMEN_APPROVED` (kernel 0210) and the guides listed "approve a
+labelling specimen" as an MBR act, but no record, command or signing route used it: a specimen was only a SPECIMEN
+reference document recorded by the steward, with nobody's approval. **Fix.** Tablets 1479: `tab.approve_labelling_specimen`
+records QA's own valid `SPECIMEN_APPROVED` on a recorded specimen (never an administrator, MBR.APPROVE, never the person
+who recorded it, once, never a retired one), in the insert-only, audited `tab.labelling_specimen_approval`; the ceremony
+signs it (`SPECIMEN_ACT`). The market authorisation's two signatures had no route either (only the set-up scripts signed
+them); `MBR_MARKET_ACT` signs them, the database's activation unchanged. **Tests.** Server
+`test/designer/master-records.test.ts` ("[DI-35] the person who recorded a specimen may not approve it, even holding the QA
+MBR approver role"). **Open.** The validator's GMP-SPECIMENS rule still counts a recorded specimen as approved; requiring
+the approval would move the golden set-ups (owner or lead to decide).
+
+### P7G2-2: the CERT-In report time shown as an example was refused by the contract (found by the browser suite, 18 October 2026)
+
+**Symptom.** The incident screen offered "When the report was made (e.g. 2026-10-18T10:15+05:30)" and accepted a time
+without seconds, but the route's contract takes an ISO date-time with seconds, so the report a person typed as shown was
+refused before it reached the database; the browser flow had typed the browser's own clock in that form. **Fix.** The
+screen sends a typed time without seconds as `:00` (`claimedTime`, incidents/reads.ts); the browser flow takes the time
+it types from the server's own clock (the marking's time shown in the history), never from the browser's. The database's
+check that the claimed time lies between the occurrence and its own now is unchanged (kernel 0410). **Tests.** Web
+`test/slice7g2/incidents.test.tsx` (the body sent parses with the contract), browser `phase7/incidents.spec.ts`.
+**Lesson.** A unit test that mocks the client must still check the body against the route's contract; a regulatory time
+in a browser test comes from the server, not from the test machine.
+
+## Slice 7g integration: the parts 7g-1, 7g-5, 7g-2 and 7g-4 merged (Phase 7, 18 October 2026)
+
+Found by the slice 7d security tests and the 7g-4 tests once the parts met on `phase-7/slice-7g`.
+
+- **7gI-1: an account for an unknown person, or a generic break-glass account, answered 500.** The route-by-role matrix
+  sent `people.createAccount` with a person the database does not hold and with `generic` and `breakGlass` both true;
+  the foreign key and the account's check constraint (kernel 0110) refused it, and the feature passed the database
+  error on as an unexpected one. **Fix.** The administration feature answers a foreign-key refusal of the account's
+  person as not found (404) and any check-constraint refusal as 422 with the database's words; the database checks the
+  right first, so a role without it is still refused for the right. **Test.** `administration-routes.test.ts` (`[DI-14]`
+  an account for a person the installation does not hold).
+- **7gI-2: an impossible date in the US e-signature certification answered 500.** `accessGovernance` (7g-5) checked the
+  date's shape only, so the fuzz test's `0550-58-11` reached the database's date cast (P7D-1 again). **Fix.** The
+  contract's `CalendarDate` (a real calendar day). **Test.** `route-fuzz.test.ts`.
+- **7gI-3: the analytics runner showed as stopped just after the server started, and its worker thread lacked the
+  operations screen's pause and resume.** 7g-4 built the screen's control on the in-process runner; slice 7d had moved
+  the runner into a worker thread meanwhile. **Fix.** `ThreadedAnalyticsRunner` gets `isRunning`, `pause` and `resume`
+  (the worker waits for its work in progress); the worker's pool logs an idle connection that ends (a demo load drops the
+  database) instead of ending the thread; the workers list waits for the server's first start to answer.
+  **Test.** `workers-and-backups.test.ts` (`[DI-17]` the analytics runner stopped and started).
+- **Tests adjusted, not loosened:** the fuzz test's stack-frame pattern now needs a location after the parenthesis (the
+  OpenAPI document's own prose, "at receipt (labels", matched it); the matrix's segregation check exempts the system
+  administrator's own people and device administration (namespaces `people`, `deviceRegistry`), never the auditor.
 
 ## Open residuals for the owner
 

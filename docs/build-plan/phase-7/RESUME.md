@@ -17,7 +17,8 @@ branch `phase-7/slice-7g`.
 | 7b-2 | #56 | stand-alone record viewer, full export of closed records, periodic evaluation pack |
 | 7c | #57 | validation pack generators, DI-03 validation-summary gate (recipe-core 1250), DI-06 interface drift (kernel 1350 rebuilt from main's latest definitions, SERIES_GAP kept); review: no findings; golden 44/44 without a re-take |
 | 7d | #58 | release drills, security tools and the route-by-role matrix, load driver (analytics runner in a worker thread, P6A7-8 role check kept in the worker), inactivity warning (tablets 1460), accessibility audit run (A11Y-4 to -7 fixed); review: no findings; golden run by CI's golden job (decision D-P7R-1: the local golden cluster was busy with 7e; same suite, same clock library) |
-| 7e | (next PR) | branding (Batchwright, decision 0020), user and administrator guides, `tools/guides` (reference lists from a migration-built database, self-contained HTML and PDF); review: P7E-1 (low: a link with another scheme than http, https or mailto was live) fixed with a test; golden 51/51 |
+| 7e | #59 | branding (Batchwright, decision 0020), user and administrator guides, `tools/guides` (reference lists from a migration-built database, self-contained HTML and PDF); review: P7E-1 (low: a link with another scheme than http, https or mailto was live) fixed with a test; golden 51/51 |
+| 7g | (next PR) | every act has a screen (decision 0025): administration and access governance, MBR signing, plant rules, incidents, operations and first-run set-up, and the four work packages (validation, export and records; restore, drills, platform and access settings; master-record, market and plant settings; floor, materials, batch numbers); US e-signature certification enforced (recipe-core 1260, fail closed); D-P7R-3 to -9; review P7G-1 to -5 fixed; golden 51/51, E2E 19/19 |
 
 ## Merge order from here (D-P7-9, amended by decision 0025)
 
@@ -51,6 +52,9 @@ merge when green.
 3. Per slice steps as above; the golden batches on the clock cluster (GB-T-03 moves with the US letter); E2E specs
    phase7, operations, administration; one quick review; PR; merge when green.
 4. 7f exit: trace at 7, one review pass, the release-candidate checklist.
+   Migration numbers: the exit-fix ranges of the Phase 7 plan (kernel 1390-1399, tablets 1490-1499) are partly used by
+   7g (kernel 1395; tablets 1491, 1493, 1496), so a 7f exit fix takes the next number above the highest used in its
+   package at that time.
 
 Decisions taken on resume (owner's standing instruction to decide and record):
 - D-P7R-1: when the local golden cluster is busy, CI's golden job on the PR (same suite, same clock library) serves as
@@ -59,6 +63,47 @@ Decisions taken on resume (owner's standing instruction to decide and record):
   acts that wait for 7g-3's screens (listed pending 7g-3, not exempt); `register:status` (a developer tool on the
   control register) and the stand-alone record viewer (itself the reading tool) are exempt.
 
+- D-P7R-3: market policies stay in v1.0; their acts get screens (WP3). If the GMP batch issue does not already pin a
+  batch's market policies, `market.pin_policies_for_batch` runs inside the issue transaction (a step of the person's
+  issue, not a screen); a golden output that moves is re-taken once with the reason in the defect log.
+- D-P7R-4: the upgrade drill runs only on a sandbox or staging installation (it needs admin database access and
+  creates databases); on a GMP installation the screen shows the drill records and runs the restore drill as a job.
+- D-P7R-5: IQ (`runIq`) moves into `packages/validation-kit` so a route can run it and store its record; the CLI
+  keeps working by importing it.
+- D-P7R-6: WP3's reclassification (tablets 1493) of `compendial_rule_set` and `qp_register` from GOVERNANCE to RECORD
+  in `tab.aggregate_read_class` is rejected: it widened read access to every RECORD.READ role and reversed tablets 1161
+  without a control review. Both stay GOVERNANCE; the signer reads what they sign in their own session (tablets 1493
+  re-creates `tab.record_read_problem`: a role that may sign the meaning, or a governance role; the handlers read through
+  `tab.content_for_signing` with `readForSigner`, as RESTORE_APPROVE does). Test: `test/esig/signing-meanings-7g.test.ts`.
+- D-P7R-7 (owner, 19 October): the full reference-site load test and the 4-hour soak move to deployment. The 10-minute
+  load smoke of 7d stays in the 7f pod run, and so does the focused mutation campaign of D-P7-1 item 4 (on Phase 6A and
+  Phase 7 code and anything they re-created). The release-candidate checklist reads "deferred to deployment (owner
+  decision D-P7R-7)" for the SLO and soak records. The pod run is about 17-18 hours instead of 24.
+- D-P7R-8 (owner's standing instruction): a route whose only effect is an audited export or copy of existing records
+  changes no GMP record, so the segregation check of `route-matrix.test.ts` counts it as an audited read for the
+  read-only auditor (kernel 1335 grants RECORD.EXPORT to the auditor, a reviewed 7b-2 design). The explicit, commented
+  list: `validation.startFullExport`, `archive.assembleExport` (true copies and the evidence export register),
+  `controlled.runRegister` (the stored register export). Every other write still fails the check for the auditor; the
+  system administrator stays refused all three.
+- D-P7R-9 (review P7G-1): the segregation check no longer exempts the whole `people` and `deviceRegistry` namespaces for
+  the system administrator; it names the routes that may succeed (person, account, credential and badge
+  administration, devices and gateways, the creation of an empty role, the attribution method), each with its reason.
+  Granting authority is not among them. The administrator keeps IAM.GRANT_APPROVE and IAM.ROLE_MANAGE (kernel 0120, a
+  Phase 1 design); new tests show they cannot approve a grant or role-permission request they made, nor one that grants
+  themselves (both refused by kernel 0120's triggers, EBMR-IAM-032; no new guard was needed).
+
+### 7g state (18 October, evening)
+
+`phase-7/slice-7g` holds the integrated parts (9647df5d) and the scaffold for four parallel work packages (73461266:
+reserved signable kinds, stub `validation` and `market` features, `// WP1..WP4` blocks in the three meta tests). The
+packages build on `phase-7/slice-7g-wp1` (validation, export, records, esig), `-wp2` (continuity, drills, platform and
+access configuration), `-wp3` (master-record, market, plant configuration, labelling), `-wp4` (floor, materials, batch
+numbers). Then: merge the four into `phase-7/slice-7g`; root-cause the web test `justify-revision` that fails only in
+full runs (and check `readings-after-refusal`); run E2E administration, operations, phase7 and sync the register (18
+E2E entries wait for it); golden on the clock cluster (GB-T-03 and the US letter; D-P7R-3); one quick review that also
+checks the integration's change letting the system administrator use the `people` and `deviceRegistry` routes (it must
+not reach role or permission grants) and the idle-warning rule the 7g-5 merge dropped; PR; merge when green.
+
 ## Open findings to carry
 
 - **US e-signature certification (high, from 7g-5): fixed on `phase-7/slice-7g5`** (recipe-core 1260, 3 `[DI-15]`
@@ -66,6 +111,8 @@ Decisions taken on resume (owner's standing instruction to decide and record):
   set-up now records the letter; re-take a golden output once with the reason in the defect log if it moves, D-P7-12).
   Whether a loan licensee also needs its own letter is left to the DI-15 expert decision (owner).
 - A role-permission approval needs an approved change record (DI-09): the 7g-5 screen must lead the user through it.
+- Open question for the DI-18 expert decision (owner): whether the system administrator should keep IAM.GRANT_APPROVE
+  and IAM.ROLE_MANAGE at all (kernel 0120). The second-person rules hold today (D-P7R-9); the grant itself is unchanged.
 - P7A-6 (feed signature does not cover the envelope's source time and record id): residual, low.
 - F-6jb-g1 (record lock counts as a change since review): residual, fail-safe.
 
@@ -83,5 +130,5 @@ Decisions taken on resume (owner's standing instruction to decide and record):
 
 ## After Phase 7
 
-7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (24 pod hours,
-D-P7-3), then the demo server (owner to provide a server, SSH and a domain; decision 0021 and 0025), then Tablets v1.0.
+7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,
+D-P7-3 as amended by D-P7R-7), then the demo server (owner to provide a server, SSH and a domain; decision 0021 and 0025), then Tablets v1.0.

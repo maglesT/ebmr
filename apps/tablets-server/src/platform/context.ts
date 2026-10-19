@@ -11,6 +11,7 @@ import type { DeviceIdentityProvider } from './auth/device-proof.ts';
 import type { Pools } from './db/pools.ts';
 import type { ReadDatabase } from './db/read.ts';
 import type { GuidanceCatalogue } from './http/guidance.ts';
+import type { OperationsRuntime } from './operations.ts';
 import type { DeviceReadingPort, SignableActionRegistry } from './ports.ts';
 import type { SiteZoneGuard } from './site-zone.ts';
 
@@ -46,4 +47,10 @@ export interface AppContext {
   formatInstant(us: bigint | string): Instant;
   /** Every route bound on this server (the coverage test reads it). */
   boundRoutes: Map<string, { method: string; path: string; installation: 'GMP' | 'SANDBOX' }>;
+  /**
+   * Phase 7 slice 7g-4: the background workers the operations screens start and stop, and the maintenance state of a demo
+   * load or reset (platform/operations.ts). The seal key and the demo state above are replaced by the first-run set-up and
+   * a demo load, which is why they are read from here at the time of use.
+   */
+  operations: OperationsRuntime;
 }

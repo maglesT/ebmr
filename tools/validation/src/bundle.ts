@@ -6,11 +6,10 @@
  * inputs give the same bytes. The bundle is checked with the kit's parseBundle before it is written.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { cpus, totalmem, type, release as osRelease } from 'node:os';
 import { join, relative } from 'node:path';
 import type pg from 'pg';
 import { catalogMethods } from '../../../apps/tablets-server/src/analytics/catalog.ts';
-import { canonicalJson, compareText, parseBundle, type Bundle, type Control, type Host, type Measure, type PhaseRecord, type RecordKind } from '@ebmr/validation-kit';
+import { canonicalJson, compareText, hostOfThisMachine, parseBundle, type Bundle, type Control, type Host, type Measure, type PhaseRecord, type RecordKind } from '@ebmr/validation-kit';
 import { statusContext } from '../../register/src/build-status.ts';
 import { currentPhase, gateEditions, loadControls, loadRequirements, type ControlRecord } from '../../register/src/register.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults } from '../../register/src/trace.ts';
@@ -38,11 +37,8 @@ export interface BundleInputs {
   lockedSettings?: Readonly<Record<string, string>>;
 }
 
-/** The machine the bundle is built on (a run's host when its report carries none). */
-export function hostOfThisMachine(postgres: string | null): Host {
-  const cpu = cpus()[0]?.model.trim() || 'unknown';
-  return { cpu: `${cpu} x${String(cpus().length)}`, memory: `${String(Math.round(totalmem() / 2 ** 30))} GiB`, os: `${type()} ${osRelease()}`, node: process.version, postgres };
-}
+/** The machine the bundle is built on (a run's host when its report carries none): the kit's, which the IQ uses too. */
+export { hostOfThisMachine };
 
 const dateOrNull = (d: string | undefined): string | null => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
 

@@ -3,7 +3,7 @@
  * an Idempotency-Key per mutating command, responses parsed with the contract's schemas, and a hard stop when a
  * response comes from the other installation (X-Ebmr-Installation).
  */
-import { createApiClient, describeCallError, routes, unstorableTextIssues, type ApiClient, type CallError, type DeviceProof, type FetchLike, type InstallationKind } from '@ebmr/api-contract';
+import { allRoutes, createApiClient, describeCallError, routes, unstorableTextIssues, type ApiClient, type CallError, type DeviceProof, type FetchLike, type InstallationKind } from '@ebmr/api-contract';
 import { signProof } from '../device/proof.ts';
 import type { StoredDeviceKey } from '../device/keystore.ts';
 import { pagePerson } from './page-binding.ts';
@@ -85,10 +85,17 @@ export function setTransport(f: FetchLike): void {
   fetchImpl = f;
 }
 
+/**
+ * The routes without a session (auth NONE: the device nonce, identification, sign-in and the like). A write to one of
+ * them is no activity of the session, so it never pushes the idle estimate out (review P7G-2). None has a path parameter.
+ */
+const SESSIONLESS = new Set(allRoutes(routes).filter((r) => r.auth === 'NONE').map((r) => `${r.method} ${r.path}`));
+const pathOf = (url: string): string => new URL(url, 'http://local').pathname;
+
 export const api: ApiClient = createApiClient({
   fetch: async (url, init) => {
     const r = await fetchImpl(url, init);
-    if (init.method !== 'GET' && r.status >= 200 && r.status < 300) for (const f of apiState.onWrite) f();
+    if (init.method !== 'GET' && r.status >= 200 && r.status < 300 && !SESSIONLESS.has(`${init.method} ${pathOf(url)}`)) for (const f of apiState.onWrite) f();
     return r;
   },
   installation: () => apiState.installation,

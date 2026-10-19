@@ -241,6 +241,7 @@ tests:
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] no session fixation: a session cookie planted before sign-in is served as nobody, and the sign-in sets a new one"
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] the API ends a session at its absolute timeout and locks a kiosk session at its idle timeout"
   - "apps/tablets-server/test/access/session.test.ts > keep-alive > [DI-14][DI-38] the session view names the seconds until the idle lock and the absolute end by the database clock; a keep-alive restarts the idle time; a locked session names no idle lock (A11Y-1)"
+  - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-19][DI-38] a badge UID is typed into a secret field, sent once and cleared; badges are tested and activated from the account"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

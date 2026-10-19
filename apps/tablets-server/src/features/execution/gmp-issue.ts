@@ -12,13 +12,14 @@
  *     defined for GMP (no SANDBOX_ONLY block: DI-05, INV-18), recipe.issue_gmp_execution (the issuer's own valid ISSUED
  *     signature, the ISSUE row). The command carries the issuer's own reason, both halves, from the action
  *     (EBMR-AUDIT-002). The dry run checks what can be checked before the seal (the batch still PLANNED, the definition,
- *     every header input) and signs nothing on a refusal.
+ *     every header input) and signs nothing on a refusal. In the same command the market policies in force are pinned for
+ *     the batch (market.pin_policies_for_batch; INV-47; slice 7g WP3).
  * The evidence of the ISSUE row is empty (no test package; recipe-core 0335 row_evidence_problem). Test packages stay
  * sandbox-only (the import routes are not bound here), and the database refuses all of this in the sandbox
  * (EBMR-SBX-010).
  */
 import { randomUUID } from 'node:crypto';
-import { continuity, type ActorContext, type commands } from '@ebmr/kernel';
+import { continuity, market, type ActorContext, type commands } from '@ebmr/kernel';
 import { execution, type engine, type flow } from '@ebmr/recipe-core';
 import type { PlannedBatchView, SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
@@ -47,6 +48,37 @@ export interface PlanInput {
   erpOrder?: string;
   /** A packaging order (record kind PACKAGING): the issued processing batch it packs (D-S4-2; Phase 4 slice 2c route). */
   parentBatch?: string;
+  /**
+   * Phase 7 slice 7g (WP4; PR-47, IN-19): a whole-batch reprocessing batch on a REPROCESSING master, planned with the
+   * quality unit's authorised request through recipe.prepare_reprocessing_issue (recipe-core 0624), which checks the
+   * request (authorised by the QCU, a concluded investigation, a stored risk evaluation, the product's permission, used
+   * once) before the GMP plan and links the parent batches.
+   */
+  reprocessingRequest?: string;
+}
+
+/** recipe.prepare_reprocessing_issue's answer read as the GMP plan's (it adds the parents and the request). */
+async function prepareReprocessingIssue(client: Db, batchId: string, plan: PlanInput & { erpOrder: string }): Promise<execution.PlannedGmpBatch> {
+  const { rows } = await client.query<{ r: Record<string, unknown> }>('select recipe.prepare_reprocessing_issue($1, $2::jsonb) as r', [batchId, JSON.stringify(plan)]);
+  const r = rows[0]?.r ?? {};
+  const str = (k: string): string => {
+    const v = r[k];
+    return typeof v === 'string' ? v : v === undefined || v === null ? '' : JSON.stringify(v);
+  };
+  return {
+    batchId: str('batch_id'),
+    batchNumber: str('batch_number'),
+    allocationId: str('allocation_id'),
+    pinId: str('pin_id'),
+    versionId: str('version_id'),
+    versionNumber: Number(str('version_number')),
+    contentHash: str('content_hash'),
+    rule: str('rule'),
+    markets: Array.isArray(r['markets']) ? (r['markets'] as unknown[]).map(String) : [],
+    controlRecipeId: str('control_recipe_id'),
+    snapshotHash: str('snapshot_hash'),
+    erpOrder: str('erp_order'),
+  };
 }
 
 /** The external ledger of protected numbers (EBMR_NUMBER_LEDGER_FILE; DEMO-ONLY file, write-once storage in production). */
@@ -99,7 +131,7 @@ export async function planGmpBatch(app: AppContext, actor: ActorContext, key: st
     try {
       const out = await withIdempotentActorCommand(pool, actor, key, requestHash, async (client) => {
         const erpOrder = plan.erpOrder ?? (await openErpOrder(client, plan));
-        const planned = await execution.prepareGmpIssue(client, batchId, { ...plan, erpOrder });
+        const planned = plan.reprocessingRequest !== undefined ? await prepareReprocessingIssue(client, batchId, { ...plan, erpOrder }) : await execution.prepareGmpIssue(client, batchId, { ...plan, erpOrder });
         return planned as unknown as commands.JsonValue;
       });
       const planned = out.result as unknown as execution.PlannedGmpBatch;
@@ -205,6 +237,9 @@ export function gmpIssueHandler(app: AppContext): SignableActionHandler<IssueAct
         define: () => def,
         request: { variants: { ...a.variants }, inputs: inputsOf(def, a, await loginNameOf(client, ctx.actor.accountId)), issuedBy: engineActor(ctx.actor.personId, roles) },
       });
+      // The market policies in force now are pinned for the batch in the same command (kernel 0350; INV-47): afterwards
+      // only a tightening reaches it, never a loosening (slice 7g WP3; no other path of the GMP issue pinned them).
+      await market.pinPoliciesForBatch(client, a.batchId);
       return { runId: a.batchId, batchNumber: r.batchNumber };
     },
   };

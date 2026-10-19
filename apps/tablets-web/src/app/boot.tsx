@@ -44,6 +44,8 @@ import {
 
 export type BootPhase =
   | 'loading'
+  /** Phase 7 slice 7g-4: the installation awaits its first-run set-up (meta.setupRequired); no terminal key is needed. */
+  | 'setup'
   | 'failed'
   | 'mismatch'
   | 'no-device'
@@ -182,6 +184,7 @@ async function runBoot(): Promise<BootState> {
   anchorServerTime(meta.value.serverTime.us);
   document.documentElement.dataset['installation'] = installation.toLowerCase();
   const withMeta = { ...empty, meta: meta.value };
+  if (meta.value.setupRequired) return { ...withMeta, phase: 'setup' };
   if (window.location.pathname === '/demo/devices') return { ...withMeta, phase: 'no-device' };
   const deviceKey = await loadDeviceKey();
   apiState.terminalKey = deviceKey ? await terminalKeyOf(deviceKey.publicKeySpki) : undefined;

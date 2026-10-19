@@ -31,6 +31,8 @@ export {
   FamilyView,
   FindingView,
   JustificationView,
+  LabellingSpecimenView,
+  MarketAuthorisationView,
   MbrContentWire,
   PaletteBlock,
   ProductRef,
@@ -61,6 +63,8 @@ export {
   RunSummaryView,
   RunView,
   PlannedBatchView,
+  PackagingBatchDataView,
+  DetectorChallengeView,
   StageView,
   StepScreenView,
   StepStatus,
@@ -87,8 +91,12 @@ export {
 } from './ns/quality.ts';
 export { DeviationClassificationInput, DeviationClosureBasisInput, DeviationDetailView, DeviationReleaseItem, DeviationState } from './ns/deviation.ts';
 export * from './tablet-entries.ts';
+export * from './ns/people.ts';
+export * from './ns/device-registry.ts';
+export * from './ns/access-governance.ts';
+export * from './ns/market-config.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
-export { PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
+export { BatchNumberView, PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {
   FormulaChoiceView,
   FormulaLineInput,
@@ -224,7 +232,7 @@ export {
 } from './ns/pqr.ts';
 export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
-export { ProcessReadingView } from './ns/device-readings.ts';
+export { ProcessReadingView, StepBindingsView } from './ns/device-readings.ts';
 export {
   ArchiveBatchSummary,
   ArchiveBatchView,
@@ -255,7 +263,8 @@ export {
 export { AlarmLimitKind, AlarmSubjectKind, PlantAlarmSource, PlantAlarmView } from './ns/alarms.ts';
 export { DeviceOriginalView, EquipmentEventView, NativeSampleView, SERIES_PAGE_MAX, SeriesChunkView, SeriesSubjectKind, SeriesTagView } from './ns/equipment-data.ts';
 export { LineStationView, StatusBoardEntry } from './ns/equipment-data.ts';
-export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
+export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, BetaLactamSubjectView, FacilityRuleSubjectView, PlantRuleProposalView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
+export { IncidentSeverity, IncidentSource, IncidentStatus, IncidentSummaryView, IncidentView } from './ns/incidents.ts';
 export {
   ComplaintLookupView,
   DeviationImpactView,
@@ -307,7 +316,7 @@ export {
   StoreTransactionKind,
 } from './ns/labels.ts';
 export { BatchPoolsView, L3MirrorView, SerialLookupView, SerialStatus } from './ns/serialisation.ts';
-export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
+export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotHandlingView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput, VendorRouteView } from './ns/receipt.ts';
 export {
   CheckpointState,
   CheckpointView,
@@ -345,3 +354,31 @@ export {
   TrainingOverviewView,
   TrainingPersonaView,
 } from './ns/dashboards.ts';
+export {
+  BackupFileView,
+  BackupRunView,
+  BackupView,
+  BackupsView,
+  DemoJobView,
+  DemoView,
+  SetupDoneView,
+  SetupRequest,
+  SetupStateView,
+  SimulatorCode,
+  SimulatorView,
+  SimulatorsView,
+  WorkerView,
+  WorkersView,
+  // Phase 7 slice 7g, work package 2.
+  ContinuityAlarmView,
+  DrillJobView,
+  DrillsView,
+  HardeningCheckView,
+  HardeningRunView,
+  RestoreDrillView,
+  RestoreEventKind,
+  RestoreEventView,
+  RestoreMoveView,
+  RestoreView,
+  UpgradeDrillView,
+} from './ns/operations.ts';

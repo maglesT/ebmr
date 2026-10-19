@@ -10,6 +10,7 @@ import { Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { WorkersPanel } from '../operations/WorkersPanel.tsx';
 import { age, freshnessText, INTEGRATION_READS, words } from './reads.ts';
 
 export function IntegrationsPage() {
@@ -53,6 +54,8 @@ export function IntegrationsPage() {
           <tbody>{mirrors.data?.mirrors.map((m) => <MirrorRow key={m.dataClass} m={m} />)}</tbody>
         </table>
       </Section>
+      {/* Phase 7 slice 7g-4: start, stop and restart the adapters' workers and the analytics runner from here. */}
+      <WorkersPanel />
       <Section title="Open alarms" testId="integration-alarms">
         {alarms.error ? <RefusalMessage error={alarms.error.error} /> : null}
         {alarms.data && alarms.data.alarms.length === 0 ? <p>No open alarm.</p> : null}

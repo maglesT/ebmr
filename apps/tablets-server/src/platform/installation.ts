@@ -8,7 +8,7 @@
  *  - demo switches need EBMR_DEMO=1 AND the tab.demo_installation marker (decision D6);
  *  - production refuses http origins and demo switches (config.ts).
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import type pg from 'pg';
 import { z } from 'zod';
 import { sandbox, time } from '@ebmr/kernel';
@@ -52,7 +52,9 @@ export async function demoState(pool: pg.Pool, config: EnvConfig): Promise<DemoS
     return { enabled: false, devices: [], warning: 'EBMR_DEMO=1 is ignored: the database carries no demo-installation marker (decision D6)' };
   }
   let devices: DemoDevice[] = [];
-  if (config.demoKeysFile) {
+  // Phase 7 slice 7g-4: a demo installation's keys file is written by its demo data load (operations screen); until
+  // then the picker lists no terminal.
+  if (config.demoKeysFile && existsSync(config.demoKeysFile)) {
     const file = DemoKeysFile.parse(JSON.parse(readFileSync(config.demoKeysFile, 'utf8')));
     if (file.installation !== config.installation) throw new Error(`the demo keys file is for ${file.installation}, not ${config.installation}`);
     devices = file.devices;

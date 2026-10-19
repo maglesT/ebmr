@@ -3,7 +3,8 @@
  * period), each with its method and version, its reasons and its data age, and QA's disposition: real issue, false
  * alarm or not assessable, with the cause and an optional deviation reference; a later disposition supersedes the
  * current one with a reason. Flags about a person are listed only when asked for, for data-integrity review. A real
- * problem goes into the deviation path as usual: the disposition records QA's view of the flag, nothing more.
+ * problem goes into the deviation path as usual: the disposition records QA's view of the flag, nothing more. One flag
+ * opens in detail (analytics.flag; slice 7g-5): every disposition it had, the superseded ones with the reason given.
  */
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
@@ -61,9 +62,32 @@ function FlagLine({ f }: { f: FlagView }) {
           {f.disposition.deviationRef ? ` · deviation ${f.disposition.deviationRef}` : ''}
         </p>
       ) : null}
+      <FlagHistory flagId={f.flagId} />
       {qa ? <ActButton label={f.disposition ? 'Supersede the disposition' : 'Disposition'} primary={false} onPress={() => setOpen(true)} /> : null}
       {open ? <DispositionDialog f={f} onClose={() => setOpen(false)} /> : null}
     </li>
+  );
+}
+
+/** Every disposition of one flag, read when opened (analytics.flag). */
+function FlagHistory({ flagId }: { flagId: string }) {
+  const [open, setOpen] = useState(false);
+  const q = useApiQuery(routes.analytics.flag, { params: { flagId } }, { enabled: open });
+  return (
+    <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)} data-testid={`analytics-flag-${flagId}-history`}>
+      <summary style={{ minHeight: '2.75rem', paddingBlock: '0.65rem', cursor: 'pointer', boxSizing: 'border-box' }}>Every disposition of this flag</summary>
+      {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      {q.data && q.data.dispositions.length === 0 ? <p>No disposition yet.</p> : null}
+      <ol>
+        {q.data?.dispositions.map((d) => (
+          <li key={d.dispositionId}>
+            {verdictLabel(d.verdict)} by {d.person.legalName}, {d.recordedAt.text}: {d.cause}
+            {d.deviationRef ? ` · deviation ${d.deviationRef}` : ''}
+            {d.reason ? ` · superseding with the reason: ${d.reason}` : ''} {d.current ? <StatusChip tone="ok" label="Current" /> : <StatusChip tone="neutral" label="Superseded" />}
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }
 

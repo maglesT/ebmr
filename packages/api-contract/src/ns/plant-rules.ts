@@ -117,6 +117,41 @@ const VersionResponse = z.strictObject({ version: WholeText });
  */
 const PlantRuleProposalResponse = z.strictObject({ version: WholeText, proposalId: Uuid, state: z.literal('PROPOSED') });
 
+/**
+ * One version of a penicillin facility rule or a beta-lactam classification (recipe-core 0973, 1210): PROPOSED until a QA
+ * person other than the proposer approves it (QA_APPROVED), SUPERSEDED once a later version exists. `effect` is the
+ * database's against the value approved before it: a TIGHTENS proposal is in force at once, a LOOSENS one only once
+ * approved (the stricter rule wins).
+ */
+export const PlantRuleProposalView = z.strictObject({
+  proposalId: Uuid,
+  version: WholeText,
+  state: z.enum(['PROPOSED', 'APPROVED', 'SUPERSEDED']),
+  effect: z.enum(['TIGHTENS', 'LOOSENS', 'UNCHANGED']),
+  /** The proposed value: the site is a penicillin facility, or the material or product is beta-lactam. */
+  value: z.boolean(),
+  reason: z.string().min(1),
+  proposedBy: PersonRef,
+  proposedAt: Instant,
+  approvedBy: PersonRef.nullable(),
+  approvedAt: Instant.nullable(),
+});
+export type PlantRuleProposalView = z.infer<typeof PlantRuleProposalView>;
+
+/** A subject's rule in force now (the database's views plant.facility_rule_in_force and plant.beta_lactam_class_in_force). */
+const InForce = {
+  /** The value in force now. */
+  inForce: z.boolean(),
+  approvedVersion: WholeText.nullable(),
+  /** A later version waits for QA's approval. */
+  pending: z.boolean(),
+  versions: z.array(PlantRuleProposalView),
+};
+export const FacilityRuleSubjectView = z.strictObject({ site: z.string().min(1), ...InForce });
+export const BetaLactamSubjectView = z.strictObject({ kind: z.enum(['MATERIAL', 'PRODUCT']), code: z.string().min(1), ...InForce });
+export type FacilityRuleSubjectView = z.infer<typeof FacilityRuleSubjectView>;
+export type BetaLactamSubjectView = z.infer<typeof BetaLactamSubjectView>;
+
 export const plantRules = {
   rooms: defineRoute({
     id: 'plantRules.rooms',
@@ -211,6 +246,16 @@ export const plantRules = {
     summary: 'Propose a material or product as beta-lactam (penicillin) or not (PR-27; MASTERDATA.CHANGE); in force once QA approves it (INDIA_ACT BETA_LACTAM_APPROVE)',
     body: withAttribution({ kind: z.enum(['MATERIAL', 'PRODUCT']), code: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9/._-]{0,63}$/), betaLactam: z.boolean(), reason: Text(500) }),
     response: PlantRuleProposalResponse,
+  }),
+  proposals: defineRoute({
+    id: 'plantRules.proposals',
+    method: 'GET',
+    path: '/api/plant-rules/proposals',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The penicillin facility rules and beta-lactam classifications: the value in force, whether a proposal waits for QA, and every version with its proposer and approver (PR-27; Phase 7 slice 7g-2)',
+    response: z.strictObject({ facilityRules: z.array(FacilityRuleSubjectView), betaLactam: z.array(BetaLactamSubjectView), readAt: Instant }),
   }),
   createAreaAuthorisation: defineRoute({
     id: 'plantRules.createAreaAuthorisation',

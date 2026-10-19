@@ -60,6 +60,9 @@ tests:
   - "apps/tablets-server/test/release/release-act-apply.test.ts > the two-row release consumes both signatures (T13) > [IN-05][DI-37] a release with the US epoch runs the two-row act with both signatures and never the manufacturer release alone"
   - "apps/tablets-server/test/release/release-act-apply.test.ts > the two-row release consumes both signatures (T13) > [IN-05][DI-37] a two-row release without its US signature runs no act (the ceremony rolls back whole); a release without the US epoch runs the manufacturer release alone"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: review signatures, the QMS item and container links (mutation triage T11; INV-05, DI-37, DI-31, PR-53) > [DI-31][INV-26][IN-05] with a QMS (MIRROR) G-REL carries the QMS item for a finished lot only; with the stand-in it carries none; a lot that is no finished lot gets no market items"
+  - "apps/tablets-server/test/administration/access-governance-routes.test.ts > delegations of signing authority over HTTP > [IN-05][DI-35][DI-18] the authorised person delegates manufacturer release; the delegate, the delegator and the administrator cannot approve; the process owner approves; the delegate cannot pass it on; the delegator revokes it"
+  - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [IN-05][DI-35] the delegator requests a delegation and is not offered its decision"
+  - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [IN-05][DI-35][DI-18] the authorised person delegates the manufacturer release to a deputy; the process owner approves it; the delegator revokes it"
 clauses:
   - clause: "attempt release with an open deviation, without head-of-QC approval, with an unsigned step, and as a user without the AP/delegate role; all four are blocked."
     tests:

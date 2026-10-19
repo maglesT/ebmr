@@ -56,6 +56,10 @@ tests:
   - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17][IN-26] a unit: the product of the use this transaction starts or ends, of that unit only"
   - "apps/tablets-server/test/execution/packaging-planning-routes.test.ts > packaging orders over HTTP (Phase 4 slice 2c) > [IN-26][INV-27] the bulk read of a packaging order names its processing batch and why it is not released for packing; the bulk issue over HTTP is refused until then and records nothing; an unknown order is not found"
   - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > the planning reads of packaging orders and their bulk (Phase 4 slice 2c; recipe-core 0762) > [IN-26][INV-27] the bulk-issue read shows the order, its processing batch and why it is not released for packing, each container with the database's reason it cannot be issued, and the bulk issued; the planning read names the parent candidates of a packaging order"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > plant configuration > [DI-49][IN-26][IN-38] the steward configures an alarm code, opens and closes a campaign with a reason, sets a utility feed age and records a line isolation; the database refuses an alarm that needs a deviation and is not GMP-critical; QA holds no MASTERDATA.CHANGE"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > plant configuration > [DI-49][IN-26][IN-38] saves an alarm code, opens and closes a campaign with a reason, sets a feed age and records a line isolation"
+  - "apps/tablets-server/test/containers/routes-gmp.test.ts > container routes (GMP, Phase 4 slice 1b) > [IN-26] a merge pours a usable container into an open one of the same batch, stage and unit, both named by their labels; an unverified source, an unknown label and a person without the right are refused (slice 7g WP4)"
+  - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the merge of two containers on the GMP run overview > [IN-26] sends both scanned labels and shows the target the server answered"
 clauses:
   - clause: "schedule a highly potent product in a positive-pressure cubicle; blocked."
     tests:

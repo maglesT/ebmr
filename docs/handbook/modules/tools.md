@@ -179,6 +179,23 @@ Never drop the demo databases on a shared cluster without asking.
 Test: [demo-devices.test.ts](../../../tools/demo/test/demo-devices.test.ts) (the demo gateway configuration names the
 press, coater, printer and packaging devices, and the gateway accepts it; the E2E stack keeps the scale alone).
 
+## tools-install: the one-command installer (Phase 7 slice 7g-4)
+
+[tools/install](../../../tools/install/src/cli.ts) puts a Batchwright Tablets server on a machine
+([decision 0025](../../decisions/0025-every-act-has-a-screen.md) point 2: the one command that stays a script).
+[install.sh](../../../tools/install/install.sh) checks node and pnpm and runs it; `pnpm install:server` is the same.
+- [answers.ts](../../../tools/install/src/answers.ts): the questions, the defaults and the checks (a sandbox under
+  `ebmr_sandbox_`, a demo name ending in `_demo`, TLS for a production GMP server).
+- [render.ts](../../../tools/install/src/render.ts): the environment file, the Caddyfile, the systemd units and the
+  docker compose file (pure).
+- [plan.ts](../../../tools/install/src/plan.ts): the ordered, idempotent actions (pure); [run.ts](../../../tools/install/src/run.ts)
+  performs them through an `InstallEnv`, or says what it would do in a dry run; [env.ts](../../../tools/install/src/env.ts)
+  is the machine.
+
+The tests run a fake `InstallEnv` and never touch the machine
+([install.test.ts](../../../tools/install/test/install.test.ts)): the checks, a dry run that changes nothing, the files,
+and a second run that keeps what the first made. How to use it: [runbooks](../10-runbooks.md#install-a-server-set-it-up-load-demo-data-reset-phase-7-slice-7g-4).
+
 ## tools-e2e: the browser suite
 
 [tools/e2e](../../../tools/e2e/) runs the real stack (both servers, the web app, the gateway and the scale simulator,

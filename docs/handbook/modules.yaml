@@ -288,6 +288,20 @@ modules:
       packages/kernel/sql: ['^119[0-4]_']
     tests: ['packages/kernel/test/identity/area-authorisation.test.ts']
 
+  - id: kernel-operations
+    title: First-run set-up with the installer's one-time token, operations acts and backup requests (Phase 7 slice 7g-4); drill requests and records, hardening checks (7g WP2)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^137[56]_', '^1395_']
+
+  - id: kernel-validation-iq
+    title: The IQ record of an installation, run from the web app and stored with its SHA-256 (Phase 7 slice 7g-3)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^1381_']
+
   - id: kernel-installation
     title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
     page: modules/kernel.md
@@ -518,7 +532,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_']
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_']
     tests:
       - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
       - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'
@@ -717,7 +731,7 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^0410_', '^0450_', '^0620_', '^11[5-9]9_', '^1200_', '^1209_', '^1410_']
+      apps/tablets-server/sql: ['^0410_', '^0450_', '^0620_', '^11[5-9]9_', '^1200_', '^1209_', '^1410_', '^1496_']
     server: [apps/tablets-server/src/features/esig]
     contract: [packages/api-contract/src/ns/esig.ts]
     tests: ['apps/tablets-server/test/esig/**']
@@ -727,14 +741,28 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^0150_', '^0280_', '^1090_']
+      apps/tablets-server/sql: ['^0150_', '^0280_', '^1090_', '^1479_']
     server: [apps/tablets-server/src/features/designer]
     contract: [packages/api-contract/src/ns/designer.ts]
-    screens: [apps/tablets-web/src/features/designer]
+    screens: [apps/tablets-web/src/features/designer, apps/tablets-web/src/features/master-records]
     tests:
       - 'apps/tablets-server/test/designer/**'
       - 'apps/tablets-web/test/designer/**'
+      - 'apps/tablets-web/test/slice7g2/master-records.test.tsx'
       - 'apps/tablets-server/test/mutation/designer-guards.test.ts'
+
+  - id: ts-market-config
+    title: Master-record, market-policy, site-value and plant configuration acts (Phase 7 slice 7g WP3)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1493_']
+    server: [apps/tablets-server/src/features/market]
+    contract: [packages/api-contract/src/ns/market-config.ts]
+    screens: [apps/tablets-web/src/features/market]
+    tests:
+      - 'apps/tablets-server/test/market/**'
+      - 'apps/tablets-web/test/market/**'
 
   - id: ts-devices
     title: Devices and scale or process readings
@@ -915,8 +943,18 @@ modules:
       apps/tablets-server/sql: ['^121\d_']
     server: [apps/tablets-server/src/features/alarms, apps/tablets-server/src/features/equipment-data, apps/tablets-server/src/features/plant-rules]
     contract: [packages/api-contract/src/ns/alarms.ts, packages/api-contract/src/ns/equipment-data.ts, packages/api-contract/src/ns/plant-rules.ts]
-    screens: [apps/tablets-web/src/features/plant-status]
-    tests: ['apps/tablets-server/test/alarms/**', 'apps/tablets-server/test/equipment-data/**', 'apps/tablets-web/test/plant-status/**']
+    screens: [apps/tablets-web/src/features/plant-status, apps/tablets-web/src/features/plant-rules]
+    tests: ['apps/tablets-server/test/alarms/**', 'apps/tablets-server/test/equipment-data/**', 'apps/tablets-web/test/plant-status/**',
+            'apps/tablets-web/test/slice7g2/plant-rules.test.tsx']
+
+  - id: ts-incidents
+    title: Incident register and the CERT-In step on screen (Phase 7 slice 7g-2)
+    page: modules/tablets-web.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/incidents]
+    contract: [packages/api-contract/src/ns/incidents.ts]
+    screens: [apps/tablets-web/src/features/incidents]
+    tests: ['apps/tablets-server/test/incidents/**', 'apps/tablets-web/test/slice7g2/incidents.test.tsx']
 
   - id: ts-capa
     title: CAPA register and closure (Phase 6 slice 6a, builder B)
@@ -1074,6 +1112,41 @@ modules:
       - 'apps/tablets-server/test/mutation/tablets-core-checks.test.ts'
       - 'apps/tablets-server/test/mutation/weighing.test.ts'
 
+  - id: ts-operations
+    title: Operations screens without a terminal (set-up, demo data, backups, workers, simulators, API reference; Phase 7 slice 7g-4)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1485_', '^1525_']
+    server: [apps/tablets-server/src/features/operations]
+    contract: [packages/api-contract/src/ns/operations.ts]
+    screens: [apps/tablets-web/src/features/operations]
+    tests: ['apps/tablets-server/test/operations/**', 'apps/tablets-web/test/operations/**']
+
+  - id: ts-validation
+    title: Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1491_']
+    server: [apps/tablets-server/src/features/validation]
+    contract: [packages/api-contract/src/ns/validation.ts]
+    screens: [apps/tablets-web/src/features/validation]
+    tests:
+      - 'apps/tablets-server/test/validation/validation-routes.test.ts'
+      - 'apps/tablets-server/test/validation/export-routes.test.ts'
+      - 'apps/tablets-server/test/validation/records-register-routes.test.ts'
+      - 'apps/tablets-web/test/validation/**'
+
+  - id: ts-administration
+    title: People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5)
+    page: modules/tablets-web.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/administration]
+    contract: [packages/api-contract/src/ns/people.ts, packages/api-contract/src/ns/device-registry.ts, packages/api-contract/src/ns/access-governance.ts]
+    screens: [apps/tablets-web/src/features/administration]
+    tests: ['apps/tablets-server/test/administration/**', 'apps/tablets-web/test/administration/**']
+
   - id: ts-meta
     title: Meta routes (health, version)
     page: modules/tablets-server.md
@@ -1184,6 +1257,13 @@ modules:
     page: modules/tools.md
     package: tools/boundaries
     tests: ['tools/boundaries/test/**']
+
+  - id: tools-install
+    title: One-command installer for a server (Phase 7 slice 7g-4)
+    page: modules/tools.md
+    package: tools/install
+    src: [tools/install/src, tools/install/install.sh]
+    tests: ['tools/install/test/**']
 
   - id: tools-demo
     title: Demo set-up and run

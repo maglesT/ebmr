@@ -119,8 +119,13 @@ describe('the age of a captured reading (F59)', () => {
     vi.restoreAllMocks();
   });
 
-  /** The display clock anchored so that the server's time now is the tare's recorded time plus `ageS` seconds. */
+  /**
+   * The display clock anchored so that the server's time now is the tare's recorded time plus `ageS` seconds. The
+   * clock's monotonic source (performance.now) is held still for the test: otherwise the age shown is the anchor plus
+   * however long the render, typing and clicks took, and under load a full second passes ("Taken 11 s ago").
+   */
   async function anchoredAt(ageS: number) {
+    vi.spyOn(performance, 'now').mockReturnValue(1_000_000);
     const tare = reading('TARE', TARE_ID, '1.250');
     const { anchorServerTime } = await import('../../src/app/clock.ts');
     act(() => anchorServerTime((BigInt(tare.recordedAt.us) + BigInt(ageS) * 1_000_000n).toString()));

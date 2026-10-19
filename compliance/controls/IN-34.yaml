@@ -49,6 +49,8 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-ipc.test.ts > weight uniformity and subdivision > [PR-29][IN-34] a unit exactly at the band is inside it; the counts against the rule set's maxima decide the pass"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > QA verification of a compendial rule set (slice 3b, tablets 1161; tablets spec E.1) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: NA when no entry cites a rule set; red while a cited rule set has no signed QA verification; green once QA records and signs it"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: an entry whose rule-set reference is malformed is red (\"cannot determine\"), never dropped to NA"
+  - "apps/tablets-server/test/market/market-config-routes.test.ts > compendial rule sets and reference documents > [IN-34][DI-37] QA records the verification of a rule set version against the official text and signs it (COMPENDIAL_RULE_SET_VERIFIED); a QA reviewer holds no MBR.APPROVE; another person cannot sign QA's verification"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > the QP register and the compendial rule sets > [IN-34] records a rule set verification against the official text and offers its signature (RULE_SET_VERIFY) once recorded"
 clauses:
   - clause: "300 mg tablet: India or India+US gives plus/minus 5%; US-only legacy table gives 7.5%."
     tests:

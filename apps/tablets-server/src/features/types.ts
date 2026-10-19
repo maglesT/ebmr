@@ -24,6 +24,8 @@ export interface FeatureSeedContext {
   actorFor(key: string): Promise<ActorContext>;
   /** The installation's system administrator, for configuration (SYSTEM.CONFIGURE). */
   adminActor(): Promise<ActorContext>;
+  /** The installation's process owner (bootstrap), for governance records such as the 11.100(c) letter (IAM.CERTIFICATION_RECORD). */
+  ownerActor(): Promise<ActorContext>;
   /**
    * Slice 6c (GMP demo seed): a session of a seeded service identity (e.g. 'erpInterface') on its SERVER terminal,
    * declaring its own role.

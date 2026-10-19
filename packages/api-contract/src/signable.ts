@@ -66,6 +66,8 @@
  * Phase 6 slice 6i (site services 0981, kernel 1220; ns/transfers.ts):
  *  - TRANSFER_RECEIPT_DECIDE   transfer_receipt <receipt id>   TRANSFER_RECEIPT_ACCEPTED or _REFUSED (local QA), state RECEIVED
  *  - PEER_INSTALLATION_APPROVE peer_installation <peer id>     PEER_INSTALLATION_APPROVED (QA), state PROPOSED
+ * Phase 7 slice 7g, work package 2 (kernel 0600, 0720; ns/operations.ts):
+ *  - RESTORE_APPROVE  restore_event <restore event id>  RESTORE_APPROVED (a named approver, never the operator), state RECORDED
  * Phase 4 slice 6c (recipe-core 0910; ns/pqr.ts):
  *  - PQR_SIGN_OFF  pqr_extract <extract id>  PQR_SIGNED_OFF (AP, outside the reviewed batches' records), state EXTRACTED
  * Phase 4 slice 6b (kernel 1170, 1171; ns/archive.ts):
@@ -79,6 +81,13 @@
  *              FACILITY_RULE_APPROVE      facility_rule <proposal id>            QA_APPROVED (QA, never the proposer), state PROPOSED
  *              BETA_LACTAM_APPROVE        beta_lactam_class <proposal id>        QA_APPROVED (QA, never the proposer), state PROPOSED
  *              (Phase 7 slice 7a, recipe-core 1210; PR-27: the penicillin facility rule and the beta-lactam classification)
+ * Phase 7 slice 7g-2 (decision 0025; tablets 1479; ns/designer.ts):
+ *  - MBR_MARKET_ACT REGULATORY_CONFIRM  mbr_market_authorisation <id>  REGULATORY_CONFIRMED (regulatory signer), state PROPOSED
+ *                   AUTHORISE           mbr_market_authorisation <id>  MBR_MARKET_AUTHORISED (QA, another person than the
+ *                                       regulatory signer), state PROPOSED; the same command activates the record with
+ *                                       the regulatory confirmation already on it and QA's own reason (recipe-core 0290)
+ *  - SPECIMEN_ACT APPROVE  labelling_specimen <reference document id>  SPECIMEN_APPROVED (MBR.APPROVE, never the person who
+ *                          recorded the specimen), state RECORDED
  * Phase 6 slice 6f (kernel 1202; ns/support.ts):
  *  - SUPPORT_ACT QA_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_QA_APPROVED (QA), state PENDING
  *                IT_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_IT_APPROVED (system or process owner), state PENDING
@@ -201,6 +210,22 @@ export const RecordLockActInput = z.strictObject({
   statement: z.string().trim().min(10).max(4000).optional(),
 });
 export type RecordLockActInput = z.infer<typeof RecordLockActInput>;
+
+/** What a records-register act carries (slice 7g-3; members an act does not use are refused, 422). */
+export const RecordsActInput = z.strictObject({
+  /** RECORD_TYPE_APPROVE: the record type and the version approved. */
+  code: z.string().regex(/^[A-Z][A-Z0-9_]{1,63}$/).optional(),
+  version: z.string().regex(/^[1-9][0-9]{0,8}$/).optional(),
+  /** DISPOSAL_APPROVE: the record (its record key) whose retention has ended, the true copy it may cite, the reason. */
+  recordKey: z.string().min(3).max(300).optional(),
+  trueCopyId: Uuid.optional(),
+  reason: z.string().trim().min(10).max(2000).optional(),
+  /** DI_INVESTIGATION_CLOSE: the investigation, its conclusion and the remediation. */
+  investigationId: Uuid.optional(),
+  conclusion: z.string().trim().min(10).max(4000).optional(),
+  remediation: z.string().trim().min(10).max(4000).optional(),
+});
+export type RecordsActInput = z.infer<typeof RecordsActInput>;
 
 export const RELEASE_ACTS = [
   'MANUFACTURER_RELEASE',
@@ -425,6 +450,106 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('PEER_INSTALLATION_APPROVE'),
     peerId: Uuid,
   }),
+  z.strictObject({
+    /**
+     * Phase 7 slice 7g-2 (ns/designer.ts; recipe-core 0160, 0290; ADR 0014): the regulatory signer confirms the
+     * registration of a proposed market authorisation (REGULATORY_CONFIRMED); QA then authorises it (MBR_MARKET_AUTHORISED)
+     * and the same command activates it with that confirmation and QA's own reason. The database refuses one person as both.
+     */
+    kind: z.literal('MBR_MARKET_ACT'),
+    act: z.enum(['REGULATORY_CONFIRM', 'AUTHORISE']),
+    authorisationId: Uuid,
+    /** AUTHORISE: QA's own reason for the activation, both halves (DI-22, EBMR-AUDIT-002); REGULATORY_CONFIRM carries none. */
+    reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
+  }),
+  z.strictObject({
+    /** Phase 7 slice 7g-2 (tablets 1479; DI-35): QA approves a labelling specimen recorded by another person (SPECIMEN_APPROVED). */
+    kind: z.literal('SPECIMEN_ACT'),
+    act: z.literal('APPROVE'),
+    documentId: Uuid,
+  }),
+  // Phase 7 slice 7g work packages: reserved kinds with a placeholder payload (the subject's id only). Each work package
+  // replaces its placeholder with the real payload and registers the server handler; until then no handler is
+  // registered, so the server refuses a signature for any of them.
+  //  WP1: VALIDATION_SUMMARY_APPROVE, EVALUATION_PACK_APPROVE, RECORDS_ACT
+  //  WP2: RESTORE_APPROVE (replaced: the restore event's id)
+  //  WP3: QP_REGISTER, RULE_SET_VERIFY, MARKET_LOOSENING (real payloads, handlers in the server's market feature)
+  //  WP4: LOT_DESTRUCTION_WITNESS
+  // WP1 (slice 7g-3, ns/validation.ts; kernel 1300, 1336, 0400, 0440, 0430):
+  //  VALIDATION_SUMMARY_APPROVE  validation_summary <schema release>@<summary sha256>  VALIDATION_SUMMARY_APPROVED (QA), state PROPOSED
+  //  EVALUATION_PACK_APPROVE     evaluation_pack <pack id>   PERIODIC_EVALUATION_APPROVED (QA, never who generated it), state STORED
+  //  RECORDS_ACT RECORD_TYPE_APPROVE     record_type_version <code>:<version>  RECORD_TYPE_APPROVED (never its author), state DEFINED
+  //              DISPOSAL_APPROVE        record_disposal <record key>@<retain until>[@<true copy>]  RECORD_DISPOSAL_APPROVED
+  //                                      (QA, never an author of its retention), state DISPOSABLE; with the person's reason
+  //              DI_INVESTIGATION_CLOSE  di_investigation <id>  DI_INVESTIGATION_CLOSED (QA, never the investigator or the
+  //                                      person investigated), state OPEN; with the conclusion and the remediation
+  z.strictObject({
+    kind: z.literal('VALIDATION_SUMMARY_APPROVE'),
+    /** The running release and the SHA-256 of the validation summary document the person read (DI-03). */
+    schemaRelease: z.string().regex(/^[0-9a-f]{64}$/),
+    summarySha256: z.string().regex(/^[0-9a-f]{64}$/),
+    title: z.string().trim().min(1).max(200),
+  }),
+  z.strictObject({ kind: z.literal('EVALUATION_PACK_APPROVE'), /** The stored periodic evaluation pack QA signs off (DI-11). */ packId: Uuid }),
+  z.strictObject({
+    kind: z.literal('RECORDS_ACT'),
+    act: z.enum(['RECORD_TYPE_APPROVE', 'DISPOSAL_APPROVE', 'DI_INVESTIGATION_CLOSE']),
+    input: RecordsActInput,
+  }),
+  z.strictObject({
+    /**
+     * Phase 7 slice 7g, work package 2 (kernel 0600, 0720; DI-45, DI-18, DI-37): a person named as approver when the restore
+     * was recorded approves it with their own RESTORE_APPROVED signature of the event as hashed; never the operator, never
+     * an administrator (continuity.approve_restore_event).
+     */
+    kind: z.literal('RESTORE_APPROVE'),
+    restoreEventId: Uuid,
+  }),
+  z.strictObject({
+    /**
+     * Slice 7g WP3 (recipe-core 0824; ST-10): QA registers a person as an EU qualified person on a registered importer's
+     * authorisation, or withdraws the registration (QP_REGISTERED on qp_register <person>/<action>/<importer>/<MIA>);
+     * recipe.register_qp decides (never oneself, the importer's own MIA number, the registration's current state).
+     */
+    kind: z.literal('QP_REGISTER'),
+    personId: Uuid,
+    action: z.enum(['REGISTER', 'WITHDRAW']),
+    importerCode: z.string().regex(/^[A-Z0-9][A-Z0-9-]{1,31}$/),
+    miaNumber: z.string().trim().min(1).max(64),
+  }),
+  z.strictObject({
+    /**
+     * Slice 7g WP3 (tablets 1161; IN-34): the QA person who recorded the verification of a compendial rule set version
+     * signs it (COMPENDIAL_RULE_SET_VERIFIED on compendial_rule_set <CODE>:<version>); tab.sign_rule_set_verification decides.
+     */
+    kind: z.literal('RULE_SET_VERIFY'),
+    code: z.string().regex(/^[A-Z][A-Z-]{1,39}$/),
+    version: z.number().int().min(1).max(999_999_999),
+  }),
+  z.strictObject({
+    /**
+     * Slice 7g WP3 (kernel 0320, 0350, 0360; INV-47, IN-52, DI-09): the approver's signature on a market loosening before
+     * it is made: the next version of a policy at a looser position (POLICY_LOOSENING_APPROVED on market_policy_version
+     * <policy>@<version>@<position>), or a site value that departs from a guidance value under a justification
+     * (SITE_VALUE_LOOSENING_APPROVED on market_site_loosening). The server names the record; the person making the change
+     * cannot approve it (the database refuses the change).
+     */
+    kind: z.literal('MARKET_LOOSENING'),
+    target: z.discriminatedUnion('subject', [
+      z.strictObject({ subject: z.literal('POLICY_VERSION'), policy: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/), position: z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}$/) }),
+      z.strictObject({
+        subject: z.literal('SITE_VALUE'),
+        site: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/),
+        key: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/),
+        value: z.string().trim().min(1).max(64),
+        effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        justificationRef: z.string().trim().min(1).max(120),
+      }),
+    ]),
+  }),
+  // WP4 (slice 7g): the witness's MATERIAL_DESTRUCTION_WITNESSED signature on a lot whose destruction is recorded (site
+  // services 0712; IN-24 (a)): signed by a witness other than the performer; the performer's destroy then names it.
+  z.strictObject({ kind: z.literal('LOT_DESTRUCTION_WITNESS'), lotId: Uuid }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
 export type SignableKind = SignableAction['kind'];

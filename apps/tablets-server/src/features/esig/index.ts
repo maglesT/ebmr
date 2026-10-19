@@ -64,6 +64,7 @@ import type { SignableActionHandler, SignableActionRegistry } from '../../platfo
 import { ChallengeBadgeStore } from './badges.ts';
 import { kernelContent, meaningOfIntent, recordContentForSigning, type EsigSignableContext } from './content.ts';
 import { ESIG_GUIDANCE } from './guidance.ts';
+import { addMeaningType, configureMeaningType, meaningTypes, retireSealKey, sealKeys } from './catalogue.ts';
 import { dscConfiguration, dscEnrolment, endDscEnrolment, enrolDsc, registerDscAnchor, setDscMeaning, setDscMode } from './dsc.ts';
 import { esigStubHandler } from './stub.ts';
 import { manifestationView, meaningInfo, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
@@ -201,8 +202,8 @@ type RefusedWork = { refused: { status: number; refusal: Refusal } };
 type SignedWork = { signed: { manifestation: ManifestationView; result: Record<string, unknown> | null; companion?: ManifestationView } };
 
 /** What the action signs, read now when the handler can (a record whose id or meaning depends on the database). */
-async function describeAction(app: AppContext, handler: SignableActionHandler, action: SignableAction): Promise<ReturnType<SignableActionHandler['describe']>> {
-  return handler.describeNow ? handler.describeNow(app.pools.app, action) : handler.describe(action);
+async function describeAction(app: AppContext, handler: SignableActionHandler, action: SignableAction, tokenHash: string): Promise<ReturnType<SignableActionHandler['describe']>> {
+  return handler.describeNow ? handler.describeNow(app.pools.app, action, tokenHash) : handler.describe(action);
 }
 type SignWork = RefusedWork | SignedWork;
 
@@ -300,7 +301,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         sealKeyOf(app);
         const handler = handlerFor(app, body.action.kind);
         // Phase 4 slice 4 (D-P4-5): a two-row action opens a challenge for each of its records.
-        const primary = await describeAction(app, handler, body.action);
+        const primary = await describeAction(app, handler, body.action, s.tokenHash);
         const companion = handler.companionOf?.(body.action);
         const d = companion && companion.aggregateType === body.aggregateType && companion.aggregateId === body.aggregateId ? companion : primary;
         if (d.aggregateType !== body.aggregateType || d.aggregateId !== body.aggregateId) throw mismatch(`The action signs ${d.aggregateType} ${d.aggregateId}.`);
@@ -361,7 +362,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const s = requireSession();
         const sealKey = sealKeyOf(app);
         const handler = handlerFor(app, body.action.kind);
-        const d = await describeAction(app, handler, body.action);
+        const d = await describeAction(app, handler, body.action, s.tokenHash);
         const ch: StoredChallenge | null = await readChallenge(app.pools.app, s.tokenHash, body.challengeId);
         if (!ch || ch.sessionId !== s.sessionId) {
           throw refusal(409, { code: 'EBMR-ESIG-031', kind: 'STALE', whatHappened: 'This signing request is not known here. Nothing was signed.', why: 'The challenge does not exist or belongs to another session.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again.'] });
@@ -486,7 +487,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
                 const result: SignWork = { refused };
                 return result as unknown as commands.JsonValue;
               }
-              const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
+              const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action, ctx) : null);
               const delegationId = handler.delegationOf?.(body.action);
               const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState, ...(delegationId ? { delegationId } : {}) }, sealKey);
               // IN-10 (kernel 1203): the DSC over the same content hash, verified against the configured anchor before it is
@@ -533,9 +534,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
 
       // Phase 3 slice 6: what an action signs, as the handler computes it (the browser never derives it).
       describe: async ({ body, requireSession }) => {
-        requireSession();
+        const s = requireSession();
         const handler = handlerFor(app, body.action.kind);
-        const d = await describeAction(app, handler, body.action);
+        const d = await describeAction(app, handler, body.action, s.tokenHash);
         const comp = handler.companionOf?.(body.action);
         return {
           kind: body.action.kind,
@@ -567,6 +568,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       },
       enrolDsc: async ({ body, actor, idempotencyKey, requestHash }) => enrolDsc(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
       endDscEnrolment: async ({ body, actor, idempotencyKey, requestHash }) => endDscEnrolment(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      // Phase 7 slice 7g-3 (WP1): the signature catalogue and the seal keys (catalogue.ts).
+      meaningTypes: async ({ requireSession }) => {
+        requireSession();
+        return { meaningTypes: await meaningTypes(app, app.pools.app) };
+      },
+      addMeaningType: async ({ body, actor }) => addMeaningType(app, actor(), body),
+      configureMeaningType: async ({ params, body, actor }) => configureMeaningType(app, actor(), params.code, body),
+      sealKeys: async ({ requireSession }) => {
+        requireSession();
+        return { sealKeys: await sealKeys(app, app.pools.app) };
+      },
+      retireSealKey: async ({ params, body, actor }) => ({ sealKeys: await retireSealKey(app, actor(), params.keyId, body) }),
     },
     { rateLimits: { sign: { max: 20, timeWindow: '1 minute', by: 'SESSION' } } },
   );

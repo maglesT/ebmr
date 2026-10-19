@@ -116,3 +116,28 @@ against that database by the tests; no verbatim regulation passages; the UI chan
 |---|---|---|---|
 | P7E-1 | low | A link target with any scheme (for example `javascript:`) became a live link in the built guide (repository-authored Markdown only). | Fixed: only http, https and mailto stay links; any other scheme is shown as text (`externalHref`), with a test. |
 
+## Slice 7g-5 (finding of 18 October 2026)
+
+- **7g5-F1 (high; DI-15): the US e-signature certification was enforced on no batch-issue path.** Kernel 0170's
+  `iam.assert_us_esig_certification` (policy `esig.us_certification_mode`, BLOCK by default) was called by nothing, so a
+  US-market GMP batch was issued with no 21 CFR 11.100(c) letter on file. **Fixed** in recipe-core 1260:
+  `recipe.gmp_issue_problem` (rebuilt from 1250) refuses a batch with US in its market set when the holder of the
+  manufacturing licence it is issued under (`site.licence_basis`, the host licence for a loan-licence batch) has no letter
+  on file (EBMR-IAM-170), and a BEFORE INSERT trigger on `recipe.batch_execution` calls the kernel's assert for every
+  writer of a GMP batch row. Tests: `packages/recipe-core/test/lifecycle/us-esig-certification.test.ts` (2) and
+  `apps/tablets-server/test/execution/us-esig-certification-issue.test.ts` (1), failing before the migration. Test
+  fixtures (`World.licenceFor` for a US market) and the demo seed record the letter (process owner; DEMO-ONLY).
+  For the owner: the legal entity is read as the licence holder's name as recorded on the licence, so the letter must be
+  recorded under exactly that name; whether a loan licensee's letter is also needed stays with the expert decision on DI-15.
+
+## Slice 7g (review of 19 October 2026)
+
+| ID | Severity | Finding | Outcome |
+| --- | --- | --- | --- |
+| P7G-1 | medium | `route-matrix.test.ts` exempted the whole `people` and `deviceRegistry` namespaces from "the system administrator never succeeds at a write". | Fixed (D-P7R-9): an explicit per-route list (person, account, credential, badge, device, gateway, empty-role and attribution routes), each with its reason; a listed route must exist and be a write. New tests: an administrator cannot approve a grant to their own account requested by another administrator, nor a permission for a role they hold (both already refused by kernel 0120, EBMR-IAM-032; no guard added). Whether the administrator keeps IAM.GRANT_APPROVE and IAM.ROLE_MANAGE is an open question for the DI-18 expert decision. |
+| P7G-2 | low | The web client's write signal (`onWrite`) fired for POSTs to routes without a session (device nonce, identify), pushing the idle estimate out. | Fixed: auth-NONE routes are ignored (`apps/tablets-web/src/api/client.ts`); test `test/api/on-write.test.ts`, failing before. |
+| P7G-3 | low (regulatory) | recipe-core 1260 `recipe.us_esig_issue_entity` returned NULL for a US-market batch whose licence holder could not be resolved, so the gate and the trigger skipped the certification check. | Fixed in place (1260 is not on main): it returns '' for that case and both the gate and the trigger refuse it (EBMR-IAM-170), in BLOCK and FLAG mode; `[DI-15]` test in `packages/recipe-core/test/lifecycle/us-esig-certification.test.ts`, failing before. |
+| P7G-4 | low | The upgrade drill's `fromRelease` (any text up to 200 characters) became a command-line value of the drill tool; a leading dash would read as an option. | Fixed: the contract accepts only `^[A-Za-z0-9._+][A-Za-z0-9._+-]{0,199}$`, and `startUpgradeDrill` checks it again; contract test `packages/api-contract/test/operations-drills.test.ts`. |
+| P7G-5 | low | tablets 1485 `tab.installation_contents()` and 1491 `tab.disposal_aggregate_id()` were granted to the application role with no check inside. | Fixed in place: both take the session token; the first needs an active session in a granted role (EBMR-TAB-018), the second a records reader as `tab.record_retention` (EBMR-TAB-018, EBMR-TAB-020); the signing handlers pass the session's token. Test `apps/tablets-server/test/operations/session-checked-reads.test.ts`. |
+| D-P7R-8 | - | The segregation check failed for `validation.startFullExport` as the auditor (RECORD.EXPORT, kernel 1335). | Owner decision recorded: audited exports or copies are audited reads for the auditor (explicit list: startFullExport, archive.assembleExport, controlled.runRegister); the administrator stays refused. |
+| 7g-W1 | low | The designer's save dialog kept the change note in the editor's state: every key re-rendered the whole editor (28 renders for a 28-character note). | Fixed as the justify dialog was (f9fe0d55): the note is the dialog's own state (`SaveRevisionDialog`); test `apps/tablets-web/test/designer/save-note-render.test.tsx` counts the editor's renders while typing (28 before, at most 2 now). |

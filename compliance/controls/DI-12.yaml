@@ -52,6 +52,14 @@ tests:
   - "packages/kernel/test/review/f35.test.ts > F35: an implicit DI-investigation blocker moves the blocker epoch > [DI-50][DI-12] a write by the person investigated inside the window, after opening, moves the epoch of the record it blocks"
   - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [DI-12] an open incident linked to the batch is shown on the disposition checklist and blocks the release until it is assessed for the batch"
   - "packages/recipe-core/test/release/after-release.test.ts > suspension by a kernel incident (L-19, DI-12; D-5-1) > [L-19][DI-12] an incident linked to a released lot's batch suspends it; the cause is resolved once the incident is assessed for that batch"
+  - "apps/tablets-server/test/incidents/incident-routes.test.ts > the incident register over HTTP (DI-12) > [DI-12] an incident raised with a linked record is investigated, assessed for the record, reported to CERT-In and closed; the register shows each step"
+  - "apps/tablets-server/test/incidents/incident-routes.test.ts > the incident register over HTTP (DI-12) > [DI-12] an incident that was ever major closes only with a root cause and a CAPA reference, even after a downgrade"
+  - "apps/tablets-server/test/incidents/incident-routes.test.ts > the incident register over HTTP (DI-12) > [DI-12] the register lists open incidents first and filters by status; an unknown incident is a 404"
+  - "apps/tablets-server/test/incidents/incident-routes.test.ts > the incident register over HTTP (DI-12) > [DI-18][DI-12] an administrator can neither raise an incident nor act on one"
+  - "tools/e2e/specs/phase7/incidents.spec.ts > [DI-12] an incident raised, investigated, assessed, reported to CERT-In and closed; the closure before the report refused @office"
+  - "apps/tablets-web/test/slice7g2/incidents.test.tsx > the incident register > [DI-12] lists the incidents with the CERT-In reports due and the window; an incident is raised as typed with its affected record"
+  - "apps/tablets-web/test/slice7g2/incidents.test.tsx > one incident > [DI-12] records the impact on a linked record, the CERT-In report as typed, and shows the database's refusal of a closure without a root cause"
+  - "apps/tablets-web/test/slice7g2/incidents.test.tsx > the claimed CERT-In report time > [DI-12] is sent with its offset and seconds as the contract takes it; a time without its offset is not sent"
 clauses:
   - clause: "Kill the balance interface in the middle of a weighing. An incident is created, linked to the batch"
     tests:

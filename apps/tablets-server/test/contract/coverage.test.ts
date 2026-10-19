@@ -32,6 +32,8 @@ const EXAMPLE_PARAMS: Record<string, string> = {
   extractId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   id: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   adapterCode: 'ERP-MAIN',
+  // Phase 7 slice 7g-4 (operations): a backup id of the catalogue's form.
+  backupId: 'ebmr_t-20261018T000000Z-000000',
   capaId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   checkId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   // Phase 6 slice 6c (labels, serialisation).
@@ -46,6 +48,12 @@ const EXAMPLE_PARAMS: Record<string, string> = {
   receiptId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   // Phase 6A slice 6A-1 (analytics).
   flagId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  // Phase 7 slice 7g-2 (market authorisations, incidents).
+  authorisationId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  incidentId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  // Slice 7g-3 (WP1): the stored IQ record and periodic evaluation pack files.
+  iqId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  packId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
 };
 
 function samplePath(route: AnyRoute): string {

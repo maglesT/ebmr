@@ -33,6 +33,8 @@ tests:
   - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [PR-15][INV-26] an authorisation mirrored from the LMS counts only while the mirror is fresh"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > area authorisation at the step signature (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
   - "packages/kernel/test/mutation/plant-rules.test.ts > an area authorisation at the edges of its window (kernel 1190) > [PR-15][INV-26] it counts from the microsecond it was recorded and the first microsecond of its validity, and not at the microsecond it ends or is withdrawn"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15][PR-25][PR-35] the master-data steward saves a room's rules and records an adjacency; a refusal is shown in the database's words"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15] a QA reviewer is offered neither a room rule nor an adjacency"
 clauses:
   - clause: "A user whose training has lapsed is refused on the step."
     tests:

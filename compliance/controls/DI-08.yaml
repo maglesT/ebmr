@@ -67,6 +67,10 @@ tests:
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] a closed batch record's archive package is every chain keyed by the batch, its record lock and amendments included, and the signature chains of its parts, record-lock amendments included"
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44][IN-53] an export or a readability read of a closed batch holding controlled-substance rows needs CONTROLLED.READ with no site or product limit: a holder without it is refused, never served a partial copy"
   - "tools/boundaries/test/boundaries.test.ts > architecture boundaries (ADR 0001, 0011, 0015) > [meta][DI-08] the record viewer's rules fire on their own fixtures: no package, no database driver, no node core module; its own files are allowed"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [DI-08] a report view is exported with the server's SHA-256, and the download is the text that hash covers"
+  - "apps/tablets-server/test/validation/export-routes.test.ts > the full export (kernel 1335) > [DI-08] the CSV lead starts the full export as a background job; it is registered with the SHA-256 of its manifest, which the folder holds"
+  - "apps/tablets-web/test/validation/exports.test.tsx > the full export > [DI-08] lists each export with its SHA-256; one is started with a reason and followed until its job has ended"
+  - "tools/e2e/specs/administration/screen-gaps.spec.ts > screens for the remaining routes (slice 7g-5) > [PR-43][IN-27][DI-08][IN-02] QA records a shelf-life basis and a hazard class, exports a report view, sees the reference documents, stores an evidence document and opens the equipment records"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
     tests:

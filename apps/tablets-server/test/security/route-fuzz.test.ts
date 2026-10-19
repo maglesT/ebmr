@@ -16,8 +16,12 @@ import { malformedRequests, validRequest } from './samples.ts';
 const RUNS = Number(process.env['EBMR_FUZZ_RUNS'] ?? '6');
 const SEED = Number(process.env['EBMR_FUZZ_SEED'] ?? '20261018');
 const VALID_RUNS = Number(process.env['EBMR_FUZZ_VALID_RUNS'] ?? '3');
-/** Text an answer never shows: a stack frame, a source path, a driver's or the database's own wording. */
-const LEAK = /\bat [\w.<>]+ \(|node_modules|\/home\/|\.ts:\d+|DatabaseError|SQLSTATE|syntax error at or near|relation "|pg_catalog|stack/i;
+/**
+ * Text an answer never shows: a stack frame, a source path, a driver's or the database's own wording. A stack frame is
+ * "at <function> (<location>" with a location of node:, file:, an absolute path or a drive; the wording alone ("at
+ * receipt (labels", "at closure (DI-12") is the contract's own prose in the OpenAPI document (meta.openapi, slice 7g-4).
+ */
+const LEAK = /\bat [\w.<>]+ \((?:node:|file:|\/|[A-Za-z]:\\)|node_modules|\/home\/|\.ts:\d+|DatabaseError|SQLSTATE|syntax error at or near|relation "|pg_catalog|stack/i;
 /** The installation's own not-configured refusals (503). */
 const NOT_CONFIGURED = new Set(['SIGNING_NOT_CONFIGURED', 'EBMR-FED-020', 'L3-UNAVAILABLE', 'NUMBERING_NOT_CONFIGURED', 'SERVICE_UNAVAILABLE', 'EBMR-INT-034']);
 const SKIP = (r: AnyRoute) => r.stream !== undefined || r.id === 'session.logout' || r.id.startsWith('access.');
