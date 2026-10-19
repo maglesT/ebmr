@@ -12,6 +12,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Rules in force (owner)
 
+- Owner, 19 October: the focus is functionality; open questions take the less strict option, the minimum compliance
+  that keeps the product usable (within the CLAUDE.md hard rules). Load test and soak move to deployment (D-P7R-7).
+
 - Decision 0008: the goal is software that works properly with no major defects. Tests with every feature and green
   CI always; one quick review per feature or slice; a quick review at the Phase 3 exit; at the Phase 4 exit one review
   pass, the full suite, the golden batches and the browser suite. At most 2 fix rounds per finding. Validation-grade
@@ -113,7 +116,7 @@ controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, r
 
 **Resumed 18 October 2026** (paused earlier that day for other work). State and next steps in
 [docs/build-plan/phase-7/RESUME.md](docs/build-plan/phase-7/RESUME.md): merged so far 7-0 (#52), 7a (#53), 7b-1 (#54),
-resume notes (#55), 7b-2 (#56), 7c (#57), 7d (#58), 7e (#59), 7g (this PR); every other slice is pushed on its branch with its state and what is left. Decision 0025 (every act has a screen, no
+resume notes (#55), 7b-2 (#56), 7c (#57), 7d (#58), 7e (#59), 7g (#60); every other slice is pushed on its branch with its state and what is left. Decision 0025 (every act has a screen, no
 terminal) added slice 7g.
 
 Next: the Phase 7 slices after 7a (7b-1, 7b-2, 7c and 7e in parallel, then 7d, then the 7f exit), built here

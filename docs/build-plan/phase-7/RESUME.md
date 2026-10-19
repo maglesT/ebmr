@@ -18,7 +18,7 @@ branch `phase-7/slice-7g`.
 | 7c | #57 | validation pack generators, DI-03 validation-summary gate (recipe-core 1250), DI-06 interface drift (kernel 1350 rebuilt from main's latest definitions, SERIES_GAP kept); review: no findings; golden 44/44 without a re-take |
 | 7d | #58 | release drills, security tools and the route-by-role matrix, load driver (analytics runner in a worker thread, P6A7-8 role check kept in the worker), inactivity warning (tablets 1460), accessibility audit run (A11Y-4 to -7 fixed); review: no findings; golden run by CI's golden job (decision D-P7R-1: the local golden cluster was busy with 7e; same suite, same clock library) |
 | 7e | #59 | branding (Batchwright, decision 0020), user and administrator guides, `tools/guides` (reference lists from a migration-built database, self-contained HTML and PDF); review: P7E-1 (low: a link with another scheme than http, https or mailto was live) fixed with a test; golden 51/51 |
-| 7g | (next PR) | every act has a screen (decision 0025): administration and access governance, MBR signing, plant rules, incidents, operations and first-run set-up, and the four work packages (validation, export and records; restore, drills, platform and access settings; master-record, market and plant settings; floor, materials, batch numbers); US e-signature certification enforced (recipe-core 1260, fail closed); D-P7R-3 to -9; review P7G-1 to -5 fixed; golden 51/51, E2E 19/19 |
+| 7g | #60 | every act has a screen (decision 0025): administration and access governance, MBR signing, plant rules, incidents, operations and first-run set-up, and the four work packages (validation, export and records; restore, drills, platform and access settings; master-record, market and plant settings; floor, materials, batch numbers); US e-signature certification enforced (recipe-core 1260, fail closed); D-P7R-3 to -9; review P7G-1 to -5 fixed; golden 51/51, E2E 19/19 |
 
 ## Merge order from here (D-P7-9, amended by decision 0025)
 
@@ -41,7 +41,11 @@ merge when green.
 | `phase-7/slice-7g5` (from 7g-1) | WIP 6625ec3 plus 60628136: main merged; the US e-signature certification is now enforced (recipe-core 1260: `gmp_issue_problem` from 1250 plus the check, and a BEFORE INSERT trigger on `recipe.batch_execution`; 3 `[DI-15]` tests; demo set-up records the DEMO-ONLY letter) | run `governance.spec.ts` and `screen-gaps.spec.ts`; the 64 database acts of 7g5-1 need routes and screens (decision 0025); claim the 5 unclaimed WIP files in modules.yaml (administration feature and screens; contract people, device-registry, access-governance); review whether the merge's choice of main's idle warning lost the branch's rule that device-nonce and identify requests are not activity |
 | 7g-3 | not started | after 7b-2, 7c, 7d merge: screens for the system description, validation-summary approval, full export, evaluation pack and its QA sign-off, evidence bundle, validation pack, IQ, restore and upgrade drills |
 
-## Next steps (7g, then 7f)
+## Next steps (7f, the Phase 7 exit, on the pod)
+
+7g merged as #60 (19 October). Work on branch `phase-7/slice-7f` (it carries these notes). The 7g steps below are done.
+
+## 7g steps (done)
 
 1. Integrate the 7g parts on `phase-7/slice-7g`: merge main, then 7g-1, 7g-2, 7g-4, 7g-5 (each already has main up to
    7d merged; 7e is merged in main by then). Expected conflicts: `targets.ts`/`mutation.yml` (keep all groups, main's
@@ -85,6 +89,12 @@ Decisions taken on resume (owner's standing instruction to decide and record):
   list: `validation.startFullExport`, `archive.assembleExport` (true copies and the evidence export register),
   `controlled.runRegister` (the stored register export). Every other write still fails the check for the auditor; the
   system administrator stays refused all three.
+- Owner rule (19 October): the focus is functionality; for an open question with a choice, take the less strict
+  option, the minimum compliance that keeps the product usable. The CLAUDE.md hard rules stay (no control removed, no
+  expert_decision changed by an agent; a control that blocks basic use is written up for the owner).
+- D-P7R-10 (owner): the system administrator keeps the grant-approval rights of kernel 0120 (no change).
+- D-P7R-11 (owner): a loan licensee needs no US e-signature letter of its own; the host licence holder's covers it (as
+  built in recipe-core 1260).
 - D-P7R-9 (review P7G-1): the segregation check no longer exempts the whole `people` and `deviceRegistry` namespaces for
   the system administrator; it names the routes that may succeed (person, account, credential and badge
   administration, devices and gateways, the creation of an empty role, the attribution method), each with its reason.
@@ -109,10 +119,11 @@ not reach role or permission grants) and the idle-warning rule the 7g-5 merge dr
 - **US e-signature certification (high, from 7g-5): fixed on `phase-7/slice-7g5`** (recipe-core 1260, 3 `[DI-15]`
   tests), merges with 7g. GB-T-03 issues a US-market batch: run the golden batches in the 7g integration (the demo
   set-up now records the letter; re-take a golden output once with the reason in the defect log if it moves, D-P7-12).
-  Whether a loan licensee also needs its own letter is left to the DI-15 expert decision (owner).
+  A loan licensee needs no letter of its own: the host licence holder's letter covers loan-licence batches (owner,
+  D-P7R-11; as built).
 - A role-permission approval needs an approved change record (DI-09): the 7g-5 screen must lead the user through it.
-- Open question for the DI-18 expert decision (owner): whether the system administrator should keep IAM.GRANT_APPROVE
-  and IAM.ROLE_MANAGE at all (kernel 0120). The second-person rules hold today (D-P7R-9); the grant itself is unchanged.
+- The system administrator keeps IAM.GRANT_APPROVE and IAM.ROLE_MANAGE (kernel 0120, as built; owner, D-P7R-10); the
+  second-person rules hold (D-P7R-9).
 - P7A-6 (feed signature does not cover the envelope's source time and record id): residual, low.
 - F-6jb-g1 (record lock counts as a change since review): residual, fail-safe.
 
