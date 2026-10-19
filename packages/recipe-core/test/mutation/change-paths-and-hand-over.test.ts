@@ -13,6 +13,9 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { toDbContext } from '../../../kernel/src/db/command.ts';
+import { cmd } from '../../../kernel/test/esig/helpers.ts';
+import { seedActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 
 let db: TestDatabase;
@@ -119,5 +122,66 @@ describe('recipe.check_approver_roles (recipe-core 0462): an approval is signed 
     // Without approvals or signatures there is nothing to check, except for an abort.
     expect(await check('CORRECT_ENTRY', [])).toBe('');
     expect(await check('HAND_OVER_STEP', [])).toBe('');
+  });
+});
+
+describe('recipe.review_exception on the only GMP batch of a database (recipe-core 1217; D-P7-1 item 4)', () => {
+  it('[INV-30][DI-26] a query on a GMP batch before its production approval is refused even when no other GMP batch exists', async () => {
+    // This database holds no GMP batch: one is written here (a GMP row, its exception) with the triggers off, and QA's
+    // query asked in the same transaction, which is rolled back.
+    const qa = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Only-batch QA' });
+    const ctx = await cmd(db, qa, { reasonCode: 'TEST', reasonText: 'query on the only GMP batch' });
+    const batch = randomUUID();
+    const outcome = await replica(async (c) => {
+      expect((await c.query("select count(*)::int as n from recipe.batch_execution where installation = 'GMP'")).rows[0]).toEqual({ n: 0 });
+      await c.query(
+        `insert into recipe.batch_execution (id, batch_number, content_hash, installation, purpose, engine_version, registry_fingerprint, policy, policy_hash,
+                                             issue_request, market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person, issued_by_account,
+                                             correlation_id, control_recipe_id, issue_signature_id)
+         values ($1, 'ONLY-0001', $2, 'GMP', 'GMP_BATCH', 'fixture', $2, '{}', $2, '{}', '{IN}', 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $3, $3, $3, $4, $5)`,
+        [batch, 'a'.repeat(64), randomUUID(), randomUUID(), randomUUID()],
+      );
+      await register(c, batch, 'X9', { category: 'FLOW', severity: 'ALERT', type: 'LOOP' });
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+      try {
+        await c.query("select recipe.review_exception($1, 'X9', 'QUERIED', 'Why did the flow loop?', null)", [batch]);
+        return 'ok';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    });
+    expect(outcome).toMatch(/^EBMR-REV-065 the record is \S+; on a GMP batch a query and its answer belong to the QA review, after the production approval/);
+  });
+});
+
+describe('recipe.review_exception reads the involvement from this batch\'s own state (recipe-core 1217; D-P7-1 item 4)', () => {
+  it('[INV-03][DI-26] a person who performed the exception\'s raising step does not conclude its review, though neither raiser nor disposer', async () => {
+    const qa = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Step-performer QA' });
+    const ctx = await cmd(db, qa, { reasonCode: 'TEST', reasonText: 'escalation by a performer of the step' });
+    const batch = randomUUID();
+    const hex = 'b'.repeat(64);
+    const outcome = await replica(async (c) => {
+      await c.query(
+        `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint, policy, policy_hash,
+                                             issue_request, market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person, issued_by_account, correlation_id)
+         values ($1, 'TEST-INV-0001', $2, $2, 'SANDBOX', 'SANDBOX_TEST_RUN', 'fixture', $2, '{}', $2, '{}', '{IN}', 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $3, $3, $3)`,
+        [batch, hex, randomUUID()],
+      );
+      const state = { exceptions: { X9: { source: { stepKey: 'S1' } } }, steps: { S1: { performers: [qa.personId] } }, points: {} };
+      await c.query(
+        `insert into recipe.execution_state (batch_id, state, state_version, state_hash, last_seq, last_row_hash, status)
+         values ($1, $2::jsonb, 1, $3, 1, $3, 'IN_PROGRESS')`,
+        [batch, JSON.stringify(state), hex],
+      );
+      await register(c, batch, 'X9', { category: 'FLOW', severity: 'ALERT', type: 'LOOP' });
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+      try {
+        await c.query("select recipe.review_exception($1, 'X9', 'ESCALATED', 'Loop needs a deviation', 'TEST-DEV-0001')", [batch]);
+        return 'ok';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    });
+    expect(outcome).toMatch(/raised, worked in the step of, or dispositioned exception X9, so they cannot conclude its review \(INV-03, DI-26\)\. \[EBMR-EXE-165\]$/);
   });
 });
