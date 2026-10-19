@@ -528,7 +528,7 @@ describe('the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe
               return target.query(text as string, params);
             };
           },
-        }) as pg.PoolClient;
+        });
         return execution.issueGmpBatch(client, {
           batchId,
           signatureId,
