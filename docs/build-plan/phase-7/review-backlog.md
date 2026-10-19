@@ -141,3 +141,21 @@ against that database by the tests; no verbatim regulation passages; the UI chan
 | P7G-5 | low | tablets 1485 `tab.installation_contents()` and 1491 `tab.disposal_aggregate_id()` were granted to the application role with no check inside. | Fixed in place: both take the session token; the first needs an active session in a granted role (EBMR-TAB-018), the second a records reader as `tab.record_retention` (EBMR-TAB-018, EBMR-TAB-020); the signing handlers pass the session's token. Test `apps/tablets-server/test/operations/session-checked-reads.test.ts`. |
 | D-P7R-8 | - | The segregation check failed for `validation.startFullExport` as the auditor (RECORD.EXPORT, kernel 1335). | Owner decision recorded: audited exports or copies are audited reads for the auditor (explicit list: startFullExport, archive.assembleExport, controlled.runRegister); the administrator stays refused. |
 | 7g-W1 | low | The designer's save dialog kept the change note in the editor's state: every key re-rendered the whole editor (28 renders for a 28-character note). | Fixed as the justify dialog was (f9fe0d55): the note is the dialog's own state (`SaveRevisionDialog`); test `apps/tablets-web/test/designer/save-note-render.test.tsx` counts the editor's renders while typing (28 before, at most 2 now). |
+
+## Phase 7 exit review (slice 7f; review of 19 October 2026)
+
+One review pass over Phase 7 (`bc46d55..` the 7f branch, PRs #52 to #60): design and serious defects, the regulated core
+read and the rest skimmed (D-P6j-c-1). No critical or high finding, so none needed a probe on a migrated database.
+Checked without a finding: the 48 functions Phase 7 re-created, each against the definition before it (every removed
+line is a permission check rewritten with batch or product scope, or kept in another form; the final
+`tab.kernel_signing_meanings`, tablets 1525, keeps every earlier meaning); `set search_path` on every Phase 7 definer;
+no table write granted to the application role; the DI-03 gate (a signature bound to the release and the document hash,
+never an administrator; in the issue path and the insert trigger); the US e-signature gate of recipe-core 1260; the feed
+signature's one-use, transaction-bound mark and one live binding per adapter and gateway; the signer checks of every new
+signing consumer; the first-run set-up token; the operations acts; the route exemptions of D-P7R-8 and D-P7R-9; the
+session idle rule of tablets 1460.
+
+| Id | Severity | Finding | Outcome |
+|---|---|---|---|
+| P7X-1 | medium (DI-06) | The drift interlock (kernel 1350 `platform.interface_drift_problem`) checks only that the adapter code is described; the description's endpoint host, transport (LOOPBACK or MTLS) and source system are not compared with the adapter's registration or the base URL and TLS the server runs it on. A described adapter moved to another host, or run without the mTLS its description names, raises no drift alarm. | Known issue for v1.0-rc (owner rule of 19 October: the less strict option; the alarm still fires for every undescribed or withdrawn interface, and the system owner sees the endpoint on the validation screens). Comparing the running endpoint with the description is listed for v1.1. |
+| P7X-2 | low (DI-06) | Commands that run under an adapter's identity outside the inbound path (site-services 0912 and 0916 outbound ERP postings; kernel 1180 `record_reconciliation`, 1182 `record_mirror_sync`; the WMS location question of site-services 0915) do not call the drift check, so an undescribed adapter could still claim or settle outbound postings. The server starts no such worker and the alarm fires at enable and at start. | Known issue (no GMP write against a control; the server never runs the worker). |
