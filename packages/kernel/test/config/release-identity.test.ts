@@ -120,6 +120,25 @@ describe('the validation-summary approval (kernel 1300)', () => {
     expect(await problem()).toBeNull();
   });
 
+  it('[DI-03] the signed content is APPROVED only for the approved release and summary pair, and another summary of the same release is approved on its own (title up to 200 characters)', async () => {
+    const release = await schemaRelease();
+    const { rows: done } = await db.admin.query<{ s: string }>('select summary_sha256 as s from platform.validation_summary where schema_release = $1 limit 1', [release]);
+    const approved = done[0]!.s;
+    const state = async (id: string): Promise<string> =>
+      (await db.app.query<{ s: string }>("select platform.validation_summary_content($1) ->> 'state' as s", [id])).rows[0]!.s;
+    const next = hex64();
+    expect(await state(`${release}@${approved}`)).toBe('APPROVED');
+    expect(await state(`${release}@${next}`)).toBe('PROPOSED');
+    expect(await state(`${hex64()}@${approved}`)).toBe('PROPOSED');
+    const title = 'T'.repeat(200);
+    const sig = await signSummary(qa2, release, next);
+    await expect(approve(qa2, release, next, sig, `${title}x`)).rejects.toThrow(/EBMR-VAL-003/);
+    const id = await approve(qa2, release, next, sig, title);
+    const { rows } = await db.admin.query<{ title: string; by: string }>('select title, approved_by_person::text as by from platform.validation_summary where id = $1', [id]);
+    expect(rows).toEqual([{ title, by: qa2.personId }]);
+    expect(await state(`${release}@${next}`)).toBe('APPROVED');
+  });
+
   it('[DI-03] an approved validation summary is insert-only and in the audit trail', async () => {
     await expect(db.app.query("update platform.validation_summary set title = 'changed'")).rejects.toThrow(/permission denied/);
     await expect(db.admin.query("update platform.validation_summary set title = 'changed'")).rejects.toThrow(/EBMR-/);
