@@ -14,9 +14,12 @@
 --                                  for a role holding CONTINUITY.RESTORE_OPERATE or CONTINUITY.RESTORE_APPROVE (EBMR-OPS-050)
 --   tab.drill_overview(token)      the restore and upgrade drill records, the drill requests and the hardening checks; for a
 --                                  role holding CONTINUITY.BACKUP_READ (kernel 1376) or PLATFORM.OPERATE (EBMR-OPS-051)
---   * tab.kernel_signing_meanings: CREATE OR REPLACE from its latest definition (1479) with restore_event
---     (RESTORE_APPROVED, kernel 0720: the named approver's own signature of the recorded restore, state RECORDED).
---     Nothing else changes; a later migration that re-creates it starts from this definition.
+--   * tab.kernel_signing_meanings: CREATE OR REPLACE from its latest definition with restore_event (RESTORE_APPROVED,
+--     kernel 0720: the named approver's own signature of the recorded restore, state RECORDED). Tablets 1491 (WP1), 1493
+--     (WP3) and 1496 (WP4) each re-created it from 1479 too; as the highest of the four, this definition carries the
+--     union of their additions (validation_summary, evaluation_pack, record_type_version, record_disposal,
+--     di_investigation; market_policy_version, market_site_loosening; MATERIAL_DESTRUCTION_WITNESSED on material_lot),
+--     so none is lost (signing-meanings-7g.test.ts). A later migration that re-creates it starts from this definition.
 --
 -- Messages: EBMR-OPS-050, EBMR-OPS-051.
 
@@ -122,7 +125,9 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
            when 'deviation' then array['DEVIATION_IMPACT_ASSESSED', 'DEVIATION_CONCLUDED', 'DEVIATION_CLOSED']
            when 'lot_test_result' then array['QC_RESULT_APPROVED']
            when 'qc_extra_testing' then array['QC_EXTRA_TESTING_DECIDED']
-           when 'material_lot' then array['MATERIAL_LOT_RELEASED', 'MATERIAL_LOT_REJECTED', 'MATERIAL_LOT_STATUS_DECIDED']
+           -- Phase 7 slice 7g (WP4, tablets 1496): the witness of a recorded lot destruction signs the lot (site services
+           -- 0712; IN-24 (a)) through the ceremony (LOT_DESTRUCTION_WITNESS); the performer's destroy then names the signature.
+           when 'material_lot' then array['MATERIAL_LOT_RELEASED', 'MATERIAL_LOT_REJECTED', 'MATERIAL_LOT_STATUS_DECIDED', 'MATERIAL_DESTRUCTION_WITNESSED']
            when 'lot_retest' then array['LOT_RETEST_APPROVED']
            -- Phase 4 slice 1b: the typed net's second person (VERIFIED) and QA's release (OUTPUT_CONTAINER_RELEASED).
            when 'output_container' then array['RESIDUE_RESERVED', 'VERIFIED', 'OUTPUT_CONTAINER_RELEASED']
@@ -206,6 +211,18 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
            -- take effect only on QA's approval, facility_rule <id> and beta_lactam_class <id>, state PROPOSED.
            when 'facility_rule' then array['QA_APPROVED']
            when 'beta_lactam_class' then array['QA_APPROVED']
+           -- Phase 7 slice 7g-3 (decision 0025; kernel 1300, 1336, 0720): the validation summary of the running release, the
+           -- periodic evaluation pack, a record type version, the disposal of a record and the closure of a data-integrity
+           -- investigation, each signed through the ceremony (VALIDATION_SUMMARY_APPROVE, EVALUATION_PACK_APPROVE, RECORDS_ACT).
+           when 'validation_summary' then array['VALIDATION_SUMMARY_APPROVED']
+           when 'evaluation_pack' then array['PERIODIC_EVALUATION_APPROVED']
+           when 'record_type_version' then array['RECORD_TYPE_APPROVED']
+           when 'record_disposal' then array['RECORD_DISPOSAL_APPROVED']
+           when 'di_investigation' then array['DI_INVESTIGATION_CLOSED']
+           -- Phase 7 slice 7g WP3 (kernel 0350, 0360): the approver's signature of a market policy or site-value loosening,
+           -- signed before the change is made: market_policy_version <policy>@<n>@<position>, market_site_loosening; state PROPOSED.
+           when 'market_policy_version' then array['POLICY_LOOSENING_APPROVED']
+           when 'market_site_loosening' then array['SITE_VALUE_LOOSENING_APPROVED']
            -- Phase 7 slice 7g, work package 2 (kernel 0600, 0720; DI-45, DI-37): a named approver approves a recorded restore
            -- with their own RESTORE_APPROVED signature, restore_event <id>, state RECORDED (GOVERNANCE class).
            when 'restore_event' then array['RESTORE_APPROVED']
