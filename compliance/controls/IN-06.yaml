@@ -30,7 +30,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: corrections **same** as EU Chapter 4 section 4.9 (reason "where appropriate") [chk]; **weaker** than EU Annex 11 section 9 (reason must be documented for any change or deletion of GMP-relevant data) [chk]. Master approval **weaker** than FDA 211.186(a) (one person prepares and signs, a second independently checks and signs) [chk]. The system applies both stricter rules everywhere.
 type_detail: ENFORCED; DESIGN-CHOICE for the two-person master approval and the always-mandatory reason.
 notes: "Source check: P~ (text re-read; 17.2 sub-clause numbers inferred)."

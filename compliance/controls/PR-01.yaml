@@ -56,5 +56,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: The two are equivalent for processing. EU states the packaging keying (pack size and type) explicitly, and the kernel applies it to every market.

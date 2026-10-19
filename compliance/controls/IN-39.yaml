@@ -40,7 +40,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter/more prescriptive** than FDA 211.46 [gk] and EU Chapter 3 [gk] (no numeric cascade rules for non-sterile products)."
 type_detail: ENFORCED (limit checks); CONFIGURABLE (room limits).
 notes: "Source check: P for 1.5 and 1.14 (re-read); P~ for the others."

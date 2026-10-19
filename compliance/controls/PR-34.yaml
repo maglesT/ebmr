@@ -55,6 +55,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "EU requires the clearance to follow a checklist (5.50). US requires an inspection before use, and documentation of inspections both before and after use (211.188(b)(6)). The kernel applies the union: checklist, before and after (D-4, D-5)."
 type_detail: "ENFORCED (pre-use clearance against a checklist; post-use inspection) + CONFIGURABLE (second-person verifier). Default: ON. Allowed: OFF, unless the customer designates clearance a significant step under 211.188(b)(11), in which case it is ON."

@@ -304,4 +304,34 @@ describe('the deviation-rate inputs (recipe-core 1130)', () => {
     const { rows } = await db.admin.query<{ n: number }>("select count(*)::integer as n from pg_proc where proname like 'pqr%' and prosrc ~* 'analytics\\s*\\.'");
     expect(rows[0]!.n).toBe(0);
   });
+
+  it('[DI-51] a deviation is attributed through its own batch\'s exceptions linked to it with a raising step only; shift starts rise strictly', async () => {
+    const [b0, b1] = [batches[0]!, batches[1]!];
+    const exception = (batch: string, id: string, seq: number, step: string | null) => fixture(
+      `insert into recipe.exception_register (batch_id, exception_id, row_seq, exception_type, category, severity, tier, title, raising_step_key, raising_step, raised_at, raised_at_us,
+         raised_by, command_person, mandatory, qa_only, deviation_required, registration_relevant, release_blocking, blocks_until, raised_record, correlation_id)
+       values ($1, $2, $3, 'LIMIT_EXCURSION', 'OUT_OF_LIMIT', 'ACTION', 'ALERT', 'Fixture exception', $4, $4, '2026-06-01 12:00:00+00', 1780315200000000,
+               'operator', gen_random_uuid(), true, false, true, false, true, 'DEVIATION', '{}', gen_random_uuid())`, [batch, id, seq, step]);
+    const link = (batch: string, id: string, seq: number, ref: string) => fixture(
+      `insert into recipe.exception_register_act (batch_id, exception_id, act, row_seq, by_person, by_account, role_code, deviation_ref, correlation_id)
+       values ($1, $2, 'DEVIATION_LINKED', $3, gen_random_uuid(), gen_random_uuid(), 'OPERATOR', $4, gen_random_uuid())`, [batch, id, seq, ref]);
+    // Batch 2 has an exception of the same id as batch 1's, at another step: it is not batch 1's.
+    await exception(b1.id, 'EX-1', 101, 'fixture-other-step');
+    // A deviation of batch 1 linked to an exception without a raising step and to one at the step: attributed once, to the step.
+    const both = await deviation(b0.id, 'Two exceptions');
+    await exception(b0.id, 'EX-3', 102, null);
+    await link(b0.id, 'EX-3', 103, both.ref);
+    await exception(b0.id, 'EX-4', 104, b0.step);
+    await link(b0.id, 'EX-4', 105, both.ref);
+    // A deviation of batch 1 linked to the batch only: not attributed to another deviation's step.
+    const only = await deviation(b0.id, 'Batch only');
+    const rows = await asAnalytics<DevRow>('select * from report.deviation_fact_v1 where batch_id = any($1::uuid[])', [batches.map((b) => b.id)]);
+    const of = (id: string) => rows.filter((r) => r.deviation_id === id).map((r) => r.step);
+    expect(of(attributed.id)).toEqual([b0.step]);
+    expect(of(both.id)).toEqual([b0.step]);
+    expect(of(only.id)).toEqual([null]);
+    // Two shifts starting at the same time are refused.
+    expect((await db.admin.query<{ p: string | null }>("select report.shift_boundaries_problem('A=06:00,B=06:00') as p")).rows[0]?.p).toMatch(/rise strictly/);
+    expect((await db.admin.query<{ p: string | null }>("select report.shift_boundaries_problem('A=06:00,B=06:01') as p")).rows[0]?.p).toBeNull();
+  });
 });

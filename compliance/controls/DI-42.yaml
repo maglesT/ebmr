@@ -41,6 +41,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: No conflict.
 type_detail: "ENFORCED. CONFIGURABLE for QA approval of each void: default ON. Q6 asks for a written justification under QU or other document control, not QA sign-off on every void."

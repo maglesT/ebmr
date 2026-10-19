@@ -107,6 +107,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Hold-time limits come from cleaning validation (Annex 15, (u)), not from 211.67 or Ch.5, so their values are configurable. The block itself is enforced once a value exists. US states explicitly that out-of-specification instruments must not be used (211.160(b)(4)).
 type_detail: ENFORCED (checks run and block) + CONFIGURABLE (clean-hold and dirty-hold limits, campaign length and changeover matrix; values come from cleaning validation, not from the rule)

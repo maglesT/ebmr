@@ -187,6 +187,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: US is more explicit that in-process specifications must match final specifications and be derived statistically where possible (211.110(b)). Tagging registered limits serves the EU Annex 16 route (s), which has no US counterpart.
 type_detail: "ENFORCED (units, limits and source on every CPP/IPC; out-of-limit values stored and flagged) + CONFIGURABLE (limit tiers and breach action). Default: breaching a registered or action limit stops the next dependent step until a deviation is opened. Allowed: for internal (non-registered) limits, the step may continue with a deviation."

@@ -242,6 +242,9 @@ tests:
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] the API ends a session at its absolute timeout and locks a kiosk session at its idle timeout"
   - "apps/tablets-server/test/access/session.test.ts > keep-alive > [DI-14][DI-38] the session view names the seconds until the idle lock and the absolute end by the database clock; a keep-alive restarts the idle time; a locked session names no idle lock (A11Y-1)"
   - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-19][DI-38] a badge UID is typed into a secret field, sent once and cleared; badges are tested and activated from the account"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a chain that is not base64 DER is refused, for an enrolment and for a signing DSC"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a DSC is not recorded on a signing whose meaning needs none, even from an enrolled signer"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] with the option off nothing is enrolled; with no live anchor nothing is enrolled and no DSC recorded"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:
@@ -255,7 +258,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 11.200 allows a single private component for later signings within one continuous session. The EU draft expects re-authentication at each signing, and typing the password/PIN each time satisfies that. The default of all components every time meets both.
 type_detail: CONFIGURABLE (default = strictest practical). Floors are ENFORCED.
 notes: |-

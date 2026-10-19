@@ -283,6 +283,8 @@ tests:
   - "apps/tablets-server/test/administration/wp2-routes.test.ts > security alerts, roles, rehiring (people) > [DI-14][DI-17] the administrator rehires a person who left, with the reason; a person who has not left is refused; QA may not rehire"
   - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-14][DI-15][DI-16] the administrator creates a person and an account and requests a grant; the process owner approves it; the new person signs in, changes the password and works in the role"
   - "apps/tablets-server/test/operations/session-checked-reads.test.ts > session-checked reads of slice 7g (P7G-5) > [DI-17][DI-14] the installation contents are read only for an active session; the demo screen still shows them"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-35][DI-14] the issue function itself refuses an ISSUED signature of another person, before the row guard does"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-14] the issue request must name this batch: a request naming another batch id is refused"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:
@@ -296,5 +298,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: Both markets allow shared read-only viewing (FDA Q5; draft). Neither allows shared accounts for any action, including second-person review.

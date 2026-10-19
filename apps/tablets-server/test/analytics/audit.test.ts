@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { review } from '@ebmr/analytics';
 import { routes } from '@ebmr/api-contract';
+import { ATA_BASELINE_IMPLEMENTATION, ATA_RULES_IMPLEMENTATION, AUDIT_FACTS, AUTH_FACTS, MANUAL_DIGITS, auditInput } from '../../src/analytics/audit.ts';
 import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
@@ -245,3 +246,65 @@ describe('the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE)', () => {
     expect(await asAnalytics<{ verdict: string }>(gmp, 'select verdict from analytics.audit_key_verdict_v1 where flag_key = $1', [key])).toEqual([{ verdict: 'TRUE_SIGNAL' }]);
   });
 });
+
+// Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the runner usually works in its worker thread, which Stryker's
+// coverage does not see, so the assembly of the methods' input from the view rows is checked here directly.
+describe('the audit-trail methods\' input in the runner (analytics/audit.ts)', () => {
+  const event = {
+    event_id: 'E1', chain_key: 'batch:B1', recorded_at: '2026-06-01 10:00:00+00', recorded_local: '2026-06-01 15:30:00', claimed_at: '2026-06-01 09:00:00+00',
+    person_id: 'P1', account_id: 'A1', role: 'OPERATOR', terminal: 'T1', action: 'UPDATE', table_name: 'tab.step', field: 'weight', is_correction: true,
+    reason_code: 'TYPO', batch_id: 'B1', step: 'S1', attempt: 2, failed: false, deviation_linked: true, config_area: 'RECIPE',
+  };
+  const auth = { event_ref: 'L1', account_id: 'A1', person_id: 'P1', terminal: 'T2', kind: 'FAILED', at: '2026-06-01 10:01:00+00', at_local: '2026-06-01 15:31:00' };
+  const digit = { person_id: 'P1', event_id: 'E1', chain_key: 'batch:B1', recorded_local: '2026-06-01 15:30:00', terminal_digit: 7 };
+  const refusal = (rows: Record<string, readonly Record<string, unknown>[]>): string => {
+    try {
+      auditInput(rows);
+    } catch (e) {
+      return (e as Error).message;
+    }
+    return 'accepted';
+  };
+
+  it('[DI-53] each audit, authentication and manual-digit row becomes the methods\' input field by field', () => {
+    expect(auditInput({ [AUDIT_FACTS.view]: [event], [AUTH_FACTS.view]: [auth], [MANUAL_DIGITS.view]: [digit] })).toEqual({
+      events: [{ eventId: 'E1', chainKey: 'batch:B1', recordedAt: '2026-06-01 10:00:00+00', recordedLocal: '2026-06-01 15:30:00', claimedAt: '2026-06-01 09:00:00+00', personId: 'P1',
+        accountId: 'A1', role: 'OPERATOR', terminal: 'T1', action: 'UPDATE', tableName: 'tab.step', field: 'weight', isCorrection: true, reasonCode: 'TYPO', batchId: 'B1', step: 'S1',
+        attempt: 2, failed: false, deviationLinked: true, configArea: 'RECIPE' }],
+      auth: [{ ref: 'L1', accountId: 'A1', personId: 'P1', terminal: 'T2', kind: 'FAILED', at: '2026-06-01 10:01:00+00', atLocal: '2026-06-01 15:31:00' }],
+      digits: [{ personId: 'P1', eventId: 'E1', chainKey: 'batch:B1', recordedLocal: '2026-06-01 15:30:00', digit: 7 }],
+    });
+    // Optional columns null or absent: null, an account of '' and no correction or deviation link.
+    const bare = { event_id: 'E2', chain_key: 'k', recorded_at: 'a', recorded_local: 'l', person_id: 'P2', action: 'INSERT', claimed_at: null, account_id: null, is_correction: null, failed: true };
+    expect(auditInput({ [AUDIT_FACTS.view]: [bare] }).events).toEqual([{ eventId: 'E2', chainKey: 'k', recordedAt: 'a', recordedLocal: 'l', claimedAt: null, personId: 'P2', accountId: '',
+      role: null, terminal: null, action: 'INSERT', tableName: null, field: null, isCorrection: false, reasonCode: null, batchId: null, step: null, attempt: null, failed: true,
+      deviationLinked: false, configArea: null }]);
+    expect(auditInput({ [AUDIT_FACTS.view]: [{ ...event, is_correction: false, deviation_linked: false, failed: null }] }).events[0]).toMatchObject({ isCorrection: false, deviationLinked: false, failed: null });
+    expect(auditInput({})).toEqual({ events: [], auth: [], digits: [] });
+    for (const kind of ['LOGIN', 'FAILED', 'LOCKOUT']) expect(auditInput({ [AUTH_FACTS.view]: [{ ...auth, kind }] }).auth[0]?.kind).toBe(kind);
+    for (const d of [0, 9]) expect(auditInput({ [MANUAL_DIGITS.view]: [{ ...digit, terminal_digit: d }] }).digits[0]?.digit).toBe(d);
+  });
+
+  it('[DI-53] a row outside its column types, an unknown authentication kind or a terminal digit outside 0 to 9 fails the run\'s input', () => {
+    expect(refusal({ [AUDIT_FACTS.view]: [{ ...event, event_id: '' }] })).toBe('column event_id is not text in an audit-trail input row');
+    expect(refusal({ [AUDIT_FACTS.view]: [{ ...event, chain_key: 5 }] })).toBe('column chain_key is not text in an audit-trail input row');
+    expect(refusal({ [AUDIT_FACTS.view]: [{ ...event, role: 5 }] })).toBe('column role is not text in an audit-trail input row');
+    expect(refusal({ [AUDIT_FACTS.view]: [{ ...event, failed: 'true' }] })).toBe('column failed is not a boolean in an audit-trail input row');
+    expect(refusal({ [AUDIT_FACTS.view]: [{ ...event, attempt: 2.5 }] })).toBe('column attempt is not an integer in an audit-trail input row');
+    expect(refusal({ [AUDIT_FACTS.view]: [{ ...event, attempt: '2' }] })).toBe('column attempt is not an integer in an audit-trail input row');
+    expect(refusal({ [AUTH_FACTS.view]: [{ ...auth, kind: 'LOGOUT' }] })).toBe('unknown authentication fact kind LOGOUT');
+    expect(refusal({ [AUTH_FACTS.view]: [{ ...auth, kind: undefined }] })).toBe('column kind is not text in an audit-trail input row');
+    for (const d of [-1, 10, null]) expect(refusal({ [MANUAL_DIGITS.view]: [{ ...digit, terminal_digit: d }] }), String(d)).toBe('a manual entry\'s terminal digit is not 0 to 9');
+    expect(refusal({ [MANUAL_DIGITS.view]: [{ ...digit, person_id: null }] })).toBe('column person_id is not text in an audit-trail input row');
+  });
+
+  it('[DI-53] ATA.RULES reads the audit, authentication and manual-digit views; ATA.BASELINE the first two; both only nightly', () => {
+    expect(ATA_RULES_IMPLEMENTATION.inputs.map((i) => i.view)).toEqual(['report.audit_fact_v1', 'report.auth_fact_v1', 'report.manual_digit_v1']);
+    expect(ATA_BASELINE_IMPLEMENTATION.inputs.map((i) => i.view)).toEqual(['report.audit_fact_v1', 'report.auth_fact_v1']);
+    for (const m of [ATA_RULES_IMPLEMENTATION, ATA_BASELINE_IMPLEMENTATION]) {
+      expect(m.onBatchComplete).toBe(false);
+      expect(m.assemble({ [MANUAL_DIGITS.view]: [digit] }).digits).toHaveLength(1);
+    }
+  });
+});
+

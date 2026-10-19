@@ -39,6 +39,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US only. The QCU is an organisational unit; no named individual is required, unlike the EU QP.
 type_detail: ENFORCED (US in set)

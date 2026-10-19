@@ -58,7 +58,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as Ph. Eur. 2.9.5 bands [gk]; **stricter** than the legacy USP bands for 80-130 mg and 250-324 mg tablets [gk]; **different** from current USP chapter 905, which judges content/weight uniformity by acceptance value [gk]."
 type_detail: CONFIGURABLE (band tables as versioned reference data); ENFORCED (tighter band for multi-market products).
 notes: "Source check: U (band values from secondary sources; IP 2026 wording and any adoption of the harmonised UDU chapter not confirmed)."

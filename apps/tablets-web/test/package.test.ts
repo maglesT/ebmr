@@ -4,6 +4,6 @@ import { PACKAGE } from '../src/index.ts';
 describe('@ebmr/tablets-web', () => {
   it('[meta] exposes its package identity', () => {
     expect(PACKAGE.name).toBe('@ebmr/tablets-web');
-    expect(PACKAGE.version).toBe('0.1.0');
+    expect(PACKAGE.version).toBe('1.0.0-rc.1');
   });
 });

@@ -164,4 +164,50 @@ describe('labelling specimens (tablets 1479, DI-35)', () => {
     expect(refusalOf(await signAction(server, asQa, 'approver', { kind: 'SPECIMEN_ACT', act: 'APPROVE', documentId: id }, credsOf(dual))).why).toMatch(/EBMR-TAB-472|performer|entered|recorded/i);
     expect(valueOf(await qa.call(D.specimens, {})).specimens.find((s) => s.documentId === id)?.state).toBe('RECORDED');
   });
+
+  it('[DI-35] the database approves only a recorded specimen, by an approver who neither recorded it nor lacks the signature, and states and provides each specimen on its own', async () => {
+    // The act called directly (a writer that bypasses the signing screen), so each refusal is the act's own.
+    const messageOf = async (p: Promise<unknown>): Promise<string> => p.then(() => 'no error', (e: unknown) => (e instanceof Error ? e.message : String(e)));
+    const provided = async (id: string) => (await server.db.admin.query<{ p: { exists: boolean; state?: string } }>("select esig.provide('labelling_specimen', $1) as p", [id])).rows[0]!.p;
+    const approveAs = (actor: Parameters<typeof withCommand>[1], doc: string, sig: string) =>
+      withCommand(server.db.app, { ...actor, correlationId: randomUUID() }, (c) => c.query('select tab.approve_labelling_specimen($1, $2)', [doc, sig]));
+    const qaApprove = (doc: string, sig: string) => world.run(world.cast.qa, (c) => c.query('select tab.approve_labelling_specimen($1, $2)', [doc, sig]));
+    // A person who records specimens as the steward and also holds the QA MBR approver role.
+    const dual = await grantedPerson(server, 'MASTER_DATA_STEWARD', 'Dina Dual');
+    const b = server.seed.bootstrap;
+    const adm = await passwordActor(server.db, b.admin, b.admin.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'also a QA MBR approver', correlationId: randomUUID() });
+    const owner = await passwordActor(server.db, b.owner, b.owner.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'also a QA MBR approver', correlationId: randomUUID() });
+    const grant = await withCommand(server.db.app, adm, (c) => identity.requestRoleGrant(c, { accountId: dual.accountId, roleCode: 'QA_MBR_APPROVER', reason: 'also a QA MBR approver' }));
+    await withCommand(server.db.app, owner, (c) => identity.decideRoleGrant(c, grant, true, 'approved'));
+    const fp = terminalOf(server.seed, 'PC-QA-01').fingerprint;
+    const ctx = { reasonCode: 'TEST_SETUP', reasonText: 'specimen', correlationId: randomUUID() };
+    const dualSteward = await passwordActor(server.db, { ...dual, roleCode: 'MASTER_DATA_STEWARD' }, fp, ctx);
+    const dualQa = await passwordActor(server.db, { ...dual, roleCode: 'QA_MBR_APPROVER' }, fp, ctx);
+    const own = await recordSpecimen({ ...dualSteward, correlationId: randomUUID() });
+    const theirs = await recordSpecimen(await stewardActor(server));
+    const sopCode = `SOP-${randomUUID().slice(0, 6).toUpperCase()}`;
+    const sopContent = referenceContent({ kind: 'SOP', code: sopCode, version: '1', title: `Procedure ${sopCode}`, effectiveFrom: '2026-01-01', summary: 'A procedure, not a specimen.' });
+    const sop = await withCommand(server.db.app, await stewardActor(server), async (c) =>
+      (await c.query<{ id: string }>('select tab.record_reference_document($1::jsonb, $2) as id', [JSON.stringify(sopContent), referenceHash(sopContent)])).rows[0]?.id as string);
+
+    // Another document retired: no specimen takes its retirement as its own state.
+    await withCommand(server.db.app, await stewardActor(server), (c) => c.query("select tab.retire_reference_document($1, 'RETIRED', '2026-01-02', 'superseded by a later procedure')", [sop]));
+    expect(await provided(own)).toMatchObject({ exists: true, state: 'RECORDED' });
+    // Only a SPECIMEN document is approved or provided as one.
+    expect(await messageOf(qaApprove(randomUUID(), randomUUID()))).toMatch(/EBMR-TAB-470/);
+    expect(await messageOf(qaApprove(sop, randomUUID()))).toMatch(/EBMR-TAB-470/);
+    expect(await provided(sop)).toMatchObject({ exists: false });
+    // The recorder is refused before any signature is looked at, even holding the approver role.
+    expect(await messageOf(approveAs(dualQa, own, randomUUID()))).toMatch(/EBMR-TAB-472/);
+    // QA's signature authorises QA's act only: another approver presenting it is refused.
+    const sig = await world.sign(world.cast.qa, 'labelling_specimen', theirs, 'SPECIMEN_APPROVED', 'RECORDED');
+    expect(await messageOf(approveAs(dualQa, theirs, sig))).toMatch(/EBMR-TAB-474/);
+    expect(await provided(theirs)).toMatchObject({ exists: true, state: 'RECORDED' });
+    await qaApprove(theirs, sig);
+    // Each specimen's state is its own: the other specimen stays recorded.
+    expect(await provided(theirs)).toMatchObject({ state: 'APPROVED' });
+    expect(await provided(own)).toMatchObject({ exists: true, state: 'RECORDED' });
+    // Approved once: a second approval is refused on the state, before any signature.
+    expect(await messageOf(qaApprove(theirs, randomUUID()))).toMatch(/EBMR-TAB-471/);
+  });
 });

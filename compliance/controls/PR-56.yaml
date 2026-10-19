@@ -41,5 +41,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Each market's release authority is independent. Release in one market implies nothing about the other.

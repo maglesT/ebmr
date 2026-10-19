@@ -258,6 +258,12 @@ describe('controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2)
     await expect(preview(otherProduct)).rejects.toThrow(/EBMR-CSM-061/);
     await expect(preview(qa)).resolves.toBeDefined();
     await expect(preview(operator)).rejects.toThrow(/EBMR-TAB-020/);
+    // Only the four record-type and meaning pairs are previewed: a meaning QA signs, asked on another record type, is
+    // refused before any content or scope is read (EBMR-TAB-019; D-P7-1 item 4).
+    for (const [type, id] of [['controlled_custody', productRecordId], ['esig_stub', productRecordId]] as const) {
+      await expect(db.app.query('select tab.controlled_preview($1, $2, $3, $4)', [hashOf(qa), type, id, 'CONTROLLED_PRODUCT_APPROVED']), type)
+        .rejects.toThrow(new RegExp(`A ${type} record is not signed CONTROLLED_PRODUCT_APPROVED \\(IN-53\\)\\. \\[EBMR-TAB-019\\]`));
+    }
   });
   it('[IN-53] the register exports are read only with a grant without a site or product limit: an export covers every site (tablets 1415)', async () => {
     // recipe.controlled_register_v1 reads the material's lots at every site and an export carries no site; it is run in
@@ -360,5 +366,89 @@ describe('controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2)
     // With CONTROLLED.READ back the same write is recorded and shown.
     const ok = valueOf(await custodian.call(routes.controlled.proposeCustody, { body: { kind: 'TRANSFER', lotId, quantity: '0.500', fromLocation: 'WH-A-01', toLocation: 'DISP-03' } }));
     expect(ok).toMatchObject({ state: 'PROPOSED', quantity: '0.500' });
+  });
+
+  it('[IN-53] each controlled read shows the named record of its own batch, lot and session with its own approval, signatures and use; a reader that is no ordinary account never reads', async () => {
+    type Row = Record<string, unknown>;
+    const h = hashOf(qa);
+    const read = async <T>(sql: string, args: unknown[]): Promise<T> => (await db.app.query<{ r: T }>(sql, args)).rows[0]?.r as T;
+    const ids = (rows: Row[] | null) => (rows ?? []).map((x) => x['id']);
+    // Another batch of the product with its own checkpoint of another material; a signature on the dispensing and a use
+    // of the transfer (TEST FIXTURE rows).
+    const [batch2, cr2, ck2, sigPerson] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    const material2 = `API-CTR-${tag()}`;
+    const hash2 = createHash('sha256').update(batch2).digest('hex');
+    await setup(
+      `insert into recipe.control_recipe (id, batch_id, pin_id, version_id, mbr_content_hash, snapshot, snapshot_hash, person_id, account_id)
+       values ($1, $4, gen_random_uuid(), gen_random_uuid(), $2, $3::jsonb, $2, gen_random_uuid(), gen_random_uuid())`,
+      [cr2, hash2, JSON.stringify({ mbr: { content: { header: { product: { code: product, name: 'Controlled tablets', strength: '10 mg' } } } } }), batch2],
+    );
+    await setup(
+      `insert into recipe.batch_execution (id, batch_number, control_recipe_id, issue_signature_id, content_hash, installation, purpose, engine_version, registry_fingerprint,
+                                           policy, policy_hash, issue_request, market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person, issued_by_account, correlation_id)
+       values ($1, $2, $3, gen_random_uuid(), $4, 'GMP', 'GMP_BATCH', '1', $4, '{}', $4, '{}', '{IN}', 'BS', 'SITE-1', 'Asia/Kolkata', 0, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      [batch2, `B26-${tag()}`, cr2, hash2],
+    );
+    await setup(
+      `insert into recipe.controlled_checkpoint (id, batch_id, stage_key, material_code, unit, dispensed, consumed, in_process, returned, destroyed, difference,
+                                                 recorded_by_person, recorded_by_account, correlation_id)
+       values ($1, $2, 'S1', $3, 'kg', 0, 0, 0, 0, 0, 0, $4, $4, $4)`,
+      [ck2, batch2, material2, sigPerson],
+    );
+    await setup("insert into recipe.controlled_custody_signature (custody_id, position, signature_id, person_id, account_id) values ($1, 'FIRST', gen_random_uuid(), $2, $2)", [dispenseId, sigPerson]);
+    await setup('insert into recipe.controlled_custody_use (custody_id, move_id) values ($1, gen_random_uuid())', [transferId]);
+
+    // The product list shows each record with its own approval.
+    const listed = await read<Row[]>('select tab.controlled_products($1, $2) as r', [h, product]);
+    expect(ids(listed)).toContain(productRecordId);
+    const approvals = (await db.admin.query<{ id: string; p: string | null }>(
+      'select r.id, a.approved_by_person as p from plant.controlled_product r left join plant.controlled_product_approval a on a.record_id = r.id where r.id = any($1::uuid[])', [ids(listed)])).rows;
+    expect(listed.map((x) => [x['id'], x['approved_by_person']]).sort()).toEqual(approvals.map((x) => [x.id, x.p]).sort());
+    // Custody: each record with its own lot, signatures and use; one record when one is named.
+    const lotCode = (await db.admin.query<{ c: string }>('select lot_code as c from site.material_lot where id = $1', [lotId])).rows[0]?.c;
+    const custody = await read<Row[]>('select tab.controlled_custody($1, $2, null, null) as r', [h, lotId]);
+    expect(custody.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(custody.map((x) => x['lot_code']))).toEqual(new Set([lotCode]));
+    const byId = (id: string) => custody.find((x) => x['id'] === id)!;
+    expect((byId(dispenseId)['signatures'] as Row[]).map((x) => [x['position'], x['person']])).toEqual([['FIRST', sigPerson]]);
+    expect(byId(transferId)['signatures']).toEqual([]);
+    expect([byId(dispenseId)['used'], byId(transferId)['used']]).toEqual([false, true]);
+    expect(new Set(ids(custody)).size).toBe(custody.length);
+    const batchNumber = (await db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [batchId])).rows[0]?.n;
+    expect([byId(dispenseId)['batch_number'], byId(transferId)['batch_number']]).toEqual([batchNumber, null]);
+    expect(ids(await read<Row[]>('select tab.controlled_custody($1, null, null, $2) as r', [h, dispenseId]))).toEqual([dispenseId]);
+    expect(ids(await read<Row[]>('select tab.controlled_custody($1, null, $2, null) as r', [h, batchId]))).toEqual([dispenseId]);
+    // Custody of a named batch is refused outright to a holder limited to another product.
+    await expect(db.app.query('select tab.controlled_custody($1, null, $2, null)', [hashOf(otherProduct), batchId])).rejects.toThrow(/EBMR-CSM-061/);
+    // Checkpoints: the named checkpoint, found through its own batch, never another batch's.
+    expect(ids(await read<Row[]>('select tab.controlled_checkpoints($1, null, $2) as r', [h, checkpointId]))).toEqual([checkpointId]);
+    expect(ids(await read<Row[]>('select tab.controlled_checkpoints($1, null, $2) as r', [h, ck2]))).toEqual([ck2]);
+    expect(ids(await read<Row[]>('select tab.controlled_checkpoints($1, $2, $3) as r', [h, batchId, ck2]))).toEqual([]);
+    const ofBatch = ids(await read<Row[]>('select tab.controlled_checkpoints($1, $2, null) as r', [h, batchId]));
+    expect(ofBatch).toContain(checkpointId);
+    expect(ofBatch).not.toContain(ck2);
+    // The batch account lists the batch's own materials only.
+    const materials = ((await read<Row>('select tab.controlled_balance($1, $2) as r', [h, batchId]))['materials'] as Row[]).map((x) => x['material_code']);
+    expect(materials).toContain(material);
+    expect(materials).not.toContain(material2);
+    // The site of a read is the reader's own session's (moved for this check only, rolled back).
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query("update iam.session set site_code = 'SITE-9' where id = (tab.reader_of($1)).session_id", [h]);
+      expect((await c.query<{ s: string }>('select tab.reader_site(tab.reader_of($1)) as s', [h])).rows[0]?.s).toBe('SITE-9');
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+    // A reader without an account, or with no account row (as no ordinary account is), is refused whatever its role.
+    const problem = async (account: string | null, role: string | null) => (await db.admin.query<{ p: string | null }>(
+      "select tab.controlled_reader_problem(row(gen_random_uuid(), gen_random_uuid(), $1::uuid, $2::text, false)::tab.reader, 'SITE-1', $3) as p", [account, role, product])).rows[0]?.p;
+    expect(await problem(null, 'QA_REVIEWER')).toMatch(/^EBMR-CSM-060 .*lacks CONTROLLED\.READ/);
+    expect(await problem(randomUUID(), 'QA_REVIEWER')).toMatch(/^EBMR-CSM-060 .*administrator or break-glass/);
+    const qaAccount = (await db.admin.query<{ a: string }>('select (tab.reader_of($1)).account_id as a', [h])).rows[0]?.a;
+    expect(await problem(qaAccount ?? null, null)).toMatch(/^EBMR-CSM-060 .*lacks CONTROLLED\.READ/);
+    expect(await problem(qaAccount ?? null, 'QA_REVIEWER')).toBeNull();
   });
 });

@@ -276,4 +276,99 @@ describe('the analytics input views (recipe-core 1115)', () => {
     }
     expect(await segregationProblems(db.app)).toEqual([]);
   });
+
+  it('[DI-51][DI-52] the inputs read each batch\'s own record, events, release, unit, room occupancy and consumption, and only GMP batches', async () => {
+    type Step = { step: string; room_code: string | null; equipment_code: string | null; material_lots: unknown; started_at: Date };
+    const [a, b] = [batches[0]!, batches[1]!];
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    // A sandbox run carrying a copy of A's record (TEST FIXTURE): no input view shows it, and no GMP batch reads its record.
+    const sandbox = randomUUID();
+    await fixture(`insert into recipe.batch_execution select (jsonb_populate_record(null::recipe.batch_execution, to_jsonb(x) || jsonb_build_object(
+                     'id', $2::uuid, 'batch_number', $3::text, 'installation', 'SANDBOX', 'purpose', 'SANDBOX_TEST_RUN', 'package_hash', repeat('c', 64),
+                     'control_recipe_id', null, 'issue_signature_id', null))).* from recipe.batch_execution x where x.id = $1`, [a.id, sandbox, `SBX-${tag}`]);
+    await fixture(`insert into recipe.execution_state select (jsonb_populate_record(null::recipe.execution_state, to_jsonb(s) || jsonb_build_object('batch_id', $2::uuid))).*
+                     from recipe.execution_state s where s.batch_id = $1`, [a.id, sandbox]);
+    for (const view of ['report.batch_fact_v1', 'report.cpp_value_v1', 'report.step_use_v1']) {
+      expect(await asAnalytics(`select 1 from ${view} where batch_id = $1`, [sandbox]), view).toEqual([]);
+    }
+
+    // Completion: the time of the command whose own event moved the batch to EXECUTION_COMPLETE (TEST FIXTURE commands and
+    // events; earlier commands and another batch's command of the same number carry earlier times).
+    const command = (batch: string, seq: number, nowUs: string) => fixture(
+      `insert into recipe.execution_command select (jsonb_populate_record(null::recipe.execution_command, to_jsonb(c) || jsonb_build_object(
+         'seq', $2::bigint, 'command_id', $4::text, 'now_us', $3::bigint, 'kind', 'COMMAND'))).* from recipe.execution_command c where c.batch_id = $1 order by c.seq limit 1`,
+      [batch, seq, nowUs, `fixture-${randomUUID()}`]);
+    const event = (batch: string, seq: number, to: string) => fixture(
+      "insert into recipe.execution_event (batch_id, row_seq, idx, event_type, event) values ($1, $2, 0, 'BATCH_STATUS_CHANGED', $3::jsonb)", [batch, seq, JSON.stringify({ to })]);
+    await command(a.id, 1001, '1100000000000000');
+    await event(a.id, 1001, 'IN_EXECUTION');
+    await command(a.id, 1002, '1200000000000000');
+    await event(a.id, 1002, 'EXECUTION_COMPLETE');
+    await command(b.id, 1002, '1000000000000000');
+    await event(b.id, 1002, 'IN_EXECUTION');
+    const completed = async (id: string) => (await asAnalytics<{ completed_at: Date | null }>('select completed_at from report.batch_fact_v1 where batch_id = $1', [id]))[0]?.completed_at;
+    expect((await completed(a.id))?.toISOString()).toBe(new Date(1_200_000_000_000).toISOString());
+    expect(await completed(b.id)).toBeNull();
+    // Released only by a RELEASED decision on the batch's own finished lot: B's lot without a decision is not.
+    const lot = randomUUID();
+    await fixture(`insert into site.finished_lot (lot_id, batch_id, batch_number, edition, product_code, strength, markets, posted_by_person, posted_by_account)
+                   values ($1, $2, $3, 'TABLETS', 'X', '40 mg', array['IN'], gen_random_uuid(), gen_random_uuid())`, [lot, b.id, b.number]);
+    expect((await asAnalytics<{ released: boolean }>('select released from report.batch_fact_v1 where batch_id = $1', [b.id]))[0]?.released).toBe(false);
+
+    // Step use: one row per executed step of the batch's own record; the bound unit's own room; the lot only on its step.
+    const executedOf = (state: Json) => Object.entries(state['steps'] as Record<string, Json>).filter(([, x]) => us(x['startedAt']) !== null);
+    const rowsOf = (id: string) => asAnalytics<Step>('select step, room_code, equipment_code, material_lots, started_at from report.step_use_v1 where batch_id = $1', [id]);
+    const aRows = await rowsOf(a.id);
+    expect(aRows.length).toBe(executedOf(a.state).length);
+    const bound = aRows.filter((r) => r.equipment_code !== null);
+    expect(bound).toHaveLength(1);
+    expect(aRows.filter((r) => r !== bound[0]).map((r) => r.material_lots)).toEqual(aRows.slice(1).map(() => []));
+
+    // Room occupancy of B: R_A from exactly the start of B's first step until exactly the start of its next one; another
+    // batch's occupancy in R_X covering both (TEST FIXTURE rows).
+    const startUs = (x: Json) => (x['startedAt'] as { $u: string }).$u;
+    const bSteps = executedOf(b.state).sort(([, x], [, y]) => Number(BigInt(startUs(x)) - BigInt(startUs(y))));
+    const firstStart = startUs(bSteps[0]![1]);
+    const next = bSteps.find(([, x]) => BigInt(startUs(x)) > BigInt(firstStart))!;
+    const [roomA, roomX, occA, occX] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    for (const [id, code] of [[roomA, `RA-${tag}`], [roomX, `RX-${tag}`]]) {
+      await fixture("insert into plant.area (id, code, kind, name, segregated, negative_pressure, recorded_by) values ($1, $2, 'ROOM', 'Room', false, false, gen_random_uuid())", [id, code]);
+    }
+    const occupy = (id: string, area: string, batch: string, ref: string, fromUs: string) => fixture(
+      `insert into plant.area_occupancy (id, area_id, exclusive, batch_id, batch_ref, product_code, stage, clearance_id, started_by, started_at)
+       values ($1, $2, true, $3, $4, 'X', 'S', gen_random_uuid(), gen_random_uuid(), to_timestamp($5::numeric / 1000000))`, [id, area, batch, ref, fromUs]);
+    await occupy(occA, roomA, b.id, b.number, firstStart);
+    await fixture('insert into plant.area_occupancy_end (occupancy_id, ended_by, ended_at) values ($1, gen_random_uuid(), to_timestamp($2::numeric / 1000000))', [occA, startUs(next[1])]);
+    await occupy(occX, roomX, a.id, a.number, String(BigInt(firstStart) - 86_400_000_000n));
+    const bRoom = (await db.admin.query<{ r: string | null }>('select room_code as r from recipe.batch_execution where id = $1', [b.id])).rows[0]?.r ?? null;
+    const bRows = await rowsOf(b.id);
+    expect(bRows.length).toBe(executedOf(b.state).length);
+    const atFirst = bRows.filter((r) => r.started_at.getTime() === Number(BigInt(firstStart) / 1000n));
+    expect(atFirst.length).toBeGreaterThan(0);
+    expect(atFirst.map((r) => r.room_code)).toEqual(atFirst.map(() => `RA-${tag}`));
+    expect(bRows.find((r) => r.step === next[0])?.room_code).toBe(bRoom);
+  });
+
+  it('[DI-52] a critical value is read with its own definition\'s limits, a single value as one reading, and an engine instant only from its text', async () => {
+    const b = batches[0]!;
+    const content = (await db.admin.query<{ c: Json }>('select recipe.batch_mbr_content($1) as c', [b.id])).rows[0]!.c;
+    const values = async (c: Json, st: Json) => (await db.admin.query<{ kind: string; item: string; ref: string; reading: number | null; lower_text: string | null; upper_text: string | null; limit_tier: string | null }>(
+      'select kind, item, ref, reading, lower_text, upper_text, limit_tier from report.cpp_values_of($1, $2::jsonb, $3::jsonb)', [b.number, JSON.stringify(c), JSON.stringify(st)])).rows;
+    const base = await values(content, b.state);
+    const calc = base.find((r) => r.kind === 'CALCULATION')!;
+    // The calculation given limits of its own: its value is read with them, not another calculation's.
+    const calcs = (content['calculations'] as Json[]).map((k) => (k['id'] === calc.item ? { ...k, limits: { ranges: [{ tier: 'ALERT', low: { value: '95.0' }, high: { value: '101.0' } }] } } : k));
+    expect((await values({ ...content, calculations: calcs }, b.state)).find((r) => r.ref === calc.ref)).toMatchObject({ lower_text: '95.0', upper_text: '101.0', limit_tier: 'ALERT' });
+    // A single (DECIMAL) value that also carries a values array is still one reading.
+    const hardness = base.find((r) => r.item === 'hardness')!;
+    const points = b.state['points'] as Record<string, Json>;
+    const point = points[hardness.ref]!;
+    const state = { ...b.state, points: { ...points, [hardness.ref]: { ...point, value: { ...(point['value'] as Json), values: ['1.0', '2.0'] } } } };
+    expect((await values(content, state)).filter((r) => r.ref === hardness.ref).map((r) => r.reading)).toEqual([null]);
+    // An engine instant is its microseconds as text; a number or other text is no instant.
+    const instant = async (v: unknown) => (await db.admin.query<{ t: Date | null }>('select report.engine_instant($1::jsonb) as t', [JSON.stringify(v)])).rows[0]?.t;
+    expect((await instant({ $u: '1000000' }))?.toISOString()).toBe('1970-01-01T00:00:01.000Z');
+    expect(await instant({ $u: 1000000 })).toBeNull();
+    expect(await instant({ $u: 'soon' })).toBeNull();
+  });
 });

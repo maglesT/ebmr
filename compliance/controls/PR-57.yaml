@@ -99,6 +99,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Equivalent. EU explicitly includes distribution in the batch history and requires API supply-chain traceability. Room- and person-level forward tracing are not explicit requirements anywhere.
 type_detail: ENFORCED (backward and forward traceability) + DESIGN-CHOICE (graph-database projection; bitemporal storage)

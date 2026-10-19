@@ -44,6 +44,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: '"CAPA" is ICH Q10 / EU Ch.1 wording. 211.192 requires conclusions and follow-up. Guidance level in both regions.'
 type_detail: "CONFIGURABLE. Default: CAPA completion does not block release, but the investigation's follow-up does. Allowed: QA may make a CAPA release-blocking. The automated effectiveness checks are a DESIGN-CHOICE."

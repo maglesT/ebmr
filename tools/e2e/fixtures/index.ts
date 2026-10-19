@@ -64,7 +64,19 @@ export async function pickTerminal(page: Page, baseUrl: string, terminal: string
   await page.goto(`${baseUrl}/demo/devices`);
   await expect(page.getByRole('heading', { name: 'Demo: choose the terminal this browser is' })).toBeVisible();
   await page.getByRole('button', { name: `Use this terminal ${terminal}` }).click();
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+  // The server identifies a terminal at most 60 times a minute (session feature, `identify`); every page load
+  // identifies, and in a full run several workers' specs use the same seeded PC at once. A refused identification is
+  // the product working: the spec waits out the window and reloads, as a person at the terminal would.
+  const signIn = page.getByRole('heading', { name: 'Sign in' });
+  const limited = page.getByText('Too many attempts', { exact: false }).first();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await expect(signIn.or(limited)).toBeVisible();
+    if (await signIn.isVisible()) return;
+    base.info().setTimeout(base.info().timeout + 65_000);
+    await page.waitForTimeout(61_000);
+    await page.reload();
+  }
+  await expect(signIn).toBeVisible();
 }
 
 /**

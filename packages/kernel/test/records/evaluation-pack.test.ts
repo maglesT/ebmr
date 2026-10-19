@@ -183,6 +183,15 @@ describe('the periodic evaluation pack (kernel 1336)', () => {
     await expect(store(w.lead, variant((p) => { p.period.to = '2999-01-01T00:00:00.000000Z'; }))).rejects.toThrow(/EBMR-REC-153/);
     await expect(store(w.lead, variant((p) => { p.topics = p.topics.filter((t) => t.topic !== 'BACKUP'); }))).rejects.toThrow(/EBMR-REC-154/);
     await expect(store(w.lead, variant((p) => { p.format = 'other'; }))).rejects.toThrow(/EBMR-REC-152/);
+    // A readability seed blank or over 200 characters, or a size over 1000 (mutation campaign at the Phase 7 exit).
+    for (const [name, change] of [
+      ['blank seed', (p: EvaluationPack) => { p.readability.seed = ' '; }],
+      ['long seed', (p: EvaluationPack) => { p.readability.seed = 's'.repeat(201); }],
+      ['size over 1000', (p: EvaluationPack) => { p.readability.sampleSize = 1001; }],
+    ] as const) {
+      // The pack's own bound (its message names the size from 10), not only the sample reader's.
+      await expect(store(w.lead, variant(change)), name).rejects.toThrow(/EBMR-REC-141 a readability sample names a seed \(1 to 200 characters\) and a size from/);
+    }
     // The same pack again: refused (one row per pack hash).
     await expect(store(w.lead, { text: stored.text, sha: stored.packSha256 })).rejects.toThrow(/duplicate|unique/i);
     // Only VALIDATION.MANAGE stores; administrators never; a session alone never.
@@ -285,5 +294,107 @@ describe('the periodic readability report (kernel 1335, 1336)', () => {
     expect(rec.chains[0]!.problems.join('\n')).toMatch(/row differs from the hash recorded when it was inserted/);
     expect(res.pack.summary.unreadable).toBe(1);
     expect((await evaluationPack(db.app, res.packId))!.unreadableCount).toBe(1);
+  });
+});
+
+// Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the edges of the period, of the pack's shape and of its
+// readability sample, what each kernel source reports, and the registration guard the migrations call.
+describe('the edges of the periodic evaluation pack (kernel 1336)', () => {
+  const at = async (sql: string, params: unknown[] = []) => (await db.admin.query<{ t: string }>(sql, params)).rows[0]!.t;
+
+  it('[DI-11] the period is from its start, inclusive, to its end, exclusive; an open entry counts when still open at the end; a period without both ends, or empty, is refused', async () => {
+    const rows = (f: string | null, t: string | null) =>
+      w.report.query<{ r: string }>("select topic || '|' || source_row as r from report.evaluation_period_rows_v1($1::timestamptz, $2::timestamptz)", [f, t]).then((r) => r.rows.map((x) => x.r));
+    const cases: [string | null, string | null][] = [[null, to], [from, null], [to, to]];
+    for (const [f, t] of cases) {
+      await expect(rows(f, t), `${String(f)} ${String(t)}`).rejects.toThrow(/EBMR-REC-151/);
+    }
+    const e = (await db.admin.query<{ row: string; t: string }>(
+      "select topic || '|' || source_row as row, occurred_at::text as t from report.evaluation_entry_rows_v1() where selection = 'IN_PERIOD' and occurred_at > $1::timestamptz order by occurred_at limit 1", [from])).rows[0]!;
+    expect(await rows(e.t, await at("select ($1::timestamptz + interval '1 second')::text as t", [e.t]))).toContain(e.row);
+    expect(await rows(await at("select ($1::timestamptz - interval '1 second')::text as t", [e.t]), e.t)).not.toContain(e.row);
+    const o = (await db.admin.query<{ row: string; t: string; end: string }>(
+      "select topic || '|' || source_row as row, occurred_at::text as t, ended_at::text as end from report.evaluation_entry_rows_v1() where selection = 'OPEN_AT_END' and ended_at > occurred_at and occurred_at > $1::timestamptz order by occurred_at limit 1", [from])).rows[0]!;
+    expect(await rows(from, o.end)).toContain(o.row);
+    expect(await rows(from, o.t)).not.toContain(o.row);
+  });
+
+  it('[DI-11] each kernel source reports its own row: a change record with its own events, an investigation open or closed as it is, a batch review with its batch\'s number', async () => {
+    await fixture("insert into platform.change_record_event (change_record_id, event, person_id, account_id) values ($1, 'CLOSED', $2, $2)", [beforePeriod, randomUUID()]);
+    const changes = (await db.admin.query<{ own: number; listed: number }>(
+      `select (select count(*)::int from platform.change_record_event e where e.change_record_id::text = r.source_row) as own,
+              jsonb_array_length(r.summary -> 'events') as listed from report.evaluation_change_records() r`)).rows;
+    expect(changes.reduce((n, r) => n + r.own, 0)).toBeGreaterThan(0);
+    for (const r of changes) expect(r.listed).toBe(r.own);
+    const closedFlag = async (id: string) => (await db.admin.query<{ c: boolean }>(
+      "select (summary ->> 'closed')::boolean as c from report.evaluation_open_di_investigations() where source_row = $1", [id])).rows[0]?.c;
+    expect(await closedFlag(investigation.id)).toBe(true);
+    const openOne = (await db.admin.query<{ id: string }>(
+      'select d.id::text from records.di_investigation d where not exists (select 1 from records.di_investigation_closure c where c.investigation_id = d.id) limit 1')).rows[0]!.id;
+    expect(await closedFlag(openOne)).toBe(false);
+    // A batch review act of a batch the store holds names that batch's number.
+    const batchId = randomUUID();
+    const who = randomUUID();
+    await fixture(
+      `insert into recipe.batch_execution (id, batch_number, content_hash, installation, purpose, engine_version, registry_fingerprint, policy, policy_hash, issue_request,
+                                           market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person, issued_by_account, correlation_id,
+                                           control_recipe_id, issue_signature_id)
+       values ($1, 'B-EVAL-1', $2, 'GMP', 'GMP_BATCH', '1', $2, '{}', $2, '{}', '{IN}', 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $3, $3, $3, gen_random_uuid(), gen_random_uuid())`,
+      [batchId, hex(), who]);
+    await fixture(
+      `insert into recipe.batch_review_act (batch_id, cycle, act, signature_id, review_number, high_water, report_hash, person_id, account_id, role_code, correlation_id)
+       values ($1, 1, 'AUDIT_TRAIL_REVIEWED', gen_random_uuid(), 1, '{"seq": 10}', $2, $3, $3, 'QA_REVIEWER', $3)`, [batchId, hex(), who]);
+    const { rows } = await db.admin.query<{ n: string | null }>("select summary ->> 'batchNumber' as n from report.evaluation_audit_reviews() where summary ->> 'batchId' = $1", [batchId]);
+    expect(rows).toEqual([{ n: 'B-EVAL-1' }]);
+  });
+
+  it('[DI-11][DI-44] a pack without its text, its period ends, its topics or its readability seed and records, or with an empty period or an extra topic, is refused', async () => {
+    await expect(withCommand(db.app, again(w.lead), (c) => c.query('select records.store_evaluation_pack($1, $2)', [null, sha('x')])))
+      .rejects.toThrow(/EBMR-REC-152 an evaluation pack is stored with its text/);
+    const shape = /EBMR-REC-152 the pack is no ebmr.periodic-evaluation\/1 pack/;
+    const loose = (p: EvaluationPack) => p as unknown as { period: Record<string, unknown>; readability: Record<string, unknown>; topics: unknown };
+    for (const [name, change] of [
+      ['no start', (p: EvaluationPack) => { delete loose(p).period['from']; }],
+      ['no end', (p: EvaluationPack) => { delete loose(p).period['to']; }],
+      ['topics not a list', (p: EvaluationPack) => { loose(p).topics = 'x'; }],
+      ['no sample records', (p: EvaluationPack) => { delete loose(p).readability['records']; }],
+      ['no seed', (p: EvaluationPack) => { delete loose(p).readability['seed']; }],
+    ] as const) {
+      await expect(store(w.lead, variant(change)), name).rejects.toThrow(shape);
+    }
+    await expect(store(w.lead, variant((p) => { p.period.from = p.period.to; }))).rejects.toThrow(/EBMR-REC-153/);
+    await expect(store(w.lead, variant((p) => { (p.topics as unknown[]).push({ ...p.topics[0]!, topic: 'EXTRA_TOPIC', sources: [], entries: [] }); }))).rejects.toThrow(/EBMR-REC-154/);
+  });
+
+  it('[DI-44] a readability sample at its edges is stored: a 200-character seed, a size of 1000, and the size of every record closed before the period\'s end when there are fewer than 10', async () => {
+    await expect(runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: 's'.repeat(200), sampleSize: 10 })).resolves.toHaveProperty('packId');
+    await expect(runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: 'all of them', sampleSize: 1000 })).resolves.toHaveProperty('packId');
+    // A period that ends the instant the second closed incident closed: the record closed then is not before the end.
+    const end = await at('select closed_at::text as t from records.incident_current where id = $1', [closed[1]]);
+    const before = Number(await at("select count(*)::text as t from report.closed_record_v1 where closed_at < $1::timestamptz", [end]));
+    expect(before).toBeGreaterThan(0);
+    expect(before).toBeLessThan(10);
+    await expect(runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to: end, seed: 'short period', sampleSize: before })).resolves.toHaveProperty('packId');
+  });
+
+  it('[DI-11] the owner registers only a STABLE argument-free evaluation source of the agreed columns over an existing source log', async () => {
+    const cols = 'source_row text, occurred_at timestamptz, ended_at timestamptz, summary jsonb';
+    const body = '$f$ select null::text, null::timestamptz, null::timestamptz, null::jsonb where false $f$';
+    class Rollback extends Error {}
+    await expect(withCommand(db.admin, again(w.lead), async (c) => {
+      await c.query(`create function report.t1_eval_good() returns table (${cols}) language sql stable as ${body}`);
+      await c.query(`create function report.t1_eval_volatile() returns table (${cols}) language sql volatile as ${body}`);
+      await c.query(`create function report.t1_eval_arg(p integer) returns table (${cols}) language sql stable as ${body}`);
+      await c.query("create function report.t1_eval_cols() returns table (source_row text, occurred_at timestamptz, ended_at timestamptz, summary text) language sql stable as $f$ select null::text, null::timestamptz, null::timestamptz, null::text where false $f$");
+      const refused = async (log: string, f: string) => {
+        await c.query('savepoint t1');
+        await expect(c.query("select report.register_evaluation_source('CHANGE_RECORD', $1, $2::regprocedure, 'IN_PERIOD', 'refused source')", [log, f]), `${log} ${f}`).rejects.toThrow(/EBMR-REC-150/);
+        await c.query('rollback to savepoint t1');
+      };
+      for (const f of ['report.t1_eval_volatile()', 'report.t1_eval_arg(integer)', 'report.t1_eval_cols()']) await refused('platform.change_record_event', f);
+      await refused('platform.no_such_log', 'report.t1_eval_good()');
+      await c.query("select report.register_evaluation_source('CHANGE_RECORD', 'platform.change_record_event', 'report.t1_eval_good()'::regprocedure, 'IN_PERIOD', 'a well-formed source')");
+      throw new Rollback('rolled back on purpose');
+    })).rejects.toThrow(Rollback);
   });
 });

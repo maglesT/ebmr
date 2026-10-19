@@ -34,18 +34,19 @@ tests:
   - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-06] an interface not in the approved system description raises the drift alarm and is refused: the adapter does not start and its health says why (EBMR-INT-035)"
   - "apps/tablets-server/test/validation/validation-routes.test.ts > the system description (kernel 1300) > [DI-06][DI-09] the CSV lead describes an interface under an approved change record; without one, or without the right, nothing is written"
   - "apps/tablets-web/test/validation/validation.test.tsx > the validation hub and the system description > [DI-06][DI-09] lists the interfaces and the undescribed adapters; an interface is recorded with its change record and reason"
+  - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] the drift alarm is raised when an adapter becomes active, not when an active adapter is set active again or one not active changes status"
 clauses:
   - clause: "Enable an interface that is not in the approved description. The drift alarm fires."
-    deferred:
-      phase: 7
-      reason: "The approved system description and requirements traceability are part of the generated validation pack (URS, specifications, trace matrix) of Phase 7 (build outline 11; Phase 4 plan, slice 7: documentation-type control); the interface adapters it would describe arrive in Phase 6."
+    tests:
+      - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] an interface not in the approved system description raises the drift alarm and is refused"
+      - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] an adapter blocked and enabled again without a description raises the drift alarm; a described one does not"
+      - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-06] an interface not in the approved system description raises the drift alarm and is refused: the adapter does not start and its health says why (EBMR-INT-035)"
   - clause: "Every critical limit shows boundary-test evidence in the matrix."
-    deferred:
-      phase: 7
-      reason: "The trace matrix of the validation pack, with boundary-test evidence per critical limit, is generated in Phase 7 (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
+    tests:
+      - "packages/validation-kit/test/pack.test.ts > the trace matrix (DI-06) > [DI-06] every critical limit shows its boundary tests in the trace matrix"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Only the EU texts explicitly require an inventory and a system description for critical systems. That requirement is adopted for all markets.
 type_detail: "ENFORCED (inventory export and drift alarm). DESIGN-CHOICE (generated traceability matrix): this makes the draft's mandatory traceability matrix cheap to keep current, and it is enforced."

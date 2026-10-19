@@ -31,12 +31,12 @@ tests:
   - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that changes an earlier row fails the dry run, names the table and shows the changed unit"
 clauses:
   - clause: "In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged."
-    deferred:
-      phase: 7
-      reason: "There is no legacy data migration in the build; a migration dry run belongs to deployment validation and the Phase 7 validation pack (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
+    tests:
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] in the migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged"
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that changes an earlier row fails the dry run, names the table and shows the changed unit"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: Only the EU (§4.8) has an explicit migration rule. The US reaches the same result through 11.10(c) and the true-copy rules.
 type_detail: "ENFORCED (the checks). Automating them is a DESIGN-CHOICE: §4.8 requires the checks, not automation."

@@ -35,6 +35,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as EU Chapter 4 section 4.21 [chk] and FDA 211.188(b)(6), (8) and 211.134 (examination of packaged products, results in the batch record) [chk]."
 notes: "Source check: P."

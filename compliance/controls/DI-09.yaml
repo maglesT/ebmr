@@ -89,5 +89,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Both markets require controlled change. 11.10(k) additionally requires documentation control with a time-sequenced audit trail. Both apply.

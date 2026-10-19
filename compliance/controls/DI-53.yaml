@@ -63,6 +63,19 @@ tests:
   - "packages/kernel/test/analytics/exit-review.test.ts > the verdicts of the audit-trail keys as an analytics input (kernel 1282; P6A5-2) > [DI-51][DI-53] the analytics role reads the current verdict of each audit-trail key from its allow-list; the application and reporting roles cannot, and the segregation check stays clean"
   - "packages/analytics/test/review-priority.test.ts > REVIEW.PRIORITY v1 known answers (D-6A-13) > [DI-53] the top reasons are chosen among the terms every reader sees; the audit-trail reason comes after them (P6A7-6)"
   - "packages/kernel/test/analytics/exit-review.test.ts > the audit-trail methods' counts (kernel 1322; P6A7-7) > [DI-53] the monitor and the run list show the flag counts of the audit-trail methods only to ANALYTICS.DI_REVIEW holders; others see the runs without them"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail methods' input in the runner (analytics/audit.ts) > [DI-53] each audit, authentication and manual-digit row becomes the methods' input field by field"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail methods' input in the runner (analytics/audit.ts) > [DI-53] a row outside its column types, an unknown authentication kind or a terminal digit outside 0 to 9 fails the run's input"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail methods' input in the runner (analytics/audit.ts) > [DI-53] ATA.RULES reads the audit, authentication and manual-digit views; ATA.BASELINE the first two; both only nightly"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules on one crafted input (ATA.RULES v1) > [DI-53] each rule raises exactly its hits on the crafted input, with their texts, weights and evidence"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules on one crafted input (ATA.RULES v1) > [DI-53] the week in progress is the latest of entries and logins; too few person-weeks are named only when there are some; equal working-hour bounds leave no working hour"
+  - "packages/analytics/test/audit.test.ts > the per-person baseline (ATA.BASELINE v1) > [DI-53] the baseline assesses each metric of each person in both directions, from rows in any order, and flags only above the threshold"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-52][DI-53] an output names its reference and kind; a flag names its subject, rule and severity and needs reasons, each an object with a code and a text"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-53] person flags are read over a valid period, half-open, of restricted flags of completed runs only"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs leave out what they do not describe (mutation triage at the Phase 7 exit, D-P7-1 item 4) > [DI-53][DI-51] the audit facts pair each command with its own audit event, take a named point for an entry that records none, and leave out sandbox batches"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs leave out what they do not describe (mutation triage at the Phase 7 exit, D-P7-1 item 4) > [DI-53] the audit facts given by event (as a flag names them) pair the command and its point as the full view does"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs leave out what they do not describe (mutation triage at the Phase 7 exit, D-P7-1 item 4) > [DI-53] the 26 weeks of the audit, manual-entry and authentication facts include their first instant"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the restricted audit-trail flags and the entries behind them (kernel 1261, recipe-core 1151; mutation triage at the Phase 7 exit) > [DI-53] the flags about persons are those of finished runs of the audit-trail methods, restricted, in the period, with the current verdict of their key"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the restricted audit-trail flags and the entries behind them (kernel 1261, recipe-core 1151; mutation triage at the Phase 7 exit) > [DI-53] the entries behind a flag are its own audit events only, of a restricted flag of a finished run, and need ANALYTICS.DI_REVIEW"
 clauses:
   - clause: "seed a late entry, a back-dated entry, a login on two terminals within a minute and a test repeated until a pass; each raises its rule's flag with its reasons, and the clean persons raise none;"
     tests:
@@ -88,5 +101,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: draft
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 notes: "status U: drafted from decision 0016 item 8, not from a regulation that names anomaly detection; local labour and data-protection duties (for example India's DPDP Act 2023) not verified. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

@@ -38,7 +38,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Schedule M rule is the **same** as FDA 211.180(a) (expiry + 1 year) [chk] and **weaker** than EU Chapter 4 section 4.11 (longer of expiry + 1 year or 5 years after QP certification) [chk]. If the Rule 74/78 periods are confirmed, the Indian result can exceed FDA for short shelf lives.
 type_detail: ENFORCED (compute, block purge); CONFIGURABLE (company policy may only lengthen).
 notes: "Source check: P~ for Schedule M (retention sentence re-read; numbered 17.2.7 by WHO ordering); U for the Drugs Rules periods."

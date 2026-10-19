@@ -14,7 +14,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
 import { toDbContext, withCommand } from '../../../kernel/src/db/command.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
-import { seedAdministration, withReason } from '../../../kernel/test/identity/seed.ts';
+import { seedAdministration, seedServiceActor, withReason } from '../../../kernel/test/identity/seed.ts';
 import { envelopeFor, nowUs, receive, registerAdapter, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
@@ -465,5 +465,93 @@ describe('the OPC UA data guard on owner-level writes (DI-20)', () => {
     const body = { subjectKind: 'EQUIPMENT', subjectCode: placed, tag: 'force.main_kN', unit: 'kN', chunkNo: '1', samples };
     const hash = sha([['EQUIPMENT', placed, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
     await expectRefused(receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', { ...body, chunkHash: hash })), 'EBMR-EQD-002', /was relocated after its enrolment/);
+  });
+});
+
+describe('the functions Phase 6A re-created (recipe-core 1217, 1232, 1233, 1234; D-P7-1 item 4)', () => {
+  const st = async (sql: string, params: unknown[]): Promise<string> =>
+    db.admin.query<{ r: string }>(sql, params).then((x) => String(x.rows[0]!.r), (e: unknown) => (e instanceof Error ? e.message : String(e)));
+
+  it('[DI-31][DI-20] a source time is epoch microseconds of at most 16 digits, and not more than its bound before the session it stands on, the bound itself taken', async () => {
+    expect(await st("select plant.source_time_or_raise('12345678901234567', 'EQD')::text as r", [])).toMatch(/^EBMR-EQD-001 malformed source time 12345678901234567/);
+    const start = BigInt(nowUs());
+    const at = (d: bigint): string => (start + d).toString();
+    const three = (us: string, notBefore: string | null) => st('select plant.source_time_or_raise($1, $2, $3::bigint)::text as r', [us, 'EQD', notBefore]);
+    expect(await three(at(-300_000_000n), start.toString())).toBe(at(-300_000_000n));
+    expect(await three(at(-300_000_001n), start.toString())).toMatch(/^EBMR-EQD-003 source time \d+ is more than five minutes before the start of the endpoint session/);
+    expect(await three(at(-60_000_000n), start.toString())).toBe(at(-60_000_000n));
+    expect(await three(at(-900_000_000n), null)).toBe(at(-900_000_000n));
+    const four = (us: string, allowed: string) => st('select plant.source_time_or_raise($1, $2, $3::bigint, $4::bigint)::text as r', [us, 'ALM', start.toString(), allowed]);
+    expect(await four(at(-7_000_000n), '7000000')).toBe(at(-7_000_000n));
+    expect(await four(at(-7_000_001n), '7000000')).toMatch(/^EBMR-ALM-003 source time \d+ is more than 7 s before the start of the endpoint session/);
+  });
+
+  it('[DI-20] the session a unit\'s data stand on is the last one of its own endpoint on this adapter, not another endpoint\'s later session', async () => {
+    // Since recipe-core 1235 every OPC UA record may be as old as the gateway's offline buffer (7 days by default) before
+    // its session's start. A's session started six days ago, B's (another endpoint, same adapter) now: a sample of seven
+    // days and an hour ago stands on A's session, not on B's.
+    const room = await w.room();
+    const a = await w.press();
+    const b = await w.press();
+    const epA = await enrolEndpoint(db, room, [a.code]);
+    const epB = await enrolEndpoint(db, room, [b.code]);
+    const now = BigInt(nowUs());
+    const DAY = 86_400_000_000n;
+    expect(await reportSession(db, opcua, epA, { openedAt: (now - 6n * DAY).toString() })).toMatchObject({ applied: 'SESSION_VALID' });
+    expect(await reportSession(db, opcua, epB, { openedAt: now.toString() })).toMatchObject({ applied: 'SESSION_VALID' });
+    const t0 = now - 7n * DAY - 3_600_000_000n;
+    const samples = [{ sourceTime: t0.toString(), serverTime: null, raw: '12.5', value: '12.50', status: '0x00000000' }];
+    const body = { subjectKind: 'EQUIPMENT', subjectCode: a.code, tag: 'force.main_kN', unit: 'kN', chunkNo: '1', samples };
+    const hash = sha([['EQUIPMENT', a.code, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
+    expect(await receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', { ...body, chunkHash: hash }))).toMatchObject({ outcome: 'ACCEPTED' });
+    // The same sample for B is more than the buffer before B's session.
+    const hb = sha([['EQUIPMENT', b.code, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
+    await expectRefused(receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', { ...body, subjectCode: b.code, chunkHash: hb })), 'EBMR-EQD-003', /before the start of the endpoint session/);
+  });
+
+  it('[DI-31][DI-49][DI-20] a series gap is refused for another message type, an unknown field, each malformed field on its own, an empty interval, a wrong tag and a unit without its session; a valid one raises the alarm', async () => {
+    const press = await servedPress();
+    const from = BigInt(nowUs()) - 60_000_000n;
+    const gap = (over: Record<string, unknown> = {}) => ({
+      subjectKind: 'EQUIPMENT', subjectCode: press.code, tag: 'force.main_kN', unit: 'kN', fromUs: from.toString(), toUs: (from + 10_000_000n).toString(),
+      reason: 'GATEWAY_RESTART', detail: 'gateway restarted', ...over,
+    });
+    const send = (payload: unknown, type = 'opcua.series_gap') => receive(db, opcua, 'plant.receive_series_gap', envelopeFor(opcua, type, payload));
+    const MALFORMED = /^EBMR-EQD-040 malformed series gap: subjectKind, subjectCode, tag, unit, fromUs and toUs/;
+    await expectRefused(send(gap(), 'opcua.series_chunk'), 'EBMR-EQD-040', /this command receives opcua.series_gap, not opcua.series_chunk/);
+    await expectRefused(send(gap({ extra: '1' })), 'EBMR-EQD-040', /unknown field extra/);
+    for (const over of [{ toUs: 'soon' }, { fromUs: '-1' }, { reason: 'POWER_CUT' }, { detail: '   ' }, { detail: 'x'.repeat(501) }]) {
+      await expectRefused(send(gap(over)), 'EBMR-EQD-040', MALFORMED);
+    }
+    await expectRefused(send(gap({ toUs: from.toString() })), 'EBMR-EQD-040', /fromUs \d+ is not before toUs \d+/);
+    await expectRefused(send(gap({ unit: 'N' })), 'EBMR-EQD-002', /is not a series tag of a equipment in its unit/);
+    await expectRefused(send(gap({ tag: 'room.temp_C', unit: 'degC' })), 'EBMR-EQD-002', /is not a series tag of a equipment in its unit/);
+    const unserved = await w.press();
+    await expectRefused(send(gap({ subjectCode: unserved.code })), 'EBMR-EQD-002', /\(wrong identity\)$/);
+    expect(await send(gap({ detail: 'y'.repeat(500) }))).toMatchObject({ outcome: 'ACCEPTED', applied: 'SERIES_GAP alarm raised' });
+  });
+
+  it('[DI-49] an alarm is acknowledged by a person: a service account whose role came to hold ALARM.ACKNOWLEDGE is refused by the kernel', async () => {
+    const press = await servedPress();
+    const r = await sendAlarm(alarmPayload(press.code, { alarmCode: code('SVC') }));
+    // A service account cannot be granted a role that acknowledges (EBMR-IAM-035); here its own role is given the
+    // permission afterwards, behind the triggers' back, and taken away again.
+    const svc = await seedServiceActor(db, { kind: 'SERVICE', source: 'SYSTEM', name: 'Service identity' });
+    const c = await db.admin.connect();
+    const tamper = async (sqlText: string): Promise<void> => {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query(sqlText);
+      await c.query('commit');
+    };
+    try {
+      await tamper("insert into iam.role_permission (role_code, permission_code) values ('SERVICE_ACCOUNT', 'ALARM.ACKNOWLEDGE')");
+      // The kernel refuses the permission itself to a non-interactive account, before plant.acknowledge_alarm's own
+      // person check (EBMR-ALM-010, recorded as equivalent in tools/sql-mutation/equivalent.json).
+      await expectRefused(acknowledge(r['alarmId'] as string, 'Checked', 'Acknowledged by a service', null, svc), 'EBMR-IAM-040', /lacks permission ALARM\.ACKNOWLEDGE .*NON_INTERACTIVE_ACCOUNT_CANNOT_SIGN/);
+    } finally {
+      await tamper("delete from iam.role_permission where role_code = 'SERVICE_ACCOUNT' and permission_code = 'ALARM.ACKNOWLEDGE'");
+      c.release();
+    }
   });
 });

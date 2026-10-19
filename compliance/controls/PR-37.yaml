@@ -110,6 +110,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US requires the end-of-run representative label examination. EU requires the minimum on-line checks, checks that devices work, and controlled reintroduction after unusual events. The kernel applies the union.
 type_detail: "ENFORCED + DESIGN-CHOICE. Design choices: the person who raises an event cannot approve its reintroduction; units not reintroduced default to reject."

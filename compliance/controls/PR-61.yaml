@@ -41,6 +41,7 @@ tests:
   - "packages/recipe-core/test/analytics/review-inputs.test.ts > the review facts (recipe-core 1160) > [PR-61] no review, register or release function depends on the review priority"
   - "apps/tablets-server/test/analytics/review.test.ts > the review priority orders the review queue and never skips a review (GMP; REVIEW.PRIORITY) > [DI-53][PR-61] the audit-trail term of a score is shown only to data-integrity review; anyone else sees and is ordered by the score without it"
   - "tools/e2e/specs/phase6a/analytics.spec.ts > [PR-61][DI-26] the review queue is ordered by review priority with each record's reasons, and the lowest-priority record still asks for its full review: production approval, the audit-trail review and the QA review @office"
+  - "packages/recipe-core/test/analytics/review-inputs.test.ts > the review facts (recipe-core 1160) > [PR-61][DI-51] each record's facts are its own: its end, family, exceptions, deviations, findings and reopenings, and its units maintained within the 7 days up to its use"
 clauses:
   - clause: "list the review queue with scores, without scores and with the analytics runner stopped; the same records each time;"
     tests:
@@ -59,5 +60,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: draft
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 notes: "status U: drafted from decision 0016 item 9; no regulation names review ordering. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

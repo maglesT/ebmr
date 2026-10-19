@@ -66,6 +66,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: EU Ch.4 is explicit on defining raw data. FDA gets to the same place through Q10/Q12 and the completeness wording in 211.188/211.194. There is no conflict, and the EU wording sets the floor.
 type_detail: "ENFORCED: the register must exist, and the raw-data floor is checked at MBR/register approval. Register content is CONFIGURABLE per tenant."

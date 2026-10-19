@@ -27,6 +27,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: 4.9 asks for a reason only "where appropriate", but Annex 11 section 9 requires one for any change to GMP-relevant data. EU is therefore stricter, and the kernel always requires a reason.
 type_detail: "ENFORCED (never overwrite; reason mandatory) + CONFIGURABLE (approval level for critical-data corrections). Default: second person or QA approves. The approval requirement cannot be removed; this is a design choice beyond the text."

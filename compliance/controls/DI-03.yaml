@@ -55,17 +55,20 @@ tests:
   - "apps/tablets-web/test/validation/validation.test.tsx > the validation summary > [DI-03][DI-37] shows the problem and the document; QA signs the approval of exactly that release and document"
   - "apps/tablets-web/test/validation/validation.test.tsx > the validation summary > [DI-03] a document of another release, or one already approved, is not offered for approval"
   - "apps/tablets-web/test/validation/validation.test.tsx > the evidence bundle, the validation pack and the IQ > [DI-03] the IQ is run with a reason; each record shows every check, failed ones with their problems, and is downloaded"
+  - "apps/tablets-server/test/validation/validation-routes.test.ts > the evidence bundle, the validation pack and the IQ > [DI-03] the database refuses each part of an IQ record that is missing or wrong on its own: no text, a hash of the text or of the bundle that is not 64 lowercase hex or not the text's, text that is not JSON, and JSON that is not the checks' record for this database; nothing is stored (kernel 1381)"
+  - "packages/kernel/test/config/release-identity.test.ts > the validation-summary approval (kernel 1300) > [DI-03] the signed content is APPROVED only for the approved release and summary pair, and another summary of the same release is approved on its own (title up to 200 characters)"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-03][INV-01] the issue itself refuses when the validation summary stops covering the release after the issue began"
 clauses:
   - clause: "In a test environment, change a DB row outside the application. The integrity job alarms and names the record."
     tests:
       - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
   - clause: "Try to execute a GMP batch on a release that has no approved validation summary in that tenant. It is refused."
-    deferred:
-      phase: 7
-      reason: "The validation summary report is generated with the validation pack in Phase 7 (build outline 11); until a release carries one there is nothing for the GMP execution check to read (Phase 4 plan, slice 7: documentation-type controls deferred to 7)."
+    tests:
+      - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the validated release (DI-03, recipe-core 1250) > [DI-03] a GMP batch is refused on a release without an approved validation summary"
+      - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the validated release (DI-03, recipe-core 1250) > [DI-03] the validation-summary gate holds for every writer of a GMP batch row, and the application cannot approve or fake a release"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "Annex 11 is more prescriptive on documentation: supplier assessment, COTS documentation review, bespoke metrics, test-tool assessment. 11.10(a) adds the explicit duty to be able to detect altered records. Both apply."
 type_detail: ENFORCED (release-approval gate per tenant; integrity job). Package content is a vendor DESIGN-CHOICE within the listed minimum.

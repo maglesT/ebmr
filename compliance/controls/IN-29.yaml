@@ -65,7 +65,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** in substance as FDA 211.198 and 211.204 [gk] and EU Chapter 8 [gk]; licensing-authority notification is **different** (Indian authority)."
 type_detail: ENFORCED (links); CONFIGURABLE (notification templates).
 notes: "Source check: P (7.1-7.4 and 7.12 re-read)."

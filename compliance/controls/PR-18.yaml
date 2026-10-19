@@ -94,6 +94,7 @@ tests:
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][PR-18][INV-13] a delivery received by stores: each malformed part, an unknown or made-here material, a repeated delivery, a zero quantity and a retest after expiry are refused"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the inbound package (site services 0981) > [PR-18] the received lot keeps its retest instant; the hold limit is the earliest of the carried hold, retest and expiry"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the outbound package (site services 0980) > [DI-39] [INV-13] [PR-18] the origin packages an unexpired lot, up to what is left, on a well-formed request with a future stated hold"
+  - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [INV-13][PR-18] the consumption guard as site services 1103 re-creates it (D-P7-1 item 4): the reservation's batch number with its id, a lot not usable or changed since the reservation, a zero quantity, a lot holding less than the reservation"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:
@@ -109,6 +110,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU 5.34 allows only QC-released material within its retest period. US 211.87 requires retesting "as necessary". EU is stricter, so the date-based block applies to all markets (D-2).
 type_detail: "ENFORCED (status, identity and retest/expiry block) + CONFIGURABLE (rotation rule). Default: oldest approved first. Allowed: first-expiry-first-out with a documented SOP rationale."

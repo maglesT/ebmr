@@ -64,7 +64,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as EU 5.44 and 5.61 [chk] and FDA 211.103 [gk], 211.125(c) and 211.192 [chk]. FDA 211.125(c) waives label reconciliation for cut or roll labeling when 100% examination is done [chk]; India has no such waiver, so India is **stricter** there and the waiver is not offered."
 type_detail: ENFORCED; CONFIGURABLE (limits per product/component).
 notes: "Source check: P."

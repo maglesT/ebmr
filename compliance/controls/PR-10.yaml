@@ -48,5 +48,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "US explicitly requires that the reproduction be checked for accuracy, dated and signed (211.188(a)), so US is stricter: the issuance signature is mandatory for all markets. EU requires only that the reproduction method cannot introduce errors."

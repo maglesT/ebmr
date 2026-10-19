@@ -56,6 +56,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US explicitly requires second-person verification of each addition. EU requires kits kept together and labelled, and a defined order of addition. US is stricter on the witness, and the kernel applies it to all markets.
 type_detail: ENFORCED + DESIGN-CHOICE. The design choice (default off) requires the verifier to sign within a set time window from a terminal registered to that room.

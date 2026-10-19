@@ -403,3 +403,9 @@ describe('the LMS qualification source (INV-26, DI-31)', () => {
     expect(await live(p2.id)).toEqual([{ to: null }]);
   });
 });
+
+describe('platform.gap_needs_owner_or_qa (kernel 1320; D-P7-1 item 4)', () => {
+  it('[DI-31] an alarm id that names no integration alarm needs neither the process owner nor QA', async () => {
+    expect((await db.admin.query<{ r: boolean }>('select platform.gap_needs_owner_or_qa(gen_random_uuid()) as r')).rows[0]!.r).toBe(false);
+  });
+});

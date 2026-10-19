@@ -99,6 +99,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU requires a check against approved manufacturer/supplier data at every delivery (5.30) and API supply-chain traceability (5.29). US requires a distinct code for each lot in each shipment (211.80(d)). The kernel applies both.
 type_detail: "ENFORCED at the eBMR boundary: a lot with an incomplete receipt record cannot be dispensed or issued. The receipt functions themselves are a DESIGN-CHOICE, used only if the eBMR/MES suite performs receipt; otherwise ERP/WMS does, over an interface."

@@ -42,6 +42,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Both markets allow a risk-based extent of controls. Neither lets risk classification remove the audit trail or attribution, which is why the floors exist.
 type_detail: CONFIGURABLE (class per field; default critical; downgrade only under QA-approved change control). Floors are ENFORCED.

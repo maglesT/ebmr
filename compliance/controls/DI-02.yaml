@@ -40,15 +40,14 @@ tests:
   - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
 clauses:
   - clause: "Export a batch and restore it into an isolated environment."
-    deferred:
-      phase: 7
-      reason: "Restoring an export into an isolated environment is the restore drill of Phase 7 (validation pack and hardening, build outline 11); Phase 4 exports and verifies the certified evidence package (IN-11) but has no isolated restore environment."
+    tests:
+      - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
   - clause: "For 20 sampled values, confirm that unit, user, time, source ID, MBR/formula version and full change history are all present."
     tests:
       - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: FDA Q1b says outright that audit trails are metadata. The 2011 EU texts only imply it, and the EU draft states it. No conflict.
 type_detail: "ENFORCED (metadata binding). DESIGN-CHOICE (explicit lifecycle-state model and canonical storage): this makes the draft Ch.4 lifecycle expectations demonstrable, and the engine enforces it."

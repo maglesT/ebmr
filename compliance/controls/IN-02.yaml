@@ -67,7 +67,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** in substance as ICH Q9(R1) as adopted in EU GMP Part III and FDA guidance [gk]; Part 211 has no explicit QRM clause [chk], so India is more explicit than the FDA regulation."
 type_detail: CONFIGURABLE (scales, formality levels); ENFORCED (a rationale is mandatory whenever a risk class drives a reduced control).
 notes: "Source check: P."

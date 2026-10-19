@@ -78,17 +78,18 @@ describe('the build statuses of D-P7-2 (register:status, register:validate)', ()
   it('[meta] register:status writes only build_status, and register:validate refuses a VERIFIED the rule does not allow', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ebmr-status-'));
     dirs.push(dir);
-    const real = loadControls().filter((c) => ['DI-03', 'IN-12'].includes(c.id));
+    const real = loadControls().filter((c) => ['PR-26', 'PR-28'].includes(c.id));
     for (const c of real) cpSync(join(CONTROLS_DIR, `${c.id}.yaml`), join(dir, `${c.id}.yaml`));
     const before = new Map(real.map((c) => [c.id, readFileSync(join(dir, `${c.id}.yaml`), 'utf8')]));
-    // The copies claim VERIFIED by hand: the static rule refuses it (both are partly deferred today).
+    // The copies claim VERIFIED by hand: the static rule refuses it (both keep a part deferred to Phase 5, Injectables;
+    // DI-03 and IN-12, used here before the trace at 7, no longer have a deferred clause).
     const claimed = real.map((c) => ({ ...c, build_status: 'VERIFIED' as const }));
     const problems = verifiedProblems(claimed, ctx());
-    expect(problems.map((p) => p.split(' ')[0])).toEqual(['DI-03', 'IN-12']);
+    expect(problems.map((p) => p.split(' ')[0])).toEqual(['PR-26', 'PR-28']);
     expect(problems[0]).toMatch(/is VERIFIED, which D-P7-2 does not allow: .*deferred/);
     // register:status sets the computed status: only the build_status line of a changed file differs.
     const changes = applyStatuses(claimed, allPass(), ctx(), dir);
-    expect(changes.map((ch) => [ch.id, ch.to])).toEqual([['DI-03', 'SPECIFIED'], ['IN-12', 'SPECIFIED']]);
+    expect(changes.map((ch) => [ch.id, ch.to])).toEqual([['PR-26', 'SPECIFIED'], ['PR-28', 'SPECIFIED']]);
     for (const c of real) {
       const after = readFileSync(join(dir, `${c.id}.yaml`), 'utf8');
       const a = before.get(c.id)!.split('\n');

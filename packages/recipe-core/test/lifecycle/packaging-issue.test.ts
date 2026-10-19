@@ -243,6 +243,11 @@ describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
         )).rows[0]?.id ?? '');
     const wrongParent = await ahead(plannedNumber ?? '');
     expect(await codeOf(plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: parent, allocationId: wrongParent }))).toBe('EBMR-EXE-198');
+    // Each refused by the planning function's own rule, not only by a later guard with the same code (D-P7-1 item 4).
+    const messageOf = async (p: Promise<unknown>): Promise<string> => p.then(() => 'ok', (e: unknown) => (e instanceof Error ? e.message : String(e)));
+    expect(await messageOf(plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize }))).toMatch(/^A packaging order is planned with the processing batch it packs \(parentBatch\)/);
+    expect(await messageOf(plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: parent, allocationId: wrongParent })))
+      .toMatch(new RegExp(`^Batch number \\S+ is not a packaging number of batch ${pp.batchNumber}, which this packaging order packs \\(D-S4-2, INV-27\\)\\. \\[EBMR-EXE-198\\]$`));
     const own = await ahead(pp.batchNumber);
     const order = randomUUID();
     expect((await plan(order, { familyId: pack.familyId, batchSize: packSize, parentBatch: parent, allocationId: own })).allocationId).toBe(own);

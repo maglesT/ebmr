@@ -186,6 +186,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: The Annex 16 section 3 route has no US equivalent. In the US, a batch failing a specification is rejected (211.165(f)) and the failure is investigated (211.192).
 type_detail: ENFORCED (record, approval, batch link, hold of linked batches) + CONFIGURABLE (deviation classes) + DESIGN-CHOICE (availability-impact field)

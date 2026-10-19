@@ -37,5 +37,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US lets examination or testing resolve doubts about storage conditions. EU does not allow re-issue or re-use once any doubt exists. EU is stricter, and the kernel applies it to all markets (D-12).

@@ -25,6 +25,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as EU Chapter 4 section 4.19 [chk] and FDA 211.186(b) master record content [gk]."
 notes: "Source check: P."

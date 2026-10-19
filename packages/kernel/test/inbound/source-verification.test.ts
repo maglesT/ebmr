@@ -45,7 +45,8 @@ const messagesOf = (a: TestAdapter) => count(db, 'select count(*) as n from plat
 describe('the signing-source marker (kernel 1305)', () => {
   it('[DI-31] an OPCUA envelope that reaches the receiving half without its verification is refused (EBMR-INT-030) and leaves nothing', async () => {
     const before = await messagesOf(opcua);
-    await expectRefused(acceptAll(opcua, [envelopeFor(opcua, 'opcua.equipment_event', event(1))]), 'EBMR-INT-030');
+    // The refusal names the source's own verifier (D-P7-1 item 4).
+    await expectRefused(acceptAll(opcua, [envelopeFor(opcua, 'opcua.equipment_event', event(1))]), 'EBMR-INT-030', /taken only with its source's verified signature \(tab\.accept_gateway_envelope\)/);
     // accept_inbound, the uuid form, goes through the same check.
     const e = envelopeFor(opcua, 'opcua.equipment_event', event(2));
     await expectRefused(withCommand(db.app, ctxOf(opcua.actor), (c) => c.query('select platform.accept_inbound($1::jsonb)', [JSON.stringify(e)])), 'EBMR-INT-030');
@@ -77,6 +78,19 @@ describe('the signing-source marker (kernel 1305)', () => {
     await expect(db.admin.query("delete from platform.signing_source where source_system = 'OPCUA'")).rejects.toThrow();
     expect((await db.app.query<{ r: boolean }>("select platform.source_requires_signature('OPCUA') as r")).rows[0]?.r).toBe(true);
     expect((await db.app.query<{ r: boolean }>("select platform.source_requires_signature('EMS') as r")).rows[0]?.r).toBe(false);
+  });
+
+  it('[DI-31] a verification names its envelope by a lowercase SHA-256 key and names its verifier, or it is refused', async () => {
+    // Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the owner's own call is checked too.
+    const record = (key: string | null, verifier: string | null) =>
+      db.admin.query('select platform.record_source_verification($1, $2)', [key, verifier]);
+    for (const key of [null, 'not-a-key', 'A'.repeat(64), 'a'.repeat(63)]) {
+      await expect(record(key, 'TEST-ONLY verifier'), String(key)).rejects.toThrow(/EBMR-INT-030 a source verification names its envelope by its key/);
+    }
+    for (const verifier of [null, '', '   ']) {
+      await expect(record('a'.repeat(64), verifier), String(verifier)).rejects.toThrow(/EBMR-INT-030 a source verification names what verified the envelope/);
+    }
+    expect(await count(db, 'select count(*) as n from platform.source_verification')).toBe(0);
   });
 
   it('[DI-31] a source that does not sign (EMS) is taken without a verification; the transport peer the server reports is kept with the message', async () => {

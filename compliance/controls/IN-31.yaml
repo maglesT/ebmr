@@ -57,7 +57,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter** than FDA (lot number and expiration date required under 21 CFR 201.17 and 211.137; no manufacturing date) [gk] and EU Directive 2001/83/EC Article 54 (expiry and batch number; no manufacturing date) [gk]. Applies to India-domestic packs; export packs follow IN-52 destination rules and Rule 94."
 type_detail: ENFORCED (per destination template); CONFIGURABLE (template contents per market).
 notes: "Source check: P for Schedule M (item list re-read); S for Rule 96."

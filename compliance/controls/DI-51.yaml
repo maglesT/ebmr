@@ -71,6 +71,17 @@ tests:
   - "packages/kernel/test/analytics/exit-review.test.ts > the verdicts of the audit-trail keys as an analytics input (kernel 1282; P6A5-2) > [DI-51][DI-53] the analytics role reads the current verdict of each audit-trail key from its allow-list; the application and reporting roles cannot, and the segregation check stays clean"
   - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner (apps/tablets-server/src/analytics) > [DI-51] the runner starts only on ebmr_analytics with no elevated attribute; on another login it does not start (P6A7-8)"
   - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51][DI-52] the server runs the analytics in a worker thread (slice 7d, P6A7-4): the in-process runner records the same outputs on the same data; a stopped worker refuses"
+  - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner's connection and its role check (pool.ts, threaded.ts) > [DI-51] the worker thread's runner starts only on ebmr_analytics: on another login, or when the role cannot be read, it does not start (P6A7-8)"
+  - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner's connection and its role check (pool.ts, threaded.ts) > [DI-51] each problem of the runner's role is named, and all are reported together"
+  - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner's connection and its role check (pool.ts, threaded.ts) > [DI-51] the runner waits while the role's connection limit is reached, up to its attempts, and fails at once on any other error"
+  - "packages/analytics/test/registry.test.ts > method registry (registry.ts) > [DI-51][DI-52] each method names the inputs it reads"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-51][DI-52] an input is registered only as a report view at its version that reads no volatile function, or a non-volatile report row function; exactly that is granted"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-51] the segregation check accepts EXECUTE on a function a catalogued view reads, and reports it on a function only an uncatalogued view reads"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs leave out what they do not describe (mutation triage at the Phase 7 exit, D-P7-1 item 4) > [DI-53][DI-51] the audit facts pair each command with its own audit event, take a named point for an entry that records none, and leave out sandbox batches"
+  - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-51][DI-52] the inputs read each batch's own record, events, release, unit, room occupancy and consumption, and only GMP batches"
+  - "packages/recipe-core/test/analytics/rate-inputs.test.ts > the deviation-rate inputs (recipe-core 1130) > [DI-51] a deviation is attributed through its own batch's exceptions linked to it with a raising step only; shift starts rise strictly"
+  - "packages/recipe-core/test/analytics/review-inputs.test.ts > the review facts (recipe-core 1160) > [PR-61][DI-51] each record's facts are its own: its end, family, exceptions, deviations, findings and reopenings, and its units maintained within the 7 days up to its use"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52][DI-32] a step's window is its own use's, bounded by that use's next binding; series and samples touching the window's edges are read inclusive of its start and exclusive of its end; deviations and alarms are the batch's own"
 clauses:
   - clause: "as the analytics role, insert, update and delete in a GMP table and run a command; all are refused;"
     tests:
@@ -101,5 +112,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: draft
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 notes: "status U: Annex 22 is a consultation draft and FDA's AI guidance a draft; neither verified against a final text. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it. Complements PR-60 (design choice) with database enforcement."

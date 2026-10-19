@@ -35,17 +35,22 @@ tests:
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44][IN-53] an export or a readability read of a closed batch holding controlled-substance rows needs CONTROLLED.READ with no site or product limit: a holder without it is refused, never served a partial copy"
   - "apps/tablets-server/test/validation/export-routes.test.ts > the periodic evaluation pack (kernel 1336) > [DI-11][DI-44][DI-37] the CSV lead generates the pack of an ended period with its readability report; QA signs it off, never the person who generated it"
   - "apps/tablets-web/test/validation/exports.test.tsx > the periodic evaluation > [DI-11][DI-44] a pack is generated for a period typed with its offset, a seed and a sample size"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the edges of the periodic evaluation pack (kernel 1336) > [DI-11][DI-44] a pack without its text, its period ends, its topics or its readability seed and records, or with an empty period or an extra topic, is refused"
+  - "packages/kernel/test/records/evaluation-pack.test.ts > the edges of the periodic evaluation pack (kernel 1336) > [DI-44] a readability sample at its edges is stored: a 200-character seed, a size of 1000, and the size of every record closed before the period's end when there are fewer than 10"
+  - "packages/kernel/test/records/full-export.test.ts > the bounds and the registration guards of the full export (kernel 1335) > [DI-08][DI-44] a page, a snapshot, a readability sample and a readability snapshot are refused outside their bounds and served at their edges"
+  - "packages/kernel/test/records/full-export.test.ts > the bounds and the registration guards of the full export (kernel 1335) > [DI-08][DI-44] the owner registers only a STABLE argument-free closed-record source of the agreed columns, and only an audited table with a known permission as restricted"
+  - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] an aborted batch is closed at its own move to ABORTED: not at a later command of the batch, nor at another batch's later abort"
 clauses:
   - clause: "The periodic readability report lists the sampled records, each opened with its audit trail."
-    deferred:
-      phase: 7
-      reason: "The periodic readability report is part of the periodic evaluation pack (DI-11) generated in Phase 7 (build outline 11); Phase 4 has the integrity checks it would sample."
+    tests:
+      - "packages/kernel/test/records/evaluation-pack.test.ts > the periodic readability report (kernel 1335, 1336) > [DI-44] the periodic readability report lists the seeded sample of closed records, each opened and rendered with its audit trail, with its result and render hash per record"
+      - "packages/kernel/test/records/evaluation-pack.test.ts > the periodic readability report (kernel 1335, 1336) > [DI-44] a sampled record whose stored row was altered is reported UNREADABLE with the finding, and the pack records it"
   - clause: "Deliberately corrupt a record in a test environment. The check detects it."
     tests:
       - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU §7.1 explicitly requires stored data to be checked for accessibility, readability and accuracy. It is adopted for all markets.
 type_detail: "ENFORCED (the checks exist and alarm). CONFIGURABLE for frequency: DESIGN-CHOICE default is quarterly for readability sampling and weekly for integrity jobs. Neither rule sets a frequency."

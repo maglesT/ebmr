@@ -29,13 +29,12 @@ clauses:
     tests:
       - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
   - clause: "Restore a backup to a test instance; a closed batch renders completely."
-    deferred:
-      phase: 7
-      reason: "Restoring a backup to a test instance is the restore drill of Phase 7 (validation pack and hardening, build outline 11)."
+    tests:
+      - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as EU Annex 11 sections 4, 6, 7, 10, 12, 13 [chk] and FDA 211.68(b) (authorised changes, input/output checks, backup) [chk]. **Weaker** than Annex 11 section 9 (audit trails regularly reviewed; reason for change documented) and section 11 (periodic evaluation) [chk], and than 21 CFR 11.10(e) (secure, computer-generated, time-stamped audit trail kept at least as long as the record) [chk]. The kernel applies the stricter items for every market."
 type_detail: ENFORCED; DESIGN-CHOICE for audit-trail review and periodic evaluation (not in Schedule M).
 notes: "Source check: P (20.2, 20.3, 20.6, 20.7 and the data-processing clause re-read); P~ for the 17.2 sub-clause number."

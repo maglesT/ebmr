@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adapterTransportProblem, feedSignatureMessage, isLoopbackHost, seriesChunkHash, type AdapterTls } from '@ebmr/integration-sdk/adapter';
 import { identity, withCommand } from '@ebmr/kernel';
-import { count, ctxOf, nowUs } from '../../../../packages/kernel/test/integrations/support.ts';
+import { count, ctxOf, envelopeFor, nowUs } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { OPCUA_ADAPTER } from '../../src/features/integrations/adapters/opcua/index.ts';
 import { feedWorker, type AdapterWorker, type CycleReport } from '../../src/features/integrations/adapters/framework.ts';
@@ -286,6 +286,11 @@ describe('the gateway signs its OPC UA feed and the database verifies it (6jc-R9
     expect(await q('select tab.feed_signature_message($1::jsonb, $2, $3) as r', [JSON.stringify({ ...v0.envelope, idempotencyKey: 'a\nb' }), v0.gatewayCode, v0.keyId])).toBeNull();
     expect(await q('select tab.feed_signature_message($1::jsonb, $2, $3) as r', [JSON.stringify(v0.envelope), 'GW\nX', v0.keyId])).toBeNull();
     expect(await q('select tab.feed_signature_message($1::jsonb, $2, $3) as r', [JSON.stringify({ ...v0.envelope, sequenceNo: '01' }), v0.gatewayCode, v0.keyId])).toBeNull();
+    // Mutation campaign at the Phase 7 exit (D-P7-1 item 4): a missing gateway code or key id, or a key id out of its
+    // rule, gives no message either (concat_ws would silently drop a null line).
+    expect(await q('select tab.feed_signature_message($1::jsonb, $2, $3) as r', [JSON.stringify(v0.envelope), null, v0.keyId])).toBeNull();
+    expect(await q('select tab.feed_signature_message($1::jsonb, $2, $3) as r', [JSON.stringify(v0.envelope), v0.gatewayCode, null])).toBeNull();
+    expect(await q('select tab.feed_signature_message($1::jsonb, $2, $3) as r', [JSON.stringify(v0.envelope), v0.gatewayCode, v0.keyId.toUpperCase()])).toBeNull();
   });
 });
 
@@ -334,6 +339,98 @@ describe('the adapters use mutual TLS (6jc-R9)', () => {
   });
 });
 
+// Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the refusals of the verifier, each with its own reason, and
+// the binding of an adapter to a gateway's feed (tablets 1405, 1406).
+describe('each refusal of the gateway feed verifier, and the gateway feed binding (6jc-R9)', () => {
+  const directAs = (a: { actor: Parameters<typeof ctxOf>[0] }, env: Json) =>
+    withCommand(db.app, ctxOf(a.actor), (c) => c.query('select tab.accept_gateway_envelope($1::json)', [JSON.stringify(env)]));
+
+  it('[DI-31] the verifier refuses a malformed envelope, another source system, an unknown key, an untrusted key and a type with no receiving command, each for its own reason', async () => {
+    const good = signed(envelope('opcua.equipment_event', event()), gw);
+    const noSequence: Json = { ...good };
+    delete noSequence['sequenceNo'];
+    await expect(direct('select tab.accept_gateway_envelope($1::json) as r', noSequence)).rejects.toThrow(/EBMR-INT-001 malformed inbound envelope/);
+    // An OPCUA adapter handing over an envelope of another source system, even signed.
+    await expect(direct('select tab.accept_gateway_envelope($1::json) as r', signed(envelope('opcua.equipment_event', event(), { sourceSystem: 'EMS' }), gw)))
+      .rejects.toThrow(/EBMR-INT-003 tab.accept_gateway_envelope verifies the gateway's OPC UA feed/);
+    // An adapter of a source the verifier does not verify (EMS), with its own envelope.
+    const ems = await sandboxOpcuaAdapter(server, w.adm, 'SITE-1', 'EMS');
+    await expect(directAs(ems, envelopeFor(ems, 'ems.series_chunk', { tag: 't', samples: [] }))).rejects.toThrow(/EBMR-INT-003 tab.accept_gateway_envelope verifies/);
+    // A key id no gateway has enrolled: refused as an unknown key, not for any later reason.
+    await expect(direct('select tab.accept_gateway_envelope($1::json) as r', signed(envelope('opcua.equipment_event', event()), gw, { keyId: 'e'.repeat(64) })))
+      .rejects.toThrow(new RegExp(`EBMR-INT-031 gateway ${GW} has no active enrolled key e{64}`));
+    // A message type with no receiving command, correctly signed.
+    await expect(direct('select tab.accept_gateway_envelope($1::json) as r', signed(envelope('opcua.unknown_kind', { a: '1' }), gw))).rejects.toThrow(/EBMR-INT-004/);
+    // An ACTIVE key the database does not trust (a row as an installation before tablets 0702 could hold: not an
+    // Ed25519 SPKI), on a gateway bound to its own adapter: refused as untrusted, before any signature is checked.
+    const bad = `TEST-GW-BAD-${randomBytes(3).toString('hex').toUpperCase()}`;
+    const badSpki = createHash('sha256').update(bad).digest('base64');
+    const badKid = createHash('sha256').update(bad).digest('hex');
+    const site = (await db.admin.query<{ s: string }>('select site_code as s from iam.device where code = $1', [GW])).rows[0]!.s;
+    await identity.withGuardedCommand(db.app, await adminActor(server), (c) =>
+      c.query("select iam.register_device($1, 'SERVER', $2, null, null, $3, 'TEST gateway with an untrusted key')", [bad, site, badKid]));
+    // Written as the owner with triggers off (session_replication_role), as an earlier release stored it.
+    const oc = await db.admin.connect();
+    await oc.query('begin');
+    await oc.query("set local session_replication_role = 'replica'");
+    await oc.query(
+      `insert into tab.gateway_key (gateway_device_id, gateway_code, account_id, public_key_spki, key_fingerprint, status, enrolled_by_person)
+       select d.id, $1, k.account_id, $2, $3, 'ACTIVE', k.enrolled_by_person from iam.device d, tab.gateway_key k
+        where d.code = $1 and k.gateway_code = $4 limit 1`, [bad, badSpki, badKid, GW]);
+    await oc.query('commit');
+    oc.release();
+    const own = await sandboxOpcuaAdapter(server, w.adm, 'SITE-1');
+    await bindFeed(server, own.code, bad);
+    await expect(directAs(own, signed(envelope('opcua.equipment_event', event()), gw, { gatewayCode: bad, keyId: badKid })))
+      .rejects.toThrow(new RegExp(`EBMR-INT-031 the enrolled key ${badKid} of gateway ${bad} is not trusted`));
+  });
+
+  it('[DI-31][DI-20] binding a second gateway ends the first and leaves other adapters\' bindings alone; re-binding the same gateway changes nothing; the refusal names the adapter that holds the feed', async () => {
+    const g2 = await otherGateway(server);
+    const g3 = await otherGateway(server);
+    const third = await sandboxOpcuaAdapter(server, w.adm, 'SITE-1');
+    const live = async (code: string) => (await db.admin.query<{ id: string; g: string }>(
+      'select id::text, gateway_code as g from tab.gateway_feed_binding where adapter_code = $1 and ended_at is null', [code])).rows;
+    const first = await live(w.adapter.code);
+    expect(first.map((r) => r.g)).toEqual([GW]);
+    const b1 = await bindFeed(server, third.code, g2.gatewayCode);
+    expect(await live(w.adapter.code)).toEqual(first);
+    expect(await live(third.code)).toEqual([{ id: b1, g: g2.gatewayCode }]);
+    expect(await bindFeed(server, third.code, g2.gatewayCode)).toBe(b1);
+    const b2 = await bindFeed(server, third.code, g3.gatewayCode);
+    expect(b2).not.toBe(b1);
+    expect(await live(third.code)).toEqual([{ id: b2, g: g3.gatewayCode }]);
+    const ended = (await db.admin.query<{ r: string | null }>('select ended_reason as r from tab.gateway_feed_binding where id = $1', [b1])).rows[0]?.r;
+    expect(ended).toMatch(/pulls this gateway's feed/);
+    expect(await live(w.adapter.code)).toEqual(first);
+    // Another adapter cannot take g3's feed; the refusal names the adapter that pulls it, and nothing changes.
+    await expect(bindFeed(server, w.adapter.code, g3.gatewayCode))
+      .rejects.toThrow(new RegExp(`EBMR-DEV-179 the feed of gateway ${g3.gatewayCode} is already bound to adapter ${third.code};`));
+    expect(await live(w.adapter.code)).toEqual(first);
+    expect(await live(third.code)).toEqual([{ id: b2, g: g3.gatewayCode }]);
+
+    // A binding row never changes (DEV-177): each column of a live binding, and an ended binding at all; one starts live.
+    const changes = [
+      'id = gen_random_uuid()', `adapter_id = '${w.adapter.id}'`, "adapter_code = 'OPCUA-OTHER'", `gateway_code = '${g2.gatewayCode}'`,
+      'bound_by_person = gen_random_uuid()', "bound_at = bound_at - interval '1 second'",
+    ];
+    for (const set of changes) {
+      await expect(db.admin.query(`update tab.gateway_feed_binding set ${set} where id = $1`, [b2]), set).rejects.toThrow(/EBMR-DEV-177 a gateway feed binding never changes/);
+    }
+    await expect(db.admin.query("update tab.gateway_feed_binding set ended_reason = 'rewritten' where id = $1", [b1])).rejects.toThrow(/EBMR-DEV-177 a gateway feed binding never changes/);
+    await expect(db.admin.query(
+      "insert into tab.gateway_feed_binding (adapter_id, adapter_code, gateway_code, bound_by_person, ended_at, ended_reason) values ($1, $2, $3, gen_random_uuid(), clock_timestamp(), 'born ended')",
+      [third.id, third.code, g2.gatewayCode])).rejects.toThrow(/EBMR-DEV-177 a gateway feed binding starts live/);
+    expect(await live(third.code)).toEqual([{ id: b2, g: g3.gatewayCode }]);
+
+    // Only an active adapter of the signed feed is bound: an unknown code, an adapter of another source, a blocked one.
+    await expect(bindFeed(server, 'OPCUA-NO-SUCH', g2.gatewayCode)).rejects.toThrow(/EBMR-DEV-178 OPCUA-NO-SUCH is not an active adapter/);
+    const ems = await sandboxOpcuaAdapter(server, w.adm, 'SITE-1', 'EMS');
+    await expect(bindFeed(server, ems.code, g2.gatewayCode)).rejects.toThrow(/EBMR-DEV-178 .* is not an active adapter/);
+    await identity.withGuardedCommand(db.app, await adminActor(server), (c) => c.query("select iam.set_integration_adapter_status($1, 'BLOCKED', 'link maintenance (test)')", [third.id]));
+    await expect(bindFeed(server, third.code, g2.gatewayCode)).rejects.toThrow(/EBMR-DEV-178 .* is not an active adapter/);
+  });
+});
 describe('a revoked gateway key and an unbound adapter (6jc-R9)', () => {
   it('[DI-31][DI-20] after the bound gateway\'s key is revoked its signature no longer counts, and an adapter bound to no gateway takes nothing', async () => {
     const e = event();

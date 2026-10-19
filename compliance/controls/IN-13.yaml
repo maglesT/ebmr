@@ -52,6 +52,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: per-batch-size masters **same** as FDA 211.186(a) [chk] and EU Chapter 4 (formula and instructions per product and batch size; 4.17-4.18) [chk]. Hold time as a mandatory master element is **stricter** than FDA 211.111 (time limits for each production phase only when appropriate) [chk] and EU 4.17/4.18 (no hold-time item) [chk]. Time/temperature CPPs **same** as EU 4.18(d) [chk].
 notes: "Source check: P."

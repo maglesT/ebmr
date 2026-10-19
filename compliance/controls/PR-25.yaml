@@ -54,6 +54,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US permits "other control systems" instead of separate areas. EU permits simultaneous or consecutive work only where it creates no mix-up or cross-contamination risk. The effect is equivalent.
 type_detail: "ENFORCED (occupancy, permitted area type, maintenance and cleaning status) + CONFIGURABLE (room-condition checks). Default: ON wherever the master states conditions. Concurrent use of a room needs a configuration that cites a risk assessment; QA approval of that configuration is a design choice."

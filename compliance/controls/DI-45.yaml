@@ -116,6 +116,10 @@ tests:
   - "apps/tablets-web/test/operations/wp2-operations.test.tsx > drills and the hardening check (decision 0025 point 3) > [DI-45] D-P7R-4: on a GMP installation the page shows the drill records and offers no upgrade drill; a restore drill is run with a reason and the page follows its job"
   - "apps/tablets-web/test/operations/wp2-operations.test.tsx > drills and the hardening check (decision 0025 point 3) > [DI-45] on a sandbox the upgrade drill is run on a named database at an earlier release; the hardening check is run with the allowed ports and its checks shown"
   - "apps/tablets-web/test/operations/wp2-operations.test.tsx > continuity alarms (DI-45) > [DI-45] an open alarm is acknowledged with what was done; an acknowledged one shows who and when"
+  - "apps/tablets-server/test/operations/drills.test.ts > drills and hardening checks in the database, whoever writes them (kernel 1395) > [DI-45][DI-17] a drill request names its kind, its reason up to 1000 characters and, for an upgrade drill only, a database name; an upgrade drill is recorded only by a SYSTEM service identity, only for a person's upgrade request of the same database, only when valid, and a failed one raises its alarm"
+  - "apps/tablets-server/test/operations/drills.test.ts > drills and hardening checks in the database, whoever writes them (kernel 1395) > [DI-45][DI-17] a hardening check is recorded only with every check named with its status and the reason up to 1000 characters, with the result its checks give; a failed one raises its alarm naming the failed checks"
+  - "apps/tablets-server/test/operations/restore-and-alarms.test.ts > the restore procedure (DI-45) > [DI-45][DI-18] the approvers a restore may name are exactly the active persons of human accounts holding a role, in force, that approves restores: no operator, no administrator, no service identity, each once"
+  - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the operations acts in the database, whoever writes them (kernel 1376) > [DI-17][DI-18][DI-45] the database refuses a worker act that is not one, without its reason or over 1000 characters, and an invalid record; a backup request without its tier or reason; and the copy of a backup not in the catalogue; nothing is recorded"
 clauses:
   - clause: "Restore into an isolated environment and hash-compare records, audit trails and signatures with production."
     tests:
@@ -129,6 +133,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: For the US, the backup must last the full retention period. EU §7.2 requires the integrity and restorability of backups to be checked during validation and monitored periodically. The draft adds separation. All are adopted.
 type_detail: "ENFORCED (both tiers, separation, alarms, periodic restore testing). CONFIGURABLE for frequencies: DESIGN-CHOICE default is a quarterly restore test."

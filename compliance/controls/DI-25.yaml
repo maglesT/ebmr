@@ -57,7 +57,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: |-
   - The US is stricter on timing: every significant step, plus before release.
   - EU 2011 says only "regularly".

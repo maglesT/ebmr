@@ -202,4 +202,55 @@ describe('the penicillin facility rule and the beta-lactam classification need Q
     }
     expect(await problem('SITE-D', 'AMOX-D')).toBeNull();
   });
+
+  it('[PR-27][DI-35] what QA signs is the proposal against its own subject\'s earlier approved value, in the subject\'s scope; each subject\'s state and approval are its own', async () => {
+    const provided = async (type: string, id: string) => (await db.admin.query<{ p: { content: Record<string, unknown>; scope: unknown; state: string } }>('select esig.provide($1, $2) as p', [type, id])).rows[0]!.p;
+    const t = randomUUID().slice(0, 6).toUpperCase();
+    // Another site approved as a penicillin facility: no other site's value is "approved before" for this one.
+    const other = await proposeFacility(`SITE-F${t}`, true);
+    await approveFacility(other, await signFacility(other));
+    const site = `SITE-E${t}`;
+    const first = await proposeFacility(site, false);
+    expect((await contentOf('facility_rule', first))).toMatchObject({ penicillin_facility: false, penicillin_facility_approved_before: false, effect: 'UNCHANGED' });
+    const second = await proposeFacility(site, true);
+    expect((await contentOf('facility_rule', second))).toMatchObject({ version: 2, penicillin_facility: true, penicillin_facility_approved_before: false, effect: 'LOOSENS' });
+
+    // Classifications: another material approved beta-lactam at a high version is nobody else's earlier value.
+    const high = `AMOX-H${t}`;
+    for (const beta of [false, true, false, true, false]) await proposeClass('MATERIAL', high, beta);
+    const highTop = await proposeClass('MATERIAL', high, true);
+    await approveClass(highTop, await signClass(highTop));
+    const fresh = `AMOX-F${t}`;
+    const freshClass = await proposeClass('MATERIAL', fresh, true);
+    expect((await db.app.query('select approved_version, pending from plant.beta_lactam_class_in_force where subject_kind = $1 and code = $2', ['MATERIAL', fresh])).rows)
+      .toEqual([{ approved_version: null, pending: true }]);
+    const before = await provided('beta_lactam_class', freshClass);
+    expect(before).toMatchObject({ state: 'PROPOSED', scope: {}, content: { beta_lactam: true, beta_lactam_approved_before: false, effect: 'TIGHTENS' } });
+    await approveClass(freshClass, await signClass(freshClass));
+    // Once approved, the signed content is unchanged (the version is not its own "approved before").
+    expect((await provided('beta_lactam_class', freshClass)).content).toEqual(before.content);
+    const notBeta = await proposeClass('MATERIAL', `AMOX-N${t}`, false);
+    expect((await contentOf('beta_lactam_class', notBeta))).toMatchObject({ beta_lactam: false, beta_lactam_approved_before: false, effect: 'UNCHANGED' });
+
+    // A product and a material of the same code, and a later version of another material, supersede nothing.
+    const product = await w.product();
+    const asMaterial = await proposeClass('MATERIAL', product, true);
+    const asProduct = await proposeClass('PRODUCT', product, true);
+    await proposeClass('PRODUCT', product, false);
+    expect(await scalar<string>('select plant.beta_lactam_class_state($1) as r', [asMaterial])).toBe('PROPOSED');
+    expect(await scalar<string>('select plant.beta_lactam_class_state($1) as r', [asProduct])).toBe('SUPERSEDED');
+    expect(await scalar<string>('select plant.beta_lactam_class_state($1) as r', [notBeta])).toBe('PROPOSED');
+    // The product's classification is signed in the product's scope; the approver needs the permission there.
+    const latestProduct = await scalar<string>("select id as r from plant.beta_lactam_class where subject_kind = 'PRODUCT' and code = $1 order by version desc limit 1", [product]);
+    expect((await provided('beta_lactam_class', latestProduct)).scope).toEqual({ product });
+    const otherProduct = await w.product();
+    const scoped = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Sara Scoped', scope: { product: otherProduct } });
+    expect(await messageOf(approveClass(latestProduct, randomUUID(), scoped))).toMatch(/EBMR-IAM-040/);
+    const own = await proposeClass('PRODUCT', otherProduct, true);
+    expect(await messageOf(approveClass(own, randomUUID(), scoped))).toMatch(/EBMR-ESIG-070/);
+
+    // An unknown proposal, and one already approved, are refused before any signature is looked at.
+    expect(await messageOf(approveClass(randomUUID(), randomUUID()))).toMatch(/EBMR-PLANT-173/);
+    expect(await messageOf(approveClass(freshClass, randomUUID(), qa2))).toMatch(/EBMR-PLANT-174 .* is APPROVED/);
+  });
 });

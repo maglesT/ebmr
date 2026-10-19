@@ -183,6 +183,88 @@ describe('e-signature policy values stay within their limits (esig.set_policy as
   });
 });
 
+describe('the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4)', () => {
+  const setMode = (mode: string) => asQa(`select esig.set_policy('esig.india_dsc', $1, 'India DSC mode for the kill tests', 'CR-MUT-DSC')`, [mode]);
+
+  /** A password signature of `who` with `meaning` on a fresh stub, and the DSC call in the same command. */
+  async function signWithDsc(who: SeededActor, meaning: string, dsc: (statement: string) => Record<string, unknown>): Promise<string> {
+    await ensureSealKey(db);
+    const ch = await challengeFor(db, who, await createStub(db, author), { meaning });
+    const statement = esigStatement(ch.challengeId);
+    const ev = await signatureAuth(db, who, who, ch.challengeId);
+    const st = await statement;
+    return withCommand(db.app, await cmd(db, who), async (c) => {
+      const s = await sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'OPEN' }, testSealKey);
+      await c.query('select esig.record_dsc_signature($1, $2::jsonb)', [s.signatureId, JSON.stringify(dsc(st))]);
+      return s.signatureId;
+    });
+  }
+  const esigStatement = async (challengeId: string): Promise<string> =>
+    (await db.admin.query<{ s: string }>('select esig.dsc_statement($1) as s', [challengeId])).rows[0]!.s;
+  const apDsc = (statement: string, over: Record<string, unknown> = {}): Record<string, unknown> => {
+    const sub = submission(statement, apCert);
+    return { ...sub, ...verifyDsc(statement, sub, ca.root.der, now), ...over };
+  };
+
+  it('[IN-10] a chain of the signer certificate and the anchor alone is enough, for an enrolment and for a signing DSC', async () => {
+    const who = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Short Shalini' });
+    const cert = issueTestSigner(ca, 'Short Shalini (TEST Class 3)', now);
+    expect(await rawEnrol(who, await enrolment(who, cert, ca, { chain: [b64(cert.der), b64(ca.root.der)] }))).toMatch(/^[0-9a-f-]{36}$/);
+    const sig = await signWithDsc(ap, 'MANUFACTURER_RELEASE', (st) => apDsc(st, { chain: [b64(apCert.der), b64(ca.root.der)] }));
+    expect((await db.admin.query('select 1 from esig.dsc_signature where signature_id = $1', [sig])).rowCount).toBe(1);
+  });
+
+  it('[IN-10][DI-38] a chain that is not base64 DER is refused, for an enrolment and for a signing DSC', async () => {
+    const who = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Garbled Gita' });
+    const cert = issueTestSigner(ca, 'Garbled Gita (TEST Class 3)', now);
+    const bad = { chain: ['%%% not base64 %%%', b64(ca.root.der)] };
+    await expectRefused(rawEnrol(who, await enrolment(who, cert, ca, bad)), 'EBMR-ESIG-085', /not base64 DER/);
+    await expectRefused(signWithDsc(ap, 'MANUFACTURER_RELEASE', (st) => apDsc(st, bad)), 'EBMR-ESIG-085', /not base64 DER/);
+    expect((await db.admin.query('select 1 from esig.dsc_enrolment where person_id = $1', [who.personId])).rowCount).toBe(0);
+  });
+
+  it('[IN-10][DI-38] a DSC is not recorded on a signing whose meaning needs none, even from an enrolled signer', async () => {
+    const op = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Enrolled Esha' });
+    const cert = issueTestSigner(ca, 'Enrolled Esha (TEST Class 3)', now);
+    await rawEnrol(op, await enrolment(op, cert));
+    const dsc = (st: string): Record<string, unknown> => {
+      const sub = submission(st, cert);
+      return { ...sub, ...verifyDsc(st, sub, ca.root.der, now) };
+    };
+    await expectRefused(signWithDsc(op, 'PERFORMED', dsc), 'EBMR-ESIG-083', /no DSC is configured for PERFORMED/);
+  });
+
+  it('[IN-10] an enrolment ends only with a reason', async () => {
+    const who = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Reason Rekha' });
+    const id = await rawEnrol(who, await enrolment(who, issueTestSigner(ca, 'Reason Rekha (TEST Class 3)', now)));
+    await expectRefused(withCommand(db.app, await cmd(db, who), (c) => c.query('select esig.end_dsc_enrolment($1, $2)', [id, '   '])), 'EBMR-ESIG-088', /needs a reason/);
+    expect(await ended(id)).toEqual([]);
+  });
+
+  it('[IN-10][DI-38] with the option off nothing is enrolled; with no live anchor nothing is enrolled and no DSC recorded', async () => {
+    const who = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Modal Meera' });
+    const cert = issueTestSigner(ca, 'Modal Meera (TEST Class 3)', now);
+    const payload = await enrolment(who, cert);
+    try {
+      await setMode('OFF');
+      await expectRefused(rawEnrol(who, payload), 'EBMR-ESIG-086', /option is off/);
+    } finally {
+      await setMode('TEST_CA');
+    }
+    // The TEST_CA anchor retired with no successor (a writer that bypassed esig.register_dsc_anchor), then registered again.
+    await withCommand(db.admin, await withChangeRecord(db, await cmd(db, qa)), (c) =>
+      c.query(`insert into esig.dsc_trust_anchor_retirement (anchor_id, reason, retired_by_person, retired_by_account, correlation_id)
+               select (esig.dsc_live_anchor('TEST_CA')).id, 'kill test: no live anchor', $1, $2, gen_random_uuid()`, [qa.personId, qa.accountId]));
+    try {
+      await expectRefused(rawEnrol(who, payload), 'EBMR-ESIG-082', /no live trust anchor/);
+      await expectRefused(signWithDsc(ap, 'MANUFACTURER_RELEASE', (st) => apDsc(st)), 'EBMR-ESIG-082', /no live trust anchor/);
+    } finally {
+      await asQa(`select esig.register_dsc_anchor('TEST_CA', 'eBMR TEST CA', 'CN=eBMR TEST CA (not legally valid)', $1, 'kill test: anchor back')`, [ca.root.der]);
+    }
+    expect((await db.admin.query('select 1 from esig.dsc_enrolment where person_id = $1', [who.personId])).rowCount).toBe(0);
+  });
+});
+
 describe('a replaced anchor is no longer trusted (kernel 1203)', () => {
   it('[IN-10] after a new anchor is registered, a chain to the retired anchor is refused and a chain to the new one enrolled', async () => {
     const next = createTestCa(now, 'eBMR TEST CA 2 (not legally valid)');

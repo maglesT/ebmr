@@ -31,12 +31,11 @@ clauses:
     tests:
       - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-46] export a batch; alter one byte; hash verification fails"
   - clause: "Upgrade the test environment, then retrieve and render the record. Content, audit trail and signatures are intact and the hashes match."
-    deferred:
-      phase: 7
-      reason: "An upgrade of the test environment followed by retrieval is the upgrade and restore drill of Phase 7 (validation pack and hardening, build outline 11)."
+    tests:
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-46] upgrade the test environment, then retrieve and render the record: content, audit trail and signatures intact and the hashes match"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Consistent across markets.
 type_detail: ENFORCED. §17 sets no fixity frequency; the default follows DI-44.

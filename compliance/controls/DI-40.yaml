@@ -50,5 +50,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Only the EU (§8.2) explicitly requires printouts that indicate changed data. The US (11.10(b)) requires copies in both human-readable and electronic form. The union applies.

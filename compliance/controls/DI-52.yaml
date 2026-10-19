@@ -91,6 +91,17 @@ tests:
   - "packages/kernel/test/analytics/exit-review.test.ts > one flag-grouping design (kernel 1280; P6A7-1) > [DI-52] the group of a flag is 6A-4's key for the audit-trail methods and 6A-3's signal for the others"
   - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51][DI-52] the server runs the analytics in a worker thread (slice 7d, P6A7-4): the in-process runner records the same outputs on the same data; a stopped worker refuses"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [DI-52] one analytics flag opens with every disposition it had"
+  - "packages/analytics/test/registry.test.ts > method registry (registry.ts) > [DI-51][DI-52] each method names the inputs it reads"
+  - "packages/analytics/test/registry.test.ts > method registry (registry.ts) > [DI-52] a parameter outside its kind, range, choices or terms is named, each rule on its own"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-51][DI-52] an input is registered only as a report view at its version that reads no volatile function, or a non-volatile report row function; exactly that is granted"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-52] a run's inputs carry every field, the version as a number and the filter as an object or null; its runtime names a package, a commit and a node"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-52][DI-53] an output names its reference and kind; a flag names its subject, rule and severity and needs reasons, each an object with a code and a text"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-52] a run ends once also when two ends race: the second waits for the first, on the run itself, and is refused as already ended"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-52] the writers of one run share it: an open flag writer does not hold back another output or flag of the run"
+  - "packages/kernel/test/analytics/analytics.test.ts > the guards of the runner, the input allow-list and the restricted reads (Phase 7 mutation campaign) > [DI-52] a disposition is refused on a flag of a run that is open or failed; its cause is at least 10 characters; a deviation reference given is not blank"
+  - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-51][DI-52] the inputs read each batch's own record, events, release, unit, room occupancy and consumption, and only GMP batches"
+  - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-52] a critical value is read with its own definition's limits, a single value as one reading, and an engine instant only from its text"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52][DI-32] a step's window is its own use's, bounded by that use's next binding; series and samples touching the window's edges are read inclusive of its start and exclusive of its end; deviations and alarms are the batch's own"
 clauses:
   - clause: "write a method version without an approved change record; refused;"
     tests:
@@ -131,5 +142,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: draft
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 notes: "status U: Annex 22 is a consultation draft and FDA's AI guidance a draft; neither verified against a final text. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

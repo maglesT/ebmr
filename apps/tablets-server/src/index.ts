@@ -10,7 +10,7 @@ import { PACKAGE as ExprPackage } from '@ebmr/expr';
 import { PACKAGE as RecipeCorePackage } from '@ebmr/recipe-core';
 import { PACKAGE as IntegrationSdkPackage } from '@ebmr/integration-sdk';
 
-export const PACKAGE = { name: '@ebmr/tablets-server', version: '0.1.0' } as const;
+export const PACKAGE = { name: '@ebmr/tablets-server', version: '1.0.0-rc.1' } as const;
 
 /** Exact versions of the shared packages this module was built against (ADR 0015). */
 export const BUILT_AGAINST = [KernelPackage, SiteServicesPackage, ExprPackage, RecipeCorePackage, IntegrationSdkPackage] as const;

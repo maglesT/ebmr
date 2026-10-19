@@ -57,6 +57,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as FDA 211.100(b) (deviations recorded and justified) and 211.192 (investigation extended to other batches) [chk]; sample identification **same** as FDA 211.84(c)(5) [chk]; OOS handling **same** as FDA OOS guidance [gk] and EU Chapter 6 [gk]."
 notes: "Source check: P (18.2.2, 19.6.6, 19.6.7 re-read)."

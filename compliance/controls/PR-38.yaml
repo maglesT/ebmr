@@ -46,6 +46,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Equivalent. EU adds that labelling should normally follow filling as quickly as possible.
 type_detail: ENFORCED + DESIGN-CHOICE (maximum unlabelled hold time, with an alert)

@@ -283,6 +283,10 @@ tests:
   - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [DI-35] the delegate is offered neither the decision nor the revocation; the delegator revokes an approved one"
   - "apps/tablets-server/test/market/market-config-routes.test.ts > market policies (decision D-P7R-3) and the batch issue > [INV-47][DI-09][DI-35] QA defines a policy under an approved change record; the GMP batch issue pins it; a tightening reaches the issued batch; a loosening needs another person's signature and never reaches the batch"
   - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [IN-05][DI-35][DI-18] the authorised person delegates the manufacturer release to a deputy; the process owner approves it; the delegator revokes it"
+  - "apps/tablets-server/test/designer/master-records.test.ts > labelling specimens (tablets 1479, DI-35) > [DI-35] the database approves only a recorded specimen, by an approver who neither recorded it nor lacks the signature, and states and provides each specimen on its own"
+  - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > recipe.propose_act as Phase 6A re-creates it (recipe-core 1217; D-P7-1 item 4) > [DI-24][DI-35] an act asked for approval is an object of a known act type, without id, actor or signatures, requested by the asker and at most 16384 characters; a batch that does not exist has none"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-35][DI-14] the issue function itself refuses an ISSUED signature of another person, before the row guard does"
+  - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27][DI-35] what QA signs is the proposal against its own subject's earlier approved value, in the subject's scope; each subject's state and approval are its own"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:
@@ -293,5 +297,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: US signature points are more numerous (second-person rules). EU adds approval of the completed processing and packaging records by the responsible person. The catalogue is the union.

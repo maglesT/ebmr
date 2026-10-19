@@ -143,6 +143,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: US explicitly requires an independent check of the master by a second person, so US is stricter here. EU requires approval, signature and dating by authorised persons, plus a defined effective date; EU is stricter on the effective date. 211.186(a) asks for a "full signature, handwritten". A Part 11-compliant e-signature counts as its equivalent (11.1(c)), provided the firm has filed the 11.100(c) certification with FDA.
 type_detail: "ENFORCED (minimum route) + CONFIGURABLE (extra reviewers). Default: the checker and the QCU approver must be different users. Allowed: the checker may also be the QCU approver."

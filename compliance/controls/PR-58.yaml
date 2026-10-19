@@ -55,6 +55,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "US requires an evaluation at least once a year. The EU PQR scope (Ch.1 1.10, (s)) is broader: significant deviations, CAPA effectiveness and changes."
 type_detail: ENFORCED (structured, queryable, reproducible data) + DESIGN-CHOICE (SPC dashboards, trend rules)

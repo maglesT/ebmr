@@ -119,7 +119,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: The NRL certification is US-only, with no EU equivalent. Identity verification before issuing credentials is explicit only in the US text and is adopted for all markets.
 type_detail: ENFORCED. NRL tracking is a DESIGN-CHOICE, because it is a firm's submission to FDA, not a system function.
 proposed_modify: Refuse to issue US-market batches until the 21 CFR 11.100(c) certification record is on file (catalog only flags it).

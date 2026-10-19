@@ -34,7 +34,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**different**: US products are held to USP-NF [gk], EU products to Ph. Eur. [gk]; the engine keeps the IP limit for Indian compliance and adds the importing market's compendial limit."
 type_detail: ENFORCED (reference field mandatory); CONFIGURABLE (edition effective dates).
 notes: "Source check: P (17.3.2 revision sentence re-read); S for the IP 2026 dates."

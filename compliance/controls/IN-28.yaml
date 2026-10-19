@@ -25,7 +25,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter** than FDA Part 211 (no self-inspection clause) [chk] and EU Chapter 9 (programme-based, no fixed minimum) [gk]."
 type_detail: CONFIGURABLE (audit mode, schedule); ENFORCED (read-only auditor role).
 notes: "Source check: P (10.4 re-read)."

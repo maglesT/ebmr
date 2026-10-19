@@ -174,5 +174,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US requires a checker on every significant step. EU requires one only where appropriate. US is stricter, and the kernel applies it to all markets.

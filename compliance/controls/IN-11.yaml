@@ -54,6 +54,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**different**: no equivalent evidence certificate; closest are 21 CFR 11.10(b) (accurate and complete copies in human-readable and electronic form for inspection) [chk] and EU Annex 11 section 8 (clear printed copies; printouts showing changes for batch-release records) [chk]."
 notes: "Source check: S (certificate form not reviewed; open question G-5)."

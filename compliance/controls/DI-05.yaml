@@ -438,6 +438,8 @@ tests:
   - "apps/tablets-web/test/operations/operations.test.tsx > demo and test data (decision 0025) > [DI-05] a load keeps following its job through answers lost while the database is recreated, and marks the page as following it (the session poll then does not ask, app/maintenance.ts)"
   - "tools/e2e/specs/operations/operations.spec.ts > [DI-05] the demo data is loaded from the operations screen after the database name is typed to confirm; the browser starts again on the demo terminals @office"
   - "tools/e2e/specs/operations/operations.spec.ts > [DI-05] the installation is reset to a clean state from the operations screen; the set-up token is shown once and the browser starts again on the first-run set-up @office"
+  - "apps/tablets-server/test/operations/demo-and-simulators.test.ts > the simulators' test console (decision 0025) > [DI-05][DI-17] on a sandbox the database refuses a demo or simulator act that is not a known act, without its target or its reason, or with a reason over 1000 characters, whoever calls it; nothing is recorded"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [INV-01][DI-05] a planned batch missing its register link, its pin or its control recipe is not begun, and not issued when one goes between the two steps"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:
@@ -451,6 +453,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: US guidance is explicit, and the EU covers it through general risk management. No conflict.
 type_detail: "ENFORCED (segregation). Offering a simulation mode at all is a DESIGN-CHOICE: FDA does not expect one."

@@ -68,6 +68,7 @@ tests:
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-21][INV-13] a product-limited requirement no longer refuses the dispensing consumption on another product's batch"
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-21][INV-13] the dispensing consumption: this product's requirement still applies, and once qualified the dispenser consumes"
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-21][INV-13] the dispensing consumption: a requirement without a product limit still applies"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the GMP batch issue in the order's product scope (6jc-R16) > [IN-04][DI-21] the issue command's check asks for the first of its catalogued permissions the issuer holds, and refuses when the catalogue has no issue command"
 clauses:
   - clause: "Expire a user's SOP training. Execution and verification are both blocked."
     tests:
@@ -81,6 +82,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 11.10(i) explicitly extends training duties to developers and maintainers. EU Ch.4 4.29 explicitly requires signature lists. Both apply.
 type_detail: "ENFORCED (signature register; acknowledgment before first signing is an engine-enforced DESIGN-CHOICE). CONFIGURABLE for training gating: default hard block, which may be relaxed to a flag-and-review mode only by QA-approved configuration. The rules require trained staff; they do not require system gating."

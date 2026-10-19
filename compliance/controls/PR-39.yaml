@@ -61,6 +61,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: The US waiver is narrow (cut or roll labeling plus 211.122(g)(2)). EU 4.21(h) allows quantities to be left out of the record when electronic controls are robust, but 5.61 still requires discrepancies to be explained before release. The kernel applies the stricter combination (D-6).
 type_detail: "ENFORCED (reconciliation, and investigation of discrepancies before release) + CONFIGURABLE (limits; labeling waiver). Default: no waiver."

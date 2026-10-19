@@ -87,5 +87,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: The printed name and meaning are US requirements (11.50). EU 2011 requires only date and time. The draft adds role and time zone. All are adopted.

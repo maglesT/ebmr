@@ -194,6 +194,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: The at-least-100% intent rule and the four label elements are explicit US requirements. EU requires designated dispensers and clean, correctly labelled containers. The kernel applies both. Potency adjustment is one way to meet 211.101(a), not a mandate.
 type_detail: ENFORCED (label content, tolerance, designated dispensers, 100% intent check) + CONFIGURABLE (potency-adjustment method, per master)

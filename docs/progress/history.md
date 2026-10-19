@@ -2929,3 +2929,56 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
 ## 17 October 2026: Phase 7 planned (validation pack and hardening)
 
 - Plan `docs/build-plan/phase-7/phase-7-plan.md` (slices 7-0 to 7f, defaults D-P7-1 to 16), interfaces `slice-7-0-interfaces.md`, decision 0024 (scope and reconciled exit criteria, the lead's default): at v1.0-rc 147 of 155 Tablets-gate controls VERIFIED, 5 drafts IMPLEMENTED, 3 SPECIFIED for their Injectables parts; mutation focused and boxed (6 + 4 pod hours); targets, IQ/OQ/PQ, the expert's decisions and the external penetration test at deployment.
+
+## 19 October 2026: Phase 7 exit (slice 7f), PROGRESS.md condensed
+
+The Phase 7 block of PROGRESS.md as it stood before the exit:
+
+**Phase 7 (validation pack and hardening, to Batchwright Tablets v1.0-rc), planned 17 October** (branch `phase-7/plan`):
+plan `docs/build-plan/phase-7/phase-7-plan.md`, interfaces `slice-7-0-interfaces.md`, decision 0024 (scope and the
+reconciled exit criteria; the lead's default, the owner may change it). Slices 7-0 interfaces, 7a decision 0022 fixes
+(R9, R10, R2, rest of R16, overload drop), 7b-1 hardening and residuals, 7b-2 viewer and periodic evaluation pack, 7c
+validation pack generators and interlocks, 7d load, soak, drills, security and accessibility, 7e branding and guides,
+7f exit with the combined pod run (D-6A-15). All 246 controls PENDING, none VERIFIED; at v1.0-rc 147 of the 155
+Tablets-gate controls reach VERIFIED, the 5 drafts IMPLEMENTED, 3 stay SPECIFIED (Injectables parts); 12 clauses in 11
+controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, recipe-core 1200, tablets 1400.
+
+- **7-0 interfaces (branch `phase-7/slice-7-0`):** kernel 1300 (release identity `platform.schema_release()`,
+  validation-summary approval, approved system description, permissions VALIDATION.APPROVE_SUMMARY,
+  CONFIG.SYSTEM_DESCRIPTION, CONTROLLED.READ) and tablets 1400 (their grants); the evidence bundle v1 schema, types and
+  reader in `packages/validation-kit`; `feedSignatureMessage` and its vectors and `AdapterTls` in the integration SDK;
+  the test-kit helpers `approveValidationSummary` and `approveSystemDescription`; `compliance/validation/` (control
+  class, critical limits, reviews, open findings) checked by `register:validate`; the `[meta]` migration-order check
+  (6jc-R4). As-built notes in section 9 of `slice-7-0-interfaces.md` (D-P7-0-7: 7c wires the helpers into the set-ups).
+
+- **7a decision 0022 fixes (branch `phase-7/slice-7a`, built as four parts):** R9 the gateway signs its OPC UA feed and
+  the database verifies it (kernel 1305-1306, tablets 1405-1406), adapters off loopback need mutual TLS; R10 a
+  loosening plant rule takes effect only with a second QA person's QA_APPROVED, a tightening at once (recipe-core 1210,
+  tablets 1410); R2 controlled reads need CONTROLLED.READ in scope, also in the audit viewer (recipe-core 1214-1215,
+  tablets 1413-1415); R16 the remaining batch acts in the batch's {site, product} scope and the dead 2-argument
+  `check_engine_roles` dropped (recipe-core 1217-1218, 1224, site-services 1103). Review findings P7A-1 to -7 in
+  `docs/build-plan/phase-7/review-backlog.md` (P7A-6 a residual). GB-T-01's due-date time bomb fixed (test only).
+
+**Resumed 18 October 2026** (paused earlier that day for other work). State and next steps in
+[docs/build-plan/phase-7/RESUME.md](docs/build-plan/phase-7/RESUME.md): merged so far 7-0 (#52), 7a (#53), 7b-1 (#54),
+resume notes (#55), 7b-2 (#56), 7c (#57), 7d (#58), 7e (#59), 7g (#60); every other slice is pushed on its branch with its state and what is left. Decision 0025 (every act has a screen, no
+terminal) added slice 7g.
+
+Next: the Phase 7 slices after 7a (7b-1, 7b-2, 7c and 7e in parallel, then 7d, then the 7f exit), built here
+(decision 0023), then the heavy test run on the pod; then Tablets v1.0.
+Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo
+mode, install and reset scripts) on a cloud server the owner provides.
+
+
+### The 7f exit (19 October 2026, on the pod)
+
+Final run 1 (89f7e89d): 7,379 passed, golden 51/51, browser 75/75, trace at 7 ok after the twelve Phase 7 deferrals
+named their tests. Exit review: no critical or high (P7X-1, P7X-2 known issues). Upgrade drill from the 6A exit and
+restore drill PASS; security scans clean; load smoke every SLO met after the load driver approved its DEMO-ONLY
+validation summary (the DI-03 gate had refused its history batches). Mutation campaign: four SQL streams (2,210
+mutants) and six Stryker features, triage T1 to T5 in their own worktrees; no product defect; one harness defect fixed
+(M7-T3b-1, the set-up tests built their own templates); `iam.first_run_setup#11` left for the owner. Final run 2
+(6f4adf9e): 7,471 passed, golden 51/51, browser 75/75, trace:e2e at 7 ok; the run was repeated twice before it, for a
+stale generated handbook page and for the E2E terminal picker meeting the server's identify limit in a full run.
+`compliance/validation/` brought up to date (Phase 1 to 4 exit reviews and the Phase 7 reviews; fixed findings
+removed). register:status: 111 VERIFIED, 13 IMPLEMENTED. Decisions taken in 7f, recorded in RESUME.md: D-P7R-12 to 15.

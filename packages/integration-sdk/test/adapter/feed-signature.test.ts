@@ -3,10 +3,10 @@
  * committed vectors say, and a signature stops verifying when any signed line changes. The vectors are verified, never
  * regenerated here (their generator is feed-signature-vectors.generate.ts beside this file).
  */
-import { createHash, createPublicKey, verify, type KeyObject } from 'node:crypto';
+import { createHash, createPublicKey, generateKeyPairSync, verify, type KeyObject } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import vectorsFile from '../../fixtures/feed-signature-v1.json' with { type: 'json' };
-import { FEED_SIGNATURE_DOMAIN, FeedSignatureError, InboundEnvelope, feedKeyId, feedSignatureMessage, type FeedSignedFields } from '@ebmr/integration-sdk/adapter';
+import { FEED_SIGNATURE_DOMAIN, FeedSignatureError, InboundEnvelope, feedKeyId, feedSignatureMessage, signFeedEnvelope, type FeedSignedFields } from '@ebmr/integration-sdk/adapter';
 
 interface Vector {
   name: string;
@@ -136,5 +136,40 @@ describe('the gateway feed signature v1 (DI-31; slice 7-0 section 2)', () => {
     for (const wrong of [{ ...sig, alg: 'ES256' }, { ...sig, sig: v.signature.slice(0, -2) }, { ...sig, keyId: v.keyId.toUpperCase() }, { ...sig, extra: 1 }, { alg: 'Ed25519', gatewayCode: v.gatewayCode, keyId: v.keyId }]) {
       expect(InboundEnvelope.safeParse({ ...v.envelope, gatewaySignature: wrong }).success, JSON.stringify(wrong)).toBe(false);
     }
+  });
+
+  // Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the refusal names its field and the rule it broke, and the
+  // gateway's own signing gives a v1 signature over exactly the message.
+  it('[DI-31] a refused feed signature field is a FeedSignatureError naming the field and the rule it broke', () => {
+    const v = file.vectors[0] as Vector;
+    const errorOf = (f: () => unknown): FeedSignatureError => {
+      try {
+        f();
+      } catch (e) {
+        if (e instanceof FeedSignatureError) return e;
+        throw e;
+      }
+      throw new Error('not refused');
+    };
+    const seq = errorOf(() => feedSignatureMessage({ ...v.envelope, sequenceNo: '01' }, v.gatewayCode, v.keyId));
+    expect(seq.name).toBe('FeedSignatureError');
+    expect(seq.message).toBe('feed signature: sequenceNo: a sequence number 1, 2, 3, ... as text');
+    expect(errorOf(() => feedSignatureMessage(v.envelope, v.gatewayCode, 'ABC')).message).toBe('feed signature: keyId: SHA-256 as 64 lower-case hex digits');
+    // A JavaScript number is refused as such, not as a text out of its rule.
+    expect(errorOf(() => feedSignatureMessage({ ...v.envelope, sequenceNo: 7 as unknown as string }, v.gatewayCode, v.keyId)).message).toBe(
+      'feed signature: sequenceNo: a sequence number travels as text or bigint, never as a number',
+    );
+  });
+
+  it('[DI-31] the gateway signs a feed envelope as Ed25519 over the v1 message with its key', () => {
+    const v = file.vectors[0] as Vector;
+    const { privateKey, publicKey: pub } = generateKeyPairSync('ed25519');
+    const keyId = feedKeyId(pub.export({ format: 'der', type: 'spki' }));
+    const s = signFeedEnvelope(v.envelope, v.gatewayCode, keyId, privateKey);
+    expect(Object.keys(s).sort()).toEqual(['alg', 'gatewayCode', 'keyId', 'sig']);
+    expect(s).toMatchObject({ alg: 'Ed25519', gatewayCode: v.gatewayCode, keyId });
+    expect(s.sig).toMatch(/^[A-Za-z0-9+/]{86}==$/);
+    expect(verify(null, feedSignatureMessage(v.envelope, v.gatewayCode, keyId), pub, Buffer.from(s.sig, 'base64'))).toBe(true);
+    expect(InboundEnvelope.safeParse({ ...v.envelope, gatewaySignature: s }).success).toBe(true);
   });
 });

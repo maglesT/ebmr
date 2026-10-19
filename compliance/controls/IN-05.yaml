@@ -71,6 +71,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**different** legal role. FDA: quality control unit approves, after reviewing all production and packaging records, per 211.22 and 211.192 [chk]; the Indian AP plus head-of-QC approval maps onto that and must meet 211.192 for US batches. EU: QP certification (Annex 16 [gk]; Annex 11 section 15 requires the system to let only QPs certify, by e-signature [chk]) happens at the EU importing site, not in India; the system supplies the batch package and can store the QP certification reference received back."
 notes: "Source check: P."

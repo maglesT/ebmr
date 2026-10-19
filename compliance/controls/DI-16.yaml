@@ -120,6 +120,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: EU §12.3 explicitly requires recording of access changes. FDA Q4 recommends a documented privilege list. Both apply.
 type_detail: ENFORCED for recording and point-in-time reports. CONFIGURABLE for timings (no regulatory numbers exist).

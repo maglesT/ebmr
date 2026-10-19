@@ -283,6 +283,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: '**different** (cross-cutting mechanism); implements "stricter rule wins".'
 notes: "Source check: P for Indian values marked P elsewhere; U where the underlying control is S/U (IN-08, IN-32, IN-34)."

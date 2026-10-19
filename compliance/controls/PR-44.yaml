@@ -40,6 +40,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US quantities and periods are verified here. EU reference and retention sample rules (Annex 19) were not verified; see F-8.
 type_detail: ENFORCED (US in set) / CONFIGURABLE (EU rules; see F-8)

@@ -42,7 +42,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**different/more prescriptive** than EU Chapter 3/5 health-based exposure limits approach [gk] and FDA 211.42/211.46 [gk]."
 type_detail: ENFORCED (eligibility and inserted steps once the hazard class is set).
 notes: "Source check: P~ (Part III 2.1-2.3 re-read; the rest is interleaved with Part IV text in the uploaded copy)."

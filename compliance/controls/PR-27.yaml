@@ -73,6 +73,7 @@ tests:
   - "tools/e2e/specs/phase7/plant-rules.spec.ts > [PR-27] a penicillin facility rule proposed by the steward is pending until QA approves it, the proposer refused; a beta-lactam classification is in force at once @office"
   - "apps/tablets-web/test/slice7g2/plant-rules.test.tsx > penicillin facility rules and beta-lactam classifications > [PR-27] shows the value in force and the pending proposal with its effect; QA approves the proposal through the ceremony"
   - "apps/tablets-web/test/slice7g2/plant-rules.test.tsx > penicillin facility rules and beta-lactam classifications > [PR-27] the steward proposes a facility rule and a classification as typed"
+  - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27][DI-35] what QA signs is the proposal against its own subject's earlier approved value, in the subject's scope; each subject's state and approval are its own"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:
@@ -87,6 +88,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU requires a documented QRM, including a toxicological evaluation, to set dedication and control measures (5.20), and periodic review of them (5.22). US sets hard penicillin segregation and testing (211.42(d), 211.176). The kernel applies both. Cleaning verification at every changeover is not required (see C-7).
 type_detail: ENFORCED (penicillin segregation; enforcement of whatever dedication and changeover rules are configured) + CONFIGURABLE (the QRM-derived values themselves)

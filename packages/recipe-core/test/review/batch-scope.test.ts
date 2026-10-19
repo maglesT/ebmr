@@ -299,6 +299,30 @@ describe('the GMP batch issue in the order\'s product scope (6jc-R16)', () => {
     await issue(batchId);
     expect(await issuedStatus(batchId)).toBe('ISSUED');
   }, 300_000);
+
+  it('[IN-04][DI-21] the issue command\'s check asks for the first of its catalogued permissions the issuer holds, and refuses when the catalogue has no issue command', async () => {
+    // The catalogue is insert-only and seeds ISSUE with BATCH.ISSUE alone, so this changes it past its triggers as the
+    // superuser, in a transaction that is always rolled back (the probe error), and calls the check directly.
+    const ctx = await cmd(db, w.cast.issuer);
+    const PROBE = 'probe: rolled back';
+    const withCatalogue = (perms: string[] | null) => messageOf(withCommand(db.admin, ctx, async (c) => {
+      await c.query('set local session_replication_role = replica');
+      if (perms) await c.query("update recipe.execution_command_permission set permissions = $1 where command_type = 'ISSUE'", [perms]);
+      else await c.query("delete from recipe.execution_command_permission where command_type = 'ISSUE'");
+      await c.query('set local session_replication_role = origin');
+      await c.query('select recipe.require_issue_permission($1)', [product()]);
+      throw new Error(PROBE);
+    }));
+    // A permission the issuer does not hold listed first: the one they hold is asked for, and passes.
+    expect(await withCatalogue(['TEST.NOT_HELD', 'BATCH.ISSUE'])).toBe(PROBE);
+    // None held: the first is asked for, and refused.
+    expect(await withCatalogue(['TEST.NOT_HELD'])).toMatch(/^EBMR-IAM-040 .*TEST\.NOT_HELD/);
+    // No issue command in the catalogue: refused with its own message.
+    expect(await withCatalogue(null)).toMatch(/\[EBMR-EXE-003\]$/);
+    // The catalogue is unchanged.
+    const { rows } = await db.admin.query<{ p: string[] }>("select permissions as p from recipe.execution_command_permission where command_type = 'ISSUE'");
+    expect(rows).toEqual([{ p: ['BATCH.ISSUE'] }]);
+  }, 300_000);
 });
 
 describe('the disposition proposals and the act proposal in the batch\'s product scope (6jc-R16)', () => {
@@ -371,4 +395,12 @@ describe('the exception-register acts in review in the batch\'s product scope (6
     expect(await codeOf(w.run(operator, (c) => c.query("select recipe.review_exception($1, 'NO-SUCH', 'QUERIED', 'x', null)", [approved.batchId])))).toBe('EBMR-IAM-040');
     expect(await codeOf(w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, 'NO-SUCH', 'QUERIED', 'x', null)", [approved.batchId])))).toBe('EBMR-EXE-164');
   });
+
+  it('[INV-30][DI-26] on a GMP batch a query belongs to the QA review: one asked before the production approval is refused (recipe-core 1217; D-P7-1 item 4)', async () => {
+    const batchId = await issuedBatch();
+    const ex = await raise(batchId, 'Label roll found torn at the line');
+    expect(await messageOf(w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, $2, 'QUERIED', $3, null)", [batchId, ex, 'Why was the roll torn?']))))
+      .toMatch(/^EBMR-REV-065 the record is \S+; on a GMP batch a query and its answer belong to the QA review, after the production approval \(INV-30, DI-26\)$/);
+    expect((await db.admin.query('select 1 from recipe.exception_register_act where batch_id = $1 and exception_id = $2 and act = $3', [batchId, ex, 'QUERIED'])).rowCount).toBe(0);
+  }, 300_000);
 });

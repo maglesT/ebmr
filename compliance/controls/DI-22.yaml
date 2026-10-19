@@ -217,7 +217,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: |-
   - The US makes the audit trail mandatory and covers creation, but 11.10(e) does not require a reason.
   - EU 2011 makes the audit trail risk-based ("consideration should be given"), but it requires a documented reason for any change or deletion and captures confirmations.
