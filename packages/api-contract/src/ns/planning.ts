@@ -15,6 +15,45 @@ import { DecimalString, Instant, PersonRef, Uuid, withAttribution } from '../com
 import { defineRoute } from '../route.ts';
 import { PlannedBatchView } from './execution.ts';
 
+/**
+ * Phase 7 slice 7g (WP4, decision 0025): the site's batch-number allocation register (site services 0600; IN-18): every
+ * number given, registered from outside or recovered after a restore, with its status; a number is never given again,
+ * voided ones included. Registering an external number, voiding one (reason code and text) and recovering one in the
+ * window a completed restore skipped are the issuer's acts (BATCH_NUMBER.*), each checked by the database.
+ */
+export const BatchNumberView = z.strictObject({
+  allocationId: Uuid,
+  batchNumber: z.string(),
+  siteCode: z.string(),
+  edition: z.string(),
+  batchKind: z.enum(['PROCESSING', 'PACKAGING']),
+  parentBatchNumber: z.string().nullable(),
+  productCode: z.string(),
+  productName: z.string(),
+  batchSize: DecimalString,
+  batchSizeUnit: z.string(),
+  /** Site-local calendar date of the allocation (YYYY-MM-DD). */
+  allocationDate: z.string(),
+  source: z.enum(['GENERATED', 'EXTERNAL', 'RECOVERED_AFTER_RESTORE']),
+  ruleCode: z.string().nullable(),
+  serial: z.string().nullable(),
+  externalReference: z.string().nullable(),
+  status: z.enum(['ALLOCATED', 'VOIDED']),
+  voidReasonCode: z.string().nullable(),
+  voidReasonText: z.string().nullable(),
+});
+export type BatchNumberView = z.infer<typeof BatchNumberView>;
+
+const BatchNumber = z.string().regex(/^[A-Z0-9][A-Z0-9/.-]{0,31}$/, '1-32 characters: capitals, digits, / . - (never changed for you)');
+const numberIdentity = {
+  productCode: z.string().trim().min(1).max(40),
+  productName: z.string().trim().min(1).max(200),
+  edition: z.enum(['TABLETS', 'INJECTABLES']),
+  batchSize: DecimalString,
+  batchSizeUnit: z.string().trim().min(1).max(20),
+  parentBatchNumber: BatchNumber.optional(),
+};
+
 /** A processing batch a packaging order may pack: issued, of the product, at the site (recipe-core 0582). */
 export const PackagingParentView = z.strictObject({
   batchId: Uuid,
@@ -169,5 +208,65 @@ export const planning = {
     summary: 'A packaging order\'s bulk: its processing batch, the containers that can or cannot be issued (the database\'s reasons) and the bulk issued',
     params: orderParams,
     response: PackagingBulkView,
+  }),
+  // Phase 7 slice 7g (WP4): the batch-number register and the issuer's acts on it.
+  batchNumbers: defineRoute({
+    id: 'planning.batchNumbers',
+    method: 'GET',
+    path: '/api/planning/batch-numbers',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The batch-number allocation register of the session\'s site: every number given, registered or recovered, with its status (voided numbers stay listed and are never given again)',
+    response: z.strictObject({ numbers: z.array(BatchNumberView) }),
+  }),
+  registerExternalBatchNumber: defineRoute({
+    id: 'planning.registerExternalBatchNumber',
+    method: 'POST',
+    path: '/api/planning/batch-numbers/external',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Register a batch number issued outside the system (BATCH_NUMBER.REGISTER_EXTERNAL); a number already in the register, voided included, is refused',
+    body: withAttribution({
+      batchNumber: BatchNumber,
+      batchKind: z.enum(['PROCESSING', 'PACKAGING']),
+      externalReference: z.string().trim().min(1).max(200),
+      ...numberIdentity,
+    }),
+    response: BatchNumberView,
+  }),
+  voidBatchNumber: defineRoute({
+    id: 'planning.voidBatchNumber',
+    method: 'POST',
+    path: '/api/planning/batch-numbers/:allocationId/void',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Void a batch number of the register with a reason code and the person\'s text (BATCH_NUMBER.VOID); it stays in the register and is never given again',
+    params: z.strictObject({ allocationId: Uuid }),
+    body: withAttribution({ reasonCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,39}$/, 'a reason code: capitals, digits and _'), reasonText: z.string().trim().min(1).max(2000) }),
+    response: BatchNumberView,
+  }),
+  recoverBatchNumber: defineRoute({
+    id: 'planning.recoverBatchNumber',
+    method: 'POST',
+    path: '/api/planning/batch-numbers/recovered',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Re-enter a number issued in the window a completed restore skipped, with the evidence that it was issued (BATCH_NUMBER.RECOVER); its serial must lie in the skipped range',
+    body: withAttribution({
+      restoreEventId: Uuid,
+      ruleCode: z.string().trim().min(1).max(64),
+      serial: z.string().regex(/^[1-9][0-9]{0,17}$/),
+      batchNumber: BatchNumber,
+      evidenceReference: z.string().trim().min(1).max(500),
+      ...numberIdentity,
+    }),
+    response: BatchNumberView,
   }),
 } as const;

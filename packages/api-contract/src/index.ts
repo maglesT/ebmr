@@ -63,6 +63,8 @@ export {
   RunSummaryView,
   RunView,
   PlannedBatchView,
+  PackagingBatchDataView,
+  DetectorChallengeView,
   StageView,
   StepScreenView,
   StepStatus,
@@ -93,7 +95,7 @@ export * from './ns/people.ts';
 export * from './ns/device-registry.ts';
 export * from './ns/access-governance.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
-export { PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
+export { BatchNumberView, PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {
   FormulaChoiceView,
   FormulaLineInput,
@@ -229,7 +231,7 @@ export {
 } from './ns/pqr.ts';
 export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
-export { ProcessReadingView } from './ns/device-readings.ts';
+export { ProcessReadingView, StepBindingsView } from './ns/device-readings.ts';
 export {
   ArchiveBatchSummary,
   ArchiveBatchView,
@@ -313,7 +315,7 @@ export {
   StoreTransactionKind,
 } from './ns/labels.ts';
 export { BatchPoolsView, L3MirrorView, SerialLookupView, SerialStatus } from './ns/serialisation.ts';
-export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
+export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotHandlingView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput, VendorRouteView } from './ns/receipt.ts';
 export {
   CheckpointState,
   CheckpointView,

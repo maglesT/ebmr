@@ -407,6 +407,52 @@ export type PlannedBatchView = z.infer<typeof PlannedBatchView>;
 
 const runIdParams = z.strictObject({ runId: Uuid });
 
+/**
+ * Phase 7 slice 7g (WP4, decision 0025): the batch data of a G-21 packaging step (tablets 0951, 1201): the current version
+ * the database computed (batch number, manufacture date, expiry from the product master; the MRP a person gave where the
+ * market's pack shows it), who gave it and the second person who checked an MRP (IN-31), and the print jobs released on
+ * it with their state (PR-36; a job released on earlier data is void, L-29).
+ */
+export const PackagingBatchDataView = z.strictObject({
+  batchId: Uuid,
+  stepKey: StepKey,
+  current: z
+    .strictObject({
+      version: z.number().int().positive(),
+      fields: z.record(z.string(), z.string()),
+      reason: z.string().nullable(),
+      recordedBy: PersonRef,
+      recordedAt: Instant,
+      checkedBy: PersonRef.nullable(),
+      checkedAt: Instant.nullable(),
+    })
+    .nullable(),
+  jobs: z.array(
+    z.strictObject({
+      jobId: z.string(),
+      device: z.string(),
+      layout: z.string(),
+      dataVersion: z.number().int().positive(),
+      state: z.string(),
+      releasedBy: PersonRef,
+      releasedAt: Instant,
+    }),
+  ),
+});
+export type PackagingBatchDataView = z.infer<typeof PackagingBatchDataView>;
+
+/** The result of a metal-detector or reject-gate challenge (tablets 0872): passed, or the output it held. */
+export const DetectorChallengeView = z.strictObject({
+  challengeId: Uuid,
+  passed: z.boolean(),
+  /** The containers of the press held by a failed challenge (labels), as the database answered. */
+  held: z.array(z.string()),
+});
+export type DetectorChallengeView = z.infer<typeof DetectorChallengeView>;
+
+const packagingStep = { batchId: Uuid, stepKey: StepKey };
+const LayoutRef = z.string().regex(/^[ -~]{1,64}$/, 'a layout reference of printable characters');
+
 export const execution = {
   testPackages: defineRoute({
     id: 'execution.testPackages',
@@ -475,6 +521,12 @@ export const execution = {
       site: z.string().min(1),
       line: z.string().min(1),
       batchSize: z.string().min(1),
+      /**
+       * Phase 7 slice 7g (WP4; PR-47, IN-19): a whole-batch reprocessing batch on a master of record kind REPROCESSING is
+       * planned with the quality unit's authorised request (recipe.prepare_reprocessing_issue); the database refuses one
+       * without it, and a request not authorised.
+       */
+      reprocessingRequest: Uuid.optional(),
     }),
     response: PlannedBatchView,
   }),
@@ -571,5 +623,76 @@ export const execution = {
       viewStepKey: StepKey.optional(),
     }),
     response: CommandResultView,
+  }),
+  // Phase 7 slice 7g (WP4): the packaging step's batch data, its second-person check and the print job; the detector challenge.
+  packagingBatchData: defineRoute({
+    id: 'execution.packagingBatchData',
+    method: 'GET',
+    path: '/api/steps/packaging-batch-data',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The batch data of a packaging step (current version, who gave it, the MRP\'s second-person check) and the print jobs released on it',
+    query: z.strictObject(packagingStep),
+    response: PackagingBatchDataView,
+  }),
+  recordPackagingBatchData: defineRoute({
+    id: 'execution.recordPackagingBatchData',
+    method: 'POST',
+    path: '/api/steps/packaging-batch-data',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record the batch data of a packaging step (STEP.EXECUTE): the database computes batch, dates and expiry; the MRP where the pack shows it; a new version only with the person\'s reason, voiding the jobs released on the earlier data',
+    body: withAttribution({
+      ...packagingStep,
+      mrp: z.string().regex(/^(0|[1-9][0-9]{0,8})(\.[0-9]{1,2})?$/, 'an amount in rupees with at most 2 decimals').optional(),
+      reason: z.string().trim().min(1).max(2000).optional(),
+    }),
+    response: PackagingBatchDataView,
+  }),
+  checkPackagingBatchData: defineRoute({
+    id: 'execution.checkPackagingBatchData',
+    method: 'POST',
+    path: '/api/steps/packaging-batch-data/check',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'A second person checks the current batch data version with its MRP (STEP.VERIFY; never the person who gave it, IN-31)',
+    body: withAttribution({ ...packagingStep, version: z.number().int().positive() }),
+    response: PackagingBatchDataView,
+  }),
+  releasePrintJob: defineRoute({
+    id: 'execution.releasePrintJob',
+    method: 'POST',
+    path: '/api/steps/print-jobs',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Release a print job of a packaging step to a printer of the step (STEP.EXECUTE): only the record\'s batch data, a checked MRP, on the line cleared for the order (PR-36, IN-31)',
+    body: withAttribution({ ...packagingStep, device: z.string().trim().min(1).max(64), layout: LayoutRef }),
+    response: PackagingBatchDataView,
+  }),
+  recordDetectorChallenge: defineRoute({
+    id: 'execution.recordDetectorChallenge',
+    method: 'POST',
+    path: '/api/detector-challenges',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record a metal-detector or reject-gate challenge of a press in use by the batch with certified test pieces of the register (STEP.EXECUTE; a failure holds the press output, IN-36)',
+    body: withAttribution({
+      batchId: Uuid,
+      press: z.string().trim().min(1).max(64),
+      device: z.enum(['METAL_DETECTOR', 'REJECT_GATE']),
+      deviceCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,31}$/, 'the detector\'s code: capitals, digits, _ and -'),
+      timing: z.enum(['START', 'INTERVAL', 'AFTER_STOPPAGE', 'END']),
+      pieces: z.array(z.strictObject({ piece: z.string().trim().min(1).max(64), detected: z.boolean(), rejected: z.boolean() })).min(1).max(20),
+    }),
+    response: DetectorChallengeView,
   }),
 } as const;
