@@ -28,7 +28,7 @@ const RECORD_CODE = [
 
 /** Files that name the product but make no record, each with its reason. */
 const NOT_RECORDS: Readonly<Record<string, string>> = {
-  'apps/tablets-server/src/cli/openapi.ts': 'the API description for integrators (its title), not a record',
+  'apps/tablets-server/src/platform/openapi.ts': 'the API description for integrators (its title), not a record',
 };
 
 const VENDOR = /batchwright|medhanta/i;
