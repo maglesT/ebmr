@@ -85,7 +85,7 @@ function Installations() {
           </p>
         ) : (
           <Banner tone="warning" title="This installation has no identity yet">
-            The system administrator sets the installation code and key first.
+            The system administrator sets the installation code and key first, on <Link to="/operations/installation">this installation&apos;s identity</Link>.
           </Banner>
         )
       ) : null}
@@ -98,12 +98,29 @@ function Installations() {
             {p.state === 'PROPOSED' && qa ? (
               <ActButton label={`Approve the key of ${p.installationCode}`} disabled={act.busy} onPress={() => act.sign({ kind: 'PEER_INSTALLATION_APPROVE', peerId: p.peerId }, `Approve the key of installation ${p.installationCode}`)} />
             ) : null}
+            {p.state === 'APPROVED' && qa ? <RevokePeer peerId={p.peerId} code={p.installationCode} /> : null}
           </li>
         ))}
       </ul>
       <ActResult error={act.error} outcome={act.outcome} />
       {admin ? <ProposePeer /> : null}
     </Section>
+  );
+}
+
+/**
+ * Slice 7g, work package 2: QA revokes a trusted peer with the reason (platform.revoke_peer_installation:
+ * TRANSFER.PEER_APPROVE, never an administrator); nothing sealed with its key is taken in afterwards.
+ */
+function RevokePeer({ peerId, code }: { peerId: string; code: string }) {
+  const revoke = useCommand(routes.transfers.revokePeer, TRANSFER_READS);
+  const [reason, setReason] = useState('');
+  return (
+    <div data-testid={`peer-revoke-${code}`}>
+      <Field name={`peerRevoke-${code}`} label={`Reason to revoke ${code} (at least 10 characters)`} value={reason} onChange={setReason} />
+      <ActButton label={`Revoke ${code}`} primary={false} disabled={reason.trim().length < 10 || revoke.busy} onPress={() => revoke.run({ params: { peerId }, body: { reason: reason.trim() } })} />
+      <ActResult error={revoke.error} done={revoke.done} label="Revoked." />
+    </div>
   );
 }
 

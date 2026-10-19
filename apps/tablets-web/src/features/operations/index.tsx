@@ -9,10 +9,14 @@
 import { createRoute, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
+import { AlarmsPage } from './AlarmsPage.tsx';
 import { ApiReferencePage } from './ApiReferencePage.tsx';
 import { BackupsPage } from './BackupsPage.tsx';
 import { DemoDataPage } from './DemoDataPage.tsx';
+import { DrillsPage } from './DrillsPage.tsx';
+import { InstallationIdentityPage } from './InstallationIdentityPage.tsx';
 import { OperationsPage } from './OperationsPage.tsx';
+import { RestorePage } from './RestorePage.tsx';
 import { SimulatorsPage } from './SimulatorsPage.tsx';
 import { WorkersPage } from './WorkersPanel.tsx';
 
@@ -27,6 +31,11 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/operations/workers', component: WorkersPage }),
     createRoute({ getParentRoute: () => root, path: '/operations/simulators', component: SimulatorsPage }),
     createRoute({ getParentRoute: () => root, path: '/developer/api', component: ApiReferencePage }),
+    // Slice 7g, work package 2: drills and the hardening check, the restore procedure, continuity alarms, the identity.
+    createRoute({ getParentRoute: () => root, path: '/operations/drills', component: DrillsPage }),
+    createRoute({ getParentRoute: () => root, path: '/operations/restore', component: RestorePage }),
+    createRoute({ getParentRoute: () => root, path: '/operations/alarms', component: AlarmsPage }),
+    createRoute({ getParentRoute: () => root, path: '/operations/installation', component: InstallationIdentityPage }),
   ];
 }
 

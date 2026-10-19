@@ -58,8 +58,7 @@ const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
   VALIDATION_SUMMARY_APPROVE: 'the approval of a validation summary',
   EVALUATION_PACK_APPROVE: 'the approval of a periodic evaluation pack',
   RECORDS_ACT: 'the signed acts of the records register',
-  // WP2 (continuity, platform, access configuration)
-  RESTORE_APPROVE: 'the second person\'s approval of a restore',
+  // WP2 (continuity, platform, access configuration): none
   // WP3 (master record, market and plant configuration)
   QP_REGISTER: 'registering an EU qualified person',
   RULE_SET_VERIFY: 'QA\'s verification of a compendial rule set version',

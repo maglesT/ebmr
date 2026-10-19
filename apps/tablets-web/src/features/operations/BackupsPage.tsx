@@ -7,6 +7,7 @@
  * Retention-grade backups go to write-once storage on the backup host's schedule, not from here.
  */
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { routes, type BackupView } from '@ebmr/api-contract';
 import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
@@ -80,7 +81,7 @@ export function BackupsPage() {
       <h1>Backups</h1>
       <p>
         A backup is a copy of the whole database at one moment, encrypted and hashed, kept with a manifest. Every backup job is recorded, a failed one with an alarm; the
-        restore drill (coming with the drills&apos; screens) proves a backup can be restored.
+        restore drill (<Link to="/operations/drills">drills</Link>) proves a backup can be restored.
       </p>
       {view.error ? <RefusalMessage error={view.error.error} /> : null}
       {v && !v.configured ? (

@@ -37,7 +37,13 @@ const SCREENS: Readonly<Record<string, Screen>> = {
   'ebmr#openapi': { screen: `${WEB}/operations/ApiReferencePage.tsx`, calls: ['meta.openapi'], does: 'the OpenAPI document of the contract: the API reference page' },
   'apps/tablets-server/src/cli/openapi.ts': { screen: `${WEB}/operations/ApiReferencePage.tsx`, calls: ['meta.openapi'], does: 'the OpenAPI document: the API reference page' },
   'ops/backup/backup.sh': { screen: `${WEB}/operations/BackupsPage.tsx`, calls: ['operations.runBackup', 'operations.backups', 'operations.backupFile'], does: 'a backup job and its record: the backups page (operational backups; the retention-grade schedule stays the backup host\'s)' },
-  'packages/kernel/src/continuity/drill-cli.ts': { screen: `${WEB}/operations/BackupsPage.tsx`, calls: ['operations.runBackup'], does: 'backup: the backups page', pending: 'drill: the restore drill and its record get their screen in slice 7g-3 (after 7d)' },
+  // Slice 7g, work package 2: the drills and the hardening check (decision D-P7R-4: the upgrade drill runs on a sandbox or staging installation only).
+  'packages/kernel/src/continuity/drill-cli.ts': { screen: `${WEB}/operations/DrillsPage.tsx`, calls: ['operations.runRestoreDrill', 'operations.drills'], does: 'drill: the restore drill and its record on the drills page; backup: the backups page (BackupsPage.tsx, operations.runBackup, as ops/backup/backup.sh)' },
+  'ops/backup/drill.sh': { screen: `${WEB}/operations/DrillsPage.tsx`, calls: ['operations.runRestoreDrill', 'operations.drills'], does: 'the restore drill and its record: the drills page (the server runs the kernel\'s drill as a job; the backup service identity records it)' },
+  'ebmr#drills': { screen: `${WEB}/operations/DrillsPage.tsx`, calls: ['operations.runRestoreDrill', 'operations.runUpgradeDrill', 'operations.drills'], does: 'the restore and upgrade drills and their records: the drills page (the upgrade drill on a sandbox or staging installation only)' },
+  'tools/drills/src/cli.ts': { screen: `${WEB}/operations/DrillsPage.tsx`, calls: ['operations.runRestoreDrill', 'operations.runUpgradeDrill', 'operations.drills'], does: 'restore and upgrade: the drills page; the server runs the upgrade drill with this tool and records it' },
+  'ebmr#security:hardening': { screen: `${WEB}/operations/DrillsPage.tsx`, calls: ['operations.runHardeningCheck', 'operations.drills'], does: 'the hardening check of an installation and its record: the drills page (the server runs the check with its own configuration)' },
+  'tools/security/src/cli.ts': { screen: `${WEB}/operations/DrillsPage.tsx`, calls: ['operations.runHardeningCheck'], does: 'hardening: the drills page; licences, secrets, release and verify are the release\'s supply chain (see the ebmr#security scripts)' },
   'apps/simulators/src/erp/main.ts': { screen: `${WEB}/operations/DemoDataPage.tsx`, calls: ['operations.demoLoad'], does: 'the one-shot ERP catalogue import of the demo seed: part of the demo data load' },
   'apps/simulators/src/wms/main.ts': SIMULATORS('WMS'),
   'apps/simulators/src/qms/main.ts': SIMULATORS('QMS'),
@@ -119,12 +125,7 @@ const LATER: Readonly<Record<string, string>> = {
   'ebmr#validation:generate': 'the validation pack (slice 7c), the documents generated from the evidence bundle: slice 7g-3 (validation and records)',
   'ebmr#validation:oq': 'the validation pack (slice 7c), the OQ record written from the regression, golden and browser suites: slice 7g-3 (validation and records)',
   'tools/validation/src/cli.ts': 'iq (the IQ check of an installation), bundle, generate and oq (the validation pack): slice 7g-3 (validation and records)',
-  // WP2 (continuity, platform, access configuration)
-  'ops/backup/drill.sh': 'the restore drill and its record: slice 7g-3, after 7d',
-  'ebmr#drills': 'the restore and upgrade drills and their records (slice 7d): slice 7g-3 (validation and records)',
-  'tools/drills/src/cli.ts': 'restore and upgrade: the drills and their records, slice 7g-3 (validation and records)',
-  'ebmr#security:hardening': 'the hardening check of an installation and its record (slice 7d), like the IQ check: slice 7g-3 (validation and records)',
-  'tools/security/src/cli.ts': 'hardening (the check of an installation): slice 7g-3; licences, secrets, release and verify are the release\'s supply chain (see the ebmr#security scripts)',
+  // WP2 (continuity, platform, access configuration): none (their screens: SCREENS above)
   // WP3 (master record, market and plant configuration): none
   // WP4 (floor, materials, batch numbers): none
 };

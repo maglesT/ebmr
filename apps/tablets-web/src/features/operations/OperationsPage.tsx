@@ -29,6 +29,19 @@ export function OperationsPage() {
             <Link to="/operations/workers">Background workers</Link>: start, stop or restart the integration adapters and the analytics runner.
           </li>
           <li>
+            <Link to="/operations/drills">Drills and the hardening check</Link>: run a restore drill (and on a sandbox an upgrade drill) and the installation hardening check, and
+            see their records.
+          </li>
+          <li>
+            <Link to="/operations/restore">Restore procedure</Link>: after a restore, a copy or a failover, secure the identifiers, record the restore, have it approved and complete it.
+          </li>
+          <li>
+            <Link to="/operations/alarms">Continuity alarms</Link>: failed backups, drills and checks, broken audit chains; acknowledge each.
+          </li>
+          <li>
+            <Link to="/operations/installation">This installation&apos;s identity</Link>: the first-run set-up&apos;s next step, its code and key.
+          </li>
+          <li>
             <Link to="/developer/api">API reference</Link>: the routes of the API contract, for developers.
           </li>
         </ul>
