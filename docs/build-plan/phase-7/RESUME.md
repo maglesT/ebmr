@@ -41,9 +41,22 @@ merge when green.
 | `phase-7/slice-7g5` (from 7g-1) | WIP 6625ec3 plus 60628136: main merged; the US e-signature certification is now enforced (recipe-core 1260: `gmp_issue_problem` from 1250 plus the check, and a BEFORE INSERT trigger on `recipe.batch_execution`; 3 `[DI-15]` tests; demo set-up records the DEMO-ONLY letter) | run `governance.spec.ts` and `screen-gaps.spec.ts`; the 64 database acts of 7g5-1 need routes and screens (decision 0025); claim the 5 unclaimed WIP files in modules.yaml (administration feature and screens; contract people, device-registry, access-governance); review whether the merge's choice of main's idle warning lost the branch's rule that device-nonce and identify requests are not activity |
 | 7g-3 | not started | after 7b-2, 7c, 7d merge: screens for the system description, validation-summary approval, full export, evaluation pack and its QA sign-off, evidence bundle, validation pack, IQ, restore and upgrade drills |
 
-## Next steps (7f, the Phase 7 exit, on the pod)
+## State (19 October 2026): Phase 7 done, v1.0.0-rc.1
 
-7g merged as #60 (19 October). Work on branch `phase-7/slice-7f` (it carries these notes). The 7g steps below are done.
+7f merged (the Phase 7 exit; checklist `v1.0-rc-checklist.md`, release notes `release-notes.md`, mutation record
+`mutation-results.md`); tag `batchwright-tablets-v1.0.0-rc.1`; the bundle, pack, IQ record, SBOM and signed manifest are
+assets of the GitHub release of the tag. Next: the v1.0 demo on the owner's server (server, SSH, a domain), then v1.0.
+
+Decisions taken in 7f (owner rule: functionality first, least strict option within the hard rules):
+- D-P7R-12: the load driver's site approves a DEMO-ONLY validation summary through QA's real signed act, as the test
+  templates do (the DI-03 gate unchanged).
+- D-P7R-13: the IQ checks and the build-status tool (not Priority 1) were not triaged in the mutation campaign (box);
+  their first-run scores are residuals for the deployment re-run, with the 58 stale equivalent entries.
+- D-P7R-14: final run 2's golden batches ran on 634bf2be, whose code under test equals 6f4adf9e (the difference is the
+  E2E fixture and two compliance/validation YAML files).
+- D-P7R-15: HIGH-5 of the Phase 3 exit review is recorded as closed by ADR-0019 (the guards are in force in the Tablets
+  edition; their move to recipe-core comes before Phase 5).
+- Owner, 19 October: the handbook is left as it is in 7f (only the generated pages are regenerated).
 
 ## 7g steps (done)
 

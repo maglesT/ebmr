@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 17 October 2026 (Phase 6A exit, slice 6A-7).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 19 October 2026 (Phase 7 exit, slice 7f: v1.0.0-rc.1).
 
 ## What this is
 
@@ -89,40 +89,22 @@ built and merged (PRs #43 to #49): the six analytics features, all advisory.
 - **Open:** the 6A exit closes on GitHub CI; its heavy final run is combined with the Phase 7 exit run on the pod
   (D-6A-15).
 
-**Phase 7 (validation pack and hardening, to Batchwright Tablets v1.0-rc), planned 17 October** (branch `phase-7/plan`):
-plan `docs/build-plan/phase-7/phase-7-plan.md`, interfaces `slice-7-0-interfaces.md`, decision 0024 (scope and the
-reconciled exit criteria; the lead's default, the owner may change it). Slices 7-0 interfaces, 7a decision 0022 fixes
-(R9, R10, R2, rest of R16, overload drop), 7b-1 hardening and residuals, 7b-2 viewer and periodic evaluation pack, 7c
-validation pack generators and interlocks, 7d load, soak, drills, security and accessibility, 7e branding and guides,
-7f exit with the combined pod run (D-6A-15). All 246 controls PENDING, none VERIFIED; at v1.0-rc 147 of the 155
-Tablets-gate controls reach VERIFIED, the 5 drafts IMPLEMENTED, 3 stay SPECIFIED (Injectables parts); 12 clauses in 11
-controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, recipe-core 1200, tablets 1400.
+**Phase 7 done (19 October 2026): Batchwright Tablets v1.0.0-rc.1.** PRs #52 to #60 and the 7f exit PR; tag
+`batchwright-tablets-v1.0.0-rc.1` on the 7f merge commit. Details: `docs/build-plan/phase-7/phase-7-plan.md`, the
+checklist `docs/build-plan/phase-7/v1.0-rc-checklist.md`, release notes `docs/build-plan/phase-7/release-notes.md`,
+history (19 October).
+- Final run 2 (pod, 16 vCPU): 7,471 tests passed, 0 failed; golden 51/51; browser suite 75/75; `pnpm trace:e2e` at
+  phase 7 ok (156/246). `phase.yaml` is at 7; no clause is deferred to 7.
+- Exit review: no critical or high (P7X-1 medium, P7X-2 low: known issues). No open critical or high in any backlog.
+- Drills on the pod: upgrade from the 6A exit and migration dry run PASS, restore PASS; security scans clean; IQ 10/11
+  (IQ-09 fails on a demo database by design); load smoke every SLO met. Reference load test and soak: deployment
+  (D-P7R-7).
+- Mutation campaign (`docs/build-plan/phase-7/mutation-results.md`): no product defect; no Priority 1 survivor open
+  except `iam.first_run_setup#11` (one-microsecond expiry boundary, for the owner); a harness defect fixed (M7-T3b-1).
+- Build statuses (register:status): 111 VERIFIED, 13 IMPLEMENTED; the gap to D-P7-1's 147 is listings (release notes).
 
-- **7-0 interfaces (branch `phase-7/slice-7-0`):** kernel 1300 (release identity `platform.schema_release()`,
-  validation-summary approval, approved system description, permissions VALIDATION.APPROVE_SUMMARY,
-  CONFIG.SYSTEM_DESCRIPTION, CONTROLLED.READ) and tablets 1400 (their grants); the evidence bundle v1 schema, types and
-  reader in `packages/validation-kit`; `feedSignatureMessage` and its vectors and `AdapterTls` in the integration SDK;
-  the test-kit helpers `approveValidationSummary` and `approveSystemDescription`; `compliance/validation/` (control
-  class, critical limits, reviews, open findings) checked by `register:validate`; the `[meta]` migration-order check
-  (6jc-R4). As-built notes in section 9 of `slice-7-0-interfaces.md` (D-P7-0-7: 7c wires the helpers into the set-ups).
-
-- **7a decision 0022 fixes (branch `phase-7/slice-7a`, built as four parts):** R9 the gateway signs its OPC UA feed and
-  the database verifies it (kernel 1305-1306, tablets 1405-1406), adapters off loopback need mutual TLS; R10 a
-  loosening plant rule takes effect only with a second QA person's QA_APPROVED, a tightening at once (recipe-core 1210,
-  tablets 1410); R2 controlled reads need CONTROLLED.READ in scope, also in the audit viewer (recipe-core 1214-1215,
-  tablets 1413-1415); R16 the remaining batch acts in the batch's {site, product} scope and the dead 2-argument
-  `check_engine_roles` dropped (recipe-core 1217-1218, 1224, site-services 1103). Review findings P7A-1 to -7 in
-  `docs/build-plan/phase-7/review-backlog.md` (P7A-6 a residual). GB-T-01's due-date time bomb fixed (test only).
-
-**Resumed 18 October 2026** (paused earlier that day for other work). State and next steps in
-[docs/build-plan/phase-7/RESUME.md](docs/build-plan/phase-7/RESUME.md): merged so far 7-0 (#52), 7a (#53), 7b-1 (#54),
-resume notes (#55), 7b-2 (#56), 7c (#57), 7d (#58), 7e (#59), 7g (#60); every other slice is pushed on its branch with its state and what is left. Decision 0025 (every act has a screen, no
-terminal) added slice 7g.
-
-Next: the Phase 7 slices after 7a (7b-1, 7b-2, 7c and 7e in parallel, then 7d, then the 7f exit), built here
-(decision 0023), then the heavy test run on the pod; then Tablets v1.0.
-Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo
-mode, install and reset scripts) on a cloud server the owner provides.
+Next: the v1.0 demo on a server the owner provides (server, SSH, domain; decisions 0021, 0025), then Tablets v1.0.
+Injectables (Phase 5) after that.
 
 ## How to work here
 
