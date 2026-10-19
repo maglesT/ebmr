@@ -71,7 +71,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** in intent as EU 5.49 (no packaging in close proximity without segregation) [chk], EU Chapter 3/5 cross-contamination measures [gk] and FDA 211.42(c), 211.46 [gk]; the tablet cubicle and pressure-cascade specifics are **stricter/more prescriptive** than either text."
 type_detail: ENFORCED (eligibility rules); CONFIGURABLE (room/equipment master data).
 notes: "Source check: P (Part VIII 1.6-1.10 and 3.1-3.2 re-read)."

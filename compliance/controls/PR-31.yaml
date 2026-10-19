@@ -55,6 +55,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US requires independent verification of every yield calculation and ties investigation to the master's min/max limits. EU requires an expected final yield with limits, and investigation of significant yield deviations. US is stricter (D-9).
 type_detail: "ENFORCED + DESIGN-CHOICE. Design choices: the verifier must not be the person who entered the quantities; optional alert limits."

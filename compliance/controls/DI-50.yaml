@@ -128,6 +128,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: FDA is explicit (Q15, Q18). The EU covers it through incident management and CAPA.
 type_detail: ENFORCED for holds, scoping reports and immediate revocation. The tooling scope is a DESIGN-CHOICE.

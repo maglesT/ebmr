@@ -161,5 +161,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: See Section (a). US is stricter on labeling specimens, active content per dosage unit, calculated excess and yield limits. EU is stricter on equipment preparation, pre-start clearance checks, bulk storage requirements and packaging-instruction detail.

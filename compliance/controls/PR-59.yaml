@@ -56,6 +56,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "EU is usually longer because of the 5 years after certification; US is tied to expiry. Stricter wins: the maximum (D-7)."
 type_detail: ENFORCED (retention floors; no deletion before the retention date) + CONFIGURABLE (longer national, product or legal-hold rules)

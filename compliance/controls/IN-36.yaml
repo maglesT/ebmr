@@ -122,6 +122,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter/more prescriptive** than FDA 211.63-211.67 [gk] and EU Chapter 3/5 [gk], which do not name before-and-after checks of sieves, punches and dies or FBD bag rules."
 notes: "Source check: P (1.3-1.4 and 2.1-2.5 re-read)."

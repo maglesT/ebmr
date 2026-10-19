@@ -36,6 +36,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US-only. The EU anti-tampering device for prescription products is a separate obligation (see PR-42).
 type_detail: ENFORCED when the product master flag "US OTC retail" is true; not applicable otherwise

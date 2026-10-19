@@ -130,6 +130,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU requires written approval by a competent person, with QC involved when appropriate. US requires the deviation to be recorded and justified. EU is stricter on approval, and the kernel applies it for all markets.
 type_detail: "ENFORCED + CONFIGURABLE (deviation classes and routing). Default: the operator cannot approve their own deviation (a design choice)."

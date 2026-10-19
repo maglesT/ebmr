@@ -412,7 +412,8 @@ const PR01_PACKAGING_DEFERRED = 'No packaging master keyed by product, pack size
 function pr01Deferred(): ControlRecord {
   const pr01 = control('PR-01');
   const [first, second] = pr01.clauses ?? [];
-  return { ...pr01, tests: pr01.tests.filter((t) => !(second?.tests ?? []).includes(t)), clauses: [first ?? { clause: '' }, { clause: second?.clause ?? '', deferred: { phase: 3, reason: PR01_PACKAGING_DEFERRED } }] };
+  // A copy with a deferred part is SPECIFIED by D-P7-2's rule, whatever the real PR-01 reached (register:status at 7f).
+  return { ...pr01, build_status: 'SPECIFIED', tests: pr01.tests.filter((t) => !(second?.tests ?? []).includes(t)), clauses: [first ?? { clause: '' }, { clause: second?.clause ?? '', deferred: { phase: 3, reason: PR01_PACKAGING_DEFERRED } }] };
 }
 
 describe('catalog-test clauses (review F14)', () => {
@@ -482,7 +483,7 @@ describe('catalog-test clauses (review F14)', () => {
 
   it('[meta] the matrix prints each control\'s build status and each clause with its state, and the scope deferred beyond the catalog test (review F14)', () => {
     const di33 = control('DI-33');
-    const controls = [pr01Deferred(), { ...di33, deferred_scope: [{ scope: 'Reprocessing and recovery, as the behaviour describes them', phase: 3, reason: 'Executed in the Tablets edition, Phase 3.' }] }];
+    const controls = [pr01Deferred(), { ...di33, build_status: 'SPECIFIED' as const, deferred_scope: [{ scope: 'Reprocessing and recovery, as the behaviour describes them', phase: 3, reason: 'Executed in the Tablets edition, Phase 3.' }] }];
     const report = buildTrace(controls, controls.flatMap((c) => c.tests.map((t) => result(t))), 2);
     const file = join(mkdtempSync(join(tmpdir(), 'ebmr-matrix-')), 'm.md');
     writeMatrix(report, 2, file);

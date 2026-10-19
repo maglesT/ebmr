@@ -63,5 +63,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US explicitly extends investigations to other batches and products, including after distribution. EU Ch.1 (s) is explicit about the depth of root-cause analysis and about justifying a human-error conclusion. The kernel applies both.

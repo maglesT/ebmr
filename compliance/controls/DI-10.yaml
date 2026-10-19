@@ -102,6 +102,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: No conflict.
 type_detail: DESIGN-CHOICE, engine-enforced. No rule names this mechanism, but without it 211.188(a), 11.10(e) and Ch.4 4.20 could not be shown to hold after master data changes.

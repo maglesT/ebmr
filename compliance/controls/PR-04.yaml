@@ -98,6 +98,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: EU text links production directly to the MA (Ch.5 Principle, 4.2). US reaches the application through 211.100(a) and FD&C Act filing rules (s). For a multi-market batch, the stricter rule is that both registrations must be satisfied at once, i.e. the process must run inside the intersection of the registered ranges.
 type_detail: "CONFIGURABLE. Default: hard block when a registered-flagged limit is wider than the registered value, or when a registered element changes without a recorded regulatory action for that market. Allowed: warning only, for elements not flagged as registered or Established Condition."

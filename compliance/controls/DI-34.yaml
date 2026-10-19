@@ -409,6 +409,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Only the US has an explicit sequencing-check rule, and it is adopted for all markets.
 type_detail: ENFORCED wherever the MBR declares sequence (the rule applies sequencing "as appropriate").

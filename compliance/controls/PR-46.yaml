@@ -70,5 +70,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US accepts a quarantine system that prevents use. EU requires separate storage in restricted areas. EU is stricter, so the kernel requires both the electronic status and a physical restricted location (D-10).

@@ -53,6 +53,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU only; there is no US counterpart. Only the certification step must be an e-signature (Annex 11 section 15).
 type_detail: ENFORCED (EU in set)

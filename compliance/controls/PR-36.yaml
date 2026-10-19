@@ -72,6 +72,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US mandates one control from a closed list whenever cut labels are used, and requires monitoring of printing devices. EU requires every printing operation to be checked and recorded, prefers roll-fed labels, and asks for special care with cut labels. US is stricter on cut labels. The kernel applies the union.
 type_detail: "ENFORCED (variable data from the record; print checks; one of the 211.122(g) options whenever cut labeling is used) + CONFIGURABLE (print-check method). Default: 100% vision inspection. Allowed: start-up plus periodic checks with specimens."

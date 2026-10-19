@@ -55,6 +55,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: 211.68(a) applies a routine calibration/inspection/check program to computers as well as other equipment. Annex 11 §11 requires periodic evaluation of validated state. Both apply.
 type_detail: "CONFIGURABLE for review frequency. No rule sets a number. DESIGN-CHOICE default: 12 months; shorter allowed; longer only with a QA-approved risk rationale. Pack content is ENFORCED."

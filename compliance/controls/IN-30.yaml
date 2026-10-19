@@ -86,7 +86,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**different**: the loan licence is an Indian legal construct (Drugs Rules Forms 25-A/28-A, S); EU Chapter 7 outsourced activities [gk] and FDA contract-manufacturing expectations [gk] cover the contract part."
 type_detail: CONFIGURABLE (party model); ENFORCED (read-only sharing).
 notes: "Source check: P."

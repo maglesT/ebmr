@@ -160,6 +160,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: "US: prior information must not be obscured. EU: alteration signed and dated, original readable, reason (Annex 11 §9: for all GMP-relevant changes and deletions). The EU is stricter on the reason and the signature."
 type_detail: "ENFORCED (original preserved, reason, no deletion within retention). DESIGN-CHOICE, engine-enforced: a correction needs re-authentication because EU Ch.4 4.9 asks for alterations to be signed and dated, and an e-signature ceremony is the conservative reading. Physical-deletion ban during retention: 11.10(e) tolerates audited deletion; the ban is stricter."

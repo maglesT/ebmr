@@ -56,6 +56,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "EU requires approval of the records by the person responsible for production (4.20(i), 4.21(i)); US has no explicit equivalent. US requires QCU review and approval of all production and control records, packaging and labeling included, before release. The 4.20 Note permits shorter reports but does not remove that US duty. Stricter combination: production approval, then QCU approval of the complete record."
 type_detail: "ENFORCED (full record available; every exception dispositioned; QCU approval of the complete record) + CONFIGURABLE (production-responsible approval: default ON, mandatory when EU is in the set; review-by-exception scope)"

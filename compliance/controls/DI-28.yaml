@@ -178,7 +178,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: |-
   - The final FDA Q&A says no storage method may allow data to be manipulated before a permanent record exists.
   - The "temporary memory" and "warning before save" wording comes from the EMA Q&A, not from the FDA final text.

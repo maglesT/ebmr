@@ -420,6 +420,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: US second-person rules (211.101, 211.103, 211.186(a), 211.188(b)(11)) require the checker to be someone other than the performer. EU Ch.4 asks for a checker "where appropriate". The stricter US rule applies.
 type_detail: "ENFORCED for the checks, performer-not-verifier and author-not-checker. The executor-not-reviewer/disposer rule is a DESIGN-CHOICE, engine-enforced: it is good practice supporting QU independence and the draft's independent-reviewer expectation, not explicit rule text."

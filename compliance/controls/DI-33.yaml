@@ -298,6 +298,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US text is explicit about verifying yield. The EU reaches the same result through validation. Applying Q14 to production calculations is by analogy with laboratory reprocessing.
 type_detail: ENFORCED. The sandboxed expression language is an engine-enforced DESIGN-CHOICE.

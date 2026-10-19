@@ -75,6 +75,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: The two are separate obligations, one per market. A batch going to both markets needs separate market-specific packaging orders, each with its own identifier scheme.
 type_detail: CONFIGURABLE per market (ON automatically when a market requires it)

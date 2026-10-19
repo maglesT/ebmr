@@ -171,6 +171,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 'The EU is usually stricter for EU-certified batches because of the "5 years after certification" limb. Example: a 24-month shelf life certified 2 months after manufacture gives US = manufacture + 36 months, EU = manufacture + 62 months, so the EU period wins. The US is the only source of the component-record and OTC rules. The kernel takes the maximum.'
 type_detail: ENFORCED (floors). CONFIGURABLE for longer periods.

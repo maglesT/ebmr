@@ -159,6 +159,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: FDA recommends. The 2011 EU text is silent. The EU draft is explicit, so the kernel follows the draft.
 type_detail: ENFORCED (designed to the stricter draft; FDA text says "should").

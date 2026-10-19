@@ -50,6 +50,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US is explicit on separate storage by product, strength, form and quantity, and on the gang-printing prohibition. EU is explicit on closed containers for cut labels and on recording destruction. The kernel applies both.
 type_detail: ENFORCED at the eBMR boundary (usable only when complete) + DESIGN-CHOICE (if the suite performs receipt itself)

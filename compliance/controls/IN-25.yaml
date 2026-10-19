@@ -83,7 +83,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as FDA 211.67, 211.68(a) and 211.182 [chk/gk] and EU Chapter 3 and Chapter 4 logbook clauses [gk]. The explicit clean-hold time is **same** in intent as FDA 211.67(b) [gk] and EU Annex 15 cleaning validation [gk]."
 type_detail: ENFORCED; CONFIGURABLE (hold-time values from validation data).
 notes: "Source check: P~ (17.3.10.5 re-read; others from register)."

@@ -106,6 +106,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: FDA is explicit, through Q2 and Q13. The EU reaches the same result through its raw-data definition. No conflict. Applying Q12/Q13 to production IPCs is by analogy with the laboratory examples.
 type_detail: ENFORCED. CONFIGURABLE for flag thresholds, stricter only.

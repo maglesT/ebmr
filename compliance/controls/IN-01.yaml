@@ -60,7 +60,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "PQR: **same** as FDA 211.180(e) (evaluation at least annually) [chk] and EU Chapter 1 section 1.10 (annual review) [gk]. Management review: **stricter** on frequency (yearly minimum) than FDA Part 211 (no such clause) [chk] and EU Chapter 1 (periodic, no fixed minimum) [gk]. CAPA: **same** as EU Chapter 1 [gk] and FDA 211.192 investigations [chk]."
 type_detail: ENFORCED (structured capture and links); CONFIGURABLE (review periods, product grouping with recorded justification).
 notes: "Source check: P."

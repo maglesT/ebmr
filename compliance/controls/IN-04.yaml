@@ -67,7 +67,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: training and quality-unit independence **same** as FDA 211.22 and 211.25 [chk] and EU Chapter 2 [gk]. The approved-technical-staff register is **different** (Indian licensing construct; the EU uses the QP under Annex 16 [gk]; FDA has no named-person approval).
 type_detail: ENFORCED (segregation, training gate); CONFIGURABLE (approved-staff register mandatory for India-licensed sites, on by default).
 notes: "Source check: P for Schedule M (independence of heads and designated reviewer re-read); S for Drugs Rules 71/76."

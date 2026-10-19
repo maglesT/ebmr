@@ -82,6 +82,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 11.10(i) explicitly extends training duties to developers and maintainers. EU Ch.4 4.29 explicitly requires signature lists. Both apply.
 type_detail: "ENFORCED (signature register; acknowledgment before first signing is an engine-enforced DESIGN-CHOICE). CONFIGURABLE for training gating: default hard block, which may be relaxed to a flag-and-review mode only by QA-approved configuration. The rules require trained staff; they do not require system gating."

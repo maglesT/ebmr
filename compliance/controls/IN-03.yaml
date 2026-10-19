@@ -28,6 +28,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter** (more explicit) than FDA 211.100(a), which requires changes to procedures to be reviewed and approved by the relevant units and the quality control unit but names no first-batch evaluation [chk]; **same** intent as EU Chapter 1 / ICH Q10 post-implementation evaluation [gk]."
 notes: "Source check: P (8.6 first-batch evaluation and 8.7 expiry evaluation re-read)."

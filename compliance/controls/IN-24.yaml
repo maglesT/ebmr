@@ -83,7 +83,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: the vendor-history route is **weaker** than FDA 211.84(d)(1)-(2) (at least one identity test on each component; supplier report of analysis accepted only with an identity test and periodic validation of supplier results) [chk] and EU 5.35 (identity testing of each batch per Annex 8) [chk]. Status, labels and packaging-material rules **same** as EU 5.31-5.32, 5.45-5.48 [chk].
 type_detail: ENFORCED; CONFIGURABLE (vendor-history release route, India-only).
 notes: "Source check: P (14.15 and 19.7.1 re-read)."

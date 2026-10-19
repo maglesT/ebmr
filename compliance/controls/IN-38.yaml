@@ -63,7 +63,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter** than FDA 211.130(e) and 211.188(b)(6) (inspection of the area before and after use documented; no explicit independent-check requirement for the clearance) [chk] and EU 5.50 (line clearance by checklist) [chk]; periodic pocket leak testing is not named in either [chk]."
 type_detail: ENFORCED; CONFIGURABLE (leak-test frequency and sample size).
 notes: "Source check: P (7.1-7.4 re-read)."

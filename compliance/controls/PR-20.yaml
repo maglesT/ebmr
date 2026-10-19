@@ -162,6 +162,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US requires a second person unless the operation is automated, and then still one person. EU requires an independent, recorded check but does not require a second person. US is stricter because it always requires a human verification (D-3).
 type_detail: "ENFORCED (manual mode) + CONFIGURABLE (automated mode). Default in automated mode: one human verifier who is not the user who started the dispense. Allowed: the same user, but only when the dispense ran on a validated automated device under 211.68 (see F-1). No mode allows zero human verification."

@@ -40,6 +40,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU expects the QP to have concurrent-validation results before certifying (Annex 15, (u)). For US this is at guidance level. EU is stricter.
 type_detail: "CONFIGURABLE. Default: a batch made under a PPQ or concurrent-validation protocol is flagged, and cannot be certified or released until its validation outcome is recorded. Allowed: US-only batches may be released per an approved protocol that permits concurrent release. For EU certification there is no exception (Annex 15 (u))."

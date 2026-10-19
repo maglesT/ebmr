@@ -110,6 +110,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU 5.34 allows only QC-released material within its retest period. US 211.87 requires retesting "as necessary". EU is stricter, so the date-based block applies to all markets (D-2).
 type_detail: "ENFORCED (status, identity and retest/expiry block) + CONFIGURABLE (rotation rule). Default: oldest approved first. Allowed: first-expiry-first-out with a documented SOP rationale."

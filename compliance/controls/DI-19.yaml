@@ -221,6 +221,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 11.300(d) requires immediate and urgent reporting of attempted misuse, which is stricter than the 2011 EU text. The EU draft adds lockout. Both apply.
 type_detail: ENFORCED (mechanisms). CONFIGURABLE (numeric values). Neither Part 11 nor Annex 11 (2011) sets any number for password length, aging, lockout count or alert time.

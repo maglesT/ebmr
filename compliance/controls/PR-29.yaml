@@ -299,6 +299,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: US is more prescriptive. It lists IPC categories that apply "where appropriate" (211.110(a)(1)-(6)) and wants in-process specifications derived from process averages and variability. EU requires IPC instructions with limits, and IPCs that are carried out and recorded.
 type_detail: ENFORCED (plan execution, sample identity, result recording) + CONFIGURABLE (frequency and sample size per master, each citing a QRM reference)

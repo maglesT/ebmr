@@ -109,7 +109,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: new number for rework is **stricter** than FDA 211.115 [chk] and EU 5.67 [chk] (neither requires it). Unique, history-traceable lot numbers **same** as FDA 211.130(c) [chk].
 type_detail: ENFORCED (uniqueness); CONFIGURABLE (number format, bulk-to-pack linkage rule).
 notes: "Source check: P (14.32 re-read); P~ for 17.3.10 sub-numbers."

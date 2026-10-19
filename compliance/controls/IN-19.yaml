@@ -76,7 +76,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as EU 5.67-5.69 [chk] and FDA 211.115 (written procedures; quality control unit approval) [chk], except the new-number rule (IN-18), which is stricter."
 type_detail: ENFORCED; DESIGN-CHOICE for the default expiry proposal.
 notes: "Source check: P."

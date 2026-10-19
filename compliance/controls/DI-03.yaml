@@ -69,6 +69,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "Annex 11 is more prescriptive on documentation: supplier assessment, COTS documentation review, bespoke metrics, test-tool assessment. 11.10(a) adds the explicit duty to be able to detect altered records. Both apply."
 type_detail: ENFORCED (release-approval gate per tenant; integrity job). Package content is a vendor DESIGN-CHOICE within the listed minimum.

@@ -101,5 +101,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: draft
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 notes: "status U: drafted from decision 0016 item 8, not from a regulation that names anomaly detection; local labour and data-protection duties (for example India's DPDP Act 2023) not verified. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

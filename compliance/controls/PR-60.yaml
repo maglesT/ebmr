@@ -36,5 +36,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: EU drafts only. Neither region's current texts reviewed here contain these rules.

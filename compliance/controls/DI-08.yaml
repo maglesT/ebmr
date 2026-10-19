@@ -91,6 +91,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Annex 11 §3.1 requires agreements even with internal IT departments, which is broader in scope. 11.30 adds a separate control set when access is not controlled by the record owners. Both apply.
 type_detail: "ENFORCED for the product capabilities: customer-controlled access, the vendor-access grant workflow and log, and full export. The agreements are organisational and are tracked in a go-live checklist."

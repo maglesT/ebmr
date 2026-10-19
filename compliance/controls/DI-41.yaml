@@ -85,6 +85,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: FDA says "true copy". "Certified" or "verified copy" is EU/PIC/S terminology. The requirements match, and the EU draft adds documented verification.
 type_detail: "ENFORCED (preservation of content, meaning and metadata). DESIGN-CHOICE, engine-enforced: the verifier signature is not described in the FDA Q&A; it follows the EU draft's documented-verification expectation, which does not conflict."

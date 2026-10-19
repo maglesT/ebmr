@@ -34,6 +34,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as FDA 211.100(b) (documented at the time of performance) and 211.188(b) [chk], and EU Chapter 4 section 4.8 [chk]."
 notes: "Source check: P~."

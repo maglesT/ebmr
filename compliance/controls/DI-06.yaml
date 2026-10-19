@@ -47,6 +47,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Only the EU texts explicitly require an inventory and a system description for critical systems. That requirement is adopted for all markets.
 type_detail: "ENFORCED (inventory export and drift alarm). DESIGN-CHOICE (generated traceability matrix): this makes the draft's mandatory traceability matrix cheap to keep current, and it is enforced."

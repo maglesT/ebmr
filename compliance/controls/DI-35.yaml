@@ -297,5 +297,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: US signature points are more numerous (second-person rules). EU adds approval of the completed processing and packaging records by the responsible person. The catalogue is the union.

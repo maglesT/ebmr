@@ -59,7 +59,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**weaker/less specific** than 21 CFR 11.50 (manifestation), 11.70 (signature/record linking), 11.100, 11.200 (two distinct identification components), 11.300 (identification code/password controls) [chk] and EU Annex 11 section 14 (same effect as handwritten within the company, permanently linked, time and date) [chk]. The baseline in (a) meets all three regimes."
 type_detail: ENFORCED (baseline); CONFIGURABLE (PKI/eSign option per signature meaning).
 notes: "Source check: P for Schedule M (17.3.9 wording and Part XII sentence re-read; Part XII sentence number 6.1.9 inferred); S for IT Act."

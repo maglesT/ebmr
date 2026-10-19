@@ -257,6 +257,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: FDA Q10 is the only text that explicitly says a simple device's printout can be the original and that a printout of dynamic data is not enough. It is adopted for all markets.
 type_detail: "ENFORCED (an original is defined per data source; dynamic data kept native). CONFIGURABLE for direct capture per step: default ON wherever a validated device interface exists."

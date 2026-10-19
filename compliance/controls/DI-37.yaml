@@ -375,6 +375,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 11.70 targets falsification by ordinary means. Annex 11 §14 asks for permanent linkage. Automatic supersession after a change goes further than both and matches the draft.
 type_detail: "ENFORCED (linking). DESIGN-CHOICE, engine-enforced: invalidation on change goes beyond the 11.70 \"ordinary means\" standard and follows the draft's hybrid-signature expectation."

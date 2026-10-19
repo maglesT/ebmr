@@ -135,6 +135,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "The EMA Q&A explicitly accepts review by exception when it is scientifically justified and validated. The FDA DI Q&A does not mention RBE: it requires the QU to review all records, audit trails included, and asks that review reliability be proven. So RBE is used only as a validated way of doing the full QU review, never as a reduction of what the QU approves."
 type_detail: "ENFORCED for the mandatory type set, validation, drill-down and change control. CONFIGURABLE for whether an MBR uses RBE: default full review until the confidence criterion is met. The QU still approves the complete record (DI-39)."

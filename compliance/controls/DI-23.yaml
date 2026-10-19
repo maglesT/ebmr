@@ -134,6 +134,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: Neither the 2011 EU text nor the FDA Q&A explicitly forbids deactivation. 11.10(e) requires a secure trail, and the draft forbids deactivation outright, so the kernel follows the draft.
 type_detail: ENFORCED. The hash chain is the DESIGN-CHOICE used to meet "secure" and "ability to discern altered records".

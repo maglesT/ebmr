@@ -48,6 +48,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: FDA Q1b says outright that audit trails are metadata. The 2011 EU texts only imply it, and the EU draft states it. No conflict.
 type_detail: "ENFORCED (metadata binding). DESIGN-CHOICE (explicit lifecycle-state model and canonical storage): this makes the draft Ch.4 lifecycle expectations demonstrable, and the engine enforces it."

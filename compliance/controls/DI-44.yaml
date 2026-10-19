@@ -51,6 +51,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU §7.1 explicitly requires stored data to be checked for accessibility, readability and accuracy. It is adopted for all markets.
 type_detail: "ENFORCED (the checks exist and alarm). CONFIGURABLE for frequency: DESIGN-CHOICE default is quarterly for readability sampling and weekly for integrity jobs. Neither rule sets a frequency."

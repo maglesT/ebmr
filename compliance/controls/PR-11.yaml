@@ -42,6 +42,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Equivalent.
 type_detail: "ENFORCED (server-side time; no backdating) + CONFIGURABLE (what counts as late). Default: any entry made after the step's planned window has closed is flagged."

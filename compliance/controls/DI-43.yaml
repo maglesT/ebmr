@@ -78,6 +78,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Both markets allow controlled paper. The EU draft pushes firms to avoid hybrid signing wherever possible, and the kernel follows it.
 type_detail: 'ENFORCED for issuance, reconciliation and back-entry. CONFIGURABLE for drill frequency and fallback time: DESIGN-CHOICE default is an annual downtime drill per site. §16 requires the arrangements to be documented and tested, not "validated".'

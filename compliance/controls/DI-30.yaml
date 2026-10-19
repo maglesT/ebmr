@@ -502,6 +502,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU §6 lets a validated electronic check replace the second operator for manual data. The US second-person rules for dispensing, charge-in and yield drop to one person only when the operation itself is performed by automated equipment. For US-market products, device capture on its own does not remove the second-person check at dispensing and charge-in unless QA documents that the operation qualifies under 211.68(c) (see open questions).
 type_detail: ENFORCED (floor). CONFIGURABLE for the check method per field (second person vs validated electronic check), within the floors.

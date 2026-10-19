@@ -215,6 +215,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: "211.188(b)(1) asks only for dates in the batch record. EU 4.20(b)/4.21(b) require dates and times, so the stricter EU rule applies. Time-zone display comes from the draft. The DI Q&A says nothing about clocks: NTP, UTC and the drift threshold are design choices."
 type_detail: "ENFORCED for server time and UTC storage. CONFIGURABLE for the drift threshold: DESIGN-CHOICE default 1 s, allowed 0.1-5 s. No rule sets a clock tolerance."

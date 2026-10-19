@@ -136,7 +136,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**stricter** than FDA 211.110(a) (lists weight variation and disintegration as IPCs, no frequency) [chk] and EU 5.43 (necessary IPCs carried out and recorded, no frequency) [chk]."
 type_detail: ENFORCED (30-minute ceiling for India-made batches); CONFIGURABLE (shorter intervals; frequency of the periodic parameters).
 notes: "Source check: P (3.3-3.8 re-read; see correction 5 on what the 30-minute rule covers)."

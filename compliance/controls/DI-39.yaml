@@ -71,6 +71,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "US: QU approval before release or distribution. EU: QP certification (Annex 16), which is recorded by QP-only e-signature only if the system is used for it. 2011 §15 stays binding until a final revision replaces it."
 type_detail: ENFORCED. The QP-certification feature is CONFIGURABLE ON/OFF per tenant; when ON its rules are ENFORCED. An Indian exporter's own system usually records QU disposition only.

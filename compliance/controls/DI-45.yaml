@@ -133,6 +133,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: For the US, the backup must last the full retention period. EU §7.2 requires the integrity and restorability of backups to be checked during validation and monitored periodically. The draft adds separation. All are adopted.
 type_detail: "ENFORCED (both tiers, separation, alarms, periodic restore testing). CONFIGURABLE for frequencies: DESIGN-CHOICE default is a quarterly restore test."

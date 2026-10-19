@@ -88,6 +88,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU requires a documented QRM, including a toxicological evaluation, to set dedication and control measures (5.20), and periodic review of them (5.22). US sets hard penicillin segregation and testing (211.42(d), 211.176). The kernel applies both. Cleaning verification at every changeover is not required (see C-7).
 type_detail: ENFORCED (penicillin segregation; enforcement of whatever dedication and changeover rules are configured) + CONFIGURABLE (the QRM-derived values themselves)

@@ -90,6 +90,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US explicitly requires time limits where appropriate, and departures must be justified and documented. EU requires appropriate holding conditions and bulk storage requirements. US is stricter, and the kernel applies it to all markets.
 type_detail: "CONFIGURABLE. The master defines timers where appropriate, each with a validation or registration reference. Default on breach: a deviation is created and release is blocked until it is dispositioned. Timers are never evaluated from client clocks."

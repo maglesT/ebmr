@@ -42,6 +42,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Neither 211.192 nor Annex 16 1.7 literally requires every investigation to be closed before release. Annex 16 (s) requires it to be complete to a level sufficient to support certification. The guardrail's unconditional block is stricter than both texts (D-8).
 type_detail: "CONFIGURABLE. Default: release or certification is blocked while any linked deviation or investigation is open. Allowed: release with an investigation still open, only when the QCU (US) or QP (EU) records an e-signed justification that the investigation is advanced enough to support the decision. The justification appears on the release record and the certificate data. Not allowed: this exception for reconciliation discrepancies (5.61 requires them explained before release) or for any registered-specification failure."

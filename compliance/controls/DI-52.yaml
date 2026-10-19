@@ -142,5 +142,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: draft
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 notes: "status U: Annex 22 is a consultation draft and FDA's AI guidance a draft; neither verified against a final text. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

@@ -471,6 +471,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Consistent across markets. Annex 11 §5 adds "secure", which leads to the transport security.
 type_detail: "ENFORCED (no silent loss or defaulting; provenance; alarms). CONFIGURABLE for check depth per interface risk. Idempotency keys and checksums on every interface are a DESIGN-CHOICE: 211.68(b) scales checking to complexity and reliability."

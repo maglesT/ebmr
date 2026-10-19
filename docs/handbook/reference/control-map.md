@@ -6,11 +6,11 @@ Each control of the register ([compliance/controls/](../../../compliance/control
 and the test files that prove it, as the register records them. The tests carry the control ID in their names, for
 example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose files the control names.
 
-246 controls: 25 IMPLEMENTED, 221 SPECIFIED.
+246 controls: 13 IMPLEMENTED, 122 SPECIFIED, 111 VERIFIED.
 
 ## DI-01
 
-**Record-type, official-record and raw-data register.** [DI-01.yaml](../../../compliance/controls/DI-01.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Record-type, official-record and raw-data register.** [DI-01.yaml](../../../compliance/controls/DI-01.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-records](../code-map.md#kernel-records), [kernel-authorization](../code-map.md#kernel-authorization)
 - Code: [packages/kernel/src/records/register.ts](../../../packages/kernel/src/records/register.ts)
@@ -23,14 +23,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-02
 
-**Metadata bound to every value across the data lifecycle.** [DI-02.yaml](../../../compliance/controls/DI-02.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Metadata bound to every value across the data lifecycle.** [DI-02.yaml](../../../compliance/controls/DI-02.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [tools-drills](../code-map.md#tools-drills)
 - Tests: [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts), [tools/drills/test/drills.test.ts](../../../tools/drills/test/drills.test.ts)
 
 ## DI-03
 
-**Computerised-system validation (application, infrastructure, life cycle).** [DI-03.yaml](../../../compliance/controls/DI-03.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Computerised-system validation (application, infrastructure, life cycle).** [DI-03.yaml](../../../compliance/controls/DI-03.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-config](../code-map.md#kernel-config), [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-execution](../code-map.md#ts-execution), [ts-validation](../code-map.md#ts-validation), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit), [validation-kit](../code-map.md#validation-kit), [tools-validation](../code-map.md#tools-validation)
 - Tests: [apps/tablets-server/test/execution/store.test.ts](../../../apps/tablets-server/test/execution/store.test.ts), [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [apps/tablets-server/test/validation/validation-routes.test.ts](../../../apps/tablets-server/test/validation/validation-routes.test.ts), [apps/tablets-web/test/validation/validation.test.tsx](../../../apps/tablets-web/test/validation/validation.test.tsx), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/config/release-identity.test.ts](../../../packages/kernel/test/config/release-identity.test.ts), [packages/recipe-core/test/lifecycle/gmp-issue.test.ts](../../../packages/recipe-core/test/lifecycle/gmp-issue.test.ts), [packages/test-kit/test/seed.test.ts](../../../packages/test-kit/test/seed.test.ts), [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts), [tools/validation/test/validation.test.ts](../../../tools/validation/test/validation.test.ts)
@@ -62,7 +62,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-05
 
-**Segregation of non-GMP functions (training, simulation, sandbox, analytics).** [DI-05.yaml](../../../compliance/controls/DI-05.yaml). Target phase 2; editions tablets, injectables; IMPLEMENTED.
+**Segregation of non-GMP functions (training, simulation, sandbox, analytics).** [DI-05.yaml](../../../compliance/controls/DI-05.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-sandbox](../code-map.md#kernel-sandbox), [kernel-installation](../code-map.md#kernel-installation), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-plant](../code-map.md#rc-plant), [rc-containers](../code-map.md#rc-containers), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-session](../code-map.md#ts-session), [ts-access](../code-map.md#ts-access), [ts-esig](../code-map.md#ts-esig), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-dashboards](../code-map.md#ts-dashboards), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [test-kit](../code-map.md#test-kit), [tools-e2e](../code-map.md#tools-e2e), [tools-security](../code-map.md#tools-security)
 - Code: [packages/kernel/sql/0800_sandbox_installation.sql](../../../packages/kernel/sql/0800_sandbox_installation.sql)
@@ -115,35 +115,35 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-06
 
-**System inventory, system description and requirements traceability.** [DI-06.yaml](../../../compliance/controls/DI-06.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**System inventory, system description and requirements traceability.** [DI-06.yaml](../../../compliance/controls/DI-06.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-config](../code-map.md#kernel-config), [kernel-inbound](../code-map.md#kernel-inbound), [ts-integrations](../code-map.md#ts-integrations), [ts-validation](../code-map.md#ts-validation), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit), [validation-kit](../code-map.md#validation-kit)
 - Tests: [apps/tablets-server/test/integrations/adapter-startup.test.ts](../../../apps/tablets-server/test/integrations/adapter-startup.test.ts), [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [apps/tablets-server/test/validation/validation-routes.test.ts](../../../apps/tablets-server/test/validation/validation-routes.test.ts), [apps/tablets-web/test/validation/validation.test.tsx](../../../apps/tablets-web/test/validation/validation.test.tsx), [packages/kernel/test/config/release-identity.test.ts](../../../packages/kernel/test/config/release-identity.test.ts), [packages/kernel/test/inbound/interface-drift.test.ts](../../../packages/kernel/test/inbound/interface-drift.test.ts), [packages/test-kit/test/seed.test.ts](../../../packages/test-kit/test/seed.test.ts), [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts)
 
 ## DI-07
 
-**Risk-based data-criticality classification (raises controls, never removes floors).** [DI-07.yaml](../../../compliance/controls/DI-07.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Risk-based data-criticality classification (raises controls, never removes floors).** [DI-07.yaml](../../../compliance/controls/DI-07.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-review](../code-map.md#ts-review), [ts-execution](../code-map.md#ts-execution), [tablets-web](../code-map.md#tablets-web)
 - Tests: [apps/tablets-server/test/mutation/exceptions-and-dispositions.test.ts](../../../apps/tablets-server/test/mutation/exceptions-and-dispositions.test.ts), [apps/tablets-server/test/review/review-routes.test.ts](../../../apps/tablets-server/test/review/review-routes.test.ts), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [packages/recipe-core/test/lifecycle/approval.test.ts](../../../packages/recipe-core/test/lifecycle/approval.test.ts)
 
 ## DI-08
 
-**Closed-system classification, hosting and supplier agreements, open-system data flows.** [DI-08.yaml](../../../compliance/controls/DI-08.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Closed-system classification, hosting and supplier agreements, open-system data flows.** [DI-08.yaml](../../../compliance/controls/DI-08.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-records](../code-map.md#kernel-records), [rc-core](../code-map.md#rc-core), [ts-governance](../code-map.md#ts-governance), [ts-validation](../code-map.md#ts-validation), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [tools-boundaries](../code-map.md#tools-boundaries), [tools-e2e](../code-map.md#tools-e2e), [record-viewer](../code-map.md#record-viewer)
 - Tests: [apps/record-viewer/test/verify-export.test.ts](../../../apps/record-viewer/test/verify-export.test.ts), [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-server/test/validation/evaluation-permissions.test.ts](../../../apps/tablets-server/test/validation/evaluation-permissions.test.ts), [apps/tablets-server/test/validation/export-routes.test.ts](../../../apps/tablets-server/test/validation/export-routes.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [apps/tablets-web/test/validation/exports.test.tsx](../../../apps/tablets-web/test/validation/exports.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/kernel/test/identity/support-grant.test.ts](../../../packages/kernel/test/identity/support-grant.test.ts), [packages/kernel/test/records/full-export.test.ts](../../../packages/kernel/test/records/full-export.test.ts), [packages/kernel/test/records/records-cli.test.ts](../../../packages/kernel/test/records/records-cli.test.ts), [packages/recipe-core/test/records/closed-batch-records.test.ts](../../../packages/recipe-core/test/records/closed-batch-records.test.ts), [tools/boundaries/test/boundaries.test.ts](../../../tools/boundaries/test/boundaries.test.ts), [tools/e2e/specs/administration/screen-gaps.spec.ts](../../../tools/e2e/specs/administration/screen-gaps.spec.ts), [tools/e2e/specs/records/record-viewer.spec.ts](../../../tools/e2e/specs/records/record-viewer.spec.ts)
 
 ## DI-09
 
-**Change and configuration management (including systems documentation).** [DI-09.yaml](../../../compliance/controls/DI-09.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Change and configuration management (including systems documentation).** [DI-09.yaml](../../../compliance/controls/DI-09.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-market](../code-map.md#kernel-market), [kernel-config](../code-map.md#kernel-config), [analytics](../code-map.md#analytics), [kernel-installation](../code-map.md#kernel-installation), [ss-quality](../code-map.md#ss-quality), [ts-esig](../code-map.md#ts-esig), [ts-market-config](../code-map.md#ts-market-config), [ts-config-change](../code-map.md#ts-config-change), [ts-operations](../code-map.md#ts-operations), [ts-validation](../code-map.md#ts-validation), [ts-administration](../code-map.md#ts-administration), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/analytics/mspc.test.ts](../../../apps/tablets-server/test/analytics/mspc.test.ts), [apps/tablets-server/test/analytics/routes.test.ts](../../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-server/test/config/config-routes.test.ts](../../../apps/tablets-server/test/config/config-routes.test.ts), [apps/tablets-server/test/esig/catalogue-routes.test.ts](../../../apps/tablets-server/test/esig/catalogue-routes.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/operations/setup.test.ts](../../../apps/tablets-server/test/operations/setup.test.ts), [apps/tablets-server/test/validation/validation-routes.test.ts](../../../apps/tablets-server/test/validation/validation-routes.test.ts), [apps/tablets-web/test/administration/governance.test.tsx](../../../apps/tablets-web/test/administration/governance.test.tsx), [apps/tablets-web/test/config/config.test.tsx](../../../apps/tablets-web/test/config/config.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [apps/tablets-web/test/validation/catalogue.test.tsx](../../../apps/tablets-web/test/validation/catalogue.test.tsx), [apps/tablets-web/test/validation/validation.test.tsx](../../../apps/tablets-web/test/validation/validation.test.tsx), [packages/kernel/test/analytics/method-change.test.ts](../../../packages/kernel/test/analytics/method-change.test.ts), [packages/kernel/test/config/change-control.test.ts](../../../packages/kernel/test/config/change-control.test.ts), [packages/kernel/test/market/policy.test.ts](../../../packages/kernel/test/market/policy.test.ts), [packages/kernel/test/market/site-values.test.ts](../../../packages/kernel/test/market/site-values.test.ts), [packages/kernel/test/mutation/india-dsc.test.ts](../../../packages/kernel/test/mutation/india-dsc.test.ts), [packages/kernel/test/mutation/site-values-and-policies.test.ts](../../../packages/kernel/test/mutation/site-values-and-policies.test.ts), [packages/kernel/test/review/f24.test.ts](../../../packages/kernel/test/review/f24.test.ts), [packages/kernel/test/review/f26.test.ts](../../../packages/kernel/test/review/f26.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts), [tools/e2e/specs/administration/governance.spec.ts](../../../tools/e2e/specs/administration/governance.spec.ts)
 
 ## DI-10
 
-**Version-in-force stamping (executed-context snapshot).** [DI-10.yaml](../../../compliance/controls/DI-10.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Version-in-force stamping (executed-context snapshot).** [DI-10.yaml](../../../compliance/controls/DI-10.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-review](../code-map.md#ts-review), [ts-release](../code-map.md#ts-release), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/engine/definition.ts](../../../packages/recipe-core/src/engine/definition.ts), [packages/recipe-core/src/engine/batch.ts](../../../packages/recipe-core/src/engine/batch.ts) (pinned MBR version at issue)
@@ -157,7 +157,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-11
 
-**Periodic evaluation and routine checks of the eBMR itself.** [DI-11.yaml](../../../compliance/controls/DI-11.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Periodic evaluation and routine checks of the eBMR itself.** [DI-11.yaml](../../../compliance/controls/DI-11.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-records](../code-map.md#kernel-records), [ts-validation](../code-map.md#ts-validation), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/validation/evaluation-permissions.test.ts](../../../apps/tablets-server/test/validation/evaluation-permissions.test.ts), [apps/tablets-server/test/validation/export-routes.test.ts](../../../apps/tablets-server/test/validation/export-routes.test.ts), [apps/tablets-web/test/validation/exports.test.tsx](../../../apps/tablets-web/test/validation/exports.test.tsx), [packages/kernel/test/records/evaluation-pack.test.ts](../../../packages/kernel/test/records/evaluation-pack.test.ts), [packages/kernel/test/records/records-cli.test.ts](../../../packages/kernel/test/records/records-cli.test.ts)
@@ -203,7 +203,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-14
 
-**Unique personal accounts; no shared write-capable accounts.** [DI-14.yaml](../../../compliance/controls/DI-14.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Unique personal accounts; no shared write-capable accounts.** [DI-14.yaml](../../../compliance/controls/DI-14.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-iam](../code-map.md#kernel-iam), [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-inbound](../code-map.md#kernel-inbound), [kernel-installation](../code-map.md#kernel-installation), [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [ts-session](../code-map.md#ts-session), [ts-access](../code-map.md#ts-access), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-release](../code-map.md#ts-release), [ts-integrations](../code-map.md#ts-integrations), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [ui-kit](../code-map.md#ui-kit), [test-kit](../code-map.md#test-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/src/identity/authority.ts](../../../packages/kernel/src/identity/authority.ts)
@@ -230,7 +230,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-15
 
-**Identity verification, credential issuance and permanent identifier uniqueness.** [DI-15.yaml](../../../compliance/controls/DI-15.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Identity verification, credential issuance and permanent identifier uniqueness.** [DI-15.yaml](../../../compliance/controls/DI-15.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-installation](../code-map.md#kernel-installation), [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-session](../code-map.md#ts-session), [ts-execution](../code-map.md#ts-execution), [ts-administration](../code-map.md#ts-administration), [test-kit](../code-map.md#test-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/src/identity/authentication.ts](../../../packages/kernel/src/identity/authentication.ts)
@@ -253,7 +253,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-16
 
-**Access lifecycle: recorded grants, point-in-time access lists, recertification, prompt removal.** [DI-16.yaml](../../../compliance/controls/DI-16.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Access lifecycle: recorded grants, point-in-time access lists, recertification, prompt removal.** [DI-16.yaml](../../../compliance/controls/DI-16.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-iam](../code-map.md#kernel-iam), [kernel-installation](../code-map.md#kernel-installation), [ts-session](../code-map.md#ts-session), [ts-audit](../code-map.md#ts-audit), [ts-devices](../code-map.md#ts-devices), [ts-administration](../code-map.md#ts-administration), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/src/identity/admin.ts](../../../packages/kernel/src/identity/admin.ts)
@@ -273,7 +273,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-17
 
-**Authority checks per action, least privilege and segregation of duties.** [DI-17.yaml](../../../compliance/controls/DI-17.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Authority checks per action, least privilege and segregation of duties.** [DI-17.yaml](../../../compliance/controls/DI-17.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-esig](../code-map.md#kernel-esig), [kernel-market](../code-map.md#kernel-market), [kernel-records](../code-map.md#kernel-records), [kernel-platform](../code-map.md#kernel-platform), [kernel-continuity](../code-map.md#kernel-continuity), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-sandbox](../code-map.md#kernel-sandbox), [analytics](../code-map.md#analytics), [kernel-installation](../code-map.md#kernel-installation), [ss-batch-numbers](../code-map.md#ss-batch-numbers), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-plant](../code-map.md#rc-plant), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-containers](../code-map.md#rc-containers), [rc-review](../code-map.md#rc-review), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [ts-session](../code-map.md#ts-session), [ts-access](../code-map.md#ts-access), [ts-audit](../code-map.md#ts-audit), [ts-esig](../code-map.md#ts-esig), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-records](../code-map.md#ts-records), [ts-transfers](../code-map.md#ts-transfers), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [test-kit](../code-map.md#test-kit)
 - Code: [packages/kernel/src/identity/authority.ts](../../../packages/kernel/src/identity/authority.ts)
@@ -338,7 +338,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-18
 
-**System-administration segregation (administrators independent of record content).** [DI-18.yaml](../../../compliance/controls/DI-18.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**System-administration segregation (administrators independent of record content).** [DI-18.yaml](../../../compliance/controls/DI-18.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-market](../code-map.md#kernel-market), [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-records](../code-map.md#kernel-records), [kernel-platform](../code-map.md#kernel-platform), [kernel-continuity](../code-map.md#kernel-continuity), [kernel-authorization](../code-map.md#kernel-authorization), [analytics](../code-map.md#analytics), [kernel-installation](../code-map.md#kernel-installation), [ss-batch-numbers](../code-map.md#ss-batch-numbers), [ss-lots](../code-map.md#ss-lots), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-plant](../code-map.md#rc-plant), [rc-equipment-data](../code-map.md#rc-equipment-data), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-alarms](../code-map.md#ts-alarms), [ts-incidents](../code-map.md#ts-incidents), [ts-transfers](../code-map.md#ts-transfers), [ts-operations](../code-map.md#ts-operations), [ts-validation](../code-map.md#ts-validation), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tools-e2e](../code-map.md#tools-e2e), [tools-security](../code-map.md#tools-security)
 - Code: [packages/kernel/sql/0120_iam_roles_grants.sql](../../../packages/kernel/sql/0120_iam_roles_grants.sql)
@@ -367,7 +367,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-19
 
-**Credential protection: password policy, lockout, misuse detection, token and badge management.** [DI-19.yaml](../../../compliance/controls/DI-19.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Credential protection: password policy, lockout, misuse detection, token and badge management.** [DI-19.yaml](../../../compliance/controls/DI-19.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-esig](../code-map.md#kernel-esig), [kernel-installation](../code-map.md#kernel-installation), [ts-session](../code-map.md#ts-session), [ts-access](../code-map.md#ts-access), [ts-esig](../code-map.md#ts-esig), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/src/identity/authentication.ts](../../../packages/kernel/src/identity/authentication.ts)
@@ -424,7 +424,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-21
 
-**Training of system users, e-signature accountability policy and signature register.** [DI-21.yaml](../../../compliance/controls/DI-21.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Training of system users, e-signature accountability policy and signature register.** [DI-21.yaml](../../../compliance/controls/DI-21.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-installation](../code-map.md#kernel-installation), [ss-lots](../code-map.md#ss-lots), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-review](../code-map.md#rc-review), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/kernel/sql/0130_iam_qualifications_authority.sql](../../../packages/kernel/sql/0130_iam_qualifications_authority.sql)
@@ -437,7 +437,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-22
 
-**Audit trail: capture scope and entry content.** [DI-22.yaml](../../../compliance/controls/DI-22.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Audit trail: capture scope and entry content.** [DI-22.yaml](../../../compliance/controls/DI-22.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-iam](../code-map.md#kernel-iam), [kernel-platform](../code-map.md#kernel-platform), [kernel-integration](../code-map.md#kernel-integration), [kernel-installation](../code-map.md#kernel-installation), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-execution](../code-map.md#rc-execution), [ts-audit](../code-map.md#ts-audit), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config), [ts-devices](../code-map.md#ts-devices), [ts-quality](../code-map.md#ts-quality), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0010_audit_trail.sql](../../../packages/kernel/sql/0010_audit_trail.sql)
@@ -454,7 +454,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-23
 
-**Audit trail: always on, immutable, tamper-evident.** [DI-23.yaml](../../../compliance/controls/DI-23.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Audit trail: always on, immutable, tamper-evident.** [DI-23.yaml](../../../compliance/controls/DI-23.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-continuity](../code-map.md#kernel-continuity), [kernel-installation](../code-map.md#kernel-installation), [rc-execution](../code-map.md#rc-execution), [ts-audit](../code-map.md#ts-audit), [ts-devices](../code-map.md#ts-devices), [ts-execution](../code-map.md#ts-execution), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0010_audit_trail.sql](../../../packages/kernel/sql/0010_audit_trail.sql)
@@ -471,7 +471,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-24
 
-**Corrections, voids and deletions: the original is always preserved.** [DI-24.yaml](../../../compliance/controls/DI-24.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
+**Corrections, voids and deletions: the original is always preserved.** [DI-24.yaml](../../../compliance/controls/DI-24.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-records](../code-map.md#kernel-records), [kernel-platform](../code-map.md#kernel-platform), [kernel-installation](../code-map.md#kernel-installation), [ss-quality](../code-map.md#ss-quality), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-review](../code-map.md#rc-review), [rc-execution](../code-map.md#rc-execution), [ts-review](../code-map.md#ts-review), [ts-execution](../code-map.md#ts-execution), [api-contract](../code-map.md#api-contract), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0010_audit_trail.sql](../../../packages/kernel/sql/0010_audit_trail.sql)
@@ -484,14 +484,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-25
 
-**Audit-trail review within batch review (step level and before disposition).** [DI-25.yaml](../../../compliance/controls/DI-25.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Audit-trail review within batch review (step level and before disposition).** [DI-25.yaml](../../../compliance/controls/DI-25.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [analytics](../code-map.md#analytics), [analytics-audit](../code-map.md#analytics-audit), [kernel-installation](../code-map.md#kernel-installation), [rc-review](../code-map.md#rc-review), [ts-review](../code-map.md#ts-review), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/analytics/audit.test.ts](../../../apps/tablets-server/test/analytics/audit.test.ts), [apps/tablets-server/test/review/audit-events-once.test.ts](../../../apps/tablets-server/test/review/audit-events-once.test.ts), [apps/tablets-server/test/review/review-routes.test.ts](../../../apps/tablets-server/test/review/review-routes.test.ts), [apps/tablets-web/test/analytics-audit/audit.test.tsx](../../../apps/tablets-web/test/analytics-audit/audit.test.tsx), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/review/f77.test.ts](../../../packages/kernel/test/review/f77.test.ts), [packages/recipe-core/test/review/review.test.ts](../../../packages/recipe-core/test/review/review.test.ts), [tools/e2e/specs/phase6a/analytics.spec.ts](../../../tools/e2e/specs/phase6a/analytics.spec.ts)
 
 ## DI-26
 
-**Review by exception, error detection and risk-based review of system logs.** [DI-26.yaml](../../../compliance/controls/DI-26.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Review by exception, error detection and risk-based review of system logs.** [DI-26.yaml](../../../compliance/controls/DI-26.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-inbound](../code-map.md#kernel-inbound), [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms), [ss-core](../code-map.md#ss-core), [rc-blocks](../code-map.md#rc-blocks), [rc-review](../code-map.md#rc-review), [rc-execution](../code-map.md#rc-execution), [ts-review](../code-map.md#ts-review), [ts-config-change](../code-map.md#ts-config-change), [ts-execution](../code-map.md#ts-execution), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/engine/exceptions.ts](../../../packages/recipe-core/src/engine/exceptions.ts) (engine exception rules and review categories)
@@ -502,7 +502,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-27
 
-**Trusted time.** [DI-27.yaml](../../../compliance/controls/DI-27.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Trusted time.** [DI-27.yaml](../../../compliance/controls/DI-27.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-platform](../code-map.md#kernel-platform), [kernel-sandbox](../code-map.md#kernel-sandbox), [kernel-installation](../code-map.md#kernel-installation), [ss-batch-numbers](../code-map.md#ss-batch-numbers), [rc-execution](../code-map.md#rc-execution), [ts-devices](../code-map.md#ts-devices), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit)
 - Code: [packages/kernel/src/time](../../../packages/kernel/src/time)
@@ -514,7 +514,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-28
 
-**Contemporaneous capture, immediate durable commit, late entries and offline buffering.** [DI-28.yaml](../../../compliance/controls/DI-28.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Contemporaneous capture, immediate durable commit, late entries and offline buffering.** [DI-28.yaml](../../../compliance/controls/DI-28.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-plant](../code-map.md#rc-plant), [rc-execution](../code-map.md#rc-execution), [ts-access](../code-map.md#ts-access), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-review](../code-map.md#ts-review), [ts-execution](../code-map.md#ts-execution), [site-gateway](../code-map.md#site-gateway), [ui-kit](../code-map.md#ui-kit)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (startStep, recordData)
@@ -524,7 +524,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-29
 
-**Complete data: every attempt, repeat, aborted operation and invalidated result is retained; invalidation needs an investigation.** [DI-29.yaml](../../../compliance/controls/DI-29.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Complete data: every attempt, repeat, aborted operation and invalidated result is retained; invalidation needs an investigation.** [DI-29.yaml](../../../compliance/controls/DI-29.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/engine/data.ts](../../../packages/recipe-core/src/engine/data.ts) (attempts, repeats, readings)
@@ -537,7 +537,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-30
 
-**Manually entered critical data: additional accuracy check.** [DI-30.yaml](../../../compliance/controls/DI-30.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Manually entered critical data: additional accuracy check.** [DI-30.yaml](../../../compliance/controls/DI-30.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-sandbox](../code-map.md#kernel-sandbox), [kernel-installation](../code-map.md#kernel-installation), [rc-containers](../code-map.md#rc-containers), [rc-blocks](../code-map.md#rc-blocks), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-containers](../code-map.md#ts-containers), [ts-review](../code-map.md#ts-review), [ts-release](../code-map.md#ts-release), [ts-execution](../code-map.md#ts-execution), [api-contract](../code-map.md#api-contract), [site-gateway](../code-map.md#site-gateway), [ui-kit](../code-map.md#ui-kit)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (verify)
@@ -552,21 +552,21 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-31
 
-**Interface data integrity.** [DI-31.yaml](../../../compliance/controls/DI-31.yaml). Target phase 6; editions tablets, injectables; SPECIFIED.
+**Interface data integrity.** [DI-31.yaml](../../../compliance/controls/DI-31.yaml). Target phase 6; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-inbound](../code-map.md#kernel-inbound), [kernel-installation](../code-map.md#kernel-installation), [ss-lots](../code-map.md#ss-lots), [ss-capa-qms](../code-map.md#ss-capa-qms), [ss-transfer](../code-map.md#ss-transfer), [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-mirrors](../code-map.md#rc-mirrors), [rc-blocks](../code-map.md#rc-blocks), [rc-review](../code-map.md#rc-review), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [rc-core](../code-map.md#rc-core), [ts-session](../code-map.md#ts-session), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-integrations](../code-map.md#ts-integrations), [ts-alarms](../code-map.md#ts-alarms), [ts-capa](../code-map.md#ts-capa), [ts-transfers](../code-map.md#ts-transfers), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [integration-sdk](../code-map.md#integration-sdk), [site-gateway](../code-map.md#site-gateway), [simulators](../code-map.md#simulators), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/simulators/test/ems/ems.test.ts](../../../apps/simulators/test/ems/ems.test.ts), [apps/simulators/test/erp-wms/erp-wms.test.ts](../../../apps/simulators/test/erp-wms/erp-wms.test.ts), [apps/simulators/test/opcua/opcua-simulator.test.ts](../../../apps/simulators/test/opcua/opcua-simulator.test.ts), [apps/site-gateway/test/capture-readiness.test.ts](../../../apps/site-gateway/test/capture-readiness.test.ts), [apps/site-gateway/test/delivery-readiness.test.ts](../../../apps/site-gateway/test/delivery-readiness.test.ts), [apps/site-gateway/test/device-config.test.ts](../../../apps/site-gateway/test/device-config.test.ts), [apps/site-gateway/test/gateway.test.ts](../../../apps/site-gateway/test/gateway.test.ts), [apps/site-gateway/test/journal-write-failure.test.ts](../../../apps/site-gateway/test/journal-write-failure.test.ts), [apps/site-gateway/test/journal.test.ts](../../../apps/site-gateway/test/journal.test.ts), [apps/site-gateway/test/opcua-driver.test.ts](../../../apps/site-gateway/test/opcua-driver.test.ts), [apps/site-gateway/test/opcua-simulator.test.ts](../../../apps/site-gateway/test/opcua-simulator.test.ts), [apps/site-gateway/test/opcua-spool.test.ts](../../../apps/site-gateway/test/opcua-spool.test.ts), [apps/site-gateway/test/printer.test.ts](../../../apps/site-gateway/test/printer.test.ts), [apps/site-gateway/test/process.test.ts](../../../apps/site-gateway/test/process.test.ts), [apps/tablets-server/test/administration/administration-routes.test.ts](../../../apps/tablets-server/test/administration/administration-routes.test.ts), [apps/tablets-server/test/administration/wp2-routes.test.ts](../../../apps/tablets-server/test/administration/wp2-routes.test.ts), [apps/tablets-server/test/blocks/compression/db-guards.test.ts](../../../apps/tablets-server/test/blocks/compression/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/blocks.test.ts](../../../apps/tablets-server/test/blocks/granulation/blocks.test.ts), [apps/tablets-server/test/blocks/granulation/common-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/common-edges.test.ts), [apps/tablets-server/test/blocks/granulation/db-guards.test.ts](../../../apps/tablets-server/test/blocks/granulation/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts), [apps/tablets-server/test/blocks/ipc/common-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/common-edges.test.ts), [apps/tablets-server/test/blocks/ipc/db-guards.test.ts](../../../apps/tablets-server/test/blocks/ipc/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/capa/capa-routes.test.ts](../../../apps/tablets-server/test/capa/capa-routes.test.ts), [apps/tablets-server/test/devices/claim.test.ts](../../../apps/tablets-server/test/devices/claim.test.ts), [apps/tablets-server/test/devices/gateway-free-text.test.ts](../../../apps/tablets-server/test/devices/gateway-free-text.test.ts), [apps/tablets-server/test/devices/gateway-key-order.test.ts](../../../apps/tablets-server/test/devices/gateway-key-order.test.ts), [apps/tablets-server/test/devices/ingest.test.ts](../../../apps/tablets-server/test/devices/ingest.test.ts), [apps/tablets-server/test/devices/manual-weighing-gate.test.ts](../../../apps/tablets-server/test/devices/manual-weighing-gate.test.ts), [apps/tablets-server/test/devices/manual-weighing-interference.test.ts](../../../apps/tablets-server/test/devices/manual-weighing-interference.test.ts), [apps/tablets-server/test/devices/process-readings.test.ts](../../../apps/tablets-server/test/devices/process-readings.test.ts), [apps/tablets-server/test/devices/reading-age.test.ts](../../../apps/tablets-server/test/devices/reading-age.test.ts), [apps/tablets-server/test/devices/reading-proof.test.ts](../../../apps/tablets-server/test/devices/reading-proof.test.ts), [apps/tablets-server/test/devices/routes.test.ts](../../../apps/tablets-server/test/devices/routes.test.ts), [apps/tablets-server/test/devices/scale-readiness.test.ts](../../../apps/tablets-server/test/devices/scale-readiness.test.ts), [apps/tablets-server/test/equipment-data/feed-signature.test.ts](../../../apps/tablets-server/test/equipment-data/feed-signature.test.ts), [apps/tablets-server/test/equipment-data/opcua-adapter.test.ts](../../../apps/tablets-server/test/equipment-data/opcua-adapter.test.ts), [apps/tablets-server/test/execution/block-entries-edges.test.ts](../../../apps/tablets-server/test/execution/block-entries-edges.test.ts), [apps/tablets-server/test/execution/block-entries.test.ts](../../../apps/tablets-server/test/execution/block-entries.test.ts), [apps/tablets-server/test/execution/db-guards-used-readings.test.ts](../../../apps/tablets-server/test/execution/db-guards-used-readings.test.ts), [apps/tablets-server/test/execution/evidence-source-room.test.ts](../../../apps/tablets-server/test/execution/evidence-source-room.test.ts), [apps/tablets-server/test/execution/gmp-batch.test.ts](../../../apps/tablets-server/test/execution/gmp-batch.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/integrations/adapter-startup.test.ts](../../../apps/tablets-server/test/integrations/adapter-startup.test.ts), [apps/tablets-server/test/integrations/alarm-routes.test.ts](../../../apps/tablets-server/test/integrations/alarm-routes.test.ts), [apps/tablets-server/test/integrations/ems/ems-adapter.test.ts](../../../apps/tablets-server/test/integrations/ems/ems-adapter.test.ts), [apps/tablets-server/test/integrations/erp-wms/contract.test.ts](../../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts), [apps/tablets-server/test/integrations/erp-wms/soak.test.ts](../../../apps/tablets-server/test/integrations/erp-wms/soak.test.ts), [apps/tablets-server/test/integrations/feed-adapters.test.ts](../../../apps/tablets-server/test/integrations/feed-adapters.test.ts), [apps/tablets-server/test/integrations/l3-adapter.test.ts](../../../apps/tablets-server/test/integrations/l3-adapter.test.ts), [apps/tablets-server/test/mutation/device-readings.test.ts](../../../apps/tablets-server/test/mutation/device-readings.test.ts), [apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts](../../../apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts), [apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts](../../../apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts), [apps/tablets-server/test/mutation/manual-weighing-gate.test.ts](../../../apps/tablets-server/test/mutation/manual-weighing-gate.test.ts), [apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts](../../../apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts), [apps/tablets-server/test/mutation/process-devices-gateway.test.ts](../../../apps/tablets-server/test/mutation/process-devices-gateway.test.ts), [apps/tablets-server/test/mutation/tablets-compression-registers.test.ts](../../../apps/tablets-server/test/mutation/tablets-compression-registers.test.ts), [apps/tablets-server/test/mutation/tablets-sessions.test.ts](../../../apps/tablets-server/test/mutation/tablets-sessions.test.ts), [apps/tablets-server/test/operations/workers-and-backups.test.ts](../../../apps/tablets-server/test/operations/workers-and-backups.test.ts), [apps/tablets-server/test/security/tls.test.ts](../../../apps/tablets-server/test/security/tls.test.ts), [apps/tablets-server/test/session/login.test.ts](../../../apps/tablets-server/test/session/login.test.ts), [apps/tablets-server/test/transfers/federation-https.test.ts](../../../apps/tablets-server/test/transfers/federation-https.test.ts), [apps/tablets-server/test/transfers/identity-and-revocation.test.ts](../../../apps/tablets-server/test/transfers/identity-and-revocation.test.ts), [apps/tablets-server/test/transfers/transfer-routes.test.ts](../../../apps/tablets-server/test/transfers/transfer-routes.test.ts), [apps/tablets-web/test/administration/administration.test.tsx](../../../apps/tablets-web/test/administration/administration.test.tsx), [apps/tablets-web/test/administration/wp2-administration.test.tsx](../../../apps/tablets-web/test/administration/wp2-administration.test.tsx), [apps/tablets-web/test/capa/capa.test.tsx](../../../apps/tablets-web/test/capa/capa.test.tsx), [apps/tablets-web/test/integrations/integrations.test.tsx](../../../apps/tablets-web/test/integrations/integrations.test.tsx), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [apps/tablets-web/test/operations/operations.test.tsx](../../../apps/tablets-web/test/operations/operations.test.tsx), [apps/tablets-web/test/operations/wp2-operations.test.tsx](../../../apps/tablets-web/test/operations/wp2-operations.test.tsx), [apps/tablets-web/test/receipt/receipt.test.tsx](../../../apps/tablets-web/test/receipt/receipt.test.tsx), [apps/tablets-web/test/transfers/transfers.test.tsx](../../../apps/tablets-web/test/transfers/transfers.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/api-contract/test/receipt.test.ts](../../../packages/api-contract/test/receipt.test.ts), [packages/integration-sdk/test/adapter/adapter.test.ts](../../../packages/integration-sdk/test/adapter/adapter.test.ts), [packages/integration-sdk/test/adapter/feed-signature.test.ts](../../../packages/integration-sdk/test/adapter/feed-signature.test.ts), [packages/integration-sdk/test/printer/wire.test.ts](../../../packages/integration-sdk/test/printer/wire.test.ts), [packages/integration-sdk/test/scale/mt-sics.test.ts](../../../packages/integration-sdk/test/scale/mt-sics.test.ts), [packages/integration-sdk/test/scale/reading.test.ts](../../../packages/integration-sdk/test/scale/reading.test.ts), [packages/kernel/test/inbound/inbound.test.ts](../../../packages/kernel/test/inbound/inbound.test.ts), [packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts](../../../packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts), [packages/kernel/test/inbound/source-verification.test.ts](../../../packages/kernel/test/inbound/source-verification.test.ts), [packages/kernel/test/integrations/lms-inbound.test.ts](../../../packages/kernel/test/integrations/lms-inbound.test.ts), [packages/kernel/test/mutation/inbound-adapters-and-mirrors.test.ts](../../../packages/kernel/test/mutation/inbound-adapters-and-mirrors.test.ts), [packages/recipe-core/test/blocks/automated.test.ts](../../../packages/recipe-core/test/blocks/automated.test.ts), [packages/recipe-core/test/blocks/g06-edges.test.ts](../../../packages/recipe-core/test/blocks/g06-edges.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/execution/entry-data-sql.test.ts](../../../packages/recipe-core/test/execution/entry-data-sql.test.ts), [packages/recipe-core/test/integrations/cmms-qms-release.test.ts](../../../packages/recipe-core/test/integrations/cmms-qms-release.test.ts), [packages/recipe-core/test/integrations/plant-alarms-series.test.ts](../../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts), [packages/recipe-core/test/lifecycle/erp-adapter-order.test.ts](../../../packages/recipe-core/test/lifecycle/erp-adapter-order.test.ts), [packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts](../../../packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts), [packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts](../../../packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts](../../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts), [packages/recipe-core/test/review/batch-scope.test.ts](../../../packages/recipe-core/test/review/batch-scope.test.ts), [packages/site-services/test/erp-wms/inbound.test.ts](../../../packages/site-services/test/erp-wms/inbound.test.ts), [packages/site-services/test/erp-wms/locations.test.ts](../../../packages/site-services/test/erp-wms/locations.test.ts), [packages/site-services/test/erp-wms/receipt.test.ts](../../../packages/site-services/test/erp-wms/receipt.test.ts), [packages/site-services/test/integrations/capa-qms.test.ts](../../../packages/site-services/test/integrations/capa-qms.test.ts), [packages/site-services/test/integrations/lims-inbound.test.ts](../../../packages/site-services/test/integrations/lims-inbound.test.ts), [packages/site-services/test/lots/consumption-batch-scope.test.ts](../../../packages/site-services/test/lots/consumption-batch-scope.test.ts), [packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts](../../../packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts), [packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts](../../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts), [packages/site-services/test/mutation/transfer-and-federation.test.ts](../../../packages/site-services/test/mutation/transfer-and-federation.test.ts), [packages/site-services/test/transfer/transfer.test.ts](../../../packages/site-services/test/transfer/transfer.test.ts), [tools/e2e/specs/administration/administration.spec.ts](../../../tools/e2e/specs/administration/administration.spec.ts), [tools/e2e/specs/operations/operations.spec.ts](../../../tools/e2e/specs/operations/operations.spec.ts), [tools/e2e/specs/phase6/stale-mirror.spec.ts](../../../tools/e2e/specs/phase6/stale-mirror.spec.ts)
 
 ## DI-32
 
-**Instrument and device data; original records from simple devices; dynamic data.** [DI-32.yaml](../../../compliance/controls/DI-32.yaml). Target phase 6; editions tablets, injectables; SPECIFIED.
+**Instrument and device data; original records from simple devices; dynamic data.** [DI-32.yaml](../../../compliance/controls/DI-32.yaml). Target phase 6; editions tablets, injectables; VERIFIED.
 
 - Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-core](../code-map.md#rc-core), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-containers](../code-map.md#ts-containers), [ts-review](../code-map.md#ts-review), [ts-integrations](../code-map.md#ts-integrations), [ts-alarms](../code-map.md#ts-alarms), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [integration-sdk](../code-map.md#integration-sdk), [site-gateway](../code-map.md#site-gateway), [simulators](../code-map.md#simulators), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/simulators/test/ems/ems.test.ts](../../../apps/simulators/test/ems/ems.test.ts), [apps/site-gateway/test/gateway.test.ts](../../../apps/site-gateway/test/gateway.test.ts), [apps/site-gateway/test/opcua-driver-shape.test.ts](../../../apps/site-gateway/test/opcua-driver-shape.test.ts), [apps/site-gateway/test/opcua-driver.test.ts](../../../apps/site-gateway/test/opcua-driver.test.ts), [apps/site-gateway/test/opcua-simulator.test.ts](../../../apps/site-gateway/test/opcua-simulator.test.ts), [apps/site-gateway/test/opcua-spool.test.ts](../../../apps/site-gateway/test/opcua-spool.test.ts), [apps/site-gateway/test/printer.test.ts](../../../apps/site-gateway/test/printer.test.ts), [apps/site-gateway/test/process.test.ts](../../../apps/site-gateway/test/process.test.ts), [apps/tablets-server/test/alarms/alarm-routes.test.ts](../../../apps/tablets-server/test/alarms/alarm-routes.test.ts), [apps/tablets-server/test/analytics/profile.test.ts](../../../apps/tablets-server/test/analytics/profile.test.ts), [apps/tablets-server/test/blocks/coating/db-guards.test.ts](../../../apps/tablets-server/test/blocks/coating/db-guards.test.ts), [apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts](../../../apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts), [apps/tablets-server/test/blocks/forming/db-guards.test.ts](../../../apps/tablets-server/test/blocks/forming/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/blocks.test.ts](../../../apps/tablets-server/test/blocks/granulation/blocks.test.ts), [apps/tablets-server/test/blocks/granulation/db-guards.test.ts](../../../apps/tablets-server/test/blocks/granulation/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts), [apps/tablets-server/test/blocks/ipc/blocks.test.ts](../../../apps/tablets-server/test/blocks/ipc/blocks.test.ts), [apps/tablets-server/test/blocks/ipc/common-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/common-edges.test.ts), [apps/tablets-server/test/blocks/ipc/db-guards.test.ts](../../../apps/tablets-server/test/blocks/ipc/db-guards.test.ts), [apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts), [apps/tablets-server/test/blocks/ipc/tb-12-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/tb-12-edges.test.ts), [apps/tablets-server/test/blocks/ipc/tb-13-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/tb-13-edges.test.ts), [apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts), [apps/tablets-server/test/containers/routes-gmp.test.ts](../../../apps/tablets-server/test/containers/routes-gmp.test.ts), [apps/tablets-server/test/containers/weighed-close.test.ts](../../../apps/tablets-server/test/containers/weighed-close.test.ts), [apps/tablets-server/test/devices/claim.test.ts](../../../apps/tablets-server/test/devices/claim.test.ts), [apps/tablets-server/test/devices/gateway-key-order.test.ts](../../../apps/tablets-server/test/devices/gateway-key-order.test.ts), [apps/tablets-server/test/devices/ingest.test.ts](../../../apps/tablets-server/test/devices/ingest.test.ts), [apps/tablets-server/test/devices/manual-weighing-gate.test.ts](../../../apps/tablets-server/test/devices/manual-weighing-gate.test.ts), [apps/tablets-server/test/devices/manual-weighing-interference.test.ts](../../../apps/tablets-server/test/devices/manual-weighing-interference.test.ts), [apps/tablets-server/test/devices/process-readings.test.ts](../../../apps/tablets-server/test/devices/process-readings.test.ts), [apps/tablets-server/test/devices/reading-age-policy.test.ts](../../../apps/tablets-server/test/devices/reading-age-policy.test.ts), [apps/tablets-server/test/devices/reading-proof.test.ts](../../../apps/tablets-server/test/devices/reading-proof.test.ts), [apps/tablets-server/test/devices/refused-weighing-readings.test.ts](../../../apps/tablets-server/test/devices/refused-weighing-readings.test.ts), [apps/tablets-server/test/devices/room-scales.test.ts](../../../apps/tablets-server/test/devices/room-scales.test.ts), [apps/tablets-server/test/devices/routes.test.ts](../../../apps/tablets-server/test/devices/routes.test.ts), [apps/tablets-server/test/devices/stale-weighing-readings.test.ts](../../../apps/tablets-server/test/devices/stale-weighing-readings.test.ts), [apps/tablets-server/test/equipment-data/opcua-adapter.test.ts](../../../apps/tablets-server/test/equipment-data/opcua-adapter.test.ts), [apps/tablets-server/test/equipment-data/opcua-readings.test.ts](../../../apps/tablets-server/test/equipment-data/opcua-readings.test.ts), [apps/tablets-server/test/execution/block-entries-edges.test.ts](../../../apps/tablets-server/test/execution/block-entries-edges.test.ts), [apps/tablets-server/test/execution/block-entries.test.ts](../../../apps/tablets-server/test/execution/block-entries.test.ts), [apps/tablets-server/test/execution/db-guards-stale-row-commit.test.ts](../../../apps/tablets-server/test/execution/db-guards-stale-row-commit.test.ts), [apps/tablets-server/test/execution/db-guards-stale-row.test.ts](../../../apps/tablets-server/test/execution/db-guards-stale-row.test.ts), [apps/tablets-server/test/execution/db-guards-used-readings.test.ts](../../../apps/tablets-server/test/execution/db-guards-used-readings.test.ts), [apps/tablets-server/test/execution/evidence-source-room.test.ts](../../../apps/tablets-server/test/execution/evidence-source-room.test.ts), [apps/tablets-server/test/execution/evidence-source.test.ts](../../../apps/tablets-server/test/execution/evidence-source.test.ts), [apps/tablets-server/test/execution/refusals-and-room-views.test.ts](../../../apps/tablets-server/test/execution/refusals-and-room-views.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/integrations/ems/ems-adapter.test.ts](../../../apps/tablets-server/test/integrations/ems/ems-adapter.test.ts), [apps/tablets-server/test/mutation/device-readings.test.ts](../../../apps/tablets-server/test/mutation/device-readings.test.ts), [apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts](../../../apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts), [apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts](../../../apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts), [apps/tablets-server/test/mutation/execution-state-binding.test.ts](../../../apps/tablets-server/test/mutation/execution-state-binding.test.ts), [apps/tablets-server/test/mutation/manual-weighing-gate.test.ts](../../../apps/tablets-server/test/mutation/manual-weighing-gate.test.ts), [apps/tablets-server/test/mutation/stale-commands-and-readings.test.ts](../../../apps/tablets-server/test/mutation/stale-commands-and-readings.test.ts), [apps/tablets-server/test/review/weighed-close-and-scope.test.ts](../../../apps/tablets-server/test/review/weighed-close-and-scope.test.ts), [apps/tablets-web/test/analytics/profile.test.tsx](../../../apps/tablets-web/test/analytics/profile.test.tsx), [apps/tablets-web/test/devices/slot.test.tsx](../../../apps/tablets-web/test/devices/slot.test.tsx), [apps/tablets-web/test/floor/entries.test.tsx](../../../apps/tablets-web/test/floor/entries.test.tsx), [apps/tablets-web/test/floor/readings-after-refusal.test.tsx](../../../apps/tablets-web/test/floor/readings-after-refusal.test.tsx), [apps/tablets-web/test/floor/scan-scales-who.test.tsx](../../../apps/tablets-web/test/floor/scan-scales-who.test.tsx), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [apps/tablets-web/test/plant-status/trends.test.tsx](../../../apps/tablets-web/test/plant-status/trends.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/integration-sdk/test/adapter/equipment-data.test.ts](../../../packages/integration-sdk/test/adapter/equipment-data.test.ts), [packages/integration-sdk/test/scale/mt-sics.test.ts](../../../packages/integration-sdk/test/scale/mt-sics.test.ts), [packages/integration-sdk/test/scale/reading.test.ts](../../../packages/integration-sdk/test/scale/reading.test.ts), [packages/recipe-core/test/analytics/series-inputs.test.ts](../../../packages/recipe-core/test/analytics/series-inputs.test.ts), [packages/recipe-core/test/blocks/automated.test.ts](../../../packages/recipe-core/test/blocks/automated.test.ts), [packages/recipe-core/test/blocks/g06-edges.test.ts](../../../packages/recipe-core/test/blocks/g06-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts](../../../packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts), [packages/recipe-core/test/execution/entry-data-sql.test.ts](../../../packages/recipe-core/test/execution/entry-data-sql.test.ts), [packages/recipe-core/test/execution/kept-records-sql.test.ts](../../../packages/recipe-core/test/execution/kept-records-sql.test.ts), [packages/recipe-core/test/integrations/plant-alarms-series.test.ts](../../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts), [packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts](../../../packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts), [tools/e2e/specs/devices/devices.spec.ts](../../../tools/e2e/specs/devices/devices.spec.ts), [tools/e2e/specs/journey/fcv.spec.ts](../../../tools/e2e/specs/journey/fcv.spec.ts), [tools/e2e/specs/phase6/trends.spec.ts](../../../tools/e2e/specs/phase6/trends.spec.ts)
 
 ## DI-33
 
-**Calculations and reprocessing.** [DI-33.yaml](../../../compliance/controls/DI-33.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
+**Calculations and reprocessing.** [DI-33.yaml](../../../compliance/controls/DI-33.yaml). Target phase 2; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [expr](../code-map.md#expr)
 - Code: [packages/expr/src/decimal/dec.ts](../../../packages/expr/src/decimal/dec.ts)
@@ -618,7 +618,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-34
 
-**Operational sequencing checks.** [DI-34.yaml](../../../compliance/controls/DI-34.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
+**Operational sequencing checks.** [DI-34.yaml](../../../compliance/controls/DI-34.yaml). Target phase 2; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-platform](../code-map.md#kernel-platform), [kernel-sandbox](../code-map.md#kernel-sandbox), [kernel-installation](../code-map.md#kernel-installation), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-blocks](../code-map.md#rc-blocks), [rc-review](../code-map.md#rc-review), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [rc-simulator](../code-map.md#rc-simulator), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/flow](../../../packages/recipe-core/src/flow) (model, parse, expand, compile, graph, tokens)
@@ -646,7 +646,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-35
 
-**Electronic-signature catalogue: every predicate-rule signature point.** [DI-35.yaml](../../../compliance/controls/DI-35.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Electronic-signature catalogue: every predicate-rule signature point.** [DI-35.yaml](../../../compliance/controls/DI-35.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-esig](../code-map.md#kernel-esig), [kernel-market](../code-map.md#kernel-market), [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-installation](../code-map.md#kernel-installation), [ss-india](../code-map.md#ss-india), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-formula](../code-map.md#rc-formula), [rc-india](../code-map.md#rc-india), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-access](../code-map.md#ts-access), [ts-esig](../code-map.md#ts-esig), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config), [ts-quality](../code-map.md#ts-quality), [ts-records](../code-map.md#ts-records), [ts-execution](../code-map.md#ts-execution), [ts-administration](../code-map.md#ts-administration), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0210_esig_catalogue.sql](../../../packages/kernel/sql/0210_esig_catalogue.sql) (esig.meaning_type catalogue, esig.predicate_signature_point inventory, quality-unit configuration)
@@ -673,7 +673,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-36
 
-**Signature manifestation.** [DI-36.yaml](../../../compliance/controls/DI-36.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Signature manifestation.** [DI-36.yaml](../../../compliance/controls/DI-36.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-esig](../code-map.md#kernel-esig), [kernel-installation](../code-map.md#kernel-installation), [ts-access](../code-map.md#ts-access), [ts-esig](../code-map.md#ts-esig), [ts-execution](../code-map.md#ts-execution), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0220_esig_signatures.sql](../../../packages/kernel/sql/0220_esig_signatures.sql) (esig.build_manifestation, esig.signature_guard)
@@ -693,7 +693,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-37
 
-**Signature-record linking and invalidation on change.** [DI-37.yaml](../../../compliance/controls/DI-37.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Signature-record linking and invalidation on change.** [DI-37.yaml](../../../compliance/controls/DI-37.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-esig](../code-map.md#kernel-esig), [kernel-records](../code-map.md#kernel-records), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-integration](../code-map.md#kernel-integration), [kernel-installation](../code-map.md#kernel-installation), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [ts-access](../code-map.md#ts-access), [ts-audit](../code-map.md#ts-audit), [ts-esig](../code-map.md#ts-esig), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-release](../code-map.md#ts-release), [ts-execution](../code-map.md#ts-execution), [ts-operations](../code-map.md#ts-operations), [ts-validation](../code-map.md#ts-validation), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract), [expr](../code-map.md#expr), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0200_esig_foundation.sql](../../../packages/kernel/sql/0200_esig_foundation.sql) (canonical JSON, content hash, content-provider registry)
@@ -732,7 +732,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-38
 
-**Signature components, re-authentication and session rules.** [DI-38.yaml](../../../compliance/controls/DI-38.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Signature components, re-authentication and session rules.** [DI-38.yaml](../../../compliance/controls/DI-38.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-esig](../code-map.md#kernel-esig), [kernel-installation](../code-map.md#kernel-installation), [ts-session](../code-map.md#ts-session), [ts-access](../code-map.md#ts-access), [ts-esig](../code-map.md#ts-esig), [ts-devices](../code-map.md#ts-devices), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/0230_esig_sign.sql](../../../packages/kernel/sql/0230_esig_sign.sql) (esig.required_components, esig.component_problem, esig.continuous_session_start, esig.sign)
@@ -770,21 +770,21 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-39
 
-**QU disposition and QP certification by e-signature; quarantine interlock.** [DI-39.yaml](../../../compliance/controls/DI-39.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**QU disposition and QP certification by e-signature; quarantine interlock.** [DI-39.yaml](../../../compliance/controls/DI-39.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-shipping](../code-map.md#ss-shipping), [ss-transfer](../code-map.md#ss-transfer), [ss-core](../code-map.md#ss-core), [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release), [ts-transfers](../code-map.md#ts-transfers), [api-contract](../code-map.md#api-contract)
 - Tests: [apps/tablets-server/test/release/market-routes.test.ts](../../../apps/tablets-server/test/release/market-routes.test.ts), [apps/tablets-server/test/transfers/transfer-routes.test.ts](../../../apps/tablets-server/test/transfers/transfer-routes.test.ts), [apps/tablets-web/test/release/markets.test.tsx](../../../apps/tablets-web/test/release/markets.test.tsx), [apps/tablets-web/test/transfers/transfers.test.tsx](../../../apps/tablets-web/test/transfers/transfers.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/release/dispositions.test.ts](../../../packages/recipe-core/test/release/dispositions.test.ts), [packages/site-services/test/mutation/transfer-and-federation.test.ts](../../../packages/site-services/test/mutation/transfer-and-federation.test.ts), [packages/site-services/test/shipping/erp-shipping.test.ts](../../../packages/site-services/test/shipping/erp-shipping.test.ts), [packages/site-services/test/transfer/transfer.test.ts](../../../packages/site-services/test/transfer/transfer.test.ts)
 
 ## DI-40
 
-**Copies for inspection, printouts that flag changes, GMP communications.** [DI-40.yaml](../../../compliance/controls/DI-40.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Copies for inspection, printouts that flag changes, GMP communications.** [DI-40.yaml](../../../compliance/controls/DI-40.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [ts-records](../code-map.md#ts-records)
 - Tests: [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts)
 
 ## DI-41
 
-**True copies (paper to electronic, electronic to electronic).** [DI-41.yaml](../../../compliance/controls/DI-41.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**True copies (paper to electronic, electronic to electronic).** [DI-41.yaml](../../../compliance/controls/DI-41.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-installation](../code-map.md#kernel-installation), [ss-shipping](../code-map.md#ss-shipping), [rc-blocks](../code-map.md#rc-blocks), [ts-release](../code-map.md#ts-release), [ts-records](../code-map.md#ts-records)
 - Code: [packages/recipe-core/src/blocks/generic/recording.ts](../../../packages/recipe-core/src/blocks/generic/recording.ts) (G-05 attachment entry)
@@ -793,28 +793,28 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-42
 
-**Controlled issuance of electronic record instances and templates.** [DI-42.yaml](../../../compliance/controls/DI-42.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Controlled issuance of electronic record instances and templates.** [DI-42.yaml](../../../compliance/controls/DI-42.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-batch-numbers](../code-map.md#ss-batch-numbers), [rc-execution](../code-map.md#rc-execution), [ts-execution](../code-map.md#ts-execution)
 - Tests: [apps/tablets-server/test/execution/db-guards-change-paths.test.ts](../../../apps/tablets-server/test/execution/db-guards-change-paths.test.ts), [packages/recipe-core/test/engine/stage.test.ts](../../../packages/recipe-core/test/engine/stage.test.ts), [packages/site-services/test/batch-number-register.test.ts](../../../packages/site-services/test/batch-number-register.test.ts)
 
 ## DI-43
 
-**Paper in the loop: hybrid steps, contingency (downtime) forms and business continuity.** [DI-43.yaml](../../../compliance/controls/DI-43.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Paper in the loop: hybrid steps, contingency (downtime) forms and business continuity.** [DI-43.yaml](../../../compliance/controls/DI-43.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-installation](../code-map.md#kernel-installation), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-execution](../code-map.md#rc-execution), [ts-records](../code-map.md#ts-records)
 - Tests: [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/mutation/records-contingency-forms.test.ts](../../../packages/kernel/test/mutation/records-contingency-forms.test.ts), [packages/kernel/test/records/contingency-forms.test.ts](../../../packages/kernel/test/records/contingency-forms.test.ts), [packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts](../../../packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts), [packages/recipe-core/test/mutation/records-contingency-forms.test.ts](../../../packages/recipe-core/test/mutation/records-contingency-forms.test.ts)
 
 ## DI-44
 
-**Protection and integrity checking of stored data.** [DI-44.yaml](../../../compliance/controls/DI-44.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Protection and integrity checking of stored data.** [DI-44.yaml](../../../compliance/controls/DI-44.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-records](../code-map.md#kernel-records), [rc-core](../code-map.md#rc-core), [ts-validation](../code-map.md#ts-validation)
 - Tests: [apps/tablets-server/test/validation/export-routes.test.ts](../../../apps/tablets-server/test/validation/export-routes.test.ts), [apps/tablets-web/test/validation/exports.test.tsx](../../../apps/tablets-web/test/validation/exports.test.tsx), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/records/evaluation-pack.test.ts](../../../packages/kernel/test/records/evaluation-pack.test.ts), [packages/kernel/test/records/full-export.test.ts](../../../packages/kernel/test/records/full-export.test.ts), [packages/recipe-core/test/records/closed-batch-records.test.ts](../../../packages/recipe-core/test/records/closed-batch-records.test.ts)
 
 ## DI-45
 
-**Backup and restore.** [DI-45.yaml](../../../compliance/controls/DI-45.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Backup and restore.** [DI-45.yaml](../../../compliance/controls/DI-45.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-continuity](../code-map.md#kernel-continuity), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-installation](../code-map.md#kernel-installation), [ts-operations](../code-map.md#ts-operations), [tools-e2e](../code-map.md#tools-e2e), [tools-drills](../code-map.md#tools-drills)
 - Code: [packages/kernel/sql/0600_continuity_core.sql](../../../packages/kernel/sql/0600_continuity_core.sql)
@@ -835,14 +835,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-46
 
-**Archiving.** [DI-46.yaml](../../../compliance/controls/DI-46.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Archiving.** [DI-46.yaml](../../../compliance/controls/DI-46.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-records](../code-map.md#kernel-records), [tools-drills](../code-map.md#tools-drills)
 - Tests: [packages/kernel/test/records/batch-retention.test.ts](../../../packages/kernel/test/records/batch-retention.test.ts), [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts), [tools/drills/test/drills.test.ts](../../../tools/drills/test/drills.test.ts)
 
 ## DI-47
 
-**Retention periods, holds and controlled disposal.** [DI-47.yaml](../../../compliance/controls/DI-47.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Retention periods, holds and controlled disposal.** [DI-47.yaml](../../../compliance/controls/DI-47.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-records](../code-map.md#kernel-records), [kernel-continuity](../code-map.md#kernel-continuity), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-installation](../code-map.md#kernel-installation), [ts-records](../code-map.md#ts-records), [ts-validation](../code-map.md#ts-validation)
 - Code: [packages/kernel/src/records/retention.ts](../../../packages/kernel/src/records/retention.ts)
@@ -860,21 +860,21 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-48
 
-**Data migration.** [DI-48.yaml](../../../compliance/controls/DI-48.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Data migration.** [DI-48.yaml](../../../compliance/controls/DI-48.yaml). Target phase 4; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [tools-drills](../code-map.md#tools-drills)
 - Tests: [tools/drills/test/drills.test.ts](../../../tools/drills/test/drills.test.ts)
 
 ## DI-49
 
-**Alarms and equipment events in the batch context.** [DI-49.yaml](../../../compliance/controls/DI-49.yaml). Target phase 6; editions tablets, injectables; SPECIFIED.
+**Alarms and equipment events in the batch context.** [DI-49.yaml](../../../compliance/controls/DI-49.yaml). Target phase 6; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-reporting](../code-map.md#ss-reporting), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-blocks](../code-map.md#rc-blocks), [rc-core](../code-map.md#rc-core), [ts-market-config](../code-map.md#ts-market-config), [ts-devices](../code-map.md#ts-devices), [ts-alarms](../code-map.md#ts-alarms), [ts-dashboards](../code-map.md#ts-dashboards), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [integration-sdk](../code-map.md#integration-sdk), [simulators](../code-map.md#simulators), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/simulators/test/ems/ems.test.ts](../../../apps/simulators/test/ems/ems.test.ts), [apps/tablets-server/test/alarms/alarm-bridge.test.ts](../../../apps/tablets-server/test/alarms/alarm-bridge.test.ts), [apps/tablets-server/test/alarms/alarm-routes.test.ts](../../../apps/tablets-server/test/alarms/alarm-routes.test.ts), [apps/tablets-server/test/dashboards/dashboards-routes.test.ts](../../../apps/tablets-server/test/dashboards/dashboards-routes.test.ts), [apps/tablets-server/test/devices/process-readings.test.ts](../../../apps/tablets-server/test/devices/process-readings.test.ts), [apps/tablets-server/test/devices/step-bindings-routes.test.ts](../../../apps/tablets-server/test/devices/step-bindings-routes.test.ts), [apps/tablets-server/test/equipment-data/opcua-adapter.test.ts](../../../apps/tablets-server/test/equipment-data/opcua-adapter.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts](../../../apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts), [apps/tablets-server/test/mutation/process-devices-gateway.test.ts](../../../apps/tablets-server/test/mutation/process-devices-gateway.test.ts), [apps/tablets-web/test/dashboards/dashboards.test.tsx](../../../apps/tablets-web/test/dashboards/dashboards.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [apps/tablets-web/test/plant-status/plant-status.test.tsx](../../../apps/tablets-web/test/plant-status/plant-status.test.tsx), [packages/integration-sdk/test/adapter/equipment-data.test.ts](../../../packages/integration-sdk/test/adapter/equipment-data.test.ts), [packages/recipe-core/test/blocks/automated.test.ts](../../../packages/recipe-core/test/blocks/automated.test.ts), [packages/recipe-core/test/blocks/g06-edges.test.ts](../../../packages/recipe-core/test/blocks/g06-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/integrations/plant-alarms-series.test.ts](../../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts), [packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts](../../../packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts), [packages/recipe-core/test/mutation/plant-rules.test.ts](../../../packages/recipe-core/test/mutation/plant-rules.test.ts), [packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts](../../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts), [packages/recipe-core/test/plant-rules/room-rules.test.ts](../../../packages/recipe-core/test/plant-rules/room-rules.test.ts), [packages/site-services/test/reporting/reporting-views.test.ts](../../../packages/site-services/test/reporting/reporting-views.test.ts), [tools/e2e/specs/phase6/alarms.spec.ts](../../../tools/e2e/specs/phase6/alarms.spec.ts)
 
 ## DI-50
 
-**Data-integrity investigations, remediation and scoping support.** [DI-50.yaml](../../../compliance/controls/DI-50.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Data-integrity investigations, remediation and scoping support.** [DI-50.yaml](../../../compliance/controls/DI-50.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-records](../code-map.md#kernel-records), [kernel-authorization](../code-map.md#kernel-authorization), [kernel-installation](../code-map.md#kernel-installation), [ts-access](../code-map.md#ts-access), [ts-audit](../code-map.md#ts-audit), [ts-esig](../code-map.md#ts-esig), [ts-operations](../code-map.md#ts-operations), [ts-validation](../code-map.md#ts-validation)
 - Code: [packages/kernel/src/records/investigations.ts](../../../packages/kernel/src/records/investigations.ts)
@@ -914,7 +914,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-51
 
-**Analytics outputs are advisory and never change a GMP record.** [DI-51.yaml](../../../compliance/controls/DI-51.yaml). Target phase 7; editions tablets, injectables; SPECIFIED.
+**Analytics outputs are advisory and never change a GMP record.** [DI-51.yaml](../../../compliance/controls/DI-51.yaml). Target phase 7; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [ts-core](../code-map.md#ts-core), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/1240_analytics_schema_role.sql](../../../packages/kernel/sql/1240_analytics_schema_role.sql)
@@ -930,7 +930,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-52
 
-**Analytics methods: versioned, change-controlled, reproducible, with QA feedback and monitoring.** [DI-52.yaml](../../../compliance/controls/DI-52.yaml). Target phase 7; editions tablets, injectables; SPECIFIED.
+**Analytics methods: versioned, change-controlled, reproducible, with QA feedback and monitoring.** [DI-52.yaml](../../../compliance/controls/DI-52.yaml). Target phase 7; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [analytics-mspc](../code-map.md#analytics-mspc), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/1241_analytics_tables.sql](../../../packages/kernel/sql/1241_analytics_tables.sql)
@@ -947,7 +947,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## DI-53
 
-**Audit-trail anomaly flags: reasons shown, restricted, never an automatic finding.** [DI-53.yaml](../../../compliance/controls/DI-53.yaml). Target phase 7; editions tablets, injectables; SPECIFIED.
+**Audit-trail anomaly flags: reasons shown, restricted, never an automatic finding.** [DI-53.yaml](../../../compliance/controls/DI-53.yaml). Target phase 7; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [analytics-audit](../code-map.md#analytics-audit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/1242_analytics_record_functions.sql](../../../packages/kernel/sql/1242_analytics_record_functions.sql)
@@ -966,14 +966,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-01
 
-**Quality-system data feeds: product quality review, management review, CAPA.** [IN-01.yaml](../../../compliance/controls/IN-01.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Quality-system data feeds: product quality review, management review, CAPA.** [IN-01.yaml](../../../compliance/controls/IN-01.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-capa-qms](../code-map.md#ss-capa-qms), [ss-core](../code-map.md#ss-core), [rc-release](../code-map.md#rc-release), [rc-pqr](../code-map.md#rc-pqr), [ts-capa](../code-map.md#ts-capa), [ts-pqr](../code-map.md#ts-pqr), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract)
 - Tests: [apps/tablets-server/test/capa/capa-routes.test.ts](../../../apps/tablets-server/test/capa/capa-routes.test.ts), [apps/tablets-server/test/pqr/pqr-routes.test.ts](../../../apps/tablets-server/test/pqr/pqr-routes.test.ts), [apps/tablets-web/test/capa/capa.test.tsx](../../../apps/tablets-web/test/capa/capa.test.tsx), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [apps/tablets-web/test/pqr/pqr.test.tsx](../../../apps/tablets-web/test/pqr/pqr.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/mutation/pqr-extract.test.ts](../../../packages/recipe-core/test/mutation/pqr-extract.test.ts), [packages/recipe-core/test/release/pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts), [packages/site-services/test/integrations/capa-qms.test.ts](../../../packages/site-services/test/integrations/capa-qms.test.ts), [packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts](../../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts)
 
 ## IN-02
 
-**Risk classification recorded on steps, deviations and changes.** [IN-02.yaml](../../../compliance/controls/IN-02.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
+**Risk classification recorded on steps, deviations and changes.** [IN-02.yaml](../../../compliance/controls/IN-02.yaml). Target phase 2; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-flow](../code-map.md#rc-flow), [ts-designer](../code-map.md#ts-designer), [ts-quality](../code-map.md#ts-quality), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/flow/model.ts](../../../packages/recipe-core/src/flow/model.ts) (RiskScale, RiskReduction, riskClass on steps, parameters, calculations)
@@ -986,77 +986,77 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-03
 
-**Change control gate and first-batch-after-change evaluation.** [IN-03.yaml](../../../compliance/controls/IN-03.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Change control gate and first-batch-after-change evaluation.** [IN-03.yaml](../../../compliance/controls/IN-03.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release)
 - Tests: [apps/tablets-web/test/release/release.test.tsx](../../../apps/tablets-web/test/release/release.test.tsx), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts)
 
 ## IN-04
 
-**Role model, segregation of duties, approved technical staff and training gates.** [IN-04.yaml](../../../compliance/controls/IN-04.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Role model, segregation of duties, approved technical staff and training gates.** [IN-04.yaml](../../../compliance/controls/IN-04.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-installation](../code-map.md#kernel-installation), [ss-lots](../code-map.md#ss-lots), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-review](../code-map.md#rc-review), [rc-execution](../code-map.md#rc-execution), [ts-execution](../code-map.md#ts-execution)
 - Tests: [apps/tablets-server/test/execution/db-guards-roles.test.ts](../../../apps/tablets-server/test/execution/db-guards-roles.test.ts), [apps/tablets-server/test/execution/gmp-batch.test.ts](../../../apps/tablets-server/test/execution/gmp-batch.test.ts), [packages/kernel/test/review/f79.test.ts](../../../packages/kernel/test/review/f79.test.ts), [packages/recipe-core/test/engine/approvals-edges.test.ts](../../../packages/recipe-core/test/engine/approvals-edges.test.ts), [packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts](../../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts), [packages/recipe-core/test/review/batch-scope.test.ts](../../../packages/recipe-core/test/review/batch-scope.test.ts), [packages/site-services/test/lots/consumption-batch-scope.test.ts](../../../packages/site-services/test/lots/consumption-batch-scope.test.ts)
 
 ## IN-05
 
-**Batch disposition by the authorised person.** [IN-05.yaml](../../../compliance/controls/IN-05.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Batch disposition by the authorised person.** [IN-05.yaml](../../../compliance/controls/IN-05.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-shipping](../code-map.md#ss-shipping), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [rc-release](../code-map.md#rc-release), [ts-quality](../code-map.md#ts-quality), [ts-release](../code-map.md#ts-release), [ts-india](../code-map.md#ts-india), [ts-administration](../code-map.md#ts-administration), [ts-core](../code-map.md#ts-core), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/administration/access-governance-routes.test.ts](../../../apps/tablets-server/test/administration/access-governance-routes.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/mutation/india-expiry.test.ts](../../../apps/tablets-server/test/mutation/india-expiry.test.ts), [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [apps/tablets-server/test/release/after-release-routes.test.ts](../../../apps/tablets-server/test/release/after-release-routes.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [apps/tablets-server/test/release/qp-shipping-routes.test.ts](../../../apps/tablets-server/test/release/qp-shipping-routes.test.ts), [apps/tablets-server/test/release/release-act-apply.test.ts](../../../apps/tablets-server/test/release/release-act-apply.test.ts), [apps/tablets-server/test/release/release-routes.test.ts](../../../apps/tablets-server/test/release/release-routes.test.ts), [apps/tablets-server/test/seed/release-seed.test.ts](../../../apps/tablets-server/test/seed/release-seed.test.ts), [apps/tablets-web/test/administration/governance.test.tsx](../../../apps/tablets-web/test/administration/governance.test.tsx), [apps/tablets-web/test/release/release.test.tsx](../../../apps/tablets-web/test/release/release.test.tsx), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/after-release.test.ts](../../../packages/recipe-core/test/release/after-release.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts), [packages/site-services/test/lots/machine.test.ts](../../../packages/site-services/test/lots/machine.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts), [packages/site-services/test/shipping/erp-shipping.test.ts](../../../packages/site-services/test/shipping/erp-shipping.test.ts), [tools/e2e/specs/administration/governance.spec.ts](../../../tools/e2e/specs/administration/governance.spec.ts)
 
 ## IN-06
 
-**Document control of masters and corrections to recorded data.** [IN-06.yaml](../../../compliance/controls/IN-06.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Document control of masters and corrections to recorded data.** [IN-06.yaml](../../../compliance/controls/IN-06.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-execution](../code-map.md#ts-execution)
 - Tests: [apps/tablets-server/test/execution/db-guards-change-paths.test.ts](../../../apps/tablets-server/test/execution/db-guards-change-paths.test.ts), [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts), [packages/recipe-core/test/lifecycle/gmp-issue.test.ts](../../../packages/recipe-core/test/lifecycle/gmp-issue.test.ts)
 
 ## IN-07
 
-**Contemporaneous capture, completeness and traceability.** [IN-07.yaml](../../../compliance/controls/IN-07.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Contemporaneous capture, completeness and traceability.** [IN-07.yaml](../../../compliance/controls/IN-07.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-genealogy](../code-map.md#ss-genealogy), [ts-blocks](../code-map.md#ts-blocks), [ts-genealogy](../code-map.md#ts-genealogy), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts](../../../apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts), [apps/tablets-server/test/genealogy/genealogy-routes.test.ts](../../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts), [apps/tablets-web/test/genealogy/genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx), [packages/site-services/test/genealogy/genealogy.test.ts](../../../packages/site-services/test/genealogy/genealogy.test.ts), [tools/e2e/specs/phase6/genealogy-recall.spec.ts](../../../tools/e2e/specs/phase6/genealogy-recall.spec.ts)
 
 ## IN-08
 
-**Record retention engine.** [IN-08.yaml](../../../compliance/controls/IN-08.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Record retention engine.** [IN-08.yaml](../../../compliance/controls/IN-08.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-records](../code-map.md#kernel-records), [ts-records](../code-map.md#ts-records)
 - Tests: [apps/tablets-server/test/records/archive-retention-facts.test.ts](../../../apps/tablets-server/test/records/archive-retention-facts.test.ts), [apps/tablets-server/test/records/archive-retention-routes.test.ts](../../../apps/tablets-server/test/records/archive-retention-routes.test.ts), [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/records/batch-retention.test.ts](../../../packages/kernel/test/records/batch-retention.test.ts)
 
 ## IN-09
 
-**Computerised-system controls for electronic batch records.** [IN-09.yaml](../../../compliance/controls/IN-09.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Computerised-system controls for electronic batch records.** [IN-09.yaml](../../../compliance/controls/IN-09.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [tools-drills](../code-map.md#tools-drills)
 - Tests: [packages/recipe-core/test/blocks/automated.test.ts](../../../packages/recipe-core/test/blocks/automated.test.ts), [packages/recipe-core/test/blocks/material.test.ts](../../../packages/recipe-core/test/blocks/material.test.ts), [tools/drills/test/drills.test.ts](../../../tools/drills/test/drills.test.ts)
 
 ## IN-10
 
-**Electronic signatures (Indian basis).** [IN-10.yaml](../../../compliance/controls/IN-10.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Electronic signatures (Indian basis).** [IN-10.yaml](../../../compliance/controls/IN-10.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-esig](../code-map.md#kernel-esig), [kernel-installation](../code-map.md#kernel-installation), [ts-governance](../code-map.md#ts-governance), [api-contract](../code-map.md#api-contract), [ui-kit](../code-map.md#ui-kit)
 - Tests: [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/kernel/test/esig/dsc.test.ts](../../../packages/kernel/test/esig/dsc.test.ts), [packages/kernel/test/esig/invalidation.test.ts](../../../packages/kernel/test/esig/invalidation.test.ts), [packages/kernel/test/mutation/india-dsc.test.ts](../../../packages/kernel/test/mutation/india-dsc.test.ts), [packages/ui-kit/test/identity/identity.test.tsx](../../../packages/ui-kit/test/identity/identity.test.tsx)
 
 ## IN-11
 
-**Certified evidence export.** [IN-11.yaml](../../../compliance/controls/IN-11.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Certified evidence export.** [IN-11.yaml](../../../compliance/controls/IN-11.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [kernel-installation](../code-map.md#kernel-installation), [ts-records](../code-map.md#ts-records)
 - Tests: [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/mutation/records-evidence-export.test.ts](../../../packages/kernel/test/mutation/records-evidence-export.test.ts), [packages/kernel/test/records/evidence-export-offline.test.ts](../../../packages/kernel/test/records/evidence-export-offline.test.ts), [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts)
 
 ## IN-12
 
-**Validation package and site master file support.** [IN-12.yaml](../../../compliance/controls/IN-12.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Validation package and site master file support.** [IN-12.yaml](../../../compliance/controls/IN-12.yaml). Target phase 4; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [validation-kit](../code-map.md#validation-kit), [tools-validation](../code-map.md#tools-validation)
 - Tests: [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts), [tools/validation/test/validation.test.ts](../../../tools/validation/test/validation.test.ts)
 
 ## IN-13
 
-**Master formula (MBR) content and hold times.** [IN-13.yaml](../../../compliance/controls/IN-13.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Master formula (MBR) content and hold times.** [IN-13.yaml](../../../compliance/controls/IN-13.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-execution](../code-map.md#rc-execution), [ts-designer](../code-map.md#ts-designer), [ts-blocks](../code-map.md#ts-blocks)
 - Code: [packages/recipe-core/src/engine/definition.ts](../../../packages/recipe-core/src/engine/definition.ts) (implicit hold-time constraints)
@@ -1066,14 +1066,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-14
 
-**Master packaging instructions.** [IN-14.yaml](../../../compliance/controls/IN-14.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Master packaging instructions.** [IN-14.yaml](../../../compliance/controls/IN-14.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-designer](../code-map.md#ts-designer)
 - Tests: [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [packages/recipe-core/test/lifecycle/packaging-issue.test.ts](../../../packages/recipe-core/test/lifecycle/packaging-issue.test.ts)
 
 ## IN-15
 
-**Batch processing record content.** [IN-15.yaml](../../../compliance/controls/IN-15.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Batch processing record content.** [IN-15.yaml](../../../compliance/controls/IN-15.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-execution](../code-map.md#ts-execution), [ui-kit](../code-map.md#ui-kit)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (signOffStage)
@@ -1085,21 +1085,21 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-16
 
-**Batch packaging record content.** [IN-16.yaml](../../../compliance/controls/IN-16.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Batch packaging record content.** [IN-16.yaml](../../../compliance/controls/IN-16.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-blocks](../code-map.md#rc-blocks), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-labels](../code-map.md#ts-labels), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [apps/tablets-web/test/labels/labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/lifecycle/packaging-issue.test.ts](../../../packages/recipe-core/test/lifecycle/packaging-issue.test.ts)
 
 ## IN-17
 
-**Yields and reconciliation.** [IN-17.yaml](../../../compliance/controls/IN-17.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Yields and reconciliation.** [IN-17.yaml](../../../compliance/controls/IN-17.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/blocks/bottle/blocks.test.ts](../../../apps/tablets-server/test/blocks/bottle/blocks.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts), [apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/mutation/limit-exceptions.test.ts](../../../packages/recipe-core/test/mutation/limit-exceptions.test.ts)
 
 ## IN-18
 
-**Batch numbering and allocation register.** [IN-18.yaml](../../../compliance/controls/IN-18.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Batch numbering and allocation register.** [IN-18.yaml](../../../compliance/controls/IN-18.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-installation](../code-map.md#kernel-installation), [ss-batch-numbers](../code-map.md#ss-batch-numbers), [ss-quality](../code-map.md#ss-quality), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [rc-blocks](../code-map.md#rc-blocks), [rc-reprocessing](../code-map.md#rc-reprocessing), [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-planning](../code-map.md#ts-planning), [ts-india](../code-map.md#ts-india), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/reprocessing.ts](../../../packages/recipe-core/src/blocks/generic/reprocessing.ts) (G-24@2 and the addition rules)
@@ -1111,7 +1111,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-19
 
-**Rework, reprocessing and recovery.** [IN-19.yaml](../../../compliance/controls/IN-19.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Rework, reprocessing and recovery.** [IN-19.yaml](../../../compliance/controls/IN-19.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [rc-blocks](../code-map.md#rc-blocks), [rc-reprocessing](../code-map.md#rc-reprocessing), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/process.ts](../../../packages/recipe-core/src/blocks/generic/process.ts) (G-24)
@@ -1126,7 +1126,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-20
 
-**Deviations, OOS and investigation scope.** [IN-20.yaml](../../../compliance/controls/IN-20.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Deviations, OOS and investigation scope.** [IN-20.yaml](../../../compliance/controls/IN-20.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-quality](../code-map.md#ts-quality)
 - Code: [packages/recipe-core/src/engine/data.ts](../../../packages/recipe-core/src/engine/data.ts), [packages/recipe-core/src/engine/corrections.ts](../../../packages/recipe-core/src/engine/corrections.ts) (repeats and invalidation)
@@ -1142,7 +1142,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-21
 
-**Line clearance, status labelling and identification.** [IN-21.yaml](../../../compliance/controls/IN-21.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Line clearance, status labelling and identification.** [IN-21.yaml](../../../compliance/controls/IN-21.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-plant](../code-map.md#rc-plant), [rc-containers](../code-map.md#rc-containers), [rc-blocks](../code-map.md#rc-blocks)
 - Code: [packages/recipe-core/sql/0402_machine_area_status_v1.sql](../../../packages/recipe-core/sql/0402_machine_area_status_v1.sql)
@@ -1156,14 +1156,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-22
 
-**Packaging operation controls (coding, readers, on-line checks, leftovers).** [IN-22.yaml](../../../compliance/controls/IN-22.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Packaging operation controls (coding, readers, on-line checks, leftovers).** [IN-22.yaml](../../../compliance/controls/IN-22.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks)
 - Tests: [apps/tablets-server/test/blocks/blister/db-guards.test.ts](../../../apps/tablets-server/test/blocks/blister/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/blocks.test.ts](../../../apps/tablets-server/test/blocks/bottle/blocks.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts), [apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts), [apps/tablets-server/test/blocks/packaging/completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/completion.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/mutation/packaging-bottle.test.ts](../../../apps/tablets-server/test/mutation/packaging-bottle.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/execution/g21-sql.test.ts](../../../packages/recipe-core/test/execution/g21-sql.test.ts)
 
 ## IN-23
 
-**Dispensing.** [IN-23.yaml](../../../compliance/controls/IN-23.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Dispensing.** [IN-23.yaml](../../../compliance/controls/IN-23.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-07)
@@ -1172,7 +1172,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-24
 
-**Material status, labels, excipient release route, packaging materials and returns.** [IN-24.yaml](../../../compliance/controls/IN-24.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Material status, labels, excipient release route, packaging materials and returns.** [IN-24.yaml](../../../compliance/controls/IN-24.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-erp](../code-map.md#ss-erp), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [rc-consumption](../code-map.md#rc-consumption), [rc-blocks](../code-map.md#rc-blocks), [rc-release](../code-map.md#rc-release), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-07)
@@ -1190,7 +1190,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-25
 
-**Equipment status, logbooks, calibration and clean-hold time.** [IN-25.yaml](../../../compliance/controls/IN-25.yaml). Target phase 3; editions tablets, injectables; SPECIFIED.
+**Equipment status, logbooks, calibration and clean-hold time.** [IN-25.yaml](../../../compliance/controls/IN-25.yaml). Target phase 3; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-plant](../code-map.md#rc-plant), [rc-mirrors](../code-map.md#rc-mirrors), [rc-core](../code-map.md#rc-core), [ts-blocks](../code-map.md#ts-blocks)
 - Code: [packages/recipe-core/sql/0401_machine_equipment_cleanliness_v1.sql](../../../packages/recipe-core/sql/0401_machine_equipment_cleanliness_v1.sql)
@@ -1203,7 +1203,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-26
 
-**Cross-contamination and room/product eligibility.** [IN-26.yaml](../../../compliance/controls/IN-26.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Cross-contamination and room/product eligibility.** [IN-26.yaml](../../../compliance/controls/IN-26.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-plant](../code-map.md#rc-plant), [rc-containers](../code-map.md#rc-containers), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks), [ts-containers](../code-map.md#ts-containers), [ts-planning](../code-map.md#ts-planning), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/sql/0400_plant_foundation.sql](../../../packages/recipe-core/sql/0400_plant_foundation.sql)
@@ -1217,63 +1217,63 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-27
 
-**Hazardous products (sex hormones, steroids, cytotoxics).** [IN-27.yaml](../../../compliance/controls/IN-27.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Hazardous products (sex hormones, steroids, cytotoxics).** [IN-27.yaml](../../../compliance/controls/IN-27.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-designer](../code-map.md#ts-designer), [ts-india](../code-map.md#ts-india), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/designer/hazard-containment.test.ts](../../../apps/tablets-server/test/designer/hazard-containment.test.ts), [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [packages/recipe-core/test/mutation/india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [tools/e2e/specs/administration/screen-gaps.spec.ts](../../../tools/e2e/specs/administration/screen-gaps.spec.ts)
 
 ## IN-28
 
-**Self-inspection support and supplier approval.** [IN-28.yaml](../../../compliance/controls/IN-28.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Self-inspection support and supplier approval.** [IN-28.yaml](../../../compliance/controls/IN-28.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence)
 - Tests: [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts)
 
 ## IN-29
 
-**Complaints, recalls and genealogy queries.** [IN-29.yaml](../../../compliance/controls/IN-29.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Complaints, recalls and genealogy queries.** [IN-29.yaml](../../../compliance/controls/IN-29.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-genealogy](../code-map.md#ss-genealogy), [ss-transfer](../code-map.md#ss-transfer), [ss-core](../code-map.md#ss-core), [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release), [ts-genealogy](../code-map.md#ts-genealogy), [ts-transfers](../code-map.md#ts-transfers), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/genealogy/genealogy-routes.test.ts](../../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/release/after-release-routes.test.ts](../../../apps/tablets-server/test/release/after-release-routes.test.ts), [apps/tablets-server/test/transfers/transfer-routes.test.ts](../../../apps/tablets-server/test/transfers/transfer-routes.test.ts), [apps/tablets-web/test/genealogy/genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx), [apps/tablets-web/test/release/after-release.test.tsx](../../../apps/tablets-web/test/release/after-release.test.tsx), [apps/tablets-web/test/transfers/transfers.test.tsx](../../../apps/tablets-web/test/transfers/transfers.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/release/after-release.test.ts](../../../packages/recipe-core/test/release/after-release.test.ts), [packages/site-services/test/genealogy/genealogy.test.ts](../../../packages/site-services/test/genealogy/genealogy.test.ts), [packages/site-services/test/genealogy/recall.test.ts](../../../packages/site-services/test/genealogy/recall.test.ts), [packages/site-services/test/genealogy/recovery-distribution.test.ts](../../../packages/site-services/test/genealogy/recovery-distribution.test.ts), [packages/site-services/test/mutation/genealogy-and-recall.test.ts](../../../packages/site-services/test/mutation/genealogy-and-recall.test.ts), [packages/site-services/test/mutation/transfer-and-federation.test.ts](../../../packages/site-services/test/mutation/transfer-and-federation.test.ts), [packages/site-services/test/transfer/transfer.test.ts](../../../packages/site-services/test/transfer/transfer.test.ts), [tools/e2e/specs/phase6/genealogy-recall.spec.ts](../../../tools/e2e/specs/phase6/genealogy-recall.spec.ts)
 
 ## IN-30
 
-**Loan-licence and contract manufacture.** [IN-30.yaml](../../../compliance/controls/IN-30.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Loan-licence and contract manufacture.** [IN-30.yaml](../../../compliance/controls/IN-30.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-india](../code-map.md#ss-india), [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-audit](../code-map.md#ts-audit), [ts-governance](../code-map.md#ts-governance), [ts-india](../code-map.md#ts-india), [api-contract](../code-map.md#api-contract)
 - Tests: [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [apps/tablets-server/test/mutation/read-authorisation.test.ts](../../../apps/tablets-server/test/mutation/read-authorisation.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [apps/tablets-web/test/office/india.test.tsx](../../../apps/tablets-web/test/office/india.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/api-contract/test/india.test.ts](../../../packages/api-contract/test/india.test.ts), [packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts](../../../packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts), [packages/recipe-core/test/mutation/india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [packages/site-services/test/india/licences.test.ts](../../../packages/site-services/test/india/licences.test.ts), [packages/site-services/test/mutation/india-licences.test.ts](../../../packages/site-services/test/mutation/india-licences.test.ts)
 
 ## IN-31
 
-**Finished-pack label content and coding verification.** [IN-31.yaml](../../../compliance/controls/IN-31.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Finished-pack label content and coding verification.** [IN-31.yaml](../../../compliance/controls/IN-31.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-installation](../code-map.md#kernel-installation), [rc-labels](../code-map.md#rc-labels), [rc-blocks](../code-map.md#rc-blocks), [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [rc-core](../code-map.md#rc-core), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks), [ts-labels](../code-map.md#ts-labels), [ts-india](../code-map.md#ts-india), [ts-execution](../code-map.md#ts-execution), [tablets-web](../code-map.md#tablets-web), [api-contract](../code-map.md#api-contract)
 - Tests: [apps/tablets-server/test/blocks/packaging/completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/completion.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts), [apps/tablets-server/test/execution/floor-acts-routes.test.ts](../../../apps/tablets-server/test/execution/floor-acts-routes.test.ts), [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [apps/tablets-server/test/labels/labels-routes.test.ts](../../../apps/tablets-server/test/labels/labels-routes.test.ts), [apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts](../../../apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts), [apps/tablets-web/test/floor/step-floor-acts.test.tsx](../../../apps/tablets-web/test/floor/step-floor-acts.test.tsx), [apps/tablets-web/test/labels/labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [apps/tablets-web/test/office/india.test.tsx](../../../apps/tablets-web/test/office/india.test.tsx), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/api-contract/test/india.test.ts](../../../packages/api-contract/test/india.test.ts), [packages/kernel/test/review/f23.test.ts](../../../packages/kernel/test/review/f23.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/labels/label-templates.test.ts](../../../packages/recipe-core/test/labels/label-templates.test.ts), [packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts](../../../packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts), [packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts](../../../packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts)
 
 ## IN-32
 
-**Reference and retention samples.** [IN-32.yaml](../../../compliance/controls/IN-32.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Reference and retention samples.** [IN-32.yaml](../../../compliance/controls/IN-32.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-release](../code-map.md#rc-release), [ts-quality](../code-map.md#ts-quality)
 - Tests: [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts)
 
 ## IN-33
 
-**Pharmacopoeia and edition references in specifications and limits.** [IN-33.yaml](../../../compliance/controls/IN-33.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Pharmacopoeia and edition references in specifications and limits.** [IN-33.yaml](../../../compliance/controls/IN-33.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-designer](../code-map.md#ts-designer), [ts-quality](../code-map.md#ts-quality), [api-contract](../code-map.md#api-contract)
 - Tests: [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [apps/tablets-web/test/office/quality-records.test.tsx](../../../apps/tablets-web/test/office/quality-records.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/lifecycle/edition-review.test.ts](../../../packages/recipe-core/test/lifecycle/edition-review.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts)
 
 ## IN-34
 
-**Weight-variation limits by pharmacopoeia.** [IN-34.yaml](../../../compliance/controls/IN-34.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Weight-variation limits by pharmacopoeia.** [IN-34.yaml](../../../compliance/controls/IN-34.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [kernel-installation](../code-map.md#kernel-installation), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release)
 - Tests: [apps/tablets-server/test/blocks/ipc/blocks.test.ts](../../../apps/tablets-server/test/blocks/ipc/blocks.test.ts), [apps/tablets-server/test/blocks/ipc/calc-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/calc-edges.test.ts), [apps/tablets-server/test/blocks/ipc/common-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/common-edges.test.ts), [apps/tablets-server/test/blocks/ipc/db-guards.test.ts](../../../apps/tablets-server/test/blocks/ipc/db-guards.test.ts), [apps/tablets-server/test/blocks/ipc/rule-sets-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/rule-sets-edges.test.ts), [apps/tablets-server/test/blocks/ipc/tb-12-edges.test.ts](../../../apps/tablets-server/test/blocks/ipc/tb-12-edges.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/mutation/tablets-coating.test.ts](../../../apps/tablets-server/test/mutation/tablets-coating.test.ts), [apps/tablets-server/test/mutation/tablets-ipc.test.ts](../../../apps/tablets-server/test/mutation/tablets-ipc.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [packages/kernel/test/review/f20.test.ts](../../../packages/kernel/test/review/f20.test.ts)
 
 ## IN-35
 
-**Compression in-process controls.** [IN-35.yaml](../../../compliance/controls/IN-35.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Compression in-process controls.** [IN-35.yaml](../../../compliance/controls/IN-35.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks)
 - Code: [packages/recipe-core/src/engine/data.ts](../../../packages/recipe-core/src/engine/data.ts) (readings)
@@ -1285,14 +1285,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-36
 
-**Sifting, mixing, granulation and drying controls; sieve, punch and die checks.** [IN-36.yaml](../../../compliance/controls/IN-36.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Sifting, mixing, granulation and drying controls; sieve, punch and die checks.** [IN-36.yaml](../../../compliance/controls/IN-36.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution)
 - Tests: [apps/tablets-server/test/blocks/compression/blocks.test.ts](../../../apps/tablets-server/test/blocks/compression/blocks.test.ts), [apps/tablets-server/test/blocks/compression/db-guards.test.ts](../../../apps/tablets-server/test/blocks/compression/db-guards.test.ts), [apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts), [apps/tablets-server/test/blocks/compression/tb-17-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-17-edges.test.ts), [apps/tablets-server/test/blocks/forming/blocks.test.ts](../../../apps/tablets-server/test/blocks/forming/blocks.test.ts), [apps/tablets-server/test/blocks/forming/db-guards.test.ts](../../../apps/tablets-server/test/blocks/forming/db-guards.test.ts), [apps/tablets-server/test/blocks/forming/tb-06-edges.test.ts](../../../apps/tablets-server/test/blocks/forming/tb-06-edges.test.ts), [apps/tablets-server/test/blocks/granulation/blocks.test.ts](../../../apps/tablets-server/test/blocks/granulation/blocks.test.ts), [apps/tablets-server/test/blocks/granulation/db-guards.test.ts](../../../apps/tablets-server/test/blocks/granulation/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/tb-02-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-02-edges.test.ts), [apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts), [apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts), [apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts), [apps/tablets-server/test/blocks/granulation/tb-07-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-07-edges.test.ts), [apps/tablets-server/test/execution/floor-acts-routes.test.ts](../../../apps/tablets-server/test/execution/floor-acts-routes.test.ts), [apps/tablets-server/test/mutation/due-times-and-holds.test.ts](../../../apps/tablets-server/test/mutation/due-times-and-holds.test.ts), [apps/tablets-server/test/mutation/tablets-compression-registers.test.ts](../../../apps/tablets-server/test/mutation/tablets-compression-registers.test.ts), [apps/tablets-server/test/mutation/tablets-compression.test.ts](../../../apps/tablets-server/test/mutation/tablets-compression.test.ts), [apps/tablets-web/test/floor/step-floor-acts.test.tsx](../../../apps/tablets-web/test/floor/step-floor-acts.test.tsx)
 
 ## IN-37
 
-**Coating, capsule shells and printing of tablets/capsules.** [IN-37.yaml](../../../compliance/controls/IN-37.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Coating, capsule shells and printing of tablets/capsules.** [IN-37.yaml](../../../compliance/controls/IN-37.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (dispositionHoldPoint)
@@ -1302,14 +1302,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-38
 
-**Strip and blister packaging.** [IN-38.yaml](../../../compliance/controls/IN-38.yaml). Target phase 3; editions tablets; SPECIFIED.
+**Strip and blister packaging.** [IN-38.yaml](../../../compliance/controls/IN-38.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks)
 - Tests: [apps/tablets-server/test/blocks/blister/blocks.test.ts](../../../apps/tablets-server/test/blocks/blister/blocks.test.ts), [apps/tablets-server/test/blocks/blister/db-guards.test.ts](../../../apps/tablets-server/test/blocks/blister/db-guards.test.ts), [apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts](../../../apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts), [apps/tablets-server/test/blocks/blister/tb-22-edges.test.ts](../../../apps/tablets-server/test/blocks/blister/tb-22-edges.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/mutation/packaging-blister.test.ts](../../../apps/tablets-server/test/mutation/packaging-blister.test.ts), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [packages/site-services/test/quality/interfaces.test.ts](../../../packages/site-services/test/quality/interfaces.test.ts)
 
 ## IN-39
 
-**OSD room environment: pressure differentials, temperature and humidity.** [IN-39.yaml](../../../compliance/controls/IN-39.yaml). Target phase 3; editions tablets; SPECIFIED.
+**OSD room environment: pressure differentials, temperature and humidity.** [IN-39.yaml](../../../compliance/controls/IN-39.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [ts-release](../code-map.md#ts-release), [ts-notifications](../code-map.md#ts-notifications), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/recording.ts](../../../packages/recipe-core/src/blocks/generic/recording.ts) (G-11)
@@ -1390,7 +1390,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## IN-52
 
-**Market-profile rule resolution.** [IN-52.yaml](../../../compliance/controls/IN-52.yaml). Target phase 1; editions tablets, injectables; IMPLEMENTED.
+**Market-profile rule resolution.** [IN-52.yaml](../../../compliance/controls/IN-52.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
 - Modules: [kernel-market](../code-map.md#kernel-market), [kernel-installation](../code-map.md#kernel-installation), [rc-execution](../code-map.md#rc-execution), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config)
 - Code: [packages/kernel/src/market/resolve.ts](../../../packages/kernel/src/market/resolve.ts)
@@ -1438,7 +1438,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-01
 
-**Master record scope and keying.** [PR-01.yaml](../../../compliance/controls/PR-01.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
+**Master record scope and keying.** [PR-01.yaml](../../../compliance/controls/PR-01.yaml). Target phase 2; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-designer](../code-map.md#ts-designer), [ts-execution](../code-map.md#ts-execution), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/engine/batch.ts](../../../packages/recipe-core/src/engine/batch.ts) (initialState)
@@ -1450,7 +1450,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-02
 
-**Master preparation, independent check and quality-unit approval.** [PR-02.yaml](../../../compliance/controls/PR-02.yaml). Target phase 2; editions tablets, injectables; IMPLEMENTED.
+**Master preparation, independent check and quality-unit approval.** [PR-02.yaml](../../../compliance/controls/PR-02.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-blocks](../code-map.md#rc-blocks), [ts-designer](../code-map.md#ts-designer), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web)
 - Code: [packages/recipe-core/src/lifecycle/machine.ts](../../../packages/recipe-core/src/lifecycle/machine.ts) (MBR version machine: SUBMIT with Sig PREPARED, CHECK with Sig CHECKED, APPROVE with Sig APPROVED)
@@ -1468,7 +1468,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-03
 
-**MBR content completeness gate.** [PR-03.yaml](../../../compliance/controls/PR-03.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
+**MBR content completeness gate.** [PR-03.yaml](../../../compliance/controls/PR-03.yaml). Target phase 2; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-flow](../code-map.md#rc-flow), [ts-designer](../code-map.md#ts-designer), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/flow/model.ts](../../../packages/recipe-core/src/flow/model.ts)
@@ -1483,7 +1483,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-04
 
-**Registration (MA / application) conformity and market validity of masters.** [PR-04.yaml](../../../compliance/controls/PR-04.yaml). Target phase 2; editions tablets, injectables; IMPLEMENTED.
+**Registration (MA / application) conformity and market validity of masters.** [PR-04.yaml](../../../compliance/controls/PR-04.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/sql/0130_mbr_guards.sql](../../../packages/recipe-core/sql/0130_mbr_guards.sql) (recipe.registered_ranges, recipe.registered_changes, guard registered_ranges_kept)
@@ -1514,7 +1514,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-06
 
-**Change control for masters and linked GMP objects.** [PR-06.yaml](../../../compliance/controls/PR-06.yaml). Target phase 2; editions tablets, injectables; IMPLEMENTED.
+**Change control for masters and linked GMP objects.** [PR-06.yaml](../../../compliance/controls/PR-06.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-release](../code-map.md#rc-release), [ts-designer](../code-map.md#ts-designer), [ts-master-data](../code-map.md#ts-master-data), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/sql/0110_mbr_family_version.sql](../../../packages/recipe-core/sql/0110_mbr_family_version.sql) (content revisions accepted only in DRAFT; version identity immutable)
@@ -1539,7 +1539,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-08
 
-**CPP and IPC limit model (validated, registered and internal tiers).** [PR-08.yaml](../../../compliance/controls/PR-08.yaml). Target phase 2; editions tablets, injectables; SPECIFIED.
+**CPP and IPC limit model (validated, registered and internal tiers).** [PR-08.yaml](../../../compliance/controls/PR-08.yaml). Target phase 2; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [rc-simulator](../code-map.md#rc-simulator), [ts-designer](../code-map.md#ts-designer), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [ui-kit](../code-map.md#ui-kit), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/limits](../../../packages/recipe-core/src/limits) (model, nesting, evaluate, all-apply)
@@ -1560,14 +1560,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-09
 
-**Process validation status and validation-batch flags.** [PR-09.yaml](../../../compliance/controls/PR-09.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Process validation status and validation-batch flags.** [PR-09.yaml](../../../compliance/controls/PR-09.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release), [ts-pqr](../code-map.md#ts-pqr)
 - Tests: [apps/tablets-web/test/pqr/pqr.test.tsx](../../../apps/tablets-web/test/pqr/pqr.test.tsx), [apps/tablets-web/test/release/release.test.tsx](../../../apps/tablets-web/test/release/release.test.tsx), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts)
 
 ## PR-10
 
-**Batch record issuance and batch numbering.** [PR-10.yaml](../../../compliance/controls/PR-10.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Batch record issuance and batch numbering.** [PR-10.yaml](../../../compliance/controls/PR-10.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-installation](../code-map.md#kernel-installation), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-execution](../code-map.md#rc-execution), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/engine/engine.ts](../../../packages/recipe-core/src/engine/engine.ts) issue(), [packages/recipe-core/src/engine/batch.ts](../../../packages/recipe-core/src/engine/batch.ts) initialState()
@@ -1576,7 +1576,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-11
 
-**Contemporaneous recording, time stamps, late entries and paper fallback.** [PR-11.yaml](../../../compliance/controls/PR-11.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Contemporaneous recording, time stamps, late entries and paper fallback.** [PR-11.yaml](../../../compliance/controls/PR-11.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [rc-execution](../code-map.md#rc-execution)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (startStep, recordData)
@@ -1585,14 +1585,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-12
 
-**Corrections to recorded data.** [PR-12.yaml](../../../compliance/controls/PR-12.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Corrections to recorded data.** [PR-12.yaml](../../../compliance/controls/PR-12.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-execution](../code-map.md#rc-execution), [ts-execution](../code-map.md#ts-execution)
 - Tests: [apps/tablets-server/test/execution/db-guards-change-paths.test.ts](../../../apps/tablets-server/test/execution/db-guards-change-paths.test.ts), [packages/recipe-core/test/engine/corrections.test.ts](../../../packages/recipe-core/test/engine/corrections.test.ts)
 
 ## PR-13
 
-**Step-sequence enforcement and the in-line deviation path.** [PR-13.yaml](../../../compliance/controls/PR-13.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Step-sequence enforcement and the in-line deviation path.** [PR-13.yaml](../../../compliance/controls/PR-13.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (requestSkip, chooseAlternative)
@@ -1605,7 +1605,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-14
 
-**Significant steps: performer plus checker, and the limited scope of single-person automated checking.** [PR-14.yaml](../../../compliance/controls/PR-14.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Significant steps: performer plus checker, and the limited scope of single-person automated checking.** [PR-14.yaml](../../../compliance/controls/PR-14.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (verify)
@@ -1626,7 +1626,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-16
 
-**Record completeness gate (processing complete / packaging complete).** [PR-16.yaml](../../../compliance/controls/PR-16.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Record completeness gate (processing complete / packaging complete).** [PR-16.yaml](../../../compliance/controls/PR-16.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-records](../code-map.md#ts-records), [ts-labels](../code-map.md#ts-labels), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/engine/steps.ts](../../../packages/recipe-core/src/engine/steps.ts) (signPerformed, signOffStage)
@@ -1637,7 +1637,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-17
 
-**Receipt, lot identity and approved source.** [PR-17.yaml](../../../compliance/controls/PR-17.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Receipt, lot identity and approved source.** [PR-17.yaml](../../../compliance/controls/PR-17.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-erp](../code-map.md#ss-erp), [ss-quality](../code-map.md#ss-quality), [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms), [ss-core](../code-map.md#ss-core), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-integrations](../code-map.md#ts-integrations), [api-contract](../code-map.md#api-contract)
 - Code: [packages/site-services/sql/0750_erp_material_master.sql](../../../packages/site-services/sql/0750_erp_material_master.sql)
@@ -1647,7 +1647,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-18
 
-**Material status and usability gate at dispensing, issue and charge-in.** [PR-18.yaml](../../../compliance/controls/PR-18.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Material status and usability gate at dispensing, issue and charge-in.** [PR-18.yaml](../../../compliance/controls/PR-18.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-erp](../code-map.md#ss-erp), [ss-quality](../code-map.md#ss-quality), [ss-lots](../code-map.md#ss-lots), [ss-core](../code-map.md#ss-core), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-07)
@@ -1659,7 +1659,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-19
 
-**Dispensing targets and dispensing execution.** [PR-19.yaml](../../../compliance/controls/PR-19.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Dispensing targets and dispensing execution.** [PR-19.yaml](../../../compliance/controls/PR-19.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-designer](../code-map.md#ts-designer), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-07)
@@ -1673,7 +1673,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-20
 
-**Independent check of each dispensed material.** [PR-20.yaml](../../../compliance/controls/PR-20.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Independent check of each dispensed material.** [PR-20.yaml](../../../compliance/controls/PR-20.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-installation](../code-map.md#kernel-installation), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution), [api-contract](../code-map.md#api-contract), [site-gateway](../code-map.md#site-gateway)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-07)
@@ -1683,7 +1683,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-21
 
-**Batch kit and charge-in verification.** [PR-21.yaml](../../../compliance/controls/PR-21.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Batch kit and charge-in verification.** [PR-21.yaml](../../../compliance/controls/PR-21.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-07, G-08)
@@ -1692,28 +1692,28 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-22
 
-**Equipment and container identification.** [PR-22.yaml](../../../compliance/controls/PR-22.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Equipment and container identification.** [PR-22.yaml](../../../compliance/controls/PR-22.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-containers](../code-map.md#rc-containers), [ts-blocks](../code-map.md#ts-blocks), [ts-alarms](../code-map.md#ts-alarms), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/alarms/plant-displays.test.ts](../../../apps/tablets-server/test/alarms/plant-displays.test.ts), [apps/tablets-server/test/blocks/compression/blocks.test.ts](../../../apps/tablets-server/test/blocks/compression/blocks.test.ts), [apps/tablets-server/test/blocks/compression/db-guards.test.ts](../../../apps/tablets-server/test/blocks/compression/db-guards.test.ts), [apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts), [apps/tablets-server/test/blocks/compression/tb-10-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-10-edges.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/mutation/tablets-compression-registers.test.ts](../../../apps/tablets-server/test/mutation/tablets-compression-registers.test.ts), [apps/tablets-web/test/plant-status/plant-status.test.tsx](../../../apps/tablets-web/test/plant-status/plant-status.test.tsx), [packages/recipe-core/test/containers/containers.test.ts](../../../packages/recipe-core/test/containers/containers.test.ts), [packages/recipe-core/test/mutation/output-containers.test.ts](../../../packages/recipe-core/test/mutation/output-containers.test.ts), [packages/recipe-core/test/plant-rules/room-rules.test.ts](../../../packages/recipe-core/test/plant-rules/room-rules.test.ts)
 
 ## PR-23
 
-**Equipment and instrument status gate before use.** [PR-23.yaml](../../../compliance/controls/PR-23.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Equipment and instrument status gate before use.** [PR-23.yaml](../../../compliance/controls/PR-23.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-plant](../code-map.md#rc-plant), [rc-mirrors](../code-map.md#rc-mirrors), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-core](../code-map.md#rc-core), [ts-designer](../code-map.md#ts-designer), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution)
 - Tests: [apps/tablets-server/test/blocks/compression/blocks.test.ts](../../../apps/tablets-server/test/blocks/compression/blocks.test.ts), [apps/tablets-server/test/blocks/compression/db-guards.test.ts](../../../apps/tablets-server/test/blocks/compression/db-guards.test.ts), [apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts), [apps/tablets-server/test/blocks/compression/tb-10-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-10-edges.test.ts), [apps/tablets-server/test/blocks/forming/db-guards.test.ts](../../../apps/tablets-server/test/blocks/forming/db-guards.test.ts), [apps/tablets-server/test/blocks/forming/tb-06-edges.test.ts](../../../apps/tablets-server/test/blocks/forming/tb-06-edges.test.ts), [apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts](../../../apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts), [apps/tablets-server/test/blocks/granulation/blocks.test.ts](../../../apps/tablets-server/test/blocks/granulation/blocks.test.ts), [apps/tablets-server/test/blocks/granulation/db-guards.test.ts](../../../apps/tablets-server/test/blocks/granulation/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/tb-02-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-02-edges.test.ts), [apps/tablets-server/test/blocks/ipc/db-guards.test.ts](../../../apps/tablets-server/test/blocks/ipc/db-guards.test.ts), [apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts](../../../apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts), [apps/tablets-server/test/execution/db-guards-free-text-identifiers.test.ts](../../../apps/tablets-server/test/execution/db-guards-free-text-identifiers.test.ts), [apps/tablets-server/test/execution/evidence-source-room.test.ts](../../../apps/tablets-server/test/execution/evidence-source-room.test.ts), [apps/tablets-server/test/execution/refusals-and-room-views.test.ts](../../../apps/tablets-server/test/execution/refusals-and-room-views.test.ts), [apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts](../../../apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts), [apps/tablets-web/test/designer/config-shown.test.tsx](../../../apps/tablets-web/test/designer/config-shown.test.tsx), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/status-v2-edges.test.ts](../../../packages/recipe-core/test/blocks/status-v2-edges.test.ts), [packages/recipe-core/test/execution/entry-data-sql.test.ts](../../../packages/recipe-core/test/execution/entry-data-sql.test.ts), [packages/recipe-core/test/integrations/cmms-qms-release.test.ts](../../../packages/recipe-core/test/integrations/cmms-qms-release.test.ts), [packages/recipe-core/test/mutation/entry-references-and-schema.test.ts](../../../packages/recipe-core/test/mutation/entry-references-and-schema.test.ts), [packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts](../../../packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts), [packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts](../../../packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts), [packages/recipe-core/test/plant/equipment.test.ts](../../../packages/recipe-core/test/plant/equipment.test.ts), [packages/recipe-core/test/plant/status-blocks.test.ts](../../../packages/recipe-core/test/plant/status-blocks.test.ts)
 
 ## PR-24
 
-**Equipment and area logbooks.** [PR-24.yaml](../../../compliance/controls/PR-24.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Equipment and area logbooks.** [PR-24.yaml](../../../compliance/controls/PR-24.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-plant](../code-map.md#rc-plant)
 - Tests: [packages/recipe-core/test/plant/area.test.ts](../../../packages/recipe-core/test/plant/area.test.ts), [packages/recipe-core/test/plant/equipment.test.ts](../../../packages/recipe-core/test/plant/equipment.test.ts)
 
 ## PR-25
 
-**Room and area suitability, occupancy and sanitation status.** [PR-25.yaml](../../../compliance/controls/PR-25.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Room and area suitability, occupancy and sanitation status.** [PR-25.yaml](../../../compliance/controls/PR-25.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-plant](../code-map.md#rc-plant), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-blocks](../code-map.md#rc-blocks), [rc-core](../code-map.md#rc-core), [ts-blocks](../code-map.md#ts-blocks), [ts-alarms](../code-map.md#ts-alarms), [tablets-web](../code-map.md#tablets-web)
 - Code: [packages/recipe-core/src/blocks/generic/recording.ts](../../../packages/recipe-core/src/blocks/generic/recording.ts) (G-11)
@@ -1729,7 +1729,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-27
 
-**Cross-contamination controls: dedication, changeover, campaigns, penicillin, dust and events.** [PR-27.yaml](../../../compliance/controls/PR-27.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Cross-contamination controls: dedication, changeover, campaigns, penicillin, dust and events.** [PR-27.yaml](../../../compliance/controls/PR-27.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-reagent-lots](../code-map.md#ss-reagent-lots), [rc-plant](../code-map.md#rc-plant), [rc-equipment-data](../code-map.md#rc-equipment-data), [rc-release](../code-map.md#rc-release), [rc-core](../code-map.md#rc-core), [ts-blocks](../code-map.md#ts-blocks), [ts-alarms](../code-map.md#ts-alarms), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/alarms/plant-rule-approval.test.ts](../../../apps/tablets-server/test/alarms/plant-rule-approval.test.ts), [apps/tablets-server/test/alarms/plant-rule-proposals.test.ts](../../../apps/tablets-server/test/alarms/plant-rule-proposals.test.ts), [apps/tablets-server/test/blocks/compression/blocks.test.ts](../../../apps/tablets-server/test/blocks/compression/blocks.test.ts), [apps/tablets-server/test/blocks/compression/db-guards.test.ts](../../../apps/tablets-server/test/blocks/compression/db-guards.test.ts), [apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts](../../../apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts), [apps/tablets-server/test/blocks/granulation/blocks.test.ts](../../../apps/tablets-server/test/blocks/granulation/blocks.test.ts), [apps/tablets-server/test/blocks/granulation/db-guards.test.ts](../../../apps/tablets-server/test/blocks/granulation/db-guards.test.ts), [apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts](../../../apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts), [apps/tablets-server/test/mutation/tablets-compression-registers.test.ts](../../../apps/tablets-server/test/mutation/tablets-compression-registers.test.ts), [apps/tablets-web/test/plant-status/plant-status.test.tsx](../../../apps/tablets-web/test/plant-status/plant-status.test.tsx), [apps/tablets-web/test/slice7g2/plant-rules.test.tsx](../../../apps/tablets-web/test/slice7g2/plant-rules.test.tsx), [packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts](../../../packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts), [packages/recipe-core/test/mutation/plant-rules.test.ts](../../../packages/recipe-core/test/mutation/plant-rules.test.ts), [packages/recipe-core/test/plant-rules/room-rules.test.ts](../../../packages/recipe-core/test/plant-rules/room-rules.test.ts), [packages/recipe-core/test/plant-rules/rule-approval.test.ts](../../../packages/recipe-core/test/plant-rules/rule-approval.test.ts), [packages/recipe-core/test/plant/area.test.ts](../../../packages/recipe-core/test/plant/area.test.ts), [packages/recipe-core/test/plant/equipment.test.ts](../../../packages/recipe-core/test/plant/equipment.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [packages/site-services/test/plant-rules/materials.test.ts](../../../packages/site-services/test/plant-rules/materials.test.ts), [tools/e2e/specs/phase7/plant-rules.spec.ts](../../../tools/e2e/specs/phase7/plant-rules.spec.ts)
@@ -1742,7 +1742,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-29
 
-**In-process controls and sampling.** [PR-29.yaml](../../../compliance/controls/PR-29.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**In-process controls and sampling.** [PR-29.yaml](../../../compliance/controls/PR-29.yaml). Target phase 4; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [ss-reagent-lots](../code-map.md#ss-reagent-lots), [ss-core](../code-map.md#ss-core), [rc-containers](../code-map.md#rc-containers), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-designer](../code-map.md#ts-designer), [ts-blocks](../code-map.md#ts-blocks), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/blocks/generic/process.ts](../../../packages/recipe-core/src/blocks/generic/process.ts) (G-12)
@@ -1753,7 +1753,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-30
 
-**Time limits and hold times.** [PR-30.yaml](../../../compliance/controls/PR-30.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Time limits and hold times.** [PR-30.yaml](../../../compliance/controls/PR-30.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-designer](../code-map.md#ts-designer), [ts-blocks](../code-map.md#ts-blocks), [ts-execution](../code-map.md#ts-execution)
 - Code: [packages/recipe-core/src/engine/timing.ts](../../../packages/recipe-core/src/engine/timing.ts)
@@ -1764,7 +1764,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-31
 
-**Yield calculation, verification and investigation.** [PR-31.yaml](../../../compliance/controls/PR-31.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Yield calculation, verification and investigation.** [PR-31.yaml](../../../compliance/controls/PR-31.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/recording.ts](../../../packages/recipe-core/src/blocks/generic/recording.ts) (G-20)
@@ -1774,63 +1774,63 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-32
 
-**Receipt, examination, segregated storage and access control for labeling and packaging materials.** [PR-32.yaml](../../../compliance/controls/PR-32.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Receipt, examination, segregated storage and access control for labeling and packaging materials.** [PR-32.yaml](../../../compliance/controls/PR-32.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-lots](../code-map.md#ss-lots), [ss-core](../code-map.md#ss-core), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-labels](../code-map.md#ts-labels)
 - Tests: [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/labels/labels-routes.test.ts](../../../apps/tablets-server/test/labels/labels-routes.test.ts), [apps/tablets-web/test/labels/labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/execution/g21-sql.test.ts](../../../packages/recipe-core/test/execution/g21-sql.test.ts), [packages/site-services/test/lots/label-store.test.ts](../../../packages/site-services/test/lots/label-store.test.ts), [packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts](../../../packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts)
 
 ## PR-33
 
-**Labeling issuance and packaging-material verification at line start.** [PR-33.yaml](../../../compliance/controls/PR-33.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Labeling issuance and packaging-material verification at line start.** [PR-33.yaml](../../../compliance/controls/PR-33.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks)
 - Tests: [apps/tablets-server/test/blocks/blister/blocks.test.ts](../../../apps/tablets-server/test/blocks/blister/blocks.test.ts), [apps/tablets-server/test/blocks/blister/db-guards.test.ts](../../../apps/tablets-server/test/blocks/blister/db-guards.test.ts), [apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts](../../../apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/mutation/tablets-coating.test.ts](../../../apps/tablets-server/test/mutation/tablets-coating.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/execution/g21-sql.test.ts](../../../packages/recipe-core/test/execution/g21-sql.test.ts)
 
 ## PR-34
 
-**Packaging line clearance before and after use.** [PR-34.yaml](../../../compliance/controls/PR-34.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Packaging line clearance before and after use.** [PR-34.yaml](../../../compliance/controls/PR-34.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-plant](../code-map.md#rc-plant), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-labels](../code-map.md#ts-labels), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/blocks/blister/db-guards.test.ts](../../../apps/tablets-server/test/blocks/blister/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts), [apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts](../../../apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/labels/labels-routes.test.ts](../../../apps/tablets-server/test/labels/labels-routes.test.ts), [apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts](../../../apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts), [apps/tablets-web/test/labels/labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/status-v2-edges.test.ts](../../../packages/recipe-core/test/blocks/status-v2-edges.test.ts), [packages/recipe-core/test/execution/entry-data-sql.test.ts](../../../packages/recipe-core/test/execution/entry-data-sql.test.ts), [packages/recipe-core/test/mutation/entry-references-and-schema.test.ts](../../../packages/recipe-core/test/mutation/entry-references-and-schema.test.ts), [packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts](../../../packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts), [packages/recipe-core/test/plant/area.test.ts](../../../packages/recipe-core/test/plant/area.test.ts), [packages/recipe-core/test/plant/status-blocks.test.ts](../../../packages/recipe-core/test/plant/status-blocks.test.ts)
 
 ## PR-35
 
-**Packaging segregation and line identification.** [PR-35.yaml](../../../compliance/controls/PR-35.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Packaging segregation and line identification.** [PR-35.yaml](../../../compliance/controls/PR-35.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-plant](../code-map.md#rc-plant), [rc-equipment-data](../code-map.md#rc-equipment-data), [ts-blocks](../code-map.md#ts-blocks), [ts-alarms](../code-map.md#ts-alarms), [tablets-web](../code-map.md#tablets-web)
 - Tests: [apps/tablets-server/test/alarms/plant-displays.test.ts](../../../apps/tablets-server/test/alarms/plant-displays.test.ts), [apps/tablets-server/test/blocks/blister/db-guards.test.ts](../../../apps/tablets-server/test/blocks/blister/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [apps/tablets-web/test/plant-status/plant-status.test.tsx](../../../apps/tablets-web/test/plant-status/plant-status.test.tsx), [packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts](../../../packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts), [packages/recipe-core/test/plant-rules/room-rules.test.ts](../../../packages/recipe-core/test/plant-rules/room-rules.test.ts), [packages/recipe-core/test/plant/area.test.ts](../../../packages/recipe-core/test/plant/area.test.ts)
 
 ## PR-36
 
-**Printing, coding, variable data and cut-label controls.** [PR-36.yaml](../../../compliance/controls/PR-36.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Printing, coding, variable data and cut-label controls.** [PR-36.yaml](../../../compliance/controls/PR-36.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-labels](../code-map.md#rc-labels), [rc-blocks](../code-map.md#rc-blocks), [rc-core](../code-map.md#rc-core), [ts-market-config](../code-map.md#ts-market-config), [ts-blocks](../code-map.md#ts-blocks), [ts-labels](../code-map.md#ts-labels), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [site-gateway](../code-map.md#site-gateway), [simulators](../code-map.md#simulators)
 - Tests: [apps/simulators/test/printer/simulator.test.ts](../../../apps/simulators/test/printer/simulator.test.ts), [apps/site-gateway/test/printer.test.ts](../../../apps/site-gateway/test/printer.test.ts), [apps/tablets-server/test/blocks/packaging/completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/completion.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts), [apps/tablets-server/test/execution/floor-acts-routes.test.ts](../../../apps/tablets-server/test/execution/floor-acts-routes.test.ts), [apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts](../../../apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts), [apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts](../../../apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts), [apps/tablets-web/test/floor/step-floor-acts.test.tsx](../../../apps/tablets-web/test/floor/step-floor-acts.test.tsx), [apps/tablets-web/test/labels/labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/labels/label-templates.test.ts](../../../packages/recipe-core/test/labels/label-templates.test.ts), [packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts](../../../packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts)
 
 ## PR-37
 
-**On-line packaging controls, label examinations and unusual events.** [PR-37.yaml](../../../compliance/controls/PR-37.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**On-line packaging controls, label examinations and unusual events.** [PR-37.yaml](../../../compliance/controls/PR-37.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/blocks/blister/blocks.test.ts](../../../apps/tablets-server/test/blocks/blister/blocks.test.ts), [apps/tablets-server/test/blocks/blister/db-guards.test.ts](../../../apps/tablets-server/test/blocks/blister/db-guards.test.ts), [apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts](../../../apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts), [apps/tablets-server/test/blocks/bottle/blocks.test.ts](../../../apps/tablets-server/test/blocks/bottle/blocks.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts), [apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts), [apps/tablets-server/test/blocks/packaging/bulk-gate-gmp.test.ts](../../../apps/tablets-server/test/blocks/packaging/bulk-gate-gmp.test.ts), [apps/tablets-server/test/blocks/packaging/completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/completion.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/mutation/packaging-bottle.test.ts](../../../apps/tablets-server/test/mutation/packaging-bottle.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/execution/g21-sql.test.ts](../../../packages/recipe-core/test/execution/g21-sql.test.ts), [packages/recipe-core/test/lifecycle/packaging-issue.test.ts](../../../packages/recipe-core/test/lifecycle/packaging-issue.test.ts), [packages/recipe-core/test/mutation/gmp-batch-issue.test.ts](../../../packages/recipe-core/test/mutation/gmp-batch-issue.test.ts), [packages/recipe-core/test/mutation/packaging-g21-rules.test.ts](../../../packages/recipe-core/test/mutation/packaging-g21-rules.test.ts)
 
 ## PR-38
 
-**Filled but unlabelled containers ("bright stock").** [PR-38.yaml](../../../compliance/controls/PR-38.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Filled but unlabelled containers ("bright stock").** [PR-38.yaml](../../../compliance/controls/PR-38.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-blocks](../code-map.md#ts-blocks), [ts-records](../code-map.md#ts-records), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/blocks/bottle/blocks.test.ts](../../../apps/tablets-server/test/blocks/bottle/blocks.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts), [apps/tablets-server/test/blocks/packaging/bulk-gate-gmp.test.ts](../../../apps/tablets-server/test/blocks/packaging/bulk-gate-gmp.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/records/records-routes.test.ts](../../../apps/tablets-server/test/records/records-routes.test.ts), [apps/tablets-web/test/records/records.test.tsx](../../../apps/tablets-web/test/records/records.test.tsx), [packages/recipe-core/test/lifecycle/record-lock.test.ts](../../../packages/recipe-core/test/lifecycle/record-lock.test.ts)
 
 ## PR-39
 
-**Reconciliation of bulk, labeling, printed packaging materials and serials.** [PR-39.yaml](../../../compliance/controls/PR-39.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Reconciliation of bulk, labeling, printed packaging materials and serials.** [PR-39.yaml](../../../compliance/controls/PR-39.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts](../../../apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/mutation/limit-exceptions.test.ts](../../../packages/recipe-core/test/mutation/limit-exceptions.test.ts)
 
 ## PR-40
 
-**Packaging close-out: batch-coded leftovers and returns to stock.** [PR-40.yaml](../../../compliance/controls/PR-40.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Packaging close-out: batch-coded leftovers and returns to stock.** [PR-40.yaml](../../../compliance/controls/PR-40.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-23)
@@ -1839,35 +1839,35 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-41
 
-**OTC tamper-evident packaging.** [PR-41.yaml](../../../compliance/controls/PR-41.yaml). Target phase 3; editions tablets; SPECIFIED.
+**OTC tamper-evident packaging.** [PR-41.yaml](../../../compliance/controls/PR-41.yaml). Target phase 3; editions tablets; VERIFIED.
 
 - Modules: [ts-blocks](../code-map.md#ts-blocks)
 - Tests: [apps/tablets-server/test/blocks/bottle/blocks.test.ts](../../../apps/tablets-server/test/blocks/bottle/blocks.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts), [apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts)
 
 ## PR-42
 
-**Serialisation, product identifiers and safety features.** [PR-42.yaml](../../../compliance/controls/PR-42.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Serialisation, product identifiers and safety features.** [PR-42.yaml](../../../compliance/controls/PR-42.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-blocks](../code-map.md#rc-blocks), [ts-blocks](../code-map.md#ts-blocks), [ts-release](../code-map.md#ts-release), [ts-integrations](../code-map.md#ts-integrations), [ts-labels](../code-map.md#ts-labels), [ts-core](../code-map.md#ts-core), [integration-sdk](../code-map.md#integration-sdk), [simulators](../code-map.md#simulators)
 - Tests: [apps/simulators/test/serialisation/stub.test.ts](../../../apps/simulators/test/serialisation/stub.test.ts), [apps/tablets-server/test/blocks/bottle/blocks.test.ts](../../../apps/tablets-server/test/blocks/bottle/blocks.test.ts), [apps/tablets-server/test/blocks/bottle/db-guards.test.ts](../../../apps/tablets-server/test/blocks/bottle/db-guards.test.ts), [apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts](../../../apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts), [apps/tablets-server/test/blocks/packaging/completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/completion.test.ts), [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/blocks/packaging/line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-server/test/integrations/l3-adapter.test.ts](../../../apps/tablets-server/test/integrations/l3-adapter.test.ts), [apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts](../../../apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts), [apps/tablets-server/test/release/grel-tablets-items.test.ts](../../../apps/tablets-server/test/release/grel-tablets-items.test.ts), [apps/tablets-web/test/labels/labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx), [packages/integration-sdk/test/serialisation/serialisation.test.ts](../../../packages/integration-sdk/test/serialisation/serialisation.test.ts), [packages/recipe-core/test/blocks/g21-edges.test.ts](../../../packages/recipe-core/test/blocks/g21-edges.test.ts), [packages/recipe-core/test/blocks/golden.test.ts](../../../packages/recipe-core/test/blocks/golden.test.ts), [packages/recipe-core/test/blocks/printed.test.ts](../../../packages/recipe-core/test/blocks/printed.test.ts), [packages/recipe-core/test/mutation/packaging-g21-rules.test.ts](../../../packages/recipe-core/test/mutation/packaging-g21-rules.test.ts)
 
 ## PR-43
 
-**Expiry dating.** [PR-43.yaml](../../../compliance/controls/PR-43.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Expiry dating.** [PR-43.yaml](../../../compliance/controls/PR-43.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-india](../code-map.md#ss-india), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [rc-release](../code-map.md#rc-release), [ts-blocks](../code-map.md#ts-blocks), [ts-india](../code-map.md#ts-india), [ts-core](../code-map.md#ts-core), [tablets-web](../code-map.md#tablets-web), [tools-e2e](../code-map.md#tools-e2e)
 - Tests: [apps/tablets-server/test/blocks/packaging/db-guards.test.ts](../../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts), [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [apps/tablets-server/test/mutation/india-expiry.test.ts](../../../apps/tablets-server/test/mutation/india-expiry.test.ts), [apps/tablets-server/test/seed/release-seed.test.ts](../../../apps/tablets-server/test/seed/release-seed.test.ts), [apps/tablets-web/test/office/screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx), [packages/recipe-core/test/mutation/india-expiry.test.ts](../../../packages/recipe-core/test/mutation/india-expiry.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [packages/site-services/test/india/licences.test.ts](../../../packages/site-services/test/india/licences.test.ts), [packages/site-services/test/mutation/india-licences.test.ts](../../../packages/site-services/test/mutation/india-licences.test.ts), [tools/e2e/specs/administration/screen-gaps.spec.ts](../../../tools/e2e/specs/administration/screen-gaps.spec.ts)
 
 ## PR-44
 
-**Reserve samples.** [PR-44.yaml](../../../compliance/controls/PR-44.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Reserve samples.** [PR-44.yaml](../../../compliance/controls/PR-44.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-release](../code-map.md#rc-release), [ts-quality](../code-map.md#ts-quality), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts)
 
 ## PR-45
 
-**Quarantine and release status model.** [PR-45.yaml](../../../compliance/controls/PR-45.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Quarantine and release status model.** [PR-45.yaml](../../../compliance/controls/PR-45.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-shipping](../code-map.md#ss-shipping), [ss-quality](../code-map.md#ss-quality), [rc-blocks](../code-map.md#rc-blocks), [rc-review](../code-map.md#rc-review), [rc-execution](../code-map.md#rc-execution), [rc-flow](../code-map.md#rc-flow), [ts-access](../code-map.md#ts-access), [ts-designer](../code-map.md#ts-designer), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-release](../code-map.md#ts-release), [ts-india](../code-map.md#ts-india), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [ui-kit](../code-map.md#ui-kit)
 - Code: [packages/recipe-core/src/engine/batch.ts](../../../packages/recipe-core/src/engine/batch.ts) (holdBatch, releaseHold)
@@ -1879,7 +1879,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-46
 
-**Rejected materials and products.** [PR-46.yaml](../../../compliance/controls/PR-46.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Rejected materials and products.** [PR-46.yaml](../../../compliance/controls/PR-46.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-lots](../code-map.md#ss-lots), [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms), [ss-core](../code-map.md#ss-core), [rc-blocks](../code-map.md#rc-blocks), [rc-release](../code-map.md#rc-release), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-release](../code-map.md#ts-release), [ts-integrations](../code-map.md#ts-integrations)
 - Code: [packages/recipe-core/src/blocks/generic/material.ts](../../../packages/recipe-core/src/blocks/generic/material.ts) (G-23)
@@ -1888,7 +1888,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-47
 
-**Reprocessing and recovery of earlier batches.** [PR-47.yaml](../../../compliance/controls/PR-47.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Reprocessing and recovery of earlier batches.** [PR-47.yaml](../../../compliance/controls/PR-47.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [rc-containers](../code-map.md#rc-containers), [rc-blocks](../code-map.md#rc-blocks), [rc-reprocessing](../code-map.md#rc-reprocessing), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [ts-devices](../code-map.md#ts-devices), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-release](../code-map.md#ts-release), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core)
 - Code: [packages/recipe-core/src/blocks/generic/process.ts](../../../packages/recipe-core/src/blocks/generic/process.ts) (G-24)
@@ -1906,14 +1906,14 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-48
 
-**Returned products.** [PR-48.yaml](../../../compliance/controls/PR-48.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Returned products.** [PR-48.yaml](../../../compliance/controls/PR-48.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [ss-genealogy](../code-map.md#ss-genealogy), [ts-quality](../code-map.md#ts-quality), [ts-genealogy](../code-map.md#ts-genealogy)
 - Tests: [apps/tablets-server/test/genealogy/genealogy-routes.test.ts](../../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts), [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [apps/tablets-web/test/genealogy/genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx), [packages/site-services/test/genealogy/recovery-distribution.test.ts](../../../packages/site-services/test/genealogy/recovery-distribution.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts)
 
 ## PR-49
 
-**Deviation record, classification and approval.** [PR-49.yaml](../../../compliance/controls/PR-49.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Deviation record, classification and approval.** [PR-49.yaml](../../../compliance/controls/PR-49.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-shipping](../code-map.md#ss-shipping), [ss-quality](../code-map.md#ss-quality), [ss-genealogy](../code-map.md#ss-genealogy), [rc-lifecycle](../code-map.md#rc-lifecycle), [rc-containers](../code-map.md#rc-containers), [rc-gmp-batch](../code-map.md#rc-gmp-batch), [rc-review](../code-map.md#rc-review), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [ts-esig](../code-map.md#ts-esig), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-genealogy](../code-map.md#ts-genealogy), [ts-execution](../code-map.md#ts-execution), [api-contract](../code-map.md#api-contract)
 - Code: [packages/recipe-core/src/engine/exceptions.ts](../../../packages/recipe-core/src/engine/exceptions.ts), [packages/recipe-core/src/engine/batch.ts](../../../packages/recipe-core/src/engine/batch.ts) (dispositionException)
@@ -1926,7 +1926,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-50
 
-**Investigation of discrepancies and failures.** [PR-50.yaml](../../../compliance/controls/PR-50.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Investigation of discrepancies and failures.** [PR-50.yaml](../../../compliance/controls/PR-50.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [ss-genealogy](../code-map.md#ss-genealogy), [ss-core](../code-map.md#ss-core), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-genealogy](../code-map.md#ts-genealogy)
 - Code: [packages/site-services/sql/0730_deviation_lite.sql](../../../packages/site-services/sql/0730_deviation_lite.sql)
@@ -1935,49 +1935,49 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-51
 
-**CAPA linkage and effectiveness.** [PR-51.yaml](../../../compliance/controls/PR-51.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**CAPA linkage and effectiveness.** [PR-51.yaml](../../../compliance/controls/PR-51.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-capa-qms](../code-map.md#ss-capa-qms), [ss-core](../code-map.md#ss-core), [ts-capa](../code-map.md#ts-capa)
 - Tests: [apps/tablets-server/test/capa/capa-routes.test.ts](../../../apps/tablets-server/test/capa/capa-routes.test.ts), [apps/tablets-web/test/capa/capa.test.tsx](../../../apps/tablets-web/test/capa/capa.test.tsx), [packages/site-services/test/integrations/capa-qms.test.ts](../../../packages/site-services/test/integrations/capa-qms.test.ts), [packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts](../../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts)
 
 ## PR-52
 
-**Production approval and quality-unit review (including review by exception).** [PR-52.yaml](../../../compliance/controls/PR-52.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Production approval and quality-unit review (including review by exception).** [PR-52.yaml](../../../compliance/controls/PR-52.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [analytics](../code-map.md#analytics), [rc-review](../code-map.md#rc-review), [rc-flow](../code-map.md#rc-flow), [ts-review](../code-map.md#ts-review)
 - Tests: [apps/tablets-server/test/analytics/review.test.ts](../../../apps/tablets-server/test/analytics/review.test.ts), [apps/tablets-server/test/review/register-routes.test.ts](../../../apps/tablets-server/test/review/register-routes.test.ts), [packages/recipe-core/test/review/rbe-rules.test.ts](../../../packages/recipe-core/test/review/rbe-rules.test.ts), [packages/recipe-core/test/review/review.test.ts](../../../packages/recipe-core/test/review/review.test.ts), [packages/recipe-core/test/validator/content.test.ts](../../../packages/recipe-core/test/validator/content.test.ts)
 
 ## PR-53
 
-**Release gating on open deviations and investigations.** [PR-53.yaml](../../../compliance/controls/PR-53.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Release gating on open deviations and investigations.** [PR-53.yaml](../../../compliance/controls/PR-53.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts)
 
 ## PR-54
 
-**US batch disposition by the quality control unit.** [PR-54.yaml](../../../compliance/controls/PR-54.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**US batch disposition by the quality control unit.** [PR-54.yaml](../../../compliance/controls/PR-54.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release)
 - Tests: [packages/recipe-core/test/release/dispositions.test.ts](../../../packages/recipe-core/test/release/dispositions.test.ts)
 
 ## PR-55
 
-**EU QP certification.** [PR-55.yaml](../../../compliance/controls/PR-55.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**EU QP certification.** [PR-55.yaml](../../../compliance/controls/PR-55.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release)
 - Tests: [apps/tablets-web/test/release/markets.test.tsx](../../../apps/tablets-web/test/release/markets.test.tsx), [packages/recipe-core/test/release/dispositions.test.ts](../../../packages/recipe-core/test/release/dispositions.test.ts)
 
 ## PR-56
 
-**Market-specific disposition for multi-market batches.** [PR-56.yaml](../../../compliance/controls/PR-56.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Market-specific disposition for multi-market batches.** [PR-56.yaml](../../../compliance/controls/PR-56.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-shipping](../code-map.md#ss-shipping), [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release), [ts-core](../code-map.md#ts-core)
 - Tests: [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-web/test/release/markets.test.tsx](../../../apps/tablets-web/test/release/markets.test.tsx), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/dispositions.test.ts](../../../packages/recipe-core/test/release/dispositions.test.ts), [packages/site-services/test/shipping/erp-shipping.test.ts](../../../packages/site-services/test/shipping/erp-shipping.test.ts)
 
 ## PR-57
 
-**Genealogy and lot traceability (including distribution and complaint lookups).** [PR-57.yaml](../../../compliance/controls/PR-57.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Genealogy and lot traceability (including distribution and complaint lookups).** [PR-57.yaml](../../../compliance/controls/PR-57.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [ss-quality](../code-map.md#ss-quality), [ss-genealogy](../code-map.md#ss-genealogy), [ss-transfer](../code-map.md#ss-transfer), [ss-core](../code-map.md#ss-core), [rc-blocks](../code-map.md#rc-blocks), [rc-reprocessing](../code-map.md#rc-reprocessing), [rc-release](../code-map.md#rc-release), [rc-execution](../code-map.md#rc-execution), [ts-blocks](../code-map.md#ts-blocks), [ts-quality](../code-map.md#ts-quality), [ts-genealogy](../code-map.md#ts-genealogy), [ts-transfers](../code-map.md#ts-transfers), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/src/blocks/generic/reprocessing.ts](../../../packages/recipe-core/src/blocks/generic/reprocessing.ts) (G-24@2 and the addition rules)
@@ -1989,28 +1989,28 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 ## PR-58
 
-**Product quality review / annual product review data.** [PR-58.yaml](../../../compliance/controls/PR-58.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Product quality review / annual product review data.** [PR-58.yaml](../../../compliance/controls/PR-58.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [rc-release](../code-map.md#rc-release), [rc-pqr](../code-map.md#rc-pqr), [ts-pqr](../code-map.md#ts-pqr), [api-contract](../code-map.md#api-contract)
 - Tests: [apps/tablets-server/test/pqr/pqr-routes.test.ts](../../../apps/tablets-server/test/pqr/pqr-routes.test.ts), [apps/tablets-web/test/pqr/pqr.test.tsx](../../../apps/tablets-web/test/pqr/pqr.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/mutation/pqr-extract.test.ts](../../../packages/recipe-core/test/mutation/pqr-extract.test.ts), [packages/recipe-core/test/release/pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts)
 
 ## PR-59
 
-**Record retention, record-location register and archiving.** [PR-59.yaml](../../../compliance/controls/PR-59.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Record retention, record-location register and archiving.** [PR-59.yaml](../../../compliance/controls/PR-59.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
 - Modules: [kernel-records](../code-map.md#kernel-records), [ts-records](../code-map.md#ts-records)
 - Tests: [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/records/batch-retention.test.ts](../../../packages/kernel/test/records/batch-retention.test.ts)
 
 ## PR-60
 
-**Forward compatibility with EU draft texts (data governance, AI).** [PR-60.yaml](../../../compliance/controls/PR-60.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
+**Forward compatibility with EU draft texts (data governance, AI).** [PR-60.yaml](../../../compliance/controls/PR-60.yaml). Target phase 4; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [validation-kit](../code-map.md#validation-kit)
 - Tests: [apps/tablets-server/test/analytics/routes.test.ts](../../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-web/test/analytics/analytics.test.tsx](../../../apps/tablets-web/test/analytics/analytics.test.tsx), [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts)
 
 ## PR-61
 
-**Review priority orders the QA review queue and never skips or narrows a review.** [PR-61.yaml](../../../compliance/controls/PR-61.yaml). Target phase 7; editions tablets, injectables; SPECIFIED.
+**Review priority orders the QA review queue and never skips or narrows a review.** [PR-61.yaml](../../../compliance/controls/PR-61.yaml). Target phase 7; editions tablets, injectables; IMPLEMENTED.
 
 - Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [analytics-review](../code-map.md#analytics-review), [ts-review](../code-map.md#ts-review), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/kernel/sql/1243_analytics_read_views.sql](../../../packages/kernel/sql/1243_analytics_read_views.sql)

@@ -50,6 +50,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: EU adds strength and, where appropriate, rooms. US adds the processing phase where necessary. The kernel applies the union of both.
 type_detail: ENFORCED (unit ID in the record; contents and status identification) + DESIGN-CHOICE (barcode/RFID; electronic status displays in place of paper labels)

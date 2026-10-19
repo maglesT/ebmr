@@ -82,5 +82,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: The intent is equivalent. EU requires validation of significant process changes explicitly (5.25), and US requires QCU approval of changes to procedures (211.100(a)). The kernel applies both.

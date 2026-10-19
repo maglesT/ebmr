@@ -298,5 +298,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: Both markets allow shared read-only viewing (FDA Q5; draft). Neither allows shared accounts for any action, including second-person review.

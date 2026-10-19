@@ -39,5 +39,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: US accepts physical or spatial separation. EU requires physical segregation for different products packaged close to each other. EU is stricter.

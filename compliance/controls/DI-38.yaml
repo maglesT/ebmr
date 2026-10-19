@@ -258,7 +258,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: 11.200 allows a single private component for later signings within one continuous session. The EU draft expects re-authentication at each signing, and typing the password/PIN each time satisfies that. The default of all components every time meets both.
 type_detail: CONFIGURABLE (default = strictest practical). Floors are ENFORCED.
 notes: |-

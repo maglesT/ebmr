@@ -58,6 +58,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "mostly **same** as FDA 211.188(b) (dates, equipment, component lots, weights, IPC results, yields, persons performing and checking each significant step) [chk] and EU Chapter 4 section 4.20 [chk]. **Stricter** on two items absent from both: the person responsible for each stage, and the hold time for intermediates [chk]."
 notes: "Source check: P (item list re-read, including hold time and responsible person per stage; sub-item letters inferred)."

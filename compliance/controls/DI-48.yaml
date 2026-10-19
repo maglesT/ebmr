@@ -37,6 +37,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: Only the EU (§4.8) has an explicit migration rule. The US reaches the same result through 11.10(c) and the true-copy rules.
 type_detail: "ENFORCED (the checks). Automating them is a DESIGN-CHOICE: §4.8 requires the checks, not automation."

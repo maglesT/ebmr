@@ -42,6 +42,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: Equivalent. EU requires the destruction to be recorded; US requires destruction of excess labeling that bears lot or control numbers.
 type_detail: ENFORCED + DESIGN-CHOICE (witness signature on destruction)

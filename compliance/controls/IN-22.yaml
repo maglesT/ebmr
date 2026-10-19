@@ -63,7 +63,7 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "**same** as EU 5.54-5.62 [chk] and FDA 211.125(d) (destroy excess coded labeling), 211.130 and 211.134 [chk]."
 type_detail: ENFORCED; CONFIGURABLE (check frequencies, never below the MBR minimum; tighter for manual labelling).
 notes: "Source check: P (18.5.4-18.5.9 re-read)."

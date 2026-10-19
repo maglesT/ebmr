@@ -99,6 +99,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: The 2011 texts have no alarm clause. The draft adds one, and the kernel adopts it.
 type_detail: CONFIGURABLE for the integration scope, which depends on the connected systems. Where alarms are integrated, the rules above are ENFORCED. The kernel is designed to the draft (no conflict).

@@ -42,5 +42,5 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: VERIFIED
 jurisdiction: "EU 4.31 reaches further: logbooks for areas and critical analytical equipment, including repairs and calibrations, with no dedicated-equipment exemption. US 211.182 is stricter on double-checked cleaning and maintenance signatures. The kernel applies the union of both (D-14)."

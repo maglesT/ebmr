@@ -453,6 +453,6 @@ clauses:
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: US guidance is explicit, and the EU covers it through general risk management. No conflict.
 type_detail: "ENFORCED (segregation). Offering a simulation mode at all is a DESIGN-CHOICE: FDA does not expect one."
