@@ -5,12 +5,14 @@
  * CA and name are proven in equipment-data/feed-signature.test.ts; the server's own https rules (production refuses an
  * http origin, __Host- cookies and HSTS on https) in platform/startup.test.ts and security/session-and-headers.test.ts.
  */
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:https';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { TLSSocket } from 'node:tls';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { mtlsFetch } from '../../src/features/integrations/adapters/transport.ts';
+import { adapterTlsOf, mtlsFetch } from '../../src/features/integrations/adapters/transport.ts';
 import { testCa, testCertificate, type TestCa, type TestCertificate } from '../support/test-pki.ts';
 
 let systemCa: TestCa;
@@ -25,7 +27,12 @@ async function system(opts: { minVersion?: 'TLSv1' | 'TLSv1.2'; maxVersion?: 'TL
     { cert: readFileSync(serverCert.cert), key: readFileSync(serverCert.key), ca: readFileSync(clientCa.cert), requestCert: true, rejectUnauthorized: true, ...opts },
     (req, res) => {
       protocols.push((req.socket as TLSSocket).getProtocol() ?? '');
-      res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
+      // The method and body the system received, echoed for the request-body check.
+      const chunks: Buffer[] = [];
+      req.on('data', (c: Buffer) => chunks.push(c));
+      req.on('end', () => {
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, method: req.method, body: Buffer.concat(chunks).toString('utf8') }));
+      });
     },
   );
   await new Promise<void>((resolve) => s.listen(0, '127.0.0.1', resolve));
@@ -68,5 +75,27 @@ describe('TLS settings of the adapters (slice 7d)', () => {
     const s = await system({});
     await expect(mtlsFetch({ ca: otherCa.cert, cert: clientCert.cert, key: clientCert.key })(s.url)).rejects.toThrow(/self[- ]signed|unable to verify|certificate/i);
     expect(s.protocols).toEqual([]);
+  });
+
+  // Mutation campaign at the Phase 7 exit (D-P7-1 item 4): the request's method and body reach the system, and the
+  // answer's text is what the system sent.
+  it('[DI-31] an adapter over mutual TLS sends its method and request body to the system and reads its answer', async () => {
+    const s = await system({});
+    const got = await mtlsFetch(tls())(s.url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"ack":"7"}' });
+    expect(got.ok).toBe(true);
+    expect(JSON.parse(await got.text())).toEqual({ ok: true, method: 'POST', body: '{"ack":"7"}' });
+    const plain = await mtlsFetch(tls())(s.url);
+    expect(JSON.parse(await plain.text())).toEqual({ ok: true, method: 'GET', body: '' });
+    expect(plain.peer).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('[DI-31] EBMR_ADAPTER_TLS_DIR holds all three TLS files of an adapter or none; some but not all is refused (EBMR-INT-034)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-adapter-tls-'));
+    for (const f of ['FULL.ca.pem', 'FULL.cert.pem', 'FULL.key.pem', 'PART.ca.pem', 'PART.key.pem', 'ONE.cert.pem']) writeFileSync(join(dir, f), 'x');
+    expect(adapterTlsOf(dir, 'FULL')).toEqual({ ca: join(dir, 'FULL.ca.pem'), cert: join(dir, 'FULL.cert.pem'), key: join(dir, 'FULL.key.pem') });
+    expect(adapterTlsOf(dir, 'NONE')).toBeUndefined();
+    expect(adapterTlsOf(null, 'FULL')).toBeUndefined();
+    expect(() => adapterTlsOf(dir, 'PART')).toThrow(/^EBMR-INT-034 adapter PART has only some of its TLS files/);
+    expect(() => adapterTlsOf(dir, 'ONE')).toThrow(/^EBMR-INT-034 adapter ONE /);
   });
 });
