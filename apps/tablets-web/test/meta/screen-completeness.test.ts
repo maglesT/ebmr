@@ -64,8 +64,7 @@ const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
   QP_REGISTER: 'registering an EU qualified person',
   RULE_SET_VERIFY: 'QA\'s verification of a compendial rule set version',
   MARKET_LOOSENING: 'the approver\'s signature on a loosened market policy version',
-  // WP4 (floor, materials, batch numbers)
-  LOT_DESTRUCTION_WITNESS: 'the witness\'s signature on a lot destruction',
+  // WP4 (floor, materials, batch numbers): none (the lot page sends LOT_DESTRUCTION_WITNESS)
 };
 
 function sourceText(): string {

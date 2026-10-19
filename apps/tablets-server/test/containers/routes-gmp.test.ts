@@ -93,4 +93,24 @@ describe('container routes (GMP, Phase 4 slice 1b)', () => {
     expect(sorted.ok).toBe(false);
     expect(await listed(c.containerId)).toMatchObject({ state: 'CLOSED', releaseProblem: null });
   }, 180_000);
+
+  it('[IN-26] a merge pours a usable container into an open one of the same batch, stage and unit, both named by their labels; an unverified source, an unknown label and a person without the right are refused (slice 7g WP4)', async () => {
+    const source = valueOf(await closeTyped(await open(), '4.000'));
+    const target = await open();
+    const merge = async (b: TestBrowser, key: string, sourceLabel: string, targetLabel: string) => {
+      const body = { sourceLabel, targetLabel };
+      vi.advanceTimersByTime(7_000);
+      return b.call(routes.containers.merge, { body, attribution: await tapFor(b, personaIn(w.gmp, key), 'POST', '/api/containers/merge', body) });
+    };
+    // A typed net not yet verified by a second person is not usable (L-30): the merge is refused.
+    expect(JSON.stringify(refusalOf(await merge(operator, 'operator1', source.label, target.label)))).toMatch(/EBMR-CNT-044/);
+    expect((await signAction(verifier, 'verifier1', { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: source.containerId })).ok).toBe(true);
+    expect(JSON.stringify(refusalOf(await merge(operator, 'operator1', `${source.label}-X`, target.label)))).toMatch(/EBMR-CNT-040/);
+    // The verifier holds no STEP.EXECUTE: refused by the database for want of the right.
+    expect(refusalOf(await merge(verifier, 'verifier1', source.label, target.label))?.code).toBe('EBMR-IAM-040');
+    const merged = valueOf(await merge(operator, 'operator1', source.label, target.label));
+    expect(merged).toMatchObject({ containerId: target.containerId, state: 'OPEN' });
+    // A merge pours into an open container only: the closed source is no target.
+    expect(JSON.stringify(refusalOf(await merge(operator, 'operator1', target.label, source.label)))).toMatch(/EBMR-CNT-04[45]/);
+  }, 180_000);
 });

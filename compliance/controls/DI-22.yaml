@@ -196,6 +196,9 @@ tests:
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > lots: each refusal on its own (site services 0712) > [INV-13][DI-22] a reservation: unknown, already revoked, or cancelled without a reason"
   - "packages/site-services/test/quality/deviation-full.test.ts > evidence documents tied to their stored bytes (site services 0823) > [DI-24][DI-22] the database computes the hash and size from the bytes it stores; the bytes never change; a document without matching bytes is not evidence"
   - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [PR-51][DI-22] a CAPA is cancelled by QA other than its initiator with a reason; nothing is linked or scheduled after"
+  - "apps/tablets-server/test/execution/floor-acts-routes.test.ts > the batch data of a packaging step and its print job (IN-31, PR-36) > [IN-31][PR-36][DI-22] the giver of an MRP neither checks nor releases; a second person checks it; the job then carries the record's data; a change after set-up needs the person's reason and voids the job"
+  - "apps/tablets-server/test/quality/lot-handling-routes.test.ts > reservations, stock-location exceptions and the OOS record of a lot > [DI-22] stores cancel an open reservation with their own reason; QA is refused for want of the right; a cancelled reservation is not cancelled again"
+  - "apps/tablets-web/test/receipt/lot-handling.test.tsx > a lot's reservations and stock-location exceptions > [DI-22] stores cancel an open reservation with their own reason"
 clauses:
   - clause: "As each role, create, modify and void a value. Every entry carries all fields."
     tests:
