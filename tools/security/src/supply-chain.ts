@@ -94,7 +94,7 @@ export const SECRET_PATTERNS: readonly { id: string; re: RegExp }[] = [
  * test set-ups and the docs), and test vectors whose keys exist for the test only.
  */
 export const SECRET_ALLOWLIST: readonly { id: string; path: RegExp; match?: RegExp; reason: string }[] = [
-  { id: 'URL_PASSWORD', path: /.*/, match: /:\/\/(?:ebmr_[a-z_]+|postgres|user|backup|app):(?:ebmr_[a-z_]+|ebmr_dev|secret|password|pw|PASSWORD|\$\{?[A-Z_]+\}?|<[^>]+>)@/, reason: 'the development cluster\'s documented credentials, or a placeholder' },
+  { id: 'URL_PASSWORD', path: /.*/, match: /:\/\/(?:ebmr_[a-z_]+|postgres|user|backup|app):(?:ebmr_[a-z_]+|ebmr_dev|secret|password|pw|PASSWORD|\$\{?[A-Z_]+\}?|<[^>]+>|\*{3,})@/, reason: 'the development cluster\'s documented credentials, a placeholder, or a masked password' },
   { id: 'PRIVATE_KEY_FIELD', path: /^packages\/integration-sdk\/fixtures\/feed-signature-v1\.json$/, reason: 'test vectors of the gateway feed signature: a key made for the test only (interfaces 7-0 section 9)' },
   { id: 'PRIVATE_KEY_FIELD', path: /(^|\/)(test|fixtures)\//, reason: 'a key made for a test run (TEST-ONLY)' },
   { id: 'PEM_PRIVATE_KEY', path: /(^|\/)(test|fixtures)\//, reason: 'a key made for a test run (TEST-ONLY)' },

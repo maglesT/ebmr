@@ -94,6 +94,8 @@ describe('supply chain: licences, secrets, SBOM and the signed manifest (slice 7
     expect(scanText('apps/x/config.json', `{"secret": "${'A'.repeat(43)}="}`).map((h) => [h.pattern, h.allowed])).toEqual([['PRIVATE_KEY_FIELD', null]]);
     expect(scanText('docs/x.md', `token ${'gh'}p_${'a1'.repeat(20)}`)[0]?.allowed).toBeNull();
     expect(scanText('docs/x.md', 'postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres')[0]?.allowed).not.toBeNull();
+    expect(scanText('tools/x/test/a.ts', 'EBMR_DB_APP_URL=postgres://ebmr_app:********@localhost:5433/ebmr')[0]?.allowed).not.toBeNull();
+    expect(scanText('tools/x/test/a.ts', 'postgres://ebmr_app:' + 'Xq7Zp2r9' + '@localhost:5433/ebmr')[0]?.allowed).toBeNull();
     expect(scanText('ops/x.sh', ['postgres://backup', 'Hunter2Real!@db1/ebmr'].join(':'))[0]?.allowed).toBeNull();
     const open = scanRepository().filter((h) => h.allowed === null);
     expect(open).toEqual([]);
