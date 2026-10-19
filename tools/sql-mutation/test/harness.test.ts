@@ -13,6 +13,8 @@ import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import {
+  applyPreparedMutant,
+  MUTANT_ENV,
   PREPARED_TEMPLATES_ENV,
   readPreparedTemplates,
   serverTemplatesFor,
@@ -36,6 +38,7 @@ import {
   sweepLeftovers,
   testsByProject,
   testsFor,
+  writeMutant,
   writeServerTemplates,
   type Result,
 } from '../src/run.ts';
@@ -341,6 +344,38 @@ describe('prepared server templates (EBMR_SERVER_TEMPLATES)', () => {
     expect(content.gmp).toEqual({ template: 'ebmr_mut_cd_gmp', seed: { ...built.gmp.seed, database: 'ebmr_mut_cd_gmp' } });
     expect(content.sandbox).toEqual({ template: 'ebmr_sandbox_mut_cd', seed: { ...built.sandbox.seed, database: 'ebmr_sandbox_mut_cd' } });
     expect(readPreparedTemplates(file)).toEqual(content);
+  });
+
+  it('[meta] a server test that builds its own database from the migrations (the first-run set-up) gets the mutant under test applied there as the function\'s owner, from a private file; unset, nothing is applied', async () => {
+    const name = `ebmr_t_${randomBytes(6).toString('hex')}`;
+    const server = new pg.Client({ connectionString: ADMIN_URL });
+    await server.connect();
+    await server.query(`create database ${name} template ${inject('templateDb')}`);
+    try {
+      const def = [...loadDefinitions().values()].find((d) => d.name === 'recipe.check_signatures');
+      expect(def).toBeDefined();
+      const body = def!.statement.slice(def!.bodyStart);
+      const statement = def!.statement.slice(0, def!.bodyStart).replace(/^create\s+(or\s+replace\s+)?function/i, 'create or replace function') + `\n-- mutant marker\n${body}`;
+      const file = writeMutant(tempDir(), { identity: def!.identity, owner: 'ebmr_owner', statement });
+      expect(statSync(file).mode & 0o777).toBe(0o600);
+      expect(await applyPreparedMutant(name, {})).toBe(false);
+      expect(await applyPreparedMutant(name, { [MUTANT_ENV]: file })).toBe(true);
+      const c = new pg.Client({ connectionString: urlFor(name) });
+      await c.connect();
+      try {
+        const r = await c.query<{ src: string; owner: string }>('select prosrc as src, pg_get_userbyid(proowner) as owner from pg_proc where oid = to_regprocedure($1)', [def!.identity]);
+        expect(r.rows[0]?.src).toContain('-- mutant marker');
+        expect(r.rows[0]?.owner).toBe('ebmr_owner');
+      } finally {
+        await c.end();
+      }
+      // A function the database does not hold is left alone.
+      const other = writeMutant(tempDir(), { identity: 'public.no_such_function()', owner: 'ebmr_owner', statement: 'select 1' });
+      expect(await applyPreparedMutant(name, { [MUTANT_ENV]: other })).toBe(false);
+    } finally {
+      await server.query(`drop database if exists ${name}`);
+      await server.end();
+    }
   });
 
   it('[meta] a prepared file without both templates, with the seed of the other kind or with a GMP template under a sandbox name fails the run', () => {

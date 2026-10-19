@@ -1,7 +1,8 @@
 /**
  * Phase 7 slice 7g-4: servers on installations that are not set up yet (migrated, marked with their kind, no person,
  * account or device), for the first-run set-up and the demo reset tests. One fresh template per kind is built per file
- * (freshTemplate) and copied per server, as the harness copies the seeded templates (support/harness.ts). The browser
+ * (freshTemplate) and copied per server, as the harness copies the seeded templates (support/harness.ts); under the SQL
+ * mutation harness the mutant under test is applied to each fresh template (applyPreparedMutant). The browser
  * here holds a device key of its own (test-kit generateDeviceKey), as the set-up's browser does.
  */
 import { randomBytes } from 'node:crypto';
@@ -27,6 +28,7 @@ import { buildApp, type BuiltApp } from '../../src/app.ts';
 import { parseConfig, type ServerConfig } from '../../src/config.ts';
 import { TABLETS_SQL } from '../../src/cli/installation.ts';
 import { cookieHeader, ORIGINS, PG_SERVER } from '../support/harness.ts';
+import { applyPreparedMutant } from '../support/global-setup.ts';
 
 /** A migrated, not set-up template of `kind` (GMP: ebmr_tplf_<hex>; sandbox: ebmr_sandbox_tplf<hex>). */
 export async function freshTemplate(kind: 'GMP' | 'SANDBOX'): Promise<string> {
@@ -34,10 +36,12 @@ export async function freshTemplate(kind: 'GMP' | 'SANDBOX'): Promise<string> {
   if (kind === 'GMP') {
     const name = `ebmr_tplf_${uniqueSuffix()}`;
     await createGmpDatabase(name, sources);
+    await applyPreparedMutant(name);
     return name;
   }
   const name = `ebmr_sandbox_tplf${uniqueSuffix()}`;
   await sandbox.provisionSandboxDatabase({ adminUrl: ADMIN_URL, database: name, sources });
+  await applyPreparedMutant(name);
   return name;
 }
 

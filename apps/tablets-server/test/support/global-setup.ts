@@ -64,6 +64,45 @@ export const PREPARED_TEMPLATES_ENV = 'EBMR_SERVER_TEMPLATES';
 export const TABLETS_SQL = new URL('../../sql', import.meta.url).pathname;
 
 /**
+ * Names a JSON file (mode 0600) holding the SQL mutant under test (PreparedMutant), set by the SQL mutation harness
+ * (tools/sql-mutation) for the server project. A test that builds a database of its own from the migrations instead of
+ * copying the prepared templates (operations/support.ts freshTemplate, the first-run set-up) applies the mutant there
+ * with applyPreparedMutant, as the harness applies it to its template copies; unset, nothing changes.
+ */
+export const MUTANT_ENV = 'EBMR_SQL_MUTANT';
+
+/** The mutated function (regprocedure text), its owner and the CREATE OR REPLACE statement of the mutant. */
+export interface PreparedMutant {
+  identity: string;
+  owner: string;
+  statement: string;
+}
+
+/**
+ * Applies the mutant MUTANT_ENV names to `database`, as the function's owner, when the function exists there; true when
+ * applied. Without MUTANT_ENV it does nothing (false).
+ */
+export async function applyPreparedMutant(database: string, env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+  const file = env[MUTANT_ENV];
+  if (file === undefined || file === '') return false;
+  const m = JSON.parse(readFileSync(file, 'utf8')) as PreparedMutant;
+  return asAdmin(database, async (c) => {
+    const found = await c.query<{ oid: number | null }>('select to_regprocedure($1)::oid as oid', [m.identity]);
+    if (!found.rows[0]?.oid) return false;
+    await c.query('begin');
+    try {
+      await c.query(`set local role "${m.owner.replace(/"/g, '""')}"`);
+      await c.query(m.statement);
+      await c.query('commit');
+    } catch (e) {
+      await c.query('rollback');
+      throw e;
+    }
+    return true;
+  });
+}
+
+/**
  * The listener share declared for the test cluster: five listeners' worth (8 each), more than the test files the
  * project runs at once on the CI's 4 CPUs (3), each with at most one listener (5 connections) and a probe pool or two
  * of the listener's login. The application roles keep the cluster's slots less this (57 of the default 97).
