@@ -14,6 +14,7 @@ import { actorOfBrowser, personaIn, startSigningServer, valueOf } from '../esig/
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
 import { codeIn, okOf, signAs, type Signed, signedIn } from './acts-support.ts';
+import { tokenHash } from '../../src/platform/auth/session.ts';
 
 let server: TestServer;
 let steward: TestBrowser;
@@ -24,6 +25,7 @@ let csv: Signed;
 let admin: Signed;
 
 const BATCH_TYPE = 'TEST_BATCH_RECORD';
+const hashOf = (b: TestBrowser): string => tokenHash(b.cookies.get(server.config.cookies.session) ?? '');
 
 beforeAll(async () => {
   server = await startSigningServer('GMP');
@@ -152,5 +154,82 @@ describe('data-integrity investigations (kernel 0430)', () => {
       body: { subjectPersonId: csv.person.personId, windowFrom: '2026-01-01T00:00:00Z', windowTo: '2026-01-02T00:00:00Z', concern: 'Self investigation attempt' },
     });
     expect(codeIn(r)).toBe('EBMR-REC-064');
+  });
+});
+
+describe('the records screens\' reads in the database (tablets 1491)', () => {
+  it('[DI-50][DI-47] a record\'s retention, the legal holds and the disposal\'s record id are read only by a governance reader or a role that places holds, manages retention or approves disposal: the CSV lead (a governance reader holding none of those) reads them; the steward (neither) is refused by the database', async () => {
+    const batch = await endedBatch();
+    const key = `batch:${batch}`;
+    const look = valueOf(await csv.browser.call(routes.validation.retention, { query: { aggregateType: 'batch', aggregateId: batch } }));
+    expect(look).toMatchObject({ recordKey: key, scheduled: true, retainUntil: expect.any(String) as unknown });
+    expect(valueOf(await csv.browser.call(routes.validation.legalHolds)).holds).toEqual(expect.any(Array));
+    expect(codeIn(await steward.call(routes.validation.retention, { query: { aggregateType: 'batch', aggregateId: batch } }))).toBe('EBMR-TAB-020');
+    expect(codeIn(await steward.call(routes.validation.legalHolds))).toBe('EBMR-TAB-020');
+    const read = async (b: TestBrowser, sql: string, params: unknown[]): Promise<unknown> => {
+      try {
+        return (await server.db.app.query<{ r: unknown }>(sql, params)).rows[0]?.r;
+      } catch (e) {
+        return /\[(EBMR-[A-Z]+-\d{3})\]/.exec(e instanceof Error ? e.message : String(e))?.[1] ?? String(e);
+      }
+    };
+    const disposalId = (b: TestBrowser, k: string, copy: string | null = null) => read(b, 'select tab.disposal_aggregate_id($1, $2, $3) as r', [hashOf(b), k, copy]);
+    expect(await read(steward, 'select tab.record_retention($1, $2, $3) as r', [hashOf(steward), 'batch', batch])).toBe('EBMR-TAB-020');
+    expect(await read(steward, 'select tab.legal_hold_overview($1) as r', [hashOf(steward)])).toBe('EBMR-TAB-020');
+    expect(await disposalId(steward, key)).toBe('EBMR-TAB-020');
+    // The id a disposal signature covers is this record's, at its retain-until date (another schedule's never).
+    const other = await endedBatch();
+    expect(await disposalId(csv.browser, key)).toBe(`${key}@${look.retainUntil ?? ''}`);
+    const copy = randomUUID();
+    expect(await disposalId(csv.browser, key, copy)).toBe(`${key}@${look.retainUntil ?? ''}@${copy}`);
+    expect(await disposalId(csv.browser, `batch:${other}`)).toBe(`batch:${other}@${look.retainUntil ?? ''}`);
+    expect(await disposalId(csv.browser, `batch:${randomUUID()}`)).toBeNull();
+  });
+
+  it('[DI-47] the retention of a record without a schedule says so: not scheduled, not purged, no refusals, and on hold only while a hold is placed on it', async () => {
+    const unscheduled = randomUUID();
+    const before = valueOf(await qa.call(routes.validation.retention, { query: { aggregateType: 'batch', aggregateId: unscheduled } }));
+    expect(before).toMatchObject({ recordKey: `batch:${unscheduled}`, scheduled: false, retainUntil: null, status: null, purged: false, onHold: false, refusals: [], blockers: [] });
+    valueOf(await qa.call(routes.validation.placeLegalHold, { body: { aggregateType: 'batch', aggregateId: unscheduled, reason: 'litigation hold', reference: 'CASE-9' } }));
+    const held = valueOf(await qa.call(routes.validation.retention, { query: { aggregateType: 'batch', aggregateId: unscheduled } }));
+    expect(held).toMatchObject({ scheduled: false, purged: false, onHold: true, refusals: [] });
+    expect(held.blockers.map((b) => b.kind)).toEqual(['HOLD']);
+  });
+
+  it('[DI-50] a reader who is the subject of an open investigation reads a record\'s retention without that investigation, its hold or the refusals that name it; the other blockers and refusals stay, and another reader sees them all', async () => {
+    const subject = await signedIn(server, 'QA_REVIEWER', 'Meera Subject');
+    const batch = await endedBatch();
+    const opened = valueOf(await csv.browser.call(routes.validation.openDiInvestigation, {
+      body: { subjectPersonId: subject.person.personId, windowFrom: '2026-01-01T00:00:00Z', windowTo: '2026-01-02T00:00:00Z', concern: 'Entries outside the shift pattern' },
+    }));
+    valueOf(await csv.browser.call(routes.validation.linkDiInvestigation, { params: { investigationId: opened.investigationId }, body: { aggregateType: 'batch', aggregateId: batch, note: 'same shift' } }));
+    // A second, unrelated investigation (about another person) linked to the same record: not withheld from the subject.
+    const unrelated = valueOf(await csv.browser.call(routes.validation.openDiInvestigation, {
+      body: { subjectPersonId: personaIn(server, 'operator2').personId, windowFrom: '2026-01-01T00:00:00Z', windowTo: '2026-01-02T00:00:00Z', concern: 'Late entries' },
+    }));
+    valueOf(await csv.browser.call(routes.validation.linkDiInvestigation, { params: { investigationId: unrelated.investigationId }, body: { aggregateType: 'batch', aggregateId: batch, note: 'late entries' } }));
+    const legal = valueOf(await qa.call(routes.validation.placeLegalHold, { body: { aggregateType: 'batch', aggregateId: batch, reason: 'litigation hold', reference: 'CASE-8' } }));
+    const q = { query: { aggregateType: 'batch', aggregateId: batch } };
+    const all = valueOf(await csv.browser.call(routes.validation.retention, q));
+    const ids = (r: typeof all) => r.blockers.map((b) => `${b.kind}:${b.id}`).sort();
+    const holdIds = all.blockers.filter((b) => b.kind === 'HOLD').map((b) => b.id);
+    expect(all.blockers.filter((b) => b.kind === 'DI_INVESTIGATION').map((b) => b.id).sort()).toEqual([opened.investigationId, unrelated.investigationId].sort());
+    expect(holdIds).toContain(legal.holdId);
+    expect(holdIds).toHaveLength(3);
+    const ref = opened.reference;
+    expect(all.refusals.some((r) => r.detail.includes(ref))).toBe(true);
+    const seen = valueOf(await subject.browser.call(routes.validation.retention, q));
+    // Withheld: the investigation about the reader and its hold; kept: the unrelated investigation, its hold and the legal hold.
+    const itsHold = (await server.db.admin.query<{ id: string }>('select id::text as id from records.retention_hold where investigation_id = $1', [opened.investigationId])).rows.map((r) => r.id);
+    expect(itsHold).toHaveLength(1);
+    expect(ids(seen)).toEqual(ids(all).filter((x) => x !== `DI_INVESTIGATION:${opened.investigationId}` && x !== `HOLD:${itsHold[0] ?? ''}`));
+    expect(seen.blockers.map((b) => b.id)).not.toContain(opened.investigationId);
+    expect(seen.blockers.map((b) => b.id)).toContain(unrelated.investigationId);
+    expect(seen.blockers.map((b) => b.id)).toContain(legal.holdId);
+    expect(seen.blockers.filter((b) => b.kind === 'HOLD')).toHaveLength(2);
+    expect(seen.refusals.some((r) => r.detail.includes(ref))).toBe(false);
+    expect(seen.refusals.length).toBeGreaterThan(0);
+    expect(seen.refusals).toEqual(all.refusals.filter((r) => !r.detail.includes(ref)));
+    expect(seen.onHold).toBe(true);
   });
 });

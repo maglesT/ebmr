@@ -138,4 +138,48 @@ describe('the evidence bundle, the validation pack and the IQ', () => {
     await expect(store(claims, sha(claims))).rejects.toThrow(/EBMR-VAL-022/);
     await expect(store(ok, sha(ok))).resolves.toBeDefined();
   });
+
+  it('[DI-03] the database refuses each part of an IQ record that is missing or wrong on its own: no text, a hash of the text or of the bundle that is not 64 lowercase hex or not the text\'s, text that is not JSON, and JSON that is not the checks\' record for this database; nothing is stored (kernel 1381)', async () => {
+    const actor = await passwordActor(server.db, csv.person, terminalOf(server.seed, 'PC-QA-01').fingerprint, { reasonCode: 'TEST', reasonText: 'IQ record guard', correlationId: randomUUID() });
+    const sha = (t: string) => createHash('sha256').update(t).digest('hex');
+    const refusal = async (text: string | null, recordSha: string | null, bundleSha: string | null = 'e'.repeat(64)): Promise<string> => {
+      try {
+        await withCommand(server.db.app, { ...actor, correlationId: randomUUID() }, (c) => c.query('select platform.record_iq($1, $2, $3)', [text, recordSha, bundleSha]));
+        return 'stored';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    };
+    const stored = async () => Number((await server.db.admin.query<{ n: string }>('select count(*) as n from platform.iq_record')).rows[0]?.n);
+    const before = await stored();
+    const rec = (over: Record<string, unknown>) => JSON.stringify({ kind: 'iq', passed: false, summary: 'IQ guard', checks: [{ id: 'IQ-01', passed: false }], installation: { database: server.database }, ...over });
+    const good = rec({ summary: 'every part right' });
+    expect(await refusal(null, sha(''))).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, null)).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, sha(good).toUpperCase())).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, `${sha(good)}0`)).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, sha(`${good} `))).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, sha(good), null)).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, sha(good), 'E'.repeat(64))).toMatch(/^EBMR-VAL-020 /);
+    expect(await refusal(good, sha(good), 'e'.repeat(63))).toMatch(/^EBMR-VAL-020 /);
+    // Text that is not JSON is refused as such (the first EBMR-VAL-021 message, not the shape's).
+    expect(await refusal('not json', sha('not json'))).toBe('EBMR-VAL-021 an IQ record is the JSON the IQ checks wrote');
+    const shape = /^EBMR-VAL-021 an IQ record is the JSON the IQ checks wrote \(kind iq/;
+    for (const text of [
+      JSON.stringify(['iq']),
+      rec({ kind: 'oq' }),
+      rec({ kind: undefined }),
+      rec({ passed: 'false' }),
+      rec({ summary: 7 }),
+      rec({ checks: { id: 'IQ-01', passed: false } }),
+      rec({ checks: [] }),
+      rec({ installation: { database: 'another' } }),
+      rec({ installation: undefined }),
+    ]) {
+      expect(await refusal(text, sha(text)), text).toMatch(shape);
+    }
+    expect(await stored()).toBe(before);
+    expect(await refusal(good, sha(good))).toBe('stored');
+    expect(await stored()).toBe(before + 1);
+  });
 });

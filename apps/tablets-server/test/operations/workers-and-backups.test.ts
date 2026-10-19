@@ -8,17 +8,19 @@
  *    records the run and the catalogue entry, the screen lists it with its size, time and hash, and a copy of the stored
  *    artefact is the artefact as stored, recorded; QA reads the catalogue but takes no backup; an operator reads nothing.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { routes } from '@ebmr/api-contract';
+import { withCommand } from '@ebmr/kernel';
 import { ADMIN_URL, passwordActor, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
 import { afterAll, describe, expect, it } from 'vitest';
 import { registerAdapter, setMirrorMode, type Administration, type TestAdapter } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { seedBackupIdentity } from '../../src/cli/installation.ts';
 import { refusalOf, valueOf } from '../esig/support.ts';
+import { codeOf } from '../execution/db-guards-support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { spawnFeedSimulator, type FeedSimProcess } from '../integrations/feed-simulator.ts';
@@ -162,5 +164,50 @@ describe('backups from the screen (DI-45)', () => {
     expect(view).toMatchObject({ configured: false, problem: expect.stringMatching(/EBMR_BACKUP_DIR/) as string });
     expect(refusalOf(await admin.call(O.runBackup, { body: { reason: 'try', tier: 'OPERATIONAL' } }))).toMatchObject({ status: 503, code: 'BACKUP_NOT_CONFIGURED' });
     expect((await server.db.admin.query('select 1 from continuity.backup_request')).rows).toEqual([]);
+  });
+});
+
+describe('the operations acts in the database, whoever writes them (kernel 1376)', () => {
+  it('[DI-17][DI-18][DI-45] the database refuses a worker act that is not one, without its reason or over 1000 characters, and an invalid record; a backup request without its tier or reason; and the copy of a backup not in the catalogue; nothing is recorded', async () => {
+    const s = await startServer('GMP');
+    servers.push(s);
+    const actor = await passwordActor(s.db, s.seed.bootstrap.admin, s.seed.bootstrap.admin.fingerprint);
+    const call = (sql: string, params: unknown[]) =>
+      codeOf(withCommand(s.db.app, { ...actor, correlationId: randomUUID(), reasonCode: 'TEST', reasonText: 'direct call' }, (c) => c.query(sql, params)));
+    const act = (a: string | null, reason: string | null, outcome: string | null = null, detail: string | null = null) =>
+      call('select platform.record_operations_act($1, $2, $3, $4, $5) as id', [a, 'ANALYTICS', reason, outcome, detail]);
+    expect(await act(null, 'a reason')).toBe('EBMR-OPS-001');
+    expect(await act('REBOOT', 'a reason')).toBe('EBMR-OPS-001');
+    expect(await act('ANALYTICS_STOP', '')).toBe('EBMR-OPS-002');
+    expect(await act('ANALYTICS_STOP', '   ')).toBe('EBMR-OPS-002');
+    expect(await act('ANALYTICS_STOP', null)).toBe('EBMR-OPS-002');
+    expect(await act('ANALYTICS_STOP', 'x'.repeat(1001))).toBe('EBMR-OPS-002');
+    expect(await act('ANALYTICS_STOP', 'a reason', 'MAYBE')).toBe('EBMR-OPS-003');
+    expect(await act('ANALYTICS_STOP', 'a reason', 'REFUSED', null)).toBe('EBMR-OPS-003');
+    expect(await acts(s)).toEqual([]);
+    expect(await act('ANALYTICS_STOP', 'x'.repeat(1000))).toBe('ok');
+    expect(await act('ANALYTICS_START', ' restart after the test ', 'REFUSED', 'the runner is off')).toBe('ok');
+    expect(await acts(s)).toEqual([
+      { act: 'ANALYTICS_STOP', target: 'ANALYTICS', outcome: 'DONE', reason: 'x'.repeat(1000) },
+      { act: 'ANALYTICS_START', target: 'ANALYTICS', outcome: 'REFUSED', reason: 'restart after the test' },
+    ]);
+
+    const backup = (reason: string | null, tier: string | null) => call('select continuity.request_backup($1, $2) as id', [reason, tier]);
+    expect(await backup('', 'OPERATIONAL')).toBe('EBMR-OPS-020');
+    expect(await backup(null, 'OPERATIONAL')).toBe('EBMR-OPS-020');
+    expect(await backup('x'.repeat(1001), 'OPERATIONAL')).toBe('EBMR-OPS-020');
+    expect(await backup('a reason', 'NIGHTLY')).toBe('EBMR-OPS-020');
+    expect(await backup('a reason', null)).toBe('EBMR-OPS-020');
+    expect((await s.db.admin.query('select 1 from continuity.backup_request')).rows).toEqual([]);
+    expect(await backup('x'.repeat(1000), 'OPERATIONAL')).toBe('ok');
+    expect(await backup(' before the upgrade ', 'RETENTION_GRADE')).toBe('ok');
+    expect((await s.db.admin.query<{ tier: string; reason: string }>('select tier, reason from continuity.backup_request order by recorded_at, id')).rows).toEqual([
+      { tier: 'OPERATIONAL', reason: 'x'.repeat(1000) },
+      { tier: 'RETENTION_GRADE', reason: 'before the upgrade' },
+    ]);
+
+    expect(await call('select continuity.record_backup_download($1) as id', ['no-such-backup-1'])).toBe('EBMR-OPS-021');
+    expect(await call('select continuity.record_backup_download($1) as id', [null])).toBe('EBMR-OPS-021');
+    expect((await s.db.admin.query('select 1 from continuity.backup_download')).rows).toEqual([]);
   });
 });

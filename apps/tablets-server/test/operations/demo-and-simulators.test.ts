@@ -97,6 +97,27 @@ describe('the simulators\' test console (decision 0025)', () => {
       'SIMULATOR_FAULT_ON LMS:STALE_VALUE', 'SIMULATOR_STOP QMS',
     ]);
   }, 120_000);
+  it('[DI-05][DI-17] on a sandbox the database refuses a demo or simulator act that is not a known act, without its target or its reason, or with a reason over 1000 characters, whoever calls it; nothing is recorded', async () => {
+    const s = await start('SANDBOX');
+    const actor = await passwordActor(s.db, s.seed.bootstrap.admin, s.seed.bootstrap.admin.fingerprint);
+    const record = async (act: string | null, target: string | null, reason: string | null): Promise<string> => {
+      try {
+        await withCommand(s.db.app, { ...actor, correlationId: randomUUID(), reasonCode: 'TEST', reasonText: 'direct call' }, (c) => c.query('select tab.record_demo_act($1, $2, $3)', [act, target, reason]));
+        return 'ok';
+      } catch (e) {
+        return /\bEBMR-[A-Z]+-\d{3}\b/.exec(e instanceof Error ? e.message : String(e))?.[0] ?? String(e);
+      }
+    };
+    expect(await record('REBOOT', 'QMS', 'test')).toBe('EBMR-OPS-011');
+    expect(await record(null, 'QMS', 'test')).toBe('EBMR-OPS-011');
+    expect(await record('SIMULATOR_START', null, 'test')).toBe('EBMR-OPS-011');
+    expect(await record('SIMULATOR_START', 'QMS', '')).toBe('EBMR-OPS-011');
+    expect(await record('SIMULATOR_START', 'QMS', null)).toBe('EBMR-OPS-011');
+    expect(await record('SIMULATOR_START', 'QMS', 'x'.repeat(1001))).toBe('EBMR-OPS-011');
+    expect(await demoActs(s)).toEqual([]);
+    expect(await record('SIMULATOR_START', 'QMS', 'x'.repeat(1000))).toBe('ok');
+    expect(await demoActs(s)).toEqual([{ act: 'SIMULATOR_START', target: 'QMS' }]);
+  });
 });
 
 describe('demo and test data on a demo sandbox (decision 0025)', () => {

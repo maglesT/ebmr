@@ -14,8 +14,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { routes, type DrillsView } from '@ebmr/api-contract';
-import { ADMIN_URL, copyDatabase, dropDatabase } from '@ebmr/test-kit';
+import { withCommand } from '@ebmr/kernel';
+import { ADMIN_URL, copyDatabase, dropDatabase, passwordActor } from '@ebmr/test-kit';
 import { seedBackupIdentity } from '../../src/cli/installation.ts';
+import { backupIdentityOf, backupServiceActor } from '../../src/features/operations/backups.ts';
 import { refusalOf, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
@@ -132,4 +134,97 @@ describe('the hardening check from the screen', () => {
     const alarms = valueOf(await admin.call(O.alarms)).alarms.filter((a) => a.code === 'HARDENING_CHECK_FAILED');
     expect(alarms).toHaveLength(run.result === 'FAIL' ? 1 : 0);
   }, 300_000);
+});
+
+describe('drills and hardening checks in the database, whoever writes them (kernel 1395)', () => {
+  /** The message of the refusal (or 'ok' with the answer) of `sql` run as `actor`. */
+  const run = async (server: TestServer, actor: Awaited<ReturnType<typeof passwordActor>>, sql: string, params: unknown[]): Promise<string> => {
+    try {
+      await withCommand(server.db.app, { ...actor, correlationId: randomUUID(), reasonCode: 'TEST', reasonText: 'direct call' }, (c) => c.query(sql, params));
+      return 'ok';
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  };
+
+  it('[DI-45][DI-17] a drill request names its kind, its reason up to 1000 characters and, for an upgrade drill only, a database name; an upgrade drill is recorded only by a SYSTEM service identity, only for a person\'s upgrade request of the same database, only when valid, and a failed one raises its alarm', async () => {
+    const server = await drillServer('SANDBOX');
+    const admin = await passwordActor(server.db, server.seed.bootstrap.admin, server.seed.bootstrap.admin.fingerprint);
+    const request = (kind: string | null, reason: string | null, source: string | null) => run(server, admin, 'select continuity.request_drill($1, $2, $3)', [kind, reason, source]);
+    const refused = /^EBMR-OPS-040 /;
+    expect(await request(null, 'a reason', null)).toMatch(refused);
+    expect(await request('BACKUP', 'a reason', null)).toMatch(refused);
+    expect(await request('RESTORE', '', null)).toMatch(refused);
+    expect(await request('RESTORE', null, null)).toMatch(refused);
+    expect(await request('RESTORE', 'x'.repeat(1001), null)).toMatch(refused);
+    expect(await request('RESTORE', 'a reason', 'ebmr_src_one')).toMatch(refused);
+    expect(await request('UPGRADE', 'a reason', null)).toMatch(refused);
+    expect(await request('UPGRADE', 'a reason', 'Bad-Name')).toMatch(refused);
+    expect(await request('UPGRADE', 'a reason', '1ebmr')).toMatch(refused);
+    expect((await server.db.admin.query('select 1 from continuity.drill_request')).rows).toEqual([]);
+    expect(await request('RESTORE', 'x'.repeat(1000), null)).toBe('ok');
+    expect(await request('UPGRADE', 'upgrade one', 'ebmr_src_one')).toBe('ok');
+    expect(await request('UPGRADE', 'upgrade two', 'ebmr_src_two')).toBe('ok');
+    const ids = Object.fromEntries((await server.db.admin.query<{ k: string; id: string }>("select coalesce(source_database, 'restore') as k, id::text as id from continuity.drill_request")).rows.map((r) => [r.k, r.id]));
+    expect(Object.keys(ids).sort()).toEqual(['ebmr_src_one', 'ebmr_src_two', 'restore']);
+
+    const who = backupIdentityOf(server.built.ctx);
+    if (!who) throw new Error('SETUP: no backup service identity');
+    const service = await backupServiceActor(server.built.ctx, who, ids['ebmr_src_one'] ?? '', { code: 'TEST', text: 'direct call' });
+    const drill = (over: Record<string, unknown>) => ({
+      drill_id: `drill.${randomUUID()}`, request_id: ids['ebmr_src_one'], source_database: 'ebmr_src_one', from_release: 'v0.9', result: 'PASS', failures: [],
+      tables_compared: 10, tables_changed: 0, chains_verified: 1, migrations_applied: 2, report_sha256: 'a'.repeat(64), report_uri: 'file:///drills/upgrade.json', ...over,
+    });
+    const record = (actor: Awaited<ReturnType<typeof passwordActor>>, d: unknown) => run(server, actor, 'select continuity.record_upgrade_drill($1::jsonb)', [d === null ? null : JSON.stringify(d)]);
+    expect(await record(service, null)).toMatch(/^EBMR-OPS-042 an upgrade drill record is required$/);
+    expect(await record(service, [drill({})])).toMatch(/^EBMR-OPS-042 an upgrade drill record is required$/);
+    expect(await record(admin, drill({}))).toMatch(/^EBMR-OPS-042 upgrade drills are recorded only by a system service account/);
+    const unanswered = /^EBMR-OPS-042 an upgrade drill record answers a person's request for an upgrade drill of the same database$/;
+    expect(await record(service, drill({ source_database: 'ebmr_src_two' }))).toMatch(unanswered);
+    expect(await record(service, drill({ request_id: randomUUID() }))).toMatch(unanswered);
+    expect(await record(service, drill({ request_id: ids['restore'], source_database: 'ebmr_src_one' }))).toMatch(unanswered);
+    expect(await record(service, drill({ request_id: 'not-a-uuid' }))).toMatch(unanswered);
+    expect(await record(service, drill({ result: 'MAYBE' }))).toMatch(/^EBMR-OPS-042 invalid upgrade drill record: /);
+    expect(await record(service, drill({ result: 'PASS', tables_changed: 1 }))).toMatch(/^EBMR-OPS-042 invalid upgrade drill record: /);
+    expect(await record(service, drill({ report_sha256: 'A'.repeat(64) }))).toMatch(/^EBMR-OPS-042 invalid upgrade drill record: /);
+    expect((await server.db.admin.query('select 1 from continuity.upgrade_drill')).rows).toEqual([]);
+    const failedAlarms = async () => (await server.db.admin.query("select 1 from continuity.alarm where alarm_code = 'UPGRADE_DRILL_FAILED'")).rows.length;
+    expect(await record(service, drill({}))).toBe('ok');
+    expect(await failedAlarms()).toBe(0);
+    expect(await record(service, drill({ request_id: ids['ebmr_src_two'], source_database: 'ebmr_src_two', result: 'FAIL', failures: ['a table changed'], tables_changed: 1 }))).toBe('ok');
+    expect(await failedAlarms()).toBe(1);
+  }, 300_000);
+
+  it('[DI-45][DI-17] a hardening check is recorded only with every check named with its status and the reason up to 1000 characters, with the result its checks give; a failed one raises its alarm naming the failed checks', async () => {
+    const server = await startServer('GMP');
+    servers.push(server);
+    const admin = await passwordActor(server.db, server.seed.bootstrap.admin, server.seed.bootstrap.admin.fingerprint);
+    const report = (over: Record<string, unknown>) => ({ result: 'PASS', checks: [{ id: 'PG-TLS', status: 'PASS' }, { id: 'PORTS', status: 'WARN' }, { id: 'SRV-CONFIG', status: 'NOT_APPLICABLE' }], report_sha256: 'b'.repeat(64), ...over });
+    const check = (r: unknown, reason: string | null = 'after the OS patch') => run(server, admin, 'select continuity.record_hardening_check($1::jsonb, $2)', [r === null ? null : JSON.stringify(r), reason]);
+    const incomplete = /^EBMR-OPS-043 a hardening check names every check with its status/;
+    const notItsResult = /^EBMR-OPS-043 the result of a hardening check is FAIL when a check fails and PASS otherwise$/;
+    expect(await check(null)).toMatch(incomplete);
+    expect(await check([report({})])).toMatch(incomplete);
+    expect(await check(report({ checks: { id: 'PG-TLS', status: 'PASS' } }))).toMatch(incomplete);
+    expect(await check(report({ checks: [] }))).toMatch(incomplete);
+    expect(await check(report({}), '')).toMatch(incomplete);
+    expect(await check(report({}), null)).toMatch(incomplete);
+    expect(await check(report({}), 'x'.repeat(1001))).toMatch(incomplete);
+    expect(await check(report({ checks: ['PG-TLS'] }))).toMatch(incomplete);
+    expect(await check(report({ checks: [{ status: 'PASS' }] }))).toMatch(incomplete);
+    expect(await check(report({ checks: [{ id: '', status: 'PASS' }] }))).toMatch(incomplete);
+    expect(await check(report({ checks: [{ id: 'PG-TLS', status: 'MAYBE' }] }))).toMatch(incomplete);
+    expect(await check(report({ checks: [{ id: 'PG-TLS' }] }))).toMatch(incomplete);
+    expect(await check(report({ checks: [{ id: 'PG-TLS', status: 'FAIL' }, { id: 'PORTS', status: 'PASS' }] }))).toMatch(notItsResult);
+    expect(await check(report({ result: 'FAIL' }))).toMatch(notItsResult);
+    expect(await check(report({ result: undefined }))).toMatch(notItsResult);
+    expect(await check(report({ report_sha256: 'B'.repeat(64) }))).toMatch(/^EBMR-OPS-043 invalid hardening check: /);
+    expect((await server.db.admin.query('select 1 from continuity.hardening_check')).rows).toEqual([]);
+    const alarms = async () => (await server.db.admin.query<{ failed: unknown }>("select details -> 'failed' as failed from continuity.alarm where alarm_code = 'HARDENING_CHECK_FAILED' order by recorded_at")).rows.map((r) => r.failed);
+    expect(await check(report({}), 'x'.repeat(1000))).toBe('ok');
+    expect(await alarms()).toEqual([]);
+    expect(await check(report({ result: 'FAIL', checks: [{ id: 'PG-TLS', status: 'FAIL' }, { id: 'PORTS', status: 'PASS' }, { id: 'SRV-CONFIG', status: 'FAIL' }] }))).toBe('ok');
+    expect(await alarms()).toEqual([['PG-TLS', 'SRV-CONFIG']]);
+    expect((await server.db.admin.query('select result from continuity.hardening_check order by recorded_at')).rows).toEqual([{ result: 'PASS' }, { result: 'FAIL' }]);
+  });
 });

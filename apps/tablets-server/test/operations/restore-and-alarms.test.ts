@@ -105,6 +105,24 @@ describe('the restore procedure (DI-45)', () => {
     expect(ledger.filter((e) => e.restoreEventId === recorded.restoreEventId).map((e) => e.type)).toEqual(['RESTORE_EVENT', 'RESTORE_COMPLETED']);
   }, 180_000);
 
+  it('[DI-45][DI-18] the approvers a restore may name are exactly the active persons of human accounts holding a role, in force, that approves restores: no operator, no administrator, no service identity, each once', async () => {
+    const candidates = valueOf(await admin.call(O.restore)).approverCandidates.map((c) => c.personId);
+    const { rows } = await server.db.admin.query<{ id: string }>(
+      `select distinct p.id::text as id
+         from iam.role_grant g
+         join iam.role_permission rp on rp.role_code = g.role_code and rp.permission_code = 'CONTINUITY.RESTORE_APPROVE'
+         join iam.account a on a.id = g.account_id
+         join iam.person p on p.id = a.person_id
+        where g.status = 'APPROVED' and g.revoked_at is null and g.valid_from <= clock_timestamp() and (g.valid_to is null or g.valid_to > clock_timestamp())
+          and p.status = 'ACTIVE' and a.status = 'ACTIVE' and a.kind = 'HUMAN'`,
+    );
+    expect([...candidates].sort()).toEqual(rows.map((r) => r.id).sort());
+    expect(new Set(candidates).size).toBe(candidates.length);
+    expect(candidates).toEqual(expect.arrayContaining([personId('qaInvestigator'), personId('qaApprover2')]));
+    const me = valueOf(await admin.call(routes.session.get)).person.personId;
+    for (const not of [me, personId('operator1'), personId('steward')]) expect(candidates).not.toContain(not);
+  });
+
   it('[DI-45] a server without the external ledger runs none of the procedure and says why', async () => {
     const plain = await startServer('GMP');
     servers.push(plain);
