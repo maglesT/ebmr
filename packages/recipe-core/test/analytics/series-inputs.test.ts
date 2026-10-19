@@ -232,4 +232,48 @@ describe('the golden batch profile inputs (recipe-core 1170)', () => {
     expect(vol.map((r) => r.v)).toEqual(['s', 's', 's', 's']);
     expect(await segregationProblems(db.admin)).toEqual([]);
   });
+
+  it('[DI-51][DI-52][DI-32] a step\'s window is its own use\'s, bounded by that use\'s next binding; series and samples touching the window\'s edges are read inclusive of its start and exclusive of its end; deviations and alarms are the batch\'s own', async () => {
+    const usOf = async (sql: string, params: unknown[]) => BigInt((await db.admin.query<{ us: string }>(sql, params)).rows[0]!.us);
+    const windows = async (batchId: string) => (await db.admin.query<{ equipment_id: string; open: boolean }>(
+      "select equipment_id, w_to = 'infinity'::timestamptz as open from report.step_windows_v1() where batch_id = $1", [batchId])).rows;
+    // A batch with two units in use, the step bound to one of them; a later binding of another use (TEST FIXTURE GMP marks).
+    const p1 = await w.press();
+    await servedByEndpoint(db, opcua, await w.room(), [p1.code]);
+    const p2 = await w.press();
+    await servedByEndpoint(db, opcua, await w.room(), [p2.code]);
+    const product = await w.product();
+    await w.clean('EQUIPMENT', p1.code, 'MAJOR');
+    await w.clean('EQUIPMENT', p2.code, 'MAJOR');
+    await w.startUse(p1.code, 'GBP-3', product);
+    await w.startUse(p2.code, 'GBP-3', product);
+    const two = await w.batch('GBP-3', product);
+    await w.run(w.cast.operator, (c) => c.query('select plant.bind_step_equipment($1, $2, $3)', [two.id, STEP, p1.code]));
+    await fixture(`update recipe.batch_execution set installation = 'GMP', purpose = 'GMP_BATCH', package_hash = null, control_recipe_id = gen_random_uuid(),
+                          issue_signature_id = gen_random_uuid() where id = $1`, [two.id]);
+    await boundPress('GBP-4');
+    expect(await windows(two.id)).toEqual([{ equipment_id: p1.id, open: true }]);
+
+    // The main step's window [t0, end): series of new tags at its edges (TEST FIXTURE chunks as received).
+    const end = await usOf("select (extract(epoch from w_to) * 1000000)::bigint::text as us from report.step_windows_v1() where batch_id = $1", [main.batchId]);
+    const sample = (t: bigint, v: string): Sample => ({ sourceTime: t.toString(), serverTime: null, raw: v, value: v, status: '0x00000000' });
+    const before = await send(chunk(main.press.code, '1', [sample(t0 - 9_000_000n, '1.0'), sample(t0 - 8_000_000n, '1.1')], 'turret.speed_rpm', 'rpm'));
+    const atStart = await send(chunk(main.press.code, '1', [sample(t0 - 5_000_000n, '2.0'), sample(t0, '2.1')], 'force.pre_kN'));
+    const atEnd = await send(chunk(main.press.code, '2', [sample(end, '2.2'), sample(end + 1_000n, '2.3')], 'force.pre_kN'));
+    const refs = await asAnalytics<RefRow>('select * from report.series_ref_v1 where batch_id = $1 order by tag', [main.batchId]);
+    expect(refs.map((r) => [r.tag, r.chunk_ids])).toEqual([[TAG, expect.any(Array) as unknown], ['force.pre_kN', [String(atStart['seriesId'])]]]);
+    expect([...refs[0]!.chunk_ids].sort()).toEqual([...chunkIds].sort());
+    expect(String(before['seriesId'])).not.toBe(String(atEnd['seriesId']));
+    const edge = await asAnalytics<{ source_us: string }>('select source_us from report.series_samples_v1($1, $2, $3)', [main.batchId, STEP, 'force.pre_kN']);
+    expect(edge.map((r) => r.source_us)).toEqual([t0.toString()]);
+
+    // Deviations and alarms: the batch's own; an alarm counts when it names no step or this step (TEST FIXTURE rows).
+    await fixture(`insert into site.deviation_link (deviation_id, subject_kind, subject_id, subject_ref, batch_id, batch_number, edition, linked_by_person, linked_by_account)
+                   values (gen_random_uuid(), 'BATCH', $1, 'GBP-3', $1, 'GBP-3', 'TABLETS', gen_random_uuid(), gen_random_uuid())`, [two.id]);
+    for (const [batch, step] of [[main.batchId, null], [main.batchId, STEP], [main.batchId, STEP], [main.batchId, 'p-other@1'], [two.id, STEP]] as const) {
+      await fixture('insert into plant.alarm_batch (alarm_id, batch_id, step) values (gen_random_uuid(), $1, $2)', [batch, step]);
+    }
+    const counted = await asAnalytics<{ deviations: number; alarms: number }>('select deviations, alarms from report.series_ref_v1 where batch_id = $1 and tag = $2', [main.batchId, TAG]);
+    expect(counted).toEqual([{ deviations: 0, alarms: 3 }]);
+  });
 });

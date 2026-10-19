@@ -320,4 +320,66 @@ describe('the review facts (recipe-core 1160)', () => {
       select p.oid::regprocedure::text as fn from pg_proc p where p.pronamespace = 'report'::regnamespace and p.proname like 'review%' and p.prosrc ~* '\\manalytics\\s*\\.'`);
     expect(facts1160).toEqual([]);
   });
+
+  it('[PR-61][DI-51] each record\'s facts are its own: its end, family, exceptions, deviations, findings and reopenings, and its units maintained within the 7 days up to its use', async () => {
+    // The end: the time of the record's own command that carried the status change (each record's issue row).
+    const issuedAt = async (id: string) => (await db.admin.query<{ t: Date }>('select report.us_at(now_us) as t from recipe.execution_command where batch_id = $1 and seq = 1', [id])).rows[0]!.t;
+    const family = (await db.admin.query<{ code: string }>('select code from recipe.mbr_family where id = $1', [master.familyId])).rows[0]!.code;
+    // TEST FIXTURE rows on the aborted record: an action exception and a deviation of its own.
+    await exception(b.aborted.id, 'EX-9', 'ACTION');
+    await deviation(b.aborted.id, 'Its own deviation');
+    // Units used first on the rich record and again on the aborted one: U5 maintained exactly at the aborted record's use,
+    // U6 exactly 7 days before; U7 with a CMMS work order completed exactly at the use, U8 exactly 7 days before, U9 with
+    // one still open the day before (TEST FIXTURE rows).
+    const startUs = BigInt(((b.aborted.state['steps'] as Record<string, Json>)[b.aborted.step]!['startedAt'] as { $u: string }).$u);
+    const week = 7n * 86_400_000_000n;
+    const unitOn = async (code: string): Promise<string> => {
+      const [area, eq] = [randomUUID(), randomUUID()];
+      await fixture("insert into plant.area (id, code, kind, name, segregated, negative_pressure, recorded_by) values ($1, $2, 'ROOM', 'Room', false, false, gen_random_uuid())", [area, `RM-${code}`]);
+      await fixture("insert into plant.equipment (id, code, name, class_code, kind, area_id, recorded_by) values ($1, $2, 'Unit', 'CL-PRESS', 'PROCESS', $3, gen_random_uuid())", [eq, code, area]);
+      for (const x of [b.rich, b.aborted]) {
+        await fixture('insert into plant.step_equipment (batch_id, step, equipment_id, use_id, person_id, account_id, correlation_id) values ($1, $2, $3, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())',
+          [x.id, x.step, eq]);
+      }
+      return eq;
+    };
+    const event = (eq: string, atUs: bigint) => fixture(`insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id, recorded_at)
+      values ($1, 'MAINTENANCE_ENDED', 'WO-2', 'Preventive maintenance', gen_random_uuid(), gen_random_uuid(), to_timestamp($2::numeric / 1000000))`, [eq, atUs.toString()]);
+    const workOrder = (eq: string, status: string, atUs: bigint) => fixture(`insert into plant.cmms_work_order (equipment_id, work_order, kind, status, message_id, source_timestamp)
+      values ($1, $2, 'PREVENTIVE', $3, gen_random_uuid(), to_timestamp($4::numeric / 1000000))`, [eq, `WO-${randomUUID().slice(0, 8)}`, status, atUs.toString()]);
+    await event(await unitOn(`U5-${tag}`), startUs);
+    await event(await unitOn(`U6-${tag}`), startUs - week);
+    await workOrder(await unitOn(`U7-${tag}`), 'COMPLETED', startUs);
+    await workOrder(await unitOn(`U8-${tag}`), 'COMPLETED', startUs - week);
+    await workOrder(await unitOn(`U9-${tag}`), 'OPEN', startUs - 86_400_000_000n);
+
+    const rows = await facts();
+    const of = (id: string) => rows.find((r) => r.batch_id === id)!;
+    expect(rows.filter((r) => r.batch_id === b.rich.id)).toHaveLength(1);
+    expect(of(b.rich.id).ended_at?.toISOString()).toBe((await issuedAt(b.rich.id)).toISOString());
+    expect(of(b.aborted.id).ended_at?.toISOString()).toBe((await issuedAt(b.aborted.id)).toISOString());
+    expect(of(b.rich.id).family_code).toBe(family);
+    expect(of(b.rich.id)).toMatchObject({ exceptions_major: 2, deviations: 1 });
+    expect(of(b.aborted.id)).toMatchObject({ exceptions_major: 1, exceptions_critical: 0, exceptions_minor: 0, deviations: 1, review_findings: 0, review_reopenings: 0 });
+    expect(of(b.recent.id)).toMatchObject({ new_equipment: false, new_equipment_codes: [], review_findings: 0, review_reopenings: 0 });
+    const mine = (id: string) => of(id).new_equipment_codes.filter((c) => c.endsWith(tag) && /^U[5-9]-/.test(c));
+    expect(mine(b.rich.id)).toEqual([`U5-${tag}`, `U6-${tag}`, `U7-${tag}`, `U8-${tag}`, `U9-${tag}`]);
+    expect(mine(b.aborted.id)).toEqual([`U5-${tag}`, `U7-${tag}`]);
+    // A QA review recorded exactly 30 days before the read is still covered: the old record's review moved to that instant
+    // within one statement, so statement_timestamp() is the same for the move and the read (TEST FIXTURE, rolled back).
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query(`do $$ begin
+        update recipe.batch_review_act set recorded_at = pg_catalog.statement_timestamp() - interval '30 days' where batch_id = '${b.old.id}' and act = 'QA_REVIEWED';
+        if not exists (select 1 from report.review_fact_batches() f where f.batch_id = '${b.old.id}') then raise exception 'FIXTURE: a review exactly 30 days old is not covered'; end if;
+        update recipe.batch_review_act set recorded_at = pg_catalog.statement_timestamp() - interval '30 days' - interval '1 microsecond' where batch_id = '${b.old.id}' and act = 'QA_REVIEWED';
+        if exists (select 1 from report.review_fact_batches() f where f.batch_id = '${b.old.id}') then raise exception 'FIXTURE: a review older than 30 days is covered'; end if;
+      end $$`);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
 });
