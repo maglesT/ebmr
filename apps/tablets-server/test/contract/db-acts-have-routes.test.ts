@@ -8,7 +8,8 @@
  * The acts: every SECURITY DEFINER function owned by ebmr_owner, EXECUTE-granted to the application role, not a trigger,
  * whose body asks iam.require_permission for a permission that a role a person holds (account kind HUMAN) has now.
  *
- * Called by a route: the function's name appears in the server's source (apps/tablets-server/src), or in a declaration
+ * Called by a route: the function's name appears in the server's source (apps/tablets-server/src, except src/cli: the
+ * command-line entry points and the demo data load's library are no routes; slice 7h, gap report D1), or in a declaration
  * of a package (kernel, recipe-core, site-services) that the server's source names, directly or through other such
  * declarations; or it is called in the body of a function or view that is so called or read (the closure over the SQL
  * bodies and view definitions, which the code map cannot see). A name in a reached declaration counts even in a comment, so the test is a net, not a proof:
@@ -28,6 +29,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..
 /** Run by a service identity or another component, never by a person at a screen. */
 const SERVICE_OR_INTERNAL: Readonly<Record<string, string>> = {
   'iam.escalate_overdue_alerts': 'run by the scheduler under a SERVICE account (kernel 0130: an unanswered security alert escalates); no person runs it',
+  // Slice 7h (D1, D-P7R-19): found once src/cli stopped counting as a route.
+  'esig.register_seal_key': 'part of installing the server, not an act at a screen: the seal key\'s secret lives with the server (a file, a KMS or an HSM), so its registration comes with it (the first-run set-up registers the first; the set-up CLI the demo\'s); retiring a key has its screen (esig.retireSealKey)',
   'iam.record_mirror_heartbeat': 'the qualification mirror (LMS feed) records its heartbeat under its integration identity, so the freshness of mirrored records is known; no person runs it',
   'market.evaluate_stub_scope': 'the market evaluation of a stub batch (Phase 2 stand-in, recipe.stub_batch)',
   'recipe.create_stub_batch': 'the Phase 2 stand-in for batches (recipe.stub_batch, recipe-core 0170), replaced by the GMP batch issue of Phase 3; kept for the recipe-core tests, no batch of v1.0 is a stub',
@@ -54,13 +57,13 @@ const NO_ROUTE_YET: Readonly<Record<string, string>> = {
 
 const LISTS = { SERVICE_OR_INTERNAL, PENDING_7G, NO_ROUTE_YET };
 
-function sources(dir: string): string[] {
+function sources(dir: string, skip: readonly string[] = []): string[] {
   const out: string[] = [];
   const walk = (d: string) => {
     for (const f of readdirSync(d)) {
       const p = join(d, f);
       if (statSync(p).isDirectory()) {
-        if (f !== 'node_modules') walk(p);
+        if (f !== 'node_modules' && !skip.includes(p)) walk(p);
       } else if (/\.tsx?$/.test(p) && !/\.test\.tsx?$/.test(p)) out.push(readFileSync(p, 'utf8'));
     }
   };
@@ -111,8 +114,10 @@ beforeAll(async () => {
      where schemaname not in ('pg_catalog', 'information_schema')`);
   const bodyOf = new Map(all.map((r) => [r.fn, r.src]));
 
-  // The TypeScript the routes run: the server's source and the package declarations it reaches.
-  const server_ = sources(join(ROOT, 'apps', 'tablets-server', 'src')).join('\n');
+  // The TypeScript the routes run: the server's source and the package declarations it reaches. Not the command-line
+  // entry points and the demo data load's library in src/cli (slice 7h, gap report D1): an act only the demo load or the
+  // golden batches perform has no screen, which is what this test exists to find.
+  const server_ = sources(join(ROOT, 'apps', 'tablets-server', 'src'), [join(ROOT, 'apps', 'tablets-server', 'src', 'cli')]).join('\n');
   const units = declarations().filter((u) => u.name !== '');
   const reachedUnits = new Set(units.filter((u) => named(u.name, server_)));
   for (let grew = true; grew; ) {

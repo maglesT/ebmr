@@ -172,6 +172,11 @@ Decisions (owner rule: functionality first, least strict option within the hard 
   are deferred to deployment; GMP weighing on the demo stays the manual two-person path; E4 keeps the SSH tunnel.
 - D-P7R-18: F1 hides the home tiles a role cannot use (the server stays the authority); F2 is checked and, if the
   fresh-authentication check answers before the permission check on a read, the permission check goes first.
+- D-P7R-19 (D1): `db-acts-have-routes` no longer counts `apps/tablets-server/src/cli` (the demo load's library) as a
+  route; it then found C1, C3, C4 and `esig.register_seal_key`, which stays without a screen: registering a seal key
+  comes with installing its secret on the server (first-run set-up, set-up CLI); retiring one has its screen.
+- D-P7R-20 (WP-B): the sandbox test-run result package is hash- and stamp-checked, not signed (the phase-2 plan's
+  Ed25519 signature is left to deployment); its GMP checks are in TypeScript.
 
 ## After Phase 7
 
