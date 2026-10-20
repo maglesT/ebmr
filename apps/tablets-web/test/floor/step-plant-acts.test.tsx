@@ -165,7 +165,7 @@ describe('the press set-up and hopper charge (A5)', () => {
     const press = { useId: USE_PRESS, kind: 'PROCESS' as const, equipmentCode: 'PRESS-01', batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null, mine: true };
     const issue = { issueId: ISSUE, set: 'TS-F100', press: 'PRESS-01', counts: { upper: 45, lower: 45, dies: 45 }, preUse: { inspectionId: INSPECTION, result: 'PASS' as const }, returned: null, postUse: null };
     const current = plant({
-      block: 'TB-10@1', uses: [press], tooling: { checklist: [], sets: [], issues: [issue], preUse: [] },
+      block: 'TB-10@1', stage: 'S-COMP', uses: [press], tooling: { checklist: [], sets: [], issues: [issue], preUse: [] },
       containers: [{ containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLENDING', netQuantity: '19.880', unit: 'kg', problem: null }],
     });
     const ui = render(view, () => current, { 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: CONTAINER, label: 'OC-B26-0007-0001', netQuantity: '19.880', unit: 'kg' }) });
@@ -177,7 +177,7 @@ describe('the press set-up and hopper charge (A5)', () => {
     expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'PRESS_SETUP', data: { press: 'PRESS-01', useId: USE_PRESS, issueId: ISSUE } });
     await userEvent.click(within(screen.getByTestId('plant-press-setup')).getByRole('button', { name: 'Charge container OC-B26-0007-0001' }));
     await waitFor(() => expect(posts(ui, '/api/plant/charges')).toHaveLength(1));
-    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'COMPRESSION', label: 'OC-B26-0007-0001' });
+    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'S-COMP', label: 'OC-B26-0007-0001' });
     const charge = await screen.findByTestId('block-form-HOPPER_CHARGE');
     await userEvent.click(within(charge).getByRole('button', { name: 'Save: Hopper charge' }));
     await waitFor(() => expect(ui.commands()).toHaveLength(2));

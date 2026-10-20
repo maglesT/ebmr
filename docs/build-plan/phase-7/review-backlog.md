@@ -159,3 +159,14 @@ session idle rule of tablets 1460.
 |---|---|---|---|
 | P7X-1 | medium (DI-06) | The drift interlock (kernel 1350 `platform.interface_drift_problem`) checks only that the adapter code is described; the description's endpoint host, transport (LOOPBACK or MTLS) and source system are not compared with the adapter's registration or the base URL and TLS the server runs it on. A described adapter moved to another host, or run without the mTLS its description names, raises no drift alarm. | Known issue for v1.0-rc (owner rule of 19 October: the less strict option; the alarm still fires for every undescribed or withdrawn interface, and the system owner sees the endpoint on the validation screens). Comparing the running endpoint with the description is listed for v1.1. |
 | P7X-2 | low (DI-06) | Commands that run under an adapter's identity outside the inbound path (site-services 0912 and 0916 outbound ERP postings; kernel 1180 `record_reconciliation`, 1182 `record_mirror_sync`; the WMS location question of site-services 0915) do not call the drift check, so an undescribed adapter could still claim or settle outbound postings. The server starts no such worker and the alarm fires at enable and at start. | Known issue (no GMP write against a control; the server never runs the worker). |
+
+## Slice 7h (one review pass, 20 October 2026)
+
+- P7H-1 (fixed): the press set-up panel charged the hopper with a fixed stage `COMPRESSION` instead of the step's own
+  stage; it now sends the step's stage.
+- P7H-2 (residual, non-blocking): the start of the verification runs the designer's simulation before its idempotent
+  command, so a resend of a committed start re-runs the simulation and can be refused as busy or timed out instead of
+  returning the stored answer; the evidence stays right.
+- P7H-3 (residual, owner rule): exporting a sandbox test-run result needs a session only (no permission of its own, no
+  audit row); the file is write-once under its hash and GMP re-checks everything on import (D-P7R-20). A RUN.EXPORT
+  permission can come with deployment if the owner wants one.

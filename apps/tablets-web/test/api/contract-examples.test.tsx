@@ -67,12 +67,12 @@ describe('the designer examples are answers the server could give (review F55)',
     }
   });
 
-  it('[DI-04] the valid evidence of a version agrees with the validation report of the same content; the evidence kind is VALIDATOR', () => {
+  it('[DI-04] the valid evidence of a version is of its content; its validator evidence agrees with the validation report of the same content', () => {
     let pairs = 0;
     for (const v of versions) {
-      for (const e of v.evidence.filter((x) => x.valid)) {
-        expect(e.contentHash).toBe(v.contentHash);
-        expect(e.kind).toBe('VALIDATOR');
+      for (const e of v.evidence.filter((x) => x.valid)) expect(e.contentHash).toBe(v.contentHash);
+      // Slice 7h (D-P7R-16): the start of the verification also records the verification and the test vectors.
+      for (const e of v.evidence.filter((x) => x.valid && x.kind === 'VALIDATOR')) {
         expect(e.summary).toMatch(/^Passed: \d+ errors, \d+ warnings \(\d+ justifications recorded\)$/);
         for (const r of reports.filter((x) => x.contentHash === e.contentHash)) {
           pairs += 1;
