@@ -170,3 +170,8 @@ session idle rule of tablets 1460.
 - P7H-3 (residual, owner rule): exporting a sandbox test-run result needs a session only (no permission of its own, no
   audit row); the file is write-once under its hash and GMP re-checks everything on import (D-P7R-20). A RUN.EXPORT
   permission can come with deployment if the owner wants one.
+- P7H-4 (residual, found by the D2 browser test): the processing plan form does not send the ERP order the planner
+  clicked; the server takes the oldest open ERP order of the family. The contract has no order field for a processing
+  plan (the packaging plan has one); adding it touches the plan command, so it is left for a follow-up.
+- P7H-5 (residual, found by the D2 browser test): a database refusal of a step entry was shown as "The sign-in could not
+  be completed" with advice that the run had changed; the refusal's own words should be shown.

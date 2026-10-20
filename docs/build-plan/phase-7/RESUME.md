@@ -177,6 +177,8 @@ Decisions (owner rule: functionality first, least strict option within the hard 
   comes with installing its secret on the server (first-run set-up, set-up CLI); retiring one has its screen.
 - D-P7R-20 (WP-B): the sandbox test-run result package is hash- and stamp-checked, not signed (the phase-2 plan's
   Ed25519 signature is left to deployment); its GMP checks are in TypeScript.
+- D-P7R-21 (D2): the G-21 step screen shows the record's coding (what the coder must print) beside the operator's own
+  reading of the specimen, as a printed-line check normally does; the database still compares the reading (IN-16).
 
 ## After Phase 7
 
