@@ -97,6 +97,23 @@ describe('ERP masters and plant definitions', () => {
     await screen.findByTestId('plant-areas');
     expect(screen.queryByTestId('form-Define: Areas')).toBeNull();
   });
+
+  it('[IN-26] slice 7h (gap C4): the plant product list shows whether each product is highly potent, and the steward adds a product as the contract takes it', async () => {
+    const ui = renderOffice('/master-data/plant', { role: 'MASTER_DATA_STEWARD' });
+    await screen.findByTestId('plant-areas');
+    await userEvent.click(screen.getByRole('radio', { name: 'Products' }));
+    const panel = await screen.findByTestId('plant-products');
+    const product = example('plant-products').products[0];
+    await waitFor(() => expect(panel.textContent).toContain(product?.code ?? 'x'));
+    expect(panel.textContent).toContain(product?.recordedBy.legalName ?? 'x');
+    const form = within(panel).getByTestId('form-Define: Products');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Code' }), 'ATN-50');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Name' }), 'Atenolol tablets 50 mg');
+    await userEvent.click(within(form).getByRole('radio', { name: 'Yes' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Define' }));
+    await waitFor(() => expect(ui.posts('/api/master-data/plant/products')).toHaveLength(1));
+    expect(ui.posts('/api/master-data/plant/products')[0]?.body).toEqual({ code: 'ATN-50', name: 'Atenolol tablets 50 mg', highlyPotent: true });
+  });
 });
 
 describe('"Choose a product" in the designer\'s create flow', () => {

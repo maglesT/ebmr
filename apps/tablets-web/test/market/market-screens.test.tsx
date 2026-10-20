@@ -259,4 +259,42 @@ describe('master records', () => {
     await waitFor(() => expect(ui.posts(`/api/reference-documents/${U1}/retirement`)).toHaveLength(1));
     expect(ui.posts(`/api/reference-documents/${U1}/retirement`)[0]?.body).toEqual({ status: 'WITHDRAWN', effectiveFrom: '2026-11-01', reason: 'superseded by version 4' });
   });
+
+  it('[DI-04] slice 7h (gap C2): the reference documents screen records a new document version as the contract takes it (the server builds its body and hash)', async () => {
+    const ui = renderMarket('/mbr', {
+      role: 'MASTER_DATA_STEWARD',
+      fixtures: { 'designer.referenceDocuments': { documents: [] }, 'marketConfig.recordReferenceDocument': { documentId: U2, contentHash: 'a'.repeat(64) } },
+    });
+    const form = await screen.findByTestId('form-Record a reference document version');
+    await userEvent.click(within(form).getByRole('radio', { name: 'HOLD_STUDY' }));
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Code' }), 'HS-BLEND-01');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Version' }), '1');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Title' }), 'Blend hold-time study');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Effective from (YYYY-MM-DD)' }), '2026-11-01');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Summary' }), 'Blend held 72 hours in closed IBCs');
+    await userEvent.click(within(form).getByRole('button', { name: 'Record the document version' }));
+    await waitFor(() => expect(ui.posts('/api/reference-documents')).toHaveLength(1));
+    expect(ui.posts('/api/reference-documents')[0]?.body).toEqual({ kind: 'HOLD_STUDY', code: 'HS-BLEND-01', version: '1', title: 'Blend hold-time study', effectiveFrom: '2026-11-01', summary: 'Blend held 72 hours in closed IBCs' });
+  });
+
+  it('[DI-39] slice 7h (gap C3): QA registers an EU importer by signing its definition through the ceremony (EU_IMPORTER_REGISTER); the register lists the importers', async () => {
+    const ceremony = signedCeremony();
+    renderMarket('/qp-register', { ceremony, fixtures: { 'marketConfig.qpRegister': { importers: [{ code: 'EUIMP-1', name: 'Import GmbH', miaNumber: 'DE-MIA-1' }], candidates: [], entries: [] } } });
+    expect((await screen.findByTestId('eu-importers')).textContent).toContain('EUIMP-1: Import GmbH (DE-MIA-1)');
+    const form = screen.getByTestId('eu-importer-register');
+    const signBtn = within(form).getByRole('button', { name: "Sign the importer's registration" });
+    const key = Buffer.alloc(32, 3).toString('base64');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Importer code (capitals, digits, -)' }), 'EUIMP-2');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Name' }), 'Example Pharma Import GmbH');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Technical agreement reference' }), 'TA-2026-07');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'MIA number' }), 'DE-MIA-2026-007');
+    expect(signBtn.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Ed25519 public key (base64, 44 characters)' }), key);
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Products it imports (codes, separated by commas)' }), 'PCM-500, ATN-50');
+    await userEvent.click(signBtn);
+    await waitFor(() => expect(ceremony.sign).toHaveBeenCalledTimes(1));
+    expect(ceremony.sign.mock.calls[0]?.[0].action).toEqual({
+      kind: 'EU_IMPORTER_REGISTER', code: 'EUIMP-2', name: 'Example Pharma Import GmbH', technicalAgreementRef: 'TA-2026-07', miaNumber: 'DE-MIA-2026-007', publicKey: key, products: ['PCM-500', 'ATN-50'],
+    });
+  });
 });

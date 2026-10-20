@@ -9,13 +9,12 @@ import { t } from '@ebmr/ui-kit';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { useFeatures } from '../../app/feature-context.ts';
-import { useSessionRole } from '../../app/roles.ts';
 import { tileOffered } from '../../app/tile-access.ts';
 
 export function Home() {
   const boot = useBoot();
   const features = useFeatures();
-  const role = useSessionRole();
+  const role = boot.session?.role ?? null;
   const [showAll, setShowAll] = useState(false);
   const installation = boot.meta?.installation ?? 'GMP';
   const all = features.flatMap(([, f]) => f.homeTiles ?? []).filter((tile) => tile.installations.includes(installation));
