@@ -59,6 +59,7 @@ export {
   LimitView,
   LotView,
   ReplayReportView,
+  RunResultExportView,
   RunHeaderView,
   RunSummaryView,
   RunView,

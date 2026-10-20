@@ -37,7 +37,7 @@ export function MbrSigningPage() {
         {version.product.name} {version.product.strength}, revision {version.revision}: <StatusChip tone={stateTone(version.state)} label={words(version.state)} />
       </p>
       <p>
-        See also: <a href={`/mbr/versions/${version.versionId}/review`}>periodic review and risk assessments</a>, <a href={`/mbr/versions/${version.versionId}/labelling`}>labelling</a>,{' '}
+        See also: <a href={`/mbr/versions/${version.versionId}/review`}>change control, risk assessments, verification evidence and periodic review</a>, <a href={`/mbr/versions/${version.versionId}/labelling`}>labelling</a>,{' '}
         <a href="/mbr/change-records">change records</a>.
       </p>
       <LifeCycle version={version} />

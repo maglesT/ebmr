@@ -356,6 +356,15 @@ export const ReplayReportView = z.strictObject({
   checkedAt: Instant,
 });
 
+/** Slice 7h (decision D-P7R-16): the test-run result written for GMP; the file text is offered for download too. */
+export const RunResultExportView = z.strictObject({
+  fileName: z.string(),
+  resultHash: z.string(),
+  passed: z.boolean(),
+  fileText: z.string(),
+});
+export type RunResultExportView = z.infer<typeof RunResultExportView>;
+
 export const TimelineEntryView = z.strictObject({
   seq: IntegerString,
   kind: z.enum(['ISSUE', 'COMMAND', 'PREPARE', 'SWEEP']),
@@ -594,6 +603,18 @@ export const execution = {
     params: runIdParams,
     body: Empty,
     response: ReplayReportView,
+  }),
+  exportRunResult: defineRoute({
+    id: 'execution.exportRunResult',
+    method: 'POST',
+    path: '/api/test-runs/:runId/result-package',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Write the run\'s test-run result (ebmr.test-run-result v1: coverage, replay, pass or fail, the sandbox stamp, its hash) write-once to the exchange folder to-gmp, for the GMP version\'s SANDBOX_RUN evidence (slice 7h; decision D-P7R-16; DI-05)',
+    params: runIdParams,
+    body: Empty,
+    response: RunResultExportView,
   }),
   lot: defineRoute({
     id: 'execution.lot',

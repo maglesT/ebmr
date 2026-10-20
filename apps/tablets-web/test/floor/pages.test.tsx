@@ -170,6 +170,19 @@ describe('runs and the run overview', () => {
     await waitFor(() => expect(screen.getByTestId('replay-result').textContent).toContain('Replay differs at row 17: state_hash expected ab12, found cd34.'));
   });
 
+  it('[DI-05] "Export the test-run result for GMP" writes the result for GMP and says whether the run passed, with the file to download', async () => {
+    const ui = renderFloor(`/runs/${RUN_ID}`, {
+      intercept: (r: Recorded) =>
+        r.path.endsWith('/result-package') ? { status: 200, body: { fileName: `${'a'.repeat(64)}.json`, resultHash: 'a'.repeat(64), passed: false, fileText: '{"format":"ebmr.test-run-result"}\n' } } : undefined,
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Export the test-run result for GMP' }));
+    const done = await screen.findByTestId('run-result-export');
+    expect(ui.requests.filter((r) => r.path === `/api/test-runs/${RUN_ID}/result-package` && r.method === 'POST')).toHaveLength(1);
+    expect(done.getAttribute('data-passed')).toBe('no');
+    expect(done.textContent).toContain(`${'a'.repeat(64)}.json: the run has not passed`);
+    expect(within(done).getByRole('link', { name: 'Download the result file' }).getAttribute('download')).toBe(`${'a'.repeat(64)}.json`);
+  });
+
   it('a run that cannot be read shows the server\'s refusal', async () => {
     renderFloor(`/runs/${RUN_ID}`, { fixtures: { 'execution.run': { status: 403, body: envelope('NOT_ALLOWED', 'EBMR-IAM-140', { whatHappened: 'You may not open this run.' }) } } });
     expect(await screen.findByText('You may not open this run.')).toBeTruthy();

@@ -64,7 +64,7 @@ describe('the designer examples are the server\'s answers (review F55)', () => {
     expect(findings.findings.map((f) => f.key)).toContain('GMP-STAGE-CLEARANCE@S-BLEND');
     expect(simulation.passed).toBe(true);
     expect(inVerification.state).toBe('IN_VERIFICATION');
-    expect(inVerification.evidence.filter((e) => e.valid).map((e) => e.kind)).toEqual(['VALIDATOR']);
+    expect(inVerification.evidence.filter((e) => e.valid).map((e) => e.kind)).toEqual(['VALIDATOR', 'VERIFICATION (FULL)', 'TEST_VECTORS']);
 
     const zone = /\(([^)]+)\)$/.exec(version.savedAt.text)?.[1] ?? 'Asia/Kolkata';
     const s = new Stabiliser(zone, BASE_US, { [version.versionId]: VERSION_ID, [version.familyId]: FAMILY_ID });

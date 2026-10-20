@@ -224,8 +224,9 @@ describe('route table', () => {
       'labels.approveTemplate', 'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
       'labels.recordLabelSpecimen', 'labels.recordPostUseInspection', 'labels.resolveLineStop', 'labels.verifyPostUseInspection', 'labels.voidSpecimen',
       'marketConfig.addChangeRegulatory', 'marketConfig.addChangeValidation', 'marketConfig.applyPolicyTightening', 'marketConfig.closeCampaign', 'marketConfig.defineAlarmCode',
-      'marketConfig.definePolicy', 'marketConfig.openCampaign', 'marketConfig.recordLineIsolation', 'marketConfig.recordPeriodicReview', 'marketConfig.recordRuleSetVerification',
-      'marketConfig.retireReferenceDocument', 'marketConfig.setPolicyVersion', 'marketConfig.setSiteValue', 'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment',
+      'marketConfig.definePolicy', 'marketConfig.importSandboxRunResult', 'marketConfig.linkRiskAssessment', 'marketConfig.openCampaign', 'marketConfig.recordChangeRecord',
+      'marketConfig.recordLineIsolation', 'marketConfig.recordPeriodicReview', 'marketConfig.recordRiskAssessment', 'marketConfig.recordRuleSetVerification',
+      'marketConfig.retireReferenceDocument', 'marketConfig.setDraftAttributes', 'marketConfig.setPolicyVersion', 'marketConfig.setSiteValue', 'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment',
       'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'people.acknowledgeAlert', 'people.activateAccount', 'people.activateBadge',
       'people.addQualificationRequirement', 'people.approveBreakGlass', 'people.createAccount', 'people.createPerson', 'people.createQualificationType', 'people.createRole',
       'people.decideGrant', 'people.endQualificationRequirement', 'people.processLeaver', 'people.recertify', 'people.recordBadgeTest', 'people.rehirePerson',
@@ -254,7 +255,7 @@ describe('route table', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
-    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.command];
+    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command];
     for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
     for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe('GMP');
     const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
