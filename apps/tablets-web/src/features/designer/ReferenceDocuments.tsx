@@ -4,12 +4,15 @@
  * An MBR step cites one by code and version; the validator flags a citation that is not effective. Slice 7g WP3: the
  * master-data steward retires or withdraws a version from a date with the reason (marketConfig.retireReferenceDocument,
  * tab.retire_reference_document; MASTERDATA.CHANGE); the database refuses a date before the version took effect.
+ * Slice 7h WP-C (gap C2): the steward records a new version (marketConfig.recordReferenceDocument,
+ * tab.record_reference_document; MASTERDATA.CHANGE); the server builds the body and its hash, the database checks both.
  */
 import { useState } from 'react';
 import { routes } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, useCommand } from '../../app/acts.tsx';
+import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { dcls } from './classes.ts';
 
@@ -49,9 +52,26 @@ export function ReferenceDocuments() {
         </table>
       ) : null}
       {q.data && q.data.documents.length > 0 ? <RetireDocument documents={q.data.documents} /> : null}
+      <DefineForm
+        title="Record a reference document version"
+        route={routes.marketConfig.recordReferenceDocument}
+        refresh={[routes.designer.referenceDocuments.id]}
+        submitLabel="Record the document version"
+        fields={[
+          { name: 'kind', label: 'Kind', kind: 'choice', options: KINDS },
+          { name: 'code', label: 'Code', kind: 'text', description: 'Capitals, digits, dot, underscore or hyphen, e.g. SOP-DISP-001' },
+          { name: 'version', label: 'Version', kind: 'text' },
+          { name: 'title', label: 'Title', kind: 'text' },
+          { name: 'effectiveFrom', label: 'Effective from (YYYY-MM-DD)', kind: 'text' },
+          { name: 'summary', label: 'Summary', kind: 'text' },
+        ]}
+      />
     </section>
   );
 }
+
+/** The kinds of reference document an MBR may cite (tab.reference_document; the contract's list). */
+const KINDS = ['SOP', 'LIBRARY_ELEMENT', 'MATERIAL', 'EQUIPMENT_CLASS', 'RULE_SET', 'RISK_SCALE', 'RISK_ASSESSMENT', 'VALIDATION_REPORT', 'HOLD_STUDY', 'REGISTRATION', 'PHARMACOPOEIA', 'SPECIMEN', 'TEMPLATE', 'CCS', 'DOCUMENT', 'COMPUTERISED_SYSTEM'] as const;
 
 function RetireDocument({ documents }: { documents: readonly { refId: string; code: string; version: string }[] }) {
   const retire = useCommand(routes.marketConfig.retireReferenceDocument, [routes.designer.referenceDocuments.id]);

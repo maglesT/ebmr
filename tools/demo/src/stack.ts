@@ -261,6 +261,10 @@ export function credentialCard(keysDir: string): string {
   for (const seed of [read('gmp-seed.json'), read('sandbox-seed.json')]) {
     if (!seed) continue;
     lines.push('', `${seed.installation} (${seed.database})`);
+    // Slice 7h (gap E5): the installation's first administrator and process owner (their passwords are new at each set-up).
+    for (const a of [seed.bootstrap.admin, seed.bootstrap.owner]) {
+      lines.push(`  ${a.legalName.padEnd(26)} ${a.roleCode.padEnd(20)} user ID ${a.loginName}  password ${a.password}   (an office PC)`);
+    }
     for (const p of seed.personas.filter((x) => x.set === 0)) {
       const how = p.kiosk ? `badge ${p.badgeUid ?? '?'}  PIN ${p.pin ?? '?'}   (kiosk ${p.homeTerminal})` : `user ID ${p.loginName}  password ${p.password}   (${p.homeTerminal})`;
       lines.push(`  ${p.legalName.padEnd(26)} ${[p.roleCode, ...(p.alsoRoles ?? [])].join('+').padEnd(20)} ${how}`);

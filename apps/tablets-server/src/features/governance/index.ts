@@ -15,7 +15,7 @@ import { commands, type ActorContext } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { permissionBeforeTap, withActorCommand, withIdempotentActorCommand, withReadCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
@@ -170,7 +170,7 @@ interface AccessRow {
 }
 
 async function accessViews(app: AppContext, pool: pg.Pool, who: ActorContext, id?: string): Promise<ContractGiverAccessView[]> {
-  const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
+  const list = await withReadCommand(pool, who, ['CONTRACT_GIVER_ACCESS.GRANT'], async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
   const mine = id ? list.filter((a) => a.accessId === id) : list;
   const us = await pool.query<{ i: string; f: string; t: string }>(
     `select x ->> 'accessId' as i, ${usOf("(x ->> 'validFrom')::timestamptz")} as f, ${usOf("(x ->> 'validTo')::timestamptz")} as t from jsonb_array_elements($1::jsonb) x`,
@@ -198,6 +198,8 @@ async function accessViews(app: AppContext, pool: pg.Pool, who: ActorContext, id
 /** A reviewer's read: its own command (the database checks the role, read-only and the live access, and logs the read). */
 async function asReviewer<T>(pool: pg.Pool, who: ActorContext, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
+    // D-P7R-18 (F2): the read's permission before the kiosk's badge tap.
+    await permissionBeforeTap(pool, who, ['CONTRACT_GIVER.READ']);
     return await withActorCommand(pool, who, work);
   } catch (error) {
     throw commands.asKernelError(error);

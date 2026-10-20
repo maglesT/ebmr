@@ -1,7 +1,8 @@
 /**
  * The EU qualified-person register (slice 7g WP3; recipe-core 0824; ST-10): QA registers a person who holds the EU QP
  * role on a registered importer's authorisation (its MIA number), or withdraws the registration, with a signature
- * through the ceremony (QP_REGISTER, meaning QP_REGISTERED). Nobody registers themselves; the database decides.
+ * through the ceremony (QP_REGISTER, meaning QP_REGISTERED). Nobody registers themselves; the database decides. Slice 7h
+ * (gap C3): the registered importers, and QA's signed registration of a new one (EuImporterForm, EU_IMPORTER_REGISTER).
  */
 import { useState } from 'react';
 import { routes } from '@ebmr/api-contract';
@@ -9,6 +10,7 @@ import { floor } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { EuImporterForm } from './EuImporterForm.tsx';
 import { QP_READS, words } from './reads.ts';
 
 export function QpRegisterPage() {
@@ -51,6 +53,17 @@ export function QpRegisterPage() {
         />
         <ActResult error={signed.error} outcome={signed.outcome} label="The register entry is signed." />
       </Section>
+      <Section title="Registered EU importers" testId="eu-importers">
+        {reg.importers.length === 0 ? <p>No importer is registered yet: register one below before a qualified person can be registered.</p> : null}
+        <ul>
+          {reg.importers.map((i) => (
+            <li key={i.code}>
+              {i.code}: {i.name} ({i.miaNumber})
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <EuImporterForm />
     </>
   );
 }

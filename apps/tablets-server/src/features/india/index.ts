@@ -22,7 +22,7 @@ import { withCommand } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withIdempotentActorCommand, withReadCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
@@ -323,7 +323,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     allocationRegister: async ({ query, requireSession, actor }) => {
       const site = requireSession().siteCode;
       // The register checks RECORD.READ for the site itself (recipe-core 0913), so it is read in the person's own command.
-      const { rows } = await withActorCommand(pool, actor(), (c) =>
+      const { rows } = await withReadCommand(pool, actor(), ['RECORD.READ'], (c) =>
         c.query<{ r: AllocationEntryView[] }>('select recipe.allocation_register($1, $2::timestamptz, $3::timestamptz) as r', [site, query.from ?? null, query.to ?? null]));
       return { siteCode: site, entries: rows[0]?.r ?? [] };
     },

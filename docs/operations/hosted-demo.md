@@ -32,7 +32,10 @@ As root on a fresh Ubuntu 24.04 server with the deploy key in `~/.ssh/authorized
    `EBMR_PG_ADMIN_URL=postgres://ebmr_dev:<password>@localhost:5432/postgres` into `/etc/batchwright/demo.env` (600).
 4. Code: `useradd -m batchwright`; from a checkout, `git archive --format=tar <ref> | ssh root@<ip> 'runuser -u
    batchwright -- tar -x -C /opt/batchwright'`; then as `batchwright`: `pnpm install --frozen-lockfile`.
-5. Demo data: as `batchwright`, with the environment file loaded and `TZ=UTC`: `pnpm demo:setup` (a minute or two).
+5. Demo data: as `batchwright`, with the environment file loaded and `TZ=UTC`: `pnpm demo:setup --with-gmp-samples`
+   (about 11 minutes). The flag also loads GMP's DEMO-ONLY sample records: an approved master, a batch record ready for
+   review, the release path (a lot ready for release and one not ready) and the packaging-order demo. Without it the
+   set-up takes a minute or two and GMP has no approved master, batch or lot.
 6. The Caddyfile (two sites, `reverse_proxy 127.0.0.1:3001` for GMP and `127.0.0.1:3011` for the sandbox) and the unit
    `batchwright-demo.service` (`User=batchwright`, `WorkingDirectory=/opt/batchwright`, `EnvironmentFile` the file
    above, `Environment=TZ=UTC`, the two `EBMR_DEMO_*_ORIGIN` variables, `ExecStart=/usr/bin/pnpm demo`,
@@ -40,21 +43,29 @@ As root on a fresh Ubuntu 24.04 server with the deploy key in `~/.ssh/authorized
 7. Check: `curl https://<gmp host>/api/meta` answers with `"demo":true` and the https public origin; sign in through
    the demo terminal picker in a browser.
 
-The credential card (the DEMO-ONLY personas and their passwords) is printed by the service at start:
+The credential card (the DEMO-ONLY personas, the administrator `demo.admin` and the process owner `demo.owner`, with
+their passwords; those two passwords are new at each set-up) is printed by the service at start:
 `journalctl -u batchwright-demo | sed -n '/DEMO-ONLY credentials/,$p'`.
 
 ## Operating it
 
 - Status and logs: `systemctl status batchwright-demo`, `journalctl -u batchwright-demo -f`.
-- Reset the demo to its first state: `systemctl stop batchwright-demo`, then as `batchwright` `pnpm demo:setup`
-  (it recreates both databases), then `systemctl start batchwright-demo`.
+- Reset the demo to its first state: `systemctl stop batchwright-demo`, then as `batchwright` `pnpm demo:setup
+  --with-gmp-samples` (it recreates both databases; about 11 minutes with the samples), then `systemctl start
+  batchwright-demo`. The reset script `/usr/local/bin/batchwright-demo-reset` does these three steps.
+- After a reset, every browser that used the demo clears its site data for both host names (the installed demo
+  terminal's key and the session belong to the old databases, so the server no longer knows them), then picks a demo
+  terminal again. In Chrome or Edge: the padlock, Site settings, Delete data; in Firefox: the padlock, Clear cookies and
+  site data.
 - New code: copy the new tree as in step 4, `pnpm install --frozen-lockfile`, reset as above.
 
 ## Known gaps
 
-- The five demo machines of the gateway configuration (press, coater, printer, bottle line, cartoner; `DEMO_DEVICES`
-  in `tools/demo/src/paths.ts`) are not registered as process devices of the sandbox's gateway by `pnpm demo:setup`, so
-  the server refuses their simulated readings (EBMR-DEV-122, DI-20, as it must). The scale works. They can be
-  registered on the administration's devices screen, or the set-up can register them (a follow-up).
-- Behind the proxy every request comes from 127.0.0.1, so the server's per-address rate limits are shared by all
-  visitors (the per-identifier limits still apply).
+Deferred to deployment (decision D-P7R-17):
+
+- E3: GMP has no simulated balance or gateway; the scale simulator and the gateway serve the sandbox only. Every GMP
+  weighing on the demo is the manual two-person path.
+- E4: the scale simulator's console listens on 127.0.0.1:4002 only; presenters reach it through an SSH tunnel
+  (`ssh -L 4002:127.0.0.1:4002 root@<ip>`, then http://localhost:4002).
+- E6: behind the proxy every request comes from 127.0.0.1, so the server's per-address rate limits are shared by all
+  visitors (the per-identifier limits still apply); the trusted-proxy setting of decision 0021 stays optional.

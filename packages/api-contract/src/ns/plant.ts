@@ -33,6 +33,20 @@ export const EquipmentClassView = z.strictObject({
   cipValidationRef: z.string().nullable(),
 });
 export type EquipmentClassView = z.infer<typeof EquipmentClassView>;
+/**
+ * Phase 7 slice 7h (WP-C, gap C4): a product of the plant's product list (plant.product, recipe-core 0400). The list is the
+ * plant's own master data, kept by the master-data steward (MASTERDATA.CHANGE): the ERP's item master does not carry
+ * whether a product is highly potent, which the clearance and segregation rules read (IN-26 (c)), and tooling sets and
+ * equipment campaigns name a product of this list.
+ */
+export const ProductView = z.strictObject({
+  code: z.string(),
+  name: z.string(),
+  highlyPotent: z.boolean(),
+  recordedBy: PersonRef,
+  recordedAt: Instant,
+});
+export type ProductView = z.infer<typeof ProductView>;
 export const EquipmentView = z.strictObject({
   equipmentId: Uuid,
   code: z.string(),
@@ -136,6 +150,24 @@ const list = <K extends string, T extends z.ZodType>(id: string, path: string, s
   });
 
 export const plant = {
+  // Phase 7 slice 7h (WP-C, gap C4): the plant's product list and the definition of a product.
+  products: list('plant.products', '/api/master-data/plant/products', 'The plant\'s product list, each product with whether it is highly potent', 'products', ProductView),
+  defineProduct: defineRoute({
+    id: 'plant.defineProduct',
+    method: 'POST',
+    path: '/api/master-data/plant/products',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Add a product to the plant\'s product list, stating whether it is highly potent (MASTERDATA.CHANGE; IN-26)',
+    body: withAttribution({
+      code: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/),
+      name: z.string().trim().min(1).max(200),
+      highlyPotent: z.boolean(),
+    }),
+    response: ProductView,
+  }),
   areas: list('plant.areas', '/api/master-data/plant/areas', 'Rooms and lines of the site', 'areas', AreaView),
   defineArea: defineRoute({
     id: 'plant.defineArea',

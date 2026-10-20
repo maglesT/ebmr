@@ -3,6 +3,7 @@
  * from outside or recovered after a restore, with its status; a voided number stays listed and is never given again.
  * The issuer registers a number issued outside the system, voids a number with a reason code and text, and re-enters a
  * number issued in the window a completed restore skipped, with its evidence. Every right and rule is the database's.
+ * Slice 7h WP-C (gap C1): the site's numbering rules and the master-data steward's definition of a rule.
  */
 import { useState } from 'react';
 import { routes, type BatchNumberView } from '@ebmr/api-contract';
@@ -83,7 +84,68 @@ export function BatchNumbersPage() {
           </Section>
         </>
       ) : null}
+      <NumberingRules />
     </>
+  );
+}
+
+/**
+ * Slice 7h WP-C (gap C1; IN-18): the site's numbering rules, and the master-data steward's definition of one
+ * (planning.defineBatchNumberRule, site.define_batch_number_rule; BATCH_NUMBER.RULE_DEFINE). The site and its zone are the
+ * session's; the database checks the format, its tokens and that a rule never takes effect in the past.
+ */
+function NumberingRules() {
+  const q = useApiQuery(routes.planning.batchNumberRules);
+  const steward = useOffered('FORMULA_AUTHOR');
+  return (
+    <Section title="Numbering rules" testId="numbering-rules">
+      {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      {q.data && q.data.rules.length === 0 ? <p>No numbering rule yet: numbers are then only registered from outside.</p> : null}
+      {q.data && q.data.rules.length > 0 ? (
+        <table aria-label="Numbering rules">
+          <thead>
+            <tr>
+              <th scope="col">Rule</th>
+              <th scope="col">Format</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Product</th>
+              <th scope="col">From</th>
+              <th scope="col">Defined by</th>
+            </tr>
+          </thead>
+          <tbody>
+            {q.data.rules.map((r) => (
+              <tr key={r.ruleId} data-testid={`rule-${r.ruleCode}`}>
+                <th scope="row">{r.ruleCode}</th>
+                <td>{r.format}</td>
+                <td>{r.batchKind.toLowerCase()}</td>
+                <td>{r.productCode ?? 'every product of the site'}</td>
+                <td>{r.effectiveFrom.text}</td>
+                <td>
+                  {r.definedBy.legalName}: {r.reason}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      {steward ? (
+        <DefineForm
+          title="Numbering rule"
+          route={routes.planning.defineBatchNumberRule}
+          refresh={[routes.planning.batchNumberRules.id]}
+          submitLabel="Define the rule"
+          fields={[
+            { name: 'ruleCode', label: 'Rule code', kind: 'text', description: 'Capitals, digits, _ -' },
+            { name: 'batchKind', label: 'Kind', kind: 'choice', options: ['PROCESSING', 'PACKAGING'] },
+            { name: 'format', label: 'Format', kind: 'text', description: 'A-Z 0-9 / . - and {SITE} {PRODUCT} {YYYY} {YY} {MM} {SEQ:n} {PARENT}; exactly one {SEQ:n}, e.g. B{YY}{SEQ:4}' },
+            { name: 'productCode', label: 'Product code (empty: every product of the site)', kind: 'text', optional: true },
+            { name: 'effectiveFrom', label: 'Effective from (empty: now)', kind: 'instant', optional: true, description: 'ISO-8601 with offset, e.g. 2027-01-01T00:00:00+05:30' },
+            { name: 'reason', label: 'Reason (e.g. the numbering SOP)', kind: 'text' },
+          ]}
+        />
+      ) : null}
+    </Section>
   );
 }
 

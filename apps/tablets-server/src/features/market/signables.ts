@@ -4,6 +4,7 @@
  *
  *   action            aggregate                                         meaning                          command
  *   QP_REGISTER       qp_register <person>/<action>/<importer>/<MIA>    QP_REGISTERED                    recipe.register_qp
+ *   EU_IMPORTER_REGISTER eu_importer <code>/<SHA-256 of definition>     EU_IMPORTER_APPROVED             recipe.register_eu_importer (7h)
  *   RULE_SET_VERIFY   compendial_rule_set <CODE>:<version>              COMPENDIAL_RULE_SET_VERIFIED     tab.sign_rule_set_verification
  *   MARKET_LOOSENING  market_policy_version <policy>@<n>@<position>     POLICY_LOOSENING_APPROVED        none: the signature is the
  *                     market_site_loosening <site>@<key>@...            SITE_VALUE_LOOSENING_APPROVED    approval the change carries
@@ -19,6 +20,7 @@ import { dbActHandler, refusedOutcome, type ActTarget } from '../esig/db-acts.ts
 import { POLICY_AGGREGATE, policyTarget, SITE_LOOSENING_AGGREGATE, sitePreview } from './policies.ts';
 
 type QpRegister = Extract<SignableAction, { kind: 'QP_REGISTER' }>;
+type EuImporterRegister = Extract<SignableAction, { kind: 'EU_IMPORTER_REGISTER' }>;
 type RuleSetVerify = Extract<SignableAction, { kind: 'RULE_SET_VERIFY' }>;
 type MarketLoosening = Extract<SignableAction, { kind: 'MARKET_LOOSENING' }>;
 
@@ -35,6 +37,40 @@ export function qpRegisterHandler(app: AppContext): SignableActionHandler<QpRegi
     async apply(client, _ctx, a, signatureId) {
       const { rows } = await client.query<{ id: string }>('select recipe.register_qp($1, $2, $3, $4, $5) as id', [a.personId, a.action, a.importerCode, a.miaNumber, signatureId]);
       return { entryId: rows[0]?.id ?? null, action: a.action };
+    },
+  });
+}
+
+/** The definition the database registers and hashes (recipe.eu_importer_canonical), from the signed action. */
+const importerDefinition = (a: EuImporterRegister) => ({
+  code: a.code,
+  name: a.name,
+  technicalAgreementRef: a.technicalAgreementRef,
+  miaNumber: a.miaNumber,
+  publicKey: a.publicKey,
+  products: a.products,
+});
+
+/**
+ * Slice 7h WP-C (gap C3): QA registers an EU importer (EU_IMPORTER_APPROVED on eu_importer <code>/<SHA-256>). The SHA-256
+ * is the database's own, of its canonical text of the definition (recipe.eu_importer_canonical), read on the pool so the
+ * signature names exactly the definition recipe.register_eu_importer then registers and checks.
+ */
+export function euImporterRegisterHandler(app: AppContext): SignableActionHandler<EuImporterRegister> {
+  const target = (a: EuImporterRegister, sha: string): ActTarget => ({ aggregateType: 'eu_importer', aggregateId: `${a.code}/${sha}`, meaning: 'EU_IMPORTER_APPROVED', expectedState: 'NEW' });
+  return dbActHandler<EuImporterRegister>(app, {
+    kind: 'EU_IMPORTER_REGISTER',
+    // D-P7R-6: GOVERNANCE class (tablets 1189); the signer reads it in their own session (tablets 1493).
+    readForSigner: true,
+    aggregateTypes: ['eu_importer'],
+    target: (a) => target(a, NO_RECORD),
+    async targetNow(_db, a) {
+      const { rows } = await app.pools.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(importerDefinition(a))]);
+      return target(a, rows[0]?.h ?? NO_RECORD);
+    },
+    async apply(client, _ctx, a, signatureId) {
+      const { rows } = await client.query<{ id: string }>('select recipe.register_eu_importer($1::jsonb, $2) as id', [JSON.stringify(importerDefinition(a)), signatureId]);
+      return { importerId: rows[0]?.id ?? null, code: a.code };
     },
   });
 }
@@ -91,6 +127,7 @@ export function marketLooseningHandler(app: AppContext): SignableActionHandler<M
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
   if (app.installation !== 'GMP') return;
   registry.register(qpRegisterHandler(app));
+  registry.register(euImporterRegisterHandler(app));
   registry.register(ruleSetVerifyHandler(app));
   registry.register(marketLooseningHandler(app));
 }

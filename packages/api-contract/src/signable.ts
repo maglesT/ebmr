@@ -519,6 +519,22 @@ export const SignableAction = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     /**
+     * Slice 7h WP-C (gap C3; recipe-core 0824; DI-39, ST-10): QA registers an EU importer named in a technical agreement,
+     * with its MIA number, the Ed25519 public key its QP messages are verified with, and the products it imports
+     * (EU_IMPORTER_APPROVED on eu_importer <code>/<SHA-256 of the canonical definition>); recipe.register_eu_importer
+     * decides (RECORD.QA_REVIEW, never an administrator, the code once, one importer per product).
+     */
+    kind: z.literal('EU_IMPORTER_REGISTER'),
+    code: z.string().regex(/^[A-Z0-9][A-Z0-9-]{1,31}$/),
+    name: z.string().trim().min(1).max(200),
+    technicalAgreementRef: z.string().trim().min(1).max(200),
+    miaNumber: z.string().trim().min(1).max(64),
+    /** The importer's Ed25519 public key, 32 bytes in base64. */
+    publicKey: z.string().regex(/^[A-Za-z0-9+/]{43}=$/, 'a 32-byte Ed25519 public key in base64'),
+    products: z.array(z.string().trim().min(1).max(64)).min(1).max(50),
+  }),
+  z.strictObject({
+    /**
      * Slice 7g WP3 (tablets 1161; IN-34): the QA person who recorded the verification of a compendial rule set version
      * signs it (COMPENDIAL_RULE_SET_VERIFIED on compendial_rule_set <CODE>:<version>); tab.sign_rule_set_verification decides.
      */

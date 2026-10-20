@@ -42,7 +42,8 @@ export interface ReferenceDocumentContent {
   /** Site calendar date (YYYY-MM-DD) from which the document is in force. */
   effectiveFrom: string;
   summary: string;
-  notice: string;
+  /** The DEMO-ONLY notice of the seed's stand-in documents; absent on a version a person records (slice 7h, gap C2). */
+  notice?: string;
 }
 
 export interface ReferenceDocumentSeed {

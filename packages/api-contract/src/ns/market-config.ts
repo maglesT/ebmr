@@ -284,6 +284,23 @@ export const marketConfig = {
     body: withAttribution({ status: z.enum(['RETIRED', 'WITHDRAWN']), effectiveFrom: IsoDate, reason: Text(2000) }),
     response: z.strictObject({ retirementId: Uuid }),
   }),
+  // Phase 7 slice 7h (WP-C, gap C2; DI-04): a new reference document version (an SOP, an equipment class, a computerised
+  // system, a hold study...), recorded by the master-data steward. The server builds the ebmr.reference-document body and
+  // its SHA-256 over canonical JSON; the database checks the right, the body, the hash and that no two versions of a
+  // document take effect on the same day.
+  recordReferenceDocument: defineRoute({
+    id: 'marketConfig.recordReferenceDocument', method: 'POST', path: '/api/reference-documents', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    summary: 'Record a reference document version (MASTERDATA.CHANGE): kind, code, version, title, the date it takes effect and a summary; its content hash is what an MBR pins',
+    body: withAttribution({
+      kind: z.enum(['SOP', 'LIBRARY_ELEMENT', 'MATERIAL', 'EQUIPMENT_CLASS', 'RULE_SET', 'RISK_SCALE', 'RISK_ASSESSMENT', 'VALIDATION_REPORT', 'HOLD_STUDY', 'REGISTRATION', 'PHARMACOPOEIA', 'SPECIMEN', 'TEMPLATE', 'CCS', 'DOCUMENT', 'COMPUTERISED_SYSTEM']),
+      code: z.string().regex(/^[A-Z0-9][A-Z0-9._-]{0,63}$/, 'capitals, digits, dot, underscore or hyphen'),
+      version: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/, 'letters, digits, dot, underscore or hyphen'),
+      title: Text(200),
+      effectiveFrom: IsoDate,
+      summary: Text(2000),
+    }),
+    response: z.strictObject({ documentId: Uuid, contentHash: z.string().regex(/^[0-9a-f]{64}$/) }),
+  }),
   // Market policies and site values
   policies: defineRoute({
     id: 'marketConfig.policies', method: 'GET', path: '/api/market/policies', installation: 'GMP', auth: 'SESSION', mutating: false,

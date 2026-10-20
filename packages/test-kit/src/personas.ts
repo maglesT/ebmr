@@ -124,6 +124,14 @@ export const PERSONAS: readonly PersonaSpec[] = [
   // certification, PR-55), for the golden batches and the release specs.
   { key: 'usQcu', installation: 'GMP', legalName: 'Nandini Rao', loginName: 'nandini.rao', roleCode: 'US_QCU_SIGNER', kiosk: false, homeTerminal: 'PC-QA-10', title: 'US quality-control unit (dispositions)', demo: { password: 'Demo-GmpUsQcu-2026!' } },
   { key: 'euQp', installation: 'GMP', legalName: 'Joachim Weber', loginName: 'joachim.weber', roleCode: 'EU_QP', kiosk: false, homeTerminal: 'PC-QA-10', title: 'EU qualified person (certification)', demo: { password: 'Demo-GmpEuQp-2026!' } },
+  // Phase 7 slice 7h (gap E5): a person for each GMP role nobody held, so its screens show its work instead of refusals.
+  // One role each, so no person combines duties the segregation rules keep apart (the CSV and data-integrity lead is an
+  // administration and security role: it never holds a GMP role). The dispenser holds CONTROLLED.CUSTODY and the stage
+  // responsible CONTROLLED.BALANCE; the other controlled-substance permissions are held by personas above (QA, stores).
+  { key: 'csvLead', installation: 'GMP', legalName: 'Farhan Qureshi', loginName: 'farhan.qureshi', roleCode: 'CSV_DI_LEAD', kiosk: false, homeTerminal: 'PC-QA-03', title: 'CSV and data-integrity lead', demo: { password: 'Demo-GmpCsvLead-2026!' } },
+  { key: 'dispenser1', installation: 'GMP', legalName: 'Pooja Venkatesh', loginName: 'pooja.venkatesh', roleCode: 'DISPENSER', kiosk: true, homeTerminal: 'KIOSK-DISP-1', title: 'Designated dispenser', demo: { password: 'Demo-GmpDispenser1-2026!', pin: '614378', badgeUid: '04B10000000006' } },
+  { key: 'stageResponsible1', installation: 'GMP', legalName: 'Harish Bhatt', loginName: 'harish.bhatt', roleCode: 'STAGE_RESPONSIBLE', kiosk: true, homeTerminal: 'KIOSK-COMP-1', title: 'Person responsible for a stage', demo: { password: 'Demo-GmpStageResp1-2026!', pin: '729154', badgeUid: '04B10000000007' } },
+  { key: 'euQpReader', installation: 'GMP', legalName: 'Claudia Brenner', loginName: 'claudia.brenner', roleCode: 'EU_QP_READER', kiosk: false, homeTerminal: 'PC-QA-10', title: 'EU importer QP (read-only)', demo: { password: 'Demo-GmpEuQpReader-2026!' } },
   // Sandbox (test runs on the shop floor)
   { key: 'issuer', installation: 'SANDBOX', legalName: 'TEST-Rohan Gupta', loginName: 'test-issuer', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Batch issuer', demo: { password: 'Demo-Issuer-2026!' } },
   { key: 'steward', installation: 'SANDBOX', legalName: 'TEST-Neha Joshi', loginName: 'test-steward', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Master-data steward (test lots)', demo: { password: 'Demo-Steward-2026!' } },
