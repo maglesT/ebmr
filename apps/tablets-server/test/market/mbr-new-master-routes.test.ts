@@ -77,7 +77,8 @@ describe('a new master record: change record, risk assessment, draft attributes'
     const v = await newDraft();
     const code = `RA-7H-${tag()}`;
     const ra = valueOf(await (as['approver'] as TestBrowser).call(M.recordRiskAssessment, { body: { code, version: '1', title: 'Process risk assessment', riskClass: 'MEDIUM', rationaleRef: 'QRM-7H' } }));
-    expect(ra).toMatchObject({ code, version: '1', riskClass: 'MEDIUM', rationaleRef: 'QRM-7H', recordedBy: expect.objectContaining({ loginName: expect.any(String) }) });
+    expect(ra).toMatchObject({ code, version: '1', riskClass: 'MEDIUM', rationaleRef: 'QRM-7H' });
+    expect(ra.recordedBy.loginName).not.toBe('');
     expect(valueOf(await (as['author'] as TestBrowser).call(M.riskAssessments)).riskAssessments.map((r) => r.riskAssessmentId)).toContain(ra.riskAssessmentId);
     expect(codeOf(await (as['approver'] as TestBrowser).call(M.recordRiskAssessment, { body: { code, version: '1', title: 'Again', riskClass: 'LOW', rationaleRef: 'QRM-X' } }))).toBe('EBMR-API-ALREADY-RECORDED');
     expect(codeOf(await (as['approver'] as TestBrowser).call(M.linkRiskAssessment, { params: { versionId: v.versionId }, body: { riskAssessmentId: ra.riskAssessmentId } }))).toBe('EBMR-IAM-040');
