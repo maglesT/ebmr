@@ -158,7 +158,9 @@ test.describe('administration: people and devices', () => {
     const bal = `BAL-E-${tag}`;
     const gwLogin = `gw.e.${tag.toLowerCase()}`;
     await evidence.step('Register a balance and a gateway, and the gateway\'s INTEGRATION identity', 'Both devices are registered; the gateway account exists', async () => {
-      await register(bal, 'INSTRUMENT', hex(`balance ${tag}`), 'Balance 60 kg (E2E)', 'DISP-1');
+      // A room of its own: a balance bound behind a gateway makes its room's weighings wait for that gateway (PR-20), and
+      // DISP-1 is where the GMP kiosk batch spec weighs by hand.
+      await register(bal, 'INSTRUMENT', hex(`balance ${tag}`), 'Balance 60 kg (E2E)', `RM-E-${tag}`);
       await register(gw, 'SERVER', createHash('sha256').update(spki).digest('hex'), 'Site gateway (E2E)');
       await page.goto(`${base}/admin/people`);
       const form = page.getByTestId('person-create');

@@ -40,6 +40,8 @@ export interface FeatureSeedContext {
   exchangeDir: string;
   /** Sandbox: base64 SPKI of the site gateway's Ed25519 key (set-up `--gateway-spki`); null when none was given. */
   gatewaySpki: string | null;
+  /** Sandbox, hosted demo only (set-up `--demo-process-devices`): also register and bind the demo's simulated machines. */
+  demoProcessDevices: boolean;
   log(message: string): void;
 }
 

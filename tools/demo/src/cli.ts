@@ -1,6 +1,7 @@
 /**
  * `pnpm demo:setup`  creates ebmr_tablets_demo and ebmr_sandbox_tablets_demo with DEMO-ONLY keys and personas,
- *                    and builds the SPA.
+ *                    and builds the SPA. `pnpm demo:setup --with-gmp-samples` also loads GMP's sample records (an
+ *                    approved master, a batch ready for review, the release path and the packaging-order demo).
  * `pnpm demo`        starts the GMP server (:3001), the sandbox server (:3011, gateway listener :3012), the site
  *                    gateway (:3021) and the scale simulator (TCP :4001, console :4002), then prints the URLs and
  *                    the credential card.
@@ -11,10 +12,11 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEMO_DATABASES, DEMO_PORTS, KEYS_DIR, REPO_ROOT, WEB_DIST } from './paths.ts';
+import { setupOptions } from './options.ts';
 import { buildWeb, credentialCard, setupStack, startStack } from './stack.ts';
 
 async function setup(): Promise<void> {
-  await setupStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, personaSets: 1 });
+  await setupStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, personaSets: 1, demoDevices: true, ...setupOptions(process.argv) });
   await buildWeb();
   console.log('\nDemo set-up complete. Start it with: pnpm demo\n');
 }
@@ -24,7 +26,12 @@ async function run(dev: boolean): Promise<void> {
     throw new Error('the demo is not set up: run `pnpm demo:setup` first');
   }
   if (!dev && !existsSync(join(WEB_DIST, 'index.html'))) await buildWeb();
-  const stack = await startStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, ports: DEMO_PORTS, webDist: dev ? null : WEB_DIST, demoDevices: true });
+  // A hosted demo behind an HTTPS reverse proxy names the browsers' origins (both or neither).
+  const gmpOrigin = process.env['EBMR_DEMO_GMP_ORIGIN'];
+  const sandboxOrigin = process.env['EBMR_DEMO_SANDBOX_ORIGIN'];
+  if ((gmpOrigin === undefined) !== (sandboxOrigin === undefined)) throw new Error('set both EBMR_DEMO_GMP_ORIGIN and EBMR_DEMO_SANDBOX_ORIGIN, or neither');
+  const publicOrigins = gmpOrigin !== undefined && sandboxOrigin !== undefined ? { gmp: gmpOrigin, sandbox: sandboxOrigin } : undefined;
+  const stack = await startStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, ports: DEMO_PORTS, webDist: dev ? null : WEB_DIST, demoDevices: true, ...(publicOrigins ? { publicOrigins } : {}) });
   const viteServers = dev
     ? [
         spawn('pnpm', ['--filter', '@ebmr/tablets-web', 'dev'], { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, EBMR_WEB_PORT: '5173', EBMR_API_ORIGIN: stack.urls.gmp } }),

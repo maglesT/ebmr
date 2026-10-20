@@ -45,6 +45,9 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-21][PR-34] a clearance records PASSED or FAILED in a CLEAN area (or alongside a batch in a segregated room), of the type its area takes"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-21] a clearance is verified once; a second verification is refused as already verified"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > the commands lock the unit or area they act on > [INV-15][IN-21] campaigns, cleanings, clearances and occupancies of a room lock its row"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > the use of a room by a batch (gap report A2) > [IN-21][PR-34][INV-40] the room is occupied for the batch on its verified clearance by the operator's own tapped act; untapped, by a verifier or a second time it is refused; the step screen lists it as the viewer's; ended once"
+  - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the room a clearance step occupies (A2) > [IN-21][PR-34] starts the batch's use of the stage's room, fills the AREA_OCCUPANCY entry from the answer, saves it, and ends the use"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOSK-COMP-1, tooling, press set-up and hopper charge, the run with its weight checks and bulk containers, the yield and QA's release for packing at H-PACK @office"
 clauses:
   - clause: "start compression on a room with status \"to be cleaned\"; refused."
     tests:

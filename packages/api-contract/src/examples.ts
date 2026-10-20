@@ -118,7 +118,65 @@ const BATCH_NUMBER_EXAMPLE = {
   voidReasonText: null,
 };
 
+/** Phase 7 slice 7h (WP-A): the plant acts of the floor (ns/plant-floor.ts). */
+const PF_OPERATOR = { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e72', legalName: 'Asha Patil', loginName: 'operator1', role: 'OPERATOR' };
+const PF_AT = { us: '1790580903000000', text: '28-SEP-2026 13:05:03 +05:30 (Asia/Kolkata)' };
+const PF_END = { us: '1790624103000000', text: '29-SEP-2026 01:05:03 +05:30 (Asia/Kolkata)' };
+const PF_OCCUPANCY = { occupancyId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c01', areaCode: 'DISP-1', batchNumber: 'B26-0001', stage: 'S-DISP', startedBy: PF_OPERATOR, startedAt: PF_AT, ended: null };
+const PF_USE = { useId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c02', kind: 'PROCESS' as const, equipmentCode: 'BLD-01', batchNumber: 'B26-0001', startedBy: PF_OPERATOR, startedAt: PF_AT, plannedEnd: PF_END, ended: null };
+const PF_STEP_PLANT = {
+  batchId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c00',
+  stepKey: 'p-comp-status@',
+  batchNumber: 'B26-0001',
+  block: 'G-09@2',
+  stage: 'S-COMP',
+  areas: [{ code: 'COMP-1', kind: 'ROOM' as const, state: 'OCCUPIED' }],
+  lineClearances: [],
+  occupancies: [{ ...PF_OCCUPANCY, areaCode: 'COMP-1', stage: 'S-COMP', mine: true }],
+  equipment: [
+    { ref: 'BAL', kind: 'INSTRUMENT' as const, classCode: 'EQC-BAL', units: [{ code: 'BAL-C1', name: 'Balance 6 kg', areaCode: 'COMP-1', fitness: 'QUALIFIED', lastCheck: { result: 'PASS' as const, at: PF_AT, mine: true } }] },
+    { ref: 'PRESS', kind: 'PROCESS' as const, classCode: 'EQC-PRESS', units: [{ code: 'PRESS-01', name: 'Rotary press 27 stations', areaCode: 'COMP-1', fitness: 'QUALIFIED', lastCheck: null }] },
+  ],
+  uses: [{ ...PF_USE, equipmentCode: 'PRESS-01', mine: true }, { ...PF_USE, useId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c03', kind: 'INSTRUMENT' as const, equipmentCode: 'BAL-C1', mine: true }],
+  tooling: {
+    checklist: ['TIPS', 'EDGES', 'WEAR', 'EMBOSSING', 'CORROSION', 'CLEANLINESS'],
+    sets: [{ code: 'TS-F100', upper: 45, lower: 45, dies: 45, issuedNow: true }],
+    issues: [{ issueId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c05', set: 'TS-F100', press: 'PRESS-01', counts: { upper: 45, lower: 45, dies: 45 }, preUse: { inspectionId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c04', result: 'PASS' as const }, returned: null, postUse: null }],
+    preUse: [],
+  },
+  containers: [{ containerId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c06', label: 'OC-B26-0001-0001', stage: 'BLENDING', netQuantity: '19.880', unit: 'kg', problem: null }],
+  charges: [],
+};
+/** Phase 7 slice 7h (WP-C): a person and an instant of the examples below. */
+const STEWARD_EXAMPLE = { personId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e70', legalName: 'Kavita Rao', loginName: 'steward', role: 'MASTER_DATA_STEWARD' };
+const INSTANT_EXAMPLE = { us: '1792300000000000', text: '18 Oct 2026, 10:16 IST' };
+/** Phase 7 slice 7h (WP-C, gap C1): a numbering rule of the site (site services 0600). */
+const BATCH_NUMBER_RULE_EXAMPLE = {
+  ruleId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e71',
+  ruleCode: 'G-PCM',
+  siteCode: 'SITE-1',
+  productCode: 'PCM-500',
+  batchKind: 'PROCESSING' as const,
+  format: 'B{YY}-{SEQ:4}',
+  siteZone: 'Asia/Kolkata',
+  effectiveFrom: INSTANT_EXAMPLE,
+  reason: 'Numbering SOP-QA-017 rev 3',
+  definedBy: STEWARD_EXAMPLE,
+  recordedAt: INSTANT_EXAMPLE,
+};
+/** Phase 7 slice 7h (WP-C, gap C4): a product of the plant's product list (recipe-core 0400). */
+const PLANT_PRODUCT_EXAMPLE = { code: 'PCM-500', name: 'Paracetamol tablets 500 mg', highlyPotent: false, recordedBy: STEWARD_EXAMPLE, recordedAt: INSTANT_EXAMPLE };
+
 export const EXAMPLES = {
+  'planning-batch-number-rules': { schema: r.planning.batchNumberRules.response, data: { rules: [BATCH_NUMBER_RULE_EXAMPLE] }, routeId: r.planning.batchNumberRules.id },
+  'planning-define-rule': { schema: r.planning.defineBatchNumberRule.response, data: BATCH_NUMBER_RULE_EXAMPLE, routeId: r.planning.defineBatchNumberRule.id },
+  'plant-products': { schema: r.plant.products.response, data: { products: [PLANT_PRODUCT_EXAMPLE] }, routeId: r.plant.products.id },
+  'plant-define-product': { schema: r.plant.defineProduct.response, data: PLANT_PRODUCT_EXAMPLE, routeId: r.plant.defineProduct.id },
+  'market-record-reference-document': {
+    schema: r.marketConfig.recordReferenceDocument.response,
+    data: { documentId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e72', contentHash: 'a'.repeat(64) },
+    routeId: r.marketConfig.recordReferenceDocument.id,
+  },
   'meta-gmp': { schema: r.meta.get.response, data: metaGmp, routeId: r.meta.get.id },
   'meta-sandbox': { schema: r.meta.get.response, data: metaSandbox, routeId: r.meta.get.id },
   'session-kiosk': { schema: r.session.get.response, data: sessionKiosk, routeId: r.session.get.id },
@@ -213,6 +271,22 @@ export const EXAMPLES = {
   'plant-complete-cleaning': { schema: r.plant.completeCleaning.response, data: s6.plant.cleaning, routeId: r.plant.completeCleaning.id },
   'plant-record-clearance': { schema: r.plant.recordClearance.response, data: s6.plant.clearance, routeId: r.plant.recordClearance.id },
   'plant-equipment-event': { schema: r.plant.equipmentEvent.response, data: s6.plant.equipmentEvent, routeId: r.plant.equipmentEvent.id },
+  // Phase 7 slice 7h (WP-A): the plant acts of the floor and what the step screen offers them from.
+  'batches-step-plant': { schema: r.batches.stepPlant.response, data: PF_STEP_PLANT, routeId: r.batches.stepPlant.id },
+  // Phase 7 slice 7h (gap report D2): a printed packaging lot's facts for the G-21 issue entry.
+  'batches-printed-lot': { schema: r.batches.printedLot.response, data: { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1', expiresAtUs: '1877472000000000' }, routeId: r.batches.printedLot.id },
+  'plant-start-occupancy': { schema: r.plant.startAreaOccupancy.response, data: PF_OCCUPANCY, routeId: r.plant.startAreaOccupancy.id },
+  'plant-end-occupancy': { schema: r.plant.endAreaOccupancy.response, data: { ...PF_OCCUPANCY, ended: { by: PF_OPERATOR, at: PF_END } }, routeId: r.plant.endAreaOccupancy.id },
+  'plant-instrument-check': { schema: r.plant.recordInstrumentCheck.response, data: { checkId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c07', equipmentCode: 'BAL-C1', result: 'PASS', regime: 'PER_USE', recordedAt: PF_AT }, routeId: r.plant.recordInstrumentCheck.id },
+  'plant-instrument-use': { schema: r.plant.recordInstrumentUse.response, data: { ...PF_USE, kind: 'INSTRUMENT', equipmentCode: 'BAL-C1' }, routeId: r.plant.recordInstrumentUse.id },
+  'plant-start-equipment-use': { schema: r.plant.startEquipmentUse.response, data: PF_USE, routeId: r.plant.startEquipmentUse.id },
+  'plant-end-equipment-use': { schema: r.plant.endEquipmentUse.response, data: { ...PF_USE, ended: { by: PF_OPERATOR, at: PF_END } }, routeId: r.plant.endEquipmentUse.id },
+  'plant-charge-container': { schema: r.plant.chargeContainer.response, data: { chargeId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c08', containerId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c06', label: 'OC-B26-0001-0001', netQuantity: '19.880', unit: 'kg' }, routeId: r.plant.chargeContainer.id },
+  'plant-inspect-tooling': { schema: r.plant.inspectTooling.response, data: { inspectionId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c04', set: 'TS-F100', kind: 'PRE_USE', result: 'PASS', held: [] }, routeId: r.plant.inspectTooling.id },
+  'plant-issue-tooling': { schema: r.plant.issueTooling.response, data: { issueId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c05', set: 'TS-F100', press: 'PRESS-01', preUseInspectionId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c04' }, routeId: r.plant.issueTooling.id },
+  'plant-return-tooling': { schema: r.plant.returnTooling.response, data: { issueId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c05', strokes: '98600', strokeSource: 'MANUAL', cumulative: '98600', countMismatch: false, limitExceeded: false, held: [] }, routeId: r.plant.returnTooling.id },
+  'plant-press-discharge': { schema: r.plant.configurePressDischarge.response, data: { press: 'PRESS-01', separateStreams: true, version: 1 }, routeId: r.plant.configurePressDischarge.id },
+  'plant-record-calibration': { schema: r.plant.recordCalibration.response, data: { calibrationId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c09', equipmentCode: 'BAL-C1', dueAt: PF_END, asFound: 'PASS', asLeft: 'PASS', reference: 'CAL-2026-114' }, routeId: r.plant.recordCalibration.id },
   'plant-pending-verifications': { schema: r.plant.pendingVerifications.response, data: s6.plant.pending, routeId: r.plant.pendingVerifications.id },
   'quality-deviations': { schema: r.quality.deviations.response, data: s6.quality.deviations, routeId: r.quality.deviations.id },
   'quality-evidence-document': { schema: r.quality.registerEvidenceDocument.response, data: s6.quality.evidenceDocument, routeId: r.quality.registerEvidenceDocument.id },

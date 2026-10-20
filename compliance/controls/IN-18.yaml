@@ -99,6 +99,8 @@ tests:
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the batch-number register > [IN-18] lists the numbers with their status, registers an external number as typed and voids a number with a reason code and text"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [INV-27][IN-18] the issue refuses a register link whose number changed after the issue began"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [INV-27][IN-18] the issue itself refuses a number voided in the register after the issue began, with its own reason"
+  - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C1: numbering rules on the batch-number register screen > [IN-18][DI-17] the master-data steward defines a numbering rule of the site with its reason; it is listed with who defined it; the issuer holds no BATCH_NUMBER.RULE_DEFINE; a format without exactly one {SEQ:n} and a date in the past are refused"
+  - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the batch-number register > [IN-18] slice 7h (gap C1): lists the numbering rules; the master-data steward defines a rule with its format and reason; the issuer is not offered the form"
 clauses:
   - clause: "cancel a batch; its number is never offered again."
     tests:

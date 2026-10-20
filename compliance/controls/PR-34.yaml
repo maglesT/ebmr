@@ -44,6 +44,9 @@ tests:
   - "apps/tablets-server/test/labels/labels-routes.test.ts > labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version"
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [PR-34] the post-use inspection posts the four answers the person gave; [PR-36] an open line stop shows and QA resolves it with a reason"
   - "apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts > packaging line completion, rule by rule (tablets 1230) > [PR-34] the post-use inspection: only of an order with a printed-materials step, each malformed answer or note alone refused, and verified only as the order's latest"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > the use of a room by a batch (gap report A2) > [IN-21][PR-34][INV-40] the room is occupied for the batch on its verified clearance by the operator's own tapped act; untapped, by a verifier or a second time it is refused; the step screen lists it as the viewer's; ended once"
+  - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the room a clearance step occupies (A2) > [IN-21][PR-34] starts the batch's use of the stage's room, fills the AREA_OCCUPANCY entry from the answer, saves it, and ends the use"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-40][DI-30][IN-16][PR-34][PR-36] GMP kiosk batch 6: the bottle order run on KIOSK-PACK-1 to its end: bulk issued, line cleared and used, bottles weighed, printed materials, filling, cartoning and shippers, reconciliations, witnessed destruction, the post-use inspection and the stage sign-off @office"
 clauses:
   - clause: "Starting packaging without a signed clearance is blocked."
     tests:

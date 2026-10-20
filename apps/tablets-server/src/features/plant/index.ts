@@ -5,7 +5,7 @@
  * is the signable action PLANT_VERIFY. Every write is the person's own command; every rule is the database's (recipe-core
  * 0400 to 0405 and 0460, tablets 0871, 0872 and 1040).
  */
-import { routes, type AreaView, type CleaningView, type ClearanceView, type DetectorView, type EquipmentClassView, type EquipmentView, type SignableAction, type TestPieceView, type ToolingSetView } from '@ebmr/api-contract';
+import { routes, type AreaView, type CleaningView, type ClearanceView, type DetectorView, type EquipmentClassView, type EquipmentView, type ProductView, type SignableAction, type TestPieceView, type ToolingSetView } from '@ebmr/api-contract';
 import type { ActorContext } from '@ebmr/kernel';
 import { plant } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
@@ -17,6 +17,7 @@ import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { compact, peopleOf, personRef, usOf } from '../common/people.ts';
 import { dbActHandler } from '../esig/db-acts.ts';
+import { plantFloorHandlers } from './floor.ts';
 
 /** The body without its badge-tap attribution (a FRESH_ON_SHARED route's, INV-40): the database gets the command's own members. */
 const bare = <T extends object>(body: T): Omit<T, 'attribution'> => withoutAttribution(body) as unknown as Omit<T, 'attribution'>;
@@ -35,6 +36,16 @@ async function areas(db: Db, code?: string): Promise<AreaView[]> {
     [code ?? null],
   );
   return rows.map((r) => ({ areaId: r.id, code: r.code, kind: r.kind, name: r.name, segregated: r.segregated, negativePressure: r.negative_pressure, state: r.state ?? 'UNKNOWN' }));
+}
+
+async function products(app: AppContext, db: Db, code?: string): Promise<ProductView[]> {
+  const { rows } = await db.query<{ code: string; name: string; highly_potent: boolean; by: string; at_us: string }>(
+    `select p.code, p.name, p.highly_potent, p.recorded_by::text as by, ${usOf('p.recorded_at')} as at_us
+       from plant.product p where ($1::text is null or p.code = $1) order by p.code`,
+    [code ?? null],
+  );
+  const people = await peopleOf(db, rows.map((r) => r.by));
+  return rows.map((r) => ({ code: r.code, name: r.name, highlyPotent: r.highly_potent, recordedBy: personRef(people, r.by, 'MASTER_DATA_STEWARD'), recordedAt: app.formatInstant(r.at_us) }));
 }
 
 async function classes(db: Db, code?: string): Promise<EquipmentClassView[]> {
@@ -170,6 +181,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     return typeof out.result === 'string' ? out.result : '';
   };
   bindRoutes(scope, app, routes.plant, {
+    // Phase 7 slice 7h (WP-A): the plant acts a person performs on the floor for a GMP batch (floor.ts).
+    ...plantFloorHandlers(app),
+    // Phase 7 slice 7h (WP-C, gap C4): the plant's product list (MASTERDATA.CHANGE; IN-26 (c)).
+    products: async ({ requireSession }) => {
+      requireSession();
+      return { products: await products(app, pool) };
+    },
+    defineProduct: async (ctx) => {
+      ctx.requireSession();
+      await write(ctx, (c) => plant.defineProduct(c, bare(ctx.body)));
+      return one(await products(app, pool, ctx.body.code), 'product');
+    },
     areas: async ({ requireSession }) => {
       requireSession();
       return { areas: await areas(pool) };

@@ -124,14 +124,25 @@ function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderVie
   const [siteCode, setSite] = useState('');
   const [line, setLine] = useState('');
   const [parent, setParent] = useState<string | null>(null);
+  // Slice 7h (gap report D2): the markets the order packs for, of those the master is authorised for (all by default); an
+  // order whose step prints variable data packs for one market (PR-36), so the issuer may narrow them.
+  const [unpicked, setUnpicked] = useState<ReadonlySet<string>>(new Set());
   const plan = useCommand(routes.planning.planPackagingOrder, REFRESH, 'planning a packaging order');
   const areas = useApiQuery(routes.plant.areas);
   const lines = areas.data?.areas.filter((a) => a.kind === 'LINE') ?? [];
   const chosenSite = siteCode.trim() || site || '';
   if (!match) return null;
+  const markets = match.markets.filter((m) => !unpicked.has(m));
+  const toggle = (m: string) =>
+    setUnpicked((u) => {
+      const next = new Set(u);
+      if (next.has(m)) next.delete(m);
+      else next.add(m);
+      return next;
+    });
   const go = async () => {
     if (!parent) return;
-    const b = await plan.run({ body: { familyId: match.familyId, parentBatchId: parent, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, erpOrder: order.orderNo } });
+    const b = await plan.run({ body: { familyId: match.familyId, parentBatchId: parent, markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, erpOrder: order.orderNo } });
     if (b) onPlanned(b);
   };
   return (
@@ -160,7 +171,15 @@ function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderVie
       ) : (
         <Field name="line" label="Line" value={line} onChange={setLine} />
       )}
-      <ActButton label={`Plan a packaging order for ${order.orderNo}`} onPress={go} disabled={plan.busy || parent === null || chosenSite === '' || line.trim() === ''} />
+      <fieldset data-testid="packaging-markets">
+        <legend>Markets the order packs for</legend>
+        {match.markets.map((m) => (
+          <label key={m}>
+            <input type="checkbox" checked={!unpicked.has(m)} onChange={() => toggle(m)} /> {m}
+          </label>
+        ))}
+      </fieldset>
+      <ActButton label={`Plan a packaging order for ${order.orderNo}`} onPress={go} disabled={plan.busy || parent === null || chosenSite === '' || line.trim() === '' || markets.length === 0} />
       <ActResult error={plan.error} />
     </div>
   );

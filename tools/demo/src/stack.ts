@@ -47,6 +47,8 @@ export interface SetupStackOptions {
   gmpReviewBatch?: boolean;
   /** GMP, DEMO-ONLY: with the review batch, the packaging-order demo (set-up CLI --gmp-packaging; Phase 4 slice 2c). */
   gmpPackaging?: boolean;
+  /** `pnpm demo:setup`: also register and bind the demo's simulated machines (DEMO_DEVICES) in the sandbox. */
+  demoDevices?: boolean;
 }
 
 /** Creates (or recreates) both databases and their DEMO-ONLY credentials. */
@@ -59,7 +61,7 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,
-    args: ['--installation', 'SANDBOX', '--database', opts.databases.SANDBOX, '--gateway-spki', gatewaySpki, ...common],
+    args: ['--installation', 'SANDBOX', '--database', opts.databases.SANDBOX, '--gateway-spki', gatewaySpki, ...(opts.demoDevices === true ? ['--demo-process-devices'] : []), ...common],
     env: {},
     echo: opts.echo ?? true,
   });
@@ -91,6 +93,11 @@ export interface StartStackOptions {
    * configuration (`pnpm demo`; the E2E stack runs the scale alone).
    */
   demoDevices?: boolean;
+  /**
+   * The public origins the browsers use, when a reverse proxy terminates HTTPS in front of the servers (the hosted
+   * demo); the servers still listen on `host` and their ports. Default: http://<host>:<port>.
+   */
+  publicOrigins?: { gmp: string; sandbox: string };
 }
 
 export interface RunningStack {
@@ -194,7 +201,7 @@ export function writeGatewayConfig(opts: StartStackOptions): string {
 
 export async function startStack(opts: StartStackOptions): Promise<RunningStack> {
   const host = opts.host ?? 'localhost';
-  const origins = { gmp: `http://${host}:${opts.ports.gmp}`, sandbox: `http://${host}:${opts.ports.sandbox}` };
+  const origins = opts.publicOrigins ?? { gmp: `http://${host}:${opts.ports.gmp}`, sandbox: `http://${host}:${opts.ports.sandbox}` };
   const processes: RunningProcess[] = [];
   const missing: string[] = [];
   const stop = async () => {
@@ -254,6 +261,10 @@ export function credentialCard(keysDir: string): string {
   for (const seed of [read('gmp-seed.json'), read('sandbox-seed.json')]) {
     if (!seed) continue;
     lines.push('', `${seed.installation} (${seed.database})`);
+    // Slice 7h (gap E5): the installation's first administrator and process owner (their passwords are new at each set-up).
+    for (const a of [seed.bootstrap.admin, seed.bootstrap.owner]) {
+      lines.push(`  ${a.legalName.padEnd(26)} ${a.roleCode.padEnd(20)} user ID ${a.loginName}  password ${a.password}   (an office PC)`);
+    }
     for (const p of seed.personas.filter((x) => x.set === 0)) {
       const how = p.kiosk ? `badge ${p.badgeUid ?? '?'}  PIN ${p.pin ?? '?'}   (kiosk ${p.homeTerminal})` : `user ID ${p.loginName}  password ${p.password}   (${p.homeTerminal})`;
       lines.push(`  ${p.legalName.padEnd(26)} ${[p.roleCode, ...(p.alsoRoles ?? [])].join('+').padEnd(20)} ${how}`);

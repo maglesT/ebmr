@@ -26,7 +26,6 @@ import { identity, withCommand } from '@ebmr/kernel';
 import { lifecycle } from '@ebmr/recipe-core';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { openServiceSession, passwordActor, personaOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
-import { loadValidationContext } from '../features/designer/adapters/expressions.ts';
 import { GBT02_BOM, GBT02_BATCH_KG, GBT02_PRODUCT } from '../features/execution/seed-gb-t-02.ts';
 import {
   BOTTLE_ARTWORK_SET, BOTTLE_CARTON, BOTTLE_CARTON_ARTWORK, BOTTLE_CARTONER, BOTTLE_LINE, BOTTLE_PACK_TYPE, BOTTLE_SIZE_ID, BOTTLE_UNIT, BOTTLES, LABEL, LABEL_ARTWORK,
@@ -434,9 +433,7 @@ async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec): Prom
   await app.as(author, (c) => lifecycle.recordEvidence(c, versionId, 'SANDBOX_RUN', lifecycle.sandboxRunEvidence(stored, { runId: `SBX-${spec.changeRecord}`, sandbox: 'ebmr_sandbox_tablets', coverage: { steps: '100%' }, passed: true })));
   const head = value(await author.api.call(routes.designer.version, { params: { versionId } }), 'the version');
   const started = value(await author.api.call(routes.designer.startVerification, { params: { versionId }, body: { baseRevision: head.revision } }), 'the start of the verification');
-  const { context } = await loadValidationContext(app.db.app, stored);
-  const verification = lifecycle.createVerificationPort(context).verify(stored, []);
-  await app.as(author, (c) => lifecycle.recordVerification(c, versionId, verification, [], personaOf(app.seed, 'author').personId));
+  // The start of the verification records the validator report, the sealed verification and the test vectors (D-P7R-16).
   const t = (transition: 'SUBMIT' | 'CHECK' | 'APPROVE' | 'REGULATORY_CONFIRM'): SignableAction => ({ kind: 'MBR_TRANSITION', versionId, transition, baseRevision: started.revision });
   for (const [key, tr] of [['author', 'SUBMIT'], ['checker', 'CHECK'], ['regulatory', 'REGULATORY_CONFIRM'], ['approver', 'APPROVE']] as const) {
     await app.sign(await app.browser(key), t(tr), `${tr} of ${spec.title}`);

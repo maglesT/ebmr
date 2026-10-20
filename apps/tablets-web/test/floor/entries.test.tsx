@@ -387,3 +387,37 @@ describe('a value card (RECORD_DATA) says why its Save cannot be pressed (F64)',
     expect(within(card).getByRole('button', { name: 'Save Blender clean' }).hasAttribute('disabled')).toBe(false);
   });
 });
+
+// Phase 7 slice 7h (gap report D2): a GMP room with no balance online keys a device-captured value by hand as the
+// fallback; the engine flags it MANUAL_FALLBACK and the step needs a second person.
+describe('a value configured for device capture', () => {
+  const deviceCard = (online: boolean) =>
+    stepVariant('step-g04-parameters', (v) => {
+      v.step = { ...v.step, stepKey: 'p-yield@', stepId: 'p-yield', status: 'IN_PROGRESS', statusText: 'In progress' };
+      v.fields = [{ ...v.fields[0]!, item: 'compGood', name: 'Good cores (A)', unit: 'kg', capture: 'DEVICE', precision: { kind: 'DECIMALS', digits: 3 }, target: null, limits: [], attempts: [] }];
+      v.exceptions = [];
+      v.signatures = [];
+      v.entryForms = [];
+      v.run = { ...v.run, scale: null, scales: online ? [{ deviceCode: 'BAL-COMP-01', roomCode: 'COMP-1', status: 'ONLINE', lastHeartbeat: null, gatewayCode: 'GW-01', resolution: '0.001', unit: 'kg' }] : [] };
+      v.actions = [{ action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] }];
+    });
+
+  it('[DI-30][PR-14] is keyed by hand as the fallback while no balance of the room is online, said as such, and sent as a manual entry', async () => {
+    const view = deviceCard(false);
+    const ui = renderFloor(stepPath('p-yield@'), { fixtures: stepFixtures(view), intercept: (r) => ok(r, view) });
+    const card = await screen.findByTestId('field-compGood');
+    expect(within(card).getByTestId('manual-fallback-compGood').textContent).toContain('a second person verifies the step');
+    await userEvent.type(within(card).getByRole('textbox', { name: /Good cores \(A\)/ }), '19.500');
+    await userEvent.click(within(card).getByRole('button', { name: 'Save Good cores (A)' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect(ui.commands()[0]?.body?.['intent']).toEqual({ type: 'RECORD_DATA', stepKey: 'p-yield@', item: 'compGood', value: { kind: 'DECIMAL', value: '19.500', unit: 'kg' }, source: { mode: 'MANUAL' } });
+  });
+
+  it('[PR-20] is shown only, not typed, while a balance of the room is online', async () => {
+    const view = deviceCard(true);
+    renderFloor(stepPath('p-yield@'), { fixtures: stepFixtures(view) });
+    await screen.findByText('Captured by the system (device, automation or LIMS); it cannot be typed here.');
+    expect(screen.queryByTestId('manual-fallback-compGood')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save Good cores (A)' })).toBeNull();
+  });
+});

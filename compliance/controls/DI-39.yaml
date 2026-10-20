@@ -56,6 +56,8 @@ tests:
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [DI-30][INV-39][DI-39] a transcription verified after the lot's release was suspended is refused, and the lot stays uncertified; QA never registers itself as QP"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the inbound package (site services 0981) > [DI-31] [DI-39] a package its trusted origin sealed is still refused when malformed, addressed to another site or not a released intermediate"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the outbound package (site services 0980) > [DI-39] [INV-13] [PR-18] the origin packages an unexpired lot, up to what is left, on a well-formed request with a future stated hold"
+  - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C3: the EU importer on the qualified-person register screen (EU_IMPORTER_REGISTER) > [DI-39][DI-17][DI-37] QA registers an EU importer by signing its definition (EU_IMPORTER_APPROVED); it is then offered for a QP registration; the QA MBR approver may not sign it; the code once and one importer per product"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [DI-39] slice 7h (gap C3): QA registers an EU importer by signing its definition through the ceremony (EU_IMPORTER_REGISTER); the register lists the importers"
 clauses:
   - clause: "A QA reviewer, a supervisor and an admin each try to certify. All fail."
     tests:

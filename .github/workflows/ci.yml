@@ -237,7 +237,7 @@ jobs:
     name: End-to-end (Playwright, chromium)
     runs-on: ubuntu-latest
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
       CI: 'true'

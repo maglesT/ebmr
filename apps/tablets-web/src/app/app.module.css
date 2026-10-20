@@ -116,3 +116,8 @@
 .about dd {
   margin: 0;
 }
+/* The home screen's "Show all screens" switch: a full-size target on a kiosk (slice 7h, F1). */
+.showAll {
+  min-height: var(--ebmr-target-min);
+  min-width: var(--ebmr-target-min);
+}

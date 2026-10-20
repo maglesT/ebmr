@@ -66,6 +66,38 @@ async function runAfterRollback(pool: pg.Pool, actor: ActorContext, error: unkno
   await (action as AfterRollback)(pool, actor).catch(() => undefined);
 }
 
+/**
+ * Decision D-P7R-18 (gap F2; DI-17, INV-40): a read that runs as the person's command (a logged read) on a shared terminal
+ * without a fresh badge tap would be answered "tap your badge" (EBMR-IAM-120, the kernel's per-command attribution) before
+ * the database ever asks for the read's permission, so a person whose role may not read it is first asked to tap, then
+ * refused. This check comes first: when the session is on a shared terminal, the request carries no authentication event,
+ * and the declared role holds none of `permissions` now, the read is refused for want of a right (EBMR-IAM-040) without
+ * a command. A role without the permission can never pass iam.require_permission (kernel 0130: the authority needs a grant
+ * of the declared role whose permissions include it), so this refuses nothing the database would allow; everything else,
+ * the tap included, is still the kernel's and the database's to decide.
+ */
+export async function permissionBeforeTap(db: Pick<pg.Pool, 'query'>, actor: ActorContext, permissions: readonly string[]): Promise<void> {
+  if (actor.authEventId) return;
+  const { rows } = await db.query<{ shared: boolean; may: boolean }>(
+    `select s.device_class in ('SHARED', 'GRADE_A_B') as shared,
+            exists (select 1 from iam.role_permission rp
+                     where rp.role_code = $2 and rp.permission_code = any ($3::text[])
+                       and rp.added_at <= clock_timestamp() and (rp.removed_at is null or clock_timestamp() < rp.removed_at)) as may
+       from iam.session s where s.id = $1`,
+    [actor.sessionId, actor.roleCode, [...permissions]],
+  );
+  const r = rows[0];
+  if (r?.shared && !r.may) {
+    throw new commands.KernelError('EBMR-IAM-040', `EBMR-IAM-040 the role ${actor.roleCode} does not hold ${permissions.join(' or ')}, so this cannot be read in it (checked before the badge tap)`);
+  }
+}
+
+/** `withActorCommand` after `permissionBeforeTap`: a read in the person's own command that names the permission it needs. */
+export async function withReadCommand<T>(pool: pg.Pool, actor: ActorContext, permissions: readonly string[], work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+  await permissionBeforeTap(pool, actor, permissions);
+  return withActorCommand(pool, actor, work);
+}
+
 /** `withActorCommand` = identity.withGuardedCommand, then the refusal's after-rollback action, if any. */
 export async function withActorCommand<T>(pool: pg.Pool, actor: ActorContext, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   try {

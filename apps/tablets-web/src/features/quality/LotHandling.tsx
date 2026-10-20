@@ -5,6 +5,9 @@
  * that signature: IN-24 (a)), the lot's reservations (an open one cancelled with the person's reason) and its
  * stock-location exceptions (QA closes one with a deviation linked to the lot and what was done: PR-46). Every right and
  * rule is the database's; its refusal is shown in its own words.
+ * Phase 7 slice 7h (WP-A, gap report A1): stores reserve a quantity of the lot for a batch chosen from the open batches
+ * (MATERIAL.HANDLE; INV-13, PR-18: only a released lot, no more than is available, until no later than its retest or
+ * expiry).
  */
 import { useState } from 'react';
 import { routes, type LotHandlingView, type LotSummaryView } from '@ebmr/api-contract';
@@ -27,7 +30,7 @@ export function LotHandling({ lot }: { lot: LotSummaryView }) {
       {q.data ? (
         <>
           {DESTROYABLE.includes(lot.status) || q.data.destruction ? <Destruction lot={lot} h={q.data} /> : null}
-          <Reservations h={q.data} />
+          <Reservations h={q.data} lot={lot} />
           {q.data.locationExceptions.length > 0 ? <LocationExceptions h={q.data} qa={qa} /> : null}
         </>
       ) : null}
@@ -97,7 +100,7 @@ function Destruction({ lot, h }: { lot: LotSummaryView; h: LotHandlingView }) {
   );
 }
 
-function Reservations({ h }: { h: LotHandlingView }) {
+function Reservations({ h, lot }: { h: LotHandlingView; lot: LotSummaryView }) {
   const stores = useOffered('STORES');
   const cancel = useCommand(routes.quality.cancelReservation, READS, 'cancelling a reservation');
   const [chosen, setChosen] = useState<string | null>(null);
@@ -131,7 +134,41 @@ function Reservations({ h }: { h: LotHandlingView }) {
           <ActResult error={cancel.error} done={cancel.done} label="Reservation cancelled." />
         </>
       ) : null}
+      {stores ? <ReserveLot lot={lot} /> : null}
     </Section>
+  );
+}
+
+const OPEN_BATCH = ['ISSUED', 'IN_PROGRESS', 'ON_HOLD'];
+
+function ReserveLot({ lot }: { lot: LotSummaryView }) {
+  const batches = useApiQuery(routes.batches.list);
+  const reserve = useCommand(routes.quality.reserveLot, READS, 'reserving a lot');
+  const [batch, setBatch] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState('');
+  const [until, setUntil] = useState('');
+  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.includes(b.status));
+  const body = { batchNumber: batch ?? '', quantity: quantity.trim(), ...(until.trim() !== '' ? { expiresOn: until.trim() } : {}) };
+  const parsed = routes.quality.reserveLot.body?.safeParse(body);
+  return (
+    <div data-testid="reserve-lot">
+      <h3>Reserve for a batch</h3>
+      {batches.error ? <RefusalMessage error={batches.error.error} /> : null}
+      {open.length === 0 ? <p>No open batch to reserve for.</p> : <floor.ChoiceGroup label="Batch" options={open.map((b) => ({ value: b.batchNumber, label: `${b.batchNumber} ${b.product.code} (${b.statusText})` }))} value={batch} onChange={setBatch} />}
+      <Field name="reserveQuantity" label={`Quantity (${lot.unit})`} value={quantity} onChange={setQuantity} inputMode="decimal" />
+      <Field name="reserveUntil" label="Reserved until (YYYY-MM-DD, optional)" description="By default 30 days, or the lot's retest or expiry when sooner." value={until} onChange={setUntil} />
+      <ActButton
+        label="Reserve the lot"
+        disabled={!batch || parsed?.success !== true || reserve.busy}
+        onPress={async () => {
+          if (parsed?.success && (await reserve.run({ params: { lotId: lot.lotId }, body: parsed.data }))) {
+            setQuantity('');
+            setUntil('');
+          }
+        }}
+      />
+      <ActResult error={reserve.error} done={reserve.done} label="Lot reserved." />
+    </div>
   );
 }
 

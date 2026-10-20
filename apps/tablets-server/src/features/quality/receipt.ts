@@ -104,7 +104,7 @@ type ReceiptRoutes = Pick<
   typeof routes.quality,
   | 'approvedManufacturers' | 'proposeApprovedManufacturer' | 'withdrawManufacturerApproval' | 'receiveDelivery' | 'lotReceipt' | 'recordLotReceipt' | 'examineLotReceipt' | 'correctLotReceipt'
   // Phase 7 slice 7g (WP4): lot handling and the reprocessing proposals (ns/receipt.ts lotHandlingRoutes).
-  | 'lotHandling' | 'recordLotDestruction' | 'destroyLot' | 'cancelReservation' | 'resolveLotLocationException' | 'linkLotTestOos' | 'vendorRoutes' | 'disableVendorRoute'
+  | 'lotHandling' | 'recordLotDestruction' | 'destroyLot' | 'reserveLot' | 'cancelReservation' | 'resolveLotLocationException' | 'linkLotTestOos' | 'vendorRoutes' | 'disableVendorRoute'
   | 'proposeReprocessingAuthorisation' | 'proposeReprocessingRequest'
 >;
 
@@ -166,6 +166,26 @@ export function receiptHandlers(app: AppContext, pool: pg.Pool): Handlers<Receip
     },
     destroyLot: async ({ params, body, actor, idempotencyKey, requestHash }) => {
       await command(actor(), idempotencyKey, requestHash, 'select site.destroy_lot($1, $2::bigint, $3) as r', [params.lotId, body.expectedVersion, body.witnessSignatureId]);
+      return lotHandling(app, pool, params.lotId);
+    },
+    // Phase 7 slice 7h (WP-A, A1): the batch is named by its number and read from the batch record; the lot's own unit
+    // and the edition are the database's; the expiry defaults to 30 days, or the lot's retest or expiry when sooner. The
+    // database decides the rest (a released lot, its dates, the quantity available; INV-13, PR-18).
+    reserveLot: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      const batch = (await pool.query<{ id: string; n: string }>('select id, batch_number as n from recipe.batch_execution where batch_number = $1', [body.batchNumber])).rows[0];
+      if (!batch) {
+        throw refusal(422, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'No batch has this number. Nothing was reserved.', why: `No GMP batch is numbered ${body.batchNumber}.`, whatYouCanDo: ['Check the batch number on the batch record and try again.'] });
+      }
+      await command(
+        actor(),
+        idempotencyKey,
+        requestHash,
+        `select site.reserve_lot(l.id, $2, $3, 'TABLETS', $4::numeric, l.unit,
+                case when $5::date is null then least(clock_timestamp() + interval '30 days', l.expires_at, coalesce(site.lot_retest_at(l.id), l.expires_at))
+                     else (($5::date + 1)::timestamp at time zone $6) end) as r
+           from site.material_lot l where l.id = $1`,
+        [params.lotId, batch.id, batch.n, body.quantity, body.expiresOn ?? null, app.siteZone.current()],
+      );
       return lotHandling(app, pool, params.lotId);
     },
     cancelReservation: async ({ params, body, actor, idempotencyKey, requestHash }) => {

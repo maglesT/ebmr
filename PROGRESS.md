@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 19 October 2026 (Phase 7 exit, slice 7f: v1.0.0-rc.1).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 20 October 2026 (slice 7h: the hosted demo's gaps).
 
 ## What this is
 
@@ -103,7 +103,17 @@ history (19 October).
   except `iam.first_run_setup#11` (one-microsecond expiry boundary, for the owner); a harness defect fixed (M7-T3b-1).
 - Build statuses (register:status): 111 VERIFIED, 13 IMPLEMENTED; the gap to D-P7-1's 147 is listings (release notes).
 
-Next: the v1.0 demo on a server the owner provides (server, SSH, domain; decisions 0021, 0025), then Tablets v1.0.
+**Hosted demo (19 October)** on the owner's VPS: `docs/operations/hosted-demo.md`. Its review of rc.1 found person acts
+with no screen (`docs/build-plan/phase-7/demo-gap-report.md`).
+
+**Slice 7h (20 October, PR #63): every act has a screen again.** Floor plant acts on the step screen (A1-A9), the new
+master record through screens only (B1-B4, the sandbox test-run result package), configuration forms (C1-C5), the
+decision-0025 meta test no longer counts the demo load as a route (D1), browser tests for a full GMP batch on the kiosks
+(`phase7/gmp-kiosk-batch.spec.ts`) and a new master record to approval with nothing arranged in the database (D2, D3),
+demo set-up with GMP samples and the missing personas (E1, E2, E5), home tiles by role and kiosk reads checked for the
+right first (F1, F2). Decisions D-P7R-16 to 21 (RESUME.md); review residuals P7H-2 to 5. No migrations.
+
+Next: update the hosted demo to 7h and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 
 ## How to work here

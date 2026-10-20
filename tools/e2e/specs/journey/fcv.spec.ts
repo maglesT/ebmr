@@ -23,9 +23,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
-import type { SeededPersona } from '@ebmr/test-kit';
 import { axe, cspViolations, expect, signIn, test, withSimulator } from '../../fixtures/index.ts';
-import { card, choose, Milestones, openStep, primary, saveForm, sign, signPrimary, simulator, startStep, switchUser, tap } from './support.ts';
+import { card, choose, dispositionOpenExceptions, Milestones, openStep, primary, saveForm, sign, signPrimary, simulator, startStep, switchUser, tap } from './support.ts';
 
 test.describe('first clickable version (journey)', () => {
   test(
@@ -506,45 +505,3 @@ test.describe('first clickable version (journey)', () => {
     },
   );
 });
-
-/**
- * QA switches in on the kiosk and dispositions every open exception of the run: the steps with open exceptions
- * are marked in the run overview's outline; on each step card QA chooses the outcome (deviation raised when a
- * deviation is linked, else no impact), writes the justification and signs through the ceremony. `back` is who
- * is signed in afterwards (null: QA stays). Returns how many were dispositioned.
- */
-async function dispositionOpenExceptions(page: Page, base: string, runId: string, qa: SeededPersona, back: SeededPersona | null): Promise<number> {
-  const overview = async () => {
-    await page.goto(`${base}/runs/${runId}`);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Run ');
-    await expect(page.getByRole('table', { name: 'Timeline' }).getByRole('row').nth(1)).toBeVisible();
-  };
-  const marked = () => page.getByRole('navigation', { name: 'Steps' }).getByRole('button').filter({ hasText: / \d+ open$/ });
-  await overview();
-  const open = await page.getByRole('region', { name: 'Exceptions' }).locator('[data-testid^="exception-"]').filter({ has: page.getByText('Open', { exact: true }) }).count();
-  if (open === 0) return 0;
-  await expect(marked().first()).toBeVisible();
-  const signedIn = (await page.getByTestId('identity').textContent()) ?? '';
-  if (!signedIn.includes(`(${qa.loginName})`)) await switchUser(page, qa);
-  let done = 0;
-  while ((await marked().count()) > 0) {
-    await marked().first().click();
-    const exception = card(page).locator('[data-testid^="exception-"]').filter({ has: page.getByRole('button', { name: 'Disposition the exception (QA)' }) }).first();
-    const button = exception.getByRole('button', { name: 'Disposition the exception (QA)' });
-    await expect(button).toBeEnabled();
-    // An exception with a linked deviation is closed as "deviation raised"; the others after review as "no impact".
-    const deviation = (await exception.getByText(/^Deviation \S+$/).count()) > 0;
-    await button.click();
-    const dialog = page.getByRole('dialog', { name: /^Disposition: / });
-    await choose(dialog.getByRole('radio', { name: deviation ? 'Deviation raised' : 'No impact' }));
-    await dialog
-      .getByRole('textbox', { name: 'Justification' })
-      .fill(deviation ? 'Blend time over the internal action limit; handled under the linked deviation (end-to-end demo).' : 'Reviewed on the floor with the operator; no impact on the batch (end-to-end demo).');
-    await dialog.getByRole('button', { name: 'Continue to signature' }).click();
-    await sign(page, qa);
-    done += 1;
-    await overview();
-  }
-  if (back) await switchUser(page, back);
-  return done;
-}

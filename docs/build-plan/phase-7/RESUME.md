@@ -152,6 +152,34 @@ not reach role or permission grants) and the idle-warning rule the 7g-5 merge dr
   tests time out (load, not code).
 - E2E on a spare cluster needs both `EBMR_PG_ADMIN_URL` and `EBMR_PG_PORT`; always under `flock /tmp/ebmr-e2e.lock`.
 
+## Slice 7h (20 October 2026): the v1.0 gaps found on the hosted demo
+
+Source: `demo-gap-report.md` (the hosted demo's review of v1.0.0-rc.1: acts without a screen, A1-F3). Branch
+`phase-7/slice-7h` (main plus `deploy/demo-server`). Work packages, each on its own branch from `phase-7/slice-7h`:
+
+| WP | Scope | Branch | Migration numbers |
+|---|---|---|---|
+| WP-A | A1-A9 floor acts: routes, kiosk badge-tap attribution (INV-40), step-screen actions; A1 on the lot screen, A9 on `/plant` | `phase-7/slice-7h-a` | 1530-1549 |
+| WP-B | B1-B4 master record: change record, risk assessment, draft attributes, automatic validator/simulation evidence, sandbox-to-GMP test-run result package | `phase-7/slice-7h-b` | 1550-1569 |
+| WP-C | C1-C5, E1, E2, E5, F1, F2, D4 | `phase-7/slice-7h-c` | 1570-1589 |
+| then | D1 meta test, D2 and D3 browser tests (no database arrangement), integration, one review pass | `phase-7/slice-7h` | 1590-1599 |
+
+Decisions (owner rule: functionality first, least strict option within the hard rules):
+- D-P7R-16: the designer's validator report and simulation are recorded as evidence automatically when the author
+  starts verification; the sandbox test run returns as a hash-checked result package (exported on the sandbox run
+  page, imported on GMP), mirroring the outbound package; nothing is typed in by hand.
+- D-P7R-17: E3 (a simulated GMP balance and gateway), E4 (the scale console behind the proxy) and E6 (trusted proxy)
+  are deferred to deployment; GMP weighing on the demo stays the manual two-person path; E4 keeps the SSH tunnel.
+- D-P7R-18: F1 hides the home tiles a role cannot use (the server stays the authority); F2 is checked and, if the
+  fresh-authentication check answers before the permission check on a read, the permission check goes first.
+- D-P7R-19 (D1): `db-acts-have-routes` no longer counts `apps/tablets-server/src/cli` (the demo load's library) as a
+  route; it then found C1, C3, C4 and `esig.register_seal_key`, which stays without a screen: registering a seal key
+  comes with installing its secret on the server (first-run set-up, set-up CLI); retiring one has its screen.
+- D-P7R-20 (WP-B): the sandbox test-run result package is hash- and stamp-checked, not signed (the phase-2 plan's
+  Ed25519 signature is left to deployment); its GMP checks are in TypeScript.
+- D-P7R-21 (D2): the G-21 step screen shows the record's coding (what the coder must print) beside the operator's own
+  reading of the specimen, as a printed-line check normally does; the database still compares the reading (IN-16).
+
 ## After Phase 7
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,

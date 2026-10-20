@@ -210,6 +210,7 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
             Send to sandbox…
           </Button>
           <a href={auditLink(saved.versionId)}>Audit trail</a>
+          <a href={`/mbr/versions/${saved.versionId}/review`}>Change control and evidence</a>
           <a href={`/mbr/versions/${saved.versionId}/signing`}>Signatures and markets</a>
         </div>
       </div>

@@ -54,6 +54,27 @@ const numberIdentity = {
   parentBatchNumber: BatchNumber.optional(),
 };
 
+/**
+ * Phase 7 slice 7h (WP-C, gap C1; IN-18): a numbering rule of the site (site.define_batch_number_rule, site services 0600):
+ * the format of the numbers it gives (A-Z 0-9 / . - and the tokens {SITE} {PRODUCT} {YYYY} {YY} {MM} {SEQ:n} {PARENT}),
+ * site-wide or for one product, for processing or packaging batches, from a date, with the person's reason. The site and
+ * its zone are the session's; the database checks the right (BATCH_NUMBER.RULE_DEFINE) and every rule of the format.
+ */
+export const BatchNumberRuleView = z.strictObject({
+  ruleId: Uuid,
+  ruleCode: z.string(),
+  siteCode: z.string(),
+  productCode: z.string().nullable(),
+  batchKind: z.enum(['PROCESSING', 'PACKAGING']),
+  format: z.string(),
+  siteZone: z.string(),
+  effectiveFrom: Instant,
+  reason: z.string(),
+  definedBy: PersonRef,
+  recordedAt: Instant,
+});
+export type BatchNumberRuleView = z.infer<typeof BatchNumberRuleView>;
+
 /** A processing batch a packaging order may pack: issued, of the product, at the site (recipe-core 0582). */
 export const PackagingParentView = z.strictObject({
   batchId: Uuid,
@@ -268,5 +289,35 @@ export const planning = {
       ...numberIdentity,
     }),
     response: BatchNumberView,
+  }),
+  // Phase 7 slice 7h (WP-C, gap C1): the site's numbering rules and the definition of one.
+  batchNumberRules: defineRoute({
+    id: 'planning.batchNumberRules',
+    method: 'GET',
+    path: '/api/planning/batch-number-rules',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The numbering rules of the session\'s site, each with its format, scope, kind and the date it takes effect',
+    response: z.strictObject({ rules: z.array(BatchNumberRuleView) }),
+  }),
+  defineBatchNumberRule: defineRoute({
+    id: 'planning.defineBatchNumberRule',
+    method: 'POST',
+    path: '/api/planning/batch-number-rules',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Define a numbering rule of the session\'s site (BATCH_NUMBER.RULE_DEFINE): its format with exactly one {SEQ:n}, site-wide or for a product, from now or a later date, with the reason',
+    body: withAttribution({
+      ruleCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{1,39}$/, '2-40 characters: capitals, digits, _ -'),
+      productCode: z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,31}$/).optional(),
+      batchKind: z.enum(['PROCESSING', 'PACKAGING']),
+      format: z.string().trim().min(1).max(64),
+      effectiveFrom: z.iso.datetime({ offset: true }).optional(),
+      reason: z.string().trim().min(1).max(2000),
+    }),
+    response: BatchNumberRuleView,
   }),
 } as const;

@@ -10,7 +10,6 @@ import { identity } from '@ebmr/kernel';
 import { lifecycle } from '@ebmr/recipe-core';
 import type { flow } from '@ebmr/recipe-core';
 import { passwordActor, personaOf, terminalOf } from '@ebmr/test-kit';
-import { loadValidationContext } from '../../../src/features/designer/adapters/expressions.ts';
 import { GBT01_PRODUCT } from '../../../src/features/execution/seed-gb-t-01.ts';
 import {
   BLISTER_ARTWORK_SET, BLISTER_SIZE_ID, BLISTER_UNIT, CARTONER_UNIT, FILM, FILM_KG, PACK_BALANCE, PACK_LINE, blisterMasterContent,
@@ -110,9 +109,7 @@ export async function approveMaster(w: GoldenWorld, content: flow.MbrContent, sp
   );
   const head = ok(await author.call(routes.designer.version, { params: { versionId } }), 'the version');
   const started = ok(await author.call(routes.designer.startVerification, { params: { versionId }, body: { baseRevision: head.revision } }), 'the start of the verification');
-  const { context } = await loadValidationContext(w.server.db.app, stored);
-  const verification = lifecycle.createVerificationPort(context).verify(stored, []);
-  await asPersona(w.server, author, 'author', (c) => lifecycle.recordVerification(c, versionId, verification, [], personaOf(w.seed, 'author').personId));
+  // The start of the verification records the validator report, the sealed verification and the test vectors (D-P7R-16).
   const t = (transition: 'SUBMIT' | 'CHECK' | 'APPROVE' | 'REGULATORY_CONFIRM'): SignableAction => ({ kind: 'MBR_TRANSITION', versionId, transition, baseRevision: started.revision });
   for (const [key, tr] of [['author', 'SUBMIT'], ['checker', 'CHECK'], ['regulatory', 'REGULATORY_CONFIRM'], ['approver', 'APPROVE']] as const) {
     ok(await signOffice(w.seed, w.b[key] as TestBrowser, key, t(tr)), `${tr} of ${spec.title}`);

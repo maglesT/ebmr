@@ -2,6 +2,10 @@
  * Plant acts (Phase 3 slice 6): start, complete and verify a cleaning; record a line or room clearance and verify it;
  * record an equipment logbook event or the repair of an open failure, and verify the repair. Verification is the second
  * person's signature (PLANT_VERIFY) through the ceremony; the database refuses the person who recorded the act.
+ * Phase 7 slice 7h (WP-A, gap report A7 and A9): a calibration of a unit whose class requires one (LOGBOOK.ENTRY) and
+ * the discharge configuration of a press (MASTERDATA.CHANGE); the unit is chosen from the plant list, never typed.
+ * Slice 7h (gap report D2): the per-use check and the booking for a batch of an instrument the batch uses without a status
+ * step naming it (a closure torque tester on a bottle line: TB23-TESTER), chosen from the plant list (STEP.EXECUTE).
  */
 import { useState } from 'react';
 import { routes, type RouteResponse } from '@ebmr/api-contract';
@@ -45,6 +49,15 @@ export function PlantPage() {
       </Section>
       <Section title="Equipment logbook" testId="equipment-event">
         <EquipmentEventForm />
+      </Section>
+      <Section title="Instrument check and booking for a batch" testId="instrument-use">
+        <InstrumentUseForm />
+      </Section>
+      <Section title="Calibration" testId="calibration">
+        <CalibrationForm />
+      </Section>
+      <Section title="Press discharge" testId="press-discharge">
+        <PressDischargeForm />
       </Section>
     </>
   );
@@ -179,6 +192,98 @@ function EquipmentEventForm() {
         disabled={!parsed?.success || code.trim() === '' || cmd.busy}
       />
       <ActResult error={cmd.error} done={cmd.done} label={event === 'REPAIR' ? 'Repair recorded: a second person verifies it.' : 'Recorded.'} />
+    </>
+  );
+}
+
+/** The units of the plant list of a kind, to choose from (the database refuses one whose class needs no calibration). */
+function useUnits(kind: 'PROCESS' | 'INSTRUMENT' | null) {
+  const q = useApiQuery(routes.plant.equipment);
+  return (q.data?.equipment ?? []).filter((e) => kind === null || e.kind === kind).map((e) => ({ value: e.code, label: `${e.code} ${e.name} (${e.kind.toLowerCase()}${e.areaCode ? `, ${e.areaCode}` : ''})` }));
+}
+
+const HOURS = ['4', '8', '12', '24'].map((h) => ({ value: h, label: `${h} h` }));
+const OPEN_BATCH = new Set(['ISSUED', 'IN_PROGRESS', 'ON_HOLD']);
+
+function InstrumentUseForm() {
+  const units = useUnits('INSTRUMENT');
+  const batches = useApiQuery(routes.batches.list);
+  const check = useCommand(routes.plant.recordInstrumentCheck, PENDING, 'the per-use check');
+  const book = useCommand(routes.plant.recordInstrumentUse, PENDING, 'booking the instrument');
+  const [code, setCode] = useState<string | null>(null);
+  const [batchId, setBatch] = useState<string | null>(null);
+  const [reference, setReference] = useState('Per-use check');
+  const [hours, setHours] = useState<string | null>('12');
+  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.has(b.status));
+  const busy = check.busy || book.busy;
+  return (
+    <>
+      <floor.ChoiceGroup label="For batch" options={open.map((b) => ({ value: b.runId, label: `${b.batchNumber} (${b.statusText})` }))} value={batchId} onChange={setBatch} />
+      <floor.ChoiceGroup label="Instrument" options={units} value={code} onChange={setCode} />
+      {code && batchId ? (
+        <>
+          <Field name="instrumentReference" label="Check reference (weights, procedure)" value={reference} onChange={setReference} />
+          <ActButton label={`Per-use check of ${code} passed`} onPress={() => check.run({ params: { code }, body: { result: 'PASS', reference: reference.trim(), batchId } })} disabled={busy || reference.trim() === ''} />
+          <ActButton primary={false} label={`Per-use check of ${code} failed`} onPress={() => check.run({ params: { code }, body: { result: 'FAIL', reference: reference.trim(), batchId } })} disabled={busy || reference.trim() === ''} />
+          <ActResult error={check.error} done={check.done} label={check.done ? `Check recorded: ${check.done.result}.` : ''} />
+          <floor.ChoiceGroup label="Planned use" options={HOURS} value={hours} onChange={setHours} />
+          <ActButton label={`Book ${code} for the batch`} onPress={() => book.run({ params: { code }, body: { batchId, plannedHours: hours ?? '12' } })} disabled={busy || hours === null} />
+          <ActResult error={book.error} done={book.done} label={book.done ? `${book.done.equipmentCode} booked until ${book.done.plannedEnd.text}.` : ''} />
+        </>
+      ) : (
+        <p>Choose the batch and the instrument.</p>
+      )}
+    </>
+  );
+}
+
+function CalibrationForm() {
+  const units = useUnits(null);
+  const [code, setCode] = useState<string | null>(null);
+  return (
+    <>
+      <floor.ChoiceGroup label="Unit calibrated" options={units} value={code} onChange={setCode} />
+      {code ? (
+        <DefineForm
+          key={code}
+          title="Record a calibration"
+          route={routes.plant.recordCalibration}
+          params={{ code }}
+          refresh={PENDING}
+          submitLabel={`Record the calibration of ${code}`}
+          fields={[
+            { name: 'asFound', label: 'As found', kind: 'choice', options: ['PASS', 'FAIL'] },
+            { name: 'asLeft', label: 'As left', kind: 'choice', options: ['PASS', 'FAIL'] },
+            { name: 'reference', label: 'Certificate reference', kind: 'text' },
+            { name: 'dueDate', label: 'Next calibration due (YYYY-MM-DD)', kind: 'text' },
+          ]}
+        />
+      ) : (
+        <p>Choose the unit that was calibrated.</p>
+      )}
+    </>
+  );
+}
+
+function PressDischargeForm() {
+  const presses = useUnits('PROCESS');
+  const [code, setCode] = useState<string | null>(null);
+  return (
+    <>
+      <floor.ChoiceGroup label="Press" options={presses} value={code} onChange={setCode} />
+      {code ? (
+        <DefineForm
+          key={code}
+          title="Configure the press discharge"
+          route={routes.plant.configurePressDischarge}
+          params={{ code }}
+          refresh={PENDING}
+          submitLabel={`Configure the discharge of ${code}`}
+          fields={[{ name: 'separateStreams', label: 'Each side discharges into its own containers', kind: 'yesno' }]}
+        />
+      ) : (
+        <p>Choose the press.</p>
+      )}
     </>
   );
 }

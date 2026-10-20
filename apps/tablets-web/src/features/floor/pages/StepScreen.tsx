@@ -15,6 +15,8 @@ import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
 import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
 import { StepFloorActs } from '../components/StepFloorActs.tsx';
+import { StepPlantActs } from '../components/StepPlantActs.tsx';
+import { StepChoicesProvider } from '../choices.tsx';
 import { correctableAttempts } from '../dialogs/CorrectEntryDialog.tsx';
 import { voidableAttempts } from '../dialogs/VoidAttemptDialog.tsx';
 import { useRunView, useStepView } from '../queries.ts';
@@ -53,7 +55,11 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
       <article className={wcls('card')} aria-label={`Step ${view.step.number} ${view.step.title}`} data-testid="step-card" data-step={view.step.stepKey}>
         <floor.StepHeader step={view.step} />
         <SignedResult result={signed.result} />
-        <Renderer view={view} />
+        {/* Phase 7 slice 7h (WP-A): the plant acts of the step (room, units, tooling, hopper charge) fill its entry forms. */}
+        <StepChoicesProvider key={view.step.stepKey}>
+          <StepPlantActs view={view} />
+          <Renderer view={view} />
+        </StepChoicesProvider>
         {/* Phase 7 slice 7g (WP4): the step's device and equipment, the packaging batch data and print jobs, the detector challenge. */}
         <StepFloorActs view={view} />
         <StepExceptions view={view} perform={perform} busy={busy} />

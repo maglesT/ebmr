@@ -15,7 +15,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import type { FeatureSeedContext } from '../types.ts';
-import { DEMO_GATEWAY, DEMO_INSTRUMENTS, enrolGateway } from './enrol.ts';
+import { bindDemoProcessDevices, DEMO_GATEWAY, DEMO_INSTRUMENTS, DEMO_PROCESS_DEVICES, DEMO_SITE, enrolGateway } from './enrol.ts';
 import { DEVICES_GUIDANCE } from './guidance.ts';
 import { startGatewayListener as startListener, type GatewayListener } from './listener.ts';
 import { createDeviceReadingPort } from './port.ts';
@@ -54,4 +54,8 @@ export async function seed(ctx: FeatureSeedContext): Promise<void> {
   const admin = await ctx.adminActor();
   const chainId = await enrolGateway(ctx.pools.app, admin, { ...DEMO_GATEWAY, spki, instruments: DEMO_INSTRUMENTS });
   ctx.log(`devices: gateway ${DEMO_GATEWAY.gatewayCode} enrolled (chain ${chainId}); instruments ${DEMO_INSTRUMENTS.map((i) => i.deviceCode).join(', ')}`);
+  if (ctx.demoProcessDevices) {
+    await bindDemoProcessDevices(ctx.pools.app, admin, chainId, DEMO_SITE);
+    ctx.log(`devices: the demo machines bound to ${DEMO_GATEWAY.gatewayCode}: ${DEMO_PROCESS_DEVICES.map((d) => d.code).join(', ')}`);
+  }
 }

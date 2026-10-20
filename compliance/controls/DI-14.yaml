@@ -285,6 +285,7 @@ tests:
   - "apps/tablets-server/test/operations/session-checked-reads.test.ts > session-checked reads of slice 7g (P7G-5) > [DI-17][DI-14] the installation contents are read only for an active session; the demo screen still shows them"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-35][DI-14] the issue function itself refuses an ISSUED signature of another person, before the row guard does"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-14] the issue request must name this batch: a request naming another batch id is refused"
+  - "apps/tablets-server/test/security/kiosk-read-order.test.ts > kiosk reads: the permission before the badge tap (D-P7R-18) > [INV-40][DI-14] a read the operator's role may make still needs the fresh badge tap on the kiosk (the kernel's per-command attribution is unchanged)"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

@@ -35,7 +35,6 @@ import { createApiClient, routes, type ApiClient, type ClientIntent, type Device
 import { freshTap, openPersonaSession, personaOf, signDeviceProof, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
 import { buildApp, type BuiltApp } from '../app.ts';
 import { parseConfig } from '../config.ts';
-import { loadValidationContext } from '../features/designer/adapters/expressions.ts';
 import { recordContentForSigning } from '../features/esig/content.ts';
 import { GBT01_PRODUCT } from '../features/execution/seed-gb-t-01.ts';
 import { seedReleasePath } from './release-path.ts';
@@ -302,9 +301,7 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   );
   const head = value(await o('author').api.call(routes.designer.version, { params: { versionId } }), 'the version');
   const started = value(await o('author').api.call(routes.designer.startVerification, { params: { versionId }, body: { baseRevision: head.revision } }), 'the start of the verification');
-  const { context } = await loadValidationContext(db.app, content);
-  const verification = lifecycle.createVerificationPort(context).verify(content, []);
-  await withCommand(db.app, { ...o('author').actor, correlationId: randomUUID() }, (c) => lifecycle.recordVerification(c, versionId, verification, [], personaOf(seed, 'author').personId));
+  // The start of the verification records the validator report, the sealed verification and the test vectors (D-P7R-16).
   const t = (transition: 'SUBMIT' | 'CHECK' | 'APPROVE' | 'REGULATORY_CONFIRM') => ({ kind: 'MBR_TRANSITION' as const, versionId, transition, baseRevision: started.revision });
   await sign(o('author'), t('SUBMIT'), 'PREPARED');
   await sign(o('checker'), t('CHECK'), 'CHECKED');

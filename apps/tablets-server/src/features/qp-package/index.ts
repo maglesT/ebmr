@@ -11,7 +11,7 @@ import { commands, records, toDbContext, type ActorContext } from '@ebmr/kernel'
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { permissionBeforeTap, withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
@@ -106,6 +106,8 @@ async function lotView(app: AppContext, db: Db, lotId: string): Promise<LotQpVie
 /** A read that needs the QP's actor context (records.qp_reader_*): the database's refusal answers as a kernel error. */
 async function asReader<T>(pool: pg.Pool, who: ActorContext, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
+    // D-P7R-18 (F2): the read's permission before the kiosk's badge tap.
+    await permissionBeforeTap(pool, who, ['QP_PACKAGE.READ']);
     return await withActorCommand(pool, who, work);
   } catch (error) {
     throw commands.asKernelError(error);
