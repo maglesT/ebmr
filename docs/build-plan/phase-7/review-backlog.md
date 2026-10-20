@@ -163,7 +163,9 @@ session idle rule of tablets 1460.
 ## Slice 7h (one review pass, 20 October 2026)
 
 - P7H-1 (fixed): the press set-up panel charged the hopper with a fixed stage `COMPRESSION` instead of the step's own
-  stage; it now sends the step's stage.
+  stage; it now sends the step's stage. Revised (D2 in the full browser suite): the step's stage is the master's stage id
+  (S-COMP), which the contract's stage code refuses (every charge answered 400); a charge names the plant stage the
+  container goes into, as containers name theirs, so the press set-up step charges `COMPRESSION` again.
 - P7H-2 (residual, non-blocking): the start of the verification runs the designer's simulation before its idempotent
   command, so a resend of a committed start re-runs the simulation and can be refused as busy or timed out instead of
   returning the stored answer; the evidence stays right.

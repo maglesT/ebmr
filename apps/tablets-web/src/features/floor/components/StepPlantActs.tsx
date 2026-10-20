@@ -405,7 +405,9 @@ function PressSetupPanel({ v }: { v: StepPlantView }) {
   const presses = v.uses.filter((u) => u.kind === 'PROCESS' && u.mine);
   const open = v.tooling.issues.filter((x) => x.returned === null);
   const send = async (scanned: string) => {
-    const r = await charge.run({ body: { batchId: v.batchId, stage: v.stage ?? 'COMPRESSION', label: scanned } });
+    // The charge names the plant stage the container goes into (as containers name theirs: BLENDING, COMPRESSION), not the
+    // master's stage id (S-COMP, which the contract's stage code refuses): a press set-up step charges the press hopper.
+    const r = await charge.run({ body: { batchId: v.batchId, stage: 'COMPRESSION', label: scanned } });
     if (r) {
       setLabel('');
       choices?.choose('HOPPER_CHARGE', { chargeId: r.chargeId });

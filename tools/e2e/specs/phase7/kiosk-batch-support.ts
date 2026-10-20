@@ -106,10 +106,18 @@ export async function officeSignPaced(page: Page, open: () => Promise<void>, tit
 }
 
 /** A GMP kiosk page with the person signed in (in `role` when the persona holds several). */
+const kiosks: Page[] = [];
+
 export async function kiosk(browser: Browser, e2e: E2eWorld, terminal: string, who: SeededPersona, role?: string): Promise<Page> {
   const page = await gmpKiosk(browser, e2e, terminal);
+  kiosks.push(page);
   await signIn.kiosk(page, who, role);
   return page;
+}
+
+/** Closes the kiosk pages opened so far (the fixtures close only their own), so a later failure shows only its own pages. */
+export async function closeKiosks(): Promise<void> {
+  for (const p of kiosks.splice(0)) await p.context().close().catch(() => undefined);
 }
 
 /** A plant act or other command button on a kiosk: pressed, then the fresh badge tap of the person signed in. */
@@ -131,13 +139,25 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
   // The run moved on elsewhere meanwhile (a timer, another step): the screen says nothing was saved and the person saves
   // again on the step as it is now.
   const stale = form.getByText('Nothing changed on this step; the run changed elsewhere', { exact: false });
+  // Any other answer: the screen's refusal, reported in the failure with the form's words.
+  const refused = form.getByTestId('refusal').or(form.getByText(/was not saved|Nothing was saved/));
+  const notSaved = async (why: string): Promise<never> => {
+    throw new Error(`${why}; the form shows: ${((await form.innerText().catch(() => '')) || '(the form is gone)').replace(/\s+/g, ' ').slice(0, 1500)}`);
+  };
   for (let attempt = 0; ; attempt += 1) {
     await expect(button).toBeEnabled();
     await button.click();
     await tap(page, who);
-    await expect(saved.or(stale).first()).toBeVisible();
+    try {
+      await expect(saved.or(stale).or(refused).first()).toBeVisible();
+    } catch {
+      await notSaved('the entry was neither saved nor refused within the wait');
+    }
     if (await saved.isVisible()) return;
-    if (attempt >= 2) await expect(saved).toBeVisible();
+    // A refusal panel and the stale notice come together: give the notice its moment before deciding.
+    await stale.waitFor({ timeout: 1_000 }).catch(() => undefined);
+    if (!(await stale.isVisible())) await notSaved('the entry was refused');
+    if (attempt >= 2) await notSaved('the entry was still refused as stale after three saves');
   }
 }
 

@@ -8,7 +8,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { BlockEntryFormView, BlockFieldSchemaWire, StepPlantView, StepScreenView } from '@ebmr/api-contract';
+import { routes, type BlockEntryFormView, type BlockFieldSchemaWire, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
 import { renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
@@ -177,7 +177,9 @@ describe('the press set-up and hopper charge (A5)', () => {
     expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'PRESS_SETUP', data: { press: 'PRESS-01', useId: USE_PRESS, issueId: ISSUE } });
     await userEvent.click(within(screen.getByTestId('plant-press-setup')).getByRole('button', { name: 'Charge container OC-B26-0007-0001' }));
     await waitFor(() => expect(posts(ui, '/api/plant/charges')).toHaveLength(1));
-    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'S-COMP', label: 'OC-B26-0007-0001' });
+    // The plant stage the container goes into (the contract's stage code), never the master's stage id S-COMP.
+    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'COMPRESSION', label: 'OC-B26-0007-0001' });
+    expect(routes.plant.chargeContainer.body?.safeParse(posts(ui, '/api/plant/charges')[0]?.body).success).toBe(true);
     const charge = await screen.findByTestId('block-form-HOPPER_CHARGE');
     await userEvent.click(within(charge).getByRole('button', { name: 'Save: Hopper charge' }));
     await waitFor(() => expect(ui.commands()).toHaveLength(2));

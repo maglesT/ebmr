@@ -35,11 +35,13 @@ import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 import {
-  act, allInOrder, ANY, as, choose, clean, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, loadFlow, openContainer, performAndCheck, plusOne, primary,
+  act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, loadFlow, openContainer, performAndCheck, plusOne, primary,
   reviewRecord, save, saveBlock, saveFlow, sign, startStep, statusStep, step, verifyCleanings, type FlowState,
 } from './kiosk-batch-support.ts';
 
 test.describe.configure({ mode: 'serial' });
+// The kiosk pages of the earlier tests are closed when the next one starts (a failure keeps its own for the report).
+test.beforeEach(async () => closeKiosks());
 
 const SITE = 'SITE-1';
 const PRODUCT = { productCode: 'GBT02-100', strength: '100 mg' };
