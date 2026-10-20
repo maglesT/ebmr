@@ -34,6 +34,7 @@ import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent, stepTarget } from './intents.ts';
 import { additionSources } from './addition-sources.ts';
+import { stepPlantView } from './step-plant.ts';
 import { peopleText } from './people-text.ts';
 import { lotView, resolveLot } from './lots.ts';
 import { checkIssue, issueForm, packageToImport, packageView, packageViews } from './packages.ts';
@@ -242,6 +243,8 @@ function gmpBatchHandlers(app: AppContext): Handlers<typeof routes.batches> {
     },
     batch: async ({ params, requireSession }) => runView(await viewContextFor(app, pool, params.batchId, requireSession())),
     step: async ({ params, requireSession }) => stepScreen(await viewContextFor(app, pool, params.batchId, requireSession()), params.stepKey),
+    // Phase 7 slice 7h (WP-A): what the step screen offers its plant acts from (step-plant.ts).
+    stepPlant: async ({ params, requireSession }) => stepPlantView(app, pool, params.batchId, params.stepKey, requireSession().personId),
     workQueue: async ({ params, requireSession }) => {
       const s = requireSession();
       return { items: workQueueItems(await viewContextFor(app, pool, params.batchId, s), s.roomCode) };

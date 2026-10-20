@@ -95,6 +95,8 @@ tests:
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the inbound package (site services 0981) > [PR-18] the received lot keeps its retest instant; the hold limit is the earliest of the carried hold, retest and expiry"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the outbound package (site services 0980) > [DI-39] [INV-13] [PR-18] the origin packages an unexpired lot, up to what is left, on a well-formed request with a future stated hold"
   - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [INV-13][PR-18] the consumption guard as site services 1103 re-creates it (D-P7-1 item 4): the reservation's batch number with its id, a lot not usable or changed since the reservation, a zero quantity, a lot holding less than the reservation"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > a lot reserved for the batch (gap report A1) > [INV-13][PR-18] stores reserve a released lot for the batch by its number in the lot's unit; a lot not released, an unknown batch, more than is available and a person without the right are refused"
+  - "apps/tablets-web/test/receipt/lot-handling.test.tsx > a lot's reservations and stock-location exceptions > [PR-18][INV-13] stores reserve a quantity of the lot for an open batch chosen from the list (slice 7h, A1)"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:

@@ -2,6 +2,8 @@
  * Plant acts (Phase 3 slice 6): start, complete and verify a cleaning; record a line or room clearance and verify it;
  * record an equipment logbook event or the repair of an open failure, and verify the repair. Verification is the second
  * person's signature (PLANT_VERIFY) through the ceremony; the database refuses the person who recorded the act.
+ * Phase 7 slice 7h (WP-A, gap report A7 and A9): a calibration of a unit whose class requires one (LOGBOOK.ENTRY) and
+ * the discharge configuration of a press (MASTERDATA.CHANGE); the unit is chosen from the plant list, never typed.
  */
 import { useState } from 'react';
 import { routes, type RouteResponse } from '@ebmr/api-contract';
@@ -45,6 +47,12 @@ export function PlantPage() {
       </Section>
       <Section title="Equipment logbook" testId="equipment-event">
         <EquipmentEventForm />
+      </Section>
+      <Section title="Calibration" testId="calibration">
+        <CalibrationForm />
+      </Section>
+      <Section title="Press discharge" testId="press-discharge">
+        <PressDischargeForm />
       </Section>
     </>
   );
@@ -179,6 +187,63 @@ function EquipmentEventForm() {
         disabled={!parsed?.success || code.trim() === '' || cmd.busy}
       />
       <ActResult error={cmd.error} done={cmd.done} label={event === 'REPAIR' ? 'Repair recorded: a second person verifies it.' : 'Recorded.'} />
+    </>
+  );
+}
+
+/** The units of the plant list of a kind, to choose from (the database refuses one whose class needs no calibration). */
+function useUnits(kind: 'PROCESS' | 'INSTRUMENT' | null) {
+  const q = useApiQuery(routes.plant.equipment);
+  return (q.data?.equipment ?? []).filter((e) => kind === null || e.kind === kind).map((e) => ({ value: e.code, label: `${e.code} ${e.name} (${e.kind.toLowerCase()}${e.areaCode ? `, ${e.areaCode}` : ''})` }));
+}
+
+function CalibrationForm() {
+  const units = useUnits(null);
+  const [code, setCode] = useState<string | null>(null);
+  return (
+    <>
+      <floor.ChoiceGroup label="Unit calibrated" options={units} value={code} onChange={setCode} />
+      {code ? (
+        <DefineForm
+          key={code}
+          title="Record a calibration"
+          route={routes.plant.recordCalibration}
+          params={{ code }}
+          refresh={PENDING}
+          submitLabel={`Record the calibration of ${code}`}
+          fields={[
+            { name: 'asFound', label: 'As found', kind: 'choice', options: ['PASS', 'FAIL'] },
+            { name: 'asLeft', label: 'As left', kind: 'choice', options: ['PASS', 'FAIL'] },
+            { name: 'reference', label: 'Certificate reference', kind: 'text' },
+            { name: 'dueDate', label: 'Next calibration due (YYYY-MM-DD)', kind: 'text' },
+          ]}
+        />
+      ) : (
+        <p>Choose the unit that was calibrated.</p>
+      )}
+    </>
+  );
+}
+
+function PressDischargeForm() {
+  const presses = useUnits('PROCESS');
+  const [code, setCode] = useState<string | null>(null);
+  return (
+    <>
+      <floor.ChoiceGroup label="Press" options={presses} value={code} onChange={setCode} />
+      {code ? (
+        <DefineForm
+          key={code}
+          title="Configure the press discharge"
+          route={routes.plant.configurePressDischarge}
+          params={{ code }}
+          refresh={PENDING}
+          submitLabel={`Configure the discharge of ${code}`}
+          fields={[{ name: 'separateStreams', label: 'Each side discharges into its own containers', kind: 'yesno' }]}
+        />
+      ) : (
+        <p>Choose the press.</p>
+      )}
     </>
   );
 }

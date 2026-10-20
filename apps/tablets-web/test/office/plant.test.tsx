@@ -63,3 +63,33 @@ describe('plant', () => {
     expect(ui.ceremony.sign).not.toHaveBeenCalled();
   });
 });
+
+describe('calibration and press discharge (slice 7h, A7 and A9)', () => {
+  const unit = example('plant-equipment').equipment[0];
+  const units = unit ? { equipment: [{ ...unit, code: 'BAL-C1', name: 'Balance 6 kg', kind: 'INSTRUMENT' as const }, { ...unit, code: 'PRESS-01', name: 'Rotary press', kind: 'PROCESS' as const }] } : { equipment: [] };
+
+  it('[PR-23] a technician records the calibration of a unit chosen from the plant list, with as found, as left, the certificate and the next due date', async () => {
+    const ui = renderOffice('/plant', { role: 'MAINTENANCE_TECHNICIAN', fixtures: { 'plant.equipment': units } });
+    const section = await screen.findByTestId('calibration');
+    await userEvent.click(await within(section).findByRole('radio', { name: /^BAL-C1/ }));
+    for (const name of ['As found', 'As left']) await userEvent.click(within(within(section).getByRole('radiogroup', { name })).getByRole('radio', { name: 'PASS' }));
+    await userEvent.type(within(section).getByRole('textbox', { name: 'Certificate reference' }), 'CAL-2026-114');
+    await userEvent.type(within(section).getByRole('textbox', { name: 'Next calibration due (YYYY-MM-DD)' }), '2027-10-19');
+    await userEvent.click(within(section).getByRole('button', { name: 'Record the calibration of BAL-C1' }));
+    await waitFor(() => expect(ui.posts('/api/plant/equipment/BAL-C1/calibrations')).toHaveLength(1));
+    expect(ui.posts('/api/plant/equipment/BAL-C1/calibrations')[0]?.body).toEqual({ asFound: 'PASS', asLeft: 'PASS', reference: 'CAL-2026-114', dueDate: '2027-10-19' });
+  });
+
+  it('[PR-22] the steward configures whether each side of a press discharges into its own containers; only process units are offered', async () => {
+    const ui = renderOffice('/plant', { role: 'MASTER_DATA_STEWARD', fixtures: { 'plant.equipment': units } });
+    const section = await screen.findByTestId('press-discharge');
+    await userEvent.click(await within(section).findByRole('radio', { name: /^PRESS-01/ }));
+    expect(within(section).queryByRole('radio', { name: /^BAL-C1/ })).toBeNull();
+    const yes = within(within(section).getByRole('radiogroup', { name: 'Each side discharges into its own containers' })).getAllByRole('radio')[0];
+    if (!yes) throw new Error('no yes/no choice');
+    await userEvent.click(yes);
+    await userEvent.click(within(section).getByRole('button', { name: 'Configure the discharge of PRESS-01' }));
+    await waitFor(() => expect(ui.posts('/api/plant/equipment/PRESS-01/press-discharge')).toHaveLength(1));
+    expect(ui.posts('/api/plant/equipment/PRESS-01/press-discharge')[0]?.body).toEqual({ separateStreams: true });
+  });
+});

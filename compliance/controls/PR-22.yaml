@@ -36,6 +36,8 @@ tests:
   - "apps/tablets-server/test/alarms/plant-displays.test.ts > the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition"
   - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-22] the status board shows each unit and room with its state, batch, cleaning state, open alarms and the read time"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > the status board (PR-22) > [PR-22] the status display matches the system state after each transition"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > press tooling and the press discharge (gap report A6, A7) > [INV-24][IN-36][PR-27][DI-31][PR-22] a set is inspected before use item by item, issued to the press with its counts, returned with the strokes keyed from the press and inspected after use; the steward configures the discharge, an operator is refused"
+  - "apps/tablets-web/test/office/plant.test.tsx > calibration and press discharge (slice 7h, A7 and A9) > [PR-22] the steward configures whether each side of a press discharges into its own containers; only process units are offered"
 clauses:
   - clause: "A step with a unit the master does not allow is rejected."
     tests:

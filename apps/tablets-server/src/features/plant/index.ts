@@ -17,6 +17,7 @@ import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { compact, peopleOf, personRef, usOf } from '../common/people.ts';
 import { dbActHandler } from '../esig/db-acts.ts';
+import { plantFloorHandlers } from './floor.ts';
 
 /** The body without its badge-tap attribution (a FRESH_ON_SHARED route's, INV-40): the database gets the command's own members. */
 const bare = <T extends object>(body: T): Omit<T, 'attribution'> => withoutAttribution(body) as unknown as Omit<T, 'attribution'>;
@@ -170,6 +171,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     return typeof out.result === 'string' ? out.result : '';
   };
   bindRoutes(scope, app, routes.plant, {
+    // Phase 7 slice 7h (WP-A): the plant acts a person performs on the floor for a GMP batch (floor.ts).
+    ...plantFloorHandlers(app),
     areas: async ({ requireSession }) => {
       requireSession();
       return { areas: await areas(pool) };

@@ -90,6 +90,10 @@ tests:
   - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the CMMS mirror at equipment use (DI-31, IN-25, PR-23) > [DI-31][PR-23] CMMS calibrations reach the use guard: a FAIL blocks the unit, a PASS with a future due date frees it; manual entries are refused in MIRROR"
   - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11) > [DI-31][PR-23] G-REL carries the QMS item for a finished lot in MIRROR mode only, and the market items of US and EU for a finished lot only (mutation triage, recipe.grel_evaluate)"
   - "packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts > the CMMS receiving commands (DI-31, IN-25, PR-23; recipe-core 0950) > [DI-31][PR-23] calibration: the message type, the mode, each malformed field, a unit without calibration and an equal timestamp are refused"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > a balance and a press for the batch (gap report A3, A4, A9) > [PR-23][IN-25] a balance is booked for the batch only calibrated and checked: the technician records the calibration (an operator is refused), the operator the per-use check, then the booking"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > a balance and a press for the batch (gap report A3, A4, A9) > [INV-12][IN-25][PR-23] the press is used by the batch once its guards pass (a verifier is refused, a second use refused); its end makes it dirty and is not repeated"
+  - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the units a status step checks (A3, A4) > [PR-23][IN-25] records the balance's per-use check and books it, books the press, and fills the EQUIPMENT_USE entry with the unit, its reference and the use"
+  - "apps/tablets-web/test/office/plant.test.tsx > calibration and press discharge (slice 7h, A7 and A9) > [PR-23] a technician records the calibration of a unit chosen from the plant list, with as found, as left, the certificate and the next due date"
 clauses:
   - clause: "A Dirty unit is blocked."
     tests:

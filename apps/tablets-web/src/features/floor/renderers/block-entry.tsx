@@ -15,6 +15,7 @@
 import { useState, type ReactNode } from 'react';
 import { ClientEntry, type BlockEntryFormView, type BlockFieldSchemaWire, type BlockFieldWire, type StepScreenView } from '@ebmr/api-contract';
 import { Button, decimalProblem, Field, floor } from '@ebmr/ui-kit';
+import { useStepChoices } from '../choices.tsx';
 import { wcls } from '../classes.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { useSessionChange } from '../session.tsx';
@@ -288,9 +289,12 @@ export function deviceEntry(def: BlockEntryFormDef, readingId: string | null): C
   return parsed.success ? parsed.data : null;
 }
 
-export function BlockEntryForm({ def, view, chosen: given = {} }: BlockEntryFormProps) {
+export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFormProps) {
   const record = availability(view, 'RECORD_ENTRY');
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  // Phase 7 slice 7h (WP-A): the identifiers a plant act of the step screen chose for this kind (choices.tsx).
+  const choices = useStepChoices();
+  const given: Readonly<Record<string, string>> = { ...passed, ...(choices?.chosen[def.kind] ?? {}) };
   // A process value: from the equipment (a reading picked) or keyed by hand (the block's manual-entry path).
   const device = isDeviceEntry(def);
   const [source, setSource] = useState<'EQUIPMENT' | 'MANUAL' | null>(null);
@@ -299,6 +303,7 @@ export function BlockEntryForm({ def, view, chosen: given = {} }: BlockEntryForm
   const clear = () => {
     setDrafts({});
     setReading(null);
+    choices?.clear(def.kind);
   };
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: def.title }), { onSaved: clear, onDiscarded: clear });
   useSessionChange(clear);
@@ -380,8 +385,15 @@ export const PROCESS_VALUE_KINDS = ['SETPOINT_READBACK', 'ACTUAL', 'ALARM', 'ALA
  */
 export function BlockEntrySections({ view, sections, chosen }: { view: StepScreenView; sections: readonly EntrySection[]; chosen?: Readonly<Record<string, string>> }) {
   const forms = blockEntryForms(view);
-  const [open, setOpen] = useState<string | null>(null);
   const byKind = new Map(forms.map((f) => [f.kind as string, f]));
+  // A plant act of the step screen chose identifiers for a kind: its form opens with them (choices.tsx), until the
+  // person opens or closes a form themselves (the choice counter at that moment is kept with their choice).
+  const choices = useStepChoices();
+  const seq = choices?.seq ?? 0;
+  const [toggled, setToggled] = useState<{ kind: string | null; at: number }>({ kind: null, at: 0 });
+  const lastChosen = choices?.last ?? null;
+  const open = seq > toggled.at && lastChosen !== null && byKind.has(lastChosen) ? lastChosen : toggled.kind;
+  const setOpen = (kind: string | null) => setToggled({ kind, at: seq });
   const placed = new Set(sections.flatMap((s) => s.kinds));
   const all: EntrySection[] = [...sections, { title: st('block.other'), kinds: forms.map((f) => f.kind).filter((k) => !placed.has(k)) }];
   return (

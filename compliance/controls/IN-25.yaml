@@ -72,6 +72,9 @@ tests:
   - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [DI-28][IN-25] a back-dated logbook entry is impossible: the application role writes no logbook row, and a row written below it with a past time is stored at the database time, which never changes after"
   - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the CMMS mirror at equipment use (DI-31, IN-25, PR-23) > [DI-31][IN-25] CMMS work orders reach the use guard: a unit under maintenance or past its preventive due date is refused"
   - "packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts > the CMMS receiving commands (DI-31, IN-25, PR-23; recipe-core 0950) > [DI-31][IN-25] maintenance: each malformed field is refused; staleness is per unit and work order, an equal timestamp is stale; preventive work due today does not stop the unit"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > a balance and a press for the batch (gap report A3, A4, A9) > [PR-23][IN-25] a balance is booked for the batch only calibrated and checked: the technician records the calibration (an operator is refused), the operator the per-use check, then the booking"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > a balance and a press for the batch (gap report A3, A4, A9) > [INV-12][IN-25][PR-23] the press is used by the batch once its guards pass (a verifier is refused, a second use refused); its end makes it dirty and is not repeated"
+  - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the units a status step checks (A3, A4) > [PR-23][IN-25] records the balance's per-use check and books it, books the press, and fills the EQUIPMENT_USE entry with the unit, its reference and the use"
 clauses:
   - clause: "use a balance with calibration past due; the weighing step is blocked."
     tests:

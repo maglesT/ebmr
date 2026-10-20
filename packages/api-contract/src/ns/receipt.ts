@@ -313,6 +313,25 @@ export const lotHandlingRoutes = {
     body: withAttribution({ expectedVersion: IntegerString, witnessSignatureId: Uuid }),
     response: LotHandlingView,
   }),
+  // Phase 7 slice 7h (WP-A, gap report A1): stores reserve a released lot for a GMP batch (the batch named by its number).
+  reserveLot: defineRoute({
+    id: 'quality.reserveLot',
+    method: 'POST',
+    path: '/api/lots/:lotId/reservations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Reserve a quantity of a released lot, in the lot\'s unit, for a batch named by its number, until a date no later than the lot\'s retest or expiry (MATERIAL.HANDLE; INV-13, PR-18)',
+    params: lotParams,
+    body: withAttribution({
+      batchNumber: z.string().trim().min(1).max(64),
+      quantity: DecimalString,
+      /** The last day of the reservation (site date); by default 30 days, or the lot's retest or expiry when sooner. */
+      expiresOn: z.iso.date().optional(),
+    }),
+    response: LotHandlingView,
+  }),
   cancelReservation: defineRoute({
     id: 'quality.cancelReservation',
     method: 'POST',

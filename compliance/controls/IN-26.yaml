@@ -60,6 +60,8 @@ tests:
   - "apps/tablets-web/test/market/market-screens.test.tsx > plant configuration > [DI-49][IN-26][IN-38] saves an alarm code, opens and closes a campaign with a reason, sets a feed age and records a line isolation"
   - "apps/tablets-server/test/containers/routes-gmp.test.ts > container routes (GMP, Phase 4 slice 1b) > [IN-26] a merge pours a usable container into an open one of the same batch, stage and unit, both named by their labels; an unverified source, an unknown label and a person without the right are refused (slice 7g WP4)"
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the merge of two containers on the GMP run overview > [IN-26] sends both scanned labels and shows the target the server answered"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > the charge of a container (gap report A5) > [IN-26] a closed, verified container of the batch is charged by its label; an unknown label, an open container and a second charge are refused; the step screen lists the charge"
+  - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the press set-up and hopper charge (A5) > [IN-26] charges a closed container of the batch by its label and fills HOPPER_CHARGE; offers the press in use with its tooling for PRESS_SETUP"
 clauses:
   - clause: "schedule a highly potent product in a positive-pressure cubicle; blocked."
     tests:

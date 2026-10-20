@@ -863,9 +863,9 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     server: [apps/tablets-server/src/features/plant]
-    contract: [packages/api-contract/src/ns/plant.ts]
+    contract: [packages/api-contract/src/ns/plant.ts, packages/api-contract/src/ns/plant-floor.ts]
     screens: [apps/tablets-web/src/features/plant]
-    tests: ['apps/tablets-web/test/office/plant.test.tsx']
+    tests: ['apps/tablets-web/test/office/plant.test.tsx', 'apps/tablets-server/test/plant/**', 'apps/tablets-web/test/floor/step-plant-acts.test.tsx']
 
   - id: ts-review
     title: Batch record review

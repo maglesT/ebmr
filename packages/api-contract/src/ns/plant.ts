@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { DecimalString, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { plantFloor } from './plant-floor.ts';
 
 const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,31}$/);
 const Interval = z.string().regex(/^[0-9]{1,5} (minutes|hours|days)$/, 'an interval such as "72 hours"');
@@ -344,4 +345,6 @@ export const plant = {
     summary: 'Cleanings, clearances and repairs recorded and waiting for the second person\'s verification',
     response: z.strictObject({ items: z.array(PendingVerificationView) }),
   }),
+  // Phase 7 slice 7h (WP-A): the plant acts a person performs on the floor for a GMP batch (ns/plant-floor.ts).
+  ...plantFloor,
 } as const;

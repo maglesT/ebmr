@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { DecimalString, Empty, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
 import { ActId, ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
+import { StepPlantView } from './plant-floor.ts';
 import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
@@ -232,5 +233,17 @@ export const batches = {
     summary: 'The sources a TB-08 or G-24@2 addition of this step may take, with the facts the database reads for each',
     params: stepParams,
     response: z.strictObject({ stepKey: StepKey, block: z.string(), sources: z.array(AdditionSourceView) }),
+  }),
+  // Phase 7 slice 7h (WP-A): what the step screen offers its plant acts from (ns/plant-floor.ts).
+  stepPlant: defineRoute({
+    id: 'batches.stepPlant',
+    method: 'GET',
+    path: '/api/batches/:batchId/steps/:stepKey/plant',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The plant facts of a step: its rooms and units, the batch\'s open occupancies and uses, its tooling and its containers, so the step\'s acts name them without typing',
+    params: stepParams,
+    response: StepPlantView,
   }),
 } as const;

@@ -78,6 +78,23 @@ describe('a lot\'s reservations and stock-location exceptions', () => {
     expect(ui.posts(`/api/quality/reservations/${reservation.reservationId}/cancel`)[0]?.body).toEqual({ reason: 'Batch cancelled by planning' });
   });
 
+  it('[PR-18][INV-13] stores reserve a quantity of the lot for an open batch chosen from the list (slice 7h, A1)', async () => {
+    const listed = example('batches-list').batches[0];
+    if (!listed) throw new Error('no batch example');
+    const batches = { batches: [{ ...listed, batchNumber: 'B26-0009', status: 'IN_PROGRESS' as const }, { ...listed, batchNumber: 'B26-0001', status: 'CANCELLED' as const }] };
+    const ui = renderOffice(lotPath, { role: 'WAREHOUSE_LABELLING', fixtures: { 'quality.lots': { lots: [base] }, 'quality.lotResults': { results: [] }, 'quality.lotHandling': empty, 'batches.list': batches, 'quality.reserveLot': handling } });
+    const form = await screen.findByTestId('reserve-lot');
+    // A cancelled batch is not offered.
+    expect(within(form).queryByRole('radio', { name: /^B26-0001/ })).toBeNull();
+    const reserve = within(form).getByRole('button', { name: 'Reserve the lot' });
+    expect(reserve.hasAttribute('disabled')).toBe(true);
+    await userEvent.click(await within(form).findByRole('radio', { name: /^B26-0009/ }));
+    await userEvent.type(within(form).getByRole('textbox', { name: `Quantity (${base.unit})` }), '12.500');
+    await userEvent.click(reserve);
+    await waitFor(() => expect(ui.posts(`/api/lots/${base.lotId}/reservations`)).toHaveLength(1));
+    expect(ui.posts(`/api/lots/${base.lotId}/reservations`)[0]?.body).toEqual({ batchNumber: 'B26-0009', quantity: '12.500' });
+  });
+
   it('[PR-46] QA closes a stock-location exception with the deviation linked to the lot and what was done', async () => {
     const ui = renderOffice(lotPath, { role: 'QA_REVIEWER', fixtures: { 'quality.lots': { lots: [base] }, 'quality.lotResults': { results: [] }, 'quality.lotHandling': handling, 'quality.resolveLotLocationException': handling } });
     const row = await screen.findByTestId(`location-exception-${exception.exceptionId}`);
