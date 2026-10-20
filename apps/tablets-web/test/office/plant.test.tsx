@@ -92,4 +92,22 @@ describe('calibration and press discharge (slice 7h, A7 and A9)', () => {
     await waitFor(() => expect(ui.posts('/api/plant/equipment/PRESS-01/press-discharge')).toHaveLength(1));
     expect(ui.posts('/api/plant/equipment/PRESS-01/press-discharge')[0]?.body).toEqual({ separateStreams: true });
   });
+
+  // Slice 7h (gap report D2): an instrument no status step names (a closure torque tester, TB23-TESTER).
+  it('[PR-23][IN-25][INV-40] an operator checks an instrument chosen from the plant list for an open batch and books it, each with a fresh badge tap on a kiosk; only instruments are offered', async () => {
+    const batch = example('batches-list').batches[0];
+    if (!batch) throw new Error('no batch example');
+    const ui = renderOffice('/plant', { role: 'OPERATOR', attribution: 'TAP', fixtures: { 'plant.equipment': units, 'batches.list': { batches: [{ ...batch, status: 'IN_PROGRESS' }] } } });
+    const section = await screen.findByTestId('instrument-use');
+    await userEvent.click(await within(section).findByRole('radio', { name: new RegExp(`^${batch.batchNumber} `) }));
+    expect(within(section).queryByRole('radio', { name: /^PRESS-01/ })).toBeNull();
+    await userEvent.click(within(section).getByRole('radio', { name: /^BAL-C1/ }));
+    await userEvent.click(within(section).getByRole('button', { name: 'Per-use check of BAL-C1 passed' }));
+    await waitFor(() => expect(ui.posts('/api/plant/instruments/BAL-C1/checks')).toHaveLength(1));
+    expect(ui.posts('/api/plant/instruments/BAL-C1/checks')[0]?.body).toMatchObject({ result: 'PASS', reference: 'Per-use check', batchId: batch.runId, attribution: { method: 'BADGE_TAP' } });
+    await userEvent.click(within(section).getByRole('button', { name: 'Book BAL-C1 for the batch' }));
+    await waitFor(() => expect(ui.posts('/api/plant/instruments/BAL-C1/uses')).toHaveLength(1));
+    expect(ui.posts('/api/plant/instruments/BAL-C1/uses')[0]?.body).toMatchObject({ batchId: batch.runId, plannedHours: '12', attribution: { method: 'BADGE_TAP' } });
+    expect(ui.tap.requestTap).toHaveBeenCalledTimes(2);
+  });
 });

@@ -488,6 +488,11 @@ tests:
   - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the steps of a form (kernel 1170, records.record_contingency_form_event) > [DI-43] [DI-30] the transcription a verifier may not have made is the form's own latest transcription, not another form's nor another step of it"
   - "packages/kernel/test/sandbox/reporting-and-training.test.ts > the reporting role (kernel 1210) > [DI-17][DI-30] the segregation check reports the reporting role missing, each elevated attribute alone and a membership either way (mutation triage, kernel 1210)"
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [DI-30][INV-39][DI-39] a transcription verified after the lot's release was suspended is refused, and the lot stays uncertified; QA never registers itself as QP"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [DI-30][INV-40][PR-20] GMP kiosk batch 2: dispensing on KIOSK-DISP-1, every material weighed by the designated dispenser and verified @office"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-18][PR-22][DI-30] GMP kiosk batch 3: blending and lubrication on KIOSK-BLEND-1 on the validated times, the blend discharged into a verified container @office"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOSK-COMP-1, tooling, press set-up and hopper charge, the run with its weight checks and bulk containers, the yield and QA's release for packing at H-PACK @office"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-40][DI-30][IN-16][PR-34][PR-36] GMP kiosk batch 6: the bottle order run on KIOSK-PACK-1 to its end: bulk issued, line cleared and used, bottles weighed, printed materials, filling, cartoning and shippers, reconciliations, witnessed destruction, the post-use inspection and the stage sign-off @office"
+  - "apps/tablets-web/test/floor/entries.test.tsx > a value configured for device capture > [DI-30][PR-14] is keyed by hand as the fallback while no balance of the room is online, said as such, and sent as a manual entry"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

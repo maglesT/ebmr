@@ -257,3 +257,28 @@ describe('a lot reserved for the batch (gap report A1)', () => {
     expect(dated.reservations).toHaveLength(2);
   }, 180_000);
 });
+
+describe('a printed packaging lot for the issue entry of a printed-materials step (gap report D2)', () => {
+  it('[PR-32][PR-33] the step screen reads a printed packaging lot as the batch issues it, exactly the facts the issue entry must carry; a lot that is not printed packaging, an unknown lot and an unknown batch are refused', async () => {
+    // Test setup: a printed carton lot of the site with its recorded artwork, and an excipient lot (no artwork).
+    const [printed, plain, someone] = [randomUUID(), randomUUID(), randomUUID()];
+    const lot = (id: string, code: string, kind: string) =>
+      arrange(
+        `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+         values ($1, 'SITE-1', $2, $3, 'Lot of the printed-lot test', $4, 5000, '1', '2030-01-01T00:00:00Z', $5, $5, $5)`,
+        [id, code, `MAT-${code}`, kind, someone],
+      );
+    await lot(printed, `CTN-${TAG}`, 'PRINTED_PACKAGING');
+    await lot(plain, `EXC-${TAG}`, 'EXCIPIENT');
+    await arrange('insert into tab.printed_lot_artwork (material_lot_id, artwork_version, recorded_by_person, recorded_by_account, correlation_id) values ($1, $2, $3, $3, $3)', [printed, `ART-${TAG}`, someone]);
+    const read = (code: string, id = batchId) => (b['operator1'] as TestBrowser).call(routes.batches.printedLot, { params: { batchId: id, code } });
+    const facts = valueOf(await read(`CTN-${TAG}`));
+    expect(facts).toMatchObject({ id: `CTN-${TAG}`, material: `MAT-CTN-${TAG}`, artwork: `ART-${TAG}` });
+    expect(facts.expiresAtUs).toMatch(/^[0-9]+$/);
+    const db = (await w.gmp.db.admin.query<{ f: unknown }>('select tab.printed_lot_facts($1, $2) as f', [`CTN-${TAG}`, batchId])).rows[0]?.f;
+    expect(facts).toEqual(db);
+    expect(refusalOf(await read(`EXC-${TAG}`))).toMatchObject({ status: 404, code: 'EXE_PRINTED_LOT_UNKNOWN' });
+    expect(refusalOf(await read(`NO-LOT-${TAG}`))).toMatchObject({ status: 404, code: 'EXE_PRINTED_LOT_UNKNOWN' });
+    expect(refusalOf(await read(`CTN-${TAG}`, randomUUID()))?.status).toBe(404);
+  }, 60_000);
+});

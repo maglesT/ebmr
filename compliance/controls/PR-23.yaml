@@ -94,6 +94,8 @@ tests:
   - "apps/tablets-server/test/plant/floor-routes.test.ts > a balance and a press for the batch (gap report A3, A4, A9) > [INV-12][IN-25][PR-23] the press is used by the batch once its guards pass (a verifier is refused, a second use refused); its end makes it dirty and is not repeated"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the units a status step checks (A3, A4) > [PR-23][IN-25] records the balance's per-use check and books it, books the press, and fills the EQUIPMENT_USE entry with the unit, its reference and the use"
   - "apps/tablets-web/test/office/plant.test.tsx > calibration and press discharge (slice 7h, A7 and A9) > [PR-23] a technician records the calibration of a unit chosen from the plant list, with as found, as left, the certificate and the next due date"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOSK-COMP-1, tooling, press set-up and hopper charge, the run with its weight checks and bulk containers, the yield and QA's release for packing at H-PACK @office"
+  - "apps/tablets-web/test/office/plant.test.tsx > calibration and press discharge (slice 7h, A7 and A9) > [PR-23][IN-25][INV-40] an operator checks an instrument chosen from the plant list for an open batch and books it, each with a fresh badge tap on a kiosk; only instruments are offered"
 clauses:
   - clause: "A Dirty unit is blocked."
     tests:

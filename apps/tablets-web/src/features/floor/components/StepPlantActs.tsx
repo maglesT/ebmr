@@ -8,12 +8,15 @@
  *  - a tooling step (TB-09@1): inspect a set before use item by item, issue it to the press in use, return it with the
  *    counts (the strokes from the press counter, or keyed from the press) and inspect it after use;
  *  - a press set-up step (TB-10@1): the press in use with the tooling issued to it, and the charge of a closed container
- *    of the batch into the hopper.
+ *    of the batch into the hopper;
+ *  - a printed-materials step (G-21@1; gap report D2): the printed packaging lot scanned at the line, its facts read from
+ *    the register (batches.printedLot) for the issue entry, which must carry them exactly; the artwork read from the lot
+ *    label is still typed by the operator, so the database compares the two.
  * What is offered is the server's (batches.stepPlant); each act is one command of the signed-in person (a fresh badge
  * tap on a shared terminal) and the database decides; its refusal is shown in its own words. The act's answer fills the
  * step's entry form (choices.tsx), which the person then saves: no identifier is ever typed.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { routes, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { ActResult, useCommand } from '../../../app/acts.tsx';
@@ -36,6 +39,11 @@ export function hasPlantActs(view: StepScreenView): boolean {
 
 export function StepPlantActs({ view }: { view: StepScreenView }) {
   const gmp = isGmpFloor();
+  if (gmp && view.step.block === 'G-21@1') return <PrintedLotPanel view={view} />;
+  return <PlantActs view={view} gmp={gmp} />;
+}
+
+function PlantActs({ view, gmp }: { view: StepScreenView; gmp: boolean }) {
   const offered = gmp && hasPlantActs(view);
   const q = useApiQuery(routes.batches.stepPlant, { params: { batchId: view.run.runId, stepKey: view.step.stepKey } }, { enabled: offered });
   if (!offered) return null;
@@ -447,5 +455,35 @@ function PressSetupPanel({ v }: { v: StepPlantView }) {
         <ActResult error={charge.error} />
       </section>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// G-21@1: a printed packaging lot issued to the line
+
+function PrintedLotPanel({ view }: { view: StepScreenView }) {
+  const choices = useStepChoices();
+  const [scan, setScan] = useState('');
+  const [asked, setAsked] = useState('');
+  const q = useApiQuery(routes.batches.printedLot, { params: { batchId: view.run.runId, code: asked } }, { enabled: asked !== '', retry: false });
+  const facts = asked !== '' ? q.data : undefined;
+  useEffect(() => {
+    if (facts) choices?.choose('ISSUE', { lot: { id: facts.id, material: facts.material, status: facts.status, artwork: facts.artwork, ...(facts.expiresAtUs ? { expiresAtUs: facts.expiresAtUs } : {}) } });
+  }, [facts, choices]);
+  return (
+    <section className={wcls('section')} aria-label="Printed packaging lot" data-testid="printed-lot">
+      <h2 className={wcls('sectionTitle')}>Printed packaging lot</h2>
+      <p className={wcls('muted')}>Scan the lot label: the issue entry takes the lot as the register holds it. Type the artwork you read on the label in the entry yourself.</p>
+      <Field name="printedLot" label="Scan the printed packaging lot" value={scan} onChange={setScan} autoComplete="off" />
+      <Button variant="primary" isDisabled={scan.trim() === ''} onPress={() => setAsked(scan.trim())}>
+        Take the lot from the register
+      </Button>
+      {facts ? (
+        <p data-testid="printed-lot-facts">
+          <StatusChip tone="ok" label={`${facts.id} ${facts.status}`} /> {facts.material}, artwork {facts.artwork}: chosen for the issue entry
+        </p>
+      ) : null}
+      {asked !== '' && q.error ? <RefusalMessage error={q.error.error} /> : null}
+    </section>
   );
 }

@@ -109,14 +109,20 @@ export function ComputedField({ field, note }: { field: FieldView; note?: string
   );
 }
 
-/** One value of the step: computed and system-captured values are shown only; manual and scanned values get an input. */
+/**
+ * One value of the step: computed and system-captured values are shown only; manual and scanned values get an input. A
+ * value configured for device capture is keyed by hand as the fallback while no balance of the step's room is online
+ * (as the weighing forms do, PR-20; Phase 7 slice 7h, gap report D2): the engine flags it MANUAL_FALLBACK, raises its
+ * exception and the step then needs a second person (DI-30, PR-14).
+ */
 export function FieldEntry({ field, view }: { field: FieldView; view: StepScreenView }) {
   if (field.computed) return <ComputedField field={field} />;
+  if (field.capture === 'DEVICE' && onlineScales(view).length === 0) return <ManualFieldEntry field={field} view={view} fallback />;
   if (field.capture !== 'MANUAL' && field.capture !== 'SCAN') return <ComputedField field={field} note={st('field.systemCaptured')} />;
   return <ManualFieldEntry field={field} view={view} />;
 }
 
-function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenView }) {
+function ManualFieldEntry({ field, view, fallback = false }: { field: FieldView; view: StepScreenView; fallback?: boolean }) {
   const record = availability(view, 'RECORD_DATA');
   const [text, setText] = useState('');
   const [choice, setChoice] = useState<string | null>(null);
@@ -174,6 +180,11 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
   return (
     <section className={wcls('formCard')} aria-label={field.name} data-testid={`field-${field.item}`}>
       <h3 className={wcls('formTitle')}>{field.name}</h3>
+      {record.available && fallback ? (
+        <p className={wcls('muted')} data-testid={`manual-fallback-${field.item}`}>
+          {st('field.manualFallback')}
+        </p>
+      ) : null}
       {record.available && field.capture === 'SCAN' ? (
         <p className={wcls('muted')} data-testid={`scan-as-hand-entry-${field.item}`}>
           {st('field.scanIsHandEntry')}

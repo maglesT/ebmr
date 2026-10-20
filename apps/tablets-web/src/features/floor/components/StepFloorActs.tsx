@@ -2,7 +2,8 @@
  * Floor acts on the step screen beside the block's entries (Phase 7 slice 7g, WP4; decision 0025: every act has a screen):
  *  - a process step (a block taking SETPOINT_READBACK entries: G-06@1 and the tablet blocks built on it): the process
  *    device and plant units it is bound to, binding them, and an MBR setpoint downloaded to the bound device;
- *  - a G-21@1 packaging step: the batch data the database computed with the MRP a person gives, a new version with the
+ *  - a G-21@1 packaging step: the record's coding the coder prints while no batch data is recorded (slice 7h, gap report
+ *    D2), the batch data the database computed with the MRP a person gives, a new version with the
  *    person's reason, the second person's check of an MRP (IN-31) and a print job released to a printer of the step
  *    (PR-36);
  *  - a TB-17@1 step: a metal-detector or reject-gate challenge with its test pieces (IN-36); the CHALLENGE entry then
@@ -127,6 +128,10 @@ function StepDevicePanel({ view }: { view: StepScreenView }) {
 function PackagingBatchDataPanel({ view }: { view: StepScreenView }) {
   const target = { batchId: view.run.runId, stepKey: view.step.stepKey };
   const q = useApiQuery(routes.execution.packagingBatchData, { query: target });
+  // Slice 7h (gap report D2): with no batch data recorded, the coder is set up with the record's own coding (the batch
+  // number, manufacture date and expiry the database computes; tab.g21_expected_coding), shown here as the coder's data.
+  const completion = useApiQuery(routes.labels.packaging, { params: { batchId: view.run.runId } });
+  const recordCoding = completion.data?.steps.find((x) => x.stepKey === view.step.stepKey)?.expectedCoding ?? null;
   const record = useCommand(routes.execution.recordPackagingBatchData, BATCH_DATA, 'the batch data of the packaging step');
   const check = useCommand(routes.execution.checkPackagingBatchData, BATCH_DATA, 'the check of the batch data');
   const release = useCommand(routes.execution.releasePrintJob, BATCH_DATA, 'releasing a print job');
@@ -174,7 +179,15 @@ function PackagingBatchDataPanel({ view }: { view: StepScreenView }) {
           ) : null}
         </div>
       ) : (
-        <p className={wcls('muted')}>No batch data yet: the database computes the batch number, the dates and the expiry.</p>
+        <>
+          <p className={wcls('muted')}>No batch data yet: the database computes the batch number, the dates and the expiry.</p>
+          {recordCoding ? (
+            <p data-testid="record-coding">
+              The coder prints the record&apos;s coding: batch {recordCoding.batch} · manufactured {recordCoding.mfgDate} · expiry {recordCoding.expiryDate}
+              {recordCoding.mrp ? ` · MRP ${recordCoding.mrp}` : ''}
+            </p>
+          ) : null}
+        </>
       )}
       <Field name="mrp" label="MRP in rupees (only where the pack shows it)" value={mrp} onChange={setMrp} inputMode="decimal" />
       {needsReason ? <Field name="batchDataReason" label="Reason for the change (the jobs on the earlier data are voided)" value={reason} onChange={setReason} isRequired /> : null}

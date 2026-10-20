@@ -50,6 +50,26 @@ describe('planning a packaging order', () => {
     expect(within(await screen.findByTestId('issue-form')).getByRole('heading').textContent).toContain(example('planning-plan-packaging-order').batchNumber);
   });
 
+  // Slice 7h (gap report D2): an order whose step prints variable data packs for one market (PR-36).
+  it('[PR-36] the issuer narrows the markets the order packs for to those chosen, of the ones the master is authorised for; none chosen cannot be planned', async () => {
+    const orders = example('planning-orders');
+    const three = { orders: orders.orders.map((o) => (o.orderNo === PACK_ORDER && o.match ? { ...o, match: { ...o.match, markets: ['IN', 'US', 'EU'] } } : o)) };
+    const ui = renderOffice('/planning', { role: 'BATCH_ISSUER', fixtures: { 'plant.areas': { areas: [] }, 'planning.orders': three } });
+    const form = within(await screen.findByTestId(`order-${PACK_ORDER}`)).getByTestId('packaging-plan-form');
+    const plan = within(form).getByRole('button', { name: `Plan a packaging order for ${PACK_ORDER}` });
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Site' }), 'SITE-1');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Line' }), 'PL1');
+    await userEvent.click(within(within(form).getByTestId('parent-G2600001')).getByRole('radio'));
+    const markets = within(form).getByTestId('packaging-markets');
+    for (const m of ['IN', 'US', 'EU']) expect(within(markets).getByRole('checkbox', { name: m })).toHaveProperty('checked', true);
+    for (const m of ['IN', 'US', 'EU']) await userEvent.click(within(markets).getByRole('checkbox', { name: m }));
+    expect(plan.hasAttribute('disabled')).toBe(true);
+    await userEvent.click(within(markets).getByRole('checkbox', { name: 'IN' }));
+    await userEvent.click(plan);
+    await waitFor(() => expect(ui.posts('/api/planning/packaging-orders')).toHaveLength(1));
+    expect(ui.posts('/api/planning/packaging-orders')[0]?.body).toMatchObject({ markets: ['IN'], erpOrder: PACK_ORDER });
+  });
+
   it('a refused plan is shown with the server\'s words (a master without its secondary packaging step)', async () => {
     renderOffice('/planning', {
       role: 'BATCH_ISSUER',

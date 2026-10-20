@@ -88,6 +88,8 @@ tests:
   - "apps/tablets-web/test/slice7g2/master-records.test.tsx > market authorisations > [PR-04][PR-05] QA proposes an authorisation for a market of the master and scope; an active one shows who confirmed and authorised it and can be withdrawn with a reason"
   - "apps/tablets-server/test/market/market-config-routes.test.ts > master records: change assessments, periodic review, risk links > [PR-04] the regulatory-conformity signer records the regulatory assessment of an MBR change per market and QA its validation; the MBR author holds no MBR.CHANGE_RECORD and is refused"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-04] records the validation and a market's regulatory assessment of a change record"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-01][PR-04][PR-18] GMP kiosk batch 1: the ERP orders, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-04][INV-01] GMP kiosk batch 5: the bottle packaging order planned from the released batch and issued; the line cleaned and verified; the bottles reserved @office"
 clauses:
   - clause: "Widening a registered CPP range with no variation reference is blocked."
     tests:

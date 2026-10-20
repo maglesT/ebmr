@@ -8,8 +8,9 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { PackagingBatchDataView, StepBindingsView, StepScreenView } from '@ebmr/api-contract';
+import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
-import { fakeTap, renderFloor, RUN_ID, stepFixtures, stepPath, stepVariant } from './support.tsx';
+import { envelope, fakeTap, renderFloor, RUN_ID, stepFixtures, stepPath, stepVariant } from './support.tsx';
 
 afterEach(() => {
   apiState.installation = undefined;
@@ -99,6 +100,50 @@ describe('the batch data of a packaging step', () => {
     await userEvent.click(within(after).getByRole('button', { name: 'Release the print job' }));
     await waitFor(() => expect(posts(ui, '/api/steps/print-jobs')).toHaveLength(1));
     expect(posts(ui, '/api/steps/print-jobs')[0]?.body).toMatchObject({ batchId: RUN_ID, stepKey: 'p-g21@', device: 'CODER', layout: 'LAYOUT-IN-1' });
+  });
+
+  // Slice 7h (gap report D2): the coder's data and the printed packaging lot of a GMP printed-materials step.
+  it('[IN-16] shows the record\'s coding the coder prints while no batch data is recorded', async () => {
+    const view = stepOf('G-21@1', 'p-g21@');
+    const packaging = example('labels-packaging');
+    const base = packaging.steps[0];
+    if (!base) throw new Error('no packaging step example');
+    renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => view,
+        ...stepFixtures(view),
+        'execution.packagingBatchData': { batchId: RUN_ID, stepKey: 'p-g21@', current: null, jobs: [] },
+        'labels.packaging': { ...packaging, steps: [{ ...base, stepKey: 'p-g21@', expectedCoding: { batch: 'GBS260002/P02', mfgDate: '2026-10-20', expiryDate: '2028-09' } }] },
+      },
+    });
+    const coding = await screen.findByTestId('record-coding');
+    expect(coding.textContent).toBe('The coder prints the record\'s coding: batch GBS260002/P02 · manufactured 2026-10-20 · expiry 2028-09');
+  });
+
+  it('[PR-32][PR-33] takes a scanned printed packaging lot\'s facts from the register for the issue entry, and shows the server\'s refusal of a lot that is not one', async () => {
+    const view = stepOf('G-21@1', 'p-g21@');
+    const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => view,
+        ...stepFixtures(view),
+        'execution.packagingBatchData': { batchId: RUN_ID, stepKey: 'p-g21@', current: null, jobs: [] },
+        'batches.printedLot': ({ params }: { params: Record<string, string> }) =>
+          params['code'] === 'GBT2-LBL-001'
+            ? { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1', expiresAtUs: '1877472000000000' }
+            : { status: 404, body: envelope('NOT_ALLOWED', 'EXE_PRINTED_LOT_UNKNOWN', { whatHappened: `Lot ${params['code'] ?? ''} cannot be issued as printed material.`, why: 'It is no printed packaging lot.', controls: ['PR-32'] }) },
+      },
+    });
+    const panel = await screen.findByTestId('printed-lot');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Scan the printed packaging lot' }), 'GBT2-MCC-001');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Take the lot from the register' }));
+    expect(await within(panel).findByText('Lot GBT2-MCC-001 cannot be issued as printed material.')).toBeTruthy();
+    await userEvent.clear(within(panel).getByRole('textbox', { name: 'Scan the printed packaging lot' }));
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Scan the printed packaging lot' }), 'GBT2-LBL-001');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Take the lot from the register' }));
+    expect((await within(panel).findByTestId('printed-lot-facts')).textContent).toContain('MAT-LBL-GBT02, artwork ART-GBT02-LBL-1: chosen for the issue entry');
+    expect(ui.requests.some((r) => r.method === 'GET' && r.path === `/api/batches/${RUN_ID}/printed-lots/GBT2-LBL-001`)).toBe(true);
   });
 });
 
