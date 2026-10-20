@@ -1,23 +1,29 @@
 /**
- * Phase 7 slice 7g-2 (decision 0025) through the real screens: an MBR from draft to a market authorisation, by four
- * people, and a labelling specimen's approval.
- *  1. The MBR author creates a family from the dc-mini template (DRAFT); the arrangements no screen makes yet (change
- *     record, risk assessment, verification evidence of the exact content) are recorded under the real identities; the
- *     author starts the verification on the designer's screen.
- *  2. On the signing screen: the author signs Prepared; the author's own check is refused by the database (the screen
+ * Phase 7 slice 7g-2 (decision 0025) and slice 7h (gap report B1-B4, D3; decision D-P7R-16) through the real screens: a
+ * new MBR from the template to a market authorisation, by four people, with nothing arranged in the database, and a
+ * labelling specimen's approval.
+ *  1. The MBR author creates a family from the dc-mini template (DRAFT). QA raises its change record (with the
+ *     validation it rests on) and records a risk assessment; the author links the assessment and sets the draft's
+ *     change record, effective-from and review due, then sends the version to the sandbox.
+ *  2. On the sandbox the test batch runs to Execution complete on the kiosks, and its result is exported from the run
+ *     page for GMP (to-gmp, sandbox stamp, hash).
+ *  3. The author starts the verification on the designer (validator report, sealed simulation and test vectors recorded
+ *     as evidence) and imports the sandbox run's result: the evidence of the exact content is complete (DI-04, DI-05).
+ *  4. On the signing screen: the author signs Prepared; the author's own check is refused by the database (the screen
  *     shows its words); the checker signs Independently checked; the regulatory signer confirms the registration
  *     references; QA approves (INV-04, DI-35).
- *  3. QA proposes the IN market authorisation; the regulatory signer confirms its registration; QA authorises it with its
+ *  5. QA proposes the IN market authorisation; the regulatory signer confirms its registration; QA authorises it with its
  *     own reason and it is ACTIVE (ADR 0014, PR-04).
- *  4. A labelling specimen the steward recorded is refused to the steward and approved by QA (SPECIMEN_APPROVED, DI-35).
+ *  6. A labelling specimen the steward recorded is refused to the steward and approved by QA (SPECIMEN_APPROVED, DI-35).
  */
 import { randomBytes } from 'node:crypto';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
-import { familyBatchSize, officeSignRefused, prepareForVerification, recordSpecimen } from './support.ts';
+import { choose } from '../journey/support.ts';
+import { familyBatchSize, officeSignRefused, recordSpecimen, runTestBatch } from './support.ts';
 
-test('[INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the regulatory confirmation and Approved, and its market authorisation, by different people; a labelling specimen approved by QA @office', async ({ e2e, officePage, persona, evidence }, testInfo) => {
-  test.setTimeout(300_000);
+test('[INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from the template: change record, risk assessment, draft attributes, the sandbox run returned as evidence, Prepared, Checked, the regulatory confirmation, Approved and its market authorisation, by different people and with nothing arranged in the database; a labelling specimen approved by QA @office', async ({ e2e, officePage, kioskPage, persona, evidence }, testInfo) => {
+  test.setTimeout(40 * 60_000);
   const base = e2e.url('GMP');
   const author = persona('GMP', 'author');
   const checker = persona('GMP', 'checker');
@@ -26,10 +32,10 @@ test('[INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the re
   const steward = persona('GMP', 'steward');
   const tag = `S${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
 
-  const a = await officePage('GMP', 'PC-DESIGN-01');
+  let a = await officePage('GMP', 'PC-DESIGN-01');
   await signIn.office(a, author);
   let versionId = '';
-  await evidence.step('The author creates a draft from the template and starts its verification', 'A DRAFT that passes; once its evidence is recorded, the version is IN VERIFICATION', async () => {
+  await evidence.step('The author creates a draft from the template', 'A DRAFT that passes the server\'s checks', async () => {
     await a.goto(`${base}/mbr/new`);
     await a.getByLabel('Family code').fill(`FAM-${tag}`);
     await a.getByLabel('Product code').fill(`PCM500-${tag}`);
@@ -38,13 +44,89 @@ test('[INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the re
     await expect(a.getByRole('toolbar', { name: 'Designer' }).getByText('Passed: no errors, no warnings')).toBeVisible();
     versionId = /\/mbr\/versions\/([0-9a-f-]{36})/.exec(a.url())?.[1] ?? '';
     expect(versionId).not.toBe('');
-    await prepareForVerification(e2e, author, qa, versionId);
-    await a.reload();
+    return { versionId };
+  }, a);
+
+  let q = await officePage('GMP', 'PC-QA-02');
+  await signIn.office(q, qa);
+  const changeRecord = `CC-${tag}`;
+  const risk = `RA-${tag}`;
+  await evidence.step('QA raises the change record of the new master and records its risk assessment', 'The change record (process-impacting, with its validation) and the risk assessment are recorded by QA', async () => {
+    await q.goto(`${base}/mbr/change-records`);
+    const raise = q.getByTestId('raise-change-record');
+    await raise.getByRole('textbox', { name: 'Change record number' }).fill(changeRecord);
+    await raise.getByRole('textbox', { name: 'Title of the change' }).fill(`New master FAM-${tag}`);
+    await choose(raise.getByRole('radio', { name: 'Major' }));
+    await choose(raise.getByRole('radio', { name: 'Yes, process-impacting' }));
+    await raise.getByRole('textbox', { name: 'Validation reference (optional)' }).fill(`PV-${tag}`);
+    await raise.getByRole('button', { name: 'Raise the change record' }).click();
+    await expect(raise.getByText(`Change record ${changeRecord} is raised.`)).toBeVisible();
+    await expect(q.getByTestId(`change-record-${changeRecord}`)).toContainText(`PV-${tag}`);
+    await q.goto(`${base}/mbr/versions/${versionId}/review`);
+    const r = q.getByTestId('risk-links');
+    await r.getByRole('textbox', { name: 'Assessment code' }).fill(risk);
+    await r.getByRole('textbox', { name: 'Title' }).fill('Process risk assessment');
+    await r.getByRole('textbox', { name: 'Risk class' }).fill('MEDIUM');
+    await r.getByRole('textbox', { name: 'Rationale reference (the QRM report)' }).fill(`QRM-${tag}`);
+    await r.getByRole('button', { name: 'Record the risk assessment' }).click();
+    await expect(r.getByText(`Risk assessment ${risk} version 1 is recorded.`)).toBeVisible();
+    return { changeRecord, risk };
+  }, q);
+
+  await evidence.step('The author links the risk assessment and sets the draft\'s change record, effective-from and review due', 'The draft cites its change record and dates; the assessment covers the whole master', async () => {
+    await a.goto(`${base}/mbr/versions/${versionId}/review`);
+    const r = a.getByTestId('risk-links');
+    await r.getByRole('button', { name: `Link ${risk} version 1` }).click();
+    await expect(a.getByTestId(`risk-${risk}`)).toContainText('for the whole master');
+    const d = a.getByTestId('draft-attributes');
+    await d.getByRole('textbox', { name: 'Change record number' }).fill(changeRecord);
+    await d.getByRole('textbox', { name: /^Effective from/ }).fill('2026-01-01T00:00:00+05:30');
+    await d.getByRole('textbox', { name: 'Periodic review due (YYYY-MM-DD)' }).fill('2028-12-31');
+    await d.getByRole('textbox', { name: 'Reason' }).fill('New master: its change record, effective date and review date');
+    await d.getByRole('button', { name: 'Set the draft attributes' }).click();
+    await expect(d.getByTestId('draft-change-record')).toContainText(changeRecord);
+    await expect(d.getByTestId('draft-review-due')).toContainText('2028-12-31');
+    return { changeRecord, reviewDue: '2028-12-31' };
+  }, a);
+
+  let packageHash = '';
+  await evidence.step('The author sends the version to a sandbox test run', 'A test package with the GMP stamp in the sandbox inbox', async () => {
+    await a.goto(`${base}/mbr/versions/${versionId}`);
+    await a.getByRole('button', { name: 'Send to sandbox…' }).click();
+    await a.getByRole('dialog', { name: 'Send to a sandbox test run' }).getByRole('button', { name: 'Write the test package' }).click();
+    await expect(a.getByText('The test package is in the sandbox inbox.')).toBeVisible();
+    packageHash = /package=([0-9a-f]{64})/.exec((await a.getByRole('link', { name: 'Open the sandbox test packages' }).getAttribute('href')) ?? '')?.[1] ?? '';
+    expect(packageHash).toMatch(/^[0-9a-f]{64}$/);
+    return { packageHash };
+  }, a);
+
+  // The sandbox run takes a while: the office sessions end here and the people sign in again afterwards (idle lock).
+  await a.context().close();
+  await q.context().close();
+  let batchNumber = '';
+  await evidence.step('Sandbox: the test batch runs to Execution complete on the kiosks and its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp and its hash', async () => {
+    const run = await runTestBatch(e2e, { officePage, kioskPage, persona }, packageHash);
+    batchNumber = run.batchNumber;
+    return run;
+  });
+
+  a = await officePage('GMP', 'PC-DESIGN-01');
+  await signIn.office(a, author);
+  q = await officePage('GMP', 'PC-QA-02');
+  await signIn.office(q, qa);
+  await evidence.step('The author starts the verification and imports the sandbox run\'s result', 'IN VERIFICATION; the validator report, sealed simulation, test vectors and the sandbox run are the evidence of this exact content', async () => {
+    await a.goto(`${base}/mbr/versions/${versionId}`);
     await a.getByRole('button', { name: 'Start verification…' }).click();
     await a.getByRole('dialog', { name: 'Start verification' }).getByRole('button', { name: 'Start verification' }).click();
-    await a.getByRole('link', { name: 'Signatures and markets' }).click();
+    await a.getByRole('link', { name: 'Change control and evidence' }).click();
+    const e = a.getByTestId('verification-evidence');
+    for (const kind of ['VALIDATOR', 'VERIFICATION', 'TEST_VECTORS']) await expect(e.getByTestId(`evidence-${kind}`)).toHaveAttribute('data-result', 'PASS');
+    await e.getByRole('button', { name: `Import the result of run ${batchNumber}` }).click();
+    await expect(e.getByTestId('evidence-SANDBOX_RUN')).toHaveAttribute('data-result', 'PASS');
+    await expect(e.getByTestId('evidence-complete')).toHaveText('The evidence is complete for this content.');
+    await a.goto(`${base}/mbr/versions/${versionId}/signing`);
     await expect(a.getByTestId('mbr-signing-state')).toContainText('In verification');
-    return { versionId };
+    return { evidence: 'complete' };
   }, a);
 
   const sign = async (page: typeof a, label: string, who: typeof author) => {
@@ -79,8 +161,6 @@ test('[INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the re
     return { signed: 'REGULATORY_CONFIRMED' };
   }, r);
 
-  const q = await officePage('GMP', 'PC-QA-02');
-  await signIn.office(q, qa);
   const size = await familyBatchSize(e2e, versionId);
   await evidence.step('QA approves the version and proposes its IN market authorisation', 'APPROVED; the authorisation is PROPOSED with no confirmation yet', async () => {
     await q.goto(`${base}/mbr/versions/${versionId}/signing`);

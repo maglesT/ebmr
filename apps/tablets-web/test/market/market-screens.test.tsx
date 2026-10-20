@@ -266,9 +266,10 @@ describe('master records', () => {
     await userEvent.type(within(d).getByRole('textbox', { name: 'Change record number' }), 'CC-1');
     await userEvent.type(within(d).getByRole('textbox', { name: /^Effective from/ }), '2026-11-01T00:00:00+05:30');
     await userEvent.type(within(d).getByRole('textbox', { name: 'Periodic review due (YYYY-MM-DD)' }), '2028-12-31');
+    await userEvent.type(within(d).getByRole('textbox', { name: 'Reason' }), 'new master');
     await userEvent.click(within(d).getByRole('button', { name: 'Set the draft attributes' }));
     await waitFor(() => expect(ui.posts(`/api/mbr/versions/${U2}/draft-attributes`)).toHaveLength(1));
-    expect(ui.posts(`/api/mbr/versions/${U2}/draft-attributes`)[0]?.body).toEqual({ changeRecordId: U1, effectiveFrom: '2026-11-01T00:00:00+05:30', reviewDue: '2028-12-31' });
+    expect(ui.posts(`/api/mbr/versions/${U2}/draft-attributes`)[0]?.body).toEqual({ changeRecordId: U1, effectiveFrom: '2026-11-01T00:00:00+05:30', reviewDue: '2028-12-31', reason: 'new master' });
 
     const r = screen.getByTestId('risk-links');
     await userEvent.type(within(r).getByRole('textbox', { name: 'Assessment code' }), 'RA-8');

@@ -269,7 +269,8 @@ export function masterRecordHandlers(app: AppContext): Pick<Handlers<Routes['mar
         ...(body.effectiveFrom !== undefined ? { effectiveFrom: body.effectiveFrom } : {}),
         ...(body.reviewDue !== undefined ? { reviewDue: body.reviewDue } : {}),
       };
-      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+      // DI-22: the version's row changes, so the author's own reason is the command's.
+      await withIdempotentActorCommand(pool, actor({ reasonCode: 'MBR_DRAFT_ATTRIBUTES', reasonText: body.reason }), idempotencyKey ?? '', requestHash, async (c) => {
         await lifecycle.setDraftAttributes(c, params.versionId, attrs);
         return params.versionId;
       });

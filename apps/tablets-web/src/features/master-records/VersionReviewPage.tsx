@@ -69,16 +69,17 @@ function DraftAttributes({ versionId, v }: { versionId: string; v: MbrReviewView
   const [number, setNumber] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [reviewDue, setReviewDue] = useState('');
+  const [reason, setReason] = useState('');
   const chosen = number.trim() === '' ? undefined : records.data?.changeRecords.find((c) => c.number === number.trim());
   const unknown = number.trim() !== '' && records.data !== undefined && chosen === undefined;
   const dateOk = reviewDue.trim() === '' || /^\d{4}-\d{2}-\d{2}$/.test(reviewDue.trim());
   const any = chosen !== undefined || effectiveFrom.trim() !== '' || reviewDue.trim() !== '';
-  const ok = any && !unknown && dateOk;
+  const ok = any && !unknown && dateOk && reason.trim() !== '';
   return (
     <Section title="Draft attributes" testId="draft-attributes">
       <p>
         A new master or a change cites its change record; the master takes effect from an instant and its periodic review falls due on a date. The author sets them on
-        the draft; a field left empty keeps its value. Every signature covers them, so a change after a signature supersedes it.
+        the draft with a reason; a field left empty keeps its value. Every signature covers them, so a change after a signature supersedes it.
       </p>
       <ul>
         <li data-testid="draft-change-record">Change record: {v.draft.changeRecord ? `${v.draft.changeRecord.number} (${v.draft.changeRecord.title})` : 'none yet'}</li>
@@ -88,6 +89,7 @@ function DraftAttributes({ versionId, v }: { versionId: string; v: MbrReviewView
       <Field name="draftChangeRecord" label="Change record number" value={number} onChange={setNumber} {...(unknown ? { errorMessage: 'No change record has this number: raise it on the change records page first.' } : {})} />
       <Field name="draftEffectiveFrom" label="Effective from (ISO instant with offset, e.g. 2026-11-01T00:00:00+05:30)" value={effectiveFrom} onChange={setEffectiveFrom} />
       <Field name="draftReviewDue" label="Periodic review due (YYYY-MM-DD)" value={reviewDue} onChange={setReviewDue} />
+      <Field name="draftReason" label="Reason" value={reason} onChange={setReason} />
       <ActButton
         label="Set the draft attributes"
         disabled={set.busy || !ok}
@@ -99,6 +101,7 @@ function DraftAttributes({ versionId, v }: { versionId: string; v: MbrReviewView
               ...(chosen ? { changeRecordId: chosen.changeRecordId } : {}),
               ...(effectiveFrom.trim() ? { effectiveFrom: effectiveFrom.trim() } : {}),
               ...(reviewDue.trim() ? { reviewDue: reviewDue.trim() } : {}),
+              reason: reason.trim(),
             },
           })
         }

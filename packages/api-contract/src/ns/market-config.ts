@@ -338,9 +338,9 @@ export const marketConfig = {
   }),
   setDraftAttributes: defineRoute({
     id: 'marketConfig.setDraftAttributes', method: 'POST', path: '/api/mbr/versions/:versionId/draft-attributes', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
-    summary: 'Set the draft\'s change record, effective-from instant and periodic-review due date; a member left out keeps its value (recipe.set_draft_attributes; MBR.AUTHOR; PR-02, PR-05, PR-06)',
+    summary: 'Set the draft\'s change record, effective-from instant and periodic-review due date with the author\'s reason; a member left out keeps its value (recipe.set_draft_attributes; MBR.AUTHOR; PR-02, PR-05, PR-06, DI-22)',
     params: versionParams,
-    body: withAttribution({ changeRecordId: Uuid.nullable().optional(), effectiveFrom: IsoInstant.nullable().optional(), reviewDue: IsoDate.nullable().optional() }),
+    body: withAttribution({ changeRecordId: Uuid.nullable().optional(), effectiveFrom: IsoInstant.nullable().optional(), reviewDue: IsoDate.nullable().optional(), reason: Text(2000) }),
     response: MbrReviewView,
   }),
   sandboxRunResults: defineRoute({
