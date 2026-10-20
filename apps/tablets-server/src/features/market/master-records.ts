@@ -4,19 +4,25 @@
  *    recipe.add_change_regulatory; MBR.CHANGE_RECORD; PR-04);
  *  - a version's periodic reviews (recipe.record_periodic_review; MBR.APPROVE; PR-05) and its risk-assessment links
  *    (recipe.unlink_risk_assessment; MBR.AUTHOR; PR-07);
+ *  - slice 7h (B1-B4): raising a change record and recording a risk assessment (recipe.record_change_record,
+ *    recipe.record_risk_assessment; MBR.CHANGE_RECORD; PR-06, PR-07), linking an assessment to a draft and setting the
+ *    draft's change record, effective-from and review due (recipe.link_risk_assessment, recipe.set_draft_attributes;
+ *    MBR.AUTHOR), and importing a sandbox test-run result as the version's SANDBOX_RUN evidence (sandbox-run-results.ts;
+ *    recipe.record_evidence; MBR.AUTHOR; decision D-P7R-16);
  *  - the EU qualified-person register (read; registering is the signable QP_REGISTER, signables.ts);
  *  - the compendial rule sets with QA's verification (tab.record_rule_set_verification; signing is RULE_SET_VERIFY) and
  *    the retirement of a reference document version (tab.retire_reference_document; MASTERDATA.CHANGE).
  * Each act runs the database's function in the person's command; the database checks the right and every rule.
  */
 import type pg from 'pg';
-import type { MbrChangeRecordView, MbrReviewView, QpRegisterView, Routes, RuleSetVerificationView } from '@ebmr/api-contract';
+import type { MbrChangeRecordView, MbrReviewView, QpRegisterView, RiskAssessmentView, Routes, RuleSetVerificationView } from '@ebmr/api-contract';
 import { lifecycle } from '@ebmr/recipe-core';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import type { Handlers } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
+import { recordSandboxRun, resultToImport, sandboxRunResults } from './sandbox-run-results.ts';
 
 type Db = pg.Pool | pg.PoolClient;
 const us = (col: string): string => `case when ${col} is null then null else ${usOf(col)} end`;
@@ -83,12 +89,60 @@ export async function versionReviewView(app: AppContext, db: Db, versionId: stri
     [versionId],
   );
   const people = await peopleOf(db, rows.map((r) => r.by));
+  const { rows: d } = await db.query<{ cr_id: string | null; cr_number: string | null; cr_title: string | null; eff_us: string | null; review_due: string | null }>(
+    `select v.change_record_id as cr_id, c.number as cr_number, c.title as cr_title, ${us('v.effective_from')} as eff_us, to_char(v.review_due, 'YYYY-MM-DD') as review_due
+       from recipe.mbr_version v left join recipe.change_record c on c.id = v.change_record_id where v.id = $1`,
+    [versionId],
+  );
+  const draft = d[0];
+  const evidence = await lifecycle.evidenceStatus(db, versionId);
   return {
     versionId,
     state: v[0].state ?? 'UNKNOWN',
+    draft: {
+      changeRecord: draft?.cr_id && draft.cr_number !== null && draft.cr_title !== null ? { changeRecordId: draft.cr_id, number: draft.cr_number, title: draft.cr_title } : null,
+      effectiveFrom: draft?.eff_us ? app.formatInstant(draft.eff_us) : null,
+      reviewDue: draft?.review_due ?? null,
+    },
+    evidence: {
+      contentHash: evidence.contentHash,
+      complete: evidence.complete,
+      missing: evidence.missing,
+      items: Object.entries(evidence.items as Record<string, { result: 'PASS' | 'FAIL'; problems: string[] | null }>)
+        .map(([kind, i]) => ({ kind: kind as MbrReviewView['evidence']['items'][number]['kind'], result: i.result, problems: i.problems ?? [] }))
+        .sort((a, b) => EVIDENCE_ORDER.indexOf(a.kind) - EVIDENCE_ORDER.indexOf(b.kind)),
+    },
     reviews: rows.map((r) => ({ reviewId: r.id, outcome: r.outcome, summary: r.summary, nextDue: r.next_due, reviewedBy: personRef(people, r.by, 'QA_MBR_APPROVER'), recordedAt: app.formatInstant(r.at_us) })),
     riskAssessments: links.map((l) => ({ riskAssessmentId: l.risk_assessment_id, code: l.code, version: l.version, riskClass: l.risk_class, rationaleRef: l.rationale_ref, subjects: l.subjects ?? [] })),
   };
+}
+
+const EVIDENCE_ORDER = ['VALIDATOR', 'VERIFICATION', 'TEST_VECTORS', 'SANDBOX_RUN'];
+
+export async function riskAssessmentViews(app: AppContext, db: Db, id?: string): Promise<RiskAssessmentView[]> {
+  const { rows } = await db.query<{ id: string; code: string; version: string; title: string; risk_class: string; rationale_ref: string; by: string; at_us: string }>(
+    `select r.id, r.code, r.version, r.title, r.risk_class, r.rationale_ref, r.recorded_by_person as by, ${usOf('r.recorded_at')} as at_us
+       from recipe.risk_assessment r where ($1::uuid is null or r.id = $1) order by r.recorded_at desc limit 200`,
+    [id ?? null],
+  );
+  const people = await peopleOf(db, rows.map((r) => r.by));
+  return rows.map((r) => ({
+    riskAssessmentId: r.id, code: r.code, version: r.version, title: r.title, riskClass: r.risk_class, rationaleRef: r.rationale_ref,
+    recordedBy: personRef(people, r.by, 'QA_MBR_APPROVER'), recordedAt: app.formatInstant(r.at_us),
+  }));
+}
+
+/** A second record with a unique key (change record number; risk assessment code and version) is answered as a conflict. */
+async function uniqueAsConflict<T>(work: () => Promise<T>, what: string, controls: string[]): Promise<T> {
+  try {
+    return await work();
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? (e as { cause?: { code?: string } }).cause?.code;
+    if (code === '23505') {
+      throw refusal(409, { code: 'EBMR-API-ALREADY-RECORDED', kind: 'NOT_ALLOWED', whatHappened: `${what} is already recorded. Nothing was recorded.`, why: `${what} is recorded once; a new one takes another number or version.`, whatYouCanDo: ['Use the one recorded, or give a new number or version.'], whoCanHelp: ['QA'], controls });
+    }
+    throw e;
+  }
 }
 
 export async function qpRegisterView(app: AppContext, db: Db): Promise<QpRegisterView> {
@@ -135,7 +189,10 @@ export async function ruleSetViews(app: AppContext, db: Db, where: { code?: stri
   }));
 }
 
-type MasterRecordRoutes = 'changeRecords' | 'addChangeRegulatory' | 'addChangeValidation' | 'versionReview' | 'recordPeriodicReview' | 'unlinkRiskAssessment' | 'qpRegister' | 'ruleSets' | 'recordRuleSetVerification' | 'retireReferenceDocument';
+type MasterRecordRoutes =
+  | 'changeRecords' | 'addChangeRegulatory' | 'addChangeValidation' | 'versionReview' | 'recordPeriodicReview' | 'unlinkRiskAssessment' | 'qpRegister' | 'ruleSets'
+  | 'recordRuleSetVerification' | 'retireReferenceDocument'
+  | 'recordChangeRecord' | 'riskAssessments' | 'recordRiskAssessment' | 'linkRiskAssessment' | 'setDraftAttributes' | 'sandboxRunResults' | 'importSandboxRunResult';
 
 export function masterRecordHandlers(app: AppContext): Pick<Handlers<Routes['marketConfig']>, MasterRecordRoutes> {
   const pool = app.pools.app;
@@ -169,6 +226,66 @@ export function masterRecordHandlers(app: AppContext): Pick<Handlers<Routes['mar
         await lifecycle.unlinkRiskAssessment(c, params.versionId, params.riskAssessmentId);
         return params.riskAssessmentId;
       });
+      return versionReviewView(app, pool, params.versionId);
+    },
+    // Slice 7h (B1-B4)
+    recordChangeRecord: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const def: lifecycle.ChangeRecordDefinition = {
+        number: body.number, title: body.title, changeClass: body.changeClass, processImpacting: body.processImpacting,
+        ...(body.qmsReference !== undefined ? { qmsReference: body.qmsReference } : {}),
+        ...(body.validationRef !== undefined ? { validationRef: body.validationRef } : {}),
+        ...(body.validationDescription !== undefined ? { validationDescription: body.validationDescription } : {}),
+      };
+      const { result } = await uniqueAsConflict(() => withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => lifecycle.recordChangeRecord(c, def)), `Change record ${body.number}`, ['PR-06']);
+      return oneChangeRecord(app, pool, result);
+    },
+    riskAssessments: async ({ requireSession }) => {
+      requireSession();
+      return { riskAssessments: await riskAssessmentViews(app, pool) };
+    },
+    recordRiskAssessment: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const { result } = await uniqueAsConflict(
+        () => withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+          lifecycle.recordRiskAssessment(c, { code: body.code, version: body.version, title: body.title, riskClass: body.riskClass, rationaleRef: body.rationaleRef }),
+        ),
+        `Risk assessment ${body.code} version ${body.version}`,
+        ['PR-07'],
+      );
+      const [v] = await riskAssessmentViews(app, pool, result);
+      if (!v) throw new Error(`risk assessment ${result} vanished after it was recorded`);
+      return v;
+    },
+    linkRiskAssessment: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await lifecycle.linkRiskAssessment(c, params.versionId, body.riskAssessmentId, body.subjects ?? []);
+        return body.riskAssessmentId;
+      });
+      return versionReviewView(app, pool, params.versionId);
+    },
+    setDraftAttributes: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      // A member left out keeps its value; null clears it (the database checks the right, the state and the change record).
+      const attrs: lifecycle.DraftAttributes = {
+        ...(body.changeRecordId !== undefined ? { changeRecordId: body.changeRecordId } : {}),
+        ...(body.effectiveFrom !== undefined ? { effectiveFrom: body.effectiveFrom } : {}),
+        ...(body.reviewDue !== undefined ? { reviewDue: body.reviewDue } : {}),
+      };
+      // DI-22: the version's row changes, so the author's own reason is the command's.
+      await withIdempotentActorCommand(pool, actor({ reasonCode: 'MBR_DRAFT_ATTRIBUTES', reasonText: body.reason }), idempotencyKey ?? '', requestHash, async (c) => {
+        await lifecycle.setDraftAttributes(c, params.versionId, attrs);
+        return params.versionId;
+      });
+      return versionReviewView(app, pool, params.versionId);
+    },
+    sandboxRunResults: async ({ params, requireSession }) => {
+      requireSession();
+      await versionReviewView(app, pool, params.versionId);
+      return { results: await sandboxRunResults(app, pool, params.versionId) };
+    },
+    importSandboxRunResult: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      const a = actor();
+      await versionReviewView(app, pool, params.versionId);
+      const result = await resultToImport(app, pool, params.versionId, { fileName: body.fileName, text: body.text });
+      await withIdempotentActorCommand(pool, a, idempotencyKey ?? '', requestHash, async (c) => (await recordSandboxRun(c, params.versionId, result)).evidenceId);
       return versionReviewView(app, pool, params.versionId);
     },
     qpRegister: async ({ requireSession }) => {

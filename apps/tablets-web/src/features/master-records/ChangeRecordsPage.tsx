@@ -1,12 +1,14 @@
 /**
  * The change records of master records with their assessments (slice 7g WP3, decision 0025; PR-04): for each change, the
  * validation it rests on and its regulatory assessment per market (reporting category and reference), recorded by a
- * holder of MBR.CHANGE_RECORD (QA, the regulatory-conformity signer). Every act is offered; the database refuses whoever
- * lacks the right, in its own words.
+ * holder of MBR.CHANGE_RECORD (QA, the regulatory-conformity signer). Slice 7h (B1): the change record itself is raised
+ * here (recipe.record_change_record; MBR.CHANGE_RECORD; PR-06): its number, title, class, the owner's process-impact
+ * classification and, optionally, the validation it rests on. Every act is offered; the database refuses whoever lacks
+ * the right, in its own words.
  */
 import { useState } from 'react';
 import { routes, type MbrChangeRecordView } from '@ebmr/api-contract';
-import { Field } from '@ebmr/ui-kit';
+import { Field, floor } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -21,6 +23,7 @@ export function ChangeRecordsPage() {
         A change to a master record cites its change record. The change record carries the validation the change rests on and, for every market the master serves, the
         regulatory assessment: how the change is reported to that market (its reporting category) and the reference of the filing or the reason none is needed.
       </p>
+      <RaiseChangeRecord />
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       {q.data && q.data.changeRecords.length === 0 ? <p>No change record is recorded.</p> : null}
       {q.data?.changeRecords.map((c) => <ChangeRecord key={c.changeRecordId} c={c} />)}
@@ -88,6 +91,65 @@ function ChangeRecord({ c }: { c: MbrChangeRecordView }) {
         }
       />
       <ActResult error={regulatory.error} done={regulatory.done} label="The regulatory assessment is recorded." />
+    </Section>
+  );
+}
+
+const CLASSES = [
+  { value: 'MINOR', label: 'Minor' },
+  { value: 'MAJOR', label: 'Major' },
+  { value: 'CRITICAL', label: 'Critical' },
+] as const;
+type ChangeClass = (typeof CLASSES)[number]['value'];
+
+/** Slice 7h (B1): raise a change record (the database checks MBR.CHANGE_RECORD and that the number is new). */
+function RaiseChangeRecord() {
+  const raise = useCommand(routes.marketConfig.recordChangeRecord, [...MASTER_RECORD_READS, routes.marketConfig.changeRecords.id]);
+  const [number, setNumber] = useState('');
+  const [title, setTitle] = useState('');
+  const [changeClass, setChangeClass] = useState<ChangeClass>('MAJOR');
+  const [impact, setImpact] = useState<'YES' | 'NO'>('YES');
+  const [qms, setQms] = useState('');
+  const [validationRef, setValidationRef] = useState('');
+  const ok = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/.test(number.trim()) && title.trim() !== '';
+  return (
+    <Section title="Raise a change record" testId="raise-change-record">
+      <p>
+        Every new master record and every change to one cites a change record. Say whether the change affects the process: the database also works the process impact
+        out itself and applies the stricter of the two, and a process-impacting change needs its validation before the master is approved.
+      </p>
+      <Field name="crNumber" label="Change record number" value={number} onChange={setNumber} />
+      <Field name="crTitle" label="Title of the change" value={title} onChange={setTitle} />
+      <floor.ChoiceGroup label="Change class" options={CLASSES.map((c) => ({ value: c.value, label: c.label }))} value={changeClass} onChange={(x) => setChangeClass(x as ChangeClass)} />
+      <floor.ChoiceGroup
+        label="Does the change affect the process?"
+        options={[
+          { value: 'YES', label: 'Yes, process-impacting' },
+          { value: 'NO', label: 'No' },
+        ]}
+        value={impact}
+        onChange={(x) => setImpact(x as 'YES' | 'NO')}
+      />
+      <Field name="crQms" label="QMS reference (optional)" value={qms} onChange={setQms} />
+      <Field name="crValidation" label="Validation reference (optional)" value={validationRef} onChange={setValidationRef} />
+      <ActButton
+        label="Raise the change record"
+        disabled={raise.busy || !ok}
+        onPress={() =>
+          ok &&
+          raise.run({
+            body: {
+              number: number.trim(),
+              title: title.trim(),
+              changeClass,
+              processImpacting: impact === 'YES',
+              ...(qms.trim() ? { qmsReference: qms.trim() } : {}),
+              ...(validationRef.trim() ? { validationRef: validationRef.trim() } : {}),
+            },
+          })
+        }
+      />
+      <ActResult error={raise.error} done={raise.done} label={raise.done ? `Change record ${raise.done.number} is raised.` : 'The change record is raised.'} />
     </Section>
   );
 }

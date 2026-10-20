@@ -27,6 +27,28 @@ import { useSignedAction } from '../useSignedAction.ts';
 import { actionLabel, st } from '../text.ts';
 
 type Replay = Result<RouteResponse<typeof routes.execution.verifyReplay>>;
+type RunResultExport = Result<RouteResponse<typeof routes.execution.exportRunResult>>;
+
+/**
+ * Slice 7h (decision D-P7R-16): the test-run result written for GMP (write-once in to-gmp, named by its hash), with its
+ * file offered for download when the GMP host does not share the exchange folder.
+ */
+function RunResultExported({ exported }: { exported: RunResultExport }) {
+  if (!exported.ok) return <RefusalMessage error={exported.error} />;
+  const r = exported.value;
+  const href = `data:application/json;charset=utf-8,${encodeURIComponent(r.fileText)}`;
+  return (
+    <div data-testid="run-result-export" data-passed={r.passed ? 'yes' : 'no'}>
+      <Banner tone={r.passed ? 'ok' : 'warning'} title={st(r.passed ? 'run.exportPassed' : 'run.exportFailed', { file: r.fileName })}>
+        <p>
+          <a href={href} download={r.fileName} className={wcls('link')}>
+            {st('run.exportDownload')}
+          </a>
+        </p>
+      </Banner>
+    </div>
+  );
+}
 
 /** The audit trail viewer (C1) filtered on this run's chain. */
 export function auditHref(chain: string): string {
@@ -125,6 +147,8 @@ export function RunOverviewPage() {
   const navigate = useNavigate();
   const [replay, setReplay] = useState<Replay | null>(null);
   const [replaying, setReplaying] = useState(false);
+  const [exported, setExported] = useState<RunResultExport | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [open, setOpen] = useState<Open>(null);
   const held = useLeaveGuard();
   const signed = useSignedAction(runId);
@@ -140,6 +164,14 @@ export function RunOverviewPage() {
       setReplay(isGmpFloor() ? await api.call(routes.batches.verifyReplay, { params: { batchId: runId }, body: {} }) : await api.call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
     } finally {
       setReplaying(false);
+    }
+  };
+  const exportResult = async () => {
+    setExporting(true);
+    try {
+      setExported(await api.call(routes.execution.exportRunResult, { params: { runId }, body: {} }));
+    } finally {
+      setExporting(false);
     }
   };
   const perform = (a: ActionView) => {
@@ -162,6 +194,11 @@ export function RunOverviewPage() {
         <Button variant="primary" onPress={() => void verify()} isDisabled={replaying}>
           {st('run.verify')}
         </Button>
+        {isGmpFloor() ? null : (
+          <Button onPress={() => void exportResult()} isDisabled={exporting}>
+            {st('run.exportResult')}
+          </Button>
+        )}
         <a href={auditHref(view.auditChain)} className={wcls('link')}>
           {st('run.audit')}
         </a>
@@ -175,6 +212,7 @@ export function RunOverviewPage() {
         ))}
       </div>
       {replay ? <ReplayResult replay={replay} /> : null}
+      {exported ? <RunResultExported exported={exported} /> : null}
       <SignedResult result={signed.result} />
 
       <section className={wcls('section')}>

@@ -194,6 +194,15 @@ describe('plant configuration', () => {
   });
 });
 
+const REVIEW = {
+  versionId: U2,
+  state: 'DRAFT',
+  reviews: [],
+  riskAssessments: [],
+  draft: { changeRecord: null, effectiveFrom: null, reviewDue: null },
+  evidence: { contentHash: 'c'.repeat(64), complete: false, missing: ['a passing sandbox test run on this exact content (SANDBOX_RUN)'], items: [{ kind: 'VALIDATOR' as const, result: 'PASS' as const, problems: [] }] },
+};
+
 describe('master records', () => {
   it('[PR-04] records the validation and a market\'s regulatory assessment of a change record', async () => {
     const cr = { changeRecordId: U1, number: 'CC-1', title: 'Punch change', changeClass: 'MAJOR', processImpacting: true, recordedAt: at('x'), validations: [], regulatory: [] };
@@ -211,7 +220,7 @@ describe('master records', () => {
   });
 
   it('[PR-05] records the periodic review with its outcome and next due date, and unlinks a risk assessment; a refusal is shown in the server\'s words', async () => {
-    const review = { versionId: U2, state: 'APPROVED', reviews: [], riskAssessments: [{ riskAssessmentId: U3, code: 'RA-1', version: '1', riskClass: 'MEDIUM', rationaleRef: 'QRM-1', subjects: [] }] };
+    const review = { ...REVIEW, state: 'APPROVED', riskAssessments: [{ riskAssessmentId: U3, code: 'RA-1', version: '1', riskClass: 'MEDIUM', rationaleRef: 'QRM-1', subjects: [] }] };
     const ui = renderMarket(`/mbr/versions/${U2}/review`, {
       fixtures: { 'marketConfig.versionReview': review, 'marketConfig.recordPeriodicReview': review, 'marketConfig.unlinkRiskAssessment': refusal('EBMR-IAM-040', 'You do not hold the right to author this master.') },
     });
@@ -223,6 +232,79 @@ describe('master records', () => {
     await waitFor(() => expect(ui.posts(`/api/mbr/versions/${U2}/periodic-reviews`)).toHaveLength(1));
     expect(ui.posts(`/api/mbr/versions/${U2}/periodic-reviews`)[0]?.body).toEqual({ outcome: 'REVISION_REQUIRED', summary: 'update the IPC frequency', nextDue: '2027-10-01' });
     await userEvent.click(within(screen.getByTestId('risk-links')).getByRole('button', { name: 'Unlink RA-1 version 1' }));
+    expect(await screen.findByText('You do not hold the right to author this master.')).toBeTruthy();
+  });
+
+  it('[PR-06] raises a change record with its number, title, class, process impact and validation reference', async () => {
+    const cr = { changeRecordId: U1, number: 'CC-9', title: 'New master', changeClass: 'CRITICAL', processImpacting: false, recordedAt: at('x'), validations: [], regulatory: [] };
+    const ui = renderMarket('/mbr/change-records', { fixtures: { 'marketConfig.changeRecords': { changeRecords: [] }, 'marketConfig.recordChangeRecord': cr } });
+    const s = await screen.findByTestId('raise-change-record');
+    const raise = within(s).getByRole('button', { name: 'Raise the change record' });
+    expect(raise.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(s).getByRole('textbox', { name: 'Change record number' }), 'CC-9');
+    await userEvent.type(within(s).getByRole('textbox', { name: 'Title of the change' }), 'New master');
+    await userEvent.click(within(s).getByRole('radio', { name: 'Critical' }));
+    await userEvent.click(within(s).getByRole('radio', { name: 'No' }));
+    await userEvent.type(within(s).getByRole('textbox', { name: 'Validation reference (optional)' }), 'PV-9');
+    await userEvent.click(raise);
+    await waitFor(() => expect(ui.posts('/api/mbr/change-records')).toHaveLength(1));
+    expect(ui.posts('/api/mbr/change-records')[0]?.body).toEqual({ number: 'CC-9', title: 'New master', changeClass: 'CRITICAL', processImpacting: false, validationRef: 'PV-9' });
+    expect(await screen.findByText('Change record CC-9 is raised.')).toBeTruthy();
+  });
+
+  it('[PR-07][PR-06] sets the draft\'s change record, effective-from and review due; records a risk assessment and links a recorded one for listed elements', async () => {
+    const cr = { changeRecordId: U1, number: 'CC-1', title: 'New master', changeClass: 'MAJOR', processImpacting: true, recordedAt: at('x'), validations: [], regulatory: [] };
+    const ra = { riskAssessmentId: U3, code: 'RA-7', version: '2', title: 'Blend risk', riskClass: 'HIGH', rationaleRef: 'QRM-7', recordedBy: MEERA, recordedAt: at('x') };
+    const ui = renderMarket(`/mbr/versions/${U2}/review`, {
+      fixtures: {
+        'marketConfig.versionReview': REVIEW, 'marketConfig.setDraftAttributes': REVIEW, 'marketConfig.linkRiskAssessment': REVIEW, 'marketConfig.recordRiskAssessment': ra,
+        'marketConfig.changeRecords': { changeRecords: [cr] }, 'marketConfig.riskAssessments': { riskAssessments: [ra] }, 'marketConfig.sandboxRunResults': { results: [] },
+      },
+    });
+    const d = await screen.findByTestId('draft-attributes');
+    expect(within(d).getByTestId('draft-change-record').textContent).toContain('none yet');
+    await userEvent.type(within(d).getByRole('textbox', { name: 'Change record number' }), 'CC-1');
+    await userEvent.type(within(d).getByRole('textbox', { name: /^Effective from/ }), '2026-11-01T00:00:00+05:30');
+    await userEvent.type(within(d).getByRole('textbox', { name: 'Periodic review due (YYYY-MM-DD)' }), '2028-12-31');
+    await userEvent.type(within(d).getByRole('textbox', { name: 'Reason' }), 'new master');
+    await userEvent.click(within(d).getByRole('button', { name: 'Set the draft attributes' }));
+    await waitFor(() => expect(ui.posts(`/api/mbr/versions/${U2}/draft-attributes`)).toHaveLength(1));
+    expect(ui.posts(`/api/mbr/versions/${U2}/draft-attributes`)[0]?.body).toEqual({ changeRecordId: U1, effectiveFrom: '2026-11-01T00:00:00+05:30', reviewDue: '2028-12-31', reason: 'new master' });
+
+    const r = screen.getByTestId('risk-links');
+    await userEvent.type(within(r).getByRole('textbox', { name: 'Assessment code' }), 'RA-8');
+    await userEvent.type(within(r).getByRole('textbox', { name: 'Title' }), 'Compression risk');
+    await userEvent.type(within(r).getByRole('textbox', { name: 'Risk class' }), 'MEDIUM');
+    await userEvent.type(within(r).getByRole('textbox', { name: 'Rationale reference (the QRM report)' }), 'QRM-8');
+    await userEvent.click(within(r).getByRole('button', { name: 'Record the risk assessment' }));
+    await waitFor(() => expect(ui.posts('/api/mbr/risk-assessments')).toHaveLength(1));
+    expect(ui.posts('/api/mbr/risk-assessments')[0]?.body).toEqual({ code: 'RA-8', version: '1', title: 'Compression risk', riskClass: 'MEDIUM', rationaleRef: 'QRM-8' });
+    await userEvent.type(within(r).getByRole('textbox', { name: /^Elements it covers/ }), 'blendTime, yieldCalc');
+    await userEvent.click(within(r).getByRole('button', { name: 'Link RA-7 version 2' }));
+    await waitFor(() => expect(ui.posts(`/api/mbr/versions/${U2}/risk-assessments`)).toHaveLength(1));
+    expect(ui.posts(`/api/mbr/versions/${U2}/risk-assessments`)[0]?.body).toEqual({ riskAssessmentId: U3, subjects: ['blendTime', 'yieldCalc'] });
+  });
+
+  it('[DI-04][DI-05][INV-18] shows the evidence of the current content and imports a sandbox test-run result from the exchange folder; a result that cannot be imported is greyed with its reason', async () => {
+    const result = (batch: string, problem: string | null) => ({
+      fileName: `${(problem ? 'b' : 'a').repeat(64)}.json`, resultHash: (problem ? 'b' : 'a').repeat(64), runId: U1, batchNumber: batch, runStatus: 'EXECUTION_COMPLETE', passed: true,
+      contentHash: 'c'.repeat(64), exportedAt: at('20-OCT-2026'), exporter: 'TEST-Anil Kumar (anil.kumar)', imported: false, problem,
+    });
+    const ui = renderMarket(`/mbr/versions/${U2}/review`, {
+      fixtures: {
+        'marketConfig.versionReview': REVIEW, 'marketConfig.changeRecords': { changeRecords: [] }, 'marketConfig.riskAssessments': { riskAssessments: [] },
+        'marketConfig.sandboxRunResults': { results: [result('TEST-B26-0001', null), result('TEST-B26-0002', 'the run tested revision 1, and the content has changed since')] },
+        'marketConfig.importSandboxRunResult': refusal('EBMR-IAM-040', 'You do not hold the right to author this master.'),
+      },
+    });
+    const e = await screen.findByTestId('verification-evidence');
+    expect(within(e).getByTestId('evidence-complete').textContent).toContain('Still missing: a passing sandbox test run on this exact content (SANDBOX_RUN).');
+    expect(within(e).getByTestId('evidence-VALIDATOR').textContent).toContain('passed');
+    expect((await within(e).findByRole('button', { name: 'Import the result of run TEST-B26-0002' })).hasAttribute('disabled')).toBe(true);
+    expect(within(e).getByTestId('run-result-TEST-B26-0002').textContent).toContain('Cannot be imported: the run tested revision 1');
+    await userEvent.click(within(e).getByRole('button', { name: 'Import the result of run TEST-B26-0001' }));
+    await waitFor(() => expect(ui.posts(`/api/mbr/versions/${U2}/sandbox-run-results`)).toHaveLength(1));
+    expect(ui.posts(`/api/mbr/versions/${U2}/sandbox-run-results`)[0]?.body).toEqual({ fileName: `${'a'.repeat(64)}.json` });
     expect(await screen.findByText('You do not hold the right to author this master.')).toBeTruthy();
   });
 

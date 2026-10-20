@@ -9,6 +9,12 @@
  *    approved version (`recipe.record_periodic_review`; MBR.APPROVE; PR-05), unlinking a risk assessment from a draft
  *    (`recipe.unlink_risk_assessment`; MBR.AUTHOR); the EU qualified-person register is signed (signable QP_REGISTER,
  *    meaning QP_REGISTERED, `recipe.register_qp`; RECORD.QA_REVIEW; ST-10);
+ *  - a new master record (slice 7h, B1-B4): raising its change record and recording a risk assessment
+ *    (`recipe.record_change_record`, `recipe.record_risk_assessment`; MBR.CHANGE_RECORD), linking the assessment to the
+ *    draft and setting the draft's change record, effective-from and review due (`recipe.link_risk_assessment`,
+ *    `recipe.set_draft_attributes`; MBR.AUTHOR), and importing the sandbox test-run result as SANDBOX_RUN evidence
+ *    (`recipe.record_evidence`; MBR.AUTHOR; decision D-P7R-16: hash and sandbox stamp checked, a test package GMP
+ *    exported for this version on its current content);
  *  - compendial rule sets: QA records the verification of a rule set version against the official text
  *    (`tab.record_rule_set_verification`) and signs it (signable RULE_SET_VERIFY, meaning COMPENDIAL_RULE_SET_VERIFIED,
  *    `tab.sign_rule_set_verification`; MBR.APPROVE; IN-34); a reference document version is retired or withdrawn with a
@@ -58,8 +64,53 @@ export const MbrReviewView = z.strictObject({
   state: z.string(),
   reviews: z.array(z.strictObject({ reviewId: Uuid, outcome: PeriodicReviewOutcome, summary: z.string(), nextDue: z.string(), reviewedBy: PersonRef, recordedAt: Instant })),
   riskAssessments: z.array(z.strictObject({ riskAssessmentId: Uuid, code: z.string(), version: z.string(), riskClass: z.string(), rationaleRef: z.string(), subjects: z.array(z.string()) })),
+  /** Slice 7h (B3): the draft's attributes, set by the author (recipe.set_draft_attributes; PR-02, PR-05, PR-06). */
+  draft: z.strictObject({
+    changeRecord: z.strictObject({ changeRecordId: Uuid, number: z.string(), title: z.string() }).nullable(),
+    effectiveFrom: Instant.nullable(),
+    reviewDue: z.string().nullable(),
+  }),
+  /** Slice 7h (B4): the verification evidence of the exact current content (recipe.evidence_status; DI-04). */
+  evidence: z.strictObject({
+    contentHash: z.string(),
+    complete: z.boolean(),
+    missing: z.array(z.string()),
+    items: z.array(z.strictObject({ kind: z.enum(['VALIDATOR', 'VERIFICATION', 'TEST_VECTORS', 'SANDBOX_RUN']), result: z.enum(['PASS', 'FAIL']), problems: z.array(z.string()) })),
+  }),
 });
 export type MbrReviewView = z.infer<typeof MbrReviewView>;
+
+/** Slice 7h (B2): a recorded risk assessment (recipe.record_risk_assessment; MBR.CHANGE_RECORD; PR-07). */
+export const RiskAssessmentView = z.strictObject({
+  riskAssessmentId: Uuid,
+  code: z.string(),
+  version: z.string(),
+  title: z.string(),
+  riskClass: z.string(),
+  rationaleRef: z.string(),
+  recordedBy: PersonRef,
+  recordedAt: Instant,
+});
+export type RiskAssessmentView = z.infer<typeof RiskAssessmentView>;
+
+/**
+ * Slice 7h (B4, decision D-P7R-16): a sandbox test-run result (`ebmr.test-run-result` v1) in the GMP exchange inbox
+ * `to-gmp/` for this version, as the importer's checks find it (problem null when it can be imported).
+ */
+export const SandboxRunResultView = z.strictObject({
+  fileName: z.string(),
+  resultHash: z.string(),
+  runId: z.string(),
+  batchNumber: z.string(),
+  runStatus: z.string(),
+  passed: z.boolean(),
+  contentHash: z.string(),
+  exportedAt: Instant,
+  exporter: z.string(),
+  imported: z.boolean(),
+  problem: z.string().nullable(),
+});
+export type SandboxRunResultView = z.infer<typeof SandboxRunResultView>;
 
 export const QpRegisterView = z.strictObject({
   importers: z.array(z.strictObject({ code: z.string(), name: z.string(), miaNumber: z.string() })),
@@ -250,6 +301,59 @@ export const marketConfig = {
     summary: 'Record the periodic review of an approved MBR version with its outcome and the next due date (MBR.APPROVE; PR-05)',
     params: versionParams,
     body: withAttribution({ outcome: PeriodicReviewOutcome, summary: Text(2000), nextDue: IsoDate }),
+    response: MbrReviewView,
+  }),
+  // Slice 7h (B1-B4): the acts a new master record needs before its Prepared signature.
+  recordChangeRecord: defineRoute({
+    id: 'marketConfig.recordChangeRecord', method: 'POST', path: '/api/mbr/change-records', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    summary: 'Raise the change record of a master-record change: number, title, class, process impact and optionally its validation (recipe.record_change_record; MBR.CHANGE_RECORD; PR-06)',
+    body: withAttribution({
+      number: ChangeRecordNumber,
+      title: Text(200),
+      changeClass: z.enum(['MINOR', 'MAJOR', 'CRITICAL']),
+      processImpacting: z.boolean(),
+      qmsReference: Text(120).optional(),
+      validationRef: Text(200).optional(),
+      validationDescription: Text(2000).optional(),
+    }),
+    response: MbrChangeRecordView,
+  }),
+  riskAssessments: defineRoute({
+    id: 'marketConfig.riskAssessments', method: 'GET', path: '/api/mbr/risk-assessments', installation: 'GMP', auth: 'SESSION', mutating: false,
+    summary: 'The recorded risk assessments a draft can be linked to (PR-07)',
+    response: z.strictObject({ riskAssessments: z.array(RiskAssessmentView) }),
+  }),
+  recordRiskAssessment: defineRoute({
+    id: 'marketConfig.recordRiskAssessment', method: 'POST', path: '/api/mbr/risk-assessments', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    summary: 'Record a versioned risk assessment: code, version, title, risk class and the rationale reference (recipe.record_risk_assessment; MBR.CHANGE_RECORD; PR-07)',
+    body: withAttribution({ code: Code, version: Text(20), title: Text(200), riskClass: Text(40), rationaleRef: Text(200) }),
+    response: RiskAssessmentView,
+  }),
+  linkRiskAssessment: defineRoute({
+    id: 'marketConfig.linkRiskAssessment', method: 'POST', path: '/api/mbr/versions/:versionId/risk-assessments', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    summary: 'Link a risk assessment to a draft MBR version, for the whole master or for listed elements (recipe.link_risk_assessment; MBR.AUTHOR; PR-07)',
+    params: versionParams,
+    body: withAttribution({ riskAssessmentId: Uuid, subjects: z.array(Code).max(200).optional() }),
+    response: MbrReviewView,
+  }),
+  setDraftAttributes: defineRoute({
+    id: 'marketConfig.setDraftAttributes', method: 'POST', path: '/api/mbr/versions/:versionId/draft-attributes', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    summary: 'Set the draft\'s change record, effective-from instant and periodic-review due date with the author\'s reason; a member left out keeps its value (recipe.set_draft_attributes; MBR.AUTHOR; PR-02, PR-05, PR-06, DI-22)',
+    params: versionParams,
+    body: withAttribution({ changeRecordId: Uuid.nullable().optional(), effectiveFrom: IsoInstant.nullable().optional(), reviewDue: IsoDate.nullable().optional(), reason: Text(2000) }),
+    response: MbrReviewView,
+  }),
+  sandboxRunResults: defineRoute({
+    id: 'marketConfig.sandboxRunResults', method: 'GET', path: '/api/mbr/versions/:versionId/sandbox-run-results', installation: 'GMP', auth: 'SESSION', mutating: false,
+    summary: 'The sandbox test-run results for this version in the exchange inbox to-gmp, with the importer\'s checks (DI-05, INV-18)',
+    params: versionParams,
+    response: z.strictObject({ results: z.array(SandboxRunResultView) }),
+  }),
+  importSandboxRunResult: defineRoute({
+    id: 'marketConfig.importSandboxRunResult', method: 'POST', path: '/api/mbr/versions/:versionId/sandbox-run-results', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    summary: 'Import a sandbox test-run result (from the exchange inbox by its file name, or uploaded as its text): hash and sandbox stamp checked, a test package GMP exported for this version on its current content, recorded as SANDBOX_RUN evidence (recipe.record_evidence; MBR.AUTHOR; DI-04, DI-05, INV-18)',
+    params: versionParams,
+    body: withAttribution({ fileName: z.string().regex(/^[0-9a-f]{64}\.json$/, 'a result file name <resultHash>.json').optional(), text: z.string().min(2).max(1_000_000).optional() }),
     response: MbrReviewView,
   }),
   unlinkRiskAssessment: defineRoute({

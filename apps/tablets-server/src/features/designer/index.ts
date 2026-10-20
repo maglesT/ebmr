@@ -28,7 +28,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { sandbox } from '@ebmr/kernel';
 import { routes } from '@ebmr/api-contract';
 import { formula, lifecycle } from '@ebmr/recipe-core';
-import { flow } from '@ebmr/recipe-core/pure';
+import { flow, simulator } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
@@ -318,6 +318,36 @@ async function uniqueViolationAsConflict<T>(work: () => Promise<T>, what: string
  * The analysis of a version's saved content with the justifications in force for exactly that content (IN-02,
  * DI-04), and the ones that answer a warning the analysis reports: only those go into evidence and packages.
  */
+/**
+ * The designer's simulation of `content` for the verification evidence (slice 7h, decision D-P7R-16): in its worker, in
+ * one of the process's simulation slots and with its timeout, as the Simulation tab runs it. A simulation that cannot
+ * run refuses the start of the verification; nothing is recorded.
+ */
+async function simulateForEvidence(a: DesignerAnalysis, content: unknown): Promise<simulator.SimulationReport> {
+  const max = designerSettings.maxConcurrentSimulations;
+  const release = acquireSimulationSlot(max);
+  if (!release) throw busy('simulation', max);
+  try {
+    const outcome = await simulateInWorker(
+      { content, asOf: a.loaded.asOf, references: a.loaded.references, minimaRequest: a.loaded.minimaRequest, minima: a.loaded.minima, engineRoles: a.loaded.engineRoles, checkers: a.loaded.checkers },
+      designerSettings.simulationTimeoutMs,
+    );
+    if (outcome.ok) return outcome.report;
+    const timeout = 'timeout' in outcome;
+    throw refusal(422, {
+      code: timeout ? 'SIMULATION_TIMEOUT' : 'SIMULATION_FAILED',
+      kind: 'NOT_ENABLED',
+      whatHappened: `The simulation for the verification evidence ${timeout ? 'took too long and was stopped' : 'could not run'}. The verification was not started; nothing was recorded.`,
+      why: outcome.message,
+      controls: ['DI-04'],
+      whatYouCanDo: timeout ? ['Lower the maximum loop iterations or replicate counts, then start the verification again.'] : ['Fix the errors in the findings panel, save, then start the verification again.'],
+      whoCanHelp: ['The system administrator, if it happens again'],
+    });
+  } finally {
+    release();
+  }
+}
+
 async function analyseSaved(
   db: Parameters<typeof analyse>[0],
   versionId: string,
@@ -601,12 +631,24 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         if (a.definition.some((f) => f.severity === 'ERROR' || (f.severity === 'WARNING' && !justified.has(f.key)))) throw gateFailed(a, 'enter verification');
         const port = lifecycle.createVerificationPort(a.loaded.context);
         const base = ctx.body.baseRevision;
-        const { result } = await withIdempotentActorCommand(pool, ctx.actor(), requireKey(ctx), ctx.requestHash, async (c) => {
+        // Slice 7h (decision D-P7R-16): the designer's simulation of this content runs first (in its worker, with its
+        // timeout and slot), so its sealed verification evidence and the generated test vectors are recorded with the
+        // validator report when the author starts the verification; nothing of it is typed in by hand.
+        const simulation = await simulateForEvidence(a, saved.content);
+        const actor = ctx.actor();
+        const { result } = await withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
           const cur = await lifecycle.loadContent(c, id);
           if (cur.revision !== base) throw stale(cur.revision, base);
           const st = await lifecycle.versionState(c, id);
           if (!st) throw notDraft('unknown', 'verification can be started');
           const r = await lifecycle.validateAndStartVerification(c, id, st.version, port, justs);
+          if (r.transition !== undefined) {
+            // The same content the validator just passed (read in this command); the database recomputes the seal and
+            // decides PASS or FAIL for each (DI-04). Starting the verification is the author's confirmation of the vectors.
+            const report = port.validate(cur.content);
+            await lifecycle.recordEvidence(c, id, 'VERIFICATION', simulator.buildVerificationEvidence(cur.content, report, justs, simulation));
+            await lifecycle.recordEvidence(c, id, 'TEST_VECTORS', lifecycle.testVectorEvidence(simulation, actor.personId));
+          }
           return { result: r.evidence.result, problems: r.evidence.problems, moved: r.transition !== undefined };
         });
         if (result.result !== 'PASS' || !result.moved) throw gateFailed(a, 'enter verification');

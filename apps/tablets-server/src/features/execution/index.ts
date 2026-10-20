@@ -38,6 +38,7 @@ import { stepPlantView } from './step-plant.ts';
 import { peopleText } from './people-text.ts';
 import { lotView, resolveLot } from './lots.ts';
 import { checkIssue, issueForm, packageToImport, packageView, packageViews } from './packages.ts';
+import { exportRunResult } from './run-result-export.ts';
 import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadPackage, loadRowFacts, notFound, preloadRuns, runCache, runContext, defineForSandbox, type Db } from './runs.ts';
 import { actApprovalHandler } from './act-approval.ts';
@@ -437,6 +438,12 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     verifyReplay: async ({ params, requireSession }) => {
       requireSession();
       return replayReport(app, pool, params.runId);
+    },
+
+    // Slice 7h (decision D-P7R-16): the run's result for the GMP version's SANDBOX_RUN evidence (run-result-export.ts).
+    exportRunResult: async ({ params, requireSession }) => {
+      const s = requireSession();
+      return exportRunResult(app, pool, params.runId, { personId: s.personId, legalName: s.legalName, loginName: s.loginName });
     },
 
     lot: async ({ params, requireSession }) => {

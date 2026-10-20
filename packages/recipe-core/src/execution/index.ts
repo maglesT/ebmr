@@ -6,6 +6,7 @@
 export const EXECUTION_STORE_READY = true as const;
 
 export * from './test-package.ts';
+export * from './test-run-result.ts';
 export * from './store.ts';
 export * from './run.ts';
 export * from './verify.ts';

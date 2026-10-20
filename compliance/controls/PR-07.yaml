@@ -43,6 +43,9 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 entries > [PR-29][PR-07][DI-28] a check is of a planned test, gives the press counter when its interval is by count, and the counter never goes back (equal allowed)"
   - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 definition checks > [IN-35][PR-29][PR-07] streams and tests once each, a grace and intervals above zero, a QRM reference and a configuration per planned test"
   - "packages/recipe-core/test/review/review.test.ts > review by exception paused after three deviations on a step (PR-07) > [PR-07] three deviations on a low-risk step open a re-review task and pause review-by-exception for that step"
+  - "apps/tablets-server/test/market/mbr-new-master-routes.test.ts > a new master record: change record, risk assessment, draft attributes > [PR-07] QA records a versioned risk assessment; the author links it to the draft for listed elements, and the review shows it; QA holds no MBR.AUTHOR to link it"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-07][PR-06] sets the draft's change record, effective-from and review due; records a risk assessment and links a recorded one for listed elements"
+  - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from the template: change record, risk assessment, draft attributes, the sandbox run returned as evidence, Prepared, Checked, the regulatory confirmation, Approved and its market authorisation, by different people and with nothing arranged in the database; a labelling specimen approved by QA @office"
 clauses:
   - clause: "Submitting a master with a critical parameter and no linked assessment is blocked."
     tests:
