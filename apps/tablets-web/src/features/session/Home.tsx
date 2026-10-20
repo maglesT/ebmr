@@ -44,7 +44,7 @@ export function Home() {
       </nav>
       {hidden > 0 ? (
         <p>
-          <button type="button" onClick={() => setShowAll((v) => !v)} data-testid="home-show-all">
+          <button type="button" className={cls('showAll')} onClick={() => setShowAll((v) => !v)} data-testid="home-show-all">
             {showAll ? `Show only the screens your role uses` : `Show all screens (${String(hidden)} more that your role ${role ?? ''} cannot use)`}
           </button>
         </p>
