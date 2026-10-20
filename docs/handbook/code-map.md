@@ -84,11 +84,11 @@ of each database function.
 | [ts-audit](#ts-audit) | Audit trail reads | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 3 | 10 | 7 |
 | [ts-esig](#ts-esig) | Signing ceremony and signing meanings | [modules/tablets-server.md](modules/tablets-server.md) | 11 | 17 | 6 | 13 |
 | [ts-designer](#ts-designer) | MBR designer | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 17 | 37 | 29 |
-| [ts-market-config](#ts-market-config) | Master-record, market-policy, site-value and plant configuration acts (Phase 7 slice 7g WP3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 32 | 4 | 20 |
+| [ts-market-config](#ts-market-config) | Master-record, market-policy, site-value and plant configuration acts (Phase 7 slice 7g WP3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 32 | 4 | 23 |
 | [ts-devices](#ts-devices) | Devices and scale or process readings | [modules/tablets-server.md](modules/tablets-server.md) | 21 | 8 | 31 | 24 |
 | [ts-blocks](#ts-blocks) | Tablets block versions (TB-01 to TB-24) | [modules/tablets-server.md](modules/tablets-server.md) | 43 | 0 | 69 | 65 |
 | [ts-containers](#ts-containers) | Output container acts | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 6 | 2 | 3 |
-| [ts-master-data](#ts-master-data) | Master data (formulas, ERP masters) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 4 | 3 | 2 |
+| [ts-master-data](#ts-master-data) | Master data (formulas, ERP masters) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 4 | 3 | 3 |
 | [ts-quality](#ts-quality) | Quality (lots, deviations, LIMS-lite, specifications, samples) | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 59 | 12 | 24 |
 | [ts-planning](#ts-planning) | Planning | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 10 | 3 | 2 |
 | [ts-plant](#ts-plant) | Plant screens and routes | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 13 | 3 | 10 |
@@ -1598,7 +1598,7 @@ of each database function.
 
 **Tests** (4): [tablets-server/test/market/market-config-routes.test.ts](../../apps/tablets-server/test/market/market-config-routes.test.ts), [tablets-server/test/market/master-data-acts-routes.test.ts](../../apps/tablets-server/test/market/master-data-acts-routes.test.ts), [tablets-server/test/market/mbr-new-master-routes.test.ts](../../apps/tablets-server/test/market/mbr-new-master-routes.test.ts), [tablets-web/test/market/market-screens.test.tsx](../../apps/tablets-web/test/market/market-screens.test.tsx)
 
-**Controls** (20): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-09](../../compliance/controls/DI-09.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-49](../../compliance/controls/DI-49.yaml), [IN-26](../../compliance/controls/IN-26.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-34](../../compliance/controls/IN-34.yaml), [IN-38](../../compliance/controls/IN-38.yaml), [IN-52](../../compliance/controls/IN-52.yaml), [PR-02](../../compliance/controls/PR-02.yaml), [PR-04](../../compliance/controls/PR-04.yaml), [PR-05](../../compliance/controls/PR-05.yaml), [PR-06](../../compliance/controls/PR-06.yaml), [PR-07](../../compliance/controls/PR-07.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [ST-01](../../compliance/controls/ST-01.yaml), [ST-10](../../compliance/controls/ST-10.yaml)
+**Controls** (23): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-09](../../compliance/controls/DI-09.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [DI-49](../../compliance/controls/DI-49.yaml), [IN-18](../../compliance/controls/IN-18.yaml), [IN-26](../../compliance/controls/IN-26.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-34](../../compliance/controls/IN-34.yaml), [IN-38](../../compliance/controls/IN-38.yaml), [IN-52](../../compliance/controls/IN-52.yaml), [PR-02](../../compliance/controls/PR-02.yaml), [PR-04](../../compliance/controls/PR-04.yaml), [PR-05](../../compliance/controls/PR-05.yaml), [PR-06](../../compliance/controls/PR-06.yaml), [PR-07](../../compliance/controls/PR-07.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [ST-01](../../compliance/controls/ST-01.yaml), [ST-10](../../compliance/controls/ST-10.yaml)
 
 ## ts-devices
 
@@ -1717,7 +1717,7 @@ of each database function.
 
 **Tests** (3): [tablets-server/test/master-data/formula-base.test.ts](../../apps/tablets-server/test/master-data/formula-base.test.ts), [tablets-server/test/master-data/formula.test.ts](../../apps/tablets-server/test/master-data/formula.test.ts), [tablets-web/test/office/master-data.test.tsx](../../apps/tablets-web/test/office/master-data.test.tsx)
 
-**Controls** (2): [DI-13](../../compliance/controls/DI-13.yaml), [PR-06](../../compliance/controls/PR-06.yaml)
+**Controls** (3): [DI-13](../../compliance/controls/DI-13.yaml), [IN-26](../../compliance/controls/IN-26.yaml), [PR-06](../../compliance/controls/PR-06.yaml)
 
 ## ts-quality
 
