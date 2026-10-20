@@ -73,6 +73,7 @@ const LATER_READ_ROUTES = [
   'features/operations/index.ts#acknowledgeAlarm',
   'features/operations/index.ts#controlWorker',
   'features/operations/index.ts#runBackup',
+  'features/planning/index.ts#defineBatchNumberRule',
   'features/plant-rules/index.ts#classifyBetaLactam',
   'features/plant-rules/index.ts#recordAreaAuthorisation',
   'features/plant-rules/index.ts#recordReagentLot',
