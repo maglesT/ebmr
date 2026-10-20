@@ -97,6 +97,8 @@ tests:
   - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [INV-13][PR-18] the consumption guard as site services 1103 re-creates it (D-P7-1 item 4): the reservation's batch number with its id, a lot not usable or changed since the reservation, a zero quantity, a lot holding less than the reservation"
   - "apps/tablets-server/test/plant/floor-routes.test.ts > a lot reserved for the batch (gap report A1) > [INV-13][PR-18] stores reserve a released lot for the batch by its number in the lot's unit; a lot not released, an unknown batch, more than is available and a person without the right are refused"
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > a lot's reservations and stock-location exceptions > [PR-18][INV-13] stores reserve a quantity of the lot for an open batch chosen from the list (slice 7h, A1)"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-01][PR-04][PR-18] GMP kiosk batch 1: the ERP orders, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-18][PR-22][DI-30] GMP kiosk batch 3: blending and lubrication on KIOSK-BLEND-1 on the validated times, the blend discharged into a verified container @office"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:

@@ -3,7 +3,8 @@
  * close (weighed from two scale readings, or typed), the second person who verified a typed net, its holds, and the
  * database's own words for why it cannot be used and why QA cannot release it now.
  *
- * The acts are the person's own: open, close (weighed: tare and gross captured from a balance of the room, the readings
+ * The acts are the person's own: open (at a stage, on a press and, when each side of the press discharges into its own
+ * containers, on that side: its stream; Phase 7 slice 7h, gap report D2), close (weighed: tare and gross captured from a balance of the room, the readings
  * named by id; typed: the net, which a second person then verifies with CONTAINER_ACT VERIFY_CLOSE, DI-30), sort and
  * reject with a reason, and QA's release (CONTAINER_ACT RELEASE, with QA's reason). On a shared terminal the plain
  * commands carry a fresh badge tap (FRESH_ON_SHARED, through app/acts.tsx). Every rule is the database's; the screen
@@ -187,6 +188,7 @@ function OpenContainer({ batchId }: { batchId: string }) {
   const [stage, setStage] = useState('');
   const [unit, setUnit] = useState<'kg' | 'g' | 'units' | null>(null);
   const [press, setPress] = useState('');
+  const [stream, setStream] = useState('');
   const open = useCommand(routes.containers.open, CONTAINER_READS, 'a new output container');
   if (!floorActs) return null;
   const s = stage.trim().toUpperCase();
@@ -195,10 +197,11 @@ function OpenContainer({ batchId }: { batchId: string }) {
       <Field name="stage" label="Stage" value={stage} onChange={setStage} description="e.g. COMPRESSION" {...(s !== '' && !STAGE.test(s) ? { errorMessage: 'Capital letters, digits and _ only' } : {})} />
       <floor.ChoiceGroup label="Unit" options={['kg', 'g', 'units'].map((u) => ({ value: u, label: u }))} value={unit} onChange={(v) => setUnit(v === 'g' ? 'g' : v === 'units' ? 'units' : 'kg')} />
       <Field name="press" label="Press (optional)" value={press} onChange={setPress} />
+      <Field name="stream" label="Side of the press (stream, optional)" value={stream} onChange={setStream} description="e.g. L or R, when each side of the press discharges into its own containers" />
       <ActButton
         label="Open the container"
-        onPress={() => unit && open.run({ body: { batchId, stage: s, unit, ...(press.trim() ? { press: press.trim() } : {}) } })}
-        disabled={!STAGE.test(s) || unit === null || open.busy}
+        onPress={() => unit && open.run({ body: { batchId, stage: s, unit, ...(press.trim() ? { press: press.trim() } : {}), ...(stream.trim() ? { stream: stream.trim() } : {}) } })}
+        disabled={!STAGE.test(s) || unit === null || open.busy || (stream.trim() !== '' && press.trim() === '')}
       />
       <ActResult error={open.error} done={open.done} label="Container opened." />
     </Section>

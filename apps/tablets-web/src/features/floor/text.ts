@@ -44,6 +44,7 @@ export const SCREEN_EN = {
   'save.form': 'Save: {title}',
   'field.computed': 'Computed by the system; it is never typed.',
   'field.systemCaptured': 'Captured by the system (device, automation or LIMS); it cannot be typed here.',
+  'field.manualFallback': 'No balance of this room is online: the value is typed by hand as the fallback. It is flagged as keyed by hand, an exception is raised and a second person verifies the step.',
   'field.instantNotHere': 'A time cannot be typed on this screen.',
   'field.noUnit': 'The unit of this value is missing from the step; it cannot be entered here.',
   'field.cannotRecord': 'Values cannot be recorded now.',

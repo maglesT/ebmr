@@ -164,6 +164,7 @@ tests:
   - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons"
   - "apps/tablets-server/test/devices/step-bindings-routes.test.ts > the bindings of a process step (tablets 0820, 0870; recipe-core 0960) > [PR-14][DI-49] the step binds the device of its unit once; a unit the batch has in use is bound to the step; an MBR setpoint is downloaded to the bound device, once while it waits; a person without STEP.EXECUTE is refused"
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the device and equipment of a process step > [PR-14] offers the server's devices and units in use, binds the chosen device, and downloads an MBR setpoint with a badge tap"
+  - "apps/tablets-web/test/floor/entries.test.tsx > a value configured for device capture > [DI-30][PR-14] is keyed by hand as the fallback while no balance of the room is online, said as such, and sent as a manual entry"
 clauses:
   - clause: "With the scale disconnected during an automated dispense, the step demands a second, different user."
     tests:

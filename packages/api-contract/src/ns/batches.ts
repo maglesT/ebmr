@@ -32,6 +32,21 @@ export const ProposedActView = z.strictObject({
 });
 export type ProposedActView = z.infer<typeof ProposedActView>;
 
+/**
+ * A printed packaging lot as the batch issues it now (tab.printed_lot_facts; Phase 7 slice 7h, gap report D2): exactly the
+ * facts a G-21 ISSUE entry must carry (the database refuses an entry whose lot states other facts, PR-32, PR-33), so the
+ * step screen fills them from the register when the operator scans the lot: its code, material, status, recorded artwork
+ * version and expiry (UTC epoch microseconds as digits).
+ */
+export const PrintedLotFactsView = z.strictObject({
+  id: z.string(),
+  material: z.string(),
+  status: z.string(),
+  artwork: z.string(),
+  expiresAtUs: z.string().regex(/^[0-9]+$/).optional(),
+});
+export type PrintedLotFactsView = z.infer<typeof PrintedLotFactsView>;
+
 /** One SSCC the database issued for the batch (tab.sscc_issue), with the shipper entry that used it, if any. */
 export const SsccView = z.strictObject({
   sscc: z.string().regex(/^[0-9]{18}$/),
@@ -235,6 +250,17 @@ export const batches = {
     response: z.strictObject({ stepKey: StepKey, block: z.string(), sources: z.array(AdditionSourceView) }),
   }),
   // Phase 7 slice 7h (WP-A): what the step screen offers its plant acts from (ns/plant-floor.ts).
+  printedLot: defineRoute({
+    id: 'batches.printedLot',
+    method: 'GET',
+    path: '/api/batches/:batchId/printed-lots/:code',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'A printed packaging lot as the batch issues it now (its code, material, status, recorded artwork and expiry), for the G-21 issue entry; 404 when it is no printed packaging lot with a recorded artwork',
+    params: z.strictObject({ batchId: Uuid, code: z.string().min(1).max(64) }),
+    response: PrintedLotFactsView,
+  }),
   stepPlant: defineRoute({
     id: 'batches.stepPlant',
     method: 'GET',

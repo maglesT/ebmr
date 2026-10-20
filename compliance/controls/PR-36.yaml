@@ -58,6 +58,8 @@ tests:
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-36][IN-31] shows the labelling of a master and why it would fail approval; declares a cut label with its 211.122(g) control"
   - "apps/tablets-server/test/execution/floor-acts-routes.test.ts > the batch data of a packaging step and its print job (IN-31, PR-36) > [IN-31][PR-36][DI-22] the giver of an MRP neither checks nor releases; a second person checks it; the job then carries the record's data; a change after set-up needs the person's reason and voids the job"
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [IN-31][PR-36] records the batch data with the MRP, offers the second person's check of the version, asks a reason for a new version, and releases a print job"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-40][DI-30][IN-16][PR-34][PR-36] GMP kiosk batch 6: the bottle order run on KIOSK-PACK-1 to its end: bulk issued, line cleared and used, bottles weighed, printed materials, filling, cartoning and shippers, reconciliations, witnessed destruction, the post-use inspection and the stage sign-off @office"
+  - "apps/tablets-web/test/office/packaging.test.tsx > planning a packaging order > [PR-36] the issuer narrows the markets the order packs for to those chosen, of the ones the master is authorised for; none chosen cannot be planned"
 clauses:
   - clause: "Changing batch data after print set-up invalidates the job."
     tests:

@@ -287,6 +287,7 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > recipe.propose_act as Phase 6A re-creates it (recipe-core 1217; D-P7-1 item 4) > [DI-24][DI-35] an act asked for approval is an object of a known act type, without id, actor or signatures, requested by the asker and at most 16384 characters; a batch that does not exist has none"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the GMP issue functions as Phase 6A and Phase 7 re-create them (recipe-core 1218, 1260; D-P7-1 item 4) > [DI-35][DI-14] the issue function itself refuses an ISSUED signature of another person, before the row guard does"
   - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27][DI-35] what QA signs is the proposal against its own subject's earlier approved value, in the subject's scope; each subject's state and approval are its own"
+  - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [IN-05][PR-45][DI-35] GMP kiosk batch 7: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

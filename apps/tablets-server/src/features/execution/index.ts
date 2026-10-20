@@ -246,6 +246,24 @@ function gmpBatchHandlers(app: AppContext): Handlers<typeof routes.batches> {
     step: async ({ params, requireSession }) => stepScreen(await viewContextFor(app, pool, params.batchId, requireSession()), params.stepKey),
     // Phase 7 slice 7h (WP-A): what the step screen offers its plant acts from (step-plant.ts).
     stepPlant: async ({ params, requireSession }) => stepPlantView(app, pool, params.batchId, params.stepKey, requireSession().personId),
+    // Phase 7 slice 7h (gap report D2): a printed packaging lot's facts as the batch issues it now, for the G-21 issue
+    // entry (the database refuses an ISSUE whose lot states other facts: tab.g21_issue_lot_check).
+    printedLot: async ({ params, requireSession }) => {
+      requireSession();
+      await runContext(pool, params.batchId);
+      const facts = (await pool.query<{ f: Record<string, string> | null }>('select tab.printed_lot_facts($1, $2) as f', [params.code, params.batchId])).rows[0]?.f ?? null;
+      if (!facts) {
+        throw refusal(404, {
+          code: 'EXE_PRINTED_LOT_UNKNOWN',
+          kind: 'NOT_ALLOWED',
+          whatHappened: `Lot ${params.code} cannot be issued as printed material.`,
+          why: 'It is no printed packaging lot of this site with a recorded artwork version (PR-32).',
+          controls: ['PR-32', 'PR-33'],
+          whatYouCanDo: ['Scan the lot label again, or ask stores which printed packaging lot is released for this order.'],
+        });
+      }
+      return { id: facts['id'] ?? '', material: facts['material'] ?? '', status: facts['status'] ?? '', artwork: facts['artwork'] ?? '', ...(facts['expiresAtUs'] ? { expiresAtUs: facts['expiresAtUs'] } : {}) };
+    },
     workQueue: async ({ params, requireSession }) => {
       const s = requireSession();
       return { items: workQueueItems(await viewContextFor(app, pool, params.batchId, s), s.roomCode) };

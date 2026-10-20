@@ -273,6 +273,8 @@ export const EXAMPLES = {
   'plant-equipment-event': { schema: r.plant.equipmentEvent.response, data: s6.plant.equipmentEvent, routeId: r.plant.equipmentEvent.id },
   // Phase 7 slice 7h (WP-A): the plant acts of the floor and what the step screen offers them from.
   'batches-step-plant': { schema: r.batches.stepPlant.response, data: PF_STEP_PLANT, routeId: r.batches.stepPlant.id },
+  // Phase 7 slice 7h (gap report D2): a printed packaging lot's facts for the G-21 issue entry.
+  'batches-printed-lot': { schema: r.batches.printedLot.response, data: { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1', expiresAtUs: '1877472000000000' }, routeId: r.batches.printedLot.id },
   'plant-start-occupancy': { schema: r.plant.startAreaOccupancy.response, data: PF_OCCUPANCY, routeId: r.plant.startAreaOccupancy.id },
   'plant-end-occupancy': { schema: r.plant.endAreaOccupancy.response, data: { ...PF_OCCUPANCY, ended: { by: PF_OPERATOR, at: PF_END } }, routeId: r.plant.endAreaOccupancy.id },
   'plant-instrument-check': { schema: r.plant.recordInstrumentCheck.response, data: { checkId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c07', equipmentCode: 'BAL-C1', result: 'PASS', regime: 'PER_USE', recordedAt: PF_AT }, routeId: r.plant.recordInstrumentCheck.id },

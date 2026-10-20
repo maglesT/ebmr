@@ -42,6 +42,8 @@ tests:
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 issue > [PR-33][IN-17] the issued total never above the need plus the allowance (equal allowed); manual counts need a second person; nothing after the reconciliation"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [PR-33][PR-45] a reel whose lot leaves RELEASED mid-run (QA hold, quarantine, recall, expiry) is caught at the run's next entry; changing the reel is the way on, and a device reading is never refused (tablets 1151)"
+  - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [PR-32][PR-33] takes a scanned printed packaging lot's facts from the register for the issue entry, and shows the server's refusal of a lot that is not one"
+  - "apps/tablets-server/test/plant/floor-routes.test.ts > a printed packaging lot for the issue entry of a printed-materials step (gap report D2) > [PR-32][PR-33] the step screen reads a printed packaging lot as the batch issues it, exactly the facts the issue entry must carry; a lot that is not printed packaging, an unknown lot and an unknown batch are refused"
 clauses:
   - clause: "Scanning a wrong carton code is blocked."
     tests:

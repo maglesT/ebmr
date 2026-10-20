@@ -81,4 +81,20 @@ describe('output containers', () => {
     expect(within(card).queryByTestId('release-container')).toBeNull();
     expect(within(card).queryByTestId('reject-container')).toBeNull();
   });
+
+  // Phase 7 slice 7h (gap report D2): a press whose sides discharge into their own containers takes the side (stream).
+  it('[INV-40] opens a container on a press and its side (stream), with a fresh badge tap on a shared terminal; a side needs its press', async () => {
+    const ui = renderOffice(path, { role: 'OPERATOR', attribution: 'TAP', fixtures: { 'containers.list': { containers: [] } } });
+    const form = await screen.findByTestId('open-container');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Stage' }), 'COMPRESSION');
+    await userEvent.click(within(form).getByRole('radio', { name: 'kg' }));
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Side of the press (stream, optional)' }), 'L');
+    const button = within(form).getByRole('button', { name: 'Open the container' });
+    expect(button.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Press (optional)' }), 'PRESS-01');
+    await userEvent.click(button);
+    await waitFor(() => expect(ui.posts('/api/containers')).toHaveLength(1));
+    expect(ui.tap.requestTap).toHaveBeenCalledTimes(1);
+    expect(ui.posts('/api/containers')[0]?.body).toMatchObject({ batchId: B, stage: 'COMPRESSION', unit: 'kg', press: 'PRESS-01', stream: 'L', attribution: { method: 'BADGE_TAP' } });
+  });
 });
