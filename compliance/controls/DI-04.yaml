@@ -206,6 +206,8 @@ tests:
   - "apps/tablets-server/test/market/mbr-new-master-routes.test.ts > verification evidence: recorded at the start, and the sandbox run returned as a result package > [DI-04][INV-18] a run of an earlier revision is refused once the content changed; a run that did not pass is recorded as a failed sandbox run"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [DI-04][DI-05][INV-18] shows the evidence of the current content and imports a sandbox test-run result from the exchange folder; a result that cannot be imported is greyed with its reason"
   - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from the template: change record, risk assessment, draft attributes, the sandbox run returned as evidence, Prepared, Checked, the regulatory confirmation, Approved and its market authorisation, by different people and with nothing arranged in the database; a labelling specimen approved by QA @office"
+  - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C2: reference documents on the master-record screen > [DI-04][DI-17] the master-data steward records a reference document version; the server hashes its body and the list shows that hash, effective; the QA MBR approver holds no MASTERDATA.CHANGE"
+  - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [DI-04] slice 7h (gap C2): the reference documents screen records a new document version as the contract takes it (the server builds its body and hash)"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:
