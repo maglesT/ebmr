@@ -44,7 +44,14 @@ function StaleNotice({ context }: { context: floor.PendingEntryContext }) {
   const recorded = refusal?.code === 'ENG-STALE';
   return (
     <Banner tone="warning" title={floor.ft(recorded ? 'pending.stale' : 'pending.staleNotRecorded')}>
-      {!recorded && refusal ? <p>{refusal.whatHappened}</p> : null}
+      {!recorded && refusal ? (
+        // Phase 7 slice 7i (P7H-5): the refusal in its own words, with its rule code, not only the general line.
+        <>
+          <p>{refusal.whatHappened}</p>
+          {refusal.why ? <p data-testid="stale-why">{refusal.why}</p> : null}
+          <p data-testid="stale-code">{`${floor.ft('refusal.rule')}: ${refusal.code}`}</p>
+        </>
+      ) : null}
       <ul data-testid="stale-changes">
         {context.changes.map((c) => (
           <li key={c}>{c}</li>

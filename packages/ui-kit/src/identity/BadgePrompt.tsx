@@ -49,6 +49,11 @@ export const NOT_TAPPED = 'That was not a tap of the reader: it was filled in or
 export interface DemoBadge {
   legalName: string;
   badgeUid: string;
+  /**
+   * Phase 7 slice 7i (G1): false for a person whose home terminal is another one, listed under "Other people" after
+   * those who work here. Left out (or true): works here.
+   */
+  worksHere?: boolean;
 }
 
 export interface BadgePromptProps {
@@ -72,16 +77,36 @@ export interface BadgePromptProps {
 
 export function DemoBadgeReader({ badges, onTap }: { badges: readonly DemoBadge[]; onTap: (badgeUid: string) => void }) {
   if (badges.length === 0) return null;
+  const buttons = (list: readonly DemoBadge[]) => (
+    <div className={icls('row')}>
+      {list.map((b) => (
+        <Button key={b.badgeUid} onPress={() => onTap(b.badgeUid)}>
+          {`Tap ${b.legalName}`}
+        </Button>
+      ))}
+    </div>
+  );
+  const here = badges.filter((b) => b.worksHere !== false);
+  const others = badges.filter((b) => b.worksHere === false);
   return (
     <section className={icls('drawer')} aria-label="Demo badge reader">
       <h3 className={icls('drawerTitle')}>Demo badge reader (DEMO-ONLY)</h3>
-      <div className={icls('row')}>
-        {badges.map((b) => (
-          <Button key={b.badgeUid} onPress={() => onTap(b.badgeUid)}>
-            {`Tap ${b.legalName}`}
-          </Button>
-        ))}
-      </div>
+      {others.length === 0 ? (
+        buttons(here)
+      ) : (
+        <>
+          {here.length > 0 ? (
+            <section aria-label="Works here">
+              <h4>Works here</h4>
+              {buttons(here)}
+            </section>
+          ) : null}
+          <section aria-label="Other people">
+            <h4>Other people</h4>
+            {buttons(others)}
+          </section>
+        </>
+      )}
     </section>
   );
 }

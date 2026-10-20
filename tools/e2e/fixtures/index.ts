@@ -135,6 +135,16 @@ export async function readerTap(page: Page, badgeUid: string): Promise<void> {
 }
 
 export const badge = {
+  /**
+   * Phase 7 slice 7i (G1): the presenter's way on a demo installation: the person's "Tap" button of the kiosk's demo badge
+   * reader (DEMO-ONLY), which sends that person's badge UID as a reader's tap would. It is offered for every badge holder
+   * of the installation, under "Works here" or "Other people".
+   */
+  async press(page: Page, persona: SeededPersona): Promise<void> {
+    if (!persona.badgeUid) throw new Error(`${persona.key} has no badge`);
+    const reader = page.getByRole('region', { name: 'Demo badge reader' });
+    await reader.getByRole('button', { name: `Tap ${persona.legalName}`, exact: true }).click();
+  },
   /** A badge tap as the keyboard-wedge reader sends it: the UID as a burst of keys, then Enter (readerTap). */
   async tap(page: Page, persona: SeededPersona): Promise<void> {
     if (!persona.badgeUid) throw new Error(`${persona.key} has no badge`);
@@ -164,10 +174,12 @@ export const signIn = {
   /**
    * Badge and PIN; the home screen follows. A persona that holds several roles (`alsoRoles`) passes the role it works in:
    * the role choice lists every role it holds, the session then acts in the one chosen, which the identity banner names
-   * (C0-4), and the page shows what its address names (the home screen after the device picker).
+   * (C0-4), and the page shows what its address names (the home screen after the device picker). `by: 'demoButton'`
+   * presses the person's Tap button of the demo badge reader instead of the reader's burst (slice 7i, G1).
    */
-  async kiosk(page: Page, persona: SeededPersona, role?: string): Promise<void> {
-    await badge.tap(page, persona);
+  async kiosk(page: Page, persona: SeededPersona, role?: string, by: 'reader' | 'demoButton' = 'reader'): Promise<void> {
+    if (by === 'demoButton') await badge.press(page, persona);
+    else await badge.tap(page, persona);
     await pin.enter(page, persona.pin ?? '');
     if (role === undefined) {
       await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();

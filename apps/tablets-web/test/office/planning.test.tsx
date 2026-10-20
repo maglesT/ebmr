@@ -36,7 +36,7 @@ describe('planning', () => {
     expect(unmatched.textContent).toContain(example('planning-orders').orders[1]?.noMatch ?? 'missing');
   });
 
-  it('plans a batch from an order and issues it with the ISSUED ceremony and the issuer\'s own reason', async () => {
+  it('plans a batch from an order (the plan names the order clicked, slice 7i G2) and issues it with the ISSUED ceremony and the issuer\'s own reason', async () => {
     const ui = renderOffice('/planning', { role: 'BATCH_ISSUER', fixtures: { 'execution.planBatch': planned, 'plant.areas': { areas: [] } } });
     const order = await screen.findByTestId('order-PO-2026-0101');
     await userEvent.type(within(order).getByRole('textbox', { name: 'Site' }), 'SITE-1');
@@ -44,7 +44,7 @@ describe('planning', () => {
     await userEvent.click(within(order).getByRole('button', { name: 'Plan a batch for PO-2026-0101' }));
     await waitFor(() => expect(ui.posts('/api/batches')).toHaveLength(1));
     const match = example('planning-orders').orders[0]?.match;
-    expect(ui.posts('/api/batches')[0]?.body).toEqual({ familyId: match?.familyId, markets: ['IN'], site: 'SITE-1', line: 'LINE-1', batchSize: match?.batchSizeId });
+    expect(ui.posts('/api/batches')[0]?.body).toEqual({ familyId: match?.familyId, markets: ['IN'], site: 'SITE-1', line: 'LINE-1', batchSize: match?.batchSizeId, erpOrder: 'PO-2026-0101' });
     const issue = await screen.findByTestId('issue-form');
     const sign = within(issue).getByRole('button', { name: 'Sign and issue' });
     expect(sign.hasAttribute('disabled')).toBe(true);

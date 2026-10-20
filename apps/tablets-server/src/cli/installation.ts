@@ -125,7 +125,9 @@ export function demoDevicesOf(seed: SiteSeed): { installation: 'GMP' | 'SANDBOX'
         description: t.description,
         privateKeyPkcs8: t.key?.privateKeyPkcs8 ?? '',
         publicKeySpki: t.key?.publicKeySpki ?? '',
-        personas: seed.personas.filter((p) => p.homeTerminal === t.code && p.set === 0).map((p) => ({ legalName: p.legalName, loginName: p.loginName, role: [p.roleCode, ...(p.alsoRoles ?? [])].join(', '), badgeUid: p.badgeUid })),
+        // Every persona set (slice 7i, G1): a demo installation seeds one; the E2E stack one per worker, whose people the
+        // browser tests sign in with the demo reader's Tap buttons as a presenter would.
+        personas: seed.personas.filter((p) => p.homeTerminal === t.code).map((p) => ({ legalName: p.legalName, loginName: p.loginName, role: [p.roleCode, ...(p.alsoRoles ?? [])].join(', '), badgeUid: p.badgeUid })),
       })),
   };
 }

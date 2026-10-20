@@ -53,6 +53,10 @@ export const SessionView = z.strictObject({
 });
 export type SessionView = z.infer<typeof SessionView>;
 
+/** A demo person of a demo terminal (DEMO-ONLY badge UID, never a secret). */
+export const DemoPersonaView = z.strictObject({ legalName: z.string(), loginName: z.string(), role: z.string(), badgeUid: z.string().nullable() });
+export type DemoPersonaView = z.infer<typeof DemoPersonaView>;
+
 /** A demo terminal the picker can install into this browser (DEMO-ONLY keys; demo databases only). */
 export const DemoDeviceView = z.strictObject({
   deviceCode: z.string(),
@@ -67,7 +71,13 @@ export const DemoDeviceView = z.strictObject({
    * Demo persons who log in on this terminal, with their DEMO-ONLY badge UID for the demo badge-reader drawer
    * (no password or PIN: the credential card is printed by `pnpm demo`).
    */
-  personas: z.array(z.strictObject({ legalName: z.string(), loginName: z.string(), role: z.string(), badgeUid: z.string().nullable() })),
+  personas: z.array(DemoPersonaView),
+  /**
+   * Phase 7 slice 7i (G1), shop-floor terminals only: every other demo person of the installation who has a badge, so a
+   * presenter can sign anyone in on any kiosk ("Other people"; `personas` are "Works here"). DEMO-ONLY convenience: the
+   * server still decides at sign-in whether the person may work there. Not stored in the keys file; the route adds it.
+   */
+  otherPersonas: z.array(DemoPersonaView).optional(),
 });
 export type DemoDeviceView = z.infer<typeof DemoDeviceView>;
 

@@ -82,7 +82,7 @@ function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: 
   const chosenSite = siteCode.trim() || site || '';
   if (!match) return null;
   const go = async () => {
-    const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, ...(reprocessing && request ? { reprocessingRequest: request } : {}) } });
+    const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, erpOrder: order.orderNo, ...(reprocessing && request ? { reprocessingRequest: request } : {}) } });
     if (b) onPlanned(b);
   };
   return (

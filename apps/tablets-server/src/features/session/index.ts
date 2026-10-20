@@ -16,6 +16,7 @@ import { clearSessionCookie, isShopFloor, newSessionToken, noRoleHeld, resolveSe
 import type { AppContext } from '../../platform/context.ts';
 import { bindRoutes, pathOf, type DeviceRateLimitSpec } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
+import { demoDevicesView } from './demo-devices.ts';
 import { SESSION_GUIDANCE } from './guidance.ts';
 
 export const guidance = SESSION_GUIDANCE;
@@ -107,7 +108,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             }),
           );
         }
-        return Promise.resolve({ devices: app.demo.devices });
+        return Promise.resolve({ devices: demoDevicesView(app.demo.devices) });
       },
 
       login: async ({ body, request, reply }) => {

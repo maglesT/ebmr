@@ -175,5 +175,10 @@ session idle rule of tablets 1460.
 - P7H-4 (residual, found by the D2 browser test): the processing plan form does not send the ERP order the planner
   clicked; the server takes the oldest open ERP order of the family. The contract has no order field for a processing
   plan (the packaging plan has one); adding it touches the plan command, so it is left for a follow-up.
+  **Fixed in slice 7i:** `execution.planBatch` takes `erpOrder`, the plan form sends the clicked order, the database
+  checks it (gmp-batch.test.ts "G2 (slice 7i, P7H-4)", planning.test.tsx).
 - P7H-5 (residual, found by the D2 browser test): a database refusal of a step entry was shown as "The sign-in could not
   be completed" with advice that the run had changed; the refusal's own words should be shown.
+  **Fixed in slice 7i:** the session's `EBMR-TAB-*` guidance caught the block guards' EBMR-TAB codes; it now covers the
+  session-binding codes only, the rest of the family is a 422 refusal with the database's message, and the floor's stale
+  notice shows the message and code (tab-guidance.test.ts, entries.test.tsx).

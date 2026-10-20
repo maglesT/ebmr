@@ -536,6 +536,12 @@ export const execution = {
        * without it, and a request not authorised.
        */
       reprocessingRequest: Uuid.optional(),
+      /**
+       * Phase 7 slice 7i (G2, P7H-4): the ERP production order planned against (the order card the planner used). The
+       * database checks it exists, has planned no batch yet and matches the master's product, strength, site and batch
+       * size; without it the oldest open order of the family's product and size is taken, as before.
+       */
+      erpOrder: z.string().min(1).max(64).optional(),
     }),
     response: PlannedBatchView,
   }),

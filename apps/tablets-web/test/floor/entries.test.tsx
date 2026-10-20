@@ -134,6 +134,48 @@ describe('G-07 weighing and dispensing', () => {
   });
 });
 
+describe('a database refusal of a step entry is shown in its own words (slice 7i, P7H-5)', () => {
+  const fill = async (form: HTMLElement) => {
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Lot' }), 'TEST-L26-0101{Enter}');
+    await userEvent.click(within(form).getByRole('radio', { name: 'Paracetamol (BOM-API)' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Capture tare on TEST-BAL-01' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Capture gross on TEST-BAL-01' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Save: Weigh one container' }));
+  };
+  const slot = () => fakeScaleSlot({ TARE: reading('TARE', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e01', '1.250'), GROSS: reading('GROSS', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e02', '13.753') });
+  const WHY = 'A passing in-process check of this batch is recorded only with its sample (BR-12).';
+
+  it('a database guard\'s refusal (EBMR-TAB, 422) shows its code and message, with no sign-in or changed-run advice', async () => {
+    renderFloor(stepPath('p-disp-api@'), {
+      scaleSlot: slot(),
+      fixtures: stepFixtures(g07WithBom),
+      intercept: (r) => (r.path === commandPath ? { status: 422, body: envelope('NOT_ALLOWED', 'EBMR-TAB-302', { whatHappened: 'The system refused this action. Nothing was saved.', why: WHY }) } : undefined),
+    });
+    const form = await screen.findByTestId('form-CONTAINER_WEIGHING');
+    await fill(form);
+    const panel = await within(form).findByTestId('refusal');
+    expect(panel.getAttribute('data-code')).toBe('EBMR-TAB-302');
+    expect(panel.textContent).toContain(WHY);
+    expect(panel.textContent).toContain('EBMR-TAB-302');
+    expect(within(form).queryByText(/sign-in could not be completed/i)).toBeNull();
+    expect(within(form).queryByTestId('stale-changes')).toBeNull();
+  });
+
+  it('a stale answer that is not the engine\'s recorded one shows the refusal\'s own message and code too', async () => {
+    renderFloor(stepPath('p-disp-api@'), {
+      scaleSlot: slot(),
+      fixtures: stepFixtures(g07WithBom),
+      intercept: (r) => (r.path === commandPath ? { status: 409, body: envelope('STALE', 'EBMR-EXE-301', { whatHappened: 'The step changed before your entry arrived.', why: WHY }) } : undefined),
+    });
+    const form = await screen.findByTestId('form-CONTAINER_WEIGHING');
+    await fill(form);
+    await within(form).findByTestId('stale-changes');
+    expect(within(form).getByText('The step changed before your entry arrived.')).toBeTruthy();
+    expect(within(form).getByTestId('stale-why').textContent).toBe(WHY);
+    expect(within(form).getByTestId('stale-code').textContent).toContain('EBMR-EXE-301');
+  });
+});
+
 describe('G-22 output containers with the scale offline', () => {
   it('offers only the manual path, clearly marked two-person, and sends the typed tare and gross as decimal text (no reading ids)', async () => {
     const seen: ScaleCaptureSlotProps[] = [];

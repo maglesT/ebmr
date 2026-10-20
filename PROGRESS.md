@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 20 October 2026 (slice 7h: the hosted demo's gaps).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 20 October 2026 (slice 7i: the hosted demo's follow-up).
 
 ## What this is
 
@@ -113,7 +113,12 @@ decision-0025 meta test no longer counts the demo load as a route (D1), browser 
 demo set-up with GMP samples and the missing personas (E1, E2, E5), home tiles by role and kiosk reads checked for the
 right first (F1, F2). Decisions D-P7R-16 to 21 (RESUME.md); review residuals P7H-2 to 5. No migrations.
 
-Next: update the hosted demo to 7h and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
+**Slice 7i (20 October): the hosted demo's follow-up** (`docs/build-plan/phase-7/demo-followup-7h.md`). G1: on a demo
+installation every kiosk's demo badge reader offers every badge holder ("Works here", then "Other people"); G2 (P7H-4):
+a processing batch is planned against the ERP order clicked; P7H-5: a database refusal of a step entry is shown in its
+own words (the EBMR-TAB family no longer reads as a failed sign-in). No migrations.
+
+Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 
 ## How to work here
