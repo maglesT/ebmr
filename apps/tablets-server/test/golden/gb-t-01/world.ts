@@ -24,7 +24,6 @@ import { routes, type FormulaLineInput, type SignableAction, type SignatureCrede
 import { dropDatabase, openPersonaSession, personaOf, terminalOf, type SiteSeed } from '@ebmr/test-kit';
 import { setupInstallation } from '../../../src/cli/setup.ts';
 import { recordContentForSigning } from '../../../src/features/esig/content.ts';
-import { loadValidationContext } from '../../../src/features/designer/adapters/expressions.ts';
 import { GBT01_PRODUCT } from '../../../src/features/execution/seed-gb-t-01.ts';
 import type { RunReport } from '../../../src/analytics/runner.ts';
 import { startServer, type TestBrowser, type TestServer } from '../../support/harness.ts';
@@ -209,11 +208,7 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
   // Verification and the four signatures through the routes.
   const head = ok(await s('author').call(routes.designer.version, { params: { versionId } }), 'the version');
   const started = ok(await s('author').call(routes.designer.startVerification, { params: { versionId }, body: { baseRevision: head.revision } }), 'the start of the verification');
-  // The author's full verification (simulation with coverage, test vectors confirmed) of the content now in verification:
-  // no Phase 3 route records it (a residual); the real verification port of the designer, as the start's validator.
-  const { context } = await loadValidationContext(server.db.app, content);
-  const verification = lifecycle.createVerificationPort(context).verify(content, []);
-  await asPersona(server, s('author'), 'author', (c) => lifecycle.recordVerification(c, versionId, verification, [], personaOf(seed, 'author').personId));
+  // The start of the verification records the validator report, the sealed verification and the test vectors (D-P7R-16).
   const t = (transition: 'SUBMIT' | 'CHECK' | 'APPROVE' | 'REGULATORY_CONFIRM') => ({ kind: 'MBR_TRANSITION' as const, versionId, transition, baseRevision: started.revision });
   const outcome = (r: { ok: true } | { ok: false; error: unknown }): string => {
     if (r.ok) return 'ok';
