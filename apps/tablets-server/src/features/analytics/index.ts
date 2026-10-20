@@ -14,7 +14,7 @@ import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { codeIdentity, methodDefinitionProblems, parametersSha256 } from '../../analytics/catalog.ts';
 import type { AppContext } from '../../platform/context.ts';
-import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { permissionBeforeTap, withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import { peopleOf } from '../common/people.ts';
@@ -60,6 +60,8 @@ function jsonObject(text: string, what: string): Record<string, unknown> {
 /** Runs a read as the person, after the database checks the permission (ANALYTICS.VIEW unless another is named). */
 async function asViewer<T>(pool: pg.Pool, actor: Actor, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
+    // D-P7R-18 (F2): the read's permission before the kiosk's badge tap.
+    await permissionBeforeTap(pool, actor, ['ANALYTICS.VIEW']);
     return await withActorCommand(pool, actor, async (c) => {
       await c.query("select iam.require_permission('ANALYTICS.VIEW', '{}'::jsonb)");
       return work(c);

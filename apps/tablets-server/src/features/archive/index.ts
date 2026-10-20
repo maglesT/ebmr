@@ -18,7 +18,7 @@ import { commands, records, toDbContext, type ActorContext } from '@ebmr/kernel'
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withIdempotentActorCommand, withReadCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
@@ -428,13 +428,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return one(exportsWhere(app, pool, 'e.id = $1::uuid', [out.result]), 'the export');
     },
     inspection: async ({ actor }) => {
-      await withActorCommand(pool, actor(), (c) => c.query("select iam.require_permission('ARCHIVE.INSPECT', '{}'::jsonb)")).catch((e: unknown) => {
+      await withReadCommand(pool, actor(), ['ARCHIVE.INSPECT'], (c) => c.query("select iam.require_permission('ARCHIVE.INSPECT', '{}'::jsonb)")).catch((e: unknown) => {
         throw commands.asKernelError(e);
       });
       return { exports: await exportsWhere(app, pool, 'exists (select 1 from records.evidence_export_certification c2 where c2.export_id = e.id)', []) };
     },
     exportFile: async ({ params, actor }) => {
-      const r = await withActorCommand(pool, actor(), (c) => records.readEvidenceExport(c, params.exportId)).catch((e: unknown) => {
+      const r = await withReadCommand(pool, actor(), ['ARCHIVE.INSPECT'], (c) => records.readEvidenceExport(c, params.exportId)).catch((e: unknown) => {
         throw commands.asKernelError(e);
       });
       const label = (await pool.query<{ l: string }>('select subject_label as l from records.evidence_export where id = $1', [params.exportId])).rows[0]?.l ?? 'export';

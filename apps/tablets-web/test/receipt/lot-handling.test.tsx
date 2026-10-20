@@ -215,4 +215,25 @@ describe('the batch-number register', () => {
       batchNumber: 'EXT-0042', batchKind: 'PROCESSING', externalReference: 'SAP-PO-4711', productCode: 'PCM-500', productName: 'Paracetamol tablets 500 mg', edition: 'TABLETS', batchSize: '100000', batchSizeUnit: 'kg',
     });
   });
+
+  it('[IN-18] slice 7h (gap C1): lists the numbering rules; the master-data steward defines a rule with its format and reason; the issuer is not offered the form', async () => {
+    const rule = example('planning-batch-number-rules').rules[0];
+    const ui = renderOffice('/planning/batch-numbers', { role: 'MASTER_DATA_STEWARD' });
+    const rules = await screen.findByTestId('numbering-rules');
+    expect((await within(rules).findByTestId(`rule-${rule?.ruleCode ?? ''}`)).textContent).toContain(rule?.format ?? 'x');
+    const form = within(rules).getByTestId('form-Numbering rule');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Rule code' }), 'G-ATN');
+    await userEvent.click(within(form).getByRole('radio', { name: 'PROCESSING' }));
+    // A literal brace starts a userEvent key descriptor: [[ and {{ type the characters themselves.
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Format' }), 'A{{YY}{{SEQ:4}');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Product code (empty: every product of the site)' }), 'ATN-50');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Reason (e.g. the numbering SOP)' }), 'Numbering SOP-QA-017 rev 4');
+    await userEvent.click(within(form).getByRole('button', { name: 'Define the rule' }));
+    await waitFor(() => expect(ui.posts('/api/planning/batch-number-rules')).toHaveLength(1));
+    expect(ui.posts('/api/planning/batch-number-rules')[0]?.body).toEqual({ ruleCode: 'G-ATN', batchKind: 'PROCESSING', format: 'A{YY}{SEQ:4}', productCode: 'ATN-50', reason: 'Numbering SOP-QA-017 rev 4' });
+    cleanup();
+    renderOffice('/planning/batch-numbers', { role: 'BATCH_ISSUER' });
+    await screen.findByTestId('numbering-rules');
+    expect(screen.queryByTestId('form-Numbering rule')).toBeNull();
+  });
 });

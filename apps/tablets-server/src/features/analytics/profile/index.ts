@@ -11,7 +11,7 @@ import { commands } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../../platform/context.ts';
-import { withActorCommand } from '../../../platform/db/commands.ts';
+import { permissionBeforeTap, withActorCommand } from '../../../platform/db/commands.ts';
 import { bindRoutes } from '../../../platform/http/bind.ts';
 import { HttpRefusal } from '../../../platform/http/refusal.ts';
 import { candidatesOf, profileOf } from './reads.ts';
@@ -21,6 +21,8 @@ type Actor = Parameters<typeof withActorCommand>[1];
 /** Runs a read as the person, after the database checks ANALYTICS.VIEW (D-6A-1-20). */
 async function asViewer<T>(pool: pg.Pool, actor: Actor, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
+    // D-P7R-18 (F2): the read's permission before the kiosk's badge tap.
+    await permissionBeforeTap(pool, actor, ['ANALYTICS.VIEW']);
     return await withActorCommand(pool, actor, async (c) => {
       await c.query("select iam.require_permission('ANALYTICS.VIEW', '{}'::jsonb)");
       return work(c);

@@ -1,6 +1,6 @@
 /**
  * Plant master data (Phase 3 slice 6): areas, equipment classes, equipment, tooling sets, detectors, test pieces and
- * utilities of the site, each with its list and its definition form. Every rule is the database's (recipe-core 0400 to
+ * utilities of the site (and, slice 7h gap C4, the plant's product list), each with its list and its definition form. Every rule is the database's (recipe-core 0400 to
  * 0405, tablets 0871, 0872); a refusal is shown in the server's words.
  */
 import { useState } from 'react';
@@ -24,6 +24,19 @@ interface Kind {
 }
 
 const KINDS: Readonly<Record<string, Kind>> = {
+  // Slice 7h WP-C (gap C4): the plant's product list (plant.define_product; MASTERDATA.CHANGE; IN-26 (c)).
+  products: {
+    title: 'Products',
+    list: routes.plant.products,
+    key: 'products',
+    define: routes.plant.defineProduct,
+    columns: [['code', 'Code'], ['name', 'Name'], ['highlyPotent', 'Highly potent'], ['recordedBy', 'Recorded by'], ['recordedAt', 'Recorded']],
+    fields: [
+      { name: 'code', label: 'Code', kind: 'text', description: 'The product code of the master records and the ERP' },
+      { name: 'name', label: 'Name', kind: 'text' },
+      { name: 'highlyPotent', label: 'Highly potent', kind: 'yesno' },
+    ],
+  },
   areas: {
     title: 'Areas',
     list: routes.plant.areas,
@@ -141,6 +154,7 @@ export function cellText(v: unknown): string {
   if (typeof v === 'object') {
     const o = v as Record<string, unknown>;
     if (typeof o['text'] === 'string') return o['text'];
+    if (typeof o['legalName'] === 'string') return o['legalName'];
     if (typeof o['value'] === 'string' && typeof o['unit'] === 'string') return `${o['value']} ${o['unit']}`;
     return JSON.stringify(v);
   }

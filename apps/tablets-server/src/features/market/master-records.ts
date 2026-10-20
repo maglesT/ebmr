@@ -21,6 +21,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import type { Handlers } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
+import { REFERENCE_DOCUMENT_FORMAT, referenceHash, type ReferenceDocumentContent } from '../designer/reference-catalogue.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { recordSandboxRun, resultToImport, sandboxRunResults } from './sandbox-run-results.ts';
 
@@ -191,7 +192,7 @@ export async function ruleSetViews(app: AppContext, db: Db, where: { code?: stri
 
 type MasterRecordRoutes =
   | 'changeRecords' | 'addChangeRegulatory' | 'addChangeValidation' | 'versionReview' | 'recordPeriodicReview' | 'unlinkRiskAssessment' | 'qpRegister' | 'ruleSets'
-  | 'recordRuleSetVerification' | 'retireReferenceDocument'
+  | 'recordRuleSetVerification' | 'retireReferenceDocument' | 'recordReferenceDocument'
   | 'recordChangeRecord' | 'riskAssessments' | 'recordRiskAssessment' | 'linkRiskAssessment' | 'setDraftAttributes' | 'sandboxRunResults' | 'importSandboxRunResult';
 
 export function masterRecordHandlers(app: AppContext): Pick<Handlers<Routes['marketConfig']>, MasterRecordRoutes> {
@@ -313,6 +314,17 @@ export function masterRecordHandlers(app: AppContext): Pick<Handlers<Routes['mar
         return rows[0]?.id ?? '';
       });
       return { retirementId: result };
+    },
+    recordReferenceDocument: async ({ body, actor, idempotencyKey, requestHash }) => {
+      // Slice 7h WP-C (gap C2; DI-04): the ebmr.reference-document body the person described and its SHA-256 over canonical
+      // JSON (the seed's own builder, without the DEMO-ONLY notice); the database checks both again and records the version.
+      const content: ReferenceDocumentContent = { format: REFERENCE_DOCUMENT_FORMAT, formatVersion: 1, kind: body.kind, code: body.code, version: body.version, title: body.title, effectiveFrom: body.effectiveFrom, summary: body.summary };
+      const contentHash = referenceHash(content);
+      const { result } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const { rows } = await c.query<{ id: string }>('select tab.record_reference_document($1::jsonb, $2) as id', [JSON.stringify(content), contentHash]);
+        return rows[0]?.id ?? '';
+      });
+      return { documentId: typeof result === 'string' ? result : '', contentHash };
     },
   };
 }

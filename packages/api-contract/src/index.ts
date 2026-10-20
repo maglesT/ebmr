@@ -98,7 +98,7 @@ export * from './ns/access-governance.ts';
 export * from './ns/market-config.ts';
 export { CalibrationView, ChargeView, InstrumentCheckView, OccupancyView, PlantUseView, PressDischargeView, StepPlantView, ToolingInspectionView, ToolingIssueResultView, ToolingReturnView } from './ns/plant-floor.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
-export { BatchNumberView, PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
+export { BatchNumberRuleView, BatchNumberView, PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {
   FormulaChoiceView,
   FormulaLineInput,
@@ -116,6 +116,7 @@ export {
   EquipmentClassView,
   EquipmentView,
   PendingVerificationView,
+  ProductView,
   TestPieceView,
   ToolingSetView,
 } from './ns/plant.ts';

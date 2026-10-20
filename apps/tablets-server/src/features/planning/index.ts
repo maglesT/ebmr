@@ -11,14 +11,14 @@
  * the database's own views (recipe.packaging_orders, recipe.packaging_order_bulk): every reason shown is the database's.
  * The bulk issue itself is POST /api/batches/:batchId/bulk (recipe.issue_packaging_bulk).
  */
-import { routes, type BatchNumberView, type PackagingBulkView, type PackagingOrderView, type PlanningOrderView } from '@ebmr/api-contract';
+import { routes, type BatchNumberRuleView, type BatchNumberView, type PackagingBulkView, type PackagingOrderView, type PlanningOrderView } from '@ebmr/api-contract';
 import type { ActorContext, commands } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes, type Handlers } from '../../platform/http/bind.ts';
-import { peopleOf, personRef } from '../common/people.ts';
+import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { planGmpBatch } from '../execution/gmp-issue.ts';
 import { notFound } from '../execution/runs.ts';
 
@@ -65,7 +65,36 @@ async function batchNumber(db: Db, allocationId: string): Promise<BatchNumberVie
   return n;
 }
 
-type NumberRoutes = Pick<typeof routes.planning, 'batchNumbers' | 'registerExternalBatchNumber' | 'voidBatchNumber' | 'recoverBatchNumber'>;
+/**
+ * Phase 7 slice 7h (WP-C, gap C1; IN-18): the numbering rules of a site (site.batch_number_rule), or the one rule `ruleId`,
+ * newest first. Who defined each and when come from the row the database wrote.
+ */
+async function batchNumberRules(app: AppContext, db: Db, where: { site?: string; ruleId?: string }): Promise<BatchNumberRuleView[]> {
+  const { rows } = await db.query<{ id: string; rule_code: string; site_code: string; product_code: string | null; batch_kind: BatchNumberRuleView['batchKind']; format: string; site_zone: string; from_us: string; reason: string; by: string; at_us: string }>(
+    `select r.id::text, r.rule_code, r.site_code, r.product_code, r.batch_kind, r.format, r.site_zone, ${usOf('r.effective_from')} as from_us, r.reason,
+            r.created_by_person_id::text as by, ${usOf('r.recorded_at')} as at_us
+       from site.batch_number_rule r
+      where ($1::text is null or r.site_code = $1) and ($2::uuid is null or r.id = $2)
+      order by r.recorded_at desc, r.rule_code`,
+    [where.site ?? null, where.ruleId ?? null],
+  );
+  const people = await peopleOf(db, rows.map((r) => r.by));
+  return rows.map((r) => ({
+    ruleId: r.id,
+    ruleCode: r.rule_code,
+    siteCode: r.site_code,
+    productCode: r.product_code,
+    batchKind: r.batch_kind,
+    format: r.format,
+    siteZone: r.site_zone,
+    effectiveFrom: app.formatInstant(r.from_us),
+    reason: r.reason,
+    definedBy: personRef(people, r.by, 'MASTER_DATA_STEWARD'),
+    recordedAt: app.formatInstant(r.at_us),
+  }));
+}
+
+type NumberRoutes = Pick<typeof routes.planning, 'batchNumbers' | 'registerExternalBatchNumber' | 'voidBatchNumber' | 'recoverBatchNumber' | 'batchNumberRules' | 'defineBatchNumberRule'>;
 
 /** The register and the issuer's acts on it: each the person's own command; every rule and right is the database's. */
 function batchNumberHandlers(app: AppContext): Handlers<NumberRoutes> {
@@ -104,6 +133,32 @@ function batchNumberHandlers(app: AppContext): Handlers<NumberRoutes> {
         JSON.stringify({ ...identity(b), restore_event_id: b.restoreEventId, rule_code: b.ruleCode, serial: b.serial, batch_number: b.batchNumber, evidence_reference: b.evidenceReference }),
       ]);
       return batchNumber(pool, id);
+    },
+    batchNumberRules: async ({ requireSession }) => ({ rules: await batchNumberRules(app, pool, { site: requireSession().siteCode }) }),
+    defineBatchNumberRule: async (ctx) => {
+      const s = ctx.requireSession();
+      const b = ctx.body;
+      // DI-22: the person's reason is the command's as well as the rule's. The site and its zone are the session's (site
+      // services 0700 refuses a zone other than the site policy's).
+      const out = await withIdempotentActorCommand(pool, ctx.actor({ reasonCode: 'BATCH_NUMBER_RULE', reasonText: b.reason }), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) =>
+        (
+          await c.query<{ r: string }>('select site.define_batch_number_rule($1::jsonb)::text as r', [
+            JSON.stringify({
+              rule_code: b.ruleCode,
+              site_code: s.siteCode,
+              product_code: b.productCode ?? null,
+              batch_kind: b.batchKind,
+              format: b.format,
+              site_zone: app.siteZone.current(),
+              effective_from: b.effectiveFrom ?? null,
+              reason: b.reason,
+            }),
+          ])
+        ).rows[0]?.r ?? null,
+      );
+      const [rule] = await batchNumberRules(app, pool, { ruleId: typeof out.result === 'string' ? out.result : '' });
+      if (!rule) throw notFound('numbering rule');
+      return rule;
     },
   };
 }

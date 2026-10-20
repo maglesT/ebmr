@@ -147,8 +147,36 @@ const PF_STEP_PLANT = {
   containers: [{ containerId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c06', label: 'OC-B26-0001-0001', stage: 'BLENDING', netQuantity: '19.880', unit: 'kg', problem: null }],
   charges: [],
 };
+/** Phase 7 slice 7h (WP-C): a person and an instant of the examples below. */
+const STEWARD_EXAMPLE = { personId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e70', legalName: 'Kavita Rao', loginName: 'steward', role: 'MASTER_DATA_STEWARD' };
+const INSTANT_EXAMPLE = { us: '1792300000000000', text: '18 Oct 2026, 10:16 IST' };
+/** Phase 7 slice 7h (WP-C, gap C1): a numbering rule of the site (site services 0600). */
+const BATCH_NUMBER_RULE_EXAMPLE = {
+  ruleId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e71',
+  ruleCode: 'G-PCM',
+  siteCode: 'SITE-1',
+  productCode: 'PCM-500',
+  batchKind: 'PROCESSING' as const,
+  format: 'B{YY}-{SEQ:4}',
+  siteZone: 'Asia/Kolkata',
+  effectiveFrom: INSTANT_EXAMPLE,
+  reason: 'Numbering SOP-QA-017 rev 3',
+  definedBy: STEWARD_EXAMPLE,
+  recordedAt: INSTANT_EXAMPLE,
+};
+/** Phase 7 slice 7h (WP-C, gap C4): a product of the plant's product list (recipe-core 0400). */
+const PLANT_PRODUCT_EXAMPLE = { code: 'PCM-500', name: 'Paracetamol tablets 500 mg', highlyPotent: false, recordedBy: STEWARD_EXAMPLE, recordedAt: INSTANT_EXAMPLE };
 
 export const EXAMPLES = {
+  'planning-batch-number-rules': { schema: r.planning.batchNumberRules.response, data: { rules: [BATCH_NUMBER_RULE_EXAMPLE] }, routeId: r.planning.batchNumberRules.id },
+  'planning-define-rule': { schema: r.planning.defineBatchNumberRule.response, data: BATCH_NUMBER_RULE_EXAMPLE, routeId: r.planning.defineBatchNumberRule.id },
+  'plant-products': { schema: r.plant.products.response, data: { products: [PLANT_PRODUCT_EXAMPLE] }, routeId: r.plant.products.id },
+  'plant-define-product': { schema: r.plant.defineProduct.response, data: PLANT_PRODUCT_EXAMPLE, routeId: r.plant.defineProduct.id },
+  'market-record-reference-document': {
+    schema: r.marketConfig.recordReferenceDocument.response,
+    data: { documentId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e72', contentHash: 'a'.repeat(64) },
+    routeId: r.marketConfig.recordReferenceDocument.id,
+  },
   'meta-gmp': { schema: r.meta.get.response, data: metaGmp, routeId: r.meta.get.id },
   'meta-sandbox': { schema: r.meta.get.response, data: metaSandbox, routeId: r.meta.get.id },
   'session-kiosk': { schema: r.session.get.response, data: sessionKiosk, routeId: r.session.get.id },
