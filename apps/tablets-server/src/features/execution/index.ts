@@ -425,6 +425,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         batchSize: body.batchSize,
         // Phase 7 slice 7g (WP4; PR-47): a whole-batch reprocessing batch with the quality unit's authorised request.
         ...(body.reprocessingRequest !== undefined ? { reprocessingRequest: body.reprocessingRequest } : {}),
+        // Phase 7 slice 7i (G2, P7H-4): the order the planner chose; the database checks it (recipe.erp_order_problem).
+        ...(body.erpOrder !== undefined ? { erpOrder: body.erpOrder } : {}),
       });
     },
 

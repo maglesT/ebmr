@@ -150,6 +150,25 @@ async function planned(issuer: TestBrowser) {
 }
 
 describe('GMP batches on the GMP installation (slice 2b)', () => {
+  it('G2 (slice 7i, P7H-4): a processing batch planned from the second of two open orders is linked to that order; an unknown order or one that planned a batch already is refused by the database', async () => {
+    const issuer = await gmp.asPersona('issuer');
+    const erp = await openServiceSession(gmp.db, gmp.seed, 'erpInterface');
+    const first = await postOrder(gmp.db.app, erp, gmpMbr, BATCH_SIZE);
+    const second = await postOrder(gmp.db.app, erp, gmpMbr, BATCH_SIZE);
+    const body = { familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE };
+    expect(refusalOf(await issuer.call(routes.execution.planBatch, { body: { ...body, erpOrder: 'PO-NOT-THERE' } }))).toMatchObject({ code: 'EBMR-EXE-605', why: expect.stringMatching(/ERP order PO-NOT-THERE is not in the ERP stub/) as unknown });
+    const plannedOnSecond = valueOf(await issuer.call(routes.execution.planBatch, { body: { ...body, erpOrder: second } }));
+    const cards = valueOf(await issuer.call(routes.planning.orders)).orders;
+    expect(cards.find((o) => o.orderNo === second)?.batches.map((b) => b.batchNumber)).toEqual([plannedOnSecond.batchNumber]);
+    expect(cards.find((o) => o.orderNo === first)?.batches ?? []).toEqual([]);
+    const { rows } = await gmp.db.admin.query<{ order_no: string }>('select order_no from recipe.batch_erp_order where batch_id = $1', [plannedOnSecond.batchId]);
+    expect(rows.map((r) => r.order_no)).toEqual([second]);
+    expect(refusalOf(await issuer.call(routes.execution.planBatch, { body: { ...body, erpOrder: second } }))).toMatchObject({ code: 'EBMR-EXE-605', why: expect.stringMatching(/planned a batch already/) as unknown });
+    // The first order stays open and is planned when named.
+    const plannedOnFirst = valueOf(await issuer.call(routes.execution.planBatch, { body: { ...body, erpOrder: first } }));
+    expect((await gmp.db.admin.query<{ order_no: string }>('select order_no from recipe.batch_erp_order where batch_id = $1', [plannedOnFirst.batchId])).rows[0]?.order_no).toBe(first);
+  }, 120_000);
+
   it('[DI-05][INV-18][INV-01][INV-02] a GMP server plans a batch from the effective MBR version with a register number, issues it under the issuer\'s ISSUED signature with the issuer\'s reason, and an operator runs its first step; no view carries a watermark', async () => {
     const issuer = await gmp.asPersona('issuer');
     const plan = await planned(issuer);

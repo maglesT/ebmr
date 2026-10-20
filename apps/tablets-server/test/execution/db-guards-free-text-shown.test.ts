@@ -166,18 +166,22 @@ async function businessEntry(d: RunDriver, chainKey: string, message: string, de
  * its digits.
  */
 async function recordHolding(runId: string, text: string, standalone = false): Promise<Record<string, number>> {
-  const [op, pattern] = standalone ? ['~', `(^|[^0-9A-Fa-f])${text}($|[^0-9A-Fa-f])`] : ['like', `%${text}%`];
+  const pattern = standalone ? `(^|[^0-9A-Fa-f])${text}($|[^0-9A-Fa-f])` : `%${text}%`;
+  // A standalone number is looked for outside identifiers: a UUID's four-digit group (e.g. -2409-) is no text a person
+  // wrote, and matching it made the check fail at random.
+  const has = (expr: string): string =>
+    standalone ? `regexp_replace(${expr}, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', '', 'gi') ~ $2` : `${expr} like $2`;
   const count = async (sql: string) => Number((await sbx.db.admin.query<{ n: string }>(sql, [runId, pattern])).rows[0]?.n ?? '0');
   return {
-    rows: await count(`select count(*)::text as n from recipe.execution_command where batch_id = $1 and (command::text ${op} $2 or evidence::text ${op} $2 or coalesce(refusal::text, '') ${op} $2)`),
-    events: await count(`select count(*)::text as n from recipe.execution_event where batch_id = $1 and event::text ${op} $2`),
-    state: await count(`select count(*)::text as n from recipe.execution_state where batch_id = $1 and state::text ${op} $2`),
+    rows: await count(`select count(*)::text as n from recipe.execution_command where batch_id = $1 and (${has('command::text')} or ${has('evidence::text')} or ${has("coalesce(refusal::text, '')")})`),
+    events: await count(`select count(*)::text as n from recipe.execution_event where batch_id = $1 and ${has('event::text')}`),
+    state: await count(`select count(*)::text as n from recipe.execution_state where batch_id = $1 and ${has('state::text')}`),
     contents: await count(`select count(*)::text as n from (
        select content from recipe.execution_step_content where batch_id = $1 union all select content from recipe.execution_stage_content where batch_id = $1
        union all select content from recipe.execution_exception_content where batch_id = $1 union all select content from recipe.execution_point_content where batch_id = $1) x
-      where x.content::text ${op} $2`),
+      where ${has('x.content::text')}`),
     audit: await count(`select count(*)::text as n from kernel.audit_event e
-      where (e.chain_key = 'batch:' || $1 or e.chain_key ~ ('^(esig_challenge:|esig_signature:)?batch_(step|stage|exception|point):' || $1 || ':')) and (e.payload::text ${op} $2 or e.chain_key ${op} $2)`),
+      where (e.chain_key = 'batch:' || $1 or e.chain_key ~ ('^(esig_challenge:|esig_signature:)?batch_(step|stage|exception|point):' || $1 || ':')) and (${has('e.payload::text')} or ${has('e.chain_key')})`),
   };
 }
 

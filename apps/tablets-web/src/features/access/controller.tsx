@@ -22,6 +22,7 @@ import type { TapRequest } from '../../app/ports.tsx';
 import { apiState } from '../../api/client.ts';
 import { buildAttribution, keepAliveCall, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
 import { Latest, Vault } from './holders.ts';
+import { demoBadgesOf } from '../session/demo-badges.ts';
 
 export const SESSION_POLL_MS = 15_000;
 /** The warning before the inactivity lock opens this many seconds before it (WCAG 2.2.1 asks at least 20). */
@@ -74,8 +75,7 @@ function useDemoBadges(boot: Boot): readonly identity.DemoBadge[] {
     let live = true;
     void api.call(routes.session.demoDevices).then((r) => {
       if (!live || !r.ok) return;
-      const device = r.value.devices.find((d) => d.deviceCode === code);
-      setBadges((device?.personas ?? []).flatMap((p) => (p.badgeUid ? [{ legalName: p.legalName, badgeUid: p.badgeUid }] : [])));
+      setBadges(demoBadgesOf(r.value.devices.find((d) => d.deviceCode === code)));
     });
     return () => {
       live = false;

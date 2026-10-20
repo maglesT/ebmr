@@ -1,6 +1,14 @@
 /** Plain-language guidance for sign-in, secrets and devices (C0). */
 import type { GuidanceEntry } from '../../platform/http/guidance.ts';
 
+const SIGN_IN_INCOMPLETE: GuidanceEntry = {
+  status: 409,
+  kind: 'STALE',
+  whatHappened: 'The sign-in could not be completed.',
+  whatYouCanDo: ['Sign in again.'],
+  whoCanHelp: [],
+};
+
 export const SESSION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-IAM-140': {
     status: 401,
@@ -81,11 +89,17 @@ export const SESSION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatYouCanDo: ['Sign out and in again to work in another role.'],
     whoCanHelp: [],
   },
+  // The session-binding refusals of tab (0001, 0480): the sign-in itself did not complete.
+  ...Object.fromEntries(['EBMR-TAB-010', 'EBMR-TAB-011', 'EBMR-TAB-012', 'EBMR-TAB-014', 'EBMR-TAB-016', 'EBMR-TAB-021'].map((code) => [code, SIGN_IN_INCOMPLETE])),
+  // Phase 7 slice 7i (P7H-5): every other EBMR-TAB code is a rule of the tablets edition (a block's guard on a step entry,
+  // a read's access check), not a sign-in. Before, this family fell to the sign-in entry above, so a database refusal of a
+  // step entry read "The sign-in could not be completed" and the floor took it for a stale run. Now it is a refusal in
+  // its own words: `why` is the database's message and the code is shown with it.
   'EBMR-TAB-*': {
-    status: 409,
-    kind: 'STALE',
-    whatHappened: 'The sign-in could not be completed.',
-    whatYouCanDo: ['Sign in again.'],
-    whoCanHelp: [],
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The system refused this action. Nothing was saved.',
+    whatYouCanDo: ['Read the reason below: it names the rule that refused it. Correct the entry, or ask for help if the reason is not clear.'],
+    whoCanHelp: ['The shift supervisor'],
   },
 };

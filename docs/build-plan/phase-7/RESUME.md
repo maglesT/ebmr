@@ -180,6 +180,20 @@ Decisions (owner rule: functionality first, least strict option within the hard 
 - D-P7R-21 (D2): the G-21 step screen shows the record's coding (what the coder must print) beside the operator's own
   reading of the specimen, as a printed-line check normally does; the database still compares the reading (IN-16).
 
+## Slice 7i (20 October 2026): the hosted demo's follow-up after 7h
+
+From `demo-followup-7h.md`, on branch `phase-7/slice-7i`; no migrations.
+- G1: `session.demoDevices` adds `otherPersonas` to each shop-floor terminal (every badge holder of the installation
+  not at home there; `features/session/demo-devices.ts`); the demo badge reader groups them "Works here" and "Other
+  people". The badge field's autofill and paste refusal (BADGE-AUTOFILL) is unchanged; the server decides at sign-in.
+  `gmp-kiosk-batch.spec.ts` signs the floor people in with the Tap buttons (`signIn.kiosk(..., 'demoButton')`);
+  `phase7/demo-badge-reader.spec.ts` signs in on KIOSK-BLEND-1 by pressing a button.
+- G2 (P7H-4): `execution.planBatch` takes `erpOrder`; the plan form sends the order card's number; the database checks
+  it (recipe.erp_order_problem); without it the oldest open order is taken as before. No user-guide caveat is needed.
+- P7H-5: the session's `EBMR-TAB-*` guidance (409 STALE, "The sign-in could not be completed") caught every block
+  guard's EBMR-TAB code; it now applies to the session-binding codes only, and the family is a 422 refusal whose `why`
+  is the database's message. The floor's stale notice also shows the refusal's message and code.
+
 ## After Phase 7
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,

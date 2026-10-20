@@ -25,6 +25,7 @@ import { useBoot } from '../../app/boot.tsx';
 import { EDITION } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { demoBadgesOf } from './demo-badges.ts';
 
 /** What the screen shows during a first-login change (no secret). */
 interface ChangeState {
@@ -377,7 +378,7 @@ export function KioskLogin() {
       if (r.ok) setDemo(r.value.devices.find((d) => d.deviceCode === boot.device?.deviceCode) ?? null);
     });
   }, [boot.meta?.demo, boot.device?.deviceCode]);
-  const demoBadges = useMemo(() => (demo?.personas ?? []).flatMap((p) => (p.badgeUid ? [{ legalName: p.legalName, badgeUid: p.badgeUid }] : [])), [demo]);
+  const demoBadges = useMemo(() => demoBadgesOf(demo), [demo]);
 
   // The ui-kit BadgePrompt hands over a badge UID only (a reader's burst, or a demo badge): text that cannot be a badge
   // never reaches the sign-in (review F56, T1).

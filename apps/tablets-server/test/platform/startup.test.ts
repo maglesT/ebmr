@@ -33,6 +33,7 @@ import {
 } from '@ebmr/test-kit';
 import { withChangeRecord } from '../../../../packages/kernel/test/support/change-record.ts';
 import { buildApp } from '../../src/app.ts';
+import { demoDevicesOf } from '../../src/cli/installation.ts';
 import { ConfigError, parseConfig } from '../../src/config.ts';
 import { openSweeperActor, startSweeper } from '../../src/features/execution/sweeper.ts';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
@@ -124,6 +125,44 @@ describe('demo device picker (decision D6)', () => {
       if (r.ok) expect(r.value.devices).toEqual([]);
       const meta = await server.browser().call(routes.meta.get);
       expect(meta.ok && meta.value).toMatchObject({ installation: 'SANDBOX', demo: true, watermark: { text: 'TEST, NOT GMP' } });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('G1 (slice 7i): each kiosk offers its own badge holders first, then every other badge holder of the installation', async () => {
+    const keysFile = join(mkdtempSync(join(tmpdir(), 'ebmr-demo-keys-')), 'gmp-demo-devices.json');
+    const server = await startServer('GMP', {
+      demoMarker: true,
+      env: { EBMR_DEMO: '1', EBMR_DEMO_KEYS_FILE: keysFile },
+      beforeStart: (_db, seed) => {
+        writeFileSync(keysFile, JSON.stringify(demoDevicesOf(seed)));
+        return Promise.resolve();
+      },
+    });
+    try {
+      const r = await server.browser().call(routes.session.demoDevices);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const devices = r.value.devices;
+      const badged = new Set(devices.flatMap((d) => d.personas.filter((p) => p.badgeUid).map((p) => p.loginName)));
+      expect(badged.size).toBeGreaterThan(1);
+      const kiosks = devices.filter((d) => d.deviceClass === 'SHARED' || d.deviceClass === 'GRADE_A_B');
+      expect(kiosks.length).toBeGreaterThan(1);
+      for (const k of kiosks) {
+        const here = k.personas.map((p) => p.loginName);
+        const others = (k.otherPersonas ?? []).map((p) => p.loginName);
+        // Works here plus Other people is every badge holder, once; nobody is in both groups; nobody without a badge.
+        expect(others.filter((n) => here.includes(n))).toEqual([]);
+        expect(new Set([...here.filter((n) => badged.has(n)), ...others])).toEqual(badged);
+        expect(others.length).toBe(new Set(others).size);
+        expect((k.otherPersonas ?? []).every((p) => p.badgeUid !== null)).toBe(true);
+      }
+      // A kiosk with no home persons (KIOSK-BLEND-1 on the hosted demo) still offers everyone with a badge.
+      const someoneElsewhere = kiosks.find((k) => (k.otherPersonas ?? []).length > 0);
+      expect(someoneElsewhere).toBeDefined();
+      // Office terminals sign in with a password: no badge reader, no Other people.
+      for (const d of devices.filter((x) => x.deviceClass === 'PERSONAL')) expect(d.otherPersonas).toBeUndefined();
     } finally {
       await server.close();
     }
