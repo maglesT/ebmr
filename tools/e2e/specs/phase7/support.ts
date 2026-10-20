@@ -44,15 +44,15 @@ async function clearance(page: Page, who: SeededPersona): Promise<void> {
   await signPrimary(page, 'Sign as performed', who);
 }
 
-/** Every equipment of an equipment-status step: its label and checks, each saved with a tap; then PERFORMED. */
-async function equipmentStatus(page: Page, who: SeededPersona, labelPrefix: string): Promise<void> {
+/** The equipment of an equipment-status step (the first only, or every one): label and checks, each saved with a tap; then PERFORMED. */
+async function equipmentStatus(page: Page, who: SeededPersona, labelPrefix: string, every: boolean): Promise<void> {
   await startStep(page, who);
   const form = page.getByTestId('form-EQUIPMENT_STATUS');
-  const count = await form.getByRole('radiogroup', { name: 'Equipment' }).getByRole('radio').count();
+  const count = every ? await form.getByRole('radiogroup', { name: 'Equipment' }).getByRole('radio').count() : 1;
   for (let i = 0; i < count; i += 1) {
     await choose(form.getByRole('radiogroup', { name: 'Equipment' }).getByRole('radio').nth(i));
     const label = form.getByRole('textbox', { name: 'Status label' });
-    await label.fill(`${labelPrefix}-${String(i + 1)}`);
+    await label.fill(`${labelPrefix}-${String(i + 1).padStart(2, '0')}`);
     await label.press('Enter');
     for (const group of await form.getByRole('group', { name: 'Checks' }).getByRole('radiogroup').all()) await choose(group.getByRole('radio', { name: 'Yes', exact: true }));
     await saveForm(page, form, who);
@@ -122,7 +122,7 @@ export async function runTestBatch(e2e: E2eWorld, pages: SandboxPages, packageHa
   await signPrimary(disp, 'Verify', verifier1);
   await switchUser(disp, operator1);
   await openStep(disp, sbx, runId, 'p-disp-bal@', 'Balance status');
-  await equipmentStatus(disp, operator1, `TEST-LBL-BAL-${batchNumber}`);
+  await equipmentStatus(disp, operator1, 'TEST-LBL-BAL', false);
   await openStep(disp, sbx, runId, 'p-disp-sop@', 'Read the dispensing SOP');
   await startStep(disp, operator1);
   const ack = disp.getByTestId('form-ACKNOWLEDGE');
@@ -190,7 +190,7 @@ export async function runTestBatch(e2e: E2eWorld, pages: SandboxPages, packageHa
   await signPrimary(blend, 'Verify', verifier2);
   await switchUser(blend, operator2);
   await openStep(blend, sbx, runId, 'p-blend-status@', 'status');
-  await equipmentStatus(blend, operator2, `TEST-LBL-BLEND-${batchNumber}`);
+  await equipmentStatus(blend, operator2, 'TEST-LBL-BLEND', true);
   await openStep(blend, sbx, runId, 'p-blend-charge@', 'Charge');
   await startStep(blend, operator2);
   const charge = blend.getByTestId('form-CHARGE_CONTAINER');
