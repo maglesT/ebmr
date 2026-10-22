@@ -370,6 +370,8 @@ test('[INV-40][PR-34][PR-23][PR-20] R3.2 to R3.9, R3.11: the dispensing stage on
 
     await evidence.step('QA dispositions the stage\'s open exceptions; R3.9: the sign-off lists DISP-1 still in use and the supervisor ends it there', 'The room\'s use is ended from the sign-off dialog; the stage is signed off', async () => {
       for (;;) {
+        // The overview read afresh (the page's reload, as a person does when a list looks stale), then the batch.
+        await page.reload();
         await run(page, batch);
         const marked = page.getByRole('navigation', { name: 'Steps' }).getByRole('button').filter({ hasText: / \d+ open$/ });
         if ((await marked.count()) === 0) break;
