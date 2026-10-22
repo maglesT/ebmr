@@ -74,6 +74,7 @@ tests:
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-06] raises a change record with its number, title, class, process impact and validation reference"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-07][PR-06] sets the draft's change record, effective-from and review due; records a risk assessment and links a recorded one for listed elements"
   - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from the template: change record, risk assessment, draft attributes, the sandbox run returned as evidence, Prepared, Checked, the regulatory confirmation, Approved and its market authorisation, by different people and with nothing arranged in the database; a labelling specimen approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
 clauses:
   - clause: "A direct edit of an Effective master is impossible."
     tests:

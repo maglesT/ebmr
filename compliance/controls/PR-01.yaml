@@ -49,6 +49,7 @@ tests:
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01] a blank start keeps the header and the bill of materials and leaves the steps to the author; the template path still refuses a formula that is not the template's"
   - "apps/tablets-server/test/master-data/formula-target.test.ts > formula target and batch sizes (slice 7j) > [PR-01] the target tablet weight and the further batch sizes are written with the version, signed with it and given to \"Choose a product\""
   - "apps/tablets-server/test/master-data/formula-target.test.ts > formula target and batch sizes (slice 7j) > [PR-01] a further batch size equal to the formula's, listed twice or not a whole number is refused, and the version with it is not written"
+  - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:
