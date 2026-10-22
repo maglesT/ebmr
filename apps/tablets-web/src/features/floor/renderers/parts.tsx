@@ -571,6 +571,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
     return (
       <section className={wcls('formCard')} aria-label={form.title} data-testid={`form-${form.kind}`} data-closed="true">
         <h3 className={wcls('formTitle')}>{form.title}</h3>
+        {form.kind === 'CONTAINER_WEIGHING' ? <StillToWeigh view={view} /> : null}
         <EntryStatus call={cmd} />
         {cmd.state !== 'saved' || cmd.savedNoteExpired ? <p className={wcls('muted')}>{st('form.savedListed')}</p> : null}
         {expectsSeveral(form.kind) ? (
