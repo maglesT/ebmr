@@ -20,7 +20,7 @@ import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import {
   act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, openContainer, performAndCheck, plusOne, primary,
-  reviewRecord, save, saveBlock, sign, startStep, statusStep, step, verifyCleanings,
+  reviewRecord, save, saveBlock, sign, statusStep, step, verifyCleanings,
 } from './kiosk-batch-support.ts';
 import { begin, done, entryNaming, mark, marked, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
 
@@ -176,7 +176,7 @@ test('[DI-30][INV-40][PR-20][IN-13] route W 2: dispensing on KIOSK-DISP-1, the a
   await evidence.step('TB-01: the potency-adjusted quantities calculated from the active\'s lot, the active and the compensating cellulose weighed by the dispenser and verified', 'The calculation and two weighings saved; the step is verified', async () => {
     await as(page, dispenser);
     await step(page, e2e, batchId, 'p-disp-api@', ANY);
-    await startStep(page, dispenser);
+    await begin(page, dispenser);
     const potency = page.getByTestId('potency-calculation');
     await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill('RTW-API-001');
     await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
@@ -189,7 +189,7 @@ test('[DI-30][INV-40][PR-20][IN-13] route W 2: dispensing on KIOSK-DISP-1, the a
   await evidence.step('The other materials weighed by the dispenser (typed by hand) and verified', 'Seven weighings saved; the step is verified', async () => {
     await as(page, dispenser);
     await step(page, e2e, batchId, 'p-disp-exc@', ANY);
-    await startStep(page, dispenser);
+    await begin(page, dispenser);
     for (const [i, [material, quantity, lot]] of OTHERS.entries()) await weigh(page, dispenser, material, quantity, lot, i);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
@@ -197,7 +197,7 @@ test('[DI-30][INV-40][PR-20][IN-13] route W 2: dispensing on KIOSK-DISP-1, the a
   }, page);
   await evidence.step('The dispensing reconciliation, QA\'s dispositions and the stage sign-off; the room released', 'The dispensing stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-disp-recon@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-disp-recon@', ANY, op);
@@ -227,7 +227,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
   }, page);
   await evidence.step('TB-03: the binder solution prepared (its use-by timer starts)', 'Performed and verified', async () => {
     await step(page, e2e, batchId, 'p-binder@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'PREPARED', op, { Quantity: { Value: '7.200', Unit: 'kg' }, Appearance: 'COMPLIES' });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -244,7 +244,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
   }, page);
   await evidence.step('TB-04: wet massing with the binder addition naming the preparation, the granulator\'s power keyed by hand (manual fallback), the time end point', 'Performed and verified (the keyed value needs the second person)', async () => {
     await step(page, e2e, batchId, 'p-gran@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTW-GRAN', 'Recipe version': '1' });
     await saveBlock(page, 'MASSING_START', op);
     await entryNaming(page, 'BINDER_ADDITION', op, 'Preparation', /\(EN-\d+, /, { Quantity: { Value: '7.200', Unit: 'kg' } });
@@ -257,7 +257,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
   await evidence.step('TB-05: one drying iteration with the filter bag checks, a dryer value keyed by hand, the LOD; the iteration ended', 'Performed and witnessed; the loop exits', async () => {
     const k = 'p-dry@L-DRY=1';
     await step(page, e2e, batchId, k, ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'BAG_CHECK', op, { Bag: 'FBD-01-BAG-1', When: 'BEFORE', Result: 'INTACT', 'New bag': 'Yes' });
     await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTW-DRY', 'Recipe version': '1' });
     await saveBlock(page, 'DRYING_START', op);
@@ -275,7 +275,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
   }, page);
   await evidence.step('TB-02: the dried granules milled through screen SCR-RW-10, checked intact before and after use', 'Performed and verified', async () => {
     await step(page, e2e, batchId, 'p-mill@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'SCREEN_CHECK', op, { Screen: 'SCR-RW-10', Aperture: { Value: '1.0', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
     await entry(page, 'MATERIAL_PASS', op, { Screen: 'SCR-RW-10', Material: 'Dried granules', 'Quantity in': { Value: '77.300', Unit: 'kg' }, 'Quantity out': { Value: '77.150', Unit: 'kg' }, Oversize: { Value: '0.150', Unit: 'kg' }, 'Foreign matter': 'No' });
     await entry(page, 'SCREEN_CHECK', op, { Screen: 'SCR-RW-10', Aperture: { Value: '1.0', Unit: 'mm' }, When: 'AFTER', Result: 'INTACT' });
@@ -284,7 +284,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
   }, page);
   await evidence.step('The dried granules into a verified container; the granulation yield; QA\'s dispositions and the stage sign-off', 'The granulation stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-gran-out@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     const out = page.getByTestId('form-OUTPUT_CONTAINER');
     await choose(out.getByRole('radiogroup', { name: 'Intermediate' }).getByRole('radio').first());
     await out.getByRole('textbox', { name: 'Tare (typed by hand)' }).fill('1.000');
@@ -297,7 +297,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
     saveRoute(e2e, ROUTE, s);
     await closeTyped(page, base, batchId, label, '77.150', op, verifier);
     await step(page, e2e, batchId, 'p-gran-yield@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-gran-yield@', ANY, op);
@@ -337,14 +337,14 @@ test('[PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rewo
     await act(page, box.getByRole('button', { name: 'Choose the branch' }), supervisor);
     await expect(box.getByText(/^Branch chosen: /)).toBeVisible();
     await as(page, op);
-    await startStep(page, op);
+    await begin(page, op);
     await field(page, 'recAdded', '0.000', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
   await evidence.step('Blending and lubrication on the real clock within the validated times', 'Blend 65 s (60 to 180 s), lubrication 35 s (30 to 120 s); performed and verified', async () => {
     await step(page, e2e, batchId, 'p-blend@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await saveBlock(page, 'BLEND_START', op);
     await page.waitForTimeout(65_000);
     await saveBlock(page, 'BLEND_END', op);
@@ -360,7 +360,7 @@ test('[PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rewo
   }, page);
   await evidence.step('The blend into a container whose typed net a second person verifies; the yield, QA\'s dispositions and the stage sign-off; the blender and the room released', 'The blending stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-blend-out@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     const out = page.getByTestId('form-OUTPUT_CONTAINER');
     await choose(out.getByRole('radiogroup', { name: 'Intermediate' }).getByRole('radio').first());
     await out.getByRole('textbox', { name: 'Tare (typed by hand)' }).fill('1.000');
@@ -373,7 +373,7 @@ test('[PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rewo
     saveRoute(e2e, ROUTE, s);
     await closeTyped(page, base, batchId, label, '80.300', op, verifier);
     await step(page, e2e, batchId, 'p-blend-yield@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-blend-yield@', ANY, op);
@@ -412,7 +412,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
   await evidence.step('TB-09: the tooling set inspected item by item and issued to the press', 'Performed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-tool@')) return;
     await step(page, e2e, batchId, 'p-tool@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     const panel = page.getByTestId('plant-tooling');
     const pickSet = panel.getByRole('radiogroup', { name: 'Tooling set' });
     if ((await pickSet.count()) > 0) await choose(pickSet.getByRole('radio', { name: /^TS-RTW/ }).first());
@@ -431,7 +431,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
   await evidence.step('TB-10: the press set up with its tooling, the pre-use checklist, the hopper charged with the blend container, the first-off approved', 'Performed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-setup@')) return;
     await step(page, e2e, batchId, 'p-setup@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     const panel = page.getByTestId('plant-press-setup');
     await panel.getByRole('button', { name: /^Set up PRESS-01 with set / }).click();
     await saveBlock(page, 'PRESS_SETUP', op);
@@ -446,7 +446,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     if (await done(page, e2e, batchId, 'p-run@')) return;
     const run = async () => step(page, e2e, batchId, 'p-run@', ANY);
     await run();
-    await startStep(page, op);
+    await begin(page, op);
     await saveBlock(page, 'RUN_START', op, async (f) => {
       const press = f.getByRole('textbox', { name: 'Press' });
       if ((await press.count()) > 0) await press.fill('PRESS-01');
@@ -473,7 +473,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
   await evidence.step('TB-12, TB-13, TB-14: the cores\' group weight on the balance, thickness and breaking force on the tester, friability on the friabilator (keyed by hand: verified)', 'Three test steps performed and verified', async () => {
     if (!(await done(page, e2e, batchId, 'p-ipc-wt@'))) {
       await step(page, e2e, batchId, 'p-ipc-wt@', ANY);
-      await startStep(page, op);
+      await begin(page, op);
       await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-01', Capture: 'MANUAL', 'Group weight': '8203.0' });
       await performAndCheck(page, op, verifier, op);
       await completed(page);
@@ -484,14 +484,14 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     await step(page, e2e, batchId, 'p-ipc-fri@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'FRIABILITY_RUN', op, { Instrument: 'FRB-01', Capture: 'MANUAL', Tablets: '16', 'Initial mass': '6.560', 'Final mass': '6.540', Rotations: '100', Rpm: '25.0', Broken: 'No' });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
   await evidence.step('TB-09 tooling returned and inspected; the compression yield; QA approves the cores for coating (H-COAT); the stage signed off', 'H-COAT approved; the compression stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-tool-ret@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     const issue = page.locator('[data-testid^="tooling-issue-"]');
     set = ((await issue.getAttribute('data-testid')) ?? '').replace('tooling-issue-', '');
     await issue.getByRole('textbox', { name: /^Strokes read from the press/ }).fill('197800');
@@ -504,7 +504,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     await step(page, e2e, batchId, 'p-comp-yield@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     for (const [item, v] of [['compGood', '79.500'], ['compResidue', '0.400'], ['compRejects', '0.300']] as const) await field(page, item, v, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -553,12 +553,12 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
   await evidence.step('TB-03: the enteric suspension prepared; TB-18 cores: the room, the pan load and the core sample', 'Both steps performed and checked', async () => {
     if (await done(page, e2e, batchId, 'p-cores@')) return;
     await step(page, e2e, batchId, 'p-susp@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'PREPARED', op, { Quantity: { Value: '12.000', Unit: 'kg' }, Appearance: 'COMPLIES' });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     await step(page, e2e, batchId, 'p-cores@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'ROOM_CHECK', op, { 'Filtered air': 'Yes', Temperature: '23.0', Humidity: '45' });
     await entry(page, 'PAN_LOAD', op, { Quantity: { Value: '79.500', Unit: 'kg' } });
     await entry(page, 'CORE_SAMPLE', op, { Instrument: 'BAL-COAT-01', Weighing: 'GROUP', Count: '20', Total: '8.2000', Unit: 'g' });
@@ -569,7 +569,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     if (await done(page, e2e, batchId, 'p-coat@L-COAT=1')) return;
     const k = 'p-coat@L-COAT=1';
     await step(page, e2e, batchId, k, ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTW-COAT', 'Recipe version': '1' });
     await saveBlock(page, 'SPRAY_START', op);
     for (const [tag, v, unit] of COATER) await manualValue(page, 'ACTUAL', op, tag, v, unit);
@@ -585,7 +585,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
   await evidence.step('The coated tablets into a container whose typed net a second person verifies', 'The coated tablets\' container is closed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-coat-out@')) return;
     await step(page, e2e, batchId, 'p-coat-out@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     const out = page.getByTestId('form-OUTPUT_CONTAINER');
     await choose(out.getByRole('radiogroup', { name: 'Intermediate' }).getByRole('radio').first());
     await out.getByRole('textbox', { name: 'Tare (typed by hand)' }).fill('1.000');
@@ -601,7 +601,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
   await evidence.step('TB-15: the acid stage (no unit disintegrated in its full time), then the buffer stage (every unit disintegrated in time), on the disintegration tester', 'Performed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-dt@')) return;
     await step(page, e2e, batchId, 'p-dt@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'DT_START', op, { Instrument: 'DT-01', Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'ACID' });
     await page.waitForTimeout(62_000);
     await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'No' })) });
@@ -613,7 +613,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
   }, page);
   await evidence.step('The coating weight gain of the batch, QA\'s dispositions and the stage sign-off; the coater and the room released', 'The coating stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-coat-gain@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-coat-gain@', ANY, op);
@@ -684,7 +684,7 @@ test('[PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 
   await evidence.step('TB-20: the 100 % sort measured, its result with the defects and the reject containers picked from the batch\'s containers, the AQL; the accepted net', 'Performed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-insp@')) return;
     await step(page, e2e, batchId, 'p-insp@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await saveBlock(page, 'INSPECTION_START', op);
     await page.waitForTimeout(5_000);
     await saveBlock(page, 'INSPECTION_END', op);
@@ -718,12 +718,12 @@ test('[PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 
   }, page);
   await evidence.step('The rejects destroyed with a witness; the yield; QA releases the bulk for packing (H-PACK); the stage signed off; a 1,000-tablet bulk container', 'H-PACK approved; the inspection stage is signed off; the bulk container is closed and verified', async () => {
     await step(page, e2e, batchId, 'p-destroy@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'DISPOSAL', op, { Category: 'DESTRUCTION', Material: 'Coated tablets rejected at inspection', 'Batch coded': 'No', Quantity: { Value: '0.180', Unit: 'kg' }, Container: s.containers?.['destroyed'] ?? '', Method: 'Incineration' });
     await performAndCheck(page, op, verifier, op, 'Witness');
     await completed(page);
     await step(page, e2e, batchId, 'p-insp-yield@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     await holdPoint(page, e2e, batchId, 'H-PACK@', qa);
@@ -836,7 +836,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     if (await done(page, e2e, orderId, 'p-pk-film@')) return;
     await as(page, dispenser);
     await step(page, e2e, orderId, 'p-pk-film@', ANY);
-    await startStep(page, dispenser);
+    await begin(page, dispenser);
     await weigh(page, dispenser, 'MAT-ALU-CF', '0.500', 'RTW-ACF-001', 0);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
@@ -844,7 +844,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
   if (!marked(s, 'parallel-started')) {
     for (const k of ['p-g21@', 'p-tb21c@', 'p-tb22@', 'p-tb24@', 'p-pk-destroy@']) {
       await step(page, e2e, orderId, k, ANY);
-      await startStep(page, op);
+      await begin(page, op);
     }
     mark(e2e, ROUTE, s, 'parallel-started');
   }
@@ -880,7 +880,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
   await evidence.step('TB-21 sealing run (values keyed by hand, defect checks), TB-22 leak tests at start and end, TB-24 cartons, examinations and the shipper on an SSCC', 'The run, the leak tests and cartoning recorded', async () => {
     if (marked(s, 'run-recorded')) return;
     await step(page, e2e, orderId, 'p-tb21@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await entry(page, 'RUN_START', op, { Machine: 'CFORM-01' });
     await step(page, e2e, orderId, 'p-tb22@', ANY);
     await entry(page, 'RUN_START', op, { Machine: 'CFORM-01' });
@@ -963,12 +963,12 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
   }, page);
   await evidence.step('The tablets issued and packed (witnessed), the yield, QA\'s dispositions and the stage sign-off; the line and its units released', 'The packaging stage is signed off and the order is complete', async () => {
     await step(page, e2e, orderId, 'p-pk-count@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     for (const item of ['tabletsIssued', 'tabletsPacked']) await field(page, item, '1000', op);
     await performAndCheck(page, op, verifier, op, 'Witness');
     await completed(page);
     await step(page, e2e, orderId, 'p-pk-yield@', ANY);
-    await startStep(page, op);
+    await begin(page, op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     const dispositioned = await closeStage(page, e2e, orderId, qa, supervisor, 'p-pk-yield@', ANY, op);
