@@ -450,6 +450,7 @@ tests:
   - "apps/tablets-web/test/operations/operations.test.tsx > the simulators' test console (decision 0025) > [DI-05] R5: on a demo GMP installation the ERP simulator sends a chosen production order with the reason; the screen names the new order"
   - "apps/tablets-server/test/operations/send-order.test.ts > R3.13: the DEMO-ONLY credential card on the operations screen > [DI-05][DI-14] a demo installation shows its set-up's administrators (this set-up's passwords) and every demo persona with how and where they sign in; any other installation refuses it"
   - "apps/tablets-web/test/operations/operations.test.tsx > R3.13: the DEMO-ONLY credential card > [DI-05] a demo installation's operations screen shows its credential card: the administrators' passwords and how each persona signs in"
+  - "tools/e2e/specs/phase7/presenter-floor.spec.ts > [DI-05][DI-14] R5, R3.13: the administrator sees the DEMO-ONLY credential card and the ERP simulator sends a GB-T-02 processing order @office"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:
