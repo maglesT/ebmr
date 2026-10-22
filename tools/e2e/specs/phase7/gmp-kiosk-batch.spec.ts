@@ -31,7 +31,7 @@ import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { routes } from '@ebmr/api-contract';
 import type { SeededPersona } from '@ebmr/test-kit';
-import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
+import { axe, expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 import {
@@ -304,6 +304,9 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     await allInOrder(before);
     await act(page, before.getByRole('button', { name: `Inspect set ${set} before use` }), op);
     await saveBlock(page, 'TOOLING_INSPECTED', op);
+    // Slice 7k (R2): the Issue button by its role and name, and the step screen's accessibility check at this moment.
+    await expect(panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` })).toBeVisible();
+    await axe.check(page);
     await act(page, panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` }), op);
     await saveBlock(page, 'TOOLING_ISSUED', op);
     await performAndCheck(page, op, verifier, op);
@@ -694,9 +697,16 @@ async function packagingRun(page: Page, e2e: E2eWorld, s: FlowState, op: SeededP
     await completed(page);
   }, page);
   await evidence.step('The line inspected after use and the inspection verified by a second person', 'The inspection passed and is verified', async () => {
-    await page.goto(`${base}/labels/packaging/${orderId}`);
+    // Slice 7k (R2): from the order's own overview on the floor (Home, Shop floor, the order, its line completion link),
+    // not by an address; the button is found by its role and name (the aria-hidden report of the trials) and the screen
+    // passes the accessibility check.
+    await page.getByTestId('home-link').click();
+    await page.getByRole('link', { name: /^Shop floor/ }).first().click();
+    await page.getByRole('link', { name: `Open run ${s.orderNumber ?? ''}`, exact: true }).click();
+    await page.getByTestId('packaging-links').getByRole('link', { name: 'Line completion (coding, labels, post-use inspection)' }).click();
     const box = page.getByTestId('post-use-inspection');
     const form = box.getByTestId('post-use-form');
+    await axe.check(page);
     await expect(form.getByRole('radiogroup')).toHaveCount(4);
     for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio', { name: 'Yes', exact: true }));
     await act(page, form.getByRole('button', { name: 'Record the post-use inspection' }), op);
