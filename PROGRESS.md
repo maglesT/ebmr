@@ -118,6 +118,12 @@ installation every kiosk's demo badge reader offers every badge holder ("Works h
 a processing batch is planned against the ERP order clicked; P7H-5: a database refusal of a step entry is shown in its
 own words (the EBMR-TAB family no longer reads as a failed sign-in). No migrations.
 
+**Slice 7l (22-23 October): demo routes for R1** (`docs/build-plan/phase-7/slice-7l-routes.md`). Route W (wet,
+enteric film, alu-alu cold form) with its plant, masters, lots and orders in the GMP demo set-up, and its browser test
+from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 potency, alternatives, loop iterations,
+named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
+migrations. Routes D and S remain.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 
