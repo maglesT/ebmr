@@ -14,6 +14,7 @@
 import type pg from 'pg';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import type { FeatureSeedContext } from '../types.ts';
+import { DEMO_EXTRA_LOTS } from './seed-demo-orders.ts';
 import { GBT02_LOTS, GBT02_MATERIALS, GBT02_PRODUCT, GBT02_VENDOR_LOT } from './seed-gb-t-02.ts';
 import { GBT01_LOTS, GBT01_MATERIALS, GBT01_ORDERS, GBT01_PACK_LOTS, GBT01_PACK_MATERIALS, GBT01_PRODUCT, type SeedMaterialLot, type SeedPackLot } from './seed-gb-t-01.ts';
 
@@ -217,4 +218,8 @@ export async function seedGmp(ctx: FeatureSeedContext): Promise<void> {
   }
   await enableVendorRoute(ctx, GBT02_VENDOR_LOT.materialCode);
   await seedLot(ctx, GBT02_VENDOR_LOT, 'VENDOR_HISTORY');
+  // R5 (slice 7k): GB-T-02's second lots, so the demo makes several batches in a row and in parallel (their materials'
+  // specifications are seeded above; they expire after the first lots).
+  ctx.log(`receiving, testing and releasing ${DEMO_EXTRA_LOTS.length} more GB-T-02 lots (R5)`);
+  for (const lot of DEMO_EXTRA_LOTS) await seedLot(ctx, lot);
 }

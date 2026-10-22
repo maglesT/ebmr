@@ -18,6 +18,7 @@ import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { assertBackupRunnable, backupFile, backupsView, requestedRun, runRequestedBackup } from './backups.ts';
 import { DemoJobs, recreateInstallation } from './demo.ts';
+import { orderTemplates, postProductionOrder, prepareProductionOrder } from './erp-orders.ts';
 import { assertDrillRunnable, DRILL_REASON, DrillJobs, drillsView, runHardeningCheck, startRestoreDrill, startUpgradeDrill } from './drills.ts';
 import { OPERATIONS_GUIDANCE } from './guidance.ts';
 import { completeRestore, recordRestoreEvent, RESTORE_REASON, restoreApproveHandler, restoreView, secureIdentifiers } from './restore.ts';
@@ -112,7 +113,13 @@ async function demoView(app: AppContext, jobs: DemoJobs, tokenHash: string): Pro
 
 async function simulatorsView(app: AppContext, sims: SimulatorManager): Promise<SimulatorsView> {
   const problem = await demoProblem(app);
-  return { allowed: problem === null, refusal: problem, simulators: problem === null ? await sims.list() : [] };
+  return {
+    allowed: problem === null,
+    refusal: problem,
+    simulators: problem === null ? await sims.list() : [],
+    // R5 (slice 7k): the ERP simulator's production orders, on a demo GMP installation.
+    ...(problem === null && app.installation === 'GMP' ? { orderTemplates: orderTemplates() } : {}),
+  };
 }
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
@@ -237,6 +244,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           if (e instanceof SimulatorRefusal) throw simulatorRefused(e.message);
           throw e;
         }
+      },
+      sendProductionOrder: async (ctx) => {
+        // On an installation that refuses demo conveniences the database's refusal (EBMR-OPS-010) comes first.
+        if ((await demoProblem(app)) !== null) await recordDemoAct(ctx, 'ERP_ORDER_SENT', `${ctx.body.productCode}:${ctx.body.kind}`, ctx.body.reason);
+        const prepared = prepareProductionOrder(app, ctx.body.productCode, ctx.body.kind, ctx.idempotencyKey);
+        // A resend of a request already recorded (its idempotency key) answers the same order and posts nothing again.
+        const replayed = await recordDemoAct(ctx, 'ERP_ORDER_SENT', `${ctx.body.productCode}:${ctx.body.kind}`, ctx.body.reason);
+        return replayed ? prepared.view : postProductionOrder(app, prepared);
       },
       simulatorFault: async (ctx) => {
         await recordDemoAct(ctx, ctx.body.on ? 'SIMULATOR_FAULT_ON' : 'SIMULATOR_FAULT_OFF', `${ctx.params.simulator}:${ctx.body.fault}`, ctx.body.reason);

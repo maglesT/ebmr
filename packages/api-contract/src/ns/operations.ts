@@ -21,7 +21,7 @@
  * Counts and sizes travel as whole-number text. Every act is attributed to the person signed in (none is signed).
  */
 import { z } from 'zod';
-import { InstallationKind, Instant, Uuid } from '../common.ts';
+import { DecimalString, InstallationKind, Instant, Uuid } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { IntegrationSourceSystem } from './integrations.ts';
 
@@ -254,12 +254,36 @@ export const SimulatorView = z.strictObject({
 });
 export type SimulatorView = z.infer<typeof SimulatorView>;
 
+/**
+ * R5 (slice 7k): a production order the ERP simulator can send to a demo GMP installation: one per demo product and kind,
+ * with the batch size its bill of materials is for (the master's own, so the order can be planned and issued).
+ */
+export const DemoOrderTemplateView = z.strictObject({
+  productCode: z.string(),
+  productName: z.string(),
+  kind: z.enum(['PROCESSING', 'PACKAGING']),
+  batchSize: DecimalString,
+  batchSizeUnit: z.string(),
+});
+export type DemoOrderTemplateView = z.infer<typeof DemoOrderTemplateView>;
+
 export const SimulatorsView = z.strictObject({
   allowed: z.boolean(),
   refusal: z.string().nullable(),
   simulators: z.array(SimulatorView),
+  /** R5 (slice 7k): the production orders "Send a production order" offers (a demo GMP installation only). */
+  orderTemplates: z.array(DemoOrderTemplateView).optional(),
 });
 export type SimulatorsView = z.infer<typeof SimulatorsView>;
+
+export const SentOrderView = z.strictObject({
+  orderNo: z.string(),
+  productCode: z.string(),
+  kind: z.enum(['PROCESSING', 'PACKAGING']),
+  batchSize: DecimalString,
+  batchSizeUnit: z.string(),
+});
+export type SentOrderView = z.infer<typeof SentOrderView>;
 
 // ------------------------------------------------------------------------------------------------ continuity alarms
 
@@ -578,6 +602,18 @@ export const operations = {
     params: z.strictObject({ simulator: SimulatorCode }),
     body: z.strictObject({ fault: z.string().regex(/^[A-Z][A-Z_]{1,40}$/), on: z.boolean(), reason: ReasonText }),
     response: SimulatorView,
+  }),
+  // Phase 7 slice 7k (R5): the ERP simulator sends one production order of a demo product to a demo GMP installation.
+  sendProductionOrder: defineRoute({
+    id: 'operations.sendProductionOrder',
+    method: 'POST',
+    path: '/api/operations/simulators/erp/orders',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Send one production order of a demo product as the ERP interface (a demo GMP installation only, DEMO-ONLY; PLATFORM.OPERATE), with the reason',
+    body: z.strictObject({ productCode: z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,31}$/), kind: z.enum(['PROCESSING', 'PACKAGING']), reason: ReasonText }),
+    response: SentOrderView,
   }),
   // Phase 7 slice 7g, work package 2: continuity alarms, the restore procedure, the drills and the hardening check.
   alarms: defineRoute({

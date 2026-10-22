@@ -7,8 +7,8 @@
  */
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { routes, type SimulatorView } from '@ebmr/api-contract';
-import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
+import { routes, type DemoOrderTemplateView, type SimulatorView } from '@ebmr/api-contract';
+import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -63,6 +63,35 @@ function SimulatorCard({ s, reason }: { s: SimulatorView; reason: string }) {
   );
 }
 
+/**
+ * R5 (slice 7k): the ERP simulator sends one production order of a demo product (processing or packaging) as the ERP
+ * interface, a new order number each time, so a presenter starts as many batches as the demo needs (it replaces the
+ * hosted demo's post-demo-order script). The order then waits on the planning screen like any order the ERP sent.
+ */
+function SendOrder({ templates, reason }: { templates: readonly DemoOrderTemplateView[]; reason: string }) {
+  const send = useCommand(routes.operations.sendProductionOrder, [...SIMULATOR_READS, routes.planning.orders.id], 'sending a production order');
+  const [chosen, setChosen] = useState<string | null>(null);
+  const key = (t: DemoOrderTemplateView) => `${t.productCode}:${t.kind}`;
+  const t = templates.find((x) => key(x) === chosen);
+  return (
+    <section aria-label="Send a production order" data-testid="send-order" style={{ marginBlock: '1rem' }}>
+      <h2>Send a production order (ERP simulator)</h2>
+      <floor.ChoiceGroup
+        label="Order"
+        options={templates.map((x) => ({ value: key(x), label: `${x.productName}: ${x.kind === 'PROCESSING' ? 'processing' : 'packaging'}, ${x.batchSize} ${x.batchSizeUnit === '{tbl}' ? 'tablets' : x.batchSizeUnit}` }))}
+        value={chosen}
+        onChange={setChosen}
+      />
+      <ActButton
+        label="Send the production order"
+        disabled={send.busy || !t}
+        onPress={() => (t ? send.run({ body: { productCode: t.productCode, kind: t.kind, reason: reason.trim() === '' ? 'test console' : reason.trim() } }) : undefined)}
+      />
+      <ActResult error={send.error} done={send.done} label={send.done ? `Order ${send.done.orderNo} sent: it waits on the planning screen.` : ''} />
+    </section>
+  );
+}
+
 export function SimulatorsPage() {
   const view = useApiQuery(routes.operations.simulators, {}, { refetchInterval: 5000 });
   const [reason, setReason] = useState('');
@@ -81,6 +110,7 @@ export function SimulatorsPage() {
         </Banner>
       ) : null}
       {v?.allowed ? <Field name="simulator-reason" label="Reason (recorded with each start, stop and fault; default: test console)" value={reason} onChange={setReason} /> : null}
+      {v?.allowed && v.orderTemplates && v.orderTemplates.length > 0 ? <SendOrder templates={v.orderTemplates} reason={reason} /> : null}
       {v?.simulators.map((s) => (
         <SimulatorCard key={s.code} s={s} reason={reason} />
       ))}

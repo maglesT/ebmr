@@ -206,6 +206,26 @@ describe('the simulators\' test console (decision 0025)', () => {
     renderOperations('/operations/simulators', { fixtures: { 'operations.simulators': { allowed: false, refusal: 'EBMR-OPS-010 ebmr_tablets is a GMP installation, not a demo one', simulators: [] } } });
     expect((await screen.findByText(/^EBMR-OPS-010/)).textContent).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Start the/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Send the production order' })).toBeNull();
+  });
+
+  it('[DI-05] R5: on a demo GMP installation the ERP simulator sends a chosen production order with the reason; the screen names the new order', async () => {
+    const templates = [
+      { productCode: 'GBT02-100', productName: 'Exemplafen tablets 100 mg', kind: 'PROCESSING' as const, batchSize: '20.000', batchSizeUnit: 'kg' },
+      { productCode: 'GBT02-100', productName: 'Exemplafen tablets 100 mg', kind: 'PACKAGING' as const, batchSize: '3000', batchSizeUnit: '{tbl}' },
+    ];
+    const ui = renderOperations('/operations/simulators', {
+      fixtures: {
+        'operations.simulators': { allowed: true, refusal: null, simulators: [], orderTemplates: templates },
+        'operations.sendProductionOrder': { orderNo: 'PO-SIM-1A2B3C4D', productCode: 'GBT02-100', kind: 'PACKAGING', batchSize: '3000', batchSizeUnit: '{tbl}' },
+      },
+    });
+    const box = await screen.findByTestId('send-order');
+    expect(within(box).getByRole('button', { name: 'Send the production order' }).hasAttribute('disabled') || within(box).getByRole('button', { name: 'Send the production order' }).getAttribute('aria-disabled') === 'true').toBe(true);
+    await userEvent.click(within(box).getByText('Exemplafen tablets 100 mg: packaging, 3000 tablets'));
+    await userEvent.click(within(box).getByRole('button', { name: 'Send the production order' }));
+    await waitFor(() => expect(ui.posts('/api/operations/simulators/erp/orders')[0]?.body).toEqual({ productCode: 'GBT02-100', kind: 'PACKAGING', reason: 'test console' }));
+    expect((await within(box).findByText('Order PO-SIM-1A2B3C4D sent: it waits on the planning screen.')).textContent).toBeTruthy();
   });
 });
 
