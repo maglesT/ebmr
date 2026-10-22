@@ -391,8 +391,21 @@ test('[INV-40][PR-34][PR-23][PR-20] R3.2 to R3.9, R3.11: the dispensing stage on
       const dialog = page.getByRole('dialog', { name: /^Sign off stage/ });
       const inUse = dialog.getByTestId('stage-in-use');
       await expect(inUse.getByTestId('in-use-DISP-1')).toBeVisible();
+      await expect(inUse.getByTestId('in-use-BAL-DISP-01')).toContainText('booked until');
+      // Ending a room's use is a floor act (STEP.EXECUTE): the supervisor's own tap is refused in the database's words,
+      // and the operator ends it, here from the clearance step's plant panel.
       await act(page, inUse.getByRole('button', { name: 'End the use of DISP-1' }), supervisor);
-      await expect(inUse.getByTestId('in-use-DISP-1')).toHaveCount(0);
+      await expect(inUse.getByText(/lacks permission STEP\.EXECUTE/)).toBeVisible();
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
+      await as(page, op);
+      await step(page, 'p-disp-clear@');
+      await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of DISP-1' }), op);
+      await expect(page.getByTestId('occupancy-DISP-1')).toHaveCount(0);
+      await as(page, supervisor);
+      await step(page, 'p-disp-recon@');
+      await (await primary(page, 'Sign off the stage')).click();
+      await expect(dialog.getByTestId('stage-in-use').getByTestId('in-use-BAL-DISP-01')).toBeVisible();
+      await expect(dialog.getByTestId('stage-in-use').getByTestId('in-use-DISP-1')).toHaveCount(0);
       await dialog.getByRole('button', { name: 'Continue to signature' }).click();
       await sign(page, supervisor);
       return { ended: 'DISP-1' };
