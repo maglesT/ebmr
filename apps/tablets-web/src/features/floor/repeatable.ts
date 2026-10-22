@@ -12,8 +12,6 @@ const SINGLE: ReadonlySet<string> = new Set([
   'PREVIOUS_BATCH',
   'ACKNOWLEDGE',
   'POTENCY_CALCULATION',
-  'RECONCILIATION',
-  'SERIAL_RECONCILIATION',
   'YIELD',
   'MASSING_START',
   'END_POINT',
@@ -26,18 +24,13 @@ const SINGLE: ReadonlySet<string> = new Set([
   'RUN_END',
   'PRESS_SETUP',
   'PRE_USE_CHECKLIST',
-  'FIRST_OFF',
   'ROOM_CHECK',
-  'PAN_LOAD',
   'SPRAY_START',
   'SPRAY_END',
   'PRINT_SETUP',
   'INSPECTION_START',
   'INSPECTION_END',
-  'AQL_RESULT',
   'LINE_SETUP',
-  'GOOD_OUTPUT',
-  'PACKS_MADE',
 ]);
 
 /** Whether a step expects several entries of `kind` (so a saved form offers "Add another"). */

@@ -37,8 +37,8 @@ describe('R3.2: a saved entry form closes and shows the saved entry', () => {
   });
 
   it('only kinds a step records several of offer "Add another"', () => {
-    for (const k of ['CONTAINER_WEIGHING', 'OUTPUT_CONTAINER', 'WEIGHT_CHECK', 'EQUIPMENT_USE', 'ADDITION']) expect(expectsSeveral(k)).toBe(true);
-    for (const k of ['AREA_OCCUPANCY', 'CLEARANCE_CHECK', 'YIELD', 'RUN_START', 'RECONCILIATION']) expect(expectsSeveral(k)).toBe(false);
+    for (const k of ['CONTAINER_WEIGHING', 'OUTPUT_CONTAINER', 'WEIGHT_CHECK', 'EQUIPMENT_USE', 'ADDITION', 'RECONCILIATION']) expect(expectsSeveral(k)).toBe(true);
+    for (const k of ['AREA_OCCUPANCY', 'CLEARANCE_CHECK', 'YIELD', 'RUN_START', 'RUN_END']) expect(expectsSeveral(k)).toBe(false);
   });
 });
 
