@@ -445,6 +445,7 @@ tests:
   - "apps/tablets-web/test/floor/pages.test.tsx > runs and the run overview > [DI-05] \"Export the test-run result for GMP\" writes the result for GMP and says whether the run passed, with the file to download"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [DI-04][DI-05][INV-18] shows the evidence of the current content and imports a sandbox test-run result from the exchange folder; a result that cannot be imported is greyed with its reason"
   - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from the template: change record, risk assessment, draft attributes, the sandbox run returned as evidence, Prepared, Checked, the regulatory confirmation, Approved and its market authorisation, by different people and with nothing arranged in the database; a labelling specimen approved by QA @office"
+  - "apps/tablets-server/test/execution/test-lots.test.ts > sandbox test lots (slice 7j) > [DI-05][DI-17] the steward registers a TEST- lot of a new material; it is listed and resolvable; twice, by another role or on GMP it is refused"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

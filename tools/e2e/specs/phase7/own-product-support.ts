@@ -147,7 +147,7 @@ export async function runSkeletonTestBatch(
 
   const weigh = async (l: { lotCode: string; material: OwnMaterial }): Promise<void> => {
     const form = disp.getByTestId('form-CONTAINER_WEIGHING');
-    await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(l.material.name) }));
+    await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(l.material.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }));
     const lotField = form.getByRole('textbox', { name: 'Lot' });
     await lotField.fill(l.lotCode);
     await lotField.press('Enter');

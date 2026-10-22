@@ -27,6 +27,11 @@ Your ERP normally sends the item master. For a product the ERP does not know yet
 - **Enter a product**: product code, strength, name, dosage form, shelf life in months, whether it is a beta-lactam and
   whether the registration permits reprocessing, and the reason. Press **Enter the product**.
 
+On the demo installation the walk-through's materials are there after every demo reset: `DMT-API` (Demotab active),
+`DMT-LAC` (lactose monohydrate) and `DMT-MGS` (magnesium stearate), each with a sandbox test lot (`TEST-L26-0201` to
+`0203`). To repeat the walk-through, enter only the product and go on from step 3; to show the material entry as well,
+enter new codes.
+
 Each entry is listed under "Waiting for QA confirmation": nothing uses it until QA confirms it. The approved
 manufacturers of each material are shown beside it and kept by QA on **Quality, Approved manufacturers**.
 

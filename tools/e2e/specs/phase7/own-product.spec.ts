@@ -35,11 +35,11 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
   const checker = persona('GMP', 'checker');
   const regulatory = persona('GMP', 'regulatory');
   const tag = `R${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
-  const product = { code: `DMT400-${tag}`, strength: '400 mg', name: `Demotab 400 mg, wet granulation, film coated, alu-alu (${tag})` };
+  const product = { code: `DMT400-${tag}`, strength: '400 mg', name: 'Demotab 400 mg, wet granulation, film coated, alu-alu' };
   const materials: OwnMaterial[] = [
-    { code: `DMT-API-${tag}`, name: `Demotab active ${tag}`, tare: '1.250', gross: '41.250', group: 'act' },
-    { code: `DMT-LAC-${tag}`, name: `Lactose monohydrate ${tag}`, tare: '1.000', gross: '16.000', group: 'exc' },
-    { code: `DMT-MGS-${tag}`, name: `Magnesium stearate ${tag}`, tare: '0.200', gross: '0.800', group: 'exc' },
+    { code: `DMT-API-${tag}`, name: 'Demotab active', tare: '1.250', gross: '41.250', group: 'act' },
+    { code: `DMT-LAC-${tag}`, name: 'Lactose monohydrate', tare: '1.000', gross: '16.000', group: 'exc' },
+    { code: `DMT-MGS-${tag}`, name: 'Magnesium stearate (lubricant)', tare: '0.200', gross: '0.800', group: 'exc' },
   ];
 
   const s = await officePage('GMP', 'PC-QA-01');

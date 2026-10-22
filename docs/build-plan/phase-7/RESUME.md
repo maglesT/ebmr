@@ -220,6 +220,13 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 - D-7j-8: the designer adds, renames, rebinds (rooms), moves and removes stages and adds or removes stage equipment by an
   effective EQUIPMENT_CLASS document; a new stage starts with its clearance and equipment status. Parameters,
   calculations, yield checkpoints and intermediates are still created by the template, the skeleton or the API.
+- D-7j-9: the sandbox's TEST- lots are registered on screen (sandbox home, Test lots; `execution.registerTestLot` over
+  tab.register_sandbox_lot, MASTERDATA.CHANGE): released and identity-tested, as the seed's demo lots.
+- D-7j-10: the demo seed puts the walk-through's materials (DMT-API, DMT-LAC, DMT-MGS) in the ERP master and a sandbox
+  TEST- lot of each after every reset; the product is entered on screen.
+- Not done: R4's optional "save an approved master as a template"; the GMP batch of the new product (needs R1's plant).
+  The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
+  signing screens (as `master-records.spec.ts`), clicks elsewhere.
 
 ## After Phase 7
 
