@@ -71,6 +71,12 @@ function patternOk(pattern: string | undefined, text: string): boolean {
   }
 }
 
+/** The draft of a list declared empty by the person (an explicit "none"), as opposed to one left untouched. */
+export const NONE_DRAFT: Readonly<Record<string, Draft>> = { none: 'YES' };
+export function isNoneDraft(d: Draft | undefined): boolean {
+  return d !== undefined && typeof d === 'object' && !Array.isArray(d) && d['none'] === 'YES' && Object.keys(d).length === 1;
+}
+
 export interface Converted {
   value: BlockFieldWire | undefined;
   /** Labels of required members not given yet. */
@@ -130,6 +136,9 @@ export function toWire(schema: EntryFieldSchema, draft: Draft | undefined, label
       return { value, pending, problems };
     }
     case 'array': {
+      // Phase 7 slice 7l (R1): a list the person declared empty ("none observed") travels as an empty list, which a
+      // block may require (e.g. TB-13's defects when the master examines appearance); untouched, it stays absent.
+      if (isNoneDraft(draft)) return { value: [], pending: [], problems: [] };
       const items = Array.isArray(draft) ? draft : [];
       const values: BlockFieldWire[] = [];
       const pending: string[] = [];
@@ -286,6 +295,17 @@ function SchemaInput({ name, label, schema, draft, onChange, disabled, top }: In
           <Button onPress={() => onChange([...items, schema.type === 'array' ? emptyDraft(schema.items) : ['', emptyDraft(schema.values)]])} isDisabled={disabled || (max !== undefined && items.length >= max)}>
             {st('block.add', { label })}
           </Button>
+          {schema.type === 'array' && items.length === 0 && (schema.minItems ?? 0) === 0 ? (
+            isNoneDraft(draft) ? (
+              <p className={wcls('muted')} data-testid={`none-${name}`}>
+                {st('block.noneRecorded', { label })}
+              </p>
+            ) : (
+              <Button onPress={() => onChange({ ...NONE_DRAFT })} isDisabled={disabled}>
+                {st('block.none', { label })}
+              </Button>
+            )
+          ) : null}
         </fieldset>
       );
     }

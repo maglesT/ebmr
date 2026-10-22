@@ -205,6 +205,8 @@ export const SCREEN_EN = {
   'block.noEntryToName':'no entry of this batch to name yet (record it first at its own step)',
   'block.remove': 'Remove {label}',
   'block.add': 'Add to {label}',
+  'block.none': 'None: {label}',
+  'block.noneRecorded': '{label}: none (an empty list is recorded)',
   'block.other': 'Other entries',
   'block.record': 'Record: {title}',
   'block.processValues': 'Process values, setpoints and alarms',

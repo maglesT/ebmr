@@ -22,7 +22,7 @@ import {
   act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, openContainer, performAndCheck, plusOne, primary,
   reviewRecord, save, saveBlock, sign, startStep, statusStep, step, verifyCleanings,
 } from './kiosk-batch-support.ts';
-import { entryNaming, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
+import { begin, done, entryNaming, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
 
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async () => closeKiosks());
@@ -203,6 +203,7 @@ test('[DI-30][INV-40][PR-20][IN-13] route W 2: dispensing on KIOSK-DISP-1, the a
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-disp-recon@', ANY, op);
     await step(page, e2e, batchId, 'p-disp-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of DISP-1' }), op);
+    await expect(page.getByTestId('occupancy-DISP-1')).toHaveCount(0);
     return { dispositioned };
   }, page);
 });
@@ -253,7 +254,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
-  await evidence.step('TB-05: one drying iteration: the filter bag checked before and after, the dryer\'s inlet temperature keyed by hand, the LOD sample and value; the iteration ended (the LOD is in range)', 'Performed and witnessed; the loop exits', async () => {
+  await evidence.step('TB-05: one drying iteration with the filter bag checks, a dryer value keyed by hand, the LOD; the iteration ended', 'Performed and witnessed; the loop exits', async () => {
     const k = 'p-dry@L-DRY=1';
     await step(page, e2e, batchId, k, ANY);
     await startStep(page, op);
@@ -281,7 +282,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
-  await evidence.step('The dried granules into a container whose typed net a second person verifies; the granulation yield; QA\'s dispositions and the stage sign-off; the units and the room released', 'The granulation stage is signed off', async () => {
+  await evidence.step('The dried granules into a verified container; the granulation yield; QA\'s dispositions and the stage sign-off', 'The granulation stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-gran-out@', ANY);
     await startStep(page, op);
     const out = page.getByTestId('form-OUTPUT_CONTAINER');
@@ -303,9 +304,11 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIO
     await step(page, e2e, batchId, 'p-gran-status@', ANY);
     for (const [ref, code] of [['RMG', 'RMG-01'], ['FBD', 'FBD-01'], ['MILL', 'MILL-01']] as const) {
       await act(page, page.getByTestId(`plant-unit-${ref}`).getByRole('button', { name: `End the use of ${code}` }), op);
+      await expect(page.getByTestId(`use-${code}`)).toHaveCount(0);
     }
     await step(page, e2e, batchId, 'p-gran-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of GRAN-1' }), op);
+    await expect(page.getByTestId('occupancy-GRAN-1')).toHaveCount(0);
     return { dispositioned };
   }, page);
 });
@@ -376,8 +379,10 @@ test('[PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rewo
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-blend-yield@', ANY, op);
     await step(page, e2e, batchId, 'p-blend-status@', ANY);
     await act(page, page.getByTestId('plant-unit-BLENDER').getByRole('button', { name: 'End the use of BLD-01' }), op);
+    await expect(page.getByTestId('use-BLD-01')).toHaveCount(0);
     await step(page, e2e, batchId, 'p-blend-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of BLEND-1' }), op);
+    await expect(page.getByTestId('occupancy-BLEND-1')).toHaveCount(0);
     return { dispositioned };
   }, page);
 });
@@ -396,6 +401,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
   const supervisor = persona('GMP', 'supervisor1');
   const page = await kiosk(browser, e2e, 'KIOSK-COMP-1', op);
   await evidence.step('The room clearance of COMP-1, the clearance step and the status step (balance, press, hardness tester, friabilator)', 'The room is in use; the units are checked and booked', async () => {
+    if (await done(page, e2e, batchId, 'p-comp-status@')) return;
     await clearance(page, base, s.batchNumber ?? '', 'COMP-1', op, verifier);
     await clearanceStep(page, e2e, batchId, 'p-comp-clear@', 'COMP-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-comp-status@', [
@@ -404,6 +410,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
   }, page);
   let set = '';
   await evidence.step('TB-09: the tooling set inspected item by item and issued to the press', 'Performed and verified', async () => {
+    if (await done(page, e2e, batchId, 'p-tool@')) return;
     await step(page, e2e, batchId, 'p-tool@', ANY);
     await startStep(page, op);
     const panel = page.getByTestId('plant-tooling');
@@ -414,12 +421,15 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     await allInOrder(before);
     await act(page, before.getByRole('button', { name: `Inspect set ${set} before use` }), op);
     await saveBlock(page, 'TOOLING_INSPECTED', op);
+    const pressPick = panel.getByRole('radiogroup', { name: 'Press' });
+    if ((await pressPick.count()) > 0) await choose(pressPick.getByRole('radio', { name: 'PRESS-01', exact: true }));
     await act(page, panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` }), op);
     await saveBlock(page, 'TOOLING_ISSUED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
   await evidence.step('TB-10: the press set up with its tooling, the pre-use checklist, the hopper charged with the blend container, the first-off approved', 'Performed and verified', async () => {
+    if (await done(page, e2e, batchId, 'p-setup@')) return;
     await step(page, e2e, batchId, 'p-setup@', ANY);
     await startStep(page, op);
     const panel = page.getByTestId('plant-press-setup');
@@ -432,7 +442,8 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
-  await evidence.step('TB-11: the run with the station sweep of each side, a bulk container on each side closed after the end of the run (net verified) and each followed by the side\'s weight check', 'Two bulk containers closed and verified; performed and verified', async () => {
+  await evidence.step('TB-11: the run with the station sweeps, a container on each side closed after the run (net verified), each side\'s weight check', 'Two bulk containers closed and verified; performed and verified', async () => {
+    if (await done(page, e2e, batchId, 'p-run@')) return;
     const run = async () => step(page, e2e, batchId, 'p-run@', ANY);
     await run();
     await startStep(page, op);
@@ -460,14 +471,16 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     await completed(page);
   }, page);
   await evidence.step('TB-12, TB-13, TB-14: the cores\' group weight on the balance, thickness and breaking force on the tester, friability on the friabilator (keyed by hand: verified)', 'Three test steps performed and verified', async () => {
-    await step(page, e2e, batchId, 'p-ipc-wt@', ANY);
-    await startStep(page, op);
-    await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-01', Capture: 'MANUAL', 'Group weight': '8203.0' });
-    await performAndCheck(page, op, verifier, op);
-    await completed(page);
+    if (!(await done(page, e2e, batchId, 'p-ipc-wt@'))) {
+      await step(page, e2e, batchId, 'p-ipc-wt@', ANY);
+      await startStep(page, op);
+      await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-01', Capture: 'MANUAL', 'Group weight': '8203.0' });
+      await performAndCheck(page, op, verifier, op);
+      await completed(page);
+    }
     await step(page, e2e, batchId, 'p-ipc-phys@', ANY);
-    await startStep(page, op);
-    await entry(page, 'PHYSICAL_CHECK', op, { Instrument: 'HT-01', Capture: 'MANUAL', Tablets: [{ Thickness: '5.10', Hardness: '95' }, { Thickness: '5.12', Hardness: '98' }, { Thickness: '5.08', Hardness: '92' }] });
+    await begin(page, op);
+    await entry(page, 'PHYSICAL_CHECK', op, { Instrument: 'HT-01', Capture: 'MANUAL', Tablets: [{ Thickness: '5.10', Hardness: '95' }, { Thickness: '5.12', Hardness: '98' }, { Thickness: '5.08', Hardness: '92' }], Defects: [] });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
     await step(page, e2e, batchId, 'p-ipc-fri@', ANY);
@@ -476,7 +489,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
-  await evidence.step('TB-09: the tooling returned with its counts and the strokes from the press, inspected after use; the compression yield; QA approves the cores for coating; the stage signed off; the press and the room released', 'H-COAT approved; the compression stage is signed off', async () => {
+  await evidence.step('TB-09 tooling returned and inspected; the compression yield; QA approves the cores for coating (H-COAT); the stage signed off', 'H-COAT approved; the compression stage is signed off', async () => {
     await step(page, e2e, batchId, 'p-tool-ret@', ANY);
     await startStep(page, op);
     const issue = page.locator('[data-testid^="tooling-issue-"]');
@@ -499,8 +512,10 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'H-COAT@', ANY, op);
     await step(page, e2e, batchId, 'p-comp-status@', ANY);
     await act(page, page.getByTestId('plant-unit-PRESS').getByRole('button', { name: 'End the use of PRESS-01' }), op);
+    await expect(page.getByTestId('use-PRESS-01')).toHaveCount(0);
     await step(page, e2e, batchId, 'p-comp-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of COMP-1' }), op);
+    await expect(page.getByTestId('occupancy-COMP-1')).toHaveCount(0);
     return { dispositioned };
   }, page);
 });
@@ -530,11 +545,13 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
   const supervisor = persona('GMP', 'supervisor1');
   const page = await kiosk(browser, e2e, 'KIOSK-COAT-1', op);
   await evidence.step('The room clearance of COAT-1, the clearance step and the status step (balance, coater, disintegration tester)', 'The room is in use; the units are checked and booked', async () => {
+    if (await done(page, e2e, batchId, 'p-coat-status@')) return;
     await clearance(page, base, s.batchNumber ?? '', 'COAT-1', op, verifier);
     await clearanceStep(page, e2e, batchId, 'p-coat-clear@', 'COAT-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-coat-status@', [{ ref: 'BAL', code: 'BAL-COAT-01', instrument: true }, { ref: 'COATER', code: 'COATER-01', instrument: false }, { ref: 'DT', code: 'DT-01', instrument: true }], op);
   }, page);
   await evidence.step('TB-03: the enteric suspension prepared; TB-18 cores: the room, the pan load and the core sample', 'Both steps performed and checked', async () => {
+    if (await done(page, e2e, batchId, 'p-cores@')) return;
     await step(page, e2e, batchId, 'p-susp@', ANY);
     await startStep(page, op);
     await entry(page, 'PREPARED', op, { Quantity: { Value: '12.000', Unit: 'kg' }, Appearance: 'COMPLIES' });
@@ -548,7 +565,8 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     await performAndCheck(page, op, verifier, op, 'Witness');
     await completed(page);
   }, page);
-  await evidence.step('TB-18: one spraying iteration of the enteric film: the recipe, the coater\'s values keyed by hand (manual fallback), the suspension used (naming its preparation), the weight gain 2.93 %; the iteration ended (the gain reaches its minimum)', 'Performed and witnessed; the loop exits', async () => {
+  await evidence.step('TB-18: one enteric film iteration: coater values keyed by hand, the suspension used, the weight gain 2.93 %; the iteration ended', 'Performed and witnessed; the loop exits', async () => {
+    if (await done(page, e2e, batchId, 'p-coat@L-COAT=1')) return;
     const k = 'p-coat@L-COAT=1';
     await step(page, e2e, batchId, k, ANY);
     await startStep(page, op);
@@ -565,6 +583,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     await expect(loop.getByText('Iteration 1 ended')).toBeVisible();
   }, page);
   await evidence.step('The coated tablets into a container whose typed net a second person verifies', 'The coated tablets\' container is closed and verified', async () => {
+    if (await done(page, e2e, batchId, 'p-coat-out@')) return;
     await step(page, e2e, batchId, 'p-coat-out@', ANY);
     await startStep(page, op);
     const out = page.getByTestId('form-OUTPUT_CONTAINER');
@@ -580,6 +599,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     await closeTyped(page, base, batchId, label, '81.800', op, verifier);
   }, page);
   await evidence.step('TB-15: the acid stage (no unit disintegrated in its full time), then the buffer stage (every unit disintegrated in time), on the disintegration tester', 'Performed and verified', async () => {
+    if (await done(page, e2e, batchId, 'p-dt@')) return;
     await step(page, e2e, batchId, 'p-dt@', ANY);
     await startStep(page, op);
     await entry(page, 'DT_START', op, { Instrument: 'DT-01', Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'ACID' });
@@ -587,7 +607,7 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'No' })) });
     await entry(page, 'DT_START', op, { Instrument: 'DT-01', Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'BUFFER' });
     await page.waitForTimeout(32_000);
-    await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: ['20', '22', '24', '25', '27', '30'].map((sec) => ({ Disintegrated: 'Yes', Seconds: sec })) });
+    await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'Yes' })) });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
@@ -599,8 +619,10 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'p-coat-gain@', ANY, op);
     await step(page, e2e, batchId, 'p-coat-status@', ANY);
     await act(page, page.getByTestId('plant-unit-COATER').getByRole('button', { name: 'End the use of COATER-01' }), op);
+    await expect(page.getByTestId('use-COATER-01')).toHaveCount(0);
     await step(page, e2e, batchId, 'p-coat-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of COAT-1' }), op);
+    await expect(page.getByTestId('occupancy-COAT-1')).toHaveCount(0);
     return { dispositioned };
   }, page);
 });
@@ -648,6 +670,7 @@ test('[PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 
   const supervisor = persona('GMP', 'supervisor1');
   const page = await kiosk(browser, e2e, 'KIOSK-INSP-1', op);
   await evidence.step('The room clearance of INSP-1, the clearance step and the balance status step', 'The room is in use; the balance is booked', async () => {
+    if (await done(page, e2e, batchId, 'p-insp-status@')) return;
     await clearance(page, base, s.batchNumber ?? '', 'INSP-1', op, verifier);
     await clearanceStep(page, e2e, batchId, 'p-insp-clear@', 'INSP-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-insp-status@', [{ ref: 'BAL', code: 'BAL-INSP-01', instrument: true }], op);
@@ -659,6 +682,7 @@ test('[PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 
     saveRoute(e2e, ROUTE, s);
   }, page);
   await evidence.step('TB-20: the 100 % sort measured, its result with the defects and the reject containers picked from the batch\'s containers, the AQL; the accepted net', 'Performed and verified', async () => {
+    if (await done(page, e2e, batchId, 'p-insp@')) return;
     await step(page, e2e, batchId, 'p-insp@', ANY);
     await startStep(page, op);
     await saveBlock(page, 'INSPECTION_START', op);
@@ -692,7 +716,7 @@ test('[PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
-  await evidence.step('The rejects for destruction destroyed with a witness; the inspection yield; QA releases the bulk for packing; the stage signed off; the bulk of a packaging order (1,000 tablets) in its own container', 'H-PACK approved; the inspection stage is signed off; the bulk container is closed and verified', async () => {
+  await evidence.step('The rejects destroyed with a witness; the yield; QA releases the bulk for packing (H-PACK); the stage signed off; a 1,000-tablet bulk container', 'H-PACK approved; the inspection stage is signed off; the bulk container is closed and verified', async () => {
     await step(page, e2e, batchId, 'p-destroy@', ANY);
     await startStep(page, op);
     await entry(page, 'DISPOSAL', op, { Category: 'DESTRUCTION', Material: 'Coated tablets rejected at inspection', 'Batch coded': 'No', Quantity: { Value: '0.180', Unit: 'kg' }, Container: s.containers?.['destroyed'] ?? '', Method: 'Incineration' });
@@ -706,6 +730,7 @@ test('[PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'H-PACK@', ANY, op);
     await step(page, e2e, batchId, 'p-insp-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of INSP-1' }), op);
+    await expect(page.getByTestId('occupancy-INSP-1')).toHaveCount(0);
     const bulk = await container(page, base, batchId, 'INSPECTION', 'units', '1000', op, verifier);
     s.containers = { ...(s.containers ?? {}), bulk };
     saveRoute(e2e, ROUTE, s);
@@ -800,11 +825,13 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await expect(page.getByText('Bulk issued.')).toBeVisible();
   }, page);
   await evidence.step('The line clearance of PL-2 for the order, the clearance step and the status step (balance, cold-form machine, cartoner)', 'The line is in use by the order; its units are booked', async () => {
+    if (await done(page, e2e, orderId, 'p-pk-status@')) return;
     await clearance(page, base, s.orderNumber ?? '', LINE, op, verifier, { order: s.orderNumber ?? '', artworkSet: ARTWORK_SET });
     await clearanceStep(page, e2e, orderId, 'p-pk-clear@', LINE, op, verifier);
     await statusStep(page, e2e, orderId, 'p-pk-status@', [{ ref: 'BAL', code: 'BAL-PL-02', instrument: true }, { ref: 'BLISTER', code: 'CFORM-01', instrument: false }, { ref: 'CARTONER', code: 'CTN-03', instrument: false }], op);
   }, page);
   await evidence.step('The designated dispenser issues the cold-form laminate by weight; the verifier verifies', 'The laminate is weighed and the step verified', async () => {
+    if (await done(page, e2e, orderId, 'p-pk-film@')) return;
     await as(page, dispenser);
     await step(page, e2e, orderId, 'p-pk-film@', ANY);
     await startStep(page, dispenser);
@@ -832,7 +859,8 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
       await expect(panel.getByTestId(`label-specimen-${item}`)).toContainText('attached by');
     }
   }, page);
-  await evidence.step('TB-21 line check: the cold-form machine set up with its change parts and the reels of the forming laminate and the issued lidding foil; the independent check of the line', 'Performed and verified', async () => {
+  await evidence.step('TB-21 line check: the cold-form machine set up with its change parts and reels; the independent check of the line', 'Performed and verified', async () => {
+    if (await done(page, e2e, orderId, 'p-tb21c@')) return;
     await step(page, e2e, orderId, 'p-tb21c@', ANY);
     await entry(page, 'LINE_SETUP', op, {
       Machine: 'CFORM-01', 'Artwork set': ARTWORK_SET, 'Change parts': ['CF-TOOL-RTW', 'SEAL-PLATE-RTW'],
@@ -842,7 +870,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }, page);
-  await evidence.step('The sealing run (TB-21: the recipe, the sealing values keyed by hand, defect checks), the leak tests at the start and the end (TB-22), cartoning (TB-24: checkweigher challenges, tamper evidence, examinations, packs, the shipper on an SSCC the database issued)', 'The run, the leak tests and cartoning recorded', async () => {
+  await evidence.step('TB-21 sealing run (values keyed by hand, defect checks), TB-22 leak tests at start and end, TB-24 cartons, examinations and the shipper on an SSCC', 'The run, the leak tests and cartoning recorded', async () => {
     await step(page, e2e, orderId, 'p-tb21@', ANY);
     await startStep(page, op);
     await entry(page, 'RUN_START', op, { Machine: 'CFORM-01' });
@@ -930,6 +958,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await step(page, e2e, orderId, 'p-pk-status@', ANY);
     for (const [ref, code] of [['BLISTER', 'CFORM-01'], ['CARTONER', 'CTN-03']] as const) {
       await act(page, page.getByTestId(`plant-unit-${ref}`).getByRole('button', { name: `End the use of ${code}` }), op);
+      await expect(page.getByTestId(`use-${code}`)).toHaveCount(0);
     }
     await step(page, e2e, orderId, 'p-pk-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: `End the use of ${LINE}` }), op);

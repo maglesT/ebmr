@@ -585,7 +585,12 @@ export function citableOf(ctx: ViewContext, stepKey: string, block: blocks.Block
     }
   }
   if (kinds.size === 0) return [];
-  return entryViews(ctx, (e) => e.stepKey !== stepKey && kinds.has(e.kind));
+  // A binder addition names a binder; a coating names a coating solution (film, enteric or sugar syrup): the solution
+  // type of the TB-03 step the preparation was made at (the database refuses any other, tablets 0851, 0912).
+  const binder = block?.type === 'TB-04';
+  const solution = (key: string): unknown => ctx.run.def.steps.get(key.slice(0, key.indexOf('@')))?.config['solutionType'];
+  const fits = (key: string): boolean => (block?.type !== 'TB-04' && block?.type !== 'TB-18') || (solution(key) === 'BINDER') === binder;
+  return entryViews(ctx, (e) => e.stepKey !== stepKey && kinds.has(e.kind) && fits(e.stepKey));
 }
 
 type FormField = EntryFormT['fields'][number];

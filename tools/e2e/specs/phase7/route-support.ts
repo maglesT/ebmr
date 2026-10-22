@@ -12,7 +12,7 @@ import { routes } from '@ebmr/api-contract';
 import { expect, type E2eWorld } from '../../fixtures/index.ts';
 import { signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
-import { act, choose, entry, fillBlock, save, saveBlock, type Fill } from './kiosk-batch-support.ts';
+import { act, ANY, card, choose, entry, fillBlock, save, saveBlock, startStep, step, type Fill } from './kiosk-batch-support.ts';
 
 /** What the serial tests of a route hand on: the orders, the batch, its containers, the packaging order and the lot. */
 export interface RouteState {
@@ -89,4 +89,20 @@ export { entry };
 export async function endIteration(page: Page, who: SeededPersona, button: Locator): Promise<void> {
   await act(page, button, who);
   await expect(button).toHaveCount(0);
+}
+
+/**
+ * Whether a step of the route is completed already, when the run resumes a route on the same stack (EBMR_E2E_RESUME=1,
+ * a developer's run after a fix; never set in CI, where every test does each of its steps).
+ */
+export async function done(page: Page, e2e: E2eWorld, batchId: string, key: string): Promise<boolean> {
+  if (process.env['EBMR_E2E_RESUME'] !== '1') return false;
+  await step(page, e2e, batchId, key, ANY);
+  return /Completed/.test((await card(page).textContent()) ?? '');
+}
+
+/** Starts the step unless a resumed run finds it started already (EBMR_E2E_RESUME=1; in CI the step is always started). */
+export async function begin(page: Page, who: SeededPersona): Promise<void> {
+  if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
+  await startStep(page, who);
 }

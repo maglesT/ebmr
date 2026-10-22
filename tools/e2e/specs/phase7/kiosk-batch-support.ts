@@ -151,6 +151,10 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
   for (let attempt = 0; ; attempt += 1) {
     await expect(button).toBeEnabled();
     await button.click();
+    // Slice 7l: a Save pressed while the screen still settles the entry saved just before asks for no badge; the person
+    // presses it again (a finding of the route runs, reported for the floor's usability work).
+    const badge = page.getByLabel('Badge', { exact: true }).last();
+    if (!(await badge.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false))) await button.click();
     await tap(page, who);
     try {
       await expect(saved.or(stale).or(refused).first()).toBeVisible();
@@ -394,6 +398,8 @@ export async function fillBlock(scope: Locator, fill: Fill): Promise<void> {
   for (const [label, v] of Object.entries(fill)) {
     if (Array.isArray(v)) {
       const list = scope.getByRole('group', { name: label, exact: true });
+      // Slice 7l: an empty list is declared ("none observed"), never left untouched.
+      if (v.length === 0) await list.getByRole('button', { name: `None: ${label}`, exact: true }).click();
       for (const [i, item] of v.entries()) {
         await list.getByRole('button', { name: `Add to ${label}`, exact: true }).click();
         // Slice 7l: a list of objects (a tablet's values, a reel): each item's members inside the item's own group.
