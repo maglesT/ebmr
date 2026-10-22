@@ -22,6 +22,7 @@ let otherVersionId = '';
 
 const md = routes.masterData;
 const ERP_PRODUCT = 'DMT7JE';
+const CAPSULE_PRODUCT = 'DMT7JC';
 const REASON = 'In-house development product';
 const PRODUCT = { code: 'DMT7JF', name: 'Demotab 400 mg', strength: '400 mg' };
 const LINES: FormulaLineInput[] = [
@@ -56,6 +57,7 @@ beforeAll(async () => {
     valueOf(await steward.call(md.enterMaterial, { body: { materialCode: code, materialName: name, materialKind: kind, unit: 'kg', pharmacopoeia: 'IP', changeReason: REASON } }));
   }
   valueOf(await steward.call(md.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'Film-coated tablet', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  valueOf(await steward.call(md.enterProduct, { body: { productCode: CAPSULE_PRODUCT, strength: PRODUCT.strength, productName: 'A capsule', dosageForm: 'Hard capsule', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   // An ERP product (no dosage form: the ERP stub does not carry one) for review P7J-2.
   const erp = gmp.seed.services.find((x) => x.key === 'erpInterface');
   if (!erp) throw new Error('no ERP interface in the GMP seed');
@@ -106,9 +108,12 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(refusalOf(await create('DMT7JF-CP', 'COPY', { copyOfVersionId: draft, formulaVersionId: otherVersionId })).code).toBe('DESIGNER_COPY_NOT_APPROVED');
   });
 
-  it('[PR-01] a master from a formula takes the product name and dosage form from the product master in effect, and is refused when it states no dosage form (review P7J-2)', async () => {
+  it('[PR-01] a master from a formula takes the product name from the product master in effect and its dosage form, Tablet when the master has none; a non-tablet dosage form is refused (review P7J-2, D-7j-11)', async () => {
     const erpFormula = await approvedFormula('100000', undefined, LINES, ERP_PRODUCT);
-    const r = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JE-SK', product: { code: ERP_PRODUCT, name: 'typed name', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: erpFormula, start: 'SKELETON' } });
+    const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JE-SK', product: { code: ERP_PRODUCT, name: 'typed name', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: erpFormula, start: 'SKELETON' } }));
+    expect((v.content as unknown as { header: { product: { name: string; dosageForm: string } } }).header.product).toMatchObject({ name: 'ERP-only product', dosageForm: 'Tablet' });
+    const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
+    const r = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } });
     expect(refusalOf(r).code).toBe('DESIGNER_PRODUCT_MASTER');
   });
 

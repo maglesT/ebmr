@@ -187,8 +187,9 @@ session idle rule of tablets 1460.
 
 - P7J-1 (fixed): `site.master_entry` (site-services 1530) had no explicit insert-only and no-truncate triggers. Added in
   1530 itself (not yet merged, so no new migration); test `master-entry.test.ts` (update, delete and truncate refused).
-- P7J-2 (fixed): a master from a formula fell back to the dosage form 'Tablet' and the typed product name when the
-  product master in effect had no screen entry. It now takes both from the product master in effect and refuses
-  (DESIGNER_PRODUCT_MASTER) when it states no dosage form; test `designer/from-formula.test.ts`.
+- P7J-2 (fixed): a master from a formula fell back to the typed product name when the product master in effect had no
+  screen entry. The name now always comes from the product master in effect; the dosage form is the master's, or
+  'Tablet' when it carries none (ERP products; D-7j-11); a master stating a non-tablet dosage form is refused
+  (DESIGNER_PRODUCT_MASTER); test `designer/from-formula.test.ts`.
 - P7J-3 (fixed): a test with a salt factor and an overage on a potency-adjusted active shows the skeleton's BOM, batch
   mass, target calculation and golden case agree with the 0640 batch quantity and the validator; `designer/from-formula.test.ts`.

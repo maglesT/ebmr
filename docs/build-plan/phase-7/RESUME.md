@@ -224,6 +224,9 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
   tab.register_sandbox_lot, MASTERDATA.CHANGE): released and identity-tested, as the seed's demo lots.
 - D-7j-10: the demo seed puts the walk-through's materials (DMT-API, DMT-LAC, DMT-MGS) in the ERP master and a sandbox
   TEST- lot of each after every reset; the product is entered on screen.
+- D-7j-11 (review P7J-2, lead): a master from a formula takes the product name from the product master in effect and
+  its dosage form, or 'Tablet' when the master carries none (the ERP feed has none; every product of the edition is a
+  tablet), so ERP-only products stay usable; a master stating a non-tablet dosage form is refused.
 - Not done: R4's optional "save an approved master as a template"; the GMP batch of the new product (needs R1's plant).
   The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
   signing screens (as `master-records.spec.ts`), clicks elsewhere.

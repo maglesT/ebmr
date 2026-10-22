@@ -434,16 +434,21 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               where x.master_kind = 'PRODUCT' and x.master_key = $1 || '|' || $2 order by x.effective_at desc, x.id desc limit 1`,
             [chosen.productCode, chosen.strength],
           );
-          // Review P7J-2: the name and dosage form come from the product master in effect, never guessed.
+          // Review P7J-2, D-7j-11: the name from the product master in effect; its dosage form, or 'Tablet' when the
+          // master carries none (the ERP feed has no dosage form; every product of this edition is a tablet). A master
+          // stating a dosage form that is not a tablet form is refused.
           const master = rows[0];
-          if (!master?.name || !master.dosage) {
+          const dosageForm = master?.dosage ?? 'Tablet';
+          if (!master?.name || !/tablet/i.test(dosageForm)) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
               whatHappened: 'The family was not created.',
-              why: `The product master in effect for ${chosen.productCode} ${chosen.strength} ${master?.name ? 'states no dosage form' : 'is missing'}; a master from a formula takes its product name and dosage form from it.`,
+              why: master?.name
+                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is not a tablet form; the Tablets edition makes tablets.`
+                : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
               controls: ['PR-01'],
-              whatYouCanDo: ['Enter the product with its dosage form on Master data, Products and materials, and have QA confirm it; or start from a template.'],
+              whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
             });
           }
           const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
@@ -451,7 +456,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           try {
             content = contentFromFormula(
               base,
-              { chosen, target, product: { name: master.name, dosageForm: master.dosage }, materials },
+              { chosen, target, product: { name: master.name, dosageForm }, materials },
               { familyCode: body.familyCode, markets: body.markets, start },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
