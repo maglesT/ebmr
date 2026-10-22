@@ -234,6 +234,8 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
     await page.getByTestId('mbr-lifecycle').getByRole('button', { name: label }).click();
     await officeSign(page, new RegExp(`^${label}`), who);
   };
+  q = await officePage('GMP', 'PC-QA-02');
+  await signIn.office(q, qa);
   await evidence.step('Prepared by the author, Checked by the checker, the registration references confirmed, Approved by QA', 'Four people; the version is APPROVED', async () => {
     await a.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
     await signAs(a, 'Sign as prepared', author);
@@ -248,8 +250,6 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
     await r.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
     await signAs(r, 'Confirm the registration references', regulatory);
     await expect(r.getByTestId('mbr-sign-REGULATORY_CONFIRM')).toHaveAttribute('data-signed', 'yes');
-    q = await officePage('GMP', 'PC-QA-02');
-    await signIn.office(q, qa);
     await q.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
     await signAs(q, 'Approve for the quality unit', qa);
     await expect(q.getByTestId('mbr-signing-state')).toContainText('Approved');
