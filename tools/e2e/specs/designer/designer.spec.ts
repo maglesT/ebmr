@@ -22,7 +22,7 @@ test.describe('designer', () => {
     await evidence.step('Create a family and its draft from the dc-mini template', 'The designer opens the new DRAFT, revision 1, and the server finds no errors and no warnings', async () => {
       await page.getByRole('link', { name: /Master records/ }).click();
       await expect(page.getByRole('heading', { name: 'Master records' })).toBeVisible();
-      await page.getByRole('link', { name: 'New master record from a template' }).click();
+      await page.getByRole('link', { name: 'New master record (from a template or a formula)' }).click();
       await page.getByLabel('Family code').fill(`FAM-${tag}`);
       await page.getByLabel('Product code').fill(productCode);
       await page.getByRole('textbox', { name: 'Batch size 1' }).fill('60.000');

@@ -118,6 +118,12 @@ installation every kiosk's demo badge reader offers every badge holder ("Works h
 a processing batch is planned against the ERP order clicked; P7H-5: a database refusal of a step entry is shown in its
 own words (the EBMR-TAB family no longer reads as a failed sign-in). No migrations.
 
+**Slice 7j (22 October): R4, a company's own tablet product without a template** (`demo-trial-requirements.md` R4;
+decisions D-7j-1 to D-7j-10 in RESUME.md; site-services 1530, recipe-core 1535). Products and materials entered on
+screen and confirmed by QA; the formula's target tablet weight and batch sizes; a new master from an approved formula
+(skeleton, blank or copy); the Tablets palette (TB-01 to TB-24) and stage editing in the designer; sandbox test lots on
+screen; browser flow `phase7/own-product.spec.ts`; user guide page 9. The GMP batch of the new product needs R1's plant.
+
 **Slice 7l (22-23 October): demo routes for R1** (`docs/build-plan/phase-7/slice-7l-routes.md`). Route W (wet,
 enteric film, alu-alu cold form) with its plant, masters, lots and orders in the GMP demo set-up, and its browser test
 from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 potency, alternatives, loop iterations,

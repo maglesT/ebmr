@@ -17,7 +17,7 @@ export function Library() {
     <div className={dcls('page')}>
       <h1>Master records</h1>
       <p>
-        <Link to="/mbr/new">New master record from a template</Link>
+        <Link to="/mbr/new">New master record (from a template or a formula)</Link>
       </p>
       {families.error ? <RefusalMessage error={families.error.error} /> : null}
       {!families.data ? (

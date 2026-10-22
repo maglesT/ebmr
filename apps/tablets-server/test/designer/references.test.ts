@@ -93,14 +93,14 @@ describe('reference documents (DMS stand-in)', () => {
 });
 
 describe('palette', () => {
-  it('offers the insertable blocks with plain names; SANDBOX_ONLY versions badged; G-06, G-21 and non-steps hidden', async () => {
+  it('offers the insertable blocks with plain names; SANDBOX_ONLY versions badged; non-steps hidden', async () => {
     const author = await server.asPersona('author');
     const { blocks } = valueOf(await author.call(routes.designer.palette));
     const keys = blocks.map((b) => b.key);
     expect(keys).toEqual(expect.arrayContaining(['G-03@1', 'G-04@1', 'G-07@1', 'G-08@1', 'G-09@1', 'G-10@1', 'G-14@1', 'G-17@1', 'G-20@1', 'G-22@1']));
-    for (const hidden of ['G-01@1', 'G-02@1', 'G-06@1', 'G-18@1', 'G-19@1', 'G-21@1']) expect(keys).not.toContain(hidden);
+    for (const hidden of ['G-01@1', 'G-02@1', 'G-18@1', 'G-19@1']) expect(keys).not.toContain(hidden);
     const g10 = blocks.find((b) => b.key === 'G-10@1');
-    expect(g10).toEqual(expect.objectContaining({ availability: 'SANDBOX_ONLY', badge: 'sandbox only until Phase 3', plainName: 'Clear the room or line', significant: true }));
+    expect(g10).toEqual(expect.objectContaining({ availability: 'SANDBOX_ONLY', badge: 'sandbox only', plainName: 'Clear the room or line', significant: true }));
     const g07 = blocks.find((b) => b.key === 'G-07@1');
     expect(g07?.availability).toBe('ALL');
     expect(g07?.badge).toBeNull();

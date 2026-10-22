@@ -54,6 +54,11 @@ function VersionCard({ version, readable }: { version: FormulaVersionView; reada
         <StatusChip tone={version.state === 'APPROVED' ? 'ok' : 'neutral'} label={version.state} /> {version.changeReason} · written by {version.authoredBy.legalName}, {version.authoredAt.text}
         {version.approvedBy ? ` · approved by ${version.approvedBy.legalName}, ${version.approvedAt?.text ?? ''}` : ''}
       </p>
+      {version.target ? (
+        <p data-testid="formula-target">
+          Target tablet weight {version.target.targetUnitMassMg} mg; batch sizes {version.target.batchSizesUnits.join(', ')} tablets.
+        </p>
+      ) : null}
       {readable && version.lines ? (
         <table aria-label={`Composition of version ${version.versionNumber}`} data-testid="composition">
           <thead>
@@ -106,13 +111,13 @@ function VersionCard({ version, readable }: { version: FormulaVersionView; reada
 
 const LINE_FIELDS: readonly FormField[] = [
   { name: 'lineId', label: 'Line id', kind: 'text' },
-  { name: 'materialCode', label: 'Material code', kind: 'text' },
+  { name: 'materialCode', label: 'Material code', kind: 'text', description: 'A material of Products and materials, in effect' },
   { name: 'role', label: 'Role', kind: 'choice', options: FormulaLineInput.shape.role.options },
   { name: 'basis', label: 'Basis', kind: 'choice', options: ['PER_UNIT', 'PER_BATCH'], description: 'PER_UNIT: mg in one tablet; PER_BATCH: kg for the batch' },
   { name: 'quantity', label: 'Quantity', kind: 'decimal' },
   { name: 'overagePercent', label: 'Overage %', kind: 'decimal', optional: true },
   { name: 'saltFactor', label: 'Salt factor', kind: 'decimal', optional: true },
-  { name: 'potencyAdjusted', label: 'Potency adjusted at dispensing', kind: 'yesno' },
+  { name: 'potencyAdjusted', label: 'Potency adjusted at dispensing', kind: 'yesno', description: 'assay and LOD of the lot (TB-01); needs a compensating excipient' },
   { name: 'compensating', label: 'Compensating excipient', kind: 'yesno' },
 ];
 
@@ -128,11 +133,22 @@ function lineOf(row: Row): Record<string, unknown> {
   return out;
 }
 
+/** The further batch sizes as typed ("50000, 150000"), as the contract's list of whole numbers. */
+export function sizesOf(text: string): string[] {
+  return text
+    .split(/[,\s]+/)
+    .map((x) => x.trim())
+    .filter((x) => x !== '');
+}
+
 function NewVersionForm({ formulaId }: { formulaId: string }) {
   const [rows, setRows] = useState<Row[]>([{}]);
   const [reason, setReason] = useState('');
+  const [weight, setWeight] = useState('');
+  const [sizes, setSizes] = useState('');
   const cmd = useCommand(routes.masterData.addFormulaVersion, REFRESH);
-  const body = { changeReason: reason.trim(), lines: rows.map(lineOf) };
+  const target = weight.trim() === '' ? {} : { target: { targetUnitMassMg: weight.trim(), otherBatchSizesUnits: sizesOf(sizes) } };
+  const body = { changeReason: reason.trim(), lines: rows.map(lineOf), ...target };
   const parsed = routes.masterData.addFormulaVersion.body?.safeParse(body);
   const problem = !parsed ? null : parsed.success ? null : parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
   const ready = parsed?.success === true;
@@ -142,6 +158,8 @@ function NewVersionForm({ formulaId }: { formulaId: string }) {
     if (r) {
       setRows([{}]);
       setReason('');
+      setWeight('');
+      setSizes('');
     }
   };
   return (
@@ -157,6 +175,8 @@ function NewVersionForm({ formulaId }: { formulaId: string }) {
         </fieldset>
       ))}
       <Button onPress={() => setRows((all) => [...all, {}])}>Add a line</Button>
+      <Field name="targetUnitMassMg" label="Target tablet weight (mg)" description="optional · the compression target of one tablet" value={weight} onChange={setWeight} inputMode="decimal" />
+      <Field name="otherBatchSizes" label="Further batch sizes (tablets)" description="optional · besides the formula's own, separated by commas" value={sizes} onChange={setSizes} />
       <Field name="changeReason" label="Reason for the new version" value={reason} onChange={setReason} />
       {problem ? <p>Not complete yet: {problem}</p> : null}
       <ActButton label="Write the draft version" onPress={send} disabled={!ready || cmd.busy} />

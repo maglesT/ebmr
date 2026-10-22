@@ -7,7 +7,7 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 145 screens, 80 home tiles.
+In all: 146 screens, 81 home tiles.
 
 ## access
 
@@ -131,6 +131,7 @@ In all: 145 screens, 80 home tiles.
 | `/packages` | PackagesPage | Test-run packages (SANDBOX) | Import MBR test packages sent from GMP and issue TEST- batches. |
 | `/test-packages` | PackagesPage |  |  |
 | `/packages/$packageId/issue` | IssueFormPage |  |  |
+| `/test-lots` | TestLotsPage | Test lots (SANDBOX) | TEST- lots of the materials a test run dispenses. |
 | `/runs` | RunsPage | Test runs (SANDBOX); Shop floor (GMP) | Runs, their record and the replay check. GMP batches: the batch overview and the step screens. |
 | `/runs/$runId` | RunOverviewPage |  |  |
 | `/runs/$runId/steps/$stepKey` | StepScreenPage |  |  |
@@ -204,7 +205,7 @@ In all: 145 screens, 80 home tiles.
 
 | Address | Screen | Home tile (shown on) | What it is for |
 |---|---|---|---|
-| `/master-data` | MasterDataHome | Master data (GMP) | Formulas, ERP products and materials, plant definitions. |
+| `/master-data` | MasterDataHome | Master data (GMP) | Formulas, products and materials, plant definitions. |
 | `/master-data/formulas` | FormulasPage |  |  |
 | `/master-data/formulas/$formulaId` | FormulaPage |  |  |
 | `/master-data/erp` | ErpMastersPage |  |  |

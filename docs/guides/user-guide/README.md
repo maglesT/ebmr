@@ -15,6 +15,7 @@ in, the two installations, signing, and what to do when the system refuses somet
 | [MBR author](06-mbr-author.md) | `MBR_AUTHOR`, `MBR_CHECKER`, `QA_MBR_APPROVER`, `REGULATORY_SIGNER` |
 | [Data-integrity lead](07-data-integrity-lead.md) | `CSV_DI_LEAD`, with `QA_REVIEWER` for the audit-trail review |
 | [Controlled-substance roles](08-controlled-substances.md) | the holders of a `CONTROLLED.*` right |
+| [Create your own product](09-create-your-own-product.md) | `MASTER_DATA_STEWARD`, `QA_MBR_APPROVER`, `MBR_AUTHOR`, the sandbox floor |
 
 The lists behind the tasks are generated from the code:
 

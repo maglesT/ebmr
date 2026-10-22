@@ -40,6 +40,7 @@ export const TILE_READS: Readonly<Record<string, string | null>> = {
   "master-records": "designer.families",
   scales: "devices.scales",
   packages: null,
+  "test-lots": "execution.testLots",
   runs: null,
   "gmp-runs": null,
   cockpit: "execution.workQueue",

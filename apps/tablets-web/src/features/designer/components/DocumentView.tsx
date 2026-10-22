@@ -20,6 +20,7 @@ import { DOCUMENT_SECTIONS, sectionId } from '../model/sections.ts';
 import type { FindingItem, PaletteItem } from '../model/types.ts';
 import { boundWords, Check, CommitDecimal, CommitText, comparisonWords, roleTitle, Select } from './common.tsx';
 import { ProcedureTable } from './ProcedureTable.tsx';
+import { AddStage, StageEditor } from './StageEditor.tsx';
 import { actionBreachWords, eventWords, goldenValueText, humanize, itemLabel, marketRuleWords, quantityWords, referenceLabel, roundingWords, samplingWords, sourceWords, yesNo } from './words.ts';
 
 export interface DocumentProps {
@@ -483,8 +484,12 @@ export function DocumentView(props: DocumentProps) {
                 </li>
               ))}
             </ul>
+            {!readOnly && c.procedure.body.kind === 'sequence' && c.procedure.body.children.includes(s) ? (
+              <StageEditor stage={s} first={stages[0]?.id === s.id} last={stages[stages.length - 1]?.id === s.id} dispatch={dispatch} />
+            ) : null}
           </div>
         ))}
+        {!readOnly ? <AddStage content={c} stages={stages} palette={props.palette} dispatch={dispatch} /> : null}
       </Section>
 
       <Section id="6">

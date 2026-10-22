@@ -26,12 +26,12 @@
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { sandbox } from '@ebmr/kernel';
-import { routes } from '@ebmr/api-contract';
+import { routes, type VersionView } from '@ebmr/api-contract';
 import { formula, lifecycle } from '@ebmr/recipe-core';
 import { flow, simulator } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
-import { bindRoutes } from '../../platform/http/bind.ts';
+import { bindRoutes, type HandlerContext } from '../../platform/http/bind.ts';
 import { refusal, type HttpRefusal } from '../../platform/http/refusal.ts';
 import { siteToday } from './adapters/expressions.ts';
 import { marketSetProblem } from './adapters/market-minima.ts';
@@ -58,6 +58,9 @@ import {
   type StagedPackage,
 } from './package-export.ts';
 import { paletteBlocks } from './palette.ts';
+import { targetsOf } from '../master-data/index.ts';
+import { contentFromFormula } from './from-formula.ts';
+import { materialMasters } from './material-refs.ts';
 import { acquireSimulationSlot, DEFAULT_MAX_CONCURRENT_SIMULATIONS, DEFAULT_SIMULATION_TIMEOUT_MS, simulateInWorker, simulationReportView } from './simulation.ts';
 import { TEMPLATES, stepCount } from './templates/index.ts';
 import type { TemplateView } from './wire.ts';
@@ -391,6 +394,118 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     steps: stepCount(t.content),
   }));
 
+  type CreateFamilyCtx = HandlerContext<typeof routes.designer.createFamily>;
+  const familyRefusal = (error: FamilyInputError): Error =>
+    refusal(422, {
+      code: error.code,
+      kind: 'INVALID_INPUT',
+      whatHappened: 'The family was not created.',
+      why: error.message,
+      controls: error.controls,
+      whatYouCanDo: ['Correct the entry and create the family again.'],
+    });
+  /** Slice 7j (R4; D-7j-5): a new family from an approved formula, without a template (from-formula.ts). */
+  const createFromFormula = async (ctx: CreateFamilyCtx): Promise<VersionView> => {
+    const { body } = ctx;
+    const start = body.start ?? 'SKELETON';
+    if (!body.formulaVersionId) {
+      throw refusal(422, {
+        code: 'DESIGNER_FORMULA_REQUIRED',
+        kind: 'INVALID_INPUT',
+        whatHappened: 'The family was not created.',
+        why: 'A master without a template starts from an approved formula: choose the product first.',
+        controls: ['INV-25', 'PR-01'],
+        whatYouCanDo: ['Choose a product with an approved formula, or choose a template.'],
+      });
+    }
+    const formulaVersionId = body.formulaVersionId;
+    const copySource = start === 'COPY' ? await copySourceOf(body.copyOfVersionId) : undefined;
+    const base = TEMPLATES.get('dc-mini');
+    if (!base) throw new Error('the dc-mini skeleton source is missing');
+    const actor = ctx.actor();
+    const { result } = await uniqueViolationAsConflict(
+      () =>
+        withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
+          const chosen = await formula.formulaVersionForMbr(c, formulaVersionId);
+          const target = await formula.formulaTargetOf(c, formulaVersionId);
+          const { rows } = await c.query<{ name: string | null; dosage: string | null }>(
+            `select p.product_name as name, (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage
+               from site.erp_master_effect x join site.erp_product p on p.id = x.version_id
+              where x.master_kind = 'PRODUCT' and x.master_key = $1 || '|' || $2 order by x.effective_at desc, x.id desc limit 1`,
+            [chosen.productCode, chosen.strength],
+          );
+          // Review P7J-2, D-7j-11: the name from the product master in effect; its dosage form, or 'Tablet' when the
+          // master carries none (the ERP feed has no dosage form; every product of this edition is a tablet). A master
+          // stating a dosage form that is not a tablet form is refused.
+          const master = rows[0];
+          const dosageForm = master?.dosage ?? 'Tablet';
+          if (!master?.name || !/tablet/i.test(dosageForm)) {
+            throw refusal(422, {
+              code: 'DESIGNER_PRODUCT_MASTER',
+              kind: 'INVALID_INPUT',
+              whatHappened: 'The family was not created.',
+              why: master?.name
+                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is not a tablet form; the Tablets edition makes tablets.`
+                : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
+              controls: ['PR-01'],
+              whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
+            });
+          }
+          const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
+          let content: flow.MbrContent;
+          try {
+            content = contentFromFormula(
+              base,
+              { chosen, target, product: { name: master.name, dosageForm }, materials },
+              { familyCode: body.familyCode, markets: body.markets, start },
+              copySource,
+              TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
+            );
+          } catch (error) {
+            if (error instanceof FamilyInputError) throw familyRefusal(error);
+            throw error;
+          }
+          const hazard = await hazardContext(c, content.header.product.code);
+          let contained: flow.MbrContent;
+          try {
+            contained = withContainment(content, hazard);
+          } catch (error) {
+            if (!(error instanceof NoContainedAreaError)) throw error;
+            throw refusal(422, {
+              code: 'DESIGNER_NO_CONTAINED_AREA',
+              kind: 'NOT_ALLOWED',
+              whatHappened: 'The family was not created.',
+              why: `The product is classed ${error.classes.join(', ')}, and no room or line is dedicated and contained for that class with a second QA person's approval.`,
+              controls: ['IN-27'],
+              whatYouCanDo: ['Ask QA to record and approve the dedication of a contained room or line for the class first.'],
+            });
+          }
+          const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(contained));
+          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : 'the required skeleton';
+          const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template`);
+          await formula.pinFormula(c, v.versionId, chosen.versionId);
+          return { versionId: v.versionId };
+        }),
+      `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,
+    );
+    return versionView(pool, app, result.versionId);
+  };
+  /** The content of the approved master version to copy (COPY): an APPROVED or EFFECTIVE version only. */
+  const copySourceOf = async (versionId: string | undefined): Promise<flow.MbrContent> => {
+    const head = versionId ? await requireHead(pool, versionId) : null;
+    if (!head || !['APPROVED', 'EFFECTIVE'].includes(head.state)) {
+      throw refusal(422, {
+        code: 'DESIGNER_COPY_NOT_APPROVED',
+        kind: 'INVALID_INPUT',
+        whatHappened: 'The family was not created.',
+        why: 'Only an approved master version can be copied.',
+        controls: ['PR-06'],
+        whatYouCanDo: ['Choose an approved master version to copy.'],
+      });
+    }
+    return (await latestContent(pool, head.versionId)).content;
+  };
+
   bindRoutes(scope, app, routes.designer, {
     // Phase 3 slice 6a-0: "Choose a product" arrives with slice 6a.
     // "Choose a product" (decision 0006): the approved formula's BOM with its computed quantities (FORMULA.READ, DI-13).
@@ -401,7 +516,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const { rows } = await pool.query<{ r: formula.FormulaChoice }>('select tab.formula_choice($1, $2, $3, $4::numeric) as r', [s.tokenHash, q.product, q.strength, q.batchSize]);
       const c = rows[0]?.r;
       if (!c) throw new Error('no formula choice was read');
-      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines };
+      const target = (await targetsOf(pool, [c.versionId])).get(c.versionId) ?? null;
+      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines, target };
     },
     templates: () => Promise.resolve({ templates: templateViews }),
 
@@ -409,19 +525,22 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     async createFamily(ctx) {
       const { body } = ctx;
-      const template = TEMPLATES.get(body.templateId);
+      // Slice 7j (R4, D-7j-5): without a template, the master starts from the approved formula.
+      if (body.templateId === undefined) return createFromFormula(ctx);
+      const templateId = body.templateId;
+      const template = TEMPLATES.get(templateId);
       if (!template) {
         throw refusal(422, {
           code: 'DESIGNER_TEMPLATE_UNKNOWN',
           kind: 'INVALID_INPUT',
           whatHappened: 'There is no such template.',
-          why: `Template ${body.templateId} is not offered on this installation.`,
+          why: `Template ${templateId} is not offered on this installation.`,
           whatYouCanDo: ['Choose one of the listed templates.'],
         });
       }
       let content: flow.MbrContent;
       try {
-        content = contentFromTemplate(template, { familyCode: body.familyCode, product: body.product, batchSizes: body.batchSizes, markets: body.markets });
+        content = contentFromTemplate(template, { familyCode: body.familyCode, product: body.product, batchSizes: body.batchSizes ?? [], markets: body.markets });
       } catch (error) {
         if (!(error instanceof FamilyInputError)) throw error;
         throw refusal(422, {

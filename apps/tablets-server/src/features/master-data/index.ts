@@ -5,7 +5,7 @@
  * MASTER_DATA_APPROVE). Reads are the session's (tablets 1041, no command, so a shop-floor terminal needs no tap): the
  * database serves a composition only to a reader whose role holds FORMULA.READ (DI-13).
  */
-import { routes, type FormulaSummaryView, type FormulaVersionView, type SignableAction } from '@ebmr/api-contract';
+import { routes, type FormulaSummaryView, type FormulaTargetView, type FormulaVersionView, type SignableAction } from '@ebmr/api-contract';
 import { formula } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
@@ -58,10 +58,18 @@ async function productNames(db: Pick<pg.Pool, 'query'>): Promise<Map<string, str
   return new Map(rows.map((r) => [r.k, r.name]));
 }
 
+/** The targets of formula versions (recipe-core 1535), by version id. */
+export async function targetsOf(db: Pick<pg.Pool, 'query'>, versionIds: readonly string[]): Promise<Map<string, FormulaTargetView>> {
+  if (versionIds.length === 0) return new Map();
+  const { rows } = await db.query<{ id: string; t: FormulaTargetView | null }>('select v.id::text as id, recipe.formula_target_of(v.id) as t from unnest($1::uuid[]) v(id)', [versionIds]);
+  return new Map(rows.filter((r) => r.t !== null).map((r) => [r.id, r.t as FormulaTargetView]));
+}
+
 /** The views of what the database answered (formula.readFormulas), people and product names read once. */
 export async function formulaViews(app: AppContext, db: Pick<pg.Pool, 'query'>, read: formula.FormulaRead[]): Promise<{ summary: FormulaSummaryView; versions: FormulaVersionView[]; readable: boolean }[]> {
   const names = await productNames(db);
   const people = await peopleOf(db, read.flatMap((f) => f.versions.flatMap((v) => [v.authoredBy, v.approvedBy])));
+  const targets = await targetsOf(db, read.flatMap((f) => f.versions.map((v) => v.versionId)));
   return read.map((f) => {
     const approved = [...f.versions].reverse().find((v) => v.state === 'APPROVED');
     return {
@@ -82,6 +90,7 @@ export async function formulaViews(app: AppContext, db: Pick<pg.Pool, 'query'>, 
         state: v.state,
         changeReason: v.changeReason,
         lines: v.lines,
+        target: targets.get(v.versionId) ?? null,
         authoredBy: personRef(people, v.authoredBy, 'AUTHOR'),
         authoredAt: app.formatInstant(v.authoredUs),
         approvedBy: v.approvedBy ? personRef(people, v.approvedBy, 'APPROVER') : null,
@@ -122,12 +131,30 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     addFormulaVersion: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
       const s = requireSession();
-      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
-        formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput) }),
-      );
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const id = await formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput) });
+        // Slice 7j (recipe-core 1535): the target with the composition, in the same transaction.
+        if (body.target) await formula.setFormulaTarget(c, id, body.target);
+        return id;
+      });
       const v = (await one(s.tokenHash, params.formulaId)).versions.find((x) => x.versionId === out.result);
       if (!v) throw new Error('the new formula version was not read back');
       return v;
+    },
+    // Slice 7j (R4, D-7j-1; site-services 1530): masters entered on screen wait for QA's confirmation.
+    enterMaterial: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const { rows } = await c.query<{ id: string }>('select site.enter_material_master($1) as id', [compact(bare(body))]);
+        return rows[0]?.id ?? '';
+      });
+      return { masterKind: 'MATERIAL' as const, key: body.materialCode, versionId: out.result, state: 'PENDING' as const };
+    },
+    enterProduct: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const { rows } = await c.query<{ id: string }>('select site.enter_product_master($1) as id', [compact(bare(body))]);
+        return rows[0]?.id ?? '';
+      });
+      return { masterKind: 'PRODUCT' as const, key: `${body.productCode}|${body.strength}`, versionId: out.result, state: 'PENDING' as const };
     },
   });
   return Promise.resolve();

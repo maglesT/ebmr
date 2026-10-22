@@ -650,6 +650,35 @@ export const execution = {
     body: Empty,
     response: RunResultExportView,
   }),
+  // Slice 7j (R4, D-7j-9): the sandbox's test lots on screen, so a master with new materials can be test-run.
+  testLots: defineRoute({
+    id: 'execution.testLots',
+    method: 'GET',
+    path: '/api/test-lots',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The TEST- lots registered in the sandbox (DEMO and test data only)',
+    response: z.strictObject({ lots: z.array(LotView) }),
+  }),
+  registerTestLot: defineRoute({
+    id: 'execution.registerTestLot',
+    method: 'POST',
+    path: '/api/test-lots',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Register a released, identity-tested TEST- lot of a material for sandbox test runs (MASTERDATA.CHANGE; a lot is never changed)',
+    body: withAttribution({
+      lotCode: z.string().regex(/^TEST-[A-Z0-9-]{1,36}$/),
+      materialCode: z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/),
+      materialName: z.string().trim().min(1).max(200),
+      /** Days from now to the expiry (the sandbox's database time). */
+      expiresInDays: z.number().int().min(1).max(3650),
+    }),
+    response: LotView,
+  }),
   lot: defineRoute({
     id: 'execution.lot',
     method: 'GET',

@@ -54,9 +54,10 @@ export async function erpOrders(app: AppContext, db: Db): Promise<ErpOrderView[]
 }
 
 export async function erpProducts(db: Db) {
-  const { rows } = await db.query<{ product_code: string; strength: string; product_name: string; reprocessing_permitted: boolean | null; beta_lactam: boolean; shelf_life_months: number; erp_reference: string }>(
+  const { rows } = await db.query<{ product_code: string; strength: string; product_name: string; reprocessing_permitted: boolean | null; beta_lactam: boolean; shelf_life_months: number; erp_reference: string; attrs: { dosageForm?: string } | null }>(
     // The versions in effect (site-services 0802): a version waiting for QA's confirmation is listed by erpPending.
-    `select * from (select distinct on (x.master_key) p.product_code, p.strength, p.product_name, p.reprocessing_permitted, p.beta_lactam, p.shelf_life_months, p.erp_reference
+    `select * from (select distinct on (x.master_key) p.product_code, p.strength, p.product_name, p.reprocessing_permitted, p.beta_lactam, p.shelf_life_months, p.erp_reference,
+                           (select e.attributes from site.master_entry e where e.version_id = p.id) as attrs
                       from site.erp_master_effect x join site.erp_product p on p.id = x.version_id
                      where x.master_kind = 'PRODUCT' order by x.master_key, x.effective_at desc, x.id desc) e
       order by e.product_code, e.strength`,
@@ -69,13 +70,15 @@ export async function erpProducts(db: Db) {
     betaLactam: r.beta_lactam,
     shelfLifeMonths: r.shelf_life_months,
     erpReference: r.erp_reference,
+    ...(r.attrs?.dosageForm !== undefined ? { dosageForm: r.attrs.dosageForm } : {}),
   }));
 }
 
 export async function erpMaterials(db: Db) {
-  const { rows } = await db.query<{ material_code: string; material_name: string; material_kind: 'API' | 'EXCIPIENT' | 'PRIMARY_PACKAGING' | 'PRINTED_PACKAGING' | 'INTERMEDIATE' | 'FINISHED'; unit: string; max_retest_months: number | null; erp_reference: string }>(
+  const { rows } = await db.query<{ material_code: string; material_name: string; material_kind: 'API' | 'EXCIPIENT' | 'PRIMARY_PACKAGING' | 'PRINTED_PACKAGING' | 'INTERMEDIATE' | 'FINISHED'; unit: string; max_retest_months: number | null; erp_reference: string; attrs: { grade?: string; pharmacopoeia?: string } | null }>(
     // The versions in effect (site-services 0802): a version waiting for QA's confirmation is listed by erpPending.
-    `select distinct on (x.master_key) m.material_code, m.material_name, m.material_kind, m.unit, m.max_retest_months, m.erp_reference
+    `select distinct on (x.master_key) m.material_code, m.material_name, m.material_kind, m.unit, m.max_retest_months, m.erp_reference,
+            (select e.attributes from site.master_entry e where e.version_id = m.id) as attrs
        from site.erp_master_effect x join site.erp_material m on m.id = x.version_id
       where x.master_kind = 'MATERIAL' order by x.master_key, x.effective_at desc, x.id desc`,
   );
@@ -86,6 +89,8 @@ export async function erpMaterials(db: Db) {
     unit: r.unit,
     ...(r.max_retest_months !== null ? { maxRetestMonths: r.max_retest_months } : {}),
     erpReference: r.erp_reference,
+    ...(r.attrs?.grade !== undefined ? { grade: r.attrs.grade } : {}),
+    ...(r.attrs?.pharmacopoeia !== undefined ? { pharmacopoeia: r.attrs.pharmacopoeia } : {}),
   }));
 }
 

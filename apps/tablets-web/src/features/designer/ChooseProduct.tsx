@@ -6,6 +6,7 @@
  * Reading it needs FORMULA.READ (DI-13); a refusal is shown in the server's words.
  */
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { routes, type CallError, type FormulaChoiceView } from '@ebmr/api-contract';
 import { Button, Field } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
@@ -37,7 +38,11 @@ export function ChooseProduct({ onChosen }: { onChosen: (choice: FormulaChoiceVi
   return (
     <fieldset className={dcls('fieldset')} data-testid="choose-product">
       <legend className={dcls('legend')}>Choose a product</legend>
-      <p className={dcls('small')}>The bill of materials comes from the product&apos;s approved formula; its quantities are computed, never typed.</p>
+      <p className={dcls('small')}>
+        The bill of materials comes from the product&apos;s approved formula; its quantities are computed, never typed. A new product&apos;s formula
+        is written and approved in the <Link to="/master-data/formulas">formula library</Link> (its materials and the product in{' '}
+        <Link to="/master-data/erp">Products and materials</Link>).
+      </p>
       <Field label="Formula product" name="choiceProduct" value={product} onChange={setProduct} />
       <Field label="Formula strength" name="choiceStrength" value={strength} onChange={setStrength} />
       <Field label="Formula batch size (tablets)" name="choiceBatchSize" value={batchSize} onChange={setBatchSize} inputMode="numeric" />
@@ -49,6 +54,11 @@ export function ChooseProduct({ onChosen }: { onChosen: (choice: FormulaChoiceVi
         <table aria-label="Bill of materials from the formula" data-testid="formula-bom">
           <caption>
             Formula version {choice.versionNumber} of {choice.productCode} {choice.strength}, {choice.batchSizeUnits} tablets
+            {choice.target ? `; target tablet weight ${choice.target.targetUnitMassMg} mg; batch sizes ${choice.target.batchSizesUnits.join(', ')} tablets` : ''} (
+            <Link to="/master-data/formulas/$formulaId" params={{ formulaId: choice.formulaId }}>
+              open the formula
+            </Link>
+            )
           </caption>
           <thead>
             <tr>

@@ -1611,4 +1611,13 @@ export const TARGETS: Target[] = [
     tests: [s('operations/drills.test.ts'), s('operations/restore-and-alarms.test.ts')],
     threshold: 90,
   },
+  // Phase 7 slice 7j (R4): products and materials entered on screen and confirmed by QA (site-services 1530), and a
+  // formula version's target unit mass and batch sizes (recipe-core 1535).
+  {
+    group: 'own-product-masters',
+    functions: ['site.master_entry_problem', 'site.enter_material_master', 'site.enter_product_master', 'site.erp_master_version', 'site.master_entry_of',
+                'recipe.formula_set_target', 'recipe.formula_target_of'],
+    tests: [s('master-data/master-entry.test.ts'), s('master-data/formula-target.test.ts'), s('designer/from-formula.test.ts')],
+    threshold: 90,
+  },
 ];

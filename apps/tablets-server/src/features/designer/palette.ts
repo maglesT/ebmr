@@ -3,15 +3,20 @@
  * the recipe-core block registry (executable versions, their configuration schemas and availability) joined with
  * the validator's catalogue (roles, significant flag). Plain names first.
  *
- * Offered: phase blocks the catalogue allows as steps, and the QA hold point (G-17). Hidden: G-06 and G-21 (they
- * need device and printing interfaces, Phase 3) and the batch, stage, construct and service blocks (G-01, G-02,
- * G-18, G-19: they are not steps). SANDBOX_ONLY versions (G-09@1, G-10@1) are badged: a GMP batch refuses them
- * (ENG-DEF-SANDBOX-ONLY) until their database-backed versions arrive in Phase 3.
+ * Offered: phase blocks the catalogue allows as steps, and the QA hold point (G-17). Hidden: the batch, stage,
+ * construct and service blocks (G-01, G-02, G-18, G-19: they are not steps). SANDBOX_ONLY versions (G-09@1, G-10@1)
+ * are badged: a GMP batch refuses them (ENG-DEF-SANDBOX-ONLY); their database-backed versions (@2) are offered beside them.
+ *
+ * Slice 7j (R4, D-7j-7): the palette is the Tablets edition's registry: every generic block, G-06 (device readings) and
+ * G-21 (labels and printing) included since their interfaces exist, and every tablet block TB-01 to TB-24 with its
+ * configuration schema, so a master can be built without a template.
  */
 import type { PaletteBlock } from './wire.ts';
-import { blocks, flow } from '@ebmr/recipe-core/pure';
+import type { flow } from '@ebmr/recipe-core/pure';
+import { blocks } from '@ebmr/recipe-core/pure';
+import { tabletsBlockCatalog, tabletsBlockRegistry } from '../edition-blocks.ts';
 
-const HIDDEN = new Set(['G-06', 'G-21']);
+const HIDDEN = new Set<string>();
 
 /** Plain names an author recognises from a paper batch record. */
 export const PLAIN_NAMES: Readonly<Record<string, string>> = {
@@ -74,7 +79,7 @@ export function defaultConfig(schema: blocks.FieldSchema): Json {
   }
 }
 
-export function paletteBlocks(registry: blocks.BlockRegistry = blocks.genericBlockRegistry(), catalog: flow.BlockCatalog = flow.genericBlockCatalog): PaletteBlock[] {
+export function paletteBlocks(registry: blocks.BlockRegistry = tabletsBlockRegistry(), catalog: flow.BlockCatalog = tabletsBlockCatalog): PaletteBlock[] {
   const out: PaletteBlock[] = [];
   for (const b of registry.all()) {
     if (HIDDEN.has(b.type)) continue;
@@ -93,7 +98,7 @@ export function paletteBlocks(registry: blocks.BlockRegistry = blocks.genericBlo
       roles: [...(d?.roles ?? [])],
       significant: d?.significant ?? false,
       availability,
-      badge: availability === 'SANDBOX_ONLY' ? 'sandbox only until Phase 3' : null,
+      badge: availability === 'SANDBOX_ONLY' ? 'sandbox only' : null,
       configSchema: schemaJson(schema),
       defaultConfig: b.level === 'HOLD_POINT' ? {} : (defaultConfig(schema) as Record<string, Json>),
       controls: [...b.controls],
