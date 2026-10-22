@@ -17,6 +17,7 @@ import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { assertBackupRunnable, backupFile, backupsView, requestedRun, runRequestedBackup } from './backups.ts';
+import { credentialCardView } from './credential-card.ts';
 import { DemoJobs, recreateInstallation } from './demo.ts';
 import { orderTemplates, postProductionOrder, prepareProductionOrder } from './erp-orders.ts';
 import { assertDrillRunnable, DRILL_REASON, DrillJobs, drillsView, runHardeningCheck, startRestoreDrill, startUpgradeDrill } from './drills.ts';
@@ -244,6 +245,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           if (e instanceof SimulatorRefusal) throw simulatorRefused(e.message);
           throw e;
         }
+      },
+      credentialCard: ({ requireSession }) => {
+        requireSession();
+        return Promise.resolve(credentialCardView(app));
       },
       sendProductionOrder: async (ctx) => {
         // On an installation that refuses demo conveniences the database's refusal (EBMR-OPS-010) comes first.

@@ -131,6 +131,30 @@ export const DemoView = z.strictObject({
 });
 export type DemoView = z.infer<typeof DemoView>;
 
+/**
+ * R3.13 (slice 7k; DEMO-ONLY): the credential card of a demo installation, as the set-up wrote it: the first administrator
+ * and process owner (their passwords are new at each set-up) and every demo persona with how they sign in and where (user
+ * ID and password at an office PC, badge and PIN at a kiosk). Only a demo installation answers it (EBMR_DEMO=1 and the
+ * database's demo marker, decision D6); every other installation refuses it.
+ */
+export const CredentialCardEntry = z.strictObject({
+  legalName: z.string(),
+  roles: z.array(z.string()),
+  terminal: z.string().nullable(),
+  method: z.enum(['PASSWORD', 'BADGE_PIN']),
+  loginName: z.string(),
+  password: z.string().nullable(),
+  badgeUid: z.string().nullable(),
+  pin: z.string().nullable(),
+  bootstrap: z.boolean(),
+});
+export const CredentialCardView = z.strictObject({
+  installation: InstallationKind,
+  database: z.string(),
+  entries: z.array(CredentialCardEntry),
+});
+export type CredentialCardView = z.infer<typeof CredentialCardView>;
+
 const Confirm = {
   reason: ReasonText,
   /** The database's name, typed by the person to confirm that everything in it is lost. */
@@ -602,6 +626,17 @@ export const operations = {
     params: z.strictObject({ simulator: SimulatorCode }),
     body: z.strictObject({ fault: z.string().regex(/^[A-Z][A-Z_]{1,40}$/), on: z.boolean(), reason: ReasonText }),
     response: SimulatorView,
+  }),
+  // Phase 7 slice 7k (R3.13): the DEMO-ONLY credential card of a demo installation.
+  credentialCard: defineRoute({
+    id: 'operations.credentialCard',
+    method: 'GET',
+    path: '/api/operations/credential-card',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The DEMO-ONLY credential card of a demo installation (its administrators\' and personas\' sign-in); refused on every other installation',
+    response: CredentialCardView,
   }),
   // Phase 7 slice 7k (R5): the ERP simulator sends one production order of a demo product to a demo GMP installation.
   sendProductionOrder: defineRoute({

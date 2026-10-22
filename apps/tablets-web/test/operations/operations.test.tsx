@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { BackupsView, DemoJobView, DemoView, SimulatorView, WorkersView } from '@ebmr/api-contract';
 import { apiState } from '../../src/api/client.ts';
 import { followingRecreation } from '../../src/app/maintenance.ts';
+import { EXAMPLES } from '@ebmr/api-contract/examples';
 import { at, refusalAnswer, renderOperations } from './support.tsx';
 
 afterEach(() => {
@@ -226,6 +227,33 @@ describe('the simulators\' test console (decision 0025)', () => {
     await userEvent.click(within(box).getByRole('button', { name: 'Send the production order' }));
     await waitFor(() => expect(ui.posts('/api/operations/simulators/erp/orders')[0]?.body).toEqual({ productCode: 'GBT02-100', kind: 'PACKAGING', reason: 'test console' }));
     expect((await within(box).findByText('Order PO-SIM-1A2B3C4D sent: it waits on the planning screen.')).textContent).toBeTruthy();
+  });
+});
+
+describe('R3.13: the DEMO-ONLY credential card', () => {
+  it('[DI-05] a demo installation\'s operations screen shows its credential card: the administrators\' passwords and how each persona signs in', async () => {
+    const entry = (over: Record<string, unknown>) => ({ legalName: 'Demo Administrator', roles: ['SYSTEM_ADMINISTRATOR'], terminal: null, method: 'PASSWORD', loginName: 'demo.admin', password: 'Xy7-secret', badgeUid: null, pin: null, bootstrap: true, ...over });
+    renderOperations('/operations', {
+      installation: 'GMP',
+      fixtures: {
+        'meta.get': { ...EXAMPLES['meta-gmp'].data, demo: true },
+        'operations.credentialCard': {
+          installation: 'GMP',
+          database: 'ebmr_tablets_demo',
+          entries: [entry({}), entry({ legalName: 'Priya Nair', roles: ['OPERATOR'], terminal: 'KIOSK-DISP-1', method: 'BADGE_PIN', loginName: 'priya.nair', password: null, badgeUid: '04B10000000001', pin: '482917', bootstrap: false })],
+        },
+      },
+    });
+    const card = await screen.findByTestId('credential-card');
+    expect((await within(card).findByTestId('credential-demo.admin')).textContent).toContain('user ID demo.admin, password Xy7-secret');
+    expect(within(card).getByTestId('credential-priya.nair').textContent).toContain('badge 04B10000000001 (Tap Priya Nair on the demo reader), PIN 482917');
+  });
+
+  it('a GMP installation that is not a demo one shows no card and does not ask for one', async () => {
+    const ui = renderOperations('/operations', { installation: 'GMP', fixtures: { 'meta.get': { ...EXAMPLES['meta-gmp'].data, demo: false } } });
+    await screen.findByTestId('operations-common');
+    expect(screen.queryByTestId('credential-card')).toBeNull();
+    expect(ui.requests.some((r) => r.path === '/api/operations/credential-card')).toBe(false);
   });
 });
 

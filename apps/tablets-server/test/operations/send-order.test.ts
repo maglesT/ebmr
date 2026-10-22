@@ -23,7 +23,7 @@ afterAll(async () => {
 /** A demo GMP server whose keys directory holds its set-up's seed file (as pnpm demo:setup writes it). */
 async function demoServer(withSeed: boolean): Promise<TestServer> {
   const keysDir = mkdtempSync(join(tmpdir(), 'ebmr-7k-keys-'));
-  const s = await startServer('GMP', { demoMarker: true, env: { EBMR_KEYS_DIR: keysDir } });
+  const s = await startServer('GMP', { demoMarker: true, env: { EBMR_KEYS_DIR: keysDir, EBMR_DEMO: '1' } });
   servers.push(s);
   if (withSeed) writeFileSync(join(keysDir, 'gmp-seed.json'), JSON.stringify(s.seed));
   return s;
@@ -68,5 +68,32 @@ describe('R5: the ERP simulator sends a production order to a demo GMP installat
     const gmpAdmin = await loginOf(gmp, await grantedPerson(gmp, 'SYSTEM_ADMINISTRATOR', 'IT Administrator'));
     expect(valueOf(await gmpAdmin.call(O.simulators)).orderTemplates).toBeUndefined();
     expect(refusalOf(await gmpAdmin.call(O.sendProductionOrder, { body: { productCode: 'PCM500', kind: 'PROCESSING', reason: 'x' } }))).toMatchObject({ status: 403, code: 'EBMR-OPS-010' });
+  }, 180_000);
+});
+
+describe('R3.13: the DEMO-ONLY credential card on the operations screen', () => {
+  it('[DI-05][DI-14] a demo installation shows its set-up\'s administrators (this set-up\'s passwords) and every demo persona with how and where they sign in; any other installation refuses it', async () => {
+    const s = await demoServer(true);
+    const reader = await s.asPersona('operator1');
+    const card = valueOf(await reader.call(O.credentialCard));
+    expect(card.installation).toBe('GMP');
+    expect(card.entries.filter((e) => e.bootstrap).map((e) => [e.loginName, e.password])).toEqual([
+      [s.seed.bootstrap.admin.loginName, s.seed.bootstrap.admin.password],
+      [s.seed.bootstrap.owner.loginName, s.seed.bootstrap.owner.password],
+    ]);
+    const personas = s.seed.personas.filter((p) => p.set === 0);
+    expect(card.entries.filter((e) => !e.bootstrap).map((e) => e.loginName)).toEqual(personas.map((p) => p.loginName));
+    for (const p of personas) {
+      const e = card.entries.find((x) => x.loginName === p.loginName);
+      expect(e).toMatchObject(
+        p.kiosk ? { method: 'BADGE_PIN', badgeUid: p.badgeUid, pin: p.pin, password: null, terminal: p.homeTerminal } : { method: 'PASSWORD', password: p.password, badgeUid: null, terminal: p.homeTerminal },
+      );
+    }
+    const gmp = await startServer('GMP');
+    servers.push(gmp);
+    expect(refusalOf(await (await gmp.asPersona('operator1')).call(O.credentialCard))).toMatchObject({ status: 403, code: 'DEMO_ONLY' });
+    const sbx = await startServer('SANDBOX');
+    servers.push(sbx);
+    expect(refusalOf(await (await sbx.asPersona('operator1')).call(O.credentialCard))).toMatchObject({ status: 403, code: 'DEMO_ONLY' });
   }, 180_000);
 });

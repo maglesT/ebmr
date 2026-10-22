@@ -372,6 +372,7 @@ export {
   SimulatorsView,
   DemoOrderTemplateView,
   SentOrderView,
+  CredentialCardView,
   WorkerView,
   WorkersView,
   // Phase 7 slice 7g, work package 2.

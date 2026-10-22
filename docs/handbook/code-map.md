@@ -114,7 +114,7 @@ of each database function.
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
 | [ts-india](#ts-india) | India features (licences, labels, expiry rule) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 15 | 5 | 8 |
 | [ts-execution](#ts-execution) | Execution on the shop floor (batches, entries, lots) | [modules/tablets-server.md](modules/tablets-server.md) | 17 | 35 | 104 | 57 |
-| [ts-operations](#ts-operations) | Operations screens without a terminal (set-up, demo data, backups, workers, simulators, API reference; Phase 7 slice 7g-4) | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 25 | 11 | 12 |
+| [ts-operations](#ts-operations) | Operations screens without a terminal (set-up, demo data, backups, workers, simulators, API reference; Phase 7 slice 7g-4) | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 26 | 11 | 12 |
 | [ts-validation](#ts-validation) | Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 24 | 7 | 10 |
 | [ts-administration](#ts-administration) | People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 60 | 6 | 12 |
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 2 | 0 | 0 |
@@ -132,7 +132,7 @@ of each database function.
 | [injectables-web](#injectables-web) | Injectables screens (placeholder) | [modules/injectables.md](modules/injectables.md) | 0 | 0 | 1 | 0 |
 | [tools-boundaries](#tools-boundaries) | Dependency boundaries and clock ban tests | [modules/tools.md](modules/tools.md) | 0 | 0 | 4 | 1 |
 | [tools-install](#tools-install) | One-command installer for a server (Phase 7 slice 7g-4) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
-| [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 3 | 0 |
+| [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 4 | 0 |
 | [tools-dev-env](#tools-dev-env) | Development pod set-up | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-e2e](#tools-e2e) | End-to-end browser suite | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 58 |
 | [tools-handbook](#tools-handbook) | Handbook generator and link checker | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
@@ -2642,11 +2642,11 @@ of each database function.
 - Tables (1): `tab.demo_act`
 - Functions (7): `tab.backup_overview`, `tab.demo_conveniences_problem`, `tab.drill_overview`, `tab.installation_contents`, `tab.kernel_signing_meanings`, `tab.record_demo_act`, `tab.restore_overview`
 
-**Server files** (10): [backups.ts](../../apps/tablets-server/src/features/operations/backups.ts), [demo.ts](../../apps/tablets-server/src/features/operations/demo.ts), [drills.ts](../../apps/tablets-server/src/features/operations/drills.ts), [erp-orders.ts](../../apps/tablets-server/src/features/operations/erp-orders.ts), [guidance.ts](../../apps/tablets-server/src/features/operations/guidance.ts), [index.ts](../../apps/tablets-server/src/features/operations/index.ts), [restore.ts](../../apps/tablets-server/src/features/operations/restore.ts), [setup.ts](../../apps/tablets-server/src/features/operations/setup.ts), [simulators.ts](../../apps/tablets-server/src/features/operations/simulators.ts), [workers.ts](../../apps/tablets-server/src/features/operations/workers.ts)
+**Server files** (11): [backups.ts](../../apps/tablets-server/src/features/operations/backups.ts), [credential-card.ts](../../apps/tablets-server/src/features/operations/credential-card.ts), [demo.ts](../../apps/tablets-server/src/features/operations/demo.ts), [drills.ts](../../apps/tablets-server/src/features/operations/drills.ts), [erp-orders.ts](../../apps/tablets-server/src/features/operations/erp-orders.ts), [guidance.ts](../../apps/tablets-server/src/features/operations/guidance.ts), [index.ts](../../apps/tablets-server/src/features/operations/index.ts), [restore.ts](../../apps/tablets-server/src/features/operations/restore.ts), [setup.ts](../../apps/tablets-server/src/features/operations/setup.ts), [simulators.ts](../../apps/tablets-server/src/features/operations/simulators.ts), [workers.ts](../../apps/tablets-server/src/features/operations/workers.ts)
 
 **Contract** (1): [operations.ts](../../packages/api-contract/src/ns/operations.ts)
 
-**Routes** (25):
+**Routes** (26):
 
 | Method | Path | Route | Contract file |
 |---|---|---|---|
@@ -2655,6 +2655,7 @@ of each database function.
 | GET | `/api/operations/backups` | `operations.backups` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
 | POST | `/api/operations/backups` | `operations.runBackup` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
 | GET | `/api/operations/backups/:backupId/file` | `operations.backupFile` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
+| GET | `/api/operations/credential-card` | `operations.credentialCard` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
 | GET | `/api/operations/demo` | `operations.demo` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
 | GET | `/api/operations/demo/job` | `operations.demoJob` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
 | POST | `/api/operations/demo/load` | `operations.demoLoad` | [operations.ts](../../packages/api-contract/src/ns/operations.ts) |
@@ -2977,7 +2978,7 @@ of each database function.
 
 **Source** (6): [cli.ts](../../tools/demo/src/cli.ts), [index.ts](../../tools/demo/src/index.ts), [options.ts](../../tools/demo/src/options.ts), [paths.ts](../../tools/demo/src/paths.ts), [processes.ts](../../tools/demo/src/processes.ts), [stack.ts](../../tools/demo/src/stack.ts)
 
-**Tests** (3): [demo-devices.test.ts](../../tools/demo/test/demo-devices.test.ts), [processes.test.ts](../../tools/demo/test/processes.test.ts), [setup-options.test.ts](../../tools/demo/test/setup-options.test.ts)
+**Tests** (4): [demo-completeness.test.ts](../../tools/demo/test/demo-completeness.test.ts), [demo-devices.test.ts](../../tools/demo/test/demo-devices.test.ts), [processes.test.ts](../../tools/demo/test/processes.test.ts), [setup-options.test.ts](../../tools/demo/test/setup-options.test.ts)
 
 ## tools-dev-env
 
