@@ -72,6 +72,9 @@ export async function signPrimary(page: Page, label: string | RegExp, who: Seede
 
 export async function switchUser(page: Page, who: SeededPersona): Promise<void> {
   await pace(page, who);
+  // Slice 7l: a lock layer that opens and closes while the screen settles shows a second, disabled "Switch user": the
+  // person waits until the screen shows one.
+  await expect(page.getByRole('button', { name: 'Switch user' })).toHaveCount(1, { timeout: 30_000 });
   await switchUser0(page, who);
 }
 
@@ -381,7 +384,7 @@ export async function allInOrder(box: Locator): Promise<void> {
 }
 
 /** What a person types or chooses in a block entry form, member by member (by the member's label). */
-export type Fill = { [label: string]: string | string[] | Fill };
+export type Fill = { [label: string]: string | string[] | Fill | Fill[] };
 
 /**
  * Fills a block entry form as a person does: a text member is typed, a choice (or yes/no) is chosen, a list gets its
@@ -393,7 +396,9 @@ export async function fillBlock(scope: Locator, fill: Fill): Promise<void> {
       const list = scope.getByRole('group', { name: label, exact: true });
       for (const [i, item] of v.entries()) {
         await list.getByRole('button', { name: `Add to ${label}`, exact: true }).click();
-        await list.getByRole('textbox', { name: `${label} ${String(i + 1)}`, exact: true }).fill(item);
+        // Slice 7l: a list of objects (a tablet's values, a reel): each item's members inside the item's own group.
+        if (typeof item === 'object') await fillBlock(list.getByRole('group', { name: `${label} ${String(i + 1)}`, exact: true }), item);
+        else await list.getByRole('textbox', { name: `${label} ${String(i + 1)}`, exact: true }).fill(item);
       }
     } else if (typeof v === 'object') {
       await fillBlock(scope.getByRole('group', { name: label, exact: true }), v);

@@ -407,7 +407,7 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
   };
 }
 
-interface Spec {
+export interface Spec {
   changeRecord: string;
   title: string;
   riskAssessment: string;
@@ -415,10 +415,12 @@ interface Spec {
   validationRef: string;
   sizeId: string;
   numbering: { ruleCode: string; kind: 'PROCESSING' | 'PACKAGING'; format: string };
+  /** The product the batch-number rule numbers (GB-T-02's when absent; slice 7l: the demo routes name theirs). */
+  productCode?: string;
 }
 
 /** A master approved as the site approves one (as the golden worlds do), authorised for IN, US and EU. */
-async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec): Promise<{ familyId: string; versionId: string }> {
+export async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec): Promise<{ familyId: string; versionId: string }> {
   const author = await app.browser('author');
   const qa = await app.browser('approver');
   const familyId = await app.as(author, (c) => lifecycle.defineFamily(c, lifecycle.familyOf(content)));
@@ -448,8 +450,8 @@ async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec): Prom
   }
   const n = spec.numbering;
   await app.dbAs(await app.browser('steward'), 'select site.define_batch_number_rule($1::jsonb) as r', [
-    JSON.stringify({ rule_code: n.ruleCode, site_code: SITE, product_code: GBT02_PRODUCT.productCode, batch_kind: n.kind, format: n.format, site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' }),
-  ], { reasonCode: 'NEW_PRODUCT', reasonText: `Numbering of ${GBT02_PRODUCT.productCode} (${n.kind.toLowerCase()})` });
+    JSON.stringify({ rule_code: n.ruleCode, site_code: SITE, product_code: spec.productCode ?? GBT02_PRODUCT.productCode, batch_kind: n.kind, format: n.format, site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' }),
+  ], { reasonCode: 'NEW_PRODUCT', reasonText: `Numbering of ${spec.productCode ?? GBT02_PRODUCT.productCode} (${n.kind.toLowerCase()})` });
   return { familyId, versionId };
 }
 

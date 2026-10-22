@@ -231,6 +231,34 @@ export const StepScreenView = z.strictObject({
    * G-21@1, G-24@2; the typed kinds excluded), each with the block's own schema; empty for other blocks.
    */
   blockEntries: z.array(BlockEntryFormView),
+  /**
+   * Phase 7 slice 7l (R1): the entries of other steps of the batch that an entry of this step names (a TB-03 preparation
+   * a binder addition or a coating suspension uses), so the person picks one instead of typing its id; empty when the
+   * step's block names none.
+   */
+  citable: z.array(EntryView).optional(),
+  /**
+   * Phase 7 slice 7l (R1): the alternative the step's branch belongs to when a person chooses it (OPERATOR_CHOICE): its
+   * branches, the roles that may choose and the branch chosen (null while undecided), so the authorised person
+   * chooses it on the step screen with a reason (CHOOSE_ALTERNATIVE; the engine decides, DI-34, PR-13).
+   */
+  alternative: z
+    .strictObject({
+      construct: z.string(),
+      /** The step-key context of the alternative's instance (empty outside loops and sub-lots). */
+      context: z.string(),
+      branches: z.array(z.strictObject({ id: z.string(), name: z.string() })),
+      roles: z.array(z.string()),
+      chosen: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
+  /**
+   * Phase 7 slice 7l (R1): the innermost loop the step's instance runs in (its iteration, and whether that iteration was
+   * completed), so the person ends the iteration on the step screen once the step is completed (COMPLETE_LOOP_ITERATION;
+   * the engine decides from the loop's exit condition whether another iteration follows, INV-19).
+   */
+  loop: z.strictObject({ construct: z.string(), name: z.string(), iteration: z.number().int().positive(), completed: z.boolean() }).nullable().optional(),
   exceptions: z.array(ExceptionView),
   signatures: z.array(ManifestationView),
   actions: z.array(ActionView),
