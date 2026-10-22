@@ -201,6 +201,8 @@ export const EXAMPLES = {
   timeline: { schema: r.execution.timeline.response, data: timeline, routeId: r.execution.timeline.id },
   replay: { schema: r.execution.verifyReplay.response, data: replay, routeId: r.execution.verifyReplay.id },
   lot: { schema: r.execution.lot.response, data: lot, routeId: r.execution.lot.id },
+  'test-lots': { schema: r.execution.testLots.response, data: { lots: [lot] }, routeId: r.execution.testLots.id },
+  'register-test-lot': { schema: r.execution.registerTestLot.response, data: lot, routeId: r.execution.registerTestLot.id },
   challenge: { schema: ChallengeView, data: challenge, routeId: r.esig.createChallenge.id },
   manifestation: { schema: ManifestationView, data: manifestation },
   reading: { schema: ReadingView, data: reading, routeId: r.devices.capture.id },

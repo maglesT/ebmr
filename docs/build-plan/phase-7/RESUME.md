@@ -211,8 +211,9 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 - D-7j-5: `designer.createFamily` without `templateId` starts from the approved formula: SKELETON, BLANK or COPY of an
   approved master; header, batch sizes (scaled from the formula's batch mass, three decimals) and BOM from the formula;
   the template-match check (`withFormulaBom`) stays on the template path only.
-- D-7j-6: the skeleton is shaped from the dc-mini demo master's dispensing and blending stages with G-09@2 and G-10@2,
-  blending as TB-07 (60 to 900 s blend, 30 to 300 s lubrication, VR-BLEND-01), and reuses the demo SOP, validation and
+- D-7j-6: the skeleton is shaped from the dc-mini demo master's dispensing and blending stages (G-09@1 and G-10@1, which
+  the sandbox runs; the validator's INFO says a GMP batch refuses them, the author inserts @2 from the palette once the
+  plant is registered), blending as TB-07 (60 to 900 s blend, 30 to 300 s lubrication, VR-BLEND-01), and reuses the demo SOP, validation and
   hold-study references; the author replaces them with the product's own documents in the designer.
 - D-7j-7: the palette is the Tablets registry: every TB-01 to TB-24 version and every generic step block (G-06 and G-21
   unhidden); configuration forms come from each block's schema as before.

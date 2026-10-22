@@ -74,6 +74,8 @@ describe('a new master from an approved formula (slice 7j)', () => {
     const errors = report.findings.filter((f) => f.severity === 'ERROR');
     expect(errors.map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
     expect(report.gate.errors).toBe(0);
+    expect(report.findings.filter((f) => f.severity === 'WARNING').map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
+    expect(report.gate.passed).toBe(true);
     expect(JSON.stringify(v.content)).toContain('"type":"TB-07"');
     const sim = valueOf(await author.call(routes.designer.simulate, { params: { versionId: v.versionId }, body: {} }));
     expect(sim.problems.map((p) => p.message)).toEqual([]);

@@ -230,11 +230,8 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   t.timeConstraints = t.timeConstraints.map((tc) => ({ ...tc, from: { ...tc.from, node: 'p-disp-act' } }));
   t.intermediates = t.intermediates.map((i) => ({ ...i, name: 'Final blend' }));
 
-  // The database-backed clearance and equipment status (G-10@2, G-09@2), which a GMP batch takes (D-7j-6).
-  walk(t.procedure, (o) => {
-    const block = o['block'] as { type?: string; version?: string } | undefined;
-    if (o['kind'] === 'phase' && block && (block.type === 'G-09' || block.type === 'G-10')) block.version = '2';
-  });
+  // The clearance and equipment status stay the sandbox versions (G-10@1, G-09@1) the demo plant runs (D-7j-6); the
+  // validator says a GMP batch refuses them, and the author inserts the database-backed versions from the palette.
   t.header = header(src, req, markets);
   t.references = [...base.content.references.filter((r) => SKELETON_REFS.includes(r.id)), ...(timeSystem ? [timeSystem] : []), ...materialRefs(src)];
   t.bom = bomOf(src);
