@@ -118,6 +118,14 @@ installation every kiosk's demo badge reader offers every badge holder ("Works h
 a processing batch is planned against the ERP order clicked; P7H-5: a database refusal of a step entry is shown in its
 own words (the EBMR-TAB family no longer reads as a failed sign-in). No migrations.
 
+**Slice 7k (22 October, branch `phase-7/slice-7k`): hosted-demo trial requirements R2, R3.1-R3.13 (not R3.14), R5**
+(`docs/build-plan/phase-7/demo-trial-requirements.md`; decisions D-7k-1 to -6 in `RESUME.md`). Servers survive a
+PostgreSQL restart and `pnpm demo` exits non-zero when a child dies; navigation-reachability and demo-completeness
+`[meta]` tests; the plant act and its step record as one act (batches.plantEntry); tablet count checked at issue;
+saved forms close; lots on blur; still to weigh; stage sign-off ends uses; cleaning list per batch; kiosk session-end
+notice (tablets 1570); credential card on Operations; Send a production order (tablets 1571); GB-T-02 second lots and
+orders. Browser flow `specs/phase7/presenter-floor.spec.ts`.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 
