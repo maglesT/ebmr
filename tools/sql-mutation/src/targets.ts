@@ -1616,7 +1616,7 @@ export const TARGETS: Target[] = [
   {
     group: 'own-product-masters',
     functions: ['site.master_entry_problem', 'site.enter_material_master', 'site.enter_product_master', 'site.erp_master_version', 'site.master_entry_of',
-                'recipe.formula_set_target', 'recipe.formula_target_of', 'recipe.formula_version_content'],
+                'recipe.formula_set_target', 'recipe.formula_target_of'],
     tests: [s('master-data/master-entry.test.ts'), s('master-data/formula-target.test.ts'), s('designer/from-formula.test.ts')],
     threshold: 90,
   },
