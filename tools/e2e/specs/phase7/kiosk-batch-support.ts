@@ -429,9 +429,12 @@ export async function reviewRecord(e2e: E2eWorld, pages: { production: Page; qa:
   const { production, qa, qa2 } = pages;
   await production.goto(`${base}/review/${batchId}`);
   await expect(production.getByTestId('review-state')).toContainText('Execution complete');
-  await production.getByRole('button', { name: 'Approve the record (production)' }).click();
-  await officeSign(production, /^Approve the (processing|packaging) record of batch/, people.head);
-  await expect(production.getByTestId('review-state')).toContainText('Production approved');
+  // Slice 7l: a record the head of production approved already (a resumed developer's run) is not approved twice.
+  if (!/Production approved|QA reviewed/.test((await production.getByTestId('review-state').textContent()) ?? '')) {
+    await production.getByRole('button', { name: 'Approve the record (production)' }).click();
+    await officeSign(production, /^Approve the (processing|packaging) record of batch/, people.head);
+  }
+  await expect(production.getByTestId('review-state')).toContainText(/Production approved|QA reviewed/);
   let concluded = 0;
   for (;;) {
     await qa.goto(`${base}/review/${batchId}/register`);
@@ -450,13 +453,17 @@ export async function reviewRecord(e2e: E2eWorld, pages: { production: Page; qa:
   await qa.goto(`${base}/review/${batchId}`);
   const panel = qa.getByTestId('audit-trail-review');
   await expect(panel.getByTestId('audit-trail-marks')).toBeVisible();
-  await panel.getByRole('button', { name: /^Sign the (audit-trail|delta) review$/ }).click();
-  await officeSign(qa, /^(Audit-trail|Delta) review /, people.qa);
+  // Slice 7l: after a long register (route W), QA's next signature can meet the limit on authentications: paced.
+  if ((await panel.getByText('Covered by the last signed mark').count()) === 0) {
+    await officeSignPaced(qa, () => panel.getByRole('button', { name: /^Sign the (audit-trail|delta) review$/ }).click(), /^(Audit-trail|Delta) review /, people.qa);
+  }
   await expect(panel.getByText('Covered by the last signed mark')).toBeVisible();
   await qa2.goto(`${base}/review/${batchId}`);
   const box = qa2.getByTestId('qa-review');
-  await box.getByRole('button', { name: 'Sign the QA review' }).click();
-  await officeSign(qa2, /^QA review of batch/, people.qa2);
+  await expect(qa2.getByTestId('review-state')).toBeVisible();
+  if (!/QA reviewed/.test((await qa2.getByTestId('review-state').textContent()) ?? '')) {
+    await officeSignPaced(qa2, () => box.getByRole('button', { name: 'Sign the QA review' }).click(), /^QA review of batch/, people.qa2);
+  }
   await expect(qa2.getByTestId('review-state')).toContainText('QA reviewed');
   return concluded;
 }

@@ -1023,7 +1023,7 @@ test('[IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; Q
     }
     const samples = qp.getByTestId('lot-samples');
     await choose(samples.getByRole('radio', { name: 'RESERVE', exact: true }));
-    await samples.getByRole('textbox', { name: 'Quantity' }).fill('2');
+    await samples.getByRole('textbox', { name: 'Quantity' }).fill('4');
     await samples.getByRole('textbox', { name: 'Container' }).fill(`Reserve sample box of ${s.lotCode ?? ''}`);
     await samples.getByRole('textbox', { name: 'Storage location' }).fill('Reserve sample room RS-1');
     await samples.getByRole('button', { name: 'Pull the sample' }).click();

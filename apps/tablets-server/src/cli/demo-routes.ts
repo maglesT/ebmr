@@ -155,6 +155,7 @@ export async function seedDemoRoutes(opts: DemoRoutesOptions): Promise<DemoRoute
     log('demo routes: the route W masters (wet, enteric film, cold-form blister), approved and authorised for IN, US and EU');
     const w = await routeW(app, opts);
     await productSpecification(app, opts, RTW_PRODUCT.productCode, RTW_PRODUCT_TESTS);
+    await verifyRuleSets(app, opts, ROUTE_RULE_SETS);
     return [w];
   } finally {
     await app.close();
@@ -257,6 +258,23 @@ async function clean(app: DemoApp, target: 'EQUIPMENT' | 'AREA', code: string): 
   const c = (await app.call(t1, routes.plant.startCleaning, { body: { target, code, level: 'MAJOR', method: 'MANUAL' } }, `the cleaning of ${code}`)) as { cleaningId: string };
   await app.call(t1, routes.plant.completeCleaning, { params: { id: c.cleaningId }, body: {} }, `the completion of the cleaning of ${code}`);
   await app.sign(t2, { kind: 'PLANT_VERIFY', act: 'CLEANING', id: c.cleaningId }, `the verification of the cleaning of ${code}`);
+}
+
+/**
+ * The compendial rule sets the routes' in-process tests are judged by (TB-14 friability, TB-15 disintegration) for the
+ * markets of the masters: the release gate asks for QA's verification of each against the official text (tablets
+ * spec E.1). QA records it and signs it (RULE_SET_VERIFY), as on the rule sets screen.
+ */
+const ROUTE_RULE_SETS = ['IP-DISINTEGRATION', 'IP-FRIABILITY', 'PHEUR-DISINTEGRATION', 'PHEUR-FRIABILITY', 'USP-DISINTEGRATION', 'USP-FRIABILITY'] as const;
+
+async function verifyRuleSets(app: DemoApp, opts: DemoRoutesOptions, codes: readonly string[]): Promise<void> {
+  const qa = await app.browser('approver');
+  for (const code of codes) {
+    const verified = await opts.db.admin.query("select 1 from esig.signature s where s.aggregate_type = 'compendial_rule_set' and s.aggregate_id = $1 and s.meaning_code = 'COMPENDIAL_RULE_SET_VERIFIED'", [`${code}:1`]);
+    if ((verified.rowCount ?? 0) > 0) continue;
+    await app.call(qa, routes.marketConfig.recordRuleSetVerification, { params: { code, version: '1' }, body: { documentRef: `DEMO-ONLY official text of ${code}`, note: 'Verified against the official text for the demo routes (DEMO-ONLY)' } }, `the verification of ${code}`);
+    await app.sign(qa, { kind: 'RULE_SET_VERIFY', code, version: 1 }, `the signature of the verification of ${code}`);
+  }
 }
 
 /** The finished-product tests of route W's lots (invented limits; the browser test records these results). */

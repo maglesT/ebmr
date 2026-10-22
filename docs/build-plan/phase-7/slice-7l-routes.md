@@ -20,9 +20,12 @@ is fixed as a product defect, with its test.
   gastro-resistant), inspection (TB-20); packed in alu-alu cold-form blisters (TB-21 COLD_FORM, TB-22, TB-24). The
   product, its new materials, three processing and four packaging ERP orders, ample lots (ten batches), the manufacturing
   licence and export permissions, the finished-product specification; both masters approved and authorised for IN, US, EU.
+  The compendial rule sets of TB-14 and TB-15 (IP, Ph. Eur., USP) recorded as verified and signed by QA, which the
+  release gate asks for.
 - **Browser test** `tools/e2e/specs/phase7/route-w.spec.ts` (11 serial tests): ERP order, plan and issue, reservations,
   cleaning, dispensing with TB-01, granulation, blending, compression with the IPC steps, enteric coating, inspection, the
-  packaging order on PL-2, QC, both record reviews and the release.
+  packaging order on PL-2, QC (four reserve packs, as the release gate requires), both record reviews and the release:
+  the lot reaches RELEASED on a checklist with no red item.
 
 ## Product defects found and fixed (each with its test)
 
