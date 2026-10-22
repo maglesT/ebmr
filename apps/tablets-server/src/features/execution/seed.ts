@@ -6,7 +6,7 @@
 import type pg from 'pg';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import type { FeatureSeedContext } from '../types.ts';
-import { seedGmp } from './seed-gmp.ts';
+import { OWN_PRODUCT_MATERIALS, seedGmp } from './seed-gmp.ts';
 
 const DAY_US = 86_400_000_000n;
 
@@ -26,6 +26,8 @@ export const DEMO_LOTS: readonly SeedLot[] = [
   { lotCode: 'TEST-L26-0102', materialCode: 'MAT-MCC', materialName: 'Microcrystalline cellulose PH 102', status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 },
   { lotCode: 'TEST-L26-0103', materialCode: 'MAT-MGS', materialName: 'Magnesium stearate', status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 },
   { lotCode: 'TEST-L26-0199', materialCode: 'MAT-PCM', materialName: 'Paracetamol, direct-compression grade', status: 'QUARANTINE', identityTested: false, expiresInDays: 730 },
+  // Slice 7j (D-7j-10): a TEST- lot of each material of the "create your own product" walk-through.
+  ...OWN_PRODUCT_MATERIALS.map((m, i) => ({ lotCode: `TEST-L26-020${String(i + 1)}`, materialCode: m.materialCode, materialName: m.materialName, status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 })),
 ];
 
 /** Registers test lots as `actor` (a MASTERDATA.CHANGE holder), with dates relative to the database time. */
