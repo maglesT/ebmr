@@ -20,6 +20,7 @@ import { commands, records as kernelRecords } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
+import { CONNECTION_LOST_LOG, surviveConnectionLoss } from '../../platform/db/pools.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
@@ -166,6 +167,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       if (!url) throw notConfigured('No reporting connection is configured (EBMR_DB_REPORT_URL, the login of the read-only role ebmr_report): the pack is read through it.', ['DI-11']);
       const ctx = actor({ reasonCode: 'PERIODIC_EVALUATION', reasonText: `periodic evaluation pack ${body.from} to ${body.to}` });
       const report = new pg.Pool({ connectionString: url, max: 1 });
+      surviveConnectionLoss(report, (e) => app.log.warn({ error: e.message }, `${CONNECTION_LOST_LOG} (reporting connection)`));
       let packId: string;
       try {
         const reader = { query: <T extends pg.QueryResultRow>(sql: string, params: unknown[] = []) => report.query<T>(sql, params) };

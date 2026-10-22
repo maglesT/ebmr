@@ -21,7 +21,7 @@ import type { EnvConfig, ServerConfig } from './config.ts';
 import { FEATURES, type FeatureEntry } from './features/index.ts';
 import { webCryptoDeviceProvider } from './platform/auth/device-proof.ts';
 import type { AppContext } from './platform/context.ts';
-import { createPools, refuseUnstorableParameters, type Pools } from './platform/db/pools.ts';
+import { CONNECTION_LOST_LOG, createPools, refuseUnstorableParameters, surviveConnectionLoss, type Pools } from './platform/db/pools.ts';
 import { createReadDb } from './platform/db/read.ts';
 import { installErrorHandling } from './platform/http/errors.ts';
 import { GuidanceCatalogue, PLATFORM_GUIDANCE } from './platform/http/guidance.ts';
@@ -72,6 +72,11 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
   // No query of the server carries text no record can hold (review F33): the pools tests hand in are guarded too.
   refuseUnstorableParameters(pools.app);
   refuseUnstorableParameters(pools.authn.pool);
+  // R3.12: a lost connection is logged and replaced, never the end of the process (to stderr until the logger exists).
+  let logLoss = (error: Error): void => void process.stderr.write(`${CONNECTION_LOST_LOG}: ${error.message}\n`);
+  const lost = (error: Error): void => logLoss(error);
+  surviveConnectionLoss(pools.app, lost);
+  surviveConnectionLoss(pools.authn.pool, lost);
   try {
     await assertInstallation(pools.app, env);
     // Slice 7d (P7D-6; DI-13): in production the database itself must say the sessions are encrypted (pg_stat_ssl, TLS
@@ -106,6 +111,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     app.setSerializerCompiler(serializerCompiler);
     installStrictJsonBodies(app);
     if (demo.warning) app.log.warn(demo.warning);
+    logLoss = (error) => app.log.warn({ code: (error as { code?: unknown }).code, error: error.message }, CONNECTION_LOST_LOG);
 
     const features = (deps.features ?? FEATURES).filter((f) => f.installations.includes(config.installation));
     const signables = new SignableActionRegistry();
@@ -164,6 +170,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // pool (the worker thread's pool logs its own idle-connection errors, analytics/worker-entry.ts).
     const implementations = deps.analytics?.implementations;
     const analyticsPool = config.analytics.enabled && implementations ? createAnalyticsPool(config.analytics.url) : null;
+    if (analyticsPool) surviveConnectionLoss(analyticsPool, lost);
     const analytics: AnalyticsRunnerApi | null = !config.analytics.enabled
       ? null
       : analyticsPool && implementations

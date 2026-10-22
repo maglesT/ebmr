@@ -66,6 +66,30 @@ export function spawnNode(opts: SpawnOptions): RunningProcess {
   };
 }
 
+/**
+ * Requirement R3.12 (hosted-demo trials): `pnpm demo` must not keep running with a dead server. `died` is called once,
+ * for the first of `processes` that exits while the watch is armed (with how it ended); the demo runner then stops the
+ * rest and exits non-zero, so the service manager (systemd on the hosted demo) restarts the whole stack. `disarm()`
+ * before a deliberate stop, so the processes' own exits are not taken for a death.
+ */
+export function watchForDeath(processes: readonly RunningProcess[], died: (name: string, how: string) => void): { disarm(): void } {
+  let armed = true;
+  for (const p of processes) {
+    const onExit = (code: number | null, signal: NodeJS.Signals | null): void => {
+      if (!armed) return;
+      armed = false;
+      died(p.name, code !== null ? `exit code ${String(code)}` : `signal ${String(signal)}`);
+    };
+    if (p.child.exitCode !== null || p.child.signalCode !== null) onExit(p.child.exitCode, p.child.signalCode);
+    else p.child.once('exit', onExit);
+  }
+  return {
+    disarm() {
+      armed = false;
+    },
+  };
+}
+
 /** Runs a node entry to completion; rejects on a non-zero exit. */
 export function runNode(opts: SpawnOptions): Promise<void> {
   const p = spawnNode(opts);
