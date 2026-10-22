@@ -32,6 +32,7 @@ import { EntryStatus } from '../components/EntryStatus.tsx';
 import { useSessionChange } from '../session.tsx';
 import { useDraftGuard } from '../unsettled.ts';
 import { st } from '../text.ts';
+import { expectsSeveral } from '../repeatable.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 
 type EntryFormView = StepScreenView['entryForms'][number];
@@ -379,8 +380,15 @@ function ReadingCapture({ label, purpose, reading, onReading, view, disabled }: 
   );
 }
 
-function LotInfo({ code }: { code: string }) {
+function LotInfo({ code, onMaterial }: { code: string; onMaterial?: (materialCode: string) => void }) {
   const lot = useApiQuery(routes.execution.lot, { params: { code } }, { retry: false });
+  // R3.5: the scanned lot says which material it is; the form takes its BOM line from it (EntryFormCard).
+  const material = lot.data?.material.code;
+  useEffect(() => {
+    if (material !== undefined) onMaterial?.(material);
+    // Once per lot read: the callback is a new function on every render of the form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [material, code]);
   if (lot.isPending) return null;
   if (!lot.data) return <p className={wcls('muted')}>{st('lot.unknown', { code })}</p>;
   const l = lot.data;
@@ -474,15 +482,31 @@ export function buildEntry(
 export function EntryFormCard({ form, view, options = {} }: { form: EntryFormView; view: StepScreenView; options?: FormOptions }) {
   const record = availability(view, 'RECORD_ENTRY');
   const [state, setState] = useState<FormState>(EMPTY_FORM);
+  // R3.2: a saved form closes and shows the saved entry ("Add another" where the step expects several).
+  const [closed, setClosed] = useState(false);
   const clear = () => setState(EMPTY_FORM);
   // A reading is spent only by a command that commits (an engine refusal does, and names the readings it used); a
   // refusal before the command, or one that rolled it back, spent none, so the captures stay for the resend (F59). A
   // stale answer used none either (its recorded refusal names the readings without claiming them, F58, F58.1) and
   // does not come here.
   const dropReadings = (refusal: RefusalEnvelope | null) => setState((s) => ({ ...s, readings: readingsAfterRefusal(s.readings, refusal) }));
-  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings, onDiscarded: clear });
+  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), {
+    onSaved: () => {
+      clear();
+      setClosed(true);
+    },
+    onNotApplied: dropReadings,
+    onDiscarded: clear,
+  });
   useSessionChange(clear);
   useDraftGuard([state.texts, state.choices, state.scans, state.readings, state.checks].some((part) => Object.keys(part).length > 0));
+  // R3.5: the BOM line of a scanned lot's material, when exactly one line of the form is that material (the option's
+  // label ends with the material code); a line chosen for an earlier container never carries over to another lot.
+  const lineOfMaterial = (materialCode: string) => {
+    const lines = form.fields.find((f) => f.name === 'bomLine' && f.type === 'enum')?.options ?? [];
+    const matching = lines.filter((o) => o.label.endsWith(`(${materialCode})`));
+    if (matching.length === 1 && matching[0]) set('choices', 'bomLine', matching[0].value);
+  };
   const locked = cmd.busy || cmd.state === 'notSaved';
 
   const readingFields = form.fields.filter((f) => f.type === 'reading');
@@ -543,10 +567,23 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   };
 
   if (!record.offered) return null;
+  if (closed) {
+    return (
+      <section className={wcls('formCard')} aria-label={form.title} data-testid={`form-${form.kind}`} data-closed="true">
+        <h3 className={wcls('formTitle')}>{form.title}</h3>
+        <EntryStatus call={cmd} />
+        {cmd.state !== 'saved' || cmd.savedNoteExpired ? <p className={wcls('muted')}>{st('form.savedListed')}</p> : null}
+        {expectsSeveral(form.kind) ? (
+          <Button onPress={() => setClosed(false)}>{st('form.addAnother', { title: form.title })}</Button>
+        ) : null}
+      </section>
+    );
+  }
   return (
     <section className={wcls('formCard')} aria-label={form.title} data-testid={`form-${form.kind}`}>
       <h3 className={wcls('formTitle')}>{form.title}</h3>
       <p className={wcls('muted')}>{form.description}</p>
+      {form.kind === 'CONTAINER_WEIGHING' ? <StillToWeigh view={view} /> : null}
       {!record.available ? (
         <p className={wcls('muted')}>
           {st('field.cannotRecord')}
@@ -587,8 +624,16 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
               case 'container':
                 return (
                   <div key={f.name}>
-                    <floor.ScanField name={f.name} label={f.label} description={description} value={state.scans[f.name] ?? null} onChange={(v) => set('scans', f.name, v)} isDisabled={locked} />
-                    {f.type === 'lot' && state.scans[f.name] ? <LotInfo code={state.scans[f.name] ?? ''} /> : null}
+                    <floor.ScanField
+                      name={f.name}
+                      label={f.label}
+                      description={description}
+                      value={state.scans[f.name] ?? null}
+                      onChange={(v) => set('scans', f.name, v)}
+                      isDisabled={locked}
+                      {...(f.type === 'lot' ? { hint: st('lot.hint') } : {})}
+                    />
+                    {f.type === 'lot' && state.scans[f.name] ? <LotInfo code={state.scans[f.name] ?? ''} onMaterial={lineOfMaterial} /> : null}
                   </div>
                 );
               case 'reading':
@@ -631,5 +676,24 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
       )}
       <EntryStatus call={cmd} />
     </section>
+  );
+}
+
+/** R3.8: what is still to weigh of each BOM line of the step, as the server computes it from the production order. */
+function StillToWeigh({ view }: { view: StepScreenView }) {
+  const lines = view.bomRemaining ?? [];
+  if (lines.length === 0) return null;
+  return (
+    <ul data-testid="still-to-weigh" aria-label={st('weigh.remainingTitle')}>
+      {lines.map((l) => (
+        <li key={l.bomLine} data-testid={`still-to-weigh-${l.bomLine}`}>
+          {l.remaining.startsWith('-')
+            ? st('weigh.over', { material: l.material, over: l.remaining.slice(1), unit: l.unit, required: l.required })
+            : /^0(\.0+)?$/.test(l.remaining)
+              ? st('weigh.done', { material: l.material, required: l.required, unit: l.unit })
+              : st('weigh.remaining', { material: l.material, remaining: l.remaining, unit: l.unit, required: l.required, weighed: l.weighed })}
+        </li>
+      ))}
+    </ul>
   );
 }

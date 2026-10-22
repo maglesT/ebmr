@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3352 objects.
+3353 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -3136,6 +3136,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`tab.serialisation_release_problem`](../../../apps/tablets-server/sql/0952_serialisation.sql#sym=tab.serialisation_release_problem) | function | [0952_serialisation.sql](../../../apps/tablets-server/sql/0952_serialisation.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`tab.serialised_market`](../../../apps/tablets-server/sql/0952_serialisation.sql#sym=tab.serialised_market) | function | [0952_serialisation.sql](../../../apps/tablets-server/sql/0952_serialisation.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`tab.session_challenge`](../../../apps/tablets-server/sql/0610_signature_table_plan_reads.sql#sym=tab.session_challenge) | function | [0610_signature_table_plan_reads.sql](../../../apps/tablets-server/sql/0610_signature_table_plan_reads.sql) |  | [ts-access](../code-map.md#ts-access) |
+| [`tab.session_end_notice`](../../../apps/tablets-server/sql/1570_session_end_notice.sql#sym=tab.session_end_notice) | function | [1570_session_end_notice.sql](../../../apps/tablets-server/sql/1570_session_end_notice.sql) |  | [ts-session](../code-map.md#ts-session) |
 | [`tab.session_role_withdrawn`](../../../apps/tablets-server/sql/0400_session_role_withdrawn.sql#sym=tab.session_role_withdrawn) | function | [0400_session_role_withdrawn.sql](../../../apps/tablets-server/sql/0400_session_role_withdrawn.sql) |  | [ts-session](../code-map.md#ts-session) |
 | [`tab.session_to_extend`](../../../apps/tablets-server/sql/0400_session_role_withdrawn.sql#sym=tab.session_to_extend) | function | [0400_session_role_withdrawn.sql](../../../apps/tablets-server/sql/0400_session_role_withdrawn.sql) |  | [ts-session](../code-map.md#ts-session) |
 | [`tab.set_attribution_method`](../../../apps/tablets-server/sql/0100_tab_attribution.sql#sym=tab.set_attribution_method) | function | [0100_tab_attribution.sql](../../../apps/tablets-server/sql/0100_tab_attribution.sql) |  | [ts-access](../code-map.md#ts-access) |

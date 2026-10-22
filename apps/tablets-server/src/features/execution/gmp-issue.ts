@@ -28,6 +28,7 @@ import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { DryRunOutcome, SignableActionHandler } from '../../platform/ports.ts';
 import { kernelContent, recordContentForSigning, type EsigSignableContext } from '../esig/content.ts';
 import { dataValueOf } from './intents.ts';
+import { inputExpectations, unconfirmedCounts, type CountProblem } from './issue-expectations.ts';
 import { checkIssue } from './packages.ts';
 import { engineActor, engineRoles } from './roles.ts';
 import { defineForGmp, loadControlRecipe, type ControlRecipeSource, type Db } from './runs.ts';
@@ -103,6 +104,7 @@ const reservationOf = (e: unknown): string | null =>
 /** The planned batch's view: what was planned, and what the issue asks for (the MBR's variants and header inputs). */
 function plannedView(planned: execution.PlannedGmpBatch, plan: PlanInput, def: engine.BatchDefinition): PlannedBatchView {
   const h = def.mbr.header;
+  const expectations = inputExpectations(def.mbr, plan.batchSize);
   return {
     batchId: planned.batchId,
     batchNumber: planned.batchNumber,
@@ -116,8 +118,28 @@ function plannedView(planned: execution.PlannedGmpBatch, plan: PlanInput, def: e
     batchSize: plan.batchSize,
     controlRecipeId: planned.controlRecipeId,
     variants: h.variants.map((v) => ({ id: v.id, name: v.id, options: [...v.values] })),
-    inputs: def.mbr.inputs.map((i: flow.ExternalInput) => ({ id: i.id, name: i.name, valueType: i.valueType, unit: i.unit ?? null, source: i.source, required: true })),
+    inputs: def.mbr.inputs.map((i: flow.ExternalInput) => {
+      const expected = expectations.get(i.id);
+      return { id: i.id, name: i.name, valueType: i.valueType, unit: i.unit ?? null, source: i.source, required: true, ...(expected ? { expected } : {}) };
+    }),
   };
+}
+
+/**
+ * R3.1 (D-7k-1): the refusal of an issue whose tablet count is further from the master's than the tolerance and was not
+ * confirmed with the issuer's reason.
+ */
+function countRefusal(batchNumber: string, problems: readonly CountProblem[]): HttpRefusal {
+  const p = problems[0] as CountProblem;
+  return new HttpRefusal(422, {
+    code: 'EBMR-EXE-700',
+    kind: 'NOT_ALLOWED',
+    whatHappened: `${p.name} ${p.entered} is ${p.deviation} % away from the ${p.expected.value} the master gives. Nothing was signed or issued.`,
+    why: `For batch ${batchNumber} the master gives ${p.expected.value} (${p.expected.basis}); a value more than ${p.expected.tolerancePercent} % away is issued only with your reason why it differs.`,
+    controls: ['PR-04', 'DI-24'],
+    whatYouCanDo: [`Correct ${p.name} to the batch's real count, or confirm ${p.entered} with your reason why it differs from the master.`],
+    whoCanHelp: ['Production planning'],
+  }, false);
 }
 
 /**
@@ -179,7 +201,10 @@ function inputsOf(def: engine.BatchDefinition, a: IssueAction, loginName: string
   const inputs: Record<string, { value: engine.DataValue; source: string }> = {};
   for (const [id, v] of Object.entries(a.inputs)) {
     const declared = def.mbr.inputs.find((i) => i.id === id);
-    inputs[id] = { value: dataValueOf(v), source: declared?.source === 'MASTER_DATA' ? `Master data, entered at issue by ${loginName}` : `Batch header, entered at issue by ${loginName}` };
+    const base = declared?.source === 'MASTER_DATA' ? `Master data, entered at issue by ${loginName}` : `Batch header, entered at issue by ${loginName}`;
+    // R3.1 (D-7k-1): the issuer's reason for a value away from the master's stays with the value in the record.
+    const confirmed = a.inputConfirmations?.[id]?.trim();
+    inputs[id] = { value: dataValueOf(v), source: confirmed ? `${base}; differs from the master's value: ${confirmed}` : base };
   }
   return inputs;
 }
@@ -211,6 +236,11 @@ export function gmpIssueHandler(app: AppContext): SignableActionHandler<IssueAct
       const source: ControlRecipeSource | undefined = await loadControlRecipe(client, row.control_recipe_id);
       if (!source) return refused(422, 'EBMR-EXE-192', 'The control recipe of this batch cannot be read. Nothing was signed.', `Batch ${row.batch_number} has no readable control recipe.`, ['INV-02'], ['Stop and report it.']);
       const def = defineForGmp(source);
+      const counts = unconfirmedCounts(def.mbr, row.batch_size, a.inputs, a.inputConfirmations);
+      if (counts.length > 0) {
+        const r = countRefusal(row.batch_number, counts);
+        return { accepted: false, status: r.status, refusal: r.refusal };
+      }
       try {
         checkIssue(
           def,
@@ -230,6 +260,8 @@ export function gmpIssueHandler(app: AppContext): SignableActionHandler<IssueAct
       const source = row?.control_recipe_id ? await loadControlRecipe(client, row.control_recipe_id) : undefined;
       if (!row || !source) throw new Error(`batch ${a.batchId} is no longer a planned GMP batch`);
       const def = defineForGmp(source);
+      const counts = unconfirmedCounts(def.mbr, row.batch_size, a.inputs, a.inputConfirmations);
+      if (counts.length > 0) throw countRefusal(row.batch_number, counts);
       const roles = await engineRoles(client);
       const r = await execution.issueGmpBatch(client, {
         batchId: a.batchId,

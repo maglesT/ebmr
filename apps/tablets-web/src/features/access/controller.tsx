@@ -23,6 +23,7 @@ import { apiState } from '../../api/client.ts';
 import { buildAttribution, keepAliveCall, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
 import { Latest, Vault } from './holders.ts';
 import { demoBadgesOf } from '../session/demo-badges.ts';
+import { setSessionEndNotice } from '../../app/session-end-notice.ts';
 
 export const SESSION_POLL_MS = 15_000;
 /** The warning before the inactivity lock opens this many seconds before it (WCAG 2.2.1 asks at least 20). */
@@ -371,6 +372,8 @@ function SessionControl(props: {
         // A sign-in of the browser that is not this page's (F41, round 4) is no end of this page's session: the page
         // already says so ('session-changed') and ends nothing.
         const code = r.failure.envelope.refusal.code;
+        // R3.11: a session ended because its person signed in elsewhere: the sign-in screen says so in the server's words.
+        if (code === 'NO_SESSION' && r.failure.envelope.refusal.details?.['endReason'] === 'SUPERSEDED') setSessionEndNotice(r.failure.envelope.refusal.whatHappened);
         if (code !== 'SESSION_CHANGED' && code !== 'SESSION_OTHER_TERMINAL') send({ type: 'ENDED' });
       }
     });

@@ -10,7 +10,7 @@ import type { Browser, Locator, Page } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, type E2eWorld } from '../../fixtures/index.ts';
 import { gmpKiosk, officeSign } from '../../fixtures/slice6.ts';
-import { card, choose, openStep, primary, sign as sign0, signPrimary as signPrimary0, startStep as startStep0, switchUser as switchUser0, tap as tap0 } from '../journey/support.ts';
+import { addAnother, card, choose, openStep, primary, sign as sign0, signPrimary as signPrimary0, startStep as startStep0, switchUser as switchUser0, tap as tap0 } from '../journey/support.ts';
 
 /** What the serial tests hand on: the orders, the batch, its bulk containers, the packaging order and the lot. */
 export interface FlowState {
@@ -154,7 +154,10 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
     } catch {
       await notSaved('the entry was neither saved nor refused within the wait');
     }
-    if (await saved.isVisible()) return;
+    if (await saved.isVisible()) {
+      await addAnother(form);
+      return;
+    }
     // A refusal panel and the stale notice come together: give the notice its moment before deciding.
     await stale.waitFor({ timeout: 1_000 }).catch(() => undefined);
     if (!(await stale.isVisible())) await notSaved('the entry was refused');
@@ -285,9 +288,9 @@ export async function clearanceStep(page: Page, e2e: E2eWorld, batchId: string, 
   await step(page, e2e, batchId, stepKey, ANY);
   await startStep(page, op);
   const plant = page.getByTestId('plant-area');
-  await act(page, plant.getByRole('button', { name: new RegExp(`^Start using (room|line) ${area}$`) }), op);
-  await expect(plant.getByTestId(`occupancy-${area}`)).toBeVisible();
-  await save(page, page.getByTestId('block-form-AREA_OCCUPANCY'), op);
+  // Slice 7k (R3.3): the room's use is started and recorded in the step as one act, one badge tap.
+  await act(page, plant.getByRole('button', { name: new RegExp(`^Start using (room|line) ${area} and record it in this step$`) }), op);
+  await expect(plant.getByTestId(`occupancy-${area}`).getByText('Recorded in this step.')).toBeVisible();
   await performAndCheck(page, op, verifier, op);
   await completed(page);
 }
@@ -311,9 +314,10 @@ export async function statusStep(page: Page, e2e: E2eWorld, batchId: string, ste
       await act(page, box.getByRole('button', { name: `Per-use check of ${u.code} passed` }), op);
       await expect(box.getByText('Check recorded: PASS.')).toBeVisible();
     }
-    await act(page, box.getByRole('button', { name: `Book ${u.code}` }), op);
-    await expect(box.getByTestId(`use-${u.code}`)).toBeVisible();
-    await save(page, page.getByTestId('block-form-EQUIPMENT_USE'), op);
+    // Slice 7k (R3.3, R3.4): booked and recorded in the step as one act; the unit is not offered for booking again.
+    await act(page, box.getByRole('button', { name: `Book ${u.code} and record it in this step` }), op);
+    await expect(box.getByTestId(`use-${u.code}`).getByText(`Recorded in this step for ${u.ref}.`)).toBeVisible();
+    await expect(box.getByRole('button', { name: `Book ${u.code} and record it in this step` })).toHaveCount(0);
   }
   await performAndCheck(page, op, null, op);
   await completed(page);
