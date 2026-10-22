@@ -22,7 +22,7 @@ import {
   act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, openContainer, performAndCheck, plusOne, primary,
   reviewRecord, save, saveBlock, sign, startStep, statusStep, step, verifyCleanings,
 } from './kiosk-batch-support.ts';
-import { begin, done, entryNaming, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
+import { begin, done, entryNaming, mark, marked, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
 
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async () => closeKiosks());
@@ -819,10 +819,12 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
   const page = await kiosk(browser, e2e, 'KIOSK-PACK-2', op);
   const bulk = s.containers?.['bulk'] ?? '';
   await evidence.step('The bulk container issued to the order with a fresh badge tap', 'The bulk is issued to the order', async () => {
+    if (marked(s, 'bulk-issued')) return;
     await page.goto(`${base}/planning/packaging/${orderId}`);
     await page.getByTestId(`bulk-container-${bulk}`).getByRole('checkbox').check();
     await act(page, page.getByRole('button', { name: /^Issue 1 container/ }), op);
     await expect(page.getByText('Bulk issued.')).toBeVisible();
+    mark(e2e, ROUTE, s, 'bulk-issued');
   }, page);
   await evidence.step('The line clearance of PL-2 for the order, the clearance step and the status step (balance, cold-form machine, cartoner)', 'The line is in use by the order; its units are booked', async () => {
     if (await done(page, e2e, orderId, 'p-pk-status@')) return;
@@ -839,11 +841,15 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }, page);
-  for (const k of ['p-g21@', 'p-tb21c@', 'p-tb22@', 'p-tb24@', 'p-pk-destroy@']) {
-    await step(page, e2e, orderId, k, ANY);
-    await startStep(page, op);
+  if (!marked(s, 'parallel-started')) {
+    for (const k of ['p-g21@', 'p-tb21c@', 'p-tb22@', 'p-tb24@', 'p-pk-destroy@']) {
+      await step(page, e2e, orderId, k, ANY);
+      await startStep(page, op);
+    }
+    mark(e2e, ROUTE, s, 'parallel-started');
   }
   await evidence.step('Printed materials: the lidding foil and the cartons issued from their lots as the register holds them, the artwork scanned; the specimens attached', 'Two ISSUE entries and two specimens', async () => {
+    if (marked(s, 'printed-issued')) return;
     await step(page, e2e, orderId, 'p-g21@', ANY);
     for (const [item, lot, artwork, n] of [['FOIL', 'RTW-ALU-001', 'ART-EXZGR-FOIL-1', '110'], ['CARTON', 'RTW-CTN-001', 'ART-EXZGR-CTN-1', '12']] as const) {
       const panel = page.getByTestId('printed-lot');
@@ -858,6 +864,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
       await act(page, panel.getByRole('button', { name: `Attach the ${item} specimen` }), op);
       await expect(panel.getByTestId(`label-specimen-${item}`)).toContainText('attached by');
     }
+    mark(e2e, ROUTE, s, 'printed-issued');
   }, page);
   await evidence.step('TB-21 line check: the cold-form machine set up with its change parts and reels; the independent check of the line', 'Performed and verified', async () => {
     if (await done(page, e2e, orderId, 'p-tb21c@')) return;
@@ -871,6 +878,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await completed(page);
   }, page);
   await evidence.step('TB-21 sealing run (values keyed by hand, defect checks), TB-22 leak tests at start and end, TB-24 cartons, examinations and the shipper on an SSCC', 'The run, the leak tests and cartoning recorded', async () => {
+    if (marked(s, 'run-recorded')) return;
     await step(page, e2e, orderId, 'p-tb21@', ANY);
     await startStep(page, op);
     await entry(page, 'RUN_START', op, { Machine: 'CFORM-01' });
@@ -901,9 +909,11 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await entry(page, 'EXAMINATION', op, { Timing: 'END', Examined: '5', Defective: '0', 'Label correct': 'Yes' });
     await entry(page, 'CHALLENGE', op, { Device: 'CW', Trigger: 'END', Result: 'PASS' });
     await entry(page, 'RECONCILIATION', op);
+    mark(e2e, ROUTE, s, 'run-recorded');
     return { sscc };
   }, page);
   await evidence.step('The printed materials reconciled, the coded surplus destroyed with a witness, the coding specimens typed as they read', 'Two reconciliations, one disposal and three coding specimens', async () => {
+    if (marked(s, 'reconciled')) return;
     await step(page, e2e, orderId, 'p-g21@', ANY);
     await entry(page, 'RECONCILIATION', op, { Item: 'FOIL', Used: '105', 'Setup waste': '2', Damaged: '0', 'Coded destroyed': '0', 'Uncoded returned': '3', Specimens: '0' });
     await entry(page, 'RECONCILIATION', op, { Item: 'CARTON', Used: '10', 'Setup waste': '0', Damaged: '0', 'Coded destroyed': '1', 'Uncoded returned': '0', Specimens: '1' });
@@ -923,19 +933,25 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
       await act(page, form.getByRole('button', { name: `Record the ${position.toLowerCase()} specimen` }), op);
       await expect(panel.getByTestId(`coding-specimen-${position}`)).toContainText(coded.batch);
     }
+    mark(e2e, ROUTE, s, 'reconciled');
   }, page);
   await evidence.step('The parallel steps performed; four verified, the destruction witnessed; the post-use inspection verified', 'Every parallel step completed', async () => {
+    if (marked(s, 'parallel-done')) return;
     for (const k of ['p-g21@', 'p-tb21@', 'p-tb22@', 'p-tb24@']) {
+      if (await done(page, e2e, orderId, k)) continue;
       await step(page, e2e, orderId, k, ANY);
       await performAndCheck(page, op, verifier, op);
       await completed(page);
     }
-    await step(page, e2e, orderId, 'p-pk-destroy@', ANY);
-    await performAndCheck(page, op, verifier, op, 'Witness');
-    await completed(page);
+    if (!(await done(page, e2e, orderId, 'p-pk-destroy@'))) {
+      await step(page, e2e, orderId, 'p-pk-destroy@', ANY);
+      await performAndCheck(page, op, verifier, op, 'Witness');
+      await completed(page);
+    }
     await page.goto(`${base}/labels/packaging/${orderId}`);
     const box = page.getByTestId('post-use-inspection');
     const form = box.getByTestId('post-use-form');
+    await expect(form.getByRole('radiogroup')).toHaveCount(4);
     for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio', { name: 'Yes', exact: true }));
     await act(page, form.getByRole('button', { name: 'Record the post-use inspection' }), op);
     await expect(box.getByText('not verified yet')).toBeVisible();
@@ -943,6 +959,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await page.goto(`${base}/labels/packaging/${orderId}`);
     await act(page, page.getByTestId('post-use-inspection').getByRole('button', { name: 'Verify the inspection' }), verifier);
     await as(page, op);
+    mark(e2e, ROUTE, s, 'parallel-done');
   }, page);
   await evidence.step('The tablets issued and packed (witnessed), the yield, QA\'s dispositions and the stage sign-off; the line and its units released', 'The packaging stage is signed off and the order is complete', async () => {
     await step(page, e2e, orderId, 'p-pk-count@', ANY);
@@ -1001,6 +1018,8 @@ test('[IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; Q
       await results.getByRole('textbox', { name: 'Value' }).fill(v);
       await results.getByRole('button', { name: 'Record the result' }).click();
       await expect(qp.getByTestId(`result-${code}-RELEASE`)).toContainText('PASS');
+      // The form is cleared once the result is shown: the next result is typed into the cleared form.
+      await expect(results.getByRole('textbox', { name: 'Test code' })).toHaveValue('');
     }
     const samples = qp.getByTestId('lot-samples');
     await choose(samples.getByRole('radio', { name: 'RESERVE', exact: true }));

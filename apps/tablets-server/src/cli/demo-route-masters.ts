@@ -16,8 +16,6 @@ import { packYieldParts, phase, pinned } from './golden-packaging.ts';
 
 type Json = Record<string, unknown>;
 
-const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
-
 function find(n: unknown, id: string): Json | undefined {
   if (Array.isArray(n)) {
     for (const x of n) {
@@ -112,10 +110,6 @@ const RTW_REFS: Record<string, string> = {
   'HS-GBT01': 'HS-RTW',
   'MAT-FCS-W': 'MAT-ECS-01',
 };
-
-const validated = (low: string, high: string, ref: string): Json => ({
-  tier: 'VALIDATED', rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref }, low: { value: low, inclusive: true }, high: { value: high, inclusive: true },
-});
 
 /** The route W processing master (BS-200K: 81.659 kg, 2,00,000 tablets of 410 mg) for `markets`. */
 export function rtwProcessingContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU']): flow.MbrContent {
@@ -252,9 +246,7 @@ export function rtwPackagingContent(familyCode: string, markets: readonly string
   const packFormat = { form: 'COLD_FORM', unitsPerBlister: '10', changeParts: ['CF-TOOL-RTW', 'SEAL-PLATE-RTW'] };
   const webs = [{ role: 'FORMING_FILM', material: RTW_FORMING }, { role: 'LIDDING_FOIL', material: RTW_FOIL, item: 'FOIL' }];
   const product = { uncoated: false, potent: false, betaLactam: false };
-  const signed = { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } };
   const witnessed = { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } };
-  void signed;
   const content: Json = {
     format: 'ebmr.mbr-content',
     formatVersion: 1,
@@ -350,4 +342,3 @@ export function rtwPackagingContent(familyCode: string, markets: readonly string
   return parsed(content, 'route W packaging master');
 }
 
-export { validated as rtwValidated };

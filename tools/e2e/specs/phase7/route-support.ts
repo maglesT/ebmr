@@ -26,6 +26,8 @@ export interface RouteState {
   orderNumber?: string;
   lotId?: string;
   lotCode?: string;
+  /** The acts of the route done so far that no completed step shows (a resumed developer's run skips them). */
+  marks?: string[];
 }
 
 const file = (e2e: E2eWorld, route: string): string => join(e2e.state.keysDir, '..', `route-${route}.json`);
@@ -105,4 +107,15 @@ export async function done(page: Page, e2e: E2eWorld, batchId: string, key: stri
 export async function begin(page: Page, who: SeededPersona): Promise<void> {
   if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
   await startStep(page, who);
+}
+
+/** Whether a resumed run did this act already (EBMR_E2E_RESUME=1); never in CI. */
+export function marked(s: RouteState, mark: string): boolean {
+  return process.env['EBMR_E2E_RESUME'] === '1' && (s.marks ?? []).includes(mark);
+}
+
+/** Records that the route did this act (for a resumed developer's run). */
+export function mark(e2e: E2eWorld, route: string, s: RouteState, m: string): void {
+  s.marks = [...(s.marks ?? []), m];
+  saveRoute(e2e, route, s);
 }

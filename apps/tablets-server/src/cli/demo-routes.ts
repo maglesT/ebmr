@@ -15,6 +15,7 @@
  * Never run on a production installation (the set-up CLI refuses EBMR_ENV=production and a non-demo database).
  */
 import { createHash, randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { routes } from '@ebmr/api-contract';
 import { identity, withCommand } from '@ebmr/kernel';
 import type { FeatureSeedContext } from '../features/types.ts';
@@ -169,7 +170,7 @@ async function licence(ctx: FeatureSeedContext, products: readonly { productCode
   const number = 'DEMO/MH/25/0002';
   if (((await ctx.pools.admin.query('select 1 from site.manufacturing_licence where licence_number = $1', [number])).rowCount ?? 0) > 0) return;
   const pool = ctx.pools.app;
-  const as = async <T>(persona: string, work: (c: import('pg').PoolClient) => Promise<T>): Promise<T> => withCommand(pool, { ...(await ctx.actorFor(persona)), correlationId: randomUUID() }, work);
+  const as = async <T>(persona: string, work: (c: pg.PoolClient) => Promise<T>): Promise<T> => withCommand(pool, { ...(await ctx.actorFor(persona)), correlationId: randomUUID() }, work);
   const licenceId = await as('regulatory', async (c) =>
     (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
       licenceKind: 'MANUFACTURING', form: '25', licenceNumber: number, holderName: DEMO_LICENCE_HOLDER,

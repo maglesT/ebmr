@@ -114,6 +114,8 @@ const kiosks: Page[] = [];
 export async function kiosk(browser: Browser, e2e: E2eWorld, terminal: string, who: SeededPersona, role?: string): Promise<Page> {
   const page = await gmpKiosk(browser, e2e, terminal);
   kiosks.push(page);
+  // Slice 7l: a script error of the screen is in the test's output (a silent failure of the screen is then explained).
+  page.on('pageerror', (error) => console.log(`[${terminal}] page error: ${error.message.slice(0, 400)}`));
   // Slice 7i (G1): as a presenter signs the floor people in on the demo, with the person's Tap button of the demo reader.
   await signIn.kiosk(page, who, role, 'demoButton');
   return page;
