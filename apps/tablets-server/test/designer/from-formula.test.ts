@@ -6,6 +6,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type FormulaLineInput } from '@ebmr/api-contract';
+import { terminalOf } from '@ebmr/test-kit';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
@@ -20,6 +21,7 @@ let formulaVersionId = '';
 let otherVersionId = '';
 
 const md = routes.masterData;
+const ERP_PRODUCT = 'DMT7JE';
 const REASON = 'In-house development product';
 const PRODUCT = { code: 'DMT7JF', name: 'Demotab 400 mg', strength: '400 mg' };
 const LINES: FormulaLineInput[] = [
@@ -32,9 +34,9 @@ const LINES: FormulaLineInput[] = [
 const create = (familyCode: string, start: 'SKELETON' | 'BLANK' | 'COPY', extra: Record<string, unknown> = {}) =>
   author.call(routes.designer.createFamily, { body: { familyCode, product: PRODUCT, markets: ['IN'], formulaVersionId, start, ...extra } });
 
-async function approvedFormula(units: string, target?: { targetUnitMassMg: string; otherBatchSizesUnits: string[] }): Promise<string> {
-  const { formulaId } = valueOf(await steward.call(md.createFormula, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, batchSizeUnits: units } }));
-  const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: REASON, lines: LINES, ...(target ? { target } : {}) } }));
+async function approvedFormula(units: string, target?: { targetUnitMassMg: string; otherBatchSizesUnits: string[] }, lines = LINES, productCode = PRODUCT.code): Promise<string> {
+  const { formulaId } = valueOf(await steward.call(md.createFormula, { body: { productCode, strength: PRODUCT.strength, batchSizeUnits: units } }));
+  const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: REASON, lines, ...(target ? { target } : {}) } }));
   const signed = await signAction(gmp, approver, 'approver', { kind: 'MASTER_DATA_APPROVE', masterKind: 'FORMULA', versionId: v.versionId });
   if (!signed.ok) throw new Error('SETUP: the formula was not approved');
   return v.versionId;
@@ -54,6 +56,12 @@ beforeAll(async () => {
     valueOf(await steward.call(md.enterMaterial, { body: { materialCode: code, materialName: name, materialKind: kind, unit: 'kg', pharmacopoeia: 'IP', changeReason: REASON } }));
   }
   valueOf(await steward.call(md.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'Film-coated tablet', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  // An ERP product (no dosage form: the ERP stub does not carry one) for review P7J-2.
+  const erp = gmp.seed.services.find((x) => x.key === 'erpInterface');
+  if (!erp) throw new Error('no ERP interface in the GMP seed');
+  const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
+  const catalogue = { products: [{ productCode: ERP_PRODUCT, strength: PRODUCT.strength, productName: 'ERP-only product', betaLactam: false, shelfLifeMonths: 24, erpReference: 'SAP-FG-DMT7JE' }], materials: [], orders: [] };
+  valueOf(await gmp.browser().call(routes.quality.erpImport, { body: { ...creds, catalogue } }));
   await confirmErpPending(gmp);
   formulaVersionId = await approvedFormula('100000', { targetUnitMassMg: '564', otherBatchSizesUnits: ['50000'] });
   otherVersionId = await approvedFormula('200000');
@@ -96,5 +104,26 @@ describe('a new master from an approved formula (slice 7j)', () => {
   it('a copy needs an approved master version: a draft is refused', async () => {
     const draft = valueOf(await author.call(routes.designer.families)).families.find((f) => f.familyCode === 'DMT7JF-BL')?.versions[0]?.versionId ?? '';
     expect(refusalOf(await create('DMT7JF-CP', 'COPY', { copyOfVersionId: draft, formulaVersionId: otherVersionId })).code).toBe('DESIGNER_COPY_NOT_APPROVED');
+  });
+
+  it('[PR-01] a master from a formula takes the product name and dosage form from the product master in effect, and is refused when it states no dosage form (review P7J-2)', async () => {
+    const erpFormula = await approvedFormula('100000', undefined, LINES, ERP_PRODUCT);
+    const r = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JE-SK', product: { code: ERP_PRODUCT, name: 'typed name', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: erpFormula, start: 'SKELETON' } });
+    expect(refusalOf(r).code).toBe('DESIGNER_PRODUCT_MASTER');
+  });
+
+  it('[INV-25][PR-01] with a salt factor and an overage on a potency-adjusted active the skeleton\'s quantities are the formula\'s computed ones, the database pins it and the validator passes (review P7J-3)', async () => {
+    // 400 mg base x 1.1 salt x 1.02 overage = 448.8 mg per tablet; x 3,00,000 = 134.64 kg (the 0640 rule).
+    const salted: FormulaLineInput[] = LINES.map((l) => (l.lineId === 'api' ? { ...l, saltFactor: '1.1' } : l));
+    const fv = await approvedFormula('300000', undefined, salted);
+    const v = valueOf(await create('DMT7JF-SALT', 'SKELETON', { formulaVersionId: fv }));
+    const c = v.content as unknown as { bom: { id: string; quantity: { value: string } }[]; header: { batchSizes: { quantity: { value: string } }[] }; calculations: { id: string; expression: string }[]; goldenCases: { id: string; expected: Record<string, { value: string }> }[] };
+    expect(c.bom.find((b) => b.id === 'BOM-API')?.quantity.value).toBe('134.64');
+    // 448.8 + 150 + 6 = 604.8 mg per tablet: 181.44 kg, the formula's batch mass (the reference size the database checks).
+    expect(c.header.batchSizes[0]?.quantity.value).toBe('181.44');
+    expect(c.calculations.find((x) => x.id === 'actTarget')?.expression).toBe('448.8 [mg] * tabletsPerBatch');
+    expect(c.goldenCases.find((g) => g.id === 'G-TARGETS')?.expected['actTarget']?.value).toBe('134.64');
+    const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+    expect(report.findings.filter((f) => f.severity !== 'INFO').map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
   });
 });

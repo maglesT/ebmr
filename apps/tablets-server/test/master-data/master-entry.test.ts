@@ -85,4 +85,13 @@ describe('masters entered on screen (slice 7j)', () => {
     const f = valueOf(await steward.call(md.createFormula, { body: { productCode: 'DMT7J', strength: '400 mg', batchSizeUnits: '100000' } }));
     expect(f.productName).toBe('Demotab 400 mg');
   });
+
+  it('[DI-17] a screen entry is insert-only: its update, delete and truncate are refused even to the database owner (review P7J-1)', async () => {
+    valueOf(await steward.call(md.enterMaterial, { body: { materialCode: 'RM-7J-INS', materialName: 'Insert-only check', materialKind: 'EXCIPIENT', unit: 'kg', changeReason: REASON } }));
+    const id = (await gmp.db.admin.query<{ id: string }>("select version_id::text as id from site.master_entry e join site.erp_material m on m.id = e.version_id where m.material_code = 'RM-7J-INS'")).rows[0]?.id;
+    expect(id).toBeDefined();
+    await expect(gmp.db.admin.query("update site.master_entry set change_reason = 'changed' where version_id = $1", [id])).rejects.toThrow(/EBMR-AUDIT|insert-only/i);
+    await expect(gmp.db.admin.query('delete from site.master_entry where version_id = $1', [id])).rejects.toThrow(/EBMR-AUDIT|insert-only/i);
+    await expect(gmp.db.admin.query('truncate site.master_entry')).rejects.toThrow(/EBMR-AUDIT|insert-only|truncate/i);
+  });
 });

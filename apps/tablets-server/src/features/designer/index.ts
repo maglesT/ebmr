@@ -434,12 +434,24 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               where x.master_kind = 'PRODUCT' and x.master_key = $1 || '|' || $2 order by x.effective_at desc, x.id desc limit 1`,
             [chosen.productCode, chosen.strength],
           );
+          // Review P7J-2: the name and dosage form come from the product master in effect, never guessed.
+          const master = rows[0];
+          if (!master?.name || !master.dosage) {
+            throw refusal(422, {
+              code: 'DESIGNER_PRODUCT_MASTER',
+              kind: 'INVALID_INPUT',
+              whatHappened: 'The family was not created.',
+              why: `The product master in effect for ${chosen.productCode} ${chosen.strength} ${master?.name ? 'states no dosage form' : 'is missing'}; a master from a formula takes its product name and dosage form from it.`,
+              controls: ['PR-01'],
+              whatYouCanDo: ['Enter the product with its dosage form on Master data, Products and materials, and have QA confirm it; or start from a template.'],
+            });
+          }
           const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
           let content: flow.MbrContent;
           try {
             content = contentFromFormula(
               base,
-              { chosen, target, product: { name: rows[0]?.name ?? body.product.name, dosageForm: rows[0]?.dosage ?? 'Tablet' }, materials },
+              { chosen, target, product: { name: master.name, dosageForm: master.dosage }, materials },
               { familyCode: body.familyCode, markets: body.markets, start },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),

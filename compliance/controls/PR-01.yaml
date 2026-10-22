@@ -50,6 +50,8 @@ tests:
   - "apps/tablets-server/test/master-data/formula-target.test.ts > formula target and batch sizes (slice 7j) > [PR-01] the target tablet weight and the further batch sizes are written with the version, signed with it and given to \"Choose a product\""
   - "apps/tablets-server/test/master-data/formula-target.test.ts > formula target and batch sizes (slice 7j) > [PR-01] a further batch size equal to the formula's, listed twice or not a whole number is refused, and the version with it is not written"
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01] a master from a formula takes the product name and dosage form from the product master in effect, and is refused when it states no dosage form (review P7J-2)"
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [INV-25][PR-01] with a salt factor and an overage on a potency-adjusted active the skeleton's quantities are the formula's computed ones, the database pins it and the validator passes (review P7J-3)"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:

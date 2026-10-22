@@ -44,6 +44,9 @@ create table site.master_entry (
   entered_at           timestamptz not null default clock_timestamp()
 );
 revoke all on site.master_entry from public;
+-- Insert-only (review P7J-1): a screen entry is never changed or removed.
+create trigger aa_insert_only before update or delete on site.master_entry for each row execute function kernel.reject_mutation();
+create trigger aa_no_truncate before truncate on site.master_entry for each statement execute function kernel.reject_mutation();
 
 select platform.enforce_db_time('site.master_entry', array['entered_at']);
 select kernel.register_audited_table('site.master_entry', 'master_entry', 'version_id', true);

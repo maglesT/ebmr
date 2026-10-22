@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3360 objects.
+3362 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -207,6 +207,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`aa_insert_only`](../../../packages/kernel/sql/1211_training_attempts.sql#sym=aa_insert_only) on `sandbox.training_attempt` | trigger | [1211_training_attempts.sql](../../../packages/kernel/sql/1211_training_attempts.sql) |  | [kernel-reporting](../code-map.md#kernel-reporting) |
 | [`aa_insert_only`](../../../packages/kernel/sql/1211_training_attempts.sql#sym=aa_insert_only) on `sandbox.training_step` | trigger | [1211_training_attempts.sql](../../../packages/kernel/sql/1211_training_attempts.sql) |  | [kernel-reporting](../code-map.md#kernel-reporting) |
 | [`aa_insert_only`](../../../packages/site-services/sql/0960_chemical_recovery.sql#sym=aa_insert_only) on `site.chemical_recovery` | trigger | [0960_chemical_recovery.sql](../../../packages/site-services/sql/0960_chemical_recovery.sql) |  | [ss-genealogy](../code-map.md#ss-genealogy) |
+| [`aa_insert_only`](../../../packages/site-services/sql/1530_master_data_on_screen.sql#sym=aa_insert_only) on `site.master_entry` | trigger | [1530_master_data_on_screen.sql](../../../packages/site-services/sql/1530_master_data_on_screen.sql) |  | [ss-erp](../code-map.md#ss-erp) |
 | [`aa_insert_only`](../../../apps/tablets-server/sql/1040_slice6_signing_and_detectors.sql#sym=aa_insert_only) on `tab.detector_unit` | trigger | [1040_slice6_signing_and_detectors.sql](../../../apps/tablets-server/sql/1040_slice6_signing_and_detectors.sql) |  | [ts-quality](../code-map.md#ts-quality) |
 | [`aa_insert_only`](../../../apps/tablets-server/sql/0200_execution.sql#sym=aa_insert_only) on `tab.engine_role_map` | trigger | [0200_execution.sql](../../../apps/tablets-server/sql/0200_execution.sql) |  | [ts-execution](../code-map.md#ts-execution) |
 | [`aa_insert_only_kernel_audit_verification_run`](../../../packages/kernel/sql/0010_audit_trail.sql#sym=aa_insert_only_kernel_audit_verification_run) on `kernel.audit_verification_run` | trigger | [0010_audit_trail.sql](../../../packages/kernel/sql/0010_audit_trail.sql) |  | [kernel-audit](../code-map.md#kernel-audit) |
@@ -270,6 +271,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`aa_no_truncate`](../../../packages/kernel/sql/1211_training_attempts.sql#sym=aa_no_truncate) on `sandbox.training_attempt` | trigger | [1211_training_attempts.sql](../../../packages/kernel/sql/1211_training_attempts.sql) |  | [kernel-reporting](../code-map.md#kernel-reporting) |
 | [`aa_no_truncate`](../../../packages/kernel/sql/1211_training_attempts.sql#sym=aa_no_truncate) on `sandbox.training_step` | trigger | [1211_training_attempts.sql](../../../packages/kernel/sql/1211_training_attempts.sql) |  | [kernel-reporting](../code-map.md#kernel-reporting) |
 | [`aa_no_truncate`](../../../packages/site-services/sql/0960_chemical_recovery.sql#sym=aa_no_truncate) on `site.chemical_recovery` | trigger | [0960_chemical_recovery.sql](../../../packages/site-services/sql/0960_chemical_recovery.sql) |  | [ss-genealogy](../code-map.md#ss-genealogy) |
+| [`aa_no_truncate`](../../../packages/site-services/sql/1530_master_data_on_screen.sql#sym=aa_no_truncate) on `site.master_entry` | trigger | [1530_master_data_on_screen.sql](../../../packages/site-services/sql/1530_master_data_on_screen.sql) |  | [ss-erp](../code-map.md#ss-erp) |
 | [`aa_no_truncate`](../../../apps/tablets-server/sql/1040_slice6_signing_and_detectors.sql#sym=aa_no_truncate) on `tab.detector_unit` | trigger | [1040_slice6_signing_and_detectors.sql](../../../apps/tablets-server/sql/1040_slice6_signing_and_detectors.sql) |  | [ts-quality](../code-map.md#ts-quality) |
 | [`aa_no_truncate`](../../../apps/tablets-server/sql/0200_execution.sql#sym=aa_no_truncate) on `tab.engine_role_map` | trigger | [0200_execution.sql](../../../apps/tablets-server/sql/0200_execution.sql) |  | [ts-execution](../code-map.md#ts-execution) |
 | [`aa_no_truncate_kernel_audit_verification_run`](../../../packages/kernel/sql/0010_audit_trail.sql#sym=aa_no_truncate_kernel_audit_verification_run) on `kernel.audit_verification_run` | trigger | [0010_audit_trail.sql](../../../packages/kernel/sql/0010_audit_trail.sql) |  | [kernel-audit](../code-map.md#kernel-audit) |

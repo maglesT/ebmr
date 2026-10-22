@@ -704,6 +704,7 @@ of each database function.
 
 - Tables (5): `site.erp_master_effect`, `site.erp_material`, `site.erp_product`, `site.erp_production_order`, `site.master_entry`
 - Functions (21): `site.confirm_erp_master`, `site.enter_material_master`, `site.enter_product_master`, `site.erp_effect_if_unchanged`, `site.erp_master_content`, `site.erp_master_in_effect`, `site.erp_master_pending`, `site.erp_master_state`, `site.erp_master_version`, `site.erp_material_current`, `site.erp_order_of`, `site.erp_product_effective`, `site.erp_product_key`, `site.erp_receive_material`, `site.erp_receive_order`, `site.erp_receive_product`, `site.master_entry_of`, `site.master_entry_problem`, `site.material_master_of`, `site.product_master_of`, `site.receive_lot`
+- Triggers (2): `aa_insert_only on site.master_entry`, `aa_no_truncate on site.master_entry`
 
 **Tests** (1): [erp-interfaces.test.ts](../../packages/site-services/test/mutation/erp-interfaces.test.ts)
 
