@@ -87,6 +87,21 @@ export const createFormula = (db: Db, def: { productCode: string; strength: stri
 export const addFormulaVersion = (db: Db, formulaId: string, v: { changeReason: string; lines: readonly FormulaLineInput[] }): Promise<string> =>
   one(db, 'select recipe.formula_add_version($1, $2::jsonb)::text as r', [formulaId, JSON.stringify(v)]);
 
+/** A formula version's target unit mass and further batch sizes (recipe-core 1535, slice 7j). */
+export interface FormulaTarget {
+  targetUnitMassMg: string;
+  /** Units per batch, the formula's reference size first. */
+  batchSizesUnits: string[];
+}
+
+/** Writes a DRAFT version's target once, before its approval (FORMULA.MANAGE; recipe-core 1535). */
+export const setFormulaTarget = async (db: Db, versionId: string, t: { targetUnitMassMg: string; otherBatchSizesUnits: readonly string[] }): Promise<void> => {
+  await one(db, 'select recipe.formula_set_target($1, $2::jsonb)::text as r', [versionId, JSON.stringify(t)]);
+};
+
+/** The version's target, or null when none was written. */
+export const formulaTargetOf = (db: Db, versionId: string): Promise<FormulaTarget | null> => one(db, 'select recipe.formula_target_of($1) as r', [versionId]);
+
 /** The approver's FORMULA_APPROVED signature on aggregate formula_version, made in their own session first. */
 export const approveFormulaVersion = async (db: Db, versionId: string, signatureId: string): Promise<void> => {
   await one(db, 'select recipe.formula_approve($1, $2)::text as r', [versionId, signatureId]);

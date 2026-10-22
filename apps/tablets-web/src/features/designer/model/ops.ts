@@ -54,7 +54,14 @@ export type Op =
   | { kind: 'SET_LIMIT_INCLUSIVE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: Tier; side: 'low' | 'high'; inclusive: boolean }
   | { kind: 'SET_TARGET'; parameterId: string; value: string | null }
   | { kind: 'SET_TIME_BOUND'; constraintId: string; side: 'min' | 'max'; value: string | null }
-  | { kind: 'SET_HOLD_TIME'; intermediateId: string; value: string };
+  | { kind: 'SET_HOLD_TIME'; intermediateId: string; value: string }
+  // Slice 7j (R4, D-7j-8): stages of the top-level sequence, their rooms and equipment classes.
+  | { kind: 'ADD_STAGE'; afterStageId: string | null; stage: flow.StageNode }
+  | { kind: 'MOVE_STAGE'; stageId: string; direction: -1 | 1 }
+  | { kind: 'DELETE_STAGE'; stageId: string }
+  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[] } }
+  | { kind: 'ADD_STAGE_EQUIPMENT'; stageId: string; equipment: flow.StageEquipment; reference?: flow.Reference }
+  | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string };
 
 export const KNOWN_MARKETS = ['IN', 'US', 'EU'] as const;
 
@@ -171,6 +178,14 @@ function limitSpecOf(c: Content, owner: 'parameter' | 'calculation' | 'yield', i
 
 function applyInPlace(c: Content, op: Op): void {
   switch (op.kind) {
+    case 'ADD_STAGE':
+    case 'MOVE_STAGE':
+    case 'DELETE_STAGE':
+    case 'UPDATE_STAGE':
+    case 'ADD_STAGE_EQUIPMENT':
+    case 'REMOVE_STAGE_EQUIPMENT':
+      applyStageOp(c, op);
+      return;
     case 'SET_TITLE':
       c.header.title = checkName(op.title, 'The title');
       return;
@@ -278,6 +293,111 @@ function applyInPlace(c: Content, op: Op): void {
       return;
     }
   }
+}
+
+/** The top-level sequence whose children are the stages (slice 7j). */
+function stageSequence(c: Content): flow.SequenceNode {
+  if (c.procedure.body.kind !== 'sequence') throw new OpError('The procedure is not a sequence of stages, so its stages cannot be edited here.');
+  return c.procedure.body;
+}
+
+function stageAt(c: Content, stageId: string): { seq: flow.SequenceNode; index: number; stage: flow.StageNode } {
+  const seq = stageSequence(c);
+  const index = seq.children.findIndex((n) => n.id === stageId && n.kind === 'stage');
+  if (index < 0) throw new OpError(`There is no stage ${stageId}.`);
+  return { seq, index, stage: seq.children[index] as flow.StageNode };
+}
+
+const ROOM = /^[A-Z0-9][A-Z0-9-]{0,31}$/;
+
+function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_STAGE' | 'DELETE_STAGE' | 'UPDATE_STAGE' | 'ADD_STAGE_EQUIPMENT' | 'REMOVE_STAGE_EQUIPMENT' }>): void {
+  switch (op.kind) {
+    case 'ADD_STAGE': {
+      const seq = stageSequence(c);
+      const parsed = flow.parseFlowNodeStandalone(op.stage);
+      if (!parsed.ok || op.stage.kind !== 'stage') throw new OpError(`The new stage is not well formed: ${parsed.ok ? 'not a stage' : parsed.problems.map((p) => p.message).join('; ')}`);
+      const used = allIds(c);
+      for (const id of treeIds({ ...c, procedure: { ...c.procedure, body: op.stage } })) if (used.has(id)) throw new OpError(`The id ${id} is already used.`);
+      const at = op.afterStageId === null ? 0 : stageAt(c, op.afterStageId).index + 1;
+      seq.children.splice(at, 0, structuredClone(op.stage));
+      return;
+    }
+    case 'MOVE_STAGE': {
+      // Past the neighbouring stage (a hold point between stages stays where it is).
+      const { seq, index } = stageAt(c, op.stageId);
+      const stageIdx = seq.children.map((n, i) => (n.kind === 'stage' ? i : -1)).filter((i) => i >= 0);
+      const at = stageIdx.indexOf(index);
+      const other = stageIdx[at + op.direction];
+      if (other === undefined) throw new OpError(op.direction < 0 ? 'The stage is already first.' : 'The stage is already last.');
+      const [moved] = seq.children.splice(index, 1);
+      seq.children.splice(other, 0, moved as flow.FlowNode);
+      return;
+    }
+    case 'DELETE_STAGE': {
+      const { seq, index } = stageAt(c, op.stageId);
+      if (seq.children.filter((n) => n.kind === 'stage').length <= 1) throw new OpError('A master keeps at least one stage.');
+      seq.children.splice(index, 1);
+      return;
+    }
+    case 'UPDATE_STAGE': {
+      const { stage } = stageAt(c, op.stageId);
+      if (op.patch.name !== undefined) stage.name = checkName(op.patch.name, 'The stage name');
+      if (op.patch.rooms !== undefined) {
+        const rooms = op.patch.rooms.map((r) => r.trim()).filter((r) => r !== '');
+        const bad = rooms.filter((r) => !ROOM.test(r));
+        if (bad.length > 0) throw new OpError(`A room is 1 to 32 capitals, digits or dashes (${bad.join(', ')} is not).`);
+        if (rooms.length === 0) throw new OpError('A stage is bound to at least one room.');
+        stage.binding = { ...stage.binding, rooms: [...new Set(rooms)] };
+      }
+      return;
+    }
+    case 'ADD_STAGE_EQUIPMENT': {
+      const { stage } = stageAt(c, op.stageId);
+      const ref = op.equipment.ref.trim();
+      if (!/^[A-Z][A-Z0-9_-]{0,31}$/.test(ref)) throw new OpError('An equipment reference is 1 to 32 capitals, digits, dashes or underscores, starting with a capital.');
+      if (stage.binding.equipment.some((e) => e.ref === ref)) throw new OpError(`The stage already has equipment ${ref}.`);
+      if (op.reference && !c.references.some((r) => r.id === op.reference?.id)) c.references.push(structuredClone(op.reference));
+      if (!c.references.some((r) => r.id === op.equipment.equipmentClass && r.kind === 'EQUIPMENT_CLASS')) throw new OpError(`${op.equipment.equipmentClass} is not an equipment class this master pins.`);
+      stage.binding = { ...stage.binding, equipment: [...stage.binding.equipment, { ...op.equipment, ref }] };
+      return;
+    }
+    case 'REMOVE_STAGE_EQUIPMENT': {
+      const { stage } = stageAt(c, op.stageId);
+      if (!stage.binding.equipment.some((e) => e.ref === op.ref)) throw new OpError(`The stage has no equipment ${op.ref}.`);
+      let used = false;
+      const visit = (n: flow.FlowNode): void => {
+        if (n.kind === 'phase' && n.equipment.some((e) => e.ref === op.ref)) used = true;
+        flow.childrenOf(n).forEach(visit);
+      };
+      visit(stage.body);
+      if (used) throw new OpError(`A step of the stage still checks or uses ${op.ref}: change the step first.`);
+      stage.binding = { ...stage.binding, equipment: stage.binding.equipment.filter((e) => e.ref !== op.ref) };
+      return;
+    }
+  }
+}
+
+/**
+ * A new stage (slice 7j): bound to `room`, responsible the production supervisor, a material stage that starts with
+ * its room clearance and its equipment status check (the database-backed versions a GMP batch takes, when offered).
+ */
+export function newStage(c: Content, palette: readonly PaletteEntry[], name: string, room: string): flow.StageNode {
+  const latest = (type: string): PaletteEntry | undefined => palette.filter((b) => b.type === type).sort((a, b) => (Number(a.version) < Number(b.version) ? 1 : -1))[0];
+  const slug = name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20) || 'STAGE';
+  const id = newStepId(c, `S-${slug}`);
+  const steps: flow.FlowNode[] = [];
+  const probe: Content = structuredClone(c);
+  const probeSeq: flow.SequenceNode = { kind: 'sequence', id: `${id}-seq`, children: steps };
+  const stage: flow.StageNode = { kind: 'stage', id, name: name.trim(), binding: { rooms: [room.trim()], equipment: [] }, purpose: 'MATERIAL', responsibleRole: 'PRODUCTION_SUPERVISOR', body: probeSeq };
+  if (probe.procedure.body.kind === 'sequence') probe.procedure.body.children.push(stage);
+  for (const type of ['G-10', 'G-09']) {
+    const block = latest(type);
+    if (!block) continue;
+    const step = newStep(probe, block);
+    if (step.kind === 'phase') step.name = type === 'G-10' ? `${name.trim()}: room clearance` : `${name.trim()}: equipment status`;
+    steps.push(step);
+  }
+  return structuredClone(stage);
 }
 
 /** Applies one operation (pure: returns new content, or throws OpError and leaves the input as it was). */

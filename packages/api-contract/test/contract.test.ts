@@ -229,7 +229,7 @@ describe('route table', () => {
       'marketConfig.openCampaign', 'marketConfig.recordChangeRecord', 'marketConfig.recordLineIsolation', 'marketConfig.recordPeriodicReview',
       'marketConfig.recordReferenceDocument', 'marketConfig.recordRiskAssessment', 'marketConfig.recordRuleSetVerification',
       'marketConfig.retireReferenceDocument', 'marketConfig.setDraftAttributes', 'marketConfig.setPolicyVersion', 'marketConfig.setSiteValue',
-      'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment', 'masterData.addFormulaVersion', 'masterData.createFormula',
+      'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment', 'masterData.addFormulaVersion', 'masterData.createFormula', 'masterData.enterMaterial', 'masterData.enterProduct',
       'notifications.acknowledge', 'people.acknowledgeAlert', 'people.activateAccount', 'people.activateBadge', 'people.addQualificationRequirement',
       'people.approveBreakGlass', 'people.createAccount', 'people.createPerson', 'people.createQualificationType', 'people.createRole',
       'people.decideGrant', 'people.endQualificationRequirement', 'people.processLeaver', 'people.recertify', 'people.recordBadgeTest',

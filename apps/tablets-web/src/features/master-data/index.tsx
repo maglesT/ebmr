@@ -20,7 +20,7 @@ function MasterDataHome() {
           <Link to="/master-data/formulas">Formulas</Link>
         </li>
         <li>
-          <Link to="/master-data/erp">ERP products and materials</Link>
+          <Link to="/master-data/erp">Products and materials</Link>
         </li>
         <li>
           <Link to="/master-data/plant">Plant</Link>
@@ -41,7 +41,7 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
 }
 
 export const homeTiles: readonly HomeTile[] = [
-  { id: 'master-data', title: 'Master data', description: 'Formulas, ERP products and materials, plant definitions.', to: '/master-data', installations: ['GMP'], available: true },
+  { id: 'master-data', title: 'Master data', description: 'Formulas, products and materials, plant definitions.', to: '/master-data', installations: ['GMP'], available: true },
 ];
 
 export function Provider({ children }: { children: ReactNode }) {

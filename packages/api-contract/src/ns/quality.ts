@@ -184,8 +184,10 @@ export const ResidueContainerView = z.strictObject({
 });
 export type ResidueContainerView = z.infer<typeof ResidueContainerView>;
 
-const ErpProductView = ErpCatalogue.shape.products.element;
-const ErpMaterialView = ErpCatalogue.shape.materials.element;
+/** A product master in effect; `dosageForm` only for a version entered on screen (site-services 1530, slice 7j). */
+const ErpProductView = ErpCatalogue.shape.products.element.extend({ dosageForm: z.string().optional() });
+/** A material master in effect; `grade` and `pharmacopoeia` only for a version entered on screen (site-services 1530). */
+const ErpMaterialView = ErpCatalogue.shape.materials.element.extend({ grade: z.string().optional(), pharmacopoeia: z.string().optional() });
 
 /**
  * A received ERP master version not yet in effect (site-services 0802): a new code, or a change of a controlled value
