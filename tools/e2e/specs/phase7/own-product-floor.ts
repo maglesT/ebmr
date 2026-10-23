@@ -28,13 +28,15 @@ export interface Floor {
 
 export const baseOf = (f: Floor): string => f.e2e.url(f.inst);
 export const kioskOf = (f: Floor, room: string): string => (f.inst === 'GMP' ? `KIOSK-${room.replace(/^PL-/, 'PACK-')}` : `TEST-KIOSK-${room.replace(/^PL-/, 'PACK-')}`);
-/** The balance of a room: the sandbox's gateway scales in DISP-1 and BLEND-1, the GMP demo plant's codes otherwise. */
+/** The balance of a room: the sandbox's instruments are TEST- devices (sandbox-plant.ts), the GMP demo plant's codes otherwise. */
+const SANDBOX_BALANCE: Record<string, string> = { 'DISP-1': 'TEST-BAL-01', 'BLEND-1': 'TEST-BAL-02', 'GRAN-1': 'TEST-BAL-03', 'COMP-1': 'TEST-BAL-04', 'COAT-1': 'TEST-BAL-05', 'INSP-1': 'TEST-BAL-06', 'PL-2': 'TEST-BAL-07' };
 export function balanceOf(f: Floor, room: string): string {
-  if (f.inst === 'SANDBOX' && room === 'DISP-1') return 'TEST-BAL-01';
-  if (f.inst === 'SANDBOX' && room === 'BLEND-1') return 'TEST-BAL-02';
+  if (f.inst === 'SANDBOX') return SANDBOX_BALANCE[room] ?? 'TEST-BAL-01';
   if (room === 'PL-2') return 'BAL-PL-02';
   return `BAL-${room.split('-')[0] ?? room}-01`;
 }
+/** An instrument of the plant (HT-01, FRB-01, DT-01) by its label on the floor's installation. */
+export const instrumentOf = (f: Floor, code: string): string => (f.inst === 'SANDBOX' ? `TEST-${code}` : code);
 
 const opened: Page[] = [];
 
@@ -576,7 +578,7 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
     await clearance(f, page, 'COMP-1', op, verifier);
     await clearanceStep(f, page, 'p-comp-clear@', 'COMP-1', op, verifier);
     await statusStep(f, page, 'p-comp-status@', [
-      { ref: 'BAL', code: bal, instrument: true }, { ref: 'PRESS', code: 'PRESS-01', instrument: false }, { ref: 'HT', code: 'HT-01', instrument: true }, { ref: 'FRB', code: 'FRB-01', instrument: true },
+      { ref: 'BAL', code: bal, instrument: true }, { ref: 'PRESS', code: 'PRESS-01', instrument: false }, { ref: 'HT', code: instrumentOf(f, 'HT-01'), instrument: true }, { ref: 'FRB', code: instrumentOf(f, 'FRB-01'), instrument: true },
     ], op);
   }
   if (!(await done(f, page, 'p-tool@'))) {
@@ -650,14 +652,14 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
   if (!(await done(f, page, 'p-ipc-phys@'))) {
     await step(f, page, 'p-ipc-phys@');
     await begin(page, op);
-    await entry(page, 'PHYSICAL_CHECK', op, { Instrument: 'HT-01', Capture: 'MANUAL', Tablets: plan.physical.map((p) => ({ Thickness: p.thickness, Hardness: p.hardness })), Defects: [] });
+    await entry(page, 'PHYSICAL_CHECK', op, { Instrument: instrumentOf(f, 'HT-01'), Capture: 'MANUAL', Tablets: plan.physical.map((p) => ({ Thickness: p.thickness, Hardness: p.hardness })), Defects: [] });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }
   if (!(await done(f, page, 'p-ipc-fri@'))) {
     await step(f, page, 'p-ipc-fri@');
     await begin(page, op);
-    await entry(page, 'FRIABILITY_RUN', op, { Instrument: 'FRB-01', Capture: 'MANUAL', Tablets: plan.friability.tablets, 'Initial mass': plan.friability.initial, 'Final mass': plan.friability.final, Rotations: '100', Rpm: '25.0', Broken: 'No' });
+    await entry(page, 'FRIABILITY_RUN', op, { Instrument: instrumentOf(f, 'FRB-01'), Capture: 'MANUAL', Tablets: plan.friability.tablets, 'Initial mass': plan.friability.initial, 'Final mass': plan.friability.final, Rotations: '100', Rpm: '25.0', Broken: 'No' });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }
@@ -699,7 +701,7 @@ export async function coating(f: Floor, plan: ProcessPlan): Promise<void> {
   if (!(await done(f, page, 'p-coat-status@'))) {
     await clearance(f, page, 'COAT-1', op, verifier);
     await clearanceStep(f, page, 'p-coat-clear@', 'COAT-1', op, verifier);
-    await statusStep(f, page, 'p-coat-status@', [{ ref: 'BAL', code: bal, instrument: true }, { ref: 'COATER', code: 'COATER-01', instrument: false }, { ref: 'DT', code: 'DT-01', instrument: true }], op);
+    await statusStep(f, page, 'p-coat-status@', [{ ref: 'BAL', code: bal, instrument: true }, { ref: 'COATER', code: 'COATER-01', instrument: false }, { ref: 'DT', code: instrumentOf(f, 'DT-01'), instrument: true }], op);
   }
   for (const l of plan.coating.layers) {
     if (!(await done(f, page, `${l.cores}@`))) {
@@ -748,12 +750,12 @@ export async function coating(f: Floor, plan: ProcessPlan): Promise<void> {
     await step(f, page, 'p-dt@');
     await begin(page, op);
     if (plan.coating.disintegration === 'GASTRO_RESISTANT') {
-      await entry(page, 'DT_START', op, { Instrument: 'DT-01', Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'ACID' });
+      await entry(page, 'DT_START', op, { Instrument: instrumentOf(f, 'DT-01'), Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'ACID' });
       await page.waitForTimeout(62_000);
       await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'No' })) });
-      await entry(page, 'DT_START', op, { Instrument: 'DT-01', Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'BUFFER' });
+      await entry(page, 'DT_START', op, { Instrument: instrumentOf(f, 'DT-01'), Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'BUFFER' });
     } else {
-      await entry(page, 'DT_START', op, { Instrument: 'DT-01', Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'MAIN' });
+      await entry(page, 'DT_START', op, { Instrument: instrumentOf(f, 'DT-01'), Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'MAIN' });
     }
     await page.waitForTimeout(32_000);
     await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'Yes' })) });

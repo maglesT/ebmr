@@ -7,6 +7,7 @@
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { SANDBOX_PLANT } from '../../src/cli/sandbox-plant.ts';
 import { valueOf } from '../esig/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 
@@ -50,5 +51,12 @@ describe('the plant on both installations, each against its own database (slice 
     expect(valueOf(await sSteward.call(routes.plant.areas, {})).areas.find((a) => a.code === room)?.name).toBe('Sandbox blending room');
     // The installation answers in its own name: the sandbox's every answer carries its installation stamp.
     expect(sbx.built.ctx.installation).toBe('SANDBOX');
+  });
+
+  it('[DI-05] the DEMO-ONLY sandbox plant registers its instruments as devices with TEST- labels only, never a GMP instrument label (EBMR-SBX-022)', () => {
+    const instruments = new Set(SANDBOX_PLANT.classes.filter(([, kind]) => kind === 'INSTRUMENT').map(([code]) => code));
+    const labels = SANDBOX_PLANT.units.filter(([, , cls]) => instruments.has(cls)).map(([code]) => code);
+    expect(labels.length).toBeGreaterThan(8);
+    expect(labels.filter((l) => !l.startsWith('TEST-'))).toEqual([]);
   });
 });

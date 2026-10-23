@@ -33,7 +33,7 @@ export interface PlantPlan {
 const INSTRUMENT = (description: string): Json => ({ description, calibrationRequired: true, checkRegime: 'PER_USE' });
 const PROCESS = (description: string): Json => ({ description, cleanHold: '72 hours', dirtyHold: '48 hours' });
 
-/** The sandbox plant: the GMP demo plant's rooms, classes and units. */
+/** The sandbox plant: the GMP demo plant's rooms, classes and process units; its instruments are registered devices, so their labels are TEST- (EBMR-SBX-022, DI-05). */
 export const SANDBOX_PLANT: PlantPlan = {
   areas: [['DISP-1', 'ROOM'], ['BLEND-1', 'ROOM'], ['GRAN-1', 'ROOM'], ['COMP-1', 'ROOM'], ['COAT-1', 'ROOM'], ['INSP-1', 'ROOM'], ['PL-2', 'LINE']],
   classes: [
@@ -53,14 +53,14 @@ export const SANDBOX_PLANT: PlantPlan = {
   units: [
     ['TEST-BAL-01', 'Balance 60 kg of DISP-1 (gateway scale)', 'EQC-BAL', 'DISP-1'],
     ['TEST-BAL-02', 'Balance 300 kg of BLEND-1 (gateway scale)', 'EQC-BAL', 'BLEND-1'],
-    ['BAL-GRAN-01', 'Balance of GRAN-1', 'EQC-BAL', 'GRAN-1'],
-    ['BAL-COMP-01', 'Balance of COMP-1', 'EQC-BAL', 'COMP-1'],
-    ['BAL-COAT-01', 'Balance of COAT-1', 'EQC-BAL', 'COAT-1'],
-    ['BAL-INSP-01', 'Balance of INSP-1', 'EQC-BAL', 'INSP-1'],
-    ['BAL-PL-02', 'Balance of PL-2', 'EQC-BAL', 'PL-2'],
-    ['HT-01', 'Tablet hardness and thickness tester', 'EQC-HT', 'COMP-1'],
-    ['FRB-01', 'Friability tester', 'EQC-FRB', 'COMP-1'],
-    ['DT-01', 'Disintegration tester', 'EQC-DT', 'COAT-1'],
+    ['TEST-BAL-03', 'Balance of GRAN-1', 'EQC-BAL', 'GRAN-1'],
+    ['TEST-BAL-04', 'Balance of COMP-1', 'EQC-BAL', 'COMP-1'],
+    ['TEST-BAL-05', 'Balance of COAT-1', 'EQC-BAL', 'COAT-1'],
+    ['TEST-BAL-06', 'Balance of INSP-1', 'EQC-BAL', 'INSP-1'],
+    ['TEST-BAL-07', 'Balance of PL-2', 'EQC-BAL', 'PL-2'],
+    ['TEST-HT-01', 'Tablet hardness and thickness tester', 'EQC-HT', 'COMP-1'],
+    ['TEST-FRB-01', 'Friability tester', 'EQC-FRB', 'COMP-1'],
+    ['TEST-DT-01', 'Disintegration tester', 'EQC-DT', 'COAT-1'],
     ['BLD-01', 'Octagonal blender 400 L', 'EQC-BLENDER', 'BLEND-1'],
     ['PRESS-01', 'Double-rotary press, 45 stations', 'EQC-PRESS-GBT', 'COMP-1'],
     ['RMG-01', 'Rapid mixer granulator 600 L', 'EQC-RMG', 'GRAN-1'],
