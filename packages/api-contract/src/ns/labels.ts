@@ -200,44 +200,46 @@ export const labels = {
     response: LabelStoreView,
   }),
   packaging: defineRoute({
-    id: 'labels.packaging', method: 'GET', path: '/api/labels/batches/:batchId/packaging', installation: 'GMP', auth: 'SESSION', mutating: false,
+    // Phase 7 slice 7o (D-7o-1): the packaging completion (specimens, post-use inspection, line stops, waivers) on both
+    // installations, each against its own database, so a packaging master's test run completes on the sandbox.
+    id: 'labels.packaging', method: 'GET', path: '/api/labels/batches/:batchId/packaging', installation: 'ANY', auth: 'SESSION', mutating: false,
     summary: 'The completion evidence of a packaging order: specimens, post-use inspection, line stops, waivers and the gap that blocks completion',
     params: batchParams, response: PackagingCompletionView,
   }),
   recordCodingSpecimen: defineRoute({
-    id: 'labels.recordCodingSpecimen', method: 'POST', path: '/api/labels/batches/:batchId/steps/:stepKey/coding-specimens', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.recordCodingSpecimen', method: 'POST', path: '/api/labels/batches/:batchId/steps/:stepKey/coding-specimens', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'A start, middle or end coding specimen with the coding read from it; it must be the record\'s (IN-16, IN-31)',
     params: stepParams, body: withAttribution({ position: SpecimenPosition, coded: CodedData }), response: PackagingCompletionView,
   }),
   recordLabelSpecimen: defineRoute({
-    id: 'labels.recordLabelSpecimen', method: 'POST', path: '/api/labels/batches/:batchId/steps/:stepKey/label-specimens', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.recordLabelSpecimen', method: 'POST', path: '/api/labels/batches/:batchId/steps/:stepKey/label-specimens', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'A specimen of a printed item attached to the record (PR-16)',
     params: stepParams, body: withAttribution({ item: Code, note: z.string().trim().min(1).max(500).optional() }), response: PackagingCompletionView,
   }),
   voidSpecimen: defineRoute({
-    id: 'labels.voidSpecimen', method: 'POST', path: '/api/labels/specimens/:specimenId/void', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.voidSpecimen', method: 'POST', path: '/api/labels/specimens/:specimenId/void', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'Withdraw a specimen recorded in error, with a reason, while its step is in progress',
     params: z.strictObject({ specimenId: Uuid }), body: withAttribution({ reason: Reason }), response: PackagingCompletionView,
   }),
   recordPostUseInspection: defineRoute({
-    id: 'labels.recordPostUseInspection', method: 'POST', path: '/api/labels/batches/:batchId/post-use-inspections', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.recordPostUseInspection', method: 'POST', path: '/api/labels/batches/:batchId/post-use-inspections', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'The post-use inspection of the line the order occupies, after printing ended (PR-34)',
     params: batchParams,
     body: withAttribution({ checks: z.strictObject({ noPrintedMaterial: z.boolean(), noProduct: z.boolean(), noDocuments: z.boolean(), lineClean: z.boolean() }), note: z.string().trim().min(1).max(1000).optional() }),
     response: PackagingCompletionView,
   }),
   verifyPostUseInspection: defineRoute({
-    id: 'labels.verifyPostUseInspection', method: 'POST', path: '/api/labels/post-use-inspections/:inspectionId/verification', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.verifyPostUseInspection', method: 'POST', path: '/api/labels/post-use-inspections/:inspectionId/verification', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'A second person verifies the post-use inspection (STEP.VERIFY, never its performer)',
     params: z.strictObject({ inspectionId: Uuid }), body: withAttribution({}), response: PackagingCompletionView,
   }),
   resolveLineStop: defineRoute({
-    id: 'labels.resolveLineStop', method: 'POST', path: '/api/labels/line-stops/:stopId/resolution', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.resolveLineStop', method: 'POST', path: '/api/labels/line-stops/:stopId/resolution', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'QA resolves a line stop a vision rejection opened, with its reason (QA.FLOOR_APPROVE)',
     params: z.strictObject({ stopId: Uuid }), body: withAttribution({ reason: Reason }), response: PackagingCompletionView,
   }),
   enableWaiver: defineRoute({
-    id: 'labels.enableWaiver', method: 'POST', path: '/api/labels/batches/:batchId/steps/:stepKey/waivers', installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
+    id: 'labels.enableWaiver', method: 'POST', path: '/api/labels/batches/:batchId/steps/:stepKey/waivers', installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED',
     summary: 'QA records the reconciliation waiver for a 100 % electronic inspection (PR-39); refused without a qualifying device',
     params: stepParams, body: withAttribution({ item: Code, device: Code }), response: PackagingCompletionView,
   }),

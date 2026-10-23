@@ -17,7 +17,8 @@ built and approved on screen) found this.
 ## Decision
 
 The `plant` and `containers` features, the plant master-data routes, the floor's plant acts and the batch's plant reads
-(`batches.stepPlant`, `additionSources`, `sscc`, `issueSscc`, `issueBulk`, `printedLot`) are served on both installations
+(`batches.stepPlant`, `additionSources`, `sscc`, `issueSscc`, `issueBulk`, `printedLot`) and the packaging completion of
+the `labels` feature (specimens, post-use inspection, line stops, waivers) are served on both installations
 (contract installation `ANY`). Each installation serves them against its own database only, as every other `ANY` route
 does; a test proves a sandbox act never reaches the GMP database (test/plant/sandbox-plant.test.ts). The sandbox's screens
 keep the TEST, NOT GMP band and TEST- numbers. The sandbox set-up of a demo with the GMP samples (`--sandbox-plant`) seeds

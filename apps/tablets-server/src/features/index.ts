@@ -86,7 +86,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'alarms', installations: ['GMP'], module: alarms satisfies FeatureModule },
   { name: 'equipment-data', installations: ['GMP'], module: equipmentData satisfies FeatureModule },
   { name: 'plant-rules', installations: ['GMP'], module: plantRules satisfies FeatureModule },
-  { name: 'labels', installations: ['GMP'], module: labels satisfies FeatureModule },
+  // Slice 7o (D-7o-1): the packaging completion routes serve the sandbox too; the other label routes stay GMP's.
+  { name: 'labels', installations: ['GMP', 'SANDBOX'], module: labels satisfies FeatureModule },
   { name: 'serialisation', installations: ['GMP'], module: serialisation satisfies FeatureModule },
   { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
   { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },

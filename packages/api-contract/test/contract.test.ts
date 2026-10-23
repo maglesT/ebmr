@@ -410,11 +410,13 @@ describe('route table', () => {
     expect(body({ productCode: 'GBT 01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(false);
   });
 
-  it('[IN-31][PR-36] the labels and serialisation namespaces (Phase 6 slice 6c) are GMP only, each route with an example, reads plain and commands FRESH_ON_SHARED; a template layout binds record fields only (D-P6c-2)', () => {
+  it('[IN-31][PR-36] the labels and serialisation namespaces (Phase 6 slice 6c) are GMP only (the packaging completion on both since slice 7o), each route with an example, reads plain and commands FRESH_ON_SHARED; a template layout binds record fields only (D-P6c-2)', () => {
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const r of [...Object.values(routes.labels), ...Object.values(routes.serialisation)]) {
       expect(exampled.has(r.id), `${r.id} has an example`).toBe(true);
-      expect(r.installation, r.id).toBe('GMP');
+      // Slice 7o (D-7o-1): the packaging completion serves the sandbox too (a packaging master's test run).
+      const both = ['labels.packaging', 'labels.recordCodingSpecimen', 'labels.recordLabelSpecimen', 'labels.voidSpecimen', 'labels.recordPostUseInspection', 'labels.verifyPostUseInspection', 'labels.resolveLineStop', 'labels.enableWaiver'];
+      expect(r.installation, r.id).toBe(both.includes(r.id) ? 'ANY' : 'GMP');
       expect(r.attribution, r.id).toBe(r.mutating ? 'FRESH_ON_SHARED' : 'NONE');
     }
     const body = (b: unknown) => routes.labels.createTemplate.body?.safeParse(b).success;
