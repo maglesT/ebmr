@@ -235,3 +235,15 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,
 D-P7-3 as amended by D-P7R-7), then the demo server (owner to provide a server, SSH and a domain; decision 0021 and 0025), then Tablets v1.0.
+
+## Slice 7q (23 October 2026): R8 formula and process capabilities
+
+Branch `phase-7/slice-7q`; migrations recipe-core 1660, tablets 1661, 1662; details and status per capability in
+`slice-7q-routes.md`. C1 overages built (any line, percent or quantity, reason required, in the BOM and the targets,
+signed by QA, shown on the formula editor and the master's bill); C2 built as TB-01@2 (activity in U/mg from LIMS,
+exact, recomputed by the database); C8 built as TB-21 `packFormat.opening` (PEEL_OFF, PEEL_PUSH); C9 exists (TB-16 takes
+three layers); C10 proven (engine trace, validator and simulation of a wet and a dry branch blended in one TB-07).
+Decisions D-7q-1 to D-7q-6 (in `slice-7q-routes.md`): overage on any line with a reason, earlier lines unchanged; the
+overage shown on the master's bill and checked against the formula; peel-off as a TB-21@1 configuration option;
+activity units as TB-01@2 (ADR 0010); no C9 follow-up; C10 needs no genealogy change. Follow-up 7q-1: the lot assay
+register has no screen.

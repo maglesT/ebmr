@@ -205,3 +205,12 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
   and the database refuse a wrong pick.
+
+## Slice 7q (R8 capabilities C1, C2, C8, C9, C10; 23 October 2026)
+
+- 7q-1 (follow-up, for the R8 products): the lot assay register's writer `tab.record_lot_assay` (percent assays and,
+  since tablets 1662, enzyme activities in U/mg) has no route or screen; the demo seed records the results. A QC screen
+  that records a lot's approved result from its LIMS results is needed before P4, P7 or any potency-adjusted product
+  runs on GMP through the screens.
+- 7q-2 (no follow-up, C9): TB-16 already takes two or three layers; a trilayer product needs no custom block.
+- 7q-3 (follow-up): browser proofs of C1 and C2 (P7, P1), C8 (P8) and C10 (P1) come with those products.
