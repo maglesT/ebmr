@@ -5,10 +5,9 @@
  * server to log the loss, stay up and answer the next requests on new connections.
  */
 import { setTimeout as sleep } from 'node:timers/promises';
-import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
-import { onServer } from '@ebmr/test-kit';
+import { endPool, onServer, openPool } from '@ebmr/test-kit';
 import { CONNECTION_LOST_LOG, surviveConnectionLoss } from '../../src/platform/db/pools.ts';
 import { logCollector, startServer, type TestServer } from '../support/harness.ts';
 
@@ -50,7 +49,7 @@ describe('R3.12: a lost database connection never ends the server', () => {
   });
 
   it('[meta] surviveConnectionLoss reports a connection lost while idle in the pool, and the pool opens a new one', async () => {
-    const pool = new pg.Pool({ connectionString: (server.db.admin.options as { connectionString: string }).connectionString, max: 2 });
+    const pool = openPool({ connectionString: (server.db.admin.options as { connectionString: string }).connectionString, max: 2 });
     const errors: string[] = [];
     surviveConnectionLoss(pool, (e) => errors.push((e as { code?: string }).code ?? e.message));
     surviveConnectionLoss(pool, (e) => errors.push(`twice: ${e.message}`));
@@ -61,7 +60,7 @@ describe('R3.12: a lost database connection never ends the server', () => {
       expect(errors).toEqual(['57P01']);
       expect((await pool.query<{ one: number }>('select 1 as one')).rows[0]?.one).toBe(1);
     } finally {
-      await pool.end();
+      await endPool(pool);
     }
   });
 });
