@@ -29,6 +29,17 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
   rabeprazole product sit in one coating stage: the tablets stay in the pan between coats, and a stage boundary would ask
   for a room clearance with product in the pan. Each layer is its own TB-18 cores step and coating loop.
 
+- **D-7o-3**: a packaging master for a company's own product is a copy of an approved packaging master of another
+  product (New master record, "A packaging master for a product, as a copy of an approved packaging master";
+  `designer/packaging-copy.ts`): the pack, its sizes, line and blocks are the source's; the header names the product
+  (name and dosage form from the product master); every printed item (G-21) takes the product's own printed material and
+  artwork version for each market, wherever the source named the old material (TB-21 webs). A printed item left with
+  another product's print is refused.
+- **D-7o-4**: a lot's approved assay result (what TB-01 reads) and a printed lot's artwork version (what G-21 checks) are
+  recorded on screen (`execution.recordLotAssay`, `execution.recordLotArtwork`, both installations): before, only the
+  demo seed recorded them. On GMP the assay values are the lot's approved LIMS results, chosen on the lot page (tablets
+  1001: a typed value is refused); in the sandbox the steward types a test lot's values on the Test lots screen.
+
 ## Notes
 
 - TODO (R8 C4, slice 7p): the P3 browser test uses TB-15's acid and buffer disintegration and the existing release tests;

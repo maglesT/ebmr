@@ -61,6 +61,7 @@ import { paletteBlocks } from './palette.ts';
 import { targetsOf } from '../master-data/index.ts';
 import { contentFromFormula } from './from-formula.ts';
 import { materialMasters } from './material-refs.ts';
+import { packagingCopy } from './packaging-copy.ts';
 import { acquireSimulationSlot, DEFAULT_MAX_CONCURRENT_SIMULATIONS, DEFAULT_SIMULATION_TIMEOUT_MS, simulateInWorker, simulationReportView } from './simulation.ts';
 import { TEMPLATES, stepCount } from './templates/index.ts';
 import type { TemplateView } from './wire.ts';
@@ -407,7 +408,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
   /** Slice 7j (R4; D-7j-5): a new family from an approved formula, without a template (from-formula.ts). */
   const createFromFormula = async (ctx: CreateFamilyCtx): Promise<VersionView> => {
     const { body } = ctx;
-    const start = body.start ?? 'SKELETON';
+    const start = body.start === undefined || body.start === 'PACKAGING_COPY' ? 'SKELETON' : body.start;
     if (!body.formulaVersionId) {
       throw refusal(422, {
         code: 'DESIGNER_FORMULA_REQUIRED',
@@ -490,6 +491,51 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     );
     return versionView(pool, app, result.versionId);
   };
+  /**
+   * Slice 7o (R4, R8; D-7o-3): a packaging master for a product as a copy of an approved packaging master of another
+   * product, its printed items replaced by the product's own (packaging-copy.ts).
+   */
+  const createPackagingCopy = async (ctx: CreateFamilyCtx): Promise<VersionView> => {
+    const { body } = ctx;
+    const source = await copySourceOf(body.copyOfVersionId);
+    const actor = ctx.actor();
+    const { result } = await uniqueViolationAsConflict(
+      () =>
+        withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
+          const { rows } = await c.query<{ name: string | null; dosage: string | null }>(
+            `select p.product_name as name, (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage
+               from site.erp_master_effect x join site.erp_product p on p.id = x.version_id
+              where x.master_kind = 'PRODUCT' and x.master_key = $1 || '|' || $2 order by x.effective_at desc, x.id desc limit 1`,
+            [body.product.code, body.product.strength],
+          );
+          const master = rows[0];
+          if (!master?.name) {
+            throw refusal(422, {
+              code: 'DESIGNER_PRODUCT_MASTER',
+              kind: 'INVALID_INPUT',
+              whatHappened: 'The family was not created.',
+              why: `There is no product master in effect for ${body.product.code} ${body.product.strength}.`,
+              controls: ['PR-01'],
+              whatYouCanDo: ['Enter the product on Master data, Products and materials, and have QA confirm it.'],
+            });
+          }
+          const printed = body.printed ?? [];
+          const materials = await materialMasters(c, printed.map((p) => p.material));
+          let content: flow.MbrContent;
+          try {
+            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: master.dosage ?? 'Tablet' }, printed }, materials);
+          } catch (error) {
+            if (error instanceof FamilyInputError) throw familyRefusal(error);
+            throw error;
+          }
+          const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(content));
+          const v = await lifecycle.createVersion(c, familyId, content, `Created as a copy of packaging master version ${body.copyOfVersionId ?? ''} for ${body.product.code} ${body.product.strength}, with its own printed materials`);
+          return { versionId: v.versionId };
+        }),
+      `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,
+    );
+    return versionView(pool, app, result.versionId);
+  };
   /** The content of the approved master version to copy (COPY): an APPROVED or EFFECTIVE version only. */
   const copySourceOf = async (versionId: string | undefined): Promise<flow.MbrContent> => {
     const head = versionId ? await requireHead(pool, versionId) : null;
@@ -526,6 +572,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     async createFamily(ctx) {
       const { body } = ctx;
       // Slice 7j (R4, D-7j-5): without a template, the master starts from the approved formula.
+      if (body.templateId === undefined && body.start === 'PACKAGING_COPY') return createPackagingCopy(ctx);
       if (body.templateId === undefined) return createFromFormula(ctx);
       const templateId = body.templateId;
       const template = TEMPLATES.get(templateId);
