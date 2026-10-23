@@ -224,6 +224,9 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7L-1 (residual, carried to 7m): with no gateway scale and no declared balance, a manual weighing takes the room's one
   instrument booked for the batch as its balance; the operator never names it. The weighing stays MANUAL (exception and
   second person), but the stored evidence should mark the balance as inferred, or the form should ask for it.
+  **Fixed in 7m**: the stored evidence records `manual.balanceInferred: true` (recipe-core 1650: the database refuses it
+  beside a declared balance), and the entry's summary on the step and record screens adds "balance not named: the
+  room's one balance booked for the batch" (tests: tb-01-gmp.test.ts G-07, execution-row-shape.test.ts).
 - P7L-2 (residual, cosmetic): the potency calculation form stays open after its entry; its lot is typed, not scanned
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
@@ -240,3 +243,14 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7N-3 (fixed, browser tests): the route B specs opened screens by typed address; they now move by the home link,
   tiles and lists (R2, R3), except inside the shared kiosk helpers that route W also uses (listed in
   `slice-7n-routes.md`). Route B has its own end-to-end group (`route-b`) in `playwright.config.ts` and `ci.yml`.
+
+## Slice 7m (one review pass, 23 October 2026)
+
+Nothing blocking.
+- P7M-1 (fixed in 7m): the TB-16 layer-charge panel still offered "Record the charge" for a charge the step had
+  recorded. It now offers only charges no entry of the step names (`step-plant-acts.test.tsx`); a second entry of a
+  charge was already refused by the database (TB16-CHARGE, `forming/db-guards.test.ts`).
+- P7M-2 (residual): recipe-core 1650 refuses `balanceInferred: true` beside a declared balance but does not check
+  `false` against a missing one; the server sets the member only when no balance was declared.
+- P7M-3 (follow-up): QA dispositioning 25 like exceptions one by one on a kiosk (route S's keyed coater values) meets
+  the sign-in limit; a bulk disposition of like exceptions would spare the presenter.

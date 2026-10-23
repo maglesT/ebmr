@@ -344,6 +344,8 @@ async function manualWeights(ctx: IntentContext, room: string | null, manual: Ma
         room,
         balance,
         declaredBalance: declared ?? null,
+        // P7L-1 (slice 7m): the operator named no balance; the server took the room's one instrument booked for the batch.
+        ...(declared === undefined && only === undefined && booked !== undefined ? { balanceInferred: true } : {}),
         scales: scales.map((s) => ({ deviceCode: s.deviceCode, status: s.status, lastHeartbeatUs: s.lastHeartbeat?.us ?? null })),
       },
     },

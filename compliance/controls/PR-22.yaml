@@ -41,6 +41,8 @@ tests:
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-18][PR-22][DI-30] GMP kiosk batch 3: blending and lubrication on KIOSK-BLEND-1 on the validated times, the blend discharged into a verified container @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
   - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-22][DI-30][DI-34] route B 4: blending on KIOSK-BL-BLEND: blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-22][IN-36][DI-30][DI-34] route D 4: blending on KIOSK-BLEND-1: the active layer blended and lubricated, the lactose layer blended (TB-07), each layer's blend into verified containers of its own stage @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-18][PR-22][DI-30][DI-34] route S 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
 clauses:
   - clause: "A step with a unit the master does not allow is rejected."
     tests:

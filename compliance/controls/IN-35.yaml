@@ -128,6 +128,9 @@ tests:
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
   - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-23][PR-29][IN-35][DI-30][DI-32] route B 5: compression on KIOSK-BL-COMP: tooling (TB-09), set-up (TB-10), the run with each side's checks (TB-11), the yield, QA's approval for coating @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-21][IN-26][IN-35][IN-36][PR-29][DI-49] route D 5: bilayer compression on KIOSK-COMP-2: tooling (TB-09), set-up and first-off (TB-10), each layer's hopper charged on the run step and the layer and tablet checks (TB-16), the metal detector, de-duster and rejects (TB-17) @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-46][IN-35][PR-29][DI-30] route S 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
 clauses:
   - clause: "run 45 minutes without an IPC entry; the alarm fires at 30 minutes."
     tests:

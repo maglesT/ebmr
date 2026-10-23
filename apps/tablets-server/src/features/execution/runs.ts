@@ -297,6 +297,8 @@ export interface RowFacts {
   signatureIds: string[];
   firstEvent: number | null;
   lastEvent: number | null;
+  /** P7L-1 (slice 7m): a weighing keyed by hand whose balance the server inferred (evidence.manual.balanceInferred). */
+  balanceInferred?: boolean;
 }
 
 export class RunRows {
@@ -342,9 +344,11 @@ export async function loadRowFacts(db: Db, runId: string): Promise<RunRows> {
     signature_ids: string[];
     first_event: number | null;
     last_event: number | null;
+    balance_inferred: boolean;
   }>(
     `select c.seq::text as seq, c.kind, c.command_type, c.command, c.accepted, c.refusal, c.now_us::text as now_us, c.actor_person,
             c.actor_legal_name, c.actor_role, a.login_name, p.legal_name as person_name, c.signature_ids::text[] as signature_ids,
+            coalesce(c.evidence -> 'manual' -> 'balanceInferred' = 'true'::jsonb, false) as balance_inferred,
             (select min((e.event ->> 'seq')::integer) from recipe.execution_event e where e.batch_id = c.batch_id and e.row_seq = c.seq) as first_event,
             (select max((e.event ->> 'seq')::integer) from recipe.execution_event e where e.batch_id = c.batch_id and e.row_seq = c.seq) as last_event
        from recipe.execution_command c
@@ -367,6 +371,7 @@ export async function loadRowFacts(db: Db, runId: string): Promise<RunRows> {
       signatureIds: r.signature_ids ?? [],
       firstEvent: r.first_event,
       lastEvent: r.last_event,
+      ...(r.balance_inferred ? { balanceInferred: true } : {}),
     })),
   );
 }
