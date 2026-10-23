@@ -48,6 +48,7 @@ import {
   isRecord,
   MATERIAL_ROLES,
   PACK_FORMS,
+  BLISTER_OPENINGS,
   POSITIVE_COUNT,
   positiveCount,
   problem,
@@ -271,6 +272,10 @@ function checkConfig(phase: PhaseNode, config: Readonly<Record<string, JsonValue
   if (new Set(roles).size !== roles.length || need.some((r) => !roles.includes(r)) || roles.some((r) => !need.includes(r))) {
     out.push(configError('TB21-MATERIALS', `${where}: a ${form?.toLowerCase().replace('_', ' ') ?? ''} pack takes ${need.join(' and ')}, each once`, ['PR-33']));
   }
+  const opening = text(formatOf(config)['opening']);
+  if (opening !== undefined && opening !== 'PUSH_THROUGH' && form === 'STRIP') {
+    out.push(configError('TB21-OPENING', `${where}: a strip pack has no lidding foil to peel; a ${opening === 'PEEL_OFF' ? 'peel-off' : 'peel-push'} opening is a blister's (THERMOFORM or COLD_FORM)`, ['PR-33']));
+  }
   const printed = webs.filter((w) => w.item !== undefined);
   if (printed.length > 0) {
     const g21 = phasesOf(mbr).find((p) => p.id === text(config['printedStep']));
@@ -323,6 +328,7 @@ export const TB21: BlockVersion = {
         description: 'The pack format',
         fields: {
           form: { type: 'string', enum: [...PACK_FORMS], description: 'Thermoform, cold form or strip' },
+          opening: { type: 'string', enum: [...BLISTER_OPENINGS], optional: true, description: 'How the blister is opened: push through the lidding foil (default), peel the lidding foil off, or peel then push (slice 7q, C8)' },
           unitsPerBlister: positiveCount('Tablets per blister or strip'),
           blistersPerCarton: { ...positiveCount('Blisters per carton'), optional: true },
           changeParts: { type: 'array', minItems: 1, maxItems: 30, items: { type: 'string', pattern: CODE, description: 'Change part' }, description: 'The change-part set of the format' },
