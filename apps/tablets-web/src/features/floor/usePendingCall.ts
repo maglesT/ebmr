@@ -337,11 +337,14 @@ export function useRunCommand(
     engineAfterClaim: true,
     onSaved: async (value) => {
       setSavedVersion(value.version);
+      // The form's own reaction (cleared, closed with "Add another") comes in the same render as "Saved", before the
+      // view is read again: otherwise the filled form showed "Saved" until the read came back, and a person (or a
+      // browser test) acting in that moment met the form closing under them (fcv journey, slice 7k).
+      extraRef.current.onSaved?.();
       // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
       // in is no longer the sender; then the step is read again).
       const put = value.step ? await applyStepView(qc, value.step, signedInNow) : false;
       await refreshRun(qc, { steps: !put });
-      extraRef.current.onSaved?.();
     },
     onNotApplied: (refusal) => extraRef.current.onNotApplied?.(refusal),
     onDiscarded: () => extraRef.current.onDiscarded?.(),

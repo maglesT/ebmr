@@ -36,6 +36,34 @@ describe('R3.2: a saved entry form closes and shows the saved entry', () => {
     expect(within(again).getByRole<HTMLInputElement>('textbox', { name: 'Tare (typed by hand)' }).value).toBe('');
   });
 
+  it('the form closes in the same render as "Saved", before the screen is read again (no moment of a filled form marked saved)', async () => {
+    // Every read after the save waits until the test lets it go: the closed card must not wait for it.
+    let release: () => void = () => undefined;
+    const held = new Promise<undefined>((resolve) => (release = () => resolve(undefined)));
+    let committed = false;
+    renderFloor(stepPath(STEP), {
+      scaleSlot: fakeScaleSlot({}, []),
+      intercept: (r) => {
+        const answer = saved(r);
+        if (answer) {
+          committed = true;
+          return answer;
+        }
+        return committed && r.method === 'GET' ? held : undefined;
+      },
+    });
+    const form = await screen.findByTestId('form-OUTPUT_CONTAINER');
+    await userEvent.click(within(form).getByRole('radio', { name: 'Final blend' }));
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Tare (typed by hand)' }), '1.05');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Gross (typed by hand)' }), '26.10');
+    await userEvent.click(within(form).getByRole('button', { name: 'Save: Weigh one output container' }));
+    await waitFor(() => expect(screen.getByTestId('form-OUTPUT_CONTAINER').getAttribute('data-closed')).toBe('true'));
+    const closed = screen.getByTestId('form-OUTPUT_CONTAINER');
+    expect(within(closed).getByText(/^Saved: /)).toBeTruthy();
+    expect(within(closed).getByRole('button', { name: 'Add another: Weigh one output container' })).toBeTruthy();
+    release();
+  });
+
   it('only kinds a step records several of offer "Add another"', () => {
     for (const k of ['CONTAINER_WEIGHING', 'OUTPUT_CONTAINER', 'WEIGHT_CHECK', 'EQUIPMENT_USE', 'ADDITION', 'RECONCILIATION']) expect(expectsSeveral(k)).toBe(true);
     for (const k of ['AREA_OCCUPANCY', 'CLEARANCE_CHECK', 'YIELD', 'RUN_START', 'RUN_END']) expect(expectsSeveral(k)).toBe(false);
