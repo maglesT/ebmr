@@ -52,6 +52,8 @@ tests:
   - "apps/tablets-server/test/market/market-config-routes.test.ts > plant configuration > [DI-49][IN-26][IN-38] the steward configures an alarm code, opens and closes a campaign with a reason, sets a utility feed age and records a line isolation; the database refuses an alarm that needs a deviation and is not GMP-critical; QA holds no MASTERDATA.CHANGE"
   - "apps/tablets-web/test/market/market-screens.test.tsx > plant configuration > [DI-49][IN-26][IN-38] saves an alarm code, opens and closes a campaign with a reason, sets a feed age and records a line isolation"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-form order run on KIOSK-PACK-2: bulk issued, the line cleared and used, the laminate weighed, printed materials, the line check (TB-21 COLD_FORM), the sealing run, the leak tests (TB-22), cartons and the shipper (TB-24), reconciliations, the witnessed destruction, the post-use inspection, the yield @office"
+  - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-32][IN-38][PR-01] the copy names the new product, carries its own printed materials and artworks for its markets everywhere the source named the old ones, and defines without errors"
+  - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-32][IN-38] refused: a printed item left with another product's print, a material that is not printed packaging, a processing master, the same product"
 clauses:
   - clause: "one user signs both \"performed\" and \"verified\" for blister clearance; refused."
     tests:

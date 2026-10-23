@@ -52,6 +52,8 @@ tests:
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [INV-25][PR-01] with a salt factor and an overage on a potency-adjusted active the skeleton's quantities are the formula's computed ones, the database pins it and the validator passes (review P7J-3)"
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01] a master from a formula takes the product name from the product master in effect and its dosage form, Tablet when the master has none; a non-tablet dosage form is refused (review P7J-2, D-7j-11)"
+  - "apps/tablets-server/test/designer/copy-formula.test.ts > a copy of an approved master for another formula (slice 7o, D-7o-5) > [PR-01][INV-25][DI-04] the copy's dispensing standard is this formula's mg per tablet; the source's golden case of it is left out; the other calculations and the copy's definition hold"
+  - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-32][IN-38][PR-01] the copy names the new product, carries its own printed materials and artworks for its markets everywhere the source named the old ones, and defines without errors"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:

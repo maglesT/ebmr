@@ -209,6 +209,8 @@ tests:
   - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C2: reference documents on the master-record screen > [DI-04][DI-17] the master-data steward records a reference document version; the server hashes its body and the list shows that hash, effective; the QA MBR approver holds no MASTERDATA.CHANGE"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [DI-04] slice 7h (gap C2): the reference documents screen records a new document version as the contract takes it (the server builds its body and hash)"
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
+  - "apps/tablets-server/test/blocks/coating/three-layers.test.ts > three coating layers in a row (slice 7o, R4 second check product) > [IN-37][PR-29][DI-04][DI-05] the validator and the definition find no error in three layers, and the simulation runs each layer to its own weight gain"
+  - "apps/tablets-server/test/designer/copy-formula.test.ts > a copy of an approved master for another formula (slice 7o, D-7o-5) > [PR-01][INV-25][DI-04] the copy's dispensing standard is this formula's mg per tablet; the source's golden case of it is left out; the other calculations and the copy's definition hold"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:
