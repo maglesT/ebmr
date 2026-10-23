@@ -431,3 +431,76 @@ export async function defineTooling(page: Page, t: { product: string; productNam
   await tooling.getByRole('button', { name: 'Define' }).click();
   await expect(page.getByRole('table', { name: 'Tooling sets' })).toContainText(t.code);
 }
+
+// ---------------------------------------------------------------------------------------------
+// The sandbox test run (office side)
+
+export interface TestLotEntry {
+  lotCode: string;
+  material: string;
+  name: string;
+  /** The active's typed assay (anhydrous basis with its water), read by TB-01's potency calculation. */
+  assay?: { assay: string; water: string };
+  /** A printed packaging lot's artwork version (G-21 checks it). */
+  artwork?: string;
+}
+
+/** The sandbox steward registers a TEST- lot of each material on Test lots and types each lot's assay or artwork. */
+export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]): Promise<void> {
+  await home(page, /^Test lots/);
+  await expect(page.getByRole('heading', { name: 'Test lots', level: 1 })).toBeVisible();
+  const form = page.getByRole('form', { name: 'Register a test lot' });
+  for (const l of lots) {
+    await form.getByRole('textbox', { name: 'Lot code' }).fill(l.lotCode);
+    await form.getByRole('textbox', { name: 'Material code' }).fill(l.material);
+    await form.getByRole('textbox', { name: 'Material name' }).fill(l.name);
+    await form.getByRole('textbox', { name: 'Expires in (days)' }).fill('365');
+    await form.getByRole('button', { name: 'Register the test lot' }).click();
+    await expect(page.getByTestId(`test-lot-${l.lotCode}`)).toContainText('RELEASED');
+  }
+  for (const l of lots.filter((x) => x.assay ?? x.artwork)) {
+    await choose(page.getByRole('radiogroup', { name: 'Assay and artwork of a test lot' }).getByRole('radio', { name: `${l.lotCode} (${l.material})` }));
+    const section = page.getByTestId(`lot-quality-${l.lotCode}`);
+    if (l.assay) {
+      const a = section.getByRole('form', { name: `Record the assay result of ${l.lotCode}` });
+      await choose(a.getByRole('radiogroup', { name: 'Basis' }).getByRole('radio', { name: 'ANHYDROUS_WATER', exact: true }));
+      await a.getByRole('textbox', { name: /^Assay \(%\)/ }).fill(l.assay.assay);
+      await a.getByRole('textbox', { name: /^Water \(%\)/ }).fill(l.assay.water);
+      await a.getByRole('textbox', { name: /^Certificate or result reference/ }).fill(`TEST-COA-${l.lotCode}`);
+      await a.getByRole('button', { name: 'Record the assay result' }).click();
+      await expect(section.getByTestId('lot-assay')).toContainText(`Assay ${l.assay.assay} %`);
+    }
+    if (l.artwork) {
+      const w = section.getByRole('form', { name: `Record the artwork version of ${l.lotCode}` });
+      await w.getByRole('textbox', { name: /^Artwork version/ }).fill(l.artwork);
+      await w.getByRole('button', { name: 'Record the artwork version' }).click();
+      await expect(section.getByTestId('lot-artwork')).toHaveText(`Artwork version ${l.artwork}`);
+    }
+  }
+}
+
+/** The sandbox issuer imports the test package and issues a test batch of the master's first approved size. */
+export async function issueTestBatch(page: Page, packageHash: string): Promise<{ runId: string; batchNumber: string }> {
+  await home(page, /^Test-run packages/);
+  const item = page.getByTestId(`package-${packageHash}`);
+  await expect(item).toContainText('Exported from GMP');
+  await item.getByRole('button', { name: 'Import' }).click();
+  await expect(item.getByText(/^Imported /)).toBeVisible();
+  await item.getByRole('link', { name: 'Issue a test batch' }).click();
+  await choose(page.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first());
+  await page.getByRole('button', { name: 'Issue the test batch' }).click();
+  await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
+  const runId = new URL(page.url()).pathname.split('/').pop() ?? '';
+  await expect(page.getByTestId('batch-number')).toHaveText(/^TEST-B\d{2}-\d{4}$/);
+  return { runId, batchNumber: (await page.getByTestId('batch-number').textContent()) ?? '' };
+}
+
+/** The issuer, on the run page, exports the completed test run's result for GMP; it passed. Returns the result file. */
+export async function exportTestResult(page: Page, base: string, runId: string): Promise<string> {
+  await page.goto(`${base}/runs/${runId}`);
+  await expect(page.getByText('Execution complete').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Export the test-run result for GMP' }).click();
+  const exported = page.getByTestId('run-result-export');
+  await expect(exported).toHaveAttribute('data-passed', 'yes');
+  return /([0-9a-f]{64}\.json)/.exec(await exported.innerText())?.[1] ?? '';
+}

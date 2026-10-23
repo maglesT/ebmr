@@ -16,11 +16,12 @@ import { randomBytes } from 'node:crypto';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { choose } from '../journey/support.ts';
 import {
-  addCoatingLayer, approveFormula, changeControl, checksPass, confirmMasters, enterMaterials, enterProduct, home, loadProduct, masterFromFormula, recordFormula,
-  saveProduct, saveRevision, selectStep, sendToSandbox, setConfig, setLimit, type FormulaLineEntry, type ProductState,
+  approveFormula, authoriseIn, changeControl, checksPass, confirmMasters, defineTooling, enterMaterials, enterProduct, exportTestResult, fourSignatures, home, importEvidence,
+  issueTestBatch, loadProduct, masterFromFormula, recordFormula, registerTestLots, saveProduct, saveRevision, selectStep, sendToSandbox, setConfig, setLimit,
+  type FormulaLineEntry, type ProductState,
 } from './own-product-flow.ts';
+import { closeFloor, processingRun, type Floor, type ProcessPlan } from './own-product-floor.ts';
 
-void addCoatingLayer;
 void choose;
 
 test.describe.configure({ mode: 'serial' });
@@ -43,6 +44,61 @@ const lines = (api: string): FormulaLineEntry[] => [
   { id: 'fcs', material: 'MAT-FCS-W', role: 'PROCESSING_AID', basis: 'PER_BATCH', quantity: '2.400', potency: false, compensating: false },
 ];
 const BATCH_UNITS = '150000';
+const SIZE_ID = 'BS-150000U';
+
+/** The materials of the formula other than the active, with their names (the sandbox's test lots name them). */
+const EXCIPIENTS: readonly (readonly [string, string, string])[] = [
+  ['mcc', 'MAT-MCC-101', 'Microcrystalline cellulose PH 101'],
+  ['lac', 'MAT-LAC-MH', 'Lactose monohydrate'],
+  ['pvp', 'MAT-PVP-K30', 'Povidone K30'],
+  ['ipa', 'MAT-IPA', 'Isopropyl alcohol'],
+  ['ccs', 'MAT-CCS', 'Croscarmellose sodium'],
+  ['sio', 'MAT-SIO2', 'Colloidal silicon dioxide'],
+  ['mgs', 'MAT-MGST', 'Magnesium stearate'],
+  ['fcs', 'MAT-FCS-W', 'Film-coating system, white'],
+];
+
+/**
+ * The floor's quantities of a Demotab batch of 1,50,000 tablets (569.3 mg cores, a plain film coat of about 2.9 %); the
+ * same on the sandbox's test run and the GMP batch, with each installation's lots.
+ */
+function demotabPlan(lots: (id: string) => string, api: string, tag: string): ProcessPlan {
+  return {
+    api: { material: api, lot: lots('api') },
+    compensating: { material: 'MAT-MCC-101', lot: lots('mcc') },
+    others: [
+      ['MAT-LAC-MH', '10.500', lots('lac')], ['MAT-PVP-K30', '1.800', lots('pvp')], ['MAT-IPA', '1.800', lots('ipa')], ['MAT-CCS', '1.800', lots('ccs')],
+      ['MAT-SIO2', '0.300', lots('sio')], ['MAT-MGST', '0.600', lots('mgs')], ['MAT-FCS-W', '2.400', lots('fcs')],
+    ],
+    binderKg: '3.600',
+    granules: { in: '83.800', out: '83.650', oversize: '0.150' },
+    blendLubricantKg: '0.600',
+    blendNet: '85.200',
+    toolingSet: new RegExp(`^TS-DMT-${tag}`),
+    sweep: ['568.8', '569.6', '570.2', '567.9'],
+    sideNet: '42.450',
+    sideGroup: { L: '11386.0', R: '11383.0' },
+    coresGroup: '11388.0',
+    physical: [{ thickness: '5.10', hardness: '95' }, { thickness: '5.12', hardness: '98' }, { thickness: '5.08', hardness: '92' }],
+    friability: { tablets: '12', initial: '6.832', final: '6.815' },
+    strokes: '150600',
+    compYield: { good: '84.900', residue: '0.300', rejects: '0.200' },
+    coating: {
+      panKg: '84.900',
+      layers: [{ susp: 'p-susp', cores: 'p-cores', coat: 'p-coat', loop: 'L-COAT', recipe: 'RCP-RTW-COAT', suspensionKg: '9.600', usedKg: '9.000', coreTotal: '11.3860', coatedTotal: '11.7200' }],
+      coatedNet: '87.300',
+      disintegration: 'FILM_COATED',
+    },
+    inspection: {
+      inspected: { count: '148960', mass: '87.300' },
+      accepted: { count: '147850', mass: '86.650' },
+      defects: [['CHIPPED', '700'], ['COLOUR-SPOT', '410']],
+      destroyed: { count: '320', mass: '0.190' },
+      residue: { count: '790', mass: '0.460' },
+      bulkUnits: '1000',
+    },
+  };
+}
 
 test('[DI-17][INV-25][PR-01] Demotab 1: the active entered on screen, the product, QA\'s confirmation; the formula written and approved by QA @office', async ({ e2e, officePage, persona, evidence }, testInfo) => {
   test.setTimeout(20 * 60_000);
@@ -125,4 +181,60 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
   }, a);
   void home;
   void expect;
+});
+
+test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole process on the sandbox\'s kiosks with its own plant; its result imported as evidence; the four signatures and the IN authorisation @office', async ({ e2e, officePage, persona, evidence, browser }) => {
+  test.setTimeout(120 * 60_000);
+  const s = loadProduct(e2e, KEY);
+  const sbx = e2e.url('SANDBOX');
+  const api = `DMT-API-${s.tag}`;
+  const lotCode = (id: string): string => `TEST-L26-DMT-${s.tag}-${id.toUpperCase()}`;
+  const st = await officePage('SANDBOX', 'TEST-PC-01');
+  await signIn.office(st, persona('SANDBOX', 'steward'));
+  await evidence.step('Sandbox: the steward registers a TEST- lot of each material and types the active\'s assay; defines the product\'s tooling set on the sandbox\'s plant', 'TEST- lots RELEASED; the assay recorded; the tooling set defined (sandbox database only)', async () => {
+    await registerTestLots(st, [
+      { lotCode: lotCode('api'), material: api, name: 'Demotab sodium (invented, micronised)', assay: { assay: '99.20', water: '0.80' } },
+      ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name })),
+    ]);
+    await home(st, /^Plant master data/);
+    await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TS-DMT-${s.tag}`, shape: 'Capsule 17.0 x 8.0 mm', upper: 'D400' });
+  }, st);
+  const iss = await officePage('SANDBOX', 'TEST-PC-01');
+  await signIn.office(iss, persona('SANDBOX', 'issuer'));
+  await evidence.step('Sandbox: the issuer imports the test package and issues a test batch', 'A TEST- batch number', async () => {
+    const run = await issueTestBatch(iss, s.packageHash ?? '');
+    s.sandboxRunId = run.runId;
+    s.sandboxBatchNumber = run.batchNumber;
+    saveProduct(e2e, KEY, s);
+    return run;
+  }, iss);
+  const floor: Floor = {
+    e2e, browser, inst: 'SANDBOX', batchId: s.sandboxRunId ?? '', batchNumber: s.sandboxBatchNumber ?? '',
+    persona: (k) => persona('SANDBOX', k), containers: (s.containers ??= {}), save: () => saveProduct(e2e, KEY, s),
+  };
+  await evidence.step('Sandbox floor: dispensing, granulation, blending, compression, the film coat and inspection on the TEST- kiosks, each stage signed off', 'Execution complete; every screen with the TEST, NOT GMP band', async () => {
+    try {
+      await processingRun(floor, demotabPlan(lotCode, api, s.tag));
+    } finally {
+      await closeFloor();
+    }
+  });
+  await evidence.step('Sandbox: the issuer exports the test-run result for GMP', 'It passed; the result is in to-gmp with the sandbox stamp', async () => ({ resultFile: await exportTestResult(iss, sbx, s.sandboxRunId ?? '') }), iss);
+
+  const base = e2e.url('GMP');
+  const a = await officePage('GMP', PC_AUTHOR);
+  await signIn.office(a, persona('GMP', 'author'));
+  await evidence.step('The author starts the verification and imports the sandbox run\'s result', 'The evidence is complete for this content (SANDBOX_RUN from the real run)', async () => {
+    await importEvidence(a, base, s.versionId ?? '', s.sandboxBatchNumber ?? '');
+  }, a);
+  const c = await officePage('GMP', PC_AUTHOR);
+  await signIn.office(c, persona('GMP', 'checker'));
+  const r = await officePage('GMP', PC_QA);
+  await signIn.office(r, persona('GMP', 'regulatory'));
+  const q = await officePage('GMP', PC_QA);
+  await signIn.office(q, persona('GMP', 'approver'));
+  await evidence.step('Prepared, independently checked, the registration references confirmed, approved by QA; QA proposes the IN authorisation, the regulatory signer confirms it, QA authorises it', 'APPROVED; the IN authorisation ACTIVE', async () => {
+    await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author: persona('GMP', 'author'), checker: persona('GMP', 'checker'), regulatory: persona('GMP', 'regulatory'), qa: persona('GMP', 'approver') }, base, s.versionId ?? '');
+    await authoriseIn(q, r, base, s.versionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: SIZE_ID }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration on file (${s.tag})`);
+  }, q);
 });
