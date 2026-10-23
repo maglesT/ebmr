@@ -67,6 +67,9 @@ tests:
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-05][IN-05][DI-25][INV-48] GMP kiosk batch 8: both records reviewed (production approval, the register, the audit trail, the QA review) and the lot released by the authorised person on a checklist with no red item @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [INV-05][IN-05][DI-25][INV-48] route W 11: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
+  - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33] the profile is one checklist item: open while a point has no result, green when every point is within its limits, and the lot is released"
+  - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33][IN-20] one time point out of its limits fails the profile item and the database refuses the release"
+  - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33] content uniformity of a low-dose tablet is a release requirement as one test: its acceptance value above the limit keeps the lot from release (R8 C7)"
 clauses:
   - clause: "attempt release with an open deviation, without head-of-QC approval, with an unsigned step, and as a user without the AP/delegate role; all four are blocked."
     tests:

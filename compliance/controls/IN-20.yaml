@@ -49,6 +49,8 @@ tests:
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [IN-20][DI-33] a revision of a RELEASE result cites an OOS record about its own test: one tied to another test of the lot is refused, so another test's laboratory error never unblocks it (slice 2 quick review)"
   - "apps/tablets-server/test/quality/lot-handling-routes.test.ts > reservations, stock-location exceptions and the OOS record of a lot > [IN-20] QC links the OOS record of an approved failing result; a result not yet approved, a person without the right and a second link are refused"
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the OOS record of an approved failing result > [IN-20] raising the OOS record of an approved failing result links it to the lot and names it on the result"
+  - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33][IN-20] one time point out of its limits fails the profile item and the database refuses the release"
+  - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [IN-33][PR-45][IN-20] one time point out of its limits fails the profile and stops the release; a revision names the same point and its OOS record"
 clauses:
   - clause: "enter an out-of-specification IPC assay and then a passing re-test; both remain visible and the OOS stays open."
     tests:
