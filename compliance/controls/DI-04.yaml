@@ -211,6 +211,7 @@ tests:
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
   - "apps/tablets-server/test/blocks/coating/three-layers.test.ts > three coating layers in a row (slice 7o, R4 second check product) > [IN-37][PR-29][DI-04][DI-05] the validator and the definition find no error in three layers, and the simulation runs each layer to its own weight gain"
   - "apps/tablets-server/test/designer/copy-formula.test.ts > a copy of an approved master for another formula (slice 7o, D-7o-5) > [PR-01][INV-25][DI-04] the copy's dispensing standard is this formula's mg per tablet; the source's golden case of it is left out; the other calculations and the copy's definition hold"
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-03][DI-04][INV-25] a formula material with a registered MATERIAL document is pinned to that document, the others to their material master version; the validator knows both (slice 7o, found by the R4 browser run)"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:

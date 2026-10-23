@@ -422,6 +422,7 @@ tests:
   - "apps/tablets-server/test/master-data/master-entry.test.ts > masters entered on screen (slice 7j) > [DI-17] a screen entry is insert-only: its update, delete and truncate are refused even to the database owner (review P7J-1)"
   - "apps/tablets-server/test/execution/lot-quality.test.ts > a lot's assay result and artwork version on screen (slice 7o) > [PR-19][PR-32][DI-17] on GMP the steward may not record a site lot's assay (QC.RESULT_RECORD); the QC analyst names approved LIMS results, never a typed value (tablets 1001); an artwork version is refused for a lot that is not printed packaging; QC records the lot's identity test result"
   - "apps/tablets-server/test/plant/sandbox-plant.test.ts > the plant on both installations, each against its own database (slice 7o) > [DI-05][DI-17] a room, a unit and a cleaning recorded on the sandbox are in the sandbox database only; the same codes recorded on GMP stay GMP's; neither installation lists the other's"
+  - "apps/tablets-server/test/operations/authorised-orders.test.ts > production orders of any approved and authorised product (slice 7o) > [PR-04][DI-17] the approved master with an active authorisation is offered with its own BOM for its first batch size; the order posted is planned against without a mismatch"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:
