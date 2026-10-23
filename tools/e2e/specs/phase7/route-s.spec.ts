@@ -408,10 +408,12 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK
     set = ((await before.getAttribute('data-testid')) ?? '').replace('tooling-inspect-BEFORE-', '');
     await allInOrder(before);
     await act(page, before.getByRole('button', { name: `Inspect set ${set} before use` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     const pressPick = panel.getByRole('radiogroup', { name: 'Press' });
     if ((await pressPick.count()) > 0) await choose(pressPick.getByRole('radio', { name: 'PRESS-01', exact: true }));
     await act(page, panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_ISSUED')).toBeVisible();
     await saveBlock(page, 'TOOLING_ISSUED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -425,6 +427,7 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK
     await saveBlock(page, 'PRESS_SETUP', op);
     await entry(page, 'PRE_USE_CHECKLIST', op, { Items: [{ Item: 'DUST_EXTRACTION', Ok: 'Yes' }, { Item: 'NOZZLES_CLEAN_NO_LEAK', Ok: 'Yes' }, { Item: 'CALIBRATED_BALANCE', Ok: 'Yes' }] });
     await act(page, panel.getByRole('button', { name: `Charge container ${s.containers?.['blend'] ?? ''}` }), op);
+    await expect(page.getByTestId('block-form-HOPPER_CHARGE')).toBeVisible();
     await saveBlock(page, 'HOPPER_CHARGE', op);
     await entry(page, 'FIRST_OFF', op, { Result: 'PASS' });
     await performAndCheck(page, op, verifier, op);
@@ -465,10 +468,12 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK
     set = ((await issue.getAttribute('data-testid')) ?? '').replace('tooling-issue-', '');
     await issue.getByRole('textbox', { name: /^Strokes read from the press/ }).fill('197800');
     await act(page, issue.getByRole('button', { name: `Return set ${set}` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_RETURNED')).toBeVisible();
     await saveBlock(page, 'TOOLING_RETURNED', op);
     const after = page.getByTestId(`tooling-inspect-AFTER-${set}`);
     await allInOrder(after);
     await act(page, after.getByRole('button', { name: `Inspect set ${set} after use` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -903,6 +908,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route S 9: the thermofo
     }
     await step(page, e2e, orderId, 'p-pk-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: `End the use of ${LINE}` }), op);
+    await expect(page.getByTestId(`occupancy-${LINE}`)).toHaveCount(0);
     await page.goto(`${base}/runs/${orderId}`);
     await expect(page.getByText('Execution complete').first()).toBeVisible();
     return { dispositioned };

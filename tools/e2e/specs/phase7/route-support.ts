@@ -12,7 +12,7 @@ import { routes } from '@ebmr/api-contract';
 import { expect, type E2eWorld } from '../../fixtures/index.ts';
 import { signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
-import { act, ANY, as, card, choose, completed, entry, fillBlock, plusOne, primary, save, saveBlock, sign, startStep, step, type Fill } from './kiosk-batch-support.ts';
+import { act, ANY, as, card, choose, completed, entry, fillBlock, plusOne, primary, ready, save, saveBlock, sign, startStep, step, type Fill } from './kiosk-batch-support.ts';
 
 /** What the serial tests of a route hand on: the orders, the batch, its containers, the packaging order and the lot. */
 export interface RouteState {
@@ -148,6 +148,7 @@ export async function holdPoint(page: Page, e2e: E2eWorld, batchId: string, key:
   await (await primary(page, 'Decide the hold point')).click();
   const decide = page.getByRole('dialog', { name: 'Decide the hold point' });
   await choose(decide.getByRole('radio', { name: /^Approved/ }));
+  await ready(page, qa);
   await decide.getByRole('button', { name: 'Continue to signature' }).click();
   await sign(page, qa);
   await completed(page);
@@ -171,6 +172,7 @@ export async function container(page: Page, base: string, batchId: string, stage
   await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
   await as(page, verifier);
   await page.goto(`${base}/review/${batchId}/containers`);
+  await ready(page, verifier);
   await page.getByTestId(`container-${label}`).getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
   await sign(page, verifier);
   await expect(page.getByTestId(`container-${label}`).getByTestId('container-net')).toContainText(`net verified by ${verifier.legalName}`);

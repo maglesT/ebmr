@@ -41,43 +41,49 @@ export function saveFlow(e2e: E2eWorld, s: FlowState): void {
 
 /**
  * A person's pace at the reader: the server accepts at most 30 taps a minute of one badge at one terminal (DI-19); a
- * person never comes near it, the spec would. Each tap of a badge waits until fewer than 25 of its taps fall in the last
- * minute.
+ * person never comes near it, the spec would. Before pressing a button that asks for a badge, the spec waits until fewer
+ * than 25 of the badge's taps fall in the last minute (`ready`): waiting once the badge prompt is open lets the prompt
+ * close unanswered (route W 6 in CI). The tap itself waits only at 29, under the server's limit.
  */
 const taps = new Map<string, number[]>();
-async function pace(page: Page, who: SeededPersona): Promise<void> {
+async function pace(page: Page, who: SeededPersona, below: number, record: boolean): Promise<void> {
   const now = performance.now();
   const recent = (taps.get(who.key) ?? []).filter((t) => now - t < 60_000);
-  if (recent.length >= 25) {
-    const wait = 60_000 - (now - (recent[0] ?? now)) + 250;
+  if (recent.length >= below) {
+    const wait = 60_000 - (now - (recent[recent.length - below] ?? now)) + 250;
     await page.waitForTimeout(wait);
   }
-  taps.set(who.key, [...recent.filter((t) => performance.now() - t < 60_000), performance.now()]);
+  const kept = recent.filter((t) => performance.now() - t < 60_000);
+  taps.set(who.key, record ? [...kept, performance.now()] : kept);
+}
+
+/** Waits, before a button that asks for the person's badge is pressed, until a tap is within the pace. */
+export async function ready(page: Page, who: SeededPersona): Promise<void> {
+  await pace(page, who, 25, false);
 }
 
 export async function tap(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 29, true);
   await tap0(page, who);
 }
 
 export async function sign(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 29, true);
   await sign0(page, who);
 }
 
 export async function signPrimary(page: Page, label: string | RegExp, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 25, true);
   await signPrimary0(page, label, who);
 }
 
 export async function switchUser(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 25, true);
   // Slice 7l: a lock layer that opens and closes while the screen settles shows a second, disabled "Switch user": the
   // person waits until the screen shows one.
   await expect(page.getByRole('button', { name: 'Switch user' })).toHaveCount(1, { timeout: 30_000 });
   await switchUser0(page, who);
-  // Slice 7m: the switch is done when its PIN pad has gone (a switch back to the person already shown found the name
-  // at once, and a navigation then cut the switch off, leaving the session locked).
+  // Slice 7m: the switch is done when its PIN pad has gone (a navigation right after could cut a switch off).
   await expect(page.getByRole('group', { name: /^Enter (your PIN|the PIN of)/ })).toHaveCount(0, { timeout: 30_000 });
 }
 
@@ -132,11 +138,9 @@ export async function closeKiosks(): Promise<void> {
 /** A plant act or other command button on a kiosk: pressed, then the fresh badge tap of the person signed in. */
 export async function act(page: Page, button: Locator, who: SeededPersona): Promise<void> {
   await expect(button).toBeEnabled();
-  // Slice 7m: the person's pace at the reader is kept before the button is pressed, never while the badge prompt is open
-  // (a prompt left open through the pause expired, and the tap then found no prompt).
-  await pace(page, who);
+  await ready(page, who);
   await button.click();
-  await tap0(page, who);
+  await tap(page, who);
 }
 
 /** Opens a step of the batch on the kiosk step screen. */
@@ -158,14 +162,13 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
   };
   for (let attempt = 0; ; attempt += 1) {
     await expect(button).toBeEnabled();
-    // Slice 7m: paced before the press (see act), so the badge prompt is answered while it is open.
-    await pace(page, who);
+    await ready(page, who);
     await button.click();
     // Slice 7l: a Save pressed while the screen still settles the entry saved just before asks for no badge; the person
     // presses it again (a finding of the route runs, reported for the floor's usability work).
     const badge = page.getByLabel('Badge', { exact: true }).last();
     if (!(await badge.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false))) await button.click();
-    await tap0(page, who);
+    await tap(page, who);
     try {
       await expect(saved.or(stale).or(refused).first()).toBeVisible();
     } catch {
@@ -186,13 +189,14 @@ export async function performAndCheck(page: Page, op: SeededPersona, checker: Se
     await switchUser(page, checker);
     await signPrimary(page, check, checker);
   }
-  // Slice 7m: no switch to the person already signed in (the performer when nobody checks).
+  // Only to another person: a switch to the person already shown passes its identity check at once, so the next
+  // navigation could drop the switch in flight and leave the kiosk on its sign-in screen.
   if (back.key !== (checker ?? op).key) await switchUser(page, back);
 }
 
 /** Start step: the primary action and the operator's badge tap (journey support), at the person's pace. */
 export async function startStep(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 25, true);
   await startStep0(page, who);
 }
 
@@ -227,6 +231,7 @@ export async function closeStage(page: Page, e2e: E2eWorld, batchId: string, qa:
     const dialog = page.getByRole('dialog', { name: /^Disposition: / });
     await choose(dialog.getByRole('radio', { name: 'No impact' }));
     await dialog.getByRole('textbox', { name: 'Justification' }).fill('Reviewed on the floor with the operator: values keyed by hand were checked by a second person at the time; no impact on the batch.');
+    await ready(page, qa);
     await dialog.getByRole('button', { name: 'Continue to signature' }).click();
     // Slice 7m: a run of dispositions from one kiosk under one identifier meets the server's limit on authentications
     // ("Too many attempts in a short time", route S's 25 keyed coater values); QA closes the dialog, waits the minute out
@@ -247,6 +252,7 @@ export async function closeStage(page: Page, e2e: E2eWorld, batchId: string, qa:
   await (await primary(page, 'Sign off the stage')).click();
   const dialog = page.getByRole('dialog', { name: /^Sign off stage/ });
   await expect(dialog.getByTestId('stage-summary')).toBeVisible();
+  await ready(page, supervisor);
   await dialog.getByRole('button', { name: 'Continue to signature' }).click();
   await sign(page, supervisor);
   await as(page, back);
@@ -303,6 +309,7 @@ export async function clearance(page: Page, base: string, batchNumber: string, a
   await expect(page.getByTestId(`pending-CLEARANCE-${area}`).first()).toBeVisible();
   await as(page, verifier);
   await page.goto(`${base}/plant`);
+  await ready(page, verifier);
   await page.getByTestId(`pending-CLEARANCE-${area}`).first().getByRole('button', { name: `Verify the clearance of ${area}` }).click();
   await sign(page, verifier);
   await expect(page.getByTestId(`pending-CLEARANCE-${area}`)).toHaveCount(0);
@@ -384,13 +391,18 @@ export async function closeTyped(page: Page, base: string, batchId: string, labe
   await expect(c.getByTestId('container-net')).toContainText(`${net} kg (typed)`);
   await as(page, verifier);
   await page.goto(`${base}/review/${batchId}/containers`);
+  await ready(page, verifier);
   await c.getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
   await sign(page, verifier);
   await expect(c.getByTestId('container-net')).toContainText(`net verified by ${verifier.legalName}`);
   await as(page, who);
 }
 
-/** Saves a block entry form of the step as it is (its identifiers given, or no member to type). */
+/**
+ * Saves a block entry form of the step as it is (its identifiers given, or no member to type). After a plant act that
+ * opens its own form when it succeeds, the spec waits for that form first: tapping "Record: ..." while the act is in
+ * flight races the form the act opens and can leave none open.
+ */
 export async function saveBlock(page: Page, kind: string, who: SeededPersona, fill?: (form: Locator) => Promise<void>): Promise<void> {
   const form = page.getByTestId(`block-form-${kind}`);
   if ((await form.count()) === 0) {
