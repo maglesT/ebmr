@@ -39,7 +39,7 @@ const stateProblem = async (batchNumber: string, entry: Record<string, unknown>)
   (await sbx.db.admin.query<{ p: string | null }>("select tab.state_entry_identifier_problem($1::jsonb, '{}'::jsonb, $2) as p", [JSON.stringify(entry), batchNumber])).rows[0]?.p ?? null;
 
 describe('a test run names its own output containers (slice 7o)', () => {
-  it('[DI-05][DI-30] a disposal or sample of a test run names the batch\'s own output container; another batch\'s container or a label no container of the run carries is refused', async () => {
+  it('[DI-05][DI-30] a disposal or sample of a test run names the batch\'s own output container, a bound word of its record; another batch\'s container or a label no container of the run carries is refused', async () => {
     const a = await runWithContainer();
     const b = await runWithContainer();
     for (const kind of ['DISPOSAL', 'SAMPLE']) {
@@ -50,6 +50,11 @@ describe('a test run names its own output containers (slice 7o)', () => {
       expect(await entryProblem(a.runId, { kind, container: `OC-${a.batchNumber}-0099` })).toMatch(/^container /);
       expect(await stateProblem(a.batchNumber, { kind, data: { container: b.label } })).toMatch(/^container /);
     }
+    // The record's free-text rule (recipe-core 1701): the run's own container label is a bound word, another run's is not.
+    const unbound = async (runId: string, batchNumber: string, word: string): Promise<string | null> =>
+      (await sbx.db.admin.query<{ w: string | null }>('select recipe.unbound_real_identifier(to_jsonb($3::text), recipe.run_bound_words($1::uuid, to_jsonb($3::text)), $2) as w', [runId, batchNumber, word])).rows[0]?.w ?? null;
+    expect(await unbound(a.runId, a.batchNumber, a.label)).toBeNull();
+    expect(await unbound(a.runId, a.batchNumber, b.label)).not.toBeNull();
     // Every other member keeps the rule: a weighing's container is a test lot number only.
     expect(await entryProblem(a.runId, { kind: 'CONTAINER_WEIGHING', container: a.label, lot: { id: 'TEST-L26-0001' } })).toMatch(/^container /);
   });

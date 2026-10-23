@@ -458,7 +458,7 @@ tests:
   - "apps/tablets-server/test/plant/sandbox-plant.test.ts > the plant on both installations, each against its own database (slice 7o) > [DI-05][DI-17] a room, a unit and a cleaning recorded on the sandbox are in the sandbox database only; the same codes recorded on GMP stay GMP's; neither installation lists the other's"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the plant acts of a test run on the sandbox (slice 7o, D-7o-1) > [DI-05][DI-34][INV-18] a sandbox clearance step offers the room's use as on GMP, under the TEST, NOT GMP mark and the TEST- batch number; the act goes to the sandbox's own server"
   - "apps/tablets-server/test/plant/sandbox-plant.test.ts > the plant on both installations, each against its own database (slice 7o) > [DI-05] the DEMO-ONLY sandbox plant labels every unit TEST- (its instruments are devices, EBMR-SBX-022; a test run's entries name units), never a GMP label"
-  - "apps/tablets-server/test/execution/sandbox-own-containers.test.ts > a test run names its own output containers (slice 7o) > [DI-05][DI-30] a disposal or sample of a test run names the batch's own output container; another batch's container or a label no container of the run carries is refused"
+  - "apps/tablets-server/test/execution/sandbox-own-containers.test.ts > a test run names its own output containers (slice 7o) > [DI-05][DI-30] a disposal or sample of a test run names the batch's own output container, a bound word of its record; another batch's container or a label no container of the run carries is refused"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

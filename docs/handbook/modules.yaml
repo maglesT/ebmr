@@ -643,7 +643,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0[23]\d\d_', '^04[4-9]\d_', '^0911_', '^1100_', '^121[78]_', '^1224_']
+      packages/recipe-core/sql: ['^0[23]\d\d_', '^04[4-9]\d_', '^0911_', '^1100_', '^121[78]_', '^1224_', '^1701_']
     src: [packages/recipe-core/src/execution, packages/recipe-core/src/engine]
     tests:
       - 'packages/recipe-core/test/execution/**'
