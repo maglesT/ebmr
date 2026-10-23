@@ -217,3 +217,24 @@ describe('the hopper of each layer of a bilayer run (slice 7m, R1)', () => {
     expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'HOPPER_CHARGE', data: { layer: 'T', hopper: 'H2', blend: 'BLEND_L2', chargeId: CHARGE } });
   });
 });
+
+describe('the charges a bilayer step has recorded already (7m review P7M-1)', () => {
+  it('[PR-21][IN-26] offers "Record the charge" only for a charge the step has not recorded (a second entry of a charge is refused by the database: db-guards.test.ts TB16-CHARGE)', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const OTHER = '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d09';
+    view.entries = [{ entryId: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d10', kind: 'HOPPER_CHARGE', summary: 'hopper charge', data: { layer: 'L1', hopper: 'H1', blend: 'BLEND_L1', chargeId: CHARGE }, by: OP, at: at('20-OCT-2026 10:01') }];
+    const charge = (chargeId: string, label: string) => ({ chargeId, label, stage: 'COMPRESSION', chargedBy: OP, chargedAt: at('20-OCT-2026 10:00'), mine: true });
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }],
+      charges: [charge(CHARGE, 'OC-B26-0007-0001'), charge(OTHER, 'OC-B26-0007-0003')],
+      chargedStages: { [CHARGE]: 'BLEND_L1', [OTHER]: 'BLEND_L1' },
+    });
+    render(view, () => current, {});
+    const layer = within(await screen.findByTestId('plant-layer-charge')).getByTestId('layer-L1');
+    expect(await within(layer).findByRole('button', { name: 'Record the charge of OC-B26-0007-0003 into hopper H1' })).toBeTruthy();
+    expect(within(layer).queryByRole('button', { name: 'Record the charge of OC-B26-0007-0001 into hopper H1' })).toBeNull();
+  });
+});

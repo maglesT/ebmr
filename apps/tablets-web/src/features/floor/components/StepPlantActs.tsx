@@ -59,7 +59,7 @@ function PlantActs({ view, gmp }: { view: StepScreenView; gmp: boolean }) {
       {view.step.block === 'G-09@2' ? <EquipmentPanel v={v} /> : null}
       {view.step.block === 'TB-09@1' ? <ToolingPanel v={v} /> : null}
       {view.step.block === 'TB-10@1' ? <PressSetupPanel v={v} /> : null}
-      {view.step.block === 'TB-16@1' ? <LayerChargePanel v={v} /> : null}
+      {view.step.block === 'TB-16@1' ? <LayerChargePanel v={v} recorded={new Set(view.entries.filter((e) => e.kind === 'HOPPER_CHARGE').map((e) => (typeof e.data['chargeId'] === 'string' ? e.data['chargeId'] : '')))} /> : null}
     </section>
   );
 }
@@ -466,7 +466,7 @@ function PressSetupPanel({ v }: { v: StepPlantView }) {
 // ---------------------------------------------------------------------------------------------
 // TB-16@1: each layer's hopper charged with a container of that layer's blend (slice 7m, R1)
 
-function LayerChargePanel({ v }: { v: StepPlantView }) {
+function LayerChargePanel({ v, recorded }: { v: StepPlantView; recorded: ReadonlySet<string> }) {
   const choices = useStepChoices();
   const charge = useCommand(routes.plant.chargeContainer, READ, 'charging a container');
   const record = (l: StepPlantView['layers'][number], chargeId: string) => choices?.choose('HOPPER_CHARGE', { layer: l.id, hopper: l.hopper, blend: l.stage, chargeId });
@@ -479,7 +479,8 @@ function LayerChargePanel({ v }: { v: StepPlantView }) {
     <div data-testid="plant-layer-charge">
       {v.layers.map((l) => {
         const ready = v.containers.filter((c) => c.stage === l.stage);
-        const charged = v.charges.filter((g) => g.mine && v.chargedStages[g.chargeId] === l.stage);
+        // A charge recorded in the step already is not offered again (the block and the database refuse a second entry).
+        const charged = v.charges.filter((g) => g.mine && v.chargedStages[g.chargeId] === l.stage && !recorded.has(g.chargeId));
         return (
           <section key={l.id} className={wcls('formCard')} aria-label={`Layer ${l.id}`} data-testid={`layer-${l.id}`}>
             <h3 className={wcls('formTitle')}>{`Layer ${l.id}: hopper ${l.hopper}, blend ${l.stage}`}</h3>

@@ -208,3 +208,15 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
   and the database refuse a wrong pick.
+
+## Slice 7m (one review pass, 23 October 2026)
+
+Nothing blocking.
+
+- P7M-1 (fixed in 7m): the TB-16 layer-charge panel still offered "Record the charge" for a charge the step had
+  recorded. It now offers only charges no entry of the step names (`step-plant-acts.test.tsx`); a second entry of a
+  charge was already refused by the database (TB16-CHARGE, `forming/db-guards.test.ts`).
+- P7M-2 (residual): recipe-core 1650 refuses `balanceInferred: true` beside a declared balance but does not check
+  `false` against a missing one; the server sets the member only when no balance was declared.
+- P7M-3 (follow-up): QA dispositioning 25 like exceptions one by one on a kiosk (route S's keyed coater values) meets
+  the sign-in limit; a bulk disposition of like exceptions would spare the presenter.
