@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { definitionFindings } from '../../src/features/designer/definition.ts';
 import { rtwPackagingContent, rtwProcessingContent } from '../../src/cli/demo-route-masters.ts';
+import { rtdPackagingContent, rtdProcessingContent } from '../../src/cli/demo-route-masters-ds.ts';
 
 function blocksOf(n: unknown, out: Map<string, Record<string, unknown>[]> = new Map()): Map<string, Record<string, unknown>[]> {
   if (Array.isArray(n)) for (const x of n) blocksOf(x, out);
@@ -42,5 +43,28 @@ describe('demo route W masters (slice 7l, R1)', () => {
     expect(b.get('TB-21')?.every((c) => (c['packFormat'] as { form: string }).form === 'COLD_FORM')).toBe(true);
     for (const t of ['TB-22', 'TB-24', 'G-21', 'G-23']) expect(b.has(t), t).toBe(true);
     expect(mbr.header.packType).toBe('ALU-ALU-BLISTER');
+  });
+});
+
+describe('demo route D masters (slice 7m, R1)', () => {
+  it('the processing master defines without errors and shows the dry route\'s blocks: TB-01, TB-06 roller compaction, TB-02, TB-07 for both layers, TB-09, TB-10, TB-16 bilayer, TB-17, TB-19 printing behind its gate', () => {
+    const mbr = rtdProcessingContent('RTD-DC-TEST');
+    expect(errors(mbr)).toEqual([]);
+    const b = blocksOf(mbr.procedure);
+    for (const t of ['TB-01', 'TB-02', 'TB-06', 'TB-07', 'TB-09', 'TB-10', 'TB-16', 'TB-17', 'TB-19']) expect(b.has(t), t).toBe(true);
+    for (const t of ['TB-03', 'TB-04', 'TB-05', 'TB-11', 'TB-18']) expect(b.has(t), t).toBe(false);
+    expect(b.get('TB-07')).toHaveLength(2);
+    expect((b.get('TB-16')?.[0]?.['layers'] as { stage: string }[]).map((l) => l.stage)).toEqual(['BLEND_L1', 'BLEND_L2']);
+    expect(b.get('TB-19')?.[0]?.['method']).toBe('INK');
+    expect(mbr.header.product.code).toBe('EXZ-BL-250');
+  });
+
+  it('the packaging master defines without errors and packs in aluminium strips: TB-21 STRIP, TB-22, TB-24', () => {
+    const mbr = rtdPackagingContent('RTD-ST-TEST');
+    expect(errors(mbr)).toEqual([]);
+    const b = blocksOf(mbr.procedure);
+    expect(b.get('TB-21')?.every((c) => (c['packFormat'] as { form: string }).form === 'STRIP')).toBe(true);
+    for (const t of ['TB-22', 'TB-24', 'G-21', 'G-23']) expect(b.has(t), t).toBe(true);
+    expect(mbr.header.packType).toBe('ALU-STRIP');
   });
 });

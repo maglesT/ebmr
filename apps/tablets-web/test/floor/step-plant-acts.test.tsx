@@ -42,7 +42,7 @@ function gmpView(block: string, stepKey: string, blockEntries: BlockEntryFormVie
 
 const plant = (over: Partial<StepPlantView>): StepPlantView => ({
   batchId: RUN_ID, stepKey: 'p-x@', batchNumber: 'B26-0007', block: null, stage: 'S-DISP', areas: [], lineClearances: [], occupancies: [], equipment: [], uses: [],
-  tooling: { checklist: ['TIPS', 'EDGES'], sets: [], issues: [], preUse: [] }, containers: [], charges: [], ...over,
+  tooling: { checklist: ['TIPS', 'EDGES'], sets: [], issues: [], preUse: [] }, containers: [], charges: [], layers: [], chargedStages: {}, ...over,
 });
 
 function render(view: StepScreenView, current: () => StepPlantView, acts: Record<string, () => unknown>) {
@@ -186,5 +186,34 @@ describe('the press set-up and hopper charge (A5)', () => {
     const data = (entryOf(ui) as { data: { chargeId: string } }).data;
     expect(data.chargeId).toMatch(UUID);
     expect(data).toEqual({ chargeId: CHARGE });
+  });
+});
+
+describe('the hopper of each layer of a bilayer run (slice 7m, R1)', () => {
+  it('[PR-21][IN-26] offers each layer only the closed containers of its own blend; a charge into the layer\'s hopper fills HOPPER_CHARGE with the layer, its hopper, its blend and the charge, never typed', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const L2 = '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d08';
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }, { id: 'T', hopper: 'H2', stage: 'BLEND_L2' }],
+      containers: [
+        { containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLEND_L1', netQuantity: '33.150', unit: 'kg', problem: null },
+        { containerId: L2, label: 'OC-B26-0007-0002', stage: 'BLEND_L2', netQuantity: '14.350', unit: 'kg', problem: null },
+      ],
+    });
+    const ui = render(view, () => current, { 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: L2, label: 'OC-B26-0007-0002', netQuantity: '14.350', unit: 'kg' }) });
+    const panel = await screen.findByTestId('plant-layer-charge');
+    // Each layer lists only its own blend's containers: no button would put the lactose blend into hopper H1.
+    expect(within(within(panel).getByTestId('layer-L1')).queryByRole('button', { name: /OC-B26-0007-0002/ })).toBeNull();
+    expect(within(within(panel).getByTestId('layer-T')).queryByRole('button', { name: /OC-B26-0007-0001/ })).toBeNull();
+    await userEvent.click(within(within(panel).getByTestId('layer-T')).getByRole('button', { name: 'Charge OC-B26-0007-0002 into hopper H2' }));
+    await waitFor(() => expect(posts(ui, '/api/plant/charges')).toHaveLength(1));
+    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'COMPRESSION', label: 'OC-B26-0007-0002' });
+    const charge = await screen.findByTestId('block-form-HOPPER_CHARGE');
+    await userEvent.click(within(charge).getByRole('button', { name: 'Save: Hopper charge' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'HOPPER_CHARGE', data: { layer: 'T', hopper: 'H2', blend: 'BLEND_L2', chargeId: CHARGE } });
   });
 });

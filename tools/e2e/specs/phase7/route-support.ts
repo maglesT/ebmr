@@ -12,7 +12,7 @@ import { routes } from '@ebmr/api-contract';
 import { expect, type E2eWorld } from '../../fixtures/index.ts';
 import { signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
-import { act, ANY, card, choose, entry, fillBlock, save, saveBlock, startStep, step, type Fill } from './kiosk-batch-support.ts';
+import { act, ANY, as, card, choose, completed, entry, fillBlock, plusOne, primary, save, saveBlock, sign, startStep, step, type Fill } from './kiosk-batch-support.ts';
 
 /** What the serial tests of a route hand on: the orders, the batch, its containers, the packaging order and the lot. */
 export interface RouteState {
@@ -119,3 +119,58 @@ export function mark(e2e: E2eWorld, route: string, s: RouteState, m: string): vo
   s.marks = [...(s.marks ?? []), m];
   saveRoute(e2e, route, s);
 }
+
+// Slice 7m: shared by the route specs (moved from route-w.spec.ts).
+
+/** The weighing of one material on the step's weighing form (typed by hand: no balance online), saved with a tap. */
+export async function weigh(page: Page, who: SeededPersona, material: string, net: string, lot: string, quantity?: number): Promise<void> {
+  const form = page.getByTestId('form-CONTAINER_WEIGHING');
+  const q = form.getByRole('radiogroup', { name: 'Quantity' });
+  if (quantity !== undefined && (await q.count()) > 0) await choose(q.getByRole('radio').nth(quantity));
+  await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(`\\(${material}\\)$`) }));
+  const lotField = form.getByRole('textbox', { name: 'Lot' });
+  await lotField.fill(lot);
+  await lotField.press('Enter');
+  await expect(form.getByTestId('lot-info')).toContainText(lot);
+  await form.getByRole('textbox', { name: 'Tare (typed by hand)' }).fill('1.000');
+  await form.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(plusOne(net));
+  await save(page, form, who);
+}
+
+/** QA decides a hold point on its step card (approved), through the kiosk ceremony; the step completes. */
+export async function holdPoint(page: Page, e2e: E2eWorld, batchId: string, key: string, qa: SeededPersona): Promise<void> {
+  await as(page, qa);
+  await step(page, e2e, batchId, key, ANY);
+  await (await primary(page, 'Decide the hold point')).click();
+  const decide = page.getByRole('dialog', { name: 'Decide the hold point' });
+  await choose(decide.getByRole('radio', { name: /^Approved/ }));
+  await decide.getByRole('button', { name: 'Continue to signature' }).click();
+  await sign(page, qa);
+  await completed(page);
+}
+
+/** A container of the batch at a stage in `unit`, closed with a typed net that a second person verifies; its label. */
+export async function container(page: Page, base: string, batchId: string, stage: string, unit: 'kg' | 'units', net: string, who: SeededPersona, verifier: SeededPersona): Promise<string> {
+  await page.goto(`${base}/review/${batchId}/containers`);
+  await expect(page.getByText('No output container yet.').or(page.locator('[data-testid^="container-OC-"]').first())).toBeVisible();
+  const before = await page.locator('[data-testid^="container-OC-"]').count();
+  const form = page.getByTestId('open-container');
+  await form.getByRole('textbox', { name: 'Stage' }).fill(stage);
+  await choose(form.getByRole('radio', { name: unit, exact: true }));
+  await act(page, form.getByRole('button', { name: 'Open the container' }), who);
+  await expect(page.locator('[data-testid^="container-OC-"]')).toHaveCount(before + 1);
+  const ids = await page.locator('[data-testid^="container-OC-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
+  const label = ids.map((i) => i.replace(/^container-/, '')).sort().at(-1) ?? '';
+  const c = page.getByTestId(`container-${label}`);
+  await choose(c.getByRole('radio', { name: 'Net typed (a second person verifies it)' }));
+  await c.getByRole('textbox', { name: /^Net quantity/ }).fill(net);
+  await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
+  await as(page, verifier);
+  await page.goto(`${base}/review/${batchId}/containers`);
+  await page.getByTestId(`container-${label}`).getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
+  await sign(page, verifier);
+  await expect(page.getByTestId(`container-${label}`).getByTestId('container-net')).toContainText(`net verified by ${verifier.legalName}`);
+  await as(page, who);
+  return label;
+}
+

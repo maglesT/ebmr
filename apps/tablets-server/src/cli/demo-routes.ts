@@ -28,6 +28,10 @@ import {
   RTW_ARTWORK_SET, RTW_BATCH_KG, RTW_BOM, RTW_CARTON, RTW_CARTON_ARTWORK, RTW_FOIL, RTW_FOIL_ARTWORK, RTW_FORMING, RTW_FORMING_KG, RTW_PACK_SIZE_ID, RTW_PACK_TABLETS, RTW_PLANT,
   RTW_PRODUCT, RTW_SIZE_ID, rtwPackagingContent, rtwProcessingContent,
 } from './demo-route-masters.ts';
+import {
+  RTD_ARTWORK_SET, RTD_BATCH_KG, RTD_BOM, RTD_CARTON, RTD_CARTON_ARTWORK, RTD_PACK_SIZE_ID, RTD_PACK_TABLETS, RTD_PACK_TYPE, RTD_PLANT, RTD_PRODUCT, RTD_SIZE_ID, RTD_STRIP_FOIL,
+  RTD_STRIP_FOIL_KG, RTD_TEST_PIECES, rtdPackagingContent, rtdProcessingContent,
+} from './demo-route-masters-ds.ts';
 import { approve } from './release-path.ts';
 import { DEMO_LICENCE_HOLDER } from '../features/india/index.ts';
 
@@ -98,8 +102,36 @@ export const RTW_LOTS: readonly SeedPackLot[] = [
 /** The open ERP orders of route W: processing orders of one batch each and packaging orders of one demo order each. */
 export const RTW_ORDERS = { processing: ['PO-RTW-0001', 'PO-RTW-0002', 'PO-RTW-0003'], packaging: ['PO-RTWPK-0001', 'PO-RTWPK-0002', 'PO-RTWPK-0003', 'PO-RTWPK-0004'] } as const;
 
+/** Route D (slice 7m): its new materials and its lots (ample: ten batches and many packaging orders). */
+export const RTD_MATERIALS = [
+  material(RTD_STRIP_FOIL, 'Aluminium strip foil, plain', 'PRIMARY_PACKAGING', 'kg'),
+  material(RTD_CARTON, 'Printed carton, route D 10 x 10', 'PRINTED_PACKAGING', '1'),
+];
+export const RTD_LOTS: readonly SeedPackLot[] = [
+  {
+    lotCode: 'RTD-API-001', materialCode: 'MAT-EXZ-NA', quantity: '600.000', expiresAt: '2028-06-30T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
+    results: [
+      { testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', value: '99.20', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
+      { testCode: 'WATER', methodReference: 'STP-KF-01', value: '0.80', unit: '%', upperLimit: '1.5' },
+    ],
+    assay: { basis: 'ANHYDROUS_WATER', assayTest: 'ASSAY', waterTest: 'WATER' },
+  },
+  { ...lot('RTD-MCC-001', 'MAT-MCC-101', '100.000', [lod('3.10', '5.0')]), expiresAt: '2029-03-31T00:00:00Z' },
+  lot('RTD-LAC-001', 'MAT-LAC-MH', '160.000', [lod('0.40', '1.0')]),
+  lot('RTD-PVP-001', 'MAT-PVP-K30', '30.000', [lod('3.50', '5.0')]),
+  lot('RTD-CCS-001', 'MAT-CCS', '30.000', [lod('6.20', '10.0')]),
+  lot('RTD-SIO-001', 'MAT-SIO2', '6.000', [lod('1.10', '2.5')]),
+  lot('RTD-MGS-001', 'MAT-MGST', '10.000', [lod('3.00', '6.0')]),
+  lot('RTD-ALS-001', RTD_STRIP_FOIL, '10.000', [{ testCode: 'THICKNESS', methodReference: 'STP-PM-THK-01', value: '40', unit: 'um', lowerLimit: '36', upperLimit: '44' }], 'VIS-PM-01'),
+  { ...lot('RTD-CTN-001', RTD_CARTON, '5000', [textCheck], 'VIS-PM-01'), artwork: RTD_CARTON_ARTWORK },
+];
+export const RTD_ORDERS = { processing: ['PO-RTD-0001', 'PO-RTD-0002', 'PO-RTD-0003'], packaging: ['PO-RTDPK-0001', 'PO-RTDPK-0002', 'PO-RTDPK-0003', 'PO-RTDPK-0004'] } as const;
+
 /** The rooms and lines, classes and units the routes need besides those of GB-T-02 (release-path.ts). */
-const AREAS: [string, 'ROOM' | 'LINE'][] = [['GRAN-1', 'ROOM'], ['COAT-1', 'ROOM'], ['INSP-1', 'ROOM'], [RTW_PLANT.line, 'LINE']];
+const AREAS: [string, 'ROOM' | 'LINE'][] = [
+  ['GRAN-1', 'ROOM'], ['COAT-1', 'ROOM'], ['INSP-1', 'ROOM'], [RTW_PLANT.line, 'LINE'],
+  [RTD_PLANT.rcRoom, 'ROOM'], [RTD_PLANT.compRoom, 'ROOM'], [RTD_PLANT.printRoom, 'ROOM'], [RTD_PLANT.line, 'LINE'],
+];
 const INSTRUMENT = (description: string): Json => ({ description, calibrationRequired: true, checkRegime: 'PER_USE' });
 const PROCESS = (description: string): Json => ({ description, cleanHold: '72 hours', dirtyHold: '48 hours' });
 const CLASSES: [string, 'INSTRUMENT' | 'PROCESS', Json][] = [
@@ -113,6 +145,13 @@ const CLASSES: [string, 'INSTRUMENT' | 'PROCESS', Json][] = [
   ['EQC-COATER', 'PROCESS', PROCESS('Perforated coating pan 150 kg')],
   ['EQC-COLDFORM', 'PROCESS', PROCESS('Cold-form (alu-alu) blister machine')],
   ['EQC-CARTONER', 'PROCESS', PROCESS('Cartoner with checkweigher')],
+  ['EQC-RC', 'PROCESS', PROCESS('Roller compactor with integrated mill')],
+  ['EQC-BLPRESS', 'PROCESS', PROCESS('Bilayer tablet press')],
+  ['EQC-DEDUSTER', 'PROCESS', PROCESS('Tablet de-duster')],
+  ['EQC-MD', 'INSTRUMENT', INSTRUMENT('Tablet metal detector')],
+  ['EQC-PRINTER', 'PROCESS', PROCESS('Tablet ink printer')],
+  ['EQC-STRIP', 'PROCESS', PROCESS('Aluminium strip packing machine')],
+  ['EQC-LEAK', 'INSTRUMENT', INSTRUMENT('Vacuum-decay leak tester')],
 ];
 const UNITS: [string, string, string, string][] = [
   ['BAL-GRAN-01', 'Balance of GRAN-1', 'EQC-BAL', 'GRAN-1'],
@@ -128,9 +167,26 @@ const UNITS: [string, string, string, string][] = [
   ['COATER-01', 'Perforated coating pan 150 kg', 'EQC-COATER', 'COAT-1'],
   [RTW_PLANT.coldForm, 'Cold-form (alu-alu) blister machine', 'EQC-COLDFORM', RTW_PLANT.line],
   [RTW_PLANT.cartoner, 'Cartoner with checkweigher', 'EQC-CARTONER', RTW_PLANT.line],
+  // Route D (slice 7m).
+  ['BAL-RC-01', `Balance of ${RTD_PLANT.rcRoom}`, 'EQC-BAL', RTD_PLANT.rcRoom],
+  [RTD_PLANT.compactor, 'Roller compactor with integrated mill', 'EQC-RC', RTD_PLANT.rcRoom],
+  [RTD_PLANT.mill, 'Co-mill with screens (sizing)', 'EQC-MILL', RTD_PLANT.rcRoom],
+  ['BAL-COMP-02', `Balance of ${RTD_PLANT.compRoom}`, 'EQC-BAL', RTD_PLANT.compRoom],
+  [RTD_PLANT.press, 'Bilayer tablet press', 'EQC-BLPRESS', RTD_PLANT.compRoom],
+  [RTD_PLANT.hardness, 'Tablet hardness and thickness tester', 'EQC-HT', RTD_PLANT.compRoom],
+  [RTD_PLANT.deDuster, 'Tablet de-duster', 'EQC-DEDUSTER', RTD_PLANT.compRoom],
+  ['BAL-PRINT-01', `Balance of ${RTD_PLANT.printRoom}`, 'EQC-BAL', RTD_PLANT.printRoom],
+  [RTD_PLANT.printer, 'Tablet ink printer', 'EQC-PRINTER', RTD_PLANT.printRoom],
+  [RTD_PLANT.packBalance, `Balance of ${RTD_PLANT.line}`, 'EQC-BAL', RTD_PLANT.line],
+  [RTD_PLANT.stripMachine, 'Aluminium strip packing machine', 'EQC-STRIP', RTD_PLANT.line],
+  [RTD_PLANT.cartoner, 'Cartoner with checkweigher', 'EQC-CARTONER', RTD_PLANT.line],
+  [RTD_PLANT.leakTester, 'Vacuum-decay leak tester', 'EQC-LEAK', RTD_PLANT.line],
 ];
 /** The tooling set of each route's product (the master's approved punch specification). */
-const TOOLING: { code: string; product: string; shape: string; upper: string }[] = [{ code: 'TS-RTW-01', product: RTW_PRODUCT.productCode, shape: 'Round 10 mm biconvex', upper: 'X250' }];
+const TOOLING: { code: string; product: string; name: string; shape: string; upper: string }[] = [
+  { code: 'TS-RTW-01', product: RTW_PRODUCT.productCode, name: RTW_PRODUCT.productName, shape: 'Round 10 mm biconvex', upper: 'X250' },
+  { code: RTD_PLANT.tooling, product: RTD_PRODUCT.productCode, name: RTD_PRODUCT.productName, shape: 'Capsule 17 x 8 mm, bilayer', upper: 'XBL' },
+];
 
 // ---------------------------------------------------------------------------------------------
 
@@ -141,22 +197,25 @@ export async function seedDemoRoutes(opts: DemoRoutesOptions): Promise<DemoRoute
   await confirmErpMasters(ctx);
   // The GMP seed specified the materials of its own lots (seed-gmp.ts); the route's new materials get theirs here.
   const specified = new Set<string>([...GBT01_LOTS, ...GBT01_PACK_LOTS, ...GBT02_LOTS].map((l) => l.materialCode));
-  for (const l of RTW_LOTS) {
+  for (const l of [...RTW_LOTS, ...RTD_LOTS]) {
     if (((await ctx.pools.admin.query('select 1 from site.material_lot where lot_code = $1', [l.lotCode])).rowCount ?? 0) > 0) continue;
     if (!specified.has(l.materialCode)) await seedSpecification(ctx, l);
     specified.add(l.materialCode);
     await seedLot(ctx, l);
   }
-  await licence(ctx, [{ productCode: RTW_PRODUCT.productCode, strength: RTW_PRODUCT.strength }]);
+  await licence(ctx, [{ productCode: RTW_PRODUCT.productCode, strength: RTW_PRODUCT.strength }, { productCode: RTD_PRODUCT.productCode, strength: RTD_PRODUCT.strength }]);
   const app = await DemoApp.open({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed: opts.seed, db: opts.db });
   try {
     log('demo routes: the plant of the routes (rooms, lines, units, instruments, tooling), cleaned and verified');
     await plant(app, opts);
     log('demo routes: the route W masters (wet, enteric film, cold-form blister), approved and authorised for IN, US and EU');
     const w = await routeW(app, opts);
+    log('demo routes: the route D masters (roller compaction, bilayer, printing, aluminium strips), approved and authorised for IN, US and EU');
+    const d = await routeD(app, opts);
     await productSpecification(app, opts, RTW_PRODUCT.productCode, RTW_PRODUCT_TESTS);
+    await productSpecification(app, opts, RTD_PRODUCT.productCode, RTD_PRODUCT_TESTS);
     await verifyRuleSets(app, opts, ROUTE_RULE_SETS);
-    return [w];
+    return [w, d];
   } finally {
     await app.close();
   }
@@ -195,19 +254,32 @@ async function licence(ctx: FeatureSeedContext, products: readonly { productCode
 }
 
 async function postCatalogue(opts: DemoRoutesOptions): Promise<void> {
-  if (((await opts.ctx.pools.admin.query('select 1 from site.erp_production_order where order_no = $1', [RTW_ORDERS.processing[0]])).rowCount ?? 0) > 0) return;
+  const posted = async (orderNo: string): Promise<boolean> => ((await opts.ctx.pools.admin.query('select 1 from site.erp_production_order where order_no = $1', [orderNo])).rowCount ?? 0) > 0;
   const order = (orderNo: string, productCode: string, strength: string, batchSize: string, unit: string, bom: readonly (readonly [string, string, string])[]) => ({
     orderNo, siteCode: SITE, productCode, strength, batchSize, batchSizeUnit: unit, bom: bom.map(([materialCode, quantity, u]) => ({ materialCode, quantity, unit: u })), erpReference: `SAP-PP-${orderNo}`,
   });
-  const orders = [
-    ...RTW_ORDERS.processing.map((o) => order(o, RTW_PRODUCT.productCode, RTW_PRODUCT.strength, RTW_BATCH_KG, 'kg', RTW_BOM.map(([m, q]) => [m, q, 'kg'] as const))),
-    ...RTW_ORDERS.packaging.map((o) => order(o, RTW_PRODUCT.productCode, RTW_PRODUCT.strength, RTW_PACK_TABLETS, '{tbl}', [[RTW_FORMING, RTW_FORMING_KG, 'kg']])),
+  const catalogues = [
+    {
+      product: RTW_PRODUCT, materials: RTW_MATERIALS, orders: [
+        ...RTW_ORDERS.processing.map((o) => order(o, RTW_PRODUCT.productCode, RTW_PRODUCT.strength, RTW_BATCH_KG, 'kg', RTW_BOM.map(([m, q]) => [m, q, 'kg'] as const))),
+        ...RTW_ORDERS.packaging.map((o) => order(o, RTW_PRODUCT.productCode, RTW_PRODUCT.strength, RTW_PACK_TABLETS, '{tbl}', [[RTW_FORMING, RTW_FORMING_KG, 'kg']])),
+      ],
+    },
+    {
+      product: RTD_PRODUCT, materials: RTD_MATERIALS, orders: [
+        ...RTD_ORDERS.processing.map((o) => order(o, RTD_PRODUCT.productCode, RTD_PRODUCT.strength, RTD_BATCH_KG, 'kg', RTD_BOM.map(([m, q]) => [m, q, 'kg'] as const))),
+        ...RTD_ORDERS.packaging.map((o) => order(o, RTD_PRODUCT.productCode, RTD_PRODUCT.strength, RTD_PACK_TABLETS, '{tbl}', [[RTD_STRIP_FOIL, RTD_STRIP_FOIL_KG, 'kg']])),
+      ],
+    },
   ];
-  await withCommand(opts.ctx.pools.app, { ...(await opts.ctx.serviceActorFor('erpInterface')), correlationId: randomUUID() }, async (c) => {
-    await c.query('select site.erp_receive_product($1::jsonb)', [JSON.stringify(RTW_PRODUCT)]);
-    for (const m of RTW_MATERIALS) await c.query('select site.erp_receive_material($1::jsonb)', [JSON.stringify(m)]);
-    for (const o of orders) await c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify(o)]);
-  });
+  for (const cat of catalogues) {
+    if (await posted(cat.orders[0]?.orderNo ?? '')) continue;
+    await withCommand(opts.ctx.pools.app, { ...(await opts.ctx.serviceActorFor('erpInterface')), correlationId: randomUUID() }, async (c) => {
+      await c.query('select site.erp_receive_product($1::jsonb)', [JSON.stringify(cat.product)]);
+      for (const m of cat.materials) await c.query('select site.erp_receive_material($1::jsonb)', [JSON.stringify(m)]);
+      for (const o of cat.orders) await c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify(o)]);
+    });
+  }
 }
 
 async function plant(app: DemoApp, opts: DemoRoutesOptions): Promise<void> {
@@ -217,7 +289,7 @@ async function plant(app: DemoApp, opts: DemoRoutesOptions): Promise<void> {
   const p = routes.plant;
   for (const t of TOOLING) {
     if (!(await exists('select 1 from plant.product where code = $1', [t.product]))) {
-      await app.dbAs(steward, 'select plant.define_product($1::jsonb) as r', [JSON.stringify({ code: t.product, name: RTW_PRODUCT.productName, highlyPotent: false })], { reasonCode: 'NEW_PRODUCT', reasonText: `${t.product} in the plant product list` });
+      await app.dbAs(steward, 'select plant.define_product($1::jsonb) as r', [JSON.stringify({ code: t.product, name: t.name, highlyPotent: false })], { reasonCode: 'NEW_PRODUCT', reasonText: `${t.product} in the plant product list` });
     }
   }
   for (const [code, kind] of AREAS) {
@@ -245,6 +317,16 @@ async function plant(app: DemoApp, opts: DemoRoutesOptions): Promise<void> {
     await app.call(steward, p.defineToolingSet, {
       body: { code: t.code, product: t.product, type: 'B', shape: t.shape, upperEmbossing: t.upper, lowerEmbossing: 'PLAIN', score: 'NONE', tips: 1, upperPunches: 45, lowerPunches: 45, dies: 45, strokeLimit: '5000000' },
     }, `the tooling set ${t.code}`);
+  }
+  // Route D's metal detector (a unit of an instrument class with its device type) and its certified test pieces.
+  if (!(await exists('select 1 from plant.equipment where code = $1', [RTD_PLANT.metalDetector]))) {
+    await app.call(steward, p.defineDetector, { body: { code: RTD_PLANT.metalDetector, name: 'Tablet metal detector at the bilayer press outlet', device: 'METAL_DETECTOR', classCode: 'EQC-MD', areaCode: RTD_PLANT.compRoom } }, `the detector ${RTD_PLANT.metalDetector}`);
+    await app.call(steward, p.equipmentEvent, { params: { code: RTD_PLANT.metalDetector }, body: { event: 'EVENT', kind: 'QUALIFIED', detail: 'IQ/OQ/PQ approved', reference: `QUAL-${RTD_PLANT.metalDetector}` } }, `the qualification of ${RTD_PLANT.metalDetector}`);
+    await app.dbAs(tech, "select plant.record_calibration($1, clock_timestamp() + interval '1 year', 'PASS', 'PASS', $2) as r", [RTD_PLANT.metalDetector, `CAL-${RTD_PLANT.metalDetector}`]);
+  }
+  for (const t of RTD_TEST_PIECES) {
+    if (await exists('select 1 from tab.test_piece where code = $1', [t.code])) continue;
+    await app.call(steward, p.defineTestPiece, { body: { code: t.code, kind: t.kind, size: { value: t.size, unit: 'mm' }, certificateRef: `CERT-${t.code}`, certifiedUntil: '2030-12-31T00:00:00+05:30' } }, `the test piece ${t.code}`);
   }
   // A clean plant to start from: every process unit and room of the routes cleaned and verified.
   const process = UNITS.filter(([, , c]) => CLASSES.find(([k]) => k === c)?.[1] === 'PROCESS').map(([code]) => code);
@@ -281,6 +363,12 @@ async function verifyRuleSets(app: DemoApp, opts: DemoRoutesOptions, codes: read
 export const RTW_PRODUCT_TESTS = [
   { testCode: 'ASSAY', methodReference: 'STP-EXZGR-AS-01', unit: '%', lowerLimit: '95.0', upperLimit: '105.0', result: '99.6' },
   { testCode: 'DISSOLUTION', methodReference: 'STP-EXZGR-DS-01', unit: '%', lowerLimit: '80', result: '88' },
+] as const;
+
+/** The finished-product tests of route D's lots (invented limits; the browser test records these results). */
+export const RTD_PRODUCT_TESTS = [
+  { testCode: 'ASSAY', methodReference: 'STP-EXZBL-AS-01', unit: '%', lowerLimit: '95.0', upperLimit: '105.0', result: '99.4' },
+  { testCode: 'DISSOLUTION', methodReference: 'STP-EXZBL-DS-01', unit: '%', lowerLimit: '80', result: '91' },
 ] as const;
 
 /** The approved finished-product specification of a route's product (QC drafts it, the head of QC approves it). */
@@ -327,6 +415,27 @@ async function routeW(app: DemoApp, opts: DemoRoutesOptions): Promise<DemoRoute>
     processing: { familyId: proc.familyId, familyCode: procCode, orders: [...RTW_ORDERS.processing] },
     packaging: { familyId: pack.familyId, familyCode: packCode, orders: [...RTW_ORDERS.packaging], packType: 'ALU-ALU-BLISTER', line: RTW_PLANT.line, artworkSet: RTW_ARTWORK_SET },
   };
+}
+
+async function routeD(app: DemoApp, opts: DemoRoutesOptions): Promise<DemoRoute> {
+  const { tag } = opts;
+  const procCode = `RTD-DC-${tag}`;
+  const packCode = `RTD-ST-${tag}`;
+  const existing = await opts.db.admin.query<{ id: string; code: string; record_kind: string }>('select id, code, record_kind from recipe.mbr_family where product_code = $1', [RTD_PRODUCT.productCode]);
+  const had = (kind: string) => existing.rows.find((r) => r.record_kind === kind);
+  const packaging = (familyId: string, familyCode: string): DemoRoute['packaging'] => ({ familyId, familyCode, orders: [...RTD_ORDERS.packaging], packType: RTD_PACK_TYPE, line: RTD_PLANT.line, artworkSet: RTD_ARTWORK_SET });
+  const p0 = had('PROCESSING');
+  const k0 = had('PACKAGING');
+  if (p0 && k0) return { route: 'D', productCode: RTD_PRODUCT.productCode, processing: { familyId: p0.id, familyCode: p0.code, orders: [...RTD_ORDERS.processing] }, packaging: packaging(k0.id, k0.code) };
+  const proc = await approve(app, rtdProcessingContent(procCode), {
+    changeRecord: `CC-RTD-DC-${tag}`, title: 'New product route D, roller compaction, bilayer and printing (invented, DEMO-ONLY)', riskAssessment: `RA-RTD-DC-${tag}`, rationaleRef: 'QRM-RTD-IPC',
+    validationRef: 'VR-RTD', sizeId: RTD_SIZE_ID, numbering: { ruleCode: `RTD-PROC-${tag}`, kind: 'PROCESSING', format: 'RDC{YY}{SEQ:4}' }, productCode: RTD_PRODUCT.productCode,
+  });
+  const pack = await approve(app, rtdPackagingContent(packCode), {
+    changeRecord: `CC-RTD-ST-${tag}`, title: 'New pack route D, aluminium strip (invented, DEMO-ONLY)', riskAssessment: `RA-RTD-ST-${tag}`, rationaleRef: 'QRM-RTD-LEAK',
+    validationRef: 'VR-RTD-PK', sizeId: RTD_PACK_SIZE_ID, numbering: { ruleCode: `RTD-PACK-${tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}' }, productCode: RTD_PRODUCT.productCode,
+  });
+  return { route: 'D', productCode: RTD_PRODUCT.productCode, processing: { familyId: proc.familyId, familyCode: procCode, orders: [...RTD_ORDERS.processing] }, packaging: packaging(pack.familyId, packCode) };
 }
 
 export type { DemoBrowser };

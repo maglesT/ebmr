@@ -19,6 +19,7 @@ import { ActResult, useCommand } from '../../../app/acts.tsx';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
+import { useStepChoices } from '../choices.tsx';
 
 const BINDINGS = [routes.devices.stepBindings.id];
 const BATCH_DATA = [routes.execution.packagingBatchData.id];
@@ -237,6 +238,7 @@ const PIECE_OPTIONS: { value: PieceResult; label: string }[] = [
 
 function DetectorChallengePanel({ view }: { view: StepScreenView }) {
   const challenge = useCommand(routes.execution.recordDetectorChallenge, [], 'a detector challenge');
+  const choices = useStepChoices();
   const [press, setPress] = useState('');
   const [device, setDevice] = useState<'METAL_DETECTOR' | 'REJECT_GATE' | null>(null);
   const [deviceCode, setDeviceCode] = useState('');
@@ -260,6 +262,8 @@ function DetectorChallengePanel({ view }: { view: StepScreenView }) {
     if (r) {
       setCodes('');
       setResults({});
+      // Slice 7m (R1): the CHALLENGE entry opens naming the challenge the server answered (never a typed identifier).
+      choices?.choose('CHALLENGE', { challengeId: r.challengeId, device, timing, passed: r.passed ? 'YES' : 'NO' });
     }
   };
   const done = challenge.done;
@@ -289,8 +293,8 @@ function DetectorChallengePanel({ view }: { view: StepScreenView }) {
       </Button>
       {done ? (
         <p data-testid="challenge-result" data-passed={done.passed ? 'yes' : 'no'}>
-          {done.passed ? 'Challenge passed.' : `Challenge failed: the press output is held${done.held.length > 0 ? ` (${done.held.join(', ')})` : ''}.`} Name challenge {done.challengeId} in the
-          CHALLENGE entry.
+          {done.passed ? 'Challenge passed.' : `Challenge failed: the press output is held${done.held.length > 0 ? ` (${done.held.join(', ')})` : ''}.`} The challenge entry below names it:
+          save it.
         </p>
       ) : null}
       <ActResult error={challenge.error} />

@@ -14,15 +14,14 @@
  *   record reviews and the release.
  */
 import { randomBytes } from 'node:crypto';
-import type { Locator, Page } from '@playwright/test';
-import type { SeededPersona } from '@ebmr/test-kit';
-import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
+import type { Locator } from '@playwright/test';
+import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import {
-  act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, openContainer, performAndCheck, plusOne, primary,
-  reviewRecord, save, saveBlock, sign, statusStep, step, verifyCleanings,
+  act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, openContainer, performAndCheck,
+  reviewRecord, save, saveBlock, statusStep, step, verifyCleanings,
 } from './kiosk-batch-support.ts';
-import { begin, done, entryNaming, mark, marked, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
+import { begin, container, done, entryNaming, holdPoint, mark, marked, erpOrders, field, loadRoute, manualValue, saveRoute, weigh, type RouteState } from './route-support.ts';
 
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async () => closeKiosks());
@@ -141,21 +140,6 @@ test('[INV-01][PR-04][PR-18] route W 1: the ERP order, the batch planned and iss
     return { cleanings: targets.length };
   }, cp);
 });
-
-/** The weighing of one material on the step's weighing form (typed by hand: no balance online), saved with a tap. */
-async function weigh(page: Page, who: SeededPersona, material: string, net: string, lot: string, quantity?: number): Promise<void> {
-  const form = page.getByTestId('form-CONTAINER_WEIGHING');
-  const q = form.getByRole('radiogroup', { name: 'Quantity' });
-  if (quantity !== undefined && (await q.count()) > 0) await choose(q.getByRole('radio').nth(quantity));
-  await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(`\\(${material}\\)$`) }));
-  const lotField = form.getByRole('textbox', { name: 'Lot' });
-  await lotField.fill(lot);
-  await lotField.press('Enter');
-  await expect(form.getByTestId('lot-info')).toContainText(lot);
-  await form.getByRole('textbox', { name: 'Tare (typed by hand)' }).fill('1.000');
-  await form.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(plusOne(net));
-  await save(page, form, who);
-}
 
 test('[DI-30][INV-40][PR-20][IN-13] route W 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office', async ({ browser, e2e, persona, evidence }) => {
   test.setTimeout(30 * 60_000);
@@ -520,18 +504,6 @@ test('[PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK
   }, page);
 });
 
-/** QA decides a hold point on its step card (approved), through the kiosk ceremony; the step completes. */
-async function holdPoint(page: Page, e2e: E2eWorld, batchId: string, key: string, qa: SeededPersona): Promise<void> {
-  await as(page, qa);
-  await step(page, e2e, batchId, key, ANY);
-  await (await primary(page, 'Decide the hold point')).click();
-  const decide = page.getByRole('dialog', { name: 'Decide the hold point' });
-  await choose(decide.getByRole('radio', { name: /^Approved/ }));
-  await decide.getByRole('button', { name: 'Continue to signature' }).click();
-  await sign(page, qa);
-  await completed(page);
-}
-
 const COATER: [string, string, string][] = [['inlet.temp_C', '55.0', 'degC'], ['exhaust.temp_C', '42.0', 'degC'], ['bed.temp_C', '41.5', 'degC'], ['spray.rate_g_min', '120.0', 'g/min'], ['pan.speed_rpm', '5.0', 'rpm']];
 
 test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on KIOSK-COAT-1: the suspension (TB-03), the cores and the pan, the functional film to its weight gain in the loop (TB-18 FC_F), the acid and buffer disintegration test (TB-15) @office', async ({ browser, e2e, persona, evidence }) => {
@@ -626,31 +598,6 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on 
     return { dispositioned };
   }, page);
 });
-
-/** A container of the batch at a stage in `unit`, closed with a typed net that a second person verifies; its label. */
-async function container(page: Page, base: string, batchId: string, stage: string, unit: 'kg' | 'units', net: string, who: SeededPersona, verifier: SeededPersona): Promise<string> {
-  await page.goto(`${base}/review/${batchId}/containers`);
-  await expect(page.getByText('No output container yet.').or(page.locator('[data-testid^="container-OC-"]').first())).toBeVisible();
-  const before = await page.locator('[data-testid^="container-OC-"]').count();
-  const form = page.getByTestId('open-container');
-  await form.getByRole('textbox', { name: 'Stage' }).fill(stage);
-  await choose(form.getByRole('radio', { name: unit, exact: true }));
-  await act(page, form.getByRole('button', { name: 'Open the container' }), who);
-  await expect(page.locator('[data-testid^="container-OC-"]')).toHaveCount(before + 1);
-  const ids = await page.locator('[data-testid^="container-OC-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
-  const label = ids.map((i) => i.replace(/^container-/, '')).sort().at(-1) ?? '';
-  const c = page.getByTestId(`container-${label}`);
-  await choose(c.getByRole('radio', { name: 'Net typed (a second person verifies it)' }));
-  await c.getByRole('textbox', { name: /^Net quantity/ }).fill(net);
-  await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
-  await as(page, verifier);
-  await page.goto(`${base}/review/${batchId}/containers`);
-  await page.getByTestId(`container-${label}`).getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
-  await sign(page, verifier);
-  await expect(page.getByTestId(`container-${label}`).getByTestId('container-net')).toContainText(`net verified by ${verifier.legalName}`);
-  await as(page, who);
-  return label;
-}
 
 async function fillCounts(group: Locator, count: string, mass: string): Promise<void> {
   await group.getByRole('textbox', { name: 'Count', exact: true }).fill(count);

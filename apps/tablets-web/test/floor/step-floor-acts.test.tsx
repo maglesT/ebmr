@@ -148,10 +148,24 @@ describe('the batch data of a packaging step', () => {
 });
 
 describe('the detector challenge of a TB-17 step', () => {
-  it('[IN-36] records a challenge with each test piece\'s result and shows whether it passed and the challenge to name in the entry', async () => {
-    const view = stepOf('TB-17@1', 'p-tb17@');
+  it('[IN-36] records a challenge with each test piece\'s result, shows whether it passed and opens the CHALLENGE entry naming the challenge (slice 7m: never a typed identifier)', async () => {
+    const view = { ...structuredClone(example('batches-step-tb08')), entryForms: [] } as StepScreenView;
+    view.step.block = 'TB-17@1';
+    view.step.stepKey = 'p-tb17@';
+    view.run.runId = RUN_ID;
+    view.blockEntries = [{
+      kind: 'CHALLENGE', title: 'Challenge', description: 'Challenge',
+      schema: { type: 'object', description: 'Challenge', fields: {
+        challengeId: { type: 'string', description: 'Challenge', pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' },
+        device: { type: 'string', description: 'Device', enum: ['METAL_DETECTOR', 'REJECT_GATE'] },
+        timing: { type: 'string', description: 'When', enum: ['START', 'INTERVAL', 'AFTER_STOPPAGE', 'END'] },
+        passed: { type: 'boolean', description: 'Passed' },
+      } },
+    }];
     const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
       fixtures: {
+        'batches.step': () => view,
         ...stepFixtures(view),
         'devices.stepBindings': { batchId: RUN_ID, stepKey: 'p-tb17@', device: null, equipment: [], unitsInUse: [], devices: [], setpoints: [] },
         'execution.recordDetectorChallenge': { challengeId: '9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', passed: false, held: ['OC-B26-0001-0007'] },
@@ -176,7 +190,12 @@ describe('the detector challenge of a TB-17 step', () => {
     const result = await screen.findByTestId('challenge-result');
     expect(result.getAttribute('data-passed')).toBe('no');
     expect(result.textContent).toContain('OC-B26-0001-0007');
-    expect(result.textContent).toContain('9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e');
+    const entry = await screen.findByTestId('block-form-CHALLENGE');
+    await userEvent.click(within(entry).getByRole('button', { name: /^Save/ }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect((ui.commands().at(-1)?.body?.['intent'] as { entry: unknown } | undefined)?.entry).toEqual({
+      kind: 'BLOCK_ENTRY', entryKind: 'CHALLENGE', data: { challengeId: '9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', device: 'METAL_DETECTOR', timing: 'START', passed: false },
+    });
   });
 });
 
