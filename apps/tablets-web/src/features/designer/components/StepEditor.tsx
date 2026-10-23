@@ -11,6 +11,7 @@ import { dcls } from '../classes.ts';
 import type { Content, Op } from '../model/ops.ts';
 import type { PaletteItem } from '../model/types.ts';
 import { Check, CheckList, CommitText, roleTitle, Select, type Option } from './common.tsx';
+import { CoatingLayerForm } from './CoatingLayerForm.tsx';
 import { ConfigForm } from './ConfigForm.tsx';
 import { ConfigList } from './ConfigView.tsx';
 import { checkInThisRelease } from './words.ts';
@@ -62,6 +63,12 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
   const bom: Option[] = content.bom.map((b) => ({ value: b.id, label: `${b.id}: ${content.references.find((r) => r.id === b.material)?.title ?? b.material}` }));
   const intermediates: Option[] = content.intermediates.map((i) => ({ value: i.id, label: i.name }));
   const equipment = stage?.binding.equipment ?? [];
+  // Slice 7o (D-7o-2): a stage that coats (a coater bound, or a coating step in it) offers "Add a coating layer".
+  let coats = false;
+  if (stage) flow.walk(stage.body, (n) => {
+    if (n.kind === 'phase' && n.block.type === 'TB-18') coats = true;
+  });
+  const coatingStage = coats || equipment.some((e) => /COAT/.test(`${e.ref} ${e.equipmentClass}`));
   const uses = (ref: string, use: 'STATUS_CHECK' | 'USE'): boolean => p.equipment.some((e) => e.ref === ref && e.use === use);
   const setEquipment = (ref: string, use: 'STATUS_CHECK' | 'USE', on: boolean): void => {
     const others = p.equipment.filter((e) => !(e.ref === ref && e.use === use));
@@ -160,6 +167,7 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
           {p.system.recipeVersion !== undefined ? ` version ${p.system.recipeVersion}` : ''}
         </p>
       ) : null}
+      {!readOnly && coatingStage ? <CoatingLayerForm stepId={p.id} stepName={p.name} dispatch={dispatch} /> : null}
     </div>
   );
 }

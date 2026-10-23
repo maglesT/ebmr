@@ -20,6 +20,7 @@
 import { ENGINE_ROLES, PINNED_POLICY_ROLES } from '@ebmr/api-contract';
 import { unstorableText } from '@ebmr/expr';
 import { flow, type limits } from '@ebmr/recipe-core/pure';
+import { coatingLayerParts, layerProblem, type CoatingLayer } from './coating-layer.ts';
 
 export type Content = flow.MbrContent;
 export type Step = flow.PhaseNode | flow.HoldPointNode;
@@ -61,7 +62,9 @@ export type Op =
   | { kind: 'DELETE_STAGE'; stageId: string }
   | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[] } }
   | { kind: 'ADD_STAGE_EQUIPMENT'; stageId: string; equipment: flow.StageEquipment; reference?: flow.Reference }
-  | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string };
+  | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string }
+  // Slice 7o (R4, R8 C3; D-7o-2): one more coat of the same tablets after a step (coating-layer.ts).
+  | { kind: 'ADD_COATING_LAYER'; stepId: string; place: 'BEFORE' | 'AFTER'; layer: CoatingLayer };
 
 export const KNOWN_MARKETS = ['IN', 'US', 'EU'] as const;
 
@@ -186,6 +189,25 @@ function applyInPlace(c: Content, op: Op): void {
     case 'REMOVE_STAGE_EQUIPMENT':
       applyStageOp(c, op);
       return;
+    case 'ADD_COATING_LAYER': {
+      const problem = layerProblem(op.layer);
+      if (problem) throw new OpError(problem);
+      // Next to the step, or next to the construct holding it when it is a loop's or a branch's body (a coating step).
+      let anchor = locate(c, op.stepId);
+      if (!anchor) throw new OpError(`There is no step ${op.stepId} to add the layer next to.`);
+      if (!anchor.parent) {
+        let chain: flow.FlowNode[] = [];
+        flow.walk(c.procedure.body, (n, ancestors) => {
+          if (n.id === op.stepId) chain = [...ancestors];
+        });
+        anchor = chain.reverse().map((a) => locate(c, a.id)).find((x) => x?.parent) ?? undefined;
+      }
+      if (!anchor?.parent) throw new OpError('A layer is added next to a step of a sequence.');
+      const parts = coatingLayerParts(c, op.layer, allIds(c));
+      anchor.parent.children.splice(op.place === 'BEFORE' ? anchor.index : anchor.index + 1, 0, ...parts.steps);
+      c.parameters.push(...parts.parameters);
+      return;
+    }
     case 'SET_TITLE':
       c.header.title = checkName(op.title, 'The title');
       return;
