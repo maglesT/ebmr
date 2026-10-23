@@ -1,6 +1,8 @@
 -- Recipe core: a manual weighing records whether its balance was inferred (Phase 7 slice 7m, review finding P7L-1;
 -- DI-20, DI-30).
 --
+-- Handbook: modules/recipe-core.md
+--
 -- With no scale of the room behind the gateway and no balance named, the server takes the room's one instrument booked
 -- for the batch as the balance of a weighing keyed by hand (slice 7l). The stored evidence now says so:
 -- evidence.manual.balanceInferred (optional, true only when the entry declared no balance). recipe.row_evidence_problem

@@ -243,6 +243,9 @@ tests:
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIOSK-GRAN-1: binder (TB-03), wet massing (TB-04, a value keyed by hand), drying in its loop with the filter bag (TB-05), milling through a checked screen (TB-02) @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on KIOSK-COAT-1: the suspension (TB-03), the cores and the pan, the functional film to its weight gain in the loop (TB-18 FC_F), the acid and buffer disintegration test (TB-15) @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-36][PR-08][PR-29][DI-31][DI-32] route D 3: roller compaction on KIOSK-RC-1: the compactor's values keyed by hand, the ribbon checks and the mill screen (TB-06), sizing through a checked screen (TB-02) @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route S 3: granulation on KIOSK-GRAN-1: binder (TB-03), wet massing (TB-04, a value keyed by hand), drying in its loop with the filter bag (TB-05), milling through a checked screen (TB-02) @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
 clauses:
   - clause: "A weighing with direct capture stores a raw string that matches the display."
     tests:
