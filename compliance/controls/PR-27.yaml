@@ -88,6 +88,9 @@ tests:
   - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-27][DI-35] route B 1: the steward classifies the product and both actives beta-lactam on the plant rules screen; QA approves each classification @office"
   - "tools/e2e/specs/phase7/route-b.spec.ts > [INV-01][PR-04][PR-18][PR-27] route B 2: the ERP order, the batch planned and issued, the lots reserved, the suite cleaned and verified @office"
   - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-04][INV-01][PR-27] route B 7: the cold-form packaging order planned from the batch released for packing and issued; the desiccant laminate reserved; the suite's line cleaned and verified @office"
+  - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] a unit's use is judged by the room it stands in: a beta-lactam batch is refused a unit outside the suite, any other batch a unit in it; a unit with no room is not checked"
+  - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] the classification is read live: a batch issued before its product is classified beta-lactam is refused the suite before, and accepted after"
+  - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] a later dedication not yet approved leaves the earlier approved one in force"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:
