@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
+import { choose } from '../../fixtures/floor.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 
 test.describe.configure({ mode: 'serial' });
@@ -54,7 +55,7 @@ async function recordResults(page: Page, lotCode: string, assay: string, points:
   await page.getByTestId(`lot-${lotCode}`).getByRole('link').first().click();
   const results = page.getByTestId('lot-results');
   await results.getByRole('textbox', { name: 'Test code' }).fill('ASSAY');
-  await results.getByRole('radio', { name: 'RELEASE', exact: true }).check();
+  await choose(results.getByRole('radio', { name: 'RELEASE', exact: true }));
   await results.getByRole('textbox', { name: 'Value' }).fill(assay);
   await results.getByRole('button', { name: 'Record the result' }).click();
   await expect(page.getByTestId('result-ASSAY-RELEASE')).toContainText('PASS');
@@ -67,7 +68,7 @@ async function recordResults(page: Page, lotCode: string, assay: string, points:
     await expect(page.getByTestId(`result-DISSOLUTION-${p.label}-RELEASE`)).toBeVisible();
   }
   const samples = page.getByTestId('lot-samples');
-  await samples.getByRole('radio', { name: 'RESERVE', exact: true }).check();
+  await choose(samples.getByRole('radio', { name: 'RESERVE', exact: true }));
   await samples.getByRole('textbox', { name: 'Quantity' }).fill('6');
   await samples.getByRole('textbox', { name: 'Container' }).fill(`Reserve sample box of ${lotCode}`);
   await samples.getByRole('textbox', { name: 'Storage location' }).fill('Reserve sample room RS-1');
@@ -101,19 +102,19 @@ test('[IN-33][PR-45] SR profile 1: QC adds the dissolution profile of three time
     await t.getByRole('textbox', { name: 'Test code 2' }).fill('DISSOLUTION');
     await t.getByRole('textbox', { name: 'Method 2' }).fill('STP-GLV-DS-SR-01 (USP apparatus 1, 100 rpm, 900 mL pH 6.8)');
     await t.getByRole('textbox', { name: 'Unit 2' }).fill('%');
-    await t.getByRole('radio', { name: 'Profile (time points)' }).check();
+    await choose(t.getByRole('radio', { name: 'Profile (time points)' }));
     await t.getByRole('button', { name: 'Add a time point to test 2' }).click();
     for (const [k, p] of POINTS.entries()) {
       const n = `${String(k + 1)} of test 2`;
       const f = t.getByTestId(`spec-test-1-point-${String(k)}`);
       await f.getByRole('textbox', { name: `Label of point ${n}` }).fill(p.label);
       await f.getByRole('textbox', { name: `Time of point ${n}` }).fill(p.time);
-      await f.getByRole('radio', { name: 'h', exact: true }).check();
+      await choose(f.getByRole('radio', { name: 'h', exact: true }));
       if (p.lower) await f.getByRole('textbox', { name: `Lower limit of point ${n}` }).fill(p.lower);
       if (p.upper) await f.getByRole('textbox', { name: `Upper limit of point ${n}` }).fill(p.upper);
     }
-    await t.getByRole('radio', { name: 'Yes', exact: true }).check();
-    await t.getByRole('radio', { name: 'IN_HOUSE', exact: true }).check();
+    await choose(t.getByRole('radio', { name: 'Yes', exact: true }));
+    await choose(t.getByRole('radio', { name: 'IN_HOUSE', exact: true }));
     await t.getByRole('textbox', { name: 'Edition 2' }).fill('STP-2026-1');
     await t.getByRole('textbox', { name: 'Sample per run 2' }).fill('2');
     await t.getByRole('textbox', { name: 'Sample unit 2' }).fill('packs');
@@ -226,7 +227,7 @@ test('[IN-33] SR profile 4: a two-stage dissolution of a gastro-resistant tablet
     await t.getByRole('textbox', { name: `Test code ${i}` }).fill('DISSOLUTION-2S');
     await t.getByRole('textbox', { name: `Method ${i}` }).fill('STP-EXZGR-DS-2S (2 h acid, then 45 min buffer)');
     await t.getByRole('textbox', { name: `Unit ${i}` }).fill('%');
-    await t.getByRole('radio', { name: 'Profile (time points)' }).check();
+    await choose(t.getByRole('radio', { name: 'Profile (time points)' }));
     const stages = [['Acid 2 h', 'Acid 0.1 M HCl', '2', 'h', '', '10'], ['Buffer 45 min', 'Buffer pH 6.8', '45', 'min', '75', '']] as const;
     for (const [k, p] of stages.entries()) {
       const f = t.getByTestId(`spec-test-${String(n)}-point-${String(k)}`);
@@ -234,12 +235,12 @@ test('[IN-33] SR profile 4: a two-stage dissolution of a gastro-resistant tablet
       await f.getByRole('textbox', { name: `Label of point ${of}` }).fill(p[0]);
       await f.getByRole('textbox', { name: `Stage of point ${of}` }).fill(p[1]);
       await f.getByRole('textbox', { name: `Time of point ${of}` }).fill(p[2]);
-      await f.getByRole('radio', { name: p[3], exact: true }).check();
+      await choose(f.getByRole('radio', { name: p[3], exact: true }));
       if (p[4]) await f.getByRole('textbox', { name: `Lower limit of point ${of}` }).fill(p[4]);
       if (p[5]) await f.getByRole('textbox', { name: `Upper limit of point ${of}` }).fill(p[5]);
     }
-    await t.getByRole('radio', { name: 'Yes', exact: true }).check();
-    await t.getByRole('radio', { name: 'USP', exact: true }).check();
+    await choose(t.getByRole('radio', { name: 'Yes', exact: true }));
+    await choose(t.getByRole('radio', { name: 'USP', exact: true }));
     await t.getByRole('textbox', { name: `Edition ${i}` }).fill('USP 2026');
     await t.getByRole('textbox', { name: `Sample per run ${i}` }).fill('2');
     await t.getByRole('textbox', { name: `Sample unit ${i}` }).fill('packs');

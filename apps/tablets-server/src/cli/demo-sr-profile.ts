@@ -128,13 +128,14 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
     await app.sign(head, { kind: 'LIMS_ACT', act: 'SPECIFICATION_APPROVE', subjectId: spec.specificationId }, 'the specification approval');
   }
 
-  // The plant product and its tooling set (the rooms, units and instruments are the release path's).
+  // The plant product and its tooling set (the rooms, units and instruments are the release path's; the tooling is the
+  // one the GB-T-02 demo master approves, TB09-SPEC).
   if (!(await exists('select 1 from plant.product where code = $1', [SR_PRODUCT.productCode]))) {
     await app.dbAs(steward, 'select plant.define_product($1::jsonb) as r', [JSON.stringify({ code: SR_PRODUCT.productCode, name: SR_PRODUCT.productName, highlyPotent: false })], { reasonCode: 'NEW_PRODUCT', reasonText: 'GLV-SR-500 in the plant product list' });
   }
   if (!(await exists('select 1 from tab.tooling_set where code = $1', [TOOLING]))) {
     await call(steward, routes.plant.defineToolingSet, {
-      body: { code: TOOLING, product: SR_PRODUCT.productCode, type: 'B', shape: 'Capsule 19 x 9 mm', upperEmbossing: 'G500', lowerEmbossing: 'SR', score: 'NONE', tips: 1, upperPunches: 45, lowerPunches: 45, dies: 45, strokeLimit: '5000000' },
+      body: { code: TOOLING, product: SR_PRODUCT.productCode, type: 'B', shape: 'Round 8 mm flat bevelled', upperEmbossing: 'F100', lowerEmbossing: 'PLAIN', score: 'NONE', tips: 1, upperPunches: 45, lowerPunches: 45, dies: 45, strokeLimit: '5000000' },
     }, 'the tooling set');
   }
 
