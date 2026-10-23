@@ -212,6 +212,9 @@ session idle rule of tablets 1460.
   `demo-trial-fixes.test.tsx`). (2) The printed-lot panel handed the lot to the ISSUE form again whenever the step
   choices changed, so a saved issue form reopened at once with the same lot (and the effect re-ran without end). It
   now hands it over once per "Take the lot" (gmp-kiosk-batch 6, route W 9; test `step-plant-acts.test.tsx`).
+- P7K-5 (open, CI): the browser suite passed 74 of 74 but reached the end-to-end job's 75-minute limit before it
+  finished (run 39964635168). The limit is 120 minutes for now; next, shard the suite across runners and merge the
+  Playwright and evidence reports for the trace, before slices 7m to 7q add their routes.
 
 ## Slice 7l (one review pass, 23 October 2026)
 
