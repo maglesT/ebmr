@@ -32,10 +32,11 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   outputDir: '../../.reports/playwright-output',
   // EBMR_E2E_BLOB=1 (CI, the suite sharded across runners since slice 7k, P7K-5): each shard writes a blob report, and
-  // merge.config.ts turns the shards' blobs into the same JSON and evidence reports the trace reads.
+  // merge.config.ts turns the shards' blobs (one file name per group, as the merge job downloads them into one
+  // directory) into the same JSON and evidence reports the trace reads.
   reporter:
     process.env['EBMR_E2E_BLOB'] === '1'
-      ? [['list'], ['blob', { outputDir: '../../.reports/blob' }]]
+      ? [['list'], ['blob', { outputDir: '../../.reports/blob', fileName: `report-${group ?? 'all'}.zip` }]]
       : [['list'], ['json', { outputFile: '../../.reports/playwright.json' }], ['./reporters/evidence-reporter.ts', { outputFile: '../../.reports/e2e-evidence.json' }]],
   use: {
     headless: true,
