@@ -6,8 +6,23 @@
  */
 import { defineConfig } from '@playwright/test';
 
+// The end-to-end groups of CI (P7K-5): each runs on its own runner with its own set-up. The long route specs (about 30
+// minutes each) get groups of their own; 'rest' runs every spec no group names, so a new spec file is never left out.
+// A group is chosen with EBMR_E2E_GROUP; without it every spec runs, as on a development machine.
+export const E2E_GROUPS: Record<string, string[]> = {
+  'route-w': ['phase7/route-w*.spec.ts'],
+  'route-d': ['phase7/route-d*.spec.ts'],
+  'route-s': ['phase7/route-s*.spec.ts'],
+  'gmp-batches': ['phase7/gmp-kiosk-batch.spec.ts', 'phase7/own-product*.spec.ts', 'phase7/master-records.spec.ts', 'phase7/presenter-floor.spec.ts'],
+};
+const group = process.env['EBMR_E2E_GROUP'];
+if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);
+const selection =
+  group === undefined ? {} : group === 'rest' ? { testIgnore: Object.values(E2E_GROUPS).flat().map((g) => `**/${g}`) } : { testMatch: (E2E_GROUPS[group] ?? []).map((g) => `**/${g}`) };
+
 export default defineConfig({
   testDir: 'specs',
+  ...selection,
   globalSetup: './global-setup.ts',
   workers: 2,
   fullyParallel: false,
@@ -16,7 +31,12 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 15_000 },
   outputDir: '../../.reports/playwright-output',
-  reporter: [['list'], ['json', { outputFile: '../../.reports/playwright.json' }], ['./reporters/evidence-reporter.ts', { outputFile: '../../.reports/e2e-evidence.json' }]],
+  // EBMR_E2E_BLOB=1 (CI, the suite sharded across runners since slice 7k, P7K-5): each shard writes a blob report, and
+  // merge.config.ts turns the shards' blobs into the same JSON and evidence reports the trace reads.
+  reporter:
+    process.env['EBMR_E2E_BLOB'] === '1'
+      ? [['list'], ['blob', { outputDir: '../../.reports/blob' }]]
+      : [['list'], ['json', { outputFile: '../../.reports/playwright.json' }], ['./reporters/evidence-reporter.ts', { outputFile: '../../.reports/e2e-evidence.json' }]],
   use: {
     headless: true,
     // A click that cannot happen fails the test where it waits (not at the test timeout).
