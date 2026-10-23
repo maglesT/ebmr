@@ -114,11 +114,11 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
     await openTile(planning, 'Planning');
     const card = planning.getByTestId(`order-${orderNo}`);
     const plan = card.getByTestId('plan-form');
-    // The line: PL-1, the bottle line of the E2E set-up's plant, offered as a choice once the plant list loads (by name:
-    // the plant has other lines since slice 7n, such as the beta-lactam suite's BL-PL, which sorts first).
+    // The line: L1, the line the GB-T-01 master is authorised for, offered as a choice once the plant list loads (by
+    // name: the plant has other lines, and since slice 7n the beta-lactam suite's BL-PL sorts first).
     const lines = plan.getByRole('radiogroup', { name: 'Line' });
     await expect(lines).toBeVisible();
-    await lines.getByRole('radio', { name: /^PL-1 / }).locator('xpath=ancestor::label[1]').click();
+    await lines.getByRole('radio', { name: /^L1 / }).locator('xpath=ancestor::label[1]').click();
     await plan.getByRole('button', { name: `Plan a batch for ${orderNo}` }).click();
     const issue = card.getByTestId('issue-form');
     const heading = (await issue.getByRole('heading', { level: 3 }).innerText()).trim();
