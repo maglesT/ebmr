@@ -25,6 +25,8 @@ demo set-up's `--with-gmp-samples` (`apps/tablets-server/src/cli/demo-routes.ts`
 - Each route: its product, new materials, three processing and four packaging ERP orders, ample lots (ten batches), the
   licence entry and export permissions, the finished-product specification; both masters approved and authorised for
   IN, US and EU.
+- **TB-08** on a second route W batch: `tools/e2e/specs/phase7/route-w2.spec.ts` (residue reserved, its use authorised,
+  the addition branch chosen and the residue added on the step).
 - **Browser tests** `tools/e2e/specs/phase7/route-d.spec.ts` and `route-s.spec.ts`, serial, presenter-style (Tap
   buttons, clicks; no database arrangement), control IDs in the test names. The helpers the route specs share moved to
   `route-support.ts` (weighing, hold points, typed containers).
@@ -35,6 +37,8 @@ demo set-up's `--with-gmp-samples` (`apps/tablets-server/src/cli/demo-routes.ts`
 |---|---|---|---|
 | 7M-1 | TB-16 | A layer's hopper could not be charged on the bilayer step: only TB-10's set-up step offered the charge | the step plant view lists the step's layers (`layers`, `chargedStages`); a charge panel per layer offers only that layer's blend and fills HOPPER_CHARGE with layer, hopper, blend and charge (`step-plant-acts.test.tsx`) |
 | 7M-2 | TB-17 | The CHALLENGE entry needed the challenge's id typed from the panel's message | the recorded challenge opens the CHALLENGE entry with its id, device, timing and result (`step-floor-acts.test.tsx`); the floor acts sit inside the step's choices |
+| 7M-3 | TB-08 | The authorisation request of a reprocessing step took the batch and the source container as typed ids | the request picks the batch, its TB-08 or G-24 step and a reserved residue container of the product (`lot-handling.test.tsx`) |
+| 7M-4 | TB-08 | The ADDITION entry needed the source container and the authorisation typed as ids | the TB-08 step lists the quality unit's authorised uses at that step; one opens ADDITION with both (`step-floor-acts.test.tsx`) |
 | P7L-1 | 7l review | A manual weighing's balance inferred from the room's one booked instrument was not marked | `evidence.manual.balanceInferred` (recipe-core 1650 refuses it beside a declared balance); the entry summary says the balance was not named (`tb-01-gmp.test.ts`, `execution-row-shape.test.ts`) |
 
 ## Decisions
@@ -48,4 +52,11 @@ demo set-up's `--with-gmp-samples` (`apps/tablets-server/src/cli/demo-routes.ts`
   through G-21; TB-21 STRIP takes the strip foil only.
 - **D-7m-4** (route S cores): route W's wet route and compression without the IPC test steps (TB-12 to TB-15 are route
   W's to show); the sugar coat's validated weight gain 40 to 60 %, loop of at most six iterations.
+- **D-7m-5** (lots): routes D and S dispense the materials they share with route W from route W's lots, enlarged for
+  ten batches of each route (first-expiring first, PR-18, would otherwise refuse a route's own lot of the same expiry); a
+  route has its own lots only of its own materials; route S's PVC film is GB-T-01's lot GBT-PVC-001.
+- **D-7m-6** (TB-08): `route-w2.spec.ts` runs after `route-w.spec.ts` in the same stack and takes route W's reusable
+  residue; it ends with the TB-08 step verified (the rest of the second batch is route W's).
+- Found and fixed in the route specs: a badge tap paced (25 a minute) while its prompt was already open let the prompt
+  expire; the specs now pace before the press.
 - Machine readings: D-7l-1 (keyed by hand on the manual fallback) for TB-06, TB-18 and TB-21.

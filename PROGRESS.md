@@ -130,6 +130,13 @@ from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 po
 named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
 migrations. Routes D and S remain.
 
+**Slice 7m (23 October): demo routes D and S for R1** (`docs/build-plan/phase-7/slice-7m-routes.md`). Route D (roller
+compaction, bilayer, ink printing, aluminium strip) and route S (sugar coating in five applications, PVC/aluminium
+thermoform) with their plant, kiosks, masters, lots and orders in the GMP demo set-up, and their browser tests from the
+ERP order to the released lot; TB-08 on a second route W batch (`route-w2.spec.ts`). Fixes 7M-1 to 7M-4 (TB-16 layer
+charges, TB-17 challenge entry, TB-08 authorisation request and sources picked on screen) and review finding P7L-1
+(recipe-core 1650). Decisions D-7m-1 to 5. Every tablet block and every coating and pack type is now on a route.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 

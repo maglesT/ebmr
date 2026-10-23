@@ -158,6 +158,7 @@ tests:
   - "packages/recipe-core/test/mutation/execution-row-shape.test.ts > the evidence a row records (recipe.row_evidence_problem, 0335) > [DI-20][DI-30][PR-20] a manual weighing records an inferred balance only when its entry named none (P7L-1, 1650): balanceInferred true beside no declared balance is recorded, beside a declared balance refused; it must be true or false"
   - "tools/e2e/specs/phase7/route-d.spec.ts > [DI-30][INV-40][PR-20][IN-13] route D 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [DI-30][INV-40][PR-20][IN-13] route S 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [DI-30][INV-40][PR-20][IN-13] route W2 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
 clauses:
   - clause: "In manual mode, the same user dispensing and verifying is blocked."
     tests:

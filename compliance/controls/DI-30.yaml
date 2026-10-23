@@ -510,6 +510,8 @@ tests:
   - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-30][INV-19] route S 6: sugar coating on KIOSK-COAT-1: the sugar syrup (TB-03), the cores and the pan, five applications in the coating loop (TB-18 SC: seal, sub-coat, smoothing, colour, polish) to the weight gain @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-46][IN-35][PR-29][DI-30] route S 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route S 9: the thermoform order run on KIOSK-PACK-2: bulk issued, the line cleared and used, the forming film weighed, printed materials, the line check (TB-21 THERMOFORM), the sealing run, the leak tests (TB-22), cartons and the shipper (TB-24), reconciliations, the witnessed destruction, the post-use inspection, the yield @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [DI-30][INV-40][PR-20][IN-13] route W2 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [PR-47][IN-18][IN-19][INV-33][PR-57][DI-30] route W2 4: TB-08 on KIOSK-BLEND-1: the quality unit reserves route W's residue and authorises its use at the TB-08 step, the supervisor chooses the addition, the operator adds the residue and a second person verifies @office"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

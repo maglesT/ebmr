@@ -76,6 +76,9 @@ export async function switchUser(page: Page, who: SeededPersona): Promise<void> 
   // person waits until the screen shows one.
   await expect(page.getByRole('button', { name: 'Switch user' })).toHaveCount(1, { timeout: 30_000 });
   await switchUser0(page, who);
+  // Slice 7m: the switch is done when its PIN pad has gone (a switch back to the person already shown found the name
+  // at once, and a navigation then cut the switch off, leaving the session locked).
+  await expect(page.getByRole('group', { name: /^Enter (your PIN|the PIN of)/ })).toHaveCount(0, { timeout: 30_000 });
 }
 
 /**
@@ -183,7 +186,8 @@ export async function performAndCheck(page: Page, op: SeededPersona, checker: Se
     await switchUser(page, checker);
     await signPrimary(page, check, checker);
   }
-  if (!checker || back.key !== checker.key) await switchUser(page, back);
+  // Slice 7m: no switch to the person already signed in (the performer when nobody checks).
+  if (back.key !== (checker ?? op).key) await switchUser(page, back);
 }
 
 /** Start step: the primary action and the operator's badge tap (journey support), at the person's pace. */

@@ -96,6 +96,7 @@ tests:
   - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-04][INV-01] route D 7: the strip packaging order planned from the batch released for packing and issued; the strip foil reserved; the line cleaned and verified @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [INV-01][PR-04][PR-18] route S 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-04][INV-01] route S 8: the cold-form packaging order planned from the batch released for packing and issued; the forming laminate reserved; the line cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [INV-01][PR-04][PR-18] route W2 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
 clauses:
   - clause: "Widening a registered CPP range with no variation reference is blocked."
     tests:

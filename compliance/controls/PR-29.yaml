@@ -291,6 +291,7 @@ tests:
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-30][INV-19] route S 6: sugar coating on KIOSK-COAT-1: the sugar syrup (TB-03), the cores and the pan, five applications in the coating loop (TB-18 SC: seal, sub-coat, smoothing, colour, polish) to the weight gain @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-46][IN-35][PR-29][DI-30] route S 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W2 3: granulation on KIOSK-GRAN-1: binder (TB-03), wet massing (TB-04, a value keyed by hand), drying in its loop with the filter bag (TB-05), milling through a checked screen (TB-02) @office"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:

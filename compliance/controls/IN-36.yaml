@@ -118,6 +118,7 @@ tests:
   - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-22][IN-36][DI-30][DI-34] route D 4: blending on KIOSK-BLEND-1: the active layer blended and lubricated, the lactose layer blended (TB-07), each layer's blend into verified containers of its own stage @office"
   - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-21][IN-26][IN-35][IN-36][PR-29][DI-49] route D 5: bilayer compression on KIOSK-COMP-2: tooling (TB-09), set-up and first-off (TB-10), each layer's hopper charged on the run step and the layer and tablet checks (TB-16), the metal detector, de-duster and rejects (TB-17) @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route S 3: granulation on KIOSK-GRAN-1: binder (TB-03), wet massing (TB-04, a value keyed by hand), drying in its loop with the filter bag (TB-05), milling through a checked screen (TB-02) @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W2 3: granulation on KIOSK-GRAN-1: binder (TB-03), wet massing (TB-04, a value keyed by hand), drying in its loop with the filter bag (TB-05), milling through a checked screen (TB-02) @office"
 clauses:
   - clause: "omit the after-use sieve check; the step cannot be closed."
     tests:
