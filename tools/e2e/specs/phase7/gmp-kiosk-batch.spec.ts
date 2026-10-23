@@ -303,8 +303,10 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     set = ((await before.getAttribute('data-testid')) ?? '').replace('tooling-inspect-BEFORE-', '');
     await allInOrder(before);
     await act(page, before.getByRole('button', { name: `Inspect set ${set} before use` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     await act(page, panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_ISSUED')).toBeVisible();
     await saveBlock(page, 'TOOLING_ISSUED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -327,6 +329,7 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
       }
     });
     await act(page, panel.getByRole('button', { name: `Charge container ${s.blendContainer ?? ''}` }), op);
+    await expect(page.getByTestId('block-form-HOPPER_CHARGE')).toBeVisible();
     await saveBlock(page, 'HOPPER_CHARGE', op);
     await saveBlock(page, 'FIRST_OFF', op, async (f) => {
       await choose(f.getByRole('radio', { name: 'PASS', exact: true }));
@@ -392,10 +395,12 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     set = ((await issue.getAttribute('data-testid')) ?? '').replace('tooling-issue-', '');
     await issue.getByRole('textbox', { name: /^Strokes read from the press/ }).fill('98600');
     await act(page, issue.getByRole('button', { name: `Return set ${set}` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_RETURNED')).toBeVisible();
     await saveBlock(page, 'TOOLING_RETURNED', op);
     const after = page.getByTestId(`tooling-inspect-AFTER-${set}`);
     await allInOrder(after);
     await act(page, after.getByRole('button', { name: `Inspect set ${set} after use` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);

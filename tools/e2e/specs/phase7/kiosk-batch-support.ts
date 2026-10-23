@@ -372,7 +372,11 @@ export async function closeTyped(page: Page, base: string, batchId: string, labe
   await as(page, who);
 }
 
-/** Saves a block entry form of the step as it is (its identifiers given, or no member to type). */
+/**
+ * Saves a block entry form of the step as it is (its identifiers given, or no member to type). After a plant act that
+ * opens its own form when it succeeds, the spec waits for that form first: tapping "Record: ..." while the act is in
+ * flight races the form the act opens and can leave none open.
+ */
 export async function saveBlock(page: Page, kind: string, who: SeededPersona, fill?: (form: Locator) => Promise<void>): Promise<void> {
   const form = page.getByTestId(`block-form-${kind}`);
   if ((await form.count()) === 0) {
