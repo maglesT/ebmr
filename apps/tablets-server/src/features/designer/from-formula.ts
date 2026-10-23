@@ -265,16 +265,24 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
   const bom: flow.BomLine[] = src.chosen.lines.map((l) => {
     const same = t.bom.find((b) => codeOf(b) === l.materialCode);
-    return { id: same?.id ?? bomId(l), material: l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
+    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
   });
   const kept = new Set(bom.map((b) => b.id));
+  // Slice 7o (found by the R4 browser run): a material the approved source already names keeps the source's reference
+  // (its MATERIAL document as approved); only a material new to the copy is pinned to its material master version.
+  const sourceRef = (code: string): flow.Reference | undefined => source.references.find((r) => r.kind === 'MATERIAL' && r.code === code && source.bom.some((b) => b.material === r.id));
   const packaging = t.bom.filter((b) => !['ACTIVE', 'EXCIPIENT', 'PROCESSING_AID'].includes(b.role) && !kept.has(b.id));
   walk(t.procedure, (o) => {
     if (o['kind'] === 'phase' && Array.isArray(o['consumes'])) o['consumes'] = (o['consumes'] as string[]).filter((id) => kept.has(id) || packaging.some((p) => p.id === id));
   });
   const oldMaterials = new Set(t.bom.map((b) => b.material));
   const keepRef = (r: flow.Reference): boolean => r.kind !== 'MATERIAL' || !oldMaterials.has(r.id) || packaging.some((p) => p.material === r.id);
-  t.references = [...t.references.filter((r) => keepRef(r) && !src.chosen.lines.some((l) => l.materialCode === r.code && r.kind === 'MATERIAL')), ...materialRefs(src)];
+  const reused = new Set(src.chosen.lines.filter((l) => sourceRef(l.materialCode)).map((l) => l.materialCode));
+  const inFormula = (code: string | undefined): boolean => src.chosen.lines.some((l) => l.materialCode === code);
+  t.references = [
+    ...t.references.filter((r) => (r.kind === 'MATERIAL' && inFormula(r.code) ? sourceRef(r.code ?? '')?.id === r.id : keepRef(r))),
+    ...materialRefs(src).filter((r) => !reused.has(r.code ?? '')),
+  ];
   // Slice 7o (found by the R4 browser run): an active a base-stated TB-01 step dispenses (it converts base to salt with the
   // lot's assay) holds the base quantity in the bill of materials, the salt factor left out, as the database's INV-25
   // comparison requires (recipe-core 0690, recipe.formula_bom_line_on_base).

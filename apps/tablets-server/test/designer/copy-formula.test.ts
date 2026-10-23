@@ -59,6 +59,14 @@ describe('a copy of an approved master for another formula (slice 7o, D-7o-5)', 
     // TB-01's molar masses (recipe-core 0690; found by the R4 browser run); every other line is the formula's batch quantity.
     expect(c.bom.map((b) => `${b.id}=${b.material}:${b.quantity.value}`)).toEqual(SRC.chosen.lines.map((l) => `BOM-${l.lineId.toUpperCase()}=${l.materialCode}:${l.lineId === 'api' ? '60' : l.batchQuantity}`));
     expect(c.header.product).toMatchObject({ code: 'DMT400-T', strength: '400 mg' });
+    // A material the approved source names keeps the source's own reference (found by the R4 browser run); the new
+    // active is pinned to its material master version.
+    for (const code of ['MAT-MCC-101', 'MAT-LAC-MH', 'MAT-MGST']) {
+      const was = source.references.find((r) => r.kind === 'MATERIAL' && r.code === code);
+      expect(was).toBeDefined();
+      expect(c.references.filter((r) => r.kind === 'MATERIAL' && r.code === code)).toEqual([was]);
+    }
+    expect(c.references.filter((r) => r.kind === 'MATERIAL' && r.code === 'DMT-API-T')).toHaveLength(1);
     expect(definitionFindings(c).filter((f) => f.severity === 'ERROR')).toEqual([]);
   });
 });

@@ -167,7 +167,6 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
     await selectStep(a, /Disintegration of the coated tablets/);
     await setConfig(a, ['tabletType'], 'FILM_COATED');
     await setConfig(a, ['acidTime', 'value'], '');
-    await setConfig(a, ['acidTime', 'unit'], '');
     await saveRevision(a, 'Demotab: its salt form, the compensation range, the weights of a 569.3 mg core, its D400 tooling, a plain film coat and the film-coated disintegration test');
     await checksPass(a);
   }, a);

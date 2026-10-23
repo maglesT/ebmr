@@ -250,7 +250,13 @@ export async function selectStep(page: Page, name: RegExp): Promise<void> {
 export async function setConfig(page: Page, path: readonly string[], value: string): Promise<void> {
   let scope: Locator = page.getByRole('tabpanel').filter({ has: page.getByRole('heading', { level: 3, name: /^Step / }) }).first();
   if ((await scope.count()) === 0) scope = page.locator('body');
-  for (const g of path.slice(0, -1)) scope = scope.getByRole('group', { name: new RegExp(`^${g}( \\(optional\\))?$`) }).first();
+  // Each group is the shallowest of that name in the current scope (sweep.weight is not the step's own weight).
+  for (const g of path.slice(0, -1)) {
+    const groups = scope.getByRole('group', { name: new RegExp(`^${g}( \\(optional\\))?$`) });
+    await expect(groups.first()).toBeVisible();
+    const depths = await groups.evaluateAll((els) => els.map((e) => { let n = 0; for (let p = e.parentElement; p; p = p.parentElement) if (p.tagName === 'FIELDSET') n += 1; return n; }));
+    scope = groups.nth(depths.indexOf(Math.min(...depths)));
+  }
   const field = path[path.length - 1] ?? '';
   const name = new RegExp(`^${field}( \\(optional\\))?( \\(whole number\\))?$`);
   const select = scope.getByRole('combobox', { name });
@@ -302,7 +308,15 @@ export async function saveRevision(page: Page, note: string): Promise<void> {
 
 /** The designer's checks of the saved revision: no error (warnings are justified by the author where they appear). */
 export async function checksPass(page: Page): Promise<void> {
-  await expect(page.getByRole('toolbar', { name: 'Designer' }).getByText(/^Passed: no errors/)).toBeVisible({ timeout: 60_000 });
+  const passed = page.getByRole('toolbar', { name: 'Designer' }).getByText(/^Passed: no errors/);
+  try {
+    await expect(passed).toBeVisible({ timeout: 60_000 });
+  } catch (e) {
+    // The findings in the failure's message: what the author would read on the Findings tab.
+    await page.getByRole('tab', { name: /^Findings/ }).click();
+    const text = await page.getByRole('tabpanel').filter({ hasText: /error|warning/i }).first().innerText().catch(() => '');
+    throw new Error(`the checks do not pass: ${text.replace(/\s+/g, ' ').slice(0, 3000)}`, { cause: e });
+  }
 }
 
 /**
