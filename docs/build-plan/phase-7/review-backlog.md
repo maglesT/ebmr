@@ -214,3 +214,9 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   runs on GMP through the screens.
 - 7q-2 (no follow-up, C9): TB-16 already takes two or three layers; a trilayer product needs no custom block.
 - 7q-3 (follow-up): browser proofs of C1 and C2 (P7, P1), C8 (P8) and C10 (P1) come with those products.
+- P7Q-4 (fixed): the GMP activity test also refuses an ACTIVITY result that is not approved, one that fails its limits
+  and one of another lot (`tb-01-gmp.test.ts`).
+- P7Q-5 (fixed): `recipe.formula_mbr_problem` compares a BOM line's overage with the formula's as numbers ("2.0" states
+  "2"; `recipe.bom_overage_matches`, recipe-core 1660); `designer/from-formula.test.ts`.
+- P7Q-6 (fixed): an `overage` on a BOM line that is no formula line is refused instead of skipped (recipe-core 1660);
+  `designer/from-formula.test.ts`.

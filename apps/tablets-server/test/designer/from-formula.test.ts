@@ -149,8 +149,20 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(await problem(saved.versionId)).toMatch(/BOM line BOM-MGS \(RM-7JF-MGS\) states the overage .*Something else.*the formula line states .*Loss on the blender walls/);
     delete (changed.bom[0] as Bom).overage;
     (changed.bom[2] as Bom).overage = { reason: 'Loss on the blender walls', quantity: { value: '0.3', unit: 'mg' } };
-    valueOf(await saveContent(author, saved, changed));
+    const second = valueOf(await saveContent(author, saved, changed));
     expect(await problem(m.versionId)).toMatch(/BOM line BOM-API \(RM-7JF-API\) states the overage none; the formula line states/);
+    // Review P7Q-5: the decimals are compared as numbers: "2.0" states the formula's "2".
+    const numeric = structuredClone(m.content) as unknown as { bom: Bom[]; references: { id: string; kind: string }[] };
+    (numeric.bom[0] as Bom).overage = { reason: 'Loss of assay over the shelf life', percent: '2.0' };
+    (numeric.bom[2] as Bom).overage = { reason: 'Loss on the blender walls', quantity: { value: '0.30', unit: 'mg' } };
+    const third = valueOf(await saveContent(author, second, numeric));
+    expect(await problem(third.versionId)).toBeNull();
+    // Review P7Q-6: an overage on a BOM line that is not a formula line is refused, not skipped.
+    const other = numeric.references.find((r) => r.kind !== 'MATERIAL');
+    if (!other) throw new Error('no non-material reference');
+    numeric.bom.push({ id: 'BOM-PK', material: other.id, role: 'OTHER', quantity: { value: '1', unit: 'kg' }, overage: { reason: 'Spare', percent: '1' } } as Bom & Record<string, unknown>);
+    valueOf(await saveContent(author, third, numeric));
+    expect(await problem(m.versionId)).toMatch(/BOM line BOM-PK .*states an overage but is not a line of the formula/);
     // A bypass: a line with an overage and no reason is refused by the table itself.
     await expect(gmp.db.admin.query("insert into formulary.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, overage_quantity, potency_adjusted, compensating, batch_quantity_kg) values ($1, 'x', 9, 'RM-7JF-MGS', 'x', 'EXCIPIENT', 'PER_UNIT', 1, 1, false, false, 1)", [v.versionId])).rejects.toThrow(/formula_line_overage_reason/);
   }, 120_000);

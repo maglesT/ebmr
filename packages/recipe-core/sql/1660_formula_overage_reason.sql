@@ -159,6 +159,29 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
               else jsonb_build_object('reason', p_line.overage_reason, 'percent', trim_scale(p_line.overage_percent)::text) end
 $$;
 
+-- Review P7Q-5: whether BOM overage statement p_bom states formula overage p_formula (both {reason, percent} or
+-- {reason, quantity: {value, unit}}), the decimals compared as numbers ("2.0" states "2"); NULL and NULL match.
+create function recipe.bom_overage_matches(p_bom jsonb, p_formula jsonb) returns boolean
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
+declare
+  v_dec text := '^-?(0|[1-9][0-9]*)(\.[0-9]+)?$';
+begin
+  if p_bom is null or p_formula is null or jsonb_typeof(p_bom) = 'null' then
+    return (p_bom is null or jsonb_typeof(p_bom) = 'null') and p_formula is null;
+  end if;
+  if jsonb_typeof(p_bom) <> 'object' or (select array_agg(k order by k) from jsonb_object_keys(p_bom) k) is distinct from (select array_agg(k order by k) from jsonb_object_keys(p_formula) k)
+     or (p_bom -> 'reason') is distinct from (p_formula -> 'reason') then
+    return false;
+  end if;
+  if p_formula ? 'percent' then
+    return coalesce(p_bom ->> 'percent', '') ~ v_dec and (p_bom ->> 'percent')::numeric = (p_formula ->> 'percent')::numeric;
+  end if;
+  return jsonb_typeof(p_bom -> 'quantity') = 'object' and (p_bom -> 'quantity' ->> 'unit') is not distinct from (p_formula -> 'quantity' ->> 'unit')
+     and coalesce(p_bom -> 'quantity' ->> 'value', '') ~ v_dec and (p_bom -> 'quantity' ->> 'value')::numeric = (p_formula -> 'quantity' ->> 'value')::numeric
+     and (select count(*) from jsonb_object_keys(p_bom -> 'quantity')) = 2;
+end
+$$;
+
 -- As 0690, with the overage quantity in the base quantity and the BOM line's overage statement (header).
 create or replace function recipe.formula_mbr_problem(p_mbr uuid, p_formula uuid) returns text
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
@@ -195,6 +218,10 @@ begin
     select r ->> 'code' into v_code from jsonb_array_elements(coalesce(c -> 'references', '[]'::jsonb)) r where r ->> 'id' = b ->> 'material' limit 1;
     select * into l from formulary.formula_line x where x.version_id = v.id and x.material_code = v_code;
     if l.version_id is null then
+      -- Review P7Q-6: an overage is stated only on a BOM line taken from a formula line.
+      if b ? 'overage' then
+        return format('BOM line %s (%s) states an overage but is not a line of the formula (D-7q-2)', b ->> 'id', coalesce(v_code, b ->> 'material'));
+      end if;
       if b ->> 'role' in ('ACTIVE', 'EXCIPIENT', 'PROCESSING_AID') then
         return format('BOM line %s (%s) is not a line of the formula', b ->> 'id', coalesce(v_code, b ->> 'material'));
       end if;
@@ -213,7 +240,7 @@ begin
                     trim_scale(v_want));
     end if;
     v_over := recipe.formula_line_overage_json(l);
-    if (b ? 'overage' or v_over is not null) and (b -> 'overage') is distinct from v_over then
+    if (b ? 'overage' or v_over is not null) and not recipe.bom_overage_matches(b -> 'overage', v_over) then
       return format('BOM line %s (%s) states the overage %s; the formula line states %s (D-7q-2)', b ->> 'id', v_code,
                     coalesce((b -> 'overage')::text, 'none'), coalesce(v_over::text, 'none'));
     end if;
@@ -228,6 +255,6 @@ begin
 end
 $$;
 
-revoke all on function recipe.formula_line_overage_json(formulary.formula_line) from public;
+revoke all on function recipe.formula_line_overage_json(formulary.formula_line), recipe.bom_overage_matches(jsonb, jsonb) from public;
 
 reset role;

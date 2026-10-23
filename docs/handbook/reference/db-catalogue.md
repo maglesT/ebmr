@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3363 objects.
+3364 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -1357,6 +1357,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`recipe.block_schema_unknown_member`](../../../packages/recipe-core/sql/0332_entry_block_schema.sql#sym=recipe.block_schema_unknown_member) | function | [0332_entry_block_schema.sql](../../../packages/recipe-core/sql/0332_entry_block_schema.sql) |  | [rc-execution](../code-map.md#rc-execution) |
 | [`recipe.block_total_problem`](../../../packages/recipe-core/sql/0322_weighing_label_and_total.sql#sym=recipe.block_total_problem) | function | [0322_weighing_label_and_total.sql](../../../packages/recipe-core/sql/0322_weighing_label_and_total.sql) |  | [rc-execution](../code-map.md#rc-execution) |
 | [`recipe.blocking_exceptions_problem`](../../../packages/recipe-core/sql/0308_step_act_guards.sql#sym=recipe.blocking_exceptions_problem) | function | [0308_step_act_guards.sql](../../../packages/recipe-core/sql/0308_step_act_guards.sql) |  | [rc-execution](../code-map.md#rc-execution) |
+| [`recipe.bom_overage_matches`](../../../packages/recipe-core/sql/1660_formula_overage_reason.sql#sym=recipe.bom_overage_matches) | function | [1660_formula_overage_reason.sql](../../../packages/recipe-core/sql/1660_formula_overage_reason.sql) |  | [rc-formula](../code-map.md#rc-formula) |
 | [`recipe.bound_word`](../../../packages/recipe-core/sql/0344_sandbox_free_text_identifiers.sql#sym=recipe.bound_word) | function | [0344_sandbox_free_text_identifiers.sql](../../../packages/recipe-core/sql/0344_sandbox_free_text_identifiers.sql) |  | [rc-execution](../code-map.md#rc-execution) |
 | [`recipe.bright_stock_container_problem`](../../../packages/recipe-core/sql/0871_bulk_reconciliation_and_bright_stock.sql#sym=recipe.bright_stock_container_problem) | function | [0871_bulk_reconciliation_and_bright_stock.sql](../../../packages/recipe-core/sql/0871_bulk_reconciliation_and_bright_stock.sql) |  | [rc-record-lock](../code-map.md#rc-record-lock) |
 | [`recipe.bright_stock_deviation_covers`](../../../packages/recipe-core/sql/0871_bulk_reconciliation_and_bright_stock.sql#sym=recipe.bright_stock_deviation_covers) | function | [0871_bulk_reconciliation_and_bright_stock.sql](../../../packages/recipe-core/sql/0871_bulk_reconciliation_and_bright_stock.sql) |  | [rc-record-lock](../code-map.md#rc-record-lock) |

@@ -417,18 +417,22 @@ describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consume
     const record = async (result: Record<string, unknown>) =>
       withCommand(gmp.db.app, await qc(), (c) => c.query('select tab.record_lot_assay($1, $2, $3::jsonb, $4) as id', ['L26-0202', SITE, JSON.stringify(result), 'Enzyme activity from LIMS']));
     const codeOf = async (p: Promise<unknown>): Promise<string> => p.then(() => 'ok', (e: unknown) => /\[(EBMR-[A-Z]+-\d{3})\]|^(EBMR-[A-Z]+-\d{3})/.exec(e instanceof Error ? e.message : String(e))?.slice(1).find(Boolean) ?? String(e));
-    const lims = async (test: string, value: string, unit: string): Promise<string> => {
+    const lims = async (test: string, value: string, unit: string, opts: { approved?: boolean; lotId?: string } = {}): Promise<string> => {
       let id = '';
       await arrange(async (c) => {
         const { rows } = await c.query<{ id: string }>(
           "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, $2, 'STP-ENZ-01', 'RELEASE', $3::numeric, $4, 90, 2000, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
-          [lot, test, value, unit],
+          [opts.lotId ?? lot, test, value, unit],
         );
         id = rows[0]?.id ?? '';
-        await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
+        if (opts.approved !== false) await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
       });
       return id;
     };
+    // Review P7Q-4: an ACTIVITY result not approved, one that fails its limits, and one of another lot are refused.
+    for (const id of [await lims('ACTIVITY', '1250', 'U/mg', { approved: false }), await lims('ACTIVITY', '50', 'U/mg'), await lims('ACTIVITY', '1250', 'U/mg', { lotId: lotIds.get('L26-0201') ?? '' })]) {
+      expect(await codeOf(record({ basis: 'ACTIVITY', assayResultId: id, certificateRef: 'LIMS-ENZ' }))).toBe('EBMR-EXE-606');
+    }
     const percent = await lims('ASSAY', '99.5', '%');
     const perGram = await lims('ACTIVITY', '1250', 'U/g');
     const activity = await lims('ACTIVITY', '1250', 'U/mg');
