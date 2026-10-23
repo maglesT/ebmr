@@ -70,6 +70,8 @@ tests:
   - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33] the profile is one checklist item: open while a point has no result, green when every point is within its limits, and the lot is released"
   - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33][IN-20] one time point out of its limits fails the profile item and the database refuses the release"
   - "packages/recipe-core/test/release/release.test.ts > a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7) > [IN-05][PR-45][IN-33] content uniformity of a low-dose tablet is a release requirement as one test: its acceptance value above the limit keeps the lot from release (R8 C7)"
+  - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][DI-35] SR profile 2: lot 1, every time point within its limits: the profile is one green line on the release checklist and the lot is released @office"
+  - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][IN-20] SR profile 3: lot 2, the 4 h point outside its limits: the profile line fails and the release is refused @office"
 clauses:
   - clause: "attempt release with an open deviation, without head-of-QC approval, with an unsigned step, and as a user without the AP/delegate role; all four are blocked."
     tests:

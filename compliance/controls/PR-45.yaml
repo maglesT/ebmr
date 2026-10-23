@@ -142,6 +142,9 @@ tests:
   - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [IN-33][PR-45] a result names its time point and is judged against that point's limits; the lot is released only when every point has an approved result within its limits"
   - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [IN-33][PR-45][IN-20] one time point out of its limits fails the profile and stops the release; a revision names the same point and its OOS record"
   - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [IN-33][PR-45] a two-stage dissolution (acid stage at most a limit, then buffer stage at least a limit) is one profile with a stage on each point (R8 C4)"
+  - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45] SR profile 1: QC adds the dissolution profile of three time points to the specification as version 2; the head of QC approves it @office"
+  - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][DI-35] SR profile 2: lot 1, every time point within its limits: the profile is one green line on the release checklist and the lot is released @office"
+  - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][IN-20] SR profile 3: lot 2, the 4 h point outside its limits: the profile line fails and the release is refused @office"
 clauses:
   - clause: "Shipping a quarantined lot through the ERP interface is rejected."
     tests:
