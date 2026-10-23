@@ -302,6 +302,8 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         const { seedDemoRoutes } = await import('./demo-routes.ts');
         const demoRoutes = await seedDemoRoutes({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() });
         writeJson(join(opts.keysDir, 'gmp-demo-routes.json'), { label: 'DEMO-ONLY demo routes', routes: demoRoutes });
+        // Phase 7 slice 7p (R4 third check): a sustained-release product with two finished lots waiting for QC.
+        writeJson(join(opts.keysDir, 'gmp-sr-profile.json'), { label: 'DEMO-ONLY SR profile', ...(await (await import('./demo-sr-profile.ts')).seedSrProfile({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() })) });
       }
     }
 

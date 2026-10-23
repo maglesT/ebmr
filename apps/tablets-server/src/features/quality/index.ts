@@ -6,7 +6,7 @@
  * The ERP import is authenticated by the ERP interface's own service identity (SERVICE_KEY on its host terminal, as the
  * sweeper's session is opened), runs as that identity (source INTEGRATION, role ERP_INTERFACE) and ends the session.
  */
-import { routes, type DeviationView, type ErpCatalogue, type LotResultView } from '@ebmr/api-contract';
+import { routes, type DeviationView, type ErpCatalogue, type LotProfileView, type LotResultView } from '@ebmr/api-contract';
 import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
@@ -59,15 +59,17 @@ async function deviationView(db: Db, deviationId: string): Promise<DeviationView
 async function lotResults(db: Db, lotId: string): Promise<LotResultView[]> {
   const { rows } = await db.query<{
     id: string; test_code: string; purpose: 'RELEASE' | 'RETEST'; value: string; unit: string; lower: string | null; upper: string | null; verdict: 'PASS' | 'FAIL';
-    state: 'RECORDED' | 'APPROVED' | 'REVISED';
+    state: 'RECORDED' | 'APPROVED' | 'REVISED'; point: string | null;
   }>(
     `select r.id, r.test_code, r.purpose, r.result_value::text as value, r.unit, r.lower_limit::text as lower, r.upper_limit::text as upper, r.verdict,
-            site.lot_test_state(r.id) as state
-       from site.lot_test_result r where r.lot_id = $1 order by r.recorded_at, r.id`,
+            site.lot_test_state(r.id) as state, p.label as point
+       from site.lot_test_result r left join site.specification_test_point p on p.id = r.point_id where r.lot_id = $1 order by r.recorded_at, r.id`,
     [lotId],
   );
   return rows.map((r) => ({
     resultId: r.id, testCode: r.test_code, purpose: r.purpose, value: r.value, unit: r.unit, lowerLimit: r.lower, upperLimit: r.upper, verdict: r.verdict, state: r.state,
+    // Slice 7p: the time point of a profile test's result.
+    ...(r.point ? { point: r.point } : {}),
   }));
 }
 
@@ -159,6 +161,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return view;
       },
       lotResults: async ({ params }) => ({ results: await lotResults(pool, params.lotId) }),
+      // Slice 7p (site services 1640): each profile test of the lot's specification as one release requirement.
+      lotProfiles: async ({ params, requireSession }) => {
+        requireSession();
+        const { rows } = await pool.query<{ s: LotProfileView[] }>("select coalesce(jsonb_agg(x - 'specTestId' order by n), '[]'::jsonb) as s from jsonb_array_elements(site.lot_profile_status($1)) with ordinality t(x, n)", [params.lotId]);
+        return { profiles: rows[0]?.s ?? [] };
+      },
       erpImport: async ({ body }) => asErp(app, body, (c) => importCatalogue(c, body.catalogue)),
       deviations: async ({ query, requireSession }) => {
         requireSession();

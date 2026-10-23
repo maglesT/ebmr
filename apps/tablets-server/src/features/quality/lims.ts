@@ -55,7 +55,10 @@ async function specifications(app: AppContext, db: Db, filter: { id?: string; ma
             (select coalesce(jsonb_agg(jsonb_build_object('testCode', t.test_code, 'methodReference', t.method_reference, 'unit', t.unit,
                                                           'lowerLimit', t.lower_limit::text, 'upperLimit', t.upper_limit::text, 'required', t.required,
                                                           'pharmacopoeia', t.pharmacopoeia, 'edition', t.edition, 'sampleQuantity', t.sample_quantity::text,
-                                                          'sampleUnit', t.sample_unit) order by t.test_code collate "C"), '[]'::jsonb)
+                                                          'sampleUnit', t.sample_unit)
+                                       -- Slice 7p (site services 1640): a profile test with its time points.
+                                       || case when t.profile then jsonb_build_object('points', site.profile_points_json(t.id)) else '{}'::jsonb end
+                                       order by t.test_code collate "C"), '[]'::jsonb)
                from site.specification_test t where t.specification_id = s.id) as tests,
             s.drafted_by_person as drafted_by, ${usOf('s.drafted_at')} as drafted_us,
             a.approved_by_person as approved_by, case when a.approved_at is null then null else ${usOf('a.approved_at')} end as approved_us

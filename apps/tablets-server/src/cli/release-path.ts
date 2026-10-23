@@ -44,8 +44,8 @@ const DEMO_BOTTLES = '100';
 const DEMO_TABLETS = '3000';
 /** One bulk container of a demo order: 3,000 tablets of 200 mg. */
 const DEMO_CONTAINER_KG = '0.600';
-const BALANCES: Record<string, string> = { 'DISP-1': 'BAL-DISP-01', 'BLEND-1': 'BAL-BLEND-01', 'COMP-1': 'BAL-COMP-01' };
-const KIOSKS: Record<string, string> = { 'DISP-1': 'KIOSK-DISP-1', 'BLEND-1': 'KIOSK-BLEND-1', 'COMP-1': 'KIOSK-COMP-1', [BOTTLE_LINE]: 'KIOSK-PACK-1' };
+export const BALANCES: Record<string, string> = { 'DISP-1': 'BAL-DISP-01', 'BLEND-1': 'BAL-BLEND-01', 'COMP-1': 'BAL-COMP-01' };
+export const KIOSKS: Record<string, string> = { 'DISP-1': 'KIOSK-DISP-1', 'BLEND-1': 'KIOSK-BLEND-1', 'COMP-1': 'KIOSK-COMP-1', [BOTTLE_LINE]: 'KIOSK-PACK-1' };
 const TOOLING = 'TS-GBT02-DEMO';
 
 export interface ReleasePathSeed {
@@ -68,7 +68,7 @@ export interface ReleasePathOptions {
   tag: string;
 }
 
-const net = (n: string): { gross: string; tare: string } => {
+export const net = (n: string): { gross: string; tare: string } => {
   const [i = '0', f = ''] = n.split('.');
   const milli = BigInt(i) * 1000n + BigInt(f.padEnd(3, '0')) + 1000n;
   return { gross: `${(milli / 1000n).toString()}.${(milli % 1000n).toString().padStart(3, '0')}`, tare: '1.000' };
@@ -455,7 +455,7 @@ export async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec
   return { familyId, versionId };
 }
 
-interface FloorKit {
+export interface FloorKit {
   clean(target: 'EQUIPMENT' | 'AREA', code: string): Promise<void>;
   floor(room: string): Promise<{ op1: DemoBrowser; op2: DemoBrowser; ver: DemoBrowser; sup: DemoBrowser; qa: DemoBrowser }>;
   clearAndOccupy(f: { op2: DemoBrowser; ver: DemoBrowser }, room: string, stage: string, b: DemoBatch, line?: string): Promise<string>;
@@ -465,7 +465,7 @@ interface FloorKit {
 }
 
 /** One demo bottle order (100 bottles) of one bulk container, run to its end. */
-async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: string, orderNo: string, label: string, markets: string[], k: FloorKit): Promise<DemoBatch> {
+export async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: string, orderNo: string, label: string, markets: string[], k: FloorKit): Promise<DemoBatch> {
   for (const code of [BOTTLE_UNIT, BOTTLE_CARTONER]) await k.clean('EQUIPMENT', code);
   await k.clean('AREA', BOTTLE_LINE);
   const issuer = await app.browser('issuer');
@@ -545,7 +545,7 @@ async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: string, or
 }
 
 /** Production approval, each register item concluded by QA, the audit-trail review and the QA review of a record. */
-async function reviewRecord(app: DemoApp, b: DemoBatch): Promise<void> {
+export async function reviewRecord(app: DemoApp, b: DemoBatch): Promise<void> {
   const head = await app.browser('head1');
   const qa = await app.browser('qaInvestigator');
   const qa2 = await app.browser('qaApprover2');
