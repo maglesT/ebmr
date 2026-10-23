@@ -76,6 +76,7 @@ tests:
   - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27][DI-35] what QA signs is the proposal against its own subject's earlier approved value, in the subject's scope; each subject's state and approval are its own"
   - "apps/tablets-server/test/plant/floor-routes.test.ts > press tooling and the press discharge (gap report A6, A7) > [INV-24][IN-36][PR-27][DI-31][PR-22] a set is inspected before use item by item, issued to the press with its counts, returned with the strokes keyed from the press and inspected after use; the steward configures the discharge, an operator is refused"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOSK-COMP-1, tooling, press set-up and hopper charge, the run with its weight checks and bulk containers, the yield and QA's release for packing at H-PACK @office"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:

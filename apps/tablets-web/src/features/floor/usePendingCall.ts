@@ -337,9 +337,10 @@ export function useRunCommand(
     engineAfterClaim: true,
     onSaved: async (value) => {
       setSavedVersion(value.version);
-      // The form's own reaction (cleared, closed with "Add another") comes in the same render as "Saved", before the
-      // view is read again: otherwise the filled form showed "Saved" until the read came back, and a person (or a
-      // browser test) acting in that moment met the form closing under them (fcv journey, slice 7k).
+      // Phase 7 slice 7l (R1): the form is cleared as soon as the entry is saved, before the views are read again: a
+      // person who starts the next entry once "Saved" shows no longer has it wiped by a clearing that came late (found
+      // by the demo route runs on a loaded server: a station sweep's instrument vanished before its Save).
+      // The form closes in the same render too, with "Add another" (slice 7k: the fcv journey met it closing late).
       extraRef.current.onSaved?.();
       // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
       // in is no longer the sender; then the step is read again).

@@ -207,3 +207,14 @@ session idle rule of tablets 1460.
   issue. The GMP_BATCH_ISSUE contract already refuses a COUNT that is not a whole number. As defence in depth,
   `unconfirmedCounts` now marks such a count as malformed: it is refused with EBMR-EXE-700, and no reason can confirm
   it. Test `execution/issue-expectations.test.ts` ([PR-04] P7K-3, both the contract and the check).
+## Slice 7l (one review pass, 23 October 2026)
+
+Nothing blocking. The manual fallback for automated values keeps the exception and the second person (DI-30, PR-14);
+flow acts go through the badge tap (INV-40); the route seeding stays on demo databases.
+- P7L-1 (residual, carried to 7m): with no gateway scale and no declared balance, a manual weighing takes the room's one
+  instrument booked for the batch as its balance; the operator never names it. The weighing stays MANUAL (exception and
+  second person), but the stored evidence should mark the balance as inferred, or the form should ask for it.
+- P7L-2 (residual, cosmetic): the potency calculation form stays open after its entry; its lot is typed, not scanned
+  (the server validates lot and assay).
+- P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
+  and the database refuse a wrong pick.

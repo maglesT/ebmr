@@ -280,6 +280,17 @@ interface ManualWeights {
  * only once that has stood for the 10 s heartbeat window, with no report since that it is ONLINE, no heartbeat of its
  * gateway received and not recorded, and no answer of its gateway's API (tablets 0340, 0350).
  */
+/** The one instrument of `room` with a use for the batch open now that is an active instrument of the room's device registry. */
+async function bookedInstrument(ctx: IntentContext, room: string): Promise<string | undefined> {
+  const { rows } = await ctx.client.query<{ code: string }>(
+    `select distinct e.code from plant.instrument_use u join plant.equipment e on e.id = u.equipment_id join plant.area a on a.id = e.area_id
+      where u.batch_id = $1 and a.code = $2 and u.planned_end > clock_timestamp()
+        and exists (select 1 from iam.device d where d.code = e.code and d.device_class = 'INSTRUMENT' and d.status = 'ACTIVE' and d.room_code = $2)`,
+    [ctx.state.header.batchId, room],
+  );
+  return rows.length === 1 ? rows[0]?.code : undefined;
+}
+
 async function manualWeights(ctx: IntentContext, room: string | null, manual: ManualWeights): Promise<Weights> {
   if (room === null) {
     throw refuse(
@@ -317,7 +328,11 @@ async function manualWeights(ctx: IntentContext, room: string | null, manual: Ma
     );
   }
   const only = scales.length === 1 ? scales[0]?.deviceCode : undefined;
-  const balance = declared ?? only ?? 'MANUAL';
+  // Phase 7 slice 7l (R1): with no scale of the room behind a gateway, the room's one instrument booked for this batch
+  // (its per-use check and booking at the status step), which the database's TB-01 gate asks for (tablets 1093); with
+  // none or several booked, MANUAL as before.
+  const booked = declared === undefined && only === undefined && scales.length === 0 ? await bookedInstrument(ctx, room) : undefined;
+  const balance = declared ?? only ?? booked ?? 'MANUAL';
   return {
     gross: manual.gross,
     tare: manual.tare,

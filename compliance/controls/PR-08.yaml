@@ -170,6 +170,7 @@ tests:
   - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [PR-08][INV-41] a deviation is linked only by the exception's own accepted ATTACH_DEVIATION, by the person it names, with a reference; the link is never changed or taken away"
   - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [PR-08] the release screen shows each registration-relevant deviation of the lot's records with its flag and deviation, and offers nothing that clears the flag"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-08][PR-53] the registration item lists the registration-relevant exceptions of the lot's records only, each with the deviation linked to it; a deviation linked to another exception of the batch stays justifiable"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on KIOSK-COAT-1: the suspension (TB-03), the cores and the pan, the functional film to its weight gain in the loop (TB-18 FC_F), the acid and buffer disintegration test (TB-15) @office"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

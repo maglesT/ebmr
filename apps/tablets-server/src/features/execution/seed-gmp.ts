@@ -75,7 +75,7 @@ async function inCommand<T>(pool: pg.Pool, actor: ActorContext, work: (c: pg.Poo
  * seeded lot's, each required, citing IP 2022 (in-house methods their document version); drafted by the QC analyst and
  * approved by the head of QC (SPECIFICATION_APPROVED). A lot's results take their limits from it.
  */
-async function seedSpecification(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<void> {
+export async function seedSpecification(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<void> {
   const pool = ctx.pools.app;
   const tests = lot.results.map((t) => ({
     testCode: t.testCode, methodReference: t.methodReference, unit: t.unit, ...(t.lowerLimit ? { lowerLimit: t.lowerLimit } : {}), ...(t.upperLimit ? { upperLimit: t.upperLimit } : {}),
@@ -92,7 +92,7 @@ async function seedSpecification(ctx: FeatureSeedContext, lot: SeedMaterialLot):
 }
 
 /** Receives, tests, approves and releases one lot; returns its id. */
-async function seedLot(ctx: FeatureSeedContext, lot: SeedPackLot, route: 'IDENTITY_TESTED' | 'VENDOR_HISTORY' = 'IDENTITY_TESTED'): Promise<string> {
+export async function seedLot(ctx: FeatureSeedContext, lot: SeedPackLot, route: 'IDENTITY_TESTED' | 'VENDOR_HISTORY' = 'IDENTITY_TESTED'): Promise<string> {
   const pool = ctx.pools.app;
   const received = await inCommand(pool, await ctx.actorFor('stores'), async (c) =>
     (await c.query<{ r: { lot_id: string } }>('select site.receive_lot($1::jsonb) as r', [
@@ -180,7 +180,7 @@ async function completeReceipt(ctx: FeatureSeedContext, lotId: string, lot: Seed
  * The QA MBR approver confirms every master version the ERP posted that is not in effect on its own (site-services
  * 0802: a new code, or a changed controlled value), each with its own ERP_MASTER_CONFIRMED signature.
  */
-async function confirmErpMasters(ctx: FeatureSeedContext): Promise<void> {
+export async function confirmErpMasters(ctx: FeatureSeedContext): Promise<void> {
   const pool = ctx.pools.app;
   const { rows } = await pool.query<{ v: { masterKind: 'PRODUCT' | 'MATERIAL'; versionId: string } }>('select x.v from jsonb_array_elements(site.erp_master_pending()) x(v)');
   ctx.log(`confirming ${rows.length} ERP master versions (QA, ERP_MASTER_CONFIRMED)`);

@@ -112,6 +112,8 @@ tests:
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the detector challenge of a TB-17 step > [IN-36] records a challenge with each test piece's result and shows whether it passed and the challenge to name in the entry"
   - "apps/tablets-server/test/plant/floor-routes.test.ts > press tooling and the press discharge (gap report A6, A7) > [INV-24][IN-36][PR-27][DI-31][PR-22] a set is inspected before use item by item, issued to the press with its counts, returned with the strokes keyed from the press and inspected after use; the steward configures the discharge, an operator is refused"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the tooling of a tooling step (A6) > [INV-24][IN-36] inspects the set item by item before use and issues it to the press in use; each answer fills its TB-09 entry"
+  - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > a member naming another entry of the batch > [IN-13][IN-36] lists the citable TB-03 preparations of the batch and saves the one picked, never a typed id"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route W 3: granulation on KIOSK-GRAN-1: binder (TB-03), wet massing (TB-04, a value keyed by hand), drying in its loop with the filter bag (TB-05), milling through a checked screen (TB-02) @office"
 clauses:
   - clause: "omit the after-use sieve check; the step cannot be closed."
     tests:

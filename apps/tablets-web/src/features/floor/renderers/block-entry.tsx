@@ -12,8 +12,10 @@
  * reads from the database, the signer of an authorisation) are never asked for. Nothing is pre-filled except the
  * identifiers a person chose by tapping (e.g. an addition's source container).
  */
-import { useState, type ReactNode } from 'react';
-import { ClientEntry, type BlockEntryFormView, type BlockFieldSchemaWire, type BlockFieldWire, type StepScreenView } from '@ebmr/api-contract';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { ClientEntry, routes, type BlockEntryFormView, type BlockFieldSchemaWire, type BlockFieldWire, type StepScreenView } from '@ebmr/api-contract';
+import { useApiQuery } from '../../../api/hooks.ts';
+import { isGmpFloor } from '../family.ts';
 import { Button, decimalProblem, Field, floor } from '@ebmr/ui-kit';
 import { useStepChoices, type ChosenValue } from '../choices.tsx';
 import { wcls } from '../classes.ts';
@@ -68,6 +70,12 @@ function patternOk(pattern: string | undefined, text: string): boolean {
   } catch {
     return true; // the engine checks the pattern again
   }
+}
+
+/** The draft of a list declared empty by the person (an explicit "none"), as opposed to one left untouched. */
+export const NONE_DRAFT: Readonly<Record<string, Draft>> = { none: 'YES' };
+export function isNoneDraft(d: Draft | undefined): boolean {
+  return d !== undefined && typeof d === 'object' && !Array.isArray(d) && d['none'] === 'YES' && Object.keys(d).length === 1;
 }
 
 export interface Converted {
@@ -129,6 +137,9 @@ export function toWire(schema: EntryFieldSchema, draft: Draft | undefined, label
       return { value, pending, problems };
     }
     case 'array': {
+      // Phase 7 slice 7l (R1): a list the person declared empty ("none observed") travels as an empty list, which a
+      // block may require (e.g. TB-13's defects when the master examines appearance); untouched, it stays absent.
+      if (isNoneDraft(draft)) return { value: [], pending: [], problems: [] };
       const items = Array.isArray(draft) ? draft : [];
       const values: BlockFieldWire[] = [];
       const pending: string[] = [];
@@ -189,9 +200,34 @@ interface InputProps {
   top: boolean;
 }
 
+/** The batch of the step whose entry form is drawn (the container picker lists its containers). */
+const FormBatch = createContext<string | null>(null);
+
+/** The block schemas' pattern of a database id (a container's). */
+const UUID_PATTERN = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+
+/** Whether a member names one of the batch's output containers by its id (e.g. TB-20's reject containers). */
+export function namesContainer(name: string, schema: EntryFieldSchema): boolean {
+  return schema.type === 'string' && schema.pattern === UUID_PATTERN && (name === 'container' || name.endsWith('.container'));
+}
+
+/**
+ * Phase 7 slice 7l (R1): a container of the batch picked from its containers (label, stage, state and net), never its id
+ * typed. The block and the database decide whether the one picked may be named (its batch, stage, state).
+ */
+function ContainerInput({ label, description, value, onChange, disabled }: { label: string; description: string; value: string; onChange: (d: Draft) => void; disabled: boolean }) {
+  const batchId = useContext(FormBatch);
+  const gmp = isGmpFloor();
+  const q = useApiQuery(routes.containers.list, { query: { batchId: batchId ?? '' } }, { enabled: gmp && batchId !== null });
+  const options = (q.data?.containers ?? []).map((c) => ({ value: c.containerId, label: `${c.label} (${c.stage}, ${c.state}${c.netQuantity ? `, ${c.netQuantity} ${c.unit}` : ''})` }));
+  if (options.length === 0) return <p className={wcls('muted')}>{label}: {st('block.noContainer')}</p>;
+  return <floor.ChoiceGroup label={label} description={description} options={options} value={value === '' ? null : value} onChange={onChange} isDisabled={disabled} />;
+}
+
 function SchemaInput({ name, label, schema, draft, onChange, disabled, top }: InputProps): ReactNode {
   const description = schema.optional ? `${schema.description} (${st('block.optional')})` : schema.description;
   const text = typeof draft === 'string' ? draft : '';
+  if (namesContainer(name.replace(/^.*\.(?=container$)/, ''), schema)) return <ContainerInput label={label} description={description} value={text} onChange={onChange} disabled={disabled} />;
   switch (schema.type) {
     case 'string':
       return schema.enum ? (
@@ -260,10 +296,58 @@ function SchemaInput({ name, label, schema, draft, onChange, disabled, top }: In
           <Button onPress={() => onChange([...items, schema.type === 'array' ? emptyDraft(schema.items) : ['', emptyDraft(schema.values)]])} isDisabled={disabled || (max !== undefined && items.length >= max)}>
             {st('block.add', { label })}
           </Button>
+          {schema.type === 'array' && items.length === 0 && (schema.minItems ?? 0) === 0 ? (
+            isNoneDraft(draft) ? (
+              <p className={wcls('muted')} data-testid={`none-${name}`}>
+                {st('block.noneRecorded', { label })}
+              </p>
+            ) : (
+              <Button onPress={() => onChange({ ...NONE_DRAFT })} isDisabled={disabled}>
+                {st('block.none', { label })}
+              </Button>
+            )
+          ) : null}
         </fieldset>
       );
     }
   }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Entries an entry names (Phase 7 slice 7l, R1)
+
+/** The block schemas' pattern of an entry id (`EN-12`): a member that names another entry of the batch. */
+const ENTRY_ID_PATTERN = '^EN-[1-9][0-9]{0,8}$';
+/** The entry kind a member names in the step's own entries (a member named `preparation` names a step's citable entry). */
+const NAMED_KINDS: Readonly<Record<string, string>> = { actual: 'ACTUAL', start: 'DT_START', retestOf: 'DT_START', check: 'WEIGHT_CHECK', repeatOf: 'FRIABILITY_RUN', preparation: 'PREPARED' };
+
+/** Whether a member of a block entry names another entry by its id. */
+export function namesEntry(schema: EntryFieldSchema): boolean {
+  return schema.type === 'string' && schema.pattern === ENTRY_ID_PATTERN;
+}
+
+/**
+ * The entries a member may name: the step's citable entries of other steps (a TB-03 preparation) and the step's own
+ * entries of the kind the member names. The block and the database decide whether the one picked may be used.
+ */
+export function namedEntryOptions(view: StepScreenView, member: string): { value: string; label: string }[] {
+  const kind = NAMED_KINDS[member];
+  const own = view.entries.filter((e) => kind === undefined || e.kind === kind);
+  const other = (view.citable ?? []).filter((e) => kind === undefined || e.kind === kind);
+  return [...other, ...own].map((e) => ({ value: e.entryId, label: `${e.summary} (${e.entryId}, ${floor.personLine(e.by)}, ${e.at.text})` }));
+}
+
+function NamedEntryInput({ view, name, label, schema, draft, onChange, disabled }: { view: StepScreenView; name: string; label: string; schema: EntryFieldSchema; draft: Draft | undefined; onChange: (d: Draft) => void; disabled: boolean }) {
+  const options = namedEntryOptions(view, name);
+  const description = schema.optional ? `${schema.description} (${st('block.optional')})` : schema.description;
+  if (options.length === 0) {
+    return (
+      <p className={wcls('muted')} data-testid={`no-entry-${name}`}>
+        {label}: {st('block.noEntryToName')}
+      </p>
+    );
+  }
+  return <floor.ChoiceGroup label={label} description={description} options={options} value={typeof draft === 'string' && draft !== '' ? draft : null} onChange={onChange} isDisabled={disabled} />;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -347,6 +431,7 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
     );
   }
   return (
+    <FormBatch.Provider value={view.run.runId}>
     <section className={wcls('formCard')} aria-label={def.title} data-testid={`block-form-${def.kind}`}>
       <h3 className={wcls('formTitle')}>{def.title}</h3>
       <p className={wcls('muted')}>{def.description}</p>
@@ -378,6 +463,8 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
                 <p key={name} data-testid={`chosen-${name}`}>
                   {memberTitle(name)}: {chosenText(chosen[name])}
                 </p>
+              ) : namesEntry(member) ? (
+                <NamedEntryInput key={name} view={view} name={name} label={memberTitle(name)} schema={member} draft={drafts[name]} onChange={(d) => setDrafts((s) => ({ ...s, [name]: d }))} disabled={locked} />
               ) : (
                 <SchemaInput key={name} name={name} label={memberTitle(name)} schema={member} draft={drafts[name]} onChange={(d) => setDrafts((s) => ({ ...s, [name]: d }))} disabled={locked} top />
               ),
@@ -395,6 +482,7 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
       )}
       <EntryStatus call={cmd} />
     </section>
+    </FormBatch.Provider>
   );
 }
 

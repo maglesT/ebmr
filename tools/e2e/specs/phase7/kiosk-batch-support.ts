@@ -41,37 +41,47 @@ export function saveFlow(e2e: E2eWorld, s: FlowState): void {
 
 /**
  * A person's pace at the reader: the server accepts at most 30 taps a minute of one badge at one terminal (DI-19); a
- * person never comes near it, the spec would. Each tap of a badge waits until fewer than 25 of its taps fall in the last
- * minute.
+ * person never comes near it, the spec would. Before pressing a button that asks for a badge, the spec waits until fewer
+ * than 25 of the badge's taps fall in the last minute (`ready`): waiting once the badge prompt is open lets the prompt
+ * close unanswered (route W 6 in CI). The tap itself waits only at 29, under the server's limit.
  */
 const taps = new Map<string, number[]>();
-async function pace(page: Page, who: SeededPersona): Promise<void> {
+async function pace(page: Page, who: SeededPersona, below: number, record: boolean): Promise<void> {
   const now = performance.now();
   const recent = (taps.get(who.key) ?? []).filter((t) => now - t < 60_000);
-  if (recent.length >= 25) {
-    const wait = 60_000 - (now - (recent[0] ?? now)) + 250;
+  if (recent.length >= below) {
+    const wait = 60_000 - (now - (recent[recent.length - below] ?? now)) + 250;
     await page.waitForTimeout(wait);
   }
-  taps.set(who.key, [...recent.filter((t) => performance.now() - t < 60_000), performance.now()]);
+  const kept = recent.filter((t) => performance.now() - t < 60_000);
+  taps.set(who.key, record ? [...kept, performance.now()] : kept);
+}
+
+/** Waits, before a button that asks for the person's badge is pressed, until a tap is within the pace. */
+export async function ready(page: Page, who: SeededPersona): Promise<void> {
+  await pace(page, who, 25, false);
 }
 
 export async function tap(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 29, true);
   await tap0(page, who);
 }
 
 export async function sign(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 29, true);
   await sign0(page, who);
 }
 
 export async function signPrimary(page: Page, label: string | RegExp, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 25, true);
   await signPrimary0(page, label, who);
 }
 
 export async function switchUser(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 25, true);
+  // Slice 7l: a lock layer that opens and closes while the screen settles shows a second, disabled "Switch user": the
+  // person waits until the screen shows one.
+  await expect(page.getByRole('button', { name: 'Switch user' })).toHaveCount(1, { timeout: 30_000 });
   await switchUser0(page, who);
 }
 
@@ -111,6 +121,8 @@ const kiosks: Page[] = [];
 export async function kiosk(browser: Browser, e2e: E2eWorld, terminal: string, who: SeededPersona, role?: string): Promise<Page> {
   const page = await gmpKiosk(browser, e2e, terminal);
   kiosks.push(page);
+  // Slice 7l: a script error of the screen is in the test's output (a silent failure of the screen is then explained).
+  page.on('pageerror', (error) => console.log(`[${terminal}] page error: ${error.message.slice(0, 400)}`));
   // Slice 7i (G1): as a presenter signs the floor people in on the demo, with the person's Tap button of the demo reader.
   await signIn.kiosk(page, who, role, 'demoButton');
   return page;
@@ -124,6 +136,7 @@ export async function closeKiosks(): Promise<void> {
 /** A plant act or other command button on a kiosk: pressed, then the fresh badge tap of the person signed in. */
 export async function act(page: Page, button: Locator, who: SeededPersona): Promise<void> {
   await expect(button).toBeEnabled();
+  await ready(page, who);
   await button.click();
   await tap(page, who);
 }
@@ -147,7 +160,12 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
   };
   for (let attempt = 0; ; attempt += 1) {
     await expect(button).toBeEnabled();
+    await ready(page, who);
     await button.click();
+    // Slice 7l: a Save pressed while the screen still settles the entry saved just before asks for no badge; the person
+    // presses it again (a finding of the route runs, reported for the floor's usability work).
+    const badge = page.getByLabel('Badge', { exact: true }).last();
+    if (!(await badge.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false))) await button.click();
     await tap(page, who);
     try {
       await expect(saved.or(stale).or(refused).first()).toBeVisible();
@@ -172,12 +190,14 @@ export async function performAndCheck(page: Page, op: SeededPersona, checker: Se
     await switchUser(page, checker);
     await signPrimary(page, check, checker);
   }
-  if (!checker || back.key !== checker.key) await switchUser(page, back);
+  // Only to another person: a switch to the person already shown passes its identity check at once, so the next
+  // navigation could drop the switch in flight and leave the kiosk on its sign-in screen.
+  if (back.key !== (checker ?? op).key) await switchUser(page, back);
 }
 
 /** Start step: the primary action and the operator's badge tap (journey support), at the person's pace. */
 export async function startStep(page: Page, who: SeededPersona): Promise<void> {
-  await pace(page, who);
+  await pace(page, who, 25, true);
   await startStep0(page, who);
 }
 
@@ -212,6 +232,7 @@ export async function closeStage(page: Page, e2e: E2eWorld, batchId: string, qa:
     const dialog = page.getByRole('dialog', { name: /^Disposition: / });
     await choose(dialog.getByRole('radio', { name: 'No impact' }));
     await dialog.getByRole('textbox', { name: 'Justification' }).fill('Reviewed on the floor with the operator: values keyed by hand were checked by a second person at the time; no impact on the batch.');
+    await ready(page, qa);
     await dialog.getByRole('button', { name: 'Continue to signature' }).click();
     await sign(page, qa);
     done += 1;
@@ -221,6 +242,7 @@ export async function closeStage(page: Page, e2e: E2eWorld, batchId: string, qa:
   await (await primary(page, 'Sign off the stage')).click();
   const dialog = page.getByRole('dialog', { name: /^Sign off stage/ });
   await expect(dialog.getByTestId('stage-summary')).toBeVisible();
+  await ready(page, supervisor);
   await dialog.getByRole('button', { name: 'Continue to signature' }).click();
   await sign(page, supervisor);
   await as(page, back);
@@ -277,6 +299,7 @@ export async function clearance(page: Page, base: string, batchNumber: string, a
   await expect(page.getByTestId(`pending-CLEARANCE-${area}`).first()).toBeVisible();
   await as(page, verifier);
   await page.goto(`${base}/plant`);
+  await ready(page, verifier);
   await page.getByTestId(`pending-CLEARANCE-${area}`).first().getByRole('button', { name: `Verify the clearance of ${area}` }).click();
   await sign(page, verifier);
   await expect(page.getByTestId(`pending-CLEARANCE-${area}`)).toHaveCount(0);
@@ -359,13 +382,18 @@ export async function closeTyped(page: Page, base: string, batchId: string, labe
   await expect(c.getByTestId('container-net')).toContainText(`${net} kg (typed)`);
   await as(page, verifier);
   await page.goto(`${base}/review/${batchId}/containers`);
+  await ready(page, verifier);
   await c.getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
   await sign(page, verifier);
   await expect(c.getByTestId('container-net')).toContainText(`net verified by ${verifier.legalName}`);
   await as(page, who);
 }
 
-/** Saves a block entry form of the step as it is (its identifiers given, or no member to type). */
+/**
+ * Saves a block entry form of the step as it is (its identifiers given, or no member to type). After a plant act that
+ * opens its own form when it succeeds, the spec waits for that form first: tapping "Record: ..." while the act is in
+ * flight races the form the act opens and can leave none open.
+ */
 export async function saveBlock(page: Page, kind: string, who: SeededPersona, fill?: (form: Locator) => Promise<void>): Promise<void> {
   const form = page.getByTestId(`block-form-${kind}`);
   if ((await form.count()) === 0) {
@@ -385,7 +413,7 @@ export async function allInOrder(box: Locator): Promise<void> {
 }
 
 /** What a person types or chooses in a block entry form, member by member (by the member's label). */
-export type Fill = { [label: string]: string | string[] | Fill };
+export type Fill = { [label: string]: string | string[] | Fill | Fill[] };
 
 /**
  * Fills a block entry form as a person does: a text member is typed, a choice (or yes/no) is chosen, a list gets its
@@ -395,9 +423,13 @@ export async function fillBlock(scope: Locator, fill: Fill): Promise<void> {
   for (const [label, v] of Object.entries(fill)) {
     if (Array.isArray(v)) {
       const list = scope.getByRole('group', { name: label, exact: true });
+      // Slice 7l: an empty list is declared ("none observed"), never left untouched.
+      if (v.length === 0) await list.getByRole('button', { name: `None: ${label}`, exact: true }).click();
       for (const [i, item] of v.entries()) {
         await list.getByRole('button', { name: `Add to ${label}`, exact: true }).click();
-        await list.getByRole('textbox', { name: `${label} ${String(i + 1)}`, exact: true }).fill(item);
+        // Slice 7l: a list of objects (a tablet's values, a reel): each item's members inside the item's own group.
+        if (typeof item === 'object') await fillBlock(list.getByRole('group', { name: `${label} ${String(i + 1)}`, exact: true }), item);
+        else await list.getByRole('textbox', { name: `${label} ${String(i + 1)}`, exact: true }).fill(item);
       }
     } else if (typeof v === 'object') {
       await fillBlock(scope.getByRole('group', { name: label, exact: true }), v);
@@ -420,9 +452,12 @@ export async function reviewRecord(e2e: E2eWorld, pages: { production: Page; qa:
   const { production, qa, qa2 } = pages;
   await production.goto(`${base}/review/${batchId}`);
   await expect(production.getByTestId('review-state')).toContainText('Execution complete');
-  await production.getByRole('button', { name: 'Approve the record (production)' }).click();
-  await officeSign(production, /^Approve the (processing|packaging) record of batch/, people.head);
-  await expect(production.getByTestId('review-state')).toContainText('Production approved');
+  // Slice 7l: a record the head of production approved already (a resumed developer's run) is not approved twice.
+  if (!/Production approved|QA reviewed/.test((await production.getByTestId('review-state').textContent()) ?? '')) {
+    await production.getByRole('button', { name: 'Approve the record (production)' }).click();
+    await officeSign(production, /^Approve the (processing|packaging) record of batch/, people.head);
+  }
+  await expect(production.getByTestId('review-state')).toContainText(/Production approved|QA reviewed/);
   let concluded = 0;
   for (;;) {
     await qa.goto(`${base}/review/${batchId}/register`);
@@ -441,13 +476,17 @@ export async function reviewRecord(e2e: E2eWorld, pages: { production: Page; qa:
   await qa.goto(`${base}/review/${batchId}`);
   const panel = qa.getByTestId('audit-trail-review');
   await expect(panel.getByTestId('audit-trail-marks')).toBeVisible();
-  await panel.getByRole('button', { name: /^Sign the (audit-trail|delta) review$/ }).click();
-  await officeSign(qa, /^(Audit-trail|Delta) review /, people.qa);
+  // Slice 7l: after a long register (route W), QA's next signature can meet the limit on authentications: paced.
+  if ((await panel.getByText('Covered by the last signed mark').count()) === 0) {
+    await officeSignPaced(qa, () => panel.getByRole('button', { name: /^Sign the (audit-trail|delta) review$/ }).click(), /^(Audit-trail|Delta) review /, people.qa);
+  }
   await expect(panel.getByText('Covered by the last signed mark')).toBeVisible();
   await qa2.goto(`${base}/review/${batchId}`);
   const box = qa2.getByTestId('qa-review');
-  await box.getByRole('button', { name: 'Sign the QA review' }).click();
-  await officeSign(qa2, /^QA review of batch/, people.qa2);
+  await expect(qa2.getByTestId('review-state')).toBeVisible();
+  if (!/QA reviewed/.test((await qa2.getByTestId('review-state').textContent()) ?? '')) {
+    await officeSignPaced(qa2, () => box.getByRole('button', { name: 'Sign the QA review' }).click(), /^QA review of batch/, people.qa2);
+  }
   await expect(qa2.getByTestId('review-state')).toContainText('QA reviewed');
   return concluded;
 }
