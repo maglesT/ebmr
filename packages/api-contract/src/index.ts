@@ -210,6 +210,7 @@ export {
   AllocationUse,
   EndorsedProduct,
   ExportPermissionView,
+  DedicationClass,
   H2IssueView,
   HazardClass,
   HazardView,

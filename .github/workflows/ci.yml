@@ -244,7 +244,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [route-w, route-d, route-s, gmp-batches, rest]
+        group: [route-w, route-d, route-s, route-b, gmp-batches, rest]
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
       CI: 'true'

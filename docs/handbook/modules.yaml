@@ -469,7 +469,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^123[2-5]_']
+      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^1655_', '^123[2-5]_']
     tests: ['packages/recipe-core/test/integrations/plant-alarms-series.test.ts', 'packages/recipe-core/test/equipment-data/**', 'packages/recipe-core/test/plant-rules/**']
 
   - id: rc-mirrors

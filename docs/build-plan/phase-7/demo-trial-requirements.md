@@ -78,6 +78,28 @@ Several open ERP orders per demo product (processing and packaging), lots for se
 order" action on the Operations screen's simulators (replaces /home/batchwright/post-demo-order.mjs); the reset leaves
 exactly these orders and lots.
 
+## R7. A beta-lactam product in a dedicated suite (cephalosporin + clavulanic acid, film coated, alu-alu)
+
+Why: Indian customers make cephalosporin + clavulanic-acid tablets (the owner's example: a "CV" combination,
+325 mg). Beta-lactams must be made in dedicated, segregated facilities with their own air handling (Schedule M;
+US FDA 21 CFR 211.42(d) and 211.46(d)), and clavulanate needs low humidity. Batchwright already has the rules (the
+penicillin facility and beta-lactam classification proposed by the steward and approved by a different QA person,
+PR-27; hazard classes with dedicated rooms, /india/product-rules; room conditions in TB-18 and G-11), but the demo
+shows none of it.
+
+Required:
+
+- Demo plant: a dedicated beta-lactam suite (dispensing, granulation or compaction, compression, coating, alu-alu
+  packing rooms, their kiosks and equipment) classified for beta-lactams, with low-RH room-condition limits.
+- Demo product (invented, generic-style name, never a brand): a cephalosporin + clavulanic acid film-coated tablet,
+  dry granulation or direct compression, potency-adjusted dispensing for both actives (TB-01), film coating (TB-18),
+  alu-alu blister (TB-21 COLD_FORM, TB-22) with desiccant; its beta-lactam classification proposed and QA-approved
+  on screen.
+- Browser tests: (a) the full batch in the suite from order to release, through the screens; (b) the refusals: the
+  beta-lactam batch in a non-dedicated room is refused, a non-beta-lactam batch (GB-T-02) in the beta-lactam suite
+  is refused, and a room-humidity reading above the limit raises the exception. Control IDs in names.
+- Guide: a demo part "Making an antibiotic safely: dedicated rooms and the refusals".
+
 ## Definition of done
 Every requirement has a click-by-click browser test (Tap buttons, no typed URLs) with control IDs; full browser suite,
 golden batches and pnpm run ci green; docs/guides and hosted-demo.md updated; known-issues regenerated; the hosted demo
