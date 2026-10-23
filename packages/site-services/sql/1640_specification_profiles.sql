@@ -38,7 +38,7 @@
 --     the release result (the QC screen offers the LIMS value of each point).
 -- Default D-7p-1 (owner rule, least strict): one result per point (the mean of the units tested, as the LIMS reports
 -- it); the pharmacopoeial staged acceptance of dissolution (stages 1 to 3) is not built (review-backlog P7P-1).
--- Messages: EBMR-SITE-970 to 979.
+-- Messages: EBMR-SITE-970 to 979 (976: two profile codes that would name the same release item).
 
 set local role ebmr_owner;
 
@@ -428,6 +428,13 @@ begin
         message = format('EBMR-SITE-402 test %s cites the source of its limit (IP, BP, PH_EUR, USP or IN_HOUSE) and its edition (IN-33)', coalesce(t ->> 'testCode', 'NULL'));
     end if;
   end loop;
+  -- Each profile is its own release checklist item, named from its test code with every character other than A-Z, 0-9
+  -- and _ read as _ (recipe-core 1645): two profiles whose codes read the same there (DISS.1 and DISS-1) are refused.
+  if exists (select 1 from jsonb_array_elements(p -> 'tests') x where x ? 'points'
+              group by left(regexp_replace(x ->> 'testCode', '[^A-Z0-9_]', '_', 'g'), 56) having count(*) > 1) then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-SITE-976 two profile tests of a specification differ only in characters other than letters, digits and _ (e.g. DISS.1 and DISS-1); each profile is its own release item named from its code (IN-33)';
+  end if;
   perform pg_advisory_xact_lock(hashtext('site.specification'), hashtext(v_site || '/' || v_mat));
   select coalesce(max(s.version), 0) + 1 into v_ver from site.specification s where s.site_code = v_site and s.material_code = v_mat;
   insert into site.specification (site_code, material_code, version, title, monograph_reference, drafted_by_person, drafted_by_account, correlation_id)

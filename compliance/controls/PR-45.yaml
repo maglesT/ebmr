@@ -145,6 +145,7 @@ tests:
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45] SR profile 1: QC adds the dissolution profile of three time points to the specification as version 2; the head of QC approves it @office"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][DI-35] SR profile 2: lot 1, every time point within its limits: the profile is one green line on the release checklist and the lot is released @office"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][IN-20] SR profile 3: lot 2, the 4 h point outside its limits: the profile line fails and the release is refused @office"
+  - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [IN-33][PR-45] a QC result exactly on a point's upper or lower limit passes, at any scale; just beyond it fails (P7P-3)"
 clauses:
   - clause: "Shipping a quarantined lot through the ERP interface is rejected."
     tests:

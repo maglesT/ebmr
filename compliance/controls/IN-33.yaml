@@ -41,6 +41,9 @@ tests:
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][DI-35] SR profile 2: lot 1, every time point within its limits: the profile is one green line on the release checklist and the lot is released @office"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][IN-20] SR profile 3: lot 2, the 4 h point outside its limits: the profile line fails and the release is refused @office"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33] SR profile 4: a two-stage dissolution of a gastro-resistant tablet (acid stage at most 10 %, buffer stage at least 75 %) drafted as one test with a stage on each point (R8 C4) @office"
+  - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [IN-33][PR-45] a QC result exactly on a point's upper or lower limit passes, at any scale; just beyond it fails (P7P-3)"
+  - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [DI-31][IN-33] a LIMS result exactly on a point's limit is judged PASS by the database at any scale, just beyond it FAIL, whatever the LIMS says (P7P-3)"
+  - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [IN-33] two profiles whose codes differ only in characters other than letters, digits and _ are refused: each is its own release item named from its code (P7P-4)"
 clauses:
   - clause: "mark IP 2026 effective; all MBRs citing IP 2022 appear on the review list."
     tests:

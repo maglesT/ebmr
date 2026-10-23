@@ -230,3 +230,43 @@ describe('a multi-point profile as one test of a specification (IN-33)', () => {
     expect(await refusal(releaseLot(lot.lotId))).toMatch(/DISSOLUTION-DR at Acid 2 h/);
   });
 });
+
+describe('profile limits at their boundaries and profile codes (slice 7p review)', () => {
+  it('[IN-33][PR-45] a QC result exactly on a point\'s upper or lower limit passes, at any scale; just beyond it fails (P7P-3)', async () => {
+    const lot = await profiledLot();
+    const verdict = async (label: string, value: string) => (await result(lot.lotId, { testCode: 'DISSOLUTION', point: label, purpose: 'RELEASE', value })).verdict;
+    for (const [label, value, expected] of [
+      ['1 h', '40', 'PASS'], ['1 h', '40.0', 'PASS'], ['1 h', '40.000000', 'PASS'], ['1 h', '40.001', 'FAIL'],
+      ['4 h', '45', 'PASS'], ['4 h', '45.000', 'PASS'], ['4 h', '44.999', 'FAIL'], ['4 h', '70.00', 'PASS'], ['4 h', '70.01', 'FAIL'],
+      ['8 h', '80.0', 'PASS'], ['8 h', '79.9999', 'FAIL'],
+    ] as const) {
+      expect(`${label} ${value} ${await verdict(label, value)}`).toBe(`${label} ${value} ${expected}`);
+    }
+  });
+
+  it('[DI-31][IN-33] a LIMS result exactly on a point\'s limit is judged PASS by the database at any scale, just beyond it FAIL, whatever the LIMS says (P7P-3)', async () => {
+    const lot = await profiledLot();
+    const cases = [
+      ['1 h', '40', 'PASS'], ['1 h', '40.0', 'PASS'], ['1 h', '40.01', 'FAIL'],
+      ['4 h', '45', 'PASS'], ['4 h', '45.000', 'PASS'], ['4 h', '44.99', 'FAIL'],
+    ] as const;
+    for (const [label, value] of cases) {
+      await receive(db, lims, 'site.receive_lims_sample_result', envelopeFor(lims, 'lims.sample_result', {
+        sampleId: unique('S-'), lotNumber: lot.lotCode, testCode: 'DISSOLUTION', specificationRef: 'SPEC-SR-01', point: label, result: { value, unit: '%' },
+        conformance: 'DOES_NOT_CONFORM', state: 'APPROVED', recordedAt: nowUs(),
+      }));
+    }
+    const { rows } = await db.app.query<{ point_label: string; raw_value: string; verdict: string }>(
+      'select point_label, raw_value, verdict from site.lims_sample_result where lot_id = $1 order by received_at', [lot.lotId]);
+    expect(rows.map((r) => [r.point_label, r.raw_value, r.verdict])).toEqual(cases.map((c) => [...c]));
+  });
+
+  it('[IN-33] two profiles whose codes differ only in characters other than letters, digits and _ are refused: each is its own release item named from its code (P7P-4)', async () => {
+    const materialCode = unique('SR');
+    await w.material(materialCode);
+    expect(await refusal(draft(materialCode, [profile({ testCode: 'DISS.1' }), profile({ testCode: 'DISS-1' })]))).toMatch(/EBMR-SITE-976 two profile tests/);
+    // A profile beside a single test of such a code, or two distinct profile codes, are accepted.
+    await draft(materialCode, [profile({ testCode: 'DISS.1' }), { ...assay, testCode: 'DISS-1' }]);
+    await draft(materialCode, [profile({ testCode: 'DISS.1' }), profile({ testCode: 'DISS.2' })]);
+  });
+});
