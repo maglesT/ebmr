@@ -8,6 +8,7 @@
  * configuration.
  */
 import type { flow } from '@ebmr/recipe-core/pure';
+import { Button } from '@ebmr/ui-kit';
 import { dcls } from '../classes.ts';
 import { Check, CommitDecimal, CommitInteger, CommitText, Select, type Option } from './common.tsx';
 import { booleanDefaultWords, ConfigValue } from './ConfigView.tsx';
@@ -97,6 +98,11 @@ function FieldEditor({ name, schema, value, onChange, readOnly, sopOptions, path
         <fieldset className={dcls('fieldset')}>
           <legend className={dcls('legend')}>{label}</legend>
           {help ? <p className={dcls('small')}>{help}</p> : null}
+          {/* Slice 7o (found by the R4 browser run): an optional group whose members are required (a duration's unit) is
+              removed as a whole, else a copied master keeps a member its product must not have (an acid stage). */}
+          {optional && obj !== undefined && !readOnly ? (
+            <Button onPress={() => onChange(undefined)}>{`Remove ${name}`}</Button>
+          ) : null}
           <ObjectFields
             fields={fields}
             value={obj ?? {}}

@@ -17,7 +17,7 @@ import { expect, signIn, test } from '../../fixtures/index.ts';
 import { choose } from '../journey/support.ts';
 import {
   approveFormula, authoriseIn, changeControl, checksPass, confirmMasters, defineTooling, enterMaterials, enterProduct, exportTestResult, fourSignatures, home, importEvidence,
-  issueTestBatch, loadProduct, masterFromFormula, recordFormula, registerTestLots, saveProduct, saveRevision, selectStep, sendToSandbox, setConfig, setLimit,
+  issueTestBatch, loadProduct, masterFromFormula, recordFormula, registerTestLots, removeConfig, saveProduct, saveRevision, selectStep, sendToSandbox, setConfig, setLimit,
   type FormulaLineEntry, type ProductState,
 } from './own-product-flow.ts';
 import { closeFloor, processingRun, type Floor, type ProcessPlan } from './own-product-floor.ts';
@@ -166,7 +166,7 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
     await setConfig(a, ['minGain'], '');
     await selectStep(a, /Disintegration of the coated tablets/);
     await setConfig(a, ['tabletType'], 'FILM_COATED');
-    await setConfig(a, ['acidTime', 'value'], '');
+    await removeConfig(a, 'acidTime');
     await saveRevision(a, 'Demotab: its salt form, the compensation range, the weights of a 569.3 mg core, its D400 tooling, a plain film coat and the film-coated disintegration test');
     await checksPass(a);
   }, a);

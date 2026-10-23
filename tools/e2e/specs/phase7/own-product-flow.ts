@@ -269,6 +269,13 @@ export async function setConfig(page: Page, path: readonly string[], value: stri
   await box.press('Tab');
 }
 
+/** Removes an optional group of the selected step's configuration (e.g. a copied acid stage) with its own button. */
+export async function removeConfig(page: Page, group: string): Promise<void> {
+  const panel = page.getByRole('tabpanel').filter({ has: page.getByRole('heading', { level: 3, name: /^Step / }) }).first();
+  await panel.getByRole('button', { name: `Remove ${group}` }).click();
+  await expect(panel.getByRole('button', { name: `Remove ${group}` })).toHaveCount(0);
+}
+
 /** A limit bound of a parameter (its lower or upper validated limit), typed in the Data section and committed. */
 export async function setLimit(page: Page, parameterName: string, side: 'lower' | 'upper', value: string): Promise<void> {
   const box = page.getByRole('textbox', { name: `${parameterName}, validated, ${side} limit` }).first();
