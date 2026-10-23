@@ -204,3 +204,34 @@ describe('the press set-up and hopper charge (A5)', () => {
     expect(data).toEqual({ chargeId: CHARGE });
   });
 });
+
+describe('the printed lot hands itself to the issue entry once (slice 7k)', () => {
+  it('[PR-32] a saved issue entry stays closed: the lot taken is not handed to the form again', async () => {
+    const lotSchema: BlockFieldSchemaWire = { type: 'object', description: 'Lot', fields: { id: str('Lot id'), material: str('Material'), status: str('Status'), artwork: str('Artwork') } };
+    const view = gmpView('G-21@1', 'p-g21@', [form('ISSUE', 'Issue', { lot: lotSchema, scannedArtwork: str('Scanned artwork') })]);
+    const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => view,
+        ...stepFixtures(view),
+        'batches.stepPlant': () => plant({ block: 'G-21@1' }),
+        'execution.packagingBatchData': { batchId: RUN_ID, stepKey: 'p-g21@', current: null, jobs: [] },
+        'batches.printedLot': { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1' },
+      },
+      intercept: (r) => (r.method === 'POST' && r.path.endsWith('/commands') ? { status: 200, body: accepted() } : undefined),
+    });
+    const panel = await screen.findByTestId('printed-lot');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Scan the printed packaging lot' }), 'GBT2-LBL-001');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Take the lot from the register' }));
+    const issue = await screen.findByTestId('block-form-ISSUE');
+    await userEvent.type(within(issue).getByRole('textbox', { name: /Scanned artwork/ }), 'ART-GBT02-LBL-1');
+    await userEvent.click(within(issue).getByRole('button', { name: /^Save/ }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect((entryOf(ui) as { data: { lot: { id: string } } }).data.lot.id).toBe('GBT2-LBL-001');
+    await waitFor(() => expect(screen.getByTestId('block-form-ISSUE').getAttribute('data-closed')).toBe('true'));
+    // The views read again after the save do not reopen it with the same lot.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(screen.getByTestId('block-form-ISSUE').getAttribute('data-closed')).toBe('true');
+    expect(ui.commands()).toHaveLength(1);
+  });
+});

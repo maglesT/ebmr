@@ -16,7 +16,7 @@
  * tap on a shared terminal) and the database decides; its refusal is shown in its own words. The act's answer fills the
  * step's entry form (choices.tsx), which the person then saves: no identifier is ever typed.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { routes, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { ActResult, useCommand } from '../../../app/acts.tsx';
@@ -486,15 +486,27 @@ function PrintedLotPanel({ view }: { view: StepScreenView }) {
   const [asked, setAsked] = useState('');
   const q = useApiQuery(routes.batches.printedLot, { params: { batchId: view.run.runId, code: asked } }, { enabled: asked !== '', retry: false });
   const facts = asked !== '' ? q.data : undefined;
+  // The lot goes to the issue entry once per "Take the lot" (slice 7k): the effect used to run again whenever the
+  // choices changed or the lot was read again, so the saved issue form reopened at once with the same lot.
+  const [taken, setTaken] = useState(0);
+  const handed = useRef<string | null>(null);
+  const choose = choices?.choose;
   useEffect(() => {
-    if (facts) choices?.choose('ISSUE', { lot: { id: facts.id, material: facts.material, status: facts.status, artwork: facts.artwork, ...(facts.expiresAtUs ? { expiresAtUs: facts.expiresAtUs } : {}) } });
-  }, [facts, choices]);
+    if (!facts || !choose) return;
+    const key = `${String(taken)}:${facts.id}`;
+    if (handed.current === key) return;
+    handed.current = key;
+    choose('ISSUE', { lot: { id: facts.id, material: facts.material, status: facts.status, artwork: facts.artwork, ...(facts.expiresAtUs ? { expiresAtUs: facts.expiresAtUs } : {}) } });
+  }, [facts, choose, taken]);
   return (
     <section className={wcls('section')} aria-label="Printed packaging lot" data-testid="printed-lot">
       <h2 className={wcls('sectionTitle')}>Printed packaging lot</h2>
       <p className={wcls('muted')}>Scan the lot label: the issue entry takes the lot as the register holds it. Type the artwork you read on the label in the entry yourself.</p>
       <Field name="printedLot" label="Scan the printed packaging lot" value={scan} onChange={setScan} autoComplete="off" />
-      <Button variant="primary" isDisabled={scan.trim() === ''} onPress={() => setAsked(scan.trim())}>
+      <Button variant="primary" isDisabled={scan.trim() === ''} onPress={() => {
+          setAsked(scan.trim());
+          setTaken((n) => n + 1);
+        }}>
         Take the lot from the register
       </Button>
       {facts ? (
