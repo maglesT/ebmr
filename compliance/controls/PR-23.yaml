@@ -97,6 +97,7 @@ tests:
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOSK-COMP-1, tooling, press set-up and hopper charge, the run with its weight checks and bulk containers, the yield and QA's release for packing at H-PACK @office"
   - "apps/tablets-web/test/office/plant.test.tsx > calibration and press discharge (slice 7h, A7 and A9) > [PR-23][IN-25][INV-40] an operator checks an instrument chosen from the plant list for an open batch and books it, each with a fresh badge tap on a kiosk; only instruments are offered"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-23][PR-29][IN-35][DI-30][DI-32] route B 5: compression on KIOSK-BL-COMP: tooling (TB-09), set-up (TB-10), the run with each side's checks (TB-11), the yield, QA's approval for coating @office"
 clauses:
   - clause: "A Dirty unit is blocked."
     tests:

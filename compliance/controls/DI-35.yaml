@@ -290,6 +290,8 @@ tests:
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [IN-05][PR-45][DI-35] GMP kiosk batch 7: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-27][DI-35] route B 1: the steward classifies the product and both actives beta-lactam on the plant rules screen; QA approves each classification @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

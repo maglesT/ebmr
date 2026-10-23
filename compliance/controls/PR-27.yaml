@@ -83,6 +83,11 @@ tests:
   - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] a batch that is not beta-lactam is refused a room or line dedicated to beta-lactam products, at the clearance and at the start of its use"
   - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] the occupancy guard holds for a row written past the command: a direct insert as the owner is refused"
   - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] a dedication names BETA_LACTAM among the classes a room or line is dedicated to; a product hazard class never is"
+  - "tools/e2e/specs/phase7/route-b-refusals.spec.ts > [PR-27] route B refusals 1: a beta-lactam batch is refused the clearance of COAT-1, a room not dedicated to beta-lactam products; 2: a GB-T-02 batch is refused the clearance of BL-DISP in the beta-lactam suite @office"
+  - "tools/e2e/specs/phase7/route-b-refusals.spec.ts > [PR-25][IN-39][PR-27] route B refusals 3: in the beta-lactam suite a dispensing-room humidity above the suite's limit raises the environmental excursion on the step (G-11) @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-27][DI-35] route B 1: the steward classifies the product and both actives beta-lactam on the plant rules screen; QA approves each classification @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [INV-01][PR-04][PR-18][PR-27] route B 2: the ERP order, the batch planned and issued, the lots reserved, the suite cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-04][INV-01][PR-27] route B 7: the cold-form packaging order planned from the batch released for packing and issued; the desiccant laminate reserved; the suite's line cleaned and verified @office"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:

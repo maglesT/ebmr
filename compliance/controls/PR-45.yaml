@@ -135,6 +135,7 @@ tests:
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-31][PR-45] the hold-point decision proposal: a stale qualification source is still refused"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [IN-05][PR-45][DI-35] GMP kiosk batch 7: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
 clauses:
   - clause: "Shipping a quarantined lot through the ERP interface is rejected."
     tests:

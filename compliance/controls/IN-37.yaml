@@ -59,6 +59,7 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: NA when the processing batch prints nothing; red until the QC hold point after printing is approved under a valid signature; green then"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: a library call whose element is not pinned is red (\"cannot determine\"); a printing step inlined from a pinned element needs the hold point after it in that element, under a valid signature"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on KIOSK-COAT-1: the suspension (TB-03), the cores and the pan, the functional film to its weight gain in the loop (TB-18 FC_F), the acid and buffer disintegration test (TB-15) @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [IN-37][PR-25][PR-29][DI-29][DI-32][INV-19] route B 6: film coating on KIOSK-BL-COAT: the suspension (TB-03), the cores with the coating room checked against the suite's low humidity limit (TB-18), the film to its weight gain in the loop, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
 clauses:
   - clause: "open a packaging order for printed tablets without the QC approval; refused."
     tests:

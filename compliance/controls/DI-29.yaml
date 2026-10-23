@@ -92,6 +92,7 @@ tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24][INV-41] voids repeat while no valid result exists (an invalidated one is none); an invalidation is approved by another person, never a system, and its investigation is recorded trimmed"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] a result of another item of the step does not stop a void of this one (mutation follow-up)"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on KIOSK-COAT-1: the suspension (TB-03), the cores and the pan, the functional film to its weight gain in the loop (TB-18 FC_F), the acid and buffer disintegration test (TB-15) @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [IN-37][PR-25][PR-29][DI-29][DI-32][INV-19] route B 6: film coating on KIOSK-BL-COAT: the suspension (TB-03), the cores with the coating room checked against the suite's low humidity limit (TB-18), the film to its weight gain in the loop, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
 clauses:
   - clause: "Take three readings on one sample where the first two fail. All three are stored and flagged."
     tests:
