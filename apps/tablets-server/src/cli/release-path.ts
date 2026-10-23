@@ -34,6 +34,7 @@ import {
 import { PACK_BALANCE } from './golden-packaging.ts';
 import { DemoApp, DemoBatch, sleep, value, type DemoBrowser } from './demo-app.ts';
 import { recordPostUseInspection, recordSpecimens } from './line-completion.ts';
+import { DEMO_EXTRA_ORDERS } from '../features/execution/seed-demo-orders.ts';
 
 type Json = Record<string, unknown>;
 
@@ -399,6 +400,12 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
 
   // 6. The packaging-order demo: an open order of the bottle master and the batch's last small containers.
   const demoOrder = await btOrder(3);
+  // 7. R5 (slice 7k): open GB-T-02 orders for further batches, processing and bottles (posted last, so every plan above
+  //    took its own order; a demo load leaves exactly these besides the ones the steps above used or left).
+  log(`release path: ${DEMO_EXTRA_ORDERS.length} more open GB-T-02 orders (R5)`);
+  await withCommand(db.app, { ...erp, correlationId: randomUUID() }, async (c) => {
+    for (const o of DEMO_EXTRA_ORDERS) await c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify(o)]);
+  });
   return {
     batch: { batchId: batch.batchId, batchNumber: batch.batchNumber },
     readyLot: { lotId: lotA, lotCode: lotCodeA, orderBatchId: ready.batchId, orderBatchNumber: ready.batchNumber },

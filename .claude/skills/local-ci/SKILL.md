@@ -51,6 +51,10 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock /tmp/ebmr-e2e.lock -c 'CI=true p
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock /tmp/ebmr-e2e.lock -c 'CI=true pnpm --filter @ebmr/e2e test specs/<area>'
 ```
 
+CI runs the suite in groups, one runner each (`E2E_GROUPS` in `tools/e2e/playwright.config.ts`; `rest` runs every spec no
+group names); `EBMR_E2E_GROUP=<group>` runs one group locally. A new spec file of about 30 minutes or more gets its own
+group, added in the config and in the `e2e` job's matrix in `.github/workflows/ci.yml`.
+
 The lock keeps parallel agents from starting two E2E stacks on the same ports. Never run `playwright install`;
 the browser is pre-installed.
 

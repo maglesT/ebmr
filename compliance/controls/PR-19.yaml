@@ -179,6 +179,7 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-19][DI-33] dispenses the worksheet's salt-to-base potency quantities and the compensating excipient"
   - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > the held-granulation check (tablets 0851) > [PR-18][PR-19][INV-12] true only for an exception the new row raised at this step, of this type, ACTION, a deviation required, holding downstream until a deviation is linked"
   - "apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts > the material of the lot an entry names (tablets 0801) > [PR-19][INV-25] a weighing or charge names a lot of a material the MBR names, in its bill of materials or through a reference; other entries are not checked"
+  - "apps/tablets-server/test/seed/gmp-seed.test.ts > the GMP demo seed (slice 6c) > [PR-19] R5 (slice 7k): GB-T-02's second lots are released too, so several batches can be made in a row and in parallel"
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > the potency calculation of TB-01 > [PR-19][IN-23] sends the active's lot scanned as POTENCY_CALCULATION (the server reads its assay; nothing typed but the lot)"
 clauses:
   - clause: "An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail."

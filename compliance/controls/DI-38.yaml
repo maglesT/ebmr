@@ -245,6 +245,7 @@ tests:
   - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a chain that is not base64 DER is refused, for an enrolment and for a signing DSC"
   - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a DSC is not recorded on a signing whose meaning needs none, even from an enrolled signer"
   - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] with the option off nothing is enrolled; with no live anchor nothing is enrolled and no DSC recorded"
+  - "apps/tablets-server/test/execution/demo-trial-acts.test.ts > R3.11: a kiosk session ended by a sign-in elsewhere says so > [DI-38] the old kiosk's next request is NO_SESSION naming the person and the kiosk they signed in on"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

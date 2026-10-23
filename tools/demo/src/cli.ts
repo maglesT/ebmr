@@ -13,6 +13,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEMO_DATABASES, DEMO_PORTS, KEYS_DIR, REPO_ROOT, WEB_DIST } from './paths.ts';
 import { setupOptions } from './options.ts';
+import { watchForDeath } from './processes.ts';
 import { buildWeb, credentialCard, setupStack, startStack } from './stack.ts';
 
 async function setup(): Promise<void> {
@@ -53,7 +54,15 @@ async function run(dev: boolean): Promise<void> {
     '',
   ];
   console.log(banner.join('\n'));
+  // R3.12: a server, the gateway or a simulator that dies takes the runner down with a non-zero exit, so systemd
+  // restarts the whole stack (the hosted demo stayed down after PostgreSQL restarted until someone restarted it).
+  const watch = watchForDeath(stack.processes, (name, how) => {
+    console.error(`demo: ${name} stopped (${how}); stopping the demo so its service manager restarts it`);
+    for (const v of viteServers) v.kill('SIGTERM');
+    void stack.stop().finally(() => process.exit(1));
+  });
   const stop = async () => {
+    watch.disarm();
     for (const v of viteServers) v.kill('SIGTERM');
     await stack.stop();
     process.exit(0);

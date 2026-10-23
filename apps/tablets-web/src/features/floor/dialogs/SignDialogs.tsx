@@ -10,6 +10,7 @@ import { useState } from 'react';
 import type { ExceptionView, RunView } from '@ebmr/api-contract';
 import { Button, Dialog, Field, floor } from '@ebmr/ui-kit';
 import { wcls } from '../classes.ts';
+import { StageInUse } from '../components/StageInUse.tsx';
 import { useSessionChange } from '../session.tsx';
 import { st, stEnum } from '../text.ts';
 import { useDraftGuard } from '../unsettled.ts';
@@ -73,7 +74,7 @@ function HoldPointForm({ onClose, dispositions, unavailable = [], onContinue }: 
 
 type Stage = RunView['stages'][number];
 
-export function StageSignOffDialog({ isOpen, onClose, stage, onContinue }: { isOpen: boolean; onClose: () => void; stage: Stage | null; onContinue: () => void }) {
+export function StageSignOffDialog({ isOpen, onClose, stage, onContinue, batchId, stepKey }: { isOpen: boolean; onClose: () => void; stage: Stage | null; onContinue: () => void; batchId?: string; stepKey?: string }) {
   const summary = stage?.summary ?? null;
   return (
     <Dialog title={stage ? st('dialog.signOff.title', { number: stage.number, name: stage.name }) : st('action.SIGN_OFF_STAGE')} isOpen={isOpen} onOpenChange={(o) => (o ? null : onClose())}>
@@ -90,6 +91,8 @@ export function StageSignOffDialog({ isOpen, onClose, stage, onContinue }: { isO
         ) : (
           <p>{st('dialog.signOff.noSummary')}</p>
         )}
+        {/* R3.9: the rooms and units the batch still uses, each with its end act. */}
+        {stage && batchId && stepKey ? <StageInUse batchId={batchId} stepKey={stepKey} stageKey={stage.stageKey} /> : null}
         <div className={wcls('row')}>
           <Button variant="primary" onPress={onContinue} isDisabled={!stage?.signable}>
             {st('dialog.signOff.sign')}

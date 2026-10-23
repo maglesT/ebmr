@@ -284,11 +284,16 @@ describe('bulk issued to a packaging order only after the release for packing (e
     }
   }
 
+  let labelSeq = 1000 + Math.floor(Math.random() * 4000);
+
   /** An output container of `batch` in `state`, closed with `net` kg (arranged: the container commands are proven in 0420 to 0422). */
   async function container(batch: string, state: string, net = '25.000'): Promise<string> {
     const id = randomUUID();
     const [b] = await q<{ n: string; p: string; s: string }>("select batch_number as n, (recipe.batch_product(id) ->> 'code') as p, (recipe.batch_product(id) ->> 'strength') as s from recipe.batch_execution where id = $1", [batch]);
-    const label = `OC-${b?.n ?? 'X'}-${String(1000 + Math.floor(Math.random() * 8999))}`;
+    // A unique label per container: a random four-digit suffix per call collided now and then (birthday odds), failing
+    // the arrange; a counter from a random start keeps the label's four-digit form.
+    labelSeq += 1;
+    const label = `OC-${b?.n ?? 'X'}-${String(labelSeq)}`;
     await arrange(
       `with c as (insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account)
                   values ($1, $2, $3, $4, $5, $6, 'COMPRESSION', 'kg', $1, $1) returning id),

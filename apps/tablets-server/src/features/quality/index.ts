@@ -72,7 +72,7 @@ async function lotResults(db: Db, lotId: string): Promise<LotResultView[]> {
 }
 
 /** Runs `work` as the ERP interface's service identity; the session ends afterwards. */
-async function asErp<T>(app: AppContext, c: { loginName: string; serviceKey: string; fingerprint: string }, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+export async function asErp<T>(app: AppContext, c: { loginName: string; serviceKey: string; fingerprint: string }, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   const ev = await identity.authenticate(app.pools.authn, { method: 'SERVICE_KEY', identifier: c.loginName, secret: c.serviceKey, deviceFingerprint: c.fingerprint, purpose: 'LOGIN' });
   const s = await identity.openSession(app.pools.app, ev.authEventId, c.fingerprint);
   try {

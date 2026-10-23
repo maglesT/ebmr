@@ -936,7 +936,44 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
+    ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 ? { bomRemaining: await bomRemainingOf(ctx, node.consumes) } : {}),
   };
+}
+
+/**
+ * R3.8 (hosted-demo trials): what is still to weigh of each BOM line a weighing step dispenses: the quantity the batch's
+ * production order needs for the line's material, less the net of the batch's container weighings of the line in the
+ * same unit. GMP batches only (a sandbox test run has no production order: nothing is listed). Exact decimals.
+ */
+async function bomRemainingOf(ctx: ViewContext, lines: readonly string[]): Promise<NonNullable<StepScreenView['bomRemaining']>> {
+  const def = ctx.run.def;
+  const { rows } = await ctx.db.query<{ bom: unknown }>(
+    'select o.bom from recipe.batch_erp_order b join site.erp_production_order o on o.id = b.order_id where b.batch_id = $1',
+    [ctx.run.batch.id],
+  );
+  const bom = Array.isArray(rows[0]?.bom) ? (rows[0]?.bom as { materialCode?: unknown; quantity?: unknown; unit?: unknown }[]) : [];
+  const out: NonNullable<StepScreenView['bomRemaining']> = [];
+  for (const id of lines) {
+    const line = def.mbr.bom.find((x) => x.id === id);
+    const ref = line ? def.mbr.references.find((r) => r.id === line.material) : undefined;
+    const code = ref?.code ?? line?.material;
+    // The order names the material by its code, or (orders posted from the master itself) by the BOM line's material.
+    const ordered = bom.find((b) => b.materialCode === code) ?? bom.find((b) => line !== undefined && b.materialCode === line.material);
+    if (!ordered || typeof ordered.quantity !== 'string' || typeof ordered.unit !== 'string' || !Dec.isValid(ordered.quantity)) continue;
+    const unit = ordered.unit;
+    let weighed = Dec.ZERO;
+    for (const e of Object.values(ctx.state.entries)) {
+      if (e.kind !== 'CONTAINER_WEIGHING' || e.data['bomLine'] !== id || e.data['unit'] !== unit) continue;
+      const net = e.data['net'];
+      if (typeof net === 'string' && Dec.isValid(net)) weighed = weighed.plus(Dec.parse(net));
+    }
+    const required = Dec.parse(ordered.quantity);
+    // Shown to the order's precision, at least to the gram of a kilogram (three decimals).
+    const places = Math.max(required.decimalPlaces(), 3);
+    const shown = (d: Dec): string => d.toFixed(places, 'HALF_UP');
+    out.push({ bomLine: id, material: ref ? `${ref.title} (${ref.code})` : String(code), unit, required: shown(required), weighed: shown(weighed), remaining: shown(required.minus(weighed)) });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------
