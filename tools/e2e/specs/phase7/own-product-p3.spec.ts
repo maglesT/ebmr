@@ -134,13 +134,13 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
   const base = e2e.url('GMP');
   const a = await officePage('GMP', PC_AUTHOR);
   await signIn.office(a, persona('GMP', 'author'));
-  await evidence.step('The author starts the master from the formula as a copy of the approved wet-granulation master', 'A DRAFT with the formula\'s header, batch size and bill of materials', async () => {
+  await evidence.step('The author starts the master as a copy of the approved wet-granulation master', 'A DRAFT with the formula\'s header, batch size and bill of materials', async () => {
     s.familyCode = `RAB-WG-${s.tag}`;
     s.versionId = await masterFromFormula(a, { product: s.product.code, strength: s.product.strength, batchUnits: BATCH_UNITS, familyCode: s.familyCode, copyOf: /^RTW-WG-/ });
     saveProduct(e2e, KEY, s);
     return { versionId: s.versionId };
   }, a);
-  await evidence.step('The author edits the master to the product: the salt form and compensation, a 125 mg core and its tooling, the enteric coat\'s start weight and gain', 'Edited in the designer', async () => {
+  await evidence.step('The author edits the master to the product in the designer', 'Edited in the designer', async () => {
     await selectStep(a, /Potency-adjusted dispensing/);
     await setConfig(a, ['active', 'form', 'name'], 'rabeprazole sodium');
     await setConfig(a, ['compensation', 'min'], '0.500');
@@ -158,7 +158,7 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await setLimit(a, 'Coating weight gain', 'lower', '8.0');
     await setLimit(a, 'Coating weight gain', 'upper', '10.0');
   }, a);
-  await evidence.step('The author adds a seal coat before the enteric suspension and a top coat after the enteric coating loop ("Add a coating layer"); saves the revision', 'Three coating layers in the coating stage, each with its own suspension, start weight and gain; the checks pass', async () => {
+  await evidence.step('The author adds the seal and top coating layers and saves the revision', 'Three coating layers in the coating stage, each with its own suspension, start weight and gain; the checks pass', async () => {
     await addCoatingLayer(a, /Enteric coating suspension/, { name: 'Seal', coatingType: 'FC', solution: 'FILM_COAT', target: '2.0', max: '2.5', coreLow: '121.3', coreHigh: '128.8', place: 'BEFORE' });
     await addCoatingLayer(a, /Enteric film coating to the weight gain/, { name: 'Top', coatingType: 'FC', solution: 'FILM_COAT', target: '3.0', max: '3.5', coreLow: '134.8', coreHigh: '143.2', place: 'AFTER' });
     await saveRevision(a, 'Rabeprazole: its salt form, the compensation range, a 125 mg core with its R20 tooling, the seal coat, the enteric coat to 8-10 % and the top coat');
@@ -166,7 +166,7 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
   }, a);
   const q = await officePage('GMP', PC_QA);
   await signIn.office(q, persona('GMP', 'approver'));
-  await evidence.step('QA raises the change record and the risk assessment; the author links them; the test package is written', 'A test package with the GMP stamp in the sandbox inbox', async () => {
+  await evidence.step('Change control; the test package is written', 'A test package with the GMP stamp in the sandbox inbox', async () => {
     await changeControl(q, a, base, s.versionId ?? '', { changeRecord: `CC-${s.tag}`, risk: `RA-${s.tag}`, title: `New product ${s.product.code}`, tag: s.tag });
     s.packageHash = await sendToSandbox(a, base, s.versionId ?? '');
     saveProduct(e2e, KEY, s);
@@ -182,7 +182,7 @@ test('[IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run w
   const lotCode = (id: string): string => `TEST-L26-RAB-${s.tag}-${id.toUpperCase()}`;
   const st = await officePage('SANDBOX', 'TEST-PC-01');
   await signIn.office(st, persona('SANDBOX', 'steward'));
-  await evidence.step('Sandbox: TEST- lots of each material with the active\'s assay; the tooling set on the sandbox\'s plant', 'Lots RELEASED; tooling set defined', async () => {
+  await evidence.step('Sandbox: TEST- lots, the active\'s assay and the tooling set', 'Lots RELEASED; tooling set defined', async () => {
     await registerTestLots(st, [
       { lotCode: lotCode('api'), material: api, name: 'Rabeprazole sodium (invented data)', assay: { assay: '99.40', water: '0.60' } },
       ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name })),
@@ -203,7 +203,7 @@ test('[IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run w
     e2e, browser, inst: 'SANDBOX', batchId: s.sandboxRunId ?? '', batchNumber: s.sandboxBatchNumber ?? '',
     persona: (k) => persona('SANDBOX', k), containers: (s.containers ??= {}), save: () => saveProduct(e2e, KEY, s),
   };
-  await evidence.step('Sandbox floor: dispensing, granulation, blending, compression; the seal, enteric and top coats each to its own gain; the acid and buffer disintegration; inspection', 'Execution complete', async () => {
+  await evidence.step('Sandbox floor: the whole process with the three coats on the TEST- kiosks', 'Execution complete', async () => {
     try {
       await processingRun(floor, rabeprazolePlan(lotCode, api, s.tag));
     } finally {

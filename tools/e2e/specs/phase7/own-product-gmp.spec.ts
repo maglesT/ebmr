@@ -136,13 +136,13 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
   const qa = persona('GMP', 'approver');
   const a = await officePage('GMP', PC_AUTHOR);
   await signIn.office(a, author);
-  await evidence.step('The author starts the master from the formula as a copy of the approved wet-granulation master', 'A DRAFT whose header, batch size and bill of materials are the formula\'s; the dispensing standard is the formula\'s', async () => {
+  await evidence.step('The author starts the master as a copy of the approved wet-granulation master', 'A DRAFT whose header, batch size and bill of materials are the formula\'s; the dispensing standard is the formula\'s', async () => {
     s.familyCode = `DMT-WG-${s.tag}`;
     s.versionId = await masterFromFormula(a, { product: s.product.code, strength: s.product.strength, batchUnits: BATCH_UNITS, familyCode: s.familyCode, copyOf: /^RTW-WG-/ });
     saveProduct(e2e, KEY, s);
     return { versionId: s.versionId };
   }, a);
-  await evidence.step('The author edits the master to Demotab: its active\'s salt form and compensation range, the press\'s and the cores\' weights, its tooling, a plain film coat, the film-coated disintegration test; and saves the revision', 'The revision is saved; the checks pass', async () => {
+  await evidence.step('The author edits the master to Demotab in the designer and saves the revision', 'The revision is saved; the checks pass', async () => {
     await selectStep(a, /Potency-adjusted dispensing/);
     await setConfig(a, ['active', 'form', 'name'], 'demotab sodium, anhydrous');
     await setConfig(a, ['compensation', 'min'], '3.000');
@@ -172,7 +172,7 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
   }, a);
   const q = await officePage('GMP', PC_QA);
   await signIn.office(q, qa);
-  await evidence.step('QA raises the change record and the risk assessment; the author links them and sets the draft\'s attributes; the test package is written', 'A test package with the GMP stamp in the sandbox inbox', async () => {
+  await evidence.step('Change control; the test package is written', 'A test package with the GMP stamp in the sandbox inbox', async () => {
     await changeControl(q, a, base, s.versionId ?? '', { changeRecord: `CC-${s.tag}`, risk: `RA-${s.tag}`, title: `New product ${s.product.code}`, tag: s.tag });
     s.packageHash = await sendToSandbox(a, base, s.versionId ?? '');
     saveProduct(e2e, KEY, s);
@@ -190,7 +190,7 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
   const lotCode = (id: string): string => `TEST-L26-DMT-${s.tag}-${id.toUpperCase()}`;
   const st = await officePage('SANDBOX', 'TEST-PC-01');
   await signIn.office(st, persona('SANDBOX', 'steward'));
-  await evidence.step('Sandbox: the steward registers a TEST- lot of each material and types the active\'s assay; defines the product\'s tooling set on the sandbox\'s plant', 'TEST- lots RELEASED; the assay recorded; the tooling set defined (sandbox database only)', async () => {
+  await evidence.step('Sandbox: TEST- lots, the active\'s assay and the tooling set', 'TEST- lots RELEASED; the assay recorded; the tooling set defined (sandbox database only)', async () => {
     await registerTestLots(st, [
       { lotCode: lotCode('api'), material: api, name: 'Demotab sodium (invented, micronised)', assay: { assay: '99.20', water: '0.80' } },
       ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name })),
@@ -211,7 +211,7 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
     e2e, browser, inst: 'SANDBOX', batchId: s.sandboxRunId ?? '', batchNumber: s.sandboxBatchNumber ?? '',
     persona: (k) => persona('SANDBOX', k), containers: (s.containers ??= {}), save: () => saveProduct(e2e, KEY, s),
   };
-  await evidence.step('Sandbox floor: dispensing, granulation, blending, compression, the film coat and inspection on the TEST- kiosks, each stage signed off', 'Execution complete; every screen with the TEST, NOT GMP band', async () => {
+  await evidence.step('Sandbox floor: the whole process on the TEST- kiosks', 'Execution complete; every screen with the TEST, NOT GMP band', async () => {
     try {
       await processingRun(floor, demotabPlan(lotCode, api, s.tag));
     } finally {
@@ -232,7 +232,7 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
   await signIn.office(r, persona('GMP', 'regulatory'));
   const q = await officePage('GMP', PC_QA);
   await signIn.office(q, persona('GMP', 'approver'));
-  await evidence.step('Prepared, independently checked, the registration references confirmed, approved by QA; QA proposes the IN authorisation, the regulatory signer confirms it, QA authorises it', 'APPROVED; the IN authorisation ACTIVE', async () => {
+  await evidence.step('The four signatures and the IN authorisation', 'APPROVED; the IN authorisation ACTIVE', async () => {
     await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author: persona('GMP', 'author'), checker: persona('GMP', 'checker'), regulatory: persona('GMP', 'regulatory'), qa: persona('GMP', 'approver') }, base, s.versionId ?? '');
     await authoriseIn(q, r, base, s.versionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: SIZE_ID }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration on file (${s.tag})`);
   }, q);
