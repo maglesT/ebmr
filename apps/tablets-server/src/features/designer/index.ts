@@ -34,6 +34,7 @@ import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.
 import { bindRoutes, type HandlerContext } from '../../platform/http/bind.ts';
 import { refusal, type HttpRefusal } from '../../platform/http/refusal.ts';
 import { siteToday } from './adapters/expressions.ts';
+import { materialDocumentsInForce } from './adapters/references.ts';
 import { marketSetProblem } from './adapters/market-minima.ts';
 import { contentFromTemplate, FamilyInputError, KNOWN_MARKETS } from './family.ts';
 import { compositionGate, withFormulaBom } from './formula-choice.ts';
@@ -453,11 +454,12 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             });
           }
           const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
+          const materialDocuments = await materialDocumentsInForce(c, chosen.lines.map((l) => l.materialCode), await siteToday(c));
           let content: flow.MbrContent;
           try {
             content = contentFromFormula(
               base,
-              { chosen, target, product: { name: master.name, dosageForm }, materials },
+              { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments },
               { familyCode: body.familyCode, markets: body.markets, start },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),

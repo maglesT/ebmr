@@ -131,4 +131,17 @@ describe('a new master from an approved formula (slice 7j)', () => {
     const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
     expect(report.findings.filter((f) => f.severity !== 'INFO').map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
   });
+
+  it('[PR-03][DI-04][INV-25] a formula material with a registered MATERIAL document is pinned to that document, the others to their material master version; the validator knows both (slice 7o, found by the R4 browser run)', async () => {
+    const lines: FormulaLineInput[] = [LINES[0] as FormulaLineInput, LINES[1] as FormulaLineInput, { lineId: 'mgs', materialCode: 'MAT-MGS', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '6', potencyAdjusted: false, compensating: false }];
+    valueOf(await steward.call(md.enterMaterial, { body: { materialCode: 'MAT-MGS', materialName: 'Magnesium stearate', materialKind: 'EXCIPIENT', unit: 'kg', pharmacopoeia: 'IP', changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    formulaVersionId = await approvedFormula('120000', undefined, lines);
+    const v = valueOf(await create('DMT7JF-DOC', 'SKELETON'));
+    const refs = (v.content as unknown as { references: { kind: string; code: string; version: string }[] }).references.filter((r) => r.kind === 'MATERIAL');
+    expect(refs.find((r) => r.code === 'MAT-MGS')?.version).toBe('1');
+    expect(refs.find((r) => r.code === 'RM-7JF-API')?.version).toMatch(/^ERP-/);
+    const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+    expect(report.findings.filter((f) => f.rule === 'GMP-REFERENCES').map((f) => f.message)).toEqual([]);
+  }, 120_000);
 });

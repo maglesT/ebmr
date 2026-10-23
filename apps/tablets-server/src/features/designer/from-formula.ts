@@ -36,6 +36,8 @@ export interface FormulaSource {
   target: formula.FormulaTarget | null;
   product: { name: string; dosageForm: string };
   materials: readonly MaterialMaster[];
+  /** The registered MATERIAL documents in force of the formula's materials (a registered document wins, D-7j-4). */
+  materialDocuments?: readonly flow.Reference[];
 }
 
 /** The demo references (SOPs, systems, equipment classes, risk scale, validation and hold studies) the skeleton pins, from dc-mini. */
@@ -90,7 +92,9 @@ function materialRefs(src: FormulaSource): flow.Reference[] {
   return src.chosen.lines.map((l) => {
     const m = src.materials.find((x) => x.code === l.materialCode);
     if (!m) throw new FamilyInputError('DESIGNER_MATERIAL', `Material ${l.materialCode} of the formula is not in effect in the material master.`, ['PR-17']);
-    return materialReference(m);
+    // Slice 7o (found by the R4 browser run): a material with a registered MATERIAL document is pinned to that document,
+    // as material-refs.ts says (a document always wins); the material master version only when none is registered.
+    return src.materialDocuments?.find((d) => d.code === l.materialCode) ?? materialReference(m);
   });
 }
 
