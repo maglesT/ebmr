@@ -38,7 +38,7 @@ memory again; to see what CI sees locally, run with `NODE_OPTIONS=--max-old-spac
 
 ## Rules that CI enforces
 
-CI runs the static checks in one job and the tests in six shards (`vitest run --shard=i/6` with blob reports; four until Phase 6), each with its own PostgreSQL; a report job merges the shards into `.reports/vitest.json` and runs the trace on it. The suite had grown to 55 minutes on one 2-core runner. Locally, `pnpm run ci` still runs everything in one go.
+CI runs the static checks in one job and the tests in eight shards (`vitest run --shard=i/8` with blob reports; four until Phase 6, six until slice 7p), each with its own PostgreSQL; a report job merges the shards into `.reports/vitest.json` and runs the trace on it. The suite had grown to 55 minutes on one 2-core runner. Locally, `pnpm run ci` still runs everything in one go.
 
 - **Boundaries** (`.dependency-cruiser.cjs`): apps never import each other; packages never import apps; `kernel` and `expr` import nothing internal; `recipe-core` imports only `kernel` and `expr`; product code never imports `tools/`; `analytics` imports no repository package, driver or node core module, only the analytics runner imports it, and the runner reaches no GMP path (ADR 0020).
 - **Exact pins** (ADR 0015): internal dependencies are written `"@ebmr/kernel": "workspace:0.1.0"` and must equal the package's version. A shared-package change reaches an edition only when that edition bumps its pin.
