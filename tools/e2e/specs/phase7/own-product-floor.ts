@@ -77,7 +77,8 @@ export async function step(f: Floor, page: Page, key: string): Promise<void> {
 /** Starts the step unless a resumed developer's run finds it started already (EBMR_E2E_RESUME=1). */
 export async function begin(page: Page, who: SeededPersona): Promise<void> {
   if (process.env['EBMR_E2E_RESUME'] === '1') {
-    await expect(page.getByTestId('primary-action').first()).toBeVisible();
+    await expect(card(page)).toBeVisible();
+    await page.waitForTimeout(1_500);
     if ((await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
   }
   await explained(startStep(page, who), page.locator('main'));

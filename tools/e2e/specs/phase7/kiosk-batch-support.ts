@@ -156,7 +156,7 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
   // Any other answer: the screen's refusal, reported in the failure with the form's words.
   const refused = form.getByTestId('refusal').or(form.getByText(/was not saved|Nothing was saved/));
   const notSaved = async (why: string): Promise<never> => {
-    throw new Error(`${why}; the form shows: ${((await form.innerText().catch(() => '')) || '(the form is gone)').replace(/\s+/g, ' ').slice(0, 1500)}`);
+    throw new Error(`${why}; the form shows: ${((await form.innerText().catch(() => '')) || '(the form is gone)').replace(/\s+/g, ' ').slice(-2000)}`);
   };
   for (let attempt = 0; ; attempt += 1) {
     await expect(button).toBeEnabled();

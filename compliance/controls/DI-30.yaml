@@ -498,6 +498,7 @@ tests:
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-form order run on KIOSK-PACK-2: bulk issued, the line cleared and used, the laminate weighed, printed materials, the line check (TB-21 COLD_FORM), the sealing run, the leak tests (TB-22), cartons and the shipper (TB-24), reconciliations, the witnessed destruction, the post-use inspection, the yield @office"
+  - "apps/tablets-server/test/execution/sandbox-own-containers.test.ts > a test run names its own output containers (slice 7o) > [DI-05][DI-30] a disposal or sample of a test run names the batch's own output container; another batch's container or a label no container of the run carries is refused"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

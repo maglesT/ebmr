@@ -81,7 +81,7 @@ function demotabPlan(lots: (id: string) => string, api: string, tag: string): Pr
     sideGroup: { L: '11386.0', R: '11383.0' },
     coresGroup: '11388.0',
     physical: [{ thickness: '5.10', hardness: '95' }, { thickness: '5.12', hardness: '98' }, { thickness: '5.08', hardness: '92' }],
-    friability: { tablets: '12', initial: '6.832', final: '6.815' },
+    friability: { tablets: '11', initial: '6.262', final: '6.249' },
     strokes: '150600',
     compYield: { good: '84.300', residue: '0.300', rejects: '0.200' },
     coating: {

@@ -234,9 +234,11 @@ export const TARGETS: Target[] = [
     functions: ['recipe.execution_source_room_check', 'recipe.step_room_problem', 'recipe.execution_entry_data_check',
                 'recipe.entry_data_problem', 'recipe.execution_container_entry_check',
                 'tab.device_entry_readings_check', 'tab.entry_identifier_problem', 'tab.entry_identifiers_check',
-                'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check'],
+                'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check',
+                // Slice 7o (tablets 1700): a test run's disposal or sample names the batch's own output container.
+                'tab.own_output_container'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
-            s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts'),
+            s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts'), s('execution/sandbox-own-containers.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
             s('blocks/dispensing/tb-01-gmp.test.ts'), s('execution/block-entries.test.ts')],
     threshold: 90,
