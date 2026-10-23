@@ -20,7 +20,7 @@ import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import {
   act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, openContainer, performAndCheck, plusOne, primary,
-  reviewRecord, save, saveBlock, sign, statusStep, step, verifyCleanings,
+  ready, reviewRecord, save, saveBlock, sign, statusStep, step, verifyCleanings,
 } from './kiosk-batch-support.ts';
 import { begin, done, entryNaming, mark, marked, erpOrders, field, loadRoute, manualValue, saveRoute, type RouteState } from './route-support.ts';
 
@@ -532,6 +532,7 @@ async function holdPoint(page: Page, e2e: E2eWorld, batchId: string, key: string
   await (await primary(page, 'Decide the hold point')).click();
   const decide = page.getByRole('dialog', { name: 'Decide the hold point' });
   await choose(decide.getByRole('radio', { name: /^Approved/ }));
+  await ready(page, qa);
   await decide.getByRole('button', { name: 'Continue to signature' }).click();
   await sign(page, qa);
   await completed(page);
@@ -650,6 +651,7 @@ async function container(page: Page, base: string, batchId: string, stage: strin
   await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
   await as(page, verifier);
   await page.goto(`${base}/review/${batchId}/containers`);
+  await ready(page, verifier);
   await page.getByTestId(`container-${label}`).getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
   await sign(page, verifier);
   await expect(page.getByTestId(`container-${label}`).getByTestId('container-net')).toContainText(`net verified by ${verifier.legalName}`);

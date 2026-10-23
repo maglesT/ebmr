@@ -36,7 +36,7 @@ import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 import {
   act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, loadFlow, openContainer, performAndCheck, plusOne, primary,
-  reviewRecord, save, saveBlock, saveFlow, sign, startStep, statusStep, step, verifyCleanings, type FlowState,
+  ready, reviewRecord, save, saveBlock, saveFlow, sign, startStep, statusStep, step, verifyCleanings, type FlowState,
 } from './kiosk-batch-support.ts';
 
 test.describe.configure({ mode: 'serial' });
@@ -437,6 +437,7 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     await (await primary(page, 'Decide the hold point')).click();
     const decide = page.getByRole('dialog', { name: 'Decide the hold point' });
     await choose(decide.getByRole('radio', { name: 'Approved (released)' }));
+    await ready(page, qa);
     await decide.getByRole('button', { name: 'Continue to signature' }).click();
     await sign(page, qa);
     await completed(page);
