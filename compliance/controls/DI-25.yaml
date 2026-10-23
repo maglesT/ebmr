@@ -42,6 +42,8 @@ tests:
   - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-53][DI-52][DI-25] the data-integrity reviewer opens an audit-trail flag about a person with its reasons and the entries behind it, never a value, and dispositions it as a false alarm with the cause; it then leaves the open flags, and the batch's audit-trail review lists the flagged entry first and still every entry @office"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-05][IN-05][DI-25][INV-48] GMP kiosk batch 8: both records reviewed (production approval, the register, the audit trail, the QA review) and the lot released by the authorised person on a checklist with no red item @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [INV-05][IN-05][DI-25][INV-48] route W 11: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [INV-05][IN-05][DI-25][INV-48] route D 10: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [INV-05][IN-05][DI-25][INV-48] route S 11: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
 clauses:
   - clause: "Change a value after entry. It appears in the checker's step view and in the batch review list."
     tests:

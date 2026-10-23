@@ -95,6 +95,12 @@ tests:
   - "apps/tablets-server/test/execution/issue-expectations.test.ts > R3.1: the tablet count at issue against the master > [PR-04] P7K-3: the GMP_BATCH_ISSUE contract already refuses a COUNT that is no whole number"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [INV-01][PR-04][PR-18] route W 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-04][INV-01] route W 8: the cold-form packaging order planned from the batch released for packing and issued; the forming laminate reserved; the line cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [INV-01][PR-04][PR-18] route D 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-04][INV-01] route D 7: the strip packaging order planned from the batch released for packing and issued; the strip foil reserved; the line cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [INV-01][PR-04][PR-18] route S 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-04][INV-01] route S 8: the cold-form packaging order planned from the batch released for packing and issued; the forming laminate reserved; the line cleaned and verified @office"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [INV-01][PR-04][PR-18] route W2 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
+  - "apps/tablets-server/test/execution/issue-expectations.test.ts > R3.1: the tablet count at issue against the master > [PR-04] slice 7m: a bilayer master implies its count from the full tablet (the last layer), not the first layer's own weight"
 clauses:
   - clause: "Widening a registered CPP range with no variation reference is blocked."
     tests:

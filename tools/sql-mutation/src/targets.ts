@@ -529,7 +529,9 @@ export const TARGETS: Target[] = [
                 'recipe.execution_row_refusal_check', 'recipe.issue_request_problem', 'recipe.execution_issue_request_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts')],
+            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts'),
+            // Phase 7 slice 7m (P7L-1, recipe-core 1650): the inferred balance of a manual weighing.
+            r('mutation/execution-row-shape.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit, SQL mutation defects (D11): the state engine's rows, whoever writes them: a history row is a

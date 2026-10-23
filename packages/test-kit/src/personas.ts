@@ -57,6 +57,11 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'KIOSK-PACK-1', installation: 'GMP', deviceClass: 'SHARED', room: 'PL-1', description: 'Shop-floor kiosk, packaging line PL-1 (GMP packaging orders)', key: 'BROWSER' },
   // Phase 7 slice 7l (R1): the blister line of the demo routes (cold-form and thermoform orders).
   { code: 'KIOSK-PACK-2', installation: 'GMP', deviceClass: 'SHARED', room: 'PL-2', description: 'Shop-floor kiosk, blister line PL-2 (GMP packaging orders)', key: 'BROWSER' },
+  // Phase 7 slice 7m (R1): the rooms and the strip line of demo route D.
+  { code: 'KIOSK-RC-1', installation: 'GMP', deviceClass: 'SHARED', room: 'RC-1', description: 'Shop-floor kiosk, roller compaction room RC-1 (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-COMP-2', installation: 'GMP', deviceClass: 'SHARED', room: 'COMP-2', description: 'Shop-floor kiosk, bilayer compression room COMP-2 (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-PRINT-1', installation: 'GMP', deviceClass: 'SHARED', room: 'PRINT-1', description: 'Shop-floor kiosk, tablet printing room PRINT-1 (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-PACK-3', installation: 'GMP', deviceClass: 'SHARED', room: 'PL-3', description: 'Shop-floor kiosk, strip line PL-3 (GMP packaging orders)', key: 'BROWSER' },
   { code: 'PC-QA-10', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Tenth QA office PC (green release, suspension and recall, QP package and certification intake, US disposition)', key: 'BROWSER' },
   { code: 'PC-PLAN-04', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Fourth production office PC (production approval and packaging-order planning of the release specs)', key: 'BROWSER' },
   { code: 'GW-01', installation: 'GMP', deviceClass: 'SERVER', description: 'Site gateway (scales, instruments and process equipment), GMP installation', key: 'SERVICE' },
