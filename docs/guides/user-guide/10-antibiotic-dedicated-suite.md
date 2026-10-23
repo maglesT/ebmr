@@ -55,10 +55,11 @@ QC records and approves the lot's results, both records are reviewed, and the au
 
 | Try this | What happens |
 |---|---|
-| On `KIOSK-DISP-1`, **Plant**, record a clearance of `DISP-1` for a route B batch | Refused: the batch is beta-lactam and `DISP-1` is not a room dedicated to beta-lactam products (EBMR-PLANT-177). No clearance is recorded. |
-| On `KIOSK-BL-DISP`, **Plant**, record a clearance of `BL-DISP` for a GB-T-02 batch | Refused: `BL-DISP` is dedicated to beta-lactam products and GB-T-02 is not one (EBMR-PLANT-178). |
+| Have `COAT-1` (a general room) cleaned and verified, then on `KIOSK-COAT-1`, **Plant**, record a clearance of `COAT-1` for a route B batch | Refused: the batch is beta-lactam and `COAT-1` is not a room dedicated to beta-lactam products (EBMR-PLANT-177). No clearance is recorded. |
+| With `BL-DISP` clean, on `KIOSK-BL-DISP`, **Plant**, record a clearance of `BL-DISP` for a GB-T-02 batch | Refused: `BL-DISP` is dedicated to beta-lactam products and GB-T-02 is not one (EBMR-PLANT-178). |
 | In a route B batch, type 45 % at the dispensing room's humidity step | The step raises an environmental excursion: production and QA are notified and the steps after it wait for a deviation. In the coating room, a humidity above 30 % at the cores step does the same. |
 
-The same rules hold for the start of a room's use, not only for its clearance, and for any writer: they are database
+A room must be clean before any clearance; a dirty room is refused for that reason first, so show the refusals in clean
+rooms. The same rules hold for the start of a room's use, not only for its clearance, and for any writer: they are database
 rules (recipe-core 1600), not checks of the screen. A room's dedication counts only once a second QA person has
 approved it; a withdrawal of the dedication counts at once.

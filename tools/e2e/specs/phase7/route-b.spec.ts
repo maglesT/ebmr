@@ -96,9 +96,10 @@ test('[PR-27][DI-35] route B 1: the steward classifies the product and both acti
     await q.goto(`${base}/plant-rules`);
     for (const [kind, code] of subjects) {
       const subject = q.getByTestId(`beta-${kind}-${code}`);
-      const approve = subject.getByRole('button', { name: new RegExp(`^Approve version \\d+ of ${code}$`) }).last();
+      const what = `${kind.toLowerCase()} ${code}`;
+      const approve = subject.getByRole('button', { name: new RegExp(`^Approve version \\d+ of ${what}$`) }).last();
       await approve.click();
-      await officeSign(q, new RegExp(`^Approve: ${code}`), qa);
+      await officeSign(q, new RegExp(`^Approve: ${what}`), qa);
       await expect(subject).toHaveAttribute('data-pending', 'no');
       await expect(subject).toHaveAttribute('data-in-force', 'yes');
       await expect(subject).toContainText(`approved by ${qa.legalName}`);

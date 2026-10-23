@@ -4,9 +4,9 @@
  * ceremony), nothing arranged in the database. The demo set-up provides the suite (rooms BL-DISP to BL-COAT and the line
  * BL-PL dedicated to beta-lactam products with a second QA person's approval) and the route B and GB-T-02 masters;
  * the ERP interface sends the orders.
- *  1. A beta-lactam batch (route B) is refused the clearance of DISP-1, a room not dedicated to beta-lactam products
+ *  1. A beta-lactam batch (route B) is refused the clearance of COAT-1, a room not dedicated to beta-lactam products
  *     (EBMR-PLANT-177; recipe-core 1600, PR-27).
- *  2. A GB-T-02 batch (not beta-lactam) is refused the clearance of BL-DISP, a room of the beta-lactam suite
+ *  2. A GB-T-02 batch (not beta-lactam) is refused the clearance of BL-DISP (clean), a room of the beta-lactam suite
  *     (EBMR-PLANT-178).
  *  3. In the suite, a dispensing-room humidity of 45 % RH against the suite's limit of 30 % raises the environmental
  *     excursion on the step (G-11: ENVIRONMENT_EXCURSION, a deviation required; PR-25, IN-39); the room's use is then
@@ -68,13 +68,13 @@ async function refusedClearance(page: Page, base: string, batchNumber: string, a
   await choose(box.getByRole('radio', { name: 'PRODUCT_CHANGE', exact: true }));
   await choose(box.getByRole('radio', { name: 'PASSED', exact: true }));
   await act(page, box.getByRole('button', { name: 'Record the clearance' }), op);
-  const refusal = box.getByTestId('refusal');
-  await expect(refusal).toBeVisible();
+  const form = box.getByRole('form', { name: 'Record a clearance' });
+  await expect(form.getByText('The system refused this action.')).toBeVisible();
   await expect(page.getByTestId(`pending-CLEARANCE-${area}`)).toHaveCount(0);
-  return (await refusal.innerText()).replace(/\s+/g, ' ');
+  return (await form.innerText()).replace(/\s+/g, ' ');
 }
 
-test('[PR-27] route B refusals 1: a beta-lactam batch is refused the clearance of DISP-1, a room not dedicated to beta-lactam products; 2: a GB-T-02 batch is refused the clearance of BL-DISP in the beta-lactam suite @office', async ({ browser, e2e, officePage, persona, evidence }) => {
+test('[PR-27] route B refusals 1: a beta-lactam batch is refused the clearance of COAT-1, a room not dedicated to beta-lactam products; 2: a GB-T-02 batch is refused the clearance of BL-DISP in the beta-lactam suite @office', async ({ browser, e2e, officePage, persona, evidence }) => {
   test.setTimeout(20 * 60_000);
   const base = e2e.url('GMP');
   const issuer = persona('GMP', 'issuer');
@@ -86,18 +86,27 @@ test('[PR-27] route B refusals 1: a beta-lactam batch is refused the clearance o
     return { beta: batches.beta.number, other: batches.other.number };
   }, page);
   await page.context().close();
+  const cp = await officePage('GMP', PC_PLAN);
+  await signIn.office(cp, persona('GMP', 'technician1'));
+  await evidence.step('A technician cleans COAT-1 (a general room) and BL-DISP (the suite); a second technician verifies each cleaning', 'Both rooms are clean, so only the product can stand in the way', async () => {
+    await clean(cp, base, [['AREA', 'COAT-1'], ['AREA', 'BL-DISP']]);
+    const t2 = persona('GMP', 'technician2');
+    const vp = await officePage('GMP', PC_PLAN);
+    await signIn.office(vp, t2);
+    await verifyCleanings(vp, base, ['COAT-1', 'BL-DISP'], t2);
+  }, cp);
   const op = persona('GMP', 'operator2');
-  const k = await kiosk(browser, e2e, 'KIOSK-DISP-1', op);
-  await evidence.step('On KIOSK-DISP-1 the operator records a clearance of DISP-1 for the beta-lactam batch', 'Refused by the database: DISP-1 is not dedicated to beta-lactam products; no clearance is pending', async () => {
-    const text = await refusedClearance(k, base, batches.beta?.number ?? '', 'DISP-1', op);
-    expect(text).toMatch(/beta-lactam/);
-    expect(text).toMatch(/DISP-1 is not a room or line dedicated to beta-lactam products/);
+  const k = await kiosk(browser, e2e, 'KIOSK-COAT-1', op);
+  await evidence.step('On KIOSK-COAT-1 the operator records a clearance of COAT-1 for the beta-lactam batch', 'Refused by the database: COAT-1 is not dedicated to beta-lactam products; no clearance is pending', async () => {
+    const text = await refusedClearance(k, base, batches.beta?.number ?? '', 'COAT-1', op);
+    expect(text).toMatch(/EBMR-PLANT-177/);
+    expect(text).toMatch(/COAT-1 is not a room or line dedicated to beta-lactam products/);
     return { refused: true };
   }, k);
   const kb = await kiosk(browser, e2e, 'KIOSK-BL-DISP', op);
   await evidence.step('On KIOSK-BL-DISP the operator records a clearance of BL-DISP for the GB-T-02 batch', 'Refused by the database: BL-DISP is dedicated to beta-lactam products and GB-T-02 is not one; no clearance is pending', async () => {
     const text = await refusedClearance(kb, base, batches.other?.number ?? '', 'BL-DISP', op);
-    expect(text).toMatch(/BL-DISP is dedicated to beta-lactam products/);
+    expect(text).toMatch(/EBMR-PLANT-178 BL-DISP is dedicated to beta-lactam products/);
     expect(text).toMatch(/is not beta-lactam/);
     return { refused: true };
   }, kb);
