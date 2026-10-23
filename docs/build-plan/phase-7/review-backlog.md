@@ -201,6 +201,9 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7L-1 (residual, carried to 7m): with no gateway scale and no declared balance, a manual weighing takes the room's one
   instrument booked for the batch as its balance; the operator never names it. The weighing stays MANUAL (exception and
   second person), but the stored evidence should mark the balance as inferred, or the form should ask for it.
+  **Fixed in 7m**: the stored evidence records `manual.balanceInferred: true` (recipe-core 1650: the database refuses it
+  beside a declared balance), and the entry's summary on the step and record screens adds "balance not named: the
+  room's one balance booked for the batch" (tests: tb-01-gmp.test.ts G-07, execution-row-shape.test.ts).
 - P7L-2 (residual, cosmetic): the potency calculation form stays open after its entry; its lot is typed, not scanned
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block

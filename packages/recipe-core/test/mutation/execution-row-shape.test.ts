@@ -296,6 +296,21 @@ describe('the evidence a row records (recipe.row_evidence_problem, 0335)', () =>
     // Through the row check, such commands are refused for their shape before their evidence is read.
     expect(await rowProblem('COMMAND', verify.commandId, { ...verify, entry: weighing }, true, { manual, lot: lotEvidence })).toBe('command.entry is a member a VERIFY command does not declare');
   });
+
+  it('[DI-20][DI-30][PR-20] a manual weighing records an inferred balance only when its entry named none (P7L-1, 1650): balanceInferred true beside no declared balance is recorded, beside a declared balance refused; it must be true or false', async () => {
+    const entryOf = { ...base, type: 'RECORD_ENTRY', step: 'p-disp-pcm', context: [], entry: weighing };
+    expect({
+      inferred: await evidenceProblem('COMMAND', entryOf, true, { ...key, manual: { ...manual, balanceInferred: true }, lot: lotEvidence }),
+      notInferred: await evidenceProblem('COMMAND', entryOf, true, { ...key, manual: { ...manual, declaredBalance: 'TEST-BAL-01', balanceInferred: false }, lot: lotEvidence }),
+      inferredButDeclared: await evidenceProblem('COMMAND', entryOf, true, { ...key, manual: { ...manual, declaredBalance: 'TEST-BAL-01', balanceInferred: true }, lot: lotEvidence }),
+      notABoolean: (await evidenceProblem('COMMAND', entryOf, true, { ...key, manual: { ...manual, balanceInferred: 'yes' }, lot: lotEvidence }))?.startsWith('evidence.manual.balanceInferred') ?? false,
+    }).toEqual({
+      inferred: null,
+      notInferred: null,
+      inferredButDeclared: 'evidence.manual.balanceInferred is true only when the entry declared no balance',
+      notABoolean: true,
+    });
+  });
 });
 
 describe('a row\'s command, command id and signatures (recipe.execution_row_problem, 0335)', () => {

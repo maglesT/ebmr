@@ -529,6 +529,9 @@ function summaryOf(e: engine.EntryRecord): string {
   }
 }
 
+/** P7L-1 (slice 7m): the balance of a weighing keyed by hand that the operator did not name. */
+const INFERRED = " (balance not named: the room's one balance booked for the batch)";
+
 export function entriesOf(ctx: ViewContext, stepKey: string): Entry[] {
   return entryViews(ctx, (e) => e.stepKey === stepKey);
 }
@@ -537,7 +540,7 @@ function entryViews(ctx: ViewContext, keep: (e: ViewContext['state']['entries'][
   return Object.values(ctx.state.entries)
     .filter(keep)
     .sort((a, b) => a.recordedSeq - b.recordedSeq)
-    .map((e) => ({ entryId: e.id, kind: e.kind, summary: summaryOf(e), data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
+    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e)}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
 }
 
 /**
