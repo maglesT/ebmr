@@ -242,6 +242,8 @@ they are). Decisions in `slice-7o-routes.md`:
 - D-7o-4: a lot's assay (GMP: approved LIMS results; sandbox: typed) and a printed lot's artwork version on screen; the
   identity result on the lot page.
 - D-7o-5: a copy for another formula takes the formula's standard per tablet.
+- D-7o-6: the sandbox family of 7k's plant entry (`execution.plantEntry`); every sandbox plant unit TEST- labelled.
+- D-7o-7: ERP simulator orders for any approved, authorised product (lead's (d)).
 - Browser helpers for the R8 products: `tools/e2e/specs/phase7/own-product-flow.ts` (office) and `own-product-floor.ts`
   (kiosks, either installation).
 

@@ -44,6 +44,20 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
   The weights and limits that follow the tablet's weight (core mean, the run's weight checks, pan load) are the author's
   edits in the designer, as for any new product.
 
+- **D-7o-6** (after merging main, slice 7k's one-act plant entry): a test run's plant entry has the sandbox family route
+  `execution.plantEntry` (`/api/test-runs/:runId/steps/:stepKey/plant-entries`, SANDBOX), the same handler as GMP's
+  `batches.plantEntry`; the floor picks the installation's family (`family.ts`), as for every other run command. Every
+  unit of the DEMO-ONLY sandbox plant is TEST- labelled: an instrument is a registered device (EBMR-SBX-022) and a test
+  run's entries name units, which the sandbox records only by TEST- identifiers (DI-05).
+- **D-7o-7** (lead's (d)): "Send a production order" also offers every product whose current master version is APPROVED
+  with an ACTIVE market authorisation, for the family's first approved batch size, with the master's own BOM scaled in
+  exact decimals (`operations/erp-orders.ts`, `authorisedTemplates`); a demo template wins for its product.
+- Found by the R4 browser runs and fixed, each with its test: a copy for another formula wrote the salt-adjusted quantity
+  of an active a base-stated TB-01 step dispenses (INV-25, recipe-core 0690) and replaced the source's MATERIAL
+  documents by material-master pins; a master from a formula pinned a material to its material-master version although
+  a MATERIAL document was in force (the register then called it unknown); the designer could not remove an optional
+  group whose members are required (a copied acid stage, TB15-STAGE).
+
 ## Notes
 
 - TODO (R8 C4, slice 7p): the P3 browser test uses TB-15's acid and buffer disintegration and the existing release tests;
