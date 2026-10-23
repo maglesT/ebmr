@@ -290,6 +290,7 @@ tests:
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [IN-05][PR-45][DI-35] GMP kiosk batch 7: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [INV-25][DI-35][PR-04] overages (slice 7q, C1): an excess per line in percent or as a quantity, always with its reason; the label claim stays; the batch quantity, the batch mass and the master's bill of materials include it; the approver signs it"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

@@ -86,6 +86,7 @@ tests:
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [PR-57] a trace starts from a node of each kind that exists as of the instant it came to be, and from nothing else"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [IN-29][PR-57] a mock recall as of T holds every lot with its deliveries in the lot's unit and its own returns only, and the outbound transfer"
   - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [IN-29][PR-57] a mock recall asks the destinations of its own stored run, so a failed genealogy read is no \"no destination\"; and nobody is asked before RECALL.MOCK_RUN is checked (6jc-R12)"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21][PR-57][IN-26] branches merging into one blend (slice 7q, C10): the granules of a wet and a dry branch and a directly weighed material are charged into one step, each container traced from where it was made to where it went"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
     tests:

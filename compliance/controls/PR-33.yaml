@@ -45,6 +45,7 @@ tests:
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [PR-32][PR-33] takes a scanned printed packaging lot's facts from the register for the issue entry, and shows the server's refusal of a lot that is not one"
   - "apps/tablets-server/test/plant/floor-routes.test.ts > a printed packaging lot for the issue entry of a printed-materials step (gap report D2) > [PR-32][PR-33] the step screen reads a printed packaging lot as the batch issues it, exactly the facts the issue entry must carry; a lot that is not printed packaging, an unknown lot and an unknown batch are refused"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-form order run on KIOSK-PACK-2: bulk issued, the line cleared and used, the laminate weighed, printed materials, the line check (TB-21 COLD_FORM), the sealing run, the leak tests (TB-22), cartons and the shipper (TB-24), reconciliations, the witnessed destruction, the post-use inspection, the yield @office"
+  - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 definition checks > [PR-33] a peel-off blister (slice 7q, C8): the pack format states its opening; a cold-form or thermoform blister may be peel-off or peel-push, a strip pack has no lidding foil to peel"
 clauses:
   - clause: "Scanning a wrong carton code is blocked."
     tests:

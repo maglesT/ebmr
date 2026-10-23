@@ -401,6 +401,7 @@ tests:
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > the branch of an alternative chosen on the step screen > [DI-34] shows the branch chosen and offers no second choice"
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > a loop iteration ended on the step screen > [INV-19][DI-34] is offered once the step of the iteration is completed and sends COMPLETE_LOOP_ITERATION for the step"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-activity.test.ts > TB-01@2 potency adjustment in activity units (slice 7q, C2) > [DI-34][DI-10] TB-01@2 is registered beside TB-01@1 with every execution part of the contract"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:

@@ -42,6 +42,9 @@ tests:
   - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 definition checks > [PR-21][IN-26][PR-23] two or three layers, each id, hopper and blend its own; a press used; a set-up step in the MBR"
   - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [PR-21][IN-26] the charges' refusals name the layer, hopper and blend; nothing is charged after the run; the run starts with every layer charged"
   - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [IN-35][PR-29][PR-21] PERFORMED lists each problem once across the layers"
+  - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [PR-21][IN-26] a trilayer run (slice 7q, C9): three layers, each charged from its own hopper with its own blend, and the run starts only with all three charged"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21][PR-57][IN-26] branches merging into one blend (slice 7q, C10): the granules of a wet and a dry branch and a directly weighed material are charged into one step, each container traced from where it was made to where it went"
+  - "apps/tablets-server/test/designer/merging-branches.test.ts > branches merging into one blend (slice 7q, R8 C10) > [PR-03][IN-13][PR-21] a wet branch (TB-03, TB-04, TB-05, TB-02) and a dry branch (TB-06, TB-02) in parallel, and the directly weighed materials, blend in one TB-07: the validator, the execution definition and the simulation accept it"
 clauses:
   - clause: "Omitting one container prevents completion."
     tests:

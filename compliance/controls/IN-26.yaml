@@ -64,6 +64,8 @@ tests:
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the press set-up and hopper charge (A5) > [IN-26] charges a closed container of the batch by its label and fills HOPPER_CHARGE; offers the press in use with its tooling for PRESS_SETUP"
   - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C4: the plant product list on the plant master-data screen > [IN-26][DI-17] the master-data steward adds a product stating whether it is highly potent; it is listed with who recorded it and a tooling set can name it; the QA MBR approver holds no MASTERDATA.CHANGE"
   - "apps/tablets-web/test/office/master-data.test.tsx > ERP masters and plant definitions > [IN-26] slice 7h (gap C4): the plant product list shows whether each product is highly potent, and the steward adds a product as the contract takes it"
+  - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [PR-21][IN-26] a trilayer run (slice 7q, C9): three layers, each charged from its own hopper with its own blend, and the run starts only with all three charged"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21][PR-57][IN-26] branches merging into one blend (slice 7q, C10): the granules of a wet and a dry branch and a directly weighed material are charged into one step, each container traced from where it was made to where it went"
 clauses:
   - clause: "schedule a highly potent product in a positive-pressure cubicle; blocked."
     tests:

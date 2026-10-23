@@ -95,6 +95,7 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > QA verification of a compendial rule set (slice 3b, tablets 1161; tablets spec E.1) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: NA when no entry cites a rule set; red while a cited rule set has no signed QA verification; green once QA records and signs it"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: an entry whose rule-set reference is malformed is red (\"cannot determine\"), never dropped to NA"
   - "apps/tablets-server/test/review/review-routes.test.ts > a tightened limit leaves the completed record as it was (DI-10) > [DI-10] a specification limit tightened after the batch completed: the completed record still shows the limits of the version it ran under and its original evaluation, while a new batch takes the tightened version"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-activity.test.ts > TB-01@2 potency adjustment in activity units (slice 7q, C2) > [DI-34][DI-10] TB-01@2 is registered beside TB-01@1 with every execution part of the contract"
 clauses:
   - clause: "Tighten a specification limit after a batch completes. The completed record still shows the original limit version and its original pass/fail evaluation."
     tests:
