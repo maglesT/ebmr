@@ -111,6 +111,62 @@ Required:
   is refused, and a room-humidity reading above the limit raises the exception. Control IDs in names.
 - Guide: a demo part "Making an antibiotic safely: dedicated rooms and the refusals".
 
+## R8. Complex formulations: a test set of realistic Indian tablet products
+
+Goal (owner, 23 October 2026): prove that a company can load and make its real, complex tablet products with the
+existing blocks only (no new blocks), from formula to released lot, through the screens. Alongside R4 and slices
+7k to 7p.
+
+Rules for every test product:
+
+- Invented names and formulas only: a generic-style description (e.g. "Multivitamin and multimineral tablets"),
+  never a brand, and invented quantities, never a copied registered formula (decision 0006).
+- Built on screen: materials, product, formula (QA-approved), the MBR in the designer (stages, branches and blocks
+  from the palette, R4), sandbox test run, four signatures, market authorisation, licence endorsement.
+- Run on screen: an ERP order, a GMP batch on the kiosks (Tap buttons, no typed URLs), packing, QC results, both
+  reviews and release, in a browser test with control IDs in its name and no database arrangement.
+- Demo: each product, its equipment and enough lots and orders are in --with-gmp-samples (R1, R5); the guide gets a
+  part for it.
+- Where a capability below is missing, build it (screen, route, database rule, test) before closing the product.
+
+The test set (priority order):
+
+| # | Test product (invented) | What it proves | Route and blocks |
+|---|---|---|---|
+| P1 | Multivitamin + multimineral tablet, film coated, strip | Wet + dry granulation + direct addition in one product; overages; three branches merging into one blend | Minerals: TB-03 → TB-04 → TB-05 → TB-02 · Vitamin C and moisture-sensitive B vitamins: TB-06 → TB-02 · Beadlets (A, D, E, B12) and micro-doses (folic acid, biotin) weighed and added directly · Final blend TB-07 with uniformity samples → TB-09/10/11–15 → TB-18 (FC) → TB-21 (STRIP)/TB-22 → TB-24 |
+| P2 | Metformin SR 500 mg + glimepiride 2 mg bilayer, film coated, alu-alu | Two routes in two layers; bilayer; SR dissolution profile (7p) plus immediate-release test; low-dose uniformity | Metformin layer: TB-04/05/02 with release polymer · Glimepiride layer: direct blend TB-07 (uniformity) · TB-16 (layer weights) → TB-13–15 → TB-18 → TB-21 (COLD_FORM)/22 |
+| P3 | Pantoprazole 40 mg (or rabeprazole 20 mg) delayed-release | Three coating steps in a row, each to its own weight gain; two-stage dissolution (acid then buffer) | Core TB-04/05/02 → TB-07 → compression → TB-18 (FC seal) → TB-18 (FC_F enteric) → TB-18 (FC top) → TB-20 → TB-21 (COLD_FORM)/22 |
+| P4 | Levothyroxine 50 mcg | Microgram dose; potency adjustment; geometric dilution in staged blends; content uniformity at release | TB-01 → TB-07 ×3 (dilution, uniformity samples) → TB-11/12 frequent weight checks → TB-21 (THERMOFORM)/22 |
+| P5 | Paracetamol 500 mg, high volume | Split granulation in sub-lots combined; rework of approved fines | TB-04/05 ×3 sub-lots → TB-08 rework (QA approval) → TB-07 → compression → TB-21 (STRIP) |
+| P6 | Iron (ferrous fumarate) + folic acid, sugar coated, printed | Sugar coating in five phases; tablet printing with QC approval; inspection/AQL | TB-04/05/02 → TB-07 → compression → TB-18 (SC: seal, sub-coat, smoothing, colour, polish) → TB-19 → TB-20 → TB-21 (STRIP)/22 |
+| P7 | Fungal diastase + papain + activated charcoal | Enzyme activity units (U/mg) in potency adjustment; overages; dry route only; cleaning after a black, dusty powder; microbial limits | TB-01 (activity units) → TB-06 → TB-02 → TB-07 → compression → TB-18 → TB-21 (STRIP)/22 · plant cleaning verified before the next product |
+| P8 | Ondansetron 4 mg orally disintegrating tablet | Soft compression; disintegration in seconds; friability; peel-off blister | TB-01 → TB-07 → compression with low hardness limits (TB-13), TB-14, TB-15 (short limit) → TB-21 (COLD_FORM, peel-off)/22 |
+| P9 | Ofloxacin 200 mg + ornidazole 500 mg, film coated | Two actives, salt adjustment, standard wet route | TB-01 → TB-03/04/05/02 → TB-07 → compression → TB-18 → TB-21/22 |
+| P10 | Montelukast 10 mg + levocetirizine 5 mg | Salt-to-base adjustment; low dose; light/moisture protection | TB-01 → TB-07 (uniformity) → compression → TB-18 → TB-21 (COLD_FORM)/22 |
+| P11 | Metformin SR 500 mg (single active) | Matrix SR; hardness control; dissolution profile (7p) | TB-04/05/02 → TB-07 → compression (TB-13 tight) → TB-21/22 |
+| P12 | Ciprofloxacin 500 mg | Non-beta-lactam antibiotic in normal rooms with cleaning; high dose | TB-01 → TB-04/05/02 → TB-07 → compression → TB-18 → TB-21/22 |
+
+(The beta-lactam product, cephalosporin + clavulanate in a dedicated suite, is R7, slice 7n.)
+
+Capabilities to confirm or build:
+
+| # | Capability | Needed by | Status as far as known |
+|---|---|---|---|
+| C1 | Overages in the formula (deliberate excess per material, with reason; label claim unaffected) | P1, P7 | Not known to exist; build in the R4 formula editor |
+| C2 | Potency adjustment in enzyme activity units (U/mg), not only % assay | P7 | TB-01 handles assay and base equivalents; activity units to confirm |
+| C3 | Several coating steps in a row, each with its own weight-gain target | P3 | Being proven in slice 7o |
+| C4 | Two-stage dissolution (acid stage must not release, buffer stage must) as one release requirement | P3 | To build alongside the 7p profile work |
+| C5 | Dissolution profile as one release requirement | P2, P11 | Being built in 7p |
+| C6 | Staged acceptance L1/L2/L3 (USP/IP) for SR dissolution | P2, P11 for export | Follow-up after 7p |
+| C7 | Content uniformity as a release requirement for low doses | P2, P4, P10 | To confirm in specifications and G-REL |
+| C8 | Peel-off blister pack format | P8 | TB-21 has THERMOFORM/COLD_FORM/STRIP; peel-off to confirm |
+| C9 | Trilayer tablets (TB-16 with three layers) | Optional | TB-16 is bilayer; if it does not generalise, record as a custom-block item, not part of R8 |
+| C10 | Branches merging into one blend (granulates from separate stages plus direct-added materials into one blender, each traced in genealogy) | P1, P2 | MBR format has branches and sub-lots; prove it in P1 |
+
+Definition of done for R8: P1–P8 built and run on screen, each with its browser test green; C1–C5, C7, C8 and C10
+built or confirmed with tests; C6 and C9 recorded as follow-ups; P9–P12 at least built and test-run in the sandbox.
+Guides updated, the hosted demo updated, and a live rehearsal of P1 and P2.
+
 ## Definition of done
 Every requirement has a click-by-click browser test (Tap buttons, no typed URLs) with control IDs; full browser suite,
 golden batches and pnpm run ci green; docs/guides and hosted-demo.md updated; known-issues regenerated; the hosted demo
