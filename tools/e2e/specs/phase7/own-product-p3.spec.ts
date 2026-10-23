@@ -70,31 +70,31 @@ function rabeprazolePlan(lots: (id: string) => string, api: string, tag: string)
       ['MAT-SIO2', '0.150', lots('sio')], ['MAT-MGST', '0.300', lots('mgs')], ['MAT-ECS-01', '2.800', lots('fcs')],
     ],
     binderKg: '1.800',
-    granules: { in: '18.300', out: '18.250', oversize: '0.050' },
+    granules: { in: '17.300', out: '17.250', oversize: '0.050' },
     blendLubricantKg: '0.300',
-    blendNet: '18.650',
+    blendNet: '18.500',
     toolingSet: new RegExp(`TS-RAB-${tag}`),
     sweep: ['124.8', '125.4', '125.9', '124.6'],
-    sideNet: '9.270',
+    sideNet: '9.200',
     sideGroup: { L: '2501.0', R: '2499.0' },
     coresGroup: '2502.0',
     physical: [{ thickness: '5.10', hardness: '95' }, { thickness: '5.12', hardness: '98' }, { thickness: '5.08', hardness: '92' }],
     friability: { tablets: '52', initial: '6.510', final: '6.495' },
     strokes: '148500',
-    compYield: { good: '18.450', residue: '0.100', rejects: '0.050' },
+    compYield: { good: '18.400', residue: '0.100', rejects: '0.050' },
     coating: {
-      panKg: '18.450',
+      panKg: '18.400',
       layers: [
         layer('seal', 'RCP-RTW-COAT', '2.500', '2.300', '2.5000', '2.5500'),
         layer('', 'RCP-RTW-COAT', '9.000', '8.500', '2.5500', '2.7795'),
         layer('top', 'RCP-RTW-COAT', '3.500', '3.200', '2.7795', '2.8629'),
       ],
-      coatedNet: '21.100',
+      coatedNet: '21.070',
       disintegration: 'GASTRO_RESISTANT',
     },
     inspection: {
-      inspected: { count: '147400', mass: '21.100' },
-      accepted: { count: '146600', mass: '20.985' },
+      inspected: { count: '147100', mass: '21.070' },
+      accepted: { count: '146300', mass: '20.955' },
       defects: [['CHIPPED', '500'], ['COLOUR-SPOT', '300']],
       destroyed: { count: '300', mass: '0.043' },
       residue: { count: '500', mass: '0.072' },
@@ -166,6 +166,9 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await setLimit(a, 'Core mean weight', 'upper', '131.3');
     await setLimit(a, 'Coating weight gain', 'lower', '8.0');
     await setLimit(a, 'Coating weight gain', 'upper', '10.0');
+    // The batch's gain over its cores with the three coats (about 14.5 %).
+    await setLimit(a, 'Coating weight gain of the batch', 'lower', '13.0');
+    await setLimit(a, 'Coating weight gain of the batch', 'upper', '16.5');
   }, a);
   await evidence.step('The author adds the seal and top coating layers and saves the revision', 'Three coating layers in the coating stage, each with its own suspension, start weight and gain; the checks pass', async () => {
     await addCoatingLayer(a, /Enteric coating suspension/, { name: 'Seal', coatingType: 'FC', solution: 'FILM_COAT', target: '2.0', max: '2.5', coreLow: '121.3', coreHigh: '128.8', place: 'BEFORE' });

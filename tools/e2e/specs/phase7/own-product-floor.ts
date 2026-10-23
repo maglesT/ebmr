@@ -36,7 +36,7 @@ export function balanceOf(f: Floor, room: string): string {
   return `BAL-${room.split('-')[0] ?? room}-01`;
 }
 /**
- * A unit or another identifier an entry names (HT-01, PRESS-01, a filter bag, a screen) as the floor's installation
+ * A unit or another identifier an entry names that the master does not (HT-01, PRESS-01, a filter bag) as the installation
  * knows it: the sandbox records identifiers only as TEST- ones (DI-05; its plant is labelled so).
  */
 export const instrumentOf = (f: Floor, code: string): string => (f.inst === 'SANDBOX' ? `TEST-${code}` : code);
@@ -227,7 +227,7 @@ export async function clearance(f: Floor, page: Page, area: string, op: SeededPe
     await box.getByRole('textbox', { name: /^Artwork set/ }).fill(packaging.artworkSet);
   }
   await act(page, box.getByRole('button', { name: 'Record the clearance' }), op);
-  await expect(page.getByTestId(`pending-CLEARANCE-${area}`).first()).toBeVisible();
+  await explained(expect(page.getByTestId(`pending-CLEARANCE-${area}`).first()).toBeVisible(), box);
   await as(page, verifier);
   await page.goto(`${base}/plant`);
   await ready(page, verifier);
@@ -352,7 +352,7 @@ async function signOnly(f: Floor, page: Page, key: string, op: SeededPersona, ve
   if (await done(f, page, key)) return;
   await step(f, page, key);
   await begin(page, op);
-  await performAndCheck(page, op, verifier, op);
+  await explained(performAndCheck(page, op, verifier, op), page.locator('main'));
   await completed(page);
 }
 
@@ -559,9 +559,9 @@ export async function granulation(f: Floor, plan: ProcessPlan): Promise<void> {
   if (!(await done(f, page, 'p-mill@'))) {
     await step(f, page, 'p-mill@');
     await begin(page, op);
-    await entry(page, 'SCREEN_CHECK', op, { Screen: unitOf(f, 'SCR-RW-10'), Aperture: { Value: '1.0', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
-    await entry(page, 'MATERIAL_PASS', op, { Screen: unitOf(f, 'SCR-RW-10'), Material: 'Dried granules', 'Quantity in': { Value: plan.granules.in, Unit: 'kg' }, 'Quantity out': { Value: plan.granules.out, Unit: 'kg' }, Oversize: { Value: plan.granules.oversize, Unit: 'kg' }, 'Foreign matter': 'No' });
-    await entry(page, 'SCREEN_CHECK', op, { Screen: unitOf(f, 'SCR-RW-10'), Aperture: { Value: '1.0', Unit: 'mm' }, When: 'AFTER', Result: 'INTACT' });
+    await entry(page, 'SCREEN_CHECK', op, { Screen: 'SCR-RW-10', Aperture: { Value: '1.0', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
+    await entry(page, 'MATERIAL_PASS', op, { Screen: 'SCR-RW-10', Material: 'Dried granules', 'Quantity in': { Value: plan.granules.in, Unit: 'kg' }, 'Quantity out': { Value: plan.granules.out, Unit: 'kg' }, Oversize: { Value: plan.granules.oversize, Unit: 'kg' }, 'Foreign matter': 'No' });
+    await entry(page, 'SCREEN_CHECK', op, { Screen: 'SCR-RW-10', Aperture: { Value: '1.0', Unit: 'mm' }, When: 'AFTER', Result: 'INTACT' });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }
