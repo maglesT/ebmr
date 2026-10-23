@@ -17,7 +17,7 @@ import type { Page } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
-import { act, ANY, as, card, choose, clean, closeKiosks, clearance, clearanceStep, kiosk, statusStep, step, verifyCleanings } from './kiosk-batch-support.ts';
+import { act, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, kiosk, statusStep, step, verifyCleanings } from './kiosk-batch-support.ts';
 import { begin, erpOrders, field } from './route-support.ts';
 
 test.describe.configure({ mode: 'serial' });
@@ -144,8 +144,8 @@ test('[PR-25][IN-39][PR-27] route B refusals 3: in the beta-lactam suite a dispe
     await step(k, e2e, batchId, 'p-disp-rh@', ANY);
     await begin(k, op);
     await field(k, 'dispRoomRh', '45', op);
-    const excursion = card(k).locator('[data-testid^="exception-"]').filter({ hasText: /Room condition dispRoomRh is outside its/ });
-    await expect(excursion.first()).toBeVisible();
+    await expect(k.getByText(/Room condition Relative humidity of the dispensing room is outside its validated limit/).first()).toBeVisible();
+    await expect(k.getByText(/45 % is outside its validated limit/).first()).toBeVisible();
     return { excursion: true };
   }, k);
   await evidence.step('The room\'s use ended from the clearance step: the room is left for cleaning', 'BL-DISP is no longer in use by the batch', async () => {
