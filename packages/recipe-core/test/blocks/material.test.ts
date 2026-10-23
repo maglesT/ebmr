@@ -212,6 +212,94 @@ function chargeMbr(): MbrContent {
 const out = (intermediate: string, container?: string): Record<string, unknown> & { kind: string } => ({ kind: 'OUTPUT_CONTAINER', intermediate, ...(container ? { container } : {}), gross: '2.0', tare: '1.0', unit: 'kg', balance: 'B', source: 'DEVICE' });
 
 describe('G-08 identification and charge-in, G-22 output containers', () => {
+  it('[PR-21][PR-57][IN-26] branches merging into one blend (slice 7q, C10): the granules of a wet and a dry branch and a directly weighed material are charged into one step, each container traced from where it was made to where it went', () => {
+    // Dispensing weighs the wet branch's, the dry branch's and the directly added material; the two branches run in
+    // parallel, each charges its own dispensed material and fills its granules; the blend charges both granules and the
+    // directly weighed container.
+    const g07 = (id: string, line: string, item: string, target: string): PhaseNode =>
+      phase(id, { block: { type: 'G-07', version: '1' }, config: { tolerance: { percent: '0.5' } }, records: [item], reads: [target], consumes: [line] });
+    const mbr = mbrWith(
+      seq(
+        'ops',
+        g07('d-wet', 'B-WET', 'dispWet', 'tWet'),
+        g07('d-dry', 'B-DRY', 'dispDry', 'tDry'),
+        g07('d-direct', 'B-DIRECT', 'dispDirect', 'tDirect'),
+        {
+          kind: 'parallel',
+          id: 'PAR-GRAN',
+          branches: [
+            { id: 'BR-WET', name: 'Wet granulation', body: seq('wet', phase('wet-charge', { block: { type: 'G-08', version: '1' }, consumes: ['B-WET'] }), phase('wet-out', { block: { type: 'G-22', version: '1' }, produces: ['I-WET'] })) },
+            { id: 'BR-DRY', name: 'Dry granulation', body: seq('dry', phase('dry-charge', { block: { type: 'G-08', version: '1' }, consumes: ['B-DRY'] }), phase('dry-out', { block: { type: 'G-22', version: '1' }, produces: ['I-DRY'] })) },
+          ],
+        },
+        phase('blend-charge', { block: { type: 'G-08', version: '1' }, uses: ['I-WET', 'I-DRY'], consumes: ['B-DIRECT'] }),
+      ),
+      {
+        inputs: ['tWet', 'tDry', 'tDirect'].map((id) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: 'kg' })),
+        bom: [
+          { id: 'B-WET', material: 'MAT-MIN', role: 'ACTIVE', quantity: { value: '8', unit: 'kg' } },
+          { id: 'B-DRY', material: 'MAT-VITC', role: 'ACTIVE', quantity: { value: '8', unit: 'kg' } },
+          { id: 'B-DIRECT', material: 'MAT-BEAD', role: 'ACTIVE', quantity: { value: '8', unit: 'kg' } },
+        ],
+        references: [
+          { id: 'RSK', kind: 'RISK_SCALE', code: 'RSK', version: '1', hash: 'a'.repeat(64) },
+          { id: 'MAT-MIN', kind: 'MATERIAL', code: 'MIN-01', version: '1', hash: 'b'.repeat(64) },
+          { id: 'MAT-VITC', kind: 'MATERIAL', code: 'VITC-01', version: '1', hash: 'c'.repeat(64) },
+          { id: 'MAT-BEAD', kind: 'MATERIAL', code: 'BEAD-01', version: '1', hash: 'd'.repeat(64) },
+        ],
+        parameters: ['dispWet', 'dispDry', 'dispDirect'].map((id) => param(id, { precision: { kind: 'DECIMALS', digits: 3 } })),
+        intermediates: [{ id: 'I-WET', name: 'Wet granules' }, { id: 'I-DRY', name: 'Compacted granules' }],
+      },
+    );
+    const target = { kind: 'DECIMAL' as const, value: '8.000', unit: 'kg' };
+    const run = Run.issue(define(mbr), { inputs: { tWet: { value: target, source: 'calc' }, tDry: { value: target, source: 'calc' }, tDirect: { value: target, source: 'calc' } } }, T0);
+    for (const [step, line, material, container] of [['d-wet', 'B-WET', 'MIN-01', 'C-MIN'], ['d-dry', 'B-DRY', 'VITC-01', 'C-VITC'], ['d-direct', 'B-DIRECT', 'BEAD-01', 'C-BEAD']] as const) {
+      run.start(step);
+      run.entry(step, weigh({ item: { 'd-wet': 'dispWet', 'd-dry': 'dispDry', 'd-direct': 'dispDirect' }[step], bomLine: line, container, lot: { id: `AR-${material}`, material, status: 'RELEASED', identityTested: true } }));
+      run.perform(step);
+      run.verify(step);
+    }
+    // Both branches are open at once: the dry branch finishes first.
+    run.start('wet-charge');
+    run.start('dry-charge');
+    run.entry('dry-charge', { kind: 'CHARGE_CONTAINER', container: 'C-VITC', scannedBatch: '$BATCH' });
+    // A branch charges only what it plans: the wet branch's material is no part of the dry branch.
+    expect(run.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'dry-charge', entry: { kind: 'CHARGE_CONTAINER', container: 'C-MIN', scannedBatch: 'B0001' } }).refusal?.code).toBe('G08-UNPLANNED');
+    run.perform('dry-charge');
+    run.verify('dry-charge', [], VER1, 'CHARGE_IN_VERIFIED');
+    run.start('dry-out');
+    run.entry('dry-out', out('I-DRY', 'G-DRY-1'));
+    run.perform('dry-out');
+    run.verify('dry-out');
+    // The blend waits for both branches (the join waits for every branch).
+    expect(run.exec({ type: 'START_STEP', actor: OP1, step: 'blend-charge', context: [] }).refusal?.code).toBe('ENG-NOT-ENABLED');
+    run.entry('wet-charge', { kind: 'CHARGE_CONTAINER', container: 'C-MIN', scannedBatch: '$BATCH' });
+    run.perform('wet-charge');
+    run.verify('wet-charge', [], VER1, 'CHARGE_IN_VERIFIED');
+    run.start('wet-out');
+    run.entry('wet-out', out('I-WET', 'G-WET-1'));
+    run.entry('wet-out', out('I-WET', 'G-WET-2'));
+    run.perform('wet-out');
+    run.verify('wet-out');
+    run.start('blend-charge');
+    for (const c of ['G-WET-1', 'G-DRY-1', 'C-BEAD']) run.entry('blend-charge', { kind: 'CHARGE_CONTAINER', container: c, scannedBatch: '$BATCH' });
+    // Every container of the used granules is charged before the blend completes (G-WET-2 is still in quarantine).
+    expect(run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'blend-charge', signature: sig('PERFORMED', OP1) }, 'G08-MISSING-CONTAINER').message).toContain('G-WET-2');
+    run.entry('blend-charge', { kind: 'CHARGE_CONTAINER', container: 'G-WET-2', scannedBatch: '$BATCH' });
+    run.perform('blend-charge');
+    run.verify('blend-charge', [], VER1, 'CHARGE_IN_VERIFIED');
+    // The trace: each container, what it holds, the step that made it and the step it went into.
+    const trace = Object.values(run.state.containers).map((c) => [c.id, c.holds, c.producedBy, c.consumedBy ?? null]);
+    expect(trace).toEqual([
+      ['C-MIN', 'B-WET', 'd-wet@', 'wet-charge@'],
+      ['C-VITC', 'B-DRY', 'd-dry@', 'dry-charge@'],
+      ['C-BEAD', 'B-DIRECT', 'd-direct@', 'blend-charge@'],
+      ['G-DRY-1', 'I-DRY', 'dry-out@', 'blend-charge@'],
+      ['G-WET-1', 'I-WET', 'wet-out@', 'blend-charge@'],
+      ['G-WET-2', 'I-WET', 'wet-out@', 'blend-charge@'],
+    ]);
+  });
+
   it('[PR-21] a wrong container is rejected, a missing container blocks completion, and a container is charged only once', () => {
     const run = Run.issue(define(chargeMbr()));
     run.start('make');
