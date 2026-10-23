@@ -114,7 +114,7 @@ export async function forgedCommand(db: TestDatabase, batchId: string, type: str
 const qaPairs = new WeakMap<PlantWorld, Promise<{ recorder: SeededActor; approver: SeededActor }>>();
 
 /**
- * Room or line `code` dedicated to beta-lactam products (recipe-core 1600, PR-27): recorded by a QA MBR approver and
+ * Room or line `code` dedicated to beta-lactam products (recipe-core 1655, PR-27): recorded by a QA MBR approver and
  * approved by a QA reviewer (0912), so a beta-lactam batch may be cleared for it and started there.
  */
 export async function dedicateBetaLactam(w: PlantWorld, db: TestDatabase, code: string): Promise<void> {

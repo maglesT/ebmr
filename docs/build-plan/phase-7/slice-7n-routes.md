@@ -1,11 +1,11 @@
 # Slice 7n: a beta-lactam product in a dedicated suite (requirement R7)
 
 Requirement R7 of `demo-trial-requirements.md`: a cephalosporin + clavulanic-acid type tablet made in a dedicated
-beta-lactam suite, with the refusals shown on screen. Branch `phase-7/slice-7n`; migration recipe-core 1600.
+beta-lactam suite, with the refusals shown on screen. Branch `phase-7/slice-7n`; migration recipe-core 1655.
 
 ## What is built
 
-- **Database rule** (`packages/recipe-core/sql/1600_beta_lactam_rooms.sql`, PR-27): a room or line may be dedicated to
+- **Database rule** (`packages/recipe-core/sql/1655_beta_lactam_rooms.sql`, PR-27): a room or line may be dedicated to
   `BETA_LACTAM` (plant.area_dedication, recorded by QA and approved by a second QA person as the hazard dedications are).
   At the clearance of a room or line and at the start of its use, a beta-lactam batch is refused a room not dedicated to
   beta-lactam products (EBMR-PLANT-177) and any other batch is refused a dedicated one (EBMR-PLANT-178), whoever writes
@@ -47,5 +47,8 @@ beta-lactam suite, with the refusals shown on screen. Branch `phase-7/slice-7n`;
   the steps after it until a deviation) and the TB-18 cores step's room limits in the coating room.
 - D-7n-10 (least strict): a unit with no room or line recorded is not checked at its use (the plant list need not place
   portable or bench units); its batch is still checked at its room's clearance and occupancy.
+- D-7n-11: the migration is recipe-core 1655, outside the slice's range 1600-1619: the migration-order check requires a
+  branch's migration to sort after main's highest of its directory, and 7m's 1650 merged first; 1651-1659 was left
+  unused by 7m and sorts before 7p's 1660 to 1662.
 - D-7n-9: the long batch test reuses the shared kiosk helpers of the route specs (which open screens by address, as
   route W does); the refusals spec likewise until the home link of slice 7k is on main.

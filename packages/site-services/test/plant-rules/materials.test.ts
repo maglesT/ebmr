@@ -74,7 +74,7 @@ describe('the penicillin facility (PR-27)', () => {
     const product = await w.product();
     await approved('PRODUCT', product, await steward<number>("select plant.classify_beta_lactam('PRODUCT', $1, true, 'Amoxicillin capsules') as r", [product]));
     const room = await w.room();
-    // A room dedicated to beta-lactam products (recipe-core 1600): the site's penicillin rule is what refuses the start.
+    // A room dedicated to beta-lactam products (recipe-core 1655): the site's penicillin rule is what refuses the start.
     await dedicateBetaLactam(w, db, room.code);
     await expect(occupy(w, room.code, 'PEN-1', product)).rejects.toThrow(new RegExp(`EBMR-PLANT-170 product ${product} is beta-lactam`));
     // Success: the site is declared a penicillin facility (dedicated, separate air handling); receipt and start pass.

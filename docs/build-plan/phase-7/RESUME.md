@@ -233,16 +233,17 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 
 ## Slice 7n (23 October 2026): R7, a beta-lactam product in a dedicated suite
 
-From `demo-trial-requirements.md` R7, on branch `phase-7/slice-7n`; migration recipe-core 1600. Details and the full
+From `demo-trial-requirements.md` R7, on branch `phase-7/slice-7n`; migration recipe-core 1655. Details and the full
 decision text in `slice-7n-routes.md`.
 - D-7n-1: the suite and route B are seeded by `cli/demo-route-beta-lactam.ts`, one line in `cli/installation.ts` after
   the demo routes (the masters need the in-process demo server; features do not import the CLI).
 - D-7n-2: rooms are dedicated to beta-lactam products through the IN-27 area dedications with a fourth class
-  `BETA_LACTAM` (QA records, a second QA person approves); recipe-core 1600 refuses a beta-lactam batch in a room not
+  `BETA_LACTAM` (QA records, a second QA person approves); recipe-core 1655 refuses a beta-lactam batch in a room not
   dedicated (EBMR-PLANT-177) and any other batch in a dedicated one (EBMR-PLANT-178), at clearance and room start.
 - D-7n-3: rooms and lines, and each unit's use by the room the unit stands in (review P7N-1); the site-wide
   penicillin rule is unchanged.
 - D-7n-10: a unit with no room recorded is not checked at its use.
+- D-7n-11: the migration is recipe-core 1655 (7m's 1650 merged first; the migration-order check).
 - D-7n-4: the ERP master flags the product beta-lactam; the plant classification of the product and its two actives is
   made on screen in the browser test, not seeded.
 - D-7n-5: the suite's dedications and SITE-1's penicillin facility rule are seeded through the real commands and

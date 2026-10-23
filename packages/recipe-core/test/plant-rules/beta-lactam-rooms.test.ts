@@ -1,5 +1,5 @@
 /**
- * Rooms and lines dedicated to beta-lactam products (recipe-core 1600; Phase 7 slice 7n, requirement R7; PR-27). QA
+ * Rooms and lines dedicated to beta-lactam products (recipe-core 1655; Phase 7 slice 7n, requirement R7; PR-27). QA
  * records a BETA_LACTAM dedication of a room and a second QA person approves it (0912). At a penicillin facility a
  * beta-lactam batch is cleared for and started only in a dedicated room (EBMR-PLANT-177), and any other batch is refused
  * in one (EBMR-PLANT-178); both at the clearance and at the start of the room's use, whoever writes the row. As the

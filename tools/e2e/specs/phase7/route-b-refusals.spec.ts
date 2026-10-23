@@ -5,7 +5,7 @@
  * BL-PL dedicated to beta-lactam products with a second QA person's approval) and the route B and GB-T-02 masters;
  * the ERP interface sends the orders.
  *  1. A beta-lactam batch (route B) is refused the clearance of COAT-1, a room not dedicated to beta-lactam products
- *     (EBMR-PLANT-177; recipe-core 1600, PR-27).
+ *     (EBMR-PLANT-177; recipe-core 1655, PR-27).
  *  2. A GB-T-02 batch (not beta-lactam) is refused the clearance of BL-DISP (clean), a room of the beta-lactam suite
  *     (EBMR-PLANT-178).
  *  3. In the suite, a dispensing-room humidity of 45 % RH against the suite's limit of 30 % raises the environmental

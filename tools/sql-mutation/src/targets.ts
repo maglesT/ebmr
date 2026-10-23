@@ -1198,7 +1198,7 @@ export const TARGETS: Target[] = [
   },
   // ---- 6b, equipment, alarms and plant rules: area authorisation, reagent lots, room, adjacency and beta-lactam rules,
   //      step rules and the alarm review at batch review (kernel 1190; site services 0940; recipe-core 0973, 0974),
-  //      the beta-lactam suite's rooms (recipe-core 1600, slice 7n) ----
+  //      the beta-lactam suite's rooms (recipe-core 1655, slice 7n) ----
   {
     group: 'plant-rules',
     functions: ['iam.area_authorisation_code', 'iam.create_area_authorisation_type', 'iam.person_area_authorised',

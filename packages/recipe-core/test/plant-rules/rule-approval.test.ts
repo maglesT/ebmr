@@ -85,7 +85,7 @@ describe('the penicillin facility rule and the beta-lactam classification need Q
     expect((await db.app.query('select beta_lactam, approved_version, pending from plant.beta_lactam_class_in_force where subject_kind = $1 and code = $2', ['PRODUCT', product])).rows)
       .toEqual([{ beta_lactam: true, approved_version: null, pending: true }]);
     const room = await w.room();
-    // A room dedicated to beta-lactam products (recipe-core 1600): the site's penicillin rule is what refuses the start.
+    // A room dedicated to beta-lactam products (recipe-core 1655): the site's penicillin rule is what refuses the start.
     await dedicateBetaLactam(w, db, room.code);
     await expect(occupy(w, room.code, 'PEN-A', product)).rejects.toThrow(new RegExp(`EBMR-PLANT-170 product ${product} is beta-lactam`));
     await approveClass(cls, await signClass(cls));

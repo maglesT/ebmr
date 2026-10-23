@@ -28,7 +28,7 @@ export const LicenceState = z.enum(['DRAFT', 'APPROVED', 'SUSPENDED']);
 export type LicenceState = z.infer<typeof LicenceState>;
 export const HazardClass = z.enum(['NONE', 'SEX_HORMONE', 'STEROID', 'CYTOTOXIC']);
 export type HazardClass = z.infer<typeof HazardClass>;
-/** The class a room or line is dedicated to: a hazard class, or BETA_LACTAM (recipe-core 1600, PR-27; slice 7n). */
+/** The class a room or line is dedicated to: a hazard class, or BETA_LACTAM (recipe-core 1655, PR-27; slice 7n). */
 export const DedicationClass = z.enum(['SEX_HORMONE', 'STEROID', 'CYTOTOXIC', 'BETA_LACTAM']);
 export type DedicationClass = z.infer<typeof DedicationClass>;
 

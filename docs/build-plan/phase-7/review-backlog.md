@@ -236,7 +236,7 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 
 - P7N-1 (fixed): a unit's use needs no room occupancy (plant.start_equipment_use, recipe-core 0403), so a beta-lactam
   batch could use a unit standing in a room not dedicated to beta-lactam products, or any batch a unit of the suite.
-  Recipe-core 1600 now also guards plant.equipment_use (before insert, whoever writes) by the room or line the unit stands
+  Recipe-core 1655 now also guards plant.equipment_use (before insert, whoever writes) by the room or line the unit stands
   in; a unit with no room is not checked (D-7n-10). Test `beta-lactam-rooms.test.ts`, both ways.
 - P7N-2 (fixed, tests): two cases had no test: a beta-lactam classification made after the batch was issued counts at
   once (the rule reads it live), and a later dedication not yet approved leaves the earlier approved one in force.

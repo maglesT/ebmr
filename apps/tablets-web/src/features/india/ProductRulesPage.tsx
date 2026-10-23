@@ -178,7 +178,7 @@ function RecordProductHazard() {
 
 function RecordAreaDedication() {
   const record = useCommand(routes.india.recordHazard, INDIA_READS);
-  // Slice 7n (R7): a room or line may also be dedicated to beta-lactam products (recipe-core 1600, PR-27).
+  // Slice 7n (R7): a room or line may also be dedicated to beta-lactam products (recipe-core 1655, PR-27).
   const classes: readonly DedicationClass[] = ['SEX_HORMONE', 'STEROID', 'CYTOTOXIC', 'BETA_LACTAM'];
   const [area, setArea] = useState('');
   const [cls, setCls] = useState<DedicationClass>('STEROID');

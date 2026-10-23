@@ -9,7 +9,7 @@
  *  3. SITE-1 a penicillin facility: proposed by the master-data steward and approved by QA (recipe-core 1210, PR-27);
  *     the manufacturing licence that endorses the product, with its export permissions for the US and the EU;
  *  4. the suite: rooms BL-DISP, BL-BLEND, BL-COMP, BL-COAT and the alu-alu line BL-PL, each dedicated to beta-lactam
- *     products by the QA MBR approver and approved by a QA reviewer (recipe-core 0890, 0912, 1600), the line flagged
+ *     products by the QA MBR approver and approved by a QA reviewer (recipe-core 0890, 0912, 1655), the line flagged
  *     isolated (tablets 0970); its units defined,
  *     qualified and (the balances) calibrated and in the device registry; the press tooling; cleaned and verified;
  *  5. the route B masters (demo-route-masters-b.ts) approved and authorised for India, the US and the EU, with their

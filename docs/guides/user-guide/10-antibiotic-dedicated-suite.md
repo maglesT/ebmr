@@ -61,5 +61,5 @@ QC records and approves the lot's results, both records are reviewed, and the au
 
 A room must be clean before any clearance; a dirty room is refused for that reason first, so show the refusals in clean
 rooms. The same rules hold for the start of a room's use, not only for its clearance, and for any writer: they are database
-rules (recipe-core 1600), not checks of the screen. A room's dedication counts only once a second QA person has
+rules (recipe-core 1655), not checks of the screen. A room's dedication counts only once a second QA person has
 approved it; a withdrawal of the dedication counts at once.
