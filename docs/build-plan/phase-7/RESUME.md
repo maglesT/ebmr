@@ -233,7 +233,7 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 
 ## Slice 7p (23 October 2026): R4 third check, a dissolution profile as one release requirement (and R8 C4, C7)
 
-Branch `phase-7/slice-7p`; migrations site-services 1640, recipe-core 1645; messages EBMR-SITE-970 to 979. Details and
+Branch `phase-7/slice-7p`; migrations site-services 1640, recipe-core 1655; messages EBMR-SITE-970 to 979. Details and
 decisions D-7p-1 to D-7p-7 in `slice-7p-routes.md`: profile tests with ordered points (and stages for a two-stage test),
 results per point from QC and LIMS judged by the database, one checklist item `G3.PROFILE_<test>` per profile, screens,
 the demo SR product GLV-SR-500 with two finished lots (`cli/demo-sr-profile.ts`), browser spec `phase7/sr-profile.spec.ts`.

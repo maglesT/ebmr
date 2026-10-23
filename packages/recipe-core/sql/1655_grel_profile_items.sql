@@ -65,7 +65,7 @@ begin
   -- Slice 6a: the licence and export permission item (0892).
   v_items := (select coalesce(jsonb_agg(case when i ->> 'id' = 'G6.LICENCE' then recipe.grel_licence_item(p_lot, p_market) else i end order by n), '[]'::jsonb)
                 from jsonb_array_elements(v_items) with ordinality t(i, n));
-  -- Phase 7 slice 7p: each profile test of the specification as one item; G3.LIMS lists its points as one entry (1645).
+  -- Phase 7 slice 7p: each profile test of the specification as one item; G3.LIMS lists its points as one entry (1655).
   v_items := (select coalesce(jsonb_agg(case when i ->> 'id' = 'G3.LIMS' then recipe.grel_lims_profile_evidence(i, p_lot) else i end order by n), '[]'::jsonb)
                 from jsonb_array_elements(v_items) with ordinality t(i, n))
              || recipe.grel_profile_items(p_lot);

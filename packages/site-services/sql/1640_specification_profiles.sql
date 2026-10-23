@@ -29,7 +29,7 @@
 --     result, with its points, their current RELEASE results and latest LIMS values, and one status: PASS (every point
 --     has an approved current result within its limits), FAIL (a point's current result is outside its limits and the
 --     failure is not resolved) or OPEN (a point has no current result, or one not approved yet). The release checklist
---     (recipe-core 1645) shows each profile as one item from it.
+--     (recipe-core 1655) shows each profile as one item from it.
 --   * LIMS (site services 0926): a lims.sample_result may name the point (payload field "point"); for a profile test of
 --     the lot's specification in effect the point is required and must be one of its points, and a point for a single
 --     test is refused (EBMR-SITE-973). The row records the specification test, the point and its limits when the LIMS
@@ -429,7 +429,7 @@ begin
     end if;
   end loop;
   -- Each profile is its own release checklist item, named from its test code with every character other than A-Z, 0-9
-  -- and _ read as _ (recipe-core 1645): two profiles whose codes read the same there (DISS.1 and DISS-1) are refused.
+  -- and _ read as _ (recipe-core 1655): two profiles whose codes read the same there (DISS.1 and DISS-1) are refused.
   if exists (select 1 from jsonb_array_elements(p -> 'tests') x where x ? 'points'
               group by left(regexp_replace(x ->> 'testCode', '[^A-Z0-9_]', '_', 'g'), 56) having count(*) > 1) then
     raise exception using errcode = 'P0001',

@@ -1185,7 +1185,7 @@ of each database function.
 
 **Migrations** (7):
 
-- `packages/recipe-core/sql`: [0780_grel_interfaces.sql](../../packages/recipe-core/sql/0780_grel_interfaces.sql), [0781_manufacturer_release.sql](../../packages/recipe-core/sql/0781_manufacturer_release.sql), [0782_release_reads.sql](../../packages/recipe-core/sql/0782_release_reads.sql), [0783_justification_links.sql](../../packages/recipe-core/sql/0783_justification_links.sql), [0892_grel_licence_item.sql](../../packages/recipe-core/sql/0892_grel_licence_item.sql), [0932_grel_validation_basis_lineage.sql](../../packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql), [1645_grel_profile_items.sql](../../packages/recipe-core/sql/1645_grel_profile_items.sql)
+- `packages/recipe-core/sql`: [0780_grel_interfaces.sql](../../packages/recipe-core/sql/0780_grel_interfaces.sql), [0781_manufacturer_release.sql](../../packages/recipe-core/sql/0781_manufacturer_release.sql), [0782_release_reads.sql](../../packages/recipe-core/sql/0782_release_reads.sql), [0783_justification_links.sql](../../packages/recipe-core/sql/0783_justification_links.sql), [0892_grel_licence_item.sql](../../packages/recipe-core/sql/0892_grel_licence_item.sql), [0932_grel_validation_basis_lineage.sql](../../packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql), [1655_grel_profile_items.sql](../../packages/recipe-core/sql/1655_grel_profile_items.sql)
 
 **Database objects** created in these migrations:
 
