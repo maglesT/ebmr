@@ -411,6 +411,37 @@ describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consume
       )
     ).rows.map((r) => [r.lot, r.batch, r.quantity, r.unit]);
 
+  it('[PR-19][DI-33][DI-37] slice 7q (C2): on GMP an enzyme activity comes from an approved, passing ACTIVITY result of the lot in U/mg; a percent result, an activity in another unit or an activity on a percent basis is refused', async () => {
+    const lot = lotIds.get('L26-0202') ?? '';
+    const qc = async () => ({ ...(await openPersonaSession(gmp.db, gmp.seed, 'qcAnalyst')), correlationId: randomUUID() });
+    const record = async (result: Record<string, unknown>) =>
+      withCommand(gmp.db.app, await qc(), (c) => c.query('select tab.record_lot_assay($1, $2, $3::jsonb, $4) as id', ['L26-0202', SITE, JSON.stringify(result), 'Enzyme activity from LIMS']));
+    const codeOf = async (p: Promise<unknown>): Promise<string> => p.then(() => 'ok', (e: unknown) => /\[(EBMR-[A-Z]+-\d{3})\]|^(EBMR-[A-Z]+-\d{3})/.exec(e instanceof Error ? e.message : String(e))?.slice(1).find(Boolean) ?? String(e));
+    const lims = async (test: string, value: string, unit: string): Promise<string> => {
+      let id = '';
+      await arrange(async (c) => {
+        const { rows } = await c.query<{ id: string }>(
+          "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, $2, 'STP-ENZ-01', 'RELEASE', $3::numeric, $4, 90, 2000, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
+          [lot, test, value, unit],
+        );
+        id = rows[0]?.id ?? '';
+        await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
+      });
+      return id;
+    };
+    const percent = await lims('ASSAY', '99.5', '%');
+    const perGram = await lims('ACTIVITY', '1250', 'U/g');
+    const activity = await lims('ACTIVITY', '1250', 'U/mg');
+    expect(await codeOf(record({ basis: 'ACTIVITY', assayResultId: percent, certificateRef: 'LIMS-ENZ' }))).toBe('EBMR-EXE-606');
+    expect(await codeOf(record({ basis: 'ACTIVITY', assayResultId: perGram, certificateRef: 'LIMS-ENZ' }))).toBe('EBMR-EXE-606');
+    expect(await codeOf(record({ basis: 'AS_IS', assayResultId: activity, certificateRef: 'LIMS-ENZ' }))).toBe('EBMR-EXE-606');
+    expect(await codeOf(record({ basis: 'ACTIVITY', assay: '1250', certificateRef: 'COA-TYPED' }))).toBe('EBMR-EXE-606');
+    expect(await codeOf(record({ basis: 'ACTIVITY', assayResultId: activity, certificateRef: 'LIMS-ENZ' }))).toBe('ok');
+    const batch = await issued();
+    const read = (await gmp.db.app.query<{ r: Record<string, string> | null }>('select tab.lot_assay_of($1, $2) as r', ['L26-0202', batch.batchId])).rows[0]?.r ?? null;
+    expect(read).toMatchObject({ basis: 'ACTIVITY', assay: '1250' });
+  });
+
   it('[INV-13][INV-14][PR-57] a G-07 weighing of a site lot on GMP is consumed from the batch\'s reservation in the same command, so the genealogy holds the lot', async () => {
     const d = await dispenser(b.batchId);
     await d.ok('operator1', { type: 'START_STEP', stepKey: G07_KEY });

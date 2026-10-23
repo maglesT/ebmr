@@ -724,8 +724,9 @@ export const TARGETS: Target[] = [
                 'recipe.formula_version_content', 'recipe.formula_read', 'recipe.formula_choice',
                 'recipe.formula_version_for_mbr', 'recipe.formula_pin_mbr', 'recipe.mbr_formula_of',
                 'recipe.formula_listing', 'recipe.formula_choice_of', 'recipe.formula_mbr_problem',
-                'recipe.formula_bom_line_on_base'],
-    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts')],
+                'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json'],
+    // Slice 7q (recipe-core 1660): the overage with its reason, re-created writers and the BOM's overage statement.
+    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: process devices, readings, setpoint downloads, alarms, device units, G-06 values and exceptions,

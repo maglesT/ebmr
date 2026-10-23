@@ -29,7 +29,7 @@
  */
 import { Dec } from '@ebmr/expr';
 import { blocks, type flow } from '@ebmr/recipe-core/pure';
-import { ASSAY_BASES, potencyTargets, type AssayBasis, type PotencyInput, type PotencyResult } from './dispensing/potency.ts';
+import { ACTIVITY_BASIS, ASSAY_BASES, ASSAY_BASES_V2, MG_PER_UNIT, potencyTargets, type AssayBasisV2, type PotencyInput, type PotencyResult } from './dispensing/potency.ts';
 
 type BlockVersion = blocks.BlockVersion;
 type HandlerView = blocks.HandlerView;
@@ -45,6 +45,8 @@ export const TB01_CONTROLS = ['PR-04', 'PR-18', 'PR-19', 'PR-20', 'IN-23', 'IN-2
 /** The engine role of the designated dispenser (kernel role DISPENSER via DISPENSE.EXECUTE, recipe-core 0270). */
 export const DISPENSER_ROLE = 'DISPENSER';
 export const FORMULA = 'TB-01@1';
+/** The calculation of an activity lot (TB-01@2, slice 7q): standard x declared activity / the lot's activity. */
+export const FORMULA_ACTIVITY = 'TB-01@2';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DIGITS = /^[0-9]{1,20}$/;
 
@@ -183,7 +185,7 @@ const CONFIG_SCHEMA: ObjectSchema = {
 // Configuration
 
 export interface Tb01Config {
-  active: { bomLine: string; basis: AssayBasis; standardIs: 'BASE' | 'FORM'; form?: { molarMassForm: string; molarMassBase: string; baseMoieties: number; hydrateWaters: number }; overagePercent: string; maxLots: number };
+  active: { bomLine: string; basis: AssayBasisV2; standardIs: 'BASE' | 'FORM'; form?: { molarMassForm: string; molarMassBase: string; baseMoieties: number; hydrateWaters: number }; overagePercent: string; maxLots: number; declaredActivity?: string };
   excipient?: { bomLine: string; min: string; max: string };
   readability: string;
   tolerance: { active: string; excipient?: string };
@@ -199,11 +201,12 @@ export function tb01Config(config: Readonly<Record<string, unknown>>): Tb01Confi
   return {
     active: {
       bomLine: String(a['bomLine']),
-      basis: String(a['basis']) as AssayBasis,
+      basis: String(a['basis']) as AssayBasisV2,
       standardIs: a['standardIs'] === 'FORM' ? 'FORM' : 'BASE',
       ...(f ? { form: { molarMassForm: String(f['molarMassForm']), molarMassBase: String(f['molarMassBase']), baseMoieties: Number(f['baseMoieties']), hydrateWaters: Number(f['hydrateWaters']) } } : {}),
       overagePercent: text(a['overagePercent']) ?? '0',
       maxLots: typeof a['maxLots'] === 'number' ? a['maxLots'] : 3,
+      ...(text(a['declaredActivity']) !== undefined ? { declaredActivity: text(a['declaredActivity']) as string } : {}),
     },
     ...(c['mode'] === 'EXCIPIENT' ? { excipient: { bomLine: String(c['bomLine']), min: text(c['min']) ?? '0', max: text(c['max']) ?? '0' } } : {}),
     readability: String(config['readability']),
@@ -286,7 +289,7 @@ export function potencyInput(c: Tb01Config, mbr: MbrContent, lots: { assay: Reco
     overagePercent: c.active.overagePercent,
     lots: lots.map((l) => ({
       assay: {
-        basis: String(l.assay['basis']) as AssayBasis,
+        basis: String(l.assay['basis']) as AssayBasisV2,
         assay: String(l.assay['assay']),
         ...(text(l.assay['water']) !== undefined ? { water: text(l.assay['water']) as string } : {}),
         ...(text(l.assay['lod']) !== undefined ? { lod: text(l.assay['lod']) as string } : {}),
@@ -296,6 +299,9 @@ export function potencyInput(c: Tb01Config, mbr: MbrContent, lots: { assay: Reco
     })),
     ...(c.excipient && exc ? { excipient: { standard: exc.quantity.value, min: c.excipient.min, max: c.excipient.max } } : {}),
     readability: c.readability,
+    ...(c.active.declaredActivity !== undefined && active && MG_PER_UNIT[active.quantity.unit] !== undefined
+      ? { activity: { declared: c.active.declaredActivity, mgPerUnit: MG_PER_UNIT[active.quantity.unit] as string } }
+      : {}),
   };
 }
 
@@ -316,12 +322,13 @@ export function calculationData(c: Tb01Config, mbr: MbrContent, lots: { lot: Rec
       overagePercent: c.active.overagePercent,
       factor: r.factor,
       standard: r.standard,
+      ...(r.activity ? { activity: r.activity } : {}),
     },
     excipient: c.excipient && r.excipient ? { bomLine: c.excipient.bomLine, ...r.excipient } : null,
     total: r.total,
     adjustmentPercent: r.adjustmentPercent,
     readability: c.readability,
-    formula: FORMULA,
+    formula: c.active.basis === ACTIVITY_BASIS ? FORMULA_ACTIVITY : FORMULA,
   };
 }
 
@@ -526,7 +533,7 @@ function nominalEntries({ phase, config, mbr }: Parameters<blocks.SimulatorModel
   const c = tb01Config(config);
   const active = mbr.bom.find((b) => b.id === c.active.bomLine);
   const ref = (b: flow.BomLine | undefined) => mbr.references.find((r) => r.id === b?.material)?.code ?? b?.material ?? 'MAT';
-  const assay: Record<string, unknown> = { resultId: '00000000-0000-4000-8000-000000000001', basis: c.active.basis, assay: '100.0' };
+  const assay: Record<string, unknown> = { resultId: '00000000-0000-4000-8000-000000000001', basis: c.active.basis, assay: c.active.basis === ACTIVITY_BASIS ? (c.active.declaredActivity ?? '1') : '100.0' };
   if (c.active.basis === 'ANHYDROUS_WATER' || c.active.basis === 'ANHYDROUS_SOLVENT_FREE') assay['water'] = '0';
   if (c.active.basis === 'ANHYDROUS_SOLVENT_FREE') assay['solvents'] = '0';
   if (c.active.basis === 'DRIED_LOD') assay['lod'] = '0';
@@ -671,4 +678,109 @@ export const TB01: BlockVersion = {
     expect: { exceptions: [], status: 'COMPLETED', values: { dispApi: '8.742', dispMcc: '19.531' } },
   },
   tests: ['apps/tablets-server/test/blocks/dispensing/potency.test.ts', 'apps/tablets-server/test/blocks/dispensing/tb-01.test.ts', 'apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts'],
+};
+
+// ---------------------------------------------------------------------------------------------
+// TB-01@2 (Phase 7 slice 7q, requirement R8 capability C2): potency adjustment in enzyme activity units
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * TB-01@2: as TB-01@1, and an active whose lots are judged by their enzyme activity (U/mg, the lot register's approved
+ * result from LIMS or the CoA, basis ACTIVITY) instead of a percent assay. The MBR states the activity its standard
+ * quantity is at (active.declaredActivity, U/mg, with the standard on the material itself, standardIs FORM); a lot of
+ * activity A takes standard x declared / A (rounded UP to the readability, so the batch never holds fewer units than its
+ * label claim), and the compensating excipient keeps the batch total as for an assay. The calculation stores each lot's
+ * activity, its activity relative to the declared one and the label claim of the batch in units (the standard with its
+ * overage x the declared activity), exactly; the database repeats it (tablets 1662). TB-01@1 stays as released for the
+ * masters and batches that use it (ADR 0010: a released version never changes).
+ */
+function checkConfigV2(phase: PhaseNode, config: Readonly<Record<string, flow.JsonValue>>, mbr: MbrContent): ConfigProblem[] {
+  const out = checkConfig(phase, config, mbr);
+  const c = tb01Config(config);
+  const err = (message: string): void => {
+    out.push({ code: 'TB01-ACTIVITY', severity: 'ERROR', message: `${message} (TB01-ACTIVITY)`, controls: ['PR-19', 'DI-33'] });
+  };
+  if (c.active.basis === ACTIVITY_BASIS) {
+    if (c.active.declaredActivity === undefined) err('an active judged by its activity states the activity (U/mg) its standard quantity is at');
+    if (c.active.standardIs !== 'FORM' || c.active.form) err('an active judged by its activity states its standard on the material itself (FORM), without a salt form');
+    const active = mbr.bom.find((b) => b.id === c.active.bomLine);
+    if (active && MG_PER_UNIT[active.quantity.unit] === undefined) err(`the active's standard quantity is in ${active.quantity.unit}; the label claim in units needs kg, g or mg`);
+  } else if (c.active.declaredActivity !== undefined) {
+    err(`a declared activity is stated only with the ACTIVITY basis, not ${c.active.basis}`);
+  }
+  return out;
+}
+
+const ACTIVE_V1 = CONFIG_SCHEMA.fields['active'] as ObjectSchema;
+const CONFIG_SCHEMA_V2: ObjectSchema = {
+  ...CONFIG_SCHEMA,
+  fields: {
+    ...CONFIG_SCHEMA.fields,
+    active: {
+      ...ACTIVE_V1,
+      fields: {
+        ...ACTIVE_V1.fields,
+        basis: { type: 'string', enum: [...ASSAY_BASES_V2], description: 'Assay basis (or ACTIVITY: the lot\'s enzyme activity in U/mg); it must match the basis of the lot result (no default)' },
+        declaredActivity: { ...DECIMAL_POSITIVE, optional: true, description: 'ACTIVITY basis: the activity in U/mg the BOM\'s standard quantity is stated at (slice 7q, C2)' },
+      },
+    },
+  },
+};
+
+const ASSAY_SCHEMA_V2: ObjectSchema = {
+  ...ASSAY_SCHEMA,
+  fields: {
+    ...ASSAY_SCHEMA.fields,
+    basis: { type: 'string', enum: [...ASSAY_BASES_V2], description: 'The basis the assay is reported on (C-01), or ACTIVITY (U/mg)' },
+    assay: { type: 'decimal', description: 'Assay, % w/w on its basis; for ACTIVITY the activity in U/mg' },
+  },
+};
+const LOTS_V1 = CALCULATION_ENTRY.fields['lots'] as Extract<FieldSchema, { type: 'array' }>;
+const LOT_ITEM_V1 = LOTS_V1.items as ObjectSchema;
+const CALCULATION_ENTRY_V2: ObjectSchema = {
+  ...CALCULATION_ENTRY,
+  fields: { lots: { ...LOTS_V1, items: { ...LOT_ITEM_V1, fields: { ...LOT_ITEM_V1.fields, assay: ASSAY_SCHEMA_V2 } } } },
+};
+
+const ENZYME_LOT = { id: 'AR-FDS-1', material: 'MAT-FDS', status: 'RELEASED', identityTested: true };
+
+export const TB01_V2: BlockVersion = {
+  ...TB01,
+  version: '2',
+  title: 'Potency/assay/LOD- or activity-adjusted dispensing with compensating excipient',
+  configSchema: CONFIG_SCHEMA_V2,
+  dataSchema: { entries: { POTENCY_CALCULATION: CALCULATION_ENTRY_V2, CONTAINER_WEIGHING: WEIGHING_ENTRY } },
+  checkConfig: checkConfigV2,
+  goldenFixture: {
+    description:
+      'Fungal diastase (slice 7q, C2): the standard 2.000 kg at a declared 100 U/mg (a label claim of 200,000,000 U); the lot assayed 125 U/mg takes 1.600 kg and the lactose rises to 10.400 kg; both dispensed into labelled containers and checked',
+    controls: ['PR-19', 'DI-33'],
+    phase: {
+      block: { type: 'TB-01', version: '2' },
+      config: {
+        active: { bomLine: 'BOM-FDS', basis: 'ACTIVITY', standardIs: 'FORM', standardBasis: 'fungal diastase at 100 U/mg', declaredActivity: '100' },
+        compensation: { mode: 'EXCIPIENT', bomLine: 'BOM-LAC', min: '9.000', max: '11.000' },
+        readability: '0.001',
+        tolerancePercent: { active: '0.5', excipient: '1.0' },
+      },
+      records: ['dispFds', 'dispLac'],
+      consumes: ['BOM-FDS', 'BOM-LAC'],
+      signatures: { perform: { role: DISPENSER_ROLE }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } },
+    },
+    bom: [
+      { id: 'BOM-FDS', material: 'MAT-FDS', role: 'ACTIVE', quantity: { value: '2.000', unit: 'kg' } },
+      { id: 'BOM-LAC', material: 'MAT-LAC', role: 'EXCIPIENT', quantity: { value: '10.000', unit: 'kg' } },
+    ],
+    parameters: [
+      { id: 'dispFds', name: 'Fungal diastase dispensed', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' },
+      { id: 'dispLac', name: 'Lactose dispensed', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'NON_CRITICAL', riskClass: 'MEDIUM', capture: 'DEVICE' },
+    ],
+    script: [
+      { entry: { kind: 'POTENCY_CALCULATION', lots: [{ lot: ENZYME_LOT, assay: { resultId: '00000000-0000-4000-8000-0000000000b1', basis: 'ACTIVITY', assay: '125' } }] } },
+      { entry: { kind: 'CONTAINER_WEIGHING', item: 'dispFds', bomLine: 'BOM-FDS', container: 'C-101', lot: ENZYME_LOT, gross: '2.850', tare: '1.250', unit: 'kg', balance: 'BAL-07', source: 'DEVICE' } },
+      { entry: { kind: 'CONTAINER_WEIGHING', item: 'dispLac', bomLine: 'BOM-LAC', container: 'C-102', lot: { id: 'AR-LAC-1', material: 'MAT-LAC', status: 'RELEASED', identityTested: true }, gross: '11.900', tare: '1.500', unit: 'kg', balance: 'BAL-07', source: 'DEVICE' } },
+    ],
+    expect: { exceptions: [], status: 'COMPLETED', values: { dispFds: '1.600', dispLac: '10.400' } },
+  },
+  tests: [...(TB01.tests ?? []), 'apps/tablets-server/test/blocks/dispensing/tb-01-activity.test.ts'],
 };

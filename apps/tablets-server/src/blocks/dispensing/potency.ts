@@ -15,10 +15,21 @@ import { Dec } from '@ebmr/expr';
 /** The basis the lot's assay is reported on (the CoA or LIMS result field), C-01. */
 export const ASSAY_BASES = ['AS_IS', 'ANHYDROUS_WATER', 'DRIED_LOD', 'ANHYDROUS_SOLVENT_FREE'] as const;
 export type AssayBasis = (typeof ASSAY_BASES)[number];
+/**
+ * TB-01@2 (slice 7q, R8 C2): the lot's result is an enzyme activity in units per mg (U/mg, from the CoA or LIMS), not a
+ * percent assay. The standard quantity is stated at the declared activity; a lot of activity A takes standard x
+ * declared / A, and the label claim in units is the standard (with its overage) times the declared activity.
+ */
+export const ACTIVITY_BASIS = 'ACTIVITY';
+export const ASSAY_BASES_V2 = [...ASSAY_BASES, ACTIVITY_BASIS] as const;
+export type AssayBasisV2 = (typeof ASSAY_BASES_V2)[number];
+/** mg in one BOM mass unit, for the label claim in units (U = mg x U/mg). */
+export const MG_PER_UNIT: Readonly<Record<string, string>> = { kg: '1000000', g: '1000', mg: '1' };
 
 /** The approved assay result of one lot, as the lot register holds it (percent w/w, decimal text). */
 export interface LotAssay {
-  basis: AssayBasis;
+  /** ACTIVITY (TB-01@2): `assay` is the activity in U/mg. */
+  basis: AssayBasisV2;
   assay: string;
   water?: string;
   lod?: string;
@@ -40,10 +51,15 @@ export interface PotencyInput {
   excipient?: { standard: string; min: string; max: string };
   /** The balance readability the targets are rounded to, in `unit`. */
   readability: string;
+  /** TB-01@2: the activity (U/mg) the standard quantity is stated at, and mg per BOM unit (for the label claim in units). */
+  activity?: { declared: string; mgPerUnit: string };
 }
 
 export interface PotencyLotResult {
+  /** For an activity lot: its activity relative to the declared one, in percent (shown at six decimals). */
   asIsAssay: string;
+  /** TB-01@2: the lot's activity in U/mg, exact. */
+  activity?: string;
   baseEquivalent: string;
   calculated: string;
   target: string;
@@ -57,6 +73,8 @@ export interface PotencyResult {
   total: { standard: string; target: string };
   /** |sum of the adjusted active quantities - standard| / standard x 100, shown at six decimals. */
   adjustmentPercent: string;
+  /** TB-01@2: the declared activity and the label claim of the batch in units (the standard with its overage), exact. */
+  activity?: { declared: string; unit: 'U/mg'; labelClaimUnits: string };
 }
 
 export type PotencyOutcome = { ok: true; result: PotencyResult } | { ok: false; code: string; message: string };
@@ -162,6 +180,8 @@ export function asIsAssay(a: LotAssay): { ok: true; value: Q } | { ok: false; me
   const need = (what: 'water' | 'lod' | 'solvents'): Q | string => (a[what] === undefined ? `the ${what === 'lod' ? 'loss on drying' : what} result its basis needs is missing` : q(a[what]));
   let value: Q;
   switch (a.basis) {
+    case 'ACTIVITY':
+      return { ok: false, message: 'an activity in U/mg is not a percent assay (TB-01@2 calculates it against the declared activity)' };
     case 'AS_IS':
       value = assay;
       break;
@@ -227,9 +247,21 @@ export function potencyTargets(input: PotencyInput): PotencyOutcome {
   const lots: PotencyLotResult[] = [];
   let actSum: Q = int(0n);
   for (const [i, l] of input.lots.entries()) {
+    const share = shares[i] as Q;
+    if (l.assay.basis === ACTIVITY_BASIS) {
+      // TB-01@2: Q_act,i = b_i x f x declared / A_i (the lot's activity relative to the declared one).
+      if (!input.activity) return fail('TB01-ACTIVITY', `lot ${i + 1} reports an activity, but the step declares no activity its standard is stated at`);
+      const act = q(l.assay.assay);
+      if (sign(act) <= 0n) return fail('TB01-ASSAY', `lot ${i + 1}: the activity ${l.assay.assay} U/mg is not a usable activity (above 0)`);
+      const declared = q(input.activity.declared);
+      const qAct = div(mul(mul(share, f), declared), act);
+      actSum = add(actSum, qAct);
+      const target = roundToStep(qAct, input.readability, 'UP');
+      lots.push({ asIsAssay: show6(div(mul(act, HUNDRED), declared)), activity: exact(act), baseEquivalent: exact(share), calculated: show6(qAct), target });
+      continue;
+    }
     const a = asIsAssay(l.assay);
     if (!a.ok) return fail('TB01-ASSAY', `lot ${i + 1}: ${a.message}`);
-    const share = shares[i] as Q;
     // C-03: Q_act,i = b_i x f x 100 / A_asis,i
     const qAct = div(mul(mul(share, f), HUNDRED), a.value);
     actSum = add(actSum, qAct);
@@ -262,6 +294,9 @@ export function potencyTargets(input: PotencyInput): PotencyOutcome {
       excipient,
       total: { standard: show6(totalStd), target: roundToStep(totalTarget, input.readability, 'HALF_UP') },
       adjustmentPercent: show6(sign(adjustment) < 0n ? { n: -adjustment.n, d: adjustment.d } : adjustment),
+      ...(input.activity
+        ? { activity: { declared: input.activity.declared, unit: 'U/mg' as const, labelClaimUnits: exact(mul(mul(need, q(input.activity.mgPerUnit)), q(input.activity.declared))) } }
+        : {}),
     },
   };
 }
