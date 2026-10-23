@@ -207,6 +207,12 @@ session idle rule of tablets 1460.
   issue. The GMP_BATCH_ISSUE contract already refuses a COUNT that is not a whole number. As defence in depth,
   `unconfirmedCounts` now marks such a count as malformed: it is refused with EBMR-EXE-700, and no reason can confirm
   it. Test `execution/issue-expectations.test.ts` ([PR-04] P7K-3, both the contract and the check).
+- P7K-4 (fixed, CI): two floor races broke the browser runs. (1) A saved entry form showed "Saved" while still open
+  and closed only after the step was read again; it now closes in the same render (fcv journey; test
+  `demo-trial-fixes.test.tsx`). (2) The printed-lot panel handed the lot to the ISSUE form again whenever the step
+  choices changed, so a saved issue form reopened at once with the same lot (and the effect re-ran without end). It
+  now hands it over once per "Take the lot" (gmp-kiosk-batch 6, route W 9; test `step-plant-acts.test.tsx`).
+
 ## Slice 7l (one review pass, 23 October 2026)
 
 Nothing blocking. The manual fallback for automated values keeps the exception and the second person (DI-30, PR-14);
