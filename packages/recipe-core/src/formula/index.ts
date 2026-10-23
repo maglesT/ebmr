@@ -19,16 +19,22 @@ export interface FormulaLineInput {
   basis: 'PER_UNIT' | 'PER_BATCH';
   /** mg per unit (PER_UNIT) or kg per batch (PER_BATCH), decimal text. */
   quantity: string;
+  /** Overage over the label claim in percent, or as a quantity in the line's unit; never both; with its reason (recipe-core 1660). */
   overagePercent?: string;
+  overageQuantity?: string;
+  overageReason?: string;
   saltFactor?: string;
   potencyAdjusted: boolean;
   compensating: boolean;
 }
 
-export interface FormulaLine extends Omit<FormulaLineInput, 'overagePercent' | 'saltFactor'> {
+export interface FormulaLine extends Omit<FormulaLineInput, 'overagePercent' | 'overageQuantity' | 'overageReason' | 'saltFactor'> {
   materialName: string;
   quantityUnit: 'mg' | 'kg';
   overagePercent: string | null;
+  /** Present only on a line written with an overage quantity or reason (recipe-core 1660). */
+  overageQuantity?: string | null;
+  overageReason?: string | null;
   saltFactor: string | null;
   /** Computed by the database (INV-25), in kg. */
   batchQuantity: string;

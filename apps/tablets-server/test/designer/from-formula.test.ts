@@ -11,7 +11,7 @@ import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
-import { publishTables, stewardActor } from './support.ts';
+import { publishTables, saveContent, stewardActor } from './support.ts';
 
 let gmp: TestServer;
 let steward: TestBrowser;
@@ -26,7 +26,7 @@ const CAPSULE_PRODUCT = 'DMT7JC';
 const REASON = 'In-house development product';
 const PRODUCT = { code: 'DMT7JF', name: 'Demotab 400 mg', strength: '400 mg' };
 const LINES: FormulaLineInput[] = [
-  { lineId: 'api', materialCode: 'RM-7JF-API', role: 'ACTIVE', basis: 'PER_UNIT', quantity: '400', overagePercent: '2', potencyAdjusted: true, compensating: false },
+  { lineId: 'api', materialCode: 'RM-7JF-API', role: 'ACTIVE', basis: 'PER_UNIT', quantity: '400', overagePercent: '2', overageReason: 'Loss of assay over the shelf life', potencyAdjusted: true, compensating: false },
   { lineId: 'lac', materialCode: 'RM-7JF-LAC', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '150', potencyAdjusted: false, compensating: true },
   { lineId: 'mgs', materialCode: 'RM-7JF-MGS', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '6', potencyAdjusted: false, compensating: false },
   { lineId: 'ipa', materialCode: 'RM-7JF-IPA', role: 'PROCESSING_AID', basis: 'PER_BATCH', quantity: '12.5', potencyAdjusted: false, compensating: false },
@@ -90,6 +90,69 @@ describe('a new master from an approved formula (slice 7j)', () => {
     const sim = valueOf(await author.call(routes.designer.simulate, { params: { versionId: v.versionId }, body: {} }));
     expect(sim.problems.map((p) => p.message)).toEqual([]);
     expect(sim.passed).toBe(true);
+  }, 120_000);
+
+  it('[INV-25][DI-35][PR-04] overages (slice 7q, C1): an excess per line in percent or as a quantity, always with its reason; the label claim stays; the batch quantity, the batch mass and the master\'s bill of materials include it; the approver signs it', async () => {
+    const lines: FormulaLineInput[] = [
+      LINES[0] as FormulaLineInput,
+      LINES[1] as FormulaLineInput,
+      { lineId: 'mgs', materialCode: 'RM-7JF-MGS', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '6', overageQuantity: '0.3', overageReason: 'Loss on the blender walls', potencyAdjusted: false, compensating: false },
+      { lineId: 'ipa', materialCode: 'RM-7JF-IPA', role: 'PROCESSING_AID', basis: 'PER_BATCH', quantity: '12.5', overageQuantity: '2.5', overageReason: 'Evaporation during granulation', potencyAdjusted: false, compensating: false },
+    ];
+    const { formulaId } = valueOf(await steward.call(md.createFormula, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, batchSizeUnits: '250000' } }));
+    const refused = async (patch: Partial<FormulaLineInput>): Promise<string> => {
+      const r = await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: REASON, lines: [{ ...(lines[2] as FormulaLineInput), ...patch }, LINES[0] as FormulaLineInput, LINES[1] as FormulaLineInput] } });
+      return JSON.stringify(refusalOf(r));
+    };
+    expect(await refused({ overageReason: undefined })).toMatch(/EBMR-FRM-061.*an overage carries its reason/);
+    expect(await refused({ overageQuantity: undefined })).toMatch(/EBMR-FRM-061.*an overage reason is written only with an overage above zero/);
+    expect(await refused({ overagePercent: '1' })).toMatch(/EBMR-FRM-060.*in percent or as a quantity, not both/);
+    expect(await refused({ overageQuantity: undefined, overagePercent: '0' })).toMatch(/EBMR-FRM-061/);
+    const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: REASON, lines } }));
+    // The label claim stays the quantity; the batch quantity includes the overage: (6 + 0.3) mg x 250000 = 1.575 kg;
+    // 400 mg x 1.02 x 250000 = 102 kg; the processing aid 12.5 + 2.5 = 15 kg.
+    expect(v.lines?.map((l) => [l.lineId, l.quantity, l.overagePercent, l.overageQuantity ?? null, l.overageReason ?? null, l.batchQuantity])).toEqual([
+      ['api', '400', '2', null, 'Loss of assay over the shelf life', '102'],
+      ['lac', '150', null, null, null, '37.5'],
+      ['mgs', '6', null, '0.3', 'Loss on the blender walls', '1.575'],
+      ['ipa', '12.5', null, '2.5', 'Evaporation during granulation', '15'],
+    ]);
+    // The approver signs the overage and its reason with the composition (DI-35).
+    expect((await signAction(gmp, approver, 'approver', { kind: 'MASTER_DATA_APPROVE', masterKind: 'FORMULA', versionId: v.versionId })).ok).toBe(true);
+    const signed = (await gmp.db.admin.query<{ c: { content: { lines: Record<string, unknown>[] } } }>('select recipe.formula_version_content($1) as c', [v.versionId])).rows[0]?.c;
+    expect(signed?.content.lines.map((l) => [l['overageQuantity'] ?? null, l['overageReason'] ?? null])).toEqual([
+      [null, 'Loss of assay over the shelf life'],
+      [null, null],
+      ['0.3', 'Loss on the blender walls'],
+      ['2.5', 'Evaporation during granulation'],
+    ]);
+    // A line written before 1660 keeps its signed content: no new members on a line without an overage quantity or reason.
+    expect(Object.keys(signed?.content.lines[1] ?? {})).not.toContain('overageReason');
+    // The master from the formula: batch mass 102 + 37.5 + 1.575 = 141.075 kg; the BOM carries the overage and states it.
+    const m = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-OV', product: PRODUCT, markets: ['IN'], formulaVersionId: v.versionId, start: 'BLANK' } }));
+    type Bom = { id: string; quantity: { value: string }; overage?: unknown };
+    const content = m.content as unknown as { header: { batchSizes: { quantity: { value: string } }[] }; bom: Bom[] };
+    expect(content.header.batchSizes[0]?.quantity.value).toBe('141.075');
+    expect(content.bom.map((b) => [b.id, b.quantity.value, b.overage ?? null])).toEqual([
+      ['BOM-API', '102', { reason: 'Loss of assay over the shelf life', percent: '2' }],
+      ['BOM-LAC', '37.5', null],
+      ['BOM-MGS', '1.575', { reason: 'Loss on the blender walls', quantity: { value: '0.3', unit: 'mg' } }],
+      ['BOM-IPA', '15', { reason: 'Evaporation during granulation', quantity: { value: '2.5', unit: 'kg' } }],
+    ]);
+    const problem = async (versionId: string) =>
+      (await gmp.db.admin.query<{ r: string | null }>('select recipe.formula_mbr_problem($1, $2) as r', [versionId, v.versionId])).rows[0]?.r ?? null;
+    expect(await problem(m.versionId)).toBeNull();
+    // The database refuses a master whose bill states another overage than the formula, or drops it (D-7q-2).
+    const changed = structuredClone(m.content) as unknown as { bom: Bom[] };
+    (changed.bom[2] as Bom).overage = { reason: 'Something else', quantity: { value: '0.3', unit: 'mg' } };
+    const saved = valueOf(await saveContent(author, m, changed));
+    expect(await problem(saved.versionId)).toMatch(/BOM line BOM-MGS \(RM-7JF-MGS\) states the overage .*Something else.*the formula line states .*Loss on the blender walls/);
+    delete (changed.bom[0] as Bom).overage;
+    (changed.bom[2] as Bom).overage = { reason: 'Loss on the blender walls', quantity: { value: '0.3', unit: 'mg' } };
+    valueOf(await saveContent(author, saved, changed));
+    expect(await problem(m.versionId)).toMatch(/BOM line BOM-API \(RM-7JF-API\) states the overage none; the formula line states/);
+    // A bypass: a line with an overage and no reason is refused by the table itself.
+    await expect(gmp.db.admin.query("insert into formulary.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, overage_quantity, potency_adjusted, compensating, batch_quantity_kg) values ($1, 'x', 9, 'RM-7JF-MGS', 'x', 'EXCIPIENT', 'PER_UNIT', 1, 1, false, false, 1)", [v.versionId])).rejects.toThrow(/formula_line_overage_reason/);
   }, 120_000);
 
   it('[PR-01] a blank start keeps the header and the bill of materials and leaves the steps to the author; the template path still refuses a formula that is not the template\'s', async () => {

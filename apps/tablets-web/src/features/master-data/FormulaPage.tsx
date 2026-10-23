@@ -5,7 +5,7 @@
  * typed. A new version is written as DRAFT; a second person approves it with FORMULA_APPROVED through the ceremony.
  */
 import { useState } from 'react';
-import { FormulaLineInput, routes, type FormulaVersionView } from '@ebmr/api-contract';
+import { FormulaLineInput, routes, type FormulaLineView, type FormulaVersionView } from '@ebmr/api-contract';
 import { Banner, Button, Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
@@ -86,7 +86,7 @@ function VersionCard({ version, readable }: { version: FormulaVersionView; reada
                 <td>
                   {l.quantity} {l.quantityUnit} {l.basis === 'PER_UNIT' ? 'per unit' : 'per batch'}
                 </td>
-                <td>{[l.overagePercent ? `${l.overagePercent} % overage` : '', l.saltFactor ? `salt factor ${l.saltFactor}` : ''].filter(Boolean).join(', ') || '-'}</td>
+                <td>{[overageWords(l), l.saltFactor ? `salt factor ${l.saltFactor}` : ''].filter(Boolean).join(', ') || '-'}</td>
                 <td>
                   {l.batchQuantity} {l.batchUnit}
                 </td>
@@ -115,11 +115,21 @@ const LINE_FIELDS: readonly FormField[] = [
   { name: 'role', label: 'Role', kind: 'choice', options: FormulaLineInput.shape.role.options },
   { name: 'basis', label: 'Basis', kind: 'choice', options: ['PER_UNIT', 'PER_BATCH'], description: 'PER_UNIT: mg in one tablet; PER_BATCH: kg for the batch' },
   { name: 'quantity', label: 'Quantity', kind: 'decimal' },
-  { name: 'overagePercent', label: 'Overage %', kind: 'decimal', optional: true },
+  { name: 'overagePercent', label: 'Overage %', kind: 'decimal', optional: true, description: 'a deliberate excess over the label claim; the label claim stays the quantity' },
+  { name: 'overageQuantity', label: 'Overage quantity', kind: 'decimal', optional: true, description: 'or the excess as a quantity in the line\'s unit (mg per tablet, kg per batch); not with a percent' },
+  { name: 'overageReason', label: 'Reason for the overage', kind: 'text', optional: true, description: 'required with an overage, e.g. loss on storage over the shelf life' },
   { name: 'saltFactor', label: 'Salt factor', kind: 'decimal', optional: true },
   { name: 'potencyAdjusted', label: 'Potency adjusted at dispensing', kind: 'yesno', description: 'assay and LOD of the lot (TB-01); needs a compensating excipient' },
   { name: 'compensating', label: 'Compensating excipient', kind: 'yesno' },
 ];
+
+/** A line's overage as the composition shows it (slice 7q, C1): percent or quantity, with its reason. */
+export function overageWords(l: FormulaLineView): string {
+  const pct = l.overagePercent && l.overagePercent !== '0' ? `${l.overagePercent} % overage` : '';
+  const qty = l.overageQuantity ? `overage ${l.overageQuantity} ${l.quantityUnit}${l.basis === 'PER_UNIT' ? ' per unit' : ''}` : '';
+  const what = pct || qty;
+  return what && l.overageReason ? `${what} (${l.overageReason})` : what;
+}
 
 type Row = Record<string, string>;
 

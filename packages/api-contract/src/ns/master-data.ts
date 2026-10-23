@@ -26,8 +26,15 @@ export const FormulaLineInput = z.strictObject({
   /** PER_UNIT: `quantity` mg in one unit (tablet); PER_BATCH: `quantity` kg for the formula's batch size (e.g. a granulating solvent). */
   basis: z.enum(['PER_UNIT', 'PER_BATCH']),
   quantity: DecimalString,
-  /** Overage in percent of the label claim (PER_UNIT ACTIVE lines only), e.g. '2.0'. */
+  /**
+   * A deliberate excess over the label claim in percent, e.g. '2.0' (any line; slice 7q, C1). The label claim stays
+   * `quantity`; the computed batch quantity, the BOM and the dispensing targets include the overage.
+   */
   overagePercent: DecimalString.optional(),
+  /** The overage as a quantity in the line's own unit (mg per unit, or kg per batch for a processing aid); never with a percent. */
+  overageQuantity: DecimalString.optional(),
+  /** Why the overage is formulated: required with an overage above zero, refused without one (EBMR-FRM-061). */
+  overageReason: z.string().trim().min(1).max(500).optional(),
   /** Salt-to-base factor: the unit quantity names the base, the material is the salt (ACTIVE lines only), e.g. '1.0812'. */
   saltFactor: DecimalString.optional(),
   /** The active's quantity is adjusted at dispensing from the lot's assay and LOD (TB-01). */
@@ -47,6 +54,9 @@ export const FormulaLineView = z.strictObject({
   quantity: DecimalString,
   quantityUnit: z.enum(['mg', 'kg']),
   overagePercent: DecimalString.nullable(),
+  /** Slice 7q (C1): present on a line written with an overage quantity or reason (recipe-core 1660). */
+  overageQuantity: DecimalString.nullable().optional(),
+  overageReason: z.string().nullable().optional(),
   saltFactor: DecimalString.nullable(),
   potencyAdjusted: z.boolean(),
   compensating: z.boolean(),

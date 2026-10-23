@@ -33,6 +33,23 @@ describe('MBR content model: parsing', () => {
     if (!r.ok) expect(r.problems.some((p) => p.message.includes('GMP values travel as decimal strings'))).toBe(true);
   });
 
+  it('[PR-03][INV-25] a BOM line may state the overage its quantity includes, a percent or a quantity with its reason, exactly one (slice 7q, C1); it round-trips', () => {
+    const json = clone(fixtureJson('tablet-granulation-compression')) as { bom: Record<string, unknown>[] };
+    const line = json.bom[0] as Record<string, unknown>;
+    line['overage'] = { reason: 'Loss on storage', percent: '5' };
+    const ok = parseMbr(json);
+    expect(ok.ok ? [] : ok.problems).toEqual([]);
+    if (ok.ok) expect(canonicalJson(ok.mbr)).toBe(canonicalJson(json));
+    line['overage'] = { reason: 'Loss on storage', quantity: { value: '0.3', unit: 'mg' } };
+    expect(parseMbr(json).ok).toBe(true);
+    line['overage'] = { reason: 'Loss on storage', percent: '5', quantity: { value: '0.3', unit: 'mg' } };
+    const both = parseMbr(json);
+    expect(both.ok ? [] : both.problems).toContainEqual({ path: '$.bom[0].overage', message: 'states the overage as a percent or as a quantity, exactly one' });
+    line['overage'] = { percent: 5 };
+    const bad = parseMbr(json);
+    expect(bad.ok ? [] : bad.problems.map((p) => p.path)).toEqual(expect.arrayContaining(['$.bom[0].overage.reason', '$.bom[0].overage.percent']));
+  });
+
   it('[PR-03] unknown fields are refused, so nothing unhashed or unvalidated can hide in the content', () => {
     const json = clone(fixtureJson('tablet-blister-packaging')) as Record<string, unknown>;
     json['hiddenField'] = 'x';
