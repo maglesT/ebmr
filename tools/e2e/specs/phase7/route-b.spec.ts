@@ -10,7 +10,10 @@
  * Blocks shown: G-11 the dispensing room's humidity against the suite's low limit, TB-01 potency-adjusted dispensing of
  * both actives, TB-07, TB-09, TB-10, TB-11, TB-18 film coating after the coating room's humidity check; the packaging
  * order on the suite's line: TB-21 COLD_FORM line check and run from the desiccant laminate, TB-22 leak tests, TB-24;
- * then QC, the record reviews and the release. The refusals of the suite are route-b-refusals.spec.ts.
+ * then QC, the record reviews and the release. The refusals of the suite are route-b-refusals.spec.ts. Screens are
+ * reached by clicks (route-b-support.ts: the Home link, tiles, lists; R2, R3); the shared kiosk helpers
+ * (kiosk-batch-support.ts: clearance, cleaning, step, stage sign-off, containers, record review) and this file's
+ * container() still open their screens by address, as route W's do (review P7N-3).
  */
 import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
@@ -22,6 +25,7 @@ import {
   ready, reviewRecord, save, saveBlock, sign, statusStep, step, verifyCleanings,
 } from './kiosk-batch-support.ts';
 import { begin, done, entryNaming, erpOrders, field, loadRoute, manualValue, mark, marked, saveRoute, type RouteState } from './route-support.ts';
+import { batches, lineCompletion, lotPage, packagingOrder, packagingOrders, planning, reviewPage, runOverview, tile } from './route-b-support.ts';
 
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async () => closeKiosks());
@@ -63,9 +67,8 @@ const PC_QC = 'PC-QC-01';
 const PC_QA = 'PC-QA-09';
 const PC_RULES = 'PC-QA-03';
 
-test('[PR-27][DI-35] route B 1: the steward classifies the product and both actives beta-lactam on the plant rules screen; QA approves each classification @office', async ({ e2e, officePage, persona, evidence }) => {
+test('[PR-27][DI-35] route B 1: the steward classifies the product and both actives beta-lactam on the plant rules screen; QA approves each classification @office', async ({ officePage, persona, evidence }) => {
   test.setTimeout(10 * 60_000);
-  const base = e2e.url('GMP');
   const steward = persona('GMP', 'steward');
   const qa = persona('GMP', 'approver');
   const subjects: ['PRODUCT' | 'MATERIAL', string, string][] = [
@@ -76,7 +79,7 @@ test('[PR-27][DI-35] route B 1: the steward classifies the product and both acti
   const s = await officePage('GMP', PC_RULES);
   await signIn.office(s, steward);
   await evidence.step('The steward proposes the beta-lactam classification of the product and of each active', 'Each is a tightening: in force at once, pending QA', async () => {
-    await s.goto(`${base}/plant-rules`);
+    await tile(s, /^Penicillin and beta-lactam rules/);
     for (const [kind, code, reason] of subjects) {
       const b = s.getByTestId('propose-beta-lactam');
       await choose(b.getByRole('radio', { name: kind === 'PRODUCT' ? 'Product' : 'Material', exact: true }));
@@ -93,7 +96,7 @@ test('[PR-27][DI-35] route B 1: the steward classifies the product and both acti
   const q = await officePage('GMP', PC_RULES);
   await signIn.office(q, qa);
   await evidence.step('QA (another person) approves each classification through the office ceremony', 'Each is approved by QA and no longer pending', async () => {
-    await q.goto(`${base}/plant-rules`);
+    await tile(q, /^Penicillin and beta-lactam rules/);
     for (const [kind, code] of subjects) {
       const subject = q.getByTestId(`beta-${kind}-${code}`);
       const what = `${kind.toLowerCase()} ${code}`;
@@ -121,7 +124,7 @@ test('[INV-01][PR-04][PR-18][PR-27] route B 2: the ERP order, the batch planned 
       { orderNo: s.processingOrder, siteCode: SITE, ...PRODUCT, batchSize: '64.000', batchSizeUnit: 'kg', bom: BOM.map(([materialCode, quantity]) => ({ materialCode, quantity, unit: 'kg' })), erpReference: `SAP-PP-${s.processingOrder}` },
       { orderNo: s.packagingOrder, siteCode: SITE, ...PRODUCT, batchSize: '1000', batchSizeUnit: '{tbl}', bom: [{ materialCode: 'MAT-ALU-CFD', quantity: '0.600', unit: 'kg' }], erpReference: `SAP-PP-${s.packagingOrder}` },
     ]);
-    await page.goto(`${base}/planning`);
+    await planning(page);
     await expect(page.getByTestId(`order-${s.processingOrder}`).getByTestId('match')).toContainText('MBR RTB-DC-');
     await expect(page.getByTestId(`order-${s.packagingOrder}`).getByTestId('match')).toContainText('packaging order, pack type ALU-ALU-BLISTER');
     return { orders: 2 };
@@ -143,7 +146,7 @@ test('[INV-01][PR-04][PR-18][PR-27] route B 2: the ERP order, the batch planned 
     await issue.getByRole('button', { name: 'Sign and issue' }).click();
     await officeSign(page, new RegExp(`^Issue batch ${s.batchNumber}`), issuer);
     await expect(issue.getByText(`${s.batchNumber} issued`)).toBeVisible();
-    await page.goto(`${base}/planning/batches`);
+    await batches(page);
     const row = page.getByTestId(`batch-${s.batchNumber}`);
     await expect(row).toContainText(/issued/i);
     s.batchId = /([0-9a-f-]{36})/.exec((await row.getByRole('link').first().getAttribute('href')) ?? '')?.[1] ?? '';
@@ -157,8 +160,7 @@ test('[INV-01][PR-04][PR-18][PR-27] route B 2: the ERP order, the batch planned 
   await signIn.office(sp, persona('GMP', 'stores'));
   await evidence.step('Stores reserve each material lot for the batch on its lot page', 'Each lot lists the open reservation for the batch', async () => {
     for (const [, quantity, lotCode] of BOM) {
-      await sp.goto(`${base}/quality/lots`);
-      await sp.getByTestId(`lot-${lotCode}`).getByRole('link').first().click();
+      await lotPage(sp, lotCode);
       const box = sp.getByTestId('reserve-lot');
       await choose(box.getByRole('radio', { name: new RegExp(`^${s.batchNumber ?? ''} `) }));
       await box.getByRole('textbox', { name: 'Quantity (kg)' }).fill(RESERVE[lotCode] ?? quantity);
@@ -586,7 +588,7 @@ test('[PR-04][INV-01][PR-27] route B 7: the cold-form packaging order planned fr
   const page = await officePage('GMP', PC_PLAN);
   await signIn.office(page, issuer);
   await evidence.step('The batch issuer plans the packaging order of the batch released for packing and issues it', 'The order takes the packaging number of the batch and is ISSUED', async () => {
-    await page.goto(`${base}/planning`);
+    await planning(page);
     const card = page.getByTestId(`order-${s.packagingOrder}`);
     const form = card.getByTestId('packaging-plan-form');
     const parent = form.getByTestId(`parent-${s.batchNumber ?? ''}`);
@@ -609,7 +611,7 @@ test('[PR-04][INV-01][PR-27] route B 7: the cold-form packaging order planned fr
     await issue.getByRole('button', { name: 'Sign and issue' }).click();
     await officeSign(page, new RegExp(`^Issue batch ${s.orderNumber.replace('/', '\\/')}`), issuer);
     await expect(issue.getByText(`${s.orderNumber} issued`)).toBeVisible();
-    await page.goto(`${base}/planning/packaging`);
+    await packagingOrders(page);
     const row = page.getByTestId(`packaging-order-${s.orderNumber}`);
     await expect(row).toContainText('ISSUED');
     s.orderId = /([0-9a-f-]{36})/.exec((await row.getByRole('link', { name: s.orderNumber }).getAttribute('href')) ?? '')?.[1] ?? '';
@@ -621,8 +623,7 @@ test('[PR-04][INV-01][PR-27] route B 7: the cold-form packaging order planned fr
   const sp = await officePage('GMP', PC_PLAN);
   await signIn.office(sp, persona('GMP', 'stores'));
   await evidence.step('Stores reserve the cold-form laminate with its desiccant layer for the order', 'The lot lists the open reservation', async () => {
-    await sp.goto(`${base}/quality/lots`);
-    await sp.getByTestId('lot-RTB-ACF-001').getByRole('link').first().click();
+    await lotPage(sp, 'RTB-ACF-001');
     const box = sp.getByTestId('reserve-lot');
     await choose(box.getByRole('radio', { name: new RegExp(`^${(s.orderNumber ?? '').replace('/', '\\/')} `) }));
     await box.getByRole('textbox', { name: 'Quantity (kg)' }).fill('0.600');
@@ -656,7 +657,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
   const bulk = s.containers?.['bulk'] ?? '';
   await evidence.step('The bulk container issued to the order with a fresh badge tap', 'The bulk is issued to the order', async () => {
     if (marked(s, 'bulk-issued')) return;
-    await page.goto(`${base}/planning/packaging/${orderId}`);
+    await packagingOrder(page, s.orderNumber ?? '');
     await page.getByTestId(`bulk-container-${bulk}`).getByRole('checkbox').check();
     await act(page, page.getByRole('button', { name: /^Issue 1 container/ }), op);
     await expect(page.getByText('Bulk issued.')).toBeVisible();
@@ -694,7 +695,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
       await expect(panel.getByTestId('printed-lot-facts')).toContainText(lot);
       await entry(page, 'ISSUE', op, { Item: item, 'Scanned artwork': artwork, Quantity: { Value: n, Unit: '1' } });
     }
-    await page.goto(`${base}/labels/packaging/${orderId}`);
+    await lineCompletion(page, s.orderNumber ?? '');
     const panel = page.getByTestId('packaging-step-p-g21@');
     for (const item of ['FOIL', 'CARTON']) {
       await act(page, panel.getByRole('button', { name: `Attach the ${item} specimen` }), op);
@@ -759,7 +760,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
     const printed = (await page.getByTestId('packaging-batch-data').getByTestId('record-coding').textContent()) ?? '';
     const read = (key: string): string => new RegExp(`${key} (\\S+)`).exec(printed)?.[1] ?? '';
     const coded = { batch: read('batch'), mfg: read('manufactured'), exp: read('expiry') };
-    await page.goto(`${base}/labels/packaging/${orderId}`);
+    await lineCompletion(page, s.orderNumber ?? '');
     const panel = page.getByTestId('packaging-step-p-g21@');
     for (const position of ['START', 'MIDDLE', 'END']) {
       const form = panel.getByTestId('coding-specimen-form');
@@ -784,7 +785,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
       await performAndCheck(page, op, verifier, op, 'Witness');
       await completed(page);
     }
-    await page.goto(`${base}/labels/packaging/${orderId}`);
+    await lineCompletion(page, s.orderNumber ?? '');
     const box = page.getByTestId('post-use-inspection');
     const form = box.getByTestId('post-use-form');
     await expect(form.getByRole('radiogroup')).toHaveCount(4);
@@ -792,7 +793,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
     await act(page, form.getByRole('button', { name: 'Record the post-use inspection' }), op);
     await expect(box.getByText('not verified yet')).toBeVisible();
     await as(page, verifier);
-    await page.goto(`${base}/labels/packaging/${orderId}`);
+    await lineCompletion(page, s.orderNumber ?? '');
     await act(page, page.getByTestId('post-use-inspection').getByRole('button', { name: 'Verify the inspection' }), verifier);
     await as(page, op);
     mark(e2e, ROUTE, s, 'parallel-done');
@@ -816,7 +817,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
     await step(page, e2e, orderId, 'p-pk-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: `End the use of ${LINE}` }), op);
     await expect(page.getByTestId(`occupancy-${LINE}`)).toHaveCount(0);
-    await page.goto(`${base}/runs/${orderId}`);
+    await runOverview(page, s.orderNumber ?? '');
     await expect(page.getByText('Execution complete').first()).toBeVisible();
     return { dispositioned };
   }, page);
@@ -825,16 +826,16 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route B 8: the cold-for
 test('[IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office', async ({ e2e, officePage, persona, evidence }) => {
   test.setTimeout(20 * 60_000);
   const s = loadRoute(e2e, ROUTE);
-  const base = e2e.url('GMP');
   const sp = await officePage('GMP', PC_PLAN);
   await signIn.office(sp, persona('GMP', 'stores'));
   await evidence.step('Stores post the finished packs of the order as its lot, in quarantine', 'The lot of the order is listed', async () => {
-    await sp.goto(`${base}/planning/packaging/${s.orderId ?? ''}`);
+    await packagingOrder(sp, s.orderNumber ?? '');
     const box = sp.getByTestId('finished-lot');
     await box.getByRole('textbox', { name: 'Finished quantity' }).fill('10');
     await box.getByRole('textbox', { name: 'Unit' }).fill('packs');
     await box.getByRole('button', { name: 'Post the finished lot in quarantine' }).click();
-    await sp.goto(`${base}/quality/lots`);
+    await tile(sp, /^Quality Deviations/);
+    await sp.getByRole('link', { name: 'Material lots', exact: true }).click();
     const row = sp.getByTestId(`lot-${s.orderNumber ?? ''}`);
     await expect(row).toBeVisible();
     s.lotId = /([0-9a-f-]{36})/.exec((await row.getByRole('link').first().getAttribute('href')) ?? '')?.[1] ?? '';
@@ -847,7 +848,7 @@ test('[IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC
   const qp = await officePage('GMP', PC_QC);
   await signIn.office(qp, qc);
   await evidence.step('QC records the assay and water results of the lot and pulls its reserve samples', 'Both results PASS; the reserve sample is listed', async () => {
-    await qp.goto(`${base}/quality/lots/${s.lotId ?? ''}`);
+    await lotPage(qp, s.lotCode ?? '');
     const results = qp.getByTestId('lot-results');
     for (const [code, v] of [['ASSAY', '99.1'], ['WATER', '1.2']] as const) {
       await results.getByRole('textbox', { name: 'Test code' }).fill(code);
@@ -868,7 +869,7 @@ test('[IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC
   const hp = await officePage('GMP', PC_QC);
   await signIn.office(hp, head);
   await evidence.step('The head of QC approves both results', 'Both results APPROVED by a second person', async () => {
-    await hp.goto(`${base}/quality/lots/${s.lotId ?? ''}`);
+    await lotPage(hp, s.lotCode ?? '');
     for (const code of ['ASSAY', 'WATER']) {
       const row = hp.getByTestId(`result-${code}-RELEASE`);
       await row.getByRole('button', { name: `Approve ${code}` }).click();
@@ -881,7 +882,6 @@ test('[IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC
 test('[INV-05][IN-05][DI-25][INV-48] route B 10: both records reviewed and the lot released by the authorised person on a checklist with no red item @office', async ({ e2e, officePage, persona, evidence }) => {
   test.setTimeout(40 * 60_000);
   const s = loadRoute(e2e, ROUTE);
-  const base = e2e.url('GMP');
   const head = persona('GMP', 'head1');
   const qa = persona('GMP', 'qaInvestigator');
   const qa2 = persona('GMP', 'qaApprover2');
@@ -897,7 +897,7 @@ test('[INV-05][IN-05][DI-25][INV-48] route B 10: both records reviewed and the l
   await evidence.step('The processing record reviewed', 'The processing batch is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, pages, people, s.batchId ?? '') }), qa2Page);
   await evidence.step('The packaging record reviewed', 'The packaging order is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, pages, people, s.orderId ?? '') }), qa2Page);
   await evidence.step('QA signs the delta audit-trail review of the processing record if one became due', 'The processing record is covered by its last signed mark', async () => {
-    await qaPage.goto(`${base}/review/${s.batchId ?? ''}`);
+    await reviewPage(qaPage, s.batchNumber ?? '');
     const panel = qaPage.getByTestId('audit-trail-review');
     await expect(panel.getByTestId('audit-trail-marks')).toBeVisible();
     const button = panel.getByRole('button', { name: 'Sign the delta review' });
@@ -910,7 +910,7 @@ test('[INV-05][IN-05][DI-25][INV-48] route B 10: both records reviewed and the l
   const cockpit = await officePage('GMP', PC_QA);
   await signIn.office(cockpit, ap);
   await evidence.step('The authorised person releases the lot: ready, no red item on its checklist, the manufacturer release signed', 'The lot is RELEASED', async () => {
-    await cockpit.goto(`${base}/release`);
+    await tile(cockpit, /^Release cockpit/);
     const row = cockpit.getByTestId(`release-lot-${s.lotCode ?? ''}`);
     await expect(row).toContainText('Ready');
     await row.getByRole('link', { name: s.lotCode ?? '' }).click();

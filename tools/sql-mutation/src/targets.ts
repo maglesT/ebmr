@@ -1206,7 +1206,7 @@ export const TARGETS: Target[] = [
                 'plant.classified_beta_lactam', 'plant.batch_beta_lactam', 'plant.penicillin_problem',
                 'plant.area_occupancy_rules_check', 'plant.clearance_room_rules_check', 'plant.material_lot_penicillin_check',
                 'plant.step_rules_problem', 'plant.step_rules_check', 'plant.record_reagent_use', 'plant.batch_alarm_review_problems',
-                'recipe.review_gate_problems', 'plant.beta_lactam_room_problem', 'plant.beta_lactam_clearance_check', 'plant.beta_lactam_occupancy_check'],
+                'recipe.review_gate_problems', 'plant.beta_lactam_room_problem', 'plant.beta_lactam_clearance_check', 'plant.beta_lactam_occupancy_check', 'plant.beta_lactam_equipment_check'],
     tests: [k('identity/area-authorisation.test.ts'), r('plant-rules/room-rules.test.ts'), site('plant-rules/materials.test.ts'),
             r('review/review.test.ts'), s('alarms/area-authorisation-matrix.test.ts'), s('alarms/area-authorisation-signature.test.ts'),
             s('alarms/alarm-bridge.test.ts'), r('plant-rules/rule-approval.test.ts'), r('plant-rules/beta-lactam-rooms.test.ts')],

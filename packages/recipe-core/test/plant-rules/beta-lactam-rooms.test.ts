@@ -3,14 +3,16 @@
  * records a BETA_LACTAM dedication of a room and a second QA person approves it (0912). At a penicillin facility a
  * beta-lactam batch is cleared for and started only in a dedicated room (EBMR-PLANT-177), and any other batch is refused
  * in one (EBMR-PLANT-178); both at the clearance and at the start of the room's use, whoever writes the row. As the
- * application role through the real commands and real e-signatures; a direct insert as the owner is refused too.
+ * application role through the real commands and real e-signatures; a direct insert as the owner is refused too. A
+ * unit's use, which needs no room occupancy, is judged by the room the unit stands in (D-7n-10).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { seedActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { ensureFixtureChangeRecord } from '../../../kernel/test/support/change-record.ts';
-import { PlantWorld, seedPlantCast } from '../plant/support.ts';
+import * as plant from '../../src/plant/index.ts';
+import { PlantWorld, seedPlantCast, tag } from '../plant/support.ts';
 import { occupy } from './support.ts';
 
 let db: TestDatabase;
@@ -126,5 +128,48 @@ describe('beta-lactam work stays in its dedicated suite (PR-27, R7)', () => {
     expect(await scalar<boolean>("select plant.area_dedicated($1, 'BETA_LACTAM') as r", [room.code])).toBe(true);
     const product = await w.product();
     expect(await messageOf(w.run(qa2, (c) => c.query('select plant.record_product_hazard($1::jsonb)', [JSON.stringify({ productCode: product, hazardClass: 'BETA_LACTAM', riskAssessmentRef: 'RA-1' })])))).toMatch(/EBMR-IND-035/);
+  });
+  it('[PR-27] a unit\'s use is judged by the room it stands in: a beta-lactam batch is refused a unit outside the suite, any other batch a unit in it; a unit with no room is not checked', async () => {
+    const beta = await betaProduct();
+    const other = await w.product();
+    const suite = await w.room();
+    await dedicate(suite.code);
+    const plainRoom = await w.room();
+    const classCode = (await w.press()).classCode;
+    const unitIn = async (area: string | null): Promise<string> => {
+      const code = `EQ-${tag()}`;
+      await w.run(w.cast.steward, (c) => plant.defineEquipment(c, { code, name: `Unit ${code}`, classCode, ...(area ? { areaCode: area } : {}) }));
+      await w.run(w.cast.steward, (c) => plant.recordEquipmentEvent(c, code, 'QUALIFIED', 'IQ/OQ/PQ approved', `QUAL-${code}`));
+      await w.clean('EQUIPMENT', code, 'MAJOR');
+      return code;
+    };
+    const outside = await unitIn(plainRoom.code);
+    expect(await messageOf(w.startUse(outside, 'BLU-A', beta))).toMatch(new RegExp(`EBMR-PLANT-177 .* ${plainRoom.code} is not a room or line dedicated to beta-lactam products.*\\(unit ${outside} stands there\\)`));
+    const inside = await unitIn(suite.code);
+    expect(await messageOf(w.startUse(inside, 'NBLU-A', other))).toMatch(new RegExp(`EBMR-PLANT-178 ${suite.code} is dedicated to beta-lactam products.*\\(unit ${inside} stands there\\)`));
+    expect(await w.startUse(inside, 'BLU-A', beta)).toMatch(/^[0-9a-f-]{36}$/);
+    const loose = await unitIn(null);
+    expect(await w.startUse(loose, 'NBLU-B', other)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[PR-27] the classification is read live: a batch issued before its product is classified beta-lactam is refused the suite before, and accepted after', async () => {
+    const product = await w.product();
+    const suite = await w.room();
+    await dedicate(suite.code);
+    await w.batch('LIVE-A', product);
+    expect(await messageOf(occupy(w, suite.code, 'LIVE-A', product))).toMatch(/EBMR-PLANT-178/);
+    await w.run(w.cast.steward, (c) => c.query("select plant.classify_beta_lactam('PRODUCT', $1, true, 'Reclassified: a cephalosporin') as r", [product]));
+    expect(await occupy(w, suite.code, 'LIVE-A', product)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[PR-27] a later dedication not yet approved leaves the earlier approved one in force', async () => {
+    const beta = await betaProduct();
+    const other = await w.product();
+    const suite = await w.room();
+    await dedicate(suite.code);
+    await dedicate(suite.code, true, false);
+    expect(await scalar<boolean>("select plant.area_dedicated($1, 'BETA_LACTAM') as r", [suite.code])).toBe(true);
+    expect(await messageOf(occupy(w, suite.code, 'LATE-N', other))).toMatch(/EBMR-PLANT-178/);
+    expect(await occupy(w, suite.code, 'LATE-B', beta)).toMatch(/^[0-9a-f-]{36}$/);
   });
 });

@@ -11,6 +11,8 @@
  *  3. In the suite, a dispensing-room humidity of 45 % RH against the suite's limit of 30 % raises the environmental
  *     excursion on the step (G-11: ENVIRONMENT_EXCURSION, a deviation required; PR-25, IN-39); the room's use is then
  *     ended and the room left for cleaning.
+ * Screens are reached by clicks (route-b-support.ts); the shared kiosk helpers (clearance, cleaning, step) still open
+ * theirs by address, as route W's do (review P7N-3).
  */
 import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
@@ -19,6 +21,7 @@ import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { act, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, kiosk, statusStep, step, verifyCleanings } from './kiosk-batch-support.ts';
 import { begin, erpOrders, field } from './route-support.ts';
+import { batches, planning, tile } from './route-b-support.ts';
 
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async () => closeKiosks());
@@ -27,14 +30,13 @@ const SITE = 'SITE-1';
 const PC_PLAN = 'PC-PLAN-04';
 const ROUTE_B = { productCode: 'CXC-325', strength: '325 mg', batchSize: '64.000', bom: [['MAT-CXP-PX', '26.000'], ['MAT-MCC-102', '12.000'], ['MAT-CLX-K', '15.000'], ['MAT-MAN-SD', '6.000'], ['MAT-CCS', '3.000'], ['MAT-SIO2', '1.000'], ['MAT-MGST', '1.000'], ['MAT-FCS-W', '1.920']] };
 const GBT02 = { productCode: 'GBT02-100', strength: '100 mg', batchSize: '20.000', bom: [['MAT-EXF', '10.000'], ['MAT-MCC-102', '8.400'], ['MAT-CCS', '1.000'], ['MAT-SIO2', '0.200'], ['MAT-MGST', '0.400']] };
-const batches: { beta?: { id: string; number: string }; other?: { id: string; number: string }; humid?: { id: string; number: string } } = {};
+const made: { beta?: { id: string; number: string }; other?: { id: string; number: string }; humid?: { id: string; number: string } } = {};
 
 /** The ERP sends a processing order of `p`; the issuer plans its batch and issues it (office ceremony). */
 async function issuedBatch(page: Page, e2e: E2eWorld, issuer: SeededPersona, p: typeof ROUTE_B, tablets: string): Promise<{ id: string; number: string }> {
-  const base = e2e.url('GMP');
   const orderNo = `PO-RBX-${randomBytes(3).toString('hex').toUpperCase()}`;
   await erpOrders(page, e2e, [{ orderNo, siteCode: SITE, productCode: p.productCode, strength: p.strength, batchSize: p.batchSize, batchSizeUnit: 'kg', bom: p.bom.map(([materialCode, quantity]) => ({ materialCode, quantity, unit: 'kg' })), erpReference: `SAP-PP-${orderNo}` }]);
-  await page.goto(`${base}/planning`);
+  await planning(page);
   const order = page.getByTestId(`order-${orderNo}`);
   const form = order.getByTestId('plan-form');
   await form.getByRole('textbox', { name: 'Site' }).fill(SITE);
@@ -51,7 +53,7 @@ async function issuedBatch(page: Page, e2e: E2eWorld, issuer: SeededPersona, p: 
   await issue.getByRole('button', { name: 'Sign and issue' }).click();
   await officeSign(page, new RegExp(`^Issue batch ${number}`), issuer);
   await expect(issue.getByText(`${number} issued`)).toBeVisible();
-  await page.goto(`${base}/planning/batches`);
+  await batches(page);
   const row = page.getByTestId(`batch-${number}`);
   const id = /([0-9a-f-]{36})/.exec((await row.getByRole('link').first().getAttribute('href')) ?? '')?.[1] ?? '';
   expect(id).not.toBe('');
@@ -61,7 +63,7 @@ async function issuedBatch(page: Page, e2e: E2eWorld, issuer: SeededPersona, p: 
 /** The operator records a clearance of `area` for the batch on the plant screen (PRODUCT_CHANGE, PASSED); the refusal's text. */
 async function refusedClearance(page: Page, base: string, batchNumber: string, area: string, op: SeededPersona): Promise<string> {
   await as(page, op);
-  await page.goto(`${base}/plant`);
+  await tile(page, /^Plant Cleaning/);
   const box = page.getByTestId('clearance');
   await choose(box.getByRole('radio', { name: new RegExp(`^${batchNumber.replace('/', '\\/')} \\(`) }));
   await box.getByRole('textbox', { name: 'Area or line' }).fill(area);
@@ -81,9 +83,9 @@ test('[PR-27] route B refusals 1: a beta-lactam batch is refused the clearance o
   const page = await officePage('GMP', PC_PLAN);
   await signIn.office(page, issuer);
   await evidence.step('The ERP sends a route B order and a GB-T-02 order; the issuer plans and issues both batches', 'Two batches ISSUED: one beta-lactam, one not', async () => {
-    batches.beta = await issuedBatch(page, e2e, issuer, ROUTE_B, '100000');
-    batches.other = await issuedBatch(page, e2e, issuer, GBT02, '100000');
-    return { beta: batches.beta.number, other: batches.other.number };
+    made.beta = await issuedBatch(page, e2e, issuer, ROUTE_B, '100000');
+    made.other = await issuedBatch(page, e2e, issuer, GBT02, '100000');
+    return { beta: made.beta.number, other: made.other.number };
   }, page);
   await page.context().close();
   const cp = await officePage('GMP', PC_PLAN);
@@ -98,13 +100,13 @@ test('[PR-27] route B refusals 1: a beta-lactam batch is refused the clearance o
   const op = persona('GMP', 'operator2');
   const k = await kiosk(browser, e2e, 'KIOSK-COAT-1', op);
   await evidence.step('On KIOSK-COAT-1 the operator records a clearance of COAT-1 for the beta-lactam batch', 'Refused by the database: COAT-1 is not dedicated to beta-lactam products; no clearance is pending', async () => {
-    const text = await refusedClearance(k, base, batches.beta?.number ?? '', 'COAT-1', op);
+    const text = await refusedClearance(k, base, made.beta?.number ?? '', 'COAT-1', op);
     expect(text).toMatch(/COAT-1 is not a room or line dedicated to beta-lactam products/);
     return { refused: true };
   }, k);
   const kb = await kiosk(browser, e2e, 'KIOSK-BL-DISP', op);
   await evidence.step('On KIOSK-BL-DISP the operator records a clearance of BL-DISP for the GB-T-02 batch', 'Refused by the database: BL-DISP is dedicated to beta-lactam products and GB-T-02 is not one; no clearance is pending', async () => {
-    const text = await refusedClearance(kb, base, batches.other?.number ?? '', 'BL-DISP', op);
+    const text = await refusedClearance(kb, base, made.other?.number ?? '', 'BL-DISP', op);
     expect(text).toMatch(/BL-DISP is dedicated to beta-lactam products/);
     expect(text).toMatch(/is not beta-lactam/);
     return { refused: true };
@@ -118,8 +120,8 @@ test('[PR-25][IN-39][PR-27] route B refusals 3: in the beta-lactam suite a dispe
   const page = await officePage('GMP', PC_PLAN);
   await signIn.office(page, issuer);
   await evidence.step('The ERP sends a route B order; the issuer plans and issues its batch', 'The batch is ISSUED', async () => {
-    batches.humid = await issuedBatch(page, e2e, issuer, ROUTE_B, '100000');
-    return { batch: batches.humid.number };
+    made.humid = await issuedBatch(page, e2e, issuer, ROUTE_B, '100000');
+    return { batch: made.humid.number };
   }, page);
   await page.context().close();
   const cp = await officePage('GMP', PC_PLAN);
@@ -133,10 +135,10 @@ test('[PR-25][IN-39][PR-27] route B refusals 3: in the beta-lactam suite a dispe
   }, cp);
   const op = persona('GMP', 'operator2');
   const verifier = persona('GMP', 'verifier1');
-  const batchId = batches.humid?.id ?? '';
+  const batchId = made.humid?.id ?? '';
   const k = await kiosk(browser, e2e, 'KIOSK-BL-DISP', op);
   await evidence.step('The beta-lactam batch cleared into BL-DISP, the clearance step and the balance status step', 'The room is in use by the batch (dedicated: accepted)', async () => {
-    await clearance(k, base, batches.humid?.number ?? '', 'BL-DISP', op, verifier);
+    await clearance(k, base, made.humid?.number ?? '', 'BL-DISP', op, verifier);
     await clearanceStep(k, e2e, batchId, 'p-disp-clear@', 'BL-DISP', op, verifier);
     await statusStep(k, e2e, batchId, 'p-disp-status@', [{ ref: 'BAL', code: 'BAL-BLD-01', instrument: true }], op);
   }, k);

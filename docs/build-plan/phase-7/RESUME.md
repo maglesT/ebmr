@@ -240,7 +240,9 @@ decision text in `slice-7n-routes.md`.
 - D-7n-2: rooms are dedicated to beta-lactam products through the IN-27 area dedications with a fourth class
   `BETA_LACTAM` (QA records, a second QA person approves); recipe-core 1600 refuses a beta-lactam batch in a room not
   dedicated (EBMR-PLANT-177) and any other batch in a dedicated one (EBMR-PLANT-178), at clearance and room start.
-- D-7n-3: rooms and lines only (no separate equipment check); the site-wide penicillin rule is unchanged.
+- D-7n-3: rooms and lines, and each unit's use by the room the unit stands in (review P7N-1); the site-wide
+  penicillin rule is unchanged.
+- D-7n-10: a unit with no room recorded is not checked at its use.
 - D-7n-4: the ERP master flags the product beta-lactam; the plant classification of the product and its two actives is
   made on screen in the browser test, not seeded.
 - D-7n-5: the suite's dedications and SITE-1's penicillin facility rule are seeded through the real commands and

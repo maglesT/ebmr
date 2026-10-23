@@ -16,7 +16,8 @@
 --     area is dedicated to them (EBMR-PLANT-178).
 --   * Triggers (before insert, whoever writes): ac_plant_beta_lactam_room on plant.clearance (a room or line is not
 --     cleared for such a batch, so the refusal comes at the clearance on the plant screen) and on plant.area_occupancy (the room's use is not started; after the
---     room rules of 0973). Equipment is not checked separately: a unit stands in its room (D-7n-3).
+--     room rules of 0973), and ac_plant_beta_lactam_unit on plant.equipment_use (a unit's use, which needs no room
+--     occupancy, is judged by the room or line the unit stands in; a unit with no room is not checked, D-7n-10).
 -- Messages: EBMR-PLANT-177, EBMR-PLANT-178.
 
 set local role ebmr_owner;
@@ -69,10 +70,28 @@ begin
   return new;
 end
 $$;
+-- A unit's use: judged by the room or line the unit stands in (none: not checked, D-7n-10); the message names the unit.
+create function plant.beta_lactam_equipment_check() returns trigger
+language plpgsql security definer set search_path = pg_catalog, plant, pg_temp as $$
+declare
+  e         plant.equipment;
+  v_problem text;
+begin
+  select * into e from plant.equipment where id = new.equipment_id;
+  if e.area_id is not null then
+    v_problem := plant.beta_lactam_room_problem(e.area_id, new.batch_id);
+    if v_problem is not null then
+      raise exception using errcode = 'P0001', message = format('%s (unit %s stands there)', v_problem, e.code);
+    end if;
+  end if;
+  return new;
+end
+$$;
 create trigger ac_plant_beta_lactam_room before insert on plant.clearance for each row execute function plant.beta_lactam_clearance_check();
 create trigger ac_plant_beta_lactam_room before insert on plant.area_occupancy for each row execute function plant.beta_lactam_occupancy_check();
+create trigger ac_plant_beta_lactam_unit before insert on plant.equipment_use for each row execute function plant.beta_lactam_equipment_check();
 
-revoke all on function plant.beta_lactam_room_problem(uuid, uuid), plant.beta_lactam_clearance_check(), plant.beta_lactam_occupancy_check() from public;
+revoke all on function plant.beta_lactam_room_problem(uuid, uuid), plant.beta_lactam_clearance_check(), plant.beta_lactam_occupancy_check(), plant.beta_lactam_equipment_check() from public;
 grant execute on function plant.beta_lactam_room_problem(uuid, uuid) to ebmr_app;
 
 reset role;

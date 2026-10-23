@@ -30,9 +30,9 @@ beta-lactam suite, with the refusals shown on screen. Branch `phase-7/slice-7n`;
 - D-7n-2: the room rule reuses the area dedications of IN-27 (0890, 0912) with a fourth class `BETA_LACTAM` rather than a
   new register: the same QA recording, second-person approval, screen and audit. A dedication counts once approved; a
   withdrawal counts at once (0912 `plant.area_dedicated`, unchanged).
-- D-7n-3 (least strict): the rule checks rooms and lines (clearance and occupancy), not each equipment use: a unit
-  stands in its room, and a batch reaches it only through the room's occupancy. The site-wide penicillin rule (0973,
-  1210) is unchanged and still asked first at the room start.
+- D-7n-3: the rule checks rooms and lines (clearance and occupancy) and, since review P7N-1, each unit's use by the
+  room or line the unit stands in (a unit's use needs no room occupancy). The site-wide penicillin rule (0973, 1210) is
+  unchanged and still asked first at the room start.
 - D-7n-4: the ERP product master flags CXC-325 beta-lactam (truthful data, confirmed by QA as every new master); the
   plant's own classification of the product and its two actives is not seeded and is proposed and approved on screen in
   the browser test, as R7 asks.
@@ -45,5 +45,7 @@ beta-lactam suite, with the refusals shown on screen. Branch `phase-7/slice-7n`;
   first-expiring for its TB-01 steps without changing other routes' stock rotation (PR-18).
 - D-7n-8: the suite's low-humidity limit is 30 % RH, held in the master: G-11 in the dispensing room (an excursion blocks
   the steps after it until a deviation) and the TB-18 cores step's room limits in the coating room.
+- D-7n-10 (least strict): a unit with no room or line recorded is not checked at its use (the plant list need not place
+  portable or bench units); its batch is still checked at its room's clearance and occupancy.
 - D-7n-9: the long batch test reuses the shared kiosk helpers of the route specs (which open screens by address, as
   route W does); the refusals spec likewise until the home link of slice 7k is on main.
