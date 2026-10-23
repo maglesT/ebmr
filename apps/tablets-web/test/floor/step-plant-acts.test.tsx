@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { routes, type BlockEntryFormView, type BlockFieldSchemaWire, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
-import { renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
+import { fakeTap, renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
 
 afterEach(() => {
   apiState.installation = undefined;
@@ -283,5 +283,42 @@ describe('the printed lot hands itself to the issue entry once (slice 7k)', () =
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(screen.getByTestId('block-form-ISSUE').getAttribute('data-closed')).toBe('true');
     expect(ui.commands()).toHaveLength(1);
+  });
+});
+
+describe('a plant act pressed before the session is read (slice 7m, route W 6 in CI)', () => {
+  it('[INV-40] waits for the session and asks for the badge on a shared terminal, never sending the act untapped', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }],
+      containers: [{ containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLEND_L1', netQuantity: '33.150', unit: 'kg', problem: null }],
+    });
+    const session = example('session-kiosk');
+    expect(session.attribution).not.toBe('NONE');
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tap = fakeTap();
+    renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      tap,
+      fixtures: { 'batches.step': () => view, ...stepFixtures(view), 'batches.stepPlant': () => current, 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: CONTAINER, label: 'OC-B26-0007-0001', netQuantity: '33.150', unit: 'kg' }) },
+      // The session's answer is held until the act has been pressed.
+      intercept: async (r) => {
+        if (r.method === 'GET' && r.path === '/api/session') {
+          await held;
+          return { status: 200, body: session };
+        }
+        return undefined;
+      },
+    });
+    const button = await screen.findByRole('button', { name: 'Charge OC-B26-0007-0001 into hopper H1' });
+    await userEvent.click(button);
+    release();
+    await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(1));
   });
 });
