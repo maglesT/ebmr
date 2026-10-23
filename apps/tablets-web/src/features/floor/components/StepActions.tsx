@@ -127,6 +127,8 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
         <StageSignOffDialog
           isOpen
           onClose={close}
+          batchId={view.run.runId}
+          stepKey={view.step.stepKey}
           stage={stageOf(open.action)}
           onContinue={() => {
             const a = open.action;

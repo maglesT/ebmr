@@ -266,6 +266,11 @@ export const SignableAction = z.discriminatedUnion('kind', [
     reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }),
     variants: z.record(z.string(), z.string()),
     inputs: z.record(z.string(), DataValueWire),
+    /**
+     * R3.1 (D-7k-1): the issuer's reason for an input further from the master's value than the tolerance, by input id
+     * (kept in the record with the value).
+     */
+    inputConfirmations: z.record(z.string(), z.string().trim().min(1).max(500)).optional(),
   }),
   z.strictObject({
     kind: z.literal('ESIG_STUB'),

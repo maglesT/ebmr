@@ -64,7 +64,7 @@ function Chart({ v }: { v: MspcChartView }) {
       </Section>
       <Section title="Batches" testId="analytics-mspc-batches">
         <table>
-          <thead><tr><th>Batch</th><th>Completed</th><th>Reference</th><th>T-squared</th><th>Q</th><th>Flagged</th></tr></thead>
+          <thead><tr><th>Batch</th><th>Completed</th><th>Reference</th><th>T-squared</th><th>Q</th><th>Flagged</th><th>Scores</th></tr></thead>
           <tbody>
             {v.batches.map((b) => (
               <tr key={b.batchId} data-testid={`analytics-mspc-batch-${b.batchId}`}>
@@ -74,6 +74,8 @@ function Chart({ v }: { v: MspcChartView }) {
                 <td><Stat value={b.t2} /></td>
                 <td><Stat value={b.q} /></td>
                 <td>{b.flagged ? 'yes' : ''}</td>
+                {/* R2: the batch's score and contributions (its own page) from where the person sees the batch. */}
+                <td><Link to="/analytics/mspc/batches/$batchId" params={{ batchId: b.batchId }} data-testid={`analytics-mspc-open-${b.batchId}`}>Contributions of {b.batchNumber}</Link></td>
               </tr>
             ))}
           </tbody>

@@ -22,7 +22,9 @@ export interface LotFacts {
 }
 
 /** The lot `code` as batch `batchId` uses it now (without a batch: the lot route's read). */
-export async function resolveLot(db: Db, code: string, batchId?: string): Promise<LotFacts | undefined> {
+export async function resolveLot(db: Db, typed: string, batchId?: string): Promise<LotFacts | undefined> {
+  // R3.7 (hosted-demo trials): a lot code typed with a stray or doubled space is the code on the label.
+  const code = typed.replace(/\s+/g, ' ').trim();
   const { rows } =
     batchId === undefined
       ? await db.query<{ l: Record<string, unknown> | null }>('select tab.resolve_lot($1) as l', [code])

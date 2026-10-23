@@ -28,7 +28,10 @@ export function BulkIssuePage() {
     <>
       <h1>Bulk for packaging order {v?.batchNumber ?? ''}</h1>
       <p>
-        <Link to="/planning/packaging">Packaging orders</Link>
+        <Link to="/planning/packaging">Packaging orders</Link> ·{' '}
+        {/* R2: the order's line completion and its serial pools, from the order. */}
+        <Link to="/labels/packaging/$batchId" params={{ batchId }} data-testid="packaging-completion-link">Line completion (coding, labels, inspection)</Link> ·{' '}
+        <Link to="/serialisation/batches/$batchId" params={{ batchId }} data-testid="serial-pools-link">Serial pools</Link>
       </p>
       {q.isPending ? <p>Loading the packaging order…</p> : null}
       {q.error ? <RefusalMessage error={q.error.error} /> : null}

@@ -11,11 +11,43 @@ import { z } from 'zod';
 import { DecimalString, Empty, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
 import { ActId, ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
-import { StepPlantView } from './plant-floor.ts';
+import { Code, PlannedHours, StepPlantView } from './plant-floor.ts';
 import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
 const stepParams = z.strictObject({ batchId: Uuid, stepKey: StepKey });
+
+/**
+ * R3.3 (hosted-demo trials; D-7k-2): the plant act a status or clearance step stands on, done and recorded in the step as
+ * one act of the person (one badge tap on a kiosk): the start of the batch's use of a room or line of the step's stage
+ * (on its verified clearance; a line names the order and artwork set it was cleared for), or the booking of a unit the
+ * step checks (an instrument booked, a process unit's use started) for the hours given.
+ */
+export const PlantEntryAct = z.discriminatedUnion('act', [
+  z.strictObject({ act: z.literal('START_AREA_OCCUPANCY'), areaCode: Code, order: z.string().trim().min(1).max(64).optional(), artworkSet: z.string().trim().min(1).max(64).optional() }),
+  z.strictObject({ act: z.literal('BOOK_UNIT'), equipmentRef: z.string().trim().min(1).max(64), code: Code, plannedHours: PlannedHours }),
+]);
+export type PlantEntryAct = z.infer<typeof PlantEntryAct>;
+
+/**
+ * R3.10 (hosted-demo trials): the rooms and units a batch's stages need, stage by stage, each with its cleaning state
+ * (the plant's own state: DIRTY needs a cleaning, CLEANING waits for its completion and verification), so the plant screen
+ * starts the needed cleanings from one list. A stage signed off needs nothing more.
+ */
+export const CleaningNeedsView = z.strictObject({
+  batchId: Uuid,
+  batchNumber: z.string(),
+  stages: z.array(
+    z.strictObject({
+      stageKey: z.string(),
+      name: z.string(),
+      status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'SIGNED_OFF']),
+      rooms: z.array(z.strictObject({ code: z.string(), kind: z.enum(['ROOM', 'LINE']), state: z.string(), needsCleaning: z.boolean() })),
+      units: z.array(z.strictObject({ ref: z.string(), classCode: z.string(), code: z.string(), name: z.string(), state: z.string(), needsCleaning: z.boolean() })),
+    }),
+  ),
+});
+export type CleaningNeedsView = z.infer<typeof CleaningNeedsView>;
 
 /** An act proposed for approval before it is recorded (recipe.propose_act): QA signs its meaning on aggregate batch_act. */
 export const ProposedActView = z.strictObject({
@@ -168,6 +200,19 @@ export const batches = {
     }),
     response: CommandResultView,
   }),
+  plantEntry: defineRoute({
+    id: 'batches.plantEntry',
+    method: 'POST',
+    path: '/api/batches/:batchId/steps/:stepKey/plant-entries',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Start the use of a room or line, or book a unit, and record it in the step as one act (R3.3; PR-34, PR-23, IN-21, INV-12); the database guards both',
+    params: stepParams,
+    body: withAttribution({ expectedVersion: RunVersion, act: PlantEntryAct }),
+    response: CommandResultView,
+  }),
   verifyReplay: defineRoute({
     id: 'batches.verifyReplay',
     method: 'POST',
@@ -260,6 +305,17 @@ export const batches = {
     summary: 'A printed packaging lot as the batch issues it now (its code, material, status, recorded artwork and expiry), for the G-21 issue entry; 404 when it is no printed packaging lot with a recorded artwork',
     params: z.strictObject({ batchId: Uuid, code: z.string().min(1).max(64) }),
     response: PrintedLotFactsView,
+  }),
+  cleaningNeeds: defineRoute({
+    id: 'batches.cleaningNeeds',
+    method: 'GET',
+    path: '/api/batches/:batchId/cleaning-needs',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The rooms and units the batch\'s stages need, each with its cleaning state (R3.10), so the needed cleanings start from one list',
+    params: batchParams,
+    response: CleaningNeedsView,
   }),
   stepPlant: defineRoute({
     id: 'batches.stepPlant',
