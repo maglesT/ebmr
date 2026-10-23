@@ -178,7 +178,9 @@ export async function performAndCheck(page: Page, op: SeededPersona, checker: Se
     await switchUser(page, checker);
     await signPrimary(page, check, checker);
   }
-  if (!checker || back.key !== checker.key) await switchUser(page, back);
+  // Only to another person: a switch to the person already shown passes its identity check at once, so the next
+  // navigation could drop the switch in flight and leave the kiosk on its sign-in screen.
+  if (back.key !== (checker ?? op).key) await switchUser(page, back);
 }
 
 /** Start step: the primary action and the operator's badge tap (journey support), at the person's pace. */

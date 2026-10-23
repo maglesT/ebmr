@@ -979,6 +979,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     }
     await step(page, e2e, orderId, 'p-pk-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: `End the use of ${LINE}` }), op);
+    await expect(page.getByTestId(`occupancy-${LINE}`)).toHaveCount(0);
     await page.goto(`${base}/runs/${orderId}`);
     await expect(page.getByText('Execution complete').first()).toBeVisible();
     return { dispositioned };

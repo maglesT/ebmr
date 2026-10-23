@@ -438,6 +438,9 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'H-PACK@', ANY, op);
     await step(page, e2e, batchId, 'p-comp-status@', ANY);
     await act(page, page.getByTestId('plant-unit-PRESS').getByRole('button', { name: 'End the use of PRESS-01' }), op);
+    // The end is seen before the step changes: leaving at once can drop the tap's request and leave PRESS-01 in
+    // product for the specs after this one (route W cleans it).
+    await expect(page.getByTestId('use-PRESS-01')).toHaveCount(0);
     await step(page, e2e, batchId, 'p-comp-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of COMP-1' }), op);
     await expect(page.getByTestId('occupancy-COMP-1')).toHaveCount(0);
