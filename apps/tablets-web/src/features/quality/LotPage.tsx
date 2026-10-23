@@ -14,6 +14,7 @@ import { api } from '../../api/client.ts';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useRefresh, useSignedAct } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
+import { LotQualityForms } from '../../app/lot-quality.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
@@ -73,6 +74,8 @@ export function LotPage() {
           />
         ) : null}
       </Section>
+      {/* Slice 7o (R4, R8): the assay result TB-01 reads and a printed lot's artwork version G-21 checks. */}
+      {qc && lot ? <LotQualityForms lotCode={lot.lotCode} results={results.data?.results ?? []} /> : null}
       {qc && lot ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}
       {qa && lot ? <LotDecision lot={lot} /> : null}
       <LotReleaseCheck lotId={lotId} />

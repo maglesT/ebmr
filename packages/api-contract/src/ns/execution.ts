@@ -412,6 +412,27 @@ export const LotView = z.strictObject({
   identityTested: z.boolean(),
 });
 
+/**
+ * Slice 7o (R4, R8): what a lot carries for the blocks besides its status: the current approved assay result a
+ * potency-adjusted dispensing reads (TB-01; tablets 0841) and the artwork version a printed packaging lot was checked
+ * with (G-21; tablets 0950).
+ */
+export const LotQualityView = z.strictObject({
+  lotCode: z.string(),
+  assay: z
+    .strictObject({
+      basis: z.enum(['AS_IS', 'ANHYDROUS_WATER', 'DRIED_LOD', 'ANHYDROUS_SOLVENT_FREE']),
+      assay: z.string(),
+      water: z.string().nullable(),
+      lod: z.string().nullable(),
+      solvents: z.string().nullable(),
+      certificateRef: z.string(),
+      recordedAt: Instant,
+    })
+    .nullable(),
+  artwork: z.string().nullable(),
+});
+
 export const CommandResultView = z.strictObject({
   /** The engine accepted the command (refusals are persisted and returned as a 422 refusal instead). */
   accepted: z.literal(true),
@@ -678,6 +699,58 @@ export const execution = {
       expiresInDays: z.number().int().min(1).max(3650),
     }),
     response: LotView,
+  }),
+  // Slice 7o (R4, R8): a lot's assay result for TB-01 and a printed lot's artwork version for G-21 on screen, on both
+  // installations (a TEST- lot in the sandbox, MASTERDATA.CHANGE; a site lot on GMP, QC.RESULT_RECORD; the database's rules).
+  lotQuality: defineRoute({
+    id: 'execution.lotQuality',
+    method: 'GET',
+    path: '/api/lots/:code/quality',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The current approved assay result and the artwork version of a lot (TB-01, G-21)',
+    params: z.strictObject({ code: z.string().min(1).max(64) }),
+    response: LotQualityView,
+  }),
+  recordLotAssay: defineRoute({
+    id: 'execution.recordLotAssay',
+    method: 'POST',
+    path: '/api/lots/:code/assay',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record the approved assay result of a lot that a potency-adjusted dispensing reads (tab.record_lot_assay; a later one supersedes with a reason)',
+    params: z.strictObject({ code: z.string().min(1).max(64) }),
+    body: withAttribution({
+      basis: z.enum(['AS_IS', 'ANHYDROUS_WATER', 'DRIED_LOD', 'ANHYDROUS_SOLVENT_FREE']),
+      /** Sandbox: the values typed from the test lot's certificate. GMP: the approved LIMS results named by id (a typed value is refused). */
+      assay: DecimalString.optional(),
+      water: DecimalString.optional(),
+      lod: DecimalString.optional(),
+      solvents: DecimalString.optional(),
+      assayResultId: Uuid.optional(),
+      waterResultId: Uuid.optional(),
+      lodResultId: Uuid.optional(),
+      solventsResultId: Uuid.optional(),
+      certificateRef: z.string().trim().min(1).max(128),
+      reason: z.string().trim().min(1).max(2000).optional(),
+    }),
+    response: LotQualityView,
+  }),
+  recordLotArtwork: defineRoute({
+    id: 'execution.recordLotArtwork',
+    method: 'POST',
+    path: '/api/lots/:code/artwork',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record the artwork version a printed packaging lot was checked with (tab.record_lot_artwork; once per lot)',
+    params: z.strictObject({ code: z.string().min(1).max(64) }),
+    body: withAttribution({ artwork: z.string().regex(/^[!-~]{1,64}$/) }),
+    response: LotQualityView,
   }),
   lot: defineRoute({
     id: 'execution.lot',
