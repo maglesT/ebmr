@@ -129,8 +129,11 @@ export async function closeKiosks(): Promise<void> {
 /** A plant act or other command button on a kiosk: pressed, then the fresh badge tap of the person signed in. */
 export async function act(page: Page, button: Locator, who: SeededPersona): Promise<void> {
   await expect(button).toBeEnabled();
+  // Slice 7m: the person's pace at the reader is kept before the button is pressed, never while the badge prompt is open
+  // (a prompt left open through the pause expired, and the tap then found no prompt).
+  await pace(page, who);
   await button.click();
-  await tap(page, who);
+  await tap0(page, who);
 }
 
 /** Opens a step of the batch on the kiosk step screen. */
@@ -152,12 +155,14 @@ export async function save(page: Page, form: Locator, who: SeededPersona): Promi
   };
   for (let attempt = 0; ; attempt += 1) {
     await expect(button).toBeEnabled();
+    // Slice 7m: paced before the press (see act), so the badge prompt is answered while it is open.
+    await pace(page, who);
     await button.click();
     // Slice 7l: a Save pressed while the screen still settles the entry saved just before asks for no badge; the person
     // presses it again (a finding of the route runs, reported for the floor's usability work).
     const badge = page.getByLabel('Badge', { exact: true }).last();
     if (!(await badge.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false))) await button.click();
-    await tap(page, who);
+    await tap0(page, who);
     try {
       await expect(saved.or(stale).or(refused).first()).toBeVisible();
     } catch {

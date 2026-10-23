@@ -72,7 +72,11 @@ const material = (materialCode: string, materialName: string, materialKind: 'API
   materialCode, materialName, materialKind, unit, maxRetestMonths: 36, erpReference: `SAP-MM-${materialCode.replace(/^MAT-/, '')}`,
 });
 
-/** Route W: its new materials and its lots (ample: ten batches and many packaging orders). */
+/**
+ * Route W: its new materials and its lots (ample: ten batches and many packaging orders). Routes D and S dispense the
+ * materials they share with route W from these lots (slice 7m D-7m-5: one stock, first-expiring first, PR-18), ten
+ * batches of each route.
+ */
 export const RTW_MATERIALS = [
   material('MAT-ECS-01', 'Enteric coating system (invented)', 'EXCIPIENT', 'kg'),
   material(RTW_FORMING, 'Cold-form aluminium laminate (forming web)', 'PRIMARY_PACKAGING', 'kg'),
@@ -82,20 +86,20 @@ export const RTW_MATERIALS = [
 export const RTW_LOTS: readonly SeedPackLot[] = [
   {
     // The first-expiring lots of the active and the compensating cellulose (TB-01 dispenses first-expiring first, PR-18).
-    lotCode: 'RTW-API-001', materialCode: 'MAT-EXZ-NA', quantity: '600.000', expiresAt: '2028-06-30T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
+    lotCode: 'RTW-API-001', materialCode: 'MAT-EXZ-NA', quantity: '1800.000', expiresAt: '2028-06-30T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
     results: [
       { testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', value: '99.20', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
       { testCode: 'WATER', methodReference: 'STP-KF-01', value: '0.80', unit: '%', upperLimit: '1.5' },
     ],
     assay: { basis: 'ANHYDROUS_WATER', assayTest: 'ASSAY', waterTest: 'WATER' },
   },
-  { ...lot('RTW-MCC-001', 'MAT-MCC-101', '100.000', [lod('3.10', '5.0')]), expiresAt: '2029-03-31T00:00:00Z' },
-  lot('RTW-LAC-001', 'MAT-LAC-MH', '160.000', [lod('0.40', '1.0')]),
-  lot('RTW-PVP-001', 'MAT-PVP-K30', '30.000', [lod('3.50', '5.0')]),
-  lot('RTW-IPA-001', 'MAT-IPA', '35.000', [lod('0.05', '0.1')]),
-  lot('RTW-CCS-001', 'MAT-CCS', '30.000', [lod('6.20', '10.0')]),
-  lot('RTW-SIO-001', 'MAT-SIO2', '6.000', [lod('1.10', '2.5')]),
-  lot('RTW-MGS-001', 'MAT-MGST', '10.000', [lod('3.00', '6.0')]),
+  { ...lot('RTW-MCC-001', 'MAT-MCC-101', '300.000', [lod('3.10', '5.0')]), expiresAt: '2029-03-31T00:00:00Z' },
+  lot('RTW-LAC-001', 'MAT-LAC-MH', '480.000', [lod('0.40', '1.0')]),
+  lot('RTW-PVP-001', 'MAT-PVP-K30', '90.000', [lod('3.50', '5.0')]),
+  lot('RTW-IPA-001', 'MAT-IPA', '70.000', [lod('0.05', '0.1')]),
+  lot('RTW-CCS-001', 'MAT-CCS', '90.000', [lod('6.20', '10.0')]),
+  lot('RTW-SIO-001', 'MAT-SIO2', '18.000', [lod('1.10', '2.5')]),
+  lot('RTW-MGS-001', 'MAT-MGST', '30.000', [lod('3.00', '6.0')]),
   lot('RTW-ECS-001', 'MAT-ECS-01', '30.000', [lod('2.50', '5.0')]),
   lot('RTW-ACF-001', RTW_FORMING, '20.000', [{ testCode: 'THICKNESS', methodReference: 'STP-PM-THK-01', value: '130', unit: 'um', lowerLimit: '120', upperLimit: '140' }], 'VIS-PM-01'),
   { ...lot('RTW-ALU-001', RTW_FOIL, '20000', [textCheck], 'VIS-PM-01'), artwork: RTW_FOIL_ARTWORK },
@@ -104,55 +108,25 @@ export const RTW_LOTS: readonly SeedPackLot[] = [
 /** The open ERP orders of route W: processing orders of one batch each and packaging orders of one demo order each. */
 export const RTW_ORDERS = { processing: ['PO-RTW-0001', 'PO-RTW-0002', 'PO-RTW-0003'], packaging: ['PO-RTWPK-0001', 'PO-RTWPK-0002', 'PO-RTWPK-0003', 'PO-RTWPK-0004'] } as const;
 
-/** Route D (slice 7m): its new materials and its lots (ample: ten batches and many packaging orders). */
+/** Route D (slice 7m): its new materials and their lots (the shared materials from route W's lots, D-7m-5). */
 export const RTD_MATERIALS = [
   material(RTD_STRIP_FOIL, 'Aluminium strip foil, plain', 'PRIMARY_PACKAGING', 'kg'),
   material(RTD_CARTON, 'Printed carton, route D 10 x 10', 'PRINTED_PACKAGING', '1'),
 ];
 export const RTD_LOTS: readonly SeedPackLot[] = [
-  {
-    lotCode: 'RTD-API-001', materialCode: 'MAT-EXZ-NA', quantity: '600.000', expiresAt: '2028-06-30T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
-    results: [
-      { testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', value: '99.20', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
-      { testCode: 'WATER', methodReference: 'STP-KF-01', value: '0.80', unit: '%', upperLimit: '1.5' },
-    ],
-    assay: { basis: 'ANHYDROUS_WATER', assayTest: 'ASSAY', waterTest: 'WATER' },
-  },
-  { ...lot('RTD-MCC-001', 'MAT-MCC-101', '100.000', [lod('3.10', '5.0')]), expiresAt: '2029-03-31T00:00:00Z' },
-  lot('RTD-LAC-001', 'MAT-LAC-MH', '160.000', [lod('0.40', '1.0')]),
-  lot('RTD-PVP-001', 'MAT-PVP-K30', '30.000', [lod('3.50', '5.0')]),
-  lot('RTD-CCS-001', 'MAT-CCS', '30.000', [lod('6.20', '10.0')]),
-  lot('RTD-SIO-001', 'MAT-SIO2', '6.000', [lod('1.10', '2.5')]),
-  lot('RTD-MGS-001', 'MAT-MGST', '10.000', [lod('3.00', '6.0')]),
   lot('RTD-ALS-001', RTD_STRIP_FOIL, '10.000', [{ testCode: 'THICKNESS', methodReference: 'STP-PM-THK-01', value: '40', unit: 'um', lowerLimit: '36', upperLimit: '44' }], 'VIS-PM-01'),
   { ...lot('RTD-CTN-001', RTD_CARTON, '5000', [textCheck], 'VIS-PM-01'), artwork: RTD_CARTON_ARTWORK },
 ];
 export const RTD_ORDERS = { processing: ['PO-RTD-0001', 'PO-RTD-0002', 'PO-RTD-0003'], packaging: ['PO-RTDPK-0001', 'PO-RTDPK-0002', 'PO-RTDPK-0003', 'PO-RTDPK-0004'] } as const;
 
-/** Route S (slice 7m): its new materials and its lots (ample: ten batches and many packaging orders). */
+/** Route S (slice 7m): its new materials and their lots (the shared materials from route W's lots, D-7m-5). */
 export const RTS_MATERIALS = [
   material(RTS_SUGAR, 'Sucrose for sugar coating (invented)', 'EXCIPIENT', 'kg'),
   material(RTS_FOIL, 'Printed aluminium lidding foil, route S', 'PRINTED_PACKAGING', '1'),
   material(RTS_CARTON, 'Printed carton, route S 10 x 10', 'PRINTED_PACKAGING', '1'),
 ];
 export const RTS_LOTS: readonly SeedPackLot[] = [
-  {
-    lotCode: 'RTS-API-001', materialCode: 'MAT-EXZ-NA', quantity: '600.000', expiresAt: '2028-06-30T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
-    results: [
-      { testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', value: '99.20', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
-      { testCode: 'WATER', methodReference: 'STP-KF-01', value: '0.80', unit: '%', upperLimit: '1.5' },
-    ],
-    assay: { basis: 'ANHYDROUS_WATER', assayTest: 'ASSAY', waterTest: 'WATER' },
-  },
-  { ...lot('RTS-MCC-001', 'MAT-MCC-101', '100.000', [lod('3.10', '5.0')]), expiresAt: '2029-03-31T00:00:00Z' },
-  lot('RTS-LAC-001', 'MAT-LAC-MH', '160.000', [lod('0.40', '1.0')]),
-  lot('RTS-PVP-001', 'MAT-PVP-K30', '30.000', [lod('3.50', '5.0')]),
-  lot('RTS-IPA-001', 'MAT-IPA', '35.000', [lod('0.05', '0.1')]),
-  lot('RTS-CCS-001', 'MAT-CCS', '30.000', [lod('6.20', '10.0')]),
-  lot('RTS-SIO-001', 'MAT-SIO2', '6.000', [lod('1.10', '2.5')]),
-  lot('RTS-MGS-001', 'MAT-MGST', '10.000', [lod('3.00', '6.0')]),
   lot('RTS-SUC-001', RTS_SUGAR, '400.000', [lod('0.05', '0.2')]),
-  lot('RTS-PVC-001', RTS_FILM, '20.000', [{ testCode: 'THICKNESS', methodReference: 'STP-PM-THK-01', value: '250', unit: 'um', lowerLimit: '240', upperLimit: '260' }], 'VIS-PM-01'),
   { ...lot('RTS-ALU-001', RTS_FOIL, '20000', [textCheck], 'VIS-PM-01'), artwork: RTS_FOIL_ARTWORK },
   { ...lot('RTS-CTN-001', RTS_CARTON, '5000', [textCheck], 'VIS-PM-01'), artwork: RTS_CARTON_ARTWORK },
 ];

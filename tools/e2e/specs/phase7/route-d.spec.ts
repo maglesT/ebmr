@@ -30,27 +30,27 @@ test.beforeEach(async () => closeKiosks());
 const ROUTE = 'd';
 const SITE = 'SITE-1';
 const PRODUCT = { productCode: 'EXZ-BL-250', strength: '250 mg' };
-/** One batch as the ERP sends it, and the lot each material is dispensed from (the demo set-up's route D lots). */
+/** One batch as the ERP sends it, and the lot each material is dispensed from (the demo set-up's lots: route W's for the materials the routes share, first-expiring first (D-7m-5)). */
 const BOM: [string, string, string][] = [
-  ['MAT-EXZ-NA', '50.000', 'RTD-API-001'],
-  ['MAT-MCC-101', '8.000', 'RTD-MCC-001'],
-  ['MAT-LAC-MH', '14.000', 'RTD-LAC-001'],
-  ['MAT-PVP-K30', '2.400', 'RTD-PVP-001'],
-  ['MAT-CCS', '2.400', 'RTD-CCS-001'],
-  ['MAT-SIO2', '0.400', 'RTD-SIO-001'],
-  ['MAT-MGST', '0.800', 'RTD-MGS-001'],
+  ['MAT-EXZ-NA', '50.000', 'RTW-API-001'],
+  ['MAT-MCC-101', '8.000', 'RTW-MCC-001'],
+  ['MAT-LAC-MH', '14.000', 'RTW-LAC-001'],
+  ['MAT-PVP-K30', '2.400', 'RTW-PVP-001'],
+  ['MAT-CCS', '2.400', 'RTW-CCS-001'],
+  ['MAT-SIO2', '0.400', 'RTW-SIO-001'],
+  ['MAT-MGST', '0.800', 'RTW-MGS-001'],
 ];
 /** What stores reserve of each lot (the active with room for its potency adjustment: 54.529 kg on the lot's assay). */
-const RESERVE: Record<string, string> = { 'RTD-API-001': '55.000' };
+const RESERVE: Record<string, string> = { 'RTW-API-001': '55.000' };
 const API_KG = '54.529';
 const MCC_KG = '7.131';
 /** The other materials weighed at the G-07 step, in the step's order. */
 const OTHERS: [string, string, string][] = [
-  ['MAT-LAC-MH', '14.000', 'RTD-LAC-001'],
-  ['MAT-PVP-K30', '2.400', 'RTD-PVP-001'],
-  ['MAT-CCS', '2.400', 'RTD-CCS-001'],
-  ['MAT-SIO2', '0.400', 'RTD-SIO-001'],
-  ['MAT-MGST', '0.800', 'RTD-MGS-001'],
+  ['MAT-LAC-MH', '14.000', 'RTW-LAC-001'],
+  ['MAT-PVP-K30', '2.400', 'RTW-PVP-001'],
+  ['MAT-CCS', '2.400', 'RTW-CCS-001'],
+  ['MAT-SIO2', '0.400', 'RTW-SIO-001'],
+  ['MAT-MGST', '0.800', 'RTW-MGS-001'],
 ];
 const PRESS = 'BLPRESS-01';
 
@@ -158,11 +158,11 @@ test('[DI-30][INV-40][PR-20][IN-13] route D 2: dispensing on KIOSK-DISP-1, the a
     await step(page, e2e, batchId, 'p-disp-api@', ANY);
     await begin(page, dispenser);
     const potency = page.getByTestId('potency-calculation');
-    await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill('RTD-API-001');
+    await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill('RTW-API-001');
     await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
     await expect(potency.getByText('Calculated from the lots (see the entries)')).toBeVisible();
-    await weigh(page, dispenser, 'MAT-EXZ-NA', API_KG, 'RTD-API-001', 0);
-    await weigh(page, dispenser, 'MAT-MCC-101', MCC_KG, 'RTD-MCC-001', 1);
+    await weigh(page, dispenser, 'MAT-EXZ-NA', API_KG, 'RTW-API-001', 0);
+    await weigh(page, dispenser, 'MAT-MCC-101', MCC_KG, 'RTW-MCC-001', 1);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }, page);
@@ -215,17 +215,20 @@ test('[IN-36][PR-08][PR-29][DI-31][DI-32] route D 3: roller compaction on KIOSK-
       { ref: 'BAL', code: 'BAL-RC-01', instrument: true }, { ref: 'RC', code: 'RC-01', instrument: false }, { ref: 'MILL', code: 'MILL-02', instrument: false },
     ], op);
   }, page);
-  await evidence.step('TB-06: the run on RC-01 with the feed, the roll force and gap keyed by hand (manual fallback), the ribbon checked at the start and at the end, the mill screen checked before and after, granules and fines discharged, the yield', 'Performed and verified', async () => {
+  await evidence.step('TB-06: the run on RC-01, roll force and gap keyed by hand, ribbon and mill screen checks, granules and fines, the yield', 'Performed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-rc@')) return;
     await step(page, e2e, batchId, 'p-rc@', ANY);
-    await begin(page, op);
-    await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTD-RC', 'Recipe version': '1' });
-    await saveBlock(page, 'RUN_START', op, async (f) => unitOf(f, 'Press', 'RC-01'));
-    await entry(page, 'FEED', op, { Quantity: { Value: '66.460', Unit: 'kg' } });
-    await manualValue(page, 'ACTUAL', op, 'roller.force_kN', '45.00', 'kN');
-    await manualValue(page, 'ACTUAL', op, 'roller.gap_mm', '3.00', 'mm');
-    await entry(page, 'SCREEN_CHECK', op, { Screen: 'RS-RD-15', Aperture: { Value: '1.5', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
-    await entry(page, 'RIBBON_CHECK', op, { Thickness: '3.00', 'Solid fraction': '68', Appearance: 'COMPLIES' });
+    if (!marked(s, 'rc-run-started')) {
+      await begin(page, op);
+      await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTD-RC', 'Recipe version': '1' });
+      await saveBlock(page, 'RUN_START', op, async (f) => unitOf(f, 'Press', 'RC-01'));
+      await entry(page, 'FEED', op, { Quantity: { Value: '66.460', Unit: 'kg' } });
+      await manualValue(page, 'ACTUAL', op, 'roller.force_kN', '45.00', 'kN');
+      await manualValue(page, 'ACTUAL', op, 'roller.gap_mm', '3.00', 'mm');
+      await entry(page, 'SCREEN_CHECK', op, { Screen: 'RS-RD-15', Aperture: { Value: '1.5', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
+      await entry(page, 'RIBBON_CHECK', op, { Thickness: '3.00', 'Solid fraction': '68', Appearance: 'COMPLIES' });
+      mark(e2e, ROUTE, s, 'rc-run-started');
+    }
     await entry(page, 'GRANULE_OUTPUT', op, { Screen: 'RS-RD-15', Granules: { Value: '65.700', Unit: 'kg' }, Fines: { Value: '0.600', Unit: 'kg' } });
     await saveBlock(page, 'RUN_END', op);
     await entry(page, 'RIBBON_CHECK', op, { Thickness: '3.05', 'Solid fraction': '67', Appearance: 'COMPLIES' });
@@ -302,7 +305,7 @@ test('[PR-22][IN-36][DI-30][DI-34] route D 4: blending on KIOSK-BLEND-1: the act
     await clearanceStep(page, e2e, batchId, 'p-blend-clear@', 'BLEND-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-blend-status@', [{ ref: 'BAL', code: 'BAL-BLEND-01', instrument: true }, { ref: 'BLENDER', code: 'BLD-01', instrument: false }], op);
   }, page);
-  await evidence.step('The active layer: blending and lubrication on the real clock within the validated times; the blend into two containers of BLEND_L1 (one for the first-off, one for the run)', 'Blend 65 s (60 to 180 s), lubrication 35 s (30 to 120 s); two containers closed and verified', async () => {
+  await evidence.step('The active layer blended and lubricated within the validated times; two containers of BLEND_L1', 'Blend 65 s (60 to 180 s), lubrication 35 s (30 to 120 s); two containers closed and verified', async () => {
     if (!(await done(page, e2e, batchId, 'p-blend-l1@'))) {
       await step(page, e2e, batchId, 'p-blend-l1@', ANY);
       await begin(page, op);
@@ -449,26 +452,30 @@ test('[PR-21][IN-26][IN-35][IN-36][PR-29][DI-49] route D 5: bilayer compression 
     await entry(page, 'DEDUSTING', op, { 'De duster': 'DD-01', 'In use': 'Yes' });
     mark(e2e, ROUTE, s, 'detect-start');
   }, page);
-  await evidence.step('TB-16: each layer\'s hopper charged on the run step from its own blend (H1 the active layer, H2 the lactose layer), the run with the full tablets\' station sweep, the layer-only and full-tablet checks, a container closed after the run, the end-of-run checks', 'Both layers charged; the run, its checks and the container recorded; performed and verified', async () => {
+  await evidence.step('TB-16: each layer\'s hopper charged from its own blend, the run with the layer and full-tablet checks, a container after the run', 'Both layers charged; the run, its checks and the container recorded; performed and verified', async () => {
     if (await done(page, e2e, batchId, 'p-run@')) return;
     const run = async () => step(page, e2e, batchId, 'p-run@', ANY);
     await run();
-    const panel = page.getByTestId('plant-layer-charge');
-    for (const [layer, hopper, label] of [['L1', 'H1', s.containers?.['blendL1b'] ?? ''], ['T', 'H2', s.containers?.['blendL2'] ?? '']] as const) {
-      await act(page, panel.getByTestId(`layer-${layer}`).getByRole('button', { name: `Charge ${label} into hopper ${hopper}` }), op);
-      await saveBlock(page, 'HOPPER_CHARGE', op);
+    if (!marked(s, 'run-checked')) {
+      const panel = page.getByTestId('plant-layer-charge');
+      for (const [layer, hopper, label] of [['L1', 'H1', s.containers?.['blendL1b'] ?? ''], ['T', 'H2', s.containers?.['blendL2'] ?? '']] as const) {
+        await act(page, panel.getByTestId(`layer-${layer}`).getByRole('button', { name: `Charge ${label} into hopper ${hopper}` }), op);
+        await saveBlock(page, 'HOPPER_CHARGE', op);
+      }
+      await saveBlock(page, 'RUN_START', op, async (f) => unitOf(f, 'Press', PRESS));
+      await entry(page, 'STATION_SWEEP', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'T', Stations: ['407.9', '408.8', '409.1'].map((w, i) => ({ Station: String(i + 1), Weight: w })) });
+      await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'L1', 'Group weight': '3365.0' });
+      await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'T', 'Group weight': '4084.0' });
+      await entry(page, 'PHYSICAL_CHECK', op, { Instrument: 'HT-02', Capture: 'MANUAL', Stream: 'T', Tablets: [{ Thickness: '5.50' }, { Thickness: '5.52' }, { Thickness: '5.48' }], Defects: [] });
+      s.containers = { ...(s.containers ?? {}), tablets: await openContainer(page, base, batchId, 'COMPRESSION', op, PRESS) };
+      mark(e2e, ROUTE, s, 'run-checked');
     }
-    await saveBlock(page, 'RUN_START', op, async (f) => unitOf(f, 'Press', PRESS));
-    await entry(page, 'STATION_SWEEP', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'T', Stations: ['407.9', '408.8', '409.1'].map((w, i) => ({ Station: String(i + 1), Weight: w })) });
-    await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'L1', 'Group weight': '3365.0' });
-    await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'T', 'Group weight': '4084.0' });
-    await entry(page, 'PHYSICAL_CHECK', op, { Instrument: 'HT-02', Capture: 'MANUAL', Stream: 'T', Tablets: [{ Thickness: '5.50' }, { Thickness: '5.52' }, { Thickness: '5.48' }], Defects: [] });
-    const label = await openContainer(page, base, batchId, 'COMPRESSION', op, PRESS);
-    await run();
-    await saveBlock(page, 'RUN_END', op);
-    await closeTyped(page, base, batchId, label, '79.800', op, verifier);
-    s.containers = { ...(s.containers ?? {}), tablets: label };
-    saveRoute(e2e, ROUTE, s);
+    if (!marked(s, 'run-ended')) {
+      await run();
+      await saveBlock(page, 'RUN_END', op);
+      await closeTyped(page, base, batchId, s.containers?.['tablets'] ?? '', '79.800', op, verifier);
+      mark(e2e, ROUTE, s, 'run-ended');
+    }
     await run();
     await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'L1', 'Group weight': '3361.0' });
     await entry(page, 'WEIGHT_CHECK', op, { Instrument: 'BAL-COMP-02', Capture: 'MANUAL', Stream: 'T', 'Group weight': '4081.0' });
@@ -793,6 +800,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route D 8: the strip or
     await page.goto(`${base}/labels/packaging/${orderId}`);
     const box = page.getByTestId('post-use-inspection');
     const form = box.getByTestId('post-use-form');
+    await expect(form.getByRole('radiogroup')).toHaveCount(4);
     for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio', { name: 'Yes', exact: true }));
     await act(page, form.getByRole('button', { name: 'Record the post-use inspection' }), op);
     await expect(box.getByText('not verified yet')).toBeVisible();

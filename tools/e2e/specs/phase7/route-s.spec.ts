@@ -26,31 +26,31 @@ test.beforeEach(async () => closeKiosks());
 const ROUTE = 's';
 const SITE = 'SITE-1';
 const PRODUCT = { productCode: 'EXZ-SC-250', strength: '250 mg' };
-/** One batch as the ERP sends it, and the lot each material is dispensed from (the demo set-up's route S lots). */
+/** One batch as the ERP sends it, and the lot each material is dispensed from (the demo set-up's lots: route W's for the materials the routes share, first-expiring first (D-7m-5)). */
 const BOM: [string, string, string][] = [
-  ['MAT-EXZ-NA', '50.000', 'RTS-API-001'],
-  ['MAT-MCC-101', '8.000', 'RTS-MCC-001'],
-  ['MAT-LAC-MH', '14.000', 'RTS-LAC-001'],
-  ['MAT-PVP-K30', '2.400', 'RTS-PVP-001'],
-  ['MAT-IPA', '2.400', 'RTS-IPA-001'],
-  ['MAT-CCS', '2.400', 'RTS-CCS-001'],
-  ['MAT-SIO2', '0.400', 'RTS-SIO-001'],
-  ['MAT-MGST', '0.800', 'RTS-MGS-001'],
+  ['MAT-EXZ-NA', '50.000', 'RTW-API-001'],
+  ['MAT-MCC-101', '8.000', 'RTW-MCC-001'],
+  ['MAT-LAC-MH', '14.000', 'RTW-LAC-001'],
+  ['MAT-PVP-K30', '2.400', 'RTW-PVP-001'],
+  ['MAT-IPA', '2.400', 'RTW-IPA-001'],
+  ['MAT-CCS', '2.400', 'RTW-CCS-001'],
+  ['MAT-SIO2', '0.400', 'RTW-SIO-001'],
+  ['MAT-MGST', '0.800', 'RTW-MGS-001'],
   ['MAT-SUC-01', '36.000', 'RTS-SUC-001'],
 ];
 /** What stores reserve of each lot (the active with room for its potency adjustment: 54.529 kg on the lot's assay). */
-const RESERVE: Record<string, string> = { 'RTS-API-001': '55.000', 'RTS-IPA-001': '3.000' };
+const RESERVE: Record<string, string> = { 'RTW-API-001': '55.000', 'RTW-IPA-001': '3.000' };
 /** The potency-adjusted active and the compensating cellulose (the lot's assay 99.20 %, water 0.80 %: GB-T-01's worksheet). */
 const API_KG = '54.529';
 const MCC_KG = '7.131';
 /** The other materials weighed at the G-07 step, in the step's order. */
 const OTHERS: [string, string, string][] = [
-  ['MAT-LAC-MH', '14.000', 'RTS-LAC-001'],
-  ['MAT-PVP-K30', '2.400', 'RTS-PVP-001'],
-  ['MAT-IPA', '2.400', 'RTS-IPA-001'],
-  ['MAT-CCS', '2.400', 'RTS-CCS-001'],
-  ['MAT-SIO2', '0.400', 'RTS-SIO-001'],
-  ['MAT-MGST', '0.800', 'RTS-MGS-001'],
+  ['MAT-LAC-MH', '14.000', 'RTW-LAC-001'],
+  ['MAT-PVP-K30', '2.400', 'RTW-PVP-001'],
+  ['MAT-IPA', '2.400', 'RTW-IPA-001'],
+  ['MAT-CCS', '2.400', 'RTW-CCS-001'],
+  ['MAT-SIO2', '0.400', 'RTW-SIO-001'],
+  ['MAT-MGST', '0.800', 'RTW-MGS-001'],
   ['MAT-SUC-01', '36.000', 'RTS-SUC-001'],
 ];
 
@@ -159,11 +159,11 @@ test('[DI-30][INV-40][PR-20][IN-13] route S 2: dispensing on KIOSK-DISP-1, the a
     await step(page, e2e, batchId, 'p-disp-api@', ANY);
     await begin(page, dispenser);
     const potency = page.getByTestId('potency-calculation');
-    await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill('RTS-API-001');
+    await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill('RTW-API-001');
     await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
     await expect(potency.getByText('Calculated from the lots (see the entries)')).toBeVisible();
-    await weigh(page, dispenser, 'MAT-EXZ-NA', API_KG, 'RTS-API-001', 0);
-    await weigh(page, dispenser, 'MAT-MCC-101', MCC_KG, 'RTS-MCC-001', 1);
+    await weigh(page, dispenser, 'MAT-EXZ-NA', API_KG, 'RTW-API-001', 0);
+    await weigh(page, dispenser, 'MAT-MCC-101', MCC_KG, 'RTW-MCC-001', 1);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }, page);
@@ -702,7 +702,7 @@ test('[PR-04][INV-01] route S 8: the cold-form packaging order planned from the 
   await signIn.office(sp, persona('GMP', 'stores'));
   await evidence.step('Stores reserve the PVC forming film for the order', 'The lot lists the open reservation', async () => {
     await sp.goto(`${base}/quality/lots`);
-    await sp.getByTestId('lot-RTS-PVC-001').getByRole('link').first().click();
+    await sp.getByTestId('lot-GBT-PVC-001').getByRole('link').first().click();
     const box = sp.getByTestId('reserve-lot');
     await choose(box.getByRole('radio', { name: new RegExp(`^${(s.orderNumber ?? '').replace('/', '\\/')} `) }));
     await box.getByRole('textbox', { name: 'Quantity (kg)' }).fill('0.600');
@@ -754,7 +754,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route S 9: the thermofo
     await as(page, dispenser);
     await step(page, e2e, orderId, 'p-pk-film@', ANY);
     await begin(page, dispenser);
-    await weigh(page, dispenser, 'MAT-PVC-250', '0.600', 'RTS-PVC-001', 0);
+    await weigh(page, dispenser, 'MAT-PVC-250', '0.600', 'GBT-PVC-001', 0);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }, page);
@@ -788,7 +788,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route S 9: the thermofo
     await step(page, e2e, orderId, 'p-tb21c@', ANY);
     await entry(page, 'LINE_SETUP', op, {
       Machine: 'BLISTER-02', 'Artwork set': ARTWORK_SET, 'Change parts': ['FORM-TOOL-RTS', 'SEAL-PLATE-RTS'],
-      Materials: [{ Role: 'FORMING_FILM', Material: 'MAT-PVC-250', Lot: 'RTS-PVC-001' }, { Role: 'LIDDING_FOIL', Material: 'MAT-ALU-EXZSC', Lot: 'RTS-ALU-001' }],
+      Materials: [{ Role: 'FORMING_FILM', Material: 'MAT-PVC-250', Lot: 'GBT-PVC-001' }, { Role: 'LIDDING_FOIL', Material: 'MAT-ALU-EXZSC', Lot: 'RTS-ALU-001' }],
     });
     await entry(page, 'EQUIPMENT_CHECK', op, { 'Rogue removed': 'Yes', 'Change parts fitted': 'Yes', 'Empty pocket detector': 'PASS' });
     await performAndCheck(page, op, verifier, op);
