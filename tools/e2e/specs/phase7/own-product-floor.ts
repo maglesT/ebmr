@@ -76,7 +76,10 @@ export async function step(f: Floor, page: Page, key: string): Promise<void> {
 
 /** Starts the step unless a resumed developer's run finds it started already (EBMR_E2E_RESUME=1). */
 export async function begin(page: Page, who: SeededPersona): Promise<void> {
-  if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
+  if (process.env['EBMR_E2E_RESUME'] === '1') {
+    await expect(page.getByTestId('primary-action').first()).toBeVisible();
+    if ((await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
+  }
   await explained(startStep(page, who), page.locator('main'));
 }
 
@@ -115,8 +118,16 @@ async function chooseBranch(f: Floor, page: Page, key: string, branch: RegExp | 
   await as(page, supervisor);
   await step(f, page, key);
   const box = page.getByTestId('alternative-choice');
+  if (process.env['EBMR_E2E_RESUME'] === '1') {
+    await expect(card(page)).toBeVisible();
+    await page.waitForTimeout(1_000);
+    if ((await box.getByText(/^Branch chosen: /).count()) > 0 || (await box.count()) === 0) {
+      await as(page, back);
+      return;
+    }
+  }
   const radios = box.getByRole('radiogroup', { name: 'Branch' }).getByRole('radio');
-  await choose(branch ? radios.filter({ hasText: branch }).first() : radios.first());
+  await choose(branch ? box.getByRole('radiogroup', { name: 'Branch' }).getByRole('radio', { name: branch }).first() : radios.first());
   await box.getByRole('textbox', { name: 'Reason for the choice' }).fill(reason);
   await act(page, box.getByRole('button', { name: 'Choose the branch' }), supervisor);
   await expect(box.getByText(/^Branch chosen: /)).toBeVisible();

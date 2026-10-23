@@ -152,6 +152,7 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await setConfig(a, ['binder', 'max'], '2.200');
     await selectStep(a, /Tooling issue and inspection/);
     await setConfig(a, ['specification', 'upperEmbossing'], 'R20');
+    await setConfig(a, ['specification', 'shape'], 'Round 7.0 mm biconvex');
     await selectStep(a, /Compression run with left and right IPC/);
     await setConfig(a, ['weight', 'targetWeightMg'], '125.0');
     await setConfig(a, ['sweep', 'weight', 'individual', 'action', 'min'], '118.8');

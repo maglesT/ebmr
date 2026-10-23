@@ -153,6 +153,7 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
     await setConfig(a, ['binder', 'max'], '4.500');
     await selectStep(a, /Tooling issue and inspection/);
     await setConfig(a, ['specification', 'upperEmbossing'], 'D400');
+    await setConfig(a, ['specification', 'shape'], 'Capsule 17.0 x 8.0 mm');
     await selectStep(a, /Compression run with left and right IPC/);
     await setConfig(a, ['weight', 'targetWeightMg'], '569.3');
     await setConfig(a, ['sweep', 'weight', 'individual', 'action', 'min'], '540.8');
