@@ -11,23 +11,14 @@ import { z } from 'zod';
 import { DecimalString, Empty, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
 import { ActId, ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
-import { Code, PlannedHours, StepPlantView } from './plant-floor.ts';
+import { PlantEntryAct, StepPlantView } from './plant-floor.ts';
 import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
 const stepParams = z.strictObject({ batchId: Uuid, stepKey: StepKey });
 
-/**
- * R3.3 (hosted-demo trials; D-7k-2): the plant act a status or clearance step stands on, done and recorded in the step as
- * one act of the person (one badge tap on a kiosk): the start of the batch's use of a room or line of the step's stage
- * (on its verified clearance; a line names the order and artwork set it was cleared for), or the booking of a unit the
- * step checks (an instrument booked, a process unit's use started) for the hours given.
- */
-export const PlantEntryAct = z.discriminatedUnion('act', [
-  z.strictObject({ act: z.literal('START_AREA_OCCUPANCY'), areaCode: Code, order: z.string().trim().min(1).max(64).optional(), artworkSet: z.string().trim().min(1).max(64).optional() }),
-  z.strictObject({ act: z.literal('BOOK_UNIT'), equipmentRef: z.string().trim().min(1).max(64), code: Code, plannedHours: PlannedHours }),
-]);
-export type PlantEntryAct = z.infer<typeof PlantEntryAct>;
+/** The plant act a status or clearance step stands on, recorded in the step as one act (R3.3; in plant-floor.ts since slice 7o). */
+export { PlantEntryAct } from './plant-floor.ts';
 
 /**
  * R3.10 (hosted-demo trials): the rooms and units a batch's stages need, stage by stage, each with its cleaning state

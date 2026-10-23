@@ -544,5 +544,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     command: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) =>
       runCommand(app, pool, { runId: params.runId, body, request, session: requireSession(), actor: actor(), idempotencyKey, requestHash }),
+
+    // Slice 7o (D-7o-1): a test run's plant act and its record in the step as one act, as batches.plantEntry on GMP.
+    plantEntry: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) => {
+      const session = requireSession();
+      const prelude = await plantEntryPrelude(pool, params.runId, params.stepKey, body.act);
+      const placeholder: ClientIntent = { type: 'START_STEP', stepKey: params.stepKey };
+      return runCommand(app, pool, { runId: params.runId, body: { expectedVersion: body.expectedVersion, intent: placeholder, viewStepKey: params.stepKey }, prelude, request, session, actor: actor(), idempotencyKey, requestHash });
+    },
   });
 }

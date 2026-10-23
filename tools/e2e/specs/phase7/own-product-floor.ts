@@ -218,9 +218,9 @@ export async function clearanceStep(f: Floor, page: Page, key: string, area: str
   await step(f, page, key);
   await startStep(page, op);
   const plant = page.getByTestId('plant-area');
-  await act(page, plant.getByRole('button', { name: new RegExp(`^Start using (room|line) ${area}$`) }), op);
-  await expect(plant.getByTestId(`occupancy-${area}`)).toBeVisible();
-  await save(page, page.getByTestId('block-form-AREA_OCCUPANCY'), op);
+  // Slice 7k (R3.3): the room's use is started and recorded in the step as one act, one badge tap.
+  await act(page, plant.getByRole('button', { name: new RegExp(`^Start using (room|line) ${area} and record it in this step$`) }), op);
+  await expect(plant.getByTestId(`occupancy-${area}`).getByText('Recorded in this step.')).toBeVisible();
   await performAndCheck(page, op, verifier, op);
   await completed(page);
 }
@@ -244,9 +244,8 @@ export async function statusStep(f: Floor, page: Page, key: string, units: reado
       await act(page, box.getByRole('button', { name: `Per-use check of ${u.code} passed` }), op);
       await expect(box.getByText('Check recorded: PASS.')).toBeVisible();
     }
-    await act(page, box.getByRole('button', { name: `Book ${u.code}` }), op);
-    await expect(box.getByTestId(`use-${u.code}`)).toBeVisible();
-    await save(page, page.getByTestId('block-form-EQUIPMENT_USE'), op);
+    await act(page, box.getByRole('button', { name: `Book ${u.code} and record it in this step` }), op);
+    await expect(box.getByTestId(`use-${u.code}`).getByText(`Recorded in this step for ${u.ref}.`)).toBeVisible();
   }
   await performAndCheck(page, op, null, op);
   await completed(page);

@@ -297,6 +297,7 @@ export const EXAMPLES = {
   'batches-step-plant': { schema: r.batches.stepPlant.response, data: PF_STEP_PLANT, routeId: r.batches.stepPlant.id },
   // Phase 7 slice 7k (R3.3, R3.10): the plant act recorded in its step as one act, and a batch's cleaning needs.
   'batches-plant-entry': { schema: r.batches.plantEntry.response, data: gmpBatch.commandResult, routeId: r.batches.plantEntry.id },
+  'execution-plant-entry': { schema: r.execution.plantEntry.response, data: gmpBatch.commandResult, routeId: r.execution.plantEntry.id },
   'batches-cleaning-needs': {
     schema: r.batches.cleaningNeeds.response,
     data: {

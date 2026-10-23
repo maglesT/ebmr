@@ -119,7 +119,7 @@ async function simulatorsView(app: AppContext, sims: SimulatorManager): Promise<
     refusal: problem,
     simulators: problem === null ? await sims.list() : [],
     // R5 (slice 7k): the ERP simulator's production orders, on a demo GMP installation.
-    ...(problem === null && app.installation === 'GMP' ? { orderTemplates: orderTemplates() } : {}),
+    ...(problem === null && app.installation === 'GMP' ? { orderTemplates: await orderTemplates(app) } : {}),
   };
 }
 
@@ -253,7 +253,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       sendProductionOrder: async (ctx) => {
         // On an installation that refuses demo conveniences the database's refusal (EBMR-OPS-010) comes first.
         if ((await demoProblem(app)) !== null) await recordDemoAct(ctx, 'ERP_ORDER_SENT', `${ctx.body.productCode}:${ctx.body.kind}`, ctx.body.reason);
-        const prepared = prepareProductionOrder(app, ctx.body.productCode, ctx.body.kind, ctx.idempotencyKey);
+        const prepared = await prepareProductionOrder(app, ctx.body.productCode, ctx.body.kind, ctx.idempotencyKey);
         // A resend of a request already recorded (its idempotency key) answers the same order and posts nothing again.
         const replayed = await recordDemoAct(ctx, 'ERP_ORDER_SENT', `${ctx.body.productCode}:${ctx.body.kind}`, ctx.body.reason);
         return replayed ? prepared.view : postProductionOrder(app, prepared);

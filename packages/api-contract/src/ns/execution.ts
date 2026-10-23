@@ -17,6 +17,7 @@ import { defineRoute } from '../route.ts';
 import { ScaleStatusView } from './devices.ts';
 import { ManifestationView } from './esig.ts';
 import { ProductRef } from './designer.ts';
+import { PlantEntryAct } from './plant-floor.ts';
 
 export const BatchStatus = z.enum(['ISSUED', 'IN_PROGRESS', 'ON_HOLD', 'EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED']);
 export const StepStatus = z.enum(['PENDING', 'ENABLED', 'IN_PROGRESS', 'ATTEMPT_HANDED_OVER', 'AWAITING_VERIFICATION', 'COMPLETED', 'NOT_APPLICABLE', 'SKIPPED']);
@@ -809,6 +810,19 @@ export const execution = {
       /** Step to return in the response when the intent is run-level (hold, deviation link). */
       viewStepKey: StepKey.optional(),
     }),
+    response: CommandResultView,
+  }),
+  plantEntry: defineRoute({
+    id: 'execution.plantEntry',
+    method: 'POST',
+    path: '/api/test-runs/:runId/steps/:stepKey/plant-entries',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'The sandbox family of batches.plantEntry (slice 7o, D-7o-1): a test run\'s plant act and its record in the step as one act',
+    params: z.strictObject({ runId: Uuid, stepKey: StepKey }),
+    body: withAttribution({ expectedVersion: RunVersion, act: PlantEntryAct }),
     response: CommandResultView,
   }),
   // Phase 7 slice 7g (WP4): the packaging step's batch data, its second-person check and the print job; the detector challenge.

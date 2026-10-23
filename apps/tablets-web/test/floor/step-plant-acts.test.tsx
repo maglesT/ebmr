@@ -214,27 +214,33 @@ describe('the plant acts of a test run on the sandbox (slice 7o, D-7o-1)', () =>
     const view: StepScreenView = { ...v, fields: [], blockEntries: [form('AREA_OCCUPANCY', 'Area occupancy', { areaCode: str('Area'), occupancyId: str('Occupancy', ID) })], entryForms: [] };
     const occupancy = { occupancyId: OCC, areaCode: 'DISP-1', batchNumber: 'TEST-B26-0001', stage: 'S-DISP', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), ended: null };
     let current = plant({ block: 'G-10@2', batchNumber: 'TEST-B26-0001', areas: [{ code: 'DISP-1', kind: 'ROOM', state: 'CLEARED' }] });
+    let shown = view;
     const ui = renderFloor(stepPath(view.step.stepKey), {
       installation: 'SANDBOX',
       fixtures: {
         ...stepFixtures(view),
+        'execution.step': () => shown,
         'batches.stepPlant': () => current,
-        'plant.startAreaOccupancy': () => {
+        'execution.plantEntry': () => {
           current = { ...current, occupancies: [{ ...occupancy, mine: true }] };
-          return occupancy;
+          shown = { ...view, entries: [entry('AREA_OCCUPANCY', { areaCode: 'DISP-1', occupancyId: OCC })] };
+          return accepted();
         },
       },
     });
     expect((await screen.findByTestId('batch-number')).textContent).toBe('TEST-B26-0001');
     expect(screen.getByTestId('run-header').textContent).toContain('TEST, NOT GMP');
     const panel = await screen.findByTestId('step-plant');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Start using room DISP-1' }));
-    await waitFor(() => expect(posts(ui, '/api/plant/occupancies')).toHaveLength(1));
-    expect(posts(ui, '/api/plant/occupancies')[0]?.body).toMatchObject({ areaCode: 'DISP-1', batchId: RUN_ID, stage: 'S-DISP' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Start using room DISP-1 and record it in this step' }));
+    // The act goes to the sandbox's own family of the plant entry (the test run's), never the GMP batches family.
+    const path = `/api/test-runs/${RUN_ID}/steps/${encodeURIComponent('p-disp-clear@')}/plant-entries`;
+    await waitFor(() => expect(posts(ui, path)).toHaveLength(1));
+    expect(posts(ui, path)[0]?.body).toMatchObject({ act: { act: 'START_AREA_OCCUPANCY', areaCode: 'DISP-1' } });
+    await waitFor(() => expect(within(screen.getByTestId('occupancy-DISP-1')).getByText('Recorded in this step.')).toBeTruthy());
     expect(await within(screen.getByTestId('step-plant')).findByText(/by batch TEST-B26-0001/)).toBeTruthy();
-    // The step itself is read from the test run's family (the sandbox's), never a GMP batch's.
     expect(ui.requests.some((r) => r.path.startsWith(`/api/test-runs/${RUN_ID}/steps/`))).toBe(true);
     expect(ui.requests.some((r) => r.path.startsWith('/api/batches/') && !r.path.endsWith('/plant'))).toBe(false);
+    expect(routes.execution.plantEntry.installation).toBe('SANDBOX');
     expect(routes.plant.startAreaOccupancy.installation).toBe('ANY');
   });
 });

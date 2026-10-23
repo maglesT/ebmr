@@ -219,7 +219,7 @@ describe('route table', () => {
       'deviceRegistry.revokeGatewayKey', 'deviceRegistry.revokeHardening', 'deviceRegistry.setAdapterStatus', 'deviceRegistry.setAttributionMethod',
       'deviceRegistry.setTerminalStatus', 'devices.bindStepDevice', 'devices.bindStepEquipment', 'devices.requestSetpointDownload', 'esig.createChallenge',
       'esig.endDscEnrolment', 'esig.enrolDsc', 'esig.registerDscAnchor', 'esig.setDscMeaning', 'esig.setDscMode', 'execution.checkPackagingBatchData',
-      'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch', 'execution.recordDetectorChallenge', 'execution.recordLotArtwork', 'execution.recordLotAssay', 'execution.recordPackagingBatchData', 'execution.registerTestLot',
+      'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch', 'execution.plantEntry', 'execution.recordDetectorChallenge', 'execution.recordLotArtwork', 'execution.recordLotAssay', 'execution.recordPackagingBatchData', 'execution.registerTestLot',
       'execution.releasePrintJob', 'incidents.assessImpact', 'incidents.close', 'incidents.link', 'incidents.markCertInReportable', 'incidents.raise',
       'incidents.reclassify', 'incidents.recordCertInReport', 'incidents.startInvestigation', 'india.issueH2', 'integrations.acknowledgeAlarm', 'labels.approveTemplate',
       'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
@@ -264,7 +264,7 @@ describe('route table', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
-    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command, routes.execution.testLots, routes.execution.registerTestLot];
+    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command, routes.execution.plantEntry, routes.execution.testLots, routes.execution.registerTestLot];
     for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
     // Slice 7o (D-7o-1): the step's plant, containers, addition sources, SSCCs, bulk issue and printed lots serve both
     // installations (each against its own database: test/plant/sandbox-plant.test.ts); every other batches route is GMP's.

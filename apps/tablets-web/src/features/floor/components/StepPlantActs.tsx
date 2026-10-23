@@ -24,6 +24,7 @@ import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { useStepChoices } from '../choices.tsx';
 import { wcls } from '../classes.ts';
+import { plantEntryParams, plantEntryRoute } from '../family.ts';
 
 const READ = [routes.batches.stepPlant.id];
 /** R3.3: a plant entry changes the step and the run as well as the plant (the step's entry is recorded with it). */
@@ -70,7 +71,7 @@ function PlantActs({ view }: { view: StepScreenView }) {
 function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
   const choices = useStepChoices();
   // R3.3 (D-7k-2): the start of the room's use and its record in the step are one act (one badge tap).
-  const start = useCommand(routes.batches.plantEntry, READ_WITH_STEP, 'starting the use of the room and recording it in this step');
+  const start = useCommand(plantEntryRoute(), READ_WITH_STEP, 'starting the use of the room and recording it in this step');
   const end = useCommand(routes.plant.endAreaOccupancy, READ, 'ending the use of the room');
   const busy = start.busy || end.busy;
   const occupied = new Set(v.occupancies.map((o) => o.areaCode));
@@ -112,7 +113,7 @@ function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
                     isDisabled={busy || (a.kind === 'LINE' && !line)}
                     onPress={() =>
                       void start.run({
-                        params: { batchId: v.batchId, stepKey: view.step.stepKey },
+                        params: plantEntryParams(v.batchId, view.step.stepKey),
                         body: { expectedVersion: view.run.version, act: { act: 'START_AREA_OCCUPANCY', areaCode: a.code, ...(line ? { order: line.order, artworkSet: line.artworkSet } : {}) } },
                       })
                     }
@@ -147,7 +148,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
   const check = useCommand(routes.plant.recordInstrumentCheck, READ, 'the per-use check');
   // R3.3 (D-7k-2): the booking (an instrument) or the start of the use (a process unit) and its record in the step are
   // one act (one badge tap); the server books or starts as the master's stage binding says.
-  const book = useCommand(routes.batches.plantEntry, READ_WITH_STEP, 'booking the unit and recording it in this step');
+  const book = useCommand(plantEntryRoute(), READ_WITH_STEP, 'booking the unit and recording it in this step');
   const endUse = useCommand(routes.plant.endEquipmentUse, READ, 'ending the use of the unit');
   const [picked, setPicked] = useState<string | null>(null);
   const [hours, setHours] = useState<string | null>('12');
@@ -217,7 +218,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
                 isDisabled={busy || hours === null}
                 onPress={() =>
                   void book.run({
-                    params: { batchId: v.batchId, stepKey: view.step.stepKey },
+                    params: plantEntryParams(v.batchId, view.step.stepKey),
                     body: { expectedVersion: view.run.version, act: { act: 'BOOK_UNIT', equipmentRef: e.ref, code: chosen.code, plannedHours: hours ?? '12' } },
                   })
                 }
