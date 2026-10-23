@@ -130,6 +130,10 @@ from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 po
 named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
 migrations. Routes D and S remain.
 
+**Slice 7p (23 October): R4 third check, a dissolution profile as one release requirement** (`slice-7p-routes.md`;
+site-services 1640, recipe-core 1645; D-7p-1 to 7): profile tests with ordered points (two-stage too, R8 C4), results per
+point from QC and LIMS, one checklist item per profile, demo SR product GLV-SR-500, browser `phase7/sr-profile.spec.ts`.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 

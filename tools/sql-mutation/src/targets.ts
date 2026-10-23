@@ -1620,4 +1620,14 @@ export const TARGETS: Target[] = [
     tests: [s('master-data/master-entry.test.ts'), s('master-data/formula-target.test.ts'), s('designer/from-formula.test.ts')],
     threshold: 90,
   },
+  // Phase 7 slice 7p (R4 third check, R8 C4): multi-point and two-stage specification profiles, their results per point
+  // from QC and LIMS (site services 1640) and the profile item of the release checklist (recipe-core 1645).
+  {
+    group: 'specification-profiles',
+    functions: ['site.point_minutes', 'site.specification_point_guard', 'site.specification_profile_points_check', 'site.lot_test_label', 'site.profile_points_json',
+                'site.lot_profile_status', 'site.specification_content', 'site.lot_test_result_spec_check', 'site.draft_specification',
+                'recipe.grel_profile_items', 'recipe.grel_lims_profile_evidence'],
+    tests: [site('quality/profiles.test.ts'), site('quality/specifications.test.ts'), r('release/release.test.ts')],
+    threshold: 90,
+  },
 ];

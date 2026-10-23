@@ -231,6 +231,14 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
   The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
   signing screens (as `master-records.spec.ts`), clicks elsewhere.
 
+## Slice 7p (23 October 2026): R4 third check, a dissolution profile as one release requirement (and R8 C4, C7)
+
+Branch `phase-7/slice-7p`; migrations site-services 1640, recipe-core 1645; messages EBMR-SITE-970 to 979. Details and
+decisions D-7p-1 to D-7p-7 in `slice-7p-routes.md`: profile tests with ordered points (and stages for a two-stage test),
+results per point from QC and LIMS judged by the database, one checklist item `G3.PROFILE_<test>` per profile, screens,
+the demo SR product GLV-SR-500 with two finished lots (`cli/demo-sr-profile.ts`), browser spec `phase7/sr-profile.spec.ts`.
+Residuals P7P-1 (staged acceptance L1/L2/L3), P7P-2.
+
 ## After Phase 7
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,

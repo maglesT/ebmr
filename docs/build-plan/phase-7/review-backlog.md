@@ -205,3 +205,11 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
   and the database refuse a wrong pick.
+
+## Slice 7p (23 October 2026)
+
+- P7P-1 (residual, owner rule D-7p-1): one dissolution result per time point (the mean as the LIMS reports it). The
+  pharmacopoeial staged acceptance (stages 1 to 3, more units at each stage, R8 C6) is not modelled; QC records the
+  deciding stage's mean. Follow-up for export markets.
+- P7P-2 (residual, cosmetic): the transfer package's certificate of analysis (site services 0980) lists a point's result
+  by its test code without the point.
