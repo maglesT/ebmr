@@ -105,7 +105,11 @@ export async function done(page: Page, e2e: E2eWorld, batchId: string, key: stri
 
 /** Starts the step unless a resumed run finds it started already (EBMR_E2E_RESUME=1; in CI the step is always started). */
 export async function begin(page: Page, who: SeededPersona): Promise<void> {
-  if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
+  if (process.env['EBMR_E2E_RESUME'] === '1') {
+    // The step's primary action shows once the step has loaded (counted before, a step still loading looked started).
+    await page.getByTestId('primary-action').first().waitFor({ timeout: 10_000 }).catch(() => undefined);
+    if ((await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
+  }
   await startStep(page, who);
 }
 

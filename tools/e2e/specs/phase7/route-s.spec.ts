@@ -150,6 +150,7 @@ test('[DI-30][INV-40][PR-20][IN-13] route S 2: dispensing on KIOSK-DISP-1, the a
   const supervisor = persona('GMP', 'supervisor1');
   const page = await kiosk(browser, e2e, 'KIOSK-DISP-1', op);
   await evidence.step('The room clearance of DISP-1, the clearance step and the balance status step', 'The room is in use by the batch; the balance is checked and booked', async () => {
+    if (await done(page, e2e, batchId, 'p-disp-status@')) return;
     await clearance(page, base, s.batchNumber ?? '', 'DISP-1', op, verifier);
     await clearanceStep(page, e2e, batchId, 'p-disp-clear@', 'DISP-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-disp-status@', [{ ref: 'BAL', code: 'BAL-DISP-01', instrument: true }], op);
@@ -200,6 +201,7 @@ test('[IN-36][IN-13][PR-29][DI-32][INV-19][INV-24] route S 3: granulation on KIO
   const supervisor = persona('GMP', 'supervisor1');
   const page = await kiosk(browser, e2e, 'KIOSK-GRAN-1', op);
   await evidence.step('The room clearance of GRAN-1, the clearance step and the status step (balance, granulator, dryer, mill)', 'The room is in use; the units are booked', async () => {
+    if (await done(page, e2e, batchId, 'p-gran-status@')) return;
     await clearance(page, base, s.batchNumber ?? '', 'GRAN-1', op, verifier);
     await clearanceStep(page, e2e, batchId, 'p-gran-clear@', 'GRAN-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-gran-status@', [
@@ -305,18 +307,23 @@ test('[PR-18][PR-22][DI-30][DI-34] route S 4: blending on KIOSK-BLEND-1: no rewo
   const supervisor = persona('GMP', 'supervisor1');
   const page = await kiosk(browser, e2e, 'KIOSK-BLEND-1', op);
   await evidence.step('The room clearance of BLEND-1, the clearance step and the status step (balance and blender)', 'The room is in use; the units are booked', async () => {
+    if (await done(page, e2e, batchId, 'p-blend-status@')) return;
     await clearance(page, base, s.batchNumber ?? '', 'BLEND-1', op, verifier);
     await clearanceStep(page, e2e, batchId, 'p-blend-clear@', 'BLEND-1', op, verifier);
     await statusStep(page, e2e, batchId, 'p-blend-status@', [{ ref: 'BAL', code: 'BAL-BLEND-01', instrument: true }, { ref: 'BLENDER', code: 'BLD-01', instrument: false }], op);
   }, page);
   await evidence.step('The supervisor chooses no rework addition; 0.000 kg recorded', 'Performed and verified', async () => {
     await as(page, supervisor);
+    if (await done(page, e2e, batchId, 'p-rework-none@')) return;
     await step(page, e2e, batchId, 'p-rework-none@', ANY);
     const box = page.getByTestId('alternative-choice');
-    await choose(box.getByRole('radiogroup', { name: 'Branch' }).getByRole('radio', { name: /No/ }).first());
-    await box.getByRole('textbox', { name: 'Reason for the choice' }).fill('No reserved rejects of this product to add');
-    await act(page, box.getByRole('button', { name: 'Choose the branch' }), supervisor);
-    await expect(box.getByText(/^Branch chosen: /)).toBeVisible();
+    if (!marked(s, 'rework-branch')) {
+      await choose(box.getByRole('radiogroup', { name: 'Branch' }).getByRole('radio', { name: /No/ }).first());
+      await box.getByRole('textbox', { name: 'Reason for the choice' }).fill('No reserved rejects of this product to add');
+      await act(page, box.getByRole('button', { name: 'Choose the branch' }), supervisor);
+      await expect(box.getByText(/^Branch chosen: /)).toBeVisible();
+      mark(e2e, ROUTE, s, 'rework-branch');
+    }
     await as(page, op);
     await begin(page, op);
     await field(page, 'recAdded', '0.000', op);
@@ -523,9 +530,9 @@ test('[IN-37][PR-08][PR-29][DI-29][DI-30][INV-19] route S 6: sugar coating on KI
       if (await done(page, e2e, batchId, k)) return;
       await step(page, e2e, batchId, k, ANY);
       await begin(page, op);
-      await entry(page, 'APPLICATION', op, { Phase: phase });
       await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTS-COAT', 'Recipe version': '1' });
       await saveBlock(page, 'SPRAY_START', op);
+      await entry(page, 'APPLICATION', op, { Phase: phase });
       for (const [tag, v, unit] of COATER) await manualValue(page, 'ACTUAL', op, tag, v, unit);
       await saveBlock(page, 'SPRAY_END', op);
       await entryNaming(page, 'SUSPENSION_USED', op, 'Preparation', /\(EN-\d+, /, { Quantity: { Value: '3.500', Unit: 'kg' } });
