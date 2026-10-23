@@ -46,6 +46,17 @@ As root on a fresh Ubuntu 24.04 server with the deploy key in `~/.ssh/authorized
 The credential card (the DEMO-ONLY personas, the administrator `demo.admin` and the process owner `demo.owner`, with
 their passwords; those two passwords are new at each set-up) is printed by the service at start:
 `journalctl -u batchwright-demo | sed -n '/DEMO-ONLY credentials/,$p'`.
+The same card is on the GMP and sandbox sites themselves: Operations, "Credential card (DEMO-ONLY)" (slice 7k, R3.13;
+a demo installation only, every other installation refuses it).
+
+Slice 7k (requirements R3.12 and R5 of the hosted-demo trials):
+- `pnpm demo` stops the whole stack and exits non-zero when a server, the gateway or a simulator dies, so
+  `Restart=on-failure` brings the site back; the servers themselves survive a PostgreSQL restart (a lost connection is
+  logged and replaced).
+- Production orders: the samples leave two GB-T-02 processing and two bottle orders open besides the ones they use, and
+  GB-T-02 has second lots for four more batches. More orders: Operations, Simulators, "Send a production order" (one
+  order of a demo product as the ERP interface, a new number each time). It replaces `/home/batchwright/post-demo-order.mjs`,
+  which can be removed. A reset (with the samples) leaves exactly the seeded orders and lots.
 
 ## The beta-lactam suite (slice 7n, R7)
 

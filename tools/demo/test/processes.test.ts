@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { spawnNode, TAIL_LINES, waitForHttp } from '../src/processes.ts';
+import { spawnNode, TAIL_LINES, waitForHttp, watchForDeath } from '../src/processes.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'ebmr-demo-processes-'));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -30,5 +30,31 @@ describe('demo child processes', () => {
     const p = spawnNode({ name: 'exits', entry, env: {}, echo: false });
     await new Promise<void>((resolve) => p.child.once('exit', () => resolve()));
     await expect(waitForHttp('http://127.0.0.1:9/api/meta', 5_000, p.child)).rejects.toThrow(/exited \(3\)/);
+  });
+
+  it('[meta] R3.12: the demo runner hears of the first child that dies, once, and not after it disarmed', async () => {
+    const stays = join(dir, 'stays.mjs');
+    writeFileSync(stays, 'setInterval(() => undefined, 1000);\n');
+    const dies = join(dir, 'dies.mjs');
+    writeFileSync(dies, 'setTimeout(() => process.exit(7), 200);\n');
+    const a = spawnNode({ name: 'server', entry: stays, env: {}, echo: false });
+    const b = spawnNode({ name: 'gateway', entry: dies, env: {}, echo: false });
+    const deaths: string[] = [];
+    const heard = new Promise<void>((resolve) => {
+      watchForDeath([a, b], (name, how) => {
+        deaths.push(`${name}: ${how}`);
+        resolve();
+      });
+    });
+    await heard;
+    await a.stop();
+    expect(deaths).toEqual(['gateway: exit code 7']);
+
+    const c = spawnNode({ name: 'server', entry: stays, env: {}, echo: false });
+    const later: string[] = [];
+    const watch = watchForDeath([c], (name) => later.push(name));
+    watch.disarm();
+    await c.stop();
+    expect(later).toEqual([]);
   });
 });

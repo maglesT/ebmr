@@ -78,6 +78,30 @@ function ReplayResult({ replay }: { replay: Replay }) {
  * "What you can do now" in this GMP batch for this terminal's room (batches.workQueue; slice 7g-5): each step with the
  * action the server offers, greyed with its reason when not available now (DI-34), as on the cockpit.
  */
+/**
+ * R2 (hosted-demo trials): a packaging order's line completion (coding and label specimens, line stops, the post-use
+ * inspection) and its serial pools, from the order's own overview on the floor. Shown only for a batch with packaging
+ * steps (the server's packaging view lists them).
+ */
+function PackagingLinks({ batchId }: { batchId: string }) {
+  const q = useApiQuery(routes.labels.packaging, { params: { batchId } }, { retry: false });
+  if (!q.data || q.data.steps.length === 0) return null;
+  return (
+    <section className={wcls('section')} aria-label="Packaging line" data-testid="packaging-links">
+      <h2 className={wcls('sectionTitle')}>Packaging line</h2>
+      <p>
+        <Link to="/labels/packaging/$batchId" params={{ batchId }} className={wcls('link')}>
+          Line completion (coding, labels, post-use inspection)
+        </Link>{' '}
+        ·{' '}
+        <Link to="/serialisation/batches/$batchId" params={{ batchId }} className={wcls('link')}>
+          Serial pools
+        </Link>
+      </p>
+    </section>
+  );
+}
+
 function BatchWorkQueue({ batchId }: { batchId: string }) {
   const queue = useApiQuery(routes.batches.workQueue, { params: { batchId } }, { refetchInterval: 15_000 });
   return (
@@ -235,6 +259,7 @@ export function RunOverviewPage() {
       </section>
 
       {isGmpFloor() ? <BatchWorkQueue batchId={runId} /> : null}
+      {isGmpFloor() ? <PackagingLinks batchId={runId} /> : null}
       {/* Phase 7 slice 7g (WP4): a merge of two scanned containers of the batch. */}
       {isGmpFloor() ? <MergeContainers /> : null}
 

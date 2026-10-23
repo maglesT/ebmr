@@ -40,6 +40,7 @@ tests:
   - "packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts > label-store transactions, rule by rule (site services 0950) > [PR-32] an issue of exactly the balance and a return of exactly what the order holds go through; one more unit does not"
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [PR-32][PR-33] takes a scanned printed packaging lot's facts from the register for the issue entry, and shows the server's refusal of a lot that is not one"
   - "apps/tablets-server/test/plant/floor-routes.test.ts > a printed packaging lot for the issue entry of a printed-materials step (gap report D2) > [PR-32][PR-33] the step screen reads a printed packaging lot as the batch issues it, exactly the facts the issue entry must carry; a lot that is not printed packaging, an unknown lot and an unknown batch are refused"
+  - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the printed lot hands itself to the issue entry once (slice 7k) > [PR-32] a saved issue entry stays closed: the lot taken is not handed to the form again"
 clauses:
   - clause: "Issuing a label lot with obsolete artwork is blocked."
     tests:

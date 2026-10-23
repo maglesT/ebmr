@@ -19,12 +19,22 @@ export interface ScanFieldProps {
   isDisabled?: boolean;
   autoFocus?: boolean;
   name?: string;
+  /** What the field says to do after typing (default: the scan hint); e.g. "Press Enter to check the lot." */
+  hint?: string;
 }
 
-export function ScanField({ label, value, onChange, description, isDisabled, autoFocus, name }: ScanFieldProps) {
+/**
+ * The code as it is looked up (R3.7, hosted-demo trials): spaces at either end dropped and every run of white space inside
+ * made one space, so a code typed with a stray or doubled space is the code on the label.
+ */
+export function normaliseCode(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+export function ScanField({ label, value, onChange, description, isDisabled, autoFocus, name, hint }: ScanFieldProps) {
   const [text, setText] = useState('');
   const confirm = () => {
-    const code = text.trim();
+    const code = normaliseCode(text);
     if (code === '') return;
     setText('');
     onChange(code);
@@ -56,12 +66,14 @@ export function ScanField({ label, value, onChange, description, isDisabled, aut
           confirm();
         }
       }}
+      // R3.6 (hosted-demo trials): a code typed and left (Tab, a tap elsewhere) is taken as if Enter was pressed.
+      onBlur={confirm}
     >
       <Label className={cls('label')}>{label}</Label>
       <Input className={cls('input')} autoComplete="off" spellCheck={false} />
       <Text slot="description" className={cls('description')}>
         {description ? `${description}. ` : ''}
-        {ft('scan.hint')}
+        {hint ?? ft('scan.hint')}
       </Text>
     </TextField>
   );

@@ -12,6 +12,7 @@ import type pg from 'pg';
 import { ADMIN_URL, dropDatabase, endPool, openPool, type SiteSeed } from '@ebmr/test-kit';
 import { setupInstallation } from '../../src/cli/setup.ts';
 import { GBT01_LOTS, GBT01_PACK_LOTS } from '../../src/features/execution/seed-gb-t-01.ts';
+import { DEMO_EXTRA_LOTS } from '../../src/features/execution/seed-demo-orders.ts';
 
 const database = `ebmr_seed6c_e2e_${randomBytes(4).toString('hex')}`;
 const dir = mkdtempSync(join(tmpdir(), 'ebmr-seed-gmp-'));
@@ -32,6 +33,15 @@ afterAll(async () => {
 });
 
 describe('the GMP demo seed (slice 6c)', () => {
+  it('[PR-19] R5 (slice 7k): GB-T-02\'s second lots are released too, so several batches can be made in a row and in parallel', async () => {
+    const { rows } = await pool.query<{ lot_code: string; state: string }>(
+      `select l.lot_code, s.state from site.material_lot l join platform.aggregate_state s on s.aggregate_type = 'material_lot' and s.aggregate_id = l.id
+        where l.lot_code like 'GBT2-%-002' order by l.lot_code`,
+    );
+    expect(rows.map((r) => r.lot_code)).toEqual(DEMO_EXTRA_LOTS.map((l) => l.lotCode).sort());
+    expect(new Set(rows.map((r) => r.state))).toEqual(new Set(['RELEASED']));
+  });
+
   it('[DI-17] seeds the GMP shop floor (operators, verifier, supervisor, QA, head of production, warehouse) and the site gateway in its own role only', () => {
     expect(seed.personas.map((p) => p.key)).toEqual(expect.arrayContaining(['operator2', 'verifier1', 'supervisor1', 'qa1', 'head1', 'stores', 'technician1', 'technician2']));
     expect(seed.services.map((s) => `${s.key}:${s.roleCode}:${s.terminal}`)).toEqual(['erpInterface:ERP_INTERFACE:SRV-ERP-01', 'gateway:SITE_GATEWAY:GW-01', 'sweeper:EXECUTION_SWEEPER:SRV-SWEEPER-01']);

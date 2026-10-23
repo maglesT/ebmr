@@ -29,3 +29,17 @@ export function AppHeaderBrand() {
     />
   );
 }
+
+/**
+ * R2 (hosted-demo trials): the way back to the home screen from any screen of the router (a presenter had none but the
+ * browser's back button). Outside the router (the role choice) there is nothing to go back to: nothing is drawn.
+ */
+export function HomeLink() {
+  const inRouter = useContext(InRouter);
+  if (!inRouter) return null;
+  return (
+    <Link to="/" data-testid="home-link">
+      Home
+    </Link>
+  );
+}
