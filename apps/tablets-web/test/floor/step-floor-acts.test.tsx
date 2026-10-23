@@ -211,3 +211,50 @@ describe('the merge of two containers on the GMP run overview', () => {
     expect((await screen.findByTestId('merge-result')).textContent).toMatch(/Merged into OC-B26-0001-0003 \(open\)/);
   });
 });
+
+describe('the reprocessing sources of a TB-08 step (slice 7m, R1)', () => {
+  it('[PR-47][IN-19][INV-33] offers only the authorised uses at this step and opens the ADDITION entry with the container and the authorisation, never typed', async () => {
+    const view = { ...structuredClone(example('batches-step-tb08')), entryForms: [] } as StepScreenView;
+    view.step.block = 'TB-08@1';
+    view.step.stepKey = 'p-rework@';
+    view.run.runId = RUN_ID;
+    const ID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+    view.blockEntries = [{
+      kind: 'ADDITION', title: 'Addition', description: 'Addition',
+      schema: { type: 'object', description: 'Addition', fields: {
+        container: { type: 'string', description: 'Container', pattern: ID },
+        gross: { type: 'decimal', description: 'Gross' },
+        tare: { type: 'decimal', description: 'Tare' },
+        unit: { type: 'string', description: 'Unit', enum: ['kg', 'g'] },
+        authorisation: { type: 'string', description: 'Authorisation', pattern: ID, optional: true },
+      } },
+    }];
+    const auths = structuredClone(example('quality-reprocessing-authorisations'));
+    const base = auths.authorisations[0];
+    if (!base) throw new Error('the example has no authorisation');
+    const residues = structuredClone(example('quality-residues'));
+    const c = residues.containers[0];
+    if (!c) throw new Error('the example has no residue');
+    const ok = { ...base, authorisationId: '1d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d01', batchId: RUN_ID, stepId: 'p-rework', scope: 'USE' as const, containerId: c.containerId, authorisedBy: base.proposedBy, authorisedAt: base.proposedAt };
+    const unsigned = { ...ok, authorisationId: '1d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d02', authorisedBy: null, authorisedAt: null };
+    const otherStep = { ...ok, authorisationId: '1d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d03', stepId: 'p-blend' };
+    renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => view,
+        ...stepFixtures(view),
+        'devices.stepBindings': { batchId: RUN_ID, stepKey: 'p-rework@', device: null, equipment: [], unitsInUse: [], devices: [], setpoints: [] },
+        'quality.reprocessingAuthorisations': { authorisations: [ok, unsigned, otherStep] },
+        'quality.residues': residues,
+      },
+    });
+    const panel = await screen.findByTestId('reprocessing-sources');
+    await within(panel).findByTestId(`source-${ok.authorisationId}`);
+    expect(within(panel).queryByTestId(`source-${unsigned.authorisationId}`)).toBeNull();
+    expect(within(panel).queryByTestId(`source-${otherStep.authorisationId}`)).toBeNull();
+    await userEvent.click(within(panel).getByRole('button', { name: `Take from ${c.label}` }));
+    const form = await screen.findByTestId('block-form-ADDITION');
+    expect(within(form).getByTestId('chosen-container').textContent).toContain('Container');
+    expect(within(form).getByTestId('chosen-authorisation').textContent).toContain('Authorisation');
+  });
+});
