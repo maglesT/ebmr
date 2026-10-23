@@ -50,7 +50,7 @@ export async function explained(check: Promise<void>, box: Locator): Promise<voi
     await check;
   } catch (e) {
     const text = await box.innerText().catch(() => '');
-    throw new Error(`${(e as Error).message.split('\n')[0] ?? ''}; the screen shows: ${text.replace(/\s+/g, ' ').slice(0, 1500)}`, { cause: e });
+    throw new Error(`${(e as Error).message.split('\n')[0] ?? ''}; the screen shows: ${text.replace(/\s+/g, ' ').slice(-2500)}`, { cause: e });
   }
 }
 
@@ -77,7 +77,7 @@ export async function step(f: Floor, page: Page, key: string): Promise<void> {
 /** Starts the step unless a resumed developer's run finds it started already (EBMR_E2E_RESUME=1). */
 export async function begin(page: Page, who: SeededPersona): Promise<void> {
   if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId('primary-action').filter({ hasText: 'Start step' }).count()) === 0) return;
-  await startStep(page, who);
+  await explained(startStep(page, who), page.locator('main'));
 }
 
 /** Whether a step is completed already (a resumed developer's run, EBMR_E2E_RESUME=1; never in CI). */
@@ -144,6 +144,16 @@ export async function closeStage(f: Floor, page: Page, lastStep: string, back: S
   const qa = f.persona('qa1');
   const supervisor = f.persona('supervisor1');
   let n = 0;
+  if (process.env['EBMR_E2E_RESUME'] === '1') {
+    await as(page, supervisor);
+    await step(f, page, lastStep);
+    await expect(card(page)).toBeVisible();
+    await page.waitForTimeout(1_500);
+    if ((await page.getByTestId('primary-action').filter({ hasText: 'Sign off the stage' }).count()) === 0) {
+      await as(page, back);
+      return n;
+    }
+  }
   for (;;) {
     await page.goto(`${baseOf(f)}/runs/${f.batchId}`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Run ');
@@ -164,14 +174,6 @@ export async function closeStage(f: Floor, page: Page, lastStep: string, back: S
   }
   await as(page, supervisor);
   await step(f, page, lastStep);
-  if (process.env['EBMR_E2E_RESUME'] === '1') {
-    await expect(card(page)).toBeVisible();
-    await page.waitForTimeout(1_500);
-    if ((await page.getByTestId('primary-action').filter({ hasText: 'Sign off the stage' }).count()) === 0) {
-      await as(page, back);
-      return n;
-    }
-  }
   await (await primary(page, 'Sign off the stage')).click();
   const dialog = page.getByRole('dialog', { name: /^Sign off stage/ });
   await expect(dialog.getByTestId('stage-summary')).toBeVisible();

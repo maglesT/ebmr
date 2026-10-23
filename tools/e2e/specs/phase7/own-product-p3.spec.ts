@@ -147,6 +147,9 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await setConfig(a, ['active', 'standardIs'], 'FORM');
     await setConfig(a, ['compensation', 'min'], '0.500');
     await setConfig(a, ['compensation', 'max'], '2.000');
+    await selectStep(a, /Wet granulation \(high shear\) to the end point/);
+    await setConfig(a, ['binder', 'min'], '1.500');
+    await setConfig(a, ['binder', 'max'], '2.200');
     await selectStep(a, /Tooling issue and inspection/);
     await setConfig(a, ['specification', 'upperEmbossing'], 'R20');
     await selectStep(a, /Compression run with left and right IPC/);
@@ -155,6 +158,10 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await setConfig(a, ['sweep', 'weight', 'individual', 'action', 'max'], '131.3');
     await selectStep(a, /Weight of the cores/);
     await setConfig(a, ['targetWeightMg'], '125.0');
+    // A pan load of about 18.5 kg (the layers added below copy this cores step's settings).
+    await selectStep(a, /Cores, room and pan load/);
+    await setConfig(a, ['loadRange', 'min'], '10');
+    await setConfig(a, ['loadRange', 'max'], '30');
     await setLimit(a, 'Core mean weight', 'lower', '123.7');
     await setLimit(a, 'Core mean weight', 'upper', '131.3');
     await setLimit(a, 'Coating weight gain', 'lower', '8.0');

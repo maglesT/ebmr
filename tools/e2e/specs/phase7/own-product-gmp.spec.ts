@@ -148,6 +148,9 @@ test('[PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a 
     await setConfig(a, ['active', 'form', 'name'], 'demotab sodium, anhydrous');
     await setConfig(a, ['compensation', 'min'], '3.000');
     await setConfig(a, ['compensation', 'max'], '8.000');
+    await selectStep(a, /Wet granulation \(high shear\) to the end point/);
+    await setConfig(a, ['binder', 'min'], '3.000');
+    await setConfig(a, ['binder', 'max'], '4.500');
     await selectStep(a, /Tooling issue and inspection/);
     await setConfig(a, ['specification', 'upperEmbossing'], 'D400');
     await selectStep(a, /Compression run with left and right IPC/);
