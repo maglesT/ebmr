@@ -248,6 +248,17 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   acid stage with only a lower limit is accepted. The limits the specification states are what is judged; the approver
   checks them.
 
+## Slice 7n (one review pass, 23 October 2026)
+- P7N-1 (fixed): a unit's use needs no room occupancy (plant.start_equipment_use, recipe-core 0403), so a beta-lactam
+  batch could use a unit standing in a room not dedicated to beta-lactam products, or any batch a unit of the suite.
+  Recipe-core 1655 now also guards plant.equipment_use (before insert, whoever writes) by the room or line the unit stands
+  in; a unit with no room is not checked (D-7n-10). Test `beta-lactam-rooms.test.ts`, both ways.
+- P7N-2 (fixed, tests): two cases had no test: a beta-lactam classification made after the batch was issued counts at
+  once (the rule reads it live), and a later dedication not yet approved leaves the earlier approved one in force.
+- P7N-3 (fixed, browser tests): the route B specs opened screens by typed address; they now move by the home link,
+  tiles and lists (R2, R3), except inside the shared kiosk helpers that route W also uses (listed in
+  `slice-7n-routes.md`). Route B has its own end-to-end group (`route-b`) in `playwright.config.ts` and `ci.yml`.
+
 ## Slice 7m (one review pass, 23 October 2026)
 
 Nothing blocking.

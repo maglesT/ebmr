@@ -28,6 +28,9 @@ export const LicenceState = z.enum(['DRAFT', 'APPROVED', 'SUSPENDED']);
 export type LicenceState = z.infer<typeof LicenceState>;
 export const HazardClass = z.enum(['NONE', 'SEX_HORMONE', 'STEROID', 'CYTOTOXIC']);
 export type HazardClass = z.infer<typeof HazardClass>;
+/** The class a room or line is dedicated to: a hazard class, or BETA_LACTAM (recipe-core 1655, PR-27; slice 7n). */
+export const DedicationClass = z.enum(['SEX_HORMONE', 'STEROID', 'CYTOTOXIC', 'BETA_LACTAM']);
+export type DedicationClass = z.infer<typeof DedicationClass>;
 
 export const EndorsedProduct = z.strictObject({ productCode: ProductCode, strength: Strength });
 export type EndorsedProduct = z.infer<typeof EndorsedProduct>;
@@ -169,7 +172,7 @@ export type ShelfLifeBasisView = z.infer<typeof ShelfLifeBasisView>;
 export const HazardRecordState = z.enum(['RECORDED', 'APPROVED', 'SUPERSEDED']);
 export const HazardView = z.strictObject({
   products: z.array(z.strictObject({ recordId: Uuid, productCode: z.string(), hazardClass: HazardClass, riskAssessmentRef: z.string(), recordedAt: Instant, state: HazardRecordState })),
-  areas: z.array(z.strictObject({ recordId: Uuid, areaCode: z.string(), hazardClass: HazardClass, dedicated: z.boolean(), breathingAir: z.enum(['NOT_USED', 'BACKED_UP']), justification: z.string(), recordedAt: Instant, state: HazardRecordState })),
+  areas: z.array(z.strictObject({ recordId: Uuid, areaCode: z.string(), hazardClass: DedicationClass, dedicated: z.boolean(), breathingAir: z.enum(['NOT_USED', 'BACKED_UP']), justification: z.string(), recordedAt: Instant, state: HazardRecordState })),
 });
 export type HazardView = z.infer<typeof HazardView>;
 
@@ -359,7 +362,7 @@ export const india = {
     body: z.strictObject({
       product: z.strictObject({ productCode: ProductCode, hazardClass: HazardClass, riskAssessmentRef: Text(200) }).optional(),
       area: z
-        .strictObject({ areaCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/), hazardClass: HazardClass.exclude(['NONE']), dedicated: z.boolean(), breathingAir: z.enum(['NOT_USED', 'BACKED_UP']), justification: Text(2000) })
+        .strictObject({ areaCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/), hazardClass: DedicationClass, dedicated: z.boolean(), breathingAir: z.enum(['NOT_USED', 'BACKED_UP']), justification: Text(2000) })
         .optional(),
     }),
     response: HazardView,

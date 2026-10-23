@@ -13,6 +13,7 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'route-w': ['phase7/route-w*.spec.ts'],
   'route-d': ['phase7/route-d*.spec.ts'],
   'route-s': ['phase7/route-s*.spec.ts'],
+  'route-b': ['phase7/route-b*.spec.ts'],
   'gmp-batches': ['phase7/gmp-kiosk-batch.spec.ts', 'phase7/own-product*.spec.ts', 'phase7/master-records.spec.ts', 'phase7/presenter-floor.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];

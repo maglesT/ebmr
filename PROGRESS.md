@@ -141,6 +141,12 @@ migrations. Routes D and S remain.
 **Slice 7p (23 October):** a dissolution profile as one release requirement (R4 third check, R8 C4/C7; site-services
 1720, recipe-core 1725; `slice-7p-routes.md`); demo SR product GLV-SR-500; browser `phase7/sr-profile.spec.ts`.
 
+**Slice 7n (23 October): R7, a beta-lactam product in a dedicated suite** (`docs/build-plan/phase-7/slice-7n-routes.md`).
+Recipe-core 1655 dedicates rooms and lines to beta-lactam products (IN-27 dedications, class `BETA_LACTAM`) and refuses
+a beta-lactam batch outside them and any other batch inside them (PR-27). Demo route B (CXC-325, invented: direct
+compression, film coat, alu-alu with desiccant) in the suite BL-DISP to BL-PL with its kiosks; browser tests
+`route-b.spec.ts` and `route-b-refusals.spec.ts`; user guide page 10. Decisions D-7n-1 to 11; review P7N-1 to 3 fixed.
+
 **Slice 7m (23 October): demo routes D and S for R1** (`docs/build-plan/phase-7/slice-7m-routes.md`). Route D (roller
 compaction, bilayer, ink printing, aluminium strip) and route S (sugar coating in five applications, PVC/aluminium
 thermoform) with their plant, kiosks, masters, lots and orders in the GMP demo set-up, and their browser tests from the

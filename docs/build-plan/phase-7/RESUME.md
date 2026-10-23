@@ -239,6 +239,27 @@ results per point from QC and LIMS judged by the database, one checklist item `G
 the demo SR product GLV-SR-500 with two finished lots (`cli/demo-sr-profile.ts`), browser spec `phase7/sr-profile.spec.ts`.
 Residuals P7P-1 (staged acceptance L1/L2/L3), P7P-2.
 
+## Slice 7n (23 October 2026): R7, a beta-lactam product in a dedicated suite
+From `demo-trial-requirements.md` R7, on branch `phase-7/slice-7n`; migration recipe-core 1655. Details and the full
+decision text in `slice-7n-routes.md`.
+- D-7n-1: the suite and route B are seeded by `cli/demo-route-beta-lactam.ts`, one line in `cli/installation.ts` after
+  the demo routes (the masters need the in-process demo server; features do not import the CLI).
+- D-7n-2: rooms are dedicated to beta-lactam products through the IN-27 area dedications with a fourth class
+  `BETA_LACTAM` (QA records, a second QA person approves); recipe-core 1655 refuses a beta-lactam batch in a room not
+  dedicated (EBMR-PLANT-177) and any other batch in a dedicated one (EBMR-PLANT-178), at clearance and room start.
+- D-7n-3: rooms and lines, and each unit's use by the room the unit stands in (review P7N-1); the site-wide
+  penicillin rule is unchanged.
+- D-7n-10: a unit with no room recorded is not checked at its use.
+- D-7n-11: the migration is recipe-core 1655 (7m's 1650 merged first; the migration-order check).
+- D-7n-4: the ERP master flags the product beta-lactam; the plant classification of the product and its two actives is
+  made on screen in the browser test, not seeded.
+- D-7n-5: the suite's dedications and SITE-1's penicillin facility rule are seeded through the real commands and
+  signatures.
+- D-7n-6: "alu-alu with desiccant" is a cold-form laminate with a desiccant layer (TB-21 has no desiccant member).
+- D-7n-7: direct compression; compensating excipients only route B's TB-01 steps use (FEFO of other routes unchanged).
+- D-7n-8: the suite's low-humidity limit 30 % RH in the master (G-11 at dispensing, TB-18 cores at coating).
+- D-7n-9: the browser tests reuse the route specs' shared kiosk helpers.
+
 ## After Phase 7
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,
