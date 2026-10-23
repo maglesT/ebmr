@@ -148,10 +148,24 @@ describe('the batch data of a packaging step', () => {
 });
 
 describe('the detector challenge of a TB-17 step', () => {
-  it('[IN-36] records a challenge with each test piece\'s result and shows whether it passed and the challenge to name in the entry', async () => {
-    const view = stepOf('TB-17@1', 'p-tb17@');
+  it('[IN-36] records a challenge with each test piece\'s result, shows whether it passed and opens the CHALLENGE entry naming the challenge (slice 7m: never a typed identifier)', async () => {
+    const view = { ...structuredClone(example('batches-step-tb08')), entryForms: [] } as StepScreenView;
+    view.step.block = 'TB-17@1';
+    view.step.stepKey = 'p-tb17@';
+    view.run.runId = RUN_ID;
+    view.blockEntries = [{
+      kind: 'CHALLENGE', title: 'Challenge', description: 'Challenge',
+      schema: { type: 'object', description: 'Challenge', fields: {
+        challengeId: { type: 'string', description: 'Challenge', pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' },
+        device: { type: 'string', description: 'Device', enum: ['METAL_DETECTOR', 'REJECT_GATE'] },
+        timing: { type: 'string', description: 'When', enum: ['START', 'INTERVAL', 'AFTER_STOPPAGE', 'END'] },
+        passed: { type: 'boolean', description: 'Passed' },
+      } },
+    }];
     const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
       fixtures: {
+        'batches.step': () => view,
         ...stepFixtures(view),
         'devices.stepBindings': { batchId: RUN_ID, stepKey: 'p-tb17@', device: null, equipment: [], unitsInUse: [], devices: [], setpoints: [] },
         'execution.recordDetectorChallenge': { challengeId: '9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', passed: false, held: ['OC-B26-0001-0007'] },
@@ -176,7 +190,12 @@ describe('the detector challenge of a TB-17 step', () => {
     const result = await screen.findByTestId('challenge-result');
     expect(result.getAttribute('data-passed')).toBe('no');
     expect(result.textContent).toContain('OC-B26-0001-0007');
-    expect(result.textContent).toContain('9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e');
+    const entry = await screen.findByTestId('block-form-CHALLENGE');
+    await userEvent.click(within(entry).getByRole('button', { name: /^Save/ }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect((ui.commands().at(-1)?.body?.['intent'] as { entry: unknown } | undefined)?.entry).toEqual({
+      kind: 'BLOCK_ENTRY', entryKind: 'CHALLENGE', data: { challengeId: '9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', device: 'METAL_DETECTOR', timing: 'START', passed: false },
+    });
   });
 });
 
@@ -190,5 +209,52 @@ describe('the merge of two containers on the GMP run overview', () => {
     await waitFor(() => expect(posts(ui, '/api/containers/merge')).toHaveLength(1));
     expect(posts(ui, '/api/containers/merge')[0]?.body).toMatchObject({ sourceLabel: 'OC-B26-0001-0003', targetLabel: 'OC-B26-0001-0005' });
     expect((await screen.findByTestId('merge-result')).textContent).toMatch(/Merged into OC-B26-0001-0003 \(open\)/);
+  });
+});
+
+describe('the reprocessing sources of a TB-08 step (slice 7m, R1)', () => {
+  it('[PR-47][IN-19][INV-33] offers only the authorised uses at this step and opens the ADDITION entry with the container and the authorisation, never typed', async () => {
+    const view = { ...structuredClone(example('batches-step-tb08')), entryForms: [] } as StepScreenView;
+    view.step.block = 'TB-08@1';
+    view.step.stepKey = 'p-rework@';
+    view.run.runId = RUN_ID;
+    const ID = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+    view.blockEntries = [{
+      kind: 'ADDITION', title: 'Addition', description: 'Addition',
+      schema: { type: 'object', description: 'Addition', fields: {
+        container: { type: 'string', description: 'Container', pattern: ID },
+        gross: { type: 'decimal', description: 'Gross' },
+        tare: { type: 'decimal', description: 'Tare' },
+        unit: { type: 'string', description: 'Unit', enum: ['kg', 'g'] },
+        authorisation: { type: 'string', description: 'Authorisation', pattern: ID, optional: true },
+      } },
+    }];
+    const auths = structuredClone(example('quality-reprocessing-authorisations'));
+    const base = auths.authorisations[0];
+    if (!base) throw new Error('the example has no authorisation');
+    const residues = structuredClone(example('quality-residues'));
+    const c = residues.containers[0];
+    if (!c) throw new Error('the example has no residue');
+    const ok = { ...base, authorisationId: '1d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d01', batchId: RUN_ID, stepId: 'p-rework', scope: 'USE' as const, containerId: c.containerId, authorisedBy: base.proposedBy, authorisedAt: base.proposedAt };
+    const unsigned = { ...ok, authorisationId: '1d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d02', authorisedBy: null, authorisedAt: null };
+    const otherStep = { ...ok, authorisationId: '1d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d03', stepId: 'p-blend' };
+    renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => view,
+        ...stepFixtures(view),
+        'devices.stepBindings': { batchId: RUN_ID, stepKey: 'p-rework@', device: null, equipment: [], unitsInUse: [], devices: [], setpoints: [] },
+        'quality.reprocessingAuthorisations': { authorisations: [ok, unsigned, otherStep] },
+        'quality.residues': residues,
+      },
+    });
+    const panel = await screen.findByTestId('reprocessing-sources');
+    await within(panel).findByTestId(`source-${ok.authorisationId}`);
+    expect(within(panel).queryByTestId(`source-${unsigned.authorisationId}`)).toBeNull();
+    expect(within(panel).queryByTestId(`source-${otherStep.authorisationId}`)).toBeNull();
+    await userEvent.click(within(panel).getByRole('button', { name: `Take from ${c.label}` }));
+    const form = await screen.findByTestId('block-form-ADDITION');
+    expect(within(form).getByTestId('chosen-container').textContent).toContain('Container');
+    expect(within(form).getByTestId('chosen-authorisation').textContent).toContain('Authorisation');
   });
 });

@@ -411,11 +411,29 @@ describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consume
       )
     ).rows.map((r) => [r.lot, r.batch, r.quantity, r.unit]);
 
-  it('[INV-13][INV-14][PR-57] a G-07 weighing of a site lot on GMP is consumed from the batch\'s reservation in the same command, so the genealogy holds the lot', async () => {
+  it('[INV-13][INV-14][PR-57][DI-20][DI-30] a G-07 weighing of a site lot on GMP is consumed from the batch\'s reservation in the same command, so the genealogy holds the lot; keyed with no balance named, it records the room\'s one booked balance and says the balance was inferred (P7L-1)', async () => {
     const d = await dispenser(b.batchId);
+    // Test arrangement: the balance stands in DISP-1 (the room of the kiosk), so it is the room's one instrument booked for the batch.
+    const setup = await gmp.db.admin.connect();
+    try {
+      await setup.query('begin');
+      await setup.query("set local session_replication_role = 'replica'");
+      await setup.query("insert into plant.area (code, kind, name, segregated, negative_pressure, recorded_by) values ('DISP-1', 'ROOM', 'Dispensing booth', false, true, gen_random_uuid()) on conflict (code) do nothing");
+      await setup.query("update plant.equipment set area_id = (select id from plant.area where code = 'DISP-1') where code = $1", [BALANCE]);
+      await setup.query('commit');
+    } finally {
+      setup.release();
+    }
     await d.ok('operator1', { type: 'START_STEP', stepKey: G07_KEY });
-    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: G07_KEY, entry: { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', lotCode: 'L26-0401', manual: { gross: '1.600', tare: '1.000', unit: 'kg', deviceCode: BALANCE } } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: G07_KEY, entry: { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', lotCode: 'L26-0401', manual: { gross: '1.600', tare: '1.000', unit: 'kg' } } });
     expect(await consumptions()).toEqual([['L26-0401', b.batchNumber, '0.600', 'kg']]);
+    const { rows } = await gmp.db.admin.query<{ entry: Json; manual: Json }>(
+      "select r.command -> 'entry' as entry, r.evidence -> 'manual' as manual from recipe.execution_command r where r.batch_id = $1 and r.evidence ? 'manual' order by r.seq desc limit 1",
+      [b.batchId],
+    );
+    expect({ balance: rows[0]?.entry['balance'], declared: rows[0]?.manual['declaredBalance'], inferred: rows[0]?.manual['balanceInferred'] }).toEqual({ balance: BALANCE, declared: null, inferred: true });
+    // The step screen (and the record built from it) says the balance was not named.
+    expect((await d.stepView('operator1', G07_KEY)).entries.at(-1)?.summary).toContain(`on ${BALANCE}, keyed by hand (balance not named: the room's one balance booked for the batch)`);
   });
 
   it('[INV-13][INV-14][PR-57] past the server, a GMP G-07 weighing of a lot without its consumption, or with a consumption of another quantity, is refused by the database (EBMR-TAB-391)', async () => {

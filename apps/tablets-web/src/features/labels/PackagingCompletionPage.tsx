@@ -7,6 +7,7 @@
  * inspection of the line, verified by a second person. The gap that blocks the step's close or the order's completion
  * is the database's words.
  */
+import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { routes, type PackagingCompletionView } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
@@ -36,6 +37,10 @@ export function PackagingCompletionPage() {
   return (
     <>
       <h1>Packaging completion of {v.batchNumber}</h1>
+      <p>
+        <Link to="/planning/packaging/$batchId" params={{ batchId: v.batchId }}>The packaging order and its bulk</Link> ·{' '}
+        <Link to="/serialisation/batches/$batchId" params={{ batchId: v.batchId }}>Serial pools of {v.batchNumber}</Link>
+      </p>
       {v.completionProblem ? (
         <Banner tone="warning" title={`The order cannot complete yet: ${v.completionProblem}`} />
       ) : (

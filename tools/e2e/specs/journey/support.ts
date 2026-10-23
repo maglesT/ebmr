@@ -58,6 +58,23 @@ export async function saveForm(page: Page, form: Locator, who: SeededPersona): P
   await save.click();
   await tap(page, who);
   await expect(form.getByText(/^Saved: /)).toBeVisible();
+  await addAnother(form);
+}
+
+/**
+ * Slice 7k (R3.2): a saved form closes and shows the saved entry; where the step expects several entries of its kind it
+ * offers "Add another". The flows that record several in a row open it again, as the person does.
+ */
+export async function addAnother(form: Locator): Promise<void> {
+  // An entry form (form-*, block-form-*) closes once saved (data-closed) or leaves the step; only then is "Add another"
+  // there or not. A one-field card (field-*) stays open and offers none.
+  const testId = (await form.count()) > 0 ? ((await form.getAttribute('data-testid')) ?? '') : '';
+  if (!/^(block-)?form-/.test(testId)) return;
+  await expect(async () => {
+    expect((await form.count()) === 0 || (await form.getAttribute('data-closed')) === 'true').toBe(true);
+  }).toPass({ timeout: 15_000 });
+  const another = form.getByRole('button', { name: /^Add another: / });
+  if (await another.isVisible()) await another.click();
 }
 
 /**

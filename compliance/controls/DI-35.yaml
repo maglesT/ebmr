@@ -291,6 +291,8 @@ tests:
   - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][DI-35] SR profile 2: lot 1, every time point within its limits: the profile is one green line on the release checklist and the lot is released @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-05][PR-45][DI-35] route D 9: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-05][PR-45][DI-35] route S 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

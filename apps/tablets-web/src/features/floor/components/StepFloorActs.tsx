@@ -7,7 +7,9 @@
  *    person's reason, the second person's check of an MRP (IN-31) and a print job released to a printer of the step
  *    (PR-36);
  *  - a TB-17@1 step: a metal-detector or reject-gate challenge with its test pieces (IN-36); the CHALLENGE entry then
- *    names the challenge the server answered.
+ *    names the challenge the server answered;
+ *  - a TB-08@1 step (slice 7m, R1): the quality unit's authorised uses of reserved residue at this step, each opening the
+ *    ADDITION entry with its container and authorisation (never an identifier typed).
  * Every choice offered is the server's (devices.stepBindings, execution.packagingBatchData); every act is one command
  * of the signed-in person (a fresh badge tap on a shared terminal, FRESH_ON_SHARED) and every rule is the database's:
  * its refusal is shown in its own words. Nothing typed is kept once sent or closed.
@@ -19,6 +21,7 @@ import { ActResult, useCommand } from '../../../app/acts.tsx';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
+import { useStepChoices } from '../choices.tsx';
 
 const BINDINGS = [routes.devices.stepBindings.id];
 const BATCH_DATA = [routes.execution.packagingBatchData.id];
@@ -35,6 +38,7 @@ export function StepFloorActs({ view }: { view: StepScreenView }) {
       {isProcessStep(view) ? <StepDevicePanel view={view} /> : null}
       {view.step.block === 'G-21@1' ? <PackagingBatchDataPanel view={view} /> : null}
       {view.step.block === 'TB-17@1' ? <DetectorChallengePanel view={view} /> : null}
+      {view.step.block === 'TB-08@1' ? <ReprocessingSourcePanel view={view} /> : null}
     </>
   );
 }
@@ -235,8 +239,40 @@ const PIECE_OPTIONS: { value: PieceResult; label: string }[] = [
   { value: 'MISSED', label: 'Not detected' },
 ];
 
+/**
+ * Slice 7m (R1, TB-08): the authorised uses of a closed container of an earlier batch at this step; choosing one opens
+ * the ADDITION entry naming the container and the authorisation. The block and the database judge the source again.
+ */
+function ReprocessingSourcePanel({ view }: { view: StepScreenView }) {
+  const choices = useStepChoices();
+  const stepId = view.step.stepKey.split('@')[0] ?? view.step.stepKey;
+  const auths = useApiQuery(routes.quality.reprocessingAuthorisations, { query: { batchId: view.run.runId } });
+  const residues = useApiQuery(routes.quality.residues, { query: {} });
+  const labels = new Map((residues.data?.containers ?? []).map((c) => [c.containerId, `${c.label} (${c.batchNumber}, ${c.remaining} ${c.unit} left)`]));
+  const usable = (auths.data?.authorisations ?? []).filter((a) => a.stepId === stepId && a.containerId !== null && a.authorisedBy !== null);
+  return (
+    <section className={wcls('section')} aria-label="Reprocessing sources" data-testid="reprocessing-sources">
+      <h2 className={wcls('sectionTitle')}>Reprocessing sources</h2>
+      {auths.error ? <RefusalMessage error={auths.error.error} /> : null}
+      {usable.length === 0 ? <p className={wcls('muted')}>No authorised use of a residue container waits at this step: the quality unit authorises it on the reprocessing screen.</p> : null}
+      <ul className={wcls('list')}>
+        {usable.map((a) => {
+          const label = labels.get(a.containerId ?? '') ?? 'a container of an earlier batch';
+          return (
+            <li key={a.authorisationId} data-testid={`source-${a.authorisationId}`}>
+              {`${label}, ${a.caseCode.toLowerCase().replace(/_/g, ' ')} authorised by ${a.authorisedBy?.legalName ?? ''} (${a.investigationRef}) `}
+              <Button onPress={() => choices?.choose('ADDITION', { container: a.containerId ?? '', authorisation: a.authorisationId })}>{`Take from ${label.split(' ')[0] ?? ''}`}</Button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function DetectorChallengePanel({ view }: { view: StepScreenView }) {
   const challenge = useCommand(routes.execution.recordDetectorChallenge, [], 'a detector challenge');
+  const choices = useStepChoices();
   const [press, setPress] = useState('');
   const [device, setDevice] = useState<'METAL_DETECTOR' | 'REJECT_GATE' | null>(null);
   const [deviceCode, setDeviceCode] = useState('');
@@ -260,6 +296,8 @@ function DetectorChallengePanel({ view }: { view: StepScreenView }) {
     if (r) {
       setCodes('');
       setResults({});
+      // Slice 7m (R1): the CHALLENGE entry opens naming the challenge the server answered (never a typed identifier).
+      choices?.choose('CHALLENGE', { challengeId: r.challengeId, device, timing, passed: r.passed ? 'YES' : 'NO' });
     }
   };
   const done = challenge.done;
@@ -289,8 +327,8 @@ function DetectorChallengePanel({ view }: { view: StepScreenView }) {
       </Button>
       {done ? (
         <p data-testid="challenge-result" data-passed={done.passed ? 'yes' : 'no'}>
-          {done.passed ? 'Challenge passed.' : `Challenge failed: the press output is held${done.held.length > 0 ? ` (${done.held.join(', ')})` : ''}.`} Name challenge {done.challengeId} in the
-          CHALLENGE entry.
+          {done.passed ? 'Challenge passed.' : `Challenge failed: the press output is held${done.held.length > 0 ? ` (${done.held.join(', ')})` : ''}.`} The challenge entry below names it:
+          save it.
         </p>
       ) : null}
       <ActResult error={challenge.error} />

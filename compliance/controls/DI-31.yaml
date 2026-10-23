@@ -455,6 +455,7 @@ tests:
   - "apps/tablets-server/test/plant/floor-routes.test.ts > press tooling and the press discharge (gap report A6, A7) > [INV-24][IN-36][PR-27][DI-31][PR-22] a set is inspected before use item by item, issued to the press with its counts, returned with the strokes keyed from the press and inspected after use; the steward configures the discharge, an operator is refused"
   - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [DI-31][IN-33] a LIMS result names its time point; an unknown point is refused and the database computes the verdict against the point's limits"
   - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [DI-31][IN-33] a LIMS result exactly on a point's limit is judged PASS by the database at any scale, just beyond it FAIL, whatever the LIMS says (P7P-3)"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-36][PR-08][PR-29][DI-31][DI-32] route D 3: roller compaction on KIOSK-RC-1: the compactor's values keyed by hand, the ribbon checks and the mill screen (TB-06), sizing through a checked screen (TB-02) @office"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

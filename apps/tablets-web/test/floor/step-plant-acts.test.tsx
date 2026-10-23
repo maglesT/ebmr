@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { routes, type BlockEntryFormView, type BlockFieldSchemaWire, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
-import { renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
+import { fakeTap, renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
 
 afterEach(() => {
   apiState.installation = undefined;
@@ -42,7 +42,7 @@ function gmpView(block: string, stepKey: string, blockEntries: BlockEntryFormVie
 
 const plant = (over: Partial<StepPlantView>): StepPlantView => ({
   batchId: RUN_ID, stepKey: 'p-x@', batchNumber: 'B26-0007', block: null, stage: 'S-DISP', areas: [], lineClearances: [], occupancies: [], equipment: [], uses: [],
-  tooling: { checklist: ['TIPS', 'EDGES'], sets: [], issues: [], preUse: [] }, containers: [], charges: [], ...over,
+  tooling: { checklist: ['TIPS', 'EDGES'], sets: [], issues: [], preUse: [] }, containers: [], charges: [], layers: [], chargedStages: {}, ...over,
 });
 
 function render(view: StepScreenView, current: () => StepPlantView, acts: Record<string, () => unknown>) {
@@ -51,36 +51,45 @@ function render(view: StepScreenView, current: () => StepPlantView, acts: Record
 const posts = (ui: ReturnType<typeof renderFloor>, path: string) => ui.requests.filter((r) => r.method === 'POST' && r.path === path);
 const entryOf = (ui: ReturnType<typeof renderFloor>) => (ui.commands().at(-1)?.body?.['intent'] as { entry: unknown } | undefined)?.entry;
 
-describe('the room a clearance step occupies (A2)', () => {
-  it('[IN-21][PR-34] starts the batch\'s use of the stage\'s room, fills the AREA_OCCUPANCY entry from the answer, saves it, and ends the use', async () => {
+const entry = (kind: string, data: Record<string, unknown>) => ({ entryId: `${kind}-1`, kind, summary: kind, data, by: OP, at: at('20-OCT-2026 09:01') });
+const accepted = () => ({ accepted: true as const, version: 4, step: null });
+
+describe('the room a clearance step occupies (A2; R3.3)', () => {
+  it('[IN-21][PR-34][INV-40] starts the batch\'s use of the stage\'s room and records it in the step as one act, then ends the use', async () => {
     const view = gmpView('G-10@2', 'p-disp-clear@', [form('AREA_OCCUPANCY', 'Area occupancy', { areaCode: str('Area'), occupancyId: str('Occupancy', ID) })]);
     const occupancy = { occupancyId: OCC, areaCode: 'DISP-1', batchNumber: 'B26-0007', stage: 'S-DISP', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), ended: null };
     let current = plant({ block: 'G-10@2', areas: [{ code: 'DISP-1', kind: 'ROOM', state: 'CLEARED' }] });
-    const ui = render(view, () => current, {
-      'plant.startAreaOccupancy': () => {
-        current = { ...current, occupancies: [{ ...occupancy, mine: true }] };
-        return occupancy;
+    let shown = view;
+    const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => shown,
+        ...stepFixtures(view),
+        'batches.stepPlant': () => current,
+        'batches.plantEntry': () => {
+          current = { ...current, occupancies: [{ ...occupancy, mine: true }] };
+          shown = { ...view, entries: [entry('AREA_OCCUPANCY', { areaCode: 'DISP-1', occupancyId: OCC })] };
+          return accepted();
+        },
+        'plant.endAreaOccupancy': () => ({ ...occupancy, ended: { by: OP, at: at('20-OCT-2026 12:00') } }),
       },
-      'plant.endAreaOccupancy': () => ({ ...occupancy, ended: { by: OP, at: at('20-OCT-2026 12:00') } }),
     });
     const panel = await screen.findByTestId('step-plant');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Start using room DISP-1' }));
-    await waitFor(() => expect(posts(ui, '/api/plant/occupancies')).toHaveLength(1));
-    expect(posts(ui, '/api/plant/occupancies')[0]?.body).toMatchObject({ areaCode: 'DISP-1', batchId: RUN_ID, stage: 'S-DISP' });
-    // The entry form opens with the room and the occupancy filled in: nothing to type.
-    const entry = await screen.findByTestId('block-form-AREA_OCCUPANCY');
-    expect(within(entry).getByTestId('chosen-occupancyId').textContent).toContain(OCC);
-    expect(within(entry).queryByRole('textbox')).toBeNull();
-    await userEvent.click(within(entry).getByRole('button', { name: 'Save: Area occupancy' }));
-    await waitFor(() => expect(ui.commands()).toHaveLength(1));
-    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'AREA_OCCUPANCY', data: { areaCode: 'DISP-1', occupancyId: OCC } });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Start using room DISP-1 and record it in this step' }));
+    const path = `/api/batches/${RUN_ID}/steps/${encodeURIComponent('p-disp-clear@')}/plant-entries`;
+    await waitFor(() => expect(posts(ui, path)).toHaveLength(1));
+    expect(posts(ui, path)[0]?.body).toMatchObject({ expectedVersion: view.run.version, act: { act: 'START_AREA_OCCUPANCY', areaCode: 'DISP-1' } });
+    // No separate save: the step records the room, and the panel says so.
+    await waitFor(() => expect(within(screen.getByTestId('occupancy-DISP-1')).getByText('Recorded in this step.')).toBeTruthy());
+    expect(within(screen.getByTestId('occupancy-DISP-1')).queryByRole('button', { name: 'Record DISP-1 in this step' })).toBeNull();
+    expect(ui.commands()).toHaveLength(0);
     await userEvent.click(await within(screen.getByTestId('step-plant')).findByRole('button', { name: 'End the use of DISP-1' }));
     await waitFor(() => expect(posts(ui, `/api/plant/occupancies/${OCC}/end`)).toHaveLength(1));
   });
 });
 
-describe('the units a status step checks (A3, A4)', () => {
-  it('[PR-23][IN-25] records the balance\'s per-use check and books it, books the press, and fills the EQUIPMENT_USE entry with the unit, its reference and the use', async () => {
+describe('the units a status step checks (A3, A4; R3.3, R3.4)', () => {
+  it('[PR-23][IN-25][INV-40] records the balance\'s per-use check, books it and the press each with its record in the step as one act; a booked unit is not offered for booking again and says until when', async () => {
     const view = gmpView('G-09@2', 'p-comp-status@', [form('EQUIPMENT_USE', 'Equipment use', { equipmentRef: str('Reference'), equipmentCode: str('Unit'), useId: str('Use', ID) })]);
     const unit = (code: string, name: string) => ({ code, name, areaCode: 'COMP-1', fitness: 'QUALIFIED', lastCheck: null });
     const booking = (useId: string, kind: 'PROCESS' | 'INSTRUMENT', equipmentCode: string) => ({ useId, kind, equipmentCode, batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null });
@@ -91,35 +100,42 @@ describe('the units a status step checks (A3, A4)', () => {
         { ref: 'PRESS', kind: 'PROCESS', classCode: 'EQC-PRESS', units: [unit('PRESS-01', 'Rotary press')] },
       ],
     });
-    const ui = render(view, () => current, {
-      'plant.recordInstrumentCheck': () => ({ checkId: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d09', equipmentCode: 'BAL-C1', result: 'PASS', regime: 'PER_USE', recordedAt: at('20-OCT-2026 09:00') }),
-      'plant.recordInstrumentUse': () => {
-        current = { ...current, uses: [...current.uses, { ...booking(USE_BAL, 'INSTRUMENT', 'BAL-C1'), mine: true }] };
-        return booking(USE_BAL, 'INSTRUMENT', 'BAL-C1');
-      },
-      'plant.startEquipmentUse': () => {
-        current = { ...current, uses: [...current.uses, { ...booking(USE_PRESS, 'PROCESS', 'PRESS-01'), mine: true }] };
-        return booking(USE_PRESS, 'PROCESS', 'PRESS-01');
+    let shown = view;
+    const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => shown,
+        ...stepFixtures(view),
+        'batches.stepPlant': () => current,
+        'plant.recordInstrumentCheck': () => ({ checkId: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d09', equipmentCode: 'BAL-C1', result: 'PASS', regime: 'PER_USE', recordedAt: at('20-OCT-2026 09:00') }),
+        'batches.plantEntry': () => {
+          const first = current.uses.length === 0;
+          const useId = first ? USE_BAL : USE_PRESS;
+          const kind = first ? ('INSTRUMENT' as const) : ('PROCESS' as const);
+          const code = first ? 'BAL-C1' : 'PRESS-01';
+          const ref = first ? 'BAL' : 'PRESS';
+          current = { ...current, uses: [...current.uses, { ...booking(useId, kind, code), mine: true }] };
+          shown = { ...shown, entries: [...shown.entries, { ...entry('EQUIPMENT_USE', { equipmentRef: ref, equipmentCode: code, useId }), entryId: useId }] };
+          return accepted();
+        },
       },
     });
+    const path = `/api/batches/${RUN_ID}/steps/${encodeURIComponent('p-comp-status@')}/plant-entries`;
     const bal = await screen.findByTestId('plant-unit-BAL');
     await userEvent.click(within(bal).getByRole('button', { name: 'Per-use check of BAL-C1 passed' }));
     await waitFor(() => expect(posts(ui, '/api/plant/instruments/BAL-C1/checks')).toHaveLength(1));
     expect(posts(ui, '/api/plant/instruments/BAL-C1/checks')[0]?.body).toMatchObject({ result: 'PASS', reference: 'Per-use check', batchId: RUN_ID });
-    await userEvent.click(within(screen.getByTestId('plant-unit-BAL')).getByRole('button', { name: 'Book BAL-C1' }));
-    await waitFor(() => expect(posts(ui, '/api/plant/instruments/BAL-C1/uses')).toHaveLength(1));
-    expect(posts(ui, '/api/plant/instruments/BAL-C1/uses')[0]?.body).toMatchObject({ batchId: RUN_ID, plannedHours: '12' });
-    const entry = await screen.findByTestId('block-form-EQUIPMENT_USE');
-    await userEvent.click(within(entry).getByRole('button', { name: 'Save: Equipment use' }));
-    await waitFor(() => expect(ui.commands()).toHaveLength(1));
-    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'EQUIPMENT_USE', data: { equipmentRef: 'BAL', equipmentCode: 'BAL-C1', useId: USE_BAL } });
-    await userEvent.click(within(screen.getByTestId('plant-unit-PRESS')).getByRole('button', { name: 'Book PRESS-01' }));
-    await waitFor(() => expect(posts(ui, '/api/plant/equipment/PRESS-01/uses')).toHaveLength(1));
-    const second = await screen.findByTestId('block-form-EQUIPMENT_USE');
-    await waitFor(() => expect(within(second).getByTestId('chosen-useId').textContent).toContain(USE_PRESS));
-    await userEvent.click(within(second).getByRole('button', { name: 'Save: Equipment use' }));
-    await waitFor(() => expect(ui.commands()).toHaveLength(2));
-    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'EQUIPMENT_USE', data: { equipmentRef: 'PRESS', equipmentCode: 'PRESS-01', useId: USE_PRESS } });
+    await userEvent.click(within(screen.getByTestId('plant-unit-BAL')).getByRole('button', { name: 'Book BAL-C1 and record it in this step' }));
+    await waitFor(() => expect(posts(ui, path)).toHaveLength(1));
+    expect(posts(ui, path)[0]?.body).toMatchObject({ act: { act: 'BOOK_UNIT', equipmentRef: 'BAL', code: 'BAL-C1', plannedHours: '12' } });
+    await waitFor(() => expect(within(screen.getByTestId('use-BAL-C1')).getByText('Recorded in this step for BAL.')).toBeTruthy());
+    expect(within(screen.getByTestId('plant-unit-BAL')).getByText('BAL-C1 booked until 20-OCT-2026 21:00')).toBeTruthy();
+    expect(within(screen.getByTestId('plant-unit-BAL')).queryByRole('button', { name: /^Book BAL-C1/ })).toBeNull();
+    await userEvent.click(within(screen.getByTestId('plant-unit-PRESS')).getByRole('button', { name: 'Book PRESS-01 and record it in this step' }));
+    await waitFor(() => expect(posts(ui, path)).toHaveLength(2));
+    expect(posts(ui, path)[1]?.body).toMatchObject({ act: { act: 'BOOK_UNIT', equipmentRef: 'PRESS', code: 'PRESS-01', plannedHours: '12' } });
+    await waitFor(() => expect(within(screen.getByTestId('use-PRESS-01')).getByText('Recorded in this step for PRESS.')).toBeTruthy());
+    expect(ui.commands()).toHaveLength(0);
   });
 });
 
@@ -186,5 +202,123 @@ describe('the press set-up and hopper charge (A5)', () => {
     const data = (entryOf(ui) as { data: { chargeId: string } }).data;
     expect(data.chargeId).toMatch(UUID);
     expect(data).toEqual({ chargeId: CHARGE });
+  });
+});
+
+describe('the hopper of each layer of a bilayer run (slice 7m, R1)', () => {
+  it('[PR-21][IN-26] offers each layer only the closed containers of its own blend; a charge into the layer\'s hopper fills HOPPER_CHARGE with the layer, its hopper, its blend and the charge, never typed', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const L2 = '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d08';
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }, { id: 'T', hopper: 'H2', stage: 'BLEND_L2' }],
+      containers: [
+        { containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLEND_L1', netQuantity: '33.150', unit: 'kg', problem: null },
+        { containerId: L2, label: 'OC-B26-0007-0002', stage: 'BLEND_L2', netQuantity: '14.350', unit: 'kg', problem: null },
+      ],
+    });
+    const ui = render(view, () => current, { 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: L2, label: 'OC-B26-0007-0002', netQuantity: '14.350', unit: 'kg' }) });
+    const panel = await screen.findByTestId('plant-layer-charge');
+    // Each layer lists only its own blend's containers: no button would put the lactose blend into hopper H1.
+    expect(within(within(panel).getByTestId('layer-L1')).queryByRole('button', { name: /OC-B26-0007-0002/ })).toBeNull();
+    expect(within(within(panel).getByTestId('layer-T')).queryByRole('button', { name: /OC-B26-0007-0001/ })).toBeNull();
+    await userEvent.click(within(within(panel).getByTestId('layer-T')).getByRole('button', { name: 'Charge OC-B26-0007-0002 into hopper H2' }));
+    await waitFor(() => expect(posts(ui, '/api/plant/charges')).toHaveLength(1));
+    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'COMPRESSION', label: 'OC-B26-0007-0002' });
+    const charge = await screen.findByTestId('block-form-HOPPER_CHARGE');
+    await userEvent.click(within(charge).getByRole('button', { name: 'Save: Hopper charge' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'HOPPER_CHARGE', data: { layer: 'T', hopper: 'H2', blend: 'BLEND_L2', chargeId: CHARGE } });
+  });
+});
+
+describe('the charges a bilayer step has recorded already (7m review P7M-1)', () => {
+  it('[PR-21][IN-26] offers "Record the charge" only for a charge the step has not recorded (a second entry of a charge is refused by the database: db-guards.test.ts TB16-CHARGE)', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const OTHER = '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d09';
+    view.entries = [{ entryId: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d10', kind: 'HOPPER_CHARGE', summary: 'hopper charge', data: { layer: 'L1', hopper: 'H1', blend: 'BLEND_L1', chargeId: CHARGE }, by: OP, at: at('20-OCT-2026 10:01') }];
+    const charge = (chargeId: string, label: string) => ({ chargeId, label, stage: 'COMPRESSION', chargedBy: OP, chargedAt: at('20-OCT-2026 10:00'), mine: true });
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }],
+      charges: [charge(CHARGE, 'OC-B26-0007-0001'), charge(OTHER, 'OC-B26-0007-0003')],
+      chargedStages: { [CHARGE]: 'BLEND_L1', [OTHER]: 'BLEND_L1' },
+    });
+    render(view, () => current, {});
+    const layer = within(await screen.findByTestId('plant-layer-charge')).getByTestId('layer-L1');
+    expect(await within(layer).findByRole('button', { name: 'Record the charge of OC-B26-0007-0003 into hopper H1' })).toBeTruthy();
+    expect(within(layer).queryByRole('button', { name: 'Record the charge of OC-B26-0007-0001 into hopper H1' })).toBeNull();
+  });
+});
+
+describe('the printed lot hands itself to the issue entry once (slice 7k)', () => {
+  it('[PR-32] a saved issue entry stays closed: the lot taken is not handed to the form again', async () => {
+    const lotSchema: BlockFieldSchemaWire = { type: 'object', description: 'Lot', fields: { id: str('Lot id'), material: str('Material'), status: str('Status'), artwork: str('Artwork') } };
+    const view = gmpView('G-21@1', 'p-g21@', [form('ISSUE', 'Issue', { lot: lotSchema, scannedArtwork: str('Scanned artwork') })]);
+    const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      fixtures: {
+        'batches.step': () => view,
+        ...stepFixtures(view),
+        'batches.stepPlant': () => plant({ block: 'G-21@1' }),
+        'execution.packagingBatchData': { batchId: RUN_ID, stepKey: 'p-g21@', current: null, jobs: [] },
+        'batches.printedLot': { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1' },
+      },
+      intercept: (r) => (r.method === 'POST' && r.path.endsWith('/commands') ? { status: 200, body: accepted() } : undefined),
+    });
+    const panel = await screen.findByTestId('printed-lot');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Scan the printed packaging lot' }), 'GBT2-LBL-001');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Take the lot from the register' }));
+    const issue = await screen.findByTestId('block-form-ISSUE');
+    await userEvent.type(within(issue).getByRole('textbox', { name: /Scanned artwork/ }), 'ART-GBT02-LBL-1');
+    await userEvent.click(within(issue).getByRole('button', { name: /^Save/ }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect((entryOf(ui) as { data: { lot: { id: string } } }).data.lot.id).toBe('GBT2-LBL-001');
+    await waitFor(() => expect(screen.getByTestId('block-form-ISSUE').getAttribute('data-closed')).toBe('true'));
+    // The views read again after the save do not reopen it with the same lot.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(screen.getByTestId('block-form-ISSUE').getAttribute('data-closed')).toBe('true');
+    expect(ui.commands()).toHaveLength(1);
+  });
+});
+
+describe('a plant act pressed before the session is read (slice 7m, route W 6 in CI)', () => {
+  it('[INV-40] waits for the session and asks for the badge on a shared terminal, never sending the act untapped', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }],
+      containers: [{ containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLEND_L1', netQuantity: '33.150', unit: 'kg', problem: null }],
+    });
+    const session = example('session-kiosk');
+    expect(session.attribution).not.toBe('NONE');
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tap = fakeTap();
+    renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      tap,
+      fixtures: { 'batches.step': () => view, ...stepFixtures(view), 'batches.stepPlant': () => current, 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: CONTAINER, label: 'OC-B26-0007-0001', netQuantity: '33.150', unit: 'kg' }) },
+      // The session's answer is held until the act has been pressed.
+      intercept: async (r) => {
+        if (r.method === 'GET' && r.path === '/api/session') {
+          await held;
+          return { status: 200, body: session };
+        }
+        return undefined;
+      },
+    });
+    const button = await screen.findByRole('button', { name: 'Charge OC-B26-0007-0001 into hopper H1' });
+    await userEvent.click(button);
+    release();
+    await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(1));
   });
 });

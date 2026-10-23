@@ -7,11 +7,14 @@
  *  - the units the step checks (the phase's STATUS_CHECK equipment), each with the plant units of its class, their
  *    fitness and their last check;
  *  - the product's tooling sets, the batch's tooling issues and the pre-use inspections not yet taken by an issue;
- *  - the batch's closed containers not charged or merged (with why one may not be used) and the charges made.
+ *  - the batch's closed containers not charged or merged (with why one may not be used) and the charges made;
+ *  - a bilayer compression step's layers with their hoppers and blend stages (slice 7m, R1: the hopper charge of each
+ *    layer on the TB-16 step).
  * Read-only; every act re-checks everything in the database.
  */
 import type { StepPlantView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
+import { layersOf } from '../../blocks/tb-16.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { notFound, runContext, type Db } from './runs.ts';
 
@@ -98,8 +101,8 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
         order by x.closed_at, o.label_code limit 200`,
       [batchId],
     ),
-    db.query<{ id: string; label: string; stage: string; by: string; us: string }>(
-      `select g.id, o.label_code as label, g.stage, g.person_id::text as by, ${usOf('g.recorded_at')} as us
+    db.query<{ id: string; label: string; stage: string; container_stage: string; by: string; us: string }>(
+      `select g.id, o.label_code as label, g.stage, o.stage as container_stage, g.person_id::text as by, ${usOf('g.recorded_at')} as us
          from plant.container_charge g join plant.output_container o on o.id = g.container_id where g.batch_id = $1 and g.purpose = 'CHARGE' order by g.recorded_at`,
       [batchId],
     ),
@@ -145,5 +148,7 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
     },
     containers: containers.rows.map((c) => ({ containerId: c.id, label: c.label, stage: c.stage, netQuantity: c.net, unit: c.unit, problem: c.problem })),
     charges: charges.rows.map((g) => ({ chargeId: g.id, label: g.label, stage: g.stage, chargedBy: personRef(people, g.by, 'OPERATOR'), chargedAt: app.formatInstant(g.us), mine: g.by === viewer })),
+    layers: block === 'TB-16@1' && stepDef.node.kind === 'phase' ? layersOf(stepDef.node.config).map((l) => ({ id: l.id, hopper: l.hopper, stage: l.stage })) : [],
+    chargedStages: Object.fromEntries(charges.rows.map((g) => [g.id, g.container_stage])),
   };
 }

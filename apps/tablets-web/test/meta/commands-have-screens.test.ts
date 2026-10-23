@@ -108,6 +108,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'apps/tablets-server/src/cli/demo-routes.ts': 'library of the demo data load (the packaging-order option): the demo routes of R1, slice 7l; each act it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-sr-profile.ts': 'library of the demo data load (the packaging-order option): the SR product and its two finished lots of R4\'s third check, slice 7p; each act it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-route-masters.ts': 'library of the demo data load (masters of the demo routes, slice 7l)',
+  'apps/tablets-server/src/cli/demo-route-masters-ds.ts': 'library of the demo data load (masters of demo routes D and S, slice 7m)',
   'apps/tablets-server/src/cli/golden-packaging.ts': 'library of the demo data load and the golden batches (masters)',
   'apps/simulators/src/scale/main.ts': 'an equipment simulator of the sandbox\'s site gateway (balances), started with the gateway in the demo stack; its faults are on its own web console',
   'apps/simulators/src/process/main.ts': 'an equipment simulator of the sandbox\'s site gateway (presses and coaters), started with the gateway in the demo stack; its own web console',

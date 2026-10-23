@@ -243,3 +243,27 @@ Residuals P7P-1 (staged acceptance L1/L2/L3), P7P-2.
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,
 D-P7-3 as amended by D-P7R-7), then the demo server (owner to provide a server, SSH and a domain; decision 0021 and 0025), then Tablets v1.0.
+
+Slice 7k decisions (hosted-demo trial requirements R2, R3.1-R3.13, R5; owner's rule: the least strict option within the
+hard rules):
+- D-7k-1 (R3.1): the tablet count at issue starts at the master's (batch size / the procedure's first target tablet
+  weight) and a count more than 10 % from it is refused unless the issuer confirms it with a reason, which the record
+  keeps with the value (the input's source text). The check is the server's (the issue's dry run and apply, exact
+  decimals), not a database guard: the expectation comes from the control recipe's content, which the database stores as
+  a document and never interprets; a guard would have to re-implement the master's model in SQL.
+- D-7k-2 (R3.3): a status or clearance step's plant act and its record are one act (batches.plantEntry): one request,
+  one fresh tap (INV-40), one transaction running the same database functions as the separate routes; the separate
+  routes stay (the plant screen's "Room or unit in use for a batch" for a use no step names).
+- D-7k-3 (R2): `/esig/demo` (a DEMO-ONLY developer page for a stub entry) and `/test-packages` (the address the GMP
+  designer names for the other installation) are listed as unreachable by navigation, with their reasons; a Home link is
+  in the banner. The "aria-hidden ancestor" report was not reproduced: react-aria hides the page behind a modal with
+  `inert`, not aria-hidden, no component of the app sets aria-hidden on a container, and the two buttons are found by
+  role and name in the kiosk batch flow; that flow now reaches both screens by clicks and runs the axe check on them.
+- D-7k-4 (R3.13): the contract giver's reviewer is no standing demo persona (the account is made when QA grants a
+  contract giver access, scoped to its loan licence, IN-30); the completeness test lists that tile with the reason.
+- D-7k-5 (R5): the extra GB-T-02 orders are posted at the end of the GMP samples (release path), not by the feature
+  seed, so every plan of the samples and of the golden batches still takes its own order; the second lots are in the
+  feature seed (later expiry, so a first-expiring rule still points at the first lots).
+- D-7k-6 (R3.2): "Add another" is offered for every entry kind but a fixed list of once-per-step kinds (starts, ends,
+  set-ups, reconciliations, clearances); the database still refuses a second entry where the block forbids one.
+

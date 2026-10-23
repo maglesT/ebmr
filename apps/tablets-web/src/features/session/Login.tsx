@@ -25,6 +25,7 @@ import { useBoot } from '../../app/boot.tsx';
 import { EDITION } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { sessionEndNotice, setSessionEndNotice } from '../../app/session-end-notice.ts';
 import { demoBadgesOf } from './demo-badges.ts';
 
 /** What the screen shows during a first-login change (no secret). */
@@ -362,6 +363,10 @@ export function KioskLogin() {
   const { boot, error, setError, change, endChange, touchChange, credentials, notice, setNotice, busy, login } = useLogin(identity.KEEP_BADGE_MS);
   const [step, setStep] = useState<'badge' | 'pin'>('badge');
   const [who, setWho] = useState<string | null>(null);
+  // R3.11: why the previous session of this kiosk ended, when the server said so (its person signed in elsewhere); shown
+  // until someone signs in here (the screen then goes).
+  const [ended] = useState(() => sessionEndNotice());
+  useEffect(() => () => setSessionEndNotice(null), []);
   const [demo, setDemo] = useState<DemoDeviceView | null>(null);
   // The badge waits for its PIN (at most KEEP_BADGE_MS); when it is wiped, the screen goes back to the badge step.
   const onKept = useCallback((kept: boolean) => {
@@ -404,6 +409,11 @@ export function KioskLogin() {
       <p className={cls('muted')}>
         {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode} · room {boot.device?.roomCode ?? '?'}
       </p>
+      {ended ? (
+        <div data-testid="session-end-notice">
+          <Banner tone="info" title={ended} />
+        </div>
+      ) : null}
       {notice ? <Banner tone="ok" title={notice} /> : null}
       {error ? <RefusalMessage error={error} /> : null}
       {change ? (

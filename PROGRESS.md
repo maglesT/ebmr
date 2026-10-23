@@ -118,6 +118,14 @@ installation every kiosk's demo badge reader offers every badge holder ("Works h
 a processing batch is planned against the ERP order clicked; P7H-5: a database refusal of a step entry is shown in its
 own words (the EBMR-TAB family no longer reads as a failed sign-in). No migrations.
 
+**Slice 7k (22 October, branch `phase-7/slice-7k`): hosted-demo trial requirements R2, R3.1-R3.13 (not R3.14), R5**
+(`docs/build-plan/phase-7/demo-trial-requirements.md`; decisions D-7k-1 to -6 in `RESUME.md`). Servers survive a
+PostgreSQL restart and `pnpm demo` exits non-zero when a child dies; navigation-reachability and demo-completeness
+`[meta]` tests; the plant act and its step record as one act (batches.plantEntry); tablet count checked at issue;
+saved forms close; lots on blur; still to weigh; stage sign-off ends uses; cleaning list per batch; kiosk session-end
+notice (tablets 1570); credential card on Operations; Send a production order (tablets 1571); GB-T-02 second lots and
+orders. Browser flow `specs/phase7/presenter-floor.spec.ts`.
+
 **Slice 7j (22 October): R4, a company's own tablet product without a template** (`demo-trial-requirements.md` R4;
 decisions D-7j-1 to D-7j-10 in RESUME.md; site-services 1530, recipe-core 1535). Products and materials entered on
 screen and confirmed by QA; the formula's target tablet weight and batch sizes; a new master from an approved formula
@@ -130,9 +138,15 @@ from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 po
 named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
 migrations. Routes D and S remain.
 
-**Slice 7p (23 October): R4 third check, a dissolution profile as one release requirement** (`slice-7p-routes.md`;
-site-services 1640, recipe-core 1645; D-7p-1 to 7): profile tests with ordered points (two-stage too, R8 C4), results per
-point from QC and LIMS, one checklist item per profile, demo SR product GLV-SR-500, browser `phase7/sr-profile.spec.ts`.
+**Slice 7p (23 October):** a dissolution profile as one release requirement (R4 third check, R8 C4/C7; site-services
+1640, recipe-core 1645; `slice-7p-routes.md`); demo SR product GLV-SR-500; browser `phase7/sr-profile.spec.ts`.
+
+**Slice 7m (23 October): demo routes D and S for R1** (`docs/build-plan/phase-7/slice-7m-routes.md`). Route D (roller
+compaction, bilayer, ink printing, aluminium strip) and route S (sugar coating in five applications, PVC/aluminium
+thermoform) with their plant, kiosks, masters, lots and orders in the GMP demo set-up, and their browser tests from the
+ERP order to the released lot; TB-08 on a second route W batch (`route-w2.spec.ts`). Fixes 7M-1 to 7M-4 (TB-16 layer
+charges, TB-17 challenge entry, TB-08 authorisation request and sources picked on screen) and review finding P7L-1
+(recipe-core 1650). Decisions D-7m-1 to 5. Every tablet block and every coating and pack type is now on a route.
 
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.

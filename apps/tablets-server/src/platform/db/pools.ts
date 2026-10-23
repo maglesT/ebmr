@@ -82,6 +82,39 @@ export function refuseUnstorableParameters(pool: pg.Pool): void {
   });
 }
 
+const SURVIVING = Symbol('ebmr.connection-loss-survived');
+const survivingPools = new WeakSet<pg.Pool>();
+
+/**
+ * Requirement R3.12 (hosted-demo trials): a lost database connection (PostgreSQL restarted or the backend terminated,
+ * 57P01; the network dropped) never ends the server. node-postgres reports such a loss as an 'error' event: on the pool
+ * for an idle connection, on the client itself for a connection handed out and between queries. An 'error' event with
+ * no listener throws, and the process ended with "Unhandled 'error' event" until someone restarted it. With these
+ * listeners the loss is logged; the pool drops the dead connection (on release, since the client is no longer
+ * queryable) and opens a new one for the next request, so the server recovers on its own once the database is back.
+ * A query that was running when the connection died still fails, and its request is answered as an error. Clients
+ * opened before the call get their listener when next handed out; calling it twice for a pool changes nothing.
+ */
+export function surviveConnectionLoss(pool: pg.Pool, lost: (error: Error) => void): void {
+  if (survivingPools.has(pool)) return;
+  survivingPools.add(pool);
+  // The pool re-emits an idle client's error: reported once, by the client's own listener when it has one.
+  pool.on('error', (error, client) => {
+    if (!(client as pg.PoolClient & { [SURVIVING]?: true } | undefined)?.[SURVIVING]) lost(error);
+  });
+  const listen = (client: pg.PoolClient): void => {
+    const marked = client as pg.PoolClient & { [SURVIVING]?: true };
+    if (marked[SURVIVING]) return;
+    marked[SURVIVING] = true;
+    client.on('error', (error) => lost(error));
+  };
+  pool.on('connect', listen);
+  pool.on('acquire', listen);
+}
+
+/** The warning logged when a database connection was lost (surviveConnectionLoss). */
+export const CONNECTION_LOST_LOG = 'a database connection was lost (the database restarted or ended the session); the pool opens a new one for the next request';
+
 export function createPools(appUrl: string, authnUrl: string, opts: { appMax?: number; authnMax?: number } = {}): Pools {
   const app = new pg.Pool({ connectionString: appUrl, max: opts.appMax ?? 10 });
   const authnPool = new pg.Pool({ connectionString: authnUrl, max: opts.authnMax ?? 4 });

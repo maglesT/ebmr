@@ -146,6 +146,9 @@ tests:
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][DI-35] SR profile 2: lot 1, every time point within its limits: the profile is one green line on the release checklist and the lot is released @office"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][IN-20] SR profile 3: lot 2, the 4 h point outside its limits: the profile line fails and the release is refused @office"
   - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [IN-33][PR-45] a QC result exactly on a point's upper or lower limit passes, at any scale; just beyond it fails (P7P-3)"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-37][PR-29][PR-45][DI-30] route D 6: tablet printing on KIOSK-PRINT-1 (TB-19): the printer set up with edible ink, the print checks of the master's mark, QA's gate on the printed tablets, the yield, QA's release for packing at H-PACK @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-05][PR-45][DI-35] route D 9: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-05][PR-45][DI-35] route S 10: the finished lot posted in quarantine; QC records its results and the head of QC approves them; QC pulls the reserve samples @office"
 clauses:
   - clause: "Shipping a quarantined lot through the ERP interface is rejected."
     tests:

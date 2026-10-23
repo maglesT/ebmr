@@ -20,11 +20,11 @@ import { z } from 'zod';
 import { DecimalString, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
-const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/);
+export const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/);
 /** A calendar date YYYY-MM-DD (a real day: an impossible one is refused here, before the database). */
 const SiteDate = z.iso.date();
 /** Hours from now (database time) a use is planned to end: 1 to 72. */
-const PlannedHours = z.string().regex(/^([1-9]|[1-6][0-9]|7[0-2])$/, 'whole hours from 1 to 72');
+export const PlannedHours = z.string().regex(/^([1-9]|[1-6][0-9]|7[0-2])$/, 'whole hours from 1 to 72');
 const Reference = z.string().trim().min(1).max(200);
 const Counts = z.strictObject({ upper: z.string().regex(/^[0-9]{1,4}$/), lower: z.string().regex(/^[0-9]{1,4}$/), dies: z.string().regex(/^[0-9]{1,4}$/) });
 
@@ -129,6 +129,13 @@ export const StepPlantView = z.strictObject({
   /** The batch's closed containers not charged, merged or packed, and the charges its people made. */
   containers: z.array(z.strictObject({ containerId: Uuid, label: z.string(), stage: z.string(), netQuantity: DecimalString.nullable(), unit: z.string(), problem: z.string().nullable() })),
   charges: z.array(z.strictObject({ chargeId: Uuid, label: z.string(), stage: z.string(), chargedBy: PersonRef, chargedAt: Instant, mine: z.boolean() })),
+  /**
+   * Phase 7 slice 7m (R1): the layers of a bilayer compression step (TB-16@1), each with its hopper and the stage of the
+   * blend containers that feed it; empty for any other step. A charge into a layer's hopper names the container's stage.
+   */
+  layers: z.array(z.strictObject({ id: z.string(), hopper: z.string(), stage: z.string() })),
+  /** The stage of each charged container (charges[].stage is the plant stage it went into), by charge id. */
+  chargedStages: z.record(z.string(), z.string()),
 });
 export type StepPlantView = z.infer<typeof StepPlantView>;
 

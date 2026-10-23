@@ -269,6 +269,9 @@ function keptPool(url: string, max: number, acquireMs: number, statementMs: numb
     options: [`-c statement_timeout=${statementMs}`, ...Object.entries(pins).map(([name, value]) => `-c ${name}=${value}`)].join(' '),
   });
   pool.on('error', idleFailed);
+  // R3.12: a connection lost while handed out between statements must not end the process either; its next statement
+  // fails (the caller logs and answers that) and the pool drops it on release.
+  pool.on('connect', (client) => client.on('error', () => undefined));
   return pool;
 }
 

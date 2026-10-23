@@ -140,16 +140,32 @@ describe('the vendor-history routes', () => {
 });
 
 describe('the reprocessing proposals and the plan of a reprocessing batch', () => {
-  it('[IN-19] QA asks for the authorisation of a reprocessing step with the investigation and the risk evaluation', async () => {
-    const ui = renderOffice('/quality/reprocessing', { role: 'QA_SHOP_FLOOR', fixtures: { 'quality.proposeReprocessingAuthorisation': { authorisationId: '8d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e' } } });
-    const form = await screen.findByTestId('form-Ask for the authorisation of a reprocessing or recovery step');
-    await userEvent.type(within(form).getByRole('textbox', { name: 'Batch (id)' }), '9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e');
-    await userEvent.type(within(form).getByRole('textbox', { name: 'Step of the MBR (a G-24 or TB-08 step that declares its case)' }), 'p-tb08');
+  it('[IN-19][PR-47] QA asks for the authorisation of a reprocessing step with the investigation and the risk evaluation, the batch, its TB-08 step and the reserved residue picked, never an id typed (slice 7m)', async () => {
+    const list = structuredClone(example('batches-list'));
+    const b = list.batches[0];
+    if (!b) throw new Error('the example has no batch');
+    b.status = 'IN_PROGRESS';
+    const run = structuredClone(example('batches-batch'));
+    const st = run.stages[0];
+    if (!st) throw new Error('the example has no stage');
+    st.steps = [{ ...st.steps[0]!, stepKey: 'p-rework@', stepId: 'p-rework', number: '3.2.2', title: 'Reprocessing addition of milled rejects', block: 'TB-08@1' }];
+    const residues = structuredClone(example('quality-residues'));
+    const c = residues.containers[0];
+    if (!c) throw new Error('the example has no residue');
+    Object.assign(c, { reservedAt: c.closedAt, product: b.product.code, batchId: '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e' });
+    const ui = renderOffice('/quality/reprocessing', {
+      role: 'QA_SHOP_FLOOR',
+      fixtures: { 'quality.proposeReprocessingAuthorisation': { authorisationId: '8d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e' }, 'batches.list': list, 'batches.batch': run, 'quality.residues': residues },
+    });
+    const form = await screen.findByTestId('propose-reprocessing-authorisation');
+    await userEvent.click(await within(form).findByRole('radio', { name: new RegExp(`^${b.batchNumber} `) }));
+    await userEvent.click(await within(form).findByRole('radio', { name: '3.2.2 Reprocessing addition of milled rejects' }));
+    await userEvent.click(await within(form).findByRole('radio', { name: new RegExp(`^${c.label} `) }));
     await userEvent.type(within(form).getByRole('textbox', { name: 'Investigation' }), 'DEV-2026-0007');
     await userEvent.type(within(form).getByRole('textbox', { name: 'Risk evaluation' }), 'RA-2026-031');
     await userEvent.click(within(form).getByRole('button', { name: 'Ask for the authorisation' }));
     await waitFor(() => expect(ui.posts('/api/quality/reprocessing/authorisations')).toHaveLength(1));
-    expect(ui.posts('/api/quality/reprocessing/authorisations')[0]?.body).toEqual({ batchId: '9d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', step: 'p-tb08', investigationRef: 'DEV-2026-0007', riskEvaluationRef: 'RA-2026-031' });
+    expect(ui.posts('/api/quality/reprocessing/authorisations')[0]?.body).toEqual({ batchId: b.runId, step: 'p-rework', containerId: c.containerId, investigationRef: 'DEV-2026-0007', riskEvaluationRef: 'RA-2026-031' });
   });
 
   it('[PR-47] the planner asks for a whole-batch reprocessing naming its parents, the investigation and the risk evaluation', async () => {

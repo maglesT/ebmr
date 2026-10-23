@@ -253,6 +253,27 @@ function noSession(): Error {
   });
 }
 
+/**
+ * NO_SESSION for a session that has ended, saying why when it was replaced (R3.11, hosted-demo trials; tablets 1570): a
+ * kiosk whose person signed in on another terminal says so ("Priya Nair signed in on KIOSK-DISP-1; this session ended.")
+ * instead of going back to "Tap your badge" without a word. Any other end is the plain NO_SESSION.
+ */
+async function endedSession(app: AppContext, tokenHash: string): Promise<Error> {
+  const { rows } = await app.pools.app.query<{ n: { reason?: string; legal_name?: string; terminal?: string | null } | null }>('select tab.session_end_notice($1) as n', [tokenHash]);
+  const n = rows[0]?.n;
+  if (n?.reason !== 'SUPERSEDED' || !n.legal_name) return noSession();
+  const where = n.terminal ? `on ${n.terminal}` : 'on another terminal';
+  return refusal(401, {
+    code: 'NO_SESSION',
+    kind: 'NOT_ALLOWED',
+    whatHappened: `${n.legal_name} signed in ${where}; this session ended.`,
+    why: 'A person has one shop-floor session at a time: signing in on another terminal ends the session on this one.',
+    controls: ['DI-38'],
+    whatYouCanDo: ['Tap your badge to sign in on this terminal again.'],
+    details: { endReason: 'SUPERSEDED', ...(n.terminal ? { terminal: n.terminal } : {}) },
+  });
+}
+
 /** NO_SESSION, saying why: the session's role was withdrawn, and the session has ended (F36). */
 function roleWithdrawn(session: ResolvedSession): Error {
   return refusal(401, {
@@ -330,7 +351,8 @@ export async function admitSession(app: AppContext, routeId: string, session: Re
     await app.pools.app.query('select tab.end_withdrawn_session($1)', [session.tokenHash]);
     throw roleWithdrawn(session);
   }
-  if (!session || session.state === 'ENDED' || session.state === 'EXPIRED' || session.state === 'UNKNOWN') throw noSession();
+  if (session?.state === 'ENDED') throw await endedSession(app, session.tokenHash);
+  if (!session || session.state === 'EXPIRED' || session.state === 'UNKNOWN') throw noSession();
   if ((session.state === 'LOCKED' || session.state === 'IDLE_LOCKED') && !ALLOWED_WHEN_LOCKED.has(routeId)) {
     throw refusal(423, {
       code: 'SESSION_LOCKED',

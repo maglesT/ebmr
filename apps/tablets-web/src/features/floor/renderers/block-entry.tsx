@@ -23,6 +23,7 @@ import { EntryStatus } from '../components/EntryStatus.tsx';
 import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
 import { useDraftGuard } from '../unsettled.ts';
+import { expectsSeveral } from '../repeatable.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 import { DeviceReadingPicker, isDeviceEntry } from './device-reading.tsx';
 import { availability } from './parts.tsx';
@@ -394,7 +395,19 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
     setReading(null);
     choices?.clear(def.kind);
   };
-  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: def.title }), { onSaved: clear, onDiscarded: clear });
+  // R3.2: a saved form closes and shows the saved entry ("Add another" where the step expects several). A plant act that
+  // chooses identifiers for this kind again (another unit booked) opens it again with them.
+  const seq = choices?.seq ?? 0;
+  const [closedAt, setClosedAt] = useState<number | null>(null);
+  const closed = closedAt !== null && !(choices?.last === def.kind && seq > closedAt);
+  const setClosed = (c: boolean) => setClosedAt(c ? seq : null);
+  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: def.title }), {
+    onSaved: () => {
+      clear();
+      setClosed(true);
+    },
+    onDiscarded: clear,
+  });
   useSessionChange(clear);
   useDraftGuard(Object.keys(drafts).length > 0);
   const locked = cmd.busy || cmd.state === 'notSaved';
@@ -407,6 +420,16 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
     cmd.send({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry }, view.run.version, view);
   };
   if (!record.offered) return null;
+  if (closed) {
+    return (
+      <section className={wcls('formCard')} aria-label={def.title} data-testid={`block-form-${def.kind}`} data-closed="true">
+        <h3 className={wcls('formTitle')}>{def.title}</h3>
+        <EntryStatus call={cmd} />
+        {cmd.state !== 'saved' || cmd.savedNoteExpired ? <p className={wcls('muted')}>{st('form.savedListed')}</p> : null}
+        {expectsSeveral(def.kind) ? <Button onPress={() => setClosed(false)}>{st('form.addAnother', { title: def.title })}</Button> : null}
+      </section>
+    );
+  }
   return (
     <FormBatch.Provider value={view.run.runId}>
     <section className={wcls('formCard')} aria-label={def.title} data-testid={`block-form-${def.kind}`}>

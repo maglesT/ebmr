@@ -3,6 +3,7 @@
  * the record's, an L3 answer that differs is listed as a problem) and the pools of a packaging order with their reports,
  * aggregations, decommissioning tasks, the L3 mirror's freshness and why release waits; QA rejects a pool.
  */
+import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { routes, type SerialLookupView } from '@ebmr/api-contract';
 import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
@@ -75,6 +76,9 @@ export function BatchPoolsPage() {
   return (
     <>
       <h1>Serial pools of {v.batchNumber}</h1>
+      <p>
+        <Link to="/labels/packaging/$batchId" params={{ batchId }}>Packaging completion of {v.batchNumber}</Link> · <Link to="/serialisation/serials">Serial lookup</Link>
+      </p>
       <Mirror m={v.mirror} />
       {v.releaseProblem ? <Banner tone="warning" title={`Release waits: ${v.releaseProblem}`} /> : <Banner tone="ok" title="Serialisation does not block release." />}
       {v.pools.map((p) => (
