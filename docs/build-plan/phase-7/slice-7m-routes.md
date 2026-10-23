@@ -58,5 +58,10 @@ demo set-up's `--with-gmp-samples` (`apps/tablets-server/src/cli/demo-routes.ts`
 - **D-7m-6** (TB-08): `route-w2.spec.ts` runs after `route-w.spec.ts` in the same stack and takes route W's reusable
   residue; it ends with the TB-08 step verified (the rest of the second batch is route W's).
 - Found and fixed in the route specs: a badge tap paced (25 a minute) while its prompt was already open let the prompt
-  expire; the specs now pace before the press.
+  expire (the specs now pace before the press); a switch back to the person already shown returned before the switch
+  ended and a navigation cut it off, leaving the kiosk locked (the spec now waits for the PIN pad to close and no longer
+  switches to the person signed in).
+- For the floor usability work (slice 7k): QA dispositioning route S's 25 keyed coater values one after another on one
+  kiosk meets the server's authentication limit ("Too many attempts in a short time"); the spec waits the minute out, as
+  a person would. A bulk disposition of like exceptions would spare the presenter.
 - Machine readings: D-7l-1 (keyed by hand on the manual fallback) for TB-06, TB-18 and TB-21.
