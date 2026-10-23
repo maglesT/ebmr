@@ -45,8 +45,8 @@ describe('reference documents (DMS stand-in)', () => {
     const author = await server.asPersona('author');
     const r = valueOf(await author.call(routes.designer.referenceDocuments));
     // 39, plus the references of the golden batches' masters (Phase 4 slice 7b, reference-catalogue.ts), plus the PPE
-    // and decontamination SOPs of a hazardous product (Phase 6 slice 6f, IN-27), plus the 18 of the demo routes (slice 7l).
-    expect(r.documents).toHaveLength(84);
+    // and decontamination SOPs of a hazardous product (Phase 6 slice 6f, IN-27), plus the 18 of the demo routes (slice 7l), plus route D's 20 and route S's 10 (slice 7m), plus the ribbon-check risk assessment of slice 7q.
+    expect(r.documents).toHaveLength(112);
     expect(r.documents.every((d) => d.status === 'EFFECTIVE' && /^[0-9a-f]{64}$/.test(d.hash))).toBe(true);
     expect(r.documents.map((d) => d.code)).toContain('SYS-WEIGH-01');
   });

@@ -5,7 +5,7 @@
 import { createElement, useEffect } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { Button, Layout, StatusChip, t, WatermarkBand, WatermarkOverlay } from '@ebmr/ui-kit';
-import { AppHeaderBrand, InRouter } from './brand.tsx';
+import { AppHeaderBrand, HomeLink, InRouter } from './brand.tsx';
 import { cls } from './classes.ts';
 import { useBoot } from './boot.tsx';
 import { installationLabel, isSandbox } from './installation.ts';
@@ -31,6 +31,7 @@ export function IdentityBanner() {
           </span>
         ) : null}
       </div>
+      {s ? <HomeLink /> : null}
       {s ? <Button onPress={() => void boot.signOut()}>{t('session.signOut')}</Button> : null}
     </div>
   );

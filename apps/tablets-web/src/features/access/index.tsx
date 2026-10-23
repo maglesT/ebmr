@@ -13,7 +13,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { identity, machines, t } from '@ebmr/ui-kit';
 import type { HomeTile } from '../../app/feature.ts';
 import { useBoot } from '../../app/boot.tsx';
-import { AppHeaderBrand } from '../../app/brand.tsx';
+import { AppHeaderBrand, HomeLink } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import {
   BadgeTapPortProvider,
@@ -50,7 +50,11 @@ export function SessionBanner() {
   return (
     <identity.IdentityBanner
       productName={t('app.name')}
-      brand={<AppHeaderBrand />}
+      brand={
+        <>
+          <AppHeaderBrand /> <HomeLink />
+        </>
+      }
       installation={boot.meta?.installation ?? s.installation}
       installationLabel={installationLabel(boot.meta?.installation ?? s.installation)}
       legalName={s.person.legalName}

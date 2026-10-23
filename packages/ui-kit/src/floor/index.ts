@@ -11,7 +11,7 @@ export { Keypad, type KeypadProps } from './Keypad.tsx';
 export { NumericEntry, type NumericEntryProps, type NumericTarget } from './NumericEntry.tsx';
 export { LimitDisplay, boundsText, type LimitDisplayProps, type LimitViewData } from './LimitDisplay.tsx';
 export { ChecklistEntry, checklistComplete, type ChecklistAnswer, type ChecklistEntryProps, type ChecklistItem } from './ChecklistEntry.tsx';
-export { ScanField, type ScanFieldProps } from './ScanField.tsx';
+export { normaliseCode, ScanField, type ScanFieldProps } from './ScanField.tsx';
 export { ChoiceGroup, type ChoiceGroupProps, type ChoiceOption } from './ChoiceGroup.tsx';
 export { StepHeader, type StepHeaderProps } from './StepHeader.tsx';
 export { TimerChip, type TimerChipProps, type TimerData } from './TimerChip.tsx';

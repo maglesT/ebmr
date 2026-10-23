@@ -45,6 +45,8 @@ if (parentPort) {
   // Phase 7 slice 7g-4: an idle connection that ends (a demo load or reset drops the database, a server restart) is
   // logged; unhandled, it would end the worker and with it every analytics run until the server restarts.
   pool.on('error', (e) => log.warn({ err: e.message }, 'analytics runner: an idle database connection ended'));
+  // R3.12: so is one lost while handed out between queries (the runner reaches no platform code to share the helper).
+  pool.on('connect', (client) => client.on('error', (e) => log.warn({ err: e.message }, 'analytics runner: a database connection ended')));
   const runner = new AnalyticsRunner({
     pool,
     log,

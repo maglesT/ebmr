@@ -194,6 +194,29 @@ session idle rule of tablets 1460.
 - P7J-3 (fixed): a test with a salt factor and an overage on a potency-adjusted active shows the skeleton's BOM, batch
   mass, target calculation and golden case agree with the 0640 batch quantity and the validator; `designer/from-formula.test.ts`.
 
+## Slice 7k (one review pass, 23 October 2026)
+
+- P7K-1 (residual, owner rule): on a demo installation, any signed-in person can read the DEMO-ONLY credential card
+  (`operations.credentialCard`). This is by design, so a presenter can find the demo sign-ins. A PLATFORM.OPERATE
+  check would restrict it. The card reads the seed file, so it can show a password the administrator has changed
+  since. Outside a demo it is refused (DEMO_ONLY).
+- P7K-2 (residual): "Send a production order" commits its demo act before the ERP post. A retry with the same
+  idempotency key replays the stored reply without posting the order again. The Operations screen sends a fresh key
+  on each press.
+- P7K-3 (fixed): a tablet count that was not a valid decimal (for example `1e5`) skipped the 10 % tolerance check at
+  issue. The GMP_BATCH_ISSUE contract already refuses a COUNT that is not a whole number. As defence in depth,
+  `unconfirmedCounts` now marks such a count as malformed: it is refused with EBMR-EXE-700, and no reason can confirm
+  it. Test `execution/issue-expectations.test.ts` ([PR-04] P7K-3, both the contract and the check).
+- P7K-4 (fixed, CI): two floor races broke the browser runs. (1) A saved entry form showed "Saved" while still open
+  and closed only after the step was read again; it now closes in the same render (fcv journey; test
+  `demo-trial-fixes.test.tsx`). (2) The printed-lot panel handed the lot to the ISSUE form again whenever the step
+  choices changed, so a saved issue form reopened at once with the same lot (and the effect re-ran without end). It
+  now hands it over once per "Take the lot" (gmp-kiosk-batch 6, route W 9; test `step-plant-acts.test.tsx`).
+- P7K-5 (fixed, CI): the browser suite passed 74 of 74 but reached the end-to-end job's 75-minute limit before it
+  finished (run 39964635168). The suite now runs in groups on separate runners (route W, D and S
+  each alone, the GMP batches, the rest; `E2E_GROUPS`), and a merge job turns their blob reports into the Playwright
+  and evidence reports the trace reads.
+
 ## Slice 7l (one review pass, 23 October 2026)
 
 Nothing blocking. The manual fallback for automated values keeps the exception and the second person (DI-30, PR-14);
@@ -201,10 +224,25 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7L-1 (residual, carried to 7m): with no gateway scale and no declared balance, a manual weighing takes the room's one
   instrument booked for the batch as its balance; the operator never names it. The weighing stays MANUAL (exception and
   second person), but the stored evidence should mark the balance as inferred, or the form should ask for it.
+  **Fixed in 7m**: the stored evidence records `manual.balanceInferred: true` (recipe-core 1650: the database refuses it
+  beside a declared balance), and the entry's summary on the step and record screens adds "balance not named: the
+  room's one balance booked for the batch" (tests: tb-01-gmp.test.ts G-07, execution-row-shape.test.ts).
 - P7L-2 (residual, cosmetic): the potency calculation form stays open after its entry; its lot is typed, not scanned
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
   and the database refuse a wrong pick.
+
+## Slice 7m (one review pass, 23 October 2026)
+
+Nothing blocking.
+
+- P7M-1 (fixed in 7m): the TB-16 layer-charge panel still offered "Record the charge" for a charge the step had
+  recorded. It now offers only charges no entry of the step names (`step-plant-acts.test.tsx`); a second entry of a
+  charge was already refused by the database (TB16-CHARGE, `forming/db-guards.test.ts`).
+- P7M-2 (residual): recipe-core 1650 refuses `balanceInferred: true` beside a declared balance but does not check
+  `false` against a missing one; the server sets the member only when no balance was declared.
+- P7M-3 (follow-up): QA dispositioning 25 like exceptions one by one on a kiosk (route S's keyed coater values) meets
+  the sign-in limit; a bulk disposition of like exceptions would spare the presenter.
 
 ## Slice 7q (R8 capabilities C1, C2, C8, C9, C10; 23 October 2026)
 

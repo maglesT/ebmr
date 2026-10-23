@@ -65,7 +65,7 @@ export interface Target {
 const READS_FOR_A_SCREEN = 'a read for a screen or an export list; no refusal, check or decision';
 export const LEFT_OUT: Record<string, string> = Object.fromEntries(
   ['plant.batch_alarms', 'plant.series_in_context', 'plant.status_board', 'plant.line_station', 'plant.room_conditions',
-      'site.lot_current_location', 'site.lims_lot_results', 'site.transfer_hold_remaining', 'tab.packaging_completion_view',
+      'site.lot_current_location', 'site.lims_lot_results', 'site.transfer_hold_remaining', 'tab.packaging_completion_view', 'tab.session_end_notice',
       'tab.batch_pools_view', 'recipe.genealogy_lookup', 'recipe.genealogy_supply_chain', 'recipe.genealogy_lot_deviations',
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
@@ -529,7 +529,9 @@ export const TARGETS: Target[] = [
                 'recipe.execution_row_refusal_check', 'recipe.issue_request_problem', 'recipe.execution_issue_request_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts')],
+            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts'),
+            // Phase 7 slice 7m (P7L-1, recipe-core 1650): the inferred balance of a manual weighing.
+            r('mutation/execution-row-shape.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit, SQL mutation defects (D11): the state engine's rows, whoever writes them: a history row is a
