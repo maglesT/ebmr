@@ -226,12 +226,21 @@ export const designer = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'New MBR family and DRAFT version from a template (IN always included)',
+    summary: 'New MBR family and DRAFT version from a template, or from an approved formula without one (IN always included)',
     body: z.strictObject({
-      templateId: z.string().min(1),
+      /** A template to start from; absent: the master starts from the formula (`formulaVersionId`) as `start` says (slice 7j, R4). */
+      templateId: z.string().min(1).optional(),
+      /**
+       * Slice 7j (R4, D-7j-5): without a template, SKELETON (the required dispensing and blending skeleton), BLANK (the
+       * header, the bill of materials and a dispensing stage's clearance and balance status) or COPY (the procedure of the
+       * approved master `copyOfVersionId`). The header, the batch sizes and the bill of materials come from the formula.
+       */
+      start: z.enum(['SKELETON', 'BLANK', 'COPY']).optional(),
+      copyOfVersionId: Uuid.optional(),
       familyCode: z.string().min(1).max(64),
       product: ProductRef,
-      batchSizes: z.array(z.strictObject({ quantity: DecimalString, unit: z.string().min(1) })).min(1),
+      batchSizes: z.array(z.strictObject({ quantity: DecimalString, unit: z.string().min(1) })).min(1).optional(),
+      // Slice 7j: required with a template; a master from a formula takes the formula's sizes (the server computes them).
       markets: z.array(z.string().min(2)).min(1),
       /**
        * Phase 3 slice 6 ("Choose a product", decision 0006): an APPROVED formula version of the product and strength

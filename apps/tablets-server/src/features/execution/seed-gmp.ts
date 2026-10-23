@@ -26,6 +26,17 @@ export interface ErpCatalogueSeed {
   orders: Record<string, unknown>[];
 }
 
+/**
+ * Slice 7j (R4, D-7j-10): the materials of the "create your own product" walk-through (user guide page 9), in the ERP
+ * master after every demo reset so a presenter can repeat it from the product and its formula; the sandbox has a TEST-
+ * lot of each (seed.ts). Invented names; the product itself is entered on screen.
+ */
+export const OWN_PRODUCT_MATERIALS = [
+  { materialCode: 'DMT-API', materialName: 'Demotab active (invented, micronised)', materialKind: 'API', unit: 'kg', maxRetestMonths: 24, erpReference: 'SAP-MM-RM-DMT-API' },
+  { materialCode: 'DMT-LAC', materialName: 'Lactose monohydrate (Demotab)', materialKind: 'EXCIPIENT', unit: 'kg', maxRetestMonths: 36, erpReference: 'SAP-MM-RM-DMT-LAC' },
+  { materialCode: 'DMT-MGS', materialName: 'Magnesium stearate (Demotab)', materialKind: 'EXCIPIENT', unit: 'kg', maxRetestMonths: 36, erpReference: 'SAP-MM-RM-DMT-MGS' },
+] as const;
+
 /** The demo site's ERP catalogue: the dc-mini product (paracetamol 500 mg) and GB-T-01, with their materials and orders. */
 export function demoErpCatalogue(): ErpCatalogueSeed {
   const pcm = (orderNo: string, kg: string, bom: [string, string][]) => ({
@@ -45,6 +56,7 @@ export function demoErpCatalogue(): ErpCatalogueSeed {
       ...GBT01_MATERIALS,
       ...GBT01_PACK_MATERIALS,
       ...GBT02_MATERIALS,
+      ...OWN_PRODUCT_MATERIALS,
     ],
     orders: [
       pcm('PO-DEMO-0001', '60.000', [['MAT-PCM', '50.000'], ['MAT-MCC', '9.400'], ['MAT-MGS', '0.600']]),

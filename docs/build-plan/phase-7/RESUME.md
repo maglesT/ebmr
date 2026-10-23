@@ -194,6 +194,43 @@ From `demo-followup-7h.md`, on branch `phase-7/slice-7i`; no migrations.
   guard's EBMR-TAB code; it now applies to the session-binding codes only, and the family is a 422 refusal whose `why`
   is the database's message. The floor's stale notice also shows the refusal's message and code.
 
+## Slice 7j (22 October 2026): R4, a company's own tablet product without a template
+
+From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations site-services 1530, recipe-core 1535.
+- D-7j-1: products and materials are entered on screen (Master data, Products and materials) by the master-data
+  steward (MASTER_DATA.ENTER) into the same ERP master tables with the reference `ENTERED ON SCREEN`; such a version
+  never takes effect on receipt: QA confirms it (ERP_MASTER_CONFIRMED on the ERP import status screen, a second person).
+  The ERP stays the normal source. Grade, pharmacopoeia and dosage form are kept in `site.master_entry` and signed.
+- D-7j-2: the approved-manufacturer link of a material is the register's own (Quality, Approved manufacturers): the
+  materials table lists the approved manufacturers of each material and links the register; the steward does not
+  propose them (MATERIAL.QA_DISPOSITION stays QA's).
+- D-7j-3: a formula version may carry the target tablet weight (mg) and further batch sizes (units), written once with
+  the composition and signed with it (recipe-core 1535). The formula's identity keeps one reference batch size.
+- D-7j-4: a material with no MATERIAL document is pinned to the material master version in effect (reference version
+  `ERP-<id>`, hash over its values); a registered document always wins.
+- D-7j-5: `designer.createFamily` without `templateId` starts from the approved formula: SKELETON, BLANK or COPY of an
+  approved master; header, batch sizes (scaled from the formula's batch mass, three decimals) and BOM from the formula;
+  the template-match check (`withFormulaBom`) stays on the template path only.
+- D-7j-6: the skeleton is shaped from the dc-mini demo master's dispensing and blending stages (G-09@1 and G-10@1, which
+  the sandbox runs; the validator's INFO says a GMP batch refuses them, the author inserts @2 from the palette once the
+  plant is registered), blending as TB-07 (60 to 900 s blend, 30 to 300 s lubrication, VR-BLEND-01), and reuses the demo SOP, validation and
+  hold-study references; the author replaces them with the product's own documents in the designer.
+- D-7j-7: the palette is the Tablets registry: every TB-01 to TB-24 version and every generic step block (G-06 and G-21
+  unhidden); configuration forms come from each block's schema as before.
+- D-7j-8: the designer adds, renames, rebinds (rooms), moves and removes stages and adds or removes stage equipment by an
+  effective EQUIPMENT_CLASS document; a new stage starts with its clearance and equipment status. Parameters,
+  calculations, yield checkpoints and intermediates are still created by the template, the skeleton or the API.
+- D-7j-9: the sandbox's TEST- lots are registered on screen (sandbox home, Test lots; `execution.registerTestLot` over
+  tab.register_sandbox_lot, MASTERDATA.CHANGE): released and identity-tested, as the seed's demo lots.
+- D-7j-10: the demo seed puts the walk-through's materials (DMT-API, DMT-LAC, DMT-MGS) in the ERP master and a sandbox
+  TEST- lot of each after every reset; the product is entered on screen.
+- D-7j-11 (review P7J-2, lead): a master from a formula takes the product name from the product master in effect and
+  its dosage form, or 'Tablet' when the master carries none (the ERP feed has none; every product of the edition is a
+  tablet), so ERP-only products stay usable; a master stating a non-tablet dosage form is refused.
+- Not done: R4's optional "save an approved master as a template"; the GMP batch of the new product (needs R1's plant).
+  The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
+  signing screens (as `master-records.spec.ts`), clicks elsewhere.
+
 ## After Phase 7
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,

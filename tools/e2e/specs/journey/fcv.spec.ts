@@ -59,7 +59,7 @@ test.describe('first clickable version (journey)', () => {
       await evidence.step('GMP: the author creates the product family from the dc-mini template', 'A DRAFT, revision 1; the server finds no errors and no warnings', async () => {
         await designer.getByRole('link', { name: /Master records/ }).click();
         await expect(designer.getByRole('heading', { name: 'Master records' })).toBeVisible();
-        await designer.getByRole('link', { name: 'New master record from a template' }).click();
+        await designer.getByRole('link', { name: 'New master record (from a template or a formula)' }).click();
         await designer.getByLabel('Family code').fill(`FAM-${tag}`);
         await designer.getByLabel('Product code').fill(`PCM500-${tag}`);
         await designer.getByRole('textbox', { name: 'Batch size 1' }).fill('60.000');

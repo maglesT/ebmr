@@ -1441,6 +1441,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   name a step by its document number and name, and items and persons by their names, where the engine's text names
   their ids; only ids of the run's MBR are replaced, as whole tokens; the stored exception title keeps the engine's
   text.
+- `test-lots.test.ts` (slice 7j, R4; D-7j-9): the master-data steward registers a released, identity-tested TEST- lot
+  of a material on the sandbox for test runs; a lot is never changed; a person without MASTERDATA.CHANGE is refused by
+  the database; the GMP installation has no such route.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures. REPLAY-GATE (decision REPLAY-GATE.1): a computed value

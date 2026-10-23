@@ -15,6 +15,7 @@ import type { HomeTile } from '../../app/feature.ts';
 import { CockpitPage } from './pages/Cockpit.tsx';
 import { IssueFormPage } from './pages/IssueForm.tsx';
 import { PackagesPage } from './pages/Packages.tsx';
+import { TestLotsPage } from './pages/TestLots.tsx';
 import { RunOverviewPage } from './pages/RunOverview.tsx';
 import { RunsPage } from './pages/Runs.tsx';
 import { StepScreenPage } from './pages/StepScreen.tsx';
@@ -67,6 +68,7 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     // The GMP designer links here after an export: /test-packages?package=<packageHash> (same inbox).
     createRoute({ getParentRoute: () => root, path: '/test-packages', component: PackagesPage }),
     createRoute({ getParentRoute: () => root, path: '/packages/$packageId/issue', component: IssueFormPage }),
+    createRoute({ getParentRoute: () => root, path: '/test-lots', component: TestLotsPage }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId', beforeLoad: runParams, component: RunOverviewPage }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId/steps/$stepKey', beforeLoad: stepParams, component: StepScreenPage }),
@@ -76,6 +78,7 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
 
 export const homeTiles: readonly HomeTile[] = [
   { id: 'packages', title: 'Test-run packages', description: 'Import MBR test packages sent from GMP and issue TEST- batches.', to: '/packages', installations: ['SANDBOX'], available: true },
+  { id: 'test-lots', title: 'Test lots', description: 'TEST- lots of the materials a test run dispenses.', to: '/test-lots', installations: ['SANDBOX'], available: true },
   { id: 'runs', title: 'Test runs', description: 'Runs, their record and the replay check.', to: '/runs', installations: ['SANDBOX'], available: true },
   // Phase 3 slice 6 (D-S6-1): on GMP the same screens show the GMP batches, read from /api/batches.
   { id: 'gmp-runs', title: 'Shop floor', description: 'GMP batches: the batch overview and the step screens.', to: '/runs', installations: ['GMP'], available: true },

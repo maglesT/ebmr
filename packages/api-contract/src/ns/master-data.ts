@@ -56,6 +56,10 @@ export const FormulaLineView = z.strictObject({
 });
 export type FormulaLineView = z.infer<typeof FormulaLineView>;
 
+/** A version's target unit mass (mg) and its batch sizes in units, the formula's reference size first (recipe-core 1535). */
+export const FormulaTargetView = z.strictObject({ targetUnitMassMg: DecimalString, batchSizesUnits: z.array(IntegerString).min(1) });
+export type FormulaTargetView = z.infer<typeof FormulaTargetView>;
+
 export const FormulaVersionView = z.strictObject({
   versionId: Uuid,
   formulaId: Uuid,
@@ -64,6 +68,8 @@ export const FormulaVersionView = z.strictObject({
   changeReason: z.string(),
   /** Null when the reader lacks FORMULA.READ (DI-13): the identity is shown, the composition is not. */
   lines: z.array(FormulaLineView).nullable(),
+  /** Slice 7j: the target unit mass and the batch sizes, when the author wrote them (signed with the composition). */
+  target: FormulaTargetView.nullable(),
   authoredBy: PersonRef,
   authoredAt: Instant,
   approvedBy: PersonRef.nullable(),
@@ -102,8 +108,38 @@ export const FormulaChoiceView = z.strictObject({
   strength: z.string(),
   batchSizeUnits: IntegerString,
   bom: z.array(FormulaLineView),
+  /** Slice 7j: the version's target and batch sizes, null when none was written. */
+  target: FormulaTargetView.nullable(),
 });
 export type FormulaChoiceView = z.infer<typeof FormulaChoiceView>;
+
+/** Phase 7 slice 7j (R4, D-7j-1): a material master version entered on screen (site-services 1530); QA confirms it. */
+export const MaterialEntryInput = {
+  materialCode: MaterialCode,
+  materialName: z.string().trim().min(1).max(200),
+  materialKind: z.enum(['API', 'EXCIPIENT', 'PRIMARY_PACKAGING', 'PRINTED_PACKAGING', 'INTERMEDIATE', 'FINISHED']),
+  unit: z.string().regex(/^[!-~]{1,32}$/),
+  maxRetestMonths: z.number().int().min(1).max(120).optional(),
+  grade: z.string().trim().min(1).max(64).optional(),
+  pharmacopoeia: z.enum(['IP', 'BP', 'PH_EUR', 'USP', 'JP', 'IN_HOUSE', 'NONE']).optional(),
+  changeReason: z.string().trim().min(1).max(2000),
+};
+
+/** Phase 7 slice 7j (R4, D-7j-1): a product master version entered on screen (site-services 1530); QA confirms it. */
+export const ProductEntryInput = {
+  productCode: z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,31}$/),
+  strength: z.string().trim().min(1).max(64),
+  productName: z.string().trim().min(1).max(200),
+  dosageForm: z.string().trim().min(1).max(120),
+  betaLactam: z.boolean(),
+  reprocessingPermitted: z.boolean().optional(),
+  shelfLifeMonths: z.number().int().min(1).max(120),
+  changeReason: z.string().trim().min(1).max(2000),
+};
+
+/** The version entered: it waits for QA's confirmation (ERP_MASTER_CONFIRMED, signable action MASTER_DATA_APPROVE). */
+export const MasterEntryView = z.strictObject({ masterKind: z.enum(['PRODUCT', 'MATERIAL']), key: z.string(), versionId: Uuid, state: z.literal('PENDING') });
+export type MasterEntryView = z.infer<typeof MasterEntryView>;
 
 export const masterData = {
   formulas: defineRoute({
@@ -156,7 +192,33 @@ export const masterData = {
     body: withAttribution({
       changeReason: z.string().trim().min(1).max(2000),
       lines: z.array(FormulaLineInput).min(1).max(60),
+      /** Slice 7j (recipe-core 1535): the tablet's target weight in mg and the batch sizes besides the formula's (units). */
+      target: z.strictObject({ targetUnitMassMg: DecimalString, otherBatchSizesUnits: z.array(IntegerString).max(9) }).optional(),
     }),
     response: FormulaVersionView,
+  }),
+  enterMaterial: defineRoute({
+    id: 'masterData.enterMaterial',
+    method: 'POST',
+    path: '/api/master-data/materials',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Enter a material master version on screen (MASTER_DATA.ENTER); it takes effect once QA confirms it',
+    body: withAttribution(MaterialEntryInput),
+    response: MasterEntryView,
+  }),
+  enterProduct: defineRoute({
+    id: 'masterData.enterProduct',
+    method: 'POST',
+    path: '/api/master-data/products',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Enter a product master version on screen (MASTER_DATA.ENTER); it takes effect once QA confirms it',
+    body: withAttribution(ProductEntryInput),
+    response: MasterEntryView,
   }),
 } as const;

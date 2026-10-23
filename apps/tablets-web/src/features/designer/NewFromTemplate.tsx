@@ -1,7 +1,11 @@
 /**
- * New master record from a template (module C2; plan section 12, screen 5). The author names the family, the product
+ * New master record (module C2; plan section 12, screen 5). From a template: the author names the family, the product
  * and the approved discrete batch sizes (PR-01: a batch can later be made only at one of them), and the markets:
  * India is always included and cannot be unticked (INV-28). The product and the batch sizes start as the template's.
+ *
+ * Without a template (slice 7j, R4; D-7j-5): the author chooses the product's approved formula and starts from the
+ * required skeleton, a blank master or a copy of an approved master; the server takes the header, the batch sizes and
+ * the bill of materials from the formula.
  */
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,6 +28,14 @@ interface SizeRow {
 
 const UNITS = ['kg', 'g'];
 
+type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY';
+const STARTS: { value: Start; label: string }[] = [
+  { value: 'TEMPLATE', label: 'From a template' },
+  { value: 'SKELETON', label: 'From the formula, with the required skeleton (dispensing and blending stages)' },
+  { value: 'BLANK', label: 'From the formula, blank (clearance and balance status only)' },
+  { value: 'COPY', label: 'From the formula, as a copy of an approved master' },
+];
+
 export function NewFromTemplate() {
   const templates = useApiQuery(routes.designer.templates);
   const navigate = useNavigate();
@@ -38,36 +50,55 @@ export function NewFromTemplate() {
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState(() => crypto.randomUUID());
   const [formula, setFormula] = useState<FormulaChoiceView | null>(null);
+  const [start, setStart] = useState<Start>('TEMPLATE');
+  const [copyOf, setCopyOf] = useState<string | null>(null);
+  const families = useApiQuery(routes.designer.families);
+  const approved = (families.data?.families ?? []).flatMap((f) =>
+    f.versions.filter((v) => v.state === 'APPROVED' || v.state === 'EFFECTIVE').map((v) => ({ versionId: v.versionId, label: `${f.familyCode} version ${v.number} (${f.product.name} ${f.product.strength})` })),
+  );
+  const startGroup = useId();
+  const copyGroup = useId();
+  const fromTemplate = start === 'TEMPLATE';
 
   // Defaults come from the chosen template (the first one until the author picks another) until edited.
   const list = templates.data?.templates ?? [];
   const chosen = list.find((t) => t.templateId === templateId) ?? list[0];
   const product = productEdit ?? chosen?.product ?? { code: '', name: '', strength: '' };
-  const code = familyCode ?? (chosen ? `${chosen.product.code}-DC` : '');
+  const code = familyCode ?? (fromTemplate ? (chosen ? `${chosen.product.code}-DC` : '') : formula ? `${formula.productCode}-01` : '');
   const setProduct = (patch: Partial<typeof product>): void => setProductEdit({ ...product, ...patch });
   // The approved batch sizes start as the template's (its first is the reference its bill of materials is written for),
   // until the author edits them (lead TODO T6; PR-01).
   const sizes: SizeRow[] = sizesEdit ?? (chosen?.batchSizes.map((b) => ({ quantity: b.quantity, unit: b.unit })) ?? [{ quantity: '', unit: 'kg' }]);
   const setSizes = (change: (all: SizeRow[]) => SizeRow[]): void => setSizesEdit(change(sizes));
 
-  const complete = chosen !== undefined && code.trim() !== '' && product.code.trim() !== '' && product.name.trim() !== '' && product.strength.trim() !== '' && sizes.every((s) => s.quantity !== '');
+  const complete = fromTemplate
+    ? chosen !== undefined && code.trim() !== '' && product.code.trim() !== '' && product.name.trim() !== '' && product.strength.trim() !== '' && sizes.every((s) => s.quantity !== '')
+    : formula !== null && code.trim() !== '' && (start !== 'COPY' || copyOf !== null);
 
   const create = async (): Promise<void> => {
-    if (!chosen) return;
+    if (fromTemplate && !chosen) return;
+    if (!fromTemplate && !formula) return;
     setBusy(true);
     setError(null);
-    const r = await api.call(routes.designer.createFamily, {
-      body: {
-        templateId: chosen.templateId,
-        familyCode: code.trim(),
-        product: { code: product.code.trim(), name: product.name.trim(), strength: product.strength.trim() },
-        batchSizes: sizes,
-        markets,
-        // "Choose a product": the server writes the BOM from the approved formula version and pins it (never the browser's quantities).
-        ...(formula && createFamilyTakesFormula() ? { formulaVersionId: formula.versionId } : {}),
-      },
-      idempotencyKey: key,
-    });
+    const body = fromTemplate && chosen
+      ? {
+          templateId: chosen.templateId,
+          familyCode: code.trim(),
+          product: { code: product.code.trim(), name: product.name.trim(), strength: product.strength.trim() },
+          batchSizes: sizes,
+          markets,
+          // "Choose a product": the server writes the BOM from the approved formula version and pins it (never the browser's quantities).
+          ...(formula && createFamilyTakesFormula() ? { formulaVersionId: formula.versionId } : {}),
+        }
+      : {
+          familyCode: code.trim(),
+          product: { code: formula?.productCode ?? '', name: formula?.productCode ?? '', strength: formula?.strength ?? '' },
+          markets,
+          formulaVersionId: formula?.versionId ?? '',
+          start: start as Exclude<Start, 'TEMPLATE'>,
+          ...(start === 'COPY' && copyOf ? { copyOfVersionId: copyOf } : {}),
+        };
+    const r = await api.call(routes.designer.createFamily, { body, idempotencyKey: key });
     setBusy(false);
     if (!r.ok) {
       setError(r.error);
@@ -84,7 +115,29 @@ export function NewFromTemplate() {
   if (templates.isPending) return <p aria-busy="true">Loading the templates…</p>;
   return (
     <div className={dcls('page')} style={{ maxWidth: 820 }}>
-      <h1>New master record from a template</h1>
+      <h1>New master record</h1>
+      <fieldset className={dcls('fieldset')}>
+        <legend className={dcls('legend')}>How the master starts</legend>
+        {STARTS.map((o) => (
+          <div key={o.value} className={dcls('checkbox')}>
+            <input type="radio" id={`${startGroup}-${o.value}`} name={startGroup} checked={start === o.value} onChange={() => setStart(o.value)} />
+            <label htmlFor={`${startGroup}-${o.value}`}>{o.label}</label>
+          </div>
+        ))}
+      </fieldset>
+      {start === 'COPY' ? (
+        <fieldset className={dcls('fieldset')}>
+          <legend className={dcls('legend')}>Approved master to copy</legend>
+          {approved.length === 0 ? <p className={dcls('small')}>No master version is approved yet.</p> : null}
+          {approved.map((a) => (
+            <div key={a.versionId} className={dcls('checkbox')}>
+              <input type="radio" id={`${copyGroup}-${a.versionId}`} name={copyGroup} checked={copyOf === a.versionId} onChange={() => setCopyOf(a.versionId)} />
+              <label htmlFor={`${copyGroup}-${a.versionId}`}>{a.label}</label>
+            </div>
+          ))}
+        </fieldset>
+      ) : null}
+      {fromTemplate ? (
       <fieldset className={dcls('fieldset')}>
         <legend className={dcls('legend')}>Template</legend>
         {list.map((t) => (
@@ -108,6 +161,11 @@ export function NewFromTemplate() {
           </div>
         ))}
       </fieldset>
+      ) : (
+        <p className={dcls('small')} data-testid="from-formula-note">
+          The product, the approved batch sizes and the bill of materials come from the chosen product&apos;s approved formula; nothing is taken from a template.
+        </p>
+      )}
       <ChooseProduct
         onChosen={(c) => {
           setFormula(c);
@@ -115,6 +173,8 @@ export function NewFromTemplate() {
         }}
       />
       <Field label="Family code" name="familyCode" value={code} onChange={setFamilyCode} description="Letters, digits, dots, dashes; one family per product, strength, dosage form and batch-size set." />
+      {fromTemplate ? (
+        <>
       <Field label="Product code" name="productCode" value={product.code} onChange={(v) => setProduct({ code: v })} />
       <Field label="Product name" name="productName" value={product.name} onChange={(v) => setProduct({ name: v })} />
       <Field label="Strength" name="strength" value={product.strength} onChange={(v) => setProduct({ strength: v })} />
@@ -143,6 +203,8 @@ export function NewFromTemplate() {
         ))}
         <Button onPress={() => setSizes((all) => [...all, { quantity: '', unit: 'kg' }])}>Add a batch size</Button>
       </fieldset>
+        </>
+      ) : null}
       <fieldset className={dcls('fieldset')}>
         <legend className={dcls('legend')}>Markets</legend>
         {KNOWN_MARKETS.map((m) => (

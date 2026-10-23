@@ -105,6 +105,8 @@ export {
   FormulaLineRole,
   FormulaLineView,
   FormulaSummaryView,
+  FormulaTargetView,
+  MasterEntryView,
   FormulaVersionView,
   FormulaView,
 } from './ns/master-data.ts';

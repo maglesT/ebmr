@@ -7,7 +7,7 @@ asks for. The guides name the right and the meaning of each task; this page list
 them. A person acts through a role granted to their account for a scope (site, product); a role grant needs a
 requester and a second person who approves it.
 
-In all: 162 rights, 39 roles, 117 signature meanings.
+In all: 163 rights, 39 roles, 117 signature meanings.
 
 ## Rights by domain
 
@@ -104,6 +104,7 @@ GMP work: records, signatures and decisions on batches and master data.
 | `MARKET.RULE_TABLE_PUBLISH` | WRITE | Publish the next version (INITIAL or UPDATE) of a market rule table under change control | MASTER_DATA_STEWARD |
 | `MARKET.SITE_VALUE_SET` | WRITE | Set a site value for a rule key (tighten only; loosening guidance needs a justification and QA approval) | MASTER_DATA_STEWARD |
 | `MASTERDATA.CHANGE` | WRITE | Change master data under change control | MASTER_DATA_STEWARD |
+| `MASTER_DATA.ENTER` | WRITE | Enter a product or material master version on screen when the ERP does not send it (QA confirms every one) | MASTER_DATA_STEWARD |
 | `MATERIAL.HANDLE` | WRITE | Receipt, staging, kitting and returns of materials | ERP_WMS_INTERFACE, WAREHOUSE_LABELLING |
 | `MATERIAL.QA_DISPOSITION` | SIGN | QA decisions on material lots: release of intermediates for further processing, hold, return, recall, rejection, and the vendor-history route of an excipient | AUTHORISED_PERSON, QA_REVIEWER |
 | `MATERIAL.RELEASE` | SIGN | Release or reject a quarantined material lot for use, with its release route (QC or QA) | HEAD_OF_QC, QA_REVIEWER |
@@ -223,7 +224,7 @@ Reading only.
 | `HEAD_OF_QC` | Head of QC | QUALITY_RELEASE | HUMAN | CAPA.RECORD, CONTROLLED.READ, CONTROLLED.REGISTER, DEVIATION.INVESTIGATE, DEVIATION.RAISE, EVIDENCE.STORE, FORMULA.READ, GENEALOGY.FEDERATE, INCIDENT.RAISE, MATERIAL.RELEASE, PQR.EXTRACT, QC.RESULT_APPROVE, RECALL.MOCK_RUN, RECORD.READ, SAMPLE.PULL, SHELF_LIFE.RECORD, SPECIFICATION.APPROVE, SPECIFICATION.DRAFT |
 | `INSPECTION_READER` | Inspector (read-only) | QUALITY_RELEASE | HUMAN | ARCHIVE.INSPECT |
 | `MAINTENANCE_TECHNICIAN` | Maintenance, calibration and cleaning technician | EXECUTION | HUMAN | INCIDENT.RAISE, LOGBOOK.ENTRY, LOGBOOK.SIGN, RECORD.READ |
-| `MASTER_DATA_STEWARD` | Master-data steward | MASTER_RECORDS | HUMAN | BATCH_NUMBER.RULE_DEFINE, CONFIG.CHANGE_CLOSE, CONFIG.CHANGE_RAISE, FORMULA.APPROVE, FORMULA.MANAGE, FORMULA.READ, LABEL.DESIGN, MARKET.RULE_TABLE_PUBLISH, MARKET.SITE_VALUE_SET, MASTERDATA.CHANGE, RECORD.READ |
+| `MASTER_DATA_STEWARD` | Master-data steward | MASTER_RECORDS | HUMAN | BATCH_NUMBER.RULE_DEFINE, CONFIG.CHANGE_CLOSE, CONFIG.CHANGE_RAISE, FORMULA.APPROVE, FORMULA.MANAGE, FORMULA.READ, LABEL.DESIGN, MARKET.RULE_TABLE_PUBLISH, MARKET.SITE_VALUE_SET, MASTERDATA.CHANGE, MASTER_DATA.ENTER, RECORD.READ |
 | `MBR_AUTHOR` | MBR author | MASTER_RECORDS | HUMAN | FORMULA.READ, LABEL.DESIGN, MARKET.RULE_EVALUATE, MBR.AUTHOR, MBR.SIGN_PREPARED, RECORD.READ, SAMPLE_RECORD.SUBMIT |
 | `MBR_CHECKER` | MBR independent checker | MASTER_RECORDS | HUMAN | FORMULA.READ, MBR.CHECK, RECORD.READ, SAMPLE_RECORD.CHECK |
 | `OPERATOR` | Production operator | EXECUTION | HUMAN | ALARM.ACKNOWLEDGE, CONTINGENCY.RECONCILE, DEVIATION.RAISE, EVIDENCE.STORE, INCIDENT.RAISE, MARKET.RULE_EVALUATE, RECORD.READ, STEP.EXECUTE, STEP.SIGN_PERFORMED |

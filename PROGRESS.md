@@ -126,6 +126,12 @@ saved forms close; lots on blur; still to weigh; stage sign-off ends uses; clean
 notice (tablets 1570); credential card on Operations; Send a production order (tablets 1571); GB-T-02 second lots and
 orders. Browser flow `specs/phase7/presenter-floor.spec.ts`.
 
+**Slice 7j (22 October): R4, a company's own tablet product without a template** (`demo-trial-requirements.md` R4;
+decisions D-7j-1 to D-7j-10 in RESUME.md; site-services 1530, recipe-core 1535). Products and materials entered on
+screen and confirmed by QA; the formula's target tablet weight and batch sizes; a new master from an approved formula
+(skeleton, blank or copy); the Tablets palette (TB-01 to TB-24) and stage editing in the designer; sandbox test lots on
+screen; browser flow `phase7/own-product.spec.ts`; user guide page 9. The GMP batch of the new product needs R1's plant.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 

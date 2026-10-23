@@ -201,6 +201,8 @@ export const EXAMPLES = {
   timeline: { schema: r.execution.timeline.response, data: timeline, routeId: r.execution.timeline.id },
   replay: { schema: r.execution.verifyReplay.response, data: replay, routeId: r.execution.verifyReplay.id },
   lot: { schema: r.execution.lot.response, data: lot, routeId: r.execution.lot.id },
+  'test-lots': { schema: r.execution.testLots.response, data: { lots: [lot] }, routeId: r.execution.testLots.id },
+  'register-test-lot': { schema: r.execution.registerTestLot.response, data: lot, routeId: r.execution.registerTestLot.id },
   challenge: { schema: ChallengeView, data: challenge, routeId: r.esig.createChallenge.id },
   manifestation: { schema: ManifestationView, data: manifestation },
   reading: { schema: ReadingView, data: reading, routeId: r.devices.capture.id },
@@ -243,6 +245,16 @@ export const EXAMPLES = {
     data: { formula: s6.formulaSummary, versions: [{ ...s6.formulaVersion, lines: null }], compositionReadable: false },
     routeId: r.masterData.formula.id,
   },
+  'master-data-enter-material': {
+    schema: r.masterData.enterMaterial.response,
+    data: { masterKind: 'MATERIAL', key: 'RM-DMT-API', versionId: 'a7c1e2d3-4b5a-4c6d-8e7f-90a1b2c3d4e5', state: 'PENDING' },
+    routeId: r.masterData.enterMaterial.id,
+  },
+  'master-data-enter-product': {
+    schema: r.masterData.enterProduct.response,
+    data: { masterKind: 'PRODUCT', key: 'DMT400|400 mg', versionId: 'b8d2f3e4-5c6b-4d7e-9f80-a1b2c3d4e5f6', state: 'PENDING' },
+    routeId: r.masterData.enterProduct.id,
+  },
   'master-data-add-formula-version': {
     schema: r.masterData.addFormulaVersion.response,
     data: { ...s6.formulaVersion, versionId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d', versionNumber: 2, state: 'DRAFT', changeReason: 'Coating level changed', approvedBy: null, approvedAt: null, signable: { aggregateType: 'formula_version', aggregateId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d' } },
@@ -250,7 +262,7 @@ export const EXAMPLES = {
   },
   'designer-formula-choice': {
     schema: r.designer.formulaChoice.response,
-    data: { formulaId: s6.formulaSummary.formulaId, versionId: s6.formulaVersion.versionId, versionNumber: 1, productCode: 'GBT01', strength: '500 mg', batchSizeUnits: '200000', bom: s6.formulaVersion.lines },
+    data: { formulaId: s6.formulaSummary.formulaId, versionId: s6.formulaVersion.versionId, versionNumber: 1, productCode: 'GBT01', strength: '500 mg', batchSizeUnits: '200000', bom: s6.formulaVersion.lines, target: s6.formulaVersion.target },
     routeId: r.designer.formulaChoice.id,
   },
   'plant-areas': { schema: r.plant.areas.response, data: { areas: s6.plant.areas }, routeId: r.plant.areas.id },

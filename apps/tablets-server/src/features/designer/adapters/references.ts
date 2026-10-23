@@ -14,6 +14,7 @@
  */
 import type pg from 'pg';
 import type { flow, validator } from '@ebmr/recipe-core/pure';
+import { materialMasters, materialReference } from '../material-refs.ts';
 
 export interface ReferenceRow {
   id: string;
@@ -82,8 +83,24 @@ export function referencePortFrom(rows: readonly ReferenceRow[], asOf: string): 
   return { status: (ref) => referenceStatus(ref, rows, asOf) };
 }
 
+/**
+ * Slice 7j (D-7j-4): the MATERIAL rows of the material master in effect, for the codes no MATERIAL document is
+ * registered for (material-refs.ts). Each is in force from the start of the calendar: the master's own confirmation
+ * decided when it took effect.
+ */
+async function materialMasterRows(db: Db, codes: readonly string[], documents: readonly ReferenceRow[]): Promise<ReferenceRow[]> {
+  const missing = codes.filter((c) => !documents.some((d) => d.kind === 'MATERIAL' && d.code === c));
+  return (await materialMasters(db, missing)).map((m) => {
+    const ref = materialReference(m);
+    return { id: `material-master:${m.versionId}`, kind: 'MATERIAL', code: m.code, version: ref.version, title: m.name, contentHash: ref.hash, effectiveFrom: '0001-01-01', retirement: null };
+  });
+}
+
 /** Loads the rows the references need and returns the port. */
 export async function loadReferencePort(db: Db, references: readonly flow.Reference[], asOf: string): Promise<{ port: validator.ReferencePort; rows: ReferenceRow[] }> {
-  const rows = references.length === 0 ? [] : await loadReferenceRows(db, [...new Set(references.map((r) => r.code))]);
+  const codes = [...new Set(references.map((r) => r.code))];
+  const documents = references.length === 0 ? [] : await loadReferenceRows(db, codes);
+  const materials = [...new Set(references.filter((r) => r.kind === 'MATERIAL').map((r) => r.code))];
+  const rows = [...documents, ...(await materialMasterRows(db, materials, documents))];
   return { port: referencePortFrom(rows, asOf), rows };
 }

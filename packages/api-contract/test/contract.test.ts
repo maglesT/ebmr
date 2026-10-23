@@ -219,7 +219,7 @@ describe('route table', () => {
       'deviceRegistry.revokeGatewayKey', 'deviceRegistry.revokeHardening', 'deviceRegistry.setAdapterStatus', 'deviceRegistry.setAttributionMethod',
       'deviceRegistry.setTerminalStatus', 'devices.bindStepDevice', 'devices.bindStepEquipment', 'devices.requestSetpointDownload', 'esig.createChallenge',
       'esig.endDscEnrolment', 'esig.enrolDsc', 'esig.registerDscAnchor', 'esig.setDscMeaning', 'esig.setDscMode', 'execution.checkPackagingBatchData',
-      'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch', 'execution.recordDetectorChallenge', 'execution.recordPackagingBatchData',
+      'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch', 'execution.recordDetectorChallenge', 'execution.recordPackagingBatchData', 'execution.registerTestLot',
       'execution.releasePrintJob', 'incidents.assessImpact', 'incidents.close', 'incidents.link', 'incidents.markCertInReportable', 'incidents.raise',
       'incidents.reclassify', 'incidents.recordCertInReport', 'incidents.startInvestigation', 'india.issueH2', 'integrations.acknowledgeAlarm', 'labels.approveTemplate',
       'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
@@ -229,7 +229,7 @@ describe('route table', () => {
       'marketConfig.openCampaign', 'marketConfig.recordChangeRecord', 'marketConfig.recordLineIsolation', 'marketConfig.recordPeriodicReview',
       'marketConfig.recordReferenceDocument', 'marketConfig.recordRiskAssessment', 'marketConfig.recordRuleSetVerification',
       'marketConfig.retireReferenceDocument', 'marketConfig.setDraftAttributes', 'marketConfig.setPolicyVersion', 'marketConfig.setSiteValue',
-      'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment', 'masterData.addFormulaVersion', 'masterData.createFormula',
+      'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment', 'masterData.addFormulaVersion', 'masterData.createFormula', 'masterData.enterMaterial', 'masterData.enterProduct',
       'notifications.acknowledge', 'people.acknowledgeAlert', 'people.activateAccount', 'people.activateBadge', 'people.addQualificationRequirement',
       'people.approveBreakGlass', 'people.createAccount', 'people.createPerson', 'people.createQualificationType', 'people.createRole',
       'people.decideGrant', 'people.endQualificationRequirement', 'people.processLeaver', 'people.recertify', 'people.recordBadgeTest',
@@ -264,7 +264,7 @@ describe('route table', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
-    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command];
+    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command, routes.execution.testLots, routes.execution.registerTestLot];
     for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
     for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe('GMP');
     const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];

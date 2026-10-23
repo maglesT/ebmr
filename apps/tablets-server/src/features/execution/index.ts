@@ -485,6 +485,26 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       return exportRunResult(app, pool, params.runId, { personId: s.personId, legalName: s.legalName, loginName: s.loginName });
     },
 
+    // Slice 7j (R4, D-7j-9): the sandbox's test lots; tab.register_sandbox_lot decides (MASTERDATA.CHANGE, sandbox only).
+    testLots: async ({ requireSession }) => {
+      requireSession();
+      const { rows } = await pool.query<{ code: string }>('select lot_code as code from tab.sandbox_lot order by registered_at desc, lot_code limit 500');
+      const lots = await Promise.all(rows.map((r) => resolveLot(pool, r.code)));
+      return { lots: lots.flatMap((l) => (l ? [lotView(l, (us) => app.formatInstant(us))] : [])) };
+    },
+    registerTestLot: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
+      requireSession();
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (client) => {
+        const expires = ((await dbNowUs(client)) + BigInt(body.expiresInDays) * 86_400_000_000n).toString();
+        await client.query('select tab.register_sandbox_lot($1::jsonb)', [
+          JSON.stringify({ lotCode: body.lotCode, materialCode: body.materialCode, materialName: body.materialName, status: 'RELEASED', identityTested: true, expiresAtUs: expires }),
+        ]);
+        return body.lotCode;
+      });
+      const l = await resolveLot(pool, body.lotCode);
+      if (!l) throw notFound('lot');
+      return lotView(l, (us) => app.formatInstant(us));
+    },
     lot: async ({ params, requireSession }) => {
       requireSession();
       // GMP: a TEST- lot is named as one of the sandbox, never looked up (DI-05); the sandbox knows only TEST- lots.

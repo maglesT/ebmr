@@ -451,6 +451,8 @@ tests:
   - "apps/tablets-server/test/operations/send-order.test.ts > R3.13: the DEMO-ONLY credential card on the operations screen > [DI-05][DI-14] a demo installation shows its set-up's administrators (this set-up's passwords) and every demo persona with how and where they sign in; any other installation refuses it"
   - "apps/tablets-web/test/operations/operations.test.tsx > R3.13: the DEMO-ONLY credential card > [DI-05] a demo installation's operations screen shows its credential card: the administrators' passwords and how each persona signs in"
   - "tools/e2e/specs/phase7/presenter-floor.spec.ts > [DI-05][DI-14] R5, R3.13: the administrator sees the DEMO-ONLY credential card and the ERP simulator sends a GB-T-02 processing order @office"
+  - "apps/tablets-server/test/execution/test-lots.test.ts > sandbox test lots (slice 7j) > [DI-05][DI-17] the steward registers a TEST- lot of a new material; it is listed and resolvable; twice, by another role or on GMP it is refused"
+  - "tools/e2e/specs/phase7/own-product.spec.ts > [DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company's own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:
