@@ -77,6 +77,12 @@ Each fix gets a presenter-style browser test (Tap buttons, clicks only, no typed
   stage with its own core sample, suspension (TB-03) and target weight gain, and the acid and buffer disintegration test
   (TB-15). Browser test through the screens from the formula to the released lot. This proves a multi-layer coated
   product end to end; a single enteric coat is already proven by route W.
+- Third check (owner, 23 October 2026): a multi-point dissolution profile as one release requirement, as sustained-
+  release products need: several time points (e.g. 1 h, 4 h, 8 h), each with its own limits, defined in the product's
+  specification as one test, its results entered (or received from LIMS) per time point, and shown on the release
+  checklist as one requirement that passes only when every point is within its limits. Proven with an invented
+  sustained-release tablet created through the screens, through its QC results to release, plus the refusal when one
+  time point is out of limits.
 
 ## R5. Demo data for continuous and parallel production
 Several open ERP orders per demo product (processing and packaging), lots for several batches; a "Send a production
