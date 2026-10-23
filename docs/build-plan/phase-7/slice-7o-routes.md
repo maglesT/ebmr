@@ -28,7 +28,6 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
   film, minimum). The layer copies the settings of the master's coating step when there is one. The three layers of the
   rabeprazole product sit in one coating stage: the tablets stay in the pan between coats, and a stage boundary would ask
   for a room clearance with product in the pan. Each layer is its own TB-18 cores step and coating loop.
-
 - **D-7o-3**: a packaging master for a company's own product is a copy of an approved packaging master of another
   product (New master record, "A packaging master for a product, as a copy of an approved packaging master";
   `designer/packaging-copy.ts`): the pack, its sizes, line and blocks are the source's; the header names the product

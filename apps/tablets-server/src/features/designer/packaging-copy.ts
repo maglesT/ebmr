@@ -111,7 +111,7 @@ export function packagingCopy(source: flow.MbrContent, req: PackagingCopyRequest
   t['header'] = {
     ...header,
     family: req.familyCode,
-    title: `${req.product.name} ${req.product.strength}: ${String(header['packType'] ?? 'pack')} packaging order (a copy of packaging master ${source.header.family})`,
+    title: `${req.product.name} ${req.product.strength}: ${typeof header['packType'] === 'string' ? header['packType'] : 'pack'} packaging order (a copy of packaging master ${source.header.family})`,
     product: { code: req.product.code, name: req.product.name, strength: req.product.strength, dosageForm: req.product.dosageForm },
     marketSet: KNOWN_MARKETS.filter((m) => markets.includes(m)),
   };
