@@ -72,6 +72,11 @@ Each fix gets a presenter-style browser test (Tap buttons, clicks only, no typed
   film coated, alu-alu"), its formula, its master with TB stages, sandbox run and returned evidence, four signatures,
   market authorisation, ERP order, GMP batch on the kiosks through packing, QC, review and release.
 - Demo reset leaves the materials needed to repeat it; the guide gets a "create your own product" part.
+- Second check product (owner, 23 October 2026): an invented rabeprazole sodium 20 mg enteric-coated tablet built the
+  same way from scratch, with three coating steps in a row (seal coat, enteric coat, top coat), each its own TB-18
+  stage with its own core sample, suspension (TB-03) and target weight gain, and the acid and buffer disintegration test
+  (TB-15). Browser test through the screens from the formula to the released lot. This proves a multi-layer coated
+  product end to end; a single enteric coat is already proven by route W.
 
 ## R5. Demo data for continuous and parallel production
 Several open ERP orders per demo product (processing and packaging), lots for several batches; a "Send a production
