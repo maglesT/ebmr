@@ -16,7 +16,7 @@ beta-lactam suite, with the refusals shown on screen. Branch `phase-7/slice-7n`;
   BL-BLEND, BL-COMP, BL-COAT and the line BL-PL, dedicated; their units qualified and calibrated; kiosks KIOSK-BL-*
   (`packages/test-kit/src/personas.ts`); product CXC-325 (invented) with its materials, ample lots, three processing and
   four packaging ERP orders, licence and export permissions, the finished-product specification; both masters approved
-  and authorised for IN, US, EU. References in `features/designer/reference-catalogue-bl.ts`.
+  and authorised for IN, US, EU. References in `features/designer/reference-catalogue.ts` (betaLactamReferenceDocuments).
 - **Browser tests**: `tools/e2e/specs/phase7/route-b.spec.ts` (10 serial tests: the classification proposed and
   approved on screen, ERP order to released lot in the suite) and `route-b-refusals.spec.ts` (the two room refusals and
   the humidity excursion).
