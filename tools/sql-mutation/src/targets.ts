@@ -65,7 +65,7 @@ export interface Target {
 const READS_FOR_A_SCREEN = 'a read for a screen or an export list; no refusal, check or decision';
 export const LEFT_OUT: Record<string, string> = Object.fromEntries(
   ['plant.batch_alarms', 'plant.series_in_context', 'plant.status_board', 'plant.line_station', 'plant.room_conditions',
-      'site.lot_current_location', 'site.lims_lot_results', 'site.transfer_hold_remaining', 'tab.packaging_completion_view',
+      'site.lot_current_location', 'site.lims_lot_results', 'site.transfer_hold_remaining', 'tab.packaging_completion_view', 'tab.session_end_notice',
       'tab.batch_pools_view', 'recipe.genealogy_lookup', 'recipe.genealogy_supply_chain', 'recipe.genealogy_lot_deviations',
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',

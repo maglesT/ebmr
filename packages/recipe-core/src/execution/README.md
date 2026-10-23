@@ -725,6 +725,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 290-298 | G-21 printed materials, printing and challenges, serialisation (Phase 3 slice 4a; sql 0581, tablets sql 0950-0952): an MBR whose coding step names no witnessed G-23 destruction step (290); a G-21 entry stored without the exception its block raises (reconciliation outside limits, failed or missed challenge, open serial pool) (291); a G-21 step closed unreconciled, without an approved first print, a passing start or end challenge or a closed serial pool, or its destruction step closed early or on another quantity (292); a G-21 step or its destruction step skipped (293); coded material returned to stores (294); an ISSUE lot that is not the register's printed lot with its artwork (295); batch data, print jobs, the gateway's acknowledgement, and a first print or challenge that does not stand on the server's job and the gateway's result (296); a serial pool or reconciliation that is not the L3 system's as recorded (297); a packaging order completed without its serial reconciliation (298) |
 | 310-310 | the batch-completion gate on contingency forms (Phase 4 slice 6, R-6b-1; sql 0911 over kernel 1170; DI-43, PR-16): EXECUTION_COMPLETE refused, on every path that writes `recipe.execution_state`, while a contingency form of the batch is not reconciled or the reconciliation is not signed (FORMS_RECONCILED); the refusal carries the kernel's EBMR-REC-106 and every open form serial (310) |
 | 600-606 | quality and master data on GMP batches (Phase 3 slice 5a; sql 0601, 0602, tablets sql 1001): an exception linked to, dispositioned on or escalated to a deviation-lite reference the register refuses for the batch (600, 601, 604); an invalidation citing a record that is not an OOS or investigation linked to the batch and concluded with an assignable cause (602); a correction from fail to pass whose evidence is no stored evidence document of the batch's site (603); a GMP batch planned against a missing ERP order or one whose product, strength, site, size or BOM differs from the pinned MBR (605); a GMP lot assay typed or copied from a result that is not a current, approved, passing LIMS result of the lot (606) |
+| 700-701 | the hosted-demo trial fixes (Phase 7 slice 7k): a tablet count at issue far from the count the master implies (batch size / target tablet weight) without a confirmation and its reason, or not a whole number (700); a one-tap plant act whose room, unit or step does not match what the master asks of the step, or that its own step cannot record (701) |
 
 ## TypeScript
 
@@ -1444,6 +1445,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `test-lots.test.ts` (slice 7j, R4; D-7j-9): the master-data steward registers a released, identity-tested TEST- lot
   of a material on the sandbox for test runs; a lot is never changed; a person without MASTERDATA.CHANGE is refused by
   the database; the GMP installation has no such route.
+- `issue-expectations.test.ts` (slice 7k, R3.1; D-7k-1): the tablet count a master implies at issue, its tolerance and
+  the confirmation a count further away needs (700); a count that is not a whole number is refused.
+- `demo-trial-acts.test.ts` (slice 7k, R3.3, R3.8, R3.10, R3.11): the plant act and its step entry as one tapped act
+  (batches.plantEntry, 701), what is still to weigh per BOM line, the cleaning needs of a batch's stages, and the notice of
+  a kiosk session ended by a sign-in on another kiosk.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures. REPLAY-GATE (decision REPLAY-GATE.1): a computed value
