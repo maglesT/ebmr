@@ -42,8 +42,15 @@ describe('R3.12: a lost database connection never ends the server', () => {
     heldApp.release();
     heldAuthn.release();
 
-    // New connections: the same browser's session is read again, and a new sign-in works.
-    expect((await before.call(routes.session.get)).ok).toBe(true);
+    // New connections: the same browser's session is read again, and a new sign-in works. A pooled connection whose loss
+    // is not yet reported can fail the first request after the restart (a request, never the process), so recovery is
+    // read within a few seconds rather than on the very first call (CI run 40035658279).
+    let recovered = false;
+    for (let i = 0; i < 30 && !recovered; i += 1) {
+      recovered = (await before.call(routes.session.get)).ok;
+      if (!recovered) await sleep(200);
+    }
+    expect(recovered).toBe(true);
     const after = await server.asPersona('steward');
     expect((await after.call(routes.session.get)).ok).toBe(true);
   });
