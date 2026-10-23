@@ -151,6 +151,7 @@ tests:
   - "apps/tablets-web/test/designer/stage-ops.test.ts > stage operations (slice 7j) > [PR-03] stages move, are renamed and rebound, take and lose equipment by a pinned class, and are removed; refusals change nothing"
   - "packages/recipe-core/test/flow/model.test.ts > MBR content model: parsing > [PR-03][INV-25] a BOM line may state the overage its quantity includes, a percent or a quantity with its reason, exactly one (slice 7q, C1); it round-trips"
   - "apps/tablets-server/test/designer/merging-branches.test.ts > branches merging into one blend (slice 7q, R8 C10) > [PR-03][IN-13][PR-21] a wet branch (TB-03, TB-04, TB-05, TB-02) and a dry branch (TB-06, TB-02) in parallel, and the directly weighed materials, blend in one TB-07: the validator, the execution definition and the simulation accept it"
+  - "apps/tablets-web/test/designer/document-complete.test.tsx > the read-only document shows the members of the saved content (review F44) > [PR-03][INV-25] slice 7q (C1): a BOM line's overage is shown beside its standard quantity, with its reason (percent, or a quantity per unit)"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

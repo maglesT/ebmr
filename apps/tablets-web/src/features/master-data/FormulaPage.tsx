@@ -116,7 +116,7 @@ const LINE_FIELDS: readonly FormField[] = [
   { name: 'basis', label: 'Basis', kind: 'choice', options: ['PER_UNIT', 'PER_BATCH'], description: 'PER_UNIT: mg in one tablet; PER_BATCH: kg for the batch' },
   { name: 'quantity', label: 'Quantity', kind: 'decimal' },
   { name: 'overagePercent', label: 'Overage %', kind: 'decimal', optional: true, description: 'a deliberate excess over the label claim; the label claim stays the quantity' },
-  { name: 'overageQuantity', label: 'Overage quantity', kind: 'decimal', optional: true, description: 'or the excess as a quantity in the line\'s unit (mg per tablet, kg per batch); not with a percent' },
+  { name: 'overageQuantity', label: 'Overage amount', kind: 'decimal', optional: true, description: 'or the excess in the line\'s unit (mg per tablet, kg per batch); not with a percent' },
   { name: 'overageReason', label: 'Reason for the overage', kind: 'text', optional: true, description: 'required with an overage, e.g. loss on storage over the shelf life' },
   { name: 'saltFactor', label: 'Salt factor', kind: 'decimal', optional: true },
   { name: 'potencyAdjusted', label: 'Potency adjusted at dispensing', kind: 'yesno', description: 'assay and LOD of the lot (TB-01); needs a compensating excipient' },
