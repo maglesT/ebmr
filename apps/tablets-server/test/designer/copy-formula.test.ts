@@ -13,7 +13,7 @@ import { TEMPLATES } from '../../src/features/designer/templates/index.ts';
 
 const line = (lineId: string, materialCode: string, role: formula.FormulaLineRole, basis: 'PER_UNIT' | 'PER_BATCH', quantity: string, batchQuantity: string, extra: Partial<formula.FormulaLine> = {}): formula.FormulaLine => ({
   lineId, materialCode, materialName: materialCode, role, basis, quantity, quantityUnit: basis === 'PER_UNIT' ? 'mg' : 'kg', overagePercent: null, saltFactor: null,
-  potencyAdjusted: false, compensating: false, batchQuantity, ...extra,
+  potencyAdjusted: false, compensating: false, batchQuantity, batchUnit: 'kg', ...extra,
 });
 
 /** Demotab sodium 400 mg (invented): route W's excipients with its own active, 1,50,000 tablets. */

@@ -312,6 +312,20 @@ export const quality = {
     }),
     response: LotResultView,
   }),
+  // Slice 7o (R4, R8): the lot's identity test result on screen (site.record_identity_result, QC.RESULT_RECORD), which the
+  // release route IDENTITY_TESTED stands on; before, only the demo seed recorded it.
+  recordIdentityResult: defineRoute({
+    id: 'quality.recordIdentityResult',
+    method: 'POST',
+    path: '/api/quality/lots/:lotId/identity',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Record the identity test result of a lot (site.record_identity_result; QC.RESULT_RECORD at the lot\'s site)',
+    params: lotParams,
+    body: z.strictObject({ result: z.enum(['PASS', 'FAIL']), methodReference: z.string().trim().min(1).max(128), testReference: z.string().trim().min(1).max(128) }),
+    response: z.strictObject({ identityResultId: Uuid, result: z.enum(['PASS', 'FAIL']) }),
+  }),
   lotResults: defineRoute({
     id: 'quality.lotResults',
     method: 'GET',

@@ -76,6 +76,22 @@ export function LotPage() {
       </Section>
       {/* Slice 7o (R4, R8): the assay result TB-01 reads and a printed lot's artwork version G-21 checks. */}
       {qc && lot ? <LotQualityForms lotCode={lot.lotCode} results={results.data?.results ?? []} /> : null}
+      {qc && lot ? (
+        <Section title="Identity test" testId="lot-identity">
+          <DefineForm
+            title={`Record the identity test result of ${lot.lotCode}`}
+            route={routes.quality.recordIdentityResult}
+            params={{ lotId }}
+            refresh={LOT_READS}
+            submitLabel="Record the identity result"
+            fields={[
+              { name: 'result', label: 'Identity result', kind: 'choice', options: ['PASS', 'FAIL'] },
+              { name: 'methodReference', label: 'Identity method', kind: 'text', description: 'e.g. the IR method of the specification' },
+              { name: 'testReference', label: 'Test reference', kind: 'text', description: 'the analysis record' },
+            ]}
+          />
+        </Section>
+      ) : null}
       {qc && lot ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}
       {qa && lot ? <LotDecision lot={lot} /> : null}
       <LotReleaseCheck lotId={lotId} />

@@ -45,7 +45,7 @@ describe('a lot\'s assay result and artwork version on screen (slice 7o)', () =>
     expect(refusalOf(await qc.call(routes.execution.lotQuality, { params: { code } })).status).toBe(422);
   });
 
-  it('[PR-19][PR-32][DI-17] on GMP the steward may not record a site lot\'s assay (QC.RESULT_RECORD); the QC analyst names approved LIMS results, never a typed value (tablets 1001); an artwork version is refused for a lot that is not printed packaging', async () => {
+  it('[PR-19][PR-32][DI-17] on GMP the steward may not record a site lot\'s assay (QC.RESULT_RECORD); the QC analyst names approved LIMS results, never a typed value (tablets 1001); an artwork version is refused for a lot that is not printed packaging; QC records the lot\'s identity test result', async () => {
     // A material the ERP sends and QA confirms, and a lot of it received by stores (the receipt's own act).
     const t = randomBytes(3).toString('hex').toUpperCase();
     const code = `QL-${t}`;
@@ -64,5 +64,10 @@ describe('a lot\'s assay result and artwork version on screen (slice 7o)', () =>
     // On GMP a typed value is refused: the values are the lot's approved LIMS results, named by id (tablets 1001).
     expect(refusalOf(await qc.call(routes.execution.recordLotAssay, { params: { code }, body: { basis: 'DRIED_LOD', assay: '99.4', lod: '0.5', certificateRef: 'COA-GMP-1' } })).why).toMatch(/typed value is refused/);
     expect(refusalOf(await qc.call(routes.execution.recordLotArtwork, { params: { code }, body: { artwork: 'ART-X-1' } })).why).toMatch(/not printed packaging/);
+    // The identity test result on screen (the release route IDENTITY_TESTED stands on it); the steward may not.
+    const lotId = (await gmp.db.admin.query<{ id: string }>('select id from site.material_lot where lot_code = $1', [code])).rows[0]?.id ?? '';
+    expect(refusalOf(await steward.call(routes.quality.recordIdentityResult, { params: { lotId }, body: { result: 'PASS', methodReference: 'IR-01', testReference: `ID-${code}` } })).status).toBe(422);
+    expect(valueOf(await qc.call(routes.quality.recordIdentityResult, { params: { lotId }, body: { result: 'PASS', methodReference: 'IR-01', testReference: `ID-${code}` } }))).toMatchObject({ result: 'PASS' });
+    expect(Number((await gmp.db.admin.query<{ n: string }>("select count(*) as n from site.lot_identity_result where lot_id = $1 and result = 'PASS'", [lotId])).rows[0]?.n)).toBe(1);
   });
 });
