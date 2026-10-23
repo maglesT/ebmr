@@ -275,6 +275,24 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   const oldMaterials = new Set(t.bom.map((b) => b.material));
   const keepRef = (r: flow.Reference): boolean => r.kind !== 'MATERIAL' || !oldMaterials.has(r.id) || packaging.some((p) => p.material === r.id);
   t.references = [...t.references.filter((r) => keepRef(r) && !src.chosen.lines.some((l) => l.materialCode === r.code && r.kind === 'MATERIAL')), ...materialRefs(src)];
+  // Slice 7o (found by the R4 browser run): an active a base-stated TB-01 step dispenses (it converts base to salt with the
+  // lot's assay) holds the base quantity in the bill of materials, the salt factor left out, as the database's INV-25
+  // comparison requires (recipe-core 0690, recipe.formula_bom_line_on_base).
+  const onBase = new Set<string>();
+  walk(t.procedure, (o) => {
+    const block = o['block'] as { type?: string } | undefined;
+    const active = (o['config'] as { active?: { bomLine?: string; standardIs?: string } } | undefined)?.active;
+    if (o['kind'] === 'phase' && block?.type === 'TB-01' && active?.standardIs === 'BASE' && typeof active.bomLine === 'string' && Array.isArray(o['consumes']) && (o['consumes'] as string[]).includes(active.bomLine)) {
+      onBase.add(active.bomLine);
+    }
+  });
+  const units = Dec.parse(src.chosen.batchSizeUnits);
+  for (const b of bom) {
+    const l = src.chosen.lines.find((x) => x.materialCode === b.material);
+    if (!l || !onBase.has(b.id) || l.role !== 'ACTIVE' || l.basis !== 'PER_UNIT' || l.saltFactor === undefined || l.saltFactor === null) continue;
+    const base = Dec.parse(l.quantity).times(units).times(Dec.parse('100').plus(Dec.parse(l.overagePercent ?? '0'))).div(Dec.parse('100')).div(Dec.parse('1000000'));
+    b.quantity = { value: base.toString(), unit: 'kg' };
+  }
   t.bom = [...bom, ...packaging];
   t.header = { ...header(src, req, markets), recordKind: source.header.recordKind, predicates: source.header.predicates, variants: source.header.variants };
   // Slice 7o (D-7o-5): the standard quantity per tablet follows this formula. A calculation of the source that is its

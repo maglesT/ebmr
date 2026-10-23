@@ -55,7 +55,9 @@ describe('a copy of an approved master for another formula (slice 7o, D-7o-5)', 
     expect(c.goldenCases.map((g) => g.id)).toEqual(source.goldenCases.map((g) => g.id).filter((id) => !gone.includes(id)));
     for (const k of ['granYield', 'blendYield', 'compYield', 'coatGain']) expect(c.calculations.find((x) => x.id === k)?.expression).toBe(source.calculations.find((x) => x.id === k)?.expression);
     // The BOM is this formula's, its lines keep the source's ids (the steps keep consuming them).
-    expect(c.bom.map((b) => `${b.id}=${b.material}:${b.quantity.value}`)).toEqual(SRC.chosen.lines.map((l) => `BOM-${l.lineId.toUpperCase()}=${l.materialCode}:${l.batchQuantity}`));
+    // The active the base-stated TB-01 step dispenses holds its base (400 mg x 1,50,000 = 60 kg), the salt factor left to
+    // TB-01's molar masses (recipe-core 0690; found by the R4 browser run); every other line is the formula's batch quantity.
+    expect(c.bom.map((b) => `${b.id}=${b.material}:${b.quantity.value}`)).toEqual(SRC.chosen.lines.map((l) => `BOM-${l.lineId.toUpperCase()}=${l.materialCode}:${l.lineId === 'api' ? '60' : l.batchQuantity}`));
     expect(c.header.product).toMatchObject({ code: 'DMT400-T', strength: '400 mg' });
     expect(definitionFindings(c).filter((f) => f.severity === 'ERROR')).toEqual([]);
   });
