@@ -16,6 +16,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   ClientEntry,
   routes,
+  TABLET_ENTRY_KINDS_BY_BLOCK,
   type ActionView,
   type DataValueWire,
   type FieldView,
@@ -109,6 +110,12 @@ export function ComputedField({ field, note }: { field: FieldView; note?: string
   );
 }
 
+/** Whether the step's block takes its values from process equipment (its entries include a setpoint read-back). */
+function automatedStep(view: StepScreenView): boolean {
+  const kinds = view.step.block ? (TABLET_ENTRY_KINDS_BY_BLOCK as Readonly<Record<string, readonly string[]>>)[view.step.block] : undefined;
+  return kinds?.includes('SETPOINT_READBACK') ?? false;
+}
+
 /**
  * One value of the step: computed and system-captured values are shown only; manual and scanned values get an input. A
  * value configured for device capture is keyed by hand as the fallback while no balance of the step's room is online
@@ -118,6 +125,10 @@ export function ComputedField({ field, note }: { field: FieldView; note?: string
 export function FieldEntry({ field, view }: { field: FieldView; view: StepScreenView }) {
   if (field.computed) return <ComputedField field={field} />;
   if (field.capture === 'DEVICE' && onlineScales(view).length === 0) return <ManualFieldEntry field={field} view={view} fallback />;
+  // Phase 7 slice 7l (R1): a value configured for automation, recorded at a step no equipment feeds (e.g. the "no
+  // addition" branch's 0.000 kg of the TB-08 item): keyed by hand as the fallback, flagged by the engine and checked by a
+  // second person, as a device value without its balance.
+  if (field.capture === 'AUTOMATION' && !automatedStep(view)) return <ManualFieldEntry field={field} view={view} fallback />;
   if (field.capture !== 'MANUAL' && field.capture !== 'SCAN') return <ComputedField field={field} note={st('field.systemCaptured')} />;
   return <ManualFieldEntry field={field} view={view} />;
 }
@@ -182,7 +193,7 @@ function ManualFieldEntry({ field, view, fallback = false }: { field: FieldView;
       <h3 className={wcls('formTitle')}>{field.name}</h3>
       {record.available && fallback ? (
         <p className={wcls('muted')} data-testid={`manual-fallback-${field.item}`}>
-          {st('field.manualFallback')}
+          {st(field.capture === 'AUTOMATION' ? 'field.automationFallback' : 'field.manualFallback')}
         </p>
       ) : null}
       {record.available && field.capture === 'SCAN' ? (

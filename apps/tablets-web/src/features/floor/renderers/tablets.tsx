@@ -7,9 +7,11 @@
  */
 import { useState } from 'react';
 import { routes, TABLET_ENTRY_KINDS_BY_BLOCK, type AdditionSourceView, type StepScreenView } from '@ebmr/api-contract';
-import { Button, StatusChip } from '@ebmr/ui-kit';
+import { Button, Field, StatusChip } from '@ebmr/ui-kit';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCommand } from '../../../app/acts.tsx';
+import { EntryStatus } from '../components/EntryStatus.tsx';
+import { useRunCommand } from '../usePendingCall.ts';
 import { queryKey, useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
@@ -205,6 +207,50 @@ export function SsccRegister({ view }: RendererProps) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Potency calculation (TB-01)
+
+/**
+ * Phase 7 slice 7l (R1): the potency-adjusted quantities of TB-01 calculated from the active's lots, scanned in
+ * allocation order (with more than one lot, each lot's base-equivalent share). The server reads each lot's status and
+ * approved assay from the lot register and the block computes the targets (POTENCY_CALCULATION, never typed values).
+ */
+export function PotencyCalculation({ view }: RendererProps) {
+  const [lots, setLots] = useState<{ lotCode: string; baseEquivalent: string }[]>([{ lotCode: '', baseEquivalent: '' }]);
+  const clear = () => setLots([{ lotCode: '', baseEquivalent: '' }]);
+  const cmd = useRunCommand(view.run.runId, view.step.stepKey, 'calculating the potency-adjusted quantities', { onSaved: clear });
+  const done = view.entries.some((e) => e.kind === 'POTENCY_CALCULATION');
+  const set = (i: number, k: 'lotCode' | 'baseEquivalent', v: string) => setLots((ls) => ls.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
+  const filled = lots.filter((l) => l.lotCode.trim() !== '');
+  const several = filled.length > 1;
+  const ready = filled.length > 0 && (!several || filled.every((l) => l.baseEquivalent.trim() !== ''));
+  const locked = cmd.busy || cmd.state === 'notSaved';
+  const calculate = () => {
+    if (!ready) return;
+    const entry = { kind: 'POTENCY_CALCULATION' as const, lots: filled.map((l) => ({ lotCode: l.lotCode.trim(), ...(several ? { baseEquivalent: l.baseEquivalent.trim() } : {}) })) };
+    cmd.send({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry }, view.run.version, view);
+  };
+  return (
+    <section className={wcls('formCard')} aria-label="Potency calculation" data-testid="potency-calculation">
+      <h3 className={wcls('formTitle')}>Potency calculation</h3>
+      {done ? <StatusChip tone="ok" label="Calculated from the lots (see the entries)" /> : <p className={wcls('muted')}>Scan the active's lots in the order they are used; the targets are calculated from each lot's approved assay.</p>}
+      {lots.map((l, i) => (
+        <div key={i}>
+          <Field name={`potency-lot-${i}`} label={`Lot ${i + 1} of the active`} value={l.lotCode} onChange={(v) => set(i, 'lotCode', v)} isDisabled={locked} autoComplete="off" />
+          {lots.length > 1 ? <Field name={`potency-share-${i}`} label={`Base equivalent from lot ${i + 1}`} value={l.baseEquivalent} onChange={(v) => set(i, 'baseEquivalent', v)} isDisabled={locked} autoComplete="off" /> : null}
+        </div>
+      ))}
+      <Button onPress={() => setLots((ls) => [...ls, { lotCode: '', baseEquivalent: '' }])} isDisabled={locked || lots.length >= 3}>
+        Add a lot
+      </Button>
+      <Button variant="primary" onPress={calculate} isDisabled={locked || !ready}>
+        Calculate from the lots
+      </Button>
+      <EntryStatus call={cmd} />
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
 // The renderers
 
 function sectionsRenderer(key: string, extra?: BlockRenderer): BlockRenderer {
@@ -219,6 +265,7 @@ function sectionsRenderer(key: string, extra?: BlockRenderer): BlockRenderer {
             <ScaleStatus view={view} />
           </p>
         ) : null}
+        {weighing ? <PotencyCalculation view={view} /> : null}
         <OwnBody view={view} weighing={weighing} />
         <BlockEntrySections view={view} sections={layout} />
         {Extra ? <Extra view={view} /> : null}

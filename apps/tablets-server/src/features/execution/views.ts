@@ -530,10 +530,67 @@ function summaryOf(e: engine.EntryRecord): string {
 }
 
 export function entriesOf(ctx: ViewContext, stepKey: string): Entry[] {
+  return entryViews(ctx, (e) => e.stepKey === stepKey);
+}
+
+function entryViews(ctx: ViewContext, keep: (e: ViewContext['state']['entries'][string]) => boolean): Entry[] {
   return Object.values(ctx.state.entries)
-    .filter((e) => e.stepKey === stepKey)
+    .filter(keep)
     .sort((a, b) => a.recordedSeq - b.recordedSeq)
     .map((e) => ({ entryId: e.id, kind: e.kind, summary: summaryOf(e), data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
+}
+
+/**
+ * Phase 7 slice 7l (R1): the members of entries that name an entry of another step, with the entry kind they name (a
+ * binder addition's or a coating's TB-03 preparation). The block and the database still decide whether the one named
+ * may be used (its batch, its solution type, its use-by, what is left of it).
+ */
+const CITED_KINDS: Readonly<Record<string, string>> = { preparation: 'PREPARED' };
+
+/**
+ * Phase 7 slice 7l (R1): the innermost alternative the step's branch belongs to, when a person chooses it, with the
+ * branch chosen for the step's instance (a BRANCH decision of the construct with the instance's frames).
+ */
+export function alternativeOf(ctx: ViewContext, stepKey: string, stepDef: engine.StepDef): StepScreenView['alternative'] {
+  const inner = stepDef.branches[stepDef.branches.length - 1];
+  if (!inner) return null;
+  const alt = ctx.run.def.alternatives.get(inner.construct);
+  if (!alt || alt.decision.mode !== 'OPERATOR_CHOICE') return null;
+  const context = stepKey.slice(stepKey.indexOf('@') + 1);
+  const decided = Object.values(ctx.state.decisions).find((d) => d.kind === 'BRANCH' && d.construct === alt.id && flow.contextKey(d.frames) === context);
+  return { construct: alt.id, context, branches: alt.branches.map((b) => ({ id: b.id, name: b.name })), roles: [...alt.decision.roles], chosen: decided?.outcome ?? null };
+}
+
+/** Phase 7 slice 7l (R1): the innermost loop of the step's instance, its iteration and whether a LOOP decision ended it. */
+export function loopOf(ctx: ViewContext, inst: engine.StepInstance | undefined): StepScreenView['loop'] {
+  if (!inst) return null;
+  const at = [...inst.frames].reverse().findIndex((f) => ctx.run.def.loops.has(f.construct));
+  if (at < 0) return null;
+  const frames = inst.frames.slice(0, inst.frames.length - at);
+  const frame = frames[frames.length - 1];
+  const loop = frame ? ctx.run.def.loops.get(frame.construct) : undefined;
+  if (!frame || !loop) return null;
+  const key = flow.contextKey(frames);
+  const completed = Object.values(ctx.state.decisions).some((d) => d.kind === 'LOOP' && d.construct === loop.id && flow.contextKey(d.frames) === key);
+  return { construct: loop.id, name: loop.name, iteration: frame.index, completed };
+}
+
+/** The entries of other steps of the batch that the step's block entries may name (citable). */
+export function citableOf(ctx: ViewContext, stepKey: string, block: blocks.BlockVersion | undefined): Entry[] {
+  const kinds = new Set<string>();
+  for (const schema of Object.values(block?.dataSchema?.entries ?? {})) {
+    for (const member of Object.keys(schema.fields)) {
+      const kind = CITED_KINDS[member];
+      if (kind) kinds.add(kind);
+    }
+  }
+  if (kinds.size === 0) return [];
+  // A binder addition names a binder; a coating names a coating solution (film, enteric or sugar syrup): the solution
+  // type of the TB-03 step the preparation was made at (the database refuses any other, tablets 0851, 0912).
+  const binder = block?.type === 'TB-04';
+  const solution = (key: string): unknown => ctx.run.def.steps.get(key.slice(0, key.indexOf('@')))?.config['solutionType'];
+  const fits = (key: string): boolean => (block?.type !== 'TB-04' && block?.type !== 'TB-18') || (solution(key) === 'BINDER') === binder;
+  return entryViews(ctx, (e) => e.stepKey !== stepKey && kinds.has(e.kind) && fits(e.stepKey));
 }
 
 type FormField = EntryFormT['fields'][number];
@@ -868,6 +925,9 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     entries: entriesOf(ctx, stepKey),
     entryForms: entryFormsOf(def, stepDef),
     blockEntries: blockEntryForms(stepDef.block),
+    citable: citableOf(ctx, stepKey, stepDef.block),
+    alternative: alternativeOf(ctx, stepKey, stepDef),
+    loop: loopOf(ctx, inst),
     exceptions: exceptions.map((e) => shownException(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
     actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),

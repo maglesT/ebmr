@@ -102,7 +102,35 @@ export const DEMO_REFERENCE_DOCUMENTS: readonly ReferenceDocumentSeed[] = [
   { kind: 'SOP', code: 'SOP-HAZ-DECON', version: '1', title: 'Decontamination and de-gowning after hazardous product handling', effectiveFrom: '2024-01-01', summary: 'Deactivation and cleaning of surfaces and equipment, waste segregation, de-gowning sequence; independent check.' },
   // The golden batch GB-T-01 (Phase 3 slice 6d; an invented formula, decision 0006 part 3; template gb-t-01).
   ...gbt01ReferenceDocuments(),
+  // Phase 7 slice 7l (R1): the demo routes W, D and S (invented products; cli/demo-route-masters.ts).
+  ...demoRouteReferenceDocuments(),
 ];
+
+/** The DEMO-ONLY documents the demo route masters pin besides GB-T-01's (all invented; slice 7l, R1). */
+function demoRouteReferenceDocuments(): ReferenceDocumentSeed[] {
+  const doc = (kind: ReferenceDocumentKind, code: string, title: string, summary: string): ReferenceDocumentSeed => ({ kind, code, version: '1', title, effectiveFrom: '2024-01-01', summary });
+  return [
+    // Route W: wet granulation, functional (enteric) film coating, alu-alu cold-form blisters.
+    doc('SOP', 'SOP-RTW-PROC', 'Route W: wet granulation, milling, compression, enteric coating and inspection', 'Binder, high-shear granulation, fluid-bed drying, milling through a checked screen, compression with its in-process tests, enteric film coating with the acid and buffer test, visual inspection.'),
+    doc('SOP', 'SOP-PACK-CF', 'Cold-form (alu-alu) blister packaging', 'Packaging-order line clearance, independent line check, cold forming and sealing, leak tests, cartons and shippers, reconciliation.'),
+    doc('MATERIAL', 'MAT-ECS-01', 'Enteric coating system (invented)', 'Coating material specification (functional film, gastro-resistant).'),
+    doc('MATERIAL', 'MAT-ALU-CF', 'Cold-form aluminium laminate (forming web)', 'Primary packaging specification (cold-form laminate).'),
+    doc('MATERIAL', 'MAT-ALU-EXZGR', 'Printed aluminium lidding foil, route W', 'Printed primary packaging specification (lidding foil, artwork controlled).'),
+    doc('MATERIAL', 'MAT-CTN-EXZGR', 'Printed carton, route W 10 x 10', 'Printed secondary packaging specification (carton, artwork controlled).'),
+    doc('REGISTRATION', 'REG-RTW', 'Exemplazine gastro-resistant tablets 250 mg: registered process and specification (invented)', 'Registered process ranges and specification of the invented route W product.'),
+    doc('VALIDATION_REPORT', 'VR-RTW', 'Process validation report: route W (invented)', 'Proven acceptable ranges of the massing, drying, blending and coating, the in-process tests and the stage yields (DEMO-ONLY short times).'),
+    doc('VALIDATION_REPORT', 'VR-RTW-PK', 'Packaging validation report: route W cold-form blister (invented)', 'Sealing ranges, leak-test method and the packaging yield.'),
+    doc('RISK_ASSESSMENT', 'QRM-RTW-IPC', 'Risk assessment of the route W in-process check frequency', 'Weight checks of each press side every 30 minutes.'),
+    doc('RISK_ASSESSMENT', 'QRM-RTW-LEAK', 'Risk assessment of the route W leak-test frequency', 'Leak tests at the start and the end of each run and every two hours.'),
+    doc('HOLD_STUDY', 'HS-RTW', 'Hold-time study: route W intermediates', 'Maximum hold of the dried granules, the lubricated blend and the coated tablets.'),
+    doc('COMPUTERISED_SYSTEM', 'SYS-GRAN', 'Granulation suite control system', 'Validated configuration of the granulator and fluid-bed dryer controllers behind the site gateway.'),
+    doc('EQUIPMENT_CLASS', 'EQC-MILL', 'Co-mill with screens', 'Equipment class of the sifter and mill (process equipment).'),
+    doc('EQUIPMENT_CLASS', 'EQC-HT', 'Tablet hardness and thickness tester', 'Equipment class of the in-process hardness tester (instrument).'),
+    doc('EQUIPMENT_CLASS', 'EQC-FRB', 'Friability tester', 'Equipment class of the friabilator (instrument).'),
+    doc('EQUIPMENT_CLASS', 'EQC-DT', 'Disintegration tester', 'Equipment class of the disintegration apparatus (instrument).'),
+    doc('EQUIPMENT_CLASS', 'EQC-COLDFORM', 'Cold-form blister machine', 'Equipment class of the alu-alu blister machine (process equipment).'),
+  ];
+}
 
 /** The DEMO-ONLY documents the GB-T-01 template pins besides the dc-mini ones (all invented). */
 function gbt01ReferenceDocuments(): ReferenceDocumentSeed[] {

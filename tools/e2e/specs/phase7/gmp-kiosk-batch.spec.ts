@@ -36,7 +36,7 @@ import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 import {
   act, allInOrder, ANY, as, choose, clean, closeKiosks, clearance, clearanceStep, closeStage, closeTyped, completed, entry, kiosk, loadFlow, openContainer, performAndCheck, plusOne, primary,
-  reviewRecord, save, saveBlock, saveFlow, sign, startStep, statusStep, step, verifyCleanings, type FlowState,
+  ready, reviewRecord, save, saveBlock, saveFlow, sign, startStep, statusStep, step, verifyCleanings, type FlowState,
 } from './kiosk-batch-support.ts';
 
 test.describe.configure({ mode: 'serial' });
@@ -303,8 +303,10 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     set = ((await before.getAttribute('data-testid')) ?? '').replace('tooling-inspect-BEFORE-', '');
     await allInOrder(before);
     await act(page, before.getByRole('button', { name: `Inspect set ${set} before use` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     await act(page, panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_ISSUED')).toBeVisible();
     await saveBlock(page, 'TOOLING_ISSUED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -327,6 +329,7 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
       }
     });
     await act(page, panel.getByRole('button', { name: `Charge container ${s.blendContainer ?? ''}` }), op);
+    await expect(page.getByTestId('block-form-HOPPER_CHARGE')).toBeVisible();
     await saveBlock(page, 'HOPPER_CHARGE', op);
     await saveBlock(page, 'FIRST_OFF', op, async (f) => {
       await choose(f.getByRole('radio', { name: 'PASS', exact: true }));
@@ -392,10 +395,12 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     set = ((await issue.getAttribute('data-testid')) ?? '').replace('tooling-issue-', '');
     await issue.getByRole('textbox', { name: /^Strokes read from the press/ }).fill('98600');
     await act(page, issue.getByRole('button', { name: `Return set ${set}` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_RETURNED')).toBeVisible();
     await saveBlock(page, 'TOOLING_RETURNED', op);
     const after = page.getByTestId(`tooling-inspect-AFTER-${set}`);
     await allInOrder(after);
     await act(page, after.getByRole('button', { name: `Inspect set ${set} after use` }), op);
+    await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -432,12 +437,16 @@ test('[PR-23][PR-27][IN-21][IN-25][DI-30] GMP kiosk batch 4: compression on KIOS
     await (await primary(page, 'Decide the hold point')).click();
     const decide = page.getByRole('dialog', { name: 'Decide the hold point' });
     await choose(decide.getByRole('radio', { name: 'Approved (released)' }));
+    await ready(page, qa);
     await decide.getByRole('button', { name: 'Continue to signature' }).click();
     await sign(page, qa);
     await completed(page);
     const dispositioned = await closeStage(page, e2e, batchId, qa, supervisor, 'H-PACK@', ANY, op);
     await step(page, e2e, batchId, 'p-comp-status@', ANY);
     await act(page, page.getByTestId('plant-unit-PRESS').getByRole('button', { name: 'End the use of PRESS-01' }), op);
+    // The end is seen before the step changes: leaving at once can drop the tap's request and leave PRESS-01 in
+    // product for the specs after this one (route W cleans it).
+    await expect(page.getByTestId('use-PRESS-01')).toHaveCount(0);
     await step(page, e2e, batchId, 'p-comp-clear@', ANY);
     await act(page, page.getByTestId('plant-area').getByRole('button', { name: 'End the use of COMP-1' }), op);
     await expect(page.getByTestId('occupancy-COMP-1')).toHaveCount(0);

@@ -58,6 +58,7 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb-19-edges.test.ts > TB-19 the QC gate > [IN-37][PR-29][PR-45] the node right after the step is a hold point of the gate role (D QA) with a disposition that rejects; the mark content is named"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: NA when the processing batch prints nothing; red until the QC hold point after printing is approved under a valid signature; green then"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: a library call whose element is not pinned is red (\"cannot determine\"); a printing step inlined from a pinned element needs the hold point after it in that element, under a valid signature"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-32][INV-19] route W 6: enteric coating on KIOSK-COAT-1: the suspension (TB-03), the cores and the pan, the functional film to its weight gain in the loop (TB-18 FC_F), the acid and buffer disintegration test (TB-15) @office"
 clauses:
   - clause: "open a packaging order for printed tablets without the QC approval; refused."
     tests:

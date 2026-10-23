@@ -297,6 +297,12 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       const { seedReviewBatch } = await import('./review-batch.ts');
       const batch = await seedReviewBatch({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, log, packaging: opts.packaging === true });
       writeJson(join(opts.keysDir, 'gmp-review-batch.json'), { label: 'DEMO-ONLY review batch', ...batch });
+      if (opts.packaging === true) {
+        // Phase 7 slice 7l (R1): the demo routes, every tablet block on a product of its own.
+        const { seedDemoRoutes } = await import('./demo-routes.ts');
+        const demoRoutes = await seedDemoRoutes({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() });
+        writeJson(join(opts.keysDir, 'gmp-demo-routes.json'), { label: 'DEMO-ONLY demo routes', routes: demoRoutes });
+      }
     }
 
     let backup: BackupServiceEntry | null = null;

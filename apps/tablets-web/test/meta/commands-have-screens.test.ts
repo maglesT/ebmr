@@ -105,6 +105,8 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'apps/tablets-server/src/cli/line-completion.ts': 'library of the demo data load; no route: each act it performs must have its own route and screen, which db-acts-have-routes checks without counting src/cli (slice 7h, D1)',
   'apps/tablets-server/src/cli/demo-app.ts': 'library of the demo data load (the in-process server it drives); no route: each act it performs must have its own route and screen, which db-acts-have-routes checks without counting src/cli (slice 7h, D1)',
   'apps/tablets-server/src/cli/golden-gb-t-02.ts': 'library of the demo data load and the golden batches (masters)',
+  'apps/tablets-server/src/cli/demo-routes.ts': 'library of the demo data load (the packaging-order option): the demo routes of R1, slice 7l; each act it performs has its own route and screen',
+  'apps/tablets-server/src/cli/demo-route-masters.ts': 'library of the demo data load (masters of the demo routes, slice 7l)',
   'apps/tablets-server/src/cli/golden-packaging.ts': 'library of the demo data load and the golden batches (masters)',
   'apps/simulators/src/scale/main.ts': 'an equipment simulator of the sandbox\'s site gateway (balances), started with the gateway in the demo stack; its faults are on its own web console',
   'apps/simulators/src/process/main.ts': 'an equipment simulator of the sandbox\'s site gateway (presses and coaters), started with the gateway in the demo stack; its own web console',

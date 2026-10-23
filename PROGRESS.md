@@ -124,6 +124,12 @@ screen and confirmed by QA; the formula's target tablet weight and batch sizes; 
 (skeleton, blank or copy); the Tablets palette (TB-01 to TB-24) and stage editing in the designer; sandbox test lots on
 screen; browser flow `phase7/own-product.spec.ts`; user guide page 9. The GMP batch of the new product needs R1's plant.
 
+**Slice 7l (22-23 October): demo routes for R1** (`docs/build-plan/phase-7/slice-7l-routes.md`). Route W (wet,
+enteric film, alu-alu cold form) with its plant, masters, lots and orders in the GMP demo set-up, and its browser test
+from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 potency, alternatives, loop iterations,
+named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
+migrations. Routes D and S remain.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 
