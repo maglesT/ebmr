@@ -16,7 +16,7 @@
  * tap on a shared terminal) and the database decides; its refusal is shown in its own words. The act's answer fills the
  * step's entry form (choices.tsx), which the person then saves: no identifier is ever typed.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { routes, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { ActResult, useCommand } from '../../../app/acts.tsx';
@@ -26,6 +26,10 @@ import { useStepChoices } from '../choices.tsx';
 import { wcls } from '../classes.ts';
 
 const READ = [routes.batches.stepPlant.id];
+/** R3.3: a plant entry changes the step and the run as well as the plant (the step's entry is recorded with it). */
+const READ_WITH_STEP = [routes.batches.stepPlant.id, routes.execution.step.id, routes.execution.run.id];
+/** Whether the step already records `id` (an occupancy or use) in an entry of `kind`. */
+const recorded = (view: StepScreenView, kind: string, member: string, id: string): boolean => view.entries.some((e) => e.kind === kind && e.data[member] === id);
 const PLANT_BLOCKS = new Set(['G-09@2', 'G-10@2', 'TB-09@1', 'TB-10@1']);
 const HOURS = ['4', '8', '12', '24'].map((h) => ({ value: h, label: `${h} h` }));
 const yesNo = (b: boolean): string => (b ? 'YES' : 'NO');
@@ -52,8 +56,8 @@ function PlantActs({ view }: { view: StepScreenView }) {
   return (
     <section className={wcls('section')} aria-label="Plant for this step" data-testid="step-plant">
       <h2 className={wcls('sectionTitle')}>Plant for this step</h2>
-      {view.step.block === 'G-10@2' ? <AreaPanel v={v} /> : null}
-      {view.step.block === 'G-09@2' ? <EquipmentPanel v={v} /> : null}
+      {view.step.block === 'G-10@2' ? <AreaPanel v={v} view={view} /> : null}
+      {view.step.block === 'G-09@2' ? <EquipmentPanel v={v} view={view} /> : null}
       {view.step.block === 'TB-09@1' ? <ToolingPanel v={v} /> : null}
       {view.step.block === 'TB-10@1' ? <PressSetupPanel v={v} /> : null}
     </section>
@@ -63,9 +67,10 @@ function PlantActs({ view }: { view: StepScreenView }) {
 // ---------------------------------------------------------------------------------------------
 // G-10@2: the room or line the batch uses
 
-function AreaPanel({ v }: { v: StepPlantView }) {
+function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
   const choices = useStepChoices();
-  const start = useCommand(routes.plant.startAreaOccupancy, READ, 'starting the use of the room');
+  // R3.3 (D-7k-2): the start of the room's use and its record in the step are one act (one badge tap).
+  const start = useCommand(routes.batches.plantEntry, READ_WITH_STEP, 'starting the use of the room and recording it in this step');
   const end = useCommand(routes.plant.endAreaOccupancy, READ, 'ending the use of the room');
   const busy = start.busy || end.busy;
   const occupied = new Set(v.occupancies.map((o) => o.areaCode));
@@ -77,7 +82,9 @@ function AreaPanel({ v }: { v: StepPlantView }) {
           <p>
             <StatusChip tone="ok" label={`${o.areaCode} in use`} /> by batch {o.batchNumber} for {o.stage}, started by {o.startedBy.legalName} at {o.startedAt.text}
           </p>
-          {o.mine ? (
+          {recorded(view, 'AREA_OCCUPANCY', 'occupancyId', o.occupancyId) ? (
+            <p className={wcls('muted')}>{`Recorded in this step.`}</p>
+          ) : o.mine ? (
             <Button variant="primary" isDisabled={busy} onPress={() => record(o.areaCode, o.occupancyId)}>
               {`Record ${o.areaCode} in this step`}
             </Button>
@@ -103,13 +110,14 @@ function AreaPanel({ v }: { v: StepPlantView }) {
                   <Button
                     variant="primary"
                     isDisabled={busy || (a.kind === 'LINE' && !line)}
-                    onPress={() => void (async () => {
-                      const body = { areaCode: a.code, batchId: v.batchId, stage: v.stage ?? '', ...(line ? { order: line.order, artworkSet: line.artworkSet } : {}) };
-                      const o = await start.run({ body });
-                      if (o) record(o.areaCode, o.occupancyId);
-                    })()}
+                    onPress={() =>
+                      void start.run({
+                        params: { batchId: v.batchId, stepKey: view.step.stepKey },
+                        body: { expectedVersion: view.run.version, act: { act: 'START_AREA_OCCUPANCY', areaCode: a.code, ...(line ? { order: line.order, artworkSet: line.artworkSet } : {}) } },
+                      })
+                    }
                   >
-                    {`Start using ${what} ${a.code}`}
+                    {`Start using ${what} ${a.code} and record it in this step`}
                   </Button>
                 </div>
               );
@@ -123,22 +131,23 @@ function AreaPanel({ v }: { v: StepPlantView }) {
 // ---------------------------------------------------------------------------------------------
 // G-09@2: the units the step checks
 
-function EquipmentPanel({ v }: { v: StepPlantView }) {
+function EquipmentPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
   if (v.equipment.length === 0) return <p className={wcls('muted')}>This step checks no unit of the stage.</p>;
   return (
     <div data-testid="plant-equipment">
       {v.equipment.map((e) => (
-        <UnitRef key={e.ref} v={v} e={e} />
+        <UnitRef key={e.ref} v={v} e={e} view={view} />
       ))}
     </div>
   );
 }
 
-function UnitRef({ v, e }: { v: StepPlantView; e: StepPlantView['equipment'][number] }) {
+function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment'][number]; view: StepScreenView }) {
   const choices = useStepChoices();
   const check = useCommand(routes.plant.recordInstrumentCheck, READ, 'the per-use check');
-  const book = useCommand(routes.plant.recordInstrumentUse, READ, 'booking the instrument');
-  const startUse = useCommand(routes.plant.startEquipmentUse, READ, 'starting the use of the unit');
+  // R3.3 (D-7k-2): the booking (an instrument) or the start of the use (a process unit) and its record in the step are
+  // one act (one badge tap); the server books or starts as the master's stage binding says.
+  const book = useCommand(routes.batches.plantEntry, READ_WITH_STEP, 'booking the unit and recording it in this step');
   const endUse = useCommand(routes.plant.endEquipmentUse, READ, 'ending the use of the unit');
   const [picked, setPicked] = useState<string | null>(null);
   const [hours, setHours] = useState<string | null>('12');
@@ -146,7 +155,7 @@ function UnitRef({ v, e }: { v: StepPlantView; e: StepPlantView['equipment'][num
   const unit = picked ?? (e.units.length === 1 ? (e.units[0]?.code ?? null) : null);
   const codes = new Set(e.units.map((u) => u.code));
   const uses = v.uses.filter((u) => codes.has(u.equipmentCode));
-  const busy = check.busy || book.busy || startUse.busy || endUse.busy;
+  const busy = check.busy || book.busy || endUse.busy;
   const record = (equipmentCode: string, useId: string) => choices?.choose('EQUIPMENT_USE', { equipmentRef: e.ref, equipmentCode, useId });
   const instrument = e.kind === 'INSTRUMENT';
   const chosen = e.units.find((u) => u.code === unit);
@@ -158,9 +167,11 @@ function UnitRef({ v, e }: { v: StepPlantView; e: StepPlantView['equipment'][num
       {uses.map((u) => (
         <div key={u.useId} data-testid={`use-${u.equipmentCode}`}>
           <p>
-            <StatusChip tone="ok" label={`${u.equipmentCode} booked`} /> for batch {u.batchNumber} until {u.plannedEnd.text}, by {u.startedBy.legalName}
+            <StatusChip tone="ok" label={`${u.equipmentCode} booked until ${u.plannedEnd.text}`} /> for batch {u.batchNumber}, by {u.startedBy.legalName}
           </p>
-          {u.mine ? (
+          {recorded(view, 'EQUIPMENT_USE', 'useId', u.useId) ? (
+            <p className={wcls('muted')}>{`Recorded in this step for ${e.ref}.`}</p>
+          ) : u.mine ? (
             <Button variant="primary" isDisabled={busy} onPress={() => record(u.equipmentCode, u.useId)}>
               {`Record ${u.equipmentCode} for ${e.ref} in this step`}
             </Button>
@@ -197,21 +208,27 @@ function UnitRef({ v, e }: { v: StepPlantView; e: StepPlantView['equipment'][num
               </div>
             </>
           ) : null}
-          <floor.ChoiceGroup label="Planned use" options={HOURS} value={hours} onChange={setHours} isDisabled={busy} />
-          <Button
-            variant="primary"
-            isDisabled={busy || hours === null}
-            onPress={() => void (async () => {
-              const input = { params: { code: chosen.code }, body: { batchId: v.batchId, plannedHours: hours ?? '12' } };
-              const u = instrument ? await book.run(input) : await startUse.run(input);
-              if (u) record(u.equipmentCode, u.useId);
-            })()}
-          >
-            {`Book ${chosen.code}`}
-          </Button>
+          {/* R3.4: a unit booked for the batch is not booked again (the database would refuse it): it shows until when. */}
+          {uses.some((u) => u.equipmentCode === chosen.code) ? null : (
+            <>
+              <floor.ChoiceGroup label="Planned use" options={HOURS} value={hours} onChange={setHours} isDisabled={busy} />
+              <Button
+                variant="primary"
+                isDisabled={busy || hours === null}
+                onPress={() =>
+                  void book.run({
+                    params: { batchId: v.batchId, stepKey: view.step.stepKey },
+                    body: { expectedVersion: view.run.version, act: { act: 'BOOK_UNIT', equipmentRef: e.ref, code: chosen.code, plannedHours: hours ?? '12' } },
+                  })
+                }
+              >
+                {`Book ${chosen.code} and record it in this step`}
+              </Button>
+            </>
+          )}
         </>
       ) : null}
-      <ActResult error={check.error ?? book.error ?? startUse.error ?? endUse.error} done={check.done} label={check.done ? `Check recorded: ${check.done.result}.` : ''} />
+      <ActResult error={check.error ?? book.error ?? endUse.error} done={check.done} label={check.done ? `Check recorded: ${check.done.result}.` : ''} />
     </section>
   );
 }
@@ -468,15 +485,27 @@ function PrintedLotPanel({ view }: { view: StepScreenView }) {
   const [asked, setAsked] = useState('');
   const q = useApiQuery(routes.batches.printedLot, { params: { batchId: view.run.runId, code: asked } }, { enabled: asked !== '', retry: false });
   const facts = asked !== '' ? q.data : undefined;
+  // The lot goes to the issue entry once per "Take the lot" (slice 7k): the effect used to run again whenever the
+  // choices changed or the lot was read again, so the saved issue form reopened at once with the same lot.
+  const [taken, setTaken] = useState(0);
+  const handed = useRef<string | null>(null);
+  const choose = choices?.choose;
   useEffect(() => {
-    if (facts) choices?.choose('ISSUE', { lot: { id: facts.id, material: facts.material, status: facts.status, artwork: facts.artwork, ...(facts.expiresAtUs ? { expiresAtUs: facts.expiresAtUs } : {}) } });
-  }, [facts, choices]);
+    if (!facts || !choose) return;
+    const key = `${String(taken)}:${facts.id}`;
+    if (handed.current === key) return;
+    handed.current = key;
+    choose('ISSUE', { lot: { id: facts.id, material: facts.material, status: facts.status, artwork: facts.artwork, ...(facts.expiresAtUs ? { expiresAtUs: facts.expiresAtUs } : {}) } });
+  }, [facts, choose, taken]);
   return (
     <section className={wcls('section')} aria-label="Printed packaging lot" data-testid="printed-lot">
       <h2 className={wcls('sectionTitle')}>Printed packaging lot</h2>
       <p className={wcls('muted')}>Scan the lot label: the issue entry takes the lot as the register holds it. Type the artwork you read on the label in the entry yourself.</p>
       <Field name="printedLot" label="Scan the printed packaging lot" value={scan} onChange={setScan} autoComplete="off" />
-      <Button variant="primary" isDisabled={scan.trim() === ''} onPress={() => setAsked(scan.trim())}>
+      <Button variant="primary" isDisabled={scan.trim() === ''} onPress={() => {
+          setAsked(scan.trim());
+          setTaken((n) => n + 1);
+        }}>
         Take the lot from the register
       </Button>
       {facts ? (

@@ -340,6 +340,7 @@ export function useRunCommand(
       // Phase 7 slice 7l (R1): the form is cleared as soon as the entry is saved, before the views are read again: a
       // person who starts the next entry once "Saved" shows no longer has it wiped by a clearing that came late (found
       // by the demo route runs on a loaded server: a station sweep's instrument vanished before its Save).
+      // The form closes in the same render too, with "Add another" (slice 7k: the fcv journey met it closing late).
       extraRef.current.onSaved?.();
       // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
       // in is no longer the sender; then the step is read again).

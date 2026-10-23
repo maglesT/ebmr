@@ -29,6 +29,9 @@ export function PlantPage() {
     <>
       <h1>Plant</h1>
       <PendingVerifications />
+      <Section title="Cleaning for a batch" testId="batch-cleaning">
+        <BatchCleaning onStarted={(c) => setStarted((all) => [c, ...all])} />
+      </Section>
       <Section title="Cleaning" testId="cleaning">
         <DefineForm
           title="Start a cleaning"
@@ -54,6 +57,9 @@ export function PlantPage() {
       <Section title="Instrument check and booking for a batch" testId="instrument-use">
         <InstrumentUseForm />
       </Section>
+      <Section title="Room or unit in use for a batch" testId="plant-use">
+        <PlantUseForm />
+      </Section>
       <Section title="Calibration" testId="calibration">
         <CalibrationForm />
       </Section>
@@ -61,6 +67,64 @@ export function PlantPage() {
         <PressDischargeForm />
       </Section>
     </>
+  );
+}
+
+/**
+ * R3.10 (hosted-demo trials): for a batch, the rooms and units its stages need with their cleaning state, and the needed
+ * cleanings started from the list (each the person's own act through the cleaning route; completed and verified below).
+ */
+function BatchCleaning({ onStarted }: { onStarted: (c: CleaningView) => void }) {
+  const batches = useApiQuery(routes.batches.list);
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.has(b.status));
+  return (
+    <>
+      {batches.error ? <RefusalMessage error={batches.error.error} /> : null}
+      {batches.data && open.length === 0 ? <p>No batch is issued or running.</p> : null}
+      {open.length > 0 ? <floor.ChoiceGroup label="Batch" options={open.map((b) => ({ value: b.runId, label: `${b.batchNumber} (${b.product.name})` }))} value={batchId} onChange={setBatchId} /> : null}
+      {batchId ? <CleaningNeeds batchId={batchId} onStarted={onStarted} /> : null}
+    </>
+  );
+}
+
+function CleaningNeeds({ batchId, onStarted }: { batchId: string; onStarted: (c: CleaningView) => void }) {
+  const q = useApiQuery(routes.batches.cleaningNeeds, { params: { batchId } });
+  const start = useCommand(routes.plant.startCleaning, [...PENDING, routes.batches.cleaningNeeds.id], 'starting a cleaning');
+  const [level, setLevel] = useState<string | null>('MAJOR');
+  if (q.error) return <RefusalMessage error={q.error.error} />;
+  if (!q.data) return <p>Loading what the batch needs.</p>;
+  const go = async (target: 'EQUIPMENT' | 'AREA', code: string) => {
+    const c = await start.run({ body: { target, code, level: level === 'MINOR' ? 'MINOR' : 'MAJOR', method: 'MANUAL' } });
+    if (c) onStarted(c);
+  };
+  const stateChip = (state: string, needs: boolean) => <StatusChip tone={needs ? 'warning' : state === 'CLEANING' ? 'info' : 'ok'} label={state.toLowerCase().replace(/_/g, ' ')} />;
+  return (
+    <div data-testid={`cleaning-needs-${q.data.batchNumber}`}>
+      <floor.ChoiceGroup label="Cleaning level" options={[{ value: 'MAJOR', label: 'MAJOR' }, { value: 'MINOR', label: 'MINOR' }]} value={level} onChange={setLevel} />
+      {q.data.stages.map((s) => (
+        <section key={s.stageKey} aria-label={`Stage ${s.name}`} data-testid={`cleaning-stage-${s.stageKey}`}>
+          <h3>
+            {s.name} ({s.status === 'SIGNED_OFF' ? 'signed off' : s.status === 'IN_PROGRESS' ? 'in progress' : 'next'})
+          </h3>
+          <ul>
+            {s.rooms.map((r) => (
+              <li key={r.code} data-testid={`need-${r.code}`}>
+                {r.kind === 'LINE' ? 'Line' : 'Room'} {r.code} {stateChip(r.state, r.needsCleaning)}{' '}
+                {r.needsCleaning ? <ActButton label={`Start the cleaning of ${r.code}`} onPress={() => go('AREA', r.code)} disabled={start.busy} primary={false} /> : null}
+              </li>
+            ))}
+            {s.units.map((u) => (
+              <li key={`${u.ref}:${u.code}`} data-testid={`need-${u.code}`}>
+                {u.ref}: {u.code} {u.name} {stateChip(u.state, u.needsCleaning)}{' '}
+                {u.needsCleaning ? <ActButton label={`Start the cleaning of ${u.code}`} onPress={() => go('EQUIPMENT', u.code)} disabled={start.busy} primary={false} /> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      <ActResult error={start.error} done={start.done} label={start.done ? `Cleaning of ${start.done.code} started: complete it below.` : ''} />
+    </div>
   );
 }
 
@@ -235,6 +299,44 @@ function InstrumentUseForm() {
         </>
       ) : (
         <p>Choose the batch and the instrument.</p>
+      )}
+    </>
+  );
+}
+
+/**
+ * The use of a room or a process unit by a batch where no step of the batch records it (R3.3 made the step screen's
+ * plant acts one act with their record; the separate acts stay here for a use no step names, as the instrument booking
+ * above). The database guards the room's clearance and the unit's status.
+ */
+function PlantUseForm() {
+  const units = useUnits('PROCESS');
+  const areas = useApiQuery(routes.plant.areas);
+  const batches = useApiQuery(routes.batches.list);
+  const area = useCommand(routes.plant.startAreaOccupancy, PENDING, 'starting the use of the room');
+  const unit = useCommand(routes.plant.startEquipmentUse, PENDING, 'starting the use of the unit');
+  const [batchId, setBatch] = useState<string | null>(null);
+  const [areaCode, setArea] = useState<string | null>(null);
+  const [stage, setStage] = useState('');
+  const [code, setCode] = useState<string | null>(null);
+  const [hours, setHours] = useState<string | null>('12');
+  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.has(b.status));
+  return (
+    <>
+      <floor.ChoiceGroup label="Batch using it" options={open.map((b) => ({ value: b.runId, label: `${b.batchNumber} (${b.statusText})` }))} value={batchId} onChange={setBatch} />
+      {batchId ? (
+        <>
+          <floor.ChoiceGroup label="Room or line" options={(areas.data?.areas ?? []).map((a) => ({ value: a.code, label: `${a.code} ${a.name}` }))} value={areaCode} onChange={setArea} />
+          <Field name="useStage" label="Stage (as the master names it)" value={stage} onChange={setStage} />
+          {areaCode ? <ActButton label={`Start using ${areaCode} for the batch`} onPress={() => area.run({ body: { areaCode, batchId, stage: stage.trim() } })} disabled={area.busy || stage.trim() === ''} /> : null}
+          <ActResult error={area.error} done={area.done} label={area.done ? `${area.done.areaCode} in use by ${area.done.batchNumber}.` : ''} />
+          <floor.ChoiceGroup label="Process unit" options={units} value={code} onChange={setCode} />
+          <floor.ChoiceGroup label="Planned use of the unit" options={HOURS} value={hours} onChange={setHours} />
+          {code ? <ActButton label={`Start using ${code} for the batch`} onPress={() => unit.run({ params: { code }, body: { batchId, plannedHours: hours ?? '12' } })} disabled={unit.busy || hours === null} /> : null}
+          <ActResult error={unit.error} done={unit.done} label={unit.done ? `${unit.done.equipmentCode} in use until ${unit.done.plannedEnd.text}.` : ''} />
+        </>
+      ) : (
+        <p>Choose the batch.</p>
       )}
     </>
   );

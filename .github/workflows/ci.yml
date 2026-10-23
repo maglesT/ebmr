@@ -108,7 +108,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm vitest run --shard=${{ matrix.shard }}/6 --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
-      - name: Upload the shard's blob report
+      - name: Upload the group's blob report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -234,13 +234,22 @@ jobs:
           if-no-files-found: ignore
 
   e2e:
-    name: End-to-end (Playwright, chromium)
+    name: End-to-end (Playwright, chromium, ${{ matrix.group }})
     runs-on: ubuntu-latest
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
-    timeout-minutes: 75
+    # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
+    # set-up on its own PostgreSQL and the spec files tools/e2e/playwright.config.ts (E2E_GROUPS) names; 'rest' runs
+    # every other spec. A file is never split, so its tests keep their order. A new group is added in both places.
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [route-w, route-d, route-s, gmp-batches, rest]
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
       CI: 'true'
+      EBMR_E2E_BLOB: '1'
+      EBMR_E2E_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
       # The runner's own PostgreSQL 16, as in the checks job (not a service container).
@@ -257,8 +266,48 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Playwright 1.56.1 installs chromium revision 1194, the one preinstalled on the development machine.
       - run: pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium
-      - run: pnpm --filter @ebmr/e2e test
-      - name: Upload end-to-end reports, evidence and traces
+      - run: pnpm --filter @ebmr/e2e test --pass-with-no-tests
+      - name: Upload the group's blob report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-blob-${{ matrix.group }}
+          path: .reports/blob/
+          include-hidden-files: true
+          if-no-files-found: ignore
+      - name: Upload the group's traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-output-${{ matrix.group }}
+          path: .reports/playwright-output/
+          include-hidden-files: true
+          if-no-files-found: ignore
+
+  # The groups' blob reports merged into the reports of one run (P7K-5): .reports/playwright.json for the trace and
+  # .reports/e2e-evidence.json for the validation pack. A missing group leaves its tests out, and the trace fails on them.
+  e2e-report:
+    name: End-to-end reports merged
+    needs: [e2e]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Blob reports of the end-to-end groups
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-blob-*
+          path: .reports/blob
+          merge-multiple: true
+      - run: pnpm --filter @ebmr/e2e exec playwright merge-reports --config merge.config.ts ../../.reports/blob
+      - name: Upload end-to-end reports and evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -266,14 +315,13 @@ jobs:
           path: |
             .reports/playwright.json
             .reports/e2e-evidence.json
-            .reports/playwright-output/
           if-no-files-found: ignore
 
   # The trace on both reports (review F15, round 2): every end-to-end test a control lists ran, and every passing
   # end-to-end test tagged with a control is in its list. The Playwright report is required here.
   traceability:
     name: Traceability with the end-to-end results
-    needs: [checks, report, e2e]
+    needs: [checks, report, e2e-report]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -295,6 +295,26 @@ export const EXAMPLES = {
   'plant-equipment-event': { schema: r.plant.equipmentEvent.response, data: s6.plant.equipmentEvent, routeId: r.plant.equipmentEvent.id },
   // Phase 7 slice 7h (WP-A): the plant acts of the floor and what the step screen offers them from.
   'batches-step-plant': { schema: r.batches.stepPlant.response, data: PF_STEP_PLANT, routeId: r.batches.stepPlant.id },
+  // Phase 7 slice 7k (R3.3, R3.10): the plant act recorded in its step as one act, and a batch's cleaning needs.
+  'batches-plant-entry': { schema: r.batches.plantEntry.response, data: gmpBatch.commandResult, routeId: r.batches.plantEntry.id },
+  'batches-cleaning-needs': {
+    schema: r.batches.cleaningNeeds.response,
+    data: {
+      batchId: '7d1e2f3a-4b5c-4d6e-8f7a-9b0c1d2e3f40',
+      batchNumber: 'G2600017',
+      stages: [
+        { stageKey: 'S-DISP', name: 'Dispensing', status: 'SIGNED_OFF', rooms: [{ code: 'DISP-1', kind: 'ROOM', state: 'DIRTY', needsCleaning: false }], units: [] },
+        {
+          stageKey: 'S-COMP',
+          name: 'Compression',
+          status: 'NOT_STARTED',
+          rooms: [{ code: 'COMP-1', kind: 'ROOM', state: 'DIRTY', needsCleaning: true }],
+          units: [{ ref: 'PRESS', classCode: 'EQC-PRESS', code: 'PRESS-01', name: 'Rotary press 27 stations', state: 'CLEANING', needsCleaning: false }],
+        },
+      ],
+    },
+    routeId: r.batches.cleaningNeeds.id,
+  },
   // Phase 7 slice 7h (gap report D2): a printed packaging lot's facts for the G-21 issue entry.
   'batches-printed-lot': { schema: r.batches.printedLot.response, data: { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1', expiresAtUs: '1877472000000000' }, routeId: r.batches.printedLot.id },
   'plant-start-occupancy': { schema: r.plant.startAreaOccupancy.response, data: PF_OCCUPANCY, routeId: r.plant.startAreaOccupancy.id },

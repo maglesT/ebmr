@@ -187,7 +187,9 @@ function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderVie
 
 function IssueForm({ batch }: { batch: PlannedBatchView }) {
   const [variants, setVariants] = useState<Record<string, string>>({});
-  const [inputs, setInputs] = useState<Record<string, string>>({});
+  // R3.1 (D-7k-1): each input the master implies (the tablet count) starts at the master's value.
+  const [inputs, setInputs] = useState<Record<string, string>>(() => Object.fromEntries(batch.inputs.flatMap((i) => (i.expected ? [[i.id, i.expected.value]] : []))));
+  const [confirmations, setConfirmations] = useState<Record<string, string>>({});
   const [code, setCode] = useState('');
   const [text, setText] = useState('');
   const signed = useSignedAct(REFRESH);
@@ -198,10 +200,18 @@ function IssueForm({ batch }: { batch: PlannedBatchView }) {
     if (v) values[i.id] = v;
     else if (i.required) complete = false;
   }
+  // An input further from the master's value than the tolerance needs the issuer's reason (the server refuses it otherwise).
+  const away = batch.inputs.filter((i) => i.expected && farFrom(inputs[i.id] ?? '', i.expected.value, i.expected.tolerancePercent));
+  const inputConfirmations: Record<string, string> = {};
+  for (const i of away) {
+    const why = (confirmations[i.id] ?? '').trim();
+    if (why === '') complete = false;
+    else inputConfirmations[i.id] = why;
+  }
   complete = complete && code.trim() !== '' && text.trim() !== '';
   const issue = () =>
     signed.sign(
-      { kind: 'GMP_BATCH_ISSUE', batchId: batch.batchId, reason: { code: code.trim(), text: text.trim() }, variants, inputs: values },
+      { kind: 'GMP_BATCH_ISSUE', batchId: batch.batchId, reason: { code: code.trim(), text: text.trim() }, variants, inputs: values, ...(away.length > 0 ? { inputConfirmations } : {}) },
       `Issue batch ${batch.batchNumber} (${batch.product.name} ${batch.product.strength}, ${batch.familyCode} version ${batch.versionNumber})`,
     );
   return (
@@ -214,7 +224,23 @@ function IssueForm({ batch }: { batch: PlannedBatchView }) {
         <floor.ChoiceGroup key={v.id} label={v.name} options={v.options.map((o) => ({ value: o, label: o }))} value={variants[v.id] ?? null} onChange={(o) => setVariants((s) => ({ ...s, [v.id]: o }))} />
       ))}
       {batch.inputs.map((i) => (
-        <Field key={i.id} name={`input-${i.id}`} label={i.unit ? `${i.name} (${i.unit})` : i.name} description={`${i.source}${i.required ? '' : ' (optional)'}`} value={inputs[i.id] ?? ''} onChange={(v) => setInputs((s) => ({ ...s, [i.id]: v }))} />
+        <div key={i.id}>
+          <Field
+            name={`input-${i.id}`}
+            label={i.unit ? `${i.name} (${i.unit})` : i.name}
+            description={i.expected ? `${i.source}; the master gives ${i.expected.value} (${i.expected.basis})` : `${i.source}${i.required ? '' : ' (optional)'}`}
+            value={inputs[i.id] ?? ''}
+            onChange={(v) => setInputs((s) => ({ ...s, [i.id]: v }))}
+          />
+          {away.includes(i) && i.expected ? (
+            <>
+              <Banner tone="warning" title={`${inputs[i.id] ?? ''} is more than ${i.expected.tolerancePercent} % away from the ${i.expected.value} the master gives.`}>
+                Correct it, or say why this batch differs: the reason is kept with the value in the record.
+              </Banner>
+              <Field name={`confirm-${i.id}`} label={`Why ${i.name} differs from the master`} value={confirmations[i.id] ?? ''} onChange={(v) => setConfirmations((s) => ({ ...s, [i.id]: v }))} />
+            </>
+          ) : null}
+        </div>
       ))}
       <Field name="reason-code" label="Reason code" value={code} onChange={setCode} />
       <Field name="reason-text" label="Reason" value={text} onChange={setText} description="Your own words: why this batch is issued now" />
@@ -223,4 +249,19 @@ function IssueForm({ batch }: { batch: PlannedBatchView }) {
       {signed.outcome === 'SIGNED' ? <StatusChip tone="ok" label={`${batch.batchNumber} issued`} /> : null}
     </div>
   );
+}
+
+/**
+ * Whether `entered` (a whole number) is more than `tolerancePercent` (a whole number) per cent away from `expected`: the
+ * server's check (R3.1), said before signing. Whole numbers as BigInt, never a JavaScript number; anything else is left
+ * to the server.
+ */
+export function farFrom(entered: string, expected: string, tolerancePercent: string): boolean {
+  const whole = /^[0-9]+$/;
+  if (!whole.test(entered.trim()) || !whole.test(expected) || !whole.test(tolerancePercent)) return false;
+  const e = BigInt(expected);
+  if (e === 0n) return false;
+  const x = BigInt(entered.trim());
+  const diff = x > e ? x - e : e - x;
+  return diff * 100n > BigInt(tolerancePercent) * e;
 }

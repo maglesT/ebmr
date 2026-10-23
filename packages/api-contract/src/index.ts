@@ -98,7 +98,7 @@ export * from './ns/device-registry.ts';
 export * from './ns/access-governance.ts';
 export * from './ns/market-config.ts';
 export { CalibrationView, ChargeView, InstrumentCheckView, OccupancyView, PlantUseView, PressDischargeView, StepPlantView, ToolingInspectionView, ToolingIssueResultView, ToolingReturnView } from './ns/plant-floor.ts';
-export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
+export { AdditionSourceView, BulkIssueView, CleaningNeedsView, PlantEntryAct, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
 export { BatchNumberRuleView, BatchNumberView, PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {
   FormulaChoiceView,
@@ -373,6 +373,9 @@ export {
   SimulatorCode,
   SimulatorView,
   SimulatorsView,
+  DemoOrderTemplateView,
+  SentOrderView,
+  CredentialCardView,
   WorkerView,
   WorkersView,
   // Phase 7 slice 7g, work package 2.

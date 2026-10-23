@@ -20,11 +20,11 @@ import { z } from 'zod';
 import { DecimalString, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
-const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/);
+export const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/);
 /** A calendar date YYYY-MM-DD (a real day: an impossible one is refused here, before the database). */
 const SiteDate = z.iso.date();
 /** Hours from now (database time) a use is planned to end: 1 to 72. */
-const PlannedHours = z.string().regex(/^([1-9]|[1-6][0-9]|7[0-2])$/, 'whole hours from 1 to 72');
+export const PlannedHours = z.string().regex(/^([1-9]|[1-6][0-9]|7[0-2])$/, 'whole hours from 1 to 72');
 const Reference = z.string().trim().min(1).max(200);
 const Counts = z.strictObject({ upper: z.string().regex(/^[0-9]{1,4}$/), lower: z.string().regex(/^[0-9]{1,4}$/), dies: z.string().regex(/^[0-9]{1,4}$/) });
 

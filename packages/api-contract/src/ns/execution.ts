@@ -264,6 +264,12 @@ export const StepScreenView = z.strictObject({
   actions: z.array(ActionView),
   /** The signable aggregate of this step (batch_step), for the ceremony. */
   signable: SignableRef.nullable(),
+  /**
+   * R3.8 (hosted-demo trials): on a GMP weighing step, each BOM line the step dispenses with the quantity the batch's
+   * production order needs, the net weighed so far for the batch (its containers' entries in the line's unit) and what
+   * is still to weigh (negative: weighed over the order's quantity). Advisory: the reconciliation stays the record's.
+   */
+  bomRemaining: z.array(z.strictObject({ bomLine: z.string(), material: z.string(), unit: z.string(), required: DecimalString, weighed: DecimalString, remaining: DecimalString })).optional(),
 });
 export type StepScreenView = z.infer<typeof StepScreenView>;
 
@@ -371,7 +377,19 @@ export const IssueFormView = z.strictObject({
   markets: z.array(z.strictObject({ code: z.string(), locked: z.boolean() })),
   variants: z.array(z.strictObject({ id: z.string(), name: z.string(), options: z.array(z.string()) })),
   inputs: z.array(
-    z.strictObject({ id: z.string(), name: z.string(), valueType: z.string(), unit: z.string().nullable(), source: z.string(), required: z.boolean() }),
+    z.strictObject({
+      id: z.string(),
+      name: z.string(),
+      valueType: z.string(),
+      unit: z.string().nullable(),
+      source: z.string(),
+      required: z.boolean(),
+      /**
+       * R3.1 (D-7k-1): the value the master implies (the tablet count: batch size / target tablet weight), the form's
+       * pre-filled value; one further from it than the tolerance is issued only with the issuer's confirmation.
+       */
+      expected: z.strictObject({ value: z.string(), basis: z.string(), tolerancePercent: z.string() }).optional(),
+    }),
   ),
 });
 
@@ -458,7 +476,19 @@ export const PlannedBatchView = z.strictObject({
   /** What the issue needs (the issuer signs the batch's issue content with ISSUED, then the batch is issued). */
   variants: z.array(z.strictObject({ id: z.string(), name: z.string(), options: z.array(z.string()) })),
   inputs: z.array(
-    z.strictObject({ id: z.string(), name: z.string(), valueType: z.string(), unit: z.string().nullable(), source: z.string(), required: z.boolean() }),
+    z.strictObject({
+      id: z.string(),
+      name: z.string(),
+      valueType: z.string(),
+      unit: z.string().nullable(),
+      source: z.string(),
+      required: z.boolean(),
+      /**
+       * R3.1 (D-7k-1): the value the master implies (the tablet count: batch size / target tablet weight), the form's
+       * pre-filled value; one further from it than the tolerance is issued only with the issuer's confirmation.
+       */
+      expected: z.strictObject({ value: z.string(), basis: z.string(), tolerancePercent: z.string() }).optional(),
+    }),
   ),
 });
 export type PlannedBatchView = z.infer<typeof PlannedBatchView>;

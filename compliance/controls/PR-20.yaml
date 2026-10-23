@@ -154,6 +154,7 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 definition checks, each with its message and controls > [PR-19][PR-20] the step records a dispensed mass, is checked by a second person and performed by the designated dispenser"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [DI-30][INV-40][PR-20] GMP kiosk batch 2: dispensing on KIOSK-DISP-1, every material weighed by the designated dispenser and verified @office"
   - "apps/tablets-web/test/floor/entries.test.tsx > a value configured for device capture > [PR-20] is shown only, not typed, while a balance of the room is online"
+  - "tools/e2e/specs/phase7/presenter-floor.spec.ts > [INV-40][PR-34][PR-23][PR-20] R3.2 to R3.9, R3.11: the dispensing stage on KIOSK-DISP-1 with Tap buttons, from the room's use to the stage sign-off @office"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [DI-30][INV-40][PR-20][IN-13] route W 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
 clauses:
   - clause: "In manual mode, the same user dispensing and verifying is blocked."

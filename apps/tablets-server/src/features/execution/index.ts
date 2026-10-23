@@ -34,6 +34,8 @@ import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent, stepTarget } from './intents.ts';
 import { additionSources } from './addition-sources.ts';
+import { cleaningNeedsView } from './cleaning-needs.ts';
+import { plantEntryPrelude } from './plant-entry.ts';
 import { stepPlantView } from './step-plant.ts';
 import { peopleText } from './people-text.ts';
 import { lotQuality, lotSite } from './lot-quality.ts';
@@ -144,6 +146,11 @@ async function replayReport(app: AppContext, pool: Db, runId: string): Promise<z
 interface CommandRequest {
   runId: string;
   body: { expectedVersion: number; intent: ClientIntent; viewStepKey?: string | undefined };
+  /**
+   * R3.3 (D-7k-2): work done in the command's own transaction, after the run is locked and before the intent is
+   * resolved (a plant act whose record the intent names); it returns the intent to run in place of body.intent.
+   */
+  prelude?: (client: pg.PoolClient) => Promise<ClientIntent>;
   request: FastifyRequest;
   session: ResolvedSession;
   actor: ActorContext & { deviceId: string };
@@ -164,9 +171,10 @@ async function runCommand(app: AppContext, pool: Db & pg.Pool, c: CommandRequest
     // held from here on, so the version the engine compares is this one.
     const useReadings = body.expectedVersion === tx.state.version;
     const roles = await engineRoles(client, runId);
+    const intent = c.prelude ? await c.prelude(client) : body.intent;
     const resolved = await resolveClientIntent(
       { client, app, def: run.def, state: tx.state, room: s.roomCode, actor: engineActor(a.personId, roles), commandId: randomUUID(), expectedVersion: body.expectedVersion, useReadings },
-      body.intent,
+      intent,
     );
     const r = await tx.command(resolved.command, roles, { ...resolved.evidence, ...(idempotencyKey ? { idempotencyKey } : {}) });
     runCache(app).set(runId, { def: run.def, state: tx.state });
@@ -247,6 +255,10 @@ function gmpBatchHandlers(app: AppContext): Handlers<typeof routes.batches> {
     step: async ({ params, requireSession }) => stepScreen(await viewContextFor(app, pool, params.batchId, requireSession()), params.stepKey),
     // Phase 7 slice 7h (WP-A): what the step screen offers its plant acts from (step-plant.ts).
     stepPlant: async ({ params, requireSession }) => stepPlantView(app, pool, params.batchId, params.stepKey, requireSession().personId),
+    cleaningNeeds: async ({ params, requireSession }) => {
+      requireSession();
+      return cleaningNeedsView(pool, params.batchId);
+    },
     // Phase 7 slice 7h (gap report D2): a printed packaging lot's facts as the batch issues it now, for the G-21 issue
     // entry (the database refuses an ISSUE whose lot states other facts: tab.g21_issue_lot_check).
     printedLot: async ({ params, requireSession }) => {
@@ -276,6 +288,13 @@ function gmpBatchHandlers(app: AppContext): Handlers<typeof routes.batches> {
     },
     command: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) =>
       runCommand(app, pool, { runId: params.batchId, body, request, session: requireSession(), actor: actor(), idempotencyKey, requestHash }),
+    plantEntry: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) => {
+      const session = requireSession();
+      const prelude = await plantEntryPrelude(pool, params.batchId, params.stepKey, body.act);
+      // The intent below is replaced by the prelude's (the record of the plant act it starts); it is never run itself.
+      const placeholder: ClientIntent = { type: 'START_STEP', stepKey: params.stepKey };
+      return runCommand(app, pool, { runId: params.batchId, body: { expectedVersion: body.expectedVersion, intent: placeholder, viewStepKey: params.stepKey }, prelude, request, session, actor: actor(), idempotencyKey, requestHash });
+    },
     verifyReplay: async ({ params, requireSession }) => {
       requireSession();
       return replayReport(app, pool, params.batchId);
