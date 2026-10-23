@@ -38,6 +38,11 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
   recorded on screen (`execution.recordLotAssay`, `execution.recordLotArtwork`, both installations): before, only the
   demo seed recorded them. On GMP the assay values are the lot's approved LIMS results, chosen on the lot page (tablets
   1001: a typed value is refused); in the sandbox the steward types a test lot's values on the Test lots screen.
+- **D-7o-5**: a master copied from an approved master for another formula takes this formula's standard quantity per
+  tablet: a calculation of the source that is its formula's mg per tablet times the batch size (route W's dispensing
+  standard) is written from the new formula, and a golden case naming it (it held for the source's formula) is left out.
+  The weights and limits that follow the tablet's weight (core mean, the run's weight checks, pan load) are the author's
+  edits in the designer, as for any new product.
 
 ## Notes
 

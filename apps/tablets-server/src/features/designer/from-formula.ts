@@ -277,7 +277,29 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   t.references = [...t.references.filter((r) => keepRef(r) && !src.chosen.lines.some((l) => l.materialCode === r.code && r.kind === 'MATERIAL')), ...materialRefs(src)];
   t.bom = [...bom, ...packaging];
   t.header = { ...header(src, req, markets), recordKind: source.header.recordKind, predicates: source.header.predicates, variants: source.header.variants };
+  // Slice 7o (D-7o-5): the standard quantity per tablet follows this formula. A calculation of the source that is its
+  // formula's quantity per tablet (mg terms only) times the batch size in tablets is written from this formula (each line
+  // per unit with its overage and salt factor, a line per batch spread over the reference size), and a golden case that
+  // names such a calculation, which held for the source's formula, is left out: the author's own cases and the
+  // validator cover the copy.
+  const standard = standardPerTabletMg(src);
+  const rewritten = new Set<string>();
+  t.calculations = t.calculations.map((c) => {
+    if (!STANDARD_PER_TABLET.test(c.expression.trim())) return c;
+    rewritten.add(c.id);
+    return { ...c, expression: `${standard} [mg] * tabletsPerBatch` };
+  });
+  t.goldenCases = t.goldenCases.filter((g) => ![...Object.keys(g.inputs), ...Object.keys(g.expected)].some((id) => rewritten.has(id)));
   return t;
+}
+
+/** A source calculation that is a formula's quantity per tablet: a parenthesised sum of mg terms times tabletsPerBatch. */
+const STANDARD_PER_TABLET = /^\(\s*[0-9.]+ \[mg\](\s*[*/]\s*[0-9.]+)*(\s*\+\s*[0-9.]+ \[mg\](\s*[*/]\s*[0-9.]+)*)*\s*\)\s*\*\s*tabletsPerBatch$/;
+
+/** The formula's quantity per tablet in mg (exact): per-unit lines as unitMg, per-batch lines over the reference size. */
+export function standardPerTabletMg(src: FormulaSource): string {
+  const units = Dec.parse(src.chosen.batchSizeUnits);
+  return sum(src.chosen.lines.map((l) => (l.basis === 'PER_BATCH' ? Dec.parse(l.quantity).times(Dec.parse('1000000')).div(units).toString() : unitMg(l))));
 }
 
 /**
