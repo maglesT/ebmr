@@ -8,7 +8,7 @@
 -- G3.PROFILE_<test code>, "<test code> profile: every time point within its limits", GREEN only when every point has an
 -- approved current RELEASE result within its own limits; RED with the first point out of its limits (the requirement
 -- fails), else with the first point without an approved result (the requirement stays open). Its evidence is one entry
--- per point (kind PROFILE_POINT: the point, its limits, the value and verdict, or "no result"). The G3.LIMS item lists
+-- per point (kind PROFILE_POINT: the stage of a two-stage test and the point, its limits, the value and verdict, or "no result"). The G3.LIMS item lists
 -- the results of a profile's points as that one profile entry, not as separate results. A lot whose specification has
 -- no profile reads exactly as before. G3.LIMS still covers every result (site.lot_lims_release_problem, 1640), so a
 -- release decision is refused by the database while a profile is open or failed (the release guards read it).
@@ -27,7 +27,7 @@ language sql stable security definer set search_path = pg_catalog, recipe, site,
            (select coalesce(jsonb_agg(jsonb_build_object(
                      'kind', 'PROFILE_POINT',
                      'ref', coalesce(pt -> 'result' ->> 'resultId', (s ->> 'specTestId') || '#' || (pt ->> 'pointNo')),
-                     'label', format('%s (%s to %s %s): %s', pt ->> 'label', coalesce(pt ->> 'lowerLimit', '-'), coalesce(pt ->> 'upperLimit', '-'), s ->> 'unit',
+                     'label', format('%s%s (%s to %s %s): %s', coalesce((pt ->> 'stage') || ', ', ''), pt ->> 'label', coalesce(pt ->> 'lowerLimit', '-'), coalesce(pt ->> 'upperLimit', '-'), s ->> 'unit',
                                      case when pt -> 'result' is null or jsonb_typeof(pt -> 'result') = 'null' then 'no result'
                                           else format('%s %s %s %s', pt -> 'result' ->> 'value', s ->> 'unit', pt -> 'result' ->> 'verdict', pt -> 'result' ->> 'state') end))
                    order by (pt ->> 'pointNo')::integer), '[]'::jsonb)

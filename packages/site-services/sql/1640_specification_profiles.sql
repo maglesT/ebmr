@@ -11,7 +11,10 @@
 --     min or h, and the point's lower and/or upper limit). Points are written with their specification in the one
 --     draft command and never change (insert-only, like the tests); a point is only added to a profile test of a draft
 --     specification, numbered next, and later in time than the point before it; a profile has 2 to 24 points (checked
---     at commit). The approval signs the points (site.specification_content adds them to a profile test only, so the
+--     at commit). A two-stage test (a delayed-release tablet's acid stage, where release stays at or below a limit,
+--     then its buffer stage, where it reaches at least a limit; R8 C4, D-7p-5) is the same profile with a stage named on
+--     each point (e.g. "Acid 0.1 M HCl", "Buffer pH 6.8"): every point names its stage or none does, a stage's points
+--     follow one another and the time starts again in each stage. The approval signs the points (site.specification_content adds them to a profile test only, so the
 --     content of every specification without a profile is unchanged).
 --   * site.draft_specification (CREATE OR REPLACE from 0840): a test may carry points instead of limits.
 --   * site.lot_test_result.point_id: a result of a profile test is one point's result; its limits are the point's
@@ -64,6 +67,7 @@ create table site.specification_test_point (
   spec_test_id         uuid not null references site.specification_test (id),
   point_no             integer not null check (point_no between 1 and 24),
   label                text not null check (label ~ '^[!-~]( ?[!-~]){0,31}$'),
+  stage                text check (stage is null or stage ~ '^[!-~]( ?[!-~]){0,47}$'),
   time_value           numeric not null check (time_value > 0),
   time_unit            text not null check (time_unit in ('min', 'h')),
   lower_limit          numeric,
@@ -100,9 +104,17 @@ begin
   if new.point_no <> coalesce(v_prev.point_no, 0) + 1 then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-971 the points of profile %s are numbered 1, 2, 3 ... in order', t.test_code);
   end if;
-  if v_prev.id is not null and site.point_minutes(new.time_value, new.time_unit) <= site.point_minutes(v_prev.time_value, v_prev.time_unit) then
+  if v_prev.id is not null and (new.stage is null) <> (v_prev.stage is null) then
+    raise exception using errcode = 'P0001', message = format('EBMR-SITE-971 either every point of profile %s names its stage or none does', t.test_code);
+  end if;
+  if v_prev.id is not null and new.stage is distinct from v_prev.stage then
+    -- A new stage (e.g. the buffer stage after the acid stage): its time starts again; a stage never comes back.
+    if exists (select 1 from site.specification_test_point x where x.spec_test_id = new.spec_test_id and x.stage = new.stage) then
+      raise exception using errcode = 'P0001', message = format('EBMR-SITE-971 the points of stage %s of profile %s follow one another', new.stage, t.test_code);
+    end if;
+  elsif v_prev.id is not null and site.point_minutes(new.time_value, new.time_unit) <= site.point_minutes(v_prev.time_value, v_prev.time_unit) then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-SITE-971 point %s of profile %s is not later than point %s (%s); the points of a profile are in time order', new.label, t.test_code, v_prev.label, v_prev.label);
+      message = format('EBMR-SITE-971 point %s of profile %s is not later than point %s; the points of a profile (of each stage) are in time order', new.label, t.test_code, v_prev.label);
   end if;
   return new;
 end
@@ -153,7 +165,7 @@ $$;
 -- The points of a profile test as JSON, in order.
 create function site.profile_points_json(p_spec_test uuid) returns jsonb
 language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
-  select coalesce(jsonb_agg(jsonb_build_object('pointNo', p.point_no, 'label', p.label, 'timeValue', p.time_value::text, 'timeUnit', p.time_unit,
+  select coalesce(jsonb_agg(jsonb_build_object('pointNo', p.point_no, 'label', p.label, 'stage', p.stage, 'timeValue', p.time_value::text, 'timeUnit', p.time_unit,
                                                'lowerLimit', p.lower_limit::text, 'upperLimit', p.upper_limit::text) order by p.point_no), '[]'::jsonb)
     from site.specification_test_point p where p.spec_test_id = p_spec_test
 $$;
@@ -206,7 +218,7 @@ begin
         from site.lims_sample_result s where s.lot_id = p_lot and s.point_id = p.id
        order by s.source_timestamp desc, s.received_at desc limit 1;
       v_pts := v_pts || jsonb_build_array(jsonb_build_object(
-        'pointNo', p.point_no, 'label', p.label, 'timeValue', p.time_value::text, 'timeUnit', p.time_unit,
+        'pointNo', p.point_no, 'label', p.label, 'stage', p.stage, 'timeValue', p.time_value::text, 'timeUnit', p.time_unit,
         'lowerLimit', p.lower_limit::text, 'upperLimit', p.upper_limit::text,
         'result', case when r.id is null then null
                        else jsonb_build_object('resultId', r.id, 'value', r.result_value::text, 'verdict', r.verdict, 'state', site.lot_test_state(r.id)) end,
@@ -387,7 +399,8 @@ begin
         if jsonb_typeof(q) <> 'object' or jsonb_typeof(q -> 'label') is distinct from 'string' or coalesce(q ->> 'label', '') !~ '^[!-~]( ?[!-~]){0,31}$'
            or jsonb_typeof(q -> 'timeValue') is distinct from 'string' or coalesce(q ->> 'timeValue', '') !~ '^(0|[1-9][0-9]{0,5})(\.[0-9]{1,3})?$'
            or coalesce(q ->> 'timeValue', '') ~ '^0(\.0*)?$'
-           or coalesce(q ->> 'timeUnit', '') not in ('min', 'h') or not (q ? 'lowerLimit' or q ? 'upperLimit') then
+           or coalesce(q ->> 'timeUnit', '') not in ('min', 'h') or not (q ? 'lowerLimit' or q ? 'upperLimit')
+           or (q ? 'stage' and (jsonb_typeof(q -> 'stage') is distinct from 'string' or (q ->> 'stage') !~ '^[!-~]( ?[!-~]){0,47}$')) then
           raise exception using errcode = 'P0001',
             message = format('EBMR-SITE-970 each time point of profile %s states its label (e.g. "1 h"), its time as decimal text above zero with its unit (min or h) and at least one limit (IN-33)',
                              coalesce(t ->> 'testCode', 'NULL'));
@@ -431,8 +444,8 @@ begin
       v_n := 0;
       for q in select x from jsonb_array_elements(t -> 'points') x loop
         v_n := v_n + 1;
-        insert into site.specification_test_point (specification_id, spec_test_id, point_no, label, time_value, time_unit, lower_limit, upper_limit)
-        values (v_id, v_tid, v_n, q ->> 'label', (q ->> 'timeValue')::numeric, q ->> 'timeUnit', (q ->> 'lowerLimit')::numeric, (q ->> 'upperLimit')::numeric);
+        insert into site.specification_test_point (specification_id, spec_test_id, point_no, label, stage, time_value, time_unit, lower_limit, upper_limit)
+        values (v_id, v_tid, v_n, q ->> 'label', q ->> 'stage', (q ->> 'timeValue')::numeric, q ->> 'timeUnit', (q ->> 'lowerLimit')::numeric, (q ->> 'upperLimit')::numeric);
       end loop;
     end if;
   end loop;

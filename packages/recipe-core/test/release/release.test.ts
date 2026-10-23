@@ -831,3 +831,87 @@ describe('incidents, validation and change (DI-12, PR-09, IN-03)', () => {
     expect(await codeOf(evaluate(qaReviewer3, second.batchId, text))).toBe('EBMR-REL-030');
   });
 });
+
+// Phase 7 slice 7p (recipe-core 1645, site services 1640): a new version of the finished product's specification with a
+// three-point dissolution profile and a content-uniformity acceptance value. It runs last: it changes the specification
+// in effect for every later lot of the product (reserve samples: twice 10 + 6 + 4 units, the 40 units testedAndSampled pulls).
+describe('a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7)', () => {
+  const POINTS = [
+    { label: '1 h', timeValue: '1', timeUnit: 'h', upperLimit: '40' },
+    { label: '4 h', timeValue: '4', timeUnit: 'h', lowerLimit: '45', upperLimit: '70' },
+    { label: '8 h', timeValue: '8', timeUnit: 'h', lowerLimit: '80' },
+  ];
+  const recordResult = async (lotId: string, p: Json): Promise<string> => {
+    const r = await sqlAs<{ resultId: string }>(analyst, 'select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify({ purpose: 'RELEASE', ...p })]);
+    const sig = await signFor(db, qcHead, { type: 'lot_test_result', id: r.resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
+    await w.run(qcHead, (c) => c.query('select site.approve_lot_test_result($1, $2)', [r.resultId, sig]));
+    return r.resultId;
+  };
+  const profile = (results: [string, string][], lotId: string) => Promise.all(results.map(([point, value]) => recordResult(lotId, { testCode: 'DISSOLUTION', point, value })));
+
+  beforeAll(async () => {
+    const spec = await sqlAs<{ specificationId: string }>(analyst, 'select site.draft_specification($1::jsonb) as r', [
+      JSON.stringify({ materialCode: master.content.header.product.code, title: 'Finished product specification (SR, with profile)', monographReference: 'In-house monograph', tests: [
+        { testCode: 'ASSAY', methodReference: 'STP-AS', unit: '%', lowerLimit: '95.0', upperLimit: '105.0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '10', sampleUnit: 'units' },
+        { testCode: 'DISSOLUTION', methodReference: 'STP-DS-SR', unit: '%', required: true, pharmacopoeia: 'IN_HOUSE', edition: 'STP-DS-SR v1', sampleQuantity: '6', sampleUnit: 'units', points: POINTS },
+        { testCode: 'CONTENT-UNIFORMITY', methodReference: 'STP-CU', unit: 'AV', upperLimit: '15.0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '4', sampleUnit: 'units' },
+      ] }),
+    ]);
+    const sig = await signFor(db, qcHead, { type: 'specification', id: spec.specificationId }, 'SPECIFICATION_APPROVED', 'DRAFT');
+    await w.run(qcHead, (c) => c.query('select site.approve_specification($1, $2)', [spec.specificationId, sig]));
+  });
+
+  it('[IN-05][PR-45][IN-33] the profile is one checklist item: open while a point has no result, green when every point is within its limits, and the lot is released', async () => {
+    const lot = await readyLot();
+    await recordResult(lot.lotId, { testCode: 'CONTENT-UNIFORMITY', value: '6.1' });
+    await profile([['1 h', '31'], ['4 h', '57']], lot.lotId);
+    let g = await grel(lot.lotId);
+    expect(g.items.filter((i) => i.id.startsWith('G3.PROFILE')).map((i) => i.id)).toEqual(['G3.PROFILE_DISSOLUTION']);
+    expect(item(g, 'G3.PROFILE_DISSOLUTION').status).toBe('RED');
+    expect(item(g, 'G3.PROFILE_DISSOLUTION').problem).toBe('the requirement is open: time point 8 h of profile DISSOLUTION has no current RELEASE result');
+    expect(red(g).sort()).toEqual(['G3.LIMS', 'G3.PROFILE_DISSOLUTION']);
+    await profile([['8 h', '86']], lot.lotId);
+    g = await grel(lot.lotId);
+    const p = item(g, 'G3.PROFILE_DISSOLUTION') as Item & { title: string; evidence: { kind: string; label: string }[] };
+    expect(p.status).toBe('GREEN');
+    expect(p.title).toBe('DISSOLUTION profile: every time point within its limits');
+    expect(p.evidence.map((e) => e.label)).toEqual(['1 h (- to 40 %): 31 % PASS APPROVED', '4 h (45 to 70 %): 57 % PASS APPROVED', '8 h (80 to - %): 86 % PASS APPROVED']);
+    // G3.LIMS lists the profile once, not its three point results.
+    const lims = item(g, 'G3.LIMS') as Item & { evidence: { kind: string; label: string }[] };
+    expect(lims.evidence.filter((e) => e.kind === 'LIMS_PROFILE').map((e) => e.label)).toEqual(['DISSOLUTION profile PASS (3 time points; see its own line)']);
+    expect(lims.evidence.filter((e) => e.label.startsWith('DISSOLUTION '))).toHaveLength(1);
+    await release(ap, lot);
+    expect(await releaseState(lot.lotId)).toBe('RELEASED');
+  });
+
+  it('[IN-05][PR-45][IN-33][IN-20] one time point out of its limits fails the profile item and the database refuses the release', async () => {
+    const lot = await readyLot();
+    await recordResult(lot.lotId, { testCode: 'CONTENT-UNIFORMITY', value: '5.0' });
+    await profile([['1 h', '29'], ['4 h', '74'], ['8 h', '90']], lot.lotId);
+    const g = await grel(lot.lotId);
+    expect(item(g, 'G3.PROFILE_DISSOLUTION').problem).toBe('the requirement fails: time point 4 h of profile DISSOLUTION: 74 % is outside its limits (45 to 70)');
+    expect(g.ready).toBe(false);
+    expect(await releaseState(lot.lotId)).toBe('NOT_READY');
+    // The signature over a NOT_READY lot, or the release decision under it, is refused.
+    const outcome = await codeOf(signDecision(ap, lot.lotId, 'RELEASE').then((sig) => record(ap, lot.lotId, 'RELEASE', sig, g.epoch)));
+    expect(outcome).toMatch(/^EBMR-/);
+    expect(await releaseState(lot.lotId)).toBe('NOT_READY');
+  });
+
+  it('[IN-05][PR-45][IN-33] content uniformity of a low-dose tablet is a release requirement as one test: its acceptance value above the limit keeps the lot from release (R8 C7)', async () => {
+    const lot = await readyLot();
+    await profile([['1 h', '30'], ['4 h', '55'], ['8 h', '85']], lot.lotId);
+    const cu = await recordResult(lot.lotId, { testCode: 'CONTENT-UNIFORMITY', value: '16.2' });
+    let g = await grel(lot.lotId);
+    expect(red(g)).toEqual(['G3.LIMS']);
+    expect(item(g, 'G3.LIMS').problem).toMatch(/CONTENT-UNIFORMITY result 16.2 AV of the lot failed its limits/);
+    expect((await db.app.query<{ v: string }>('select verdict as v from site.lot_test_result where id = $1', [cu])).rows[0]?.v).toBe('FAIL');
+    // A lot whose acceptance value is within the limit is released on the same checklist.
+    const good = await readyLot();
+    await profile([['1 h', '30'], ['4 h', '55'], ['8 h', '85']], good.lotId);
+    await recordResult(good.lotId, { testCode: 'CONTENT-UNIFORMITY', value: '7.4' });
+    g = await grel(good.lotId);
+    expect(red(g)).toEqual([]);
+    await release(ap, good);
+  });
+});

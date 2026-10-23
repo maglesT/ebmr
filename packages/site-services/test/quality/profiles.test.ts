@@ -202,4 +202,31 @@ describe('a multi-point profile as one test of a specification (IN-33)', () => {
     const listed = (await db.app.query<{ v: Json[] }>('select site.lims_lot_results($1) as v', [lot.lotId])).rows[0]!.v;
     expect(listed.map((x) => [x['point'], x['verdict']])).toEqual(expect.arrayContaining([['1 h', 'PASS'], ['4 h', 'FAIL']]));
   });
+  it('[IN-33][PR-45] a two-stage dissolution (acid stage at most a limit, then buffer stage at least a limit) is one profile with a stage on each point (R8 C4)', async () => {
+    const materialCode = unique('DR');
+    await w.material(materialCode);
+    const acid = { label: 'Acid 2 h', stage: 'Acid 0.1 M HCl', timeValue: '2', timeUnit: 'h', upperLimit: '10' };
+    const buffer = { label: 'Buffer 45 min', stage: 'Buffer pH 6.8', timeValue: '45', timeUnit: 'min', lowerLimit: '75' };
+    const twoStage = (points: Json[]) => profile({ testCode: 'DISSOLUTION-DR', points });
+    // Every point names its stage or none does; a stage's points follow one another; time starts again in a new stage.
+    expect(await refusal(draft(materialCode, [twoStage([acid, { ...buffer, stage: undefined }])]))).toMatch(/EBMR-SITE-971 either every point/);
+    expect(await refusal(draft(materialCode, [twoStage([acid, buffer, { ...acid, label: 'Acid 3 h', timeValue: '3' }])]))).toMatch(/EBMR-SITE-971 the points of stage Acid 0.1 M HCl/);
+    expect(await refusal(draft(materialCode, [twoStage([acid, { ...acid, label: 'Acid 1 h', timeValue: '1' }])]))).toMatch(/EBMR-SITE-971 point Acid 1 h .* not later than point Acid 2 h/);
+    await approveSpec((await draft(materialCode, [assay, twoStage([acid, buffer])])).specificationId);
+    const lot = await w.lot({ materialCode });
+    await approveResult((await result(lot.lotId, { testCode: 'ASSAY', purpose: 'RELEASE', value: '100.1' })).resultId);
+    const at = async (label: string, value: string) => {
+      const r = await result(lot.lotId, { testCode: 'DISSOLUTION-DR', point: label, purpose: 'RELEASE', value });
+      await approveResult(r.resultId);
+      return r.verdict;
+    };
+    // Release in the acid stage above its limit fails the requirement even with a good buffer stage.
+    expect(await at('Acid 2 h', '12')).toBe('FAIL');
+    expect((await status(lot.lotId))[0]).toMatchObject({ testCode: 'DISSOLUTION-DR', status: 'FAIL' }); // a failure outweighs a missing point
+    expect(await at('Buffer 45 min', '88')).toBe('PASS');
+    const s = (await status(lot.lotId))[0]!;
+    expect(s.status).toBe('FAIL');
+    expect(s.points.map((p) => [(p as unknown as Json)['stage'], p.label, p.result?.verdict])).toEqual([['Acid 0.1 M HCl', 'Acid 2 h', 'FAIL'], ['Buffer pH 6.8', 'Buffer 45 min', 'PASS']]);
+    expect(await refusal(releaseLot(lot.lotId))).toMatch(/DISSOLUTION-DR at Acid 2 h/);
+  });
 });
