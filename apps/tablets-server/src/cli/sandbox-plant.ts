@@ -6,9 +6,10 @@
  * company builds on screen for its own product is then test-run on the sandbox's kiosks (TEST-KIOSK-* of each room,
  * test-kit personas) before its approval, as the SANDBOX_RUN evidence asks (recipe.evidence_status; nothing is relaxed).
  *
- * The plant mirrors the GMP demo plant (release-path.ts, demo-routes.ts) by room and class code, so a master's rooms and
- * equipment classes are the same on both installations; the units carry TEST- codes (the sandbox's balances TEST-BAL-01
- * and TEST-BAL-02 are its gateway-connected scales of DISP-1 and BLEND-1). A tooling set belongs to one product: the
+ * The plant mirrors the GMP demo plant (release-path.ts, demo-routes.ts) by room, class and unit code, so what a master
+ * names (its rooms, classes, and a unit such as TB-24's cartoner) is the same on both installations; the balances of DISP-1
+ * and BLEND-1 are the sandbox's gateway-connected scales TEST-BAL-01 and TEST-BAL-02. Every sandbox screen shows the
+ * TEST, NOT GMP band and every sandbox batch a TEST- number. A tooling set belongs to one product: the
  * company's steward defines it on screen for its own product (plant master data), on each installation.
  *
  * Reusable: `definePlant` sets up any such plan through the real routes of the steward and the technicians, on either
@@ -32,7 +33,7 @@ export interface PlantPlan {
 const INSTRUMENT = (description: string): Json => ({ description, calibrationRequired: true, checkRegime: 'PER_USE' });
 const PROCESS = (description: string): Json => ({ description, cleanHold: '72 hours', dirtyHold: '48 hours' });
 
-/** The sandbox plant: the GMP demo plant's rooms and classes, units with TEST- codes. */
+/** The sandbox plant: the GMP demo plant's rooms, classes and units. */
 export const SANDBOX_PLANT: PlantPlan = {
   areas: [['DISP-1', 'ROOM'], ['BLEND-1', 'ROOM'], ['GRAN-1', 'ROOM'], ['COMP-1', 'ROOM'], ['COAT-1', 'ROOM'], ['INSP-1', 'ROOM'], ['PL-2', 'LINE']],
   classes: [
@@ -52,22 +53,22 @@ export const SANDBOX_PLANT: PlantPlan = {
   units: [
     ['TEST-BAL-01', 'Balance 60 kg of DISP-1 (gateway scale)', 'EQC-BAL', 'DISP-1'],
     ['TEST-BAL-02', 'Balance 300 kg of BLEND-1 (gateway scale)', 'EQC-BAL', 'BLEND-1'],
-    ['TEST-BAL-GRAN-01', 'Balance of GRAN-1', 'EQC-BAL', 'GRAN-1'],
-    ['TEST-BAL-COMP-01', 'Balance of COMP-1', 'EQC-BAL', 'COMP-1'],
-    ['TEST-BAL-COAT-01', 'Balance of COAT-1', 'EQC-BAL', 'COAT-1'],
-    ['TEST-BAL-INSP-01', 'Balance of INSP-1', 'EQC-BAL', 'INSP-1'],
-    ['TEST-BAL-PL-02', 'Balance of PL-2', 'EQC-BAL', 'PL-2'],
-    ['TEST-HT-01', 'Tablet hardness and thickness tester', 'EQC-HT', 'COMP-1'],
-    ['TEST-FRB-01', 'Friability tester', 'EQC-FRB', 'COMP-1'],
-    ['TEST-DT-01', 'Disintegration tester', 'EQC-DT', 'COAT-1'],
-    ['TEST-BLD-01', 'Octagonal blender 400 L', 'EQC-BLENDER', 'BLEND-1'],
-    ['TEST-PRESS-01', 'Double-rotary press, 45 stations', 'EQC-PRESS-GBT', 'COMP-1'],
-    ['TEST-RMG-01', 'Rapid mixer granulator 600 L', 'EQC-RMG', 'GRAN-1'],
-    ['TEST-FBD-01', 'Fluid-bed dryer 120 kg with filter bags', 'EQC-FBD', 'GRAN-1'],
-    ['TEST-MILL-01', 'Co-mill with screens', 'EQC-MILL', 'GRAN-1'],
-    ['TEST-COATER-01', 'Perforated coating pan 150 kg', 'EQC-COATER', 'COAT-1'],
-    ['TEST-CFORM-01', 'Cold-form (alu-alu) blister machine', 'EQC-COLDFORM', 'PL-2'],
-    ['TEST-CTN-01', 'Cartoner with checkweigher', 'EQC-CARTONER', 'PL-2'],
+    ['BAL-GRAN-01', 'Balance of GRAN-1', 'EQC-BAL', 'GRAN-1'],
+    ['BAL-COMP-01', 'Balance of COMP-1', 'EQC-BAL', 'COMP-1'],
+    ['BAL-COAT-01', 'Balance of COAT-1', 'EQC-BAL', 'COAT-1'],
+    ['BAL-INSP-01', 'Balance of INSP-1', 'EQC-BAL', 'INSP-1'],
+    ['BAL-PL-02', 'Balance of PL-2', 'EQC-BAL', 'PL-2'],
+    ['HT-01', 'Tablet hardness and thickness tester', 'EQC-HT', 'COMP-1'],
+    ['FRB-01', 'Friability tester', 'EQC-FRB', 'COMP-1'],
+    ['DT-01', 'Disintegration tester', 'EQC-DT', 'COAT-1'],
+    ['BLD-01', 'Octagonal blender 400 L', 'EQC-BLENDER', 'BLEND-1'],
+    ['PRESS-01', 'Double-rotary press, 45 stations', 'EQC-PRESS-GBT', 'COMP-1'],
+    ['RMG-01', 'Rapid mixer granulator 600 L', 'EQC-RMG', 'GRAN-1'],
+    ['FBD-01', 'Fluid-bed dryer 120 kg with filter bags', 'EQC-FBD', 'GRAN-1'],
+    ['MILL-01', 'Co-mill with screens', 'EQC-MILL', 'GRAN-1'],
+    ['COATER-01', 'Perforated coating pan 150 kg', 'EQC-COATER', 'COAT-1'],
+    ['CFORM-01', 'Cold-form (alu-alu) blister machine', 'EQC-COLDFORM', 'PL-2'],
+    ['CTN-03', 'Cartoner with checkweigher', 'EQC-CARTONER', 'PL-2'],
   ],
 };
 
