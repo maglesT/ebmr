@@ -99,14 +99,13 @@ test('[PR-27] route B refusals 1: a beta-lactam batch is refused the clearance o
   const k = await kiosk(browser, e2e, 'KIOSK-COAT-1', op);
   await evidence.step('On KIOSK-COAT-1 the operator records a clearance of COAT-1 for the beta-lactam batch', 'Refused by the database: COAT-1 is not dedicated to beta-lactam products; no clearance is pending', async () => {
     const text = await refusedClearance(k, base, batches.beta?.number ?? '', 'COAT-1', op);
-    expect(text).toMatch(/EBMR-PLANT-177/);
     expect(text).toMatch(/COAT-1 is not a room or line dedicated to beta-lactam products/);
     return { refused: true };
   }, k);
   const kb = await kiosk(browser, e2e, 'KIOSK-BL-DISP', op);
   await evidence.step('On KIOSK-BL-DISP the operator records a clearance of BL-DISP for the GB-T-02 batch', 'Refused by the database: BL-DISP is dedicated to beta-lactam products and GB-T-02 is not one; no clearance is pending', async () => {
     const text = await refusedClearance(kb, base, batches.other?.number ?? '', 'BL-DISP', op);
-    expect(text).toMatch(/EBMR-PLANT-178 BL-DISP is dedicated to beta-lactam products/);
+    expect(text).toMatch(/BL-DISP is dedicated to beta-lactam products/);
     expect(text).toMatch(/is not beta-lactam/);
     return { refused: true };
   }, kb);

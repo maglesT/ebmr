@@ -9,7 +9,8 @@
  *  3. SITE-1 a penicillin facility: proposed by the master-data steward and approved by QA (recipe-core 1210, PR-27);
  *     the manufacturing licence that endorses the product, with its export permissions for the US and the EU;
  *  4. the suite: rooms BL-DISP, BL-BLEND, BL-COMP, BL-COAT and the alu-alu line BL-PL, each dedicated to beta-lactam
- *     products by the QA MBR approver and approved by a QA reviewer (recipe-core 0890, 0912, 1600); its units defined,
+ *     products by the QA MBR approver and approved by a QA reviewer (recipe-core 0890, 0912, 1600), the line flagged
+ *     isolated (tablets 0970); its units defined,
  *     qualified and (the balances) calibrated and in the device registry; the press tooling; cleaned and verified;
  *  5. the route B masters (demo-route-masters-b.ts) approved and authorised for India, the US and the EU, with their
  *     batch-number rules, and the finished-product specification.
@@ -261,6 +262,11 @@ async function suite(app: DemoApp, opts: DemoRoutesOptions): Promise<void> {
   }
   for (const [code, kind, name] of RTB_AREAS) {
     if (!(await has('select 1 from plant.area where code = $1', [code]))) await app.call(steward, p.defineArea, { body: { code, kind, name, negativePressure: true } }, `area ${code}`);
+  }
+  // The suite's packing line is flagged isolated (tablets 0970, IN-38): a beta-lactam product is packed and cartoned only
+  // on an isolated line (TB21-ISOLATION, TB24-ISOLATION).
+  if (!(await has('select 1 from tab.line_isolation i join plant.area a on a.id = i.area_id where a.code = $1 and i.isolated', [P.line]))) {
+    await app.dbAs(steward, 'select tab.record_line_isolation($1, true, $2)::text as r', [P.line, 'Beta-lactam suite line: own room, own air handling, dedicated (DEMO-ONLY)'], { reasonCode: 'LINE_ISOLATION', reasonText: `${P.line} isolated for beta-lactam packing` });
   }
   for (const [code, kind, rest] of CLASSES) {
     if (!(await has('select 1 from plant.equipment_class where code = $1', [code]))) await app.call(steward, p.defineEquipmentClass, { body: { code, kind, ...rest } }, `class ${code}`);
