@@ -35,7 +35,7 @@ interface MasterLike {
   procedure: unknown;
 }
 
-/** The first `targetWeightMg` in the procedure, in document order (the compression's target, before any coat). */
+/** The first `targetWeightMg` in the procedure, in document order (the compression's target, before any coat; a bilayer run's full tablet). */
 function firstTargetWeightMg(node: unknown): string | null {
   if (Array.isArray(node)) {
     for (const x of node) {
@@ -46,6 +46,15 @@ function firstTargetWeightMg(node: unknown): string | null {
   }
   if (node !== null && typeof node === 'object') {
     const o = node as Record<string, unknown>;
+    // Slice 7m (route D): a bilayer run's layers check their own layer weights first; the tablet is its last layer's
+    // full-tablet weight (TB-16: the last layer's samples are the full tablets).
+    const layers = o['layers'];
+    if (Array.isArray(layers) && layers.length > 0) {
+      const last: unknown = layers[layers.length - 1];
+      const weight = last !== null && typeof last === 'object' ? (last as Record<string, unknown>)['weight'] : undefined;
+      const full = weight !== null && typeof weight === 'object' ? (weight as Record<string, unknown>)['targetWeightMg'] : undefined;
+      if (typeof full === 'string' && Dec.isValid(full)) return full;
+    }
     if (typeof o['targetWeightMg'] === 'string' && Dec.isValid(o['targetWeightMg'])) return o['targetWeightMg'];
     for (const v of Object.values(o)) {
       const found = firstTargetWeightMg(v);
