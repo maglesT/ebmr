@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { SignableAction } from '@ebmr/api-contract';
 import { flow } from '@ebmr/recipe-core';
 import { deviationPercent, expectedTabletCount, inputExpectations, unconfirmedCounts } from '../../src/features/execution/issue-expectations.ts';
 
@@ -30,6 +31,22 @@ describe('R3.1: the tablet count at issue against the master', () => {
     expect(short.map((p) => [p.inputId, p.entered, p.expected.value, p.deviation])).toEqual([['tabletsPerBatch', '20000', '199168', '89.96']]);
     expect(unconfirmedCounts(gbt01, 'BS-200K', count('20000'), { tabletsPerBatch: '  ' })).toHaveLength(1);
     expect(unconfirmedCounts(gbt01, 'BS-200K', count('20000'), { tabletsPerBatch: 'Trial sub-batch of a tenth agreed with QA (CC-2026-114)' })).toEqual([]);
+  });
+
+  it('[PR-04] P7K-3: a count that is no whole number is refused, and no reason confirms it', () => {
+    const reason = { tabletsPerBatch: 'Trial sub-batch agreed with QA' };
+    for (const value of ['1e5', '2e5', '199168.0', '-199168', ' 199168', '0x30A00', 'abc', '']) {
+      const problems = unconfirmedCounts(gbt01, 'BS-200K', { tabletsPerBatch: { kind: 'COUNT', value } }, reason);
+      expect(problems.map((p) => [p.inputId, p.entered, p.malformed])).toEqual([['tabletsPerBatch', value, true]]);
+    }
+    expect(unconfirmedCounts(gbt01, 'BS-200K', { tabletsPerBatch: { kind: 'COUNT', value: 199168 } }, reason)[0]?.malformed).toBe(true);
+    expect(unconfirmedCounts(gbt01, 'BS-200K', { tabletsPerBatch: { kind: 'COUNT', value: '199168' } }, reason)).toEqual([]);
+  });
+
+  it('[PR-04] P7K-3: the GMP_BATCH_ISSUE contract already refuses a COUNT that is no whole number', () => {
+    const issue = (value: string) => ({ kind: 'GMP_BATCH_ISSUE', batchId: '00000000-0000-4000-8000-000000000001', reason: { code: 'ISSUE', text: 'Issue' }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT', value } } });
+    expect(SignableAction.safeParse(issue('199168')).success).toBe(true);
+    for (const value of ['1e5', '199168.0', '-1', ' 199168']) expect(SignableAction.safeParse(issue(value)).success).toBe(false);
   });
 
   it('deviation is exact decimal arithmetic', () => {

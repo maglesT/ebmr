@@ -193,3 +193,17 @@ session idle rule of tablets 1460.
   (DESIGNER_PRODUCT_MASTER); test `designer/from-formula.test.ts`.
 - P7J-3 (fixed): a test with a salt factor and an overage on a potency-adjusted active shows the skeleton's BOM, batch
   mass, target calculation and golden case agree with the 0640 batch quantity and the validator; `designer/from-formula.test.ts`.
+
+## Slice 7k (one review pass, 23 October 2026)
+
+- P7K-1 (residual, owner rule): on a demo installation, any signed-in person can read the DEMO-ONLY credential card
+  (`operations.credentialCard`). This is by design, so a presenter can find the demo sign-ins. A PLATFORM.OPERATE
+  check would restrict it. The card reads the seed file, so it can show a password the administrator has changed
+  since. Outside a demo it is refused (DEMO_ONLY).
+- P7K-2 (residual): "Send a production order" commits its demo act before the ERP post. A retry with the same
+  idempotency key replays the stored reply without posting the order again. The Operations screen sends a fresh key
+  on each press.
+- P7K-3 (fixed): a tablet count that was not a valid decimal (for example `1e5`) skipped the 10 % tolerance check at
+  issue. The GMP_BATCH_ISSUE contract already refuses a COUNT that is not a whole number. As defence in depth,
+  `unconfirmedCounts` now marks such a count as malformed: it is refused with EBMR-EXE-700, and no reason can confirm
+  it. Test `execution/issue-expectations.test.ts` ([PR-04] P7K-3, both the contract and the check).

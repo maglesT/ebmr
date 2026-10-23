@@ -131,6 +131,17 @@ function plannedView(planned: execution.PlannedGmpBatch, plan: PlanInput, def: e
  */
 function countRefusal(batchNumber: string, problems: readonly CountProblem[]): HttpRefusal {
   const p = problems[0] as CountProblem;
+  if (p.malformed) {
+    return new HttpRefusal(422, {
+      code: 'EBMR-EXE-700',
+      kind: 'NOT_ALLOWED',
+      whatHappened: `${p.name} "${p.entered}" is not a whole number of tablets. Nothing was signed or issued.`,
+      why: `For batch ${batchNumber} the master gives ${p.expected.value} (${p.expected.basis}); a tablet count is entered as a whole number so it can be checked against it.`,
+      controls: ['PR-04', 'DI-24'],
+      whatYouCanDo: [`Enter ${p.name} as a whole number, without exponent or decimal point.`],
+      whoCanHelp: ['Production planning'],
+    }, false);
+  }
   return new HttpRefusal(422, {
     code: 'EBMR-EXE-700',
     kind: 'NOT_ALLOWED',

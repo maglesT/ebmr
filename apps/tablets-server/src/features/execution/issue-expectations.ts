@@ -95,17 +95,26 @@ export interface CountProblem {
   entered: string;
   expected: InputExpectation;
   deviation: string;
+  /** P7K-3: the entered count is no whole number (`1e5`, `12.5`, text), so it is refused and no reason can confirm it. */
+  malformed?: true;
 }
+
+const WHOLE_NUMBER = /^(0|[1-9][0-9]*)$/;
 
 /**
  * The tablet counts of an issue that are further from the master's than the tolerance and carry no confirmation: each
- * must be corrected or confirmed with the issuer's reason (`confirmations`, by input id).
+ * must be corrected or confirmed with the issuer's reason (`confirmations`, by input id). A count that is no whole number
+ * is returned as `malformed` whatever the confirmation says: it can only be corrected (P7K-3).
  */
 export function unconfirmedCounts(mbr: MasterLike, batchSizeId: string, inputs: Readonly<Record<string, { kind: string; value?: unknown }>>, confirmations: Readonly<Record<string, string>> = {}): CountProblem[] {
   const out: CountProblem[] = [];
   for (const [id, expected] of inputExpectations(mbr, batchSizeId)) {
     const v = inputs[id];
-    if (!v || typeof v.value !== 'string') continue;
+    if (!v) continue;
+    if (typeof v.value !== 'string' || !WHOLE_NUMBER.test(v.value)) {
+      out.push({ inputId: id, name: mbr.inputs.find((i) => i.id === id)?.name ?? id, entered: String(v.value), expected, deviation: '', malformed: true });
+      continue;
+    }
     const deviation = deviationPercent(v.value, expected.value);
     if (deviation === null || Dec.parse(deviation).lte(Dec.parse(expected.tolerancePercent))) continue;
     if ((confirmations[id] ?? '').trim() !== '') continue;
