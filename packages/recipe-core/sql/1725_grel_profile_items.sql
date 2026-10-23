@@ -4,13 +4,13 @@
 -- Handbook: modules/recipe-core.md
 --
 -- recipe.grel_evaluate (CREATE OR REPLACE from its latest definition, recipe-core 0951) adds, after the core items, one
--- item per profile test of the specification in effect for the lot (site.lot_profile_status, site services 1640):
+-- item per profile test of the specification in effect for the lot (site.lot_profile_status, site services 1720):
 -- G3.PROFILE_<test code>, "<test code> profile: every time point within its limits", GREEN only when every point has an
 -- approved current RELEASE result within its own limits; RED with the first point out of its limits (the requirement
 -- fails), else with the first point without an approved result (the requirement stays open). Its evidence is one entry
 -- per point (kind PROFILE_POINT: the stage of a two-stage test and the point, its limits, the value and verdict, or "no result"). The G3.LIMS item lists
 -- the results of a profile's points as that one profile entry, not as separate results. A lot whose specification has
--- no profile reads exactly as before. G3.LIMS still covers every result (site.lot_lims_release_problem, 1640), so a
+-- no profile reads exactly as before. G3.LIMS still covers every result (site.lot_lims_release_problem, 1720), so a
 -- release decision is refused by the database while a profile is open or failed (the release guards read it).
 
 set local role ebmr_owner;
@@ -65,7 +65,7 @@ begin
   -- Slice 6a: the licence and export permission item (0892).
   v_items := (select coalesce(jsonb_agg(case when i ->> 'id' = 'G6.LICENCE' then recipe.grel_licence_item(p_lot, p_market) else i end order by n), '[]'::jsonb)
                 from jsonb_array_elements(v_items) with ordinality t(i, n));
-  -- Phase 7 slice 7p: each profile test of the specification as one item; G3.LIMS lists its points as one entry (1655).
+  -- Phase 7 slice 7p: each profile test of the specification as one item; G3.LIMS lists its points as one entry (1725).
   v_items := (select coalesce(jsonb_agg(case when i ->> 'id' = 'G3.LIMS' then recipe.grel_lims_profile_evidence(i, p_lot) else i end order by n), '[]'::jsonb)
                 from jsonb_array_elements(v_items) with ordinality t(i, n))
              || recipe.grel_profile_items(p_lot);

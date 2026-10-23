@@ -243,7 +243,7 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   40, 45 vs 45) passes at any scale (40.0, 45.000), just beyond it fails (`profiles.test.ts`).
 - P7P-4 (fixed, review): the checklist item of a profile is named from its code with every character other than A-Z,
   0-9 and _ read as _, so DISS.1 and DISS-1 would share G3.PROFILE_DISS_1; such a pair of profile tests is refused when
-  the specification is drafted (EBMR-SITE-976, site services 1640; `profiles.test.ts`).
+  the specification is drafted (EBMR-SITE-976, site services 1720; `profiles.test.ts`).
 - P7P-5 (residual, by design under D-7p-5): the database does not tie a stage's name to the direction of its limit; an
   acid stage with only a lower limit is accepted. The limits the specification states are what is judged; the approver
   checks them.

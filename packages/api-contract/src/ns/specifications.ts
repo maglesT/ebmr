@@ -22,7 +22,7 @@ const PointLabel = z.string().regex(/^[!-~]( ?[!-~]){0,31}$/, 'a short label suc
 const StageLabel = z.string().regex(/^[!-~]( ?[!-~]){0,47}$/, 'a short label of the stage and its medium, e.g. Acid 0.1 M HCl');
 
 /**
- * One time point of a profile test (slice 7p, site services 1640): its label, time with unit and its own limits; a
+ * One time point of a profile test (slice 7p, site services 1720): its label, time with unit and its own limits; a
  * two-stage test names the stage (and medium) of each point, and the time starts again in each stage (R8 C4).
  */
 export const ProfilePointInput = z.strictObject({

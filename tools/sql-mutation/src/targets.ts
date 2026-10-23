@@ -1623,7 +1623,7 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // Phase 7 slice 7p (R4 third check, R8 C4): multi-point and two-stage specification profiles, their results per point
-  // from QC and LIMS (site services 1640) and the profile item of the release checklist (recipe-core 1655).
+  // from QC and LIMS (site services 1720) and the profile item of the release checklist (recipe-core 1725).
   {
     group: 'specification-profiles',
     functions: ['site.point_minutes', 'site.specification_point_guard', 'site.specification_profile_points_check', 'site.lot_test_label', 'site.profile_points_json',

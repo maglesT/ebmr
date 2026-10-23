@@ -56,7 +56,7 @@ async function specifications(app: AppContext, db: Db, filter: { id?: string; ma
                                                           'lowerLimit', t.lower_limit::text, 'upperLimit', t.upper_limit::text, 'required', t.required,
                                                           'pharmacopoeia', t.pharmacopoeia, 'edition', t.edition, 'sampleQuantity', t.sample_quantity::text,
                                                           'sampleUnit', t.sample_unit)
-                                       -- Slice 7p (site services 1640): a profile test with its time points.
+                                       -- Slice 7p (site services 1720): a profile test with its time points.
                                        || case when t.profile then jsonb_build_object('points', site.profile_points_json(t.id)) else '{}'::jsonb end
                                        order by t.test_code collate "C"), '[]'::jsonb)
                from site.specification_test t where t.specification_id = s.id) as tests,

@@ -832,7 +832,7 @@ describe('incidents, validation and change (DI-12, PR-09, IN-03)', () => {
   });
 });
 
-// Phase 7 slice 7p (recipe-core 1655, site services 1640): a new version of the finished product's specification with a
+// Phase 7 slice 7p (recipe-core 1725, site services 1720): a new version of the finished product's specification with a
 // three-point dissolution profile and a content-uniformity acceptance value. It runs last: it changes the specification
 // in effect for every later lot of the product (reserve samples: twice 10 + 6 + 4 units, the 40 units testedAndSampled pulls).
 describe('a dissolution profile and content uniformity on the release checklist (slice 7p; R4 third check, R8 C7)', () => {

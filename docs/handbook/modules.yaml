@@ -352,7 +352,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql:
-        ['^073[013]_', '^0740_', '^0753_', '^0810_', '^082\d_', '^084[0134]_', '^0859_', '^1640_']
+        ['^073[013]_', '^0740_', '^0753_', '^0810_', '^082\d_', '^084[0134]_', '^0859_', '^1720_']
     src: [packages/site-services/src/quality]
     tests:
       - 'packages/site-services/test/quality/**'
@@ -579,7 +579,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^078\d_', '^0892_', '^0932_', '^1655_']
+      packages/recipe-core/sql: ['^078\d_', '^0892_', '^0932_', '^1725_']
     tests:
       - 'packages/recipe-core/test/release/**'
       - 'packages/recipe-core/test/mutation/release-gate.test.ts'

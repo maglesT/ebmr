@@ -139,7 +139,7 @@ named preparations and containers, empty lists, automation fallback, forms clear
 migrations. Routes D and S remain.
 
 **Slice 7p (23 October):** a dissolution profile as one release requirement (R4 third check, R8 C4/C7; site-services
-1640, recipe-core 1655; `slice-7p-routes.md`); demo SR product GLV-SR-500; browser `phase7/sr-profile.spec.ts`.
+1720, recipe-core 1725; `slice-7p-routes.md`); demo SR product GLV-SR-500; browser `phase7/sr-profile.spec.ts`.
 
 **Slice 7m (23 October): demo routes D and S for R1** (`docs/build-plan/phase-7/slice-7m-routes.md`). Route D (roller
 compaction, bilayer, ink printing, aluminium strip) and route S (sugar coating in five applications, PVC/aluminium

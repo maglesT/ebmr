@@ -1,5 +1,5 @@
 /**
- * The profile tests of a lot (Phase 7 slice 7p, contract quality.lotProfiles; site services 1640): each profile of the
+ * The profile tests of a lot (Phase 7 slice 7p, contract quality.lotProfiles; site services 1720): each profile of the
  * lot's specification in effect (e.g. a dissolution profile of three time points, or the acid and buffer stages of a
  * delayed-release tablet) as ONE release requirement with its status (PASS, FAIL or OPEN, the database's), and per time
  * point its limits, its current RELEASE result and the latest LIMS value. QC records the result of each point here

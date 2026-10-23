@@ -1,5 +1,5 @@
 /**
- * Phase 7 slice 7p in the database (site services 1640): a multi-point profile (a dissolution profile of a
+ * Phase 7 slice 7p in the database (site services 1720): a multi-point profile (a dissolution profile of a
  * sustained-release tablet) as one test of a specification, its results per time point from QC and from the LIMS
  * interface, and the lot release on it. Proven as the application role, with its bypass attempts.
  */

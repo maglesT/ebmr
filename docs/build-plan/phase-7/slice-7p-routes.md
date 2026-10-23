@@ -1,12 +1,12 @@
 # Slice 7p: a multi-point dissolution profile as one release requirement
 
 Requirement R4 "Third check" and R8 C4 and C7 (`demo-trial-requirements.md`; owner, 23 October 2026). Branch
-`phase-7/slice-7p`. Migrations: site services 1640, recipe-core 1655. Messages: EBMR-SITE-970 to 979 (a fresh block:
+`phase-7/slice-7p`. Migrations: site services 1720, recipe-core 1725. Messages: EBMR-SITE-970 to 979 (a fresh block:
 960 to 965 and 990 to 992 were taken). No EBMR-EXE code was needed.
 
 ## What was built
 
-- **Specification (site services 1640).** `site.specification_test.profile`; a profile test carries no limits of its
+- **Specification (site services 1720).** `site.specification_test.profile`; a profile test carries no limits of its
   own; its ordered points do (`site.specification_test_point`: number, label, optional stage, time with unit min or h,
   lower and/or upper limit). Database rules: a point only on a profile test of a draft specification, numbered next,
   later than the point before it within its stage, a stage's points following one another, every point naming a stage
@@ -21,7 +21,7 @@ Requirement R4 "Third check" and R8 C4 and C7 (`demo-trial-requirements.md`; own
 - **LIMS.** A `lims.sample_result` may name `point`; for a profile test of the lot's specification in effect it is
   required and must be known (EBMR-SITE-973, classified WRONG_IDENTITY by the adapter); the row records the point and
   its limits and the database computes the verdict from the raw value beside the LIMS's own conformance.
-- **Release checklist (recipe-core 1655).** `recipe.grel_evaluate` adds one item per profile, `G3.PROFILE_<test>`,
+- **Release checklist (recipe-core 1725).** `recipe.grel_evaluate` adds one item per profile, `G3.PROFILE_<test>`,
   GREEN only when every point has an approved result within its limits, RED "the requirement fails: ..." for a point out
   of limits, RED "the requirement is open: ..." for a missing or unapproved point; one evidence entry per point. G3.LIMS
   lists a profile's results as one entry. A lot with no profile reads exactly as before.

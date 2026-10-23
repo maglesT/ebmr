@@ -161,7 +161,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return view;
       },
       lotResults: async ({ params }) => ({ results: await lotResults(pool, params.lotId) }),
-      // Slice 7p (site services 1640): each profile test of the lot's specification as one release requirement.
+      // Slice 7p (site services 1720): each profile test of the lot's specification as one release requirement.
       lotProfiles: async ({ params, requireSession }) => {
         requireSession();
         const { rows } = await pool.query<{ s: LotProfileView[] }>("select coalesce(jsonb_agg(x - 'specTestId' order by n), '[]'::jsonb) as s from jsonb_array_elements(site.lot_profile_status($1)) with ordinality t(x, n)", [params.lotId]);

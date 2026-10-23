@@ -16,7 +16,7 @@ export const LimsSampleResultV1 = z.strictObject({
   conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
   state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
   recordedAt: EpochMicrosText,
-  /** The time point of a profile test (slice 7p, site services 1640), e.g. "1 h"; required for a profile. */
+  /** The time point of a profile test (slice 7p, site services 1720), e.g. "1 h"; required for a profile. */
   point: z.string().regex(/^[!-~]( ?[!-~]){0,31}$/).optional(),
 });
 
@@ -28,7 +28,7 @@ export const LIMS: SystemContract = {
     'EBMR-LIMS-101': 'MALFORMED',
     'EBMR-LIMS-103': 'WRONG_IDENTITY',
     'EBMR-LIMS-104': 'STALE',
-    // Slice 7p: a result naming no time point, or an unknown one, of a profile test (site services 1640).
+    // Slice 7p: a result naming no time point, or an unknown one, of a profile test (site services 1720).
     'EBMR-SITE-973': 'WRONG_IDENTITY',
   },
 };
