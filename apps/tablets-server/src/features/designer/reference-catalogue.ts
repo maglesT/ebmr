@@ -150,6 +150,17 @@ function demoRouteReferenceDocuments(): ReferenceDocumentSeed[] {
     doc('EQUIPMENT_CLASS', 'EQC-PRINTER', 'Tablet ink printer', 'Equipment class of the tablet printer (process equipment).'),
     doc('EQUIPMENT_CLASS', 'EQC-STRIP', 'Strip packing machine', 'Equipment class of the aluminium strip sealer (process equipment).'),
     doc('EQUIPMENT_CLASS', 'EQC-LEAK', 'Leak tester', 'Equipment class of the vacuum-decay leak tester (instrument).'),
+    // Route S (slice 7m): sugar coating, PVC/aluminium thermoform blisters.
+    doc('SOP', 'SOP-RTS-PROC', 'Route S: wet granulation, compression, sugar coating and inspection', 'Binder, high-shear granulation, fluid-bed drying, milling, compression, sugar syrup, sugar coating application by application (seal, sub-coat, smoothing, colour, polish), visual inspection.'),
+    doc('MATERIAL', 'MAT-SUC-01', 'Sucrose for sugar coating (invented)', 'Coating material specification (sugar coat).'),
+    doc('MATERIAL', 'MAT-ALU-EXZSC', 'Printed aluminium lidding foil, route S', 'Printed primary packaging specification (lidding foil, artwork controlled).'),
+    doc('MATERIAL', 'MAT-CTN-EXZSC', 'Printed carton, route S 10 x 10', 'Printed secondary packaging specification (carton, artwork controlled).'),
+    doc('REGISTRATION', 'REG-RTS', 'Exemplazine sugar-coated tablets 250 mg: registered process and specification (invented)', 'Registered process ranges and specification of the invented route S product.'),
+    doc('VALIDATION_REPORT', 'VR-RTS', 'Process validation report: route S (invented)', 'Proven acceptable ranges of the massing, drying, blending and sugar coating and the stage yields (DEMO-ONLY short times).'),
+    doc('VALIDATION_REPORT', 'VR-RTS-PK', 'Packaging validation report: route S thermoform blister (invented)', 'Forming and sealing ranges, leak-test method and the packaging yield.'),
+    doc('RISK_ASSESSMENT', 'QRM-RTS-IPC', 'Risk assessment of the route S in-process check frequency', 'Weight checks of each press side every 30 minutes.'),
+    doc('RISK_ASSESSMENT', 'QRM-RTS-LEAK', 'Risk assessment of the route S leak-test frequency', 'Leak tests at the start and the end of each run and every two hours.'),
+    doc('HOLD_STUDY', 'HS-RTS', 'Hold-time study: route S intermediates', 'Maximum hold of the dried granules, the lubricated blend and the sugar-coated tablets.'),
   ];
 }
 

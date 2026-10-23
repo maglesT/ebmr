@@ -14,6 +14,7 @@
  */
 import { flow } from '@ebmr/recipe-core/pure';
 import { TEMPLATES } from '../features/designer/templates/index.ts';
+import { rtwPackagingContent as rtwPackBase, rtwProcessingContent as rtwBase } from './demo-route-masters.ts';
 import { packYieldParts, phase, pinned } from './golden-packaging.ts';
 
 type Json = Record<string, unknown>;
@@ -269,7 +270,8 @@ export function rtdProcessingContent(familyCode: string, markets: readonly strin
       }, { uses: ['I-BLEND-L1', 'I-BLEND-L2'], equipment: [{ ref: 'PRESS', use: 'USE' }] }) }, { id: 'br-detect', name: 'Detection and de-dusting', body: phase('p-detect', 'Metal detector challenges, de-duster and rejects of the press line', 'TB-17', '1', {
         metalDetector: { device: RTD_PLANT.metalDetector, intervalMinutes: 120, pieces: RTD_TEST_PIECES.map((p) => ({ kind: p.kind, size: { value: p.size, unit: 'mm' } })) },
         deDuster: RTD_PLANT.deDuster,
-      }, { equipment: [{ ref: 'PRESS', use: 'USE' }] }) }] },
+        // The press is the run's (a unit is used by one parallel branch at a time, DATA-PARALLEL); a challenge names it.
+      }) }] },
       phase('p-tool-ret', 'Tooling return and inspection after use', 'TB-09', '1', { part: 'RETURN' }),
       phase('p-comp-yield', 'Compression yield and accountability', 'G-20', '1', {}, {
         records: ['compGood', 'compResidue', 'compRejects'], computes: ['compT', 'compYield', 'compAcc'], yieldCheckpoint: 'Y-COMP', system: WEIGHING,
@@ -400,4 +402,182 @@ export function rtdPackagingContent(familyCode: string, markets: readonly string
     },
   };
   return parsed(content, 'route D packaging master');
+}
+
+// ---------------------------------------------------------------------------------------------
+// Route S
+
+export const RTS_PRODUCT = {
+  productCode: 'EXZ-SC-250',
+  strength: '250 mg',
+  productName: 'Exemplazine sugar-coated tablets 250 mg (invented, demo route S)',
+  reprocessingPermitted: true,
+  betaLactam: false,
+  shelfLifeMonths: 24,
+  erpReference: 'SAP-MM-FG-EXZSC',
+} as const;
+
+export const RTS_SIZE_ID = 'BS-200K';
+export const RTS_BATCH_KG = '81.659';
+export const RTS_SUGAR = 'MAT-SUC-01';
+/** The bill of materials of one batch as the ERP sends it (route W's cores; sucrose for the sugar coat). */
+export const RTS_BOM: readonly (readonly [string, string])[] = [
+  ['MAT-EXZ-NA', '50.000'],
+  ['MAT-MCC-101', '8.000'],
+  ['MAT-LAC-MH', '14.000'],
+  ['MAT-PVP-K30', '2.400'],
+  ['MAT-IPA', '2.400'],
+  ['MAT-CCS', '2.400'],
+  ['MAT-SIO2', '0.400'],
+  ['MAT-MGST', '0.800'],
+  [RTS_SUGAR, '36.000'],
+];
+export const RTS_PACK_TYPE = 'PVC-ALU-BLISTER';
+export const RTS_PACK_SIZE_ID = 'PK-1K';
+export const RTS_PACK_TABLETS = '1000';
+export const RTS_FILM = 'MAT-PVC-250';
+export const RTS_FILM_KG = '0.600';
+export const RTS_FOIL = 'MAT-ALU-EXZSC';
+export const RTS_CARTON = 'MAT-CTN-EXZSC';
+export const RTS_FOIL_ARTWORK = 'ART-EXZSC-FOIL-1';
+export const RTS_CARTON_ARTWORK = 'ART-EXZSC-CTN-1';
+export const RTS_ARTWORK_SET = `FOIL:${RTS_FOIL_ARTWORK},CARTON:${RTS_CARTON_ARTWORK}`;
+export const RTS_PLANT = { line: 'PL-2', blister: 'BLISTER-02', cartoner: 'CTN-03', packBalance: 'BAL-PL-02', tooling: 'TS-RTS-01' } as const;
+
+/** Route W's processing steps route S does not take (its in-process test steps and the acid test). */
+const RTS_DROPPED = new Set(['p-ipc-wt', 'p-ipc-phys', 'p-ipc-fri', 'p-dt']);
+const TESTERS = ['HT', 'FRB', 'DT'];
+
+function strip(n: unknown): unknown {
+  if (Array.isArray(n)) return n.filter((x) => !(x !== null && typeof x === 'object' && RTS_DROPPED.has(String((x as Json)['id'])))).map(strip);
+  if (n !== null && typeof n === 'object') return Object.fromEntries(Object.entries(n as Json).map(([k, v]) => [k, strip(v)]));
+  return n;
+}
+
+function node(n: unknown, id: string): Json {
+  const find = (x: unknown): Json | undefined => {
+    if (Array.isArray(x)) {
+      for (const y of x) {
+        const r = find(y);
+        if (r) return r;
+      }
+    } else if (x !== null && typeof x === 'object') {
+      const o = x as Json;
+      if (o['id'] === id) return o;
+      for (const v of Object.values(o)) {
+        const r = find(v);
+        if (r) return r;
+      }
+    }
+    return undefined;
+  };
+  const r = find(n);
+  if (!r) throw new Error(`the master has no node ${id}`);
+  return r;
+}
+
+function renamed(content: unknown, names: Record<string, string>): Json {
+  let text = JSON.stringify(content);
+  for (const [from, to] of Object.entries(names)) text = text.replaceAll(`"${from}"`, `"${to}"`);
+  return JSON.parse(text) as Json;
+}
+
+/**
+ * The route S processing master (BS-200K) for `markets`: route W's wet route and compression (without its in-process
+ * test steps), then the sugar coat in the coating pan (TB-03 sugar syrup; TB-18 SC, one application per iteration: seal,
+ * sub-coat, smoothing, colour and polish, to a 40 to 60 % weight gain) and QA's release for packing after coating.
+ */
+export function rtsProcessingContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU']): flow.MbrContent {
+  const m = renamed(strip(rtwBase(familyCode, markets)), {
+    'SOP-RTW-PROC': 'SOP-RTS-PROC', 'REG-RTW': 'REG-RTS', 'VR-RTW': 'VR-RTS', 'QRM-RTW-IPC': 'QRM-RTS-IPC', 'HS-RTW': 'HS-RTS', 'MAT-ECS-01': RTS_SUGAR,
+    'RCP-RTW-GRAN': 'RCP-RTS-GRAN', 'RCP-RTW-DRY': 'RCP-RTS-DRY', 'RCP-RTW-COAT': 'RCP-RTS-COAT',
+  });
+  const VR = 'VR-RTS';
+  const gainRange = (r: Json): Json => ({ ...r, source: { kind: 'VALIDATION_REPORT', ref: VR }, low: { value: '40.0', inclusive: true }, high: { value: '60.0', inclusive: true } });
+  m['header'] = {
+    ...(m['header'] as Json),
+    title: 'Exemplazine sugar-coated tablets 250 mg (route S, invented formula): dispensing to release for packing',
+    product: { code: RTS_PRODUCT.productCode, name: 'Exemplazine sugar-coated tablets', strength: RTS_PRODUCT.strength, dosageForm: 'Sugar-coated tablet (bulk, released for packing)' },
+  };
+  m['references'] = pinned((m['references'] as Json[]).map((r) => String(r['code'])).filter((c) => !['EQC-HT', 'EQC-FRB', 'EQC-DT'].includes(c)));
+  for (const b of m['bom'] as Json[]) if (b['material'] === RTS_SUGAR) b['quantity'] = { value: '36.000', unit: 'kg' };
+  for (const p of m['parameters'] as Json[]) {
+    if (p['id'] === 'dispFcs') p['name'] = 'Sucrose dispensed';
+    if (p['id'] === 'gain') {
+      p['name'] = 'Sugar-coating weight gain';
+      const limits = p['limits'] as Json;
+      limits['ranges'] = (limits['ranges'] as Json[]).map(gainRange);
+    }
+  }
+  for (const c of m['calculations'] as Json[]) if (c['id'] === 'dispStd') c['expression'] = String(c['expression']).replace('12.25 [mg]', '180 [mg]');
+  for (const y of m['yieldCheckpoints'] as Json[]) {
+    if (y['id'] !== 'Y-COAT') continue;
+    y['name'] = 'Sugar-coating weight gain';
+    const limits = y['limits'] as Json;
+    limits['ranges'] = (limits['ranges'] as Json[]).map(gainRange);
+  }
+  m['goldenCases'] = (m['goldenCases'] as Json[]).map((g) => {
+    if (g['id'] === 'G-DISP') {
+      return { ...g, inputs: { ...(g['inputs'] as Json), dispFcs: { value: '36.000', unit: 'kg' } }, expected: { dispTotal: { value: '120.060', unit: 'kg' }, dispStd: { value: '120.059', unit: 'kg' }, dispRecon: { value: '100.00', unit: '%' } } };
+    }
+    if (g['id'] === 'G-COAT') return { ...g, description: 'Sugar-coating weight gain: 115.300 kg coated from 79.500 kg cores', inputs: { coatedNet: { value: '115.300', unit: 'kg' }, compGood: { value: '79.500', unit: 'kg' } }, expected: { coatGain: { value: '45.03', unit: '%' } } };
+    if (g['id'] === 'G-INSP') return { ...g, description: 'Inspection: 115.120 kg accepted of 115.300 kg', inputs: { acceptedNet: { value: '115.120', unit: 'kg' }, coatedNet: { value: '115.300', unit: 'kg' } }, expected: { inspYield: { value: '99.84', unit: '%' } } };
+    return g;
+  });
+  const proc = m['procedure'] as Json;
+  proc['id'] = 'PROC-RTS';
+  proc['name'] = 'Exemplazine sugar-coated tablets 250 mg: dispensing to release for packing';
+  // Compression and coating bind no in-process tester.
+  for (const [sid, status] of [['S-COMP', 'p-comp-status'], ['S-COAT', 'p-coat-status']] as const) {
+    const st = node(proc, sid);
+    const binding = st['binding'] as Json;
+    binding['equipment'] = (binding['equipment'] as Json[]).filter((e) => !TESTERS.includes(String(e['ref'])));
+    const s = node(st, status);
+    s['equipment'] = (s['equipment'] as Json[]).filter((e) => !TESTERS.includes(String(e['ref'])));
+  }
+  ((node(proc, 'p-tool')['config'] as Json)['specification'] as Json)['upperEmbossing'] = 'XSC';
+  const coat = node(proc, 'S-COAT');
+  coat['name'] = 'Sugar coating';
+  const susp = node(coat, 'p-susp');
+  susp['name'] = 'Sugar syrup';
+  susp['config'] = { solutionType: 'SUGAR_SYRUP', solvent: 'PURIFIED_WATER', useBy: { value: '12', unit: 'h' } };
+  const cores = node(coat, 'p-cores');
+  (cores['config'] as Json)['coatingType'] = 'SC';
+  cores['name'] = 'Cores, room and pan load before sugar coating';
+  const loop = node(coat, 'L-COAT');
+  loop['name'] = 'Sugar-coat application by application until the weight gain is reached';
+  loop['maxIterations'] = 6;
+  loop['exit'] = { condition: 'gain >= 40 [%]', endpoint: 'gain' };
+  const pan = node(coat, 'p-coat');
+  pan['name'] = 'Sugar-coating application (seal, sub-coat, smoothing, colour, polish)';
+  const cfg = pan['config'] as Json;
+  delete cfg['minGain'];
+  Object.assign(cfg, { coatingType: 'SC', targetGain: '45.0', maxGain: '60.0' });
+  return parsed(m, 'route S processing master');
+}
+
+/** The route S thermoform packaging master (PK-1K: 1,000 tablets, 100 PVC/aluminium blisters of 10, 10 cartons). */
+export function rtsPackagingContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU']): flow.MbrContent {
+  const m = renamed(rtwPackBase(familyCode, markets), {
+    'MAT-ALU-CF': RTS_FILM, 'MAT-ALU-EXZGR': RTS_FOIL, 'MAT-CTN-EXZGR': RTS_CARTON, 'ART-EXZGR-FOIL-1': RTS_FOIL_ARTWORK, 'ART-EXZGR-CTN-1': RTS_CARTON_ARTWORK,
+    'SOP-PACK-CF': 'SOP-PACK-BL', 'REG-RTW': 'REG-RTS', 'VR-RTW-PK': 'VR-RTS-PK', 'QRM-RTW-LEAK': 'QRM-RTS-LEAK', 'EQC-COLDFORM': 'EQC-BLISTER', 'CF-TOOL-RTW': 'FORM-TOOL-RTS',
+    'SEAL-PLATE-RTW': 'SEAL-PLATE-RTS', 'RCP-CF-RTW': 'RCP-BL-RTS', COLD_FORM: 'THERMOFORM', 'ALU-ALU-BLISTER': RTS_PACK_TYPE,
+  });
+  const header = m['header'] as Json;
+  header['title'] = 'Exemplazine sugar-coated tablets 250 mg: PVC/aluminium thermoform blister 10 x 10, packaging order (route S, invented)';
+  header['product'] = { code: RTS_PRODUCT.productCode, name: 'Exemplazine sugar-coated tablets', strength: RTS_PRODUCT.strength, dosageForm: 'Sugar-coated tablet, PVC/aluminium blister' };
+  m['references'] = pinned((m['references'] as Json[]).map((r) => String(r['code'])));
+  for (const b of m['bom'] as Json[]) b['quantity'] = { value: RTS_FILM_KG, unit: 'kg' };
+  const proc = m['procedure'] as Json;
+  proc['id'] = 'PROC-RTS-BL';
+  proc['name'] = 'Exemplazine sugar-coated tablets 250 mg: thermoform blister packaging order';
+  node(proc, 'S-PACK')['name'] = 'Thermoform blister packaging';
+  for (const [id, name] of [
+    ['p-pk-clear', 'Blister line clearance for the order and its artwork, verified, line occupied'], ['p-pk-status', 'Blister line: equipment status and use'],
+    ['p-pk-film', 'PVC forming film issued by weight'], ['p-tb21c', 'Thermoform line set-up and independent line check'], ['p-tb21', 'Forming and sealing run with defect checks'],
+    ['p-tb22', 'Leak tests of the blisters'],
+  ] as const) node(proc, id)['name'] = name;
+  // A thermoform pack collects the forming temperature besides the sealing values (TB21-FORMING).
+  ((node(proc, 'p-tb21')['config'] as Json)['actuals'] as Json[]).unshift({ tag: 'blister.form_temp_C', unit: 'degC', min: '120.0', max: '140.0' });
+  return parsed(m, 'route S packaging master');
 }

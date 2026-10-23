@@ -31,6 +31,8 @@ import {
 import {
   RTD_ARTWORK_SET, RTD_BATCH_KG, RTD_BOM, RTD_CARTON, RTD_CARTON_ARTWORK, RTD_PACK_SIZE_ID, RTD_PACK_TABLETS, RTD_PACK_TYPE, RTD_PLANT, RTD_PRODUCT, RTD_SIZE_ID, RTD_STRIP_FOIL,
   RTD_STRIP_FOIL_KG, RTD_TEST_PIECES, rtdPackagingContent, rtdProcessingContent,
+  RTS_ARTWORK_SET, RTS_BATCH_KG, RTS_BOM, RTS_CARTON, RTS_CARTON_ARTWORK, RTS_FILM, RTS_FILM_KG, RTS_FOIL, RTS_FOIL_ARTWORK, RTS_PACK_SIZE_ID, RTS_PACK_TABLETS, RTS_PACK_TYPE, RTS_PLANT,
+  RTS_PRODUCT, RTS_SIZE_ID, RTS_SUGAR, rtsPackagingContent, rtsProcessingContent,
 } from './demo-route-masters-ds.ts';
 import { approve } from './release-path.ts';
 import { DEMO_LICENCE_HOLDER } from '../features/india/index.ts';
@@ -127,6 +129,35 @@ export const RTD_LOTS: readonly SeedPackLot[] = [
 ];
 export const RTD_ORDERS = { processing: ['PO-RTD-0001', 'PO-RTD-0002', 'PO-RTD-0003'], packaging: ['PO-RTDPK-0001', 'PO-RTDPK-0002', 'PO-RTDPK-0003', 'PO-RTDPK-0004'] } as const;
 
+/** Route S (slice 7m): its new materials and its lots (ample: ten batches and many packaging orders). */
+export const RTS_MATERIALS = [
+  material(RTS_SUGAR, 'Sucrose for sugar coating (invented)', 'EXCIPIENT', 'kg'),
+  material(RTS_FOIL, 'Printed aluminium lidding foil, route S', 'PRINTED_PACKAGING', '1'),
+  material(RTS_CARTON, 'Printed carton, route S 10 x 10', 'PRINTED_PACKAGING', '1'),
+];
+export const RTS_LOTS: readonly SeedPackLot[] = [
+  {
+    lotCode: 'RTS-API-001', materialCode: 'MAT-EXZ-NA', quantity: '600.000', expiresAt: '2028-06-30T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
+    results: [
+      { testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', value: '99.20', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
+      { testCode: 'WATER', methodReference: 'STP-KF-01', value: '0.80', unit: '%', upperLimit: '1.5' },
+    ],
+    assay: { basis: 'ANHYDROUS_WATER', assayTest: 'ASSAY', waterTest: 'WATER' },
+  },
+  { ...lot('RTS-MCC-001', 'MAT-MCC-101', '100.000', [lod('3.10', '5.0')]), expiresAt: '2029-03-31T00:00:00Z' },
+  lot('RTS-LAC-001', 'MAT-LAC-MH', '160.000', [lod('0.40', '1.0')]),
+  lot('RTS-PVP-001', 'MAT-PVP-K30', '30.000', [lod('3.50', '5.0')]),
+  lot('RTS-IPA-001', 'MAT-IPA', '35.000', [lod('0.05', '0.1')]),
+  lot('RTS-CCS-001', 'MAT-CCS', '30.000', [lod('6.20', '10.0')]),
+  lot('RTS-SIO-001', 'MAT-SIO2', '6.000', [lod('1.10', '2.5')]),
+  lot('RTS-MGS-001', 'MAT-MGST', '10.000', [lod('3.00', '6.0')]),
+  lot('RTS-SUC-001', RTS_SUGAR, '400.000', [lod('0.05', '0.2')]),
+  lot('RTS-PVC-001', RTS_FILM, '20.000', [{ testCode: 'THICKNESS', methodReference: 'STP-PM-THK-01', value: '250', unit: 'um', lowerLimit: '240', upperLimit: '260' }], 'VIS-PM-01'),
+  { ...lot('RTS-ALU-001', RTS_FOIL, '20000', [textCheck], 'VIS-PM-01'), artwork: RTS_FOIL_ARTWORK },
+  { ...lot('RTS-CTN-001', RTS_CARTON, '5000', [textCheck], 'VIS-PM-01'), artwork: RTS_CARTON_ARTWORK },
+];
+export const RTS_ORDERS = { processing: ['PO-RTS-0001', 'PO-RTS-0002', 'PO-RTS-0003'], packaging: ['PO-RTSPK-0001', 'PO-RTSPK-0002', 'PO-RTSPK-0003', 'PO-RTSPK-0004'] } as const;
+
 /** The rooms and lines, classes and units the routes need besides those of GB-T-02 (release-path.ts). */
 const AREAS: [string, 'ROOM' | 'LINE'][] = [
   ['GRAN-1', 'ROOM'], ['COAT-1', 'ROOM'], ['INSP-1', 'ROOM'], [RTW_PLANT.line, 'LINE'],
@@ -152,6 +183,7 @@ const CLASSES: [string, 'INSTRUMENT' | 'PROCESS', Json][] = [
   ['EQC-PRINTER', 'PROCESS', PROCESS('Tablet ink printer')],
   ['EQC-STRIP', 'PROCESS', PROCESS('Aluminium strip packing machine')],
   ['EQC-LEAK', 'INSTRUMENT', INSTRUMENT('Vacuum-decay leak tester')],
+  ['EQC-BLISTER', 'PROCESS', PROCESS('Thermoform blister machine')],
 ];
 const UNITS: [string, string, string, string][] = [
   ['BAL-GRAN-01', 'Balance of GRAN-1', 'EQC-BAL', 'GRAN-1'],
@@ -181,11 +213,14 @@ const UNITS: [string, string, string, string][] = [
   [RTD_PLANT.stripMachine, 'Aluminium strip packing machine', 'EQC-STRIP', RTD_PLANT.line],
   [RTD_PLANT.cartoner, 'Cartoner with checkweigher', 'EQC-CARTONER', RTD_PLANT.line],
   [RTD_PLANT.leakTester, 'Vacuum-decay leak tester', 'EQC-LEAK', RTD_PLANT.line],
+  // Route S (slice 7m): the thermoform machine beside the cold-form machine on the blister line.
+  [RTS_PLANT.blister, 'Thermoform (PVC/aluminium) blister machine', 'EQC-BLISTER', RTS_PLANT.line],
 ];
 /** The tooling set of each route's product (the master's approved punch specification). */
 const TOOLING: { code: string; product: string; name: string; shape: string; upper: string }[] = [
   { code: 'TS-RTW-01', product: RTW_PRODUCT.productCode, name: RTW_PRODUCT.productName, shape: 'Round 10 mm biconvex', upper: 'X250' },
   { code: RTD_PLANT.tooling, product: RTD_PRODUCT.productCode, name: RTD_PRODUCT.productName, shape: 'Capsule 17 x 8 mm, bilayer', upper: 'XBL' },
+  { code: RTS_PLANT.tooling, product: RTS_PRODUCT.productCode, name: RTS_PRODUCT.productName, shape: 'Round 10 mm biconvex', upper: 'XSC' },
 ];
 
 // ---------------------------------------------------------------------------------------------
@@ -197,13 +232,13 @@ export async function seedDemoRoutes(opts: DemoRoutesOptions): Promise<DemoRoute
   await confirmErpMasters(ctx);
   // The GMP seed specified the materials of its own lots (seed-gmp.ts); the route's new materials get theirs here.
   const specified = new Set<string>([...GBT01_LOTS, ...GBT01_PACK_LOTS, ...GBT02_LOTS].map((l) => l.materialCode));
-  for (const l of [...RTW_LOTS, ...RTD_LOTS]) {
+  for (const l of [...RTW_LOTS, ...RTD_LOTS, ...RTS_LOTS]) {
     if (((await ctx.pools.admin.query('select 1 from site.material_lot where lot_code = $1', [l.lotCode])).rowCount ?? 0) > 0) continue;
     if (!specified.has(l.materialCode)) await seedSpecification(ctx, l);
     specified.add(l.materialCode);
     await seedLot(ctx, l);
   }
-  await licence(ctx, [{ productCode: RTW_PRODUCT.productCode, strength: RTW_PRODUCT.strength }, { productCode: RTD_PRODUCT.productCode, strength: RTD_PRODUCT.strength }]);
+  await licence(ctx, [{ productCode: RTW_PRODUCT.productCode, strength: RTW_PRODUCT.strength }, { productCode: RTD_PRODUCT.productCode, strength: RTD_PRODUCT.strength }, { productCode: RTS_PRODUCT.productCode, strength: RTS_PRODUCT.strength }]);
   const app = await DemoApp.open({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed: opts.seed, db: opts.db });
   try {
     log('demo routes: the plant of the routes (rooms, lines, units, instruments, tooling), cleaned and verified');
@@ -212,10 +247,13 @@ export async function seedDemoRoutes(opts: DemoRoutesOptions): Promise<DemoRoute
     const w = await routeW(app, opts);
     log('demo routes: the route D masters (roller compaction, bilayer, printing, aluminium strips), approved and authorised for IN, US and EU');
     const d = await routeD(app, opts);
+    log('demo routes: the route S masters (sugar coating, thermoform blister), approved and authorised for IN, US and EU');
+    const sc = await routeS(app, opts);
     await productSpecification(app, opts, RTW_PRODUCT.productCode, RTW_PRODUCT_TESTS);
     await productSpecification(app, opts, RTD_PRODUCT.productCode, RTD_PRODUCT_TESTS);
+    await productSpecification(app, opts, RTS_PRODUCT.productCode, RTS_PRODUCT_TESTS);
     await verifyRuleSets(app, opts, ROUTE_RULE_SETS);
-    return [w, d];
+    return [w, d, sc];
   } finally {
     await app.close();
   }
@@ -269,6 +307,12 @@ async function postCatalogue(opts: DemoRoutesOptions): Promise<void> {
       product: RTD_PRODUCT, materials: RTD_MATERIALS, orders: [
         ...RTD_ORDERS.processing.map((o) => order(o, RTD_PRODUCT.productCode, RTD_PRODUCT.strength, RTD_BATCH_KG, 'kg', RTD_BOM.map(([m, q]) => [m, q, 'kg'] as const))),
         ...RTD_ORDERS.packaging.map((o) => order(o, RTD_PRODUCT.productCode, RTD_PRODUCT.strength, RTD_PACK_TABLETS, '{tbl}', [[RTD_STRIP_FOIL, RTD_STRIP_FOIL_KG, 'kg']])),
+      ],
+    },
+    {
+      product: RTS_PRODUCT, materials: RTS_MATERIALS, orders: [
+        ...RTS_ORDERS.processing.map((o) => order(o, RTS_PRODUCT.productCode, RTS_PRODUCT.strength, RTS_BATCH_KG, 'kg', RTS_BOM.map(([m, q]) => [m, q, 'kg'] as const))),
+        ...RTS_ORDERS.packaging.map((o) => order(o, RTS_PRODUCT.productCode, RTS_PRODUCT.strength, RTS_PACK_TABLETS, '{tbl}', [[RTS_FILM, RTS_FILM_KG, 'kg']])),
       ],
     },
   ];
@@ -371,6 +415,12 @@ export const RTD_PRODUCT_TESTS = [
   { testCode: 'DISSOLUTION', methodReference: 'STP-EXZBL-DS-01', unit: '%', lowerLimit: '80', result: '91' },
 ] as const;
 
+/** The finished-product tests of route S's lots (invented limits; the browser test records these results). */
+export const RTS_PRODUCT_TESTS = [
+  { testCode: 'ASSAY', methodReference: 'STP-EXZSC-AS-01', unit: '%', lowerLimit: '95.0', upperLimit: '105.0', result: '99.8' },
+  { testCode: 'DISSOLUTION', methodReference: 'STP-EXZSC-DS-01', unit: '%', lowerLimit: '75', result: '86' },
+] as const;
+
 /** The approved finished-product specification of a route's product (QC drafts it, the head of QC approves it). */
 async function productSpecification(app: DemoApp, opts: DemoRoutesOptions, productCode: string, tests: readonly { testCode: string; methodReference: string; unit: string; lowerLimit: string; upperLimit?: string }[]): Promise<void> {
   if (((await opts.db.admin.query('select 1 from site.specification where material_code = $1', [productCode])).rowCount ?? 0) > 0) return;
@@ -436,6 +486,27 @@ async function routeD(app: DemoApp, opts: DemoRoutesOptions): Promise<DemoRoute>
     validationRef: 'VR-RTD-PK', sizeId: RTD_PACK_SIZE_ID, numbering: { ruleCode: `RTD-PACK-${tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}' }, productCode: RTD_PRODUCT.productCode,
   });
   return { route: 'D', productCode: RTD_PRODUCT.productCode, processing: { familyId: proc.familyId, familyCode: procCode, orders: [...RTD_ORDERS.processing] }, packaging: packaging(pack.familyId, packCode) };
+}
+
+async function routeS(app: DemoApp, opts: DemoRoutesOptions): Promise<DemoRoute> {
+  const { tag } = opts;
+  const procCode = `RTS-SC-${tag}`;
+  const packCode = `RTS-BL-${tag}`;
+  const existing = await opts.db.admin.query<{ id: string; code: string; record_kind: string }>('select id, code, record_kind from recipe.mbr_family where product_code = $1', [RTS_PRODUCT.productCode]);
+  const had = (kind: string) => existing.rows.find((r) => r.record_kind === kind);
+  const packaging = (familyId: string, familyCode: string): DemoRoute['packaging'] => ({ familyId, familyCode, orders: [...RTS_ORDERS.packaging], packType: RTS_PACK_TYPE, line: RTS_PLANT.line, artworkSet: RTS_ARTWORK_SET });
+  const p0 = had('PROCESSING');
+  const k0 = had('PACKAGING');
+  if (p0 && k0) return { route: 'S', productCode: RTS_PRODUCT.productCode, processing: { familyId: p0.id, familyCode: p0.code, orders: [...RTS_ORDERS.processing] }, packaging: packaging(k0.id, k0.code) };
+  const proc = await approve(app, rtsProcessingContent(procCode), {
+    changeRecord: `CC-RTS-SC-${tag}`, title: 'New product route S, wet granulation and sugar coating (invented, DEMO-ONLY)', riskAssessment: `RA-RTS-SC-${tag}`, rationaleRef: 'QRM-RTS-IPC',
+    validationRef: 'VR-RTS', sizeId: RTS_SIZE_ID, numbering: { ruleCode: `RTS-PROC-${tag}`, kind: 'PROCESSING', format: 'RSC{YY}{SEQ:4}' }, productCode: RTS_PRODUCT.productCode,
+  });
+  const pack = await approve(app, rtsPackagingContent(packCode), {
+    changeRecord: `CC-RTS-BL-${tag}`, title: 'New pack route S, PVC/aluminium thermoform blister (invented, DEMO-ONLY)', riskAssessment: `RA-RTS-BL-${tag}`, rationaleRef: 'QRM-RTS-LEAK',
+    validationRef: 'VR-RTS-PK', sizeId: RTS_PACK_SIZE_ID, numbering: { ruleCode: `RTS-PACK-${tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}' }, productCode: RTS_PRODUCT.productCode,
+  });
+  return { route: 'S', productCode: RTS_PRODUCT.productCode, processing: { familyId: proc.familyId, familyCode: procCode, orders: [...RTS_ORDERS.processing] }, packaging: packaging(pack.familyId, packCode) };
 }
 
 export type { DemoBrowser };
