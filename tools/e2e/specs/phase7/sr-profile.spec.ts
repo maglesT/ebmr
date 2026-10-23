@@ -99,9 +99,9 @@ test('[IN-33][PR-45] SR profile 1: QC adds the dissolution profile of three time
     await expect(box.getByRole('textbox', { name: 'Test code 1' })).toHaveValue('ASSAY');
     await box.getByRole('button', { name: 'Add a test' }).click();
     const t = box.getByTestId('spec-test-1');
-    await t.getByRole('textbox', { name: 'Test code 2' }).fill('DISSOLUTION');
+    await t.getByRole('textbox', { name: 'Test code 2', exact: true }).fill('DISSOLUTION');
     await t.getByRole('textbox', { name: 'Method 2' }).fill('STP-GLV-DS-SR-01 (USP apparatus 1, 100 rpm, 900 mL pH 6.8)');
-    await t.getByRole('textbox', { name: 'Unit 2' }).fill('%');
+    await t.getByRole('textbox', { name: 'Unit 2', exact: true }).fill('%');
     await choose(t.getByRole('radio', { name: 'Profile (time points)' }));
     await t.getByRole('button', { name: 'Add a time point to test 2' }).click();
     for (const [k, p] of POINTS.entries()) {
@@ -115,7 +115,7 @@ test('[IN-33][PR-45] SR profile 1: QC adds the dissolution profile of three time
     }
     await choose(t.getByRole('radio', { name: 'Yes', exact: true }));
     await choose(t.getByRole('radio', { name: 'IN_HOUSE', exact: true }));
-    await t.getByRole('textbox', { name: 'Edition 2' }).fill('STP-2026-1');
+    await t.getByRole('textbox', { name: 'Edition 2', exact: true }).fill('STP-2026-1');
     await t.getByRole('textbox', { name: 'Sample per run 2' }).fill('2');
     await t.getByRole('textbox', { name: 'Sample unit 2' }).fill('packs');
     await box.getByRole('button', { name: 'Draft the version' }).click();
@@ -226,7 +226,7 @@ test('[IN-33] SR profile 4: a two-stage dissolution of a gastro-resistant tablet
     const i = String(n + 1);
     await t.getByRole('textbox', { name: `Test code ${i}` }).fill('DISSOLUTION-2S');
     await t.getByRole('textbox', { name: `Method ${i}` }).fill('STP-EXZGR-DS-2S (2 h acid, then 45 min buffer)');
-    await t.getByRole('textbox', { name: `Unit ${i}` }).fill('%');
+    await t.getByRole('textbox', { name: `Unit ${i}`, exact: true }).fill('%');
     await choose(t.getByRole('radio', { name: 'Profile (time points)' }));
     const stages = [['Acid 2 h', 'Acid 0.1 M HCl', '2', 'h', '', '10'], ['Buffer 45 min', 'Buffer pH 6.8', '45', 'min', '75', '']] as const;
     for (const [k, p] of stages.entries()) {
@@ -241,7 +241,7 @@ test('[IN-33] SR profile 4: a two-stage dissolution of a gastro-resistant tablet
     }
     await choose(t.getByRole('radio', { name: 'Yes', exact: true }));
     await choose(t.getByRole('radio', { name: 'USP', exact: true }));
-    await t.getByRole('textbox', { name: `Edition ${i}` }).fill('USP 2026');
+    await t.getByRole('textbox', { name: `Edition ${i}`, exact: true }).fill('USP 2026');
     await t.getByRole('textbox', { name: `Sample per run ${i}` }).fill('2');
     await t.getByRole('textbox', { name: `Sample unit ${i}` }).fill('packs');
     await box.getByRole('button', { name: 'Draft the version' }).click();
