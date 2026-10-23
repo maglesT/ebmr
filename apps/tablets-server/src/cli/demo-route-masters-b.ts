@@ -142,7 +142,7 @@ export function rtbProcessingContent(familyCode: string, markets: readonly strin
   const disp = stage('S-DISP', 'Dispensing', P.disp, [['BAL', 'EQC-BAL', 'INSTRUMENT']], 'DISP', {
     id: 'O-DISP', name: 'Dispense', children: [
       phase('p-disp-rh', 'Dispensing room: relative humidity against the suite\'s low limit (clavulanate-type active)', 'G-11', '1', {}, {
-        records: ['dispRoomRh'],
+        records: ['dispRoomRh'], signatures: WITNESSED,
       }),
       phase('p-disp-cef', 'Potency-adjusted dispensing of the cephalosporin and its compensating cellulose', 'TB-01', '1', {
         active: { bomLine: 'BOM-CEF', basis: 'AS_IS', standardIs: 'FORM', standardBasis: 'cefexemplone proxetil at 100.0 % as is' },

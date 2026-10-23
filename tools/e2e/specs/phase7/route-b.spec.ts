@@ -232,12 +232,12 @@ test('[DI-30][INV-40][PR-20][PR-25][IN-39] route B 3: dispensing on KIOSK-BL-DIS
     await clearanceStep(page, e2e, batchId, 'p-disp-clear@', 'BL-DISP', op, verifier);
     await statusStep(page, e2e, batchId, 'p-disp-status@', [{ ref: 'BAL', code: 'BAL-BLD-01', instrument: true }], op);
   }, page);
-  await evidence.step('G-11: the dispensing room at 22 % RH, within the suite\'s limit of 30 % (a clavulanate-type active)', 'The reading saved without an excursion; performed and verified', async () => {
+  await evidence.step('G-11: the dispensing room at 22 % RH, within the suite\'s limit of 30 % (a clavulanate-type active)', 'The reading saved without an excursion; performed and witnessed', async () => {
     if (await done(page, e2e, batchId, 'p-disp-rh@')) return;
     await step(page, e2e, batchId, 'p-disp-rh@', ANY);
     await begin(page, op);
     await field(page, 'dispRoomRh', '22', op);
-    await performAndCheck(page, op, verifier, op);
+    await performAndCheck(page, op, verifier, op, 'Witness');
     await completed(page);
     await expect(page.locator('[data-testid^="exception-"]')).toHaveCount(0);
   }, page);

@@ -130,6 +130,12 @@ from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 po
 named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
 migrations. Routes D and S remain.
 
+**Slice 7n (23 October): R7, a beta-lactam product in a dedicated suite** (`docs/build-plan/phase-7/slice-7n-routes.md`).
+Recipe-core 1600 dedicates rooms and lines to beta-lactam products (IN-27 dedications, class `BETA_LACTAM`) and refuses
+a beta-lactam batch outside them and any other batch inside them (PR-27). Demo route B (CXC-325, invented: direct
+compression, film coat, alu-alu with desiccant) in the suite BL-DISP to BL-PL with its kiosks; browser tests
+`route-b.spec.ts` and `route-b-refusals.spec.ts`; user guide page 10. Decisions D-7n-1 to 9.
+
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.
 
