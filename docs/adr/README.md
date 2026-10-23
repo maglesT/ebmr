@@ -28,6 +28,7 @@ Records 0001-0015 were accepted on 2026-09-27 together with build outline v0.2 (
 | [0018](0018-platform-scope-hook.md) | A SCOPE hook for the platform's permission checks | Accepted (2026-10-10) | Domain modules add the scope of the record a transition acts on (e.g. its product) through a kernel SCOPE hook merged into the authority adapter's location scope; without one the kernel checks as before. |
 | [0019](0019-generic-block-guards-in-recipe-core.md) | Database guards of generic blocks move to recipe-core before Injectables | Accepted (2026-10-11) | A guard enforcing a generic block's rule belongs to recipe-core; the Tablets copies are re-created there before Phase 5. |
 | [0020](0020-analytics-module-read-only-advisory.md) | The analytics module: a pure package, a read-only runner role and an advisory output schema | Accepted (2026-10-17) | `@ebmr/analytics` computes only; a runner reads as `ebmr_analytics` (no GMP privilege) and records insert-only, audited, versioned outputs in the non-GMP `analytics` schema; floats only inside analytics; TypeScript with `ml-matrix` and `@stdlib`. |
+| [0021](0021-plant-on-the-sandbox.md) | The plant and the containers on the sandbox too | Accepted (2026-10-23) | Plant, containers and the batch's plant reads serve both installations, each against its own database, so a master's sandbox test run records its plant acts and earns its SANDBOX_RUN evidence on screen. |
 
 ## Conventions
 

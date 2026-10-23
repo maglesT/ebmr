@@ -161,7 +161,7 @@ export function plantVerifyHandler(app: AppContext): SignableActionHandler<Plant
 }
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
-  if (app.installation === 'GMP') registry.register(plantVerifyHandler(app));
+  registry.register(plantVerifyHandler(app));
 }
 
 const one = <T>(xs: T[], what: string): T => {

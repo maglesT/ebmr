@@ -216,7 +216,6 @@ export const SCREEN_EN = {
   'sources.line': '{label} from batch {batch} ({product}{intermediate}): {remaining} {unit} left{expiry}',
   'sources.problem': 'Cannot be used now: {problem}',
   'sources.chosen': 'Source chosen: {label}',
-  'sources.sandbox': 'The addition sources are read from the GMP database; this sandbox lists none.',
   // DI-24: an attempt is voided with a reason, never deleted.
   'void.open': 'Void an attempt (with a reason)',
   'void.title': 'Void an attempt',

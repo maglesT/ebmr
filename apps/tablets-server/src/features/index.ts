@@ -68,9 +68,10 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'quality', installations: ['GMP'], module: quality satisfies FeatureModule },
   { name: 'planning', installations: ['GMP'], module: planning satisfies FeatureModule },
   { name: 'master-data', installations: ['GMP'], module: masterData satisfies FeatureModule },
-  { name: 'plant', installations: ['GMP'], module: plant satisfies FeatureModule },
+  // Phase 7 slice 7o (D-7o-1): plant and containers on both installations (a test run's plant acts on the sandbox).
+  { name: 'plant', installations: ['GMP', 'SANDBOX'], module: plant satisfies FeatureModule },
   { name: 'review', installations: ['GMP'], module: review satisfies FeatureModule },
-  { name: 'containers', installations: ['GMP'], module: containers satisfies FeatureModule },
+  { name: 'containers', installations: ['GMP', 'SANDBOX'], module: containers satisfies FeatureModule },
   { name: 'lims', installations: ['GMP'], module: lims satisfies FeatureModule },
   { name: 'release', installations: ['GMP'], module: release satisfies FeatureModule },
   { name: 'notifications', installations: ['GMP'], module: notifications satisfies FeatureModule },

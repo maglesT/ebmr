@@ -15,7 +15,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { ClientEntry, routes, type BlockEntryFormView, type BlockFieldSchemaWire, type BlockFieldWire, type StepScreenView } from '@ebmr/api-contract';
 import { useApiQuery } from '../../../api/hooks.ts';
-import { isGmpFloor } from '../family.ts';
 import { Button, decimalProblem, Field, floor } from '@ebmr/ui-kit';
 import { useStepChoices, type ChosenValue } from '../choices.tsx';
 import { wcls } from '../classes.ts';
@@ -216,8 +215,7 @@ export function namesContainer(name: string, schema: EntryFieldSchema): boolean 
  */
 function ContainerInput({ label, description, value, onChange, disabled }: { label: string; description: string; value: string; onChange: (d: Draft) => void; disabled: boolean }) {
   const batchId = useContext(FormBatch);
-  const gmp = isGmpFloor();
-  const q = useApiQuery(routes.containers.list, { query: { batchId: batchId ?? '' } }, { enabled: gmp && batchId !== null });
+  const q = useApiQuery(routes.containers.list, { query: { batchId: batchId ?? '' } }, { enabled: batchId !== null });
   const options = (q.data?.containers ?? []).map((c) => ({ value: c.containerId, label: `${c.label} (${c.stage}, ${c.state}${c.netQuantity ? `, ${c.netQuantity} ${c.unit}` : ''})` }));
   if (options.length === 0) return <p className={wcls('muted')}>{label}: {st('block.noContainer')}</p>;
   return <floor.ChoiceGroup label={label} description={description} options={options} value={value === '' ? null : value} onChange={onChange} isDisabled={disabled} />;

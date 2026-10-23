@@ -42,6 +42,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
 
 export const homeTiles: readonly HomeTile[] = [
   { id: 'master-data', title: 'Master data', description: 'Formulas, products and materials, plant definitions.', to: '/master-data', installations: ['GMP'], available: true },
+  // Phase 7 slice 7o (D-7o-1): the sandbox's own plant definitions (a product's tooling set for its test runs).
+  { id: 'plant-master-data', title: 'Plant definitions', description: 'Rooms, equipment and the tooling sets of the products this sandbox test-runs.', to: '/master-data/plant', installations: ['SANDBOX'], available: true },
 ];
 
 export function Provider({ children }: { children: ReactNode }) {

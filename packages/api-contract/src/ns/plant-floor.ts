@@ -133,7 +133,7 @@ export const StepPlantView = z.strictObject({
 export type StepPlantView = z.infer<typeof StepPlantView>;
 
 const post = <P extends z.ZodRawShape, B extends z.ZodRawShape, R extends z.ZodType>(id: string, path: string, summary: string, params: P, body: B, response: R) =>
-  defineRoute({ id, method: 'POST', path, installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED', summary, params: z.strictObject(params), body: withAttribution(body), response });
+  defineRoute({ id, method: 'POST', path, installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED', summary, params: z.strictObject(params), body: withAttribution(body), response });
 
 export const plantFloor = {
   startAreaOccupancy: post(

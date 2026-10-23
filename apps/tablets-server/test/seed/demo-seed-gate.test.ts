@@ -29,10 +29,14 @@ describe('the DEMO-ONLY seeds of the set-up CLI are gated to demo databases', ()
     const common = { installation: 'GMP' as const, database, keysDir: join(dir, 'keys'), exchangeDir: join(dir, 'exchange'), personaSets: 1, recreate: true, log: () => undefined };
     await expect(setupInstallation({ ...common, packaging: true })).rejects.toThrow(/DEMO-ONLY: database ebmr_prod_[0-9a-f]+ is not a demo or E2E database/);
     await expect(setupInstallation({ ...common, reviewBatch: true })).rejects.toThrow(/DEMO-ONLY/);
+    // Slice 7o: the sandbox's DEMO-ONLY plant likewise.
+    await expect(setupInstallation({ ...common, installation: 'SANDBOX', sandboxPlant: true })).rejects.toThrow(/DEMO-ONLY/);
     expect(await databaseExists(database)).toBe(false);
     expect(demoSeedRefusal({ database: 'ebmr_tablets_demo', packaging: true })).toBeNull();
     expect(demoSeedRefusal({ database: 'ebmr_tablets_e2e_0a1b2c', reviewBatch: true })).toBeNull();
     expect(demoSeedRefusal({ database: 'ebmr_prod' })).toBeNull();
+    expect(demoSeedRefusal({ database: 'ebmr_sandbox_tablets_e2e_0a1b2c', sandboxPlant: true })).toBeNull();
+    expect(demoSeedRefusal({ database: 'ebmr_sandbox_prod', sandboxPlant: true })).toMatch(/DEMO-ONLY/);
   });
 
   it('[meta] the seed refuses a database without the demo-installation mark, even under a demo name check, and accepts a marked demo one', async () => {

@@ -1,0 +1,45 @@
+# Slice 7o: the R4 end-to-end proofs (own products from formula to released lot)
+
+Requirement R4 of `demo-trial-requirements.md` (and R8 P3, capability C3): a company's own tablet product built on the
+screens without a template and made into a released lot, twice: "Demotab 400 mg, wet granulation, film coated, alu-alu"
+and the second check product, an invented rabeprazole sodium 20 mg enteric-coated tablet with three coating layers in a
+row (seal, enteric, top), each to its own weight gain.
+
+## The owner's question (23 October 2026)
+
+Can one recipe coat the same tablets two or three times in a row, each coat with its own target weight gain? Engine,
+validator, simulation and database: yes, unchanged (test `test/blocks/coating/three-layers.test.ts`: three TB-18 layers
+with their own core and gain items pass the validator and definition, the simulation covers each layer's loop, and a
+batch's three weight gains are each computed against that layer's own core sample). Nothing in tablets SQL 0910 to 0913
+assumes one coating per batch. On screen it needed the designer's "Add a coating layer" (below).
+
+## Decisions
+
+- **D-7o-1** (lead approved): the plant, the containers and the batch's plant reads are served on the sandbox too, each
+  installation against its own database (ADR 0021). Before, no master with the database-backed blocks a GMP batch needs
+  could pass a sandbox test run on screen, so none could get its SANDBOX_RUN evidence there. The sandbox set-up with the
+  GMP samples seeds a DEMO-ONLY plant mirroring the GMP demo plant by room and class (`cli/sandbox-plant.ts`,
+  `--sandbox-plant`), with sandbox kiosks for GRAN-1, COMP-1, COAT-1, INSP-1, PL-2 and the people it needs (two cleaning
+  technicians, stores, the designated dispenser). The seeds' direct SANDBOX_RUN evidence (demo set-up, golden worlds)
+  stays where it is today; it can be replaced by real sandbox runs later.
+- **D-7o-2**: "Add a coating layer" in the designer (a stage that coats offers it on any of its steps, before or after):
+  the layer's own TB-03 suspension, TB-18 cores step with its own core item (mg, 6 decimals, validated range, second
+  person) and TB-18 coating loop to its own gain item (process end point in %, the layer's maximum and, for a functional
+  film, minimum). The layer copies the settings of the master's coating step when there is one. The three layers of the
+  rabeprazole product sit in one coating stage: the tablets stay in the pan between coats, and a stage boundary would ask
+  for a room clearance with product in the pan. Each layer is its own TB-18 cores step and coating loop.
+
+## Notes
+
+- TODO (R8 C4, slice 7p): the P3 browser test uses TB-15's acid and buffer disintegration and the existing release tests;
+  when 7p's two-stage dissolution requirement (acid stage must not release, buffer stage must) is merged, add it to the
+  rabeprazole product's specification and the P3 test.
+
+## Built so far
+
+- Three-layer proof (engine, validator, simulation, database): `apps/tablets-server/test/blocks/coating/three-layers.test.ts`.
+- Designer op and form: `apps/tablets-web/src/features/designer/model/coating-layer.ts`, `components/CoatingLayerForm.tsx`;
+  test `apps/tablets-web/test/designer/coating-layer.test.ts`.
+- Sandbox plant: contract installations, features, web gates, `cli/sandbox-plant.ts`, personas; tests
+  `apps/tablets-server/test/plant/sandbox-plant.test.ts`, the sandbox case in `apps/tablets-web/test/floor/step-plant-acts.test.tsx`;
+  route matrix re-recorded (GMP rows identical; sandbox rows gain the new routes and the new sandbox roles).

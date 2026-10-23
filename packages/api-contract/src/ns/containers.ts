@@ -8,6 +8,7 @@
  *  - QA releases a held container (CONTAINER_ACT RELEASE, meaning OUTPUT_CONTAINER_RELEASED) only once its hold's
  *    exceptions are dispositioned and their deviations concluded (`releaseProblem` says why not yet).
  * Reads are plain SESSION routes; the commands are the person's own (FRESH_ON_SHARED on a kiosk).
+ * Phase 7 slice 7o (D-7o-1): served on both installations, each against its own database (a test run's containers).
  */
 import { z } from 'zod';
 import { DecimalString, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
@@ -68,7 +69,7 @@ export const containers = {
     id: 'containers.list',
     method: 'GET',
     path: '/api/containers',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The output containers of a GMP batch, oldest first, with their close, holds, and why each is not usable or releasable',
@@ -79,7 +80,7 @@ export const containers = {
     id: 'containers.open',
     method: 'POST',
     path: '/api/containers',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
@@ -91,7 +92,7 @@ export const containers = {
     id: 'containers.close',
     method: 'POST',
     path: '/api/containers/:containerId/close',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
@@ -108,7 +109,7 @@ export const containers = {
     id: 'containers.sort',
     method: 'POST',
     path: '/api/containers/:containerId/sort',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
@@ -121,7 +122,7 @@ export const containers = {
     id: 'containers.reject',
     method: 'POST',
     path: '/api/containers/:containerId/reject',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
@@ -135,7 +136,7 @@ export const containers = {
     id: 'containers.merge',
     method: 'POST',
     path: '/api/containers/merge',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',

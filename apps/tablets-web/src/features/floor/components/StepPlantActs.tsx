@@ -24,7 +24,6 @@ import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { useStepChoices } from '../choices.tsx';
 import { wcls } from '../classes.ts';
-import { isGmpFloor } from '../family.ts';
 
 const READ = [routes.batches.stepPlant.id];
 const PLANT_BLOCKS = new Set(['G-09@2', 'G-10@2', 'TB-09@1', 'TB-10@1']);
@@ -38,13 +37,13 @@ export function hasPlantActs(view: StepScreenView): boolean {
 }
 
 export function StepPlantActs({ view }: { view: StepScreenView }) {
-  const gmp = isGmpFloor();
-  if (gmp && view.step.block === 'G-21@1') return <PrintedLotPanel view={view} />;
-  return <PlantActs view={view} gmp={gmp} />;
+  // Slice 7o (D-7o-1): the plant acts on both installations (a test run's on the sandbox, against its own database).
+  if (view.step.block === 'G-21@1') return <PrintedLotPanel view={view} />;
+  return <PlantActs view={view} />;
 }
 
-function PlantActs({ view, gmp }: { view: StepScreenView; gmp: boolean }) {
-  const offered = gmp && hasPlantActs(view);
+function PlantActs({ view }: { view: StepScreenView }) {
+  const offered = hasPlantActs(view);
   const q = useApiQuery(routes.batches.stepPlant, { params: { batchId: view.run.runId, stepKey: view.step.stepKey } }, { enabled: offered });
   if (!offered) return null;
   if (q.error) return <RefusalMessage error={q.error.error} />;

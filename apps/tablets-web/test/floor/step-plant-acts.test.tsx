@@ -188,3 +188,37 @@ describe('the press set-up and hopper charge (A5)', () => {
     expect(data).toEqual({ chargeId: CHARGE });
   });
 });
+
+describe('the plant acts of a test run on the sandbox (slice 7o, D-7o-1)', () => {
+  it('[DI-05][DI-34][INV-18] a sandbox clearance step offers the room\'s use as on GMP, under the TEST, NOT GMP mark and the TEST- batch number; the act goes to the sandbox\'s own server', async () => {
+    const v = structuredClone(example('step-g04-parameters'));
+    v.step.block = 'G-10@2';
+    v.step.stepKey = 'p-disp-clear@';
+    v.run.runId = RUN_ID;
+    const view: StepScreenView = { ...v, fields: [], blockEntries: [form('AREA_OCCUPANCY', 'Area occupancy', { areaCode: str('Area'), occupancyId: str('Occupancy', ID) })], entryForms: [] };
+    const occupancy = { occupancyId: OCC, areaCode: 'DISP-1', batchNumber: 'TEST-B26-0001', stage: 'S-DISP', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), ended: null };
+    let current = plant({ block: 'G-10@2', batchNumber: 'TEST-B26-0001', areas: [{ code: 'DISP-1', kind: 'ROOM', state: 'CLEARED' }] });
+    const ui = renderFloor(stepPath(view.step.stepKey), {
+      installation: 'SANDBOX',
+      fixtures: {
+        ...stepFixtures(view),
+        'batches.stepPlant': () => current,
+        'plant.startAreaOccupancy': () => {
+          current = { ...current, occupancies: [{ ...occupancy, mine: true }] };
+          return occupancy;
+        },
+      },
+    });
+    expect((await screen.findByTestId('batch-number')).textContent).toBe('TEST-B26-0001');
+    expect(screen.getByTestId('run-header').textContent).toContain('TEST, NOT GMP');
+    const panel = await screen.findByTestId('step-plant');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Start using room DISP-1' }));
+    await waitFor(() => expect(posts(ui, '/api/plant/occupancies')).toHaveLength(1));
+    expect(posts(ui, '/api/plant/occupancies')[0]?.body).toMatchObject({ areaCode: 'DISP-1', batchId: RUN_ID, stage: 'S-DISP' });
+    expect(await within(screen.getByTestId('step-plant')).findByText(/by batch TEST-B26-0001/)).toBeTruthy();
+    // The step itself is read from the test run's family (the sandbox's), never a GMP batch's.
+    expect(ui.requests.some((r) => r.path.startsWith(`/api/test-runs/${RUN_ID}/steps/`))).toBe(true);
+    expect(ui.requests.some((r) => r.path.startsWith('/api/batches/') && !r.path.endsWith('/plant'))).toBe(false);
+    expect(routes.plant.startAreaOccupancy.installation).toBe('ANY');
+  });
+});
