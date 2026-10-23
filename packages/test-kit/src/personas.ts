@@ -52,6 +52,12 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'KIOSK-COMP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COMP-1', description: 'Shop-floor kiosk, compression room COMP-1 (GMP batches)', key: 'BROWSER' },
   { code: 'KIOSK-COAT-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COAT-1', description: 'Shop-floor kiosk, coating room COAT-1 (GMP batches)', key: 'BROWSER' },
   { code: 'KIOSK-INSP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'INSP-1', description: 'Shop-floor kiosk, inspection room INSP-1 (GMP batches)', key: 'BROWSER' },
+  // Phase 7 slice 7n (R7): the kiosks of the beta-lactam suite (dedicated rooms and alu-alu line of demo route B).
+  { code: 'KIOSK-BL-DISP', installation: 'GMP', deviceClass: 'SHARED', room: 'BL-DISP', description: 'Shop-floor kiosk, beta-lactam suite dispensing booth BL-DISP (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-BL-BLEND', installation: 'GMP', deviceClass: 'SHARED', room: 'BL-BLEND', description: 'Shop-floor kiosk, beta-lactam suite blending room BL-BLEND (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-BL-COMP', installation: 'GMP', deviceClass: 'SHARED', room: 'BL-COMP', description: 'Shop-floor kiosk, beta-lactam suite compression room BL-COMP (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-BL-COAT', installation: 'GMP', deviceClass: 'SHARED', room: 'BL-COAT', description: 'Shop-floor kiosk, beta-lactam suite coating room BL-COAT (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-BL-PACK', installation: 'GMP', deviceClass: 'SHARED', room: 'BL-PL', description: 'Shop-floor kiosk, beta-lactam suite alu-alu line BL-PL (GMP packaging orders)', key: 'BROWSER' },
   // Phase 4 slice 7b: the packaging line of the golden batches' packaging orders, and two office PCs of the release,
   // after-release and market specs (their own terminals, so each spec stays under the device rate limit).
   { code: 'KIOSK-PACK-1', installation: 'GMP', deviceClass: 'SHARED', room: 'PL-1', description: 'Shop-floor kiosk, packaging line PL-1 (GMP packaging orders)', key: 'BROWSER' },

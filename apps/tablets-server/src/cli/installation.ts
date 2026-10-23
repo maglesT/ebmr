@@ -302,6 +302,8 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         const { seedDemoRoutes } = await import('./demo-routes.ts');
         const demoRoutes = await seedDemoRoutes({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() });
         writeJson(join(opts.keysDir, 'gmp-demo-routes.json'), { label: 'DEMO-ONLY demo routes', routes: demoRoutes });
+        // Phase 7 slice 7n (R7): demo route B, the beta-lactam product in its dedicated suite.
+        writeJson(join(opts.keysDir, 'gmp-route-b.json'), { label: 'DEMO-ONLY route B', route: await (await import('./demo-route-beta-lactam.ts')).seedBetaLactamSuite({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() }) });
       }
     }
 

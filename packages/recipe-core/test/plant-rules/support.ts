@@ -9,6 +9,7 @@ import type pg from 'pg';
 import { asTimeTraveller } from '../../../kernel/test/esig/helpers.ts';
 import type { TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
+import { seedActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { tag, type PlantWorld } from '../plant/support.ts';
 
 /** A test batch of `product` whose MBR has one stage with the given phases (purpose SANDBOX_TEST_RUN or GMP_BATCH). */
@@ -108,4 +109,26 @@ export async function forgedCommand(db: TestDatabase, batchId: string, type: str
     await c.query('rollback');
     c.release();
   }
+}
+
+const qaPairs = new WeakMap<PlantWorld, Promise<{ recorder: SeededActor; approver: SeededActor }>>();
+
+/**
+ * Room or line `code` dedicated to beta-lactam products (recipe-core 1600, PR-27): recorded by a QA MBR approver and
+ * approved by a QA reviewer (0912), so a beta-lactam batch may be cleared for it and started there.
+ */
+export async function dedicateBetaLactam(w: PlantWorld, db: TestDatabase, code: string): Promise<void> {
+  let pair = qaPairs.get(w);
+  if (!pair) {
+    pair = (async () => ({
+      recorder: await seedActor(db, { roleCode: 'QA_MBR_APPROVER', legalName: 'Bina Beta' }),
+      approver: await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Bala Beta' }),
+    }))();
+    qaPairs.set(w, pair);
+  }
+  const { recorder, approver } = await pair;
+  const id = await w.run(recorder, async (c) =>
+    (await c.query<{ r: string }>('select plant.record_area_dedication($1::jsonb) as r', [JSON.stringify({ areaCode: code, hazardClass: 'BETA_LACTAM', dedicated: true, breathingAir: 'NOT_USED', justification: 'Beta-lactam suite (test)' })])).rows[0]?.r ?? '');
+  const sig = await w.sign(approver, 'area_dedication', id, 'AREA_DEDICATION_APPROVED', 'RECORDED');
+  await w.run(approver, (c) => c.query('select plant.approve_area_dedication($1, $2)', [id, sig]));
 }

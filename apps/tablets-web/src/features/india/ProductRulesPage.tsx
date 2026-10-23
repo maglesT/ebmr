@@ -9,7 +9,7 @@
  * Every rule and state is the database's; a refusal is shown in its words.
  */
 import { useState } from 'react';
-import { routes, type HazardClass, type HazardView } from '@ebmr/api-contract';
+import { routes, type DedicationClass, type HazardClass, type HazardView } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
@@ -178,9 +178,10 @@ function RecordProductHazard() {
 
 function RecordAreaDedication() {
   const record = useCommand(routes.india.recordHazard, INDIA_READS);
-  const classes = CLASSES.filter((c): c is Exclude<HazardClass, 'NONE'> => c !== 'NONE');
+  // Slice 7n (R7): a room or line may also be dedicated to beta-lactam products (recipe-core 1600, PR-27).
+  const classes: readonly DedicationClass[] = ['SEX_HORMONE', 'STEROID', 'CYTOTOXIC', 'BETA_LACTAM'];
   const [area, setArea] = useState('');
-  const [cls, setCls] = useState<Exclude<HazardClass, 'NONE'>>('STEROID');
+  const [cls, setCls] = useState<DedicationClass>('STEROID');
   const [dedicated, setDedicated] = useState('YES');
   const [air, setAir] = useState<'NOT_USED' | 'BACKED_UP'>('NOT_USED');
   const [why, setWhy] = useState('');

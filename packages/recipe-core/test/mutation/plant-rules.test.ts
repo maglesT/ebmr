@@ -14,7 +14,7 @@ import { asTimeTraveller } from '../../../kernel/test/esig/helpers.ts';
 import { envelopeFor, nowUs, receive, registerAdapter, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { PlantWorld, seedPlantCast, tag } from '../plant/support.ts';
-import { batchWithSteps, occupy, occupyBatch, stepProblem } from '../plant-rules/support.ts';
+import { batchWithSteps, dedicateBetaLactam, occupy, occupyBatch, stepProblem } from '../plant-rules/support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -92,8 +92,11 @@ describe('a beta-lactam product by its MBR predicate (PR-27)', () => {
     const none = await batchWithPredicates(await w.product(), null);
     const isBeta = async (b: string) => (await db.app.query<{ r: boolean }>('select plant.batch_beta_lactam($1) as r', [b])).rows[0]?.r;
     expect([await isBeta(beta), await isBeta(notBeta), await isBeta(none)]).toEqual([true, false, false]);
-    // SITE-1 has no facility rule, so it is not a penicillin facility: the batch does not start in its room.
-    await expect(occupyBatch(w, (await w.room()).code, beta)).rejects.toThrow(new RegExp(`EBMR-PLANT-170 product ${product} is beta-lactam`));
+    // SITE-1 has no facility rule, so it is not a penicillin facility: the batch does not start in its room (a room
+    // dedicated to beta-lactam products, recipe-core 1600, so the clearance is recorded).
+    const suite = (await w.room()).code;
+    await dedicateBetaLactam(w, db, suite);
+    await expect(occupyBatch(w, suite, beta)).rejects.toThrow(new RegExp(`EBMR-PLANT-170 product ${product} is beta-lactam`));
     expect(await occupyBatch(w, (await w.room()).code, notBeta)).toMatch(/^[0-9a-f-]{36}$/);
   });
 });

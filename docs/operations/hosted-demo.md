@@ -47,6 +47,22 @@ The credential card (the DEMO-ONLY personas, the administrator `demo.admin` and 
 their passwords; those two passwords are new at each set-up) is printed by the service at start:
 `journalctl -u batchwright-demo | sed -n '/DEMO-ONLY credentials/,$p'`.
 
+## The beta-lactam suite (slice 7n, R7)
+
+`--with-gmp-samples` also builds demo route B, a beta-lactam product in its dedicated suite
+(`apps/tablets-server/src/cli/demo-route-beta-lactam.ts`; the demo part is
+[Making an antibiotic safely](../guides/user-guide/10-antibiotic-dedicated-suite.md)):
+
+| Item | Value |
+|---|---|
+| Product | `CXC-325` Cefexemplone proxetil and clavexemplate potassium tablets 325 mg (invented), film coated, direct compression, alu-alu cold form with a desiccant laminate |
+| Site rule | SITE-1 a penicillin facility (proposed by the steward, approved by QA) |
+| Rooms and line | `BL-DISP`, `BL-BLEND`, `BL-COMP`, `BL-COAT`, line `BL-PL`; each dedicated to beta-lactam products with a second QA person's approval; the suite's humidity limit 30 % RH (dispensing G-11, coating TB-18) |
+| Kiosks | `KIOSK-BL-DISP`, `KIOSK-BL-BLEND`, `KIOSK-BL-COMP`, `KIOSK-BL-COAT`, `KIOSK-BL-PACK` |
+| Units | balances `BAL-BLD-01`, `BAL-BLB-01`, `BAL-BLC-01`, `BAL-BLT-01`, `BAL-BLP-01`; `BLD-BL-01`, `PRESS-BL-01` (tooling `TS-RTB-01`), `COATER-BL-01`, `CFORM-BL-01`, `CTN-BL-01` |
+| Orders and lots | `PO-RTB-0001` to `0003` (processing), `PO-RTBPK-0001` to `0004` (packaging); lots `RTB-*` |
+| Not seeded | the product's beta-lactam classification: the steward proposes it and QA approves it on **Plant rules** during the demo |
+
 ## Operating it
 
 - Status and logs: `systemctl status batchwright-demo`, `journalctl -u batchwright-demo -f`.

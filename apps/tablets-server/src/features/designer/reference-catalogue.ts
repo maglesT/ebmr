@@ -9,6 +9,7 @@
  * SOP, specification, registration or validation report.
  */
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
+import { betaLactamReferenceDocuments } from './reference-catalogue-bl.ts';
 
 /** Reference kinds of the MBR content model (flow/model.ts REFERENCE_KINDS). */
 export type ReferenceDocumentKind =
@@ -104,6 +105,8 @@ export const DEMO_REFERENCE_DOCUMENTS: readonly ReferenceDocumentSeed[] = [
   ...gbt01ReferenceDocuments(),
   // Phase 7 slice 7l (R1): the demo routes W, D and S (invented products; cli/demo-route-masters.ts).
   ...demoRouteReferenceDocuments(),
+  // Phase 7 slice 7n (R7): demo route B, the beta-lactam product in its dedicated suite.
+  ...betaLactamReferenceDocuments(),
 ];
 
 /** The DEMO-ONLY documents the demo route masters pin besides GB-T-01's (all invented; slice 7l, R1). */
