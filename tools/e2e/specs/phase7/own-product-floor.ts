@@ -9,7 +9,7 @@ import type { Browser, Locator, Page } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, pickTerminal, signIn, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
-import { choose, openStep, primary } from '../journey/support.ts';
+import { choose, openStep, primary, simulator } from '../journey/support.ts';
 import { act, allInOrder, ANY, as, card, completed, entry, fillBlock, performAndCheck, ready, save, saveBlock, sign, startStep, type Fill } from './kiosk-batch-support.ts';
 
 export type Inst = 'GMP' | 'SANDBOX';
@@ -35,10 +35,24 @@ export function balanceOf(f: Floor, room: string): string {
   if (room === 'PL-2') return 'BAL-PL-02';
   return `BAL-${room.split('-')[0] ?? room}-01`;
 }
-/** An instrument of the plant (HT-01, FRB-01, DT-01) by its label on the floor's installation. */
+/**
+ * A unit or another identifier an entry names (HT-01, PRESS-01, a filter bag, a screen) as the floor's installation
+ * knows it: the sandbox records identifiers only as TEST- ones (DI-05; its plant is labelled so).
+ */
 export const instrumentOf = (f: Floor, code: string): string => (f.inst === 'SANDBOX' ? `TEST-${code}` : code);
+export const unitOf = instrumentOf;
 
 const opened: Page[] = [];
+
+/** An expectation that, failing, says what the box shows (a refusal's words) in its message. */
+export async function explained(check: Promise<void>, box: Locator): Promise<void> {
+  try {
+    await check;
+  } catch (e) {
+    const text = await box.innerText().catch(() => '');
+    throw new Error(`${(e as Error).message.split('\n')[0] ?? ''}; the screen shows: ${text.replace(/\s+/g, ' ').slice(0, 1500)}`, { cause: e });
+  }
+}
 
 /** A kiosk of the room on the floor's installation with the person signed in by the demo reader's Tap button. */
 export async function floorKiosk(f: Floor, room: string, who: SeededPersona, role?: string): Promise<Page> {
@@ -150,6 +164,14 @@ export async function closeStage(f: Floor, page: Page, lastStep: string, back: S
   }
   await as(page, supervisor);
   await step(f, page, lastStep);
+  if (process.env['EBMR_E2E_RESUME'] === '1') {
+    await expect(card(page)).toBeVisible();
+    await page.waitForTimeout(1_500);
+    if ((await page.getByTestId('primary-action').filter({ hasText: 'Sign off the stage' }).count()) === 0) {
+      await as(page, back);
+      return n;
+    }
+  }
   await (await primary(page, 'Sign off the stage')).click();
   const dialog = page.getByRole('dialog', { name: /^Sign off stage/ });
   await expect(dialog.getByTestId('stage-summary')).toBeVisible();
@@ -235,9 +257,10 @@ export interface Unit {
 export async function statusStep(f: Floor, page: Page, key: string, units: readonly Unit[], op: SeededPersona): Promise<void> {
   await as(page, op);
   await step(f, page, key);
-  await startStep(page, op);
+  await begin(page, op);
   for (const u of units) {
     const box = page.getByTestId(`plant-unit-${u.ref}`);
+    if (process.env['EBMR_E2E_RESUME'] === '1' && (await box.getByText(`Recorded in this step for ${u.ref}.`).count()) > 0) continue;
     const pick = box.getByRole('radio', { name: new RegExp(`^${u.code} `) });
     if ((await pick.count()) > 0) await choose(pick);
     if (u.instrument) {
@@ -245,7 +268,7 @@ export async function statusStep(f: Floor, page: Page, key: string, units: reado
       await expect(box.getByText('Check recorded: PASS.')).toBeVisible();
     }
     await act(page, box.getByRole('button', { name: `Book ${u.code} and record it in this step` }), op);
-    await expect(box.getByTestId(`use-${u.code}`).getByText(`Recorded in this step for ${u.ref}.`)).toBeVisible();
+    await explained(expect(box.getByTestId(`use-${u.code}`).getByText(`Recorded in this step for ${u.ref}.`)).toBeVisible(), box);
   }
   await performAndCheck(page, op, null, op);
   await completed(page);
@@ -256,11 +279,13 @@ export async function releasePlant(f: Floor, page: Page, s: { status: string; un
   if (s.units.length > 0) {
     await step(f, page, s.status);
     for (const [ref, code] of s.units) {
+      if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId(`plant-unit-${ref}`).getByRole('button', { name: `End the use of ${code}` }).count()) === 0) continue;
       await act(page, page.getByTestId(`plant-unit-${ref}`).getByRole('button', { name: `End the use of ${code}` }), op);
       await expect(page.getByTestId(`use-${code}`)).toHaveCount(0);
     }
   }
   await step(f, page, s.clear);
+  if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId('plant-area').getByRole('button', { name: `End the use of ${s.area}` }).count()) === 0) return;
   await act(page, page.getByTestId('plant-area').getByRole('button', { name: `End the use of ${s.area}` }), op);
   await expect(page.getByTestId(`occupancy-${s.area}`)).toHaveCount(0);
 }
@@ -322,6 +347,7 @@ async function outputStep(f: Floor, page: Page, key: string, gross: string, op: 
 
 /** A step with nothing to record but its signatures (a yield, a reconciliation): started, PERFORMED, VERIFIED. */
 async function signOnly(f: Floor, page: Page, key: string, op: SeededPersona, verifier: SeededPersona): Promise<void> {
+  if (await done(f, page, key)) return;
   await step(f, page, key);
   await begin(page, op);
   await performAndCheck(page, op, verifier, op);
@@ -332,9 +358,9 @@ async function signOnly(f: Floor, page: Page, key: string, op: SeededPersona, ve
 // The processing stages (a master shaped as route W's)
 
 export interface ProcessPlan {
-  /** The active and the compensating excipient (TB-01) and their lots. */
-  api: { material: string; lot: string };
-  compensating: { material: string; lot: string };
+  /** The active and the compensating excipient (TB-01), their lots and the quantities TB-01 computes from the lot's assay. */
+  api: { material: string; lot: string; kg: string };
+  compensating: { material: string; lot: string; kg: string };
   /** The other materials of the G-07 step, in the step's order: material, net kg, lot. */
   others: readonly (readonly [string, string, string])[];
   binderKg: string;
@@ -389,8 +415,25 @@ export interface InspectionPlan {
 
 const COATER: readonly (readonly [string, string, string])[] = [['inlet.temp_C', '55.0', 'degC'], ['exhaust.temp_C', '42.0', 'degC'], ['bed.temp_C', '41.5', 'degC'], ['spray.rate_g_min', '120.0', 'g/min'], ['pan.speed_rpm', '5.0', 'rpm']];
 
-/** The weighing of one material on the step's weighing form (typed by hand), saved with a tap. */
-async function weigh(page: Page, who: SeededPersona, material: string, net: string, lot: string, quantity?: number): Promise<void> {
+/**
+ * The weighing of one material on the step's weighing form, saved with a tap: typed by hand on a balance that is not
+ * interfaced, or captured from the room's gateway scale (the sandbox's TEST-BAL-01 and TEST-BAL-02: the demo scale
+ * simulator set to the tare, then to the gross).
+ */
+async function weigh(f: Floor, page: Page, who: SeededPersona, material: string, net: string, lot: string, quantity?: number): Promise<void> {
+  // A quantity above the 60 kg platform balance's reach (less the container) is weighed in two containers.
+  const [i = '0', fr = ''] = net.split('.');
+  const milli = BigInt(i) * 1000n + BigInt(fr.padEnd(3, '0'));
+  if (milli > 55_000n) {
+    const kg = (m: bigint): string => `${(m / 1000n).toString()}.${(m % 1000n).toString().padStart(3, '0')}`;
+    await weighOne(f, page, who, material, kg(milli / 2n), lot, quantity);
+    await weighOne(f, page, who, material, kg(milli - milli / 2n), lot, quantity);
+    return;
+  }
+  await weighOne(f, page, who, material, net, lot, quantity);
+}
+
+async function weighOne(f: Floor, page: Page, who: SeededPersona, material: string, net: string, lot: string, quantity?: number): Promise<void> {
   const form = page.getByTestId('form-CONTAINER_WEIGHING');
   const q = form.getByRole('radiogroup', { name: 'Quantity' });
   if (quantity !== undefined && (await q.count()) > 0) await choose(q.getByRole('radio').nth(quantity));
@@ -399,17 +442,21 @@ async function weigh(page: Page, who: SeededPersona, material: string, net: stri
   await lotField.fill(lot);
   await lotField.press('Enter');
   await expect(form.getByTestId('lot-info')).toContainText(lot);
-  await form.getByRole('textbox', { name: 'Tare (typed by hand)' }).fill('1.000');
-  await form.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(plusOne(net));
+  const typed = form.getByRole('textbox', { name: 'Tare (typed by hand)' });
+  if ((await typed.count()) > 0) {
+    await typed.fill('1.000');
+    await form.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(plusOne(net));
+  } else {
+    const sim = f.e2e.state.urls.simulatorConsole;
+    await simulator(sim, 'set', { mass: '1.000' });
+    await expect(form.getByText('live, not recorded').first()).toBeVisible();
+    await form.getByRole('button', { name: 'Capture tare' }).click();
+    await expect(form.getByTestId('reading-TARE')).toContainText('1.000 kg on ', { timeout: 30_000 });
+    await simulator(sim, 'set', { mass: plusOne(net) });
+    await form.getByRole('button', { name: 'Capture gross' }).click();
+    await expect(form.getByTestId('reading-GROSS')).toContainText(`${plusOne(net)} kg on `, { timeout: 30_000 });
+  }
   await save(page, form, who);
-}
-
-/** The targets of a TB-01 calculation as the step's entries show them: the active's and the compensating excipient's. */
-async function potencyTargets(page: Page): Promise<{ api: string; excipient: string }> {
-  const text = (await page.getByRole('region', { name: 'Entries so far' }).innerText().catch(() => '')) || (await page.locator('main').innerText());
-  const kg = [...text.matchAll(/target (\d+\.\d{3}) kg/g)].map((m) => m[1] ?? '');
-  if (kg.length < 2) throw new Error(`the potency calculation's targets are not shown: ${text.replace(/\s+/g, ' ').slice(0, 1200)}`);
-  return { api: kg[0] ?? '', excipient: kg[kg.length - 1] ?? '' };
 }
 
 export async function dispensing(f: Floor, plan: ProcessPlan): Promise<void> {
@@ -418,9 +465,11 @@ export async function dispensing(f: Floor, plan: ProcessPlan): Promise<void> {
   const verifier = f.persona('verifier1');
   const page = await floorKiosk(f, 'DISP-1', op);
   const bal = balanceOf(f, 'DISP-1');
-  if (!(await done(f, page, 'p-disp-status@'))) {
+  if (!(await done(f, page, 'p-disp-clear@'))) {
     await clearance(f, page, 'DISP-1', op, verifier);
     await clearanceStep(f, page, 'p-disp-clear@', 'DISP-1', op, verifier);
+  }
+  if (!(await done(f, page, 'p-disp-status@'))) {
     await statusStep(f, page, 'p-disp-status@', [{ ref: 'BAL', code: bal, instrument: true }], op);
   }
   if (!(await done(f, page, 'p-disp-api@'))) {
@@ -428,12 +477,14 @@ export async function dispensing(f: Floor, plan: ProcessPlan): Promise<void> {
     await step(f, page, 'p-disp-api@');
     await begin(page, dispenser);
     const potency = page.getByTestId('potency-calculation');
-    await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill(plan.api.lot);
-    await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
-    await expect(potency.getByText('Calculated from the lots (see the entries)')).toBeVisible();
-    const t = await potencyTargets(page);
-    await weigh(page, dispenser, plan.api.material, t.api, plan.api.lot, 0);
-    await weigh(page, dispenser, plan.compensating.material, t.excipient, plan.compensating.lot, 1);
+    await expect(potency).toBeVisible();
+    if ((await potency.getByText('Calculated from the lots (see the entries)').count()) === 0) {
+      await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill(plan.api.lot);
+      await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
+      await expect(potency.getByText('Calculated from the lots (see the entries)')).toBeVisible();
+    }
+    await weigh(f, page, dispenser, plan.api.material, plan.api.kg, plan.api.lot, 0);
+    await weigh(f, page, dispenser, plan.compensating.material, plan.compensating.kg, plan.compensating.lot, 1);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }
@@ -441,7 +492,7 @@ export async function dispensing(f: Floor, plan: ProcessPlan): Promise<void> {
     await as(page, dispenser);
     await step(f, page, 'p-disp-exc@');
     await begin(page, dispenser);
-    for (const [i, [material, quantity, lot]] of plan.others.entries()) await weigh(page, dispenser, material, quantity, lot, i);
+    for (const [i, [material, quantity, lot]] of plan.others.entries()) await weigh(f, page, dispenser, material, quantity, lot, i);
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }
@@ -456,11 +507,13 @@ export async function granulation(f: Floor, plan: ProcessPlan): Promise<void> {
   const verifier = f.persona('verifier1');
   const supervisor = f.persona('supervisor1');
   const page = await floorKiosk(f, 'GRAN-1', op);
-  if (!(await done(f, page, 'p-gran-status@'))) {
+  if (!(await done(f, page, 'p-gran-clear@'))) {
     await clearance(f, page, 'GRAN-1', op, verifier);
     await clearanceStep(f, page, 'p-gran-clear@', 'GRAN-1', op, verifier);
+  }
+  if (!(await done(f, page, 'p-gran-status@'))) {
     await statusStep(f, page, 'p-gran-status@', [
-      { ref: 'BAL', code: balanceOf(f, 'GRAN-1'), instrument: true }, { ref: 'RMG', code: 'RMG-01', instrument: false }, { ref: 'FBD', code: 'FBD-01', instrument: false }, { ref: 'MILL', code: 'MILL-01', instrument: false },
+      { ref: 'BAL', code: balanceOf(f, 'GRAN-1'), instrument: true }, { ref: 'RMG', code: unitOf(f, 'RMG-01'), instrument: false }, { ref: 'FBD', code: unitOf(f, 'FBD-01'), instrument: false }, { ref: 'MILL', code: unitOf(f, 'MILL-01'), instrument: false },
     ], op);
   }
   if (!(await done(f, page, 'p-binder@'))) {
@@ -486,15 +539,15 @@ export async function granulation(f: Floor, plan: ProcessPlan): Promise<void> {
   if (!(await done(f, page, 'p-dry@L-DRY=1'))) {
     await step(f, page, 'p-dry@L-DRY=1');
     await begin(page, op);
-    await entry(page, 'BAG_CHECK', op, { Bag: 'FBD-01-BAG-1', When: 'BEFORE', Result: 'INTACT', 'New bag': 'Yes' });
+    await entry(page, 'BAG_CHECK', op, { Bag: unitOf(f, 'FBD-01-BAG-1'), When: 'BEFORE', Result: 'INTACT', 'New bag': 'Yes' });
     await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-RTW-DRY', 'Recipe version': '1' });
     await saveBlock(page, 'DRYING_START', op);
     await manualValue(page, op, 'dryer.inlet_temp_C', '60.0', 'degC');
     await page.waitForTimeout(5_000);
     await saveBlock(page, 'DRYING_END', op);
-    await entry(page, 'LOD_SAMPLE', op, { Analyser: 'MA-GRAN-01', 'Sample mass': { Value: '5.012', Unit: 'g' } });
+    await entry(page, 'LOD_SAMPLE', op, { Analyser: unitOf(f, 'MA-GRAN-01'), 'Sample mass': { Value: '5.012', Unit: 'g' } });
     await field(page, 'lod', '2.8', op);
-    await entry(page, 'BAG_CHECK', op, { Bag: 'FBD-01-BAG-1', When: 'AFTER', Result: 'INTACT' });
+    await entry(page, 'BAG_CHECK', op, { Bag: unitOf(f, 'FBD-01-BAG-1'), When: 'AFTER', Result: 'INTACT' });
     await performAndCheck(page, op, verifier, op, 'Witness');
     await completed(page);
     const loop = page.getByTestId('loop-iteration');
@@ -504,9 +557,9 @@ export async function granulation(f: Floor, plan: ProcessPlan): Promise<void> {
   if (!(await done(f, page, 'p-mill@'))) {
     await step(f, page, 'p-mill@');
     await begin(page, op);
-    await entry(page, 'SCREEN_CHECK', op, { Screen: 'SCR-RW-10', Aperture: { Value: '1.0', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
-    await entry(page, 'MATERIAL_PASS', op, { Screen: 'SCR-RW-10', Material: 'Dried granules', 'Quantity in': { Value: plan.granules.in, Unit: 'kg' }, 'Quantity out': { Value: plan.granules.out, Unit: 'kg' }, Oversize: { Value: plan.granules.oversize, Unit: 'kg' }, 'Foreign matter': 'No' });
-    await entry(page, 'SCREEN_CHECK', op, { Screen: 'SCR-RW-10', Aperture: { Value: '1.0', Unit: 'mm' }, When: 'AFTER', Result: 'INTACT' });
+    await entry(page, 'SCREEN_CHECK', op, { Screen: unitOf(f, 'SCR-RW-10'), Aperture: { Value: '1.0', Unit: 'mm' }, When: 'BEFORE', Result: 'INTACT' });
+    await entry(page, 'MATERIAL_PASS', op, { Screen: unitOf(f, 'SCR-RW-10'), Material: 'Dried granules', 'Quantity in': { Value: plan.granules.in, Unit: 'kg' }, 'Quantity out': { Value: plan.granules.out, Unit: 'kg' }, Oversize: { Value: plan.granules.oversize, Unit: 'kg' }, 'Foreign matter': 'No' });
+    await entry(page, 'SCREEN_CHECK', op, { Screen: unitOf(f, 'SCR-RW-10'), Aperture: { Value: '1.0', Unit: 'mm' }, When: 'AFTER', Result: 'INTACT' });
     await performAndCheck(page, op, verifier, op);
     await completed(page);
   }
@@ -518,7 +571,7 @@ export async function granulation(f: Floor, plan: ProcessPlan): Promise<void> {
   }
   await signOnly(f, page, 'p-gran-yield@', op, verifier);
   await closeStage(f, page, 'p-gran-yield@', op);
-  await releasePlant(f, page, { status: 'p-gran-status@', units: [['RMG', 'RMG-01'], ['FBD', 'FBD-01'], ['MILL', 'MILL-01']], clear: 'p-gran-clear@', area: 'GRAN-1' }, op);
+  await releasePlant(f, page, { status: 'p-gran-status@', units: [['RMG', unitOf(f, 'RMG-01')], ['FBD', unitOf(f, 'FBD-01')], ['MILL', unitOf(f, 'MILL-01')]], clear: 'p-gran-clear@', area: 'GRAN-1' }, op);
   await page.context().close();
 }
 
@@ -527,10 +580,12 @@ export async function blending(f: Floor, plan: ProcessPlan): Promise<void> {
   const verifier = f.persona('verifier1');
   const supervisor = f.persona('supervisor1');
   const page = await floorKiosk(f, 'BLEND-1', op);
-  if (!(await done(f, page, 'p-blend-status@'))) {
+  if (!(await done(f, page, 'p-blend-clear@'))) {
     await clearance(f, page, 'BLEND-1', op, verifier);
     await clearanceStep(f, page, 'p-blend-clear@', 'BLEND-1', op, verifier);
-    await statusStep(f, page, 'p-blend-status@', [{ ref: 'BAL', code: balanceOf(f, 'BLEND-1'), instrument: true }, { ref: 'BLENDER', code: 'BLD-01', instrument: false }], op);
+  }
+  if (!(await done(f, page, 'p-blend-status@'))) {
+    await statusStep(f, page, 'p-blend-status@', [{ ref: 'BAL', code: balanceOf(f, 'BLEND-1'), instrument: true }, { ref: 'BLENDER', code: unitOf(f, 'BLD-01'), instrument: false }], op);
   }
   if (!(await done(f, page, 'p-rework-none@'))) {
     await chooseBranch(f, page, 'p-rework-none@', /No/, 'No reserved rejects of this product to add', supervisor, op);
@@ -563,7 +618,7 @@ export async function blending(f: Floor, plan: ProcessPlan): Promise<void> {
   }
   await signOnly(f, page, 'p-blend-yield@', op, verifier);
   await closeStage(f, page, 'p-blend-yield@', op);
-  await releasePlant(f, page, { status: 'p-blend-status@', units: [['BLENDER', 'BLD-01']], clear: 'p-blend-clear@', area: 'BLEND-1' }, op);
+  await releasePlant(f, page, { status: 'p-blend-status@', units: [['BLENDER', unitOf(f, 'BLD-01')]], clear: 'p-blend-clear@', area: 'BLEND-1' }, op);
   await page.context().close();
 }
 
@@ -573,11 +628,13 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
   const qa = f.persona('qa1');
   const page = await floorKiosk(f, 'COMP-1', op);
   const bal = balanceOf(f, 'COMP-1');
-  if (!(await done(f, page, 'p-comp-status@'))) {
+  if (!(await done(f, page, 'p-comp-clear@'))) {
     await clearance(f, page, 'COMP-1', op, verifier);
     await clearanceStep(f, page, 'p-comp-clear@', 'COMP-1', op, verifier);
+  }
+  if (!(await done(f, page, 'p-comp-status@'))) {
     await statusStep(f, page, 'p-comp-status@', [
-      { ref: 'BAL', code: bal, instrument: true }, { ref: 'PRESS', code: 'PRESS-01', instrument: false }, { ref: 'HT', code: instrumentOf(f, 'HT-01'), instrument: true }, { ref: 'FRB', code: instrumentOf(f, 'FRB-01'), instrument: true },
+      { ref: 'BAL', code: bal, instrument: true }, { ref: 'PRESS', code: unitOf(f, 'PRESS-01'), instrument: false }, { ref: 'HT', code: instrumentOf(f, 'HT-01'), instrument: true }, { ref: 'FRB', code: instrumentOf(f, 'FRB-01'), instrument: true },
     ], op);
   }
   if (!(await done(f, page, 'p-tool@'))) {
@@ -593,8 +650,8 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
     await expect(page.getByTestId('block-form-TOOLING_INSPECTED')).toBeVisible();
     await saveBlock(page, 'TOOLING_INSPECTED', op);
     const pressPick = panel.getByRole('radiogroup', { name: 'Press' });
-    if ((await pressPick.count()) > 0) await choose(pressPick.getByRole('radio', { name: 'PRESS-01', exact: true }));
-    await act(page, panel.getByRole('button', { name: `Issue set ${set} to PRESS-01` }), op);
+    if ((await pressPick.count()) > 0) await choose(pressPick.getByRole('radio', { name: unitOf(f, 'PRESS-01'), exact: true }));
+    await act(page, panel.getByRole('button', { name: `Issue set ${set} to ${unitOf(f, 'PRESS-01')}` }), op);
     await expect(page.getByTestId('block-form-TOOLING_ISSUED')).toBeVisible();
     await saveBlock(page, 'TOOLING_ISSUED', op);
     await performAndCheck(page, op, verifier, op);
@@ -604,7 +661,7 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
     await step(f, page, 'p-setup@');
     await begin(page, op);
     const panel = page.getByTestId('plant-press-setup');
-    await panel.getByRole('button', { name: /^Set up PRESS-01 with set / }).click();
+    await panel.getByRole('button', { name: new RegExp(`^Set up ${unitOf(f, 'PRESS-01')} with set `) }).click();
     await saveBlock(page, 'PRESS_SETUP', op);
     await entry(page, 'PRE_USE_CHECKLIST', op, { Items: [{ Item: 'DUST_EXTRACTION', Ok: 'Yes' }, { Item: 'NOZZLES_CLEAN_NO_LEAK', Ok: 'Yes' }, { Item: 'CALIBRATED_BALANCE', Ok: 'Yes' }] });
     await act(page, panel.getByRole('button', { name: `Charge container ${f.containers['blend'] ?? ''}` }), op);
@@ -619,14 +676,14 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
     await begin(page, op);
     await saveBlock(page, 'RUN_START', op, async (form) => {
       const press = form.getByRole('textbox', { name: 'Press' });
-      if ((await press.count()) > 0) await press.fill('PRESS-01');
-      else await choose(form.getByRole('radio', { name: 'PRESS-01', exact: true }));
+      if ((await press.count()) > 0) await press.fill(unitOf(f, 'PRESS-01'));
+      else await choose(form.getByRole('radio', { name: unitOf(f, 'PRESS-01'), exact: true }));
     });
     for (const stream of ['L', 'R'] as const) {
       await entry(page, 'STATION_SWEEP', op, { Instrument: bal, Capture: 'MANUAL', Stream: stream, Stations: plan.sweep.map((w, i) => ({ Station: String(i + 1), Weight: w })) });
     }
     const labels: Record<'L' | 'R', string> = { L: '', R: '' };
-    for (const stream of ['L', 'R'] as const) labels[stream] = await openContainer(f, page, 'COMPRESSION', op, 'kg', 'PRESS-01', stream);
+    for (const stream of ['L', 'R'] as const) labels[stream] = await openContainer(f, page, 'COMPRESSION', op, 'kg', unitOf(f, 'PRESS-01'), stream);
     await step(f, page, 'p-run@');
     await saveBlock(page, 'RUN_END', op);
     for (const stream of ['L', 'R'] as const) {
@@ -688,7 +745,7 @@ export async function compression(f: Floor, plan: ProcessPlan): Promise<void> {
   }
   if (!(await done(f, page, 'H-COAT@'))) await holdPoint(f, page, 'H-COAT@', qa);
   await closeStage(f, page, 'H-COAT@', op);
-  await releasePlant(f, page, { status: 'p-comp-status@', units: [['PRESS', 'PRESS-01']], clear: 'p-comp-clear@', area: 'COMP-1' }, op);
+  await releasePlant(f, page, { status: 'p-comp-status@', units: [['PRESS', unitOf(f, 'PRESS-01')]], clear: 'p-comp-clear@', area: 'COMP-1' }, op);
   await page.context().close();
 }
 
@@ -697,10 +754,12 @@ export async function coating(f: Floor, plan: ProcessPlan): Promise<void> {
   const verifier = f.persona('verifier1');
   const page = await floorKiosk(f, 'COAT-1', op);
   const bal = balanceOf(f, 'COAT-1');
-  if (!(await done(f, page, 'p-coat-status@'))) {
+  if (!(await done(f, page, 'p-coat-clear@'))) {
     await clearance(f, page, 'COAT-1', op, verifier);
     await clearanceStep(f, page, 'p-coat-clear@', 'COAT-1', op, verifier);
-    await statusStep(f, page, 'p-coat-status@', [{ ref: 'BAL', code: bal, instrument: true }, { ref: 'COATER', code: 'COATER-01', instrument: false }, { ref: 'DT', code: instrumentOf(f, 'DT-01'), instrument: true }], op);
+  }
+  if (!(await done(f, page, 'p-coat-status@'))) {
+    await statusStep(f, page, 'p-coat-status@', [{ ref: 'BAL', code: bal, instrument: true }, { ref: 'COATER', code: unitOf(f, 'COATER-01'), instrument: false }, { ref: 'DT', code: instrumentOf(f, 'DT-01'), instrument: true }], op);
   }
   for (const l of plan.coating.layers) {
     if (!(await done(f, page, `${l.cores}@`))) {
@@ -763,7 +822,7 @@ export async function coating(f: Floor, plan: ProcessPlan): Promise<void> {
   }
   await signOnly(f, page, 'p-coat-gain@', op, verifier);
   await closeStage(f, page, 'p-coat-gain@', op);
-  await releasePlant(f, page, { status: 'p-coat-status@', units: [['COATER', 'COATER-01']], clear: 'p-coat-clear@', area: 'COAT-1' }, op);
+  await releasePlant(f, page, { status: 'p-coat-status@', units: [['COATER', unitOf(f, 'COATER-01')]], clear: 'p-coat-clear@', area: 'COAT-1' }, op);
   await page.context().close();
 }
 
@@ -798,9 +857,11 @@ export async function inspection(f: Floor, plan: ProcessPlan): Promise<void> {
   const qa = f.persona('qa1');
   const i = plan.inspection;
   const page = await floorKiosk(f, 'INSP-1', op);
-  if (!(await done(f, page, 'p-insp-status@'))) {
+  if (!(await done(f, page, 'p-insp-clear@'))) {
     await clearance(f, page, 'INSP-1', op, verifier);
     await clearanceStep(f, page, 'p-insp-clear@', 'INSP-1', op, verifier);
+  }
+  if (!(await done(f, page, 'p-insp-status@'))) {
     await statusStep(f, page, 'p-insp-status@', [{ ref: 'BAL', code: balanceOf(f, 'INSP-1'), instrument: true }], op);
   }
   if (!f.containers['destroyed']) {

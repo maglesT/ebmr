@@ -53,10 +53,9 @@ describe('the plant on both installations, each against its own database (slice 
     expect(sbx.built.ctx.installation).toBe('SANDBOX');
   });
 
-  it('[DI-05] the DEMO-ONLY sandbox plant registers its instruments as devices with TEST- labels only, never a GMP instrument label (EBMR-SBX-022)', () => {
-    const instruments = new Set(SANDBOX_PLANT.classes.filter(([, kind]) => kind === 'INSTRUMENT').map(([code]) => code));
-    const labels = SANDBOX_PLANT.units.filter(([, , cls]) => instruments.has(cls)).map(([code]) => code);
-    expect(labels.length).toBeGreaterThan(8);
+  it('[DI-05] the DEMO-ONLY sandbox plant labels every unit TEST- (its instruments are devices, EBMR-SBX-022; a test run\'s entries name units), never a GMP label', () => {
+    const labels = SANDBOX_PLANT.units.map(([code]) => code);
+    expect(labels.length).toBeGreaterThan(16);
     expect(labels.filter((l) => !l.startsWith('TEST-'))).toEqual([]);
   });
 });

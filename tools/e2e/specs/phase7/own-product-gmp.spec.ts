@@ -50,7 +50,7 @@ const SIZE_ID = 'BS-150000U';
 const EXCIPIENTS: readonly (readonly [string, string, string])[] = [
   ['mcc', 'MAT-MCC-101', 'Microcrystalline cellulose PH 101'],
   ['lac', 'MAT-LAC-MH', 'Lactose monohydrate'],
-  ['pvp', 'MAT-PVP-K30', 'Povidone K30'],
+  ['pvp', 'MAT-PVP-K30', 'Povidone'],
   ['ipa', 'MAT-IPA', 'Isopropyl alcohol'],
   ['ccs', 'MAT-CCS', 'Croscarmellose sodium'],
   ['sio', 'MAT-SIO2', 'Colloidal silicon dioxide'],
@@ -64,8 +64,9 @@ const EXCIPIENTS: readonly (readonly [string, string, string])[] = [
  */
 function demotabPlan(lots: (id: string) => string, api: string, tag: string): ProcessPlan {
   return {
-    api: { material: api, lot: lots('api') },
-    compensating: { material: 'MAT-MCC-101', lot: lots('mcc') },
+    // TB-01 on the lot's assay 99.20 % and water 0.80 %: 60 kg base x 322.33 / 300.35, over the assay (as route W's worksheet).
+    api: { material: api, lot: lots('api'), kg: '65.434' },
+    compensating: { material: 'MAT-MCC-101', lot: lots('mcc'), kg: '4.957' },
     others: [
       ['MAT-LAC-MH', '10.500', lots('lac')], ['MAT-PVP-K30', '1.800', lots('pvp')], ['MAT-IPA', '1.800', lots('ipa')], ['MAT-CCS', '1.800', lots('ccs')],
       ['MAT-SIO2', '0.300', lots('sio')], ['MAT-MGST', '0.600', lots('mgs')], ['MAT-FCS-W', '2.400', lots('fcs')],
@@ -74,7 +75,7 @@ function demotabPlan(lots: (id: string) => string, api: string, tag: string): Pr
     granules: { in: '83.800', out: '83.650', oversize: '0.150' },
     blendLubricantKg: '0.600',
     blendNet: '85.200',
-    toolingSet: new RegExp(`^TS-DMT-${tag}`),
+    toolingSet: new RegExp(`TS-DMT-${tag}`),
     sweep: ['568.8', '569.6', '570.2', '567.9'],
     sideNet: '42.450',
     sideGroup: { L: '11386.0', R: '11383.0' },
@@ -195,13 +196,14 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
       { lotCode: lotCode('api'), material: api, name: 'Demotab sodium (invented, micronised)', assay: { assay: '99.20', water: '0.80' } },
       ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name })),
     ]);
-    await home(st, /^Plant master data/);
-    await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TS-DMT-${s.tag}`, shape: 'Capsule 17.0 x 8.0 mm', upper: 'D400' });
+    await home(st, /^Plant definitions/);
+    await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TEST-TS-DMT-${s.tag}`, shape: 'Capsule 17.0 x 8.0 mm', upper: 'D400' });
   }, st);
   const iss = await officePage('SANDBOX', 'TEST-PC-01');
   await signIn.office(iss, persona('SANDBOX', 'issuer'));
   await evidence.step('Sandbox: the issuer imports the test package and issues a test batch', 'A TEST- batch number', async () => {
-    const run = await issueTestBatch(iss, s.packageHash ?? '');
+    if (process.env['EBMR_E2E_RESUME'] === '1' && s.sandboxRunId) return { runId: s.sandboxRunId };
+    const run = await issueTestBatch(iss, s.packageHash ?? '', BATCH_UNITS);
     s.sandboxRunId = run.runId;
     s.sandboxBatchNumber = run.batchNumber;
     saveProduct(e2e, KEY, s);

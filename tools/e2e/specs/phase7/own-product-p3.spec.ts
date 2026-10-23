@@ -33,7 +33,7 @@ const SIZE_ID = 'BS-150000U';
 
 /** 1,50,000 tablets of 125 mg cores: rabeprazole sodium 20 mg with the site's wet-granulation excipients; the coats. */
 const lines = (api: string): FormulaLineEntry[] => [
-  { id: 'api', material: api, role: 'ACTIVE', basis: 'PER_UNIT', quantity: '20', saltFactor: '1', potency: true, compensating: false },
+  { id: 'api', material: api, role: 'ACTIVE', basis: 'PER_UNIT', quantity: '20', potency: true, compensating: false },
   { id: 'mcc', material: 'MAT-MCC-101', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '30', potency: false, compensating: true },
   { id: 'lac', material: 'MAT-LAC-MH', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '60', potency: false, compensating: false },
   { id: 'pvp', material: 'MAT-PVP-K30', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '6', potency: false, compensating: false },
@@ -47,7 +47,7 @@ const lines = (api: string): FormulaLineEntry[] => [
 const EXCIPIENTS: readonly (readonly [string, string, string])[] = [
   ['mcc', 'MAT-MCC-101', 'Microcrystalline cellulose PH 101'],
   ['lac', 'MAT-LAC-MH', 'Lactose monohydrate'],
-  ['pvp', 'MAT-PVP-K30', 'Povidone K30'],
+  ['pvp', 'MAT-PVP-K30', 'Povidone'],
   ['ipa', 'MAT-IPA', 'Isopropyl alcohol'],
   ['ccs', 'MAT-CCS', 'Croscarmellose sodium'],
   ['sio', 'MAT-SIO2', 'Colloidal silicon dioxide'],
@@ -62,8 +62,9 @@ function rabeprazolePlan(lots: (id: string) => string, api: string, tag: string)
       ? { susp: 'p-susp', cores: 'p-cores', coat: 'p-coat', loop: 'L-COAT', recipe, suspensionKg, usedKg, coreTotal, coatedTotal }
       : { susp: `p-susp-${slug}`, cores: `p-cores-${slug}`, coat: `p-coat-${slug}`, loop: `L-COAT-${slug.toUpperCase()}`, recipe, suspensionKg, usedKg, coreTotal, coatedTotal };
   return {
-    api: { material: api, lot: lots('api') },
-    compensating: { material: 'MAT-MCC-101', lot: lots('mcc') },
+    // TB-01 on the declared form, the lot's assay 99.40 % and water 0.60 %: 3 kg over the assay; the cellulose gives way.
+    api: { material: api, lot: lots('api'), kg: '3.037' },
+    compensating: { material: 'MAT-MCC-101', lot: lots('mcc'), kg: '4.464' },
     others: [
       ['MAT-LAC-MH', '9.000', lots('lac')], ['MAT-PVP-K30', '0.900', lots('pvp')], ['MAT-IPA', '0.900', lots('ipa')], ['MAT-CCS', '0.900', lots('ccs')],
       ['MAT-SIO2', '0.150', lots('sio')], ['MAT-MGST', '0.300', lots('mgs')], ['MAT-ECS-01', '2.800', lots('fcs')],
@@ -72,7 +73,7 @@ function rabeprazolePlan(lots: (id: string) => string, api: string, tag: string)
     granules: { in: '18.300', out: '18.250', oversize: '0.050' },
     blendLubricantKg: '0.300',
     blendNet: '18.650',
-    toolingSet: new RegExp(`^TS-RAB-${tag}`),
+    toolingSet: new RegExp(`TS-RAB-${tag}`),
     sweep: ['124.8', '125.4', '125.9', '124.6'],
     sideNet: '9.270',
     sideGroup: { L: '2501.0', R: '2499.0' },
@@ -142,7 +143,8 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
   }, a);
   await evidence.step('The author edits the master to the product in the designer', 'Edited in the designer', async () => {
     await selectStep(a, /Potency-adjusted dispensing/);
-    await setConfig(a, ['active', 'form', 'name'], 'rabeprazole sodium');
+    // The label claim is the sodium salt itself (the declared form at 100 %), not a base the dispensing converts.
+    await setConfig(a, ['active', 'standardIs'], 'FORM');
     await setConfig(a, ['compensation', 'min'], '0.500');
     await setConfig(a, ['compensation', 'max'], '2.000');
     await selectStep(a, /Tooling issue and inspection/);
@@ -187,13 +189,14 @@ test('[IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run w
       { lotCode: lotCode('api'), material: api, name: 'Rabeprazole sodium (invented data)', assay: { assay: '99.40', water: '0.60' } },
       ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name })),
     ]);
-    await home(st, /^Plant master data/);
-    await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TS-RAB-${s.tag}`, shape: 'Round 7.0 mm biconvex', upper: 'R20' });
+    await home(st, /^Plant definitions/);
+    await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TEST-TS-RAB-${s.tag}`, shape: 'Round 7.0 mm biconvex', upper: 'R20' });
   }, st);
   const iss = await officePage('SANDBOX', 'TEST-PC-01');
   await signIn.office(iss, persona('SANDBOX', 'issuer'));
   await evidence.step('Sandbox: the issuer imports the test package and issues a test batch', 'A TEST- batch number', async () => {
-    const run = await issueTestBatch(iss, s.packageHash ?? '');
+    if (process.env['EBMR_E2E_RESUME'] === '1' && s.sandboxRunId) return { runId: s.sandboxRunId };
+    const run = await issueTestBatch(iss, s.packageHash ?? '', BATCH_UNITS);
     s.sandboxRunId = run.runId;
     s.sandboxBatchNumber = run.batchNumber;
     saveProduct(e2e, KEY, s);

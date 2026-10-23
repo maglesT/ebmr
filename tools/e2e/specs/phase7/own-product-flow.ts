@@ -430,6 +430,10 @@ export async function authoriseIn(qaPage: Page, regPage: Page, base: string, ver
 /** The steward defines the product in the plant's product list and its tooling set (Plant master data). */
 export async function defineTooling(page: Page, t: { product: string; productName: string; code: string; shape: string; upper: string }): Promise<void> {
   const show = page.getByRole('radiogroup', { name: 'Show' });
+  if (process.env['EBMR_E2E_RESUME'] === '1') {
+    await choose(show.getByRole('radio', { name: 'Tooling sets', exact: true }));
+    if ((await page.getByRole('table', { name: 'Tooling sets' }).getByText(t.code).count()) > 0) return;
+  }
   await choose(show.getByRole('radio', { name: 'Products', exact: true }));
   const products = page.getByRole('form', { name: 'Define: Products' });
   await products.getByRole('textbox', { name: 'Code' }).fill(t.product);
@@ -472,6 +476,8 @@ export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]
   await expect(page.getByRole('heading', { name: 'Test lots', level: 1 })).toBeVisible();
   const form = page.getByRole('form', { name: 'Register a test lot' });
   for (const l of lots) {
+    // A developer's resumed run (EBMR_E2E_RESUME=1) finds the lots it registered before; never in CI.
+    if (process.env['EBMR_E2E_RESUME'] === '1' && (await page.getByTestId(`test-lot-${l.lotCode}`).count()) > 0) continue;
     await form.getByRole('textbox', { name: 'Lot code' }).fill(l.lotCode);
     await form.getByRole('textbox', { name: 'Material code' }).fill(l.material);
     await form.getByRole('textbox', { name: 'Material name' }).fill(l.name);
@@ -482,7 +488,7 @@ export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]
   for (const l of lots.filter((x) => x.assay ?? x.artwork)) {
     await choose(page.getByRole('radiogroup', { name: 'Assay and artwork of a test lot' }).getByRole('radio', { name: `${l.lotCode} (${l.material})` }));
     const section = page.getByTestId(`lot-quality-${l.lotCode}`);
-    if (l.assay) {
+    if (l.assay && !/^Assay /.test((await section.getByTestId('lot-assay').textContent()) ?? '')) {
       const a = section.getByRole('form', { name: `Record the assay result of ${l.lotCode}` });
       await choose(a.getByRole('radiogroup', { name: 'Basis' }).getByRole('radio', { name: 'ANHYDROUS_WATER', exact: true }));
       await a.getByRole('textbox', { name: /^Assay \(%\)/ }).fill(l.assay.assay);
@@ -491,7 +497,7 @@ export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]
       await a.getByRole('button', { name: 'Record the assay result' }).click();
       await expect(section.getByTestId('lot-assay')).toContainText(`Assay ${l.assay.assay} %`);
     }
-    if (l.artwork) {
+    if (l.artwork && (await section.getByTestId('lot-artwork').textContent()) !== `Artwork version ${l.artwork}`) {
       const w = section.getByRole('form', { name: `Record the artwork version of ${l.lotCode}` });
       await w.getByRole('textbox', { name: /^Artwork version/ }).fill(l.artwork);
       await w.getByRole('button', { name: 'Record the artwork version' }).click();
@@ -501,14 +507,21 @@ export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]
 }
 
 /** The sandbox issuer imports the test package and issues a test batch of the master's first approved size. */
-export async function issueTestBatch(page: Page, packageHash: string): Promise<{ runId: string; batchNumber: string }> {
+export async function issueTestBatch(page: Page, packageHash: string, units: string): Promise<{ runId: string; batchNumber: string }> {
   await home(page, /^Test-run packages/);
   const item = page.getByTestId(`package-${packageHash}`);
   await expect(item).toContainText('Exported from GMP');
-  await item.getByRole('button', { name: 'Import' }).click();
+  if (process.env['EBMR_E2E_RESUME'] !== '1' || (await item.getByText(/^Imported /).count()) === 0) await item.getByRole('button', { name: 'Import' }).click();
   await expect(item.getByText(/^Imported /)).toBeVisible();
   await item.getByRole('link', { name: 'Issue a test batch' }).click();
   await choose(page.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first());
+  // The master's variants (each its first choice) and header inputs (the batch size in units).
+  for (const group of await page.getByRole('main').getByRole('radiogroup').all()) {
+    if ((await group.getByRole('radio', { checked: true }).count()) === 0) await choose(group.getByRole('radio').first());
+  }
+  for (const input of await page.getByRole('main').getByRole('textbox').all()) {
+    if ((await input.inputValue()) === '') await input.fill(units);
+  }
   await page.getByRole('button', { name: 'Issue the test batch' }).click();
   await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
   const runId = new URL(page.url()).pathname.split('/').pop() ?? '';

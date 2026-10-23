@@ -33,7 +33,10 @@ export interface PlantPlan {
 const INSTRUMENT = (description: string): Json => ({ description, calibrationRequired: true, checkRegime: 'PER_USE' });
 const PROCESS = (description: string): Json => ({ description, cleanHold: '72 hours', dirtyHold: '48 hours' });
 
-/** The sandbox plant: the GMP demo plant's rooms, classes and process units; its instruments are registered devices, so their labels are TEST- (EBMR-SBX-022, DI-05). */
+/**
+ * The sandbox plant: the GMP demo plant's rooms and classes; every unit is labelled TEST- (an instrument is a registered
+ * device, EBMR-SBX-022, and a test run's entries name units, which the sandbox records only by TEST- identifiers, DI-05).
+ */
 export const SANDBOX_PLANT: PlantPlan = {
   areas: [['DISP-1', 'ROOM'], ['BLEND-1', 'ROOM'], ['GRAN-1', 'ROOM'], ['COMP-1', 'ROOM'], ['COAT-1', 'ROOM'], ['INSP-1', 'ROOM'], ['PL-2', 'LINE']],
   classes: [
@@ -61,14 +64,14 @@ export const SANDBOX_PLANT: PlantPlan = {
     ['TEST-HT-01', 'Tablet hardness and thickness tester', 'EQC-HT', 'COMP-1'],
     ['TEST-FRB-01', 'Friability tester', 'EQC-FRB', 'COMP-1'],
     ['TEST-DT-01', 'Disintegration tester', 'EQC-DT', 'COAT-1'],
-    ['BLD-01', 'Octagonal blender 400 L', 'EQC-BLENDER', 'BLEND-1'],
-    ['PRESS-01', 'Double-rotary press, 45 stations', 'EQC-PRESS-GBT', 'COMP-1'],
-    ['RMG-01', 'Rapid mixer granulator 600 L', 'EQC-RMG', 'GRAN-1'],
-    ['FBD-01', 'Fluid-bed dryer 120 kg with filter bags', 'EQC-FBD', 'GRAN-1'],
-    ['MILL-01', 'Co-mill with screens', 'EQC-MILL', 'GRAN-1'],
-    ['COATER-01', 'Perforated coating pan 150 kg', 'EQC-COATER', 'COAT-1'],
-    ['CFORM-01', 'Cold-form (alu-alu) blister machine', 'EQC-COLDFORM', 'PL-2'],
-    ['CTN-03', 'Cartoner with checkweigher', 'EQC-CARTONER', 'PL-2'],
+    ['TEST-BLD-01', 'Octagonal blender 400 L', 'EQC-BLENDER', 'BLEND-1'],
+    ['TEST-PRESS-01', 'Double-rotary press, 45 stations', 'EQC-PRESS-GBT', 'COMP-1'],
+    ['TEST-RMG-01', 'Rapid mixer granulator 600 L', 'EQC-RMG', 'GRAN-1'],
+    ['TEST-FBD-01', 'Fluid-bed dryer 120 kg with filter bags', 'EQC-FBD', 'GRAN-1'],
+    ['TEST-MILL-01', 'Co-mill with screens', 'EQC-MILL', 'GRAN-1'],
+    ['TEST-COATER-01', 'Perforated coating pan 150 kg', 'EQC-COATER', 'COAT-1'],
+    ['TEST-CFORM-01', 'Cold-form (alu-alu) blister machine', 'EQC-COLDFORM', 'PL-2'],
+    ['TEST-CTN-03', 'Cartoner with checkweigher', 'EQC-CARTONER', 'PL-2'],
   ],
 };
 
