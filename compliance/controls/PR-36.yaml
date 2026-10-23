@@ -60,6 +60,7 @@ tests:
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [IN-31][PR-36] records the batch data with the MRP, offers the second person's check of the version, asks a reason for a new version, and releases a print job"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-40][DI-30][IN-16][PR-34][PR-36] GMP kiosk batch 6: the bottle order run on KIOSK-PACK-1 to its end: bulk issued, line cleared and used, bottles weighed, printed materials, filling, cartoning and shippers, reconciliations, witnessed destruction, the post-use inspection and the stage sign-off @office"
   - "apps/tablets-web/test/office/packaging.test.tsx > planning a packaging order > [PR-36] the issuer narrows the markets the order packs for to those chosen, of the ones the master is authorised for; none chosen cannot be planned"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-form order run on KIOSK-PACK-2: bulk issued, the line cleared and used, the laminate weighed, printed materials, the line check (TB-21 COLD_FORM), the sealing run, the leak tests (TB-22), cartons and the shipper (TB-24), reconciliations, the witnessed destruction, the post-use inspection, the yield @office"
 clauses:
   - clause: "Changing batch data after print set-up invalidates the job."
     tests:

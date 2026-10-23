@@ -125,6 +125,8 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the detector challenges (tablets 0872, 1040) > [IN-36][IN-35][PR-22] a test piece and a detector are defined with their shape; a challenge: a press in use by the batch, the device and each piece once with detected and rejected, a registered certified piece of the device's kind; failed when any piece was missed, holding the output since the device's last pass"
   - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the detector challenges (tablets 0872, 1040) > [IN-36][IN-35] a failed challenge (a piece not detected, or detected and not rejected) holds the output of the batch and press since that device's last passing challenge"
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > a reject container named in a sort result > [PR-46][IN-35] is picked from the batch's containers (label, stage, state, net), never its id typed"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route W 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
 clauses:
   - clause: "run 45 minutes without an IPC entry; the alarm fires at 30 minutes."
     tests:

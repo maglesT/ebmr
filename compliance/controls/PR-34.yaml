@@ -47,6 +47,7 @@ tests:
   - "apps/tablets-server/test/plant/floor-routes.test.ts > the use of a room by a batch (gap report A2) > [IN-21][PR-34][INV-40] the room is occupied for the batch on its verified clearance by the operator's own tapped act; untapped, by a verifier or a second time it is refused; the step screen lists it as the viewer's; ended once"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the room a clearance step occupies (A2) > [IN-21][PR-34] starts the batch's use of the stage's room, fills the AREA_OCCUPANCY entry from the answer, saves it, and ends the use"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-40][DI-30][IN-16][PR-34][PR-36] GMP kiosk batch 6: the bottle order run on KIOSK-PACK-1 to its end: bulk issued, line cleared and used, bottles weighed, printed materials, filling, cartoning and shippers, reconciliations, witnessed destruction, the post-use inspection and the stage sign-off @office"
+  - "tools/e2e/specs/phase7/route-w.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-form order run on KIOSK-PACK-2: bulk issued, the line cleared and used, the laminate weighed, printed materials, the line check (TB-21 COLD_FORM), the sealing run, the leak tests (TB-22), cartons and the shipper (TB-24), reconciliations, the witnessed destruction, the post-use inspection, the yield @office"
 clauses:
   - clause: "Starting packaging without a signed clearance is blocked."
     tests:
