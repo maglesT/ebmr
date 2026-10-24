@@ -936,7 +936,57 @@ export async function inspection(f: Floor, plan: ProcessPlan): Promise<void> {
 }
 
 /** Every processing stage of the master, in order. */
+/** An office PC of the floor's installation with the person signed in (the plant's office acts). */
+async function floorOffice(f: Floor, who: SeededPersona): Promise<Page> {
+  const context = await f.browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  const page = await context.newPage();
+  opened.push(page);
+  await pickTerminal(page, baseOf(f), f.inst === 'GMP' ? 'PC-PLAN-04' : 'TEST-PC-01');
+  await signIn.office(page, who);
+  return page;
+}
+
+/**
+ * Before the run: on Plant, a technician starts and completes every cleaning the batch's stages need (the rooms and
+ * units another batch left dirty; nothing on a clean plant), and a second technician verifies each.
+ */
+export async function cleanForBatch(f: Floor): Promise<string[]> {
+  const t1 = f.persona('technician1');
+  const cp = await floorOffice(f, t1);
+  await cp.goto(`${baseOf(f)}/plant`);
+  const box = cp.getByTestId('batch-cleaning');
+  await choose(box.getByRole('radio', { name: new RegExp(`^${f.batchNumber.replace('/', '\\/')} `) }));
+  const needs = box.locator('[data-testid^="cleaning-needs-"]');
+  await expect(needs.locator('[data-testid^="cleaning-stage-"]').first()).toBeVisible();
+  const cleaned: string[] = [];
+  for (;;) {
+    const start = needs.getByRole('button', { name: /^Start the cleaning of / }).first();
+    if ((await start.count()) === 0) break;
+    const code = ((await start.textContent()) ?? '').replace('Start the cleaning of ', '');
+    await start.click();
+    await expect(box.getByText(`Cleaning of ${code} started: complete it below.`)).toBeVisible();
+    cleaned.push(code);
+    const complete = cp.getByTestId('complete-cleaning');
+    await choose(complete.getByRole('radio', { name: new RegExp(`^${code} `) }));
+    await complete.getByRole('button', { name: 'Complete the cleaning' }).click();
+    await expect(complete.getByText('Completed: a second person verifies it.')).toBeVisible();
+  }
+  await cp.context().close();
+  if (cleaned.length === 0) return cleaned;
+  const t2 = f.persona('technician2');
+  const vp = await floorOffice(f, t2);
+  await vp.goto(`${baseOf(f)}/plant`);
+  for (const code of cleaned) {
+    await vp.getByTestId(`pending-CLEANING-${code}`).first().getByRole('button', { name: `Verify the cleaning of ${code}` }).click();
+    await officeSign(vp, new RegExp(`^Verify the cleaning of ${code}`), t2);
+    await expect(vp.getByTestId(`pending-CLEANING-${code}`)).toHaveCount(0);
+  }
+  await vp.context().close();
+  return cleaned;
+}
+
 export async function processingRun(f: Floor, plan: ProcessPlan): Promise<void> {
+  await cleanForBatch(f);
   await dispensing(f, plan);
   await granulation(f, plan);
   await blending(f, plan);

@@ -145,8 +145,8 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await selectStep(a, /Potency-adjusted dispensing/);
     // The label claim is the sodium salt itself (the declared form at 100 %), not a base the dispensing converts.
     await setConfig(a, ['active', 'standardIs'], 'FORM');
-    await setConfig(a, ['compensation', 'min'], '0.500');
-    await setConfig(a, ['compensation', 'max'], '2.000');
+    await setConfig(a, ['compensation', 'min'], '4.000');
+    await setConfig(a, ['compensation', 'max'], '5.000');
     await selectStep(a, /Wet granulation \(high shear\) to the end point/);
     await setConfig(a, ['binder', 'min'], '1.500');
     await setConfig(a, ['binder', 'max'], '2.200');
@@ -197,8 +197,9 @@ test('[IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run w
   await signIn.office(st, persona('SANDBOX', 'steward'));
   await evidence.step('Sandbox: TEST- lots, the active\'s assay and the tooling set', 'Lots RELEASED; tooling set defined', async () => {
     await registerTestLots(st, [
-      { lotCode: lotCode('api'), material: api, name: 'Rabeprazole sodium (invented data)', assay: { assay: '99.40', water: '0.60' } },
-      ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name })),
+      // The product's own lots first-expiring (the site may hold earlier test lots of the shared excipients).
+      { lotCode: lotCode('api'), material: api, name: 'Rabeprazole sodium (invented data)', assay: { assay: '99.40', water: '0.60' }, expiresInDays: '300' },
+      ...EXCIPIENTS.map(([id, material, name]) => ({ lotCode: lotCode(id), material, name, expiresInDays: '300' })),
     ]);
     await home(st, /^Plant definitions/);
     await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TEST-TS-RAB-${s.tag}`, shape: 'Round 7.0 mm biconvex', upper: 'R20' });

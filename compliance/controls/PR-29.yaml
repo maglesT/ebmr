@@ -288,6 +288,8 @@ tests:
   - "apps/tablets-server/test/blocks/coating/three-layers.test.ts > three coating layers in a row (slice 7o, R4 second check product) > [IN-37][PR-29][DI-04][DI-05] the validator and the definition find no error in three layers, and the simulation runs each layer to its own weight gain"
   - "apps/tablets-server/test/blocks/coating/three-layers.test.ts > three coating layers in a row (slice 7o, R4 second check product) > [IN-37][PR-29][INV-25][DI-29] a batch runs the three layers through the engine and the database: each weight gain is computed against its own layer's core sample (seal 250 mg, enteric 255 mg, top 278 mg), each suspension its own"
   - "apps/tablets-web/test/designer/coating-layer.test.ts > add a coating layer (slice 7o) > [IN-37][PR-29][PR-08] three layers in a row: each its own TB-03, its own TB-18 cores step and core item, its own loop to its own gain item with its own limits; the later layers copy the first coating step's settings"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the formula as a copy of the wet-granulation master; a seal coat added before the enteric coat and a top coat after it in the designer; change control; the test package @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run with the three coats on the sandbox's kiosks; its result imported as evidence; the four signatures and the IN authorisation @office"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:

@@ -54,6 +54,10 @@ tests:
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01] a master from a formula takes the product name from the product master in effect and its dosage form, Tablet when the master has none; a non-tablet dosage form is refused (review P7J-2, D-7j-11)"
   - "apps/tablets-server/test/designer/copy-formula.test.ts > a copy of an approved master for another formula (slice 7o, D-7o-5) > [PR-01][INV-25][DI-04] the copy's dispensing standard is this formula's mg per tablet; the source's golden case of it is left out; the other calculations and the copy's definition hold"
   - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-32][IN-38][PR-01] the copy names the new product, carries its own printed materials and artworks for its markets everywhere the source named the old ones, and defines without errors"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-17][INV-25][PR-01] Demotab 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a copy of the approved wet-granulation master, edited to the product in the designer; change control; the test package in the sandbox inbox @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-17][INV-25][PR-01] Rabeprazole 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the formula as a copy of the wet-granulation master; a seal coat added before the enteric coat and a top coat after it in the designer; change control; the test package @office"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:

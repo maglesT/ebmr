@@ -486,6 +486,8 @@ export interface TestLotEntry {
   assay?: { assay: string; water: string };
   /** A printed packaging lot's artwork version (G-21 checks it). */
   artwork?: string;
+  /** Days to expiry (365 when not given): a shorter one makes the lot the first-expiring one TB-01 dispenses (PR-18). */
+  expiresInDays?: string;
 }
 
 /** The sandbox steward registers a TEST- lot of each material on Test lots and types each lot's assay or artwork. */
@@ -499,7 +501,7 @@ export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]
     await form.getByRole('textbox', { name: 'Lot code' }).fill(l.lotCode);
     await form.getByRole('textbox', { name: 'Material code' }).fill(l.material);
     await form.getByRole('textbox', { name: 'Material name' }).fill(l.name);
-    await form.getByRole('textbox', { name: 'Expires in (days)' }).fill('365');
+    await form.getByRole('textbox', { name: 'Expires in (days)' }).fill(l.expiresInDays ?? '365');
     await form.getByRole('button', { name: 'Register the test lot' }).click();
     await expect(page.getByTestId(`test-lot-${l.lotCode}`)).toContainText('RELEASED');
   }
