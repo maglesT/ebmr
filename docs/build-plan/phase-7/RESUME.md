@@ -231,6 +231,10 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
   The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
   signing screens (as `master-records.spec.ts`), clicks elsewhere.
 
+## Route-w split (24 October 2026)
+
+- Route-w split dropped (24 October): route W2 test 4 needs route W's residue from the same stack, and the measured bottleneck was runner count (route-w waited 17 minutes for a free runner in PR #75's run); the fix is more runners on the pod.
+
 ## Slice 7o (23 October 2026): R4 end to end, the coating layers (R8 P3)
 
 On branch `phase-7/slice-7o`; two migrations: tablets 1700 (a test run's disposal or sample may name the batch's own output

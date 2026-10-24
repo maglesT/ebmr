@@ -83,6 +83,8 @@ tests:
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][PR-18][INV-13] a delivery received by stores: each malformed part, an unknown or made-here material, a repeated delivery, a zero quantity and a retest after expiry are refused"
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][DI-14] the receipt record of a lot received without one, and its examination: each refusal"
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the approved-manufacturer register (PR-17; site services 0910) > [PR-17][DI-17] proposal fields, the 10-character basis, unknown and unapproved rows, and the signer who records the approval"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-33][PR-17][DI-17] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the manufacturer approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and the printed materials received and examined by stores, tested by QC and approved by the head of QC, their assay and artwork recorded, released by QA; the tooling set defined @office"
 clauses:
   - clause: "One delivery containing three supplier batches creates three lots."
     tests:

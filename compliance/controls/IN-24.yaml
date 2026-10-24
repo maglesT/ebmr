@@ -75,6 +75,7 @@ tests:
   - "apps/tablets-server/test/quality/lot-handling-routes.test.ts > vendor-history routes (IN-24 (c)) > [IN-24] QA disables an enabled vendor-history route with the reason; stores are refused; the route is listed disabled and is not disabled again"
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the witnessed destruction of a lot > [IN-24] stores record the destruction with its method and reason; the witness signs LOT_DESTRUCTION_WITNESS; the performer destroys the lot with the witness's signature"
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the vendor-history routes > [IN-24] lists the routes with their state and QA disables an enabled one with the reason"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and the printed materials received and examined by stores, tested by QC and approved by the head of QC, their assay and artwork recorded, released by QA; the tooling set defined @office"
 clauses:
   - clause: "release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists."
     tests:

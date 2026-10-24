@@ -27,6 +27,7 @@ tests:
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [IN-16] the packaging page offers the next coding specimen in order and posts what the operator read off it; [PR-16] it lists every printed item without its label specimen"
   - "tools/e2e/specs/phase7/gmp-kiosk-batch.spec.ts > [INV-40][DI-30][IN-16][PR-34][PR-36] GMP kiosk batch 6: the bottle order run on KIOSK-PACK-1 to its end: bulk issued, line cleared and used, bottles weighed, printed materials, filling, cartoning and shippers, reconciliations, witnessed destruction, the post-use inspection and the stage sign-off @office"
   - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the batch data of a packaging step > [IN-16] shows the record's coding the coder prints while no batch data is recorded"
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-43][IN-16][DI-05] a test run with no product master in the sandbox is dated by the shelf life its own master's G-21 step states, so its coding specimens are checked (D-7r-1); a GMP batch never is"
 clauses:
   - clause: "run two part-batches; two linked packaging records exist,"
     tests:

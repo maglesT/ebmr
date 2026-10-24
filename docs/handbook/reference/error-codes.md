@@ -889,7 +889,7 @@ files that raise, define or pass it on. To find where a code is raised, open the
 | `EBMR-LBL-031` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql) |
 | `EBMR-LBL-032` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql) |
 | `EBMR-LBL-033` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql), [apps/tablets-server/src/features/labels/index.ts](../../../apps/tablets-server/src/features/labels/index.ts) |
-| `EBMR-LBL-034` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql) |
+| `EBMR-LBL-034` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql), [packages/recipe-core/sql/1750_test_run_shelf_life.sql](../../../packages/recipe-core/sql/1750_test_run_shelf_life.sql) |
 | `EBMR-LBL-035` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql) |
 | `EBMR-LBL-036` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql) |
 | `EBMR-LBL-037` | [apps/tablets-server/sql/1230_packaging_line_completion.sql](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql), [apps/tablets-server/src/features/labels/index.ts](../../../apps/tablets-server/src/features/labels/index.ts) |
