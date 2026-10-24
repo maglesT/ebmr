@@ -535,6 +535,15 @@ export async function exportTestResult(page: Page, base: string, runId: string):
   await expect(page.getByText('Execution complete').first()).toBeVisible();
   await page.getByRole('button', { name: 'Export the test-run result for GMP' }).click();
   const exported = page.getByTestId('run-result-export');
-  await expect(exported).toHaveAttribute('data-passed', 'yes');
+  try {
+    await expect(exported).toHaveAttribute('data-passed', 'yes');
+  } catch (e) {
+    const text = (await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ');
+    await page.getByRole('button', { name: 'Verify record (replay)' }).click();
+    const replay = (await page.getByTestId('replay-result').innerText({ timeout: 60_000 }).catch(() => '(no replay result)')).replace(/\s+/g, ' ');
+    const at = Math.max(0, text.search(/export/i) - 300);
+    console.log(`replay: ${replay}`);
+    throw new Error(`the test-run result was not exported as passed; the page shows: ${text.slice(at, at + 1500)}`, { cause: e });
+  }
   return /([0-9a-f]{64}\.json)/.exec(await exported.innerText())?.[1] ?? '';
 }

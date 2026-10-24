@@ -1155,6 +1155,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   invariant query reports an instance that came before the steps before it. Round 2 (sql 0311): operator1's START of
   an untaken branch (not applicable at issue), stored with the engine result computed as if it were enabled, is
   refused (EBMR-EXE-132), and the step stays not applicable.
+- `lot-quality.test.ts` (Phase 7 slice 7o, D-7o-4): a lot's assay result and a printed lot's artwork version on screen;
+  the sandbox steward types a test lot's values, GMP names approved LIMS results (tablets 1001), nothing reaches GMP.
+- `replay-untaken-branch.test.ts` (slice 7o): a run whose untaken branch is not applicable replays identically; a
+  phase created not applicable is never worked on, so it has no stored content and needs none (verify.ts).
+- `sandbox-own-containers.test.ts` (slice 7o; tablets 1700, recipe-core 1701): a test run's disposal or sample names
+  the batch's own output container, a bound word of its record; another batch's container stays refused.
 - `db-guards-step-acts.test.ts` (Phase 2 exit review F67; sql 0308, 0312, 0316): the critic's two rows, a SIGN_PERFORMED before
   the 1 h minimum (EBMR-EXE-130) and one of a step its open action-limit breach blocks (EBMR-EXE-131), are refused
   and the step stays in progress; the invariant query reports an end before its minimum planted in the state. Round 2
