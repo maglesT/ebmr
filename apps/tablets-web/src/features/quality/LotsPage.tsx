@@ -11,7 +11,7 @@ import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 
-export const LOT_READS = [routes.quality.lots.id, routes.quality.lotResults.id];
+export const LOT_READS = [routes.quality.lots.id, routes.quality.lotResults.id, routes.quality.lotProfiles.id];
 
 export function LotsPage() {
   const q = useApiQuery(routes.quality.lots);

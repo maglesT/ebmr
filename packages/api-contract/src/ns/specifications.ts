@@ -18,6 +18,34 @@ const Unit = z.string().regex(/^[!-~]{1,32}$/);
 export const Pharmacopoeia = z.enum(['IP', 'BP', 'PH_EUR', 'USP', 'IN_HOUSE']);
 const Edition = z.string().trim().min(1).max(32);
 
+const PointLabel = z.string().regex(/^[!-~]( ?[!-~]){0,31}$/, 'a short label such as 1 h or 60 min');
+const StageLabel = z.string().regex(/^[!-~]( ?[!-~]){0,47}$/, 'a short label of the stage and its medium, e.g. Acid 0.1 M HCl');
+
+/**
+ * One time point of a profile test (slice 7p, site services 1720): its label, time with unit and its own limits; a
+ * two-stage test names the stage (and medium) of each point, and the time starts again in each stage (R8 C4).
+ */
+export const ProfilePointInput = z.strictObject({
+  label: PointLabel,
+  stage: StageLabel.optional(),
+  timeValue: z.string().regex(/^(0|[1-9][0-9]{0,5})(\.[0-9]{1,3})?$/, 'the time as decimal text, e.g. 60 or 1.5'),
+  timeUnit: z.enum(['min', 'h']),
+  lowerLimit: DecimalString.optional(),
+  upperLimit: DecimalString.optional(),
+});
+export type ProfilePointInput = z.infer<typeof ProfilePointInput>;
+
+export const ProfilePointView = z.strictObject({
+  pointNo: z.number().int().positive(),
+  label: z.string(),
+  stage: z.string().nullable(),
+  timeValue: DecimalString,
+  timeUnit: z.enum(['min', 'h']),
+  lowerLimit: DecimalString.nullable(),
+  upperLimit: DecimalString.nullable(),
+});
+export type ProfilePointView = z.infer<typeof ProfilePointView>;
+
 export const SpecificationTestInput = z.strictObject({
   testCode: TestCode,
   methodReference: z.string().trim().min(1).max(128),
@@ -32,6 +60,8 @@ export const SpecificationTestInput = z.strictObject({
   /** What one run of the test takes; the reserve sample is twice the sum (PR-44, IN-32). */
   sampleQuantity: DecimalString,
   sampleUnit: Unit,
+  /** A profile (e.g. a dissolution profile): its ordered time points carry the limits; the test then has none (slice 7p). */
+  points: z.array(ProfilePointInput).min(2).max(24).optional(),
 });
 export type SpecificationTestInput = z.infer<typeof SpecificationTestInput>;
 
@@ -56,6 +86,8 @@ export const SpecificationView = z.strictObject({
       edition: z.string(),
       sampleQuantity: DecimalString,
       sampleUnit: z.string(),
+      /** The time points of a profile test (slice 7p); absent for a single test. */
+      points: z.array(ProfilePointView).optional(),
     }),
   ),
   draftedBy: PersonRef,
