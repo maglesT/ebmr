@@ -258,6 +258,23 @@ export async function sendOrder(page: Page, productName: string, kind: 'processi
   return orderNo;
 }
 
+/**
+ * The master-data steward defines a numbering rule of the product at the session's site (Batch numbers, IN-18): a new
+ * product's batch takes its number from it when it is planned (no rule in force: planning is refused).
+ */
+export async function defineNumberingRule(page: Page, r: { ruleCode: string; kind: 'PROCESSING' | 'PACKAGING'; format: string; product: string }): Promise<void> {
+  const row = page.getByTestId(`rule-${r.ruleCode}`);
+  if (process.env['EBMR_E2E_RESUME'] === '1' && (await row.count()) > 0) return;
+  const form = page.getByRole('form', { name: 'Numbering rule' });
+  await form.getByRole('textbox', { name: /^Rule code/ }).fill(r.ruleCode);
+  await choose(form.getByRole('radiogroup', { name: /^Kind/ }).getByRole('radio', { name: r.kind, exact: true }));
+  await form.getByRole('textbox', { name: /^Format/ }).fill(r.format);
+  await form.getByRole('textbox', { name: /^Product code/ }).fill(r.product);
+  await form.getByRole('textbox', { name: /^Reason/ }).fill(`Numbering SOP-QA-017 rev 3: ${r.product} (${r.kind.toLowerCase()})`);
+  await form.getByRole('button', { name: 'Define the rule' }).click();
+  await expect(row).toContainText(r.format);
+}
+
 /** The batch issuer plans a processing batch of the order on SITE-1 line L1 and issues it; returns its number and id. */
 export async function planAndIssue(page: Page, base: string, orderNo: string, family: RegExp, units: string, issuer: SeededPersona): Promise<{ batchNumber: string; batchId: string }> {
   await page.goto(`${base}/planning`);

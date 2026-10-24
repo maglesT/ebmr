@@ -33,7 +33,7 @@ import {
 } from './own-product-flow.ts';
 import { closeFloor, packagingRun, processingRun, type Floor, type ProcessPlan } from './own-product-floor.ts';
 import {
-  approveManufacturers, approveResults, approveSpecifications, draftSpecification, endorseOnLicence, openLot, planAndIssue, planPackaging, postFinishedLot, pullReserveSample, receiveDelivery,
+  approveManufacturers, approveResults, approveSpecifications, defineNumberingRule, draftSpecification, endorseOnLicence, openLot, planAndIssue, planPackaging, postFinishedLot, pullReserveSample, receiveDelivery,
   recordArtwork, recordGmpAssay, recordIdentity, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from './own-product-gmp-flow.ts';
 import { reviewRecord } from './kiosk-batch-support.ts';
@@ -411,6 +411,14 @@ test('[INV-01][PR-04][PR-18] Demotab 6: the ERP simulator sends Demotab\'s proce
   const s = loadProduct(e2e, KEY);
   const base = e2e.url('GMP');
   const admin = e2e.seeds.GMP.bootstrap.admin;
+  const st = await officePage('GMP', PC_STEWARD);
+  await signIn.office(st, persona('GMP', 'steward'));
+  await evidence.step('The steward defines Demotab\'s numbering rules at SITE-1 (processing and packaging, IN-18)', 'Both rules listed on Batch numbers', async () => {
+    await home(st, /^Batch numbers/);
+    await defineNumberingRule(st, { ruleCode: `DMT-PROC-${s.tag}`, kind: 'PROCESSING', format: `D${s.tag}{SEQ:3}`, product: s.product.code });
+    await defineNumberingRule(st, { ruleCode: `DMT-PACK-${s.tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', product: s.product.code });
+  }, st);
+  await st.context().close();
   const op = await officePage('GMP', PC_PLAN);
   await signIn.office(op, admin as unknown as Parameters<typeof signIn.office>[1]);
   await evidence.step('The ERP simulator sends a processing order of Demotab (any authorised product, D-7o-7)', 'A new order number; it waits on the planning screen', async () => {
