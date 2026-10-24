@@ -245,6 +245,8 @@ jobs:
         with:
           name: vitest-golden
           path: .reports
+      # The golden job ran on another pod runner: its report names files from that runner's folder (see the merge above).
+      - run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/vitest-golden.json
       - run: pnpm trace --require-golden
       - name: OpenAPI document of the frozen contract
         run: pnpm openapi
@@ -405,6 +407,9 @@ jobs:
         with:
           name: e2e-reports
           path: .reports
+      # The reports were written on other pod runners (the Playwright report's rootDir, the Vitest files): their
+      # folders become this job's workspace, as in the report job (a no-op on GitHub-hosted runners).
+      - run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/*.json
       - run: pnpm trace:e2e
       - name: Upload the traceability matrix with the end-to-end results
         if: always()
