@@ -169,8 +169,14 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
 
     // (4) Start the backup as a second postmaster, without recovery.signal (crash recovery from backup_label).
     mkdirSync(sockDir);
-    // Debian keeps postgresql.conf outside the data directory; give the copy a minimal one like the original's.
+    // Debian keeps postgresql.conf outside the data directory; give the copy a minimal one like the original's. A
+    // cluster made by initdb (the self-hosted CI runners, tools/ci/start-postgres.sh) keeps its own in the data
+    // directory, which the backup copied with its socket directory and TLS files: the minimal one replaces it too.
     writeFileSync(join(dataDir, 'postgresql.conf'), "timezone = 'Etc/UTC'\ndatestyle = 'iso, mdy'\n");
+    // The copy's own authentication files, whatever the original's layout (Debian's /etc/postgresql/16/main or the
+    // data directory): password logins over TCP from this host, as both originals allow.
+    writeFileSync(join(dataDir, 'pg_hba.conf'), 'local all postgres peer\nhost all all 127.0.0.1/32 scram-sha-256\n');
+    writeFileSync(join(dataDir, 'pg_ident.conf'), '');
     chmodSync(work, 0o755);
     privileged('chown', ['-R', 'postgres:postgres', dataDir, sockDir]);
     privileged('chmod', ['700', dataDir]);
@@ -180,8 +186,8 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
       `-c unix_socket_directories='${sockDir}'`,
       '-c shared_buffers=128MB',
       '-c max_connections=30',
-      '-c hba_file=/etc/postgresql/16/main/pg_hba.conf',
-      '-c ident_file=/etc/postgresql/16/main/pg_ident.conf',
+      `-c hba_file=${join(dataDir, 'pg_hba.conf')}`,
+      `-c ident_file=${join(dataDir, 'pg_ident.conf')}`,
       '-c archive_mode=off',
     ].join(' ');
     execFileSync('touch', [logFile]);
