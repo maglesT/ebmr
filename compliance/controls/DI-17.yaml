@@ -425,7 +425,7 @@ tests:
   - "apps/tablets-server/test/operations/authorised-orders.test.ts > production orders of any approved and authorised product (slice 7o) > [PR-04][DI-17] the approved master with an active authorisation is offered with its own BOM for its first batch size; the order posted is planned against without a mismatch"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-17][INV-25][PR-01] Demotab 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-17][INV-25][PR-01] Rabeprazole 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
-  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-33][PR-17][DI-17] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the manufacturer approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-33][PR-17][DI-17][IN-30] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the licence endorsing Demotab; the manufacturer approved by QA @office"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:
