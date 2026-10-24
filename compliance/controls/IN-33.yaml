@@ -47,6 +47,9 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-33][PR-17][DI-17][IN-30] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the licence endorsing Demotab; the manufacturer approved by QA @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and the printed materials received and examined by stores, tested by QC and approved by the head of QC, their assay and artwork recorded, released by QA; the tooling set defined @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-05][PR-45][DI-35][IN-33] Demotab 11: the finished lot posted in quarantine; QC records its results against Demotab's specification and pulls the reserve sample; the head of QC approves them @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-33][PR-17][DI-17][IN-30] Rabeprazole 4: the printed foil and cartons entered and confirmed; the specifications (the product's with its two-stage dissolution as one profile test) approved by the head of QC; the licence; the manufacturer approved @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-17][IN-24][IN-33][PR-32] Rabeprazole 5: the first lots of the active and the printed materials received, examined, tested and approved, their assay and artwork recorded, released by QA; the tooling set defined @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-05][PR-45][DI-35][IN-33] Rabeprazole 11: the finished lot posted in quarantine; QC records the assay and both stages of the dissolution against the product's specification and pulls the reserve sample; the head of QC approves them @office"
 clauses:
   - clause: "mark IP 2026 effective; all MBRs citing IP 2022 appear on the review list."
     tests:

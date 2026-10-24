@@ -144,6 +144,10 @@ migrations. Routes D and S remain.
 **Slice 7p (23 October):** a dissolution profile as one release requirement (R4 third check, R8 C4/C7; site-services
 1720, recipe-core 1725; `slice-7p-routes.md`); demo SR product GLV-SR-500; browser `phase7/sr-profile.spec.ts`.
 
+**Slice 7r (24 October, branch `phase-7/slice-7r`, not merged):** the R4 GMP batches on the screens only
+(`slice-7r-routes.md`): Demotab (own-demotab, 12 of 12 on the pod) and P3 rabeprazole with its three coats and its
+two-stage dissolution as one release line (own-p3, 12 of 12); recipe-core 1750, tablets 1701; decisions D-7r-1 to 10.
+
 **Slice 7n (23 October): R7, a beta-lactam product in a dedicated suite** (`docs/build-plan/phase-7/slice-7n-routes.md`).
 Recipe-core 1655 dedicates rooms and lines to beta-lactam products (IN-27 dedications, class `BETA_LACTAM`) and refuses
 a beta-lactam batch outside them and any other batch inside them (PR-27). Demo route B (CXC-325, invented: direct

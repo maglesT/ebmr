@@ -132,6 +132,7 @@ tests:
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-46][IN-35][PR-29][DI-30] route S 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Demotab 7: the GMP batch processed on the kiosks: dispensing (the active potency-adjusted from its own lot), granulation, blending, compression with Demotab's tooling, the film coat, inspection; QA's hold points; the bulk for packing @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Rabeprazole 7: the GMP batch processed on the kiosks: dispensing from the active's own lot, granulation, blending, compression with the product's tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
 clauses:
   - clause: "run 45 minutes without an IPC entry; the alarm fires at 30 minutes."
     tests:

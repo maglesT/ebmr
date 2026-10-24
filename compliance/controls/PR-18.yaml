@@ -107,6 +107,7 @@ tests:
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-18][PR-22][DI-30][DI-34] route S 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
   - "tools/e2e/specs/phase7/route-w2.spec.ts > [INV-01][PR-04][PR-18] route W2 1: the ERP order, the batch planned and issued, the lots reserved, the plant cleaned and verified @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [INV-01][PR-04][PR-18] Demotab 6: the ERP simulator sends Demotab's processing order; the batch planned and issued; stores reserve the lots @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole 6: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued; stores reserve the lots @office"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:

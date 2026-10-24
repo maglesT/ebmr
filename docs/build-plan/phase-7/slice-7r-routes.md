@@ -1,14 +1,16 @@
-# Slice 7r: the R4 GMP batches (piece 1 of 2: Demotab from its first lots to the released lot)
+# Slice 7r: the R4 GMP batches (Demotab, then P3 rabeprazole, from their first lots to the released lot)
 
 Requirement R4 of `demo-trial-requirements.md`: "GMP batch on the kiosks through packing, QC, review and release" for the
 company's own product made on the screens. Slice 7o proved Demotab 400 mg (invented) up to an approved master authorised
 for India (browser tests Demotab 1 to 3). This piece runs Demotab's GMP batch on the screens only, as a presenter would
 (browser tests Demotab 4 to 12 in `tools/e2e/specs/phase7/own-product-gmp.spec.ts`, E2E group `own-demotab`). Piece 2
-(the P3 rabeprazole batch with three coating layers and P3's two-stage dissolution release from 7p) is not part of it.
+runs the P3 rabeprazole batch the same way (browser tests Rabeprazole 4 to 12 in `own-product-p3.spec.ts`, E2E group
+`own-p3`): three coating layers and P3's two-stage dissolution as one release requirement (7p, R8 C3 and C4).
 
 ## Status
 
-In progress (piece 1). Branch `phase-7/slice-7r`. Pod runs of the own-demotab group, 24 October:
+Both pieces done on the pod. Branch `phase-7/slice-7r` (not merged; no PR yet). Pod runs of the own-demotab group,
+24 October:
 
 | Run | Head | Result |
 | --- | --- | --- |
@@ -16,16 +18,19 @@ In progress (piece 1). Branch `phase-7/slice-7r`. Pod runs of the own-demotab gr
 | 40089985136 | 312ad680 | 1-5 pass; 6 planned and issued, stores' start page refused by the identification limit (D-7r-7) |
 | 40092568779 | 946bd047 | 1-8 pass (the GMP batch processed on the kiosks); 9 refused at TB-24's first challenge (D-7r-5) |
 | 40096745431 | 331e6729 | 1-10 pass (the packaging master's sandbox run, its IN authorisation, the GMP packaging order); 11's reserve sample refused: the product specification gave no sample quantities in packs (fixed at 2dca213d) |
-| 40100765017 | 2dca213d | dispatched when this was written: its result is the next agent's first read |
+| 40100765017 | 2dca213d | 12 of 12: Demotab's GMP batch through release |
 
-Where the next agent continues: read run 40100765017 (`gh api repos/maglesT/ebmr/actions/runs/40100765017 --jq
-.conclusion`; on failure the artifacts e2e-blob-own-demotab (report.jsonl: onTestEnd errors) and e2e-output-own-demotab
-(error-context.md, the test-failed-N.png of each page: downscale before reading)). Demotab 11 and 12 have never passed
-on the pod. Expected risk points: the head of QC's approval of the finished lot's results (Demotab 11), the record
-reviews of both records and the release checklist of a new product (Demotab 12: any red item is printed by
-`releaseFinishedLot`). Fix, push, dispatch the group again (`gh api -X POST repos/maglesT/ebmr/actions/workflows/ci.yml/dispatches
--f ref=phase-7/slice-7r -f 'inputs[e2e_groups]=own-demotab'`) until Demotab 12 releases the lot; a run takes about 75
-minutes (Demotab 3 and 7, the two processing runs, about 16 minutes each).
+Piece 2, the own-p3 group:
+
+| Run | Head | Result |
+| --- | --- | --- |
+| 40105647269 | 408d31d9 | 12 of 12 (65 minutes): P3's GMP batch with its three coats through release, the two-stage dissolution one green line |
+| COMBINED_RUN | COMBINED_HEAD | both groups together on the changed shared helpers: RESULT |
+
+Where to continue: open the pull request of the slice once the combined run is green (on a failure: its artifacts
+e2e-blob-<group> (report.jsonl, onTestEnd errors) and e2e-output-<group> (error-context.md)). The other R8 products
+(P1, P2, P4 to P8) can follow the same pattern: a product spec file with its own group, reusing
+`own-product-gmp-flow.ts` and `own-product-floor.ts`.
 
 ## What the browser tests prove (Demotab 4 to 12)
 
@@ -60,6 +65,14 @@ minutes (Demotab 3 and 7, the two processing runs, about 16 minutes each).
   specification and pulls the reserve sample; the head of QC approves.
 - **Demotab 12**: both records reviewed (production approval, register, audit-trail review, QA review) and the lot
   released by the authorised person on a checklist with no red item.
+
+Rabeprazole 4 to 12 (piece 2) are the same acts for P3 (its own active, printed foil and carton, tooling TS-RAB-<tag>,
+numbering rules `R<tag>{SEQ:3}` and `{PARENT}/P{SEQ:2}`, the excipients and the enteric coating system from route W's
+lots, the processing with the seal, enteric and top coats and the acid-then-buffer disintegration, the cold-form
+packaging master copy with its own sandbox run and IN authorisation, the packaging order), with one difference: the
+product's specification has the two-stage dissolution as one profile test (D-7r-8); QC records the acid point (3 %)
+and the buffer point (86 %) of the finished lot, the head of QC approves each, the lot page shows the profile PASS, and
+the release checklist's G3.PROFILE_DISSOLUTION line is GREEN before the authorised person signs.
 
 New browser helpers, for the R8 products too: `own-product-gmp-flow.ts` (the office acts: specifications, approved
 manufacturers, deliveries, lot results, identity, assay and artwork, lot release, ERP orders, planning and issue,
@@ -105,9 +118,27 @@ reservations, the finished lot, the reserve sample, the release cockpit) and `pa
   the fixture's `pickTerminal` does; the floor helpers too. A page's context is closed before the next person signs in on
   the same PC (as route W).
 
+- **D-7r-8** (piece 2; R8 C4 on the least strict reading, D-7p-5): P3's finished-product specification carries the
+  two-stage dissolution from its version 1 as one profile test DISSOLUTION with a stage on each point: "Acid 2 h"
+  (stage Acid 0.1 M HCl, 2 h, at most 10 %) and "Buffer 45 min" (stage Buffer pH 6.8, 45 min, at least 75 %), one
+  result per point (the mean, D-7p-1), samples in packs as the assay. The release checklist shows it as one line
+  (G3.PROFILE_DISSOLUTION) beside the assay; nothing new was built for it.
+- **D-7r-9**: P3's GMP batch takes the materials it shares with route W from the demo set-up's lots (D-7r-4), the enteric
+  coating system from RTW-ECS-001 (the formula's 2.8 kg serves the three coats); stores reserve the active 3.100 kg for
+  the 3.037 kg TB-01 computes and the compensating cellulose to the top of its range (5.000 kg).
+- **D-7r-10**: piece 1's helpers are extended, not copied: `draftSpecification` takes a profile test's points (with
+  stages), `recordProfile` records a lot's points, `approveResults` takes a profile's [test, point] beside a test code,
+  and `releaseFinishedLot` checks the items it is given are GREEN. Demotab's spec is unchanged; the combined run proves
+  both groups on the changed helpers.
+
 ## Residuals
 
-- Demotab 11 and 12 not yet green on the pod (see Status).
+- No product defect was found by piece 2: P3 passed its nine new tests on its first pod run.
+- The pharmacopoeial staged acceptance of a delayed-release dissolution (acid stage A1 to A3, buffer stage B1 to B3 with
+  more units) is not built, as for SR dissolution (P7P-1, R8 C6): one result per stage, the mean.
+- P3's three coats use the one coating recipe RCP-RTW-COAT of route W (demo data); a product with a recipe per coat
+  needs only master data.
+
 - D-7r-5 is proven by the database functions' test (the unit read on each installation, and the five guards reading it
   through `tab.packline_unit`/`tab.configured_unit`) and by Demotab 9 on the pod, not by a database test of a whole
   sandbox packaging run; no focused SQL mutation run on 1701 (decision 0008: at deployment).

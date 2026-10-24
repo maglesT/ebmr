@@ -69,9 +69,8 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
 
 ## Notes
 
-- TODO (R8 C4, slice 7p): the P3 browser test uses TB-15's acid and buffer disintegration and the existing release tests;
-  when 7p's two-stage dissolution requirement (acid stage must not release, buffer stage must) is merged, add it to the
-  rabeprazole product's specification and the P3 test.
+- Done (R8 C4): slice 7r gives the rabeprazole product's specification the two-stage dissolution (7p's profile with an
+  acid and a buffer stage) and releases its GMP lot on it (Rabeprazole 4, 11 and 12).
 
 ## Built so far
 

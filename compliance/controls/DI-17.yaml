@@ -426,6 +426,7 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-17][INV-25][PR-01] Demotab 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-17][INV-25][PR-01] Rabeprazole 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-33][PR-17][DI-17][IN-30] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the licence endorsing Demotab; the manufacturer approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-33][PR-17][DI-17][IN-30] Rabeprazole 4: the printed foil and cartons entered and confirmed; the specifications (the product's with its two-stage dissolution as one profile test) approved by the head of QC; the licence; the manufacturer approved @office"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:
