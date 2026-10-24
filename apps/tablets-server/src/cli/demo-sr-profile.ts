@@ -70,6 +70,7 @@ function asSr(content: flow.MbrContent, dosageForm: string): flow.MbrContent {
 
 export async function seedSrProfile(opts: SrProfileOptions): Promise<SrProfileSeed> {
   const { ctx, log, tag } = opts;
+  const started = performance.now();
   log('sr profile: the product, its licence and its lots');
   const erp = await ctx.serviceActorFor('erpInterface');
   const order = (orderNo: string, batchSize: string, unit: string, bom: { materialCode: string; quantity: string; unit: string }[]) =>
@@ -88,7 +89,9 @@ export async function seedSrProfile(opts: SrProfileOptions): Promise<SrProfileSe
   }
   const app = await DemoApp.open({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed: opts.seed, db: opts.db });
   try {
-    return await run(app, opts, processingOrder, bottleOrders);
+    const out = await run(app, opts, processingOrder, bottleOrders);
+    log(`sr profile: done in ${String(Math.round((performance.now() - started) / 1000))} s`);
+    return out;
   } finally {
     await app.close();
   }
@@ -142,7 +145,7 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
   log('sr profile: the masters, approved and authorised');
   const dcCode = `GLV-DC-${tag}`;
   const btCode = `GLV-BT-${tag}`;
-  const dc = await approve(app, asSr(dcMasterContent(dcCode, ['IN', 'US', 'EU'], { blend: ['60', '180'], lube: ['30', '120'] }), 'Sustained-release tablet (bulk, released for packing)'), {
+  const dc = await approve(app, asSr(dcMasterContent(dcCode, ['IN', 'US', 'EU'], { blend: ['10', '180'], lube: ['10', '120'] }), 'Sustained-release tablet (bulk, released for packing)'), {
     changeRecord: `CC-GLV-DC-${tag}`, title: 'New product GLV-SR-500 (invented, DEMO-ONLY)', riskAssessment: `RA-GLV-DC-${tag}`, rationaleRef: 'QRM-GLV-IPC',
     validationRef: 'VR-GLV', sizeId: GBT02_SIZE_ID, numbering: { ruleCode: `GLV-PROC-${tag}`, kind: 'PROCESSING', format: 'GLV{YY}{SEQ:4}' }, productCode: SR_PRODUCT.productCode,
   });
@@ -223,7 +226,7 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
   await batch.closeStage('S-DISP@', f.qa, f.sup);
   await end(f.op2, [], [occ]);
 
-  // Blending (the demo master's validated times).
+  // Blending (this demo master's validated times: blend 10 to 180 s, lubrication 10 to 120 s, so the seed waits less).
   f = await floor('BLEND-1');
   occ = await clearAndOccupy({ op2: f.op1, ver: f.ver }, 'BLEND-1', 'S-BLEND', batch);
   bal = await instrumentUse(f.op1, BALANCES['BLEND-1'] ?? '', batch);
@@ -233,10 +236,10 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
     e('p-blend-status@', 'EQUIPMENT_USE', { equipmentRef: 'BAL', equipmentCode: BALANCES['BLEND-1'], useId: bal }),
     e('p-blend-status@', 'EQUIPMENT_USE', { equipmentRef: 'BLENDER', equipmentCode: 'BLD-01', useId: blender }),
   ]);
-  log('sr profile: blending (a minute and a half on the real clock)');
+  log('sr profile: blending (about half a minute on the real clock: this master validates 10 s minimum times)');
   await batch.step('p-blend@', f.op2, f.ver, [
-    e('p-blend@', 'BLEND_START', {}), { wait: 65_000 }, e('p-blend@', 'BLEND_END', {}),
-    e('p-blend@', 'LUBRICANT_ADDED', { quantity: { value: '0.400', unit: 'kg' } }), { wait: 35_000 }, e('p-blend@', 'LUBRICATION_END', {}),
+    e('p-blend@', 'BLEND_START', {}), { wait: 12_000 }, e('p-blend@', 'BLEND_END', {}),
+    e('p-blend@', 'LUBRICANT_ADDED', { quantity: { value: '0.400', unit: 'kg' } }), { wait: 12_000 }, e('p-blend@', 'LUBRICATION_END', {}),
   ]);
   await batch.step('p-blend-out@', f.op2, f.ver, [{ type: 'RECORD_ENTRY', stepKey: 'p-blend-out@', entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-BLEND', manual: { ...net('19.880'), unit: 'kg', deviceCode: BALANCES['BLEND-1'] } } }]);
   const blendBox = await app.dbAs<{ container_id: string; label_code: string }>(f.op2, 'select plant.open_container($1, $2, $3, $4, $5) as r', [batch.batchId, 'BLENDING', 'kg', null, null]);

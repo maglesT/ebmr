@@ -29,7 +29,7 @@ Requirement R4 "Third check" and R8 C4 and C7 (`demo-trial-requirements.md`; own
   new version from* an existing version. Lot page: a Profiles section (status, per point limits, result, LIMS value;
   QC records a point typed or from the LIMS value); a point's result is named "DISSOLUTION at 4 h" in the results list
   and its approval. Route `quality.lotProfiles` (GET). The release cockpit shows the item with its points unchanged.
-- **Demo.** `cli/demo-sr-profile.ts` (one hook in `installation.ts`, `--gmp-packaging`): Glucorvin hydrochloride SR
+- **Demo.** `cli/demo-sr-profile.ts` (one hook in `installation.ts`, opt-in `--gmp-sr-profile`, D-7p-8): Glucorvin hydrochloride SR
   tablets 500 mg (GLV-SR-500, invented), its licence, lots, masters (the GB-T-02 demo variants under its own code), one
   processing batch and two bottle orders with their finished lots posted and reviewed, specification version 1 (assay);
   `gmp-sr-profile.json` names the lots.
@@ -58,6 +58,11 @@ Requirement R4 "Third check" and R8 C4 and C7 (`demo-trial-requirements.md`; own
   AV at most 15) is required for release and judged by the database; an AV above the limit keeps the lot from release
   (proven in `release.test.ts`, "content uniformity of a low-dose tablet").
 - D-7p-7: a profile's points carry labels unique within the test; results and LIMS messages name the point by its label.
+- D-7p-8 (CI review): the SR demo product is opt-in (set-up CLI `--gmp-sr-profile`): `pnpm demo:setup
+  --with-gmp-samples` builds it for presenters, and the E2E global set-up only when no group or the `rest` group runs
+  (where `sr-profile.spec.ts` is); `--gmp-packaging` alone (release-seed and the other seed tests, the drills) no longer
+  pays for it. Its master validates 10 s minimum blend and lubrication times, so the seed waits about 25 s instead of
+  100 s.
 
 ## Residuals
 
