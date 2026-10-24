@@ -25,7 +25,7 @@ Piece 2, the own-p3 group:
 | Run | Head | Result |
 | --- | --- | --- |
 | 40105647269 | 408d31d9 | 12 of 12 (65 minutes): P3's GMP batch with its three coats through release, the two-stage dissolution one green line |
-| COMBINED_RUN | COMBINED_HEAD | both groups together on the changed shared helpers: RESULT |
+| 40110849131 | 85b1e5db | own-demotab and own-p3 together on the changed shared helpers: 12 of 12 each |
 
 Where to continue: open the pull request of the slice once the combined run is green (on a failure: its artifacts
 e2e-blob-<group> (report.jsonl, onTestEnd errors) and e2e-output-<group> (error-context.md)). The other R8 products
