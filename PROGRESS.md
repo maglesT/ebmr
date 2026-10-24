@@ -63,6 +63,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
+the next work in order, the RunPod CI runner plan and the token rules.
+
 **Phase 6A (analytics; decision 0023, owner, 17 October).** Plan `docs/build-plan/phase-6a/phase-6a-plan.md`; ADR
 0020 (the pure package `@ebmr/analytics`, a runner reading as `ebmr_analytics` with no GMP privilege, the non-GMP,
 insert-only, audited `analytics` schema); interfaces in `slice-6A-0-interfaces.md`. Draft controls DI-51, DI-52, DI-53
