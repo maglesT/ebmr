@@ -165,7 +165,8 @@ export async function receiveDelivery(page: Page, d: DeliveryEntry): Promise<{ l
   await exam.getByRole('textbox', { name: 'Containers examined' }).fill('1');
   await choose(exam.getByRole('radio', { name: 'Acceptable', exact: true }));
   await exam.getByRole('button', { name: 'Record the examination' }).click();
-  await expect(exam.getByText('The examination is recorded.')).toBeVisible();
+  // The examination is shown in the receipt record (the form goes once it is recorded).
+  await expect(page.getByTestId('receipt-examination')).toContainText('examined by');
   expect(lotId).not.toBe('');
   return { lotCode, lotId };
 }
