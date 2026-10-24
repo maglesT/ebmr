@@ -317,8 +317,9 @@ test('[IN-33][PR-17][DI-17][IN-30] Demotab 4: the printed foil and cartons enter
       await draftSpecification(qc, { material: m.material, title: m.name, monograph: `In-house specification of printed materials, version 1 (${s.tag})`, tests: [{ code: 'TEXT_CHECK', method: 'STP-PM-TXT-01', unit: '1', upper: '0' }] });
     }
     await draftSpecification(qc, { material: s.product.code, title: s.product.name, monograph: `In-house finished-product specification STP-DMT-FP, version 1 (${s.tag})`, tests: [
-      { code: 'ASSAY', method: 'STP-DMT-AS-02', unit: '%', lower: '95.0', upper: '105.0' },
-      { code: 'DISSOLUTION', method: 'STP-DMT-DS-01', unit: '%', lower: '80' },
+      // A finished product's samples in packs, as its lot is counted: the reserve sample is twice them (PR-44, IN-32).
+      { code: 'ASSAY', method: 'STP-DMT-AS-02', unit: '%', lower: '95.0', upper: '105.0', sample: { quantity: '1', unit: 'packs' } },
+      { code: 'DISSOLUTION', method: 'STP-DMT-DS-01', unit: '%', lower: '80', sample: { quantity: '1', unit: 'packs' } },
     ] });
   }, qc);
   const hq = await officePage('GMP', PC_QC);

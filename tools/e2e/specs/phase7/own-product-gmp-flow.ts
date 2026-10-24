@@ -34,6 +34,8 @@ export interface SpecTestEntry {
   unit: string;
   lower?: string;
   upper?: string;
+  /** The sample per run and its unit (default 2 g for a % test, 2 units otherwise); a finished product's in packs, from which the database computes its reserve sample (PR-44, IN-32). */
+  sample?: { quantity: string; unit: string };
 }
 
 /** QC drafts version 1 of a material's (or the product's) specification: single tests, each required for release. */
@@ -56,8 +58,8 @@ export async function draftSpecification(page: Page, s: { material: string; titl
     await choose(f.getByRole('radiogroup', { name: `Required for release ${n}` }).getByRole('radio', { name: 'Yes', exact: true }));
     await choose(f.getByRole('radiogroup', { name: `Source of the limit ${n}` }).getByRole('radio', { name: 'IN_HOUSE', exact: true }));
     await f.getByRole('textbox', { name: `Edition ${n}`, exact: true }).fill('STP-2026-1');
-    await f.getByRole('textbox', { name: `Sample per run ${n}` }).fill('2');
-    await f.getByRole('textbox', { name: `Sample unit ${n}` }).fill(t.unit === '%' ? 'g' : 'units');
+    await f.getByRole('textbox', { name: `Sample per run ${n}` }).fill(t.sample?.quantity ?? '2');
+    await f.getByRole('textbox', { name: `Sample unit ${n}` }).fill(t.sample?.unit ?? (t.unit === '%' ? 'g' : 'units'));
   }
   await box.getByRole('button', { name: 'Draft the version' }).click();
   await expect(page.getByTestId(`spec-${s.material}-1`)).toContainText('DRAFT');
