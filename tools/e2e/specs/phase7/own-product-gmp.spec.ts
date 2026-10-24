@@ -230,7 +230,10 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
       await closeFloor();
     }
   });
-  await evidence.step('Sandbox: the issuer exports the test-run result for GMP', 'It passed; the result is in to-gmp with the sandbox stamp', async () => ({ resultFile: await exportTestResult(iss, sbx, s.sandboxRunId ?? '') }), iss);
+  // A fresh sign-in: the issuer's office session from before the floor's run has timed out.
+  const iss2 = await officePage('SANDBOX', 'TEST-PC-01');
+  await signIn.office(iss2, persona('SANDBOX', 'issuer'));
+  await evidence.step('Sandbox: the issuer exports the test-run result for GMP', 'It passed; the result is in to-gmp with the sandbox stamp', async () => ({ resultFile: await exportTestResult(iss2, sbx, s.sandboxRunId ?? '') }), iss2);
 
   const base = e2e.url('GMP');
   const a = await officePage('GMP', PC_AUTHOR);
