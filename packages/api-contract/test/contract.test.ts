@@ -268,7 +268,7 @@ describe('route table', () => {
     for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
     // Slice 7o (D-7o-1): the step's plant, containers, addition sources, SSCCs, bulk issue and printed lots serve both
     // installations (each against its own database: test/plant/sandbox-plant.test.ts); every other batches route is GMP's.
-    const plantReads = ['batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot'];
+    const plantReads = ['batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot', 'batches.cleaningNeeds'];
     for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe(plantReads.includes(r.id) ? 'ANY' : 'GMP');
     const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
     for (const r of Object.values(routes.execution).filter((x) => !installationBound.includes(x.id))) expect(r.installation, r.id).toBe('ANY');
@@ -280,7 +280,7 @@ describe('route table', () => {
   it('[DI-05] the slice 6 namespaces (GMP batches, planning, master data) and the new quality routes are GMP only, the plant on both installations (slice 7o), each with an example', () => {
     const slice6 = allRoutes({ batches: routes.batches, planning: routes.planning, masterData: routes.masterData, plant: routes.plant });
     // Slice 7o (D-7o-1): the plant namespace and the batch's plant reads serve both installations, each its own database.
-    const both = new Set([...allRoutes({ plant: routes.plant }).map((r) => r.id), 'batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot']);
+    const both = new Set([...allRoutes({ plant: routes.plant }).map((r) => r.id), 'batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot', 'batches.cleaningNeeds']);
     for (const r of slice6) expect(r.installation, r.id).toBe(both.has(r.id) ? 'ANY' : 'GMP');
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const id of SLICE_6_ROUTE_IDS) {

@@ -303,7 +303,7 @@ export const batches = {
     id: 'batches.cleaningNeeds',
     method: 'GET',
     path: '/api/batches/:batchId/cleaning-needs',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The rooms and units the batch\'s stages need, each with its cleaning state (R3.10), so the needed cleanings start from one list',

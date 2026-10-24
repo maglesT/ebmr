@@ -58,4 +58,14 @@ describe('a test run names its own output containers (slice 7o)', () => {
     // Every other member keeps the rule: a weighing's container is a test lot number only.
     expect(await entryProblem(a.runId, { kind: 'CONTAINER_WEIGHING', container: a.label, lot: { id: 'TEST-L26-0001' } })).toMatch(/^container /);
   });
+
+  it('[DI-05] the cleaning a test run\'s stages need is read on the sandbox, from the sandbox\'s own plant (the plant screen starts it, D-7o-1)', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const view = valueOf(await (await sbx.asPersona('operator1')).call(routes.batches.cleaningNeeds, { params: { batchId: runId } }));
+    expect(view.batchId).toBe(runId);
+    expect(view.batchNumber).toMatch(/^TEST-/);
+    expect(view.stages.length).toBeGreaterThan(0);
+    expect(routes.batches.cleaningNeeds.installation).toBe('ANY');
+  });
 });

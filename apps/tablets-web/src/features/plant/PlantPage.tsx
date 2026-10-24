@@ -75,9 +75,10 @@ export function PlantPage() {
  * cleanings started from the list (each the person's own act through the cleaning route; completed and verified below).
  */
 function BatchCleaning({ onStarted }: { onStarted: (c: CleaningView) => void }) {
-  const batches = useApiQuery(routes.batches.list);
+  // Slice 7o (D-7o-1): the batches of this installation's floor (the test runs on the sandbox).
+  const batches = useFloorRead(routes.execution.runs);
   const [batchId, setBatchId] = useState<string | null>(null);
-  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.has(b.status));
+  const open = (batches.data?.runs ?? []).filter((b) => OPEN_BATCH.has(b.status));
   return (
     <>
       {batches.error ? <RefusalMessage error={batches.error.error} /> : null}
