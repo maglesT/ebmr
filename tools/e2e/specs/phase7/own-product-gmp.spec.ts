@@ -1,12 +1,16 @@
 /**
- * Phase 7 slice 7o (requirement R4): a company's own tablet product made into a released lot through the screens only,
- * "Demotab 400 mg, wet granulation, film coated, alu-alu" (invented): its new active entered on screen and confirmed by
- * QA; its formula (the active with the site's wet-granulation excipients) written and approved; its master taken from
- * the formula as a copy of the approved wet-granulation master and edited in the designer to the product (a plain film
- * coat instead of the enteric one, the tablet's weight, its tooling); change control; the sandbox test run of the whole
- * process on the sandbox's kiosks (its plant, D-7o-1) and its result returned as evidence; the four signatures and the
- * IN market authorisation; then its packaging master (a copy of the approved cold-form master with its own printed foil
- * and carton); the GMP batch from its ERP order on the kiosks through packing, QC, both reviews and the release.
+ * Phase 7 slice 7o (requirement R4): a company's own tablet product through the screens only, "Demotab 400 mg, wet
+ * granulation, film coated, alu-alu" (invented). This spec proves, as Demotab 1 to 3: the new active entered on screen
+ * and confirmed by QA; its formula (the active with the site's wet-granulation excipients) written and approved; its
+ * master taken from the formula as a copy of the approved wet-granulation master and edited in the designer to the
+ * product (a plain film coat instead of the enteric one, the tablet's weight, its tooling); change control; the sandbox
+ * test run of the whole process on the sandbox's kiosks (its plant, D-7o-1) and its result returned as evidence; the four
+ * signatures and the IN market authorisation.
+ *
+ * Not proved here yet: the packaging master (a copy of the approved cold-form master with its own printed foil and
+ * carton), the GMP batch from the product's ERP order on the kiosks through packing, QC, both reviews and the release
+ * as a released lot. These follow in the next slice (the spec grows by tests Demotab 4 onward).
+ *
  *
  * Presenter-style: each floor person signed in and each act attributed by the person's Tap button of the demo badge
  * reader, every signature through its ceremony, nothing arranged in the database. The tests run in order and hand on what

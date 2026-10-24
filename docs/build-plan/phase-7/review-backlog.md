@@ -228,3 +228,20 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
   and the database refuse a wrong pick.
+
+## Slice 7o (one review pass, 24 October 2026)
+
+- P7O-1 (fixed): the packaging-master copy accepted the source product's own foil or carton as the replacement printed
+  material, so the new product's pack carried another product's print. `packagingCopy` now refuses a replacement equal
+  to its item's source material, and one equal to another item's source material (DESIGNER_PRINTED_ITEMS; the copy is
+  made only in the server, no database function). Test `designer/packaging-copy.test.ts` ([PR-32][IN-38], refusal case).
+- P7O-2 (fixed, docs): `RESUME.md` said slice 7o has no migration (it adds tablets 1700 and recipe-core 1701), and the
+  header of `own-product-gmp.spec.ts` promised the packaging master and the GMP batch through release although only
+  Demotab 1 to 3 exist. Both now say what is true; the GMP batch through release follows in the next slice.
+- P7O-3 (residual, accepted exposure, owner rule: functionality first, least strict option): `tab.issue_sscc` is now
+  reachable on the sandbox (`batches.issueSscc`, ANY) and issues real-form SSCCs from the master's real GS1 prefix with a
+  sandbox counter that starts at 1, so a sandbox value can equal a GMP value later. Mitigation: the databases are
+  separate and a sandbox label never leaves the sandbox. Future option: a test prefix on SANDBOX. Recorded in ADR 0021.
+- P7O-4 (fixed): the sandbox plant set-up treated any refusal whose text held "CLEAN" as "already clean". It now skips
+  only the refusal EBMR-PLANT-042 (the unit or area is neither DIRTY nor CLEAN); any other refusal fails the set-up. Test
+  `plant/sandbox-plant.test.ts` ([DI-05]).

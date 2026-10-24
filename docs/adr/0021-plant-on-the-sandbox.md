@@ -33,6 +33,10 @@ a DEMO-ONLY plant mirroring the GMP demo plant by room and class (cli/sandbox-pl
   routes changed.
 - The sandbox needs its own plant data (the DEMO-ONLY seed; a customer defines its sandbox plant on screen).
 - The seeds' direct SANDBOX_RUN evidence (demo and golden worlds) stays where it is; it can be replaced by real runs later.
+- Accepted exposure (review P7O-3; owner rule: functionality first, least strict option): `tab.issue_sscc` is reachable
+  on the sandbox (`batches.issueSscc`, `ANY`) and issues real-form SSCCs from the master's real GS1 prefix, with a sandbox
+  counter that starts at 1, so a sandbox value can equal a GMP value later. Mitigation: the sandbox and GMP databases are
+  separate, and sandbox labels never leave the sandbox. Future option: a test prefix on SANDBOX. No code change.
 
 Rejected: relaxing the SANDBOX_RUN requirement for a master copied from an approved one (weakens DI-05); a separate
 sandbox-only copy of the plant routes (two code paths for one rule set).

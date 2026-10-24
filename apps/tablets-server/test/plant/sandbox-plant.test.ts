@@ -7,7 +7,7 @@
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
-import { SANDBOX_PLANT } from '../../src/cli/sandbox-plant.ts';
+import { isNotStartableRefusal, SANDBOX_PLANT } from '../../src/cli/sandbox-plant.ts';
 import { valueOf } from '../esig/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 
@@ -57,5 +57,11 @@ describe('the plant on both installations, each against its own database (slice 
     const labels = SANDBOX_PLANT.units.map(([code]) => code);
     expect(labels.length).toBeGreaterThan(16);
     expect(labels.filter((l) => !l.startsWith('TEST-'))).toEqual([]);
+  });
+
+  it('[DI-05] the set-up skips a cleaning only for the refusal that the unit is not in a state to start one (EBMR-PLANT-042), never for any text that holds CLEAN', () => {
+    expect(isNotStartableRefusal({ code: 'EBMR-PLANT-042' })).toBe(true);
+    expect(isNotStartableRefusal({ code: 'EBMR-PLANT-041' })).toBe(false);
+    expect(isNotStartableRefusal({ code: 'EBMR-PLANT-043' })).toBe(false);
   });
 });

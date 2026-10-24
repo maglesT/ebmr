@@ -1054,7 +1054,7 @@ files that raise, define or pass it on. To find where a code is raised, open the
 | `EBMR-PLANT-034` | [packages/recipe-core/sql/0460_plant_repair_verification.sql](../../../packages/recipe-core/sql/0460_plant_repair_verification.sql) |
 | `EBMR-PLANT-040` | [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |
 | `EBMR-PLANT-041` | [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |
-| `EBMR-PLANT-042` | [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |
+| `EBMR-PLANT-042` | [apps/tablets-server/src/cli/sandbox-plant.ts](../../../apps/tablets-server/src/cli/sandbox-plant.ts), [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |
 | `EBMR-PLANT-043` | [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |
 | `EBMR-PLANT-044` | [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |
 | `EBMR-PLANT-045` | [packages/recipe-core/sql/0403_plant_equipment_commands.sql](../../../packages/recipe-core/sql/0403_plant_equipment_commands.sql) |

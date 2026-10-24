@@ -80,6 +80,11 @@ export function packagingCopy(source: flow.MbrContent, req: PackagingCopyRequest
   if (extra.length > 0) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `The master has no printed item ${extra.join(', ')}.`, ['PR-32']);
   for (const p of req.printed) {
     if (!/^[!-~]{1,64}$/.test(p.artwork)) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `The artwork version of ${p.item} is printable text of 1 to 64 characters without spaces.`, ['PR-32']);
+    // A replacement equal to a source item's material would leave that product's print on the new pack (P7O-1).
+    const sourceOwn = items.find((i) => i.item === p.item)?.material;
+    if (p.material === sourceOwn) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is the source's own printed material for ${p.item}: name the new product's own, a pack never carries another product's print.`, ['PR-32', 'IN-38']);
+    const otherItem = items.find((i) => i.material === p.material);
+    if (otherItem) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is the source's printed material for ${otherItem.item}, another product's print: name the new product's own for ${p.item}.`, ['PR-32', 'IN-38']);
     const m = materials.find((x) => x.code === p.material);
     if (!m) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is not in the material master in effect.`, ['PR-32']);
     if (m.kind !== 'PRINTED_PACKAGING') throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is ${m.kind}, not printed packaging.`, ['PR-32']);

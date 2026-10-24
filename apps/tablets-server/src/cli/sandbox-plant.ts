@@ -123,13 +123,16 @@ export async function definePlant(ctx: PlantContext, plan: PlantPlan): Promise<v
   for (const [code] of plan.areas) await clean(app, 'AREA', code);
 }
 
+/** EBMR-PLANT-042: the unit or area is neither DIRTY nor CLEAN (plant.start_cleaning), the one refusal a set-up run again may skip (P7O-4); any other refusal is a failure. */
+export const isNotStartableRefusal = (refusal: { code?: string }): boolean => refusal.code === 'EBMR-PLANT-042';
+
 async function clean(app: DemoApp, target: 'EQUIPMENT' | 'AREA', code: string): Promise<void> {
   const t1 = await app.browser('technician1');
   const t2 = await app.browser('technician2');
   const started = await t1.api.call(routes.plant.startCleaning, { body: { target, code, level: 'MAJOR', method: 'MANUAL' } });
   if (!started.ok) {
     // Already clean and verified on a set-up run again: a cleaning is started only when the unit or area needs one.
-    if (started.error.kind === 'REFUSAL' && /CLEAN|already/i.test(JSON.stringify(started.error.envelope.refusal))) return;
+    if (started.error.kind === 'REFUSAL' && isNotStartableRefusal(started.error.envelope.refusal)) return;
     throw new Error(`the cleaning of ${code} was refused: ${JSON.stringify(started.error)}`);
   }
   const id = (started.value as { cleaningId: string }).cleaningId;

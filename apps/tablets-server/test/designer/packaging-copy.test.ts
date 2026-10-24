@@ -49,6 +49,15 @@ describe('a packaging master copied for another product (slice 7o, D-7o-3)', () 
     expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: [REQUEST.printed[0], { item: 'CARTON', material: 'DMT-API-1', artwork: 'ART-X' }] as typeof REQUEST.printed }, MATERIALS)).toThrow(/not printed packaging/);
     expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: [...REQUEST.printed, { item: 'LEAFLET', material: 'DMT-CTN-1', artwork: 'ART-X' }] }, MATERIALS)).toThrow(/no printed item LEAFLET/);
     expect(() => packagingCopy(SOURCE, { ...REQUEST, product: { ...REQUEST.product, code: SOURCE.header.product.code, strength: SOURCE.header.product.strength } }, MATERIALS)).toThrow(FamilyInputError);
+    // P7O-1: the source's own foil or carton (or the other item's) is another product's print, whatever the artwork.
+    const [foil, carton] = printedItems(SOURCE);
+    const withSourceMaterials: MaterialMaster[] = [
+      ...MATERIALS,
+      ...[foil, carton].map((i, n) => ({ versionId: `11111111-2222-4333-8444-55555555556${n}`, code: i?.material ?? '', name: `Source ${i?.item ?? ''}`, kind: 'PRINTED_PACKAGING' as const, unit: '1' })),
+    ];
+    expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: [{ item: 'FOIL', material: foil?.material ?? '', artwork: 'ART-X' }, REQUEST.printed[1]] as typeof REQUEST.printed }, withSourceMaterials)).toThrow(/is the source's own printed material/);
+    expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: [REQUEST.printed[0], { item: 'CARTON', material: carton?.material ?? '', artwork: 'ART-X' }] as typeof REQUEST.printed }, withSourceMaterials)).toThrow(/is the source's own printed material/);
+    expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: [{ item: 'FOIL', material: carton?.material ?? '', artwork: 'ART-X' }, { item: 'CARTON', material: foil?.material ?? '', artwork: 'ART-Y' }] }, withSourceMaterials)).toThrow(/another product's print/);
     const processing = { ...SOURCE, header: { ...SOURCE.header, recordKind: 'PROCESSING' as const } };
     expect(() => packagingCopy(processing, REQUEST, MATERIALS)).toThrow(/approved packaging master/);
   });
