@@ -396,7 +396,7 @@ test('[PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and t
     const st = await officePage('GMP', PC_STEWARD);
     await signIn.office(st, persona('GMP', 'steward'));
     await home(st, /^Master data/);
-    await st.getByRole('link', { name: 'Plant', exact: true }).click();
+    await st.getByRole('main').getByRole('link', { name: 'Plant', exact: true }).click();
     await defineTooling(st, { product: s.product.code, productName: s.product.name, code: `TS-DMT-${s.tag}`, shape: 'Capsule 17.0 x 8.0 mm', upper: 'D400' });
   });
 });
