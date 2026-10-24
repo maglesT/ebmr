@@ -222,6 +222,10 @@ jobs:
       - name: Merge the shard reports into .reports/vitest.json
         run: |
           test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 8
+          # On the pod each runner works in its own folder (/workspace/runners/pod-N/_work/ebmr/ebmr), and a shard's
+          # blob names its files from there; rewritten to this job's workspace, every file is named from the repository
+          # root as on GitHub-hosted runners, where they all share one path (a no-op there).
+          sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .vitest-blobs/blob-*.json
           mkdir -p .reports
           pnpm vitest run --mergeReports=.vitest-blobs --reporter=json --outputFile=.reports/vitest.json
       - name: Failed tests (summary)
