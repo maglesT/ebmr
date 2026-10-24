@@ -43,6 +43,9 @@ tests:
   - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-22][DI-30][DI-34] route B 4: blending on KIOSK-BL-BLEND: blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
   - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-22][IN-36][DI-30][DI-34] route D 4: blending on KIOSK-BLEND-1: the active layer blended and lubricated, the lactose layer blended (TB-07), each layer's blend into verified containers of its own stage @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-18][PR-22][DI-30][DI-34] route S 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
+  - "apps/tablets-server/test/plant/sandbox-configured-unit.test.ts > the unit a packaging master configures, on each installation (slice 7r, D-7r-5) > [DI-04][DI-05][PR-22][PR-37] on the sandbox, a configured unit code that is no sandbox unit reads as its TEST- unit, which the plant knows; an unknown code stays unknown and refused (EBMR-CNT-023)"
+  - "apps/tablets-server/test/plant/sandbox-configured-unit.test.ts > the unit a packaging master configures, on each installation (slice 7r, D-7r-5) > [DI-05][PR-22] on GMP the configured code is read as it is"
+  - "apps/tablets-server/test/plant/sandbox-configured-unit.test.ts > the unit a packaging master configures, on each installation (slice 7r, D-7r-5) > [PR-37][PR-22] the checks, holds, overdue checks and line clearance of TB-23 and TB-24 read the configured unit through it"
 clauses:
   - clause: "A step with a unit the master does not allow is rejected."
     tests:
