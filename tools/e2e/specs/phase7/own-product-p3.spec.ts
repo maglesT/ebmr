@@ -165,6 +165,11 @@ test('[PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the fo
     await setConfig(a, ['loadRange', 'max'], '30');
     await setLimit(a, 'Core mean weight', 'lower', '123.7');
     await setLimit(a, 'Core mean weight', 'upper', '131.3');
+    // The enteric coat: its target, minimum (a functional film) and maximum gain on the coating step itself.
+    await selectStep(a, /Enteric film coating to the weight gain/);
+    await setConfig(a, ['targetGain'], '9.0');
+    await setConfig(a, ['minGain'], '8.0');
+    await setConfig(a, ['maxGain'], '10.0');
     await setLimit(a, 'Coating weight gain', 'lower', '8.0');
     await setLimit(a, 'Coating weight gain', 'upper', '10.0');
     // The batch's gain over its cores with the three coats (about 14.5 %).
