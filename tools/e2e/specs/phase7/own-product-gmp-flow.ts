@@ -36,6 +36,17 @@ export interface SpecTestEntry {
   upper?: string;
   /** The sample per run and its unit (default 2 g for a % test, 2 units otherwise); a finished product's in packs, from which the database computes its reserve sample (PR-44, IN-32). */
   sample?: { quantity: string; unit: string };
+  /** A profile test's time points (slice 7p; R8 C4: a two-stage dissolution names the stage of each point); the test then has no limits of its own. */
+  points?: readonly SpecPointEntry[];
+}
+
+export interface SpecPointEntry {
+  label: string;
+  stage?: string;
+  time: string;
+  unit: 'min' | 'h';
+  lower?: string;
+  upper?: string;
 }
 
 /** QC drafts version 1 of a material's (or the product's) specification: single tests, each required for release. */
@@ -53,8 +64,24 @@ export async function draftSpecification(page: Page, s: { material: string; titl
     await f.getByRole('textbox', { name: `Test code ${n}`, exact: true }).fill(t.code);
     await f.getByRole('textbox', { name: `Method ${n}`, exact: true }).fill(t.method);
     await f.getByRole('textbox', { name: `Unit ${n}`, exact: true }).fill(t.unit);
-    if (t.lower) await f.getByRole('textbox', { name: `Lower limit ${n}` }).fill(t.lower);
-    if (t.upper) await f.getByRole('textbox', { name: `Upper limit ${n}` }).fill(t.upper);
+    if (t.points) {
+      // A profile: its points (the form starts with two), each with its stage, time and limits.
+      await choose(f.getByRole('radiogroup', { name: `Kind of test ${n}` }).getByRole('radio', { name: 'Profile (time points)', exact: true }));
+      for (const [k, p] of t.points.entries()) {
+        if (k >= 2) await f.getByRole('button', { name: `Add a time point to test ${n}` }).click();
+        const of = `${String(k + 1)} of test ${n}`;
+        const pf = f.getByTestId(`spec-test-${String(i)}-point-${String(k)}`);
+        await pf.getByRole('textbox', { name: `Label of point ${of}` }).fill(p.label);
+        if (p.stage) await pf.getByRole('textbox', { name: `Stage of point ${of}` }).fill(p.stage);
+        await pf.getByRole('textbox', { name: `Time of point ${of}` }).fill(p.time);
+        await choose(pf.getByRole('radio', { name: p.unit, exact: true }));
+        if (p.lower) await pf.getByRole('textbox', { name: `Lower limit of point ${of}` }).fill(p.lower);
+        if (p.upper) await pf.getByRole('textbox', { name: `Upper limit of point ${of}` }).fill(p.upper);
+      }
+    } else {
+      if (t.lower) await f.getByRole('textbox', { name: `Lower limit ${n}` }).fill(t.lower);
+      if (t.upper) await f.getByRole('textbox', { name: `Upper limit ${n}` }).fill(t.upper);
+    }
     await choose(f.getByRole('radiogroup', { name: `Required for release ${n}` }).getByRole('radio', { name: 'Yes', exact: true }));
     await choose(f.getByRole('radiogroup', { name: `Source of the limit ${n}` }).getByRole('radio', { name: 'IN_HOUSE', exact: true }));
     await f.getByRole('textbox', { name: `Edition ${n}`, exact: true }).fill('STP-2026-1');
@@ -194,11 +221,27 @@ export async function recordResults(page: Page, results: readonly (readonly [str
   }
 }
 
-/** The head of QC approves each result of the lot (a second person). */
-export async function approveResults(page: Page, codes: readonly string[], head: SeededPersona): Promise<void> {
+/**
+ * QC records each time point of the lot's profile test (slice 7p) from the lot's Profiles section, as RELEASE results
+ * (the limits are the point's; the database computes each verdict).
+ */
+export async function recordProfile(page: Page, test: string, values: readonly (readonly [string, string])[]): Promise<void> {
+  const profile = page.getByTestId(`profile-${test}`);
+  await expect(profile).toBeVisible();
+  for (const [label, value] of values) {
+    const row = page.getByTestId(`point-${test}-${label}`);
+    await row.getByRole('textbox', { name: `Value at ${label}` }).fill(value);
+    await row.getByRole('button', { name: `Record ${test} at ${label}` }).click();
+    await expect(page.getByTestId(`result-${test}-${label}-RELEASE`)).toContainText('PASS');
+  }
+}
+
+/** The head of QC approves each result of the lot (a second person): a test code, or a profile's [test, point]. */
+export async function approveResults(page: Page, codes: readonly (string | readonly [string, string])[], head: SeededPersona): Promise<void> {
   for (const code of codes) {
-    const row = page.getByTestId(`result-${code}-RELEASE`);
-    await officeSignPaced(page, () => row.getByRole('button', { name: `Approve ${code}` }).click(), new RegExp(`^Approve result ${code} `), head);
+    const [testId, name] = typeof code === 'string' ? [`result-${code}-RELEASE`, code] : [`result-${code[0]}-${code[1]}-RELEASE`, `${code[0]} at ${code[1]}`];
+    const row = page.getByTestId(testId);
+    await officeSignPaced(page, () => row.getByRole('button', { name: `Approve ${name}` }).click(), new RegExp(`^Approve result ${re(name)} `), head);
     await expect(row).toContainText('APPROVED');
   }
 }
@@ -381,7 +424,7 @@ export async function pullReserveSample(page: Page, lotCode: string): Promise<vo
 }
 
 /** The authorised person releases the lot from the release cockpit: ready, no red item, the manufacturer release signed. */
-export async function releaseFinishedLot(page: Page, lotCode: string, ap: SeededPersona): Promise<void> {
+export async function releaseFinishedLot(page: Page, lotCode: string, ap: SeededPersona, green: readonly string[] = []): Promise<void> {
   await home(page, /^Release cockpit/);
   const row = page.getByTestId(`release-lot-${lotCode}`);
   await expect(row).toContainText('Ready');
@@ -390,6 +433,8 @@ export async function releaseFinishedLot(page: Page, lotCode: string, ap: Seeded
   await expect(checklist.locator('[data-status="GREEN"]').first()).toBeVisible();
   const red = checklist.locator('[data-status="RED"]');
   if ((await red.count()) > 0) throw new Error(`the release checklist of ${lotCode} has a red item: ${(await red.allInnerTexts()).join(' | ').replace(/\s+/g, ' ').slice(0, 1500)}`);
+  // The items the caller names (e.g. a profile's G3.PROFILE_<test>, slice 7p) are on the checklist and green.
+  for (const item of green) await expect(checklist.getByTestId(`grel-item-${item}`)).toHaveAttribute('data-status', 'GREEN');
   const since = page.getByTestId('since-review');
   if ((await since.count()) > 0) {
     for (;;) {
