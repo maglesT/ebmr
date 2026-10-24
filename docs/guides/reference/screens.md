@@ -7,7 +7,7 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 146 screens, 81 home tiles.
+In all: 146 screens, 82 home tiles.
 
 ## access
 
@@ -209,7 +209,7 @@ In all: 146 screens, 81 home tiles.
 | `/master-data/formulas` | FormulasPage |  |  |
 | `/master-data/formulas/$formulaId` | FormulaPage |  |  |
 | `/master-data/erp` | ErpMastersPage |  |  |
-| `/master-data/plant` | PlantMasterPage |  |  |
+| `/master-data/plant` | PlantMasterPage | Plant definitions (SANDBOX) | Rooms, equipment and the tooling sets of the products this sandbox test-runs. |
 
 ## master-records
 
@@ -275,7 +275,7 @@ In all: 146 screens, 81 home tiles.
 
 | Address | Screen | Home tile (shown on) | What it is for |
 |---|---|---|---|
-| `/plant` | PlantPage | Plant (GMP) | Cleaning, line clearance, equipment logbook and their verification. |
+| `/plant` | PlantPage | Plant (GMP, SANDBOX) | Cleaning, line clearance, equipment logbook and their verification. |
 
 ## pqr
 

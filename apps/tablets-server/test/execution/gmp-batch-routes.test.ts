@@ -71,10 +71,18 @@ describe('GMP batch routes (slice 6a, D-S6-1)', () => {
   }, 300_000);
 
   it('[DI-05][INV-18] GMP routes answer 404 on the sandbox and test-run routes 404 on GMP', async () => {
-    for (const route of Object.values(routes.batches)) expect((await inject(sbx, route)).statusCode, route.id).toBe(404);
+    // Slice 7o (D-7o-1, ADR 0021): the step's plant, containers, SSCCs and printed lots are served on both installations
+    // ('ANY'); every GMP-only route of the namespace stays absent from the sandbox.
+    const gmpOnly = Object.values(routes.batches).filter((route) => route.installation === 'GMP');
+    expect(gmpOnly.length).toBeGreaterThanOrEqual(9);
+    for (const route of gmpOnly) expect((await inject(sbx, route)).statusCode, route.id).toBe(404);
     const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.command];
     for (const route of testRuns) expect((await inject(w.gmp, route)).statusCode, route.id).toBe(404);
-    for (const route of [...Object.values(routes.planning), ...Object.values(routes.masterData), ...Object.values(routes.plant)]) {
+    // The plant namespace is served on both installations since the sandbox plant (D-7o-1); its GMP-only routes, like
+    // planning's and master data's, stay absent from the sandbox.
+    const gmpOnlyElsewhere = [...Object.values(routes.planning), ...Object.values(routes.masterData), ...Object.values(routes.plant)].filter((route) => route.installation === 'GMP');
+    expect(gmpOnlyElsewhere.length).toBeGreaterThanOrEqual(16);
+    for (const route of gmpOnlyElsewhere) {
       expect((await inject(sbx, route)).statusCode, route.id).toBe(404);
     }
   });

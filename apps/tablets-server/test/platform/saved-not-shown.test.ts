@@ -40,6 +40,8 @@ const LATER_READ_ROUTES = [
   'features/execution/index.ts#issue',
   'features/execution/index.ts#issueSscc',
   'features/execution/index.ts#proposeAct',
+  'features/execution/index.ts#recordLotArtwork',
+  'features/execution/index.ts#recordLotAssay',
   'features/execution/index.ts#registerTestLot',
   'features/genealogy/index.ts#refreshFederation',
   'features/genealogy/index.ts#run',
