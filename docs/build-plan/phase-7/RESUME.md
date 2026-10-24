@@ -231,8 +231,15 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
   The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
   signing screens (as `master-records.spec.ts`), clicks elsewhere.
 
-## Slice 7n (23 October 2026): R7, a beta-lactam product in a dedicated suite
+## Slice 7p (23 October 2026): R4 third check, a dissolution profile as one release requirement (and R8 C4, C7)
 
+Branch `phase-7/slice-7p`; migrations site-services 1720, recipe-core 1725; messages EBMR-SITE-970 to 979. Details and
+decisions D-7p-1 to D-7p-8 in `slice-7p-routes.md`: profile tests with ordered points (and stages for a two-stage test),
+results per point from QC and LIMS judged by the database, one checklist item `G3.PROFILE_<test>` per profile, screens,
+the demo SR product GLV-SR-500 with two finished lots (`cli/demo-sr-profile.ts`), browser spec `phase7/sr-profile.spec.ts`.
+Residuals P7P-1 (staged acceptance L1/L2/L3), P7P-2.
+
+## Slice 7n (23 October 2026): R7, a beta-lactam product in a dedicated suite
 From `demo-trial-requirements.md` R7, on branch `phase-7/slice-7n`; migration recipe-core 1655. Details and the full
 decision text in `slice-7n-routes.md`.
 - D-7n-1: the suite and route B are seeded by `cli/demo-route-beta-lactam.ts`, one line in `cli/installation.ts` after

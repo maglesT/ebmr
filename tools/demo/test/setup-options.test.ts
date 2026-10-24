@@ -15,8 +15,8 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('pnpm demo:setup options (slice 7h, E1)', () => {
   it('--with-gmp-samples loads the GMP review batch and the packaging-order demo; without it neither', () => {
-    expect(setupOptions(['node', 'cli.ts', 'setup', '--with-gmp-samples'])).toEqual({ gmpReviewBatch: true, gmpPackaging: true });
-    expect(setupOptions(['node', 'cli.ts', 'setup'])).toEqual({ gmpReviewBatch: false, gmpPackaging: false });
+    expect(setupOptions(['node', 'cli.ts', 'setup', '--with-gmp-samples'])).toEqual({ gmpReviewBatch: true, gmpPackaging: true, gmpSrProfile: true });
+    expect(setupOptions(['node', 'cli.ts', 'setup'])).toEqual({ gmpReviewBatch: false, gmpPackaging: false, gmpSrProfile: false });
   });
 });
 

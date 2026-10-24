@@ -21,6 +21,7 @@ import { DeviationReleaseChecklist } from './DeviationDetail.tsx';
 import { DEVIATION_READS } from './DeviationsPage.tsx';
 import { LotEvents, LotReleaseCheck, LotSamples } from './LotExtras.tsx';
 import { LotHandling } from './LotHandling.tsx';
+import { LotProfiles } from './LotProfiles.tsx';
 import { LOT_READS } from './LotsPage.tsx';
 
 type CallErr = Parameters<typeof RefusalMessage>[0]['error'];
@@ -53,7 +54,7 @@ export function LotPage() {
         {results.data && results.data.results.length === 0 ? <p>No result yet.</p> : null}
         <ul>
           {results.data?.results.map((r) => (
-            <li key={r.resultId} data-testid={`result-${r.testCode}-${r.purpose}`}>
+            <li key={r.resultId} data-testid={r.point ? `result-${r.testCode}-${r.point}-${r.purpose}` : `result-${r.testCode}-${r.purpose}`}>
               <ResultRow lotId={lotId} lotCode={lot?.lotCode ?? lotId} result={r} qc={qc} />
             </li>
           ))}
@@ -73,6 +74,8 @@ export function LotPage() {
           />
         ) : null}
       </Section>
+      {/* Phase 7 slice 7p: each profile test as one release requirement, its points recorded one by one. */}
+      <LotProfiles lotId={lotId} qc={qc} />
       {qc && lot ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}
       {qa && lot ? <LotDecision lot={lot} /> : null}
       <LotReleaseCheck lotId={lotId} />
@@ -101,15 +104,17 @@ function ResultRow({ lotId, lotCode, result: r, qc }: { lotId: string; lotCode: 
     setOos(!linked.ok ? linked.error : named && !named.ok ? named.error : { ref: raised.value.ref });
   };
   const limits = [r.lowerLimit ? `from ${r.lowerLimit}` : '', r.upperLimit ? `to ${r.upperLimit}` : ''].filter(Boolean).join(' ');
+  // Slice 7p: a profile's result is named with its time point.
+  const name = r.point ? `${r.testCode} at ${r.point}` : r.testCode;
   return (
     <>
       <p>
-        {r.testCode} ({r.purpose}): {r.value} {r.unit} {limits ? `(${limits})` : ''} <StatusChip tone={r.verdict === 'PASS' ? 'ok' : 'error'} label={r.verdict} /> <StatusChip tone="neutral" label={r.state} />
+        {name} ({r.purpose}): {r.value} {r.unit} {limits ? `(${limits})` : ''} <StatusChip tone={r.verdict === 'PASS' ? 'ok' : 'error'} label={r.verdict} /> <StatusChip tone="neutral" label={r.state} />
       </p>
       {qc && r.state === 'RECORDED' ? (
-        <ActButton label={`Approve ${r.testCode}`} onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'LOT_RESULT_APPROVE', subjectId: r.resultId, input: {} }, `Approve result ${r.testCode} ${r.value} ${r.unit} (${r.verdict}) of lot ${lotCode}`)} disabled={signed.busy} />
+        <ActButton label={`Approve ${name}`} onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'LOT_RESULT_APPROVE', subjectId: r.resultId, input: {} }, `Approve result ${name} ${r.value} ${r.unit} (${r.verdict}) of lot ${lotCode}`)} disabled={signed.busy} />
       ) : null}
-      {qc && r.verdict === 'FAIL' ? <ActButton primary={false} label={`Raise an OOS record for ${r.testCode}`} onPress={raiseOos} disabled={oos !== null && 'ref' in oos} /> : null}
+      {qc && r.verdict === 'FAIL' ? <ActButton primary={false} label={`Raise an OOS record for ${name}`} onPress={raiseOos} disabled={oos !== null && 'ref' in oos} /> : null}
       {oos && 'ref' in oos ? <p>OOS record {oos.ref} raised and linked to the lot.</p> : oos ? <RefusalMessage error={oos} /> : null}
       <ActResult error={signed.error} outcome={signed.outcome} />
     </>

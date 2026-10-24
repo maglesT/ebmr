@@ -141,6 +141,9 @@ from the ERP order to the released lot; step-screen fixes 7L-1 to 7L-9 (TB-01 po
 named preparations and containers, empty lists, automation fallback, forms cleared at save). Decisions D-7l-1 to 5. No
 migrations. Routes D and S remain.
 
+**Slice 7p (23 October):** a dissolution profile as one release requirement (R4 third check, R8 C4/C7; site-services
+1720, recipe-core 1725; `slice-7p-routes.md`); demo SR product GLV-SR-500; browser `phase7/sr-profile.spec.ts`.
+
 **Slice 7n (23 October): R7, a beta-lactam product in a dedicated suite** (`docs/build-plan/phase-7/slice-7n-routes.md`).
 Recipe-core 1655 dedicates rooms and lines to beta-lactam products (IN-27 dedications, class `BETA_LACTAM`) and refuses
 a beta-lactam batch outside them and any other batch inside them (PR-27). Demo route B (CXC-325, invented: direct

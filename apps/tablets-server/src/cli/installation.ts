@@ -80,6 +80,8 @@ export interface SetupOptions {
   reviewBatch?: boolean;
   /** GMP, DEMO-ONLY (Phase 4 slice 2c): with the review batch, also the packaging-order demo (review-batch.ts step 6). */
   packaging?: boolean;
+  /** GMP, DEMO-ONLY (slice 7p, D-7p-8): with the packaging demo, also the SR profile product and its two finished lots (demo-sr-profile.ts). */
+  srProfile?: boolean;
   /** Phase 7 slice 7g-4: also the backup service identity and the DEMO-ONLY backup key (header). */
   backupIdentity?: boolean;
   /** The superuser connection to the database server (default: test-kit's, EBMR_PG_ADMIN_URL). */
@@ -304,6 +306,9 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         writeJson(join(opts.keysDir, 'gmp-demo-routes.json'), { label: 'DEMO-ONLY demo routes', routes: demoRoutes });
         // Phase 7 slice 7n (R7): demo route B, the beta-lactam product in its dedicated suite.
         writeJson(join(opts.keysDir, 'gmp-route-b.json'), { label: 'DEMO-ONLY route B', route: await (await import('./demo-route-beta-lactam.ts')).seedBetaLactamSuite({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() }) });
+        // Phase 7 slice 7p (R4 third check): a sustained-release product with two finished lots waiting for QC; opt-in
+        // (D-7p-8: the presenter's demo and the E2E group that runs sr-profile.spec.ts, not every packaging set-up).
+        if (opts.srProfile === true) writeJson(join(opts.keysDir, 'gmp-sr-profile.json'), { label: 'DEMO-ONLY SR profile', ...(await (await import('./demo-sr-profile.ts')).seedSrProfile({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() })) });
       }
     }
 
