@@ -298,7 +298,9 @@ jobs:
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
     # set-up on its own PostgreSQL and the spec files tools/e2e/playwright.config.ts (E2E_GROUPS) names; 'rest' runs
     # every other spec. A file is never split, so its tests keep their order. A new group is added in both places.
-    timeout-minutes: 90
+    # 150 since slice 7r: the own-demotab group runs Demotab from its materials to the released lot (its sandbox test
+    # runs, the GMP batch and its packaging order, QC, review and release) in one file, about 80 minutes of tests.
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:

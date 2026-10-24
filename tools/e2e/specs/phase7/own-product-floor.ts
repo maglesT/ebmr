@@ -994,3 +994,192 @@ export async function processingRun(f: Floor, plan: ProcessPlan): Promise<void> 
   await coating(f, plan);
   await inspection(f, plan);
 }
+
+// ---------------------------------------------------------------------------------------------
+// The packaging order (a cold-form master shaped as route W's packaging master), either installation (slice 7r)
+
+export interface PackPlan {
+  /** The forming laminate's lot, the printed lots of the order's items and the artwork set of the clearance. */
+  formingLot: string;
+  foil: { material: string; lot: string; artwork: string };
+  carton: { material: string; lot: string; artwork: string };
+  /** GMP only: the bulk container of the processing batch issued to the order (a test run packs no batch's bulk). */
+  bulk?: string;
+}
+
+/** Whether a resumed developer's run has this act done already (EBMR_E2E_RESUME=1; kept with the product's state). */
+function markedOn(f: Floor, m: string): boolean {
+  return process.env['EBMR_E2E_RESUME'] === '1' && f.containers[`mark:${m}`] === 'done';
+}
+function markOn(f: Floor, m: string): void {
+  f.containers[`mark:${m}`] = 'done';
+  f.save();
+}
+
+/**
+ * The cold-form packaging order on the PL-2 kiosk, as route W 9 runs it: the bulk issued (GMP), the line cleared and its
+ * units booked, the laminate weighed by the dispenser, the printed foil and cartons issued from their lots and their
+ * specimens attached, the line check (TB-21 COLD_FORM), the sealing run, the leak tests (TB-22), cartons and the shipper
+ * (TB-24), the reconciliations, the witnessed destruction of the coded surplus, the coding specimens, the post-use
+ * inspection, the tablets issued and packed, the yield and the stage sign-off; the line and its units released.
+ */
+export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
+  const base = baseOf(f);
+  const op = f.persona('operator2');
+  const dispenser = f.persona('dispenser1');
+  const verifier = f.persona('verifier1');
+  const line = 'PL-2';
+  const artworkSet = `FOIL:${p.foil.artwork},CARTON:${p.carton.artwork}`;
+  await cleanForBatch(f);
+  const page = await floorKiosk(f, line, op);
+  if (p.bulk && !markedOn(f, 'bulk-issued')) {
+    await page.goto(`${base}/planning/packaging/${f.batchId}`);
+    await page.getByTestId(`bulk-container-${p.bulk}`).getByRole('checkbox').check();
+    await act(page, page.getByRole('button', { name: /^Issue 1 container/ }), op);
+    await expect(page.getByText('Bulk issued.')).toBeVisible();
+    markOn(f, 'bulk-issued');
+  }
+  if (!(await done(f, page, 'p-pk-status@'))) {
+    await clearance(f, page, line, op, verifier, { order: f.batchNumber, artworkSet });
+    await clearanceStep(f, page, 'p-pk-clear@', line, op, verifier);
+    await statusStep(f, page, 'p-pk-status@', [{ ref: 'BAL', code: balanceOf(f, line), instrument: true }, { ref: 'BLISTER', code: unitOf(f, 'CFORM-01'), instrument: false }, { ref: 'CARTONER', code: unitOf(f, 'CTN-03'), instrument: false }], op);
+  }
+  if (!(await done(f, page, 'p-pk-film@'))) {
+    await as(page, dispenser);
+    await step(f, page, 'p-pk-film@');
+    await begin(page, dispenser);
+    await weigh(f, page, dispenser, 'MAT-ALU-CF', '0.500', p.formingLot, 0);
+    await performAndCheck(page, dispenser, verifier, op);
+    await completed(page);
+  }
+  if (!markedOn(f, 'parallel-started')) {
+    for (const k of ['p-g21@', 'p-tb21c@', 'p-tb22@', 'p-tb24@', 'p-pk-destroy@']) {
+      await step(f, page, k);
+      await begin(page, op);
+    }
+    markOn(f, 'parallel-started');
+  }
+  if (!markedOn(f, 'printed-issued')) {
+    await step(f, page, 'p-g21@');
+    for (const [item, lot, artwork, n] of [['FOIL', p.foil.lot, p.foil.artwork, '110'], ['CARTON', p.carton.lot, p.carton.artwork, '12']] as const) {
+      const panel = page.getByTestId('printed-lot');
+      await panel.getByRole('textbox', { name: 'Scan the printed packaging lot' }).fill(lot);
+      await panel.getByRole('button', { name: 'Take the lot from the register' }).click();
+      await explained(expect(panel.getByTestId('printed-lot-facts')).toContainText(lot), panel);
+      await entry(page, 'ISSUE', op, { Item: item, 'Scanned artwork': artwork, Quantity: { Value: n, Unit: '1' } });
+    }
+    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    const panel = page.getByTestId('packaging-step-p-g21@');
+    for (const item of ['FOIL', 'CARTON']) {
+      await act(page, panel.getByRole('button', { name: `Attach the ${item} specimen` }), op);
+      await expect(panel.getByTestId(`label-specimen-${item}`)).toContainText('attached by');
+    }
+    markOn(f, 'printed-issued');
+  }
+  const machine = unitOf(f, 'CFORM-01');
+  if (!(await done(f, page, 'p-tb21c@'))) {
+    await step(f, page, 'p-tb21c@');
+    await entry(page, 'LINE_SETUP', op, {
+      Machine: machine, 'Artwork set': artworkSet, 'Change parts': ['CF-TOOL-RTW', 'SEAL-PLATE-RTW'],
+      Materials: [{ Role: 'FORMING_FILM', Material: 'MAT-ALU-CF', Lot: p.formingLot }, { Role: 'LIDDING_FOIL', Material: p.foil.material, Lot: p.foil.lot }],
+    });
+    await entry(page, 'EQUIPMENT_CHECK', op, { 'Rogue removed': 'Yes', 'Change parts fitted': 'Yes', 'Empty pocket detector': 'PASS' });
+    await performAndCheck(page, op, verifier, op);
+    await completed(page);
+  }
+  if (!markedOn(f, 'run-recorded')) {
+    await step(f, page, 'p-tb21@');
+    await begin(page, op);
+    await entry(page, 'RUN_START', op, { Machine: machine });
+    await step(f, page, 'p-tb22@');
+    await entry(page, 'RUN_START', op, { Machine: machine });
+    await entry(page, 'LEAK_TEST', op, { Track: 'T1', Tested: '10', Vacuum: '70', 'Hold seconds': '45', Leaking: '0' });
+    await step(f, page, 'p-tb21@');
+    await entry(page, 'RECIPE_CHECK', op, { Recipe: 'RCP-CF-RTW', 'Recipe version': '1' });
+    for (const [tag, v, unit] of [['blister.seal_temp_C', '175.0', 'degC'], ['blister.seal_pressure_bar', '4.00', 'bar'], ['blister.seal_dwell_s', '1.00', 's']] as const) await manualValue(page, op, tag, v, unit);
+    await entry(page, 'DEFECT_CHECK', op, { Examined: '20' });
+    await step(f, page, 'p-tb24@');
+    await entry(page, 'CHALLENGE', op, { Device: 'CW', Trigger: 'START', Result: 'PASS' });
+    // The master's TB-24 checks the anti-tampering device hourly when it was copied for EU too; an IN-only order has none.
+    if ((await page.getByRole('button', { name: 'Record: Atd check', exact: true }).count()) > 0) await entry(page, 'ATD_CHECK', op, { Examined: '5', Defective: '0' });
+    await entry(page, 'EXAMINATION', op, { Timing: 'IN_RUN', Examined: '2', Defective: '0', 'Label correct': 'Yes' });
+    await entry(page, 'PACKS_MADE', op, { Packs: '10' });
+    await step(f, page, 'p-tb21@');
+    await entry(page, 'RUN_END', op);
+    await entry(page, 'COUNT', op, { Formed: '105', Good: '100', 'Setup waste': '3', Samples: '2' });
+    await step(f, page, 'p-tb22@');
+    await entry(page, 'RUN_END', op);
+    await entry(page, 'LEAK_TEST', op, { Track: 'T1', Tested: '10', Vacuum: '70', 'Hold seconds': '45', Leaking: '0' });
+    await step(f, page, 'p-tb24@');
+    const register = page.getByTestId('sscc-register');
+    await act(page, register.getByRole('button', { name: 'Issue the next SSCC' }), op);
+    await expect(register.getByRole('listitem').filter({ hasText: 'not used yet' })).toHaveCount(1);
+    const sscc = /\d{18}/.exec((await register.getByRole('listitem').filter({ hasText: 'not used yet' }).first().textContent()) ?? '')?.[0] ?? '';
+    await entry(page, 'SHIPPER', op, { Sscc: sscc, Packs: '10', Part: 'No' });
+    await entry(page, 'EXAMINATION', op, { Timing: 'END', Examined: '5', Defective: '0', 'Label correct': 'Yes' });
+    await entry(page, 'CHALLENGE', op, { Device: 'CW', Trigger: 'END', Result: 'PASS' });
+    await entry(page, 'RECONCILIATION', op);
+    markOn(f, 'run-recorded');
+  }
+  if (!markedOn(f, 'reconciled')) {
+    await step(f, page, 'p-g21@');
+    await entry(page, 'RECONCILIATION', op, { Item: 'FOIL', Used: '105', 'Setup waste': '2', Damaged: '0', 'Coded destroyed': '0', 'Uncoded returned': '3', Specimens: '0' });
+    await entry(page, 'RECONCILIATION', op, { Item: 'CARTON', Used: '10', 'Setup waste': '0', Damaged: '0', 'Coded destroyed': '1', 'Uncoded returned': '0', Specimens: '1' });
+    await step(f, page, 'p-pk-destroy@');
+    await entry(page, 'DISPOSAL', op, { Category: 'DESTRUCTION', Material: p.carton.material, 'Batch coded': 'Yes', Quantity: { Value: '1', Unit: '1' }, Method: 'Shredding' });
+    await step(f, page, 'p-g21@');
+    const printed = (await page.getByTestId('packaging-batch-data').getByTestId('record-coding').textContent()) ?? '';
+    const read = (key: string): string => new RegExp(`${key} (\\S+)`).exec(printed)?.[1] ?? '';
+    const coded = { batch: read('batch'), mfg: read('manufactured'), exp: read('expiry') };
+    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    const panel = page.getByTestId('packaging-step-p-g21@');
+    for (const position of ['START', 'MIDDLE', 'END']) {
+      const form = panel.getByTestId('coding-specimen-form');
+      await form.getByRole('textbox', { name: 'Batch number on the specimen' }).fill(coded.batch);
+      await form.getByRole('textbox', { name: 'Manufacture date on the specimen (YYYY-MM-DD)' }).fill(coded.mfg);
+      await form.getByRole('textbox', { name: 'Expiry on the specimen (YYYY-MM)' }).fill(coded.exp);
+      await act(page, form.getByRole('button', { name: `Record the ${position.toLowerCase()} specimen` }), op);
+      await explained(expect(panel.getByTestId(`coding-specimen-${position}`)).toContainText(coded.batch), panel);
+    }
+    markOn(f, 'reconciled');
+  }
+  if (!markedOn(f, 'parallel-done')) {
+    for (const k of ['p-g21@', 'p-tb21@', 'p-tb22@', 'p-tb24@']) {
+      if (await done(f, page, k)) continue;
+      await step(f, page, k);
+      await explained(performAndCheck(page, op, verifier, op), page.locator('main'));
+      await completed(page);
+    }
+    if (!(await done(f, page, 'p-pk-destroy@'))) {
+      await step(f, page, 'p-pk-destroy@');
+      await performAndCheck(page, op, verifier, op, 'Witness');
+      await completed(page);
+    }
+    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    const box = page.getByTestId('post-use-inspection');
+    const form = box.getByTestId('post-use-form');
+    await expect(form.getByRole('radiogroup')).toHaveCount(4);
+    for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio', { name: 'Yes', exact: true }));
+    await act(page, form.getByRole('button', { name: 'Record the post-use inspection' }), op);
+    await expect(box.getByText('not verified yet')).toBeVisible();
+    await as(page, verifier);
+    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    await act(page, page.getByTestId('post-use-inspection').getByRole('button', { name: 'Verify the inspection' }), verifier);
+    await expect(page.getByTestId('post-use-inspection').getByText(`verified by ${verifier.legalName}`)).toBeVisible();
+    await as(page, op);
+    markOn(f, 'parallel-done');
+  }
+  if (!(await done(f, page, 'p-pk-count@'))) {
+    await step(f, page, 'p-pk-count@');
+    await begin(page, op);
+    for (const item of ['tabletsIssued', 'tabletsPacked']) await field(page, item, '1000', op);
+    await performAndCheck(page, op, verifier, op, 'Witness');
+    await completed(page);
+  }
+  await signOnly(f, page, 'p-pk-yield@', op, verifier);
+  await closeStage(f, page, 'p-pk-yield@', op);
+  await releasePlant(f, page, { status: 'p-pk-status@', units: [['BLISTER', machine], ['CARTONER', unitOf(f, 'CTN-03')]], clear: 'p-pk-clear@', area: line }, op);
+  await page.goto(`${base}/runs/${f.batchId}`);
+  await expect(page.getByText('Execution complete').first()).toBeVisible();
+  await page.context().close();
+}

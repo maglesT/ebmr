@@ -45,6 +45,14 @@ export interface ProductState {
   lotId?: string;
   lotCode?: string;
   containers?: Record<string, string>;
+  /** Slice 7r: the GMP batch's containers (the sandbox run's are `containers`); each packaging run's own (and marks). */
+  gmpContainers?: Record<string, string>;
+  packContainers?: Record<string, string>;
+  sandboxPackRunId?: string;
+  sandboxPackBatchNumber?: string;
+  sandboxPackContainers?: Record<string, string>;
+  /** Slice 7r: the GMP lots received for the product (the active, the printed foil and cartons), by role. */
+  lots?: Record<string, string>;
   /** Acts done that no completed step shows (a resumed developer's run skips them). */
   marks?: string[];
 }
