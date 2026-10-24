@@ -76,6 +76,33 @@ export async function approveSpecifications(page: Page, materials: readonly stri
 }
 
 // ---------------------------------------------------------------------------------------------
+// The manufacturing licence endorsing the product (the issue's India gate, IN-30)
+
+/**
+ * The regulatory signer records a manufacturing licence of the site endorsing the product and strength (as a licence
+ * granted or amended by the licensing authority) and QA approves it: the issue gate then lets the product be issued.
+ */
+export async function endorseOnLicence(reg: Page, qa: Page, l: { number: string; product: string; strength: string }, qaPerson: SeededPersona): Promise<void> {
+  await home(reg, /^Licences and export permissions/);
+  const box = reg.getByTestId('india-record-licence');
+  await box.getByRole('textbox', { name: 'Licence number' }).fill(l.number);
+  await box.getByRole('textbox', { name: 'Holder name' }).fill('Demo Pharma Ltd');
+  await box.getByRole('textbox', { name: 'Holder address' }).fill('Plot 1, Demo Industrial Area, Pune 411019');
+  await box.getByRole('textbox', { name: 'Valid from (YYYY-MM-DD)' }).fill('2026-01-01');
+  await box.getByRole('textbox', { name: 'Endorsed products (code and strength, separated by ;)' }).fill(`${l.product} ${l.strength}`);
+  await box.getByRole('button', { name: 'Record the licence' }).click();
+  await expect(box.getByText('The licence is recorded; it counts once QA approves it.')).toBeVisible();
+  await home(qa, /^Licences and export permissions/);
+  const item = qa.getByTestId(`licence-${l.number}`);
+  await officeSignPaced(qa, () => item.getByRole('button', { name: `Approve licence ${l.number}` }).click(), new RegExp(`^Approve licence ${re(l.number)}`), qaPerson);
+  await expect(item).toHaveAttribute('data-state', 'APPROVED');
+  const check = qa.getByTestId('india-check');
+  await check.getByRole('textbox', { name: 'Product code' }).fill(l.product);
+  await check.getByRole('textbox', { name: 'Strength' }).fill(l.strength);
+  await expect(qa.getByTestId('india-check-licence')).toContainText(`Licence ${l.number}: may be issued.`);
+}
+
+// ---------------------------------------------------------------------------------------------
 // The approved manufacturer, the delivery, the lot's examination
 
 /** QA proposes the manufacturer of each material and approves it (PR-17), on Approved manufacturers. */

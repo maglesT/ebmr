@@ -33,7 +33,7 @@ import {
 } from './own-product-flow.ts';
 import { closeFloor, packagingRun, processingRun, type Floor, type ProcessPlan } from './own-product-floor.ts';
 import {
-  approveManufacturers, approveResults, approveSpecifications, draftSpecification, openLot, planAndIssue, planPackaging, postFinishedLot, pullReserveSample, receiveDelivery,
+  approveManufacturers, approveResults, approveSpecifications, draftSpecification, endorseOnLicence, openLot, planAndIssue, planPackaging, postFinishedLot, pullReserveSample, receiveDelivery,
   recordArtwork, recordGmpAssay, recordIdentity, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from './own-product-gmp-flow.ts';
 import { reviewRecord } from './kiosk-batch-support.ts';
@@ -288,7 +288,7 @@ const printedOf = (tag: string) => ({
   carton: { material: `DMT-CTN-${tag}`, name: 'Printed carton, Demotab 400 mg 10 x 10 (invented)', artwork: `ART-DMT-CTN-${tag}-1` },
 });
 
-test('[IN-33][PR-17][DI-17] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the manufacturer approved by QA @office', async ({ e2e, officePage, persona, evidence }) => {
+test('[IN-33][PR-17][DI-17][IN-30] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the licence endorsing Demotab; the manufacturer approved by QA @office', async ({ e2e, officePage, persona, evidence }) => {
   test.setTimeout(20 * 60_000);
   const s = loadProduct(e2e, KEY);
   const api = `DMT-API-${s.tag}`;
@@ -326,6 +326,11 @@ test('[IN-33][PR-17][DI-17] Demotab 4: the printed foil and cartons entered and 
   await evidence.step('The head of QC approves the four specifications', 'Each APPROVED and in effect', async () => {
     await approveSpecifications(hq, [api, pr.foil.material, pr.carton.material, s.product.code], persona('GMP', 'qcApprover'));
   }, hq);
+  const rg = await officePage('GMP', PC_QA);
+  await signIn.office(rg, persona('GMP', 'regulatory'));
+  await evidence.step('The regulatory signer records the site\'s manufacturing licence endorsing Demotab; QA approves it', 'The issue gate says Demotab may be issued (IN-30)', async () => {
+    await endorseOnLicence(rg, q, { number: `MH/25/DMT-${s.tag}`, product: s.product.code, strength: s.product.strength }, persona('GMP', 'approver'));
+  }, q);
   const qa = await officePage('GMP', PC_QA2);
   await signIn.office(qa, persona('GMP', 'qaInvestigator'));
   await evidence.step('QA proposes and approves the manufacturer of the active and of the printed materials', 'Three APPROVED entries of the register (PR-17)', async () => {
