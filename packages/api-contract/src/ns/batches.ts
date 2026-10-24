@@ -11,23 +11,14 @@ import { z } from 'zod';
 import { DecimalString, Empty, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
 import { ActId, ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
-import { Code, PlannedHours, StepPlantView } from './plant-floor.ts';
+import { PlantEntryAct, StepPlantView } from './plant-floor.ts';
 import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
 const stepParams = z.strictObject({ batchId: Uuid, stepKey: StepKey });
 
-/**
- * R3.3 (hosted-demo trials; D-7k-2): the plant act a status or clearance step stands on, done and recorded in the step as
- * one act of the person (one badge tap on a kiosk): the start of the batch's use of a room or line of the step's stage
- * (on its verified clearance; a line names the order and artwork set it was cleared for), or the booking of a unit the
- * step checks (an instrument booked, a process unit's use started) for the hours given.
- */
-export const PlantEntryAct = z.discriminatedUnion('act', [
-  z.strictObject({ act: z.literal('START_AREA_OCCUPANCY'), areaCode: Code, order: z.string().trim().min(1).max(64).optional(), artworkSet: z.string().trim().min(1).max(64).optional() }),
-  z.strictObject({ act: z.literal('BOOK_UNIT'), equipmentRef: z.string().trim().min(1).max(64), code: Code, plannedHours: PlannedHours }),
-]);
-export type PlantEntryAct = z.infer<typeof PlantEntryAct>;
+/** The plant act a status or clearance step stands on, recorded in the step as one act (R3.3; in plant-floor.ts since slice 7o). */
+export { PlantEntryAct } from './plant-floor.ts';
 
 /**
  * R3.10 (hosted-demo trials): the rooms and units a batch's stages need, stage by stage, each with its cleaning state
@@ -246,11 +237,13 @@ export const batches = {
     }),
     response: ProposedActView,
   }),
+  // Phase 7 slice 7o (D-7o-1): the step's plant, containers, addition sources, SSCCs, bulk issue and printed lots are
+  // served on both installations (a test run's id on the sandbox), each against its own database.
   sscc: defineRoute({
     id: 'batches.sscc',
     method: 'GET',
     path: '/api/batches/:batchId/sscc',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The SSCC register of the batch: each SSCC the database issued and the shipper that used it',
@@ -261,7 +254,7 @@ export const batches = {
     id: 'batches.issueSscc',
     method: 'POST',
     path: '/api/batches/:batchId/steps/:stepKey/sscc',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
@@ -274,7 +267,7 @@ export const batches = {
     id: 'batches.issueBulk',
     method: 'POST',
     path: '/api/batches/:batchId/bulk',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
@@ -287,7 +280,7 @@ export const batches = {
     id: 'batches.additionSources',
     method: 'GET',
     path: '/api/batches/:batchId/steps/:stepKey/addition-sources',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The sources a TB-08 or G-24@2 addition of this step may take, with the facts the database reads for each',
@@ -299,7 +292,7 @@ export const batches = {
     id: 'batches.printedLot',
     method: 'GET',
     path: '/api/batches/:batchId/printed-lots/:code',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'A printed packaging lot as the batch issues it now (its code, material, status, recorded artwork and expiry), for the G-21 issue entry; 404 when it is no printed packaging lot with a recorded artwork',
@@ -310,7 +303,7 @@ export const batches = {
     id: 'batches.cleaningNeeds',
     method: 'GET',
     path: '/api/batches/:batchId/cleaning-needs',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The rooms and units the batch\'s stages need, each with its cleaning state (R3.10), so the needed cleanings start from one list',
@@ -321,7 +314,7 @@ export const batches = {
     id: 'batches.stepPlant',
     method: 'GET',
     path: '/api/batches/:batchId/steps/:stepKey/plant',
-    installation: 'GMP',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The plant facts of a step: its rooms and units, the batch\'s open occupancies and uses, its tooling and its containers, so the step\'s acts name them without typing',

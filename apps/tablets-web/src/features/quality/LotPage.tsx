@@ -14,6 +14,7 @@ import { api } from '../../api/client.ts';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useRefresh, useSignedAct } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
+import { LotQualityForms } from '../../app/lot-quality.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
@@ -74,6 +75,24 @@ export function LotPage() {
           />
         ) : null}
       </Section>
+      {/* Slice 7o (R4, R8): the assay result TB-01 reads and a printed lot's artwork version G-21 checks. */}
+      {qc && lot ? <LotQualityForms lotCode={lot.lotCode} results={results.data?.results ?? []} /> : null}
+      {qc && lot ? (
+        <Section title="Identity test" testId="lot-identity">
+          <DefineForm
+            title={`Record the identity test result of ${lot.lotCode}`}
+            route={routes.quality.recordIdentityResult}
+            params={{ lotId }}
+            refresh={LOT_READS}
+            submitLabel="Record the identity result"
+            fields={[
+              { name: 'result', label: 'Identity result', kind: 'choice', options: ['PASS', 'FAIL'] },
+              { name: 'methodReference', label: 'Identity method', kind: 'text', description: 'e.g. the IR method of the specification' },
+              { name: 'testReference', label: 'Test reference', kind: 'text', description: 'the analysis record' },
+            ]}
+          />
+        </Section>
+      ) : null}
       {/* Phase 7 slice 7p: each profile test as one release requirement, its points recorded one by one. */}
       <LotProfiles lotId={lotId} qc={qc} />
       {qc && lot ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}

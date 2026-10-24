@@ -15,7 +15,6 @@ import { useRunCommand } from '../usePendingCall.ts';
 import { queryKey, useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
-import { isGmpFloor } from '../family.ts';
 import { st } from '../text.ts';
 import { BlockEntrySections, blockEntryForms, PROCESS_VALUE_KINDS, type EntrySection } from './block-entry.tsx';
 import { ScaleStatus } from './G-07@1.tsx';
@@ -127,9 +126,7 @@ function sourceLine(s: AdditionSourceView): string {
 
 /** The sources the database lists for the step, each with its facts and why it cannot be used now (if so). */
 export function AdditionSources({ view, chosen, onChoose }: { view: StepScreenView; chosen: string | null; onChoose: (s: AdditionSourceView) => void }) {
-  const gmp = isGmpFloor();
-  const q = useApiQuery(routes.batches.additionSources, { params: { batchId: view.run.runId, stepKey: view.step.stepKey } }, { enabled: gmp });
-  if (!gmp) return <p className={wcls('muted')}>{st('sources.sandbox')}</p>;
+  const q = useApiQuery(routes.batches.additionSources, { params: { batchId: view.run.runId, stepKey: view.step.stepKey } });
   if (q.isPending) return <p>{st('loading')}</p>;
   if (q.error) return <RefusalMessage error={q.error.error} />;
   const sources = q.data.sources;
@@ -174,12 +171,10 @@ function AdditionRenderer({ view }: RendererProps) {
 // SSCC register (TB-24)
 
 export function SsccRegister({ view }: RendererProps) {
-  const gmp = isGmpFloor();
   const qc = useQueryClient();
-  const q = useApiQuery(routes.batches.sscc, { params: { batchId: view.run.runId } }, { enabled: gmp });
+  const q = useApiQuery(routes.batches.sscc, { params: { batchId: view.run.runId } });
   // Issuing an SSCC is the person's own act: a fresh badge tap on a shared terminal (FRESH_ON_SHARED).
   const cmd = useCommand(routes.batches.issueSscc, [], 'issuing an SSCC');
-  if (!gmp) return null;
   const busy = cmd.busy;
   const error = cmd.error;
   const issue = async () => {

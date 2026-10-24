@@ -80,6 +80,8 @@ export interface SetupOptions {
   reviewBatch?: boolean;
   /** GMP, DEMO-ONLY (Phase 4 slice 2c): with the review batch, also the packaging-order demo (review-batch.ts step 6). */
   packaging?: boolean;
+  /** SANDBOX, DEMO-ONLY (Phase 7 slice 7o, D-7o-1): also the sandbox plant of a full master's test run (sandbox-plant.ts). */
+  sandboxPlant?: boolean;
   /** GMP, DEMO-ONLY (slice 7p, D-7p-8): with the packaging demo, also the SR profile product and its two finished lots (demo-sr-profile.ts). */
   srProfile?: boolean;
   /** Phase 7 slice 7g-4: also the backup service identity and the DEMO-ONLY backup key (header). */
@@ -101,8 +103,8 @@ export const BACKUP_SERVICE = {
  * The DEMO-ONLY seeds (--gmp-review-batch, --gmp-packaging) write superuser shortcuts (a status set complete, a hold point
  * set approved with a placeholder signature): they run only on a database named as a demo or E2E one (slice 2 review).
  */
-export function demoSeedRefusal(opts: Pick<SetupOptions, 'database' | 'reviewBatch' | 'packaging'>): string | null {
-  if (!opts.reviewBatch && !opts.packaging) return null;
+export function demoSeedRefusal(opts: Pick<SetupOptions, 'database' | 'reviewBatch' | 'packaging' | 'sandboxPlant'>): string | null {
+  if (!opts.reviewBatch && !opts.packaging && !opts.sandboxPlant) return null;
   if (DEMO_NAME.test(opts.database)) return null;
   return `--gmp-review-batch and --gmp-packaging are DEMO-ONLY: database ${opts.database} is not a demo or E2E database (its name must end in _demo or _e2e_<hex>)`;
 }
@@ -310,6 +312,11 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         // (D-7p-8: the presenter's demo and the E2E group that runs sr-profile.spec.ts, not every packaging set-up).
         if (opts.srProfile === true) writeJson(join(opts.keysDir, 'gmp-sr-profile.json'), { label: 'DEMO-ONLY SR profile', ...(await (await import('./demo-sr-profile.ts')).seedSrProfile({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() })) });
       }
+    }
+
+    if (opts.sandboxPlant) {
+      if (kind !== 'SANDBOX') throw new Error('--sandbox-plant is for the sandbox installation');
+      await (await import('./sandbox-plant.ts')).seedSandboxPlant({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, log });
     }
 
     let backup: BackupServiceEntry | null = null;

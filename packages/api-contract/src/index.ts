@@ -58,6 +58,7 @@ export {
   LimitTierWire,
   LimitView,
   LotView,
+  LotQualityView,
   ReplayReportView,
   RunResultExportView,
   RunHeaderView,

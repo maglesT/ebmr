@@ -12,12 +12,48 @@ import { join } from 'node:path';
 import type { DemoOrderTemplateView, SentOrderView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
-import { DEMO_ORDER_TEMPLATES, demoOrder, type DemoOrderKind } from '../execution/seed-demo-orders.ts';
+import { DEMO_ORDER_TEMPLATES, demoOrder, type DemoOrderKind, type DemoOrderTemplate } from '../execution/seed-demo-orders.ts';
 import { asErp } from '../quality/index.ts';
 
+/**
+ * Slice 7o (decision (d) of the lead; R4, R8): besides the demo products, an order of every product whose current master
+ * version is APPROVED and holds an ACTIVE market authorisation (a company's own product made on screen), for the
+ * family's first approved batch size, its BOM the master's own scaled from the master's reference size in exact decimals
+ * (the database compares them at planning, recipe-core 0602). Read from the database each time; a demo template wins.
+ */
+export async function authorisedTemplates(app: AppContext): Promise<DemoOrderTemplate[]> {
+  const { rows } = await app.pools.app.query<{ product_code: string; strength: string; product_name: string; kind: DemoOrderKind; size: string; unit: string; bom: { materialCode: string; quantity: string; unit: string }[] | null }>(
+    `select f.product_code, f.strength, f.product_name, f.record_kind as kind, f.batch_sizes -> 0 -> 'quantity' ->> 'value' as size, f.batch_sizes -> 0 -> 'quantity' ->> 'unit' as unit,
+            (select jsonb_agg(jsonb_build_object('materialCode', b ->> 'material',
+                     'quantity', trim_scale((b -> 'quantity' ->> 'value')::numeric * (f.batch_sizes -> 0 -> 'quantity' ->> 'value')::numeric
+                                            / (c.content -> 'header' -> 'batchSizes' -> 0 -> 'quantity' ->> 'value')::numeric)::text,
+                     'unit', b -> 'quantity' ->> 'unit') order by b ->> 'material')
+               from jsonb_array_elements(case when jsonb_typeof(c.content -> 'bom') = 'array' then c.content -> 'bom' else '[]'::jsonb end) b) as bom
+       from recipe.mbr_family f
+       join recipe.mbr_version v on v.family_id = f.id and recipe.version_state(v.id) = 'APPROVED'
+       join lateral (select mc.content from recipe.mbr_content mc where mc.version_id = v.id order by mc.revision desc limit 1) c on true
+      where f.edition = 'tablets'
+        and exists (select 1 from recipe.market_authorisation a where a.version_id = v.id and recipe.market_authorisation_state(a.id) = 'ACTIVE')
+        and (c.content -> 'header' -> 'batchSizes' -> 0 -> 'quantity' ->> 'value') ~ '^[0-9]+(\\.[0-9]+)?$'
+        and (c.content -> 'header' -> 'batchSizes' -> 0 -> 'quantity' ->> 'value')::numeric > 0
+      order by f.product_code, f.record_kind`,
+  );
+  const out: DemoOrderTemplate[] = [];
+  for (const r of rows) {
+    if (DEMO_ORDER_TEMPLATES.some((t) => t.productCode === r.product_code && t.kind === r.kind)) continue;
+    if (out.some((t) => t.productCode === r.product_code && t.kind === r.kind)) continue;
+    out.push({ productCode: r.product_code, strength: r.strength, productName: r.product_name, kind: r.kind, batchSize: r.size, batchSizeUnit: r.unit, bom: r.bom ?? [] });
+  }
+  return out;
+}
+
+async function allTemplates(app: AppContext): Promise<DemoOrderTemplate[]> {
+  return [...DEMO_ORDER_TEMPLATES, ...(await authorisedTemplates(app))];
+}
+
 /** The templates "Send a production order" offers. */
-export function orderTemplates(): DemoOrderTemplateView[] {
-  return DEMO_ORDER_TEMPLATES.map((t) => ({ productCode: t.productCode, productName: t.productName, kind: t.kind, batchSize: t.batchSize, batchSizeUnit: t.batchSizeUnit }));
+export async function orderTemplates(app: AppContext): Promise<DemoOrderTemplateView[]> {
+  return (await allTemplates(app)).map((t) => ({ productCode: t.productCode, productName: t.productName, kind: t.kind, batchSize: t.batchSize, batchSizeUnit: t.batchSizeUnit }));
 }
 
 const notConfigured = (why: string) =>
@@ -53,8 +89,8 @@ export interface PreparedOrder {
  * template or a server without the demo set-up's seed file is refused first). The order number follows the request's
  * idempotency key, so a resend names the same order.
  */
-export function prepareProductionOrder(app: AppContext, productCode: string, kind: DemoOrderKind, idempotencyKey: string | null): PreparedOrder {
-  const t = DEMO_ORDER_TEMPLATES.find((x) => x.productCode === productCode && x.kind === kind);
+export async function prepareProductionOrder(app: AppContext, productCode: string, kind: DemoOrderKind, idempotencyKey: string | null): Promise<PreparedOrder> {
+  const t = (await allTemplates(app)).find((x) => x.productCode === productCode && x.kind === kind);
   if (!t) {
     throw refusal(422, {
       code: 'ERP_ORDER_UNKNOWN',

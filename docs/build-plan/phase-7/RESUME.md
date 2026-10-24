@@ -231,6 +231,23 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
   The browser flow uses the start page's address and the existing screens' addresses for the change record, review and
   signing screens (as `master-records.spec.ts`), clicks elsewhere.
 
+## Slice 7o (23 October 2026): R4 end to end, the coating layers (R8 P3)
+
+On branch `phase-7/slice-7o`; two migrations: tablets 1700 (a test run's disposal or sample may name the batch's own output
+container) and recipe-core 1745 (the same bound for the output container's count). The engine, validator, simulation and
+database take three TB-18 layers as they are. Decisions in `slice-7o-routes.md`:
+- D-7o-1: the plant, containers, the batch's plant reads and the packaging completion on both installations, each against
+  its own database (ADR 0021); the DEMO-ONLY sandbox plant (`cli/sandbox-plant.ts`, `--sandbox-plant`).
+- D-7o-2: the designer's "Add a coating layer" (own TB-03, TB-18 cores and TB-18 coating loop, in one coating stage).
+- D-7o-3: a packaging master as a copy of an approved packaging master with the product's printed items.
+- D-7o-4: a lot's assay (GMP: approved LIMS results; sandbox: typed) and a printed lot's artwork version on screen; the
+  identity result on the lot page.
+- D-7o-5: a copy for another formula takes the formula's standard per tablet.
+- D-7o-6: the sandbox family of 7k's plant entry (`execution.plantEntry`); every sandbox plant unit TEST- labelled.
+- D-7o-7: ERP simulator orders for any approved, authorised product (lead's (d)).
+- Browser helpers for the R8 products: `tools/e2e/specs/phase7/own-product-flow.ts` (office) and `own-product-floor.ts`
+  (kiosks, either installation).
+
 ## Slice 7p (23 October 2026): R4 third check, a dissolution profile as one release requirement (and R8 C4, C7)
 
 Branch `phase-7/slice-7p`; migrations site-services 1720, recipe-core 1725; messages EBMR-SITE-970 to 979. Details and

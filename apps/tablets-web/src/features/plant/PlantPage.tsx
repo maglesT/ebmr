@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { routes, type RouteResponse } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
+import { useFloorRead } from '../floor/queries.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
 import { DefineForm, FieldInput } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -74,9 +75,10 @@ export function PlantPage() {
  * cleanings started from the list (each the person's own act through the cleaning route; completed and verified below).
  */
 function BatchCleaning({ onStarted }: { onStarted: (c: CleaningView) => void }) {
-  const batches = useApiQuery(routes.batches.list);
+  // Slice 7o (D-7o-1): the batches of this installation's floor (the test runs on the sandbox).
+  const batches = useFloorRead(routes.execution.runs);
   const [batchId, setBatchId] = useState<string | null>(null);
-  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.has(b.status));
+  const open = (batches.data?.runs ?? []).filter((b) => OPEN_BATCH.has(b.status));
   return (
     <>
       {batches.error ? <RefusalMessage error={batches.error.error} /> : null}
@@ -185,11 +187,12 @@ function CompleteCleaning({ started }: { started: CleaningView[] }) {
 }
 
 function ClearanceForm() {
-  const batches = useApiQuery(routes.batches.list);
+  // Slice 7o (D-7o-1): the batches of this installation's floor family (the test runs on the sandbox).
+  const batches = useFloorRead(routes.execution.runs);
   const [batchId, setBatch] = useState<string | null>(null);
   return (
     <>
-      <floor.ChoiceGroup label="For batch" options={(batches.data?.batches ?? []).map((b) => ({ value: b.runId, label: `${b.batchNumber} (${b.statusText})` }))} value={batchId} onChange={setBatch} />
+      <floor.ChoiceGroup label="For batch" options={(batches.data?.runs ?? []).map((b) => ({ value: b.runId, label: `${b.batchNumber} (${b.statusText})` }))} value={batchId} onChange={setBatch} />
       {batchId ? (
         <DefineForm
           title="Record a clearance"
@@ -271,14 +274,15 @@ const OPEN_BATCH = new Set(['ISSUED', 'IN_PROGRESS', 'ON_HOLD']);
 
 function InstrumentUseForm() {
   const units = useUnits('INSTRUMENT');
-  const batches = useApiQuery(routes.batches.list);
+  // Slice 7o (D-7o-1): the batches of this installation's floor family (the test runs on the sandbox).
+  const batches = useFloorRead(routes.execution.runs);
   const check = useCommand(routes.plant.recordInstrumentCheck, PENDING, 'the per-use check');
   const book = useCommand(routes.plant.recordInstrumentUse, PENDING, 'booking the instrument');
   const [code, setCode] = useState<string | null>(null);
   const [batchId, setBatch] = useState<string | null>(null);
   const [reference, setReference] = useState('Per-use check');
   const [hours, setHours] = useState<string | null>('12');
-  const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.has(b.status));
+  const open = (batches.data?.runs ?? []).filter((b) => OPEN_BATCH.has(b.status));
   const busy = check.busy || book.busy;
   return (
     <>

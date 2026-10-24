@@ -35,6 +35,13 @@ import timeline from '../fixtures/timeline.json' with { type: 'json' };
 import families from '../fixtures/families.json' with { type: 'json' };
 import issueForm from '../fixtures/issue-form.json' with { type: 'json' };
 import lot from '../fixtures/lot.json' with { type: 'json' };
+
+/** Slice 7o: a TEST- lot's approved assay (anhydrous with water) and no artwork version yet. */
+const lotQuality = {
+  lotCode: 'TEST-L26-0101',
+  assay: { basis: 'ANHYDROUS_WATER' as const, assay: '99.2', water: '0.8', lod: null, solvents: null, certificateRef: 'COA-TEST-0101', recordedAt: { us: '1790000000000000', text: '22-SEP-2026 18:23:20' } },
+  artwork: null,
+};
 import palette from '../fixtures/palette.json' with { type: 'json' };
 import templates from '../fixtures/templates.json' with { type: 'json' };
 import validationFindings from '../fixtures/validation-report-findings.json' with { type: 'json' };
@@ -205,6 +212,9 @@ export const EXAMPLES = {
   lot: { schema: r.execution.lot.response, data: lot, routeId: r.execution.lot.id },
   'test-lots': { schema: r.execution.testLots.response, data: { lots: [lot] }, routeId: r.execution.testLots.id },
   'register-test-lot': { schema: r.execution.registerTestLot.response, data: lot, routeId: r.execution.registerTestLot.id },
+  'lot-quality': { schema: r.execution.lotQuality.response, data: lotQuality, routeId: r.execution.lotQuality.id },
+  'record-lot-assay': { schema: r.execution.recordLotAssay.response, data: lotQuality, routeId: r.execution.recordLotAssay.id },
+  'record-lot-artwork': { schema: r.execution.recordLotArtwork.response, data: { ...lotQuality, artwork: 'ART-TEST-FOIL-1' }, routeId: r.execution.recordLotArtwork.id },
   challenge: { schema: ChallengeView, data: challenge, routeId: r.esig.createChallenge.id },
   manifestation: { schema: ManifestationView, data: manifestation },
   reading: { schema: ReadingView, data: reading, routeId: r.devices.capture.id },
@@ -289,6 +299,7 @@ export const EXAMPLES = {
   'batches-step-plant': { schema: r.batches.stepPlant.response, data: PF_STEP_PLANT, routeId: r.batches.stepPlant.id },
   // Phase 7 slice 7k (R3.3, R3.10): the plant act recorded in its step as one act, and a batch's cleaning needs.
   'batches-plant-entry': { schema: r.batches.plantEntry.response, data: gmpBatch.commandResult, routeId: r.batches.plantEntry.id },
+  'execution-plant-entry': { schema: r.execution.plantEntry.response, data: gmpBatch.commandResult, routeId: r.execution.plantEntry.id },
   'batches-cleaning-needs': {
     schema: r.batches.cleaningNeeds.response,
     data: {

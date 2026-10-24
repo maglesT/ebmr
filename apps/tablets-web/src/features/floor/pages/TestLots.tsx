@@ -3,14 +3,18 @@
  * master-data steward, the registration of a released, identity-tested TEST- lot of a material, so a master with new
  * materials can be test-run. Sandbox only: the lots are test data and never reach a GMP record (DI-05).
  */
+import { useState } from 'react';
 import { routes } from '@ebmr/api-contract';
+import { floor } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { Section } from '../../../app/acts.tsx';
 import { DefineForm } from '../../../app/define-form.tsx';
+import { LotQualityForms } from '../../../app/lot-quality.tsx';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 
 export function TestLotsPage() {
   const lots = useApiQuery(routes.execution.testLots);
+  const [chosen, setChosen] = useState<string | null>(null);
   return (
     <>
       <h1>Test lots</h1>
@@ -40,6 +44,17 @@ export function TestLotsPage() {
           </tbody>
         </table>
       </Section>
+      {/* Slice 7o (R4, R8): a test lot's assay result (TB-01) and a printed test lot's artwork version (G-21). */}
+      {lots.data && lots.data.lots.length > 0 ? (
+        <floor.ChoiceGroup
+          label="Assay and artwork of a test lot"
+          description="Choose the lot"
+          options={lots.data.lots.map((l) => ({ value: l.lotCode, label: `${l.lotCode} (${l.material.code})` }))}
+          value={chosen}
+          onChange={setChosen}
+        />
+      ) : null}
+      {chosen ? <LotQualityForms lotCode={chosen} /> : null}
       <DefineForm
         title="Register a test lot"
         route={routes.execution.registerTestLot}

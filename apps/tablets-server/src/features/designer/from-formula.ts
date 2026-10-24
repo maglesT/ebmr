@@ -37,6 +37,8 @@ export interface FormulaSource {
   target: formula.FormulaTarget | null;
   product: { name: string; dosageForm: string };
   materials: readonly MaterialMaster[];
+  /** The registered MATERIAL documents in force of the formula's materials (a registered document wins, D-7j-4). */
+  materialDocuments?: readonly flow.Reference[];
 }
 
 /** The demo references (SOPs, systems, equipment classes, risk scale, validation and hold studies) the skeleton pins, from dc-mini. */
@@ -91,7 +93,9 @@ function materialRefs(src: FormulaSource): flow.Reference[] {
   return src.chosen.lines.map((l) => {
     const m = src.materials.find((x) => x.code === l.materialCode);
     if (!m) throw new FamilyInputError('DESIGNER_MATERIAL', `Material ${l.materialCode} of the formula is not in effect in the material master.`, ['PR-17']);
-    return materialReference(m);
+    // Slice 7o (found by the R4 browser run): a material with a registered MATERIAL document is pinned to that document,
+    // as material-refs.ts says (a document always wins); the material master version only when none is registered.
+    return src.materialDocuments?.find((d) => d.code === l.materialCode) ?? materialReference(m);
   });
 }
 
@@ -270,19 +274,67 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
   const bom: flow.BomLine[] = src.chosen.lines.map((l) => {
     const same = t.bom.find((b) => codeOf(b) === l.materialCode);
-    return { id: same?.id ?? bomId(l), material: l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
+    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
   });
   const kept = new Set(bom.map((b) => b.id));
+  // Slice 7o (found by the R4 browser run): a material the approved source already names keeps the source's reference
+  // (its MATERIAL document as approved); only a material new to the copy is pinned to its material master version.
+  const sourceRef = (code: string): flow.Reference | undefined => source.references.find((r) => r.kind === 'MATERIAL' && r.code === code && source.bom.some((b) => b.material === r.id));
   const packaging = t.bom.filter((b) => !['ACTIVE', 'EXCIPIENT', 'PROCESSING_AID'].includes(b.role) && !kept.has(b.id));
   walk(t.procedure, (o) => {
     if (o['kind'] === 'phase' && Array.isArray(o['consumes'])) o['consumes'] = (o['consumes'] as string[]).filter((id) => kept.has(id) || packaging.some((p) => p.id === id));
   });
   const oldMaterials = new Set(t.bom.map((b) => b.material));
   const keepRef = (r: flow.Reference): boolean => r.kind !== 'MATERIAL' || !oldMaterials.has(r.id) || packaging.some((p) => p.material === r.id);
-  t.references = [...t.references.filter((r) => keepRef(r) && !src.chosen.lines.some((l) => l.materialCode === r.code && r.kind === 'MATERIAL')), ...materialRefs(src)];
+  const reused = new Set(src.chosen.lines.filter((l) => sourceRef(l.materialCode)).map((l) => l.materialCode));
+  const inFormula = (code: string | undefined): boolean => src.chosen.lines.some((l) => l.materialCode === code);
+  t.references = [
+    ...t.references.filter((r) => (r.kind === 'MATERIAL' && inFormula(r.code) ? sourceRef(r.code ?? '')?.id === r.id : keepRef(r))),
+    ...materialRefs(src).filter((r) => !reused.has(r.code ?? '')),
+  ];
+  // Slice 7o (found by the R4 browser run): an active a base-stated TB-01 step dispenses (it converts base to salt with the
+  // lot's assay) holds the base quantity in the bill of materials, the salt factor left out, as the database's INV-25
+  // comparison requires (recipe-core 0690, recipe.formula_bom_line_on_base).
+  const onBase = new Set<string>();
+  walk(t.procedure, (o) => {
+    const block = o['block'] as { type?: string } | undefined;
+    const active = (o['config'] as { active?: { bomLine?: string; standardIs?: string } } | undefined)?.active;
+    if (o['kind'] === 'phase' && block?.type === 'TB-01' && active?.standardIs === 'BASE' && typeof active.bomLine === 'string' && Array.isArray(o['consumes']) && (o['consumes'] as string[]).includes(active.bomLine)) {
+      onBase.add(active.bomLine);
+    }
+  });
+  const units = Dec.parse(src.chosen.batchSizeUnits);
+  for (const b of bom) {
+    const l = src.chosen.lines.find((x) => x.materialCode === b.material);
+    if (!l || !onBase.has(b.id) || l.role !== 'ACTIVE' || l.basis !== 'PER_UNIT' || l.saltFactor === undefined || l.saltFactor === null) continue;
+    const base = Dec.parse(l.quantity).times(units).times(Dec.parse('100').plus(Dec.parse(l.overagePercent ?? '0'))).div(Dec.parse('100')).div(Dec.parse('1000000'));
+    b.quantity = { value: base.toString(), unit: 'kg' };
+  }
   t.bom = [...bom, ...packaging];
   t.header = { ...header(src, req, markets), recordKind: source.header.recordKind, predicates: source.header.predicates, variants: source.header.variants };
+  // Slice 7o (D-7o-5): the standard quantity per tablet follows this formula. A calculation of the source that is its
+  // formula's quantity per tablet (mg terms only) times the batch size in tablets is written from this formula (each line
+  // per unit with its overage and salt factor, a line per batch spread over the reference size), and a golden case that
+  // names such a calculation, which held for the source's formula, is left out: the author's own cases and the
+  // validator cover the copy.
+  const standard = standardPerTabletMg(src);
+  const rewritten = new Set<string>();
+  t.calculations = t.calculations.map((c) => {
+    if (!STANDARD_PER_TABLET.test(c.expression.trim())) return c;
+    rewritten.add(c.id);
+    return { ...c, expression: `${standard} [mg] * tabletsPerBatch` };
+  });
+  t.goldenCases = t.goldenCases.filter((g) => ![...Object.keys(g.inputs), ...Object.keys(g.expected)].some((id) => rewritten.has(id)));
   return t;
+}
+
+/** A source calculation that is a formula's quantity per tablet: a parenthesised sum of mg terms times tabletsPerBatch. */
+const STANDARD_PER_TABLET = /^\(\s*[0-9.]+ \[mg\](\s*[*/]\s*[0-9.]+)*(\s*\+\s*[0-9.]+ \[mg\](\s*[*/]\s*[0-9.]+)*)*\s*\)\s*\*\s*tabletsPerBatch$/;
+
+/** The formula's quantity per tablet in mg (exact): per-unit lines as unitMg, per-batch lines over the reference size. */
+export function standardPerTabletMg(src: FormulaSource): string {
+  const units = Dec.parse(src.chosen.batchSizeUnits);
+  return sum(src.chosen.lines.map((l) => (l.basis === 'PER_BATCH' ? Dec.parse(l.quantity).times(Dec.parse('1000000')).div(units).toString() : unitMg(l))));
 }
 
 /**

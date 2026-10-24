@@ -55,3 +55,15 @@ export function commandRoute(runId: string): { route: typeof routes.execution.co
   // Same body and response schema (CommandResultView); only the path and its parameter name differ.
   return { route: routes.batches.command as unknown as typeof routes.execution.command, params: { batchId: runId } as unknown as { runId: string } };
 }
+
+/**
+ * The plant-entry route of a run on this installation (slice 7o, D-7o-1): batches.plantEntry on GMP, its sandbox family
+ * execution.plantEntry on the sandbox (same body and response; the run's id is named runId there).
+ */
+export function plantEntryRoute(): typeof routes.batches.plantEntry {
+  return isGmpFloor() ? routes.batches.plantEntry : (routes.execution.plantEntry as unknown as typeof routes.batches.plantEntry);
+}
+
+export function plantEntryParams(runId: string, stepKey: string): { batchId: string; stepKey: string } {
+  return isGmpFloor() ? { batchId: runId, stepKey } : ({ runId, stepKey } as unknown as { batchId: string; stepKey: string });
+}

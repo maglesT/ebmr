@@ -25,6 +25,18 @@ export const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/);
 const SiteDate = z.iso.date();
 /** Hours from now (database time) a use is planned to end: 1 to 72. */
 export const PlannedHours = z.string().regex(/^([1-9]|[1-6][0-9]|7[0-2])$/, 'whole hours from 1 to 72');
+
+/**
+ * R3.3 (hosted-demo trials; D-7k-2): the plant act a status or clearance step stands on, done and recorded in the step as
+ * one act of the person (one badge tap on a kiosk): the start of the batch's use of a room or line of the step's stage
+ * (on its verified clearance; a line names the order and artwork set it was cleared for), or the booking of a unit the
+ * step checks (an instrument booked, a process unit's use started) for the hours given.
+ */
+export const PlantEntryAct = z.discriminatedUnion('act', [
+  z.strictObject({ act: z.literal('START_AREA_OCCUPANCY'), areaCode: Code, order: z.string().trim().min(1).max(64).optional(), artworkSet: z.string().trim().min(1).max(64).optional() }),
+  z.strictObject({ act: z.literal('BOOK_UNIT'), equipmentRef: z.string().trim().min(1).max(64), code: Code, plannedHours: PlannedHours }),
+]);
+export type PlantEntryAct = z.infer<typeof PlantEntryAct>;
 const Reference = z.string().trim().min(1).max(200);
 const Counts = z.strictObject({ upper: z.string().regex(/^[0-9]{1,4}$/), lower: z.string().regex(/^[0-9]{1,4}$/), dies: z.string().regex(/^[0-9]{1,4}$/) });
 
@@ -140,7 +152,7 @@ export const StepPlantView = z.strictObject({
 export type StepPlantView = z.infer<typeof StepPlantView>;
 
 const post = <P extends z.ZodRawShape, B extends z.ZodRawShape, R extends z.ZodType>(id: string, path: string, summary: string, params: P, body: B, response: R) =>
-  defineRoute({ id, method: 'POST', path, installation: 'GMP', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED', summary, params: z.strictObject(params), body: withAttribution(body), response });
+  defineRoute({ id, method: 'POST', path, installation: 'ANY', auth: 'SESSION', mutating: true, attribution: 'FRESH_ON_SHARED', summary, params: z.strictObject(params), body: withAttribution(body), response });
 
 export const plantFloor = {
   startAreaOccupancy: post(

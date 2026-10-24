@@ -68,9 +68,10 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'quality', installations: ['GMP'], module: quality satisfies FeatureModule },
   { name: 'planning', installations: ['GMP'], module: planning satisfies FeatureModule },
   { name: 'master-data', installations: ['GMP'], module: masterData satisfies FeatureModule },
-  { name: 'plant', installations: ['GMP'], module: plant satisfies FeatureModule },
+  // Phase 7 slice 7o (D-7o-1): plant and containers on both installations (a test run's plant acts on the sandbox).
+  { name: 'plant', installations: ['GMP', 'SANDBOX'], module: plant satisfies FeatureModule },
   { name: 'review', installations: ['GMP'], module: review satisfies FeatureModule },
-  { name: 'containers', installations: ['GMP'], module: containers satisfies FeatureModule },
+  { name: 'containers', installations: ['GMP', 'SANDBOX'], module: containers satisfies FeatureModule },
   { name: 'lims', installations: ['GMP'], module: lims satisfies FeatureModule },
   { name: 'release', installations: ['GMP'], module: release satisfies FeatureModule },
   { name: 'notifications', installations: ['GMP'], module: notifications satisfies FeatureModule },
@@ -85,7 +86,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'alarms', installations: ['GMP'], module: alarms satisfies FeatureModule },
   { name: 'equipment-data', installations: ['GMP'], module: equipmentData satisfies FeatureModule },
   { name: 'plant-rules', installations: ['GMP'], module: plantRules satisfies FeatureModule },
-  { name: 'labels', installations: ['GMP'], module: labels satisfies FeatureModule },
+  // Slice 7o (D-7o-1): the packaging completion routes serve the sandbox too; the other label routes stay GMP's.
+  { name: 'labels', installations: ['GMP', 'SANDBOX'], module: labels satisfies FeatureModule },
   { name: 'serialisation', installations: ['GMP'], module: serialisation satisfies FeatureModule },
   { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
   { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },

@@ -117,7 +117,7 @@ export function containerActHandler(app: AppContext): SignableActionHandler<Cont
 }
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
-  if (app.installation === 'GMP') registry.register(containerActHandler(app));
+  registry.register(containerActHandler(app));
 }
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {

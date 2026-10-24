@@ -14,7 +14,10 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'route-d': ['phase7/route-d*.spec.ts'],
   'route-s': ['phase7/route-s*.spec.ts'],
   'route-b': ['phase7/route-b*.spec.ts'],
-  'gmp-batches': ['phase7/gmp-kiosk-batch.spec.ts', 'phase7/own-product*.spec.ts', 'phase7/master-records.spec.ts', 'phase7/presenter-floor.spec.ts'],
+  'gmp-batches': ['phase7/gmp-kiosk-batch.spec.ts', 'phase7/own-product.spec.ts', 'phase7/master-records.spec.ts', 'phase7/presenter-floor.spec.ts'],
+  // Slice 7o: a company's own product to an approved master on screen with its whole sandbox run on the kiosks (long).
+  'own-demotab': ['phase7/own-product-gmp.spec.ts'],
+  'own-p3': ['phase7/own-product-p3.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

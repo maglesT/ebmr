@@ -76,6 +76,13 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'TEST-PC-01', installation: 'SANDBOX', deviceClass: 'PERSONAL', description: 'Sandbox office PC (batch issue, package import)', key: 'BROWSER' },
   { code: 'TEST-KIOSK-DISP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1', key: 'BROWSER' },
   { code: 'TEST-KIOSK-BLEND-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'BLEND-1', description: 'Shop-floor kiosk, blending room BLEND-1', key: 'BROWSER' },
+  // Phase 7 slice 7o (R4, R8): a kiosk in each room of the sandbox's DEMO-ONLY plant (cli/sandbox-plant.ts), so a test run
+  // of a full processing master and of a blister packaging master runs on the screens as a GMP batch does.
+  { code: 'TEST-KIOSK-GRAN-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'GRAN-1', description: 'Shop-floor kiosk, granulation suite GRAN-1', key: 'BROWSER' },
+  { code: 'TEST-KIOSK-COMP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'COMP-1', description: 'Shop-floor kiosk, compression room COMP-1', key: 'BROWSER' },
+  { code: 'TEST-KIOSK-COAT-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'COAT-1', description: 'Shop-floor kiosk, coating room COAT-1', key: 'BROWSER' },
+  { code: 'TEST-KIOSK-INSP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'INSP-1', description: 'Shop-floor kiosk, inspection room INSP-1', key: 'BROWSER' },
+  { code: 'TEST-KIOSK-PACK-2', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'PL-2', description: 'Shop-floor kiosk, blister line PL-2', key: 'BROWSER' },
   { code: 'TEST-BAL-01', installation: 'SANDBOX', deviceClass: 'INSTRUMENT', room: 'DISP-1', description: 'Balance 60 kg in DISP-1 (simulated MT-SICS scale behind the site gateway)', key: 'NONE' },
   { code: 'TEST-BAL-02', installation: 'SANDBOX', deviceClass: 'INSTRUMENT', room: 'BLEND-1', description: 'Balance 300 kg in BLEND-1 (behind the site gateway)', key: 'NONE' },
   { code: 'TEST-SRV-SWEEPER', installation: 'SANDBOX', deviceClass: 'SERVER', description: 'Sandbox server: in-process time sweeper identity', key: 'SERVICE' },
@@ -160,6 +167,12 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'qareviewer1', installation: 'SANDBOX', legalName: 'TEST-Anil Varma', loginName: 'test-qa-reviewer-1', roleCode: 'QA_REVIEWER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'QA reviewer', demo: { password: 'Demo-QaReview1-2026!' } },
   // The one person with two roles: OPERATOR to perform a step and VERIFIER to verify one. The role rule lets them verify,
   // so only the segregation rule keeps them from verifying a step they performed (INV-03; E2E floor spec).
+  // Phase 7 slice 7o (R4, R8): the people the sandbox's DEMO-ONLY plant needs: two cleaning technicians (cleaning and its
+  // verification), stores (reservations) and the designated dispenser (TB-01), as on GMP.
+  { key: 'technician1', installation: 'SANDBOX', legalName: 'TEST-Ravi Shetty', loginName: 'test-technician-1', roleCode: 'MAINTENANCE_TECHNICIAN', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Maintenance and cleaning technician', demo: { password: 'Demo-Technician1-2026!' } },
+  { key: 'technician2', installation: 'SANDBOX', legalName: 'TEST-Anita Desai', loginName: 'test-technician-2', roleCode: 'MAINTENANCE_TECHNICIAN', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Maintenance and cleaning technician (verifier)', demo: { password: 'Demo-Technician2-2026!' } },
+  { key: 'stores', installation: 'SANDBOX', legalName: 'TEST-Manoj Pillai', loginName: 'test-stores', roleCode: 'WAREHOUSE_LABELLING', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Warehouse (receipt and labelling)', demo: { password: 'Demo-Warehouse1-2026!' } },
+  { key: 'dispenser1', installation: 'SANDBOX', legalName: 'TEST-Pooja Venkatesh', loginName: 'test-dispenser-1', roleCode: 'DISPENSER', kiosk: true, homeTerminal: 'TEST-KIOSK-DISP-1', title: 'Designated dispenser', demo: { password: 'Demo-Dispenser1-2026!', pin: '527419', badgeUid: '04A10000000051' } },
   { key: 'operatorVerifier1', installation: 'SANDBOX', legalName: 'TEST-Deepa Pillai', loginName: 'test-operator-verifier-1', roleCode: 'OPERATOR', alsoRoles: ['VERIFIER'], kiosk: true, homeTerminal: 'TEST-KIOSK-DISP-1', title: 'Operator and verifier (two roles)', demo: { password: 'Demo-OpVerifier1-2026!', pin: '358264', badgeUid: '04A10000000041' } },
 ];
 

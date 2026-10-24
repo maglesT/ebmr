@@ -182,3 +182,31 @@ describe('whole numbers (review F53)', () => {
     expect(screen.getByRole('alert').textContent).toBe('A value is required. The configuration keeps 4.');
   });
 });
+
+describe('an optional group is removed as a whole (slice 7o, found by the R4 browser run)', () => {
+  it('[PR-03] a copied master\'s optional duration (an acid stage) is removed with its own button; a required group has none', async () => {
+    const DURATION = { type: 'object', description: 'A duration', fields: { value: { type: 'decimal', min: '0', description: 'Decimal written as text' }, unit: { type: 'string', enum: ['min', 'h'], description: 'Time unit' } } };
+    const schema = { type: 'object', fields: { timeLimit: DURATION, acidTime: { ...DURATION, optional: true } } };
+    const seen: Record<string, Json>[] = [];
+    function OwnHost() {
+      const [config, setConfig] = useState<Record<string, Json>>({ timeLimit: { value: '30', unit: 'min' }, acidTime: { value: '1', unit: 'h' } });
+      return (
+        <ConfigForm
+          schema={schema}
+          value={config}
+          readOnly={false}
+          sopOptions={[]}
+          onChange={(v) => {
+            seen.push(v);
+            setConfig(v);
+          }}
+        />
+      );
+    }
+    render(<OwnHost />);
+    expect(screen.queryByRole('button', { name: 'Remove timeLimit' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove acidTime' }));
+    await waitFor(() => expect(seen.at(-1)).toEqual({ timeLimit: { value: '30', unit: 'min' } }));
+    expect(screen.queryByRole('button', { name: 'Remove acidTime' })).toBeNull();
+  });
+});

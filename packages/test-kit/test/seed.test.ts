@@ -130,7 +130,10 @@ describe('test-kit installations', () => {
     expect(roles).toEqual([
       'test-issuer:BATCH_ISSUER', 'test-steward:MASTER_DATA_STEWARD', 'test-operator-1:OPERATOR', 'test-operator-2:OPERATOR', 'test-verifier-1:VERIFIER',
       'test-verifier-2:VERIFIER', 'test-supervisor-1:SHIFT_SUPERVISOR', 'test-qa-1:QA_SHOP_FLOOR', 'test-head-1:HEAD_OF_PRODUCTION',
-      'test-qa-reviewer-1:QA_REVIEWER', 'test-operator-verifier-1:OPERATOR',
+      'test-qa-reviewer-1:QA_REVIEWER',
+      // Slice 7o: the people of the sandbox's DEMO-ONLY plant.
+      'test-technician-1:MAINTENANCE_TECHNICIAN', 'test-technician-2:MAINTENANCE_TECHNICIAN', 'test-stores:WAREHOUSE_LABELLING', 'test-dispenser-1:DISPENSER',
+      'test-operator-verifier-1:OPERATOR',
     ]);
     expect(sbxSeed.personas.filter((p) => p.set === 1).map((p) => p.loginName)).toContain('test-operator-1-w1');
     expect(new Set(sbxSeed.personas.map((p) => p.badgeUid).filter(Boolean)).size).toBe(sbxSeed.personas.filter((p) => p.badgeUid).length);
@@ -159,7 +162,7 @@ describe('test-kit installations', () => {
         );
       }
     }
-    expect(sbxSeed.terminals.map((t) => t.code)).toEqual(['TEST-PC-01', 'TEST-KIOSK-DISP-1', 'TEST-KIOSK-BLEND-1', 'TEST-BAL-01', 'TEST-BAL-02', 'TEST-SRV-SWEEPER', 'TEST-SRV-MONITOR', 'TEST-GW-01']);
+    expect(sbxSeed.terminals.map((t) => t.code)).toEqual(['TEST-PC-01', 'TEST-KIOSK-DISP-1', 'TEST-KIOSK-BLEND-1', 'TEST-KIOSK-GRAN-1', 'TEST-KIOSK-COMP-1', 'TEST-KIOSK-COAT-1', 'TEST-KIOSK-INSP-1', 'TEST-KIOSK-PACK-2', 'TEST-BAL-01', 'TEST-BAL-02', 'TEST-SRV-SWEEPER', 'TEST-SRV-MONITOR', 'TEST-GW-01']);
   });
 
   it('[DI-15][DI-20] personas log in with their changed secrets: password in the office, badge and PIN on the kiosk; a kiosk command needs a fresh tap', async () => {

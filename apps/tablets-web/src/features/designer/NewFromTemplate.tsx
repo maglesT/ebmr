@@ -6,6 +6,10 @@
  * Without a template (slice 7j, R4; D-7j-5): the author chooses the product's approved formula and starts from the
  * required skeleton, a blank master or a copy of an approved master; the server takes the header, the batch sizes and
  * the bill of materials from the formula.
+ *
+ * A packaging master for a product (slice 7o, R4 and R8; D-7o-3): a copy of an approved packaging master of another
+ * product, for the product's code and strength, each printed item taking the product's own printed material and artwork
+ * version (the server refuses a printed item left with another product's print).
  */
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -28,13 +32,38 @@ interface SizeRow {
 
 const UNITS = ['kg', 'g'];
 
-type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY';
+type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_COPY';
 const STARTS: { value: Start; label: string }[] = [
   { value: 'TEMPLATE', label: 'From a template' },
   { value: 'SKELETON', label: 'From the formula, with the required skeleton (dispensing and blending stages)' },
   { value: 'BLANK', label: 'From the formula, blank (clearance and balance status only)' },
   { value: 'COPY', label: 'From the formula, as a copy of an approved master' },
+  { value: 'PACKAGING_COPY', label: 'A packaging master for a product, as a copy of an approved packaging master' },
 ];
+
+interface Printed {
+  material: string;
+  artwork: string;
+}
+
+/** The printed items (G-21) of a master's content: item id and the material it names. */
+function printedItemsOf(content: unknown): { item: string; material: string }[] {
+  const out: { item: string; material: string }[] = [];
+  const visit = (n: unknown): void => {
+    if (Array.isArray(n)) n.forEach(visit);
+    else if (n && typeof n === 'object') {
+      const o = n as Record<string, unknown>;
+      const block = o['block'] as { type?: string } | undefined;
+      const items = (o['config'] as { items?: unknown } | undefined)?.items;
+      if (o['kind'] === 'phase' && block?.type === 'G-21' && Array.isArray(items)) {
+        for (const i of items as { id?: unknown; material?: unknown }[]) if (typeof i.id === 'string' && typeof i.material === 'string') out.push({ item: i.id, material: i.material });
+      }
+      Object.values(o).forEach(visit);
+    }
+  };
+  visit(content);
+  return out;
+}
 
 export function NewFromTemplate() {
   const templates = useApiQuery(routes.designer.templates);
@@ -59,6 +88,13 @@ export function NewFromTemplate() {
   const startGroup = useId();
   const copyGroup = useId();
   const fromTemplate = start === 'TEMPLATE';
+  const packaging = start === 'PACKAGING_COPY';
+  const [packProduct, setPackProduct] = useState({ code: '', strength: '' });
+  const [printed, setPrinted] = useState<Record<string, Printed>>({});
+  const source = useApiQuery(routes.designer.version, { params: { versionId: copyOf ?? '' } }, { enabled: packaging && copyOf !== null });
+  const sourceContent = source.data?.content as { header?: { recordKind?: string }; procedure?: unknown } | undefined;
+  const sourceIsPackaging = sourceContent?.header?.recordKind === 'PACKAGING';
+  const items = sourceIsPackaging ? printedItemsOf(sourceContent?.procedure) : [];
 
   // Defaults come from the chosen template (the first one until the author picks another) until edited.
   const list = templates.data?.templates ?? [];
@@ -71,16 +107,27 @@ export function NewFromTemplate() {
   const sizes: SizeRow[] = sizesEdit ?? (chosen?.batchSizes.map((b) => ({ quantity: b.quantity, unit: b.unit })) ?? [{ quantity: '', unit: 'kg' }]);
   const setSizes = (change: (all: SizeRow[]) => SizeRow[]): void => setSizesEdit(change(sizes));
 
-  const complete = fromTemplate
+  const complete = packaging
+    ? code.trim() !== '' && packProduct.code.trim() !== '' && packProduct.strength.trim() !== '' && sourceIsPackaging && items.every((i) => (printed[i.item]?.material ?? '').trim() !== '' && (printed[i.item]?.artwork ?? '').trim() !== '')
+    : fromTemplate
     ? chosen !== undefined && code.trim() !== '' && product.code.trim() !== '' && product.name.trim() !== '' && product.strength.trim() !== '' && sizes.every((s) => s.quantity !== '')
     : formula !== null && code.trim() !== '' && (start !== 'COPY' || copyOf !== null);
 
   const create = async (): Promise<void> => {
     if (fromTemplate && !chosen) return;
-    if (!fromTemplate && !formula) return;
+    if (!fromTemplate && !packaging && !formula) return;
     setBusy(true);
     setError(null);
-    const body = fromTemplate && chosen
+    const body = packaging
+      ? {
+          familyCode: code.trim(),
+          product: { code: packProduct.code.trim(), name: packProduct.code.trim(), strength: packProduct.strength.trim() },
+          markets,
+          start: 'PACKAGING_COPY' as const,
+          ...(copyOf ? { copyOfVersionId: copyOf } : {}),
+          printed: items.map((i) => ({ item: i.item, material: (printed[i.item]?.material ?? '').trim(), artwork: (printed[i.item]?.artwork ?? '').trim() })),
+        }
+      : fromTemplate && chosen
       ? {
           templateId: chosen.templateId,
           familyCode: code.trim(),
@@ -95,7 +142,7 @@ export function NewFromTemplate() {
           product: { code: formula?.productCode ?? '', name: formula?.productCode ?? '', strength: formula?.strength ?? '' },
           markets,
           formulaVersionId: formula?.versionId ?? '',
-          start: start as Exclude<Start, 'TEMPLATE'>,
+          start: start as Exclude<Start, 'TEMPLATE' | 'PACKAGING_COPY'>,
           ...(start === 'COPY' && copyOf ? { copyOfVersionId: copyOf } : {}),
         };
     const r = await api.call(routes.designer.createFamily, { body, idempotencyKey: key });
@@ -125,9 +172,9 @@ export function NewFromTemplate() {
           </div>
         ))}
       </fieldset>
-      {start === 'COPY' ? (
+      {start === 'COPY' || packaging ? (
         <fieldset className={dcls('fieldset')}>
-          <legend className={dcls('legend')}>Approved master to copy</legend>
+          <legend className={dcls('legend')}>{packaging ? 'Approved packaging master to copy' : 'Approved master to copy'}</legend>
           {approved.length === 0 ? <p className={dcls('small')}>No master version is approved yet.</p> : null}
           {approved.map((a) => (
             <div key={a.versionId} className={dcls('checkbox')}>
@@ -137,7 +184,24 @@ export function NewFromTemplate() {
           ))}
         </fieldset>
       ) : null}
-      {fromTemplate ? (
+      {packaging ? (
+        <fieldset className={dcls('fieldset')} data-testid="packaging-copy">
+          <legend className={dcls('legend')}>The product and its printed packaging</legend>
+          <Field label="Packaging product code" name="packProductCode" value={packProduct.code} onChange={(v) => setPackProduct((p) => ({ ...p, code: v }))} />
+          <Field label="Packaging product strength" name="packProductStrength" value={packProduct.strength} onChange={(v) => setPackProduct((p) => ({ ...p, strength: v }))} />
+          {copyOf && source.data && !sourceIsPackaging ? <p role="alert">The chosen master is not a packaging master.</p> : null}
+          {items.map((i) => (
+            <div key={i.item} className={dcls('inline')} data-testid={`printed-${i.item}`}>
+              <span>
+                {i.item} (now {i.material})
+              </span>
+              <Field label={`Printed material for ${i.item}`} name={`material-${i.item}`} value={printed[i.item]?.material ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i.item]: { material: v, artwork: p[i.item]?.artwork ?? '' } }))} />
+              <Field label={`Artwork version for ${i.item}`} name={`artwork-${i.item}`} value={printed[i.item]?.artwork ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i.item]: { material: p[i.item]?.material ?? '', artwork: v } }))} />
+            </div>
+          ))}
+        </fieldset>
+      ) : null}
+      {packaging ? null : fromTemplate ? (
       <fieldset className={dcls('fieldset')}>
         <legend className={dcls('legend')}>Template</legend>
         {list.map((t) => (
@@ -166,12 +230,12 @@ export function NewFromTemplate() {
           The product, the approved batch sizes and the bill of materials come from the chosen product&apos;s approved formula; nothing is taken from a template.
         </p>
       )}
-      <ChooseProduct
+      {packaging ? null : <ChooseProduct
         onChosen={(c) => {
           setFormula(c);
           if (c) setProductEdit({ ...product, code: c.productCode, strength: c.strength });
         }}
-      />
+      />}
       <Field label="Family code" name="familyCode" value={code} onChange={setFamilyCode} description="Letters, digits, dots, dashes; one family per product, strength, dosage form and batch-size set." />
       {fromTemplate ? (
         <>

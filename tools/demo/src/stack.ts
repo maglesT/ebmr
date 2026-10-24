@@ -63,7 +63,8 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,
-    args: ['--installation', 'SANDBOX', '--database', opts.databases.SANDBOX, '--gateway-spki', gatewaySpki, ...(opts.demoDevices === true ? ['--demo-process-devices'] : []), ...common],
+    // Slice 7o (D-7o-1): with the GMP samples, the sandbox gets the plant a full master's test run needs.
+    args: ['--installation', 'SANDBOX', '--database', opts.databases.SANDBOX, '--gateway-spki', gatewaySpki, ...(opts.demoDevices === true ? ['--demo-process-devices'] : []), ...(opts.gmpPackaging ? ['--sandbox-plant'] : []), ...common],
     env: {},
     echo: opts.echo ?? true,
   });

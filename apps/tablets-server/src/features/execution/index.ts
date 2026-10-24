@@ -38,6 +38,7 @@ import { cleaningNeedsView } from './cleaning-needs.ts';
 import { plantEntryPrelude } from './plant-entry.ts';
 import { stepPlantView } from './step-plant.ts';
 import { peopleText } from './people-text.ts';
+import { lotQuality, lotSite } from './lot-quality.ts';
 import { lotView, resolveLot } from './lots.ts';
 import { checkIssue, issueForm, packageToImport, packageView, packageViews } from './packages.ts';
 import { exportRunResult } from './run-result-export.ts';
@@ -505,6 +506,30 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       if (!l) throw notFound('lot');
       return lotView(l, (us) => app.formatInstant(us));
     },
+    // Slice 7o (R4, R8): a lot's assay result (TB-01) and a printed lot's artwork version (G-21) on screen (lot-quality.ts).
+    lotQuality: async ({ params, requireSession }) => {
+      requireSession();
+      return lotQuality(app, pool, params.code);
+    },
+    recordLotAssay: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
+      requireSession();
+      const site = await lotSite(app, pool, params.code);
+      const { reason, ...result } = body;
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (client) => {
+        const { rows } = await client.query<{ id: string }>('select tab.record_lot_assay($1, $2, $3::jsonb, $4) as id', [params.code, site, JSON.stringify(result), reason ?? null]);
+        return rows[0]?.id ?? '';
+      });
+      return lotQuality(app, pool, params.code);
+    },
+    recordLotArtwork: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
+      requireSession();
+      const site = await lotSite(app, pool, params.code);
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (client) => {
+        const { rows } = await client.query<{ id: string }>('select tab.record_lot_artwork($1, $2, $3) as id', [params.code, site, body.artwork]);
+        return rows[0]?.id ?? '';
+      });
+      return lotQuality(app, pool, params.code);
+    },
     lot: async ({ params, requireSession }) => {
       requireSession();
       // GMP: a TEST- lot is named as one of the sandbox, never looked up (DI-05); the sandbox knows only TEST- lots.
@@ -519,5 +544,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     command: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) =>
       runCommand(app, pool, { runId: params.runId, body, request, session: requireSession(), actor: actor(), idempotencyKey, requestHash }),
+
+    // Slice 7o (D-7o-1): a test run's plant act and its record in the step as one act, as batches.plantEntry on GMP.
+    plantEntry: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) => {
+      const session = requireSession();
+      const prelude = await plantEntryPrelude(pool, params.runId, params.stepKey, body.act);
+      const placeholder: ClientIntent = { type: 'START_STEP', stepKey: params.stepKey };
+      return runCommand(app, pool, { runId: params.runId, body: { expectedVersion: body.expectedVersion, intent: placeholder, viewStepKey: params.stepKey }, prelude, request, session, actor: actor(), idempotencyKey, requestHash });
+    },
   });
 }

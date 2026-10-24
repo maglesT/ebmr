@@ -161,6 +161,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return view;
       },
       lotResults: async ({ params }) => ({ results: await lotResults(pool, params.lotId) }),
+      // Slice 7o (R4, R8): the identity test result on screen (the release route IDENTITY_TESTED stands on it).
+      recordIdentityResult: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+        const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+          const { rows } = await c.query<{ r: string }>('select site.record_identity_result($1, $2, $3, $4) as r', [params.lotId, body.result, body.methodReference, body.testReference]);
+          return rows[0]?.r ?? '';
+        });
+        return { identityResultId: out.result, result: body.result };
+      },
       // Slice 7p (site services 1720): each profile test of the lot's specification as one release requirement.
       lotProfiles: async ({ params, requireSession }) => {
         requireSession();

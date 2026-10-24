@@ -219,7 +219,7 @@ describe('route table', () => {
       'deviceRegistry.revokeGatewayKey', 'deviceRegistry.revokeHardening', 'deviceRegistry.setAdapterStatus', 'deviceRegistry.setAttributionMethod',
       'deviceRegistry.setTerminalStatus', 'devices.bindStepDevice', 'devices.bindStepEquipment', 'devices.requestSetpointDownload', 'esig.createChallenge',
       'esig.endDscEnrolment', 'esig.enrolDsc', 'esig.registerDscAnchor', 'esig.setDscMeaning', 'esig.setDscMode', 'execution.checkPackagingBatchData',
-      'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch', 'execution.recordDetectorChallenge', 'execution.recordPackagingBatchData', 'execution.registerTestLot',
+      'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch', 'execution.plantEntry', 'execution.recordDetectorChallenge', 'execution.recordLotArtwork', 'execution.recordLotAssay', 'execution.recordPackagingBatchData', 'execution.registerTestLot',
       'execution.releasePrintJob', 'incidents.assessImpact', 'incidents.close', 'incidents.link', 'incidents.markCertInReportable', 'incidents.raise',
       'incidents.reclassify', 'incidents.recordCertInReport', 'incidents.startInvestigation', 'india.issueH2', 'integrations.acknowledgeAlarm', 'labels.approveTemplate',
       'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
@@ -264,9 +264,12 @@ describe('route table', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
-    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command, routes.execution.testLots, routes.execution.registerTestLot];
+    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command, routes.execution.plantEntry, routes.execution.testLots, routes.execution.registerTestLot];
     for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
-    for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe('GMP');
+    // Slice 7o (D-7o-1): the step's plant, containers, addition sources, SSCCs, bulk issue and printed lots serve both
+    // installations (each against its own database: test/plant/sandbox-plant.test.ts); every other batches route is GMP's.
+    const plantReads = ['batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot', 'batches.cleaningNeeds'];
+    for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe(plantReads.includes(r.id) ? 'ANY' : 'GMP');
     const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
     for (const r of Object.values(routes.execution).filter((x) => !installationBound.includes(x.id))) expect(r.installation, r.id).toBe('ANY');
     for (const r of [...Object.values(routes.devices), ...Object.values(routes.meta), ...Object.values(routes.session), ...Object.values(routes.access), ...Object.values(routes.esig), ...Object.values(routes.audit)]) {
@@ -274,13 +277,15 @@ describe('route table', () => {
     }
   });
 
-  it('[DI-05] the slice 6 namespaces (GMP batches, planning, master data, plant) and the new quality routes are GMP only, each with an example', () => {
+  it('[DI-05] the slice 6 namespaces (GMP batches, planning, master data) and the new quality routes are GMP only, the plant on both installations (slice 7o), each with an example', () => {
     const slice6 = allRoutes({ batches: routes.batches, planning: routes.planning, masterData: routes.masterData, plant: routes.plant });
-    for (const r of slice6) expect(r.installation, r.id).toBe('GMP');
+    // Slice 7o (D-7o-1): the plant namespace and the batch's plant reads serve both installations, each its own database.
+    const both = new Set([...allRoutes({ plant: routes.plant }).map((r) => r.id), 'batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot', 'batches.cleaningNeeds']);
+    for (const r of slice6) expect(r.installation, r.id).toBe(both.has(r.id) ? 'ANY' : 'GMP');
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const id of SLICE_6_ROUTE_IDS) {
       expect(exampled.has(id), `${id} has an example`).toBe(true);
-      expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
+      expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe(both.has(id) ? 'ANY' : 'GMP');
     }
   });
 
@@ -301,11 +306,12 @@ describe('route table', () => {
     expect(draft?.safeParse({ materialCode: 'MAT-1', title: 't', monographReference: 'm', tests: [{ ...test, pharmacopoeia: 'JP' }] }).success).toBe(false);
   });
 
-  it('[DI-30][DI-31] the containers namespace (Phase 4 slice 1b) is GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a close is weighed or typed, never both; CONTAINER_ACT signs a net check or a release', () => {
+  it('[DI-30][DI-31] the containers namespace (Phase 4 slice 1b; on both installations since slice 7o) reads plain and commands FRESH_ON_SHARED, each route with an example; a close is weighed or typed, never both; CONTAINER_ACT signs a net check or a release', () => {
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const id of CONTAINER_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
     for (const r of Object.values(routes.containers)) {
-      expect(r.installation, r.id).toBe('GMP');
+      // Slice 7o (D-7o-1): on both installations, each against its own database (a test run's containers on the sandbox).
+      expect(r.installation, r.id).toBe('ANY');
       expect(r.attribution === 'FRESH_ON_SHARED', r.id).toBe(r.mutating);
     }
     expect(routes.devices.processReadings).toMatchObject({ installation: 'ANY', mutating: false });
@@ -404,11 +410,13 @@ describe('route table', () => {
     expect(body({ productCode: 'GBT 01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(false);
   });
 
-  it('[IN-31][PR-36] the labels and serialisation namespaces (Phase 6 slice 6c) are GMP only, each route with an example, reads plain and commands FRESH_ON_SHARED; a template layout binds record fields only (D-P6c-2)', () => {
+  it('[IN-31][PR-36] the labels and serialisation namespaces (Phase 6 slice 6c) are GMP only (the packaging completion on both since slice 7o), each route with an example, reads plain and commands FRESH_ON_SHARED; a template layout binds record fields only (D-P6c-2)', () => {
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const r of [...Object.values(routes.labels), ...Object.values(routes.serialisation)]) {
       expect(exampled.has(r.id), `${r.id} has an example`).toBe(true);
-      expect(r.installation, r.id).toBe('GMP');
+      // Slice 7o (D-7o-1): the packaging completion serves the sandbox too (a packaging master's test run).
+      const both = ['labels.packaging', 'labels.recordCodingSpecimen', 'labels.recordLabelSpecimen', 'labels.voidSpecimen', 'labels.recordPostUseInspection', 'labels.verifyPostUseInspection', 'labels.resolveLineStop', 'labels.enableWaiver'];
+      expect(r.installation, r.id).toBe(both.includes(r.id) ? 'ANY' : 'GMP');
       expect(r.attribution, r.id).toBe(r.mutating ? 'FRESH_ON_SHARED' : 'NONE');
     }
     const body = (b: unknown) => routes.labels.createTemplate.body?.safeParse(b).success;

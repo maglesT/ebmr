@@ -235,7 +235,13 @@ export const designer = {
        * header, the bill of materials and a dispensing stage's clearance and balance status) or COPY (the procedure of the
        * approved master `copyOfVersionId`). The header, the batch sizes and the bill of materials come from the formula.
        */
-      start: z.enum(['SKELETON', 'BLANK', 'COPY']).optional(),
+      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY']).optional(),
+      /**
+       * Slice 7o (R4, R8; D-7o-3): PACKAGING_COPY copies the approved packaging master `copyOfVersionId` for the product of
+       * `product` (code and strength; its name from the product master), each printed item (G-21) replaced by the
+       * product's own printed material and artwork version. No formula: a packaging master has none.
+       */
+      printed: z.array(z.strictObject({ item: z.string().min(1).max(64), material: z.string().min(1).max(40), artwork: z.string().min(1).max(64) })).max(20).optional(),
       copyOfVersionId: Uuid.optional(),
       familyCode: z.string().min(1).max(64),
       product: ProductRef,

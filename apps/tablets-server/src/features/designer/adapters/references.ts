@@ -78,6 +78,21 @@ export function referenceStatus(ref: Pick<flow.Reference, 'kind' | 'code' | 'ver
   return later ? 'SUPERSEDED' : 'EFFECTIVE';
 }
 
+/**
+ * Slice 7o: the registered MATERIAL document in force of each of `codes` on `asOf` (status EFFECTIVE), as the reference a
+ * master pins (id = the material code); a code with none is left out (material-refs.ts: a registered document wins).
+ */
+export async function materialDocumentsInForce(db: Db, codes: readonly string[], asOf: string): Promise<flow.Reference[]> {
+  if (codes.length === 0) return [];
+  const rows = (await loadReferenceRows(db, codes)).filter((r) => r.kind === 'MATERIAL');
+  const out: flow.Reference[] = [];
+  for (const code of new Set(codes)) {
+    const row = rows.find((r) => r.code === code && referenceStatus({ kind: 'MATERIAL', code, version: r.version, hash: r.contentHash }, rows, asOf) === 'EFFECTIVE');
+    if (row) out.push({ id: code, kind: 'MATERIAL', code, version: row.version, hash: row.contentHash, title: row.title });
+  }
+  return out;
+}
+
 /** The port the validator reads, over rows loaded for the MBR's references. */
 export function referencePortFrom(rows: readonly ReferenceRow[], asOf: string): validator.ReferencePort {
   return { status: (ref) => referenceStatus(ref, rows, asOf) };

@@ -82,28 +82,32 @@ export class DemoApp {
     readonly built: BuiltApp,
     readonly db: DatabaseHandle,
     readonly seed: SiteSeed,
+    readonly installation: 'GMP' | 'SANDBOX' = 'GMP',
   ) {}
 
-  static async open(opts: { database: string; keysDir: string; exchangeDir: string; seed: SiteSeed; db: DatabaseHandle }): Promise<DemoApp> {
+  /** `installation` (default GMP): slice 7o opens the sandbox too, for its DEMO-ONLY plant (sandbox-plant.ts). */
+  static async open(opts: { database: string; keysDir: string; exchangeDir: string; seed: SiteSeed; db: DatabaseHandle; installation?: 'GMP' | 'SANDBOX' }): Promise<DemoApp> {
+    const kind = opts.installation ?? 'GMP';
+    const prefix = kind === 'GMP' ? 'gmp' : 'sandbox';
     const admin = new URL(process.env['EBMR_PG_ADMIN_URL'] ?? 'postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres');
     const env = parseConfig(
       {
-        EBMR_INSTALLATION: 'GMP',
+        EBMR_INSTALLATION: kind,
         EBMR_DATABASE: opts.database,
         EBMR_PG_HOST: admin.hostname,
         EBMR_PG_PORT: admin.port === '' ? '5432' : admin.port,
         EBMR_PUBLIC_ORIGIN: ORIGIN,
         EBMR_ENV: 'development',
         EBMR_LOG_LEVEL: 'silent',
-        EBMR_SEAL_KEY_FILE: join(opts.keysDir, 'gmp-seal-key.json'),
-        EBMR_SECRETS_FILE: join(opts.keysDir, 'gmp-secrets.json'),
+        EBMR_SEAL_KEY_FILE: join(opts.keysDir, `${prefix}-seal-key.json`),
+        EBMR_SECRETS_FILE: join(opts.keysDir, `${prefix}-secrets.json`),
         EBMR_EXCHANGE_DIR: opts.exchangeDir,
-        EBMR_NUMBER_LEDGER_FILE: join(opts.keysDir, 'gmp-numbers.ledger.jsonl'),
+        EBMR_NUMBER_LEDGER_FILE: join(opts.keysDir, `${prefix}-numbers.ledger.jsonl`),
       },
       () => randomBytes(32).toString('hex'),
     );
     const built = await buildApp(env, { pools: { app: opts.db.app, authn: opts.db.authn, close: () => Promise.resolve() } });
-    return new DemoApp(built, opts.db, opts.seed);
+    return new DemoApp(built, opts.db, opts.seed, kind);
   }
 
   async close(): Promise<void> {
@@ -136,7 +140,7 @@ export class DemoApp {
       parseSetCookie(res.headers['set-cookie'], jar);
       return { status: res.statusCode, headers: { get: (n: string) => (res.headers[n.toLowerCase()] as string | undefined) ?? null }, text: () => Promise.resolve(res.body) };
     };
-    const api = createApiClient({ fetch: fetchLike, installation: () => 'GMP', csrfToken: () => held.csrf, headers: () => ({ origin: ORIGIN, 'sec-fetch-site': 'same-origin' }) });
+    const api = createApiClient({ fetch: fetchLike, installation: () => this.installation, csrfToken: () => held.csrf, headers: () => ({ origin: ORIGIN, 'sec-fetch-site': 'same-origin' }) });
     held.csrf = value(await api.call(routes.session.get), `the session of ${key}`).csrfToken;
     const nonces = this.nonces;
     const b: DemoBrowser = {
