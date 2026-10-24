@@ -218,6 +218,12 @@ test('[IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run w
     persona: (k) => persona('SANDBOX', k), containers: (s.containers ??= {}), save: () => saveProduct(e2e, KEY, s),
   };
   await evidence.step('Sandbox floor: the whole process with the three coats on the TEST- kiosks', 'Execution complete', async () => {
+    // A developer's resumed run (EBMR_E2E_RESUME=1) skips a floor already at Execution complete; never in CI.
+    if (process.env['EBMR_E2E_RESUME'] === '1') {
+      await iss.goto(`${sbx}/runs/${s.sandboxRunId ?? ''}`);
+      await iss.waitForTimeout(3_000);
+      if ((await iss.getByText('Execution complete').count()) > 0) return;
+    }
     try {
       await processingRun(floor, rabeprazolePlan(lotCode, api, s.tag));
     } finally {

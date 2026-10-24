@@ -218,6 +218,12 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
     persona: (k) => persona('SANDBOX', k), containers: (s.containers ??= {}), save: () => saveProduct(e2e, KEY, s),
   };
   await evidence.step('Sandbox floor: the whole process on the TEST- kiosks', 'Execution complete; every screen with the TEST, NOT GMP band', async () => {
+    // A developer's resumed run (EBMR_E2E_RESUME=1) skips a floor already at Execution complete; never in CI.
+    if (process.env['EBMR_E2E_RESUME'] === '1') {
+      await iss.goto(`${sbx}/runs/${s.sandboxRunId ?? ''}`);
+      await iss.waitForTimeout(3_000);
+      if ((await iss.getByText('Execution complete').count()) > 0) return;
+    }
     try {
       await processingRun(floor, demotabPlan(lotCode, api, s.tag));
     } finally {

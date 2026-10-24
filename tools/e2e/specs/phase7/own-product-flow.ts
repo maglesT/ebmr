@@ -373,16 +373,34 @@ export async function sendToSandbox(page: Page, base: string, versionId: string)
   return hash;
 }
 
+/** Clicks `target`; failing (disabled or hidden), says what the page shows around it. */
+async function explainedClick(page: Page, target: Locator): Promise<void> {
+  try {
+    await target.click({ timeout: 20_000 });
+  } catch (e) {
+    const text = (await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ');
+    throw new Error(`could not click: ${text.slice(0, 2500)}`, { cause: e });
+  }
+}
+
 /** The author starts the verification and imports the sandbox run's result: the evidence is complete. */
 export async function importEvidence(page: Page, base: string, versionId: string, runBatchNumber: string): Promise<void> {
   await page.goto(`${base}/mbr/versions/${versionId}`);
-  await page.getByRole('button', { name: 'Start verification…' }).click();
-  await page.getByRole('dialog', { name: 'Start verification' }).getByRole('button', { name: 'Start verification' }).click();
+  const start = page.getByRole('button', { name: 'Start verification…' });
+  await expect(start.or(page.getByRole('link', { name: 'Change control and evidence' })).first()).toBeVisible();
+  if (process.env['EBMR_E2E_RESUME'] !== '1' || (await page.getByText('This version is IN VERIFICATION').count()) === 0) {
+    await explainedClick(page, start);
+    await page.getByRole('dialog', { name: 'Start verification' }).getByRole('button', { name: 'Start verification' }).click();
+  }
   await page.getByRole('link', { name: 'Change control and evidence' }).click();
   const e = page.getByTestId('verification-evidence');
   for (const kind of ['VALIDATOR', 'VERIFICATION', 'TEST_VECTORS']) await expect(e.getByTestId(`evidence-${kind}`)).toHaveAttribute('data-result', 'PASS');
-  await e.getByRole('button', { name: `Import the result of run ${runBatchNumber}` }).click();
-  await expect(e.getByTestId('evidence-SANDBOX_RUN')).toHaveAttribute('data-result', 'PASS');
+  await e.getByRole('button', { name: `Import the result of run ${runBatchNumber}` }).first().click();
+  try {
+    await expect(e.getByTestId('evidence-SANDBOX_RUN')).toHaveAttribute('data-result', 'PASS');
+  } catch (err) {
+    throw new Error(`the sandbox run's evidence was not recorded: ${(await page.locator('main').innerText()).replace(/\s+/g, ' ').slice(-2500)}`, { cause: err });
+  }
   await expect(e.getByTestId('evidence-complete')).toHaveText('The evidence is complete for this content.');
 }
 
