@@ -8,21 +8,24 @@ for India (browser tests Demotab 1 to 3). This piece runs Demotab's GMP batch on
 
 ## Status
 
-In progress (piece 1 stopped early at the lead's call, 24 October). Branch `phase-7/slice-7r`. Pod run 40085241774
-(head 78426fe3): Demotab 1 to 4 passed; Demotab 5 failed only on the spec's check of the receipt examination (the form
-goes once the examination is recorded; fixed at afe25bd8: the receipt record's Examination line is read). Pod run
-40087409907 (head afe25bd8) was running when this was written: its result is the next agent's first read
-(`gh api repos/maglesT/ebmr/actions/runs/40087409907 --jq .conclusion`; on failure the artifacts e2e-blob-own-demotab
-(report.jsonl) and e2e-output-own-demotab (error-context.md)). Demotab 5 to 12 have never passed yet on the pod.
+In progress (piece 1). Branch `phase-7/slice-7r`. Pod runs of the own-demotab group, 24 October:
 
-Where the next agent continues: read run 40087409907's first failing test, fix the spec or the product (fix-finding
-skill), push, dispatch the own-demotab group again (`gh api -X POST repos/maglesT/ebmr/actions/workflows/ci.yml/dispatches
--f ref=phase-7/slice-7r -f 'inputs[e2e_groups]=own-demotab'`), until Demotab 12 releases the lot. Expected risk points,
-in order: the GMP lot release (Demotab 5: QA's decision, the assay chosen from results), the batch issue (Demotab 6:
-the licence endorsement added in Demotab 4, the reservations of the shared lots, GBT-FCS-001's stock), the GMP floor
-(Demotab 7, the same acts that pass on the sandbox), the packaging copy's checks (Demotab 8: the copied TB-24 keeps its
-EU anti-tampering check on an IN-only copy), the sandbox packaging run (Demotab 9: TB-24's configured unit CTN-03 on a
-sandbox whose units are TEST-, the coding with D-7r-1), and the release checklist of a new product (Demotab 12).
+| Run | Head | Result |
+| --- | --- | --- |
+| 40087409907 | afe25bd8 | Demotab 1-5 pass; 6 refused: no PROCESSING numbering rule for the product (D-7r-6) |
+| 40089985136 | 312ad680 | 1-5 pass; 6 planned and issued, stores' start page refused by the identification limit (D-7r-7) |
+| 40092568779 | 946bd047 | 1-8 pass (the GMP batch processed on the kiosks); 9 refused at TB-24's first challenge (D-7r-5) |
+| 40096745431 | 331e6729 | 1-10 pass (the packaging master's sandbox run, its IN authorisation, the GMP packaging order); 11's reserve sample refused: the product specification gave no sample quantities in packs (fixed at 2dca213d) |
+| 40100765017 | 2dca213d | dispatched when this was written: its result is the next agent's first read |
+
+Where the next agent continues: read run 40100765017 (`gh api repos/maglesT/ebmr/actions/runs/40100765017 --jq
+.conclusion`; on failure the artifacts e2e-blob-own-demotab (report.jsonl: onTestEnd errors) and e2e-output-own-demotab
+(error-context.md, the test-failed-N.png of each page: downscale before reading)). Demotab 11 and 12 have never passed
+on the pod. Expected risk points: the head of QC's approval of the finished lot's results (Demotab 11), the record
+reviews of both records and the release checklist of a new product (Demotab 12: any red item is printed by
+`releaseFinishedLot`). Fix, push, dispatch the group again (`gh api -X POST repos/maglesT/ebmr/actions/workflows/ci.yml/dispatches
+-f ref=phase-7/slice-7r -f 'inputs[e2e_groups]=own-demotab'`) until Demotab 12 releases the lot; a run takes about 75
+minutes (Demotab 3 and 7, the two processing runs, about 16 minutes each).
 
 ## What the browser tests prove (Demotab 4 to 12)
 
@@ -83,9 +86,31 @@ reservations, the finished lot, the reserve sample, the release cockpit) and `pa
   (approved manufacturer, delivery, examination, specification, results, identity, assay or artwork, QA release); the
   excipients Demotab shares with route W come from the demo set-up's lots, as a site's stock would.
 
+- **D-7r-5** (found by Demotab 9 on the pod, run 40092568779): a bottle line (TB-23) or secondary packaging step (TB-24)
+  names its plant unit in the master's configuration (the cartoner CTN-03); its checks, challenges, holds and line
+  clearance are recorded on that unit. The sandbox's plant labels every unit TEST- (DI-05; the DI-05 test of
+  `sandbox-plant.ts` keeps that) and a test run runs the GMP master itself, so the cold-form master's first checkweigher
+  challenge in its sandbox run was refused (EBMR-CNT-023): no packaging master with TB-23 or TB-24 could get its
+  SANDBOX_RUN evidence (DI-04). Tablets 1701: on the sandbox only, a configured unit code that is no sandbox unit reads as
+  the sandbox's TEST- unit of the same code when one exists (`tab.configured_unit`, `tab.packline_unit`), in the holds,
+  the pass check, the line clearance, the overdue checks and the delegated pass check; GMP reads the code as it is and
+  every guard keeps its rule (test `apps/tablets-server/test/plant/sandbox-configured-unit.test.ts`). Not taken: giving
+  the sandbox cartoner the GMP code (it would loosen the DI-05 test that every sandbox unit is TEST-).
+- **D-7r-6** (run 40087409907): a new product's batch is planned only under a numbering rule of the product in force
+  (IN-18): Demotab 6 has the steward define Demotab's PROCESSING rule (`D<tag>{SEQ:3}`) and PACKAGING rule
+  (`{PARENT}/P{SEQ:2}`) on Batch numbers (`defineNumberingRule`), as the demo set-up does for its products.
+- **D-7r-7** (run 40089985136): the server identifies a terminal at most 60 times a minute from one address; a long
+  serial file of office acts meets that limit. The own-product helpers go to the start page by the banner's Home link
+  (no page load) and open every address through `load()` (own-product-flow.ts), which waits out the window and reloads as
+  the fixture's `pickTerminal` does; the floor helpers too. A page's context is closed before the next person signs in on
+  the same PC (as route W).
+
 ## Residuals
 
-- Demotab 5 to 12 not yet green on the pod (see Status).
+- Demotab 11 and 12 not yet green on the pod (see Status).
+- D-7r-5 is proven by the database functions' test (the unit read on each installation, and the five guards reading it
+  through `tab.packline_unit`/`tab.configured_unit`) and by Demotab 9 on the pod, not by a database test of a whole
+  sandbox packaging run; no focused SQL mutation run on 1701 (decision 0008: at deployment).
 - The R4 guide part "create your own product" is not extended to the GMP batch (R3.14 regeneration item).
 - Navigation: the shared kiosk and planning helpers still open some screens by address (as the route specs, D-7l-2);
   click-only navigation stays item 5 of the handover.
