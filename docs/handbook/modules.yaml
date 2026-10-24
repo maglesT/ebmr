@@ -561,7 +561,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1660_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'

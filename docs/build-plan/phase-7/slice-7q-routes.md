@@ -3,14 +3,14 @@
 Requirement R8 of `demo-trial-requirements.md` (complex formulations with the existing blocks only): the capabilities
 C1, C2, C8, C9 and C10 that the test products P1 to P12 need. Slices 7o (C3, the R4 browser helpers) and 7p (C4, C5, C7)
 own the others; the products themselves come in later slices. Branch `phase-7/slice-7q` (from `phase-7/r7-requirements`).
-Migrations: recipe-core 1660; tablets 1661, 1662. No new EBMR-EXE codes (1662 reuses EBMR-EXE-242 and -606); formula
+Migrations: recipe-core 1740 (was 1660, renamed to sort after main's 1725); tablets 1661, 1662. No new EBMR-EXE codes (1662 reuses EBMR-EXE-242 and -606); formula
 codes EBMR-FRM-060 and -061.
 
 ## Status per capability
 
 | # | Capability | Status | Where |
 |---|---|---|---|
-| C1 | Overages in the formula | built | recipe-core 1660; formula editor; master's bill of materials |
+| C1 | Overages in the formula | built | recipe-core 1740; formula editor; master's bill of materials |
 | C2 | Potency adjustment in enzyme activity units (U/mg) | built (TB-01@2) | tablets 1662; `blocks/tb-01.ts`, `blocks/dispensing/potency.ts` |
 | C8 | Peel-off blister | built (configuration option) | `blocks/tb-21.ts` `packFormat.opening`; tablets 1661 |
 | C9 | Trilayer tablets | exists (TB-16 takes two or three layers) | `blocks/tb-16.ts`; test added |
@@ -18,7 +18,7 @@ codes EBMR-FRM-060 and -061.
 
 ## What is built
 
-- **C1 overages** (recipe-core 1660). A formula line states an overage on any role, in percent or as a quantity in the
+- **C1 overages** (recipe-core 1740). A formula line states an overage on any role, in percent or as a quantity in the
   line's unit (mg per unit, kg per batch for a processing aid), never both, always with its reason (EBMR-FRM-060, -061;
   the table refuses a new line with an overage and no reason, `formula_line_overage_reason`, NOT VALID so lines written
   before keep their reasonless percent overage). The label claim stays the quantity; the computed batch quantity, the
@@ -55,7 +55,7 @@ codes EBMR-FRM-060 and -061.
 ## Decisions (owner rule: functionality first, least strict option within the hard rules)
 
 - D-7q-1: an overage may stand on any formula line (not only a per-unit active), in percent or as a quantity in the
-  line's unit, always with a reason; lines written before 1660 keep a percent overage without a reason (the new check is
+  line's unit, always with a reason; lines written before 1740 keep a percent overage without a reason (the new check is
   NOT VALID), and their signed content does not change.
 - D-7q-2: the overage is shown on the master's bill of materials (the record the batch is issued on) as an optional
   `overage` statement of the BOM line, checked against the formula by the database; the executed batch shows the

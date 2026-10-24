@@ -114,7 +114,7 @@ export interface BomLine {
   specimen?: string;
   /**
    * The deliberate excess over the label claim the standard quantity includes, as the approved formula states it (slice
-   * 7q, C1; recipe-core 1660 checks it against the formula line): a percent or a quantity (mg per unit, or kg per batch
+   * 7q, C1; recipe-core 1740 checks it against the formula line): a percent or a quantity (mg per unit, or kg per batch
    * for a processing aid), with its reason. Shown on the master's bill of materials; the quantity already includes it.
    */
   overage?: BomOverage;

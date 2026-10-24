@@ -54,7 +54,7 @@ export const FormulaLineView = z.strictObject({
   quantity: DecimalString,
   quantityUnit: z.enum(['mg', 'kg']),
   overagePercent: DecimalString.nullable(),
-  /** Slice 7q (C1): present on a line written with an overage quantity or reason (recipe-core 1660). */
+  /** Slice 7q (C1): present on a line written with an overage quantity or reason (recipe-core 1740). */
   overageQuantity: DecimalString.nullable().optional(),
   overageReason: z.string().nullable().optional(),
   saltFactor: DecimalString.nullable(),

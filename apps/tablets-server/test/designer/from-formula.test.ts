@@ -126,7 +126,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
       ['0.3', 'Loss on the blender walls'],
       ['2.5', 'Evaporation during granulation'],
     ]);
-    // A line written before 1660 keeps its signed content: no new members on a line without an overage quantity or reason.
+    // A line written before 1740 keeps its signed content: no new members on a line without an overage quantity or reason.
     expect(Object.keys(signed?.content.lines[1] ?? {})).not.toContain('overageReason');
     // The master from the formula: batch mass 102 + 37.5 + 1.575 = 141.075 kg; the BOM carries the overage and states it.
     const m = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-OV', product: PRODUCT, markets: ['IN'], formulaVersionId: v.versionId, start: 'BLANK' } }));

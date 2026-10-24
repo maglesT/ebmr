@@ -56,7 +56,7 @@ export function withOverageQuantity(f: formula.FormulaLine): string {
 }
 
 /**
- * The overage a BOM line taken from formula line `f` states (slice 7q, C1; recipe-core 1660 formula_line_overage_json):
+ * The overage a BOM line taken from formula line `f` states (slice 7q, C1; recipe-core 1740 formula_line_overage_json):
  * the reasoned overage, as a percent or as a quantity in the line's unit; none for a line without a reason.
  */
 export function bomOverage(f: formula.FormulaLine): flow.BomOverage | undefined {

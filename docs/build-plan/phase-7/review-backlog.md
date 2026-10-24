@@ -281,6 +281,6 @@ Nothing blocking.
 - P7Q-4 (fixed): the GMP activity test also refuses an ACTIVITY result that is not approved, one that fails its limits
   and one of another lot (`tb-01-gmp.test.ts`).
 - P7Q-5 (fixed): `recipe.formula_mbr_problem` compares a BOM line's overage with the formula's as numbers ("2.0" states
-  "2"; `recipe.bom_overage_matches`, recipe-core 1660); `designer/from-formula.test.ts`.
-- P7Q-6 (fixed): an `overage` on a BOM line that is no formula line is refused instead of skipped (recipe-core 1660);
+  "2"; `recipe.bom_overage_matches`, recipe-core 1740); `designer/from-formula.test.ts`.
+- P7Q-6 (fixed): an `overage` on a BOM line that is no formula line is refused instead of skipped (recipe-core 1740);
   `designer/from-formula.test.ts`.
