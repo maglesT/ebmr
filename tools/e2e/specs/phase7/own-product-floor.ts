@@ -10,6 +10,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, pickTerminal, signIn, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose, openStep, primary, simulator } from '../journey/support.ts';
+import { load } from './own-product-flow.ts';
 import { act, allInOrder, ANY, as, card, completed, entry, fillBlock, performAndCheck, ready, save, saveBlock, sign, startStep, type Fill } from './kiosk-batch-support.ts';
 
 export type Inst = 'GMP' | 'SANDBOX';
@@ -167,7 +168,7 @@ export async function closeStage(f: Floor, page: Page, lastStep: string, back: S
     }
   }
   for (;;) {
-    await page.goto(`${baseOf(f)}/runs/${f.batchId}`);
+    await load(page, `${baseOf(f)}/runs/${f.batchId}`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Run ');
     const marked = page.getByRole('navigation', { name: 'Steps' }).getByRole('button').filter({ hasText: / \d+ open$/ });
     await expect(page.getByRole('table', { name: 'Timeline' }).getByRole('row').nth(1)).toBeVisible();
@@ -202,7 +203,7 @@ export async function closeStage(f: Floor, page: Page, lastStep: string, back: S
 /** A technician cleans units and rooms on Plant; a second technician verifies each cleaning (office ceremony). */
 export async function cleanPlant(f: Floor, pages: { t1: Page; t2: Page }, targets: readonly ['EQUIPMENT' | 'AREA', string][]): Promise<void> {
   const base = baseOf(f);
-  await pages.t1.goto(`${base}/plant`);
+  await load(pages.t1, `${base}/plant`);
   const section = pages.t1.getByTestId('cleaning');
   for (const [target, code] of targets) {
     await choose(section.getByRole('radio', { name: target, exact: true }));
@@ -215,7 +216,7 @@ export async function cleanPlant(f: Floor, pages: { t1: Page; t2: Page }, target
     await complete.getByRole('button', { name: 'Complete the cleaning' }).click();
     await expect(complete.getByText('Completed: a second person verifies it.')).toBeVisible();
   }
-  await pages.t2.goto(`${base}/plant`);
+  await load(pages.t2, `${base}/plant`);
   for (const [, code] of targets) {
     const row = pages.t2.getByTestId(`pending-CLEANING-${code}`).first();
     await row.getByRole('button', { name: `Verify the cleaning of ${code}` }).click();
@@ -228,7 +229,7 @@ export async function cleanPlant(f: Floor, pages: { t1: Page; t2: Page }, target
 export async function clearance(f: Floor, page: Page, area: string, op: SeededPersona, verifier: SeededPersona, packaging?: { order: string; artworkSet: string }): Promise<void> {
   const base = baseOf(f);
   await as(page, op);
-  await page.goto(`${base}/plant`);
+  await load(page, `${base}/plant`);
   const box = page.getByTestId('clearance');
   await choose(box.getByRole('radio', { name: new RegExp(`^${f.batchNumber.replace('/', '\\/')} \\(`) }));
   await box.getByRole('textbox', { name: 'Area or line' }).fill(area);
@@ -241,7 +242,7 @@ export async function clearance(f: Floor, page: Page, area: string, op: SeededPe
   await act(page, box.getByRole('button', { name: 'Record the clearance' }), op);
   await explained(expect(page.getByTestId(`pending-CLEARANCE-${area}`).first()).toBeVisible(), box);
   await as(page, verifier);
-  await page.goto(`${base}/plant`);
+  await load(page, `${base}/plant`);
   await ready(page, verifier);
   await page.getByTestId(`pending-CLEARANCE-${area}`).first().getByRole('button', { name: `Verify the clearance of ${area}` }).click();
   await sign(page, verifier);
@@ -313,7 +314,7 @@ export function plusOne(n: string): string {
 
 /** Opens an output container of the run on its containers screen; returns its label (the newest one). */
 export async function openContainer(f: Floor, page: Page, stage: string, who: SeededPersona, unit: 'kg' | 'units' = 'kg', press?: string, stream?: string): Promise<string> {
-  await page.goto(`${baseOf(f)}/review/${f.batchId}/containers`);
+  await load(page, `${baseOf(f)}/review/${f.batchId}/containers`);
   await expect(page.getByText('No output container yet.').or(page.locator('[data-testid^="container-OC-"]').first())).toBeVisible();
   const before = await page.locator('[data-testid^="container-OC-"]').count();
   const form = page.getByTestId('open-container');
@@ -331,14 +332,14 @@ export async function openContainer(f: Floor, page: Page, stage: string, who: Se
 export async function closeTyped(f: Floor, page: Page, label: string, net: string, who: SeededPersona, verifier: SeededPersona): Promise<void> {
   const base = baseOf(f);
   await as(page, who);
-  await page.goto(`${base}/review/${f.batchId}/containers`);
+  await load(page, `${base}/review/${f.batchId}/containers`);
   const c = page.getByTestId(`container-${label}`);
   await choose(c.getByRole('radio', { name: 'Net typed (a second person verifies it)' }));
   await c.getByRole('textbox', { name: /^Net quantity/ }).fill(net);
   await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
   await expect(c.getByTestId('container-net')).toContainText('(typed)');
   await as(page, verifier);
-  await page.goto(`${base}/review/${f.batchId}/containers`);
+  await load(page, `${base}/review/${f.batchId}/containers`);
   await ready(page, verifier);
   await c.getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
   await sign(page, verifier);
@@ -849,7 +850,7 @@ export async function container(f: Floor, page: Page, stage: string, unit: 'kg' 
   await c.getByRole('textbox', { name: /^Net quantity/ }).fill(net);
   await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
   await as(page, verifier);
-  await page.goto(`${base}/review/${f.batchId}/containers`);
+  await load(page, `${base}/review/${f.batchId}/containers`);
   await ready(page, verifier);
   await page.getByTestId(`container-${label}`).getByRole('button', { name: `Verify the net of ${label} (second person)` }).click();
   await sign(page, verifier);
@@ -953,7 +954,7 @@ async function floorOffice(f: Floor, who: SeededPersona): Promise<Page> {
 export async function cleanForBatch(f: Floor): Promise<string[]> {
   const t1 = f.persona('technician1');
   const cp = await floorOffice(f, t1);
-  await cp.goto(`${baseOf(f)}/plant`);
+  await load(cp, `${baseOf(f)}/plant`);
   const box = cp.getByTestId('batch-cleaning');
   await choose(box.getByRole('radio', { name: new RegExp(`^${f.batchNumber.replace('/', '\\/')} `) }));
   const needs = box.locator('[data-testid^="cleaning-needs-"]');
@@ -975,7 +976,7 @@ export async function cleanForBatch(f: Floor): Promise<string[]> {
   if (cleaned.length === 0) return cleaned;
   const t2 = f.persona('technician2');
   const vp = await floorOffice(f, t2);
-  await vp.goto(`${baseOf(f)}/plant`);
+  await load(vp, `${baseOf(f)}/plant`);
   for (const code of cleaned) {
     await vp.getByTestId(`pending-CLEANING-${code}`).first().getByRole('button', { name: `Verify the cleaning of ${code}` }).click();
     await officeSign(vp, new RegExp(`^Verify the cleaning of ${code}`), t2);
@@ -1033,7 +1034,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
   await cleanForBatch(f);
   const page = await floorKiosk(f, line, op);
   if (p.bulk && !markedOn(f, 'bulk-issued')) {
-    await page.goto(`${base}/planning/packaging/${f.batchId}`);
+    await load(page, `${base}/planning/packaging/${f.batchId}`);
     await page.getByTestId(`bulk-container-${p.bulk}`).getByRole('checkbox').check();
     await act(page, page.getByRole('button', { name: /^Issue 1 container/ }), op);
     await expect(page.getByText('Bulk issued.')).toBeVisible();
@@ -1068,7 +1069,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
       await explained(expect(panel.getByTestId('printed-lot-facts')).toContainText(lot), panel);
       await entry(page, 'ISSUE', op, { Item: item, 'Scanned artwork': artwork, Quantity: { Value: n, Unit: '1' } });
     }
-    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    await load(page, `${base}/labels/packaging/${f.batchId}`);
     const panel = page.getByTestId('packaging-step-p-g21@');
     for (const item of ['FOIL', 'CARTON']) {
       await act(page, panel.getByRole('button', { name: `Attach the ${item} specimen` }), op);
@@ -1131,7 +1132,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
     const printed = (await page.getByTestId('packaging-batch-data').getByTestId('record-coding').textContent()) ?? '';
     const read = (key: string): string => new RegExp(`${key} (\\S+)`).exec(printed)?.[1] ?? '';
     const coded = { batch: read('batch'), mfg: read('manufactured'), exp: read('expiry') };
-    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    await load(page, `${base}/labels/packaging/${f.batchId}`);
     const panel = page.getByTestId('packaging-step-p-g21@');
     for (const position of ['START', 'MIDDLE', 'END']) {
       const form = panel.getByTestId('coding-specimen-form');
@@ -1155,7 +1156,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
       await performAndCheck(page, op, verifier, op, 'Witness');
       await completed(page);
     }
-    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    await load(page, `${base}/labels/packaging/${f.batchId}`);
     const box = page.getByTestId('post-use-inspection');
     const form = box.getByTestId('post-use-form');
     await expect(form.getByRole('radiogroup')).toHaveCount(4);
@@ -1163,7 +1164,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
     await act(page, form.getByRole('button', { name: 'Record the post-use inspection' }), op);
     await expect(box.getByText('not verified yet')).toBeVisible();
     await as(page, verifier);
-    await page.goto(`${base}/labels/packaging/${f.batchId}`);
+    await load(page, `${base}/labels/packaging/${f.batchId}`);
     await act(page, page.getByTestId('post-use-inspection').getByRole('button', { name: 'Verify the inspection' }), verifier);
     await expect(page.getByTestId('post-use-inspection').getByText(`verified by ${verifier.legalName}`)).toBeVisible();
     await as(page, op);
@@ -1179,7 +1180,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
   await signOnly(f, page, 'p-pk-yield@', op, verifier);
   await closeStage(f, page, 'p-pk-yield@', op);
   await releasePlant(f, page, { status: 'p-pk-status@', units: [['BLISTER', machine], ['CARTONER', unitOf(f, 'CTN-03')]], clear: 'p-pk-clear@', area: line }, op);
-  await page.goto(`${base}/runs/${f.batchId}`);
+  await load(page, `${base}/runs/${f.batchId}`);
   await expect(page.getByText('Execution complete').first()).toBeVisible();
   await page.context().close();
 }

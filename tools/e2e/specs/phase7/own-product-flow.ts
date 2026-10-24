@@ -90,7 +90,8 @@ export function mark(e2e: E2eWorld, key: string, s: ProductState, m: string): vo
  */
 export async function load(page: Page, url: string): Promise<void> {
   await page.goto(url);
-  const ready = page.getByRole('banner').getByRole('link', { name: 'Home', exact: true });
+  // The banner (the header) is shown only once the terminal is identified and a person signed in.
+  const ready = page.getByRole('banner');
   const limited = page.getByText('Too many attempts', { exact: false }).first();
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await expect(ready.or(limited).first()).toBeVisible();
