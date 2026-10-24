@@ -50,7 +50,7 @@ describe('a test run names its own output containers (slice 7o)', () => {
       expect(await entryProblem(a.runId, { kind, container: `OC-${a.batchNumber}-0099` })).toMatch(/^container /);
       expect(await stateProblem(a.batchNumber, { kind, data: { container: b.label } })).toMatch(/^container /);
     }
-    // The record's free-text rule (recipe-core 1701): the run's own container label is a bound word, another run's is not.
+    // The record's free-text rule (recipe-core 1745): the run's own container label is a bound word, another run's is not.
     const unbound = async (runId: string, batchNumber: string, word: string): Promise<string | null> =>
       (await sbx.db.admin.query<{ w: string | null }>('select recipe.unbound_real_identifier(to_jsonb($3::text), recipe.run_bound_words($1::uuid, to_jsonb($3::text)), $2) as w', [runId, batchNumber, word])).rows[0]?.w ?? null;
     expect(await unbound(a.runId, a.batchNumber, a.label)).toBeNull();

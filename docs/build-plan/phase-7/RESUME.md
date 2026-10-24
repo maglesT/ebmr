@@ -234,7 +234,7 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 ## Slice 7o (23 October 2026): R4 end to end, the coating layers (R8 P3)
 
 On branch `phase-7/slice-7o`; two migrations: tablets 1700 (a test run's disposal or sample may name the batch's own output
-container) and recipe-core 1701 (the same bound for the output container's count). The engine, validator, simulation and
+container) and recipe-core 1745 (the same bound for the output container's count). The engine, validator, simulation and
 database take three TB-18 layers as they are. Decisions in `slice-7o-routes.md`:
 - D-7o-1: the plant, containers, the batch's plant reads and the packaging completion on both installations, each against
   its own database (ADR 0021); the DEMO-ONLY sandbox plant (`cli/sandbox-plant.ts`, `--sandbox-plant`).

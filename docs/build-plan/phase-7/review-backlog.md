@@ -238,7 +238,7 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
   material, so the new product's pack carried another product's print. `packagingCopy` now refuses a replacement equal
   to its item's source material, and one equal to another item's source material (DESIGNER_PRINTED_ITEMS; the copy is
   made only in the server, no database function). Test `designer/packaging-copy.test.ts` ([PR-32][IN-38], refusal case).
-- P7O-2 (fixed, docs): `RESUME.md` said slice 7o has no migration (it adds tablets 1700 and recipe-core 1701), and the
+- P7O-2 (fixed, docs): `RESUME.md` said slice 7o has no migration (it adds tablets 1700 and recipe-core 1745), and the
   header of `own-product-gmp.spec.ts` promised the packaging master and the GMP batch through release although only
   Demotab 1 to 3 exist. Both now say what is true; the GMP batch through release follows in the next slice.
 - P7O-3 (residual, accepted exposure, owner rule: functionality first, least strict option): `tab.issue_sscc` is now

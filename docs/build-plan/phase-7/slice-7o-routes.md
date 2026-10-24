@@ -59,7 +59,7 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
   group whose members are required (a copied acid stage, TB15-STAGE).
 - Found by the sandbox runs and fixed, each with its test: a test run's disposal could not name its own output container
   (the identifier rule read the label as a lot number: tablets 1700, and the record's free-text rule did not count it a
-  bound word: recipe-core 1701); the replay check asked a phase created not applicable (an untaken branch) for stored
+  bound word: recipe-core 1745); the replay check asked a phase created not applicable (an untaken branch) for stored
   content, so the run was exported as not passed (execution/verify.ts); the cleaning a test run's stages need was read
   on GMP only (`batches.cleaningNeeds` now ANY; the plant screen lists the floor's runs).
 - Result: Demotab passes tests 1 to 3 in the browser (materials, product, formula, master copied and edited, change
