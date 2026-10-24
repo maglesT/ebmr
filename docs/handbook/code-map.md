@@ -134,6 +134,7 @@ of each database function.
 | [tools-install](#tools-install) | One-command installer for a server (Phase 7 slice 7g-4) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
 | [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 4 | 0 |
 | [tools-dev-env](#tools-dev-env) | Development pod set-up | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
+| [tools-ci](#tools-ci) | CI runner scripts (per-job PostgreSQL, per-runner directories, Playwright install) | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-e2e](#tools-e2e) | End-to-end browser suite | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 75 |
 | [tools-handbook](#tools-handbook) | Handbook generator and link checker | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
 | [tools-guides](#tools-guides) | User and administrator guide builder (Markdown to self-contained HTML and PDF; built in slice 7e) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
@@ -2991,6 +2992,12 @@ of each database function.
 **Development pod set-up.** Package `tools/dev-env`. Handbook: [modules/tools.md](modules/tools.md).
 
 **Source** (3): [golden-clock/build.sh](../../tools/dev-env/golden-clock/build.sh), [golden-clock/golden-clock.c](../../tools/dev-env/golden-clock/golden-clock.c), [runpod-setup.sh](../../tools/dev-env/runpod-setup.sh)
+
+## tools-ci
+
+**CI runner scripts (per-job PostgreSQL, per-runner directories, Playwright install).** Package `tools/ci`. Handbook: [modules/tools.md](modules/tools.md).
+
+**Source** (3): [playwright-install.sh](../../tools/ci/playwright-install.sh), [runner-env.sh](../../tools/ci/runner-env.sh), [start-postgres.sh](../../tools/ci/start-postgres.sh)
 
 ## tools-e2e
 
