@@ -27,7 +27,7 @@ import { randomBytes } from 'node:crypto';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { choose } from '../journey/support.ts';
 import {
-  approveFormula, authoriseIn, changeControl, checksPass, confirmMasters, defineTooling, enterMaterials, enterProduct, exportTestResult, fourSignatures, home, importEvidence,
+  approveFormula, authoriseIn, changeControl, checksPass, confirmMasters, defineTooling, enterMaterials, enterProduct, exportTestResult, fourSignatures, home, importEvidence, load,
   issueTestBatch, loadProduct, masterFromFormula, packagingCopy, recordFormula, registerTestLots, removeConfig, saveProduct, saveRevision, selectStep, sendToSandbox, setConfig, setLimit,
   type FormulaLineEntry, type ProductState,
 } from './own-product-flow.ts';
@@ -237,7 +237,7 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
   await evidence.step('Sandbox floor: the whole process on the TEST- kiosks', 'Execution complete; every screen with the TEST, NOT GMP band', async () => {
     // A developer's resumed run (EBMR_E2E_RESUME=1) skips a floor already at Execution complete; never in CI.
     if (process.env['EBMR_E2E_RESUME'] === '1') {
-      await iss.goto(`${sbx}/runs/${s.sandboxRunId ?? ''}`);
+      await load(iss, `${sbx}/runs/${s.sandboxRunId ?? ''}`);
       await iss.waitForTimeout(3_000);
       if ((await iss.getByText('Execution complete').count()) > 0) return;
     }
@@ -437,6 +437,7 @@ test('[INV-01][PR-04][PR-18] Demotab 6: the ERP simulator sends Demotab\'s proce
     saveProduct(e2e, KEY, s);
     return b;
   }, ip);
+  await ip.context().close();
   const sp = await officePage('GMP', PC_PLAN);
   await signIn.office(sp, persona('GMP', 'stores'));
   await evidence.step('Stores reserve each lot for the batch', 'Each lot lists the open reservation', async () => {
@@ -572,6 +573,7 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] Demotab 10: the packagi
     saveProduct(e2e, KEY, s);
     return o;
   }, ip);
+  await ip.context().close();
   const sp = await officePage('GMP', PC_PLAN);
   await signIn.office(sp, persona('GMP', 'stores'));
   await evidence.step('Stores reserve the cold-form laminate for the order', 'The lot lists the open reservation', async () => {
@@ -638,7 +640,7 @@ test('[INV-05][IN-05][DI-25][INV-48] Demotab 12: both records of Demotab\'s batc
   await evidence.step('The processing record reviewed', 'The processing batch is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, pages, people, s.batchId ?? '') }), qa2Page);
   await evidence.step('The packaging record reviewed', 'The packaging order is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, pages, people, s.orderId ?? '') }), qa2Page);
   await evidence.step('QA signs the delta audit-trail review of the processing record if one became due', 'The processing record is covered by its last signed mark', async () => {
-    await qaPage.goto(`${base}/review/${s.batchId ?? ''}`);
+    await load(qaPage, `${base}/review/${s.batchId ?? ''}`);
     const panel = qaPage.getByTestId('audit-trail-review');
     await expect(panel.getByTestId('audit-trail-marks')).toBeVisible();
     const button = panel.getByRole('button', { name: 'Sign the delta review' });

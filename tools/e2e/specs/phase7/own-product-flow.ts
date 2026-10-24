@@ -18,7 +18,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
-import { expect, type E2eWorld } from '../../fixtures/index.ts';
+import { expect, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
 
@@ -82,9 +82,34 @@ export function mark(e2e: E2eWorld, key: string, s: ProductState, m: string): vo
 // ---------------------------------------------------------------------------------------------
 // Navigation
 
-/** The start page (the application's address) and a tile of it. */
+/**
+ * Opens an address of the application. Every page load identifies the terminal, and the server identifies at most 60
+ * times a minute from one network address (session feature, `identify`): a long serial file of office acts, every
+ * browser of the run at one address, meets that limit. A refused identification is the product working: the spec waits
+ * out the window and reloads, as a person at the terminal would (as the fixture's pickTerminal does).
+ */
+export async function load(page: Page, url: string): Promise<void> {
+  await page.goto(url);
+  const ready = page.getByRole('banner').getByRole('link', { name: 'Home', exact: true });
+  const limited = page.getByText('Too many attempts', { exact: false }).first();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await expect(ready.or(limited).first()).toBeVisible();
+    if (await ready.isVisible()) return;
+    test.info().setTimeout(test.info().timeout + 65_000);
+    await page.waitForTimeout(61_000);
+    await page.reload();
+  }
+  await expect(ready).toBeVisible();
+}
+
+/**
+ * The start page and a tile of it: by the banner's Home link when the page shows it (no page load, so no identification
+ * of the terminal), by the application's address otherwise.
+ */
 export async function home(page: Page, tile: RegExp): Promise<void> {
-  await page.goto(new URL(page.url()).origin + '/');
+  const homeLink = page.getByRole('banner').getByRole('link', { name: 'Home', exact: true });
+  if ((await homeLink.count()) > 0) await homeLink.click();
+  else await load(page, new URL(page.url()).origin + '/');
   await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: tile }).click();
 }
 
@@ -339,7 +364,7 @@ export async function checksPass(page: Page): Promise<void> {
  * review screen; the author links the assessment and sets the draft's attributes (change record, effective date, review).
  */
 export async function changeControl(qaPage: Page, authorPage: Page, base: string, versionId: string, c: { changeRecord: string; risk: string; title: string; tag: string }): Promise<void> {
-  await qaPage.goto(`${base}/mbr/change-records`);
+  await load(qaPage, `${base}/mbr/change-records`);
   const raise = qaPage.getByTestId('raise-change-record');
   await raise.getByRole('textbox', { name: 'Change record number' }).fill(c.changeRecord);
   await raise.getByRole('textbox', { name: 'Title of the change' }).fill(c.title);
@@ -348,7 +373,7 @@ export async function changeControl(qaPage: Page, authorPage: Page, base: string
   await raise.getByRole('textbox', { name: 'Validation reference (optional)' }).fill(`PV-${c.tag}`);
   await raise.getByRole('button', { name: 'Raise the change record' }).click();
   await expect(raise.getByText(`Change record ${c.changeRecord} is raised.`)).toBeVisible();
-  await qaPage.goto(`${base}/mbr/versions/${versionId}/review`);
+  await load(qaPage, `${base}/mbr/versions/${versionId}/review`);
   const r = qaPage.getByTestId('risk-links');
   await r.getByRole('textbox', { name: 'Assessment code' }).fill(c.risk);
   await r.getByRole('textbox', { name: 'Title' }).fill(`Process risk assessment: ${c.title}`);
@@ -356,7 +381,7 @@ export async function changeControl(qaPage: Page, authorPage: Page, base: string
   await r.getByRole('textbox', { name: 'Rationale reference (the QRM report)' }).fill(`QRM-${c.tag}`);
   await r.getByRole('button', { name: 'Record the risk assessment' }).click();
   await expect(r.getByText(`Risk assessment ${c.risk} version 1 is recorded.`)).toBeVisible();
-  await authorPage.goto(`${base}/mbr/versions/${versionId}`);
+  await load(authorPage, `${base}/mbr/versions/${versionId}`);
   await authorPage.getByRole('link', { name: 'Change control and evidence' }).click();
   const rl = authorPage.getByTestId('risk-links');
   await rl.getByRole('button', { name: `Link ${c.risk} version 1` }).click();
@@ -372,7 +397,7 @@ export async function changeControl(qaPage: Page, authorPage: Page, base: string
 
 /** The author writes the version's test package into the sandbox inbox; returns its hash. */
 export async function sendToSandbox(page: Page, base: string, versionId: string): Promise<string> {
-  await page.goto(`${base}/mbr/versions/${versionId}`);
+  await load(page, `${base}/mbr/versions/${versionId}`);
   await page.getByRole('button', { name: 'Send to sandbox…' }).click();
   await page.getByRole('dialog', { name: 'Send to a sandbox test run' }).getByRole('button', { name: 'Write the test package' }).click();
   await expect(page.getByText('The test package is in the sandbox inbox.')).toBeVisible();
@@ -393,7 +418,7 @@ async function explainedClick(page: Page, target: Locator): Promise<void> {
 
 /** The author starts the verification and imports the sandbox run's result: the evidence is complete. */
 export async function importEvidence(page: Page, base: string, versionId: string, runBatchNumber: string): Promise<void> {
-  await page.goto(`${base}/mbr/versions/${versionId}`);
+  await load(page, `${base}/mbr/versions/${versionId}`);
   const start = page.getByRole('button', { name: 'Start verification…' });
   await expect(start.or(page.getByRole('link', { name: 'Change control and evidence' })).first()).toBeVisible();
   if (process.env['EBMR_E2E_RESUME'] !== '1' || (await page.getByText('This version is IN VERIFICATION').count()) === 0) {
@@ -415,7 +440,7 @@ export async function importEvidence(page: Page, base: string, versionId: string
 /** Prepared, checked, the registration references confirmed, approved: four people, each at their own PC. */
 export async function fourSignatures(pages: { author: Page; checker: Page; regulatory: Page; qa: Page }, people: { author: SeededPersona; checker: SeededPersona; regulatory: SeededPersona; qa: SeededPersona }, base: string, versionId: string): Promise<void> {
   const signAs = async (page: Page, label: string, who: SeededPersona): Promise<void> => {
-    await page.goto(`${base}/mbr/versions/${versionId}/signing`);
+    await load(page, `${base}/mbr/versions/${versionId}/signing`);
     await page.getByTestId('mbr-lifecycle').getByRole('button', { name: label }).click();
     await officeSign(page, new RegExp(`^${label}`), who);
   };
@@ -431,7 +456,7 @@ export async function fourSignatures(pages: { author: Page; checker: Page; regul
 
 /** QA proposes the IN market authorisation for the site, line and batch size; the regulatory signer confirms; QA authorises. */
 export async function authoriseIn(qaPage: Page, regPage: Page, base: string, versionId: string, cell: { site: string; line: string; sizeId: string }, qa: SeededPersona, regulatory: SeededPersona, basis: string): Promise<void> {
-  await qaPage.goto(`${base}/mbr/versions/${versionId}/signing`);
+  await load(qaPage, `${base}/mbr/versions/${versionId}/signing`);
   const form = qaPage.getByTestId('mbr-propose-market');
   await form.getByRole('textbox', { name: 'Site' }).fill(cell.site);
   await form.getByRole('textbox', { name: 'Line' }).fill(cell.line);
@@ -439,7 +464,7 @@ export async function authoriseIn(qaPage: Page, regPage: Page, base: string, ver
   await form.getByRole('textbox', { name: /^Regulatory basis/ }).fill(basis);
   await form.getByRole('button', { name: 'Propose the authorisation' }).click();
   await expect(qaPage.getByTestId('market-IN')).toHaveAttribute('data-state', 'PROPOSED');
-  await regPage.goto(`${base}/mbr/versions/${versionId}/signing`);
+  await load(regPage, `${base}/mbr/versions/${versionId}/signing`);
   await regPage.getByTestId('market-IN').getByRole('button', { name: 'Confirm the registration for IN' }).click();
   await officeSign(regPage, /^Confirm the registration for IN/, regulatory);
   await qaPage.reload();
@@ -559,7 +584,7 @@ export async function issueTestBatch(page: Page, packageHash: string, units: str
 
 /** The issuer, on the run page, exports the completed test run's result for GMP; it passed. Returns the result file. */
 export async function exportTestResult(page: Page, base: string, runId: string): Promise<string> {
-  await page.goto(`${base}/runs/${runId}`);
+  await load(page, `${base}/runs/${runId}`);
   await expect(page.getByText('Execution complete').first()).toBeVisible();
   await page.getByRole('button', { name: 'Export the test-run result for GMP' }).click();
   const exported = page.getByTestId('run-result-export');

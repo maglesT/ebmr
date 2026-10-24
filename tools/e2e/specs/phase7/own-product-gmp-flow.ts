@@ -21,7 +21,7 @@ import { expect } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
 import { officeSignPaced } from './kiosk-batch-support.ts';
-import { home } from './own-product-flow.ts';
+import { home, load } from './own-product-flow.ts';
 
 const re = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
@@ -277,7 +277,7 @@ export async function defineNumberingRule(page: Page, r: { ruleCode: string; kin
 
 /** The batch issuer plans a processing batch of the order on SITE-1 line L1 and issues it; returns its number and id. */
 export async function planAndIssue(page: Page, base: string, orderNo: string, family: RegExp, units: string, issuer: SeededPersona): Promise<{ batchNumber: string; batchId: string }> {
-  await page.goto(`${base}/planning`);
+  await load(page, `${base}/planning`);
   const order = page.getByTestId(`order-${orderNo}`);
   await expect(order.getByTestId('match')).toContainText(family);
   const form = order.getByTestId('plan-form');
@@ -295,7 +295,7 @@ export async function planAndIssue(page: Page, base: string, orderNo: string, fa
   await issue.getByRole('button', { name: 'Sign and issue' }).click();
   await officeSign(page, new RegExp(`^Issue batch ${re(batchNumber)}`), issuer);
   await expect(issue.getByText(`${batchNumber} issued`)).toBeVisible();
-  await page.goto(`${base}/planning/batches`);
+  await load(page, `${base}/planning/batches`);
   const row = page.getByTestId(`batch-${batchNumber}`);
   await expect(row).toContainText(/issued/i);
   const batchId = /([0-9a-f-]{36})/.exec((await row.getByRole('link').first().getAttribute('href')) ?? '')?.[1] ?? '';
@@ -305,7 +305,7 @@ export async function planAndIssue(page: Page, base: string, orderNo: string, fa
 
 /** The batch issuer plans the packaging order of the batch released for packing and issues it; returns its number and id. */
 export async function planPackaging(page: Page, base: string, orderNo: string, parentBatch: string, issuer: SeededPersona): Promise<{ orderNumber: string; orderId: string }> {
-  await page.goto(`${base}/planning`);
+  await load(page, `${base}/planning`);
   const card = page.getByTestId(`order-${orderNo}`);
   const form = card.getByTestId('packaging-plan-form');
   const parent = form.getByTestId(`parent-${parentBatch}`);
@@ -328,7 +328,7 @@ export async function planPackaging(page: Page, base: string, orderNo: string, p
   await issue.getByRole('button', { name: 'Sign and issue' }).click();
   await officeSign(page, new RegExp(`^Issue batch ${re(orderNumber)}`), issuer);
   await expect(issue.getByText(`${orderNumber} issued`)).toBeVisible();
-  await page.goto(`${base}/planning/packaging`);
+  await load(page, `${base}/planning/packaging`);
   const row = page.getByTestId(`packaging-order-${orderNumber}`);
   await expect(row).toContainText('ISSUED');
   const orderId = /([0-9a-f-]{36})/.exec((await row.getByRole('link', { name: orderNumber }).getAttribute('href')) ?? '')?.[1] ?? '';
@@ -353,7 +353,7 @@ export async function reserveLots(page: Page, batchNumber: string, lots: readonl
 
 /** Stores post the finished packs of the packaging order as its lot, in quarantine; returns the lot's id. */
 export async function postFinishedLot(page: Page, base: string, orderId: string, orderNumber: string, packs: string): Promise<string> {
-  await page.goto(`${base}/planning/packaging/${orderId}`);
+  await load(page, `${base}/planning/packaging/${orderId}`);
   const box = page.getByTestId('finished-lot');
   await box.getByRole('textbox', { name: 'Finished quantity' }).fill(packs);
   await box.getByRole('textbox', { name: 'Unit' }).fill('packs');
