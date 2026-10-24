@@ -301,3 +301,19 @@ Nothing blocking.
   "2"; `recipe.bom_overage_matches`, recipe-core 1740); `designer/from-formula.test.ts`.
 - P7Q-6 (fixed): an `overage` on a BOM line that is no formula line is refused instead of skipped (recipe-core 1740);
   `designer/from-formula.test.ts`.
+
+## Slice 7r (one review pass, 24 October 2026)
+
+Verdict: approve; no blocking or should-fix finding. Checked: recipe-core 1750 and tablets 1701 leave GMP behaviour as
+before (the new branches are reached only with a test package on a SANDBOX installation); DI-05 holds (a configured
+unit maps to its TEST- unit only on the sandbox, only when that unit exists); migration order; controls gained test
+entries only; the E2E `load()` retry is bounded and fails on anything but the rate-limit page.
+
+- P7R-1 (residual): `apps/tablets-server/src/features/designer/index.ts` (about line 433) selects `months` in the
+  processing-family query without using it. Harmless; drop it when the file is next touched.
+- P7R-2 (residual): on the sandbox, a master configuring both `CTN-03` and `TEST-CTN-03` maps both to one unit, and
+  TB23-UNIT compares the raw codes. Implausible to author; sandbox only. Fix if wanted: compare
+  `tab.configured_unit(u)` in TB23-UNIT.
+- P7R-3 (residual): the packaging copy takes the shelf life of the latest product master (`effective_at desc`), not
+  the version in effect when the batch is issued. A later shelf-life change makes the GMP batch data check (tablets
+  1201) refuse the mismatch: fails safe. Revisit if shelf-life changes become routine.
