@@ -6,7 +6,7 @@
 #   tools/ci/start-postgres.sh stop             # stops a cluster this script started (an `if: always()` step)
 #
 # It writes what the job reads to $GITHUB_ENV (printed as `export` lines when $GITHUB_ENV is unset, as in a local run):
-# EBMR_PG_ADMIN_URL and PGPORT, plus EBMR_FAKETIME_FILE and EBMR_GOLDEN_CLOCK_LIB with --golden.
+# EBMR_PG_ADMIN_URL and PGPORT (and EBMR_PG_PORT on a self-hosted runner), plus EBMR_FAKETIME_FILE and EBMR_GOLDEN_CLOCK_LIB with --golden.
 #
 # GitHub-hosted (RUNNER_ENVIRONMENT=github-hosted): the runner's own Debian cluster, as before: `main` on 5432 started
 # by systemd; with --golden a new cluster `golden` on 5433 whose environment file preloads the clock library.
@@ -146,6 +146,8 @@ HBA
   "$bin/psql" -q -h "$sock" -p "$port" -U postgres -d postgres -v ON_ERROR_STOP=1 -c "$ROLE_SQL"
   put EBMR_PG_ADMIN_URL "postgres://ebmr_dev:ebmr_dev@localhost:$port/postgres"
   put PGPORT "$port"
+  # The servers the E2E stack starts build their own connection URLs from EBMR_PG_HOST and EBMR_PG_PORT (default 5432).
+  put EBMR_PG_PORT "$port"
   put EBMR_CI_PGDATA "$data"
   # pg_config, pg_basebackup, pg_dump and psql of this major version first on the PATH (no pg_wrapper choice).
   put_path "$bin"

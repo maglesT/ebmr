@@ -220,7 +220,8 @@ describe('the site policy site.zone takes only the IANA time zone name of a plac
     expect(mismatches).toEqual([]);
     expect(rows.filter((r) => r.site).length).toBeGreaterThanOrEqual(300);
     expect(rows.filter((r) => r.platform && !r.site).length).toBeGreaterThanOrEqual(25);
-  });
+    // About 500 zone names, each through both checks: 8 s on an idle machine, past the 30 s default on a shared CI pod.
+  }, 120_000);
 
   it('[DI-27] the zone check does not open the policy to anyone else: a person without IAM.POLICY_MANAGE is refused before the value is looked at', async () => {
     const operator = await seedActor(db);
