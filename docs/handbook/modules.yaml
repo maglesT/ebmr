@@ -1278,6 +1278,12 @@ modules:
     package: tools/dev-env
     src: [tools/dev-env]
 
+  - id: tools-ci
+    title: CI runner scripts (per-job PostgreSQL, per-runner directories, Playwright install)
+    page: modules/tools.md
+    package: tools/ci
+    src: [tools/ci]
+
   - id: tools-e2e
     title: End-to-end browser suite
     page: modules/tools.md
