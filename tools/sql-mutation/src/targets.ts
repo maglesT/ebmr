@@ -531,7 +531,9 @@ export const TARGETS: Target[] = [
                 'recipe.execution_row_refusal_check', 'recipe.issue_request_problem', 'recipe.execution_issue_request_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts')],
+            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts'),
+            // Phase 7 slice 7m (P7L-1, recipe-core 1650): the inferred balance of a manual weighing.
+            r('mutation/execution-row-shape.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit, SQL mutation defects (D11): the state engine's rows, whoever writes them: a history row is a
@@ -726,8 +728,9 @@ export const TARGETS: Target[] = [
                 'recipe.formula_version_content', 'recipe.formula_read', 'recipe.formula_choice',
                 'recipe.formula_version_for_mbr', 'recipe.formula_pin_mbr', 'recipe.mbr_formula_of',
                 'recipe.formula_listing', 'recipe.formula_choice_of', 'recipe.formula_mbr_problem',
-                'recipe.formula_bom_line_on_base'],
-    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts')],
+                'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json', 'recipe.bom_overage_matches'],
+    // Slice 7q (recipe-core 1740): the overage with its reason, re-created writers and the BOM's overage statement.
+    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: process devices, readings, setpoint downloads, alarms, device units, G-06 values and exceptions,
@@ -1197,7 +1200,8 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // ---- 6b, equipment, alarms and plant rules: area authorisation, reagent lots, room, adjacency and beta-lactam rules,
-  //      step rules and the alarm review at batch review (kernel 1190; site services 0940; recipe-core 0973, 0974) ----
+  //      step rules and the alarm review at batch review (kernel 1190; site services 0940; recipe-core 0973, 0974),
+  //      the beta-lactam suite's rooms (recipe-core 1655, slice 7n) ----
   {
     group: 'plant-rules',
     functions: ['iam.area_authorisation_code', 'iam.create_area_authorisation_type', 'iam.person_area_authorised',
@@ -1207,10 +1211,10 @@ export const TARGETS: Target[] = [
                 'plant.classified_beta_lactam', 'plant.batch_beta_lactam', 'plant.penicillin_problem',
                 'plant.area_occupancy_rules_check', 'plant.clearance_room_rules_check', 'plant.material_lot_penicillin_check',
                 'plant.step_rules_problem', 'plant.step_rules_check', 'plant.record_reagent_use', 'plant.batch_alarm_review_problems',
-                'recipe.review_gate_problems'],
+                'recipe.review_gate_problems', 'plant.beta_lactam_room_problem', 'plant.beta_lactam_clearance_check', 'plant.beta_lactam_occupancy_check', 'plant.beta_lactam_equipment_check'],
     tests: [k('identity/area-authorisation.test.ts'), r('plant-rules/room-rules.test.ts'), site('plant-rules/materials.test.ts'),
             r('review/review.test.ts'), s('alarms/area-authorisation-matrix.test.ts'), s('alarms/area-authorisation-signature.test.ts'),
-            s('alarms/alarm-bridge.test.ts'), r('plant-rules/rule-approval.test.ts')],
+            s('alarms/alarm-bridge.test.ts'), r('plant-rules/rule-approval.test.ts'), r('plant-rules/beta-lactam-rooms.test.ts')],
     threshold: 90,
   },
   // ---- 6c, packaging and serialisation: the label store, label templates and the labelling a packaging master
@@ -1620,6 +1624,16 @@ export const TARGETS: Target[] = [
     functions: ['site.master_entry_problem', 'site.enter_material_master', 'site.enter_product_master', 'site.erp_master_version', 'site.master_entry_of',
                 'recipe.formula_set_target', 'recipe.formula_target_of'],
     tests: [s('master-data/master-entry.test.ts'), s('master-data/formula-target.test.ts'), s('designer/from-formula.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7p (R4 third check, R8 C4): multi-point and two-stage specification profiles, their results per point
+  // from QC and LIMS (site services 1720) and the profile item of the release checklist (recipe-core 1725).
+  {
+    group: 'specification-profiles',
+    functions: ['site.point_minutes', 'site.specification_point_guard', 'site.specification_profile_points_check', 'site.lot_test_label', 'site.profile_points_json',
+                'site.lot_profile_status', 'site.specification_content', 'site.lot_test_result_spec_check', 'site.draft_specification',
+                'recipe.grel_profile_items', 'recipe.grel_lims_profile_evidence'],
+    tests: [site('quality/profiles.test.ts'), site('quality/specifications.test.ts'), r('release/release.test.ts')],
     threshold: 90,
   },
 ];

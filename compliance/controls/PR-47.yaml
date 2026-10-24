@@ -128,6 +128,9 @@ tests:
   - "apps/tablets-server/test/quality/reprocessing-routes.test.ts > whole-batch reprocessing (PR-47) > [PR-47][IN-19] the planner asks for a whole-batch reprocessing on a REPROCESSING master; it is listed not authorised; a reprocessing batch is not planned on it until the quality unit authorises it; a person without the right and a PROCESSING master are refused"
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the reprocessing proposals and the plan of a reprocessing batch > [PR-47] the planner asks for a whole-batch reprocessing naming its parents, the investigation and the risk evaluation"
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the reprocessing proposals and the plan of a reprocessing batch > [PR-47] a REPROCESSING master is planned only with an authorised request of its master, which the plan names"
+  - "tools/e2e/specs/phase7/route-w2.spec.ts > [PR-47][IN-18][IN-19][INV-33][PR-57][DI-30] route W2 4: TB-08 on KIOSK-BLEND-1: the quality unit reserves route W's residue and authorises its use at the TB-08 step, the supervisor chooses the addition, the operator adds the residue and a second person verifies @office"
+  - "apps/tablets-web/test/floor/step-floor-acts.test.tsx > the reprocessing sources of a TB-08 step (slice 7m, R1) > [PR-47][IN-19][INV-33] offers only the authorised uses at this step and opens the ADDITION entry with the container and the authorisation, never typed"
+  - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the reprocessing proposals and the plan of a reprocessing batch > [IN-19][PR-47] QA asks for the authorisation of a reprocessing step with the investigation and the risk evaluation, the batch, its TB-08 step and the reserved residue picked, never an id typed (slice 7m)"
 clauses:
   - clause: "Starting reprocessing without QCU approval or a risk evaluation is blocked."
     tests:

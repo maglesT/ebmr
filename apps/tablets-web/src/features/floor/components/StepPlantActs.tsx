@@ -9,6 +9,8 @@
  *    counts (the strokes from the press counter, or keyed from the press) and inspect it after use;
  *  - a press set-up step (TB-10@1): the press in use with the tooling issued to it, and the charge of a closed container
  *    of the batch into the hopper;
+ *  - a bilayer compression step (TB-16@1; slice 7m, R1): the charge of a closed container of each layer's blend into that
+ *    layer's hopper (the entry names the layer, its hopper, the container's blend and the charge);
  *  - a printed-materials step (G-21@1; gap report D2): the printed packaging lot scanned at the line, its facts read from
  *    the register (batches.printedLot) for the issue entry, which must carry them exactly; the artwork read from the lot
  *    label is still typed by the operator, so the database compares the two.
@@ -31,7 +33,7 @@ const READ = [routes.batches.stepPlant.id];
 const READ_WITH_STEP = [routes.batches.stepPlant.id, routes.execution.step.id, routes.execution.run.id];
 /** Whether the step already records `id` (an occupancy or use) in an entry of `kind`. */
 const recorded = (view: StepScreenView, kind: string, member: string, id: string): boolean => view.entries.some((e) => e.kind === kind && e.data[member] === id);
-const PLANT_BLOCKS = new Set(['G-09@2', 'G-10@2', 'TB-09@1', 'TB-10@1']);
+const PLANT_BLOCKS = new Set(['G-09@2', 'G-10@2', 'TB-09@1', 'TB-10@1', 'TB-16@1']);
 const HOURS = ['4', '8', '12', '24'].map((h) => ({ value: h, label: `${h} h` }));
 const yesNo = (b: boolean): string => (b ? 'YES' : 'NO');
 const title = (item: string): string => item.charAt(0) + item.slice(1).toLowerCase().replace(/_/g, ' ');
@@ -61,6 +63,7 @@ function PlantActs({ view }: { view: StepScreenView }) {
       {view.step.block === 'G-09@2' ? <EquipmentPanel v={v} view={view} /> : null}
       {view.step.block === 'TB-09@1' ? <ToolingPanel v={v} /> : null}
       {view.step.block === 'TB-10@1' ? <PressSetupPanel v={v} /> : null}
+      {view.step.block === 'TB-16@1' ? <LayerChargePanel v={v} recorded={new Set(view.entries.filter((e) => e.kind === 'HOPPER_CHARGE').map((e) => (typeof e.data['chargeId'] === 'string' ? e.data['chargeId'] : '')))} /> : null}
     </section>
   );
 }
@@ -473,6 +476,52 @@ function PressSetupPanel({ v }: { v: StepPlantView }) {
           ))}
         <ActResult error={charge.error} />
       </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// TB-16@1: each layer's hopper charged with a container of that layer's blend (slice 7m, R1)
+
+function LayerChargePanel({ v, recorded }: { v: StepPlantView; recorded: ReadonlySet<string> }) {
+  const choices = useStepChoices();
+  const charge = useCommand(routes.plant.chargeContainer, READ, 'charging a container');
+  const record = (l: StepPlantView['layers'][number], chargeId: string) => choices?.choose('HOPPER_CHARGE', { layer: l.id, hopper: l.hopper, blend: l.stage, chargeId });
+  const send = async (l: StepPlantView['layers'][number], label: string) => {
+    // As at the press set-up: the charge names the plant stage the container goes into, the press hopper.
+    const r = await charge.run({ body: { batchId: v.batchId, stage: 'COMPRESSION', label } });
+    if (r) record(l, r.chargeId);
+  };
+  return (
+    <div data-testid="plant-layer-charge">
+      {v.layers.map((l) => {
+        const ready = v.containers.filter((c) => c.stage === l.stage);
+        // A charge recorded in the step already is not offered again (the block and the database refuse a second entry).
+        const charged = v.charges.filter((g) => g.mine && v.chargedStages[g.chargeId] === l.stage && !recorded.has(g.chargeId));
+        return (
+          <section key={l.id} className={wcls('formCard')} aria-label={`Layer ${l.id}`} data-testid={`layer-${l.id}`}>
+            <h3 className={wcls('formTitle')}>{`Layer ${l.id}: hopper ${l.hopper}, blend ${l.stage}`}</h3>
+            {ready.length === 0 ? <p className={wcls('muted')}>{`No closed container of ${l.stage} waits to be charged.`}</p> : null}
+            <ul className={wcls('list')}>
+              {ready.map((c) => (
+                <li key={c.containerId} data-testid={`chargeable-${c.label}`}>
+                  {c.label} ({c.netQuantity ?? '?'} {c.unit}){c.problem ? `: ${c.problem}` : ''}{' '}
+                  <Button isDisabled={charge.busy || c.problem !== null} onPress={() => void send(l, c.label)}>
+                    {`Charge ${c.label} into hopper ${l.hopper}`}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            {charged.map((g) => (
+              <p key={g.chargeId}>
+                {`Charged ${g.label} at ${g.chargedAt.text}. `}
+                <Button onPress={() => record(l, g.chargeId)}>{`Record the charge of ${g.label} into hopper ${l.hopper}`}</Button>
+              </p>
+            ))}
+          </section>
+        );
+      })}
+      <ActResult error={charge.error} />
     </div>
   );
 }

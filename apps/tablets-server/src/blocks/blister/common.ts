@@ -19,6 +19,14 @@ export type MaterialRole = (typeof MATERIAL_ROLES)[number];
 /** The forms a pack takes. */
 export const PACK_FORMS = ['THERMOFORM', 'COLD_FORM', 'STRIP'] as const;
 
+/**
+ * How the patient opens a blister (slice 7q, C8; decision D-7q-3): the tablet is pushed through the lidding foil (the
+ * default when the format states nothing), the lidding foil is peeled off (a peelable lidding laminate, e.g. for an
+ * orally disintegrating tablet that a push would break), or peeled and then pushed. A peelable opening is a property of
+ * the lidding foil, so a strip pack (no lidding foil) has none.
+ */
+export const BLISTER_OPENINGS = ['PUSH_THROUGH', 'PEEL_OFF', 'PEEL_PUSH'] as const;
+
 /** The machine's line check series in the slice 1 container hold (defect checks and sealing values). */
 export const LINE_STREAM = 'LINE';
 

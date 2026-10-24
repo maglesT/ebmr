@@ -41,6 +41,7 @@ export const BLOCK_LAYOUTS: Readonly<Record<string, readonly EntrySection[]>> = 
   ],
   'G-24@2': [{ title: 'Addition', kinds: ['ADDITION'] }],
   'TB-01@1': [],
+  'TB-01@2': [],
   'TB-02@1': [
     { title: 'Screen checks', kinds: ['SCREEN_CHECK'] },
     { title: 'Material passed', kinds: ['MATERIAL_PASS'] },
@@ -250,7 +251,7 @@ export function PotencyCalculation({ view }: RendererProps) {
 
 function sectionsRenderer(key: string, extra?: BlockRenderer): BlockRenderer {
   const layout = BLOCK_LAYOUTS[key] ?? [];
-  const weighing = key === 'TB-01@1';
+  const weighing = key === 'TB-01@1' || key === 'TB-01@2';
   function Renderer({ view }: RendererProps) {
     const Extra = extra;
     return (

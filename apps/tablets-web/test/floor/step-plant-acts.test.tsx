@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { routes, type BlockEntryFormView, type BlockFieldSchemaWire, type StepPlantView, type StepScreenView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
-import { renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
+import { fakeTap, renderFloor, RUN_ID, stepFixtures, stepPath } from './support.tsx';
 
 afterEach(() => {
   apiState.installation = undefined;
@@ -42,7 +42,7 @@ function gmpView(block: string, stepKey: string, blockEntries: BlockEntryFormVie
 
 const plant = (over: Partial<StepPlantView>): StepPlantView => ({
   batchId: RUN_ID, stepKey: 'p-x@', batchNumber: 'B26-0007', block: null, stage: 'S-DISP', areas: [], lineClearances: [], occupancies: [], equipment: [], uses: [],
-  tooling: { checklist: ['TIPS', 'EDGES'], sets: [], issues: [], preUse: [] }, containers: [], charges: [], ...over,
+  tooling: { checklist: ['TIPS', 'EDGES'], sets: [], issues: [], preUse: [] }, containers: [], charges: [], layers: [], chargedStages: {}, ...over,
 });
 
 function render(view: StepScreenView, current: () => StepPlantView, acts: Record<string, () => unknown>) {
@@ -245,6 +245,56 @@ describe('the plant acts of a test run on the sandbox (slice 7o, D-7o-1)', () =>
   });
 });
 
+describe('the hopper of each layer of a bilayer run (slice 7m, R1)', () => {
+  it('[PR-21][IN-26] offers each layer only the closed containers of its own blend; a charge into the layer\'s hopper fills HOPPER_CHARGE with the layer, its hopper, its blend and the charge, never typed', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const L2 = '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d08';
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }, { id: 'T', hopper: 'H2', stage: 'BLEND_L2' }],
+      containers: [
+        { containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLEND_L1', netQuantity: '33.150', unit: 'kg', problem: null },
+        { containerId: L2, label: 'OC-B26-0007-0002', stage: 'BLEND_L2', netQuantity: '14.350', unit: 'kg', problem: null },
+      ],
+    });
+    const ui = render(view, () => current, { 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: L2, label: 'OC-B26-0007-0002', netQuantity: '14.350', unit: 'kg' }) });
+    const panel = await screen.findByTestId('plant-layer-charge');
+    // Each layer lists only its own blend's containers: no button would put the lactose blend into hopper H1.
+    expect(within(within(panel).getByTestId('layer-L1')).queryByRole('button', { name: /OC-B26-0007-0002/ })).toBeNull();
+    expect(within(within(panel).getByTestId('layer-T')).queryByRole('button', { name: /OC-B26-0007-0001/ })).toBeNull();
+    await userEvent.click(within(within(panel).getByTestId('layer-T')).getByRole('button', { name: 'Charge OC-B26-0007-0002 into hopper H2' }));
+    await waitFor(() => expect(posts(ui, '/api/plant/charges')).toHaveLength(1));
+    expect(posts(ui, '/api/plant/charges')[0]?.body).toMatchObject({ batchId: RUN_ID, stage: 'COMPRESSION', label: 'OC-B26-0007-0002' });
+    const charge = await screen.findByTestId('block-form-HOPPER_CHARGE');
+    await userEvent.click(within(charge).getByRole('button', { name: 'Save: Hopper charge' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'HOPPER_CHARGE', data: { layer: 'T', hopper: 'H2', blend: 'BLEND_L2', chargeId: CHARGE } });
+  });
+});
+
+describe('the charges a bilayer step has recorded already (7m review P7M-1)', () => {
+  it('[PR-21][IN-26] offers "Record the charge" only for a charge the step has not recorded (a second entry of a charge is refused by the database: db-guards.test.ts TB16-CHARGE)', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const OTHER = '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d09';
+    view.entries = [{ entryId: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d10', kind: 'HOPPER_CHARGE', summary: 'hopper charge', data: { layer: 'L1', hopper: 'H1', blend: 'BLEND_L1', chargeId: CHARGE }, by: OP, at: at('20-OCT-2026 10:01') }];
+    const charge = (chargeId: string, label: string) => ({ chargeId, label, stage: 'COMPRESSION', chargedBy: OP, chargedAt: at('20-OCT-2026 10:00'), mine: true });
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }],
+      charges: [charge(CHARGE, 'OC-B26-0007-0001'), charge(OTHER, 'OC-B26-0007-0003')],
+      chargedStages: { [CHARGE]: 'BLEND_L1', [OTHER]: 'BLEND_L1' },
+    });
+    render(view, () => current, {});
+    const layer = within(await screen.findByTestId('plant-layer-charge')).getByTestId('layer-L1');
+    expect(await within(layer).findByRole('button', { name: 'Record the charge of OC-B26-0007-0003 into hopper H1' })).toBeTruthy();
+    expect(within(layer).queryByRole('button', { name: 'Record the charge of OC-B26-0007-0001 into hopper H1' })).toBeNull();
+  });
+});
+
 describe('the printed lot hands itself to the issue entry once (slice 7k)', () => {
   it('[PR-32] a saved issue entry stays closed: the lot taken is not handed to the form again', async () => {
     const lotSchema: BlockFieldSchemaWire = { type: 'object', description: 'Lot', fields: { id: str('Lot id'), material: str('Material'), status: str('Status'), artwork: str('Artwork') } };
@@ -273,5 +323,42 @@ describe('the printed lot hands itself to the issue entry once (slice 7k)', () =
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(screen.getByTestId('block-form-ISSUE').getAttribute('data-closed')).toBe('true');
     expect(ui.commands()).toHaveLength(1);
+  });
+});
+
+describe('a plant act pressed before the session is read (slice 7m, route W 6 in CI)', () => {
+  it('[INV-40] waits for the session and asks for the badge on a shared terminal, never sending the act untapped', async () => {
+    const view = gmpView('TB-16@1', 'p-run@', [
+      form('HOPPER_CHARGE', 'Hopper charge', { layer: str('Layer'), hopper: str('Hopper'), blend: str('Blend'), chargeId: str('Charge', ID) }),
+    ]);
+    const current = plant({
+      block: 'TB-16@1', stage: 'S-COMP',
+      layers: [{ id: 'L1', hopper: 'H1', stage: 'BLEND_L1' }],
+      containers: [{ containerId: CONTAINER, label: 'OC-B26-0007-0001', stage: 'BLEND_L1', netQuantity: '33.150', unit: 'kg', problem: null }],
+    });
+    const session = example('session-kiosk');
+    expect(session.attribution).not.toBe('NONE');
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tap = fakeTap();
+    renderFloor(stepPath(view.step.stepKey), {
+      installation: 'GMP',
+      tap,
+      fixtures: { 'batches.step': () => view, ...stepFixtures(view), 'batches.stepPlant': () => current, 'plant.chargeContainer': () => ({ chargeId: CHARGE, containerId: CONTAINER, label: 'OC-B26-0007-0001', netQuantity: '33.150', unit: 'kg' }) },
+      // The session's answer is held until the act has been pressed.
+      intercept: async (r) => {
+        if (r.method === 'GET' && r.path === '/api/session') {
+          await held;
+          return { status: 200, body: session };
+        }
+        return undefined;
+      },
+    });
+    const button = await screen.findByRole('button', { name: 'Charge OC-B26-0007-0001 into hopper H1' });
+    await userEvent.click(button);
+    release();
+    await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(1));
   });
 });

@@ -67,6 +67,9 @@ tests:
   - "apps/tablets-web/test/designer/coating-layer.test.ts > add a coating layer (slice 7o) > [IN-37][PR-08] refusals change nothing: a functional film without its minimum, a minimum above the maximum, an unknown step, iterations outside 1 to 20"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the formula as a copy of the wet-granulation master; a seal coat added before the enteric coat and a top coat after it in the designer; change control; the test package @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run with the three coats on the sandbox's kiosks; its result imported as evidence; the four signatures and the IN authorisation @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [IN-37][PR-25][PR-29][DI-29][DI-32][INV-19] route B 6: film coating on KIOSK-BL-COAT: the suspension (TB-03), the cores with the coating room checked against the suite's low humidity limit (TB-18), the film to its weight gain in the loop, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-37][PR-29][PR-45][DI-30] route D 6: tablet printing on KIOSK-PRINT-1 (TB-19): the printer set up with edible ink, the print checks of the master's mark, QA's gate on the printed tablets, the yield, QA's release for packing at H-PACK @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-30][INV-19] route S 6: sugar coating on KIOSK-COAT-1: the sugar syrup (TB-03), the cores and the pan, five applications in the coating loop (TB-18 SC: seal, sub-coat, smoothing, colour, polish) to the weight gain @office"
 clauses:
   - clause: "open a packaging order for printed tablets without the QC approval; refused."
     tests:

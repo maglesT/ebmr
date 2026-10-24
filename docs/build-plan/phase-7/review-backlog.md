@@ -224,6 +224,9 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7L-1 (residual, carried to 7m): with no gateway scale and no declared balance, a manual weighing takes the room's one
   instrument booked for the batch as its balance; the operator never names it. The weighing stays MANUAL (exception and
   second person), but the stored evidence should mark the balance as inferred, or the form should ask for it.
+  **Fixed in 7m**: the stored evidence records `manual.balanceInferred: true` (recipe-core 1650: the database refuses it
+  beside a declared balance), and the entry's summary on the step and record screens adds "balance not named: the
+  room's one balance booked for the batch" (tests: tb-01-gmp.test.ts G-07, execution-row-shape.test.ts).
 - P7L-2 (residual, cosmetic): the potency calculation form stays open after its entry; its lot is typed, not scanned
   (the server validates lot and assay).
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
@@ -245,3 +248,56 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7O-4 (fixed): the sandbox plant set-up treated any refusal whose text held "CLEAN" as "already clean". It now skips
   only the refusal EBMR-PLANT-042 (the unit or area is neither DIRTY nor CLEAN); any other refusal fails the set-up. Test
   `plant/sandbox-plant.test.ts` ([DI-05]).
+
+## Slice 7p (23 October 2026)
+
+- P7P-1 (residual, owner rule D-7p-1): one dissolution result per time point (the mean as the LIMS reports it). The
+  pharmacopoeial staged acceptance (stages 1 to 3, more units at each stage, R8 C6) is not modelled; QC records the
+  deciding stage's mean. Follow-up for export markets.
+- P7P-2 (residual, cosmetic): the transfer package's certificate of analysis (site services 0980) lists a point's result
+  by its test code without the point.
+- P7P-3 (fixed, review): boundary and scale tests: a QC or LIMS result exactly on a point's upper or lower limit (40 vs
+  40, 45 vs 45) passes at any scale (40.0, 45.000), just beyond it fails (`profiles.test.ts`).
+- P7P-4 (fixed, review): the checklist item of a profile is named from its code with every character other than A-Z,
+  0-9 and _ read as _, so DISS.1 and DISS-1 would share G3.PROFILE_DISS_1; such a pair of profile tests is refused when
+  the specification is drafted (EBMR-SITE-976, site services 1720; `profiles.test.ts`).
+- P7P-5 (residual, by design under D-7p-5): the database does not tie a stage's name to the direction of its limit; an
+  acid stage with only a lower limit is accepted. The limits the specification states are what is judged; the approver
+  checks them.
+
+## Slice 7n (one review pass, 23 October 2026)
+- P7N-1 (fixed): a unit's use needs no room occupancy (plant.start_equipment_use, recipe-core 0403), so a beta-lactam
+  batch could use a unit standing in a room not dedicated to beta-lactam products, or any batch a unit of the suite.
+  Recipe-core 1655 now also guards plant.equipment_use (before insert, whoever writes) by the room or line the unit stands
+  in; a unit with no room is not checked (D-7n-10). Test `beta-lactam-rooms.test.ts`, both ways.
+- P7N-2 (fixed, tests): two cases had no test: a beta-lactam classification made after the batch was issued counts at
+  once (the rule reads it live), and a later dedication not yet approved leaves the earlier approved one in force.
+- P7N-3 (fixed, browser tests): the route B specs opened screens by typed address; they now move by the home link,
+  tiles and lists (R2, R3), except inside the shared kiosk helpers that route W also uses (listed in
+  `slice-7n-routes.md`). Route B has its own end-to-end group (`route-b`) in `playwright.config.ts` and `ci.yml`.
+
+## Slice 7m (one review pass, 23 October 2026)
+
+Nothing blocking.
+- P7M-1 (fixed in 7m): the TB-16 layer-charge panel still offered "Record the charge" for a charge the step had
+  recorded. It now offers only charges no entry of the step names (`step-plant-acts.test.tsx`); a second entry of a
+  charge was already refused by the database (TB16-CHARGE, `forming/db-guards.test.ts`).
+- P7M-2 (residual): recipe-core 1650 refuses `balanceInferred: true` beside a declared balance but does not check
+  `false` against a missing one; the server sets the member only when no balance was declared.
+- P7M-3 (follow-up): QA dispositioning 25 like exceptions one by one on a kiosk (route S's keyed coater values) meets
+  the sign-in limit; a bulk disposition of like exceptions would spare the presenter.
+
+## Slice 7q (R8 capabilities C1, C2, C8, C9, C10; 23 October 2026)
+
+- 7q-1 (follow-up, for the R8 products): the lot assay register's writer `tab.record_lot_assay` (percent assays and,
+  since tablets 1662, enzyme activities in U/mg) has no route or screen; the demo seed records the results. A QC screen
+  that records a lot's approved result from its LIMS results is needed before P4, P7 or any potency-adjusted product
+  runs on GMP through the screens.
+- 7q-2 (no follow-up, C9): TB-16 already takes two or three layers; a trilayer product needs no custom block.
+- 7q-3 (follow-up): browser proofs of C1 and C2 (P7, P1), C8 (P8) and C10 (P1) come with those products.
+- P7Q-4 (fixed): the GMP activity test also refuses an ACTIVITY result that is not approved, one that fails its limits
+  and one of another lot (`tb-01-gmp.test.ts`).
+- P7Q-5 (fixed): `recipe.formula_mbr_problem` compares a BOM line's overage with the formula's as numbers ("2.0" states
+  "2"; `recipe.bom_overage_matches`, recipe-core 1740); `designer/from-formula.test.ts`.
+- P7Q-6 (fixed): an `overage` on a BOM line that is no formula line is refused instead of skipped (recipe-core 1740);
+  `designer/from-formula.test.ts`.

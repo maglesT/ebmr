@@ -402,6 +402,10 @@ tests:
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > a loop iteration ended on the step screen > [INV-19][DI-34] is offered once the step of the iteration is completed and sends COMPLETE_LOOP_ITERATION for the step"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-18][PR-22][DI-30][DI-34] route W 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the plant acts of a test run on the sandbox (slice 7o, D-7o-1) > [DI-05][DI-34][INV-18] a sandbox clearance step offers the room's use as on GMP, under the TEST, NOT GMP mark and the TEST- batch number; the act goes to the sandbox's own server"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-activity.test.ts > TB-01@2 potency adjustment in activity units (slice 7q, C2) > [DI-34][DI-10] TB-01@2 is registered beside TB-01@1 with every execution part of the contract"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-22][DI-30][DI-34] route B 4: blending on KIOSK-BL-BLEND: blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
+  - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-22][IN-36][DI-30][DI-34] route D 4: blending on KIOSK-BLEND-1: the active layer blended and lubricated, the lactose layer blended (TB-07), each layer's blend into verified containers of its own stage @office"
+  - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-18][PR-22][DI-30][DI-34] route S 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:

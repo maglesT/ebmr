@@ -83,6 +83,8 @@ export async function switchUser(page: Page, who: SeededPersona): Promise<void> 
   // person waits until the screen shows one.
   await expect(page.getByRole('button', { name: 'Switch user' })).toHaveCount(1, { timeout: 30_000 });
   await switchUser0(page, who);
+  // Slice 7m: the switch is done when its PIN pad has gone (a navigation right after could cut a switch off).
+  await expect(page.getByRole('group', { name: /^Enter (your PIN|the PIN of)/ })).toHaveCount(0, { timeout: 30_000 });
 }
 
 /**
@@ -234,7 +236,18 @@ export async function closeStage(page: Page, e2e: E2eWorld, batchId: string, qa:
     await dialog.getByRole('textbox', { name: 'Justification' }).fill('Reviewed on the floor with the operator: values keyed by hand were checked by a second person at the time; no impact on the batch.');
     await ready(page, qa);
     await dialog.getByRole('button', { name: 'Continue to signature' }).click();
-    await sign(page, qa);
+    // Slice 7m: a run of dispositions from one kiosk under one identifier meets the server's limit on authentications
+    // ("Too many attempts in a short time", route S's 25 keyed coater values); QA closes the dialog, waits the minute out
+    // and dispositions the exception again (it is still open).
+    const limited = page.getByText('Too many attempts in a short time');
+    try {
+      await sign(page, qa);
+    } catch (e) {
+      if (!(await limited.isVisible())) throw e;
+      await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+      await page.waitForTimeout(61_000);
+      continue;
+    }
     done += 1;
   }
   await as(page, supervisor);

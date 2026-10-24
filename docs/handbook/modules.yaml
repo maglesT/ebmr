@@ -352,7 +352,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql:
-        ['^073[013]_', '^0740_', '^0753_', '^0810_', '^082\d_', '^084[0134]_', '^0859_']
+        ['^073[013]_', '^0740_', '^0753_', '^0810_', '^082\d_', '^084[0134]_', '^0859_', '^1720_']
     src: [packages/site-services/src/quality]
     tests:
       - 'packages/site-services/test/quality/**'
@@ -469,7 +469,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^123[2-5]_']
+      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^1655_', '^123[2-5]_']
     tests: ['packages/recipe-core/test/integrations/plant-alarms-series.test.ts', 'packages/recipe-core/test/equipment-data/**', 'packages/recipe-core/test/plant-rules/**']
 
   - id: rc-mirrors
@@ -561,7 +561,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'
@@ -579,7 +579,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^078\d_', '^0892_', '^0932_']
+      packages/recipe-core/sql: ['^078\d_', '^0892_', '^0932_', '^1725_']
     tests:
       - 'packages/recipe-core/test/release/**'
       - 'packages/recipe-core/test/mutation/release-gate.test.ts'
@@ -643,7 +643,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0[23]\d\d_', '^04[4-9]\d_', '^0911_', '^1100_', '^121[78]_', '^1224_', '^1701_']
+      packages/recipe-core/sql: ['^0[23]\d\d_', '^04[4-9]\d_', '^0911_', '^1100_', '^121[78]_', '^1224_', '^1650_', '^1701_']
     src: [packages/recipe-core/src/execution, packages/recipe-core/src/engine]
     tests:
       - 'packages/recipe-core/test/execution/**'
@@ -789,7 +789,7 @@ modules:
     package: apps/tablets-server
     migrations:
       apps/tablets-server/sql:
-        ['^084[0-3]_', '^085\d_', '^087[1-4]_', '^089\d_', '^09[1-9]\d_', '^1002_', '^102\d_', '^109[12]_', '^111[03]_', '^1151_']
+        ['^084[0-3]_', '^085\d_', '^087[1-4]_', '^089\d_', '^09[1-9]\d_', '^1002_', '^102\d_', '^109[12]_', '^111[03]_', '^1151_', '^166[1-9]_']
     server: [apps/tablets-server/src/features/edition-blocks.ts, apps/tablets-server/src/blocks]
     tests:
       - 'apps/tablets-server/test/blocks/**'
@@ -1277,6 +1277,12 @@ modules:
     page: modules/tools.md
     package: tools/dev-env
     src: [tools/dev-env]
+
+  - id: tools-ci
+    title: CI runner scripts (per-job PostgreSQL, per-runner directories, Playwright install)
+    page: modules/tools.md
+    package: tools/ci
+    src: [tools/ci]
 
   - id: tools-e2e
     title: End-to-end browser suite

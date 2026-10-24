@@ -87,6 +87,19 @@ describe('TB-16 the run', () => {
     expect(refusal(run, charge('L1', 'H1', 'BLEND_L1', 3))).toBe('The run of p@ has ended: no more charges (TB16-ENDED; PR-21) (TB16-ENDED; PR-21)');
   });
 
+  it('[PR-21][IN-26] a trilayer run (slice 7q, C9): three layers, each charged from its own hopper with its own blend, and the run starts only with all three charged', () => {
+    const tri = { ...cfg, layers: [l1, { ...l1, id: 'L2', hopper: 'H3', stage: 'BLEND_L3' }, t] };
+    const p = fixturePhase(TB16, { config: tri as never });
+    const run = startRun(TB16, blockMbr(TB16, p));
+    run.entry('p', charge('L1', 'H1', 'BLEND_L1'));
+    run.entry('p', charge('T', 'H2', 'BLEND_L2', 2));
+    expect(refusal(run, { kind: 'RUN_START', press: 'TEST-PRESS-01' })).toMatch(/^Layer L2 has no blend charged into its hopper/);
+    expect(refusal(run, charge('L2', 'H3', 'BLEND_L1', 3))).toMatch(/TB16-WRONG-BLEND/);
+    run.entry('p', charge('L2', 'H3', 'BLEND_L3', 3));
+    run.entry('p', { kind: 'RUN_START', press: 'TEST-PRESS-01' });
+    expect(Object.values(run.state.entries).filter((e) => e.kind === 'HOPPER_CHARGE').map((e) => e.data['layer'])).toEqual(['L1', 'T', 'L2']);
+  });
+
   it('[IN-35][PR-29] a missed check on any layer is listed once by the next entry, layer by layer, with its title', () => {
     const run = startRun(TB16);
     run.entry('p', charge('L1', 'H1', 'BLEND_L1'));

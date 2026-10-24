@@ -51,7 +51,14 @@ export function useCommand<R extends AnyRoute>(route: R, refresh: readonly strin
     setDone(null);
     try {
       let attribution: Attribution | null = null;
-      if (route.attribution === 'FRESH_ON_SHARED' && shared) {
+      // Slice 7m: an act pressed before the session was read (a page just opened) waits for it, so a shared terminal
+      // still asks for the badge; deciding on the missing answer sent the act untapped and the server refused it (428).
+      let onShared = shared;
+      if (route.attribution === 'FRESH_ON_SHARED' && session.data === undefined) {
+        const read = (await session.refetch()).data;
+        onShared = read !== undefined && read.attribution !== 'NONE';
+      }
+      if (route.attribution === 'FRESH_ON_SHARED' && onShared) {
         const { params, body } = input as { params?: Record<string, unknown>; body?: Record<string, unknown> };
         attribution = await tap.requestTap(tapReason, { method: route.method, path: buildPath(route.path, params ?? {}), body: { ...(body ?? {}) } });
         if (!attribution) return null;

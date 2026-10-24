@@ -99,6 +99,17 @@ function allMembers(): flow.MbrContent {
 const RECORD_AND_STEPS: readonly Area[] = ['record', 'step'];
 
 describe('the read-only document shows the members of the saved content (review F44)', () => {
+  it('[PR-03][INV-25] slice 7q (C1): a BOM line\'s overage is shown beside its standard quantity, with its reason (percent, or a quantity per unit)', async () => {
+    const c = granulationContent();
+    const [first, second] = c.bom;
+    if (!first || !second) throw new Error('fixture changed');
+    first.overage = { reason: 'Loss of assay over the shelf life', percent: '5' };
+    second.overage = { reason: 'Loss on the blender walls', quantity: { value: '0.3', unit: 'mg' } };
+    const doc = await renderDocument(c);
+    expect(text(doc.querySelector(`[data-testid="bom-overage-${first.id}"]`))).toBe(' (includes an overage of 5 %: Loss of assay over the shelf life)');
+    expect(text(doc.querySelector(`[data-testid="bom-overage-${second.id}"]`))).toBe(' (includes an overage of 0.3 mg per unit: Loss on the blender walls)');
+  });
+
   it('[PR-02][PR-03][IN-33] acceptance schemes are shown with their criteria, markets, pharmacopoeia, ranges in words and sampling', async () => {
     const doc = await renderDocument(granulationContent());
     const scheme = text(doc.querySelector('[id="mbr-item-AS-UOW"]'));

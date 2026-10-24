@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { SignableAction } from '@ebmr/api-contract';
 import { flow } from '@ebmr/recipe-core';
 import { deviationPercent, expectedTabletCount, inputExpectations, unconfirmedCounts } from '../../src/features/execution/issue-expectations.ts';
+import { rtdProcessingContent } from '../../src/cli/demo-route-masters-ds.ts';
 
 const TEMPLATE = fileURLToPath(new URL('../../src/features/designer/templates/gb-t-01.mbr.json', import.meta.url));
 const parsed = flow.parseMbr(JSON.parse(readFileSync(TEMPLATE, 'utf8')));
@@ -21,6 +22,13 @@ describe('R3.1: the tablet count at issue against the master', () => {
     expect(expectedTabletCount(gbt01, 'BS-200K')).toEqual({ value: '199168', basis: 'batch size 81.659 kg / target tablet weight 410.0 mg', tolerancePercent: '10' });
     expect(expectedTabletCount(gbt01, 'BS-NONE')).toBeNull();
     expect([...inputExpectations(gbt01, 'BS-200K').keys()]).toEqual(['tabletsPerBatch']);
+  });
+
+  it('[PR-04] slice 7m: a bilayer master implies its count from the full tablet (the last layer), not the first layer\'s own weight', () => {
+    // Route D: BS-200K is 81.659 kg; layer L1 alone weighs 336.3 mg, the full bilayer tablet (layer T) 408.3 mg.
+    const routeD = rtdProcessingContent('RTD-DC-TEST');
+    expect(expectedTabletCount(routeD, 'BS-200K')).toEqual({ value: '199998', basis: 'batch size 81.659 kg / target tablet weight 408.3 mg', tolerancePercent: '10' });
+    expect(unconfirmedCounts(routeD, 'BS-200K', { tabletsPerBatch: { kind: 'COUNT', value: '200000' } })).toEqual([]);
   });
 
   it('a count within 10 % passes; one further away (a digit short) needs the issuer\'s reason', () => {

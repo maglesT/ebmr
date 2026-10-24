@@ -47,6 +47,8 @@ export interface SetupStackOptions {
   gmpReviewBatch?: boolean;
   /** GMP, DEMO-ONLY: with the review batch, the packaging-order demo (set-up CLI --gmp-packaging; Phase 4 slice 2c). */
   gmpPackaging?: boolean;
+  /** GMP, DEMO-ONLY: with the packaging demo, the SR profile product and its two finished lots (--gmp-sr-profile; slice 7p, D-7p-8). */
+  gmpSrProfile?: boolean;
   /** `pnpm demo:setup`: also register and bind the demo's simulated machines (DEMO_DEVICES) in the sandbox. */
   demoDevices?: boolean;
 }
@@ -57,7 +59,7 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   for (const d of ['to-sandbox', 'to-gmp']) mkdirSync(join(exchangeDir, d), { recursive: true });
   const gatewaySpki = ensureGatewayKey(opts.keysDir);
   const common = ['--keys-dir', opts.keysDir, '--exchange-dir', exchangeDir, '--persona-sets', String(opts.personaSets ?? 1), '--recreate'];
-  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : []), ...(opts.gmpPackaging ? ['--gmp-packaging'] : [])], env: {}, echo: opts.echo ?? true });
+  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : []), ...(opts.gmpPackaging ? ['--gmp-packaging'] : []), ...(opts.gmpSrProfile ? ['--gmp-sr-profile'] : [])], env: {}, echo: opts.echo ?? true });
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,

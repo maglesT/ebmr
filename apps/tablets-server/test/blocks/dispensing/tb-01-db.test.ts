@@ -16,7 +16,7 @@ import { registerLots } from '../../../src/features/execution/seed.ts';
 import { engineActor, engineRoles } from '../../../src/features/execution/roles.ts';
 import { runContext } from '../../../src/features/execution/runs.ts';
 import { execution } from '@ebmr/recipe-core';
-import { TB01 } from '../../../src/blocks/tb-01.ts';
+import { TB01, TB01_V2 } from '../../../src/blocks/tb-01.ts';
 import { adminActor, fakeGateway, gatewayKey, operatorActor, type FakeGateway } from '../../devices/support.ts';
 import { report, untilVouched } from '../../devices/room-scales-support.ts';
 import { actorOfBrowser } from '../../esig/support.ts';
@@ -31,14 +31,14 @@ let sbx: ExecServer;
 let gw: FakeGateway | undefined;
 
 /** dc-mini with a TB-01 step first in its dispensing stage: paracetamol (as is) compensated by MCC. */
-function withTb01(extra: Json = {}): flow.MbrContent {
+function withTb01(extra: Json = {}, version = '1'): flow.MbrContent {
   return dcMiniVariant((prep, content) => {
     (content['parameters'] as Json[]).push(
       { id: 'tbApi', name: 'Paracetamol dispensed (potency-adjusted)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' },
       { id: 'tbMcc', name: 'MCC dispensed (compensating)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'NON_CRITICAL', riskClass: 'MEDIUM', capture: 'DEVICE' },
     );
     const step = {
-      kind: 'phase', id: STEP, name: 'Potency-adjusted dispensing', block: { type: 'TB-01', version: '1' },
+      kind: 'phase', id: STEP, name: 'Potency-adjusted dispensing', block: { type: 'TB-01', version },
       config: {
         active: { bomLine: 'BOM-PCM', basis: 'AS_IS', standardIs: 'FORM', standardBasis: 'paracetamol at 100.0 % as is' },
         compensation: { mode: 'EXCIPIENT', bomLine: 'BOM-MCC', min: '8.000', max: '11.000' },
@@ -124,9 +124,9 @@ async function as(r: Run, role: 'DISPENSER' | 'OPERATOR' | 'VERIFIER'): Promise<
   return d;
 }
 
-async function newRun(opts: { balance?: boolean; config?: Json } = {}): Promise<Run> {
+async function newRun(opts: { balance?: boolean; config?: Json; version?: string } = {}): Promise<Run> {
   const issuer = await sbx.asPersona('issuer');
-  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withTb01(opts.config)));
+  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withTb01(opts.config, opts.version)));
   if (opts.balance !== false) await balanceUse(runId);
   const ver = new RunDriver(sbx, runId, { verifier1: await sbx.asPersona('verifier1') });
   ver.beforeTap = tap;
@@ -219,7 +219,7 @@ describe('TB-01 in the database: registers and the lot assay register (tablets 0
   it('[DI-30][DI-05] the database holds TB-01@1\'s data schemas as the registry declares them, its check meaning, and every rule code its messages name', async () => {
     const { rows } = await sbx.db.admin.query<{ k: string; s: Json }>("select entry_kind as k, schema as s from recipe.block_data_schema where block_type = 'TB-01' and block_version = '1' order by 1");
     expect(rows.map((r) => r.k)).toEqual(Object.keys(TB01.dataSchema?.entries ?? {}).sort());
-    const meanings = await sbx.db.admin.query<{ m: string }>("select part || ' ' || meaning_code as m from recipe.block_signature_meaning where block_type = 'TB-01'");
+    const meanings = await sbx.db.admin.query<{ m: string }>("select part || ' ' || meaning_code as m from recipe.block_signature_meaning where block_type = 'TB-01' and block_version = '1'");
     expect(meanings.rows.map((r) => r.m)).toEqual(['check CONTAINER_CHECKED']);
     const { readFileSync } = await import('node:fs');
     const src = ['../../../src/blocks/tb-01.ts', '../../../src/blocks/dispensing/potency.ts', '../../../sql/0842_tb01_calculation.sql', '../../../sql/0843_tb01_entry_guards.sql']
@@ -510,3 +510,82 @@ async function batchNumber(runId: string): Promise<string> {
   return rows[0]?.n ?? '';
 }
 
+describe('TB-01@2 activity units in a test run (slice 7q, R8 C2)', () => {
+  let r: Run;
+  beforeAll(async () => {
+    const steward = await stewardActor();
+    await registerLots(sbx.db.app, { ...steward, correlationId: randomUUID() }, [
+      { lotCode: 'TEST-L26-0121', materialCode: 'MAT-PCM', materialName: 'Active, an enzyme lot assayed by its activity', status: 'RELEASED', identityTested: true, expiresInDays: 700, retestInDays: 300 },
+    ]);
+    await assay('TEST-L26-0121', { basis: 'ACTIVITY', assay: '125', certificateRef: 'COA-0121' });
+    r = await newRun({
+      version: '2',
+      balance: false,
+      config: {
+        active: { bomLine: 'BOM-PCM', basis: 'ACTIVITY', standardIs: 'FORM', standardBasis: 'the enzyme at 100 U/mg', declaredActivity: '100' },
+        compensation: { mode: 'EXCIPIENT', bomLine: 'BOM-MCC', min: '8.000', max: '20.000' },
+      },
+    });
+  }, 120_000);
+
+  it('[PR-19][DI-33] the lot of 125 U/mg against a declared 100 U/mg takes 40.000 kg of the 50.000 kg standard and the MCC rises to 19.400 kg; the label claim in units and each lot\'s activity are stored, and the database recomputes them', async () => {
+    await (await as(r, 'DISPENSER')).ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    await (await as(r, 'DISPENSER')).ok('operator1', calc([{ lotCode: 'TEST-L26-0121' }]));
+    const [data] = await entryData(r.runId, 'POTENCY_CALCULATION');
+    expect(data).toMatchObject({
+      lots: [{ lot: { id: 'TEST-L26-0121' }, assay: { basis: 'ACTIVITY', assay: '125' } }],
+      results: [{ lot: 'TEST-L26-0121', asIsAssay: '125.000000', activity: '125', baseEquivalent: '50', calculated: '40.000000', target: '40.000' }],
+      active: { bomLine: 'BOM-PCM', standardIs: 'FORM', standard: '50.000000', activity: { declared: '100', unit: 'U/mg', labelClaimUnits: '5000000000' } },
+      excipient: { bomLine: 'BOM-MCC', calculated: '19.400000', target: '19.400' },
+      adjustmentPercent: '20.000000',
+      formula: 'TB-01@2',
+    });
+    // The database's own calculation from the same inputs (tablets 1662) is the stored data, member for member.
+    const ctx = await runContext(sbx.db.admin, r.runId);
+    const step = ctx.def.steps.get(STEP);
+    const db = (await sbx.db.admin.query<{ r: Json }>('select tab.tb01_calculation($1::jsonb, $2::jsonb, $3::jsonb) as r', [JSON.stringify(step?.config), JSON.stringify(ctx.def.mbr), JSON.stringify(data?.['lots'])])).rows[0]?.r;
+    expect(db).toEqual({ data });
+  });
+
+  it('[DI-30][DI-05] the database holds TB-01@2\'s data schemas as the registry declares them (ACTIVITY among the bases), its check meaning and its rule code', async () => {
+    const { rows } = await sbx.db.admin.query<{ k: string; s: Json }>("select entry_kind as k, schema as s from recipe.block_data_schema where block_type = 'TB-01' and block_version = '2' order by 1");
+    expect(Object.fromEntries(rows.map((x) => [x.k, x.s]))).toEqual(Object.fromEntries(Object.entries(TB01_V2.dataSchema?.entries ?? {}).map(([k, v]) => [k, schemaJson(v as unknown as { type: string } & Json)])));
+    const meanings = await sbx.db.admin.query<{ m: string }>("select part || ' ' || meaning_code as m from recipe.block_signature_meaning where block_type = 'TB-01' and block_version = '2'");
+    expect(meanings.rows.map((x) => x.m)).toEqual(['check CONTAINER_CHECKED']);
+    const known = await sbx.db.admin.query<{ n: string }>("select name as n from recipe.engine_name where name = 'TB01-ACTIVITY'");
+    expect(known.rows).toHaveLength(1);
+  });
+
+  it('[PR-19][DI-33] the lot register keeps an activity in U/mg (no 200 % cap) on the ACTIVITY basis only; a percent assay above 200 % and an activity with a water result are refused', async () => {
+    const steward = await stewardActor();
+    const record = (lot: string, result: Json, reason: string | null = null) =>
+      withCommand(sbx.db.app, { ...steward, reasonCode: 'TEST_DATA', reasonText: 'assay' }, (c) => c.query('select tab.record_lot_assay($1, null, $2::jsonb, $3)', [lot, JSON.stringify(result), reason]));
+    expect(await codeOf(record('TEST-L26-0121', { basis: 'ACTIVITY', assay: '1250', water: '2.0', certificateRef: 'COA-0121b' }, 'Activity retested'))).toBe('EBMR-EXE-242');
+    expect(await codeOf(record('TEST-L26-0121', { basis: 'AS_IS', assay: '250', certificateRef: 'COA-0121b' }, 'Wrong basis'))).not.toBe('ok');
+    expect(await codeOf(record('TEST-L26-0121', { basis: 'ACTIVITY', assay: '1250', certificateRef: 'COA-0121b' }, 'Activity retested on the reserve sample'))).toBe('ok');
+    expect(await codeOf(sbx.db.admin.query("insert into tab.lot_assay_result (sandbox_lot_code, basis, assay, certificate_ref, recorded_by_person, recorded_by_account, correlation_id) values ('TEST-L26-0121', 'AS_IS', 250, 'x', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())"))).toMatch(/lot_assay_result_assay_check|check/);
+  });
+});
+
+/** A block schema as recipe.block_data_schema holds it (as granulation/db-guards.test.ts reads it). */
+function schemaJson(s: { type: string } & Json): Json {
+  const o: Json = { type: s.type };
+  if (s.type === 'string') {
+    if (s['enum']) o['enum'] = [...(s['enum'] as string[])];
+    if (s['pattern']) o['pattern'] = (s['pattern'] as RegExp).source;
+  } else if (s.type === 'decimal') {
+    if (s['min'] !== undefined) o['min'] = s['min'];
+    if (s['minExclusive'] === true) o['minExclusive'] = true;
+  } else if (s.type === 'integer') {
+    if (s['min'] !== undefined) o['min'] = s['min'];
+    if (s['max'] !== undefined) o['max'] = s['max'];
+  } else if (s.type === 'object') {
+    o['fields'] = Object.fromEntries(Object.entries(s['fields'] as Record<string, { type: string } & Json>).map(([k, f]) => [k, schemaJson(f)]));
+  } else if (s.type === 'array') {
+    o['items'] = schemaJson(s['items'] as { type: string } & Json);
+    if (s['minItems'] !== undefined) o['minItems'] = s['minItems'];
+    if (s['maxItems'] !== undefined) o['maxItems'] = s['maxItems'];
+  }
+  if (s['optional'] === true) o['optional'] = true;
+  return o;
+}

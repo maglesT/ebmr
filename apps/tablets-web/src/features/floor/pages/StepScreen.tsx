@@ -60,9 +60,10 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
         <StepChoicesProvider key={view.step.stepKey}>
           <StepPlantActs view={view} />
           <Renderer view={view} />
+          {/* Phase 7 slice 7g (WP4): the step's device and equipment, the packaging batch data and print jobs, the detector
+              challenge (slice 7m: inside the choices, so a challenge recorded opens the CHALLENGE entry naming it). */}
+          <StepFloorActs view={view} />
         </StepChoicesProvider>
-        {/* Phase 7 slice 7g (WP4): the step's device and equipment, the packaging batch data and print jobs, the detector challenge. */}
-        <StepFloorActs view={view} />
         {/* Phase 7 slice 7l (R1): the branch of an alternative chosen and a loop iteration ended on the step screen. */}
         <StepFlowActs view={view} />
         <StepExceptions view={view} perform={perform} busy={busy} />

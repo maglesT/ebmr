@@ -153,6 +153,8 @@ const PF_STEP_PLANT = {
   },
   containers: [{ containerId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c06', label: 'OC-B26-0001-0001', stage: 'BLENDING', netQuantity: '19.880', unit: 'kg', problem: null }],
   charges: [],
+  layers: [],
+  chargedStages: {},
 };
 /** Phase 7 slice 7h (WP-C): a person and an instant of the examples below. */
 const STEWARD_EXAMPLE = { personId: '5c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e70', legalName: 'Kavita Rao', loginName: 'steward', role: 'MASTER_DATA_STEWARD' };

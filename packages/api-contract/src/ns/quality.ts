@@ -40,8 +40,37 @@ export const LotResultView = z.strictObject({
   upperLimit: z.string().nullable(),
   verdict: z.enum(['PASS', 'FAIL']),
   state: z.enum(['RECORDED', 'APPROVED', 'REVISED']),
+  /** The time point of a profile test's result (slice 7p); absent for a single test. */
+  point: z.string().optional(),
 });
 export type LotResultView = z.infer<typeof LotResultView>;
+
+/**
+ * A profile test of the lot's specification in effect as one release requirement (slice 7p, site.lot_profile_status):
+ * PASS when every point has an approved current RELEASE result within its limits, FAIL when a point is outside its
+ * limits, OPEN otherwise; each point with its current result and the latest LIMS value.
+ */
+export const LotProfileView = z.strictObject({
+  testCode: z.string(),
+  unit: z.string(),
+  required: z.boolean(),
+  status: z.enum(['PASS', 'FAIL', 'OPEN']),
+  problem: z.string().nullable(),
+  points: z.array(
+    z.strictObject({
+      pointNo: z.number().int().positive(),
+      label: z.string(),
+      stage: z.string().nullable(),
+      timeValue: z.string(),
+      timeUnit: z.enum(['min', 'h']),
+      lowerLimit: z.string().nullable(),
+      upperLimit: z.string().nullable(),
+      result: z.strictObject({ resultId: Uuid, value: z.string(), verdict: z.enum(['PASS', 'FAIL']), state: z.enum(['RECORDED', 'APPROVED', 'REVISED']) }).nullable(),
+      lims: z.strictObject({ sampleId: z.string(), value: z.string().nullable(), unit: z.string().nullable(), verdict: z.enum(['PASS', 'FAIL']).nullable(), conformance: z.string(), state: z.string() }).nullable(),
+    }),
+  ),
+});
+export type LotProfileView = z.infer<typeof LotProfileView>;
 
 export const ErpImportView = z.strictObject({ products: z.number().int(), materials: z.number().int(), orders: z.number().int() });
 
@@ -307,6 +336,8 @@ export const quality = {
       unit: z.string().min(1).max(32).optional(),
       revises: Uuid.optional(),
       revisionReason: z.string().trim().min(1).max(2000).optional(),
+      /** The time point of a profile test, by its label (slice 7p; the database refuses an unknown one). */
+      point: z.string().regex(/^[!-~]( ?[!-~]){0,31}$/).optional(),
       /** A revision of a RELEASE result cites the OOS record of the lot (IN-20; site services 0841). */
       oosDeviationId: Uuid.optional(),
     }),
@@ -336,6 +367,17 @@ export const quality = {
     summary: 'The test results of a lot with their verdicts and states',
     params: lotParams,
     response: z.strictObject({ results: z.array(LotResultView) }),
+  }),
+  lotProfiles: defineRoute({
+    id: 'quality.lotProfiles',
+    method: 'GET',
+    path: '/api/quality/lots/:lotId/profiles',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The profile tests of the lot\'s specification in effect, each as one release requirement with its time points, results and LIMS values (slice 7p)',
+    params: lotParams,
+    response: z.strictObject({ profiles: z.array(LotProfileView) }),
   }),
   deviations: defineRoute({
     id: 'quality.deviations',

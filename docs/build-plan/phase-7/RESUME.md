@@ -248,6 +248,35 @@ database take three TB-18 layers as they are. Decisions in `slice-7o-routes.md`:
 - Browser helpers for the R8 products: `tools/e2e/specs/phase7/own-product-flow.ts` (office) and `own-product-floor.ts`
   (kiosks, either installation).
 
+## Slice 7p (23 October 2026): R4 third check, a dissolution profile as one release requirement (and R8 C4, C7)
+
+Branch `phase-7/slice-7p`; migrations site-services 1720, recipe-core 1725; messages EBMR-SITE-970 to 979. Details and
+decisions D-7p-1 to D-7p-8 in `slice-7p-routes.md`: profile tests with ordered points (and stages for a two-stage test),
+results per point from QC and LIMS judged by the database, one checklist item `G3.PROFILE_<test>` per profile, screens,
+the demo SR product GLV-SR-500 with two finished lots (`cli/demo-sr-profile.ts`), browser spec `phase7/sr-profile.spec.ts`.
+Residuals P7P-1 (staged acceptance L1/L2/L3), P7P-2.
+
+## Slice 7n (23 October 2026): R7, a beta-lactam product in a dedicated suite
+From `demo-trial-requirements.md` R7, on branch `phase-7/slice-7n`; migration recipe-core 1655. Details and the full
+decision text in `slice-7n-routes.md`.
+- D-7n-1: the suite and route B are seeded by `cli/demo-route-beta-lactam.ts`, one line in `cli/installation.ts` after
+  the demo routes (the masters need the in-process demo server; features do not import the CLI).
+- D-7n-2: rooms are dedicated to beta-lactam products through the IN-27 area dedications with a fourth class
+  `BETA_LACTAM` (QA records, a second QA person approves); recipe-core 1655 refuses a beta-lactam batch in a room not
+  dedicated (EBMR-PLANT-177) and any other batch in a dedicated one (EBMR-PLANT-178), at clearance and room start.
+- D-7n-3: rooms and lines, and each unit's use by the room the unit stands in (review P7N-1); the site-wide
+  penicillin rule is unchanged.
+- D-7n-10: a unit with no room recorded is not checked at its use.
+- D-7n-11: the migration is recipe-core 1655 (7m's 1650 merged first; the migration-order check).
+- D-7n-4: the ERP master flags the product beta-lactam; the plant classification of the product and its two actives is
+  made on screen in the browser test, not seeded.
+- D-7n-5: the suite's dedications and SITE-1's penicillin facility rule are seeded through the real commands and
+  signatures.
+- D-7n-6: "alu-alu with desiccant" is a cold-form laminate with a desiccant layer (TB-21 has no desiccant member).
+- D-7n-7: direct compression; compensating excipients only route B's TB-01 steps use (FEFO of other routes unchanged).
+- D-7n-8: the suite's low-humidity limit 30 % RH in the master (G-11 at dispensing, TB-18 cores at coating).
+- D-7n-9: the browser tests reuse the route specs' shared kiosk helpers.
+
 ## After Phase 7
 
 7f exit (trace at 7, one review pass, the release-candidate checklist), then the heavy run on the pod (about 17-18 pod hours,
@@ -276,3 +305,15 @@ hard rules):
 - D-7k-6 (R3.2): "Add another" is offered for every entry kind but a fixed list of once-per-step kinds (starts, ends,
   set-ups, reconciliations, clearances); the database still refuses a second entry where the block forbids one.
 
+
+## Slice 7q (23 October 2026): R8 formula and process capabilities
+
+Branch `phase-7/slice-7q`; migrations recipe-core 1740, tablets 1661, 1662; details and status per capability in
+`slice-7q-routes.md`. C1 overages built (any line, percent or quantity, reason required, in the BOM and the targets,
+signed by QA, shown on the formula editor and the master's bill); C2 built as TB-01@2 (activity in U/mg from LIMS,
+exact, recomputed by the database); C8 built as TB-21 `packFormat.opening` (PEEL_OFF, PEEL_PUSH); C9 exists (TB-16 takes
+three layers); C10 proven (engine trace, validator and simulation of a wet and a dry branch blended in one TB-07).
+Decisions D-7q-1 to D-7q-6 (in `slice-7q-routes.md`): overage on any line with a reason, earlier lines unchanged; the
+overage shown on the master's bill and checked against the formula; peel-off as a TB-21@1 configuration option;
+activity units as TB-01@2 (ADR 0010); no C9 follow-up; C10 needs no genealogy change. Follow-up 7q-1: the lot assay
+register has no screen.

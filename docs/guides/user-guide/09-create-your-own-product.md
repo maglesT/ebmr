@@ -54,7 +54,8 @@ opens it. Under **Write a new version**, add one line per material:
 
 - line id, material code, role (active, excipient, coating, processing aid);
 - basis: per unit (mg in one tablet) or per batch (kg, for a processing aid such as a granulating solvent);
-- quantity, and for an active its overage and salt factor if any;
+- quantity, an overage if the material is formulated in excess of its label claim (in percent, or as a quantity in the
+  line's unit, always with its reason), and for an active its salt factor if any;
 - **Potency adjusted at dispensing** for an active whose quantity follows the lot's assay and LOD (TB-01), with exactly
   one **Compensating excipient** that takes up the difference.
 
@@ -154,3 +155,22 @@ QC, the production and QA reviews and the release.
 A GMP batch needs the plant the master names (rooms, equipment and their kiosks) registered and qualified; with the
 skeleton's sandbox clearance and status steps (G-10 and G-09 version 1) the validator reports that a GMP batch refuses
 them: insert their database-backed versions from the palette once the plant is in place.
+
+## 9. Complex formulations
+
+Some products need more than one route or a special calculation. Each is built from the existing blocks:
+
+- **Overages.** A line's overage (percent or quantity, with its reason) leaves the label claim as typed; the computed
+  batch quantity, the master's bill of materials (which shows "includes an overage of ...: reason") and every
+  dispensing target include it. QA approves the overage and its reason with the formula.
+- **Enzymes assayed by activity.** Use TB-01 version 2 with the basis **ACTIVITY** and the **declared activity** (U/mg)
+  the bill's quantity is stated at; the lot's activity comes from its approved LIMS result (test ACTIVITY, in U/mg). A
+  lot of higher activity takes proportionally less, the compensating excipient makes up the difference, and the record
+  shows the label claim of the batch in units.
+- **Peel-off blisters.** In TB-21's pack format set **opening** to PEEL_OFF (or PEEL_PUSH) with the peelable lidding
+  foil as the lidding web; a strip pack cannot be peel-off.
+- **Trilayer tablets.** TB-16 takes two or three layers, each with its own hopper, blend and checks.
+- **Branches merging into one blend.** Put a **parallel** step around a wet branch (TB-03, TB-04, TB-05, TB-02, G-22)
+  and a dry branch (TB-06, TB-02, G-22), each with its own intermediate and its own equipment (branches that run at the
+  same time never share a machine), and let the TB-07 blend use both intermediates; the directly weighed materials are
+  dispensed and added at the blend. Every container is traced from the step that made it to the step it went into.

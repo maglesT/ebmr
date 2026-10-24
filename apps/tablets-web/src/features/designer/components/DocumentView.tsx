@@ -459,7 +459,15 @@ export function DocumentView(props: DocumentProps) {
                 <td className={dcls('mono')}>{b.id}</td>
                 <td>{referenceLabel(c, b.material)}</td>
                 <td>{humanize(b.role)}</td>
-                <td>{quantityWords(b.quantity)}</td>
+                <td>
+                  {quantityWords(b.quantity)}
+                  {b.overage ? (
+                    <span data-testid={`bom-overage-${b.id}`}>
+                      {' '}
+                      (includes an overage of {b.overage.percent !== undefined ? `${b.overage.percent} %` : b.overage.quantity ? `${quantityWords(b.overage.quantity)} ${b.overage.quantity.unit === 'mg' ? 'per unit' : 'per batch'}` : ''}: {b.overage.reason})
+                    </span>
+                  ) : null}
+                </td>
                 <td>{b.specimen ? referenceLabel(c, b.specimen) : b.role === 'PRINTED_COMPONENT' ? 'missing (a printed component needs one)' : '—'}</td>
               </tr>
             ))}
