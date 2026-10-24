@@ -232,10 +232,36 @@ flow acts go through the badge tap (INV-40); the route seeding stays on demo dat
 - P7L-3 (residual): a named-entry picker with an id pattern outside NAMED_KINDS offers entries of every kind; the block
   and the database refuse a wrong pick.
 
+## Slice 7p (23 October 2026)
+
+- P7P-1 (residual, owner rule D-7p-1): one dissolution result per time point (the mean as the LIMS reports it). The
+  pharmacopoeial staged acceptance (stages 1 to 3, more units at each stage, R8 C6) is not modelled; QC records the
+  deciding stage's mean. Follow-up for export markets.
+- P7P-2 (residual, cosmetic): the transfer package's certificate of analysis (site services 0980) lists a point's result
+  by its test code without the point.
+- P7P-3 (fixed, review): boundary and scale tests: a QC or LIMS result exactly on a point's upper or lower limit (40 vs
+  40, 45 vs 45) passes at any scale (40.0, 45.000), just beyond it fails (`profiles.test.ts`).
+- P7P-4 (fixed, review): the checklist item of a profile is named from its code with every character other than A-Z,
+  0-9 and _ read as _, so DISS.1 and DISS-1 would share G3.PROFILE_DISS_1; such a pair of profile tests is refused when
+  the specification is drafted (EBMR-SITE-976, site services 1720; `profiles.test.ts`).
+- P7P-5 (residual, by design under D-7p-5): the database does not tie a stage's name to the direction of its limit; an
+  acid stage with only a lower limit is accepted. The limits the specification states are what is judged; the approver
+  checks them.
+
+## Slice 7n (one review pass, 23 October 2026)
+- P7N-1 (fixed): a unit's use needs no room occupancy (plant.start_equipment_use, recipe-core 0403), so a beta-lactam
+  batch could use a unit standing in a room not dedicated to beta-lactam products, or any batch a unit of the suite.
+  Recipe-core 1655 now also guards plant.equipment_use (before insert, whoever writes) by the room or line the unit stands
+  in; a unit with no room is not checked (D-7n-10). Test `beta-lactam-rooms.test.ts`, both ways.
+- P7N-2 (fixed, tests): two cases had no test: a beta-lactam classification made after the batch was issued counts at
+  once (the rule reads it live), and a later dedication not yet approved leaves the earlier approved one in force.
+- P7N-3 (fixed, browser tests): the route B specs opened screens by typed address; they now move by the home link,
+  tiles and lists (R2, R3), except inside the shared kiosk helpers that route W also uses (listed in
+  `slice-7n-routes.md`). Route B has its own end-to-end group (`route-b`) in `playwright.config.ts` and `ci.yml`.
+
 ## Slice 7m (one review pass, 23 October 2026)
 
 Nothing blocking.
-
 - P7M-1 (fixed in 7m): the TB-16 layer-charge panel still offered "Record the charge" for a charge the step had
   recorded. It now offers only charges no entry of the step names (`step-plant-acts.test.tsx`); a second entry of a
   charge was already refused by the database (TB16-CHARGE, `forming/db-guards.test.ts`).

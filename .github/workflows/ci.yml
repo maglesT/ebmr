@@ -74,17 +74,18 @@ jobs:
           if-no-files-found: warn
 
   tests:
-    name: Tests (shard ${{ matrix.shard }} of 6)
+    name: Tests (shard ${{ matrix.shard }} of 8)
     runs-on: ubuntu-latest
     # The whole suite (about 2,700 tests, mostly against PostgreSQL) took 55 minutes on one 2-core runner at the end
     # of Phase 2 (run 37980059094), next to the job's 60-minute limit. Four shards, each with its own PostgreSQL,
     # run every test once; the report job merges their blob reports into the one Vitest report the trace reads.
     # Six shards since Phase 6 (16 October): with slices 6a to 6i the slowest of four reached the 45-minute limit.
+    # Eight since Phase 7 slice 7p (23 October): the slowest of six took 40 minutes on main and passed 45 with 7p.
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
     steps:
@@ -107,7 +108,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm vitest run --shard=${{ matrix.shard }}/6 --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
+      - run: pnpm vitest run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
       - name: Upload the group's blob report
         if: always()
         uses: actions/upload-artifact@v4
@@ -195,7 +196,7 @@ jobs:
       # A missing shard fails here: the trace below must see every test of the suite.
       - name: Merge the shard reports into .reports/vitest.json
         run: |
-          test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 6
+          test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 8
           mkdir -p .reports
           pnpm vitest run --mergeReports=.vitest-blobs --reporter=json --outputFile=.reports/vitest.json
       - name: Failed tests (summary)
@@ -244,7 +245,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [route-w, route-d, route-s, gmp-batches, rest]
+        group: [route-w, route-d, route-s, route-b, gmp-batches, rest]
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
       CI: 'true'

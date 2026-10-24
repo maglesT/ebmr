@@ -85,6 +85,7 @@ export {
   EvidenceDocumentView,
   ExtraTestingView,
   LotResultView,
+  LotProfileView,
   LotSummaryView,
   ReprocessingAuthorisationView,
   ReprocessingRequestView,
@@ -210,6 +211,7 @@ export {
   AllocationUse,
   EndorsedProduct,
   ExportPermissionView,
+  DedicationClass,
   H2IssueView,
   HazardClass,
   HazardView,
@@ -235,7 +237,7 @@ export {
   PqrReconciliation,
   PqrSignOffView,
 } from './ns/pqr.ts';
-export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
+export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, ProfilePointInput, ProfilePointView, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView, StepBindingsView } from './ns/device-readings.ts';
 export {

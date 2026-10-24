@@ -40,6 +40,9 @@ tests:
   - "packages/recipe-core/test/mutation/plant-rules.test.ts > the clean hold of a room (PR-25) > [PR-25] a room with a clean hold that was never cleaned is refused"
   - "packages/recipe-core/test/mutation/plant-rules.test.ts > the clean hold of a room (PR-25) > [PR-25] another batch's occupancy of the room does not carry this batch past an expired clean hold"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15][PR-25][PR-35] the master-data steward saves a room's rules and records an adjacency; a refusal is shown in the database's words"
+  - "tools/e2e/specs/phase7/route-b-refusals.spec.ts > [PR-25][IN-39][PR-27] route B refusals 3: in the beta-lactam suite a dispensing-room humidity above the suite's limit raises the environmental excursion on the step (G-11) @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [DI-30][INV-40][PR-20][PR-25][IN-39] route B 3: dispensing on KIOSK-BL-DISP: the room's humidity within the suite's low limit (G-11), both actives potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
+  - "tools/e2e/specs/phase7/route-b.spec.ts > [IN-37][PR-25][PR-29][DI-29][DI-32][INV-19] route B 6: film coating on KIOSK-BL-COAT: the suspension (TB-03), the cores with the coating room checked against the suite's low humidity limit (TB-18), the film to its weight gain in the loop, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
 clauses:
   - clause: "Starting product Y in a room occupied by product X is blocked."
     tests:

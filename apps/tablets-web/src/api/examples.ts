@@ -120,6 +120,7 @@ function gmpSlice6(steps: { step: { stepKey: string } }[]): FixtureMap {
     ...firstExamples,
     ...Object.fromEntries(deviationRoutes.map((id) => [id, deviation])),
     'quality.lotResults': { results: [] },
+    'quality.lotProfiles': { profiles: [] },
     'batches.step': ({ params }: { params: Record<string, string> }) => gmpSteps.find((s) => s.step.stepKey === params['stepKey']) ?? EXAMPLES['batches-step'].data,
     'batches.command': ({ body }: { body: unknown }) => {
       const b = body as { expectedVersion: number; viewStepKey?: string; intent: { stepKey?: string } };

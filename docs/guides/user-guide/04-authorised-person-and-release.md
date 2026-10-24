@@ -31,6 +31,34 @@ A lot cannot ship to a market without that market's disposition (the shipping in
 | Read an EU batch package as the importer's QP | `/qp` (home tile **QP batch packages**) | `QP_PACKAGE.READ` | none |
 | Add or remove a market of a batch after issue (QA) | `/release/batches/$batchId` | `RECORD.QA_REVIEW` | `MARKET_ADDED`, `MARKET_REMOVED` |
 
+## Profiles: a dissolution profile as one release requirement
+
+A sustained-release tablet is released on several time points of one dissolution test (for example 1 h, 4 h and 8 h),
+each with its own limits; a delayed-release (gastro-resistant) tablet on an acid stage that must stay at or below a
+limit and a buffer stage that must reach at least one. Both are written as one **profile** test of the specification.
+
+1. **Specification (QC drafts, the head of QC or QA approves):** Quality, Specifications. *Start a new version from* the
+   version in effect copies its tests into the draft. For the new test choose **Profile (time points)**; give each point
+   its label (e.g. `1 h`), its time and unit (min or h) and its own lower and/or upper limit; for a two-stage test also
+   the stage and medium of each point (e.g. `Acid 0.1 M HCl`, `Buffer pH 6.8`). The database keeps the points in time
+   order (within each stage) and refuses a profile with fewer than two points or with limits on the test itself. The
+   approval signs the points; an approved version never changes.
+2. **Results (QC):** Quality, Material lots, the lot. The **Profiles** section lists each point with its limits, its
+   result and the latest value the LIMS sent for it. Type the value at each point (or take the LIMS value) and record it;
+   the database judges it against that point's limits and refuses a result for a point the specification does not have.
+   Approve each point's result in the results list as any other result (`QC_RESULT_APPROVED`, another QC person).
+3. **Release:** the checklist shows the profile as one line, `G3.PROFILE_<test>`, with one evidence entry per point. It
+   is green only when every point has an approved result within its limits; a point outside its limits fails it (raise
+   the OOS record from the failing result as for any test); a point without a result keeps it open. While it is red the
+   lot is not ready and the manufacturer release is not offered; the database refuses it as well.
+
+One result is recorded per point: the mean of the units tested, as the LIMS reports it (decision D-7p-1). The
+pharmacopoeial staged acceptance of dissolution (stages 1 to 3 with more units) is not built yet; record the stage
+result that decides, and investigate as usual.
+
+Content uniformity of a low-dose tablet is a single test with an upper limit on the acceptance value (for example AV at
+most 15): its result is judged and released like any other test (decision D-7p-6).
+
 ## After release
 
 | Task | Screen | Right | Signature meaning |

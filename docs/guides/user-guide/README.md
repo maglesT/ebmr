@@ -16,6 +16,7 @@ in, the two installations, signing, and what to do when the system refuses somet
 | [Data-integrity lead](07-data-integrity-lead.md) | `CSV_DI_LEAD`, with `QA_REVIEWER` for the audit-trail review |
 | [Controlled-substance roles](08-controlled-substances.md) | the holders of a `CONTROLLED.*` right |
 | [Create your own product](09-create-your-own-product.md) | `MASTER_DATA_STEWARD`, `QA_MBR_APPROVER`, `MBR_AUTHOR`, the sandbox floor |
+| [Making an antibiotic safely: dedicated rooms and the refusals](10-antibiotic-dedicated-suite.md) | `MASTER_DATA_STEWARD`, `QA_MBR_APPROVER`, the beta-lactam suite's floor (demo part) |
 
 The lists behind the tasks are generated from the code:
 
