@@ -57,6 +57,15 @@ assumes one coating per batch. On screen it needed the designer's "Add a coating
   documents by material-master pins; a master from a formula pinned a material to its material-master version although
   a MATERIAL document was in force (the register then called it unknown); the designer could not remove an optional
   group whose members are required (a copied acid stage, TB15-STAGE).
+- Found by the sandbox runs and fixed, each with its test: a test run's disposal could not name its own output container
+  (the identifier rule read the label as a lot number: tablets 1700, and the record's free-text rule did not count it a
+  bound word: recipe-core 1701); the replay check asked a phase created not applicable (an untaken branch) for stored
+  content, so the run was exported as not passed (execution/verify.ts); the cleaning a test run's stages need was read
+  on GMP only (`batches.cleaningNeeds` now ANY; the plant screen lists the floor's runs).
+- Result: Demotab passes tests 1 to 3 in the browser (materials, product, formula, master copied and edited, change
+  control, the whole processing run on the sandbox's kiosks, its result as evidence, four signatures, IN authorisation).
+  The rabeprazole master with the seal, enteric and top coats added in the designer passes the checks and goes to the
+  sandbox (tests 1 and 2).
 
 ## Notes
 
