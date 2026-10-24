@@ -366,6 +366,7 @@ tests:
   - "apps/tablets-server/test/esig/signing-meanings-7g.test.ts > decision D-P7R-6: the QP register and the compendial rule sets stay GOVERNANCE class > [DI-17][DI-37] a role with only RECORD.READ reads neither a qp_register nor a compendial_rule_set record; the QA MBR approver who signs a rule set reads it"
   - "apps/tablets-server/test/mutation/read-authorisation.test.ts > tab.record_read_problem and tab.reader_is_contract_giver as Phase 7 re-creates them (tablets 1426, 1493; D-P7-1 item 4) > [DI-17][DI-37] a compendial rule set and a QP registration are read by a role that signs them and by a governance role, and by no other role (D-P7R-6)"
   - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C3: the EU importer on the qualified-person register screen (EU_IMPORTER_REGISTER) > [DI-39][DI-17][DI-37] QA registers an EU importer by signing its definition (EU_IMPORTER_APPROVED); it is then offered for a QP registration; the QA MBR approver may not sign it; the code once and one importer per product"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > G-07 on the GMP installation (slice 6d: every dispensed lot is consumed, tablets 1093) > [PR-19][DI-33][DI-37] slice 7q (C2): on GMP an enzyme activity comes from an approved, passing ACTIVITY result of the lot in U/mg; a percent result, an activity in another unit or an activity on a percent basis is refused"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

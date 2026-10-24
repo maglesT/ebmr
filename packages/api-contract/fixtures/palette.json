@@ -1410,6 +1410,214 @@
       ]
     },
     {
+      "key": "TB-01@2",
+      "type": "TB-01",
+      "version": "2",
+      "title": "Potency/assay/LOD- or activity-adjusted dispensing with compensating excipient",
+      "plainName": "Potency/assay/LOD- or activity-adjusted dispensing with compensating excipient",
+      "level": "PHASE",
+      "roles": [
+        "DISPENSING",
+        "CALCULATION"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Potency-adjusted dispensing of one active with its compensating excipient",
+        "fields": {
+          "active": {
+            "type": "object",
+            "description": "The active BOM line and how its standard quantity is stated",
+            "fields": {
+              "bomLine": {
+                "type": "string",
+                "description": "BOM line of the active (role ACTIVE)"
+              },
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "AS_IS",
+                  "ANHYDROUS_WATER",
+                  "DRIED_LOD",
+                  "ANHYDROUS_SOLVENT_FREE",
+                  "ACTIVITY"
+                ],
+                "description": "Assay basis (or ACTIVITY: the lot's enzyme activity in U/mg); it must match the basis of the lot result (no default)"
+              },
+              "standardIs": {
+                "type": "string",
+                "enum": [
+                  "BASE",
+                  "FORM"
+                ],
+                "description": "The BOM quantity states the label-claim moiety (BASE) or the declared form at 100 % (FORM)"
+              },
+              "standardBasis": {
+                "type": "string",
+                "description": "The standard-quantity basis in words, e.g. \"salt, anhydrous, at 100.0 % as-is\""
+              },
+              "form": {
+                "type": "object",
+                "optional": true,
+                "description": "Declared chemical form and its molar masses (C-02; mandatory when the standard is the base)",
+                "fields": {
+                  "name": {
+                    "type": "string",
+                    "description": "Declared form, e.g. \"atorvastatin calcium, anhydrous\""
+                  },
+                  "molarMassForm": {
+                    "type": "decimal",
+                    "min": "0",
+                    "minExclusive": true,
+                    "description": "Molar mass of the form the assay is expressed in, g/mol"
+                  },
+                  "molarMassBase": {
+                    "type": "decimal",
+                    "min": "0",
+                    "minExclusive": true,
+                    "description": "Molar mass of the base moiety of the label claim, g/mol"
+                  },
+                  "baseMoieties": {
+                    "type": "integer",
+                    "min": 1,
+                    "max": 4,
+                    "description": "Base moieties per formula unit (2 for a hemi-calcium salt)"
+                  },
+                  "hydrateWaters": {
+                    "type": "integer",
+                    "min": 0,
+                    "max": 12,
+                    "description": "Waters of hydration in the form (0 for an anhydrous form)"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Source of the molar masses (master data reference)"
+                  }
+                }
+              },
+              "overagePercent": {
+                "type": "decimal",
+                "min": "0",
+                "optional": true,
+                "description": "Registered overage in percent (default 0; above 0 only with a registration reference)"
+              },
+              "registrationRef": {
+                "type": "string",
+                "optional": true,
+                "description": "Registration reference of the overage (PR-04)"
+              },
+              "maxLots": {
+                "type": "integer",
+                "min": 1,
+                "max": 3,
+                "optional": true,
+                "description": "Lots the active may be allocated across (default 3)"
+              },
+              "declaredActivity": {
+                "type": "decimal",
+                "min": "0",
+                "minExclusive": true,
+                "description": "ACTIVITY basis: the activity in U/mg the BOM's standard quantity is stated at (slice 7q, C2)",
+                "optional": true
+              }
+            }
+          },
+          "compensation": {
+            "type": "object",
+            "description": "The compensating excipient (q.s.) and its approved range, or no compensation",
+            "fields": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "EXCIPIENT",
+                  "NONE"
+                ],
+                "description": "EXCIPIENT, or NONE where the registered formula lets the core weight vary"
+              },
+              "bomLine": {
+                "type": "string",
+                "optional": true,
+                "description": "BOM line of the compensating excipient"
+              },
+              "min": {
+                "type": "decimal",
+                "min": "0",
+                "optional": true,
+                "description": "Lowest approved quantity, in the BOM unit"
+              },
+              "max": {
+                "type": "decimal",
+                "min": "0",
+                "optional": true,
+                "description": "Highest approved quantity, in the BOM unit"
+              },
+              "registrationRef": {
+                "type": "string",
+                "optional": true,
+                "description": "Registration reference that lets the core weight vary (mode NONE)"
+              }
+            }
+          },
+          "readability": {
+            "type": "decimal",
+            "min": "0",
+            "minExclusive": true,
+            "description": "Balance readability the targets are rounded to, in the BOM unit (active UP, excipient to the nearest step)"
+          },
+          "tolerancePercent": {
+            "type": "object",
+            "description": "Tolerance of each dispensed total around its target, in percent (no default)",
+            "fields": {
+              "active": {
+                "type": "decimal",
+                "min": "0",
+                "description": "Active"
+              },
+              "excipient": {
+                "type": "decimal",
+                "min": "0",
+                "optional": true,
+                "description": "Compensating excipient"
+              }
+            }
+          },
+          "adjustmentCapPercent": {
+            "type": "decimal",
+            "min": "0",
+            "optional": true,
+            "description": "Adjustment of the active beyond which POTENCY_ADJUSTMENT_CAP is raised (default none)"
+          }
+        }
+      },
+      "defaultConfig": {
+        "active": {
+          "bomLine": "",
+          "basis": "AS_IS",
+          "standardIs": "BASE",
+          "standardBasis": ""
+        },
+        "compensation": {
+          "mode": "EXCIPIENT"
+        },
+        "readability": "0",
+        "tolerancePercent": {
+          "active": "0"
+        }
+      },
+      "controls": [
+        "PR-04",
+        "PR-18",
+        "PR-19",
+        "PR-20",
+        "IN-23",
+        "IN-24",
+        "DI-30",
+        "DI-33"
+      ]
+    },
+    {
       "key": "TB-02@1",
       "type": "TB-02",
       "version": "1",
@@ -6553,6 +6761,16 @@
                   "STRIP"
                 ],
                 "description": "Thermoform, cold form or strip"
+              },
+              "opening": {
+                "type": "string",
+                "enum": [
+                  "PUSH_THROUGH",
+                  "PEEL_OFF",
+                  "PEEL_PUSH"
+                ],
+                "optional": true,
+                "description": "How the blister is opened: push through the lidding foil (default), peel the lidding foil off, or peel then push (slice 7q, C8)"
               },
               "unitsPerBlister": {
                 "type": "string",

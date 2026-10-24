@@ -163,6 +163,20 @@ describe('TB-21 definition checks', () => {
   };
   const W = 'Blister step p';
 
+  it('[PR-33] a peel-off blister (slice 7q, C8): the pack format states its opening; a cold-form or thermoform blister may be peel-off or peel-push, a strip pack has no lidding foil to peel', () => {
+    const FORMAT = RUN['packFormat'] as Json;
+    const cold = { role: 'FORMING_FILM', material: 'OPA-ALU-PVC' };
+    const peel = { role: 'LIDDING_FOIL', material: 'PAPER-PET-ALU-PEEL' };
+    expect(P({ packFormat: { ...FORMAT, form: 'COLD_FORM', opening: 'PEEL_OFF' }, materials: [cold, peel] })).toEqual([]);
+    expect(P({ packFormat: { ...FORMAT, form: 'THERMOFORM', opening: 'PEEL_PUSH' } })).toEqual([]);
+    expect(P({ packFormat: { ...FORMAT, opening: 'PUSH_THROUGH' } })).toEqual([]);
+    const strip = { materials: [{ role: 'STRIP_FOIL', material: 'S' }], actuals: (RUN['actuals'] as Json[]).slice(1) };
+    expect(P({ ...strip, packFormat: { ...FORMAT, form: 'STRIP', opening: 'PEEL_OFF' } })).toEqual([`TB21-OPENING [PR-33] ${W}: a strip pack has no lidding foil to peel; a peel-off opening is a blister's (THERMOFORM or COLD_FORM)`]);
+    expect(P({ ...strip, packFormat: { ...FORMAT, form: 'STRIP', opening: 'PUSH_THROUGH' } })).toEqual([]);
+    const opening = (((TB21.configSchema as blocks.ObjectSchema).fields['packFormat'] as blocks.ObjectSchema).fields['opening'] as unknown as { enum: string[]; optional: boolean });
+    expect([opening.enum, opening.optional]).toEqual([['PUSH_THROUGH', 'PEEL_OFF', 'PEEL_PUSH'], true]);
+  });
+
   it('[IN-38][PR-33] the pack format: change parts once; the webs its form takes, each once; printed webs named on the MBR\'s G-21 step with their material', () => {
     expect(P({})).toEqual([]);
     expect(P({ packFormat: { form: 'THERMOFORM', changeParts: ['A', 'A'] } })).toEqual([`TB21-FORMAT [IN-38] ${W} lists a change part twice`]);

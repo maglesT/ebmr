@@ -88,7 +88,7 @@ describe('formulation library (slice 6a)', () => {
   it('[INV-25] formula quantities are computed from the composition and the batch size, never typed', async () => {
     const formulaId = await newFormula('100000', prod('D'));
     const salted: FormulaLineInput[] = [
-      { lineId: 'api', materialCode: 'MAT-SALT', role: 'ACTIVE', basis: 'PER_UNIT', quantity: '250', overagePercent: '2', saltFactor: '1.0812', potencyAdjusted: true, compensating: false },
+      { lineId: 'api', materialCode: 'MAT-SALT', role: 'ACTIVE', basis: 'PER_UNIT', quantity: '250', overagePercent: '2', overageReason: 'Loss on storage over the shelf life', saltFactor: '1.0812', potencyAdjusted: true, compensating: false },
       { lineId: 'mcc', materialCode: 'MAT-MCC', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '94.5', potencyAdjusted: false, compensating: true },
     ];
     const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'Salt form, 2 % overage', lines: salted } }));
