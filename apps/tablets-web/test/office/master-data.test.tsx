@@ -69,6 +69,31 @@ describe('formulas', () => {
     });
     expect(await screen.findByText('Only one compensating excipient per formula.')).toBeTruthy();
   });
+
+  it('[INV-25] slice 7q (C1): an overage is written with its reason and shown with it beside the label claim', async () => {
+    const lines = formula.versions[0]?.lines ?? [];
+    const withOverage = { ...formula, versions: [{ ...(formula.versions[0] as (typeof formula.versions)[number]), lines: lines.map((l, i) => (i === 0 ? { ...l, overagePercent: null, overageQuantity: '0.3', overageReason: 'Loss on the blender walls' } : l)) }] };
+    const ui = renderOffice(formulaPath, { role: 'MASTER_DATA_STEWARD', fixtures: { 'masterData.formula': withOverage } });
+    const table = await screen.findByTestId('composition');
+    expect(table.textContent).toContain(`overage 0.3 ${lines[0]?.quantityUnit ?? 'mg'}`);
+    expect(table.textContent).toContain('(Loss on the blender walls)');
+    const form = await screen.findByTestId('new-formula-version');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Line id' }), 'vit');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Material code' }), 'RM-VITC');
+    await userEvent.click(within(form).getByRole('radio', { name: 'ACTIVE' }));
+    await userEvent.click(within(form).getByRole('radio', { name: 'PER_UNIT' }));
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Quantity' }), '40');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Overage %' }), '10');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Reason for the overage' }), 'Loss of vitamin C over the shelf life');
+    for (const r of within(form).getAllByRole('radio', { name: 'No' })) await userEvent.click(r);
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Reason for the new version' }), 'Overage added');
+    await userEvent.click(within(form).getByRole('button', { name: 'Write the draft version' }));
+    await waitFor(() => expect(ui.posts(`/api/master-data/formulas/${formula.formula.formulaId}/versions`)).toHaveLength(1));
+    expect(ui.posts(`/api/master-data/formulas/${formula.formula.formulaId}/versions`)[0]?.body).toEqual({
+      changeReason: 'Overage added',
+      lines: [{ lineId: 'vit', materialCode: 'RM-VITC', role: 'ACTIVE', basis: 'PER_UNIT', quantity: '40', overagePercent: '10', overageReason: 'Loss of vitamin C over the shelf life', potencyAdjusted: false, compensating: false }],
+    });
+  });
 });
 
 describe('ERP masters and plant definitions', () => {

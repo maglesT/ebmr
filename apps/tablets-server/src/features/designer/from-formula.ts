@@ -20,6 +20,7 @@ import { Dec } from '@ebmr/expr';
 import type { formula } from '@ebmr/recipe-core';
 import { flow as flowNs, type flow } from '@ebmr/recipe-core/pure';
 import { FamilyInputError, KNOWN_MARKETS, scaleDecimal } from './family.ts';
+import { bomOverage, withOverageQuantity } from './formula-choice.ts';
 import { materialReference, type MaterialMaster } from './material-refs.ts';
 import type { MbrTemplate } from './templates/index.ts';
 
@@ -44,9 +45,9 @@ const SKELETON_REFS = ['SOP-DISP-001', 'SOP-BLEND-002', 'SOP-CLEAN-003', 'SYS-WE
 const bomId = (l: formula.FormulaLine): string => `BOM-${l.lineId.toUpperCase()}`;
 const BOM_ROLE: Readonly<Record<formula.FormulaLineRole, flow.BomRole>> = { ACTIVE: 'ACTIVE', EXCIPIENT: 'EXCIPIENT', COATING: 'EXCIPIENT', PROCESSING_AID: 'PROCESSING_AID' };
 
-/** The quantity of one unit, mg, the overage and salt factor applied: q x (100 + overage) / 100 x factor (exact). */
+/** The quantity of one unit, mg, the overage and salt factor applied: (q + overage q) x (100 + overage) / 100 x factor (exact). */
 export function unitMg(l: formula.FormulaLine): string {
-  return Dec.parse(l.quantity).times(Dec.parse('100').plus(Dec.parse(l.overagePercent ?? '0'))).div(Dec.parse('100')).times(Dec.parse(l.saltFactor ?? '1')).toString();
+  return Dec.parse(withOverageQuantity(l)).times(Dec.parse('100').plus(Dec.parse(l.overagePercent ?? '0'))).div(Dec.parse('100')).times(Dec.parse(l.saltFactor ?? '1')).toString();
 }
 
 const sum = (xs: readonly string[]): string => xs.reduce((a, x) => a.plus(Dec.parse(x)), Dec.parse('0')).toString();
@@ -94,7 +95,11 @@ function materialRefs(src: FormulaSource): flow.Reference[] {
   });
 }
 
-const bomOf = (src: FormulaSource): flow.BomLine[] => src.chosen.lines.map((l) => ({ id: bomId(l), material: l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } }));
+const bomOf = (src: FormulaSource): flow.BomLine[] =>
+  src.chosen.lines.map((l) => {
+    const overage = bomOverage(l);
+    return { id: bomId(l), material: l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' }, ...(overage ? { overage } : {}) };
+  });
 
 function parsed(content: flow.MbrContent): flow.MbrContent {
   const check = flowNs.parseMbr(JSON.parse(JSON.stringify(content)));

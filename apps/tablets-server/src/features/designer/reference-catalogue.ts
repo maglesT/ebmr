@@ -127,6 +127,8 @@ function demoRouteReferenceDocuments(): ReferenceDocumentSeed[] {
     doc('HOLD_STUDY', 'HS-RTW', 'Hold-time study: route W intermediates', 'Maximum hold of the dried granules, the lubricated blend and the coated tablets.'),
     doc('COMPUTERISED_SYSTEM', 'SYS-GRAN', 'Granulation suite control system', 'Validated configuration of the granulator and fluid-bed dryer controllers behind the site gateway.'),
     doc('EQUIPMENT_CLASS', 'EQC-MILL', 'Co-mill with screens', 'Equipment class of the sifter and mill (process equipment).'),
+    // Slice 7q (R8, C10): the ribbon check risk assessment of a dry granulation branch (TB-06; EQC-RC and SYS-RC are route D's).
+    doc('RISK_ASSESSMENT', 'QRM-RC-01', 'Risk assessment of the ribbon check frequency', 'Ribbon thickness and solid fraction checked every 30 minutes and at the end of the run.'),
     doc('EQUIPMENT_CLASS', 'EQC-HT', 'Tablet hardness and thickness tester', 'Equipment class of the in-process hardness tester (instrument).'),
     doc('EQUIPMENT_CLASS', 'EQC-FRB', 'Friability tester', 'Equipment class of the friabilator (instrument).'),
     doc('EQUIPMENT_CLASS', 'EQC-DT', 'Disintegration tester', 'Equipment class of the disintegration apparatus (instrument).'),

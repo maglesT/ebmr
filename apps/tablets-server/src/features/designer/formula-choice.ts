@@ -47,7 +47,22 @@ function dispensedOnBase(content: flow.MbrContent, bomLine: string): boolean {
 function bomQuantity(content: flow.MbrContent, line: flow.BomLine, f: formula.FormulaLine, units: string): string {
   if (f.saltFactor === null || f.role !== 'ACTIVE' || f.basis !== 'PER_UNIT' || !dispensedOnBase(content, line.id)) return f.batchQuantity;
   const over = Dec.parse(f.overagePercent ?? '0');
-  return Dec.parse(f.quantity).times(Dec.parse(units)).times(Dec.parse('100').plus(over)).div(Dec.parse('100000000')).toString();
+  return Dec.parse(withOverageQuantity(f)).times(Dec.parse(units)).times(Dec.parse('100').plus(over)).div(Dec.parse('100000000')).toString();
+}
+
+/** The line's quantity plus its overage quantity (slice 7q, C1), in the line's unit (exact). */
+export function withOverageQuantity(f: formula.FormulaLine): string {
+  return Dec.parse(f.quantity).plus(Dec.parse(f.overageQuantity ?? '0')).toString();
+}
+
+/**
+ * The overage a BOM line taken from formula line `f` states (slice 7q, C1; recipe-core 1740 formula_line_overage_json):
+ * the reasoned overage, as a percent or as a quantity in the line's unit; none for a line without a reason.
+ */
+export function bomOverage(f: formula.FormulaLine): flow.BomOverage | undefined {
+  if (!f.overageReason) return undefined;
+  if (f.overageQuantity) return { reason: f.overageReason, quantity: { value: f.overageQuantity, unit: f.quantityUnit } };
+  return { reason: f.overageReason, percent: f.overagePercent ?? '0' };
 }
 
 /**
@@ -67,6 +82,9 @@ export function withFormulaBom(content: flow.MbrContent, chosen: formula.Formula
     const f = chosen.lines.find((l) => l.materialCode === code);
     if (!f) throw mismatch(`BOM line ${line.id} (${code}) is not a material of the formula.`);
     line.quantity = { value: bomQuantity(out, line, f, chosen.batchSizeUnits), unit: 'kg' };
+    const overage = bomOverage(f);
+    if (overage) line.overage = overage;
+    else delete line.overage;
     used.add(f.lineId);
   }
   const missing = chosen.lines.filter((l) => !used.has(l.lineId));

@@ -18,6 +18,7 @@ import {
   REFERENCE_KINDS,
   type AlternativeBranch,
   type BomLine,
+  type BomOverage,
   type Calculation,
   type Decision,
   type EventRef,
@@ -329,17 +330,34 @@ function externalInput(r: Reader, v: unknown, path: string): ExternalInput | und
 }
 
 function bomLine(r: Reader, v: unknown, path: string): BomLine | undefined {
-  const o = r.object(v, path, ['id', 'material', 'role', 'quantity'], ['specimen']);
+  const o = r.object(v, path, ['id', 'material', 'role', 'quantity'], ['specimen', 'overage']);
   if (!o) return undefined;
   const id = r.id(o, 'id', path);
   const material = r.id(o, 'material', path);
   const role = r.literal(o, 'role', path, ['ACTIVE', 'EXCIPIENT', 'PROCESSING_AID', 'PRIMARY_PACKAGING', 'PRINTED_COMPONENT', 'OTHER'] as const);
   const q = o['quantity'] === undefined ? undefined : quantity(r, o['quantity'], `${path}.quantity`);
   const specimen = r.id(o, 'specimen', path);
+  const overage = o['overage'] === undefined ? undefined : bomOverage(r, o['overage'], `${path}.overage`);
   if (!id || !material || !role || !q) return undefined;
   const line: BomLine = { id, material, role, quantity: q };
   opt(line, 'specimen', specimen);
+  opt(line, 'overage', overage);
   return line;
+}
+
+/** Slice 7q (C1): the overage a BOM line's standard quantity includes, a percent or a quantity, with its reason. */
+function bomOverage(r: Reader, v: unknown, path: string): BomOverage | undefined {
+  const o = r.object(v, path, ['reason'], ['percent', 'quantity']);
+  if (!o) return undefined;
+  const reason = r.string(o, 'reason', path);
+  const percent = r.decimal(o, 'percent', path);
+  const q = o['quantity'] === undefined ? undefined : quantity(r, o['quantity'], `${path}.quantity`);
+  if ((percent === undefined) === (q === undefined)) return r.fail(path, 'states the overage as a percent or as a quantity, exactly one');
+  if (!reason) return undefined;
+  const out: BomOverage = { reason };
+  opt(out, 'percent', percent);
+  opt(out, 'quantity', q);
+  return out;
 }
 
 function intermediate(r: Reader, v: unknown, path: string): Intermediate | undefined {
