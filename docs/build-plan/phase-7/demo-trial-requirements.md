@@ -167,6 +167,11 @@ Definition of done for R8: P1–P8 built and run on screen, each with its browse
 built or confirmed with tests; C6 and C9 recorded as follow-ups; P9–P12 at least built and test-run in the sandbox.
 Guides updated, the hosted demo updated, and a live rehearsal of P1 and P2.
 
+Owner decision, 25 October 2026: R8 is limited to P3 rabeprazole for now; P1, P2 and P4–P12 are deferred (the product
+table above stays as the later scope). For now R8 is done when P3 is built and run on screen through release (slices 7o
+and 7r, E2E group `own-p3`) and a presenter can demo a rabeprazole batch from the demo set-up's seeded state (slice 7s,
+`pnpm demo:setup --with-gmp-samples`, E2E group `p3-demo`).
+
 ## Definition of done
 Every requirement has a click-by-click browser test (Tap buttons, no typed URLs) with control IDs; full browser suite,
 golden batches and pnpm run ci green; docs/guides and hosted-demo.md updated; known-issues regenerated; the hosted demo

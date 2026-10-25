@@ -44,3 +44,4 @@ export type {
   GuardFormula,
 } from './expression-port.ts';
 export { createExprService, declarationOf, type ExprAdapterOptions } from './expr-adapter.ts';
+export { coatingLayerParts, contentIds, layerProblem, type CoatingLayer, type LayerParts } from './coating-layer.ts';

@@ -84,6 +84,11 @@ export interface SetupOptions {
   sandboxPlant?: boolean;
   /** GMP, DEMO-ONLY (slice 7p, D-7p-8): with the packaging demo, also the SR profile product and its two finished lots (demo-sr-profile.ts). */
   srProfile?: boolean;
+  /**
+   * GMP, DEMO-ONLY (slice 7s, D-7s-1): with the packaging demo, also P3 rabeprazole ready for a presenter (demo-p3.ts):
+   * approved and IN-authorised masters, specifications, released lots, numbering rules and tooling.
+   */
+  p3Demo?: boolean;
   /** Phase 7 slice 7g-4: also the backup service identity and the DEMO-ONLY backup key (header). */
   backupIdentity?: boolean;
   /** The superuser connection to the database server (default: test-kit's, EBMR_PG_ADMIN_URL). */
@@ -311,6 +316,9 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         // Phase 7 slice 7p (R4 third check): a sustained-release product with two finished lots waiting for QC; opt-in
         // (D-7p-8: the presenter's demo and the E2E group that runs sr-profile.spec.ts, not every packaging set-up).
         if (opts.srProfile === true) writeJson(join(opts.keysDir, 'gmp-sr-profile.json'), { label: 'DEMO-ONLY SR profile', ...(await (await import('./demo-sr-profile.ts')).seedSrProfile({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log, tag: randomBytes(2).toString('hex').toUpperCase() })) });
+        // Phase 7 slice 7s (R8, P3 only; owner, 25 October 2026): rabeprazole ready for the presenter's GMP batch; opt-in
+        // like the SR profile (D-7s-1: the presenter's demo and the E2E group p3-demo only).
+        if (opts.p3Demo === true) writeJson(join(opts.keysDir, 'gmp-p3-demo.json'), { label: 'DEMO-ONLY P3 rabeprazole', ...(await (await import('./demo-p3.ts')).seedP3Demo({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, ctx, log })) });
       }
     }
 

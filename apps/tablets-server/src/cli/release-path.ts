@@ -424,14 +424,27 @@ export interface Spec {
   numbering: { ruleCode: string; kind: 'PROCESSING' | 'PACKAGING'; format: string };
   /** The product the batch-number rule numbers (GB-T-02's when absent; slice 7l: the demo routes name theirs). */
   productCode?: string;
+  /** The markets the master is authorised for (IN, US and EU when absent; slice 7s: the P3 demo, IN only). */
+  markets?: readonly string[];
 }
 
 /** A master approved as the site approves one (as the golden worlds do), authorised for IN, US and EU. */
 export async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec): Promise<{ familyId: string; versionId: string }> {
   const author = await app.browser('author');
-  const qa = await app.browser('approver');
   const familyId = await app.as(author, (c) => lifecycle.defineFamily(c, lifecycle.familyOf(content)));
   const versionId = (await app.as(author, (c) => lifecycle.createVersion(c, familyId, content, spec.title))).versionId;
+  await approveVersion(app, versionId, spec);
+  return { familyId, versionId };
+}
+
+/**
+ * A DRAFT version approved as the site approves one: change record, risk assessment, the sandbox-run evidence of its
+ * content, the verification, the four signatures, the market authorisations and the batch-number rule (slice 7s: also
+ * for a draft the author made in the designer, demo-p3.ts).
+ */
+export async function approveVersion(app: DemoApp, versionId: string, spec: Spec): Promise<void> {
+  const author = await app.browser('author');
+  const qa = await app.browser('approver');
   const cr = await app.as(qa, (c) => lifecycle.recordChangeRecord(c, { number: spec.changeRecord, title: spec.title, changeClass: 'MAJOR', processImpacting: true, validationRef: spec.validationRef }));
   const ra = await app.as(qa, (c) => lifecycle.recordRiskAssessment(c, { code: spec.riskAssessment, version: '1', title: `${spec.title}: risk assessment`, riskClass: 'MEDIUM', rationaleRef: spec.rationaleRef }));
   await app.as(author, async (c) => {
@@ -448,7 +461,7 @@ export async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec
     await app.sign(await app.browser(key), t(tr), `${tr} of ${spec.title}`);
   }
   const reg = await app.browser('regulatory');
-  for (const market of ['IN', 'US', 'EU']) {
+  for (const market of spec.markets ?? ['IN', 'US', 'EU']) {
     const def: lifecycle.MarketAuthorisationDefinition = { versionId, market, kind: 'CURRENT', cells: [{ site: SITE, line: LINE, batch_size: spec.sizeId }], regulatoryBasis: `${market}: registration on file (invented product)` };
     const maId = await app.as(qa, (c) => lifecycle.proposeMarketAuthorisation(c, def));
     const qaSig = await app.signDirect(qa, lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
@@ -459,7 +472,6 @@ export async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec
   await app.dbAs(await app.browser('steward'), 'select site.define_batch_number_rule($1::jsonb) as r', [
     JSON.stringify({ rule_code: n.ruleCode, site_code: SITE, product_code: spec.productCode ?? GBT02_PRODUCT.productCode, batch_kind: n.kind, format: n.format, site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' }),
   ], { reasonCode: 'NEW_PRODUCT', reasonText: `Numbering of ${spec.productCode ?? GBT02_PRODUCT.productCode} (${n.kind.toLowerCase()})` });
-  return { familyId, versionId };
 }
 
 export interface FloorKit {

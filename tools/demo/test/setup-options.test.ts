@@ -14,9 +14,9 @@ const dir = mkdtempSync(join(tmpdir(), 'ebmr-demo-card-'));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('pnpm demo:setup options (slice 7h, E1)', () => {
-  it('--with-gmp-samples loads the GMP review batch and the packaging-order demo; without it neither', () => {
-    expect(setupOptions(['node', 'cli.ts', 'setup', '--with-gmp-samples'])).toEqual({ gmpReviewBatch: true, gmpPackaging: true, gmpSrProfile: true });
-    expect(setupOptions(['node', 'cli.ts', 'setup'])).toEqual({ gmpReviewBatch: false, gmpPackaging: false, gmpSrProfile: false });
+  it('--with-gmp-samples loads the GMP review batch, the packaging-order demo, the SR profile product and P3 rabeprazole for the presenter (slice 7s); without it none', () => {
+    expect(setupOptions(['node', 'cli.ts', 'setup', '--with-gmp-samples'])).toEqual({ gmpReviewBatch: true, gmpPackaging: true, gmpSrProfile: true, gmpP3Demo: true });
+    expect(setupOptions(['node', 'cli.ts', 'setup'])).toEqual({ gmpReviewBatch: false, gmpPackaging: false, gmpSrProfile: false, gmpP3Demo: false });
   });
 });
 

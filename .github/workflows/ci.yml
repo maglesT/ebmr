@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       e2e_groups:
-        description: 'End-to-end groups only, comma-separated (route-w, route-d, route-s, route-b, gmp-batches, own-demotab, own-p3, rest); empty = the full run'
+        description: 'End-to-end groups only, comma-separated (route-w, route-d, route-s, route-b, gmp-batches, own-demotab, own-p3, p3-demo, rest); empty = the full run'
         required: false
         default: ''
         type: string
@@ -276,7 +276,7 @@ jobs:
     steps:
       - id: plan
         env:
-          ALL: route-w route-d route-s route-b gmp-batches own-demotab own-p3 rest
+          ALL: route-w route-d route-s route-b gmp-batches own-demotab own-p3 p3-demo rest
           CHOSEN: ${{ github.event_name == 'workflow_dispatch' && inputs.e2e_groups || '' }}
         run: |
           set -euo pipefail
