@@ -40,6 +40,8 @@ tests:
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > shelf-life bases and hazard classes (india) > [IN-27][PR-43] QC records a shelf-life basis; QA approves a recorded hazard class and dedication under its own signature"
   - "tools/e2e/specs/administration/screen-gaps.spec.ts > screens for the remaining routes (slice 7g-5) > [PR-43][IN-27][DI-08][IN-02] QA records a shelf-life basis and a hazard class, exports a report view, sees the reference documents, stores an evidence document and opens the equipment records"
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-43][IN-16][DI-05] a test run with no product master in the sandbox is dated by the shelf life its own master's G-21 step states, so its coding specimens are checked (D-7r-1); a GMP batch never is"
+  - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-43][PR-32] the copy's printed-materials step states the new product's shelf life from its product master, not the source product's (D-7r-2)"
 clauses:
   - clause: "Changing the shelf life without a stability reference is blocked."
     tests:

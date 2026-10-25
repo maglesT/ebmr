@@ -154,8 +154,8 @@ Capabilities to confirm or build:
 |---|---|---|---|
 | C1 | Overages in the formula (deliberate excess per material, with reason; label claim unaffected) | P1, P7 | Not known to exist; build in the R4 formula editor |
 | C2 | Potency adjustment in enzyme activity units (U/mg), not only % assay | P7 | TB-01 handles assay and base equivalents; activity units to confirm |
-| C3 | Several coating steps in a row, each with its own weight-gain target | P3 | Being proven in slice 7o |
-| C4 | Two-stage dissolution (acid stage must not release, buffer stage must) as one release requirement | P3 | To build alongside the 7p profile work |
+| C3 | Several coating steps in a row, each with its own weight-gain target | P3 | Proven in slice 7o (sandbox) and 7r (GMP batch, released) |
+| C4 | Two-stage dissolution (acid stage must not release, buffer stage must) as one release requirement | P3 | Built in 7p (a profile with a stage on each point); P3's GMP lot released on it in 7r |
 | C5 | Dissolution profile as one release requirement | P2, P11 | Being built in 7p |
 | C6 | Staged acceptance L1/L2/L3 (USP/IP) for SR dissolution | P2, P11 for export | Follow-up after 7p |
 | C7 | Content uniformity as a release requirement for low doses | P2, P4, P10 | To confirm in specifications and G-REL |

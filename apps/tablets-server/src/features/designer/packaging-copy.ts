@@ -26,7 +26,12 @@ export interface PrintedReplacement {
 export interface PackagingCopyRequest {
   familyCode: string;
   markets: string[];
-  product: { code: string; strength: string; name: string; dosageForm: string };
+  /**
+   * The product master's name, dosage form and (slice 7r, D-7r-2) shelf life in whole months as text: a G-21 step of the
+   * source that states a shelf life states the new product's (the GMP batch data must equal the product master's,
+   * tablets 1201, and a sandbox test run is dated from it, recipe-core 1750).
+   */
+  product: { code: string; strength: string; name: string; dosageForm: string; shelfLifeMonths?: string | null };
   printed: readonly PrintedReplacement[];
 }
 
@@ -89,6 +94,8 @@ export function packagingCopy(source: flow.MbrContent, req: PackagingCopyRequest
     if (!m) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is not in the material master in effect.`, ['PR-32']);
     if (m.kind !== 'PRINTED_PACKAGING') throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is ${m.kind}, not printed packaging.`, ['PR-32']);
   }
+  const months = req.product.shelfLifeMonths ?? null;
+  if (months !== null && !/^[1-9][0-9]{0,2}$/.test(months)) throw new FamilyInputError('DESIGNER_COPY_PACKAGING', `The product master's shelf life ${months} is not a whole number of months.`, ['PR-43']);
   let t = structuredClone(source) as unknown as Json;
   // The printed items: the new material and its artwork version for every market of the copy.
   walk(t['procedure'], (o) => {
@@ -97,6 +104,8 @@ export function packagingCopy(source: flow.MbrContent, req: PackagingCopyRequest
         const p = byItem.get(String(i['id']));
         if (p) Object.assign(i, { material: p.material, artwork: Object.fromEntries(markets.map((mk) => [mk, p.artwork])) });
       }
+      // D-7r-2: the shelf life the step states is the new product's (an integer of the block's schema, from exact text).
+      if ('shelfLifeMonths' in o['config'] && months !== null) o['config']['shelfLifeMonths'] = JSON.parse(months) as unknown;
     }
   });
   // Wherever else the source names an old printed material (a TB-21 web, a bill-of-materials line), the new one.

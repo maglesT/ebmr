@@ -44,6 +44,27 @@ describe('a packaging master copied for another product (slice 7o, D-7o-3)', () 
     expect(definitionFindings(c).filter((f) => f.severity === 'ERROR')).toEqual([]);
   });
 
+  it('[PR-43][PR-32] the copy\'s printed-materials step states the new product\'s shelf life from its product master, not the source product\'s (D-7r-2)', () => {
+    const g21 = (c: typeof SOURCE): unknown[] => {
+      const out: unknown[] = [];
+      const walk = (n: unknown): void => {
+        if (Array.isArray(n)) n.forEach(walk);
+        else if (n !== null && typeof n === 'object') {
+          const o = n as Record<string, unknown>;
+          if (o['kind'] === 'phase' && (o['block'] as Record<string, unknown> | undefined)?.['type'] === 'G-21') out.push((o['config'] as Record<string, unknown>)['shelfLifeMonths']);
+          Object.values(o).forEach(walk);
+        }
+      };
+      walk(c.procedure);
+      return out;
+    };
+    expect(g21(SOURCE)).toEqual([24]);
+    expect(g21(packagingCopy(SOURCE, { ...REQUEST, product: { ...REQUEST.product, shelfLifeMonths: '36' } }, MATERIALS))).toEqual([36]);
+    // Without the product master's shelf life the copy keeps the step as it was (the GMP batch data refuses a mismatch).
+    expect(g21(packagingCopy(SOURCE, REQUEST, MATERIALS))).toEqual([24]);
+    expect(() => packagingCopy(SOURCE, { ...REQUEST, product: { ...REQUEST.product, shelfLifeMonths: '2.5' } }, MATERIALS)).toThrow(/not a whole number of months/);
+  });
+
   it('[PR-32][IN-38] refused: a printed item left with another product\'s print, a material that is not printed packaging, a processing master, the same product', () => {
     expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: REQUEST.printed.slice(0, 1) }, MATERIALS)).toThrow(/CARTON: a pack never carries another product's print/);
     expect(() => packagingCopy(SOURCE, { ...REQUEST, printed: [REQUEST.printed[0], { item: 'CARTON', material: 'DMT-API-1', artwork: 'ART-X' }] as typeof REQUEST.printed }, MATERIALS)).toThrow(/not printed packaging/);

@@ -58,6 +58,8 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-01][PR-03][DI-04][INV-25] Demotab 2: the master from the formula as a copy of the approved wet-granulation master, edited to the product in the designer; change control; the test package in the sandbox inbox @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-17][INV-25][PR-01] Rabeprazole 1: the active entered on screen, the product, QA's confirmation; the formula written and approved by QA @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][IN-37][PR-29][INV-25] Rabeprazole 2: the master from the formula as a copy of the wet-granulation master; a seal coat added before the enteric coat and a top coat after it in the designer; change control; the test package @office"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-01][PR-03][DI-04] Demotab 8: the packaging master as a copy of the approved cold-form master with Demotab's own printed foil and cartons; the checks pass; change control; the test package in the sandbox inbox @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][DI-04] Rabeprazole 8: the packaging master as a copy of the approved cold-form master with the product's own printed foil and cartons; the checks pass; change control; the test package in the sandbox inbox @office"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:

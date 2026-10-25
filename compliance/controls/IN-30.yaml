@@ -74,6 +74,8 @@ tests:
   - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] the database's record reads refuse the contract giver's reviewer: its loan licence is read through its own logged reads only (6jc-R3, tablets 1425)"
   - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] the database's audit-trail reads refuse the contract giver's reviewer: no chain, listing or entry outside its own logged reads; QA still reads (6jc-R3 round 1, tablets 1426)"
   - "apps/tablets-server/test/mutation/read-authorisation.test.ts > tab.record_read_problem and tab.reader_is_contract_giver as Phase 7 re-creates them (tablets 1426, 1493; D-P7-1 item 4) > [IN-30][DI-17] an account that holds the contract giver's reviewer role reads no record here and counts as the contract giver, whatever role its session works in"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-33][PR-17][DI-17][IN-30] Demotab 4: the printed foil and cartons entered and confirmed; the specifications of the active, the printed materials and the product approved by the head of QC; the licence endorsing Demotab; the manufacturer approved by QA @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-33][PR-17][DI-17][IN-30] Rabeprazole 4: the printed foil and cartons entered and confirmed; the specifications (the product's with its two-stage dissolution as one profile test) approved by the head of QC; the licence; the manufacturer approved @office"
 clauses:
   - clause: "create a loan-licence batch; both licence numbers appear"
     tests:

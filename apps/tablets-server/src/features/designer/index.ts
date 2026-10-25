@@ -430,8 +430,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
           const chosen = await formula.formulaVersionForMbr(c, formulaVersionId);
           const target = await formula.formulaTargetOf(c, formulaVersionId);
-          const { rows } = await c.query<{ name: string | null; dosage: string | null }>(
-            `select p.product_name as name, (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage
+          const { rows } = await c.query<{ name: string | null; dosage: string | null; months: string | null }>(
+            `select p.product_name as name, (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage,
+                    p.shelf_life_months::text as months
                from site.erp_master_effect x join site.erp_product p on p.id = x.version_id
               where x.master_kind = 'PRODUCT' and x.master_key = $1 || '|' || $2 order by x.effective_at desc, x.id desc limit 1`,
             [chosen.productCode, chosen.strength],
@@ -504,8 +505,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     const { result } = await uniqueViolationAsConflict(
       () =>
         withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
-          const { rows } = await c.query<{ name: string | null; dosage: string | null }>(
-            `select p.product_name as name, (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage
+          const { rows } = await c.query<{ name: string | null; dosage: string | null; months: string | null }>(
+            `select p.product_name as name, (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage,
+                    p.shelf_life_months::text as months
                from site.erp_master_effect x join site.erp_product p on p.id = x.version_id
               where x.master_kind = 'PRODUCT' and x.master_key = $1 || '|' || $2 order by x.effective_at desc, x.id desc limit 1`,
             [body.product.code, body.product.strength],
@@ -525,7 +527,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           const materials = await materialMasters(c, printed.map((p) => p.material));
           let content: flow.MbrContent;
           try {
-            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: master.dosage ?? 'Tablet' }, printed }, materials);
+            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: master.dosage ?? 'Tablet', shelfLifeMonths: master.months }, printed }, materials);
           } catch (error) {
             if (error instanceof FamilyInputError) throw familyRefusal(error);
             throw error;

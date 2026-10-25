@@ -49,9 +49,12 @@ interface Run {
   sql: <T>(text: string, params?: unknown[]) => Promise<T | null>;
 }
 
-async function run(phases: Json[]): Promise<Run> {
+async function run(phases: Json[], productCode?: string): Promise<Run> {
   const issuer = await sbx.asPersona('issuer');
-  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, minimalMbr(phases)), undefined, {}, ['IN', 'US']);
+  const mbr = minimalMbr(phases);
+  // Slice 7r: a product of its own (no product master in the sandbox, unlike the dc-mini product an earlier case arranges).
+  if (productCode) mbr.header.product = { ...mbr.header.product, code: productCode };
+  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, mbr), undefined, {}, ['IN', 'US']);
   const browsers: Record<string, Awaited<ReturnType<ExecServer['asPersona']>>> = { issuer };
   for (const p of ['operator1', 'operator2', 'verifier1', 'supervisor1', 'qa1']) browsers[p] = await sbx.asPersona(p, 'TEST-KIOSK-DISP-1');
   const d = new RunDriver(sbx, runId, browsers);
@@ -174,6 +177,28 @@ describe('packaging line completion in the database (tablets 1230)', () => {
     const plain = await run([packPhase('p-g21', 'G-21', { items: [CARTON(false)] })]);
     await plain.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
     expect(await spec(plain, 'operator1', 'START', coded)).toMatch(/EBMR-LBL-031 /);
+  });
+
+  it('[PR-43][IN-16][DI-05] a test run with no product master in the sandbox is dated by the shelf life its own master\'s G-21 step states, so its coding specimens are checked (D-7r-1); a GMP batch never is', async () => {
+    const witnessed = { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } };
+    const r = await run([packPhase('p-g21', 'G-21', { items: [CARTON(true)], destructionStep: 'p-destroy', shelfLifeMonths: 30 }), packPhase('p-destroy', 'G-23', {}, witnessed)], 'TST-SL-7R');
+    expect(await r.sql<Json>('select recipe.batch_shelf_life($1) as r', [r.d.runId])).toEqual({ versionId: null, shelfLifeMonths: 30, stabilityReference: null, tentative: true });
+    const be = (await r.sql<Json>('select recipe.batch_expiry($1) as r', [r.d.runId])) ?? {};
+    expect(be['shelfLifeMonths']).toBe(30);
+    expect(await r.sql<string>('select recipe.expiry_month_end($1::date, 30)::text as r', [be['manufactureDate']])).toBe(be['expiryDate']);
+    await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
+    expect(await r.rec.record('p-g21', issueEntry)).toBe('ok');
+    const coded = { batch: r.batchNumber, mfgDate: be['manufactureDate'], expiryDate: be['expiryMonth'] } as Json;
+    expect(await r.sql<Json>("select tab.g21_expected_coding($1, 'p-g21@') as r", [r.d.runId])).toEqual(coded);
+    expect(await spec(r, 'operator1', 'START', { ...coded, expiryDate: '2099-01' })).toMatch(/EBMR-LBL-033 /);
+    expect(await spec(r, 'operator1', 'START', coded)).toMatch(/^[0-9a-f-]{36}$/);
+    // A master whose G-21 step states no shelf life gives none, as before.
+    const none = await run([packPhase('p-g21', 'G-21', { items: [CARTON(true)], destructionStep: 'p-destroy' }), packPhase('p-destroy', 'G-23', {}, witnessed)], 'TST-SL-7R2');
+    expect(await none.sql<Json>('select recipe.batch_shelf_life($1) as r', [none.d.runId])).toBeNull();
+    // Only a test run (a batch that runs a test package) on the sandbox: a batch without one gives none.
+    expect(await r.sql<Json>("select recipe.batch_shelf_life($1) as r from recipe.batch_execution b where b.id = $1 and b.package_hash is not null", [r.d.runId])).not.toBeNull();
+    const fn = (await r.sql<string>("select pg_get_functiondef('recipe.batch_shelf_life(uuid)'::regprocedure) as r")) ?? '';
+    expect(fn).toMatch(/b\.package_hash is null or kernel\.installation_kind\(\) <> 'SANDBOX'/);
   });
 
   it('[PR-16] removing one label specimen or one checker signature blocks completion and names the gap', async () => {

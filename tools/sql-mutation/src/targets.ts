@@ -875,8 +875,11 @@ export const TARGETS: Target[] = [
                 'tab.packline_g21', 'tab.packline_mbr_problem', 'tab.packline_raised', 'tab.packline_entry_problem',
                 'tab.packline_close_problem', 'tab.packline_apply_holds', 'tab.packline_state_check',
                 'tab.packline_pass_check', 'tab.packline_artwork_set', 'tab.packline_line_problem',
-                'tab.packline_line_check', 'tab.packline_overdue'],
-    tests: [s('blocks/bottle/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts')],
+                'tab.packline_line_check', 'tab.packline_overdue',
+                // Slice 7r (tablets 1701, D-7r-5): the unit a packaging step configures, read as the sandbox's TEST- unit on a
+                // SANDBOX installation only.
+                'tab.configured_unit', 'tab.packline_unit'],
+    tests: [s('blocks/bottle/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts'), s('plant/sandbox-configured-unit.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: the platform scope hook: who may run a transition in which scope (kernel 1150; recipe-core 0523)

@@ -45,6 +45,9 @@ tests:
   - "apps/tablets-server/test/execution/lot-quality.test.ts > a lot's assay result and artwork version on screen (slice 7o) > [PR-19][PR-32][DI-33][DI-05] the sandbox steward records a test lot's assay and a printed test lot's artwork; a later assay supersedes with a reason and the earlier stays; the artwork never changes; nothing reaches GMP"
   - "apps/tablets-server/test/execution/lot-quality.test.ts > a lot's assay result and artwork version on screen (slice 7o) > [PR-19][PR-32][DI-17] on GMP the steward may not record a site lot's assay (QC.RESULT_RECORD); the QC analyst names approved LIMS results, never a typed value (tablets 1001); an artwork version is refused for a lot that is not printed packaging; QC records the lot's identity test result"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the printed lot hands itself to the issue entry once (slice 7k) > [PR-32] a saved issue entry stays closed: the lot taken is not handed to the form again"
+  - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-43][PR-32] the copy's printed-materials step states the new product's shelf life from its product master, not the source product's (D-7r-2)"
+  - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and the printed materials received and examined by stores, tested by QC and approved by the head of QC, their assay and artwork recorded, released by QA; the tooling set defined @office"
+  - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-17][IN-24][IN-33][PR-32] Rabeprazole 5: the first lots of the active and the printed materials received, examined, tested and approved, their assay and artwork recorded, released by QA; the tooling set defined @office"
 clauses:
   - clause: "Issuing a label lot with obsolete artwork is blocked."
     tests:
