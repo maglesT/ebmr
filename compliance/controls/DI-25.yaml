@@ -47,6 +47,7 @@ tests:
   - "tools/e2e/specs/phase7/route-s.spec.ts > [INV-05][IN-05][DI-25][INV-48] route S 11: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [INV-05][IN-05][DI-25][INV-48] Demotab 12: both records of Demotab's batch reviewed and its lot released by the authorised person on a checklist with no red item @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [INV-05][IN-05][DI-25][INV-48][PR-45] Rabeprazole 12: both records reviewed and the lot released by the authorised person on a checklist with no red item, the two-stage dissolution one green line @office"
+  - "tools/e2e/specs/phase7/p3-demo.spec.ts > [INV-05][IN-05][DI-25][INV-48][PR-45] P3 demo 5: both records reviewed and the lot released by the authorised person on a checklist with no red item, the two-stage dissolution one green line @office"
 clauses:
   - clause: "Change a value after entry. It appears in the checker's step view and in the batch review list."
     tests:

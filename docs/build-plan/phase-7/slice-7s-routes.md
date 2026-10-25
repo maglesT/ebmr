@@ -74,11 +74,12 @@ which merges first; merge main into this branch after it).
 | Seed locally (copy of a `--gmp-review-batch --gmp-packaging` demo database, PostgreSQL 16) | OK in 9 to 10 s; both masters APPROVED, both numbering rules, lots released |
 | Base set-up the seed adds to (`--gmp-review-batch --gmp-packaging`, this 4-CPU container) | about 14 minutes |
 | Unit test p3-demo.test.ts, designer tests, meta tests, tools/demo/test | green |
-| Pod run of the p3-demo group | see below |
+| CI run 40157721804 (dispatch, group p3-demo, head 5a0a10ee) | **5 of 5 passed** (about 29 minutes of tests: 0.4, 20.1, 3.6, 0.2, 4.7 min) |
+| Register | the 25 control entries synced from that run and the unit test (`register:sync-tests`) |
 
 ## Residuals and where to continue
 
-- Merge main into the branch once PR #76 (slice 7r) is merged; then one quick review pass and the PR.
+- Done: the p3-demo group is green. Merge main into the branch once PR #76 (slice 7r) is merged; then one quick review pass and the PR.
 - The hosted demo needs `pnpm demo:setup --with-gmp-samples` again to get P3 (the set-up adds about 10 s to it).
 - A presenter's script for the P3 demo (the five steps above, the personas and terminals of `p3-demo.spec.ts`) could go
   into the user guide.
