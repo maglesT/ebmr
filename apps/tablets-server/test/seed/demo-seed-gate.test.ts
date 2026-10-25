@@ -37,6 +37,10 @@ describe('the DEMO-ONLY seeds of the set-up CLI are gated to demo databases', ()
     expect(demoSeedRefusal({ database: 'ebmr_prod' })).toBeNull();
     expect(demoSeedRefusal({ database: 'ebmr_sandbox_tablets_e2e_0a1b2c', sandboxPlant: true })).toBeNull();
     expect(demoSeedRefusal({ database: 'ebmr_sandbox_prod', sandboxPlant: true })).toMatch(/DEMO-ONLY/);
+    // Slices 7p and 7s (review P7S-2): the SR profile and the P3 demo options are refused by name on a non-demo database.
+    expect(demoSeedRefusal({ database: 'ebmr_prod', srProfile: true })).toMatch(/DEMO-ONLY/);
+    expect(demoSeedRefusal({ database: 'ebmr_prod', p3Demo: true })).toMatch(/DEMO-ONLY/);
+    expect(demoSeedRefusal({ database: 'ebmr_tablets_demo', p3Demo: true })).toBeNull();
   });
 
   it('[meta] the seed refuses a database without the demo-installation mark, even under a demo name check, and accepts a marked demo one', async () => {

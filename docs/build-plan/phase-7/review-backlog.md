@@ -317,3 +317,15 @@ entries only; the E2E `load()` retry is bounded and fails on anything but the ra
 - P7R-3 (residual): the packaging copy takes the shelf life of the latest product master (`effective_at desc`), not
   the version in effect when the batch is issued. A later shelf-life change makes the GMP batch data check (tablets
   1201) refuse the mismatch: fails safe. Revisit if shelf-life changes become routine.
+
+## Slice 7s (one review pass, 25 October 2026)
+
+Verdict: approve; no blocking or should-fix finding. Checked: the P3 demo seed is reachable only under --gmp-packaging
+on a demo or E2E database and refuses production; real acts through DemoApp as the other demo seeds; gated to
+`demo:setup --with-gmp-samples` and the p3-demo E2E group; the coating-layer builder moved unchanged into
+recipe-core/pure with the boundaries intact; controls gained test entries only.
+
+- P7S-1 (residual): `apps/tablets-server/src/cli/demo-p3.ts` (about lines 96-104) gives the demo lots a fixed expiry,
+  30 June 2029; after that date a reset's lots are expired. Fix if wanted: derive the expiry from the set-up clock.
+- P7S-2 (fixed): `demoSeedRefusal` now names `srProfile` and `p3Demo` itself (they were safe only because both run
+  under --gmp-packaging), with gate test cases.
