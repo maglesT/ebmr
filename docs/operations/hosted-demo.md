@@ -11,7 +11,7 @@ is DEMO-ONLY: keys, personas, passwords and data. It is for showing the product,
 | Server | Hostinger VPS KVM 8 (8 vCPU, 32 GB, 400 GB NVMe), India, Ubuntu 24.04 LTS, IP 187.126.126.5 |
 | GMP installation | https://187-126-126-5.sslip.io |
 | Sandbox (TEST, NOT GMP) | https://sandbox.187-126-126-5.sslip.io |
-| Code | the `deploy/demo-server` branch (v1.0.0-rc.1 plus the demo's public origins), in `/opt/batchwright`, owned by the user `batchwright` |
+| Code | a git checkout of `main` in `/opt/batchwright`, owned by the user `batchwright`, fetched with a read-only deploy key (`/home/batchwright/.ssh/github_deploy`); since 25 October 2026 at 9fc3c5ae (slice 7s). Until then the `deploy/demo-server` branch (v1.0.0-rc.1 plus the demo's public origins, which main also has); that tree is kept in `/opt/batchwright.rc1-backup` |
 | Service | `batchwright-demo.service` (systemd, restarts on failure, starts at boot); Caddy (`/etc/caddy/Caddyfile`) |
 | Database | PostgreSQL 16 on loopback only; the admin role's random password in `/etc/batchwright/demo.env` (mode 600) |
 | Firewall | ufw: 22, 80 and 443 only; unattended security upgrades on |
@@ -33,8 +33,9 @@ As root on a fresh Ubuntu 24.04 server with the deploy key in `~/.ssh/authorized
 4. Code: `useradd -m batchwright`; from a checkout, `git archive --format=tar <ref> | ssh root@<ip> 'runuser -u
    batchwright -- tar -x -C /opt/batchwright'`; then as `batchwright`: `pnpm install --frozen-lockfile`.
 5. Demo data: as `batchwright`, with the environment file loaded and `TZ=UTC`: `pnpm demo:setup --with-gmp-samples`
-   (about 11 minutes). The flag also loads GMP's DEMO-ONLY sample records: an approved master, a batch record ready for
-   review, the release path (a lot ready for release and one not ready) and the packaging-order demo. Without it the
+   (15 to 25 minutes since slice 7s). The flag also loads GMP's DEMO-ONLY sample records: an approved master, a batch
+   record ready for review, the release path (a lot ready for release and one not ready), the packaging-order demo, the
+   demo routes W, D and S, the beta-lactam suite (7n), the sustained-release product (7p) and the rabeprazole demo (7s). Without it the
    set-up takes a minute or two and GMP has no approved master, batch or lot.
 6. The Caddyfile (two sites, `reverse_proxy 127.0.0.1:3001` for GMP and `127.0.0.1:3011` for the sandbox) and the unit
    `batchwright-demo.service` (`User=batchwright`, `WorkingDirectory=/opt/batchwright`, `EnvironmentFile` the file
@@ -74,17 +75,36 @@ Slice 7k (requirements R3.12 and R5 of the hosted-demo trials):
 | Orders and lots | `PO-RTB-0001` to `0003` (processing), `PO-RTBPK-0001` to `0004` (packaging); lots `RTB-*` |
 | Not seeded | the product's beta-lactam classification: the steward proposes it and QA approves it on **Plant rules** during the demo |
 
+## The rabeprazole demo (slice 7s, R8 P3)
+
+`--with-gmp-samples` also loads P3 ready for a presenter (`apps/tablets-server/src/cli/demo-p3.ts`, set-up option
+`--gmp-p3-demo`; the presenter's script is [rabeprazole-demo-script.md](rabeprazole-demo-script.md), the same path as
+the `p3-demo` browser test):
+
+| Item | Value |
+|---|---|
+| Product | `RAB-GR-20` Rabeprazole sodium 20 mg gastro-resistant tablets (invented data), licence DEMO/MH/25/0703 |
+| Masters | processing `RAB-WG-DEMO` (wet granulation; seal, enteric and top coats), packaging `RAB-CF-DEMO` (cold form); both approved and authorised for IN |
+| Specification | the product's assay and the two-stage dissolution as one profile test (acid at most 10 % at 2 h, buffer at least 75 % at 45 min) |
+| Lots | `RAB-API-0001` (with its assay), `RAB-FOIL-0001`, `RAB-CTN-0001` (with artwork); excipients from the route W lots |
+| Numbering and tooling | `RAB{YY}{SEQ:3}` and `{PARENT}/P{SEQ:2}`; tooling set `TS-RAB-DEMO` |
+| Not seeded | the orders: the presenter sends them from Operations, Simulators |
+
 ## Operating it
 
 - Status and logs: `systemctl status batchwright-demo`, `journalctl -u batchwright-demo -f`.
 - Reset the demo to its first state: `systemctl stop batchwright-demo`, then as `batchwright` `pnpm demo:setup
-  --with-gmp-samples` (it recreates both databases; about 11 minutes with the samples), then `systemctl start
-  batchwright-demo`. The reset script `/usr/local/bin/batchwright-demo-reset` does these three steps.
+  --with-gmp-samples` (it recreates both databases; 15 to 25 minutes with the samples), then `systemctl start
+  batchwright-demo`. The reset script `/usr/local/bin/batchwright-demo-reset` does these three steps (as root; it loads
+  the environment file, which only root can read).
 - After a reset, every browser that used the demo clears its site data for both host names (the installed demo
   terminal's key and the session belong to the old databases, so the server no longer knows them), then picks a demo
   terminal again. In Chrome or Edge: the padlock, Site settings, Delete data; in Firefox: the padlock, Clear cookies and
   site data.
-- New code: copy the new tree as in step 4, `pnpm install --frozen-lockfile`, reset as above.
+- New code (since 25 October 2026): `/usr/local/bin/batchwright-demo-update` as root. It stops the service, fetches
+  `main` as `batchwright` (`git fetch --depth 50 origin main && git reset --hard origin/main`), runs
+  `COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile`, runs the reset script and prints the deployed
+  commit; it stops at the first failing command (`set -e`). Every update resets the demo data.
 
 ## Known gaps
 
