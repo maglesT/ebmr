@@ -235,6 +235,17 @@ From `demo-trial-requirements.md` R4, on branch `phase-7/slice-7j`; migrations s
 
 - Route-w split dropped (24 October): route W2 test 4 needs route W's residue from the same stack, and the measured bottleneck was runner count (route-w waited 17 minutes for a free runner in PR #75's run); the fix is more runners on the pod.
 
+## Owner decision (25 October 2026): R8 is P3 only for now; slice 7s, the P3 demo
+
+The owner limited requirement R8 to P3 rabeprazole for now; P1, P2 and P4 to P12 are deferred. The owner wants to demo a
+rabeprazole batch. Slice 7s (branch `phase-7/slice-7s`, from `phase-7/slice-7r`) loads P3 for the presenter:
+`pnpm demo:setup --with-gmp-samples` (set-up option `--gmp-p3-demo`, `apps/tablets-server/src/cli/demo-p3.ts`) gives
+the GMP installation an approved, IN-authorised processing master with the three TB-18 coats and a cold-form packaging
+master, the product master, the licence endorsement, the specifications (the two-stage dissolution as one profile
+test), QC-released lots, numbering rules and tooling, so the presenter starts at the ERP order. Browser proof: E2E
+group `p3-demo` (`tools/e2e/specs/phase7/p3-demo.spec.ts`). Status, decisions D-7s-* and where to continue:
+`slice-7s-routes.md`.
+
 ## Slice 7r (24 October 2026), piece 1: Demotab's GMP batch (in progress)
 
 Branch `phase-7/slice-7r`; migration recipe-core 1750; browser tests Demotab 4 to 12; decisions D-7r-1 to D-7r-4 and where to

@@ -111,6 +111,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'apps/tablets-server/src/cli/sandbox-plant.ts': 'library of the sandbox set-up (--sandbox-plant, with the GMP samples): the sandbox\'s DEMO-ONLY plant, slice 7o; each act it performs has its own route and screen (Plant, Plant definitions)',
   'apps/tablets-server/src/cli/demo-routes.ts': 'library of the demo data load (the packaging-order option): the demo routes of R1, slice 7l; each act it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-sr-profile.ts': 'library of the demo data load (the packaging-order option): the SR product and its two finished lots of R4\'s third check, slice 7p; each act it performs has its own route and screen',
+  'apps/tablets-server/src/cli/demo-p3.ts': 'library of the demo data load (the packaging-order option): P3 rabeprazole ready for the presenter\'s GMP batch of R8, slice 7s; each act it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-route-masters.ts': 'library of the demo data load (masters of the demo routes, slice 7l)',
   'apps/tablets-server/src/cli/demo-route-beta-lactam.ts': 'library of the demo data load (the packaging-order option): demo route B, the beta-lactam suite of R7, slice 7n; each act it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-route-masters-b.ts': 'library of the demo data load (masters of demo route B, slice 7n)',

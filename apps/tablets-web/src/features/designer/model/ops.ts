@@ -109,20 +109,7 @@ function checkDecimal(value: string, what: string, opts: { positive?: boolean } 
 
 /** Every id used in the content: tree nodes and list items (new ids never collide with any of them). */
 export function allIds(c: Content): Set<string> {
-  const ids = new Set<string>();
-  const visit = (n: flow.FlowNode): void => {
-    ids.add(n.id);
-    if (n.kind === 'parallel') for (const b of n.branches) ids.add(b.id);
-    if (n.kind === 'alternative') for (const b of n.branches) ids.add(b.id);
-    flow.childrenOf(n).forEach(visit);
-  };
-  ids.add(c.procedure.id);
-  visit(c.procedure.body);
-  for (const e of c.library) visit(e.body);
-  for (const list of [c.references, c.inputs, c.bom, c.intermediates, c.parameters, c.calculations, c.yieldCheckpoints, c.acceptanceSchemes, c.timeConstraints, c.riskReductions, c.goldenCases]) {
-    for (const x of list) ids.add(x.id);
-  }
-  return ids;
+  return flow.contentIds(c);
 }
 
 /** Tree node ids (procedure body only) in document order, with duplicates kept (for the uniqueness check). */

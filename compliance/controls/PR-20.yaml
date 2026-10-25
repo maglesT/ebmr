@@ -164,6 +164,7 @@ tests:
   - "tools/e2e/specs/phase7/route-w2.spec.ts > [DI-30][INV-40][PR-20][IN-13] route W2 2: dispensing on KIOSK-DISP-1, the active potency-adjusted (TB-01) and every material weighed by the designated dispenser and verified @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Demotab 7: the GMP batch processed on the kiosks: dispensing (the active potency-adjusted from its own lot), granulation, blending, compression with Demotab's tooling, the film coat, inspection; QA's hold points; the bulk for packing @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Rabeprazole 7: the GMP batch processed on the kiosks: dispensing from the active's own lot, granulation, blending, compression with the product's tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
+  - "tools/e2e/specs/phase7/p3-demo.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] P3 demo 2: the GMP batch processed on the kiosks: dispensing from the active's seeded lot, granulation, blending, compression with the seeded tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
 clauses:
   - clause: "In manual mode, the same user dispensing and verifying is blocked."
     tests:

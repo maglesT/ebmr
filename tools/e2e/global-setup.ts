@@ -37,8 +37,12 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
   // The review specs (Phase 4 slice 1c) review the DEMO-ONLY batch record the set-up builds (gmp-review-batch.json); the
   // packaging-order spec (Phase 4 slice 2c) plans and fills the packaging order of its second batch.
   // Slice 7p (D-7p-8): the SR profile demo product only where sr-profile.spec.ts runs (no group, or the 'rest' group).
+  // Slice 7s (D-7s-1): P3 rabeprazole ready for the presenter only where p3-demo.spec.ts runs (no group, or 'p3-demo').
   const group = process.env['EBMR_E2E_GROUP'];
-  await setupStack({ databases, keysDir, exchangeDir, personaSets: workers + 1, echo, gmpReviewBatch: true, gmpPackaging: true, gmpSrProfile: group === undefined || group === 'rest' });
+  await setupStack({
+    databases, keysDir, exchangeDir, personaSets: workers + 1, echo, gmpReviewBatch: true, gmpPackaging: true,
+    gmpSrProfile: group === undefined || group === 'rest', gmpP3Demo: group === undefined || group === 'p3-demo',
+  });
   await buildWeb(echo);
   const ports = { gmp: await freePort(), sandbox: await freePort(), gatewayListener: await freePort(), gateway: await freePort(), simulatorTcp: await freePort(), simulatorHttp: await freePort() };
   const stack = await startStack({ databases, keysDir, exchangeDir, ports, webDist: WEB_DIST, host: 'localhost', echo, logLevel: 'warn' });

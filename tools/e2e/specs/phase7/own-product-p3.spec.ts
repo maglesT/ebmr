@@ -29,7 +29,8 @@ import {
   importEvidence, issueTestBatch, load, loadProduct, masterFromFormula, packagingCopy, recordFormula, registerTestLots, saveProduct, saveRevision, selectStep, sendToSandbox, setConfig, setLimit,
   type FormulaLineEntry, type ProductState,
 } from './own-product-flow.ts';
-import { closeFloor, packagingRun, processingRun, type Floor, type ProcessPlan } from './own-product-floor.ts';
+import { closeFloor, packagingRun, processingRun, type Floor } from './own-product-floor.ts';
+import { RESERVE, rabeprazolePlan } from './own-product-p3-plan.ts';
 import {
   approveManufacturers, approveResults, approveSpecifications, defineNumberingRule, draftSpecification, endorseOnLicence, openLot, planAndIssue, planPackaging, postFinishedLot, pullReserveSample, receiveDelivery,
   recordArtwork, recordGmpAssay, recordIdentity, recordProfile, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
@@ -68,54 +69,6 @@ const EXCIPIENTS: readonly (readonly [string, string, string])[] = [
   ['mgs', 'MAT-MGST', 'Magnesium stearate'],
   ['fcs', 'MAT-ECS-01', 'Enteric coating system (invented)'],
 ];
-
-/** The floor's quantities: 125 mg cores; the seal coat 2.0 %, the enteric coat 9.0 %, the top coat 3.0 %, each on its own start. */
-function rabeprazolePlan(lots: (id: string) => string, api: string, tag: string): ProcessPlan {
-  const layer = (slug: string, recipe: string, suspensionKg: string, usedKg: string, coreTotal: string, coatedTotal: string): ProcessPlan['coating']['layers'][number] =>
-    slug === ''
-      ? { susp: 'p-susp', cores: 'p-cores', coat: 'p-coat', loop: 'L-COAT', recipe, suspensionKg, usedKg, coreTotal, coatedTotal }
-      : { susp: `p-susp-${slug}`, cores: `p-cores-${slug}`, coat: `p-coat-${slug}`, loop: `L-COAT-${slug.toUpperCase()}`, recipe, suspensionKg, usedKg, coreTotal, coatedTotal };
-  return {
-    // TB-01 on the declared form, the lot's assay 99.40 % and water 0.60 %: 3 kg over the assay; the cellulose gives way.
-    api: { material: api, lot: lots('api'), kg: '3.037' },
-    compensating: { material: 'MAT-MCC-101', lot: lots('mcc'), kg: '4.464' },
-    others: [
-      ['MAT-LAC-MH', '9.000', lots('lac')], ['MAT-PVP-K30', '0.900', lots('pvp')], ['MAT-IPA', '0.900', lots('ipa')], ['MAT-CCS', '0.900', lots('ccs')],
-      ['MAT-SIO2', '0.150', lots('sio')], ['MAT-MGST', '0.300', lots('mgs')], ['MAT-ECS-01', '2.800', lots('fcs')],
-    ],
-    binderKg: '1.800',
-    granules: { in: '17.300', out: '17.250', oversize: '0.050' },
-    blendLubricantKg: '0.300',
-    blendNet: '18.500',
-    toolingSet: new RegExp(`TS-RAB-${tag}`),
-    sweep: ['124.8', '125.4', '125.9', '124.6'],
-    sideNet: '9.200',
-    sideGroup: { L: '2501.0', R: '2499.0' },
-    coresGroup: '2502.0',
-    physical: [{ thickness: '5.10', hardness: '95' }, { thickness: '5.12', hardness: '98' }, { thickness: '5.08', hardness: '92' }],
-    friability: { tablets: '52', initial: '6.510', final: '6.495' },
-    strokes: '148500',
-    compYield: { good: '18.400', residue: '0.100', rejects: '0.050' },
-    coating: {
-      panKg: '18.400',
-      layers: [
-        layer('seal', 'RCP-RTW-COAT', '2.500', '2.300', '2.5000', '2.5500'),
-        layer('', 'RCP-RTW-COAT', '9.000', '8.500', '2.5500', '2.7795'),
-        layer('top', 'RCP-RTW-COAT', '3.500', '3.200', '2.7795', '2.8629'),
-      ],
-      coatedNet: '21.070',
-      disintegration: 'GASTRO_RESISTANT',
-    },
-    inspection: {
-      inspected: { count: '147100', mass: '21.070' },
-      accepted: { count: '146300', mass: '20.955' },
-      defects: [['CHIPPED', '500'], ['COLOUR-SPOT', '300']],
-      destroyed: { count: '300', mass: '0.043' },
-      residue: { count: '500', mass: '0.072' },
-      bulkUnits: '1000',
-    },
-  };
-}
 
 test('[DI-17][INV-25][PR-01] Rabeprazole 1: the active entered on screen, the product, QA\'s confirmation; the formula written and approved by QA @office', async ({ e2e, officePage, persona, evidence }, testInfo) => {
   test.setTimeout(20 * 60_000);
@@ -245,7 +198,7 @@ test('[IN-37][PR-29][DI-04][DI-05][INV-18] Rabeprazole 3: the sandbox test run w
       if ((await iss.getByText('Execution complete').count()) > 0) return;
     }
     try {
-      await processingRun(floor, rabeprazolePlan(lotCode, api, s.tag));
+      await processingRun(floor, rabeprazolePlan(lotCode, api, new RegExp(`TS-RAB-${s.tag}`)));
     } finally {
       await closeFloor();
     }
@@ -284,8 +237,6 @@ const MANUFACTURER = { code: 'MFR-RAB', name: 'Rabeprazole Fine Chemicals Pvt Lt
 const SHARED_LOTS: Record<string, string> = {
   mcc: 'RTW-MCC-001', lac: 'RTW-LAC-001', pvp: 'RTW-PVP-001', ipa: 'RTW-IPA-001', ccs: 'RTW-CCS-001', sio: 'RTW-SIO-001', mgs: 'RTW-MGS-001', fcs: 'RTW-ECS-001',
 };
-/** What stores reserve of each lot: the active with room for its potency adjustment (3.037 kg), the cellulose to its range's top. */
-const RESERVE: Record<string, string> = { api: '3.100', mcc: '5.000', lac: '9.000', pvp: '0.900', ipa: '0.900', ccs: '0.900', sio: '0.150', mgs: '0.300', fcs: '2.800' };
 const printedOf = (tag: string) => ({
   foil: { material: `RAB-FOIL-${tag}`, name: 'Printed aluminium lidding foil, rabeprazole 20 mg (invented)', artwork: `ART-RAB-FOIL-${tag}-1` },
   carton: { material: `RAB-CTN-${tag}`, name: 'Printed carton, rabeprazole 20 mg 10 x 10 (invented)', artwork: `ART-RAB-CTN-${tag}-1` },
@@ -469,7 +420,7 @@ test('[DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Rabeprazole 7: the GMP batch p
   };
   await evidence.step('GMP floor: the whole processing with the three coats on the kiosks, each person by the Tap button of the demo reader', 'Every stage signed off; H-COAT and H-PACK approved by QA; a 1,000-tablet bulk container', async () => {
     try {
-      await processingRun(floor, rabeprazolePlan(lot, `RAB-API-${s.tag}`, s.tag));
+      await processingRun(floor, rabeprazolePlan(lot, `RAB-API-${s.tag}`, new RegExp(`TS-RAB-${s.tag}`)));
     } finally {
       await closeFloor();
     }

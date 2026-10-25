@@ -72,6 +72,9 @@ tests:
   - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-30][INV-19] route S 6: sugar coating on KIOSK-COAT-1: the sugar syrup (TB-03), the cores and the pan, five applications in the coating loop (TB-18 SC: seal, sub-coat, smoothing, colour, polish) to the weight gain @office"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Demotab 7: the GMP batch processed on the kiosks: dispensing (the active potency-adjusted from its own lot), granulation, blending, compression with Demotab's tooling, the film coat, inspection; QA's hold points; the bulk for packing @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Rabeprazole 7: the GMP batch processed on the kiosks: dispensing from the active's own lot, granulation, blending, compression with the product's tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
+  - "tools/e2e/specs/phase7/p3-demo.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] P3 demo 2: the GMP batch processed on the kiosks: dispensing from the active's seeded lot, granulation, blending, compression with the seeded tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
+  - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the edited master with the seal, enteric and top coats defines without an error and parses as content"
+  - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the edits carry the product's values (salt form, compensation, binder, 125 mg core, R20 tooling, enteric gain 8 to 10 %, batch gain 13 to 16.5 %); the source is not changed"
 clauses:
   - clause: "open a packaging order for printed tablets without the QC approval; refused."
     tests:

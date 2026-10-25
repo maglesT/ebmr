@@ -148,6 +148,11 @@ migrations. Routes D and S remain.
 (`slice-7r-routes.md`): Demotab (own-demotab, 12 of 12 on the pod) and P3 rabeprazole with its three coats and its
 two-stage dissolution as one release line (own-p3, 12 of 12); recipe-core 1750, tablets 1701; decisions D-7r-1 to 10.
 
+**Owner, 25 October: R8 is P3 rabeprazole only for now** (P1, P2, P4-P12 deferred). **Slice 7s (branch
+`phase-7/slice-7s`, from 7r, not merged):** `pnpm demo:setup --with-gmp-samples` (set-up option `--gmp-p3-demo`,
+`cli/demo-p3.ts`) loads P3 ready for the presenter (approved, IN-authorised masters with the three coats, specifications
+with the two-stage dissolution, released lots, numbering, tooling); E2E group `p3-demo`; `slice-7s-routes.md`.
+
 **Slice 7n (23 October): R7, a beta-lactam product in a dedicated suite** (`docs/build-plan/phase-7/slice-7n-routes.md`).
 Recipe-core 1655 dedicates rooms and lines to beta-lactam products (IN-27 dedications, class `BETA_LACTAM`) and refuses
 a beta-lactam batch outside them and any other batch inside them (PR-27). Demo route B (CXC-325, invented: direct
