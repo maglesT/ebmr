@@ -48,7 +48,7 @@ describe('the P3 demo seed\'s processing master (slice 7s)', () => {
   });
 
   it('[IN-37][PR-29] the edits carry the product\'s values (salt form, compensation, binder, 125 mg core, R20 tooling, enteric gain 8 to 10 %, batch gain 13 to 16.5 %); the source is not changed', () => {
-    const byId = (c: flow.MbrContent, id: string): Json => (phases(c).find((p) => p.id === id)?.config ?? {}) as Json;
+    const byId = (c: flow.MbrContent, id: string): Json => (phases(c).find((p) => p.id === id)?.config ?? {});
     expect(byId(edited, 'p-disp-api')).toMatchObject({ active: { standardIs: 'FORM' }, compensation: { min: '4.000', max: '5.000' } });
     expect(byId(edited, 'p-gran')).toMatchObject({ binder: { min: '1.500', max: '2.200' } });
     expect(byId(edited, 'p-tool')).toMatchObject({ specification: { upperEmbossing: 'R20', shape: 'Round 7.0 mm biconvex' } });
