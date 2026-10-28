@@ -488,9 +488,33 @@ export const LotQualityView = z.strictObject({
       solvents: z.string().nullable(),
       certificateRef: z.string(),
       recordedAt: Instant,
+      /** R13: the lot's as-is potency in % from the result's values (exact; null when it cannot be computed). */
+      asIs: z.string().nullable().optional(),
+      /** R13 (GMP): false while a LIMS result it came from is no longer approved (a dispensing cannot use it). */
+      usable: z.boolean().optional(),
+      /** R13 (GMP): the approved LIMS results each value was copied from. */
+      sources: z.array(z.strictObject({ value: z.enum(['assay', 'water', 'lod', 'solvents']), resultId: Uuid, testCode: z.string(), result: z.string(), unit: z.string(), state: z.string() })).optional(),
     })
     .nullable(),
   artwork: z.string().nullable(),
+  /** R13: every assay result of the lot, newest first, with who recorded it, when and why it replaced the one before. */
+  history: z
+    .array(
+      z.strictObject({
+        basis: z.string(),
+        assay: z.string(),
+        water: z.string().nullable(),
+        lod: z.string().nullable(),
+        solvents: z.string().nullable(),
+        asIs: z.string().nullable(),
+        certificateRef: z.string(),
+        reason: z.string().nullable(),
+        by: z.string(),
+        recordedAt: Instant,
+        current: z.boolean(),
+      }),
+    )
+    .optional(),
 });
 
 export const CommandResultView = z.strictObject({

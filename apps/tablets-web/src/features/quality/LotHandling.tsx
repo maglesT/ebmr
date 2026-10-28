@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { routes, type LotHandlingView, type LotSummaryView } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
+import { PotencyPreview } from '../../app/potency.tsx';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
@@ -148,13 +149,16 @@ function ReserveLot({ lot }: { lot: LotSummaryView }) {
   const [quantity, setQuantity] = useState('');
   const [until, setUntil] = useState('');
   const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.includes(b.status));
+  const chosenBatch = open.find((b) => b.batchNumber === batch) ?? null;
   const body = { batchNumber: batch ?? '', quantity: quantity.trim(), ...(until.trim() !== '' ? { expiresOn: until.trim() } : {}) };
   const parsed = routes.quality.reserveLot.body?.safeParse(body);
   return (
     <div data-testid="reserve-lot">
       <h3>Reserve for a batch</h3>
       {batches.error ? <RefusalMessage error={batches.error.error} /> : null}
-      {open.length === 0 ? <p>No open batch to reserve for.</p> : <floor.ChoiceGroup label="Batch" options={open.map((b) => ({ value: b.batchNumber, label: `${b.batchNumber} ${b.product.code} (${b.statusText})` }))} value={batch} onChange={setBatch} />}
+      {batches.isPending ? <p>Loading…</p> : open.length === 0 ? <p>No open batch to reserve for.</p> : <floor.ChoiceGroup label="Batch" options={open.map((b) => ({ value: b.batchNumber, label: `${b.batchNumber} ${b.product.code} (${b.statusText})` }))} value={batch} onChange={setBatch} />}
+      {/* R13: what the batch's potency-adjusted dispensing will calculate with this lot, before it is reserved. */}
+      {chosenBatch ? <PotencyPreview batchId={chosenBatch.runId} lotCode={lot.lotCode} /> : null}
       <Field name="reserveQuantity" label={`Quantity (${lot.unit})`} value={quantity} onChange={setQuantity} inputMode="decimal" />
       <Field name="reserveUntil" label="Reserved until (YYYY-MM-DD, optional)" description="By default 30 days, or the lot's retest or expiry when sooner." value={until} onChange={setUntil} />
       <ActButton

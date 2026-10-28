@@ -443,6 +443,24 @@ function acceptCalculation(view: HandlerView, entry: Readonly<Record<string, unk
       deviationRequired: true,
     });
   }
+  // R13 (owner, 25 October 2026): a calculation made again (typically after QC updated a lot's potency) replaces the
+  // targets the step had shown; QA sees the change as an exception of the step.
+  const earlier = governing(view);
+  if (earlier) {
+    const asIs = (calc: Record<string, unknown>): string =>
+      (Array.isArray(calc['results']) ? calc['results'] : [])
+        .filter(isRecord)
+        .map((x) => `${String(x['lot'])} ${String(x['asIsAssay'])} %`)
+        .join(', ');
+    exceptions.push({
+      type: 'POTENCY_RECALCULATED',
+      title: `The potency calculation was made again (as-is potency ${asIs(earlier)} before, ${r.result.lots.map((x, i) => `${String(lots[i]?.lot['id'])} ${x.asIsAssay} %`).join(', ')} now); QA reviews the change`,
+      controls: ['PR-19', 'DI-33'],
+      severity: 'ALERT',
+      category: 'DEVIATION_OR_OVERRIDE',
+      blocks: 'NONE',
+    });
+  }
   return { ok: true, data: calculationData(c, view.mbr, lots, r.result), ...(exceptions.length > 0 ? { exceptions } : {}) };
 }
 
@@ -636,6 +654,7 @@ export const TB01: BlockVersion = {
     { type: 'DISPENSE_OUT_OF_TOLERANCE', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A dispensed total outside the tolerance of its potency-adjusted target', controls: ['PR-19'] },
     { type: 'POTENCY_ADJUSTMENT_CAP', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'The adjusted quantity of the active beyond the MBR\'s adjustment cap', controls: ['PR-19', 'PR-04'] },
     { type: 'FEFO_OVERRIDE', category: 'DEVIATION_OR_OVERRIDE', severity: 'ALERT', summary: 'A lot other than the first-expiring usable one dispensed, with the dispenser\'s reason (rotation report)', controls: ['PR-18'] },
+    { type: 'POTENCY_RECALCULATED', category: 'DEVIATION_OR_OVERRIDE', severity: 'ALERT', summary: 'The potency calculation made again before dispensing (e.g. after QC updated a lot\'s potency); QA reviews the change', controls: ['PR-19', 'DI-33'] },
     ...CORE_VALUE_RULES,
   ],
   simulatorModel: {

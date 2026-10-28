@@ -15,6 +15,7 @@ import { DeliveryReceiptPage } from './DeliveryReceiptPage.tsx';
 import { ErpStatusPage } from './ErpStatusPage.tsx';
 import { LotReceiptPage } from './LotReceiptPage.tsx';
 import { LotPage } from './LotPage.tsx';
+import { UpdatePotencyPage } from './UpdatePotencyPage.tsx';
 import { LotsPage } from './LotsPage.tsx';
 import { ReprocessingPage } from './ReprocessingPage.tsx';
 import { ReturnsPage } from './ReturnsPage.tsx';
@@ -68,6 +69,7 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/quality/deviations/$deviationId', component: DeviationPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots', component: LotsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId', component: LotPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId/potency', component: UpdatePotencyPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/specifications', component: SpecificationsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/returns', component: ReturnsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/extra-testing', component: BatchQualityPage }),

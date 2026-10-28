@@ -13,6 +13,7 @@ import { ActButton, ActResult, useCommand, useSignedAct } from '../../app/acts.t
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { inputValue } from '../floor/pages/IssueForm.tsx';
+import { PotencyPreview } from '../../app/potency.tsx';
 
 const REFRESH = [routes.planning.orders.id, routes.batches.list.id, routes.planning.packagingOrders.id];
 
@@ -63,6 +64,7 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
         order.match.recordKind === 'PACKAGING' ? <PackagingPlanForm order={order} site={site} onPlanned={setPlanned} /> : <PlanForm order={order} site={site} onPlanned={setPlanned} />
       ) : null}
       {planned ? <IssueForm batch={planned} /> : null}
+      {planned ? <PotencyPreview batchId={planned.batchId} /> : null}
     </article>
   );
 }

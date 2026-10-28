@@ -568,3 +568,56 @@ describe('consumption into a running batch only, named by an entry of its comman
     expect(late).toMatch(/EBMR-RCP-432/);
   });
 });
+
+describe('R13: the potency before dispensing (lot view, preview, a QC change and the recalculation)', () => {
+  let b: { batchId: string; batchNumber: string };
+  beforeAll(async () => {
+    b = await issued();
+    await prepareBatch(b);
+  }, 300_000);
+
+  const lotView = async () => valueOf(await (await gmp.asPersona('qcAnalyst')).call(routes.execution.lotQuality, { params: { code: 'L26-0201' } }));
+  const preview = async () => valueOf(await (await gmp.asPersona('issuer')).call(routes.batches.potencyPreview, { params: { batchId: b.batchId }, query: {} }));
+  const stepView = async (d: RunDriver) => valueOf(await d.browser('operator1').call(routes.batches.step, { params: { batchId: b.batchId, stepKey: KEY } }));
+
+  it('[PR-19][DI-33] the lot shows its as-is potency, the approved results it came from and its history; the batch previews the targets of its reserved lots without recording anything', async () => {
+    const lot = await lotView();
+    expect(lot.assay).toMatchObject({ basis: 'AS_IS', assay: '98.5', asIs: '98.5', usable: true });
+    expect(lot.assay?.sources?.map((s) => [s.value, s.testCode, s.state])).toEqual([['assay', 'ASSAY', 'APPROVED']]);
+    expect(lot.history?.map((h) => [h.assay, h.current, h.reason])).toEqual([['98.5', true, null]]);
+    const p = await preview();
+    const step = p.steps.find((s) => s.stepId === STEP);
+    expect(step?.lots.find((l) => l.lotCode === 'L26-0201')).toMatchObject({ reserved: true, asIs: '98.5', activeTarget: '50.762', excipientTarget: '8.639', problem: null });
+    expect(p.note).toMatch(/^Preview: the weighing step recalculates/);
+    const { rows } = await gmp.db.admin.query<{ n: string }>("select count(*)::text as n from recipe.execution_state s, jsonb_each(s.state -> 'entries') e where s.batch_id = $1", [b.batchId]);
+    expect(rows[0]?.n).toBe('0');
+  });
+
+  it('[PR-19][DI-33][DI-22] after QC changes the potency by an approved result with a reason, the calculated step says so, the preview follows, and the recalculation is an exception for QA', async () => {
+    const d = await dispenser(b.batchId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    await d.ok('operator1', calc([{ lotCode: 'L26-0201' }]));
+    expect((await stepView(d)).potency?.lots[0]?.changed).toBe(false);
+    let resultId = '';
+    await arrange(async (c) => {
+      const { rows } = await c.query<{ id: string }>(
+        "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'ASSAY', 'STP-01', 'RETEST', 99.0, '%', 98.0, 102.0, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
+        [lotIds.get('L26-0201')],
+      );
+      resultId = rows[0]?.id ?? '';
+      await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [resultId]);
+    });
+    const qc = await gmp.asPersona('qcAnalyst');
+    valueOf(await qc.call(routes.execution.recordLotAssay, { params: { code: 'L26-0201' }, body: { basis: 'AS_IS', assayResultId: resultId, certificateRef: 'LIMS-RETEST-0201', reason: 'Re-assay at retest' } }));
+    const lot = await lotView();
+    expect(lot.assay).toMatchObject({ assay: '99', asIs: '99' });
+    expect(lot.history?.map((h) => [h.assay, h.current, h.reason])).toEqual([['99', true, 'Re-assay at retest'], ['98.5', false, null]]);
+    expect((await stepView(d)).potency?.lots[0]?.changed).toBe(true);
+    const target = (await preview()).steps.find((s) => s.stepId === STEP)?.lots.find((l) => l.lotCode === 'L26-0201')?.activeTarget;
+    expect(target).not.toBe('50.762');
+    await d.ok('operator1', calc([{ lotCode: 'L26-0201' }]));
+    const after = await stepView(d);
+    expect(after.potency?.lots[0]).toMatchObject({ changed: false, asIs: '99', target });
+    expect(after.exceptions.filter((e) => e.type === 'POTENCY_RECALCULATED').map((e) => [e.severity, e.title])).toEqual([['ALERT', expect.stringMatching(/L26-0201 98\.5 % before, L26-0201 99 % now/) as unknown]]);
+  });
+});

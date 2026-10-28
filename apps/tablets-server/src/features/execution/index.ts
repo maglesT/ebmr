@@ -39,6 +39,7 @@ import { plantEntryPrelude } from './plant-entry.ts';
 import { stepPlantView } from './step-plant.ts';
 import { peopleText } from './people-text.ts';
 import { lotQuality, lotSite } from './lot-quality.ts';
+import { potencyPreview } from './potency-preview.ts';
 import { lotView, resolveLot } from './lots.ts';
 import { checkIssue, issueForm, packageToImport, packageView, packageViews } from './packages.ts';
 import { exportRunResult } from './run-result-export.ts';
@@ -255,6 +256,10 @@ function gmpBatchHandlers(app: AppContext): Handlers<typeof routes.batches> {
     step: async ({ params, requireSession }) => stepScreen(await viewContextFor(app, pool, params.batchId, requireSession()), params.stepKey),
     // Phase 7 slice 7h (WP-A): what the step screen offers its plant acts from (step-plant.ts).
     stepPlant: async ({ params, requireSession }) => stepPlantView(app, pool, params.batchId, params.stepKey, requireSession().personId),
+    potencyPreview: async ({ params, query, requireSession }) => {
+      requireSession();
+      return potencyPreview(pool, params.batchId, query.lotCode);
+    },
     cleaningNeeds: async ({ params, requireSession }) => {
       requireSession();
       return cleaningNeedsView(pool, params.batchId);
