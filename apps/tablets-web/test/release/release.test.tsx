@@ -160,6 +160,28 @@ describe('release cockpit, manufacturer tab', () => {
     const n = await screen.findByTestId('lot-notifications');
     expect((await within(n).findByTestId('notification-QA')).textContent).toContain('was released by the manufacturer');
   });
+
+  it('R10 #6: a released lot says who released it and when, and offers no form of the decision (acknowledgements, evaluations, justifications)', async () => {
+    const d = released.decision;
+    const view = {
+      ...released,
+      // Evidence that changed after the release (e.g. the record locked at release) and acts not yet done: the decision stands.
+      grel: { ...released.grel, items: released.grel.items.map((i, n) => (n === 0 ? { ...i, sinceReview: true, acknowledged: false } : i)) },
+      postChange: [{ batchId: released.batchId, batchNumber: 'P26-0001', changeRecord: 'CC-2026-015', evaluated: false }],
+      validationBatches: [{ batchId: released.batchId, batchNumber: 'P26-0001', purpose: 'PPQ', outcome: null }],
+      openInvestigationPath: true,
+    };
+    renderOffice(`/release/${L}`, { ...AP, fixtures: { 'release.lot': view } });
+    const box = await screen.findByTestId('release-decision');
+    expect(box.textContent).toContain(`Released by ${d?.by.legalName ?? 'x'}`);
+    expect(box.textContent).toContain(`on ${d?.at.text ?? 'x'}`);
+    expect(screen.queryByTestId('manufacturer-release')).toBeNull();
+    expect(screen.queryByTestId('manufacturer-reject')).toBeNull();
+    expect(screen.queryByTestId('since-review')).toBeNull();
+    expect(screen.queryByTestId('post-change')).toBeNull();
+    expect(screen.queryByTestId('ppq')).toBeNull();
+    expect(screen.queryByTestId('investigation-justify')).toBeNull();
+  });
 });
 
 describe('notification centre', () => {

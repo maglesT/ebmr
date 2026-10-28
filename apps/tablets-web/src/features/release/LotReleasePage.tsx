@@ -97,13 +97,17 @@ function ManufacturerTab({ view: v }: { view: LotReleaseView }) {
   const qa = useOffered('QA');
   return (
     <>
+      {/* R10 #6: once the decision is recorded it leads the tab and nothing of the decision is offered again (the
+          acknowledgements, evaluations and justifications serve the decision; evidence that changes afterwards, such as
+          the record locked at release, is the After release tab's). */}
+      {v.decision ? <Decision view={v} /> : null}
       <GrelChecklist grel={v.grel} title="Release checklist (G-REL, market IN)" testId="grel-checklist" />
-      <SinceReview lotId={v.lotId} grel={v.grel} />
+      {v.decision ? null : <SinceReview lotId={v.lotId} grel={v.grel} />}
       <Flags view={v} />
-      {v.postChange.length > 0 ? <PostChange view={v} offered={qa} /> : null}
-      {v.validationBatches.length > 0 ? <PpqOutcome view={v} offered={qa} /> : null}
-      {v.openInvestigationPath ? <Justifications view={v} offered={qa} /> : null}
-      {v.decision ? <Decision view={v} /> : <ReleaseDecision view={v} offered={qa} />}
+      {!v.decision && v.postChange.length > 0 ? <PostChange view={v} offered={qa} /> : null}
+      {!v.decision && v.validationBatches.length > 0 ? <PpqOutcome view={v} offered={qa} /> : null}
+      {!v.decision && v.openInvestigationPath ? <Justifications view={v} offered={qa} /> : null}
+      {v.decision ? null : <ReleaseDecision view={v} offered={qa} />}
       <Section title="Notifications of the decision" testId="lot-notifications">
         <NotificationList subjectId={v.lotId} empty="No notification yet: production and QA are notified when the decision is signed." />
       </Section>
@@ -311,7 +315,7 @@ function Decision({ view: v }: { view: LotReleaseView }) {
   return (
     <Section title="Manufacturer decision" testId="release-decision">
       <p>
-        <StatusChip tone={d.decision === 'RELEASED' ? 'ok' : 'error'} label={words(d.decision)} /> by {d.by.legalName} ({words(d.by.role)}), {d.at.text}
+        <StatusChip tone={d.decision === 'RELEASED' ? 'ok' : 'error'} label={words(d.decision)} /> by {d.by.legalName} ({words(d.by.role)}) on {d.at.text}
         {d.delegationId ? ', as a named delegate' : ''}
         {d.reason ? `: ${d.reason}` : ''}
       </p>
