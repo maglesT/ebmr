@@ -1042,10 +1042,10 @@ export const TARGETS: Target[] = [
                 'recipe.bulk_close_problems', 'recipe.close_bulk_reconciliation', 'recipe.bulk_issue_within_produced',
                 'recipe.set_bright_stock_hold', 'recipe.bright_stock_max_hold_of', 'recipe.bright_stock_deviation_covers',
                 'recipe.bright_stock_container_problem', 'recipe.bright_stock_hold_problem',
-                // Slice 7t (tablets 1770, 1771; R10 #4, #5): only the final stage's non-reject containers are bulk; the
-                // reconciliation closes at a lot's first disposition when no bulk is left.
-                'recipe.packaging_reject_problem', 'recipe.packaging_bulk_problem', 'recipe.bulk_reconciliation_close_at_disposition',
-                'recipe.close_bulk_at_disposition'],
+                // Slice 7t (tablets 1770, 1772; R10 #4, #5): only the final stage's non-reject containers are bulk; the
+                // reconciliation closes at the end of QA's review when all bulk is packed.
+                'recipe.packaging_reject_problem', 'recipe.packaging_bulk_problem', 'recipe.bulk_reconciliation_close_after_review',
+                'recipe.close_bulk_after_review', 'recipe.close_bulk_after_packing'],
     tests: [r('lifecycle/record-lock.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), s('execution/packaging-planning-routes.test.ts')],
     threshold: 90,
   },

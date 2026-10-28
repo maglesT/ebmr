@@ -90,7 +90,7 @@ of each database function.
 | [ts-containers](#ts-containers) | Output container acts | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 6 | 2 | 3 |
 | [ts-master-data](#ts-master-data) | Master data (formulas, ERP masters) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 6 | 5 | 5 |
 | [ts-quality](#ts-quality) | Quality (lots, deviations, LIMS-lite, specifications, samples) | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 61 | 13 | 24 |
-| [ts-planning](#ts-planning) | Planning | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 10 | 3 | 6 |
+| [ts-planning](#ts-planning) | Planning | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 10 | 3 | 6 |
 | [ts-plant](#ts-plant) | Plant screens and routes | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 13 | 5 | 18 |
 | [ts-review](#ts-review) | Batch record review | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 6 | 10 |
 | [ts-release](#ts-release) | Release cockpit and Tablets G-REL items | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 11 | 13 | 24 |
@@ -1818,14 +1818,14 @@ of each database function.
 
 **Planning.** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
 
-**Migrations** (2):
+**Migrations** (3):
 
-- `apps/tablets-server/sql`: [1770_bulk_is_the_final_output.sql](../../apps/tablets-server/sql/1770_bulk_is_the_final_output.sql), [1771_processing_record_locks_at_release.sql](../../apps/tablets-server/sql/1771_processing_record_locks_at_release.sql)
+- `apps/tablets-server/sql`: [1770_bulk_is_the_final_output.sql](../../apps/tablets-server/sql/1770_bulk_is_the_final_output.sql), [1771_processing_record_locks_at_release.sql](../../apps/tablets-server/sql/1771_processing_record_locks_at_release.sql), [1772_bulk_close_after_qa_review.sql](../../apps/tablets-server/sql/1772_bulk_close_after_qa_review.sql)
 
 **Database objects** created in these migrations:
 
-- Functions (6): `recipe.bulk_reconciliation_close_at_disposition`, `recipe.close_bulk_at_disposition`, `recipe.issue_packaging_bulk`, `recipe.packaging_bulk_problem`, `recipe.packaging_order_bulk`, `recipe.packaging_reject_problem`
-- Triggers (1): `zzzm_close_bulk_at_disposition on recipe.manufacturer_release_decision`
+- Functions (9): `recipe.bulk_reconciliation_close_after_review`, `recipe.bulk_reconciliation_close_at_disposition`, `recipe.close_bulk_after_packing`, `recipe.close_bulk_after_review`, `recipe.close_bulk_at_disposition`, `recipe.issue_packaging_bulk`, `recipe.packaging_bulk_problem`, `recipe.packaging_order_bulk`, `recipe.packaging_reject_problem`
+- Triggers (3): `zzzm_close_bulk_after_packing on recipe.execution_state`, `zzzm_close_bulk_after_review on recipe.batch_review_act`, `zzzm_close_bulk_at_disposition on recipe.manufacturer_release_decision`
 
 **Server files** (1): [index.ts](../../apps/tablets-server/src/features/planning/index.ts)
 
