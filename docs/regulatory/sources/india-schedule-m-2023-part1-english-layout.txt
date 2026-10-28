@@ -1,0 +1,1646 @@
+1.    Pharmaceutical Quality System (PQS):
+      1.1. The manufacturer must assume responsibility for the quality of the pharmaceutical products to ensure that
+           they are fit for their intended use, comply with the requirements of the licence and do not place patients at
+           risk due to inadequate safety, quality or efficacy. The attainment of this quality objective is the responsibility
+           of senior management and requires the participation and commitment of staff in different departments and at
+           all levels within the company, the company’s suppliers and the distributors. To achieve this quality objective
+           reliably there must be a comprehensively designed and correctly implemented pharmaceutical quality system
+           incorporating Good Manufacturing Practices (GMP) and Quality Risk Management (QRM).
+      1.2. Senior management has the ultimate responsibility to ensure that an effective pharmaceutical quality system
+           is in place, is adequately resourced, and that roles, responsibilities, and authorities are defined, communicated
+           and implemented throughout the organisation. Senior management’s leadership and active participation in the
+           pharmaceutical quality system is essential. This shall ensure the support and commitment of staff at all levels
+           and sites within the organisation to the pharmaceutical quality system.
+7986 GI/2023                                                  (148)
+[भाग II—खण्‍ड 3(i)]                            भारत‍का‍राजपत्र‍:‍असाधारण                                             149
+
+    1.3. Quality management is a wide-ranging concept covering all matters that individually or collectively influence
+         the quality of a product. It is the totality of the arrangements made with the object of ensuring that
+         pharmaceutical products are of the quality required for their intended use. Quality management, therefore,
+         incorporates Good Manufacturing Practices and other factors, including those outside the scope of this Part,
+         such as product design and development.
+    1.4. Good Manufacturing Practices applies to the life-cycle stages from the manufacture of investigational
+         medicinal products, technology transfer, and commercial manufacturing, until the product discontinuation.
+         The product quality system can extend to the pharmaceutical development life-cycle stages and shall
+         facilitate innovation and continual improvement and strengthen the link between pharmaceutical
+         development and manufacturing activities. All parts of the product quality system shall be adequately
+         resourced and maintained, including being provided with sufficient competent personnel, suitable premises,
+         equipment and facilities.
+    1.5.    The product quality system appropriate to the manufacture of pharmaceutical products shall ensure that—
+           (a) product realisation is achieved by designing, qualifying, planning, implementing, maintaining and
+               continuously improving a system that allows the consistent delivery of products with appropriate quality
+               attributes;
+           (b) product and process knowledge is managed throughout all lifecycle stages;
+           (c) pharmaceutical products are designed and developed in a way that takes into account, the requirements
+               of GMP and other GXPs such as those of Good Laboratory Practices (GLP) and Good Clinical Practices
+               (GCP);
+           (d) production and quality control operations shall be clearly specified in a written form and GMP
+               requirements are adopted;
+           (e) managerial responsibilities are clearly specified in the job descriptions;
+           (f) arrangements are made for the manufacture, supply and use of the correct starting and packaging
+               materials, the selection and monitoring of suppliers and for verifying that each delivery is the correct
+               material from the approved supply chain;
+           (g) all necessary controls on starting materials, intermediate products, and bulk products and other in-
+               process controls, calibrations and validations are carried out;
+           (h) the finished product is correctly processed and checked, according to the defined procedures;
+           (i) pharmaceutical products are not sold or supplied before the authorised persons have certified that each
+               production batch has been produced and controlled in accordance with the requirements of the licence
+               and other applicable regulations relevant to the production, control and release of pharmaceutical
+               products;
+           (j) processes are in place to ensure the management of outsourced activities;
+           (k) satisfactory arrangements exist to ensure, as far as possible, that the pharmaceutical products are stored,
+               distributed and subsequently handled so that quality is maintained throughout their shelf-life;
+           (l) there is a procedure for self-inspection or quality audit that regularly appraises the effectiveness and
+               applicability of the product quality system;
+           (m) product and processes are monitored and the results taken into account in batch release, in the
+               investigation of deviations and, with a view to taking preventive action to avoid potential deviations
+               occurring in the future;
+           (n) arrangements are in place for the prospective evaluation and approval of planned changes and their
+               approval prior to their implementation, taking into account regulatory notification and approval where
+               required. After implementation of any change, an evaluation is undertaken to confirm that the quality
+               objectives were achieved and that there was no unintended adverse impact on product quality;
+           (o) regular reviews of the quality of pharmaceutical products are conducted with the objective of verifying
+               the consistency of the process and identifying where there is a need for improvement;
+           (p) a state of control is established and maintained by developing and using effective monitoring and control
+               systems for process performance and product quality;
+           (q) continual improvement is facilitated through the implementation of quality improvements appropriate to
+               the current level of process and product knowledge;
+           (r) there is a system for QRM; and
+           (s) deviations, suspected product defects and other problems are reported, investigated and recorded. An
+150                            THE GAZETTE OF INDIA : EXTRAORDINARY                                 [PART II—SEC. 3(i)]
+
+              appropriate level of root cause analysis is applied during such investigations. The most likely root causes
+              shall be identified and appropriate corrective and preventive actions shall be identified and taken. The
+              effectiveness of corrective and preventive actions shall be monitored.
+      1.6. There shall be periodic management reviews, with the involvement of senior management, of the operation
+           of the product quality system to identify opportunities for continual improvement of products, processes and
+           the system itself. Unless otherwise justified, such reviews shall be conducted at least annually.
+      1.7. The product quality system shall be defined and documented. A quality manual or an equivalent
+           documentation shall be established and shall contain a description of the quality management system
+           including management responsibilities.
+2.    Quality Risk Management (QRM):
+      2.1.   Quality Risk Management is a systematic process for the assessment, control, communication and review
+             of risks to the quality of the medicinal product. It can be applied both proactively and retrospectively.
+      2.2.   Quality Risk Management shall ensure that the-
+             (a) evaluation of the risk to quality is based on scientific knowledge, experience with the process and
+              ultimately links to the protection of the patient;
+             (b) level of effort, formality and documentation of the QRM process is commensurate with the level of
+              risk.
+      2.3.   Product quality review-
+             2.3.1. Regular, periodic or rolling quality reviews of all pharmaceutical products, including products for
+                    export only, shall be conducted with the objective of verifying the consistency of the existing
+                    process and the appropriateness of current specifications for both starting materials and finished
+                    product, to highlight any trends and to identify product and process improvements.
+             2.3.2. Such reviews shall normally be conducted and documented annually, taking into account previous
+                    reviews, and shall include at least,-
+                    (a) review of starting materials and packaging materials used for the product, especially those
+                        from new sources and in particular the review of supply chain traceability of active
+                        substances;
+                    (b) a review of critical in-process controls, and finished product results;
+                    (c) a review of all batches that failed to meet established specifications and their investigation;
+                    (d) a review of all significant deviations or non-conformity, the related investigations and the
+                        effectiveness of resultant corrective and preventive actions taken;
+                    (e) a review of all changes made to the processes or analytical methods;
+                    (f)   a review of dossier variations submitted, granted or refused;
+                    (g) a review of the results of the stability monitoring programme and any adverse trends;
+                    (h) a review of all quality related returns, complaints and recalls and the investigations performed
+                        at the time;
+                    (i)   a review of adequacy of any other previous corrective actions on product processes or
+                          equipment;
+                    (j)   post marketing commitments for new dossiers and variations to the dossiers;
+                    (k) the qualification status of relevant equipment and utilities, e.g., heating, ventilation and air
+                        conditioning, water or compressed gases and a review of the results of monitoring the output
+                        of such equipment and utilities; and
+                    (l)   a review of technical agreements to ensure that they are up to date.
+             2.3.3. The manufacturer shall evaluate the results of the review and an assessment shall be made as to
+                    whether corrective and preventive actions or any revalidation shall be undertaken, under the
+                    product quality system. Corrective and preventive actions shall be completed in a timely and
+                    effective manner, according to documented procedures. There shall be procedures for the on-going
+                    management and review of these actions, and the effectiveness of these procedures shall be
+                    verified during self-inspection. Quality reviews may be grouped by product type e.g., solid dosage
+                    forms, liquid dosage forms, or sterile products, where scientifically justified. There shall be a
+[भाग II—खण्‍ड 3(i)]                           भारत‍का‍राजपत्र‍:‍असाधारण                                             151
+
+                      technical agreement in place between the various parties that defines their respective
+                      responsibilities in producing the quality review. The authorised person responsible for final batch
+                      certification shall ensure that the quality review is performed in a timely manner and is accurate.
+3.   Good manufacturing practices for pharmaceutical products:
+     3.1. Good manufacturing practices is that part of quality management which ensures that products are
+          consistently produced and controlled according to the quality standards appropriate to their intended use as
+          required by the conditions of licence, clinical trial permission or product specifications. Good manufacturing
+          practices are concerned with both production and quality control. Good manufacturing practices are aimed
+          primarily at managing and minimising the risks inherent in pharmaceutical manufacture to ensure the
+          quality, safety and efficacy of products. Under Good manufacturing practices—
+          (1)   all manufacturing processes are clearly defined, systematically reviewed for associated risks in the
+                light of scientific knowledge and experience and shown to be capable of consistently manufacturing
+                pharmaceutical products of the required quality that comply with their specifications;
+          (2)   qualification and validation are performed;
+          (3)   all necessary resources are provided, including the following, namely-
+                (a)     sufficient and appropriately qualified and trained personnel;
+                (b)     adequate premises and space;
+                (c)     suitable equipment and services;
+                (d)     appropriate materials, containers and labels;
+                (e)     approved procedures and instructions;
+                (f)     suitable storage and transport;
+                (g)     adequate personnel, laboratories and equipment are in process controls; and
+                (h)     books necessary for ensuring compliance with the requirements relating to product
+                        development, manufacturing and quality control testing such as the Drugs and Cosmetics Act,
+                        1940, the Drugs Rules, 1945, the Indian Pharmacopoeia (Current Edition) and other relevant
+                        books and guidance documents officially issued by the Ministry of Health and Family Welfare,
+                        Government of India;
+          (4)   instructions and procedures are written in clear and unambiguous language, specifically applicable to
+                the facilities provided;
+          (5)   procedures are carried out correctly and personnel are trained to do so;
+          (6)   records are made (manually or by recording instruments or by both) during manufacture to show that
+                all the steps required by the defined procedures and instructions have in fact been taken and that the
+                quantity and quality of the product are as expected. Any significant deviations are fully recorded and
+                investigated with the objective of determining the root cause and appropriate corrective and
+                preventive action is implemented;
+          (7)   records covering manufacture and distribution, which enable the complete history of a batch to be
+                traced, are retained in a comprehensible and accessible form;
+          (8)   the proper storage and distribution of the products which minimises any risk to their quality;
+          (9)   a system is available to recall any batch of product from sale or supply; and
+          (10) complaints about marketed products are examined, the causes of quality defects investigated and
+               appropriate measures are taken in respect of the defective products to prevent recurrence.
+4.   Sanitation and hygiene:
+     A high level of sanitation and hygiene shall be practiced in every aspect of the manufacture of drugs. The scope
+     of sanitation and hygiene covers personnel, premises, equipment and apparatus, production materials and
+     containers, products for cleaning and disinfection and anything that could become a source of contamination to
+     the product. Potential sources of contamination shall be eliminated through an integrated comprehensive
+     programme of sanitation and hygiene.
+     5. Qualification and validation:
+     5.1. In accordance with GMP, each pharmaceutical company shall identify what qualification and validation work
+152                             THE GAZETTE OF INDIA : EXTRAORDINARY                                    [PART II—SEC. 3(i)]
+
+          is required to prove that the critical aspects of their particular operation is controlled.
+      5.2. The key elements of a qualification and validation programme of a company shall be clearly defined and
+           documented in a validation master plan.
+      5.3. Qualification and validation shall establish and provide documentary evidence that—
+              (a)   the premises, supporting utilities, equipment and processes have been designed in accordance with
+                    the requirements for good manufacturing practices [design qualification (DQ)];
+              (b)   the premises, supporting utilities and equipment have been built and installed in compliance with
+                    their design specifications [installation qualification (IQ)];
+              (c)   the premises, supporting utilities and equipment operate in accordance with their design
+                    specifications [operational qualification (OQ)];
+              (d)   a specific process shall consistently produce a product meeting its predetermined specifications and
+                    quality attributes [process validation (PV), also called performance qualification (PQ)].
+      5.4. Any aspect of operation, including significant changes to the premises, facilities, equipment or processes,
+           which may affect the quality of the product, directly or indirectly, shall be qualified and validated.
+      5.5. Qualification and validation shall not be considered as one-off exercises. An on-going programme shall
+           follow their first implementation and shall be based on a periodic review.
+      5.6. The commitment to maintain continued validation status shall be stated in the relevant company
+           documentation, such as the quality manual or validation master plan.
+      5.7. The responsibility for performing validation shall be clearly defined.
+      5.8. Validation studies are an essential part of good manufacturing practices and shall be conducted in accordance
+           with predefined and approved protocols.
+      5.9. A written report summarising the results recorded and the conclusions reached shall be prepared and stored.
+      5.10.    Processes and procedures shall be established on the basis of the results of the validation performed.
+      5.11. Particular attention shall be paid to the validation of analytical test methods, automated systems and
+          cleaning procedures.
+      5.12.    The premises, equipment or process system, facility qualification and validation shall be carried out.
+6.    Complaints and adverse reaction:
+      6.1. All complaints and other information concerning potentially defective products shall be carefully reviewed
+           according to the written procedures and corrective action shall be taken.
+      6.2. A person responsible for handling the complaints and deciding the measures to be taken shall be designated,
+           together with sufficient supporting staff to assist him or her. If this person is different from the authorised
+           person, the latter shall be made aware of any complaint, investigation or recall.
+      6.3. There shall be written procedures describing the action to be taken, including the need to consider a recall, in
+           the case of a complaint concerning a possible product defect.
+      6.4. Special attention shall be given to establishing that the product that gave rise to a complaint was defective.
+      6.5. Any complaint concerning a product defect shall be recorded with all the original details and thoroughly
+           investigated. The person responsible for Quality Control (QC) shall normally be involved in the review of
+           such investigations.
+      6.6. If a product defect is identified or suspected in a batch, consideration shall be given as to whether other
+           batches shall be checked in order to determine whether they are also affected. In particular, other batches that
+           may contain reprocessed product from the defective batch shall be investigated.
+      6.7. Where necessary, appropriate follow-up action, possibly including product recall, shall be taken after
+           investigation and evaluation of the complaint.
+      6.8. All decisions made and measures taken as a result of a complaint shall be recorded and referenced to the
+           corresponding batch records.
+      6.9. Complaint records shall be regularly reviewed for any indication of specific or recurring problems that
+           require attention and might justify the recall of marketed products.
+      6.10.   The licensing authorities shall be informed if a manufacturer is considering action following the faulty
+              manufacture, product deterioration, a suspect product or any other serious quality problems with a
+              product.
+[भाग II—खण्‍ड 3(i)]                           भारत‍का‍राजपत्र‍:‍असाधारण                                               153
+
+     6.11.   The licensee shall have a pharmacovigilance system in place for collecting, processing and forwarding the
+             reports to the licensing authorities for information on the adverse drug reactions emerging from the use of
+             drugs manufactured or marketed by the licensee.
+7.   Product recalls:
+     7.1. There shall be a system to recall from the market, products known or suspected to be defective.
+     7.2. The authorised person shall be responsible for the execution and coordination of recalls. He or she shall have
+          sufficient staff to handle all aspects of the recalls with the appropriate degree of urgency.
+     7.3. There shall be established written procedures, which are regularly reviewed and updated, for the organisation
+          of any recall activity. Recall operations shall be capable of being initiated at the required level in the
+          distribution chain.
+     7.4. An instruction shall be included in the written procedures to store recalled products in a secure segregated
+          area.
+     7.5. The licensing authorities shall be informed of any intention to recall the product because it is, or is suspected
+          of being, defective.
+     7.6. The distribution records shall be readily available to the authorised person, and they shall contain sufficient
+          information on wholesalers and directly supplied customers to permit an effective recall.
+     7.7. The progress of the recall process shall be monitored and recorded. Records shall include the disposition of
+          the product. A final report shall be issued, including reconciliation between the delivered and recovered
+          quantities of the products.
+     7.8. The effectiveness of the arrangements for recall shall be tested and evaluated from time to time.
+     7.9. A prompt and effective product recall system of defective products shall be devised for timely information of
+          all concerned stockists, wholesalers, suppliers, up to the retail level within the shortest period. The licensee
+          may make use of both print and electronic media in this regard.
+     7.10. There shall be an established written procedure in the form of Standard Operating Procedure for effective
+           recall of products distributed by the licensee. Recall operations shall be capable of being initiated, so as to
+           effectively reach at the level of each distribution channel.
+     7.11. The distribution records shall be readily made available to the persons designated for recall.
+     7.12. The designated person shall record a final report issued, including reconciliation between the delivered
+           and the recovered quantities of the products.
+     7.13. The effectiveness of the arrangements for recall shall be evaluated from time to time.
+     7.14. The recalled products shall be stored separately in a secured segregated area pending final decision on
+           them.
+8.   Change control:
+     8.1. A formal change control system shall be established to evaluate all changes that may affect the production
+          and control of the product.
+     8.2. Written procedures shall cover the identiﬁcation, documentation, appropriate review, and approval of
+          changes in raw materials, speciﬁcations, analytical methods, facilities, support systems, equipment (including
+          computer hardware), processing steps, labelling and packaging materials and computer software.
+     8.3. Any proposals for relevant changes to GMP shall be drafted, reviewed and approved by the appropriate
+          organisational units and reviewed and approved by the quality units.
+     8.4. The potential impact of the proposed change on the quality of the intermediate or Active Pharmaceutical
+          Ingredient (API) or finished product shall be evaluated. A classiﬁcation procedure may help in determining
+          the level of testing, validation and documentation needed to justify changes to a validated process. Changes
+          can be classiﬁed (e.g., as minor or major) depending on their nature and extent and the effect of these
+          changes may have on the process. Scientiﬁc judgement shall be used to determine what additional testing and
+          validation studies are appropriate to justify a change in a validated process.
+     8.5. When implementing the approved changes, measures shall be taken to ensure that all the documents are
+          affected by the changes as revised.
+     8.6. After the change has been implemented there shall be an evaluation of the ﬁrst batch produced or tested
+          under the change.
+     8.7. The potential for critical changes to affect established retest or expiry dates shall be evaluated. If necessary,
+154                              THE GAZETTE OF INDIA : EXTRAORDINARY                                  [PART II—SEC. 3(i)]
+
+             samples of the intermediate or API or finished product produced by the modiﬁed process can be placed on an
+             accelerated stability programme or can be added to the stability monitoring programme or both.
+9.    Production under loan licence or contract and contract analysis and other activities:
+      9.1.     Principle- Production under loan licence or contract and contract analysis and any other activity covered
+               by good manufacturing practices must be correctly defined, agreed and controlled in order to avoid
+               misunderstandings that could result in a product, or work or analysis, of unsatisfactory quality.
+      9.2.     General-
+               9.2.1. All arrangements for production under loan licence or contract and analysis, including technology
+                      transfer and any proposed changes in technical or other arrangements, shall be in accordance with
+                      the licence for the product concerned.
+               9.2.2. The contract shall permit the loan licensee or contract giver to audit the facilities and activities of
+                      the manufacturing facility provider or contract acceptor or mutually agreed sub-contractors.
+               9.2.3. In the case of contract analysis, the final approval for release must be given by the authorised person
+                      in accordance with good manufacturing practices and the licence as specified in the contract.
+      9.3.     Loan licensee or contract giver-
+                9.3.1. The product quality system of the loan licensee or contract giver shall include the control and
+                       review of any outsourced activities. The contract giver is responsible for assessing the legality,
+                       suitability and competence of the manufacturing facility provider or contract acceptor to
+                       successfully carry out the work or tests required, for approval for contract activities, and for
+                       ensuring by means of the contract that the principles of good manufacturing practices
+                       incorporating quality risk management principles are followed.
+                9.3.2. The loan licensee or contract giver shall provide the manufacturing facility provider or contract
+                       acceptor with all the information necessary to carry out the contracted operations correctly in
+                       accordance with the licence and any other legal requirements. The loan licensee or contract giver
+                       shall ensure that the manufacturing facility provider or contract acceptor is fully aware of any
+                       hazards associated with the product, work or tests that might pose a risk to premises, equipment,
+                       personnel, other materials or other products.
+                9.3.3. The loan licensee or contract giver shall review and assess the records and results related to the
+                       outsourced activities. The contract giver shall ensure that all the products and materials delivered
+                       by the manufacturing facility provider or contract acceptor have been processed in accordance
+                       with good manufacturing practices and the licence; comply with their specifications and that the
+                       product has been released by the authorised person in accordance with good manufacturing
+                       practices and the licence.
+                9.3.4. The loan licensee or contract giver shall monitor and review the performance of the manufacturing
+                       facility provider or contract acceptor including the implementation of any needed improvements
+                       and their effectiveness.
+                9.3.5. The loan licensee or contract giver is responsible for ensuring that the manufacturing facility
+                       provider or contract acceptor understands that his or her activities may be subject to inspection by
+                       the competent authorities.
+      9.4.     Manufacturing facility provider or contract acceptor-
+               9.4.1. The manufacturing facility provider or contract acceptor must have adequate premises, equipment,
+                      knowledge, experience and competent personnel to satisfactorily carry out the work ordered by the
+                      loan licensee or contract giver. Contract manufacture shall be undertaken only by a manufacturer
+                      who holds a valid manufacturing licence.
+               9.4.2. The manufacturing facility provider or contract acceptor shall not pass to a third party any of the
+                      work entrusted to him or her under the contract without the loan licensee or contract giver’s prior
+                      evaluation and approval of the arrangements. Arrangements made between the manufacturing
+                      facility provider or contract acceptor and any third party shall ensure that information and
+                      knowledge, including that from assessments of the suitability of the third party, are made available
+                      in the same way as between the original loan licensee or contract giver and contract acceptor.
+             9.4.3.   The manufacturing facility provider or contract acceptor shall refrain from any activity (including
+                      unauthorised changes outside the terms of the contract) that may adversely affect the quality of the
+                      product manufactured oranalysed or both for the loan licensee or contract giver.
+[भाग II—खण्‍ड 3(i)]                           भारत‍का‍राजपत्र‍:‍असाधारण                                             155
+
+            9.5.    Contract-
+        9.5.1.      There must be a written contract between the loan licensee or contract giver and the manufacturing
+                    facility provider or contract acceptor which clearly establishes the responsibilities of each party,
+                    covering the outsourced activities, the products or operations to which they are related,
+                    communication processes relating to the outsourced activities and any technical arrangements made
+                    in connection with it.
+        9.5.2.      The contract must clearly state the way in which the authorised person, in releasing each batch of
+                    product for sale or issuing the certificate of analysis, exercises his or her full responsibility and
+                    ensures that each batch has been manufactured in, and checked for, compliance with the
+                    requirements of the licence.
+        9.5.3.      Technical aspects of the contract shall be drawn up by competent persons with suitable knowledge
+                    of pharmaceutical technology, analysis and good manufacturing practices.
+        9.5.4.      All arrangements for production and analysis must be in accordance with the licence and agreed by
+                    both parties.
+        9.5.5.      The contract shall clearly describe who is responsible for contracted activities e.g., knowledge
+                    management, technology transfer, supply chain, sub-contracting, testing and releasing materials and
+                    undertaking production and quality control, including in-process controls, and who has
+                    responsibility for sampling and analysis. In the case of contract analysis, the contract shall state
+                    whether or not the manufacturing facility provider or contract acceptor shall take samples at the
+                    premises of the manufacturer.
+        9.5.6.      Manufacturing, analytical and distribution records, and reference samples, shall be kept by, or be
+                    available to, the loan licensee or contract giver. Any records relevant to assessing the quality of a
+                    product in the event of complaints or a suspected defect, or to investigating a suspected product or
+                    laboratory fraud, must be accessible and specified in the procedures of the loan licensee or contract
+                    giver.
+        9.5.7.      The contract shall describe the handling of starting materials, intermediate, bulk and finished
+                    products, if they are rejected. It shall also describe the procedure to be followed if the contract
+                    analysis shows that the tested product must be rejected.
+10. Self-inspection, quality audits and suppliers’ audits and approval:
+    10.1.    The purpose of self-inspection is to evaluate the manufacturer’s compliance with good manufacturing
+             practices in all aspects of production and QC. The self-inspection programme shall be designed to detect
+             any shortcomings in the implementation of good manufacturing practices and to recommend the
+             necessary corrective actions. Self-inspections shall be performed routinely, and may be, in addition,
+             performed on special occasions e.g., in the case of product recall or repeated rejections, or when an
+             inspection by the regulatory authorities is announced. The team responsible for self-inspection shall
+             consist of personnel who can evaluate the implementation of good manufacturing practices objectively.
+             All recommendations for corrective action shall be implemented. The procedure for self-inspection shall
+             be documented and there shall be an effective follow-up programme.
+    10.2.    Items for self-inspection-Written instructions for self-inspection shall be established to provide a
+             minimum and uniform standard of requirements. These may include questionnaires on good
+             manufacturing practices requirements covering at least the following items, namely:-
+              (a)   personnel;
+              (b)   premises including personnel facilities;
+              (c)   maintenance of buildings and equipment;
+              (d)   storage of starting materials and finished products;
+              (e)   equipment;
+              (f)   production and in-process controls;
+              (g)   quality control (QC);
+              (h)   documentation;
+              (i)   sanitation and hygiene;
+              (j)   validation and revalidation programmes;
+156                            THE GAZETTE OF INDIA : EXTRAORDINARY                                   [PART II—SEC. 3(i)]
+
+              (k)   calibration of instruments or measurement systems;
+              (l)   recall procedures;
+              (m) complaints management;
+              (n)   labels control; and
+              (o)   results of previous self-inspections and any corrective steps taken.
+      10.3.   Self-inspection team- Management shall appoint a self-inspection team consisting of experts in their
+              respective fields who are familiar with GMP. The members of the team may be appointed from inside or
+              outside the company.
+      10.4.   Frequency of self-inspection- The frequency with which self-inspections are conducted may depend on
+              company requirements but shall be at least once in a year. The frequency shall be stated in the procedure.
+      10.5.   Self-inspection report- A report shall be made at the completion of a self-inspection. The report shall
+              include the following, namely:-
+              (a) self-inspection results;
+              (b) evaluation and conclusions; and
+              (c) recommended corrective actions.
+      10.6.   Follow-up action- There shall be an effective follow-up programme. The company management shall
+              evaluate both the self-inspection report and the corrective actions as necessary.
+      10.7.   Quality audit- It may be useful to supplement self-inspections with a quality audit. A quality audit
+              consists of an examination and assessment of all or part of a quality system with the specific purpose of
+              improving it. A quality audit is usually conducted by outside or independent specialists or a team
+              designated by the management for this purpose. Such audits may also be extended to suppliers and
+              contractors.
+      10.8.   Suppliers’ audits and approval-
+              10.8.1.    The person responsible for quality control shall have responsibility, together with other
+                         relevant departments, for approving suppliers who can reliably supply starting and packaging
+                         materials that meet established specifications.
+              10.8.2.    Before suppliers are approved and included in the approved suppliers’ list or specifications,
+                         they shall be evaluated. The evaluation shall take into account a supplier’s history and the
+                         nature of the materials to be supplied. If an audit is required, it shall determine the supplier’s
+                         ability to conform with good manufacturing practices standards.
+11. Personnel:
+      11.1. Principle-The establishment and maintenance of a satisfactory system of Quality Assurance (QA) and the
+            correct manufacture and control of pharmaceutical products and active ingredients rely upon people. For
+            this reason there must be sufficient qualified personnel to carry out all the tasks for which the
+            manufacturer is responsible. Individual responsibilities shall be clearly defined and understood by the
+            persons concerned and recorded as written descriptions.
+      11.2. General-
+              11.2.1.   The manufacturer shall have an adequate number of personnel with the necessary qualifications
+                        and practical experience. The responsibilities placed on any one individual shall not be so
+                        extensive as to present any risk to quality.
+              11.2.2.   Responsible staff shall have its specific duties recorded in written descriptions and adequate
+                        authority to carry out its responsibilities. Its duties may be delegated to designated deputies with
+                        a satisfactory level of qualifications. There shall be no gaps or unexplained overlaps in the
+                        responsibilities of personnel concerned with the application of good manufacturing practices.
+                        The manufacturer shall have an organisation chart.
+              11.2.3.   All personnel shall be aware of the principles of good manufacturing practices that affect them
+                        and receive initial and continuing training, including hygiene instruction, relevant to their needs.
+                        All personnel shall be motivated to support the establishment and maintenance of high quality
+                        standards.
+[भाग II—खण्‍ड 3(i)]                           भारत‍का‍राजपत्र‍:‍असाधारण                                             157
+
+           11.2.4.    Steps shall be taken to prevent unauthorised people from entering production, storage and QC
+                      areas. Personnel who do not work in these areas shall not use them as a passageway.
+     11.3. Key personnel-
+           11.3.1.    Key personnel include the heads of production, the heads of quality units and the authorised
+                      person. The quality units typically comprise the QA and QC functions. In some cases, these
+                      could be combined in one department. The authorised person may also be responsible for one or
+                      more of these quality units. Normally, key posts shall be occupied by full-time personnel. The
+                      heads of production and quality units shall be independent of each other. In large organisations,
+                      it may be necessary to delegate some of the functions; however, the responsibility cannot be
+                      delegated.
+           11.3.2.    Key personnel responsible for supervising the production and quality units for pharmaceutical
+                      products shall possess the qualifications and experience as specified under the rules. Their
+                      education shall include the study of an appropriate combination of the following, namely:-
+                      (a) chemistry (analytical or organic) or biochemistry;
+                      (b) chemical engineering;
+                      (c) microbiology;
+                      (d) pharmaceutical sciences and technology;
+                      (e) pharmacology and toxicology;
+                      (f)   physiology; or
+                      (g) other related sciences.
+                      They shall also have adequate practical experience in the manufacture and QA of
+                      pharmaceutical products. In order to gain such experience, a preparatory period may be
+                      required, during which they shall perform their duties under professional guidance. The
+                      scientific education and practical experience of experts shall be such, so as to enable them to
+                      exercise independent professional judgement, based on the application of scientific principles
+                      and understanding to the practical problems encountered in the manufacture and QC of
+                      pharmaceutical products.
+           11.3.3.    The heads of the production and the quality units shall have shared, or jointly exercised,
+                      responsibilities relating to quality. They may include the following, namely:-
+                      (a) authorisation of written procedures and other documents, including amendments;
+                      (b) monitoring and control of the manufacturing environment;
+                      (c) plant hygiene;
+                      (d) process validation and calibration of analytical apparatus;
+                      (e) training, including the application and principles of QA;
+                      (f)   approval and monitoring of suppliers of materials;
+                      (g) approval and monitoring of contract manufacturers;
+                      (h) designation and monitoring of storage conditions for materials and products;
+                      (i)   performance and evaluation of in-process controls;
+                      (j)   retention of records;
+                      (k) monitoring of compliance with good manufacturing practices requirements; and
+                      (l)   inspection, investigation and taking of samples in order to monitor factors that may affect
+                            product quality.
+           11.3.4.    The head of production has the following responsibilities, namely:-
+                       (a) to ensure that products are produced and stored in accordance with the appropriate
+                           documentation in order to obtain the required quality;
+                       (b) to approve the instructions relating to production operations, including the in-process
+                           controls and to ensure their strict implementation;
+                       (c) to ensure that the production records are evaluated and signed by a designated person;
+158                    THE GAZETTE OF INDIA : EXTRAORDINARY                                    [PART II—SEC. 3(i)]
+
+                (d) to check the maintenance of the department, premises and equipment;
+                (e) to ensure that the appropriate process validations and calibrations of control equipment are
+                    performed and recorded and the reports are made available; and
+                (f) to ensure that the required initial and continuing training of production personnel is carried
+                    out and adapted according to need.
+      11.3.5.   The heads of the quality units generally have the following responsibilities, namely:-
+                 (a) to approve or reject starting materials, packaging materials and intermediate, bulk and
+                     finished products in relation to their specifications;
+                 (b) to evaluate batch records;
+                 (c) to ensure that all necessary testing is carried out;
+                 (d) to approve sampling instructions, specifications, test methods and other QC procedures;
+                 (e) to approve and monitor analysis carried out under contract;
+                 (f) to check the maintenance of the department, premises and equipment;
+                 (g) to ensure that the appropriate validations, including those of analytical procedures and
+                     calibrations of control equipment are carried out;
+                 (h) to ensure that the required initial and continuing training of quality unit personnel is carried
+                     out and adapted according to need;
+                 (i) establishment, implementation and maintenance of the quality system;
+                 (j) supervision of the regular internal audits or self-inspections;
+                 (k) participation in external audit (vendor audit); and
+                 (l) participation in validation programmes.
+      11.3.6.   The authorised person is responsible for compliance with technical or regulatory requirements
+                related to the quality of finished products and the approval for the release of finished product for
+                sale or supply.
+      11.3.7.   Assessment of finished products shall embrace all relevant factors, including the production
+                conditions, the results of in-process testing, the manufacturing (including packaging)
+                documentation, compliance with the specification for the finished product and an examination
+                of the finished pack.
+      11.3.8.   No batch of product is to be released for sale or supply prior to certification by the authorised
+                persons.
+      11.3.9.   The authorised person responsible for approving a batch for release shall always ensure that the
+                following requirements have been met:-
+                (a) the licence and the approval requirements for the product have been met for the batch
+                    concerned;
+                (b) the principles and guidelines of GMP, as laid down in this Part, have been followed;
+                (c) the principal manufacturing and testing processes have been validated;
+                (d) all the necessary checks and tests have been performed and account taken of the production
+                    conditions and manufacturing records;
+                (e) any planned changes or deviations in manufacturing or QC have been notified in
+                    accordance with a well-defined reporting system before any product is released. Such
+                    changes may need notification and approval by the licensing authority;
+                (f) any additional sampling, inspection, tests and checks have been carried out or initiated, as
+                    appropriate, to cover planned changes and deviations;
+                (g) all necessary production and QC documentation has been completed and endorsed by
+                    supervisors trained in appropriate disciplines;
+                (h) appropriate audits, self-inspections and spot-checks are carried out by experienced and
+                    trained staff;
+                (i) approval has been given by the head of quality control; and
+[भाग II—खण्‍ड 3(i)]                          भारत‍का‍राजपत्र‍:‍असाधारण                                              159
+
+                      (j) all relevant factors have been considered, including the factor associated with the output
+                          batch directly under review (e.g., sub-division of output batches from a common input,
+                          factors associated with continuous production runs).
+           11.3.10. The function of the approval of the release of a finished batch or a product can be delegated to
+                    a designated person with appropriate qualifications and experience who will release the product
+                    in accordance with an approved procedure. This is normally done by quality assurance by
+                    means of batch review.
+     11.4. Training-
+            11.4.1.    The manufacturer shall provide training in accordance with a written programme for all
+                       personnel whose duties take them into manufacturing areas or into the control laboratories
+                       (including the technical, maintenance and cleaning personnel) and for other personnel as
+                       required.
+            11.4.2.    Besides basic training on the theory and practice of good manufacturing practices, newly
+                       recruited personnel shall receive training appropriate to the duties assigned to them.
+                       Continuous training shall also be given, and its practical effectiveness be assessed periodically.
+                       Approved training programmes shall be available. Training records shall be kept.
+            11.4.3.    Personnel working in areas where contamination is a hazard e.g., clean areas or areas where
+                       highly active, toxic, infectious or sensitising materials are handled, shall be given specific
+                       training.
+            11.4.4.    The concept of quality assurance and all the measures which aid its understanding and
+                       implementation shall be fully discussed during the training sessions.
+            11.4.5.    Visitors or untrained personnel shall preferably not be taken into the production and quality
+                       control areas. If this is unavoidable, they shall be given relevant information in advance
+                       (particularly about personal hygiene) and the prescribed protective clothing. They shall be
+                       closely supervised.
+            11.4.6.    Consultant and contract staff shall be qualified for the services they provide. Evidence of this
+                       shall be included in the training records.
+     11.5. Personal hygiene-
+           11.5.1.     All personnel, prior to and during employment, as appropriate, shall undergo health checkups.
+                       Personnel conducting visual inspections shall also undergo periodic eye checkups.
+           11.5.2.     All personnel shall be trained in the practices of personal hygiene. A high level of personal
+                       hygiene shall be observed by all those concerned with manufacturing processes. In particular,
+                       personnel shall be instructed to wash and sanitise their hands before entering production areas.
+                       Signs to this effect shall be posted and instructions are complied with.
+           11.5.3.     Any person shown at any time to have an apparent illness or open lesions that may adversely
+                       affect the quality of products shall not be allowed to handle starting materials, packaging
+                       materials, in-process materials or drugs until his or her health condition is no longer judged to
+                       be a risk.
+           11.5.4.     All employees shall be instructed and encouraged to report to their immediate supervisor any
+                       conditions (relating to plant, equipment or personnel) that they consider may adversely affect
+                       the products.
+           11.5.5.     Direct contact shall be avoided between the operator’s hands and starting materials, primary
+                       packaging materials and intermediate or bulk products.
+           11.5.6.     To ensure protection of the product from contamination, personnel shall wear clean body
+                       coverings appropriate to the duties they perform, including appropriate hair covering. Used
+                       clothes, if reusable, shall be stored in a separate closed containers until properly laundered and,
+                       if necessary, disinfected or sterilised.
+           11.5.7.     Smoking, eating, drinking, chewing, and keeping plants, food, drink, smoking material and
+                       personal medicines shall not be permitted in production, laboratory and storage areas, or in any
+                       other areas where they might adversely influence product quality.
+           11.5.8.     Personal hygiene procedures, including the wearing of protective clothing, shall apply to all
+                       persons entering production areas, whether they are temporary or full-time employees or non-
+                       employees, e.g., contractors’ employees, visitors, senior managers and inspectors.
+160                            THE GAZETTE OF INDIA : EXTRAORDINARY                                 [PART II—SEC. 3(i)]
+
+12. Premises:
+      12.1. Principle- Premises must be located, designed, constructed, adapted and maintained to suit the operations
+            to be carried out. They shall conform to the conditions as laid down in the Factories Act, 1948 (63 of
+            1948).
+      12.2. General-
+             12.2.1.   The layout and design of premises must aim to minimise the risk of errors and permit effective
+                       cleaning and maintenance in order to avoid cross contamination, build-up of dust or dirt, and in
+                       general, any adverse effect on the quality of products.
+             12.2.2.   Where dust is generated (e.g., during sampling, weighing, mixing and processing operations or
+                       packaging of powder), measures shall be taken to avoid cross-contamination and facilitate
+                       cleaning.
+             12.2.3.   Premises shall be situated in an environment that, when considered together with measures to
+                       protect the manufacturing process, presents minimum risk of causing any contamination of
+                       materials or products.
+             12.2.4.   Premises used for the manufacture of finished products shall be suitably designed and
+                       constructed to facilitate good sanitation.
+             12.2.5.   Premises shall be carefully maintained, and it shall be ensured that repair and maintenance
+                       operations do not present any hazard to the quality of products.
+             12.2.6.   Premises shall be cleaned and, where applicable, disinfected according to detailed written
+                       procedures and records shall be maintained.
+             12.2.7.   Electrical supply, lighting, temperature, humidity and ventilation shall be appropriate and they
+                       do not adversely affect, directly or indirectly, either the pharmaceutical products during their
+                       manufacture and storage or the accurate functioning of equipment.
+             12.2.8.   The design, installation, qualification and maintenance of the Heating, Ventilation, Air
+                       Conditioning (HVAC) systems of the manufacturing plant shall be carried out.
+             12.2.9.   Premises shall be designed and equipped so as to afford maximum protection against the entry
+                       of insects, birds or other animals. There shall be a procedure for rodent and pest control.
+             12.2.10. Premises shall be designed to ensure the logical flow of materials and personnel.
+      12.3. Ancillary areas-
+             12.3.1.   Rest and refreshment rooms shall be separate from manufacturing and control areas.
+             12.3.2.   Facilities for changing and storing clothes and for washing and toilet purposes shall be easily
+                       accessible and appropriate for the number of users. Toilets shall not communicate directly with
+                       production or storage areas.
+             12.3.3.   Maintenance workshops shall, if possible be separated from production areas. Whenever parts
+                       and tools are stored in the production area, they shall be kept in rooms or lockers reserved for
+                       that use.
+             12.3.4.   Animal houses shall be well isolated from other areas, with separate entrance (animal access)
+                       and air-handling facilities.
+      12.4. Storage areas-
+             12.4.1.   Storage areas shall be of sufficient capacity to allow orderly storage of the various categories of
+                       materials and products with proper separation and segregation; starting and packaging
+                       materials, intermediates, bulk and finished products, products in quarantine and released,
+                       rejected, returned or recalled products.
+             12.4.2.   Storage areas shall be designed or adapted to ensure good storage conditions. In particular, they
+                       shall be clean, dry, sufficiently lit and maintained within acceptable temperature limits. Where
+                       special storage conditions are required (e.g., temperature, humidity) they shall be provided,
+                       controlled, monitored and recorded, where appropriate.
+             12.4.3.   Receiving and dispatch bays shall be separated and shall protect the materials and products
+                       from the weather. Receiving areas shall be designed and equipped to allow containers of
+                       incoming materials to be cleaned, if necessary, before storage.
+[भाग II—खण्‍ड 3(i)]                         भारत‍का‍राजपत्र‍:‍असाधारण                                                  161
+
+            12.4.4.   Where quarantine status is ensured by storage in separate areas, these areas must be clearly
+                      marked and their access restricted to authorised personnel. Any system replacing the physical
+                      quarantine shall give equivalent security.
+            12.4.5.   Segregation shall be provided for the storage of rejected, recalled or returned materials or
+                      products.
+            12.4.6.   Highly active and radioactive materials, narcotics, other dangerous drugs, and substances
+                      presenting special risks of abuse, fire or explosion shall be stored in safe and secure areas.
+            12.4.7.   Printed packaging materials are considered critical to the conformity of the pharmaceutical
+                      product to its labelling and special attention shall be paid to sampling and the safe and secure
+                      storage of these materials.
+            12.4.8.   There shall normally be a separate sampling area for starting materials. If sampling is
+                      performed in the storage area, it shall be conducted in such a way so as to prevent
+                      contamination or cross-contamination.
+    12.5. Weighing areas-The weighing of starting materials and the estimation of yield by weighing shall be
+          carried out in separate weighing areas designed for that use, for example, with provisions for dust control.
+          Such areas may be part of either storage or production areas.
+    12.6. Production areas-
+            12.6.1.   In order to minimise the risk of a serious medical hazard due to cross-contamination, dedicated
+                      and self-contained facilities must be available for the production of particular pharmaceutical
+                      products, such as highly sensitising materials (e.g., penicillins) or biological preparations (e.g.,
+                      live microorganisms). The production of certain other highly active products, such as some
+                      antibiotics, hormones, cytotoxic substances and non-pharmaceutical products, shall not be
+                      conducted in the same facilities. In exceptional cases, the principle of campaign working in the
+                      same facilities can be accepted provided that specific precautions are taken and the necessary
+                      validations (including cleaning validation) are made. The manufacture of technical poisons,
+                      such as pesticides and herbicides, shall not be allowed in premises used for the manufacture of
+                      pharmaceutical products.
+            12.6.2.   Premises shall preferably be laid out in such a way so as to allow the production to take place
+                      in areas connected in a logical order corresponding to the sequence of the operations and to the
+                      requisite cleanliness levels.
+            12.6.3.   The adequacy of the working and in-process storage space shall permit the orderly and logical
+                      positioning of equipment and materials so as to minimise the risk of confusion between
+                      different pharmaceutical products or their components, to avoid cross-contamination and to
+                      minimise the risk of omission or wrong application of any of the manufacturing or control
+                      steps.
+            12.6.4.   Where starting and primary packaging materials and intermediate or bulk products are exposed
+                      to the environment, interior surfaces (walls, floors and ceilings) shall be smooth and free from
+                      cracks and open joints, shall not shed particulate matter and shall permit easy and effective
+                      cleaning and, if necessary, disinfection.
+            12.6.5.   Pipework, light fittings, ventilation points and other services shall be designed and sited to
+                      avoid the creation of recesses that are difficult to clean. As far as possible, for maintenance
+                      purposes, they shall be accessible from outside the manufacturing areas.
+            12.6.6.   Drains shall be of adequate size and designed and equipped to prevent back-flow. Open
+                      channels shall be avoided where possible, but if they are necessary they shall be shallow to
+                      facilitate cleaning and disinfection.
+            12.6.7.   Production areas shall be effectively ventilated, with air-control facilities (including filtration
+                      of air to a sufficient level to prevent contamination and cross-contamination, as well as control
+                      of temperature and, where necessary, humidity) appropriate to the products handled, to the
+                      operations undertaken and to the external environment. These areas shall be regularly
+                      monitored during both production and non-production periods so as to ensure compliance with
+                      their design specifications.
+            12.6.8.   Premises for the packaging of pharmaceutical products shall be specifically designed and laid
+                      out so as to avoid mix ups, contamination or cross-contamination.
+            12.6.9.   Production areas shall be well lit, particularly where visual online controls are carried out.
+162                            THE GAZETTE OF INDIA : EXTRAORDINARY                                 [PART II—SEC. 3(i)]
+
+      12.7. Quality Control (QC) areas-
+               12.7.1.   QC laboratories shall be separated from production areas. Areas where biological,
+                         microbiological or radioisotope test methods are employed shall be separated from each other.
+               12.7.2.   QC laboratories shall be designed to suit the operations to be carried out in them. Sufficient
+                         space shall be given to avoid mix ups and cross-contamination. There shall be adequate
+                         suitable storage space for samples, reference standards (if necessary, with cooling), solvents,
+                         reagents and records.
+               12.7.3.   The design of the laboratories shall take into account the suitability of construction materials,
+                         prevention of fumes, and ventilation. There shall be separate air supply to laboratories and
+                         production areas. Separate air-handling units and other provisions are needed for biological,
+                         microbiological and radioisotope laboratories.
+               12.7.4.   A separate room may be needed for instruments to protect them against electrical interference,
+                         vibration, contact with excessive moisture and other external factors or where it is necessary to
+                         isolate the instruments.
+13. Equipment:
+      13.1.     Equipment must be located, designed, constructed, adapted and maintained to suit the operations to be
+                carried out. The layout and design of equipment must aim to minimise the risk of errors and permit
+                effective cleaning and maintenance in order to avoid cross-contamination, build-up of dust or dirt, and,
+                in general, any adverse effect on the quality of products.
+      13.2.     Equipment shall be installed in such a way so as to minimise any risk of error or of contamination.
+      13.3.     Fixed pipework shall be clearly labelled to indicate the contents and, where applicable, the direction of
+                flow.
+      13.4.     All service pipework and devices shall be adequately marked and special attention paid to the provision
+                of non-interchangeable connections or adaptors for dangerous gases and liquids.
+      13.5.     Balances and other measuring equipment of an appropriate range and precision shall be available for
+                production and control operations and shall be calibrated according to a fixed schedule.
+      13.6.     Production equipment shall be thoroughly cleaned according to a fixed schedule.
+      13.7.     Laboratory equipment and instruments shall be suited to the testing procedures undertaken.
+      13.8.     Washing, cleaning and drying equipment shall be chosen and used so as not to be a source of
+                contamination.
+      13.9.     Production equipment shall not present any hazard to the products. The parts of the production
+                equipment that come into contact with the product must not be reactive, additive or absorptive to an
+                extent that would affect the quality of the product.
+      13.10.    Defective equipment shall be removed from production and QC areas. If this is not possible, it shall be
+                clearly labelled as defective to prevent use.
+      13.11.    Closed equipment shall be used whenever appropriate. Where open equipment is used or equipment is
+                opened, precautions shall be taken to minimize the contamination.
+      13.12.    Non-dedicated equipment shall be cleaned according to validated cleaning procedures between being
+                used for production of different pharmaceutical products to prevent cross-contamination.
+      13.13.    Current drawings of critical equipment and support systems shall be maintained.
+14. Materials:
+      14.1.     The main objective of a pharmaceutical plant is to produce finished products for patients’ use from a
+                combination of materials (starting and packaging).
+      14.2.     Materials include starting materials, packaging materials, gases, solvents, process aids, reagents and
+                labelling materials.
+      14.3.     No materials used for operations such as cleaning, lubrication of equipment and pest control shall come
+                into direct contact with the product. Where possible, such materials shall be of a suitable grade (e.g.,
+                food grade) to minimise health risks.
+      14.4.     All incoming materials and finished products shall be quarantined immediately after receipt or
+                processing, until they are released for use or distribution.
+[भाग II—खण्‍ड 3(i)]                          भारत‍का‍राजपत्र‍:‍असाधारण                                                 163
+
+     14.5.   All materials and products shall be stored under the appropriate conditions established by the
+             manufacturer, and in an orderly fashion, to permit batch segregation and stock rotation by a first-expire,
+             first-out rule.
+     14.6.   Water used in the manufacture of pharmaceutical products shall be suitable for its intended use. There
+             shall be validated system for treatment of water drawn from own or any other source to render it potable
+             in accordance with the standards specified by the Bureau of Indian Standards or Local Municipality, as
+             the case may be, so as to produce purified water conforming to Pharmacopoeial specification. Purified
+             Water so produced shall only be used for all the operations except washing and cleaning operations
+             where potable water may be used. Water shall be stored in tanks, which do not adversely affect quality
+             of water and ensure freedom from microbiological growth. The tank shall be cleaned periodically and
+             records maintained by the licensee in this behalf. Good manufacturing practices regarding the design,
+             installation and operation of pharmaceutical water systems including guidance about which quality of
+             water to use for specific applications, such as the manufacture of active pharmaceutical ingredients and
+             dosage forms, shall be ensured.
+     14.7.   The purchase of starting materials is an important operation that shall involve staff who has a particular
+             and thorough knowledge of the products and suppliers.
+     14.8.   Starting materials shall be purchased only from the approved suppliers and, where possible, directly
+             from the producer. It is also recommended that the specifications established by the manufacturer for the
+             starting materials be discussed with the suppliers. It is beneficial for all critical aspects of the production
+             and control of the starting material in question, including handling, labelling and packaging
+             requirements as well as complaints and rejection procedures, to be contractually agreed between the
+             manufacturer and the supplier.
+     14.9.   For each consignment, at a minimum, the containers shall be checked at least for integrity of package
+             and seal and for correspondence between the order, the delivery note, and the supplier’s labels.
+     14.10. All incoming materials shall be checked to ensure that the consignment corresponds to the order.
+            Containers shall be cleaned where necessary and labelled, if required, with the prescribed information.
+            Where additional labels are attached to containers, the original information shall not be lost.
+     14.11. Damage to containers and any other problem that might adversely affect the quality of a material shall
+            be recorded and reported to the QC Department and investigated.
+     14.12. If one delivery of material is made up of different batches, each batch must be considered as separate for
+            sampling, testing and release.
+     14.13. Starting materials in the storage area shall be appropriately labelled. Labels shall bear at least the
+            following information, namely:—
+              (a) the designated name of the product and the internal code reference where applicable;
+              (b) the batch number given by the supplier and, on receipt, the control or batch number given by the
+                  manufacturer, if any, documented so as to ensure traceability;
+              (c) the status of the contents (e.g., in quarantine, on test, released, rejected, returned or recalled); and
+              (d) where appropriate, an expiry date or a date beyond which retesting is necessary. When fully
+                  validated computerised storage systems are used, not all of the above information need be in a
+                  legible form on the label.
+     14.14. Only raw materials which have been released by the QC Department and which are within their shelf-
+            life shall be used.
+     14.15. The raw materials other than APIs, if released by QC Department without specific batch testing, for use
+            in manufacturing, it shall be based on vendor approval and statistical data analysis of earlier test results
+            of such material for release.
+     14.16. There shall be appropriate procedures or measures to ensure the identity of the contents of each
+            container of starting material. Bulk containers from which samples have been drawn shall be identified.
+     14.17. Only starting materials released by the QC Department and within their shelf-life shall be used.
+     14.18. Starting materials shall be dispensed only by designated persons, following a written procedure, to
+            ensure that the correct materials are accurately weighed or measured into clean and properly labelled
+            containers.
+     14.19. Each dispensed material and its weight or volume shall be independently checked and recorded.
+164                           THE GAZETTE OF INDIA : EXTRAORDINARY                                  [PART II—SEC. 3(i)]
+
+      14.20. Materials dispensed for each batch of the final product shall be kept together and conspicuously labelled
+             as such.
+      14.21. The purchase, handling and control of primary and printed packaging materials shall as for starting
+             materials.
+      14.22. Particular attention shall be paid to printed packaging materials. They shall be stored in secure
+             conditions so as to exclude the possibility of unauthorised access. Roll feed labels shall be used
+             wherever possible. Cut labels and other loose printed materials shall be stored and transported in
+             separate closed containers so as to avoid mix ups. Packaging materials shall be issued for use only by
+             designated personnel following an approved and documented procedure.
+      14.23. Each delivery or batch of printed or primary packaging material shall be given a specific reference
+             number or identification mark.
+      14.24. Out-dated or obsolete primary packaging material or printed packaging material shall be destroyed and
+             its disposal shall be recorded.
+      14.25. All products and packaging materials to be used shall be checked on delivery to the packaging
+             department for quantity, identity and conformity with the packaging instructions.
+      14.26. All containers and closures intended for use shall comply with the pharmacopoeial requirements.
+             Suitable validated test methods, sample sizes, specifications, cleaning procedure and sterilisation
+             procedure, wherever indicated, shall be strictly followed to ensure that these are not reactive, additive,
+             absorptive, or leach to an extent that significantly affects the quality or purity of the drug. No second
+             hand or used containers and closures shall be used.
+              14.26.1.   Whenever bottles are being used, the written schedule of cleaning shall be laid down and
+                         followed. Where bottles are not dried after washing, they shall be rinsed with purified water
+                         or water for injection, as the case may be.
+              14.26.2.   The requirements mentioned in this Part do not include requirements of machinery,
+                         equipment and premises required for preparation of containers and closures for different
+                         dosage forms and categories of drugs. The suitability and adequacy of the machinery,
+                         equipment and premises shall be examined taking into consideration the requirements of each
+                         licensee in this respect.
+              14.26.3.   Packaging material to be used for pharmaceutical products shall be in accordance with the
+                         requirements prescribed in Indian Pharmacopoeia (IP).
+      14.27. Intermediate and bulk products shall be kept under appropriate conditions.
+      14.28. Intermediate and bulk products purchased shall be handled on receipt as they were starting materials.
+      14.29. Finished products shall be held in quarantine until their final release, after which they shall be stored as
+             usable stock under conditions established by the manufacturer.
+      14.30. The evaluation of finished products and the documentation necessary for release of a product for sale
+             are described in paragraph 19.
+      14.31. Rejected materials and products shall be clearly marked and stored separately in restricted areas. They
+             shall either be returned to the suppliers or, where appropriate, reprocessed or destroyed in a timely
+             manner. Whatever action is taken shall be approved by the authorised personnel and recorded.
+      14.32. The reworking or recovery of rejected products shall be exceptional. It is permitted only if the quality of
+             the final product is not affected, if the specifications are met, and if it is done in accordance with a
+             defined and authorised procedure after evaluation of the risks involved. A record shall be kept of the
+             reworking or recovery. A reworked batch shall be given a new batch number.
+      14.33. The introduction of all or part of earlier batches, conforming to the required quality standards, into a
+             batch of the same product at a defined stage of manufacture shall be authorised beforehand. This
+             recovery shall be carried out in accordance with a defined procedure after evaluation of the risks
+             involved, including any possible effect on shelf-life. The recovery shall be recorded.
+      14.34. The need for additional testing of any finished product that has been reprocessed, reworked or into
+             which a recovered product has been incorporated, shall be considered by the QC Department.
+      14.35. Recalled products shall be identified and stored separately in a secure area until a decision is taken and
+             the decision shall be made as soon as possible.
+      14.36. Products returned from the market shall be destroyed unless it is certain that their quality is satisfactory;
+             in such cases they may be considered for resale or relabelling, or alternative action taken only after they
+[भाग II—खण्‍ड 3(i)]                          भारत‍का‍राजपत्र‍:‍असाधारण                                              165
+
+              have been critically assessed by the QC function in accordance with a written procedure. The nature of
+              the product, any special storage conditions it requires, its condition and history, and the time elapsed
+              since it was issued shall be taken into account in the assessment. Where any doubt arises over the
+              quality of the product, it shall not be considered suitable for reissue or reuse. Any action taken shall be
+              appropriately recorded.
+     14.37. There shall be records for the receipt and preparation of reagents and culture media.
+     14.38. Reagents made up in the laboratory shall be prepared according to the written procedures and
+            appropriately labelled. The label shall indicate the concentration, standardisation factor, shelf-life, the
+            date when re-standardisation is due and the storage conditions. The label shall be signed and dated by
+            the person preparing the reagent.
+     14.39. Both positive and negative controls shall be applied to verify the suitability of culture media each time
+            they are prepared and used. The size of the inoculum used in positive controls shall be appropriate to the
+            sensitivity required.
+15. Reference Standards:
+     15.1. Whenever official reference standards exist, they shall be used.
+     15.2. Indian Pharmacopoeia reference standards shall be procured from Indian Pharmacopoeia Commission.
+     15.3. Official reference standards shall only be used for the purpose described in the appropriate monograph.
+     15.4. Reference standards prepared by the manufacturer shall be tested, released and stored in the same way as
+           official standards. They shall be kept under the responsibility of a designated person in a secure area.
+     15.5. Secondary or working standards may be established by the application of appropriate tests and checks at
+           regular intervals to ensure standardisation.
+     15.6. Reference standards shall be properly labelled with at least the following information, namely-
+             (a) name of the material;
+             (b) batch or lot number and control number;
+             (c) date of preparation;
+             (d) shelf-life;
+             (e) potency; and
+             (f)   storage conditions.
+     15.7. All in-house working standards or secondary standards shall be standardised against an official reference
+           standard, when available, initially and at regular intervals thereafter.
+     15.8. All reference standards shall be stored and used in a manner that will not adversely affect their quality.
+16. Waste materials:
+     16.1. Provision shall be made for the proper and safe storage of waste materials waiting disposal. Toxic
+           substances and flammable materials shall be stored in suitably designed, separate, enclosed cupboards.
+     16.2. Waste material shall not be allowed to accumulate. It shall be collected in suitable receptacles for removal
+           to collection points outside the buildings and disposed of safely and in a sanitary manner at regular and
+           frequent intervals.
+     16.3. The disposal of sewage and effluents (solid, liquid and gas) from the manufacturing area shall be in
+           conformity with the requirements of the guidelines issued by the Environmental Pollution Control Board.
+     16.4. All bio-medical waste shall be destroyed as per the provisions of the Bio-Medical Waste (Management
+           and Handling) Rules, 2016.
+     16.5. Rodenticides, insecticides, fumigating agents and sanitising materials shall not be permitted to
+           contaminate equipment, starting materials, packaging materials, in-process materials or finished products.
+
+
+17. Documentation:
+     17.1.   Principle-Good documentation is an essential part of the quality assurance system and, as such, shall
+             exist for all aspects of good manufacturing practices. Its aims are to define the specifications and
+             procedures for all materials and methods of manufacture and control; to ensure that all personnel
+166                            THE GAZETTE OF INDIA : EXTRAORDINARY                                   [PART II—SEC. 3(i)]
+
+              concerned with manufacture know what to do and when to do it; to ensure that authorised persons have
+              all the information necessary to decide whether or not to release a batch of a drug for sale; to ensure the
+              existence of documented evidence, traceability and to provide records and an audit trial that will permit
+              investigation. It ensures the availability of the data needed for validation, review and statistical analysis.
+              The design and use of documents depend upon the manufacturer. In some cases, some or all of the
+              documents described in this paragraph may be brought together, but they will usually be separate.
+      17.2.   General-
+              17.2.1.     Documents shall be designed, prepared, reviewed and distributed with care. They shall
+                          comply with the relevant Parts of the manufacturing and licences.
+              17.2.2.     Documents shall be approved, signed and dated by the responsible persons. No document
+                          shall be changed without authorisation and approval.
+              17.2.3.     Documents shall have unambiguous contents; the title, nature and purpose shall be clearly
+                          stated. They shall be laid out in an orderly manner and be easy to check. Reproduced
+                          documents shall be clear and legible. The reproduction of working documents from master
+                          documents must not allow any error to be introduced through the reproduction process.
+              17.2.4.     Documents shall be regularly reviewed and kept up to date. When a document has been
+                          revised, a system shall exist to prevent inadvertent use of the superseded version. Superseded
+                          documents shall be retained for a specific period of time.
+              17.2.5.     Where documents require the entry of data, these entries shall be clear, legible and indelible.
+                          Sufficient space shall be provided for such entries.
+              17.2.6.     Any alteration made to a document shall be signed and dated; the alteration shall be done in
+                          such a way so as to permit the reading of the original information. Where appropriate, the
+                          reason for the alteration shall be recorded.
+              17.2.7.     Records shall be made or completed when any action is taken and in such a way that all
+                          significant activities concerning the manufacture of pharmaceutical products are traceable.
+                          Records shall be retained for at least one year after the expiry date of the finished product.
+              17.2.8.     Data (and records for storage) may be recorded by electronic data-processing systems or by
+                          photographic or other reliable means. Master formulae and detailed SOPs relating to the
+                          system in use shall be available and the accuracy of the records shall be checked. If
+                          documentation is handled by electronic data-processing methods, only authorised persons
+                          shall be able to enter or modify data in the computer system, and there shall be a record of
+                          changes and deletions; access shall be restricted by passwords or other means and the entry of
+                          critical data shall be independently checked. Batch records stored electronically shall be
+                          protected by back-up transfer on magnetic tape, microfilm, electronic discs, paper printouts
+                          or other means. It is particularly important that, during the period of retention, the data are
+                          readily available.
+                          17.2.9 The site master file shall be prepared and maintained up to date as per the Appendix-I
+                          this Part.
+      17.3.   Documents Required:
+              17.3.1. Labels-
+                         17.3.1.1.   Labels applied to containers, equipment or premises shall be clear, unambiguous
+                                     and in the company’s agreed format. It is often helpful in addition to the wording
+                                     on the labels to use colours to indicate status (e.g., quarantined, accepted, reject0ed
+                                     and clean).
+                         17.3.1.2.   All finished drugs shall be identified by labelling bearing at least the following
+                                     information, namely:-
+                                     (a) the name of the drugs;
+                                     (b) a list of the active ingredients [if applicable, with the International
+                                         Nonproprietary Names (INN)], showing the amount of each present and a
+                                         statement of the net contents (e.g., number of dosage units, weight and
+                                         volume);
+                                     (c) the batch number assigned by the manufacturer;
+                                     (d) the expiry date and date of manufacture in an uncoded form;
+[भाग II—खण्‍ड 3(i)]                         भारत‍का‍राजपत्र‍:‍असाधारण                                             167
+
+                                  (e) any special storage conditions or handling precautions that may be necessary;
+                                  (f) directions for use, and warnings and precautions that may be necessary; and
+                                  (g) the name and address of the manufacturer or the company and the person
+                                      responsible for placing the product on the market.
+                      17.3.1.3.   For reference standards, the label or accompanying document or both shall indicate
+                                  potency or concentration, date of manufacture, expiry date, date the closure if it is
+                                  first opened, storage conditions and control number, as appropriate.
+             17.3.2. Specifications and testing procedures
+                      17.3.2.1.   Testing procedures described in documents shall be validated in the context of
+                                  available facilities and equipment before they are adopted for routine testing.
+                      17.3.2.2.   There shall be appropriately authorised and dated specifications, including tests on
+                                  identity, content, purity and quality for starting and packaging materials and for
+                                  finished products; where appropriate, they shall also be available for intermediate
+                                  or bulk products. Specifications for water, solvents and reagents (e.g., acids and
+                                  bases) used in production shall be included.
+                      17.3.2.3.   Each specification shall be approved, signed and dated, and maintained by the QC
+                                  or QA units. Specifications for starting materials, intermediates, bulk, finished
+                                  products and packaging materials.
+                      17.3.2.4.   Periodic revisions of the specifications may be necessary to comply with new
+                                  editions of the Indian pharmacopoeia or other official pharmacopoeia.
+                      17.3.2.5.   Pharmacopoeias, reference standards, reference spectra and other reference
+                                  materials shall be available in the QC laboratory.
+             17.3.3. Specifications for starting and packaging materials-
+                      17.3.3.1.   Specifications for starting, primary and printed packaging materials shall provide,
+                                  if applicable, a description of the materials, including—
+                                  (a) the designated name (if applicable, the INN) and internal code reference;
+                                  (b) the reference, if any, to a pharmacopoeial monograph; and
+                                  (c) qualitative and quantitative requirements with acceptance limits.
+                      17.3.3.2.   Depending on the company’s practice other data may be added to the specification,
+                                  namely:-
+                                  (a) the supplier and the original producer of the materials;
+                                  (b) a specimen of printed materials;
+                                  (c) directions for sampling and testing, or a reference to procedures;
+                                  (d) storage conditions and precautions; and
+                                  (e) the maximum period of storage before re-examination.
+                      17.3.3.3.   Packaging material shall conform to the specifications and shall be compatible
+                                  with the material or with the drugs or both it contains. The material shall be
+                                  examined for compliance with the specification, and for defects as well as for the
+                                  correctness of identity markings.
+                      17.3.3.4.   Documents describing testing procedures shall state the required frequency for re-
+                                  assaying each starting material, as determined by its stability.
+             17.3.4. Specifications for intermediate and bulk products- Specifications for intermediate and bulk
+                     products shall be available. The specifications shall be similar to specifications for starting
+                     materials or for finished products, as appropriate.
+             17.3.5. Specifications for finished products- Specifications for finished products shall include the
+                     following, namely:—
+                      (a)   the designated name of the product and the code reference, where applicable;
+                      (b) the designated names of the active ingredients (if applicable, with the INNs);
+                      (c)   the formula or a reference to the formula if provided in any pharmacopoeia;
+168                   THE GAZETTE OF INDIA : EXTRAORDINARY                                    [PART II—SEC. 3(i)]
+
+               (d) a description of the dosage form and package details;
+               (e)   directions for sampling and testing or a reference to procedures;
+               (f)   the qualitative and quantitative requirements, with acceptance limits;
+               (g) the storage conditions and precautions, where applicable; and
+               (h) the shelf-life.
+      17.3.6. Master formula records-
+               17.3.6.1.    A formally authorised master formula shall exist for each product and batch size to
+                            be manufactured.
+               17.3.6.2.    The master formula records shall include the following, namely:-
+                            (a)   the name of the product, with a product reference code relating to its
+                                  specification;
+                            (b)   a description of the dosage form, strength of the product and batch size;
+                            (c)   a list of all starting materials to be used (if applicable with the INNs), with
+                                  the amount of each, described using the designated name and a reference that
+                                  is unique to that material (mention shall be made of any substance that may
+                                  disappear in the course of processing);
+                            (d)   a statement of the expected final yield with the acceptable limits and of
+                                  relevant intermediate yields, where applicable;
+                            (e)   a statement of the processing location and the principal equipment to be
+                                  used;
+                            (f)   the methods or reference to the methods to be used for preparing and
+                                  operating the critical equipment, e.g., cleaning (especially after a change in
+                                  product), assembling, calibrating, sterilising, use;
+                            (g)   detailed step-wise processing instructions (e.g., checks on materials, pre-
+                                  treatments, sequence for adding materials, mixing times and temperatures);
+                            (h)   the instructions for any in-process controls with their limits;
+                            (i)   where necessary, the requirements for storage of the products, including the
+                                  container, the labelling and any special storage conditions;
+                            (j)   any special precautions to be observed; and
+                            (k)   the hold time permitted for intermediate and in process material.
+      17.3.7. Packaging instructions- Formally authorised packaging instructions shall exist for each
+              product, pack size and type. These shall normally include or make reference to the following,
+              namely:—
+              (a) the name of the product;
+              (b) a description of its pharmaceutical form, strength and, where applicable, method of
+                   application;
+              (c) the pack size expressed in terms of the number, weight or volume of the product in the
+                   final container;
+              (d) a complete list of all the packaging materials required for a standard batch size, including
+                   quantities, sizes and types, with the code or reference number relating to the
+                   specifications for each packaging material;
+              (e) where appropriate, an example or reproduction of the relevant printed packaging
+                   materials and specimens, indicating where the batch number and expiry date of the
+                   product have been marked;
+              (f) special precautions to be observed, including a careful examination of the packaging area
+                   and equipment in order to ascertain the line clearance before and after packaging
+                   operations;
+              (g) a description of the packaging operation, including any significant subsidiary operations,
+                   and equipment to be used; and
+              (h)    details of in-process controls with instructions for sampling and acceptance limits.
+[भाग II—खण्‍ड 3(i)]                         भारत‍का‍राजपत्र‍:‍असाधारण                                             169
+
+             17.3.8. Batch processing records-
+                      17.3.8.1.   A batch processing record shall be kept for each batch processed. It shall be based
+                                  on the relevant Parts of the currently approved specifications on the record. The
+                                  method of preparation of such records shall be designed to avoid errors. (copying or
+                                  validated computer programmes are recommended. Transcribing from approved
+                                  documents shall be avoided.)
+                      17.3.8.2.   Before any processing begins a check shall be made that the equipment and work
+                                  station are clear of previous products, documents, or materials not required for the
+                                  planned process, and that the equipment is clean and suitable for use. This check
+                                  shall be recorded.
+                      17.3.8.3.   During processing, the following information shall be recorded at the time each
+                                  action is taken, and after completion of the record shall be dated and signed by the
+                                  person responsible for the processing operations, namely:-
+                                  (a)   the name of the product;
+                                  (b)   the number of the batch being manufactured;
+                                  (c)   dates and time of commencement of significant intermediate stages and of
+                                        completion of production;
+                                  (d)   the name of the person responsible for each stage of production;
+                                  (e)   the initials of the operators of different significant steps of production and,
+                                        where appropriate, of the persons who checked each of these operations (e.g.,
+                                        weighing);
+                                  (f)   the batch number or analytical control number or both and the quantity of
+                                        each starting material actually weighed (including the batch number and
+                                        amount of any recovered or reprocessed material added);
+                                  (g)   any relevant processing operation or event and the major equipment used;
+                                  (h)   the hold time permitted for intermediate and in process material;
+                                  (i)   the in-process controls performed, the initials of the persons carrying them
+                                        out, and the results obtained;
+                                  (j)   the amount of product obtained at different and pertinent stages of
+                                        manufacture (yield), together with comments or explanations for significant
+                                        deviations from the expected yield; and
+                                  (k)   notes on special problems including details, with signed authorisation for any
+                                        deviation from the master formula.
+             17.3.9. Batch packaging records-
+                      17.3.9.1.   A batch packaging record shall be kept for each batch or part batch processed. It
+                                  shall be based on the relevant Parts of the approved packaging instructions and the
+                                  method of preparing such records shall be designed to avoid errors. (copying or
+                                  validated computer programmes are recommended. Transcribing from approved
+                                  documents shall be avoided.)
+                      17.3.9.2.   Before any packaging operation begins, checks shall be made that the equipment
+                                  and work station are clear of previous products, documents or materials not
+                                  required for the planned packaging operations and that equipment is clean and
+                                  suitable for use. These checks shall be recorded.
+                      17.3.9.3.   The following information shall be recorded at the time each action is taken, and
+                                  the date and the person responsible shall be clearly identified by signature or
+                                  electronic password, namely:-
+                                  (a)   the name of the product, the batch number and the quantity of bulk product to
+                                        be packed, as well as the batch number and the planned quantity of finished
+                                        product that will be obtained, the quantity actually obtained and the
+                                        reconciliation;
+                                  (b)   the date and time of packaging operations;
+170                 THE GAZETTE OF INDIA : EXTRAORDINARY                                      [PART II—SEC. 3(i)]
+
+                          (c)   the name of the responsible person carrying out the packaging operation;
+                          (d)   (d) the initials of the operators of the different significant steps;
+                          (e)   the checks made for identity and conformity with the packaging instructions,
+                                including the results of in-process controls;
+                          (f)   details of the packaging operations carried out, including references to
+                                equipment and the packaging lines used, and, when necessary, the instructions
+                                for keeping the product if it is unpacked or a record of returning product that
+                                has not been packaged to the storage area;
+                          (g)   whenever possible, samples of the printed packaging materials used, including
+                                specimens bearing the approval for the printing and regular check (where
+                                appropriate) of the batch number, expiry date, and any additional
+                                overprinting;
+                          (h)   notes on any special problems, including the details of any deviation from the
+                                packaging instructions, with written authorisation by an appropriate person;
+                                and
+                          (i)   the quantities and reference number or identification of all printed packaging
+                                materials and bulk product issued, used, destroyed or returned to stock and the
+                                quantities of product obtained to permit an adequate reconciliation.
+      17.3.10.   Standard operating procedures and records:
+                 17.3.10.1. Standard Operating Procedures (hereinafter to be referred as SOPs) and associated
+                            records of actions taken or, where appropriate, conclusions reached shall be
+                            available for the following, namely-
+                                (a) equipment assembly and validation;
+                                (b) analytical apparatus and calibration;
+                                (c) maintenance, cleaning and sanitisation;
+                                (d) personnel matters including qualifications, training, clothing and hygiene;
+                                (e) environmental monitoring;
+                                (f) pest control;
+                                (g) complaints;
+                                (h) recalls; and
+                                (i) returns.
+                 17.3.10.2. There shall be SOPs and records for the receipt of each delivery of starting
+                            material and primary and printed packaging material.
+                 17.3.10.3. The records of the receipts shall include the following, namely-
+                                (a) the name of the material on the delivery note and the containers;
+                                (b) the “in-house” name or code or both of material, if different from clause
+                                    (a);
+                                (c) the date of receipt;
+                                (d) the supplier’s name and, if possible, manufacturer’s name;
+                                (e) the manufacturer’s batch or reference number;
+                                (f) the total quantity and number of containers received;
+                                (g) the batch number assigned after receipt; and
+                                (h) any relevant comment (e.g. state of the containers).
+                 17.3.10.4. There shall be SOPs for the internal labelling, quarantine and storage of starting
+                            materials, packaging materials and other materials, as appropriate.
+[भाग II—खण्‍ड 3(i)]                        भारत‍का‍राजपत्र‍:‍असाधारण                                             171
+
+                      17.3.10.5. SOPs shall be available for each instrument and piece of equipment (e.g., use,
+                                 calibration, cleaning and maintenance) and placed in close proximity to the
+                                 equipment.
+                      17.3.10.6. There shall be SOPs for sampling, which specify the persons authorised to take
+                                 samples.
+                      17.3.10.7. The sampling instructions shall include-
+                                     (a) the method of sampling and the sampling plan;
+                                     (b) the equipment to be used;
+                                     (c) any precautions to be observed to avoid contamination of the material or
+                                         any deterioration in its quality;
+                                     (d) the amount of samples to be taken;
+                                     (e) instructions for any required sub-division of the sample;
+                                     (f) the type of sample containers to be used, and whether they are for
+                                         aseptic sampling or for normal sampling and labelling; and
+                                     (g) any specific precautions to be observed, especially in regard to the
+                                         sampling of sterile or noxious material.
+                      17.3.10.8. There shall be an SOPs describing the details of the batch (lot) numbering system,
+                                 with the objective of ensuring that each batch of intermediate, bulk or finished
+                                 product is identified with a specific batch number.
+                      17.3.10.9. The SOPs for batch numbering that are applied to the processing stage and to the
+                                 respective packaging stage shall be related to each other.
+                      17.3.10.10.   The SOPs for batch numbering shall ensure that the same batch numbers will
+                                    not be used repeatedly; this applies also to reprocessing.
+                      17.3.10.11.   Batch-number allocation shall be immediately recorded, e.g. in a logbook. The
+                                    record shall include at least the date of allocation, product identity and size of
+                                    batch.
+                      17.3.10.12.   There shall be written procedures for testing materials and products at
+                                    different stages of manufacture, describing the methods and equipment to be
+                                    used. The tests performed shall be recorded.
+                      17.3.10.13.   Analysis records shall include at least the following data, namely-
+                                     (a) the name of the material or product and, where applicable, dosage form;
+                                     (b) the batch number and, where appropriate, the manufacturer and supplier;
+                                     (c) references to the relevant specifications and testing procedures;
+                                     (d) test results, including observations and calculations, and reference to any
+                                         specifications (limits);
+                                     (e) date and reference number of testing;
+                                     (f)   the initials of the persons who performed the testing;
+                                     (g) the date and initials of the persons who verified the testing and the
+                                         calculations, where appropriate; and
+                                     (h) a clear statement of release or rejection (or other status decision) and the
+                                         dated signature of the designated person.
+                      17.3.10.14.   Written release and rejection procedures shall be available for materials and
+                                    products and in particular for the release for sale of the finished product by an
+                                    authorised person.
+                      17.3.10.15.   Records shall be maintained regarding the distribution of each batch of a
+                                    product in order, for example, to facilitate the recall of the batch, if necessary.
+                      17.3.10.16.   Records shall be kept for major and critical equipment, as appropriate, of any
+                                    validations, calibrations, maintenance, cleaning or repair operations, including
+                                    dates and the identity of the people who carried out these operations.
+172                           THE GAZETTE OF INDIA : EXTRAORDINARY                                   [PART II—SEC. 3(i)]
+
+                           17.3.10.17.   The use of major and critical equipment and the areas where products have
+                                         been processed shall be appropriately recorded in chronological order.
+                           17.3.10.18.   There shall be written procedures assigning responsibility for cleaning and
+                                         sanitation and describing in sufficient detail the cleaning schedules, methods,
+                                         equipment and materials to be used and facilities and equipment to be cleaned
+                                         and such written procedures shall be followed.
+18. Good practices in production:
+      18.1.   Principle- Production operations must follow clearly defined procedures in accordance with
+              manufacturing and licences, with the objective of obtaining products of the requisite quality.
+      18.2.   General-
+              18.2.1.   All handling of materials and products, such as receipt and cleaning, quarantine, sampling,
+                        storage, labelling, dispensing, processing, packaging and distribution shall be done in
+                        accordance with written procedures or instructions and, where necessary, recorded.
+              18.2.2.   Deviation from instructions or procedures shall be avoided as far as possible. If deviations
+                        occur, they shall be in accordance with an approved procedure. The authorisation of the
+                        deviation shall be approved in writing by a designated person, with the involvement of the QC
+                        Department, when appropriate.
+              18.2.3.   Checks on yields and reconciliation of quantities shall be carried out as necessary to ensure that
+                        there are no discrepancies outside acceptable limits.
+              18.2.4.   Operations on different products shall not be carried out simultaneously or consecutively in the
+                        same room or area unless there is no risk of mix up or cross-contamination.
+              18.2.5.   At all times during processing, all materials, bulk containers, major items of equipment, and,
+                        where appropriate, the rooms and packaging lines being used, shall be labelled or otherwise
+                        identified with an indication of the product or material being processed, its strength (where
+                        applicable) and the batch number. Where applicable, this indication shall also mention the stage
+                        of production. In some cases, it may be useful to also record the name of the previous product
+                        that has been processed.
+              18.2.6.   Access to production premises shall be restricted to authorised personnel.
+              18.2.7.   Non-medicinal products shall not be produced in areas or with equipment destined for the
+                        production of pharmaceutical products.
+              18.2.8.   In-process controls are usually performed within the production area. The performance of such
+                        in-process controls shall not have any negative effect on the quality of the product or another
+                        product (e.g., cross-contamination or mix up).
+      18.3.   Prevention of cross-contamination and bacterial contamination during production-
+              18.3.1. When dry materials and products are used in production, special precautions shall be taken to
+                      prevent the generation and dissemination of dust. Provision shall be made for proper air control
+                      (e.g., supply and extraction of air of suitable quality).
+              18.3.2. Contamination of a starting material or of a product by another material or product must be
+                      avoided. This risk of accidental cross-contamination arises from the uncontrolled release of
+                      dust, gases, particles, vapours, sprays or organisms from materials and products in process,
+                      from residues on equipment, from intruding insects, and from operators’ clothing, skin, etc.
+                      The significance of this risk varies with the type of contaminant and of the product being
+                      contaminated. Among the most hazardous contaminants are highly sensitising materials,
+                      biological preparations such as living organisms, certain hormones, cytotoxic substances and
+                      other highly active materials. Products in which contamination is likely to be most significant
+                      are those administered by injection or applied to open wounds and those given in large doses or
+                      over a long time or both. Highly hazardous, poisonous and explosive materials such as
+                      narcotics, psychotropic drugs and substances presenting potential risks of abuse, fire or
+                      explosion shall be stored in safe and secure areas. Adequate fire protection measures shall be
+                      provided in conformity with the rules of the concerned civic authorities.
+              18.3.3. Cross-contamination shall be avoided by taking appropriate technical or organisational
+                      measures, namely:-
+                         (a) carrying out production in dedicated and self-contained areas (which may be required for
+[भाग II—खण्‍ड 3(i)]                         भारत‍का‍राजपत्र‍:‍असाधारण                                              173
+
+                           products such as penicillins, cytotoxic, sex hormones, spore forming, live vaccines, live
+                           bacterial preparations and certain other biologicals);
+                       (b) conducting campaign production (separation in time) followed by appropriate cleaning in
+                           accordance with a validated cleaning procedure;
+                       (c) providing appropriately designed airlocks, pressure differentials and air supply and
+                           extraction systems;
+                       (d) minimising the risk of contamination caused by recirculation or re-entry of untreated or
+                           insufficiently treated air;
+                       (e) wearing protective clothing where products or materials are handled;
+                       (f) using cleaning and decontamination procedures of known effectiveness;
+                       (g) using a closed system in production;
+                       (h) testing for residues; and
+                       (i) using cleanliness status labels on equipment.
+             18.3.4. 1Measures to prevent cross-contamination and their effectiveness shall be checked periodically
+                     according to SOPs.
+             18.3.5. Production areas where susceptible products are processed shall undergo periodic
+                     environmental monitoring (e.g., for microbiological and particulate matter, where appropriate).
+     18.4.   Processing operations-
+             18.4.1.   Before any processing operation is started, steps shall be taken to ensure that the work area
+                       and equipment are clean and free from any starting materials, products, product residues,
+                       labels or documents not required for the current operation.
+             18.4.2.   Any necessary in-process controls and environmental controls shall be carried out and
+                       recorded.
+             18.4.3.   Means shall be instituted of indicating failures of equipment or of services (e.g., water and
+                       gas) to equipment. Defective equipment shall be withdrawn from use until the defect has been
+                       rectified. After use, production equipment shall be cleaned without delay according to detailed
+                       written procedures and stored under clean and dry conditions in a separate area or in a manner
+                       that will prevent contamination.
+             18.4.4.   Time limits for storage of process materials and equipment, after cleaning and before use,
+                       shall be stated and based on relevant data.
+             18.4.5.   Containers for filling shall be cleaned before filling. Attention shall be given for avoiding and
+                       removing any contaminants such as glass fragments and metal particles.
+             18.4.6.   Any significant deviation from the expected yield shall be recorded and investigated.
+             18.4.7.   Checks shall be carried out to ensure that pipelines and other pieces of equipment used for the
+                       transportation of products from one area to another area are connected in the correct manner.
+             18.4.8.   Pipes used for conveying distilled or deionized water and, where appropriate, other water
+                       pipes shall be sanitised and stored according to written procedures that detail the action limits
+                       for microbiological contamination and the measures to be taken.
+             18.4.9.   Measuring, weighing, recording and control equipment and instruments shall be serviced and
+                       calibrated at pre-specified intervals and records maintained. To ensure satisfactory
+                       functioning, instruments shall be checked daily or prior to use for performing analytical tests.
+                       The date of calibration and servicing and the date when recalibration is due shall be clearly
+                       indicated on a label attached to the instrument.
+             18.4.10. Repair and maintenance operations shall not present any hazard to the quality of the products.
+     18.5.   Packaging operations:
+             18.5.1. When the programme for packaging operations is being set up, particular attention shall be
+                     given to minimising the risk of cross-contamination, mix ups or substitutions. Different
+                     products shall not be packaged in close proximity unless there is physical segregation or an
+                     alternative system that will provide equal assurance.
+174                           THE GAZETTE OF INDIA : EXTRAORDINARY                                [PART II—SEC. 3(i)]
+
+              18.5.2. Before packaging operations are begun, steps shall be taken to ensure that the work area,
+                      packaging lines, printing machines and other equipment are clean and free from any products,
+                      materials or documents used previously and which are not required for the current operation.
+                      The line clearance shall be performed according to an appropriate procedure and checklist and
+                      shall be recorded.
+              18.5.3. The name and batch number of the product being handled shall be displayed at each packaging
+                      station or line.
+              18.5.4. Normally, filling and sealing shall be followed as quickly as possible by labelling. If labelling
+                      is delayed, appropriate procedures shall be applied to ensure that no mix ups or mislabelling
+                      can occur.
+              18.5.5. The correct performance of any printing (e.g., of code numbers or expiry dates) done separately
+                      or in the course of the packaging shall be checked and recorded. Attention shall be paid to
+                      printing by hand, which shall be rechecked at regular intervals.
+              18.5.6. Special care shall be taken when cut labels are used and when overprinting is carried out off-
+                      line and in hand-packaging operations. Roll-feed labels are normally preferable to cut labels in
+                      helping to avoid mix ups. Online verification of all labels by automated electronic means can
+                      be helpful in preventing mix ups, but checks shall be made to ensure that any electronic code
+                      readers, label counters or similar devices are operating correctly. When labels are attached
+                      manually, in-process control checks shall be performed more frequently.
+              18.5.7. Printed and embossed information on packaging materials shall be distinct and resistant to
+                      fading or erasing.
+               18.5.8.1.   Regular online control of the product during packaging shall include at a minimum checks
+                           on—
+                           (a) the general appearance of the packages;
+                           (b) whether the packages are complete;
+                           (c) whether the correct products and packaging materials are used;
+                           (d) whether any overprinting is correct; and
+                           (e) the correct functioning of line monitors.
+               18.5.8.2.   Samples taken away from the packaging line shall not be returned.
+           18.5.9.Products that have been involved in an unusual event during packaging shall be reintroduced into
+                    the process only after special inspection, investigation and approval by the authorised
+                    personnel. A detailed record shall be kept of this operation.
+           18.5.10.Any significant or unusual discrepancy observed during reconciliation of the amount of bulk
+                    product and printed packaging materials and the number of units produced shall be investigated,
+                    satisfactorily accounted for and recorded before release.
+           18.5.11.Upon completion of a packaging operation, any unused batch-coded packaging materials shall
+                    be destroyed and the destruction shall be recorded. A documented procedure requiring checks to
+                    be performed before returning unused materials shall be followed, if uncoded printed materials
+                    are returned back to the stock.
+           18.5.12. Production records shall be reviewed as part of the approval process of batch release before
+                    transfer to the authorised person. Any divergence or failure of a batch to meet production
+                    specifications shall be thoroughly investigated. The investigation shall, if necessary, extend to
+                    other batches of the same product and other products that may have been associated with the
+                    specific failure or discrepancy. A written record of the investigation shall be made and shall
+                    include the conclusion and follow-up action.
+19. Good practices in quality control:
+      19.1.   Quality control is the part of good manufacturing practices concerned with sampling, specifications and
+              testing and with the organisation and documentation which ensure that the necessary and relevant tests
+              are actually carried out and that materials are not released for use, nor products released for sale or
+              supply, until their quality has been judged to be compliant with the requirements. QC is not confined to
+              laboratory operations, but may be involved in many decisions concerning the quality of the product.
+      19.2.   The independence of QC from production is considered fundamental.
+      19.3.   Each manufacturer shall have a QC function. The QC function shall be independent of other Departments
+[भाग II—खण्‍ड 3(i)]                         भारत‍का‍राजपत्र‍:‍असाधारण                                               175
+
+            and under the authority of a person with appropriate qualifications and experience. Adequate resources
+            must be available to ensure that all the QC arrangements are effectively and reliably carried out. The
+            basic requirements for QC are as follows—
+            (a) adequate facilities, trained personnel and approved procedures must be available for sampling,
+                inspecting, and testing starting materials, packaging materials and intermediate, bulk and finished
+                products and where appropriate for monitoring environmental conditions for good manufacturing
+                practices purposes;
+            (b) samples of starting materials, packaging materials, intermediate products, bulk products and finished
+                products must be taken by methods and personnel approved by the QC Department;
+            (c) qualification and validation;
+            (d) records must be made (manually or by recording instruments or both) demonstrating that all the
+                required sampling, inspecting and testing procedures have actually been carried out and that any
+                deviations have been fully recorded and investigated;
+            (e) the finished products must contain ingredients complying with the qualitative and quantitative
+                composition of the product described in the licence; the ingredients must be of the required purity, in
+                their proper container and correctly labelled;
+            (f) records must be made of the results of inspecting and testing the materials and intermediate, bulk
+                and finished products against specifications; product assessment must include a review and
+                evaluation of the relevant production documentation and an assessment of deviations from specified
+                procedures;
+            (g) sufficient samples of starting materials and products must be retained to permit future examination
+                of the product, if necessary; the retained product must be kept for the appropriate time in its final
+                pack unless the pack is exceptionally large, in which case one that is equivalent to the marketed
+                packaging system may be used.
+        19.4.1. Other QC responsibilities include the following, namely:-
+                 (a) establishing, validating and implementing all QC procedures;
+                 (b) evaluating, maintaining and storing reference standards for substances;
+                 (c) ensuring the correct labelling of containers of materials and products;
+                 (d) ensuring that the stability of the active pharmaceutical          ingredients and     products are
+                     monitored;
+                 (e) participating in the investigation of complaints related to the quality of the product;
+                 (f) participating in environmental monitoring; and
+                 (g) participation in quality risk management programme.
+        19.4.2. These activities shall be carried out in accordance with written procedures and, where necessary,
+                 recorded.
+        19.5.    Quality control personnel shall have access to the production areas for sampling and investigation as
+                 appropriate.
+         19.6. Control of starting materials and intermediate, bulk and finished products-
+                 19.6.1. All tests shall follow the instructions given in the relevant written test procedure for each
+                         material or product. The result shall be checked by the supervisor before the material or
+                         product is released or rejected.
+                 19.6.2. Samples shall be representative of the batches of material from which they are taken in
+                         accordance with the approved written procedure.
+                 19.6.3. Sampling shall be carried out so as to avoid contamination or other adverse effects on
+                         quality. The containers that have been sampled shall be marked accordingly and carefully
+                         resealed after sampling.
+                 19.6.4. Care shall be taken during sampling to guard against contamination or mix up of, or by,
+                         the material being sampled. All sampling equipment that comes into contact with the
+                         material shall be clean. Hazardous or potent materials may require special precautions.
+176                     THE GAZETTE OF INDIA : EXTRAORDINARY                                 [PART II—SEC. 3(i)]
+
+            19.6.5. Sampling equipment shall be cleaned and, if necessary, sterilised before and after each use
+                    and stored separately from other laboratory equipment.
+            19.6.6. Each sample container shall bear a label indicating-
+                       (a) the name of the sampled material;
+                       (b) the batch or lot number;
+                       (c) the number of the container from which the sample has been taken;
+                       (d) the number of the sample;
+                       (e) the signature of the person who has taken the sample; and
+                       (f) the date of sampling.
+            19.6.7. Out-of-specification results obtained during testing of materials or products shall be
+                    investigated in accordance with an approved procedure and record shall be maintained.
+      19.7. Test requirements-
+             19.7.1. Before releasing a starting or packaging material for use, the QC in-charge shall ensure that
+                     the materials have been tested for conformity with specifications for identity, strength,
+                     purity and other quality parameters.
+             19.7.2. An identity test shall be conducted on a sample from each container of starting material. It
+                     is permissible to sample only a proportion of the containers where a validated procedure
+                     has been established to ensure that no single container of starting material has been
+                     incorrectly labelled.
+                       19.7.2.1. The above validation shall take account of at least the following aspects,
+                                 namely:-
+                                  (a) the nature and status of the manufacturer and of the supplier and their
+                                      understanding of the good manufacturing practices requirements;
+                                  (b) the QA system of the manufacturer of the starting material;
+                                  (c) the manufacturing conditions under which the starting material is produced
+                                      and controlled; and
+                                  (d) the nature of the starting material and the medicinal products in which it
+                                      will be used.
+                       19.7.2.2. Under such a system it is possible that a validated procedure for exemption
+                                 from the requirement for identity testing of each incoming container of starting
+                                 material could be accepted for the following, namely-
+                                  (a) starting materials coming from a single product manufacturer or plant; or
+                                  (b) starting materials coming directly from a manufacturer, or in the
+                                      manufacturer’s sealed container where there is a history of reliability and
+                                      regular audits of the manufacturer’s QA system are conducted by the
+                                      purchaser (the manufacturer of the medicinal product) or by an officially
+                                      accredited body.
+                       19.7.2.3. It is improbable that such a procedure could be satisfactorily validated for
+                                 either-
+                                  (a) starting materials supplied by intermediaries, such as brokers, where the
+                                      source of manufacture is unknown or not audited; or
+                                  (b) starting materials for use in parenteral products.
+             19.7.3.    Each batch (lot) of printed packaging materials shall be examined following its receipt.
+             19.7.4. In lieu of full testing by the manufacturer, a certificate of analysis may be accepted from
+                     the supplier, provided that the manufacturer establishes the reliability of the supplier’s
+                     analysis through appropriate periodic validation of the supplier’s test results and through
+                     on-site audits of the supplier’s capabilities. Certificates must be originals and not
+                     photocopies or otherwise have their authenticity assured. Certificates must contain at least
+                     the following information, namely:—
+[भाग II—खण्‍ड 3(i)]                           भारत‍का‍राजपत्र‍:‍असाधारण                                            177
+
+                                        (a) identification (name and address) of the issuing supplier;
+                                        (b) signature of the competent official and statement of his or her
+                                            qualifications;
+                                        (c) the name of the material tested;
+                                        (d) the batch number of the material tested;
+                                        (e) the specifications and methods used;
+                                        (f) the test results obtained; and
+                                        (g) the date of testing.
+                  19.7.5.    In-process control records shall be maintained and form part of the batch records.
+                  19.7.6.    For each batch of drugs, there shall be an appropriate laboratory determination of
+                             satisfactory conformity to its finished product specification prior to its release.
+                  19.7.7.    Products failing to meet the established specifications or any other relevant quality
+                             criteria shall be rejected.
+         19.8. Batch record review:
+                 19.8.1. Quality control records shall be reviewed as part of the approval process of batch release
+                         before transfer to the authorised person. Any divergence or failure of a batch to meet its
+                         specifications shall be thoroughly investigated. The investigation shall, if necessary, extend
+                         to other batches of the same product and other products that may have been associated with
+                         the specific failure or discrepancy. A written record of the investigation shall be made and
+                         shall include the conclusion and follow-up action.
+                 19.8.2. Retention samples from each batch of finished product shall be kept for at least one year
+                         after the expiry date. Finished products shall usually be kept in their final packaging and
+                         stored under the recommended conditions. If exceptionally large packages are produced,
+                         smaller samples might be stored in appropriate containers. Samples of active starting
+                         materials shall be retained for at least one year beyond the expiry date of the corresponding
+                         finished product. Other starting materials (other than solvents, gases and water) shall be
+                         retained for a minimum of two years, if their stability allows. Retention samples of
+                         materials and products shall be of a size sufficient to permit at least two full re-
+                         examinations.
+          19.9. Stability studies-
+                 19.9.1. QC shall evaluate quality and stability of finished pharmaceutical products and, when
+                         necessary, of starting materials and intermediate products.
+                 19.9.2. QC shall establish expiry dates and shelf-life specifications on the basis of stability tests
+                         related to storage conditions.
+                 19.9.3. A written programme for on-going stability determination shall be developed and
+                         implemented to include elements such as —
+                            (a)   a complete description of the drug involved in the study;
+                            (b)   the complete set of testing parameters and methods, describing all tests for potency,
+                                  purity, and physical characteristics and documented evidence that these tests indicate
+                                  stability;
+                            (c)   provision for the inclusion of a sufficient number of batches;
+                            (d)   the testing schedule for each drug;
+                            (e)   provision for special storage conditions;
+                            (f)   provision for adequate sample retention; and
+                            (g)   a summary of all the data generated, including the evaluation and the conclusion of
+                                  the study.
+                 19.9.4. Stability shall be determined prior to marketing and following any significant changes, for
+                         example, in processes, equipment or packaging materials.
+20. Computerised systems:
+     20.1.   GMP-related computerised systems shall be validated. The depth and scope of validation depends on the
+             diversity, complexity and criticality of the computerised application.
+178                             THE GAZETTE OF INDIA : EXTRAORDINARY                                   [PART II—SEC. 3(i)]
+
+      20.2.     Appropriate installation qualiﬁcation and operational qualiﬁcation shall demonstrate the suitability of
+                computer hardware and software to perform assigned tasks.
+      20.3.     Commercially available software that has been qualiﬁed does not require the same level of testing. If an
+                existing system was not validated at the time of installation, a retrospective validation could be
+                conducted, if appropriate documentation is available.
+      20.4.     Computerised systems shall have sufﬁcient controls to prevent unauthorised access or changes to data.
+                There shall be controls to prevent omissions in data (e.g., the system being turned off and data not
+                captured). There shall be a record of any data change made, the previous entry, the person who made the
+                change and when the change was made.
+      20.5.     Written procedures shall be available for the operation and maintenance of computerised systems.
+      20.6.     Where critical data are being entered manually, there shall be an additional check on the accuracy of the
+                data entered. This can be done by a second operator or by the system itself.
+      20.7.     Incidents related to computerised systems that could affect the quality of products or the reliability of
+                records or test results shall be recorded and investigated.
+      20.8.     Changes to the computerised system shall be made according to a change procedure and shall be
+                formally authorised, documented and tested. Records shall be kept of all changes, including
+                modiﬁcations and enhancements made to the hardware, software and any other critical component of the
+                system. These records shall demonstrate that the system is maintained in a validated state.
+      20.9.     A back-up system shall be provided so that there is no permanent loss of records due to system
+                breakdown or failure. Means of ensuring data protection shall be established for all computerised
+                systems.
+      20.10. Data may be recorded by other means in addition to the computer system.
+                                                            Appendix-I
+                                                         Site Master File
+      The licensee shall prepare a succinct document in the form of ‘Site Master File’ containing specific and factual
+      Good Manufacturing Practices about the production or control or both of pharmaceutical manufacturing
+      preparations carried out at the licensed premises. It shall contain the following, namely-
+1.    General information:-
+      (a)     brief information of the firm;
+      (b)     pharmaceutical manufacturing activities as permitted by the licensing authority;
+      (c)     other manufacturing activities, if any, carried out in the premises;
+      (d)     type of products licensed for manufacture with flow charts mentioning procedure and process flow;
+      (e)     number of employees engaged in the production, quality control, storage and distribution;
+      (f)      use of outside scientific, analytical or other technical assistance in relation to manufacture and analysis;
+      (g)     products details registered with foreign countries.
+      (h)     short description of the Quality Management System of the firm;
+      (i)     pharmaceutical Quality System; and
+      (j)     quality risk assessment.
+2.    Personnel:-
+      (a)     organisational chart showing the arrangement for quality assurance including production and quality
+              control;
+      (b)     qualifications, experience and responsibilities of key personnel;
+      (c)     outline for arrangements for basic and in-service training and how the records are maintained;
+      (d)     health requirements for personnel engaged in production; and
+      (e)     personnel hygiene requirements, including clothing.
+[भाग II—खण्‍ड 3(i)]                          भारत‍का‍राजपत्र‍:‍असाधारण                                              179
+
+3.    Premises:-
+      (a) simple plan or description of manufacturing areas drawn to scale;
+      (b) nature of construction and fixtures or fittings;
+      (c) brief description of ventilation systems. More details shall be given for critical areas with potential risk of
+          airborne contamination (schematic drawing of systems). Classification of the rooms used for the
+          manufacture of sterile products shall be mentioned;
+      (d) special areas for the handling of the highly toxic, hazardous and sensitising materials;
+      (e) brief description of water system (schematic drawings of systems), including sanitation; and
+      (f)   description of planned preventive maintenance programmes for premises and of the recording system.
+4.    Equipment:-
+      (a) brief description of major equipment used in production and Quality Control Laboratories (a list of
+          equipment required);
+      (b) description of planned preventive maintenance programmes for equipment and of the recording system;
+          and
+      (c) qualification and calibration including the recording systems and arrangements for computerised systems
+          validation.
+5.    Sanitation:-availability of written specifications and procedures for cleaning manufacturing areas and
+      equipment.
+6.    Documentation:-
+      (a) arrangements for the preparation, revision and distribution of;
+      (b) necessary documentation for the manufacture; and
+      (c) any other documentation related to product quality that is not mentioned elsewhere (e.g., microbiological
+          controls about air and water).
+7.    Production:-
+      (a) brief description of production operations using, wherever possible, flow sheets and charts specifying
+            important parameters;
+      (b) arrangements for the handling of starting materials, packaging materials, bulk and finished products,
+            including sampling, quarantine, release and storage;
+      (c) arrangements for the handling of rejected materials and products; and
+      (d) brief description of general policy for process validation.
+8.    Quality Assurance and Control:-
+      (a) documentation system;
+      (b) change control;
+      (c) master validation plan and validation policy;
+      (d) product quality review; and
+      (e) description of the quality control system and of the activities of the QC Department. Procedures for the
+          release of the finished products.
+9.    Manufacture under loan licence and licensee:- description of the way in which compliance of GMP by the
+      loan licensee shall be assessed.
+10.   Distribution, complaints and product recall:-
+      (a) arrangements and recording system for distribution; and
+      (b) arrangements for the handling of complaints and product recalls.
+11.   Self-inspection:- short description of the self-inspection system indicating whether an outside, independent and
+      experienced external expert was involved in evaluating the manufacturer’s compliance with GMP in all aspects
+      of production.
+180                             THE GAZETTE OF INDIA : EXTRAORDINARY                                   [PART II—SEC. 3(i)]
+
+12.    Export of drugs:-
+       (a) products exported to different countries; and
+       (b) complaints and product recall, if any.
+Note.-The guidelines published by the World Health Organization (WHO) on following aspects relating to GMP
+through their Technical Report Series from time to time may be considered for general guidance purposes:-
+       (1) Guidelines on the principles of airflow directions, air filtration standards, temperature, humidity and related
+           parameters.
+       (2) GMP guidelines regarding the design, installation and operation of pharmaceutical water systems including
+           guidance about which quality of water to use for specific applications, such as the manufacture of APIs and
+           dosage forms.
+       (3) Guidelines on design, installation, qualification and maintenance of the HVAC systems of the
+           manufacturing plant.
+       (4) GMP guidelines for validation.
+       (5) Guidelines on packaging of pharmaceutical products.
