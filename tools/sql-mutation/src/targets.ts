@@ -466,7 +466,9 @@ export const TARGETS: Target[] = [
     group: 'batch-number-register',
     functions: ['site.require_actor', 'site.render_batch_number', 'site.define_batch_number_rule', 'site.rule_in_force',
                 'site.allocate_batch_number', 'site.register_external_batch_number', 'site.void_batch_number', 'site.batch_number_pattern',
-                'site.recover_batch_number', 'site.batch_number_invariant_violations'],
+                'site.recover_batch_number', 'site.batch_number_invariant_violations',
+                // recipe-core 1790: {SEQ:n} of a packaging number counted per parent batch (owner report #19).
+                'site.counts_per_parent', 'site.next_parent_serial'],
     tests: [site('batch-number-register.test.ts')],
     threshold: 90,
   },

@@ -37,7 +37,7 @@ of each database function.
 | [kernel-operations](#kernel-operations) | First-run set-up with the installer's one-time token, operations acts and backup requests (Phase 7 slice 7g-4); drill requests and records, hardening checks (7g WP2) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
 | [kernel-validation-iq](#kernel-validation-iq) | The IQ record of an installation, run from the web app and stored with its SHA-256 (Phase 7 slice 7g-3) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 83 | 41 |
-| [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
+| [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
 | [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 6 | 0 | 1 | 3 |
 | [ss-shipping](#ss-shipping) | Manufacturer release guard, shipping interlock and after-release lot exits | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 6 |
@@ -656,15 +656,16 @@ of each database function.
 
 **Batch number register.** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (3):
+**Migrations** (4):
 
 - `packages/site-services/sql`: [0600_batch_number_register.sql](../../packages/site-services/sql/0600_batch_number_register.sql), [0690_sandbox_identifier_guard.sql](../../packages/site-services/sql/0690_sandbox_identifier_guard.sql), [0700_batch_number_site_zone.sql](../../packages/site-services/sql/0700_batch_number_site_zone.sql)
+- `packages/recipe-core/sql`: [1790_packaging_serial_per_parent.sql](../../packages/recipe-core/sql/1790_packaging_serial_per_parent.sql)
 
 **Database objects** created in these migrations:
 
-- Tables (4): `site.batch_number_allocation`, `site.batch_number_rule`, `site.batch_number_serial_skip`, `site.batch_number_void`
+- Tables (5): `site.batch_number_allocation`, `site.batch_number_parent_serial_since`, `site.batch_number_rule`, `site.batch_number_serial_skip`, `site.batch_number_void`
 - Views (1): `site.batch_number_register`
-- Functions (12): `site.allocate_batch_number`, `site.batch_number_invariant_violations`, `site.batch_number_pattern`, `site.batch_number_scope`, `site.define_batch_number_rule`, `site.recover_batch_number`, `site.register_external_batch_number`, `site.render_batch_number`, `site.require_actor`, `site.rule_in_force`, `site.site_zone_row_guard`, `site.void_batch_number`
+- Functions (14): `site.allocate_batch_number`, `site.batch_number_invariant_violations`, `site.batch_number_pattern`, `site.batch_number_scope`, `site.counts_per_parent`, `site.define_batch_number_rule`, `site.next_parent_serial`, `site.recover_batch_number`, `site.register_external_batch_number`, `site.render_batch_number`, `site.require_actor`, `site.rule_in_force`, `site.site_zone_row_guard`, `site.void_batch_number`
 - Triggers (3): `aa_site_zone_batch_number_allocation on site.batch_number_allocation`, `aa_site_zone_batch_number_rule on site.batch_number_rule`, `ab_sandbox_identifier_guard on site.batch_number_allocation`
 
 **Source** (3): [README.md](../../packages/site-services/src/batch-numbers/README.md), [index.ts](../../packages/site-services/src/batch-numbers/index.ts), [register.ts](../../packages/site-services/src/batch-numbers/register.ts)

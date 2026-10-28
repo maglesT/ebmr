@@ -104,6 +104,9 @@ tests:
   - "tools/e2e/specs/phase7/route-w2.spec.ts > [PR-47][IN-18][IN-19][INV-33][PR-57][DI-30] route W2 4: TB-08 on KIOSK-BLEND-1: the quality unit reserves route W's residue and authorises its use at the TB-08 step, the supervisor chooses the addition, the operator adds the residue and a second person verifies @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole 6: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued; stores reserve the lots @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [INV-01][PR-04][PR-18][IN-18] P3 demo 1: the seeded numbering rules listed; the ERP simulator sends the processing order; the batch planned and issued from the seeded master; stores reserve the seeded lots @office"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] a packaging rule counts {SEQ:n} per processing batch unless it says otherwise: each batch's first packaging number is P01 (owner report #19)"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] after the rule's counter skipped (restart, restore, ledger ahead) a parent's next packaging number passes every number that may have been lost; a parent from before per-parent numbering keeps the rule-wide serial"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register across a restore > [IN-18][INV-27] after a restore a packaging number counted per parent batch is never reissued: the parent's next number passes every number the skipped serials may have given"
 clauses:
   - clause: "cancel a batch; its number is never offered again."
     tests:
