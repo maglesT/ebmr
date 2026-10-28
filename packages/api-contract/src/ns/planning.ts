@@ -160,7 +160,7 @@ export const PackagingBulkView = z.strictObject({
     })
     .nullable(),
   issued: z.array(z.strictObject({ label: z.string(), containerId: Uuid, quantity: DecimalString, unit: z.enum(['kg', 'g', 'units']), issuedBy: PersonRef, issuedAt: Instant })),
-  /** Every output container of the processing batch, oldest first, each with why it cannot be issued now, or null. */
+  /** The processing batch's bulk (its final output: its last stage's containers, never rejects; tablets 1770), oldest first, each with why it cannot be issued now, or null. */
   containers: z.array(
     z.strictObject({
       label: z.string(),

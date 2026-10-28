@@ -22,7 +22,8 @@ export function RecordLocksPage() {
     <>
       <h1>Record locks and amendments</h1>
       <p>
-        A processing record locks when its bulk reconciliation is closed; a packaging record locks at its lot's first manufacturer decision. A locked record is changed only through an amendment
+        A processing record locks when its bulk reconciliation is closed: by production, or by itself at the first manufacturer decision on a lot packed from it once every packaging order is closed
+        and no bulk is left. A packaging record locks at its lot's first manufacturer decision. A locked record is changed only through an amendment
         under a linked deviation or change record, which appends entries and never edits the record.
       </p>
       <floor.ChoiceGroup label="Show" options={FILTERS.map((f) => ({ value: f, label: f === 'ALL' ? 'All' : words(f) }))} value={filter} onChange={(v) => setFilter(FILTERS.find((f) => f === v) ?? 'ALL')} />
