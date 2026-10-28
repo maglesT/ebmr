@@ -36,6 +36,7 @@ import type { SeedPackLot, SeedTestResult } from '../features/execution/seed-gb-
 import { DEMO_LICENCE_HOLDER } from '../features/india/index.ts';
 import { DemoApp, type DemoBrowser } from './demo-app.ts';
 import { RTW_PRODUCT } from './demo-route-masters.ts';
+import { pinned } from './golden-packaging.ts';
 import { approveVersion } from './release-path.ts';
 
 type Json = Record<string, unknown>;
@@ -359,12 +360,32 @@ function addLayer(c: flow.MbrContent, stepId: string, place: 'BEFORE' | 'AFTER',
   c.parameters.push(...parts.parameters);
 }
 
+/** Route W's product documents and the P3 product's own (reference-catalogue.ts), slice 7u (R10 #11). */
+const OWN_DOCUMENTS: Readonly<Record<string, string>> = { 'VR-RTW': 'VR-RAB', 'REG-RTW': 'REG-RAB' };
+
+/**
+ * The copy cites the product's own registration and validation report, never route W's: every limit's source and the
+ * pinned reference (with its own version and hash) name the P3 document.
+ */
+function citeOwnDocuments(source: flow.MbrContent): flow.MbrContent {
+  let text = JSON.stringify(source);
+  for (const [from, to] of Object.entries(OWN_DOCUMENTS)) text = text.replaceAll(`"${from}"`, `"${to}"`);
+  const c = JSON.parse(text) as flow.MbrContent;
+  const own = new Set(Object.values(OWN_DOCUMENTS));
+  c.references = c.references.map((r) => (own.has(r.id) ? (pinned([r.id])[0] as unknown as flow.Reference) : r));
+  return c;
+}
+
 /** Rabeprazole 2's edits: the salt form, the ranges, the 125 mg core and its tooling, the enteric coat, the seal and top coats. */
 export function rabeprazoleEdits(source: flow.MbrContent): flow.MbrContent {
-  const c = structuredClone(source);
+  const c = citeOwnDocuments(source);
   const disp = /Potency-adjusted dispensing/;
   // The label claim is the sodium salt itself (the declared form at 100 %), not a base the dispensing converts.
   setConfig(c, disp, ['active', 'standardIs'], 'FORM');
+  // Slice 7u (R10 #9): the standard is the product's own salt, so the copied route's declared form (another active's
+  // name and molar masses, used only for a base-stated standard) goes.
+  setConfig(c, disp, ['active', 'standardBasis'], 'rabeprazole sodium at 100.0 % on the anhydrous basis');
+  delete ((stepNamed(c, disp).config as Json)['active'] as Json)['form'];
   setConfig(c, disp, ['compensation', 'min'], '4.000');
   setConfig(c, disp, ['compensation', 'max'], '5.000');
   setConfig(c, /Wet granulation \(high shear\) to the end point/, ['binder', 'min'], '1.500');

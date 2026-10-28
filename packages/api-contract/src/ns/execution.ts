@@ -89,6 +89,11 @@ export const AttemptView = z.strictObject({
   value: DataValueWire.nullable(),
   /** "You entered 12.503 kg" style echo of the stored value with its unit. */
   echo: z.string(),
+  /**
+   * Slice 7u (R10 #11): a computed value as shown, at the precision of its limits ("99.1 %"), when it holds more digits;
+   * display only, `value` is the stored value.
+   */
+  shown: z.string().optional(),
   by: PersonRef,
   at: Instant,
   source: z.strictObject({

@@ -121,7 +121,11 @@ function demoRouteReferenceDocuments(): ReferenceDocumentSeed[] {
     doc('MATERIAL', 'MAT-CTN-EXZGR', 'Printed carton, route W 10 x 10', 'Printed secondary packaging specification (carton, artwork controlled).'),
     doc('REGISTRATION', 'REG-RTW', 'Exemplazine gastro-resistant tablets 250 mg: registered process and specification (invented)', 'Registered process ranges and specification of the invented route W product.'),
     doc('VALIDATION_REPORT', 'VR-RTW', 'Process validation report: route W (invented)', 'Proven acceptable ranges of the massing, drying, blending and coating, the in-process tests and the stage yields (DEMO-ONLY short times).'),
-    doc('VALIDATION_REPORT', 'VR-RTW-PK', 'Packaging validation report: route W cold-form blister (invented)', 'Sealing ranges, leak-test method and the packaging yield.'),
+    // Slice 7u (R10 #11): the P3 demo product's own registration and process validation report (cli/demo-p3.ts), cited
+    // by its master instead of route W's.
+    doc('REGISTRATION', 'REG-RAB', 'Rabeprazole sodium 20 mg gastro-resistant tablets: registered process and specification (invented)', 'Registered process ranges and specification of the invented P3 demo product.'),
+    doc('VALIDATION_REPORT', 'VR-RAB', 'Process validation report: rabeprazole sodium 20 mg gastro-resistant tablets (invented)', 'Proven acceptable ranges of the massing, drying, blending and the three coats, the in-process tests and the stage yields (DEMO-ONLY short times).'),
+    doc('VALIDATION_REPORT', 'VR-RTW-PK','Packaging validation report: route W cold-form blister (invented)', 'Sealing ranges, leak-test method and the packaging yield.'),
     doc('RISK_ASSESSMENT', 'QRM-RTW-IPC', 'Risk assessment of the route W in-process check frequency', 'Weight checks of each press side every 30 minutes.'),
     doc('RISK_ASSESSMENT', 'QRM-RTW-LEAK', 'Risk assessment of the route W leak-test frequency', 'Leak tests at the start and the end of each run and every two hours.'),
     doc('HOLD_STUDY', 'HS-RTW', 'Hold-time study: route W intermediates', 'Maximum hold of the dried granules, the lubricated blend and the coated tablets.'),

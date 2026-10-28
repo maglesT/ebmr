@@ -71,7 +71,7 @@ export function describeChanges(before: StepScreenView | undefined, after: StepS
   for (const field of after.fields) {
     const seen = new Set(before.fields.find((f) => f.item === field.item)?.attempts.map(attemptKey) ?? []);
     for (const a of field.attempts) {
-      if (!seen.has(attemptKey(a))) out.push(`${field.name}: ${floor.valueText(a.value, a.echo)} recorded by ${a.by.legalName} at ${a.at.text}.`);
+      if (!seen.has(attemptKey(a))) out.push(`${field.name}: ${a.shown ?? floor.valueText(a.value, a.echo)} recorded by ${a.by.legalName} at ${a.at.text}.`);
     }
   }
   const entries = new Set(before.entries.map((e) => e.entryId));

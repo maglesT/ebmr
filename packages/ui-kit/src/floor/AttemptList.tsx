@@ -64,7 +64,7 @@ export function AttemptList({ label, attempts }: AttemptListProps) {
     <ul className={fcls('attempts')} aria-label={label}>
       {attempts.map((a) => (
         <li key={`${a.pointId}-${a.attempt}-${a.version}`} className={fcls('attempt')} data-status={a.status} data-testid={`attempt-${a.pointId}`}>
-          <span className={fcls('attemptValue')}>{valueText(a.value, a.echo)}</span>
+          <span className={fcls('attemptValue')}>{a.shown ?? valueText(a.value, a.echo)}</span>
           {a.verdict ? <StatusChip tone={verdictTone(a.verdict)} label={ft('attempt.verdict', { text: a.verdict.text })} /> : null}
           {a.status !== 'VALID' ? <StatusChip tone="neutral" label={enumText('attempt.status', a.status)} /> : null}
           <div className={fcls('attemptMeta')}>

@@ -59,4 +59,17 @@ describe('the P3 demo seed\'s processing master (slice 7s)', () => {
     expect((edited.yieldCheckpoints.find((y) => y.name === 'Coating weight gain of the batch') as unknown as { limits: flow.LimitSpec }).limits.ranges[0]).toMatchObject({ low: { value: '13.0' }, high: { value: '16.5' } });
     expect(byId(source, 'p-coat')).toMatchObject({ targetGain: '3.0' });
   });
+
+  it('[IN-37][PR-29] the master cites the product\'s own registration and validation report, never route W\'s, and holds no other active\'s declared form (R10 #9, #11)', () => {
+    const text = JSON.stringify(edited);
+    expect(text).not.toMatch(/"(VR-RTW|REG-RTW)"/);
+    const sources = [...edited.parameters, ...edited.calculations, ...edited.yieldCheckpoints].flatMap((x) => (x as { limits?: flow.LimitSpec }).limits?.ranges.map((r) => r.source.ref) ?? []);
+    expect(sources).toContain('VR-RAB');
+    const own = edited.references.filter((r) => r.id === 'VR-RAB' || r.id === 'REG-RAB');
+    expect(own).toHaveLength(2);
+    for (const r of own) expect(r.title).toMatch(/rabeprazole sodium/i);
+    const disp = (phases(edited).find((p) => p.id === 'p-disp-api')?.config ?? {}) as Json;
+    expect(JSON.stringify(disp).toLowerCase()).not.toContain('exemplazine');
+    expect(definitionFindings(edited).filter((f) => f.severity === 'ERROR')).toEqual([]);
+  });
 });
