@@ -311,6 +311,7 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
     b.quantity = { value: base.toString(), unit: 'kg' };
   }
   t.bom = [...bom, ...packaging];
+  renameMaterials(t, source, src);
   t.header = { ...header(src, req, markets), recordKind: source.header.recordKind, predicates: source.header.predicates, variants: source.header.variants };
   // Slice 7o (D-7o-5): the standard quantity per tablet follows this formula. A calculation of the source that is its
   // formula's quantity per tablet (mg terms only) times the batch size in tablets is written from this formula (each line
@@ -326,6 +327,36 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   });
   t.goldenCases = t.goldenCases.filter((g) => ![...Object.keys(g.inputs), ...Object.keys(g.expected)].some((id) => rewritten.has(id)));
   return t;
+}
+
+/** A material's name without its trailing remark: "Rabeprazole sodium (invented data)" -> "Rabeprazole sodium". */
+const plainMaterialName = (name: string): string => name.replace(/\s*\([^()]*\)\s*$/, '').trim();
+
+/**
+ * Slice 7u (R10 #9): a BOM line of the copy that holds another material than the source's line of the same id (the
+ * active of another product) renames what the source named after its material: the parameters, calculations, yield
+ * checkpoints and steps that carry the source material's name carry this formula's material name (from its material
+ * master), so a rabeprazole batch never shows "Exemplazine sodium dispensed". Names only; ids and configuration stay.
+ */
+function renameMaterials(t: flow.MbrContent, source: flow.MbrContent, src: FormulaSource): void {
+  const renames: { from: RegExp; to: string }[] = [];
+  for (const b of t.bom) {
+    const was = source.bom.find((x) => x.id === b.id);
+    if (!was || was.material === b.material) continue;
+    const oldName = source.references.find((r) => r.id === was.material)?.title;
+    const newName = src.materials.find((m) => m.code === b.material)?.name ?? src.chosen.lines.find((l) => l.materialCode === b.material)?.materialName;
+    const from = oldName ? plainMaterialName(oldName) : '';
+    const to = newName ? plainMaterialName(newName) : '';
+    if (from.length < 3 || to.length === 0 || from.toLowerCase() === to.toLowerCase()) continue;
+    renames.push({ from: new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), to });
+  }
+  if (renames.length === 0) return;
+  const rename = (name: string): string =>
+    renames.reduce((s, r) => s.replace(r.from, (m) => (m.charAt(0) === m.charAt(0).toUpperCase() ? r.to.charAt(0).toUpperCase() : r.to.charAt(0).toLowerCase()) + r.to.slice(1)), name);
+  for (const x of [...t.parameters, ...t.calculations, ...t.yieldCheckpoints]) x.name = rename(x.name);
+  walk(t.procedure, (o) => {
+    if (typeof o['kind'] === 'string' && typeof o['name'] === 'string') o['name'] = rename(o['name']);
+  });
 }
 
 /** A source calculation that is a formula's quantity per tablet: a parenthesised sum of mg terms times tabletsPerBatch. */
