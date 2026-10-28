@@ -25,7 +25,10 @@
  *                               DEFECT_CHECK_FAILED, the steps after it wait for a deviation, and in the database FAIL on
  *                               stream LINE; a pass is the only PASS on it;
  *                 REJECTS       empty, broken pocket and vision rejects (blisters), which feed the count reconciliation;
- *                 RUN_END       the run ends;
+ *                 RUN_END       the run ends; its form warns while G-06 still misses something the step needs (R10 #3);
+ *                 LATE_REASON   after the end: why a G-06 entry the step needs (read-back, value, alarm acknowledgement,
+ *                               recipe check) was not recorded during the run; it raises RUN_ENTRY_LATE (QA reviews it)
+ *                               and lets exactly one such entry follow, so a forgotten check never traps the step;
  *                 COUNT         after the run, once: blisters formed (machine counter), good, set-up waste and samples;
  *                               the rejects are the step's REJECTS; unexplained = formed - (good + rejects + set-up waste
  *                               + samples), any difference BLISTER_COUNT_UNEXPLAINED (a deviation); the good units are
@@ -175,6 +178,41 @@ function acceptLineCheck(view: HandlerView, entry: Entry): EntryResult {
 // ---------------------------------------------------------------------------------------------
 // RUN
 
+/**
+ * G-06's entries the step needs at PERFORMED (read-backs, collected values, alarm acknowledgements, the recipe check).
+ * After the run's end each is still taken as a late entry, one per LATE_REASON recorded before it (R10 #3).
+ */
+export const LATE_KINDS: readonly string[] = ['SETPOINT_READBACK', 'ACTUAL', 'ALARM_ACK', 'RECIPE_CHECK'];
+
+/** Whether a LATE_REASON of the ended run still waits for its late entry. */
+function lateOpen(view: HandlerView): boolean {
+  const all = view.entries();
+  const after = all.slice(all.findIndex((e) => e.kind === 'RUN_END') + 1);
+  return after.filter((e) => e.kind === 'LATE_REASON').length > after.filter((e) => LATE_KINDS.includes(e.kind)).length;
+}
+
+function acceptLateReason(view: HandlerView, entry: Entry, ended: boolean): EntryResult {
+  if (!ended) return refuse('TB21-RUNNING', `The run of ${view.stepKey} has not ended: record the entry itself while it runs`, ['DI-28', 'PR-37']);
+  const reason = entry['reason'];
+  if (typeof reason !== 'string' || !/\S/.test(reason)) return refuse('TB21-LATE-REASON', 'A late entry needs the reason it was not recorded during the run', ['DI-28', 'PR-11']);
+  if (lateOpen(view)) return refuse('TB21-LATE-REASON', `The late entry of the reason given last at ${view.stepKey} is not recorded yet: record it first`, ['DI-28', 'PR-11']);
+  return {
+    ok: true,
+    data: { reason, recordedBy: view.actor.id },
+    exceptions: [
+      {
+        type: 'RUN_ENTRY_LATE',
+        title: `An entry of ${view.stepKey} is recorded after its run ended, as a late entry; reason: ${reason}`,
+        controls: ['DI-28', 'PR-11', 'PR-37'],
+        severity: 'ALERT',
+        category: 'LATE_ENTRY',
+        blocks: 'NONE',
+        qaOnly: true,
+      },
+    ],
+  };
+}
+
 function acceptRun(view: HandlerView, entry: Entry): EntryResult {
   const c = view.config;
   const started = view.entries('RUN_START').length > 0;
@@ -183,11 +221,15 @@ function acceptRun(view: HandlerView, entry: Entry): EntryResult {
     if (started) return refuse('TB21-TWICE', `${view.stepKey} has started its run already; a new run is a new step`, ['PR-37']);
     return { ok: true, data: { machine: entry['machine'], startedBy: view.actor.id } };
   }
-  if (!isProcessKind(entry.kind) && !['REEL_CHANGE', 'DEFECT_CHECK', 'REJECTS', 'RUN_END', 'COUNT'].includes(entry.kind)) {
+  if (!isProcessKind(entry.kind) && !['REEL_CHANGE', 'DEFECT_CHECK', 'REJECTS', 'RUN_END', 'COUNT', 'LATE_REASON'].includes(entry.kind)) {
     return refuse('TB21-ENTRY', `${entry.kind} is not an entry of a blister run`, ['PR-37']);
   }
   if (!started) return refuse('TB21-NOT-STARTED', `${view.stepKey} has not started its run`, ['PR-37']);
-  if (ended && entry.kind !== 'COUNT' && entry.kind !== 'DEFECT_CHECK') return refuse('TB21-ENDED', `The run of ${view.stepKey} has ended`, ['PR-37']);
+  if (entry.kind === 'LATE_REASON') return acceptLateReason(view, entry, ended);
+  const late = ended && LATE_KINDS.includes(entry.kind) && lateOpen(view);
+  if (ended && entry.kind !== 'COUNT' && entry.kind !== 'DEFECT_CHECK' && !late) {
+    return refuse('TB21-ENDED', `The run of ${view.stepKey} has ended${LATE_KINDS.includes(entry.kind) ? ': record the reason it is late first (a late entry)' : ''}`, ['PR-37']);
+  }
   if (isProcessKind(entry.kind)) return acceptProcessEntry(view, entry);
   switch (entry.kind) {
     case 'REEL_CHANGE': {
@@ -258,6 +300,14 @@ function beforePerform(view: HandlerView): HandlerProblem[] {
   if (!last) out.push(problem('TB21-NO-CHECK', `${view.stepKey} has no defect check`, ['PR-37']));
   else if (last.data['result'] !== 'PASS') out.push(problem('TB21-LAST-CHECK', `The last defect check of ${view.stepKey} failed: a passing check comes after it`, ['PR-37']));
   return out;
+}
+
+/** R10 #3: before RUN_END, what G-06 still misses (after the end each is only a late entry with a reason, for QA). */
+function entryWarnings(view: HandlerView): Record<string, string> {
+  if (part(view.config) !== 'RUN' || view.entries('RUN_START').length === 0 || view.entries('RUN_END').length > 0) return {};
+  const missing = processBeforePerform(view).map((p) => p.message);
+  if (missing.length === 0) return {};
+  return { RUN_END: `${missing.join('; ')}. After the run ends, each of these is recorded only as a late entry with a reason, which QA reviews.` };
 }
 
 function checkConfig(phase: PhaseNode, config: Readonly<Record<string, JsonValue>>, mbr: MbrContent): ConfigProblem[] {
@@ -423,15 +473,22 @@ export const TB21: BlockVersion = {
           samples: { type: 'string', pattern: COUNT, description: 'Samples taken' },
         },
       },
+      LATE_REASON: {
+        type: 'object',
+        description: 'After the run ended: why a recipe check, read-back, value or alarm acknowledgement was not recorded during it (the late entry follows; QA reviews it)',
+        fields: { reason: { type: 'string', description: 'Why it was not recorded during the run' } },
+      },
     },
   },
   checkConfig,
   handler: {
     acceptEntry: (view, entry) => (part(view.config) === 'LINE_CHECK' ? acceptLineCheck(view, entry) : acceptRun(view, entry)),
     beforePerform,
+    entryWarnings,
   },
   exceptionRules: [
     ...PROCESS_EXCEPTION_RULES,
+    { type: 'RUN_ENTRY_LATE', category: 'LATE_ENTRY', severity: 'ALERT', summary: 'An entry the run needed recorded after its end, with the reason (QA reviews it)', controls: ['DI-28', 'PR-11', 'PR-37'] },
     { type: 'DEFECT_CHECK_FAILED', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A failed defect check (output since the last passing check held)', controls: ['IN-38', 'PR-37'] },
     { type: 'BLISTER_COUNT_UNEXPLAINED', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'Blisters of the run not explained by output, rejects, waste and samples', controls: ['PR-37'] },
   ],

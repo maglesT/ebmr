@@ -13,8 +13,9 @@ import { RELEASING_DISPOSITIONS, type BatchDefinition } from './definition.ts';
 import { step as engineStep } from './engine.ts';
 import { blockActive } from './exceptions.ts';
 import { checkMeanings, handEntriesWithoutDeclaredEvidence, MEANINGS, performMeanings, witnessPossible } from './guards.ts';
-import { stepKey as keyOf } from './tx.ts';
+import { cloneState, stepKey as keyOf, Tx } from './tx.ts';
 import type { Actor, BatchState, Clock, Command, Refusal, SignatureRef, StepInstance } from './types.ts';
+import { makeView } from './view.ts';
 
 export type ActionKind =
   | 'START_STEP'
@@ -65,6 +66,20 @@ export function dryRun(def: BatchDefinition, state: BatchState, actor: Actor, cl
   const r = engineStep(def, state, command, clock);
   if (r.accepted) return null;
   return r.refusal ?? { code: 'ENG-DUPLICATE', message: 'This command was already applied (ENG-DUPLICATE; DI-34)', controls: ['DI-34'] };
+}
+
+/**
+ * The block's advisory warnings by entry kind for step instance `stepKey` while it is in progress (block contract
+ * entryWarnings, R10 #3): what recording that entry now would leave missing. Empty for other steps and blocks. Read on
+ * a copy of the state; never a refusal.
+ */
+export function entryWarnings(def: BatchDefinition, state: BatchState, stepKey: string, clock: Clock, actor?: Actor): Readonly<Record<string, string>> {
+  const inst = state.steps[stepKey];
+  if (inst?.status !== 'IN_PROGRESS') return {};
+  const step = def.steps.get(inst.step);
+  const handler = step?.block?.handler;
+  if (!step || step.node.kind !== 'phase' || !handler?.entryWarnings) return {};
+  return handler.entryWarnings(makeView(new Tx(def, cloneState(state), clock.nowUs, clock.nowUs, actor), step, inst));
 }
 
 /**

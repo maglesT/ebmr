@@ -43,6 +43,8 @@ export const SCREEN_EN = {
   'save.field': 'Save {name}',
   'save.form': 'Save: {title}',
   'form.addAnother': 'Add another: {title}',
+  'form.warning': 'Before you save: {warning}',
+  'form.confirmWarning': 'Save anyway: {title}',
   'form.savedListed': 'Recorded: the entry is listed with the step\'s entries.',
   'field.computed': 'Computed by the system; it is never typed.',
   'field.systemCaptured': 'Captured by the system (device, automation or LIMS); it cannot be typed here.',

@@ -413,8 +413,15 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
   const fromDevice = device && source === 'EQUIPMENT';
   const built = fromDevice ? { entry: deviceEntry(def, reading), pending: reading ? [] : [st('device.pick')], problems: [] } : device && source === null ? { entry: null, pending: [st('device.source')], problems: [] } : buildBlockEntry(def, merged);
   const { entry, pending, problems } = built;
+  // R10 #3: a form the server warns about (e.g. RUN_END before a check the step needs) asks the person to confirm first.
+  const [confirming, setConfirming] = useState(false);
   const save = () => {
     if (!entry) return;
+    if (def.warning !== undefined && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    setConfirming(false);
     cmd.send({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry }, view.run.version, view);
   };
   if (!record.offered) return null;
@@ -473,8 +480,13 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
               {st('form.stillNeeded', { names: pending.join(', ') })}
             </p>
           ) : null}
+          {def.warning !== undefined ? (
+            <p role={confirming ? 'alert' : undefined} data-testid="entry-warning">
+              {st('form.warning', { warning: def.warning })}
+            </p>
+          ) : null}
           <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={entry === null || locked}>
-            {st('save.form', { title: def.title })}
+            {confirming ? st('form.confirmWarning', { title: def.title }) : st('save.form', { title: def.title })}
           </Button>
         </>
       )}
