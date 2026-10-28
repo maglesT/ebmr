@@ -211,7 +211,7 @@ async function potencyStep(page: Page, e2e: E2eWorld, batchId: string, key: stri
   const potency = page.getByTestId('potency-calculation');
   await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill(active[2]);
   await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
-  await expect(potency.getByText('Calculated from the lots (see the entries)')).toBeVisible();
+  await expect(potency.getByText('Calculated from the lots', { exact: true })).toBeVisible();
   await weigh(page, dispenser, active[0], active[1], active[2], 0);
   await weigh(page, dispenser, excipient[0], excipient[1], excipient[2], 1);
   await performAndCheck(page, dispenser, verifier, op);
