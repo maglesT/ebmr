@@ -29,6 +29,9 @@ implemented_by:
 tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible"
   - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][PR-16][PR-11] issue 3 contingency sheets and return 2: completion is blocked and the message names the sheet not reconciled"
+  - "apps/tablets-server/test/blocks/blister/blocks.test.ts > TB-21 run (engine) > [DI-28][PR-11][PR-37][DI-26] R10 #3: a recipe check missing at the run's end is warned of before RUN_END, and after it is still recorded as a late entry with the person's reason (RUN_ENTRY_LATE for QA), so the step can close"
+  - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [DI-28][PR-11][PR-37][DI-26] R10 #3: the recipe check missed before RUN_END is still recorded after it, only as a late entry after its own reason, which is stored with an open RUN_ENTRY_LATE for QA naming the reason; a forged engine cannot skip the reason, the exception or the one-entry-per-reason rule; the step then closes"
+  - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 run > [DI-28][PR-11][PR-37] R10 #3: RUN_END warns while G-06 misses something; after the end each needed G-06 entry follows its own LATE_REASON (non-blank, RUN_ENTRY_LATE for QA); never an alarm or an interface loss; never before the end"
 clauses:
   - clause: "A backdating attempt is impossible."
     tests:

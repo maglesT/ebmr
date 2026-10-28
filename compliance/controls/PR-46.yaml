@@ -62,6 +62,7 @@ tests:
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > a reject container named in a sort result > [PR-46][IN-35] is picked from the batch's containers (label, stage, state, net), never its id typed"
   - "tools/e2e/specs/phase7/route-w.spec.ts > [PR-46][IN-35][PR-29][DI-30] route W 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-46][IN-35][PR-29][DI-30] route S 7: visual inspection on KIOSK-INSP-1 (TB-20): the sort with its reject containers, the AQL, the witnessed destruction, QA's release for packing at H-PACK, the bulk of a packaging order in its own container @office"
+  - "apps/tablets-server/test/execution/packaging-planning-routes.test.ts > packaging orders over HTTP (Phase 4 slice 2c) > [PR-46][PR-57][PR-38] the bulk of a packaging order is the processing batch's final output only (its last stage's containers): earlier stages' containers and the inspection rejects (a sort result's reject or a disposal's container) are neither offered nor issued, for every writer (R10 #4; tablets 1770)"
 clauses:
   - clause: "Dispensing a rejected lot is blocked."
     tests:
