@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
 import { sha256Hex } from '@ebmr/expr';
-import { toDbContext } from '@ebmr/kernel';
+import { toDbContext, withCommand } from '@ebmr/kernel';
 import { freshTap, openPersonaSession, openServiceSession } from '@ebmr/test-kit';
 import { flow } from '@ebmr/recipe-core';
 import { cell, reason } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
@@ -185,5 +185,49 @@ describe('packaging orders over HTTP (Phase 4 slice 2c)', () => {
     // The bulk itself is issued.
     valueOf(await issue(made['bulk']!.label));
     expect(valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } })).issued.map((i) => i.label)).toEqual([made['bulk']!.label]);
+  }, 180_000);
+
+  it('[INV-21][PR-38] the processing record locks when its bulk reconciliation closes, and it closes by itself at the first disposition of a lot packed from it once every packaging order is closed and no bulk is left (what is left is earlier stages\' output or rejects, held by the closure); with bulk left it stays open for production (R10 #5; tablets 1771)', async () => {
+    const order = valueOf(await issuer.call(routes.planning.packagingOrders)).orders.find((o) => o.parentBatchId === parentId && o.bulkContainers > 0);
+    const orderId = order?.batchId ?? '';
+    const lockOf = async (batch: string) => (await w.gmp.db.admin.query<{ event: string; cause: string; lot_id: string | null }>('select event, cause, lot_id from recipe.record_lock_event where batch_id = $1 order by seq', [batch])).rows;
+    // ARRANGED: the processing batch and its one packaging order complete (the engine's end is proven elsewhere), and one
+    // more container of the last stage closed and never issued: bulk left over.
+    await asSetup(w.gmp, "update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = any ($1::uuid[])", [[parentId, orderId]]);
+    const [p] = (await w.gmp.db.admin.query<{ p: string; s: string }>("select recipe.batch_product(id) ->> 'code' as p, recipe.batch_product(id) ->> 'strength' as s from recipe.batch_execution where id = $1", [parentId])).rows;
+    const spare = randomUUID();
+    await asSetup(w.gmp, `with c as (insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account, opened_at)
+                                     values ($1, $2, $3, $4, $5, $6, 'INSPECTION', 'units', $1, $1, clock_timestamp() - interval '2 hours') returning id),
+                               x as (insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing) select id, 10, id, id, 'WEIGHED', '{}'::jsonb from c returning container_id)
+                          insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version)
+                          select 'output_container', container_id, 'output_container', 1, 'RELEASED_BY_QA', 3 from x`,
+      [spare, `OC-${parentNumber}-7106`, parentId, parentNumber, p!.p, p!.s]);
+    expect(await lockOf(parentId)).toEqual([]);
+    const ap = await actorOf(w.gmp, 'qcuAuthoriser');
+    // With bulk left, production decides what happens to it (its own close, with the reason): nothing closes by itself.
+    expect((await w.gmp.db.admin.query<{ r: boolean }>('select recipe.bulk_reconciliation_close_at_disposition($1, gen_random_uuid(), $2, $3) as r', [parentId, ap.personId, ap.accountId])).rows[0]?.r).toBe(false);
+    expect(await lockOf(parentId)).toEqual([]);
+    // ARRANGED: QA rejected the spare container; then the order's finished lot is released.
+    await asSetup(w.gmp, "update platform.aggregate_state set state = 'REJECTED' where aggregate_type = 'output_container' and aggregate_id = $1", [spare]);
+    const stores = await actorOf(w.gmp, 'stores');
+    const lotId = await withCommand(w.gmp.db.admin, { ...stores, correlationId: randomUUID() }, async (c) =>
+      (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
+        JSON.stringify({ batchId: orderId, batchNumber: order?.batchNumber, edition: 'TABLETS', siteCode: SITE, productCode: w.content.header.product.code, productName: 'Bulk lock product',
+                         strength: '500 mg', markets: ['IN'], quantity: '1000', unit: 'units', expiresAt: '2029-06-30T23:59:59Z' }),
+      ])).rows[0]!.id);
+    // TEST FIXTURE: the decision row as the release act writes it (proven in the release tests), every trigger on but the departments' notice.
+    await withCommand(w.gmp.db.admin, { ...ap, correlationId: randomUUID() }, async (c) => {
+      await c.query('alter table recipe.manufacturer_release_decision disable trigger zzzn_notify_departments');
+      await c.query(`insert into recipe.manufacturer_release_decision (lot_id, decision, signature_id, epoch, checklist, checklist_hash, content_hash, person_id, account_id, role_code, correlation_id)
+                     values ($1, 'RELEASED', gen_random_uuid(), repeat('0', 64), '{"items": []}', repeat('0', 64), 'fixture', $2, $3, 'AUTHORISED_PERSON', gen_random_uuid())`, [lotId, ap.personId, ap.accountId]);
+      await c.query('alter table recipe.manufacturer_release_decision enable trigger zzzn_notify_departments');
+    });
+    expect(await lockOf(orderId)).toEqual([{ event: 'LOCKED', cause: 'FIRST_DISPOSITION', lot_id: lotId }]);
+    expect(await lockOf(parentId)).toEqual([{ event: 'LOCKED', cause: 'BULK_RECONCILIATION_CLOSED', lot_id: lotId }]);
+    const [r] = (await w.gmp.db.admin.query<{ issued: unknown; left: number; reason: string | null; person: string }>(
+      'select issued, cardinality(remaining_containers) as left, remaining_held_reason as reason, person_id::text as person from recipe.bulk_reconciliation where batch_id = $1', [parentId])).rows;
+    expect(r).toEqual({ issued: [{ quantity: '10', unit: 'units' }], left: 4, reason: expect.stringMatching(/no bulk for packing is left/) as unknown, person: ap.personId });
+    // The record screen shows it locked at the closure.
+    expect(valueOf(await issuer.call(routes.records.lock, { params: { batchId: parentId } }))).toMatchObject({ state: 'LOCKED', cause: 'BULK_RECONCILIATION_CLOSED' });
   }, 180_000);
 });
