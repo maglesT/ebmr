@@ -17,6 +17,7 @@ import { Dec } from '@ebmr/expr';
 import { blocks, engine, flow } from '@ebmr/recipe-core';
 import type {
   ActionView,
+  BlockEntryFormView,
   AttemptView,
   EntryFormView,
   EntryView,
@@ -292,6 +293,11 @@ export async function checkersOf(ctx: ViewContext, stepDef: engine.StepDef, inst
   const involved = [...new Set([...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners])];
   if (involved.length > 0) out.push(`Not ${involved.map((id) => personRef(ctx, id)?.legalName ?? id).join(', ')}: a person who performed, entered data in or corrected the step never checks it (INV-03)`);
   return out;
+}
+
+/** R10 #3: the block's advisory warning on each entry form it names (engine.entryWarnings); never a refusal. */
+function withWarnings(forms: BlockEntryFormView[], warnings: Readonly<Record<string, string>>): BlockEntryFormView[] {
+  return forms.map((f) => (warnings[f.kind] === undefined ? f : { ...f, warning: warnings[f.kind] }));
 }
 
 /** The actions a step's screen offers for its status (the engine decides each one), plus the run-level ones of the step's card. */
@@ -931,7 +937,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     fields: node.kind === 'phase' ? withPotencyTargets(fieldsOf(ctx, stepDef, inst, stepKey), potency, node, def.mbr, ctx.state, stepKey) : fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
     entryForms: entryFormsOf(def, stepDef),
-    blockEntries: blockEntryForms(stepDef.block),
+    blockEntries: withWarnings(blockEntryForms(stepDef.block), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),

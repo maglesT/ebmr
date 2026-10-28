@@ -162,6 +162,35 @@ describe('TB-21 run (engine)', () => {
     expect(perform(run).refusal?.code).toBe('TB21-LAST-CHECK');
   });
 
+  it('[DI-28][PR-11][PR-37][DI-26] R10 #3: a recipe check missing at the run\'s end is warned of before RUN_END, and after it is still recorded as a late entry with the person\'s reason (RUN_ENTRY_LATE for QA), so the step can close', () => {
+    const run = runOf();
+    run.entry('p', { kind: 'RUN_START', machine: 'TEST-BLISTER-01' });
+    for (const [tag, value, unit] of [['blister.form_temp_C', '130.0', 'degC'], ['blister.seal_temp_C', '175.0', 'degC'], ['blister.seal_pressure_bar', '4.00', 'bar'], ['blister.seal_dwell_s', '1.00', 's']]) run.entry('p', { kind: 'ACTUAL', tag, value, unit, source: 'MANUAL' });
+    run.entry('p', { kind: 'DEFECT_CHECK', examined: '20', defects: {} });
+    // Before RUN_END the step screen warns that the recipe check is missing (advisory: RUN_END stays possible).
+    const warned = engine.entryWarnings(run.def, run.state, 'p@', { nowUs: run.nowUs });
+    expect(warned['RUN_END']).toMatch(/Check the recipe the equipment runs first.*late entry with a reason/s);
+    expect(warned['LATE_REASON']).toBeUndefined();
+    run.entry('p', { kind: 'RUN_END' });
+    expect(engine.entryWarnings(run.def, run.state, 'p@', { nowUs: run.nowUs })['RUN_END']).toBeUndefined();
+    run.entry('p', { kind: 'COUNT', formed: '500', good: '500', setupWaste: '0', samples: '0' });
+    expect(perform(run).refusal?.code).toBe('G06-RECIPE-UNCHECKED');
+    // The way out: a late entry with a reason; without one, the check stays refused after the run's end.
+    expect(refusal(run, { kind: 'RECIPE_CHECK', recipe: 'RCP-BL-10', recipeVersion: '3' })).toBe('TB21-ENDED');
+    expect(refusal(run, { kind: 'LATE_REASON', reason: '   ' })).toBe('TB21-LATE-REASON');
+    run.entry('p', { kind: 'LATE_REASON', reason: 'Recipe screen checked at start but not recorded' });
+    expect(last(run, 'LATE_REASON')).toStrictEqual({ reason: 'Recipe screen checked at start but not recorded', recordedBy: OP1.id });
+    const late = run.exceptions('RUN_ENTRY_LATE');
+    expect(late.map((e) => [e.category, e.severity, e.qaOnly, e.status])).toEqual([['LATE_ENTRY', 'ALERT', true, 'OPEN']]);
+    expect(late[0]?.title).toMatch(/Recipe screen checked at start but not recorded/);
+    expect(refusal(run, { kind: 'ALARM', tag: 'blister.seal_temp_C', value: '1', unit: 'degC', source: 'MANUAL' })).toBe('TB21-ENDED');
+    expect(refusal(run, { kind: 'REJECTS', emptyPocket: '1' })).toBe('TB21-ENDED');
+    run.entry('p', { kind: 'RECIPE_CHECK', recipe: 'RCP-BL-10', recipeVersion: '3' });
+    // One reason covers one late entry.
+    expect(refusal(run, { kind: 'RECIPE_CHECK', recipe: 'RCP-BL-10', recipeVersion: '3' })).toBe('TB21-ENDED');
+    expect(perform(run).accepted).toBe(true);
+  });
+
   it('[PR-37] pocket and vision rejects feed the count reconciliation: unexplained = formed - (good + rejects + set-up waste + samples), any difference BLISTER_COUNT_UNEXPLAINED; the good units are good blisters times tablets per blister', () => {
     const run = runOf();
     run.entry('p', { kind: 'RUN_START', machine: 'TEST-BLISTER-01' });

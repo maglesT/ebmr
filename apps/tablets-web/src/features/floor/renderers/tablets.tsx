@@ -82,7 +82,7 @@ export const BLOCK_LAYOUTS: Readonly<Record<string, readonly EntrySection[]>> = 
   'TB-21@1': [
     PROCESS,
     { title: 'Line set-up', kinds: ['LINE_SETUP', 'EQUIPMENT_CHECK'] },
-    { title: 'Run', kinds: ['RUN_START', 'REEL_CHANGE', 'RUN_END'] },
+    { title: 'Run', kinds: ['RUN_START', 'REEL_CHANGE', 'RUN_END', 'LATE_REASON'] },
     { title: 'Defect checks', kinds: ['DEFECT_CHECK'] },
     { title: 'Rejects and count', kinds: ['REJECTS', 'COUNT'] },
   ],

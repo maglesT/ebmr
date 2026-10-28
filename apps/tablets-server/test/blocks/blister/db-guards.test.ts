@@ -14,6 +14,7 @@ import { withCommand, type ActorContext } from '@ebmr/kernel';
 import { BLISTER_TAGS } from '@ebmr/integration-sdk/process';
 import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
 import { BLISTER_BLOCK_VERSIONS, TB21, TB22 } from '../../../src/blocks/blister/index.ts';
+import { acceptProcessEntry } from '../../../src/blocks/blister/common.ts';
 import { recordIpcOverdue } from '../../../src/features/execution/sweeper.ts';
 import { actorOfBrowser } from '../../esig/support.ts';
 import { codeOf, verifyTypedNet } from '../../execution/db-guards-support.ts';
@@ -149,7 +150,7 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
         where n.nspname = 'tab' and (p.proname ~ '^(blister|leak)_' or p.proname in ('line_isolated', 'record_line_isolation', 'ipc_pass_check', 'ipc_overdue_at', 'record_ipc_overdue'))
         order by 1`,
     );
-    expect(rows.length).toBe(23);
+    expect(rows.length).toBe(25);
     for (const r of rows) {
       expect(r.owner, r.f).toBe('ebmr_owner');
       expect(r.config?.find((c) => c.startsWith('search_path=')), r.f).toMatch(/, pg_temp$/);
@@ -285,7 +286,12 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
     expect(await verdict('p-tb21', { kind: 'REEL_CHANGE', role: 'FORMING_FILM', material: FILM_MATERIAL, lot: 'TEST-PVC-Q' })).toBe('EBMR-TAB-370 TB21-LOT');
     expect(await verdict('p-tb21', { kind: 'REEL_CHANGE', role: 'LIDDING_FOIL', material: FOIL_MATERIAL, lot: 'TEST-FOIL-1' })).toBe('ok');
     expect(await verdict('p-tb21', { kind: 'REJECTS', emptyPocket: '12', brokenPocket: '3' })).toBe('ok');
+    // R10 #3: the step screen warns on the RUN_END form while the recipe check is missing (advisory only).
+    const forms = (await d.stepView('operator1', 'p-tb21@')).blockEntries;
+    expect(forms.find((f) => f.kind === 'RUN_END')?.warning).toMatch(/Check the recipe the equipment runs first \(G06-RECIPE-UNCHECKED.*late entry with a reason/s);
+    expect(forms.filter((f) => f.warning !== undefined).map((f) => f.kind)).toEqual(['RUN_END']);
     expect(await verdict('p-tb21', { kind: 'RUN_END' })).toBe('ok');
+    expect((await d.stepView('operator1', 'p-tb21@')).blockEntries.filter((f) => f.warning !== undefined)).toEqual([]);
     const count: Entry = { kind: 'COUNT', formed: '1000', good: '960', setupWaste: '20', samples: '4' };
     expect(await verdict('p-tb21', count, { tamper: quiet('p-tb21', TB21, ['BLISTER_COUNT_UNEXPLAINED'], (x) => ({ ...x, unexplained: '0' })) })).toMatch(/^EBMR-TAB-370 .*unexplained/s);
     expect(await verdict('p-tb21', count, { tamper: quiet('p-tb21', TB21, ['BLISTER_COUNT_UNEXPLAINED']) })).toMatch(/^EBMR-TAB-370 .*BLISTER_COUNT_UNEXPLAINED/s);
@@ -304,6 +310,43 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
     const noCount = structuredClone(done2);
     delete noCount.entries[await lastEntry(sbx, d.runId, 'p-tb21@', 'COUNT')];
     expect(await sql('select tab.blister_close_problem($1, $2, $3) as r', [c, old2, noCount])).toMatch(/TB21-NO-COUNT/);
+  });
+
+  it('[DI-28][PR-11][PR-37][DI-26] R10 #3: the recipe check missed before RUN_END is still recorded after it, only as a late entry after its own reason, which is stored with an open RUN_ENTRY_LATE for QA naming the reason; a forged engine cannot skip the reason, the exception or the one-entry-per-reason rule; the step then closes', async () => {
+    const recipe: Entry = { kind: 'RECIPE_CHECK', recipe: 'RCP-BL-10', recipeVersion: '3' };
+    const lateDraft = (key: string, reason: unknown) => ({
+      type: 'RUN_ENTRY_LATE', title: `An entry of ${key} is recorded after its run ended, as a late entry; reason: ${String(reason)}`,
+      controls: ['DI-28'], severity: 'ALERT' as const, category: 'LATE_ENTRY' as const, blocks: 'NONE' as const, qaOnly: true,
+    });
+    // The engine's own way past TB-21: G-06 judges the entry, TB-21's end-of-run rule skipped.
+    const g06Only = tamperHandler('p-tb21', { acceptEntry: (view, entry) => acceptProcessEntry(view, entry) });
+    const reasonOnly = tamperHandler('p-tb21', { acceptEntry: (view, entry) => ({ ok: true, data: { reason: entry['reason'], recordedBy: view.actor.id }, exceptions: [lateDraft(view.stepKey, entry['reason'])] }) });
+    // The trap as the demo met it: performing is refused for the missing check.
+    const refusalOf = async () => (await d.stepView('operator1', 'p-tb21@')).actions.find((a) => a.action === 'SIGN_PERFORMED')?.reason ?? '';
+    expect(await refusalOf()).toMatch(/Check the recipe the equipment runs first/);
+    expect(await verdict('p-tb21', recipe, { tamper: g06Only })).toBe('EBMR-TAB-370 TB21-ENDED');
+    expect(await verdict('p-tb21', { kind: 'LATE_REASON', reason: ' \t' }, { tamper: reasonOnly })).toBe('EBMR-TAB-370 TB21-LATE-REASON');
+    const reason = 'Recipe seen on the machine screen at the start; not recorded';
+    expect(await verdict('p-tb21', { kind: 'LATE_REASON', reason }, { tamper: quiet('p-tb21', TB21, ['RUN_ENTRY_LATE']) })).toMatch(/^EBMR-TAB-370 .*RUN_ENTRY_LATE/s);
+    const vague = tamperHandler('p-tb21', { acceptEntry: (view, entry) => ({ ok: true, data: { reason: entry['reason'], recordedBy: view.actor.id }, exceptions: [lateDraft(view.stepKey, 'something')] }) });
+    expect(await verdict('p-tb21', { kind: 'LATE_REASON', reason }, { tamper: vague })).toMatch(/^EBMR-TAB-370 .*RUN_ENTRY_LATE/s);
+    expect(await verdict('p-tb21', { kind: 'LATE_REASON', reason })).toBe('ok');
+    expect(await entryData('p-tb21@', 'LATE_REASON')).toStrictEqual({ reason, recordedBy: me });
+    expect(await types('p-tb21@')).toContain('RUN_ENTRY_LATE');
+    // A second reason waits for the first one's entry; an alarm is never a late entry.
+    expect(await verdict('p-tb21', { kind: 'LATE_REASON', reason: 'again' }, { tamper: reasonOnly })).toBe('EBMR-TAB-370 TB21-LATE-REASON');
+    expect(await verdict('p-tb21', { kind: 'ALARM', tag: 'blister.seal_temp_C', value: '1', unit: 'degC', source: 'MANUAL' }, { tamper: g06Only })).toBe('EBMR-TAB-370 TB21-ENDED');
+    expect(await verdict('p-tb21', recipe)).toBe('ok');
+    expect(await verdict('p-tb21', recipe, { tamper: g06Only })).toBe('EBMR-TAB-370 TB21-ENDED');
+    expect(await refusalOf()).not.toMatch(/Check the recipe the equipment runs first/);
+    // The same way for the collected values this run never recorded, each after its own reason.
+    for (const [tag, value, unit] of [['blister.form_temp_C', '130.0', 'degC'], ['blister.seal_pressure_bar', '4.00', 'bar'], ['blister.seal_dwell_s', '1.00', 's']]) {
+      expect(await verdict('p-tb21', { kind: 'LATE_REASON', reason: `The ${unit} value was read from the machine log after the run` })).toBe('ok');
+      expect(await verdict('p-tb21', { kind: 'ACTUAL', tag, value, unit, source: 'MANUAL' })).toBe('ok');
+    }
+    expect((await types('p-tb21@')).filter((t) => t === 'RUN_ENTRY_LATE')).toHaveLength(4);
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-tb21@' });
+    expect(['AWAITING_VERIFICATION', 'COMPLETED']).toContain((await stateOf(sbx, d.runId)).steps['p-tb21@']?.['status']);
   });
 
   it('[IN-38][PR-29] TB-22: any leaking pocket fails the test (a forged pass is refused) and holds every container of the machine since the track\'s last passing test; a test outside the validated method is refused; a pass is recorded only from the step; the step closes only with an end-of-run test of every track', async () => {
