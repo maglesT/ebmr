@@ -5,7 +5,7 @@
  * newer view of the step is already on show or the view was computed for someone other than the person signed in
  * now; a read of the step begun before the commit never replaces it.
  */
-import { useQuery, useQueryClient, type QueryClient, type UseQueryOptions } from '@tanstack/react-query';
+import { hashKey, useQuery, useQueryClient, type Query, type QueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { routes, type AnyRoute, type CallInput, type RouteResponse, type StepScreenView } from '@ebmr/api-contract';
 import { ApiError, queryKey } from '../../api/hooks.ts';
@@ -75,10 +75,19 @@ export async function applyStepView(qc: QueryClient, view: StepScreenView, signe
   return true;
 }
 
-/** Refreshes everything a command on a run may have changed (the step itself too, unless its view came back). */
-export async function refreshRun(qc: QueryClient, opts: { steps: boolean }): Promise<void> {
+/**
+ * Refreshes everything a command on a run may have changed: the run's reads and, with `steps`, every step read but the
+ * view the server returned with the act (`keep`), which is already the post-commit one. An act on one step changes the
+ * cards of others too (a QA disposition closes the exception every card of the run lists), so no other step is assumed
+ * unchanged. A read not on screen now is dropped rather than marked stale: shown again from the cache it would show the
+ * state before the act (a disposition still offered, the run's "N open" marks) until its new answer came (R10 #7).
+ */
+export async function refreshRun(qc: QueryClient, opts: { steps: boolean; keep?: StepScreenView }): Promise<void> {
   const ids = [routes.execution.run.id, routes.execution.runs.id, routes.execution.workQueue.id, routes.batches.workQueue.id, routes.execution.timeline.id, ...(opts.steps ? [routes.execution.step.id] : [])];
-  await Promise.all(ids.map((id) => qc.invalidateQueries({ queryKey: [id] })));
+  const kept = opts.keep ? hashKey(stepQueryKey(opts.keep.run.runId, opts.keep.step.stepKey)) : null;
+  const predicate = (q: Query) => q.queryHash !== kept;
+  for (const id of ids) qc.removeQueries({ queryKey: [id], type: 'inactive', predicate });
+  await Promise.all(ids.map((id) => qc.invalidateQueries({ queryKey: [id], predicate })));
 }
 
 /** Every read of the floor screens. */

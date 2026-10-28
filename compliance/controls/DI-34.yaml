@@ -406,6 +406,7 @@ tests:
   - "tools/e2e/specs/phase7/route-b.spec.ts > [PR-22][DI-30][DI-34] route B 4: blending on KIOSK-BL-BLEND: blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
   - "tools/e2e/specs/phase7/route-d.spec.ts > [PR-22][IN-36][DI-30][DI-34] route D 4: blending on KIOSK-BLEND-1: the active layer blended and lubricated, the lactose layer blended (TB-07), each layer's blend into verified containers of its own stage @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-18][PR-22][DI-30][DI-34] route S 4: blending on KIOSK-BLEND-1: no rework added (the branch chosen), blending and lubrication (TB-07) on the validated times, the blend into a verified container @office"
+  - "apps/tablets-web/test/floor/refresh-after-act.test.tsx > the reads after an act on a run > [DI-34] keeps the step view the act returned, reads the steps on screen again and drops the step and run reads not on screen"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:

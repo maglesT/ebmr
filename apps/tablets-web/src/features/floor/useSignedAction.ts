@@ -54,7 +54,7 @@ export function useSignedAction(runId: string) {
             // The server's post-commit view, unless a newer one is on show or it is not the view of the person signed
             // in now (then the step is read again).
             const put = view.success ? await applyStepView(qc, view.data, signedInNow) : false;
-            await refreshRun(qc, { steps: !put });
+            await refreshRun(qc, put && view.success ? { steps: true, keep: view.data } : { steps: true });
             setResult({ status: 'SIGNED', manifestation: outcome.manifestation });
             return;
           }
