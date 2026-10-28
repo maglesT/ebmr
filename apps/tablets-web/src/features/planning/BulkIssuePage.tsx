@@ -1,7 +1,8 @@
 /**
  * The bulk issue of a packaging order (Phase 4 slice 2c; Phase 3 exit residual "no screen for the bulk issue"): the
- * order, the processing batch it packs and whether QA released it for packing (H-PACK), the bulk issued so far, and every
- * output container of the processing batch with the database's reason it cannot be issued now. The person picks the
+ * order, the processing batch it packs and whether QA released it for packing (H-PACK), the bulk issued so far, and the
+ * processing batch's bulk (its final output: the containers of its last stage, never rejects; tablets 1770) with the
+ * database's reason a container cannot be issued now. The person picks the
  * usable containers and issues them (POST /api/batches/:batchId/bulk, their own act: on a shared terminal with a fresh
  * badge tap, FRESH_ON_SHARED through app/acts.tsx). The database checks everything again (recipe.issue_packaging_bulk:
  * the order issued or running, the release for packing, each container usable with its net quantity; all or nothing);
@@ -81,8 +82,8 @@ function BulkIssue({ v }: { v: PackagingBulkView }) {
           ))}
         </ul>
       </Section>
-      <Section title={`Containers of batch ${v.parent?.batchNumber ?? ''}`} testId="bulk-containers">
-        {v.containers.length === 0 ? <p>The processing batch has no output container.</p> : null}
+      <Section title={`Bulk of batch ${v.parent?.batchNumber ?? ''}`} testId="bulk-containers">
+        {v.containers.length === 0 ? <p>The processing batch has no bulk for packing (its last stage's containers) yet.</p> : null}
         <ul aria-label="Containers">
           {v.containers.map((c) => (
             <li key={c.containerId} data-testid={`bulk-container-${c.label}`}>

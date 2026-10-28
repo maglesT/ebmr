@@ -8,13 +8,15 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
 import { sha256Hex } from '@ebmr/expr';
-import { openServiceSession } from '@ebmr/test-kit';
+import { toDbContext } from '@ebmr/kernel';
+import { freshTap, openPersonaSession, openServiceSession } from '@ebmr/test-kit';
 import { flow } from '@ebmr/recipe-core';
 import { cell, reason } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { G21_CONFIG } from '../blocks/packaging/db-support.ts';
+import { asSetup } from '../blocks/compression/plant-support.ts';
 import { actorOf, gmpLifecycleWorld, INPUTS, LINE, SITE, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 
 type Json = Record<string, unknown>;
@@ -129,4 +131,59 @@ describe('packaging orders over HTTP (Phase 4 slice 2c)', () => {
     // The processing batch is no packaging order: its bulk read is not found either.
     expect(refusalOf(await operator.call(routes.planning.packagingBulk, { params: { batchId: parentId } })).status).toBe(404);
   }, 120_000);
+
+  it('[PR-46][PR-57][PR-38] the bulk of a packaging order is the processing batch\'s final output only (its last stage\'s containers): earlier stages\' containers and the inspection rejects (a sort result\'s reject or a disposal\'s container) are neither offered nor issued, for every writer (R10 #4; tablets 1770)', async () => {
+    const order = valueOf(await issuer.call(routes.planning.packagingOrders)).orders.find((o) => o.parentBatchId === parentId && o.status === 'ISSUED');
+    const batchId = order?.batchId ?? '';
+    // ARRANGED (the container commands, the engine and the hold point are proven elsewhere): QA released the batch for
+    // packing (H-PACK), and its closed containers, in the order they were opened: granules, coated tablets, two inspection
+    // reject containers (one destroyed by a disposal entry, one reusable residue named by the sort result) and the bulk.
+    const [p] = (await w.gmp.db.admin.query<{ p: string; s: string }>("select recipe.batch_product(id) ->> 'code' as p, recipe.batch_product(id) ->> 'strength' as s from recipe.batch_execution where id = $1", [parentId])).rows;
+    const made: Record<string, { id: string; label: string }> = {};
+    for (const [n, [key, stage, unit, hoursAgo]] of ([['granules', 'GRANULATION', 'kg', 9], ['coated', 'COATING', 'kg', 7], ['destroyed', 'INSPECTION', 'kg', 5], ['residue', 'INSPECTION', 'kg', 4], ['bulk', 'INSPECTION', 'units', 3]] as const).entries()) {
+      const id = randomUUID();
+      const label = `OC-${parentNumber}-${String(7101 + n)}`;
+      await asSetup(w.gmp, `with c as (insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account, opened_at)
+                                       values ($1, $2, $3, $4, $5, $6, $7, $8, $1, $1, clock_timestamp() - make_interval(hours => $9::int)) returning id),
+                                 x as (insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing) select id, 10, id, id, 'WEIGHED', '{}'::jsonb from c returning container_id)
+                            insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version)
+                            select 'output_container', container_id, 'output_container', 1, 'RELEASED_BY_QA', 3 from x`,
+        [id, label, parentId, parentNumber, p!.p, p!.s, stage, unit, hoursAgo]);
+      made[key] = { id, label };
+    }
+    const entries = {
+      'e-sort': { id: 'e-sort', stepKey: 'p-insp@', kind: 'SORT_RESULT', recordedSeq: 900001, data: { rejects: [{ category: 'DESTRUCTION', container: made['destroyed']!.id }, { category: 'REUSABLE_RESIDUE', container: made['residue']!.id }] } },
+      'e-destroy': { id: 'e-destroy', stepKey: 'p-destroy@', kind: 'DISPOSAL', recordedSeq: 900002, data: { category: 'DESTRUCTION', container: made['destroyed']!.label } },
+    };
+    const hPack = { key: 'H-PACK@', step: 'H-PACK', status: 'COMPLETED', disposition: { value: 'APPROVED', positive: true }, signatures: [{ id: randomUUID(), meaning: 'QA_HOLD_POINT', role: 'HOLD_POINT', valid: true }] };
+    await asSetup(w.gmp, `update recipe.execution_state set state = jsonb_set(state || jsonb_build_object('entries', coalesce(state -> 'entries', '{}'::jsonb) || $2::jsonb), '{steps,H-PACK@}', $3::jsonb)
+                           where batch_id = $1`, [parentId, JSON.stringify(entries), JSON.stringify(hPack)]);
+    // The read offers the bulk alone.
+    const read = valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } }));
+    expect(read.parent?.releaseForPackingProblem).toBeNull();
+    expect(read.containers.map((c) => [c.label, c.issueProblem])).toEqual([[made['bulk']!.label, null]]);
+    // The issue of any other container is refused by the database, through the route and for a writer past it.
+    const issue = async (label: string) => {
+      const body = { labels: [label] };
+      return operator.call(routes.batches.issueBulk, { params: { batchId }, body, attribution: await tapFor(operator, personaIn(w.gmp, 'operator1'), 'POST', `/api/batches/${batchId}/bulk`, body) });
+    };
+    for (const key of ['granules', 'coated', 'destroyed', 'residue']) {
+      const r = refusalOf(await issue(made[key]!.label));
+      expect([key, r.code, r.why]).toEqual([key, 'EBMR-PKG-007', expect.stringMatching(key === 'destroyed' || key === 'residue' ? /holds rejects of batch .*never packed/ : /not the bulk of batch .*last stage \(INSPECTION\)/)]);
+    }
+    const actor = { ...(await openPersonaSession(w.gmp.db, w.gmp.seed, 'operator2')), authEventId: await freshTap(w.gmp.db, w.gmp.seed, 'operator2'), reasonCode: 'TEST', reasonText: 'reject issue by a writer past the server' };
+    const c = await w.gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(actor))]);
+      await expect(c.query('select recipe.issue_packaging_bulk($1, $2)', [batchId, [made['destroyed']!.label]])).rejects.toThrow(/EBMR-PKG-007 container .* holds rejects/);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+    expect(valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } })).issued).toEqual([]);
+    // The bulk itself is issued.
+    valueOf(await issue(made['bulk']!.label));
+    expect(valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } })).issued.map((i) => i.label)).toEqual([made['bulk']!.label]);
+  }, 180_000);
 });
