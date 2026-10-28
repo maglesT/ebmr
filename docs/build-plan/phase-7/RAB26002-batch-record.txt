@@ -1,0 +1,1316 @@
+  DEMO-ONLY · invented data · made from the Batchwright demo screens on 25 Oct 2026 · not a print-out of the system (the
+  system has no readable full-record print yet)
+
+
+
+Batch record RAB26002
+Rabeprazole sodium 20 mg gastro-resistant tablets · processing record RAB26002 and packaging record
+RAB26002/P02 · every stage, step, value, person, time and signature
+
+
+                 ✍
+How to read it: each step shows the values recorded (with who and when), the entries made on the floor, the
+signatures ( ) and any exceptions (⚠). Times are India time (IST). The demo runs fast, so durations such as drying
+or blending times are seconds, not real process times.
+
+
+Processing record (making the tablets): batch RAB26002
+ Product                       Rabeprazole sodium 20 mg gastro-resistant tablets (invented, DEMO-ONLY) (RAB-GR-20, 20 mg)
+
+ Master batch record           RAB-WG-DEMO version 1 revision 2
+ Markets                       IN
+
+ Status                        Execution complete; review: qa reviewed
+ Size of this record           6 stage(s), 52 steps, 45 exceptions
+
+
+Stages at a glance
+
+ Stage                                           Steps    Result                                  Signed off by        When
+
+ 1. Dispensing                                   5        completed per mbr, 9 exceptions         Sanjay Kulkarni      25-OCT-2026 15:23:33
+ 2. Granulation and drying                       9        completed per mbr, 3 exceptions         Sanjay Kulkarni      25-OCT-2026 15:27:40
+ 3. Blending and lubrication                     7        completed per mbr, 2 exceptions         Sanjay Kulkarni      25-OCT-2026 15:31:54
+ 4. Compression                                  11       completed per mbr, 10 exceptions        Sanjay Kulkarni      25-OCT-2026 15:37:32
+ 5. Enteric film coating                         14       completed per mbr, 20 exceptions        Sanjay Kulkarni      25-OCT-2026 15:48:03
+
+ 6. Inspection and release for packing           6        completed per mbr, 1 exceptions         Sanjay Kulkarni      25-OCT-2026 15:50:30
+
+
+
+ Stage 1: Dispensing
+
+  1.1.1 Dispensing: room clearance, verified, room occupied                                                                          Completed
+ Room DISP-1 · EQC-BAL Balance, platform, calibrated
+
+  Entry                      What was recorded                                                             By                 When
+  Area occupancy             Area code: DISP-1; Recorded by: Arjun Das                                     Arjun Das          25-OCT-2026
+                                                                                                                              15:20:50
+
+   ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:20:54 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:21:00
+  1.1.2 Dispensing: equipment status and use                                                                                         Completed
+ Room DISP-1 · EQC-BAL Balance, platform, calibrated
+
+  Entry                      What was recorded                                                             By                 When
+  Equipment use              Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-DISP-01       Arjun Das          25-OCT-2026
+                                                                                                                              15:21:12
+
+   ✍ Performed by Arjun Das, 25-OCT-2026 15:21:15
+  1.2.1 Potency-adjusted dispensing of the active and the compensating excipient                                                     Completed
+ Room DISP-1 · EQC-BAL Balance, platform, calibrated
+
+  Recorded value                                             Value       How                       By                  When
+
+  Exemplazine sodium dispensed (potency-adjusted)            3.037 kg    computed by the system    Pooja Venkatesh     25-OCT-2026 15:21:30
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                1 / 20
+  Microcrystalline cellulose dispensed (compensating)       4.464 kg   computed by the system       Pooja Venkatesh      25-OCT-2026 15:21:30
+
+  Entry                   What was recorded                                                                 By                 When
+
+  Potency calculation     Lot RAB-API-0001: assay 99.4 % (dry basis), water 0.6 % → as-is potency           Pooja              25-OCT-2026
+                          98.8036 %. Active standard 3.000000 kg → target 3.037 kg (calculated 3.036327,    Venkatesh          15:21:22
+                          rounded up to 0.001 kg). Compensating excipient (BOM-MCC): standard 4.5 kg
+                          → target 4.464 kg. Total 7.501 kg (standard 7.500000 kg).
+  Container weighing      Container RAB26002/C1: lot RAB-API-0001, net 3.037 kg (gross 4.037 kg, tare       Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:25
+                          balance booked for the batch)
+  Container weighing      Container RAB26002/C2: lot RTW-MCC-001, net 4.464 kg (gross 5.464 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:28
+                          balance booked for the batch)
+
+  ✍ Performed by Pooja Venkatesh, 25-OCT-2026 15:21:31 · ✍ Dispensed container checked by Kavya Reddy, 25-OCT-2026 15:21:35
+  ⚠ EX-1: A weight for Exemplazine sodium dispensed (potency-adjusted) at step 1.2.1 Potency-adjusted dispensing of the active and the
+  compensating excipient was keyed by hand instead of taken from the balance interface; the step now needs a second person — dispositioned
+  ⚠ EX-2: A weight for Microcrystalline cellulose dispensed (compensating) at step 1.2.1 Potency-adjusted dispensing of the active and the
+  compensating excipient was keyed by hand instead of taken from the balance interface; the step now needs a second person — dispositioned
+
+
+
+  1.2.2 Dispensing of the other materials                                                                                             Completed
+ Room DISP-1 · EQC-BAL Balance, platform, calibrated
+
+  Recorded value                               Value         How                             By                       When
+  Lactose monohydrate dispensed                9.000 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+
+  Povidone K30 dispensed                       0.900 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+  Isopropyl alcohol dispensed                  0.900 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+  Croscarmellose sodium dispensed              0.900 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+  Colloidal silicon dioxide dispensed          0.150 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+
+  Magnesium stearate dispensed                 0.300 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+  Film-coating system dispensed                2.800 kg      computed by the system          Pooja Venkatesh          25-OCT-2026 15:22:03
+
+  Entry                   What was recorded                                                                 By                 When
+  Container weighing      Container RAB26002/C3: lot RTW-LAC-001, net 9.000 kg (gross 10.000 kg, tare       Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:43
+                          balance booked for the batch)
+  Container weighing      Container RAB26002/C4: lot RTW-PVP-001, net 0.900 kg (gross 1.900 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:46
+                          balance booked for the batch)
+  Container weighing      Container RAB26002/C5: lot RTW-IPA-001, net 0.900 kg (gross 1.900 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:48
+                          balance booked for the batch)
+
+  Container weighing      Container RAB26002/C6: lot RTW-CCS-001, net 0.900 kg (gross 1.900 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:51
+                          balance booked for the batch)
+  Container weighing      Container RAB26002/C7: lot RTW-SIO-001, net 0.150 kg (gross 1.150 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:54
+                          balance booked for the batch)
+  Container weighing      Container RAB26002/C8: lot RTW-MGS-001, net 0.300 kg (gross 1.300 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:57
+                          balance booked for the batch)
+
+  Container weighing      Container RAB26002/C9: lot RTW-ECS-001, net 2.800 kg (gross 3.800 kg, tare        Pooja              25-OCT-2026
+                          1.000 kg) on BAL-DISP-01, keyed by hand (balance not named: the room's one        Venkatesh          15:21:59
+                          balance booked for the batch)
+
+  ✍ Performed by Pooja Venkatesh, 25-OCT-2026 15:22:03 · ✍ Dispensed container checked by Kavya Reddy, 25-OCT-2026 15:22:08
+  ⚠ EX-3: A weight for Lactose monohydrate dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+  ⚠ EX-4: A weight for Povidone K30 dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from the balance
+  interface; the step now needs a second person — dispositioned
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                 2 / 20
+  ⚠ EX-5: A weight for Isopropyl alcohol dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+  ⚠ EX-6: A weight for Croscarmellose sodium dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from
+  the balance interface; the step now needs a second person — dispositioned
+  ⚠ EX-7: A weight for Colloidal silicon dioxide dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from
+  the balance interface; the step now needs a second person — dispositioned
+  ⚠ EX-8: A weight for Magnesium stearate dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+  ⚠ EX-9: A weight for Film-coating system dispensed at step 1.2.2 Dispensing of the other materials was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+
+
+
+  1.2.3 Dispensing reconciliation                                                                                                        Completed
+ Room DISP-1 · EQC-BAL Balance, platform, calibrated
+
+  Recorded value                                                           Value          How                       By         When
+  Standard to dispense (form of the active at 100 %, the other materials   22.45 kg       computed by the           Arjun      25-OCT-2026
+  per tablet)                                                                             system                    Das        15:22:13
+  Dispensed in total                                                       22.451 kg      computed by the           Arjun      25-OCT-2026
+                                                                                          system                    Das        15:22:13
+  Dispensing reconciliation                                                ≈ 100.004      computed by the           Arjun      25-OCT-2026
+                                                                           %              system                    Das        15:22:13
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:22:16 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:22:20
+  Stage 1 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:23:33
+
+
+
+ Stage 2: Granulation and drying
+
+  2.1.1 Granulation: room clearance, verified, room occupied                                                                             Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Entry                  What was recorded                                                                     By                 When
+  Area occupancy         Area code: GRAN-1; Recorded by: Arjun Das                                             Arjun Das          25-OCT-2026
+                                                                                                                                  15:23:54
+
+  ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:23:57 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:24:02
+  2.1.2 Granulation: equipment status and use                                                                                            Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Entry                  What was recorded                                                                     By                 When
+  Equipment use          Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-GRAN-01               Arjun Das          25-OCT-2026
+                                                                                                                                  15:24:12
+  Equipment use          Recorded by: Arjun Das; Equipment ref: RMG; Equipment code: RMG-01                    Arjun Das          25-OCT-2026
+                                                                                                                                  15:24:15
+  Equipment use          Recorded by: Arjun Das; Equipment ref: FBD; Equipment code: FBD-01                    Arjun Das          25-OCT-2026
+                                                                                                                                  15:24:18
+  Equipment use          Recorded by: Arjun Das; Equipment ref: MILL; Equipment code: MILL-01                  Arjun Das          25-OCT-2026
+                                                                                                                                  15:24:21
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:24:24
+  2.2.1 Binder solution (povidone in purified water and isopropyl alcohol)                                                               Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Entry                  What was recorded                                                                     By                 When
+  Prepared               Use by: 25-OCT-2026 19:24; Quantity: 1.800 kg; Appearance: COMPLIES;                  Arjun Das          25-OCT-2026
+                         Prepared by: Arjun Das; Prepared at: 25-OCT-2026 15:24                                                   15:24:31
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                       3 / 20
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:24:34 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:24:38
+  2.2.2 Extra isopropyl alcohol to the wet mass (the supervisor chose it)                                                           Not applicable
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+
+
+  2.2.3 Wet granulation (high shear) to the end point                                                                                   Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Entry                  What was recorded                                                                    By                 When
+  Recipe check           Recipe: RCP-RTW-GRAN; Matches: yes; Checked by: Arjun Das; Recipe version:           Arjun Das          25-OCT-2026
+                         1                                                                                                       15:24:50
+
+  Massing start          Started by: Arjun Das                                                                Arjun Das          25-OCT-2026
+                                                                                                                                 15:24:52
+  Binder addition        Added by: Arjun Das; Quantity: 1.800 kg; Preparation: EN-18                          Arjun Das          25-OCT-2026
+                                                                                                                                 15:24:55
+
+  Actual                 Tag: granulator.power_kW; Unit: kW; Value: 12.50; Recorded by: Arjun Das;            Arjun Das          25-OCT-2026
+                         Within limits: yes                                                                                      15:24:58
+  End point              Unit: s; Value: 31.6; Criterion: TIME; Recorded by: Arjun Das; Within range: yes     Arjun Das          25-OCT-2026
+                                                                                                                                 15:25:24
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:25:27 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:25:31
+  ⚠ EX-10: granulator.power_kW at step 2.2.3 Wet granulation (high shear) to the end point was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+
+
+
+  2.2.4 (iteration 1) Fluid-bed drying with the LOD check                                                                               Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Recorded value                                         Value         How           By                     When
+  Loss on drying of the granules                         2.8 %         typed         Arjun Das              25-OCT-2026 15:25:58
+
+  Entry                  What was recorded                                                                    By                 When
+  Bag check              Bag: FBD-01-BAG-1; When: BEFORE; New bag: yes; Result: INTACT; Checked               Arjun Das          25-OCT-2026
+                         by: Arjun Das                                                                                           15:25:38
+
+  Recipe check           Recipe: RCP-RTW-DRY; Matches: yes; Checked by: Arjun Das; Recipe version: 1          Arjun Das          25-OCT-2026
+                                                                                                                                 15:25:41
+  Drying start           Started by: Arjun Das                                                                Arjun Das          25-OCT-2026
+                                                                                                                                 15:25:44
+  Actual                 Tag: dryer.inlet_temp_C; Unit: degC; Value: 60.0; Recorded by: Arjun Das; Within     Arjun Das          25-OCT-2026
+                         limits: yes                                                                                             15:25:47
+  Drying end             Ended by: Arjun Das; Drying seconds: 8 s                                             Arjun Das          25-OCT-2026
+                                                                                                                                 15:25:52
+  Lod sample             Analyser: MA-GRAN-01; Sampled by: Arjun Das; Sample mass: 5.012 g                    Arjun Das          25-OCT-2026
+                                                                                                                                 15:25:55
+  Bag check              Bag: FBD-01-BAG-1; When: AFTER; Result: INTACT; Checked by: Arjun Das                Arjun Das          25-OCT-2026
+                                                                                                                                 15:26:01
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:26:04 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:26:09
+  ⚠ EX-11: dryer.inlet_temp_C at step 2.2.4 (iteration 1) Fluid-bed drying with the LOD check was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+
+
+
+  2.2.5 Dried granules milled through the checked screen                                                                                Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Entry                  What was recorded                                                                    By                 When
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                    4 / 20
+  Screen check            When: BEFORE; Result: INTACT; Screen: SCR-RW-10; Aperture: 1.0 mm;                    Arjun Das          25-OCT-2026
+                          Checked by: Arjun Das                                                                                    15:26:19
+  Material pass           Screen: SCR-RW-10; Material: Dried granules; Oversize: 0.050 kg; Quantity in:         Arjun Das          25-OCT-2026
+                          17.300 kg; Recorded by: Arjun Das; Quantity out: 17.250 kg; Foreign matter: no                           15:26:22
+  Screen check            When: AFTER; Result: INTACT; Screen: SCR-RW-10; Aperture: 1.0 mm; Checked             Arjun Das          25-OCT-2026
+                          by: Arjun Das                                                                                            15:26:25
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:26:28 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:26:32
+  2.2.6 Dried granules of the sub-lot into containers                                                                                     Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Recorded value                    Value              How                                     By                 When
+  Dried granules (net)              17.250 kg          computed by the system                  Arjun Das          25-OCT-2026 15:26:42
+
+  Entry                   What was recorded                                                                     By                 When
+  Output container        Container RAB26002/C10 of I-GRAN: net 17.250 kg (gross 18.250 kg, tare 1.000          Arjun Das          25-OCT-2026
+                          kg) on BAL-GRAN-01, keyed by hand (balance not named: the room's one                                     15:26:39
+                          balance booked for the batch)
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:26:43 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:26:47
+  ⚠ EX-12: A weight for Dried granules (net) at step 2.2.6 Dried granules of the sub-lot into containers was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+
+
+
+  2.2.7 Granulation yield                                                                                                                 Completed
+ Room GRAN-1 · EQC-BAL Balance, platform, calibrated, EQC-RMG Rapid mixer granulator, EQC-FBD Fluid-bed dryer, EQC-MILL Co-mill with
+ screens
+
+  Recorded value                                                    Value          How                          By           When
+  Intragranular solids dispensed (theoretical granulation input)    17.401 kg      computed by the system       Arjun Das    25-OCT-2026 15:27:01
+
+  Dried granules                                                    17.25 kg       computed by the system       Arjun Das    25-OCT-2026 15:27:01
+  Granulation yield                                                 ≈ 99.132 %     computed by the system       Arjun Das    25-OCT-2026 15:27:01
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:27:04 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:27:09
+  Stage 2 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:27:40
+
+
+
+ Stage 3: Blending and lubrication
+
+  3.1.1 Blending: room clearance, verified, room occupied                                                                                 Completed
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+  Entry                   What was recorded                                                                     By                 When
+  Area occupancy          Area code: BLEND-1; Recorded by: Arjun Das                                            Arjun Das          25-OCT-2026
+                                                                                                                                   15:28:10
+
+  ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:28:13 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:28:17
+  3.1.2 Blending: equipment status and use                                                                                                Completed
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+  Entry                   What was recorded                                                                     By                 When
+
+  Equipment use           Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-BLEND-01              Arjun Das          25-OCT-2026
+                                                                                                                                   15:28:27
+  Equipment use           Recorded by: Arjun Das; Equipment ref: BLENDER; Equipment code: BLD-01                Arjun Das          25-OCT-2026
+                                                                                                                                   15:28:30
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:28:34
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                     5 / 20
+  3.2.1 No milled rejects added (0.000 kg recorded)                                                                                      Completed
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+  Recorded value                                    Value                How          By                  When
+
+  Milled rejects added (net)                        0.000 kg             typed        Arjun Das           25-OCT-2026 15:28:44
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:28:48 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:28:52
+  ⚠ EX-13: Milled rejects added (net) was keyed by hand although it is configured for automation capture; the step now needs a second person —
+  dispositioned
+
+
+
+  3.2.2 Reprocessing addition of milled rejects (case 2)                                                                             Not applicable
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+
+
+  3.2.3 Blending and lubrication                                                                                                         Completed
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+  Recorded value               Value                   How                                    By                  When
+  Main blend time              66.249005 s             computed by the system                 Arjun Das           25-OCT-2026 15:30:46
+  Lubrication time             35.576081 s             computed by the system                 Arjun Das           25-OCT-2026 15:30:46
+
+  Entry                   What was recorded                                                                   By                  When
+  Blend start             Started by: Arjun Das                                                               Arjun Das           25-OCT-2026
+                                                                                                                                  15:28:59
+
+  Blend end               Seconds: 66 s; Recorded by: Arjun Das; Within limits: yes                           Arjun Das           25-OCT-2026
+                                                                                                                                  15:30:05
+  Lubricant added         Added by: Arjun Das; Quantity: 0.300 kg                                             Arjun Das           25-OCT-2026
+                                                                                                                                  15:30:08
+
+  Lubrication end         Seconds: 36 s; Recorded by: Arjun Das; Within limits: yes                           Arjun Das           25-OCT-2026
+                                                                                                                                  15:30:43
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:30:47 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:30:51
+  3.2.4 Lubricated blend into containers                                                                                                 Completed
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+  Recorded value                                  Value              How                             By               When
+  Lubricated blend discharged (net)               18.500 kg          computed by the system          Arjun Das        25-OCT-2026 15:31:02
+
+  Entry                   What was recorded                                                                   By                  When
+  Output container        Container RAB26002/C11 of I-BLEND: net 18.500 kg (gross 19.500 kg, tare 1.000       Arjun Das           25-OCT-2026
+                          kg) on BAL-BLEND-01, keyed by hand (balance not named: the room's one                                   15:30:59
+                          balance booked for the batch)
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:31:03 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:31:07
+  ⚠ EX-14: A weight for Lubricated blend discharged (net) at step 3.2.4 Lubricated blend into containers was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+
+
+
+  3.2.5 Blending yield                                                                                                                   Completed
+ Room BLEND-1 · EQC-BAL Balance, platform, calibrated, EQC-BLENDER Octagonal blender
+
+  Recorded value                                                       Value        How                          By          When
+  Blend input (granules, extragranular excipients, milled rejects)     18.6 kg      computed by the system       Arjun Das   25-OCT-2026 15:31:21
+
+  Blending yield                                                       ≈ 99.462 %   computed by the system       Arjun Das   25-OCT-2026 15:31:21
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:31:25 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:31:29
+  Stage 3 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:31:54
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                   6 / 20
+ Stage 4: Compression
+
+  4.1.1 Compression: room clearance, verified, room occupied                                                                    Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                             By                When
+  Area occupancy         Area code: COMP-1; Recorded by: Arjun Das                                     Arjun Das         25-OCT-2026
+                                                                                                                         15:32:19
+
+  ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:32:22 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:32:27
+  4.1.2 Compression: equipment status and use                                                                                   Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                             By                When
+  Equipment use          Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-COMP-01       Arjun Das         25-OCT-2026
+                                                                                                                         15:32:37
+
+  Equipment use          Recorded by: Arjun Das; Equipment ref: PRESS; Equipment code: PRESS-01        Arjun Das         25-OCT-2026
+                                                                                                                         15:32:39
+  Equipment use          Recorded by: Arjun Das; Equipment ref: HT; Equipment code: HT-01              Arjun Das         25-OCT-2026
+                                                                                                                         15:32:45
+
+  Equipment use          Recorded by: Arjun Das; Equipment ref: FRB; Equipment code: FRB-01            Arjun Das         25-OCT-2026
+                                                                                                                         15:32:50
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:32:54
+  4.2.1 Tooling issue and inspection                                                                                            Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                             By                When
+  Tooling inspected      Set: TS-RAB-DEMO; When: BEFORE; Result: PASS; Inspected by: Arjun Das         Arjun Das         25-OCT-2026
+                                                                                                                         15:33:04
+
+  Tooling issued         Set: TS-RAB-DEMO; Press: PRESS-01; Issued by: Arjun Das; Inspection: EN-48    Arjun Das         25-OCT-2026
+                                                                                                                         15:33:09
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:33:12 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:33:17
+  4.2.2 Press set-up and first-off approval                                                                                     Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                             By                When
+  Press setup            Press: PRESS-01; Set up by: Arjun Das                                         Arjun Das         25-OCT-2026
+                                                                                                                         15:33:24
+  Pre use checklist      All ok: yes; Items: Ok yes; Item DUST_EXTRACTION | Ok yes; Item               Arjun Das         25-OCT-2026
+                         NOZZLES_CLEAN_NO_LEAK | Ok yes; Item CALIBRATED_BALANCE; Checked                                15:33:27
+                         by: Arjun Das
+  Hopper charge          Charged by: Arjun Das                                                         Arjun Das         25-OCT-2026
+                                                                                                                         15:33:32
+  First off              Result: PASS; Recorded by: Arjun Das                                          Arjun Das         25-OCT-2026
+                                                                                                                         15:33:35
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:33:38 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:33:43
+  4.2.3 Compression run with left and right IPC                                                                                 Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                          7 / 20
+  Entry                  What was recorded                                                                    By                 When
+  Run start              Press: PRESS-01; Recorded by: Arjun Das                                              Arjun Das          25-OCT-2026
+                                                                                                                                 15:33:50
+
+  Station sweep          Result: PASS; Stream: L; Stations: Weight 124.8; Station 1 | Weight 125.4; Station   Arjun Das          25-OCT-2026
+                         2 | Weight 125.9; Station 3 | Weight 124.6; Station 4; Instrument: BAL-COMP-01;                         15:33:53
+                         Recorded by: Arjun Das; Sampled at: 25-OCT-2026 15:33
+  Station sweep          Result: PASS; Stream: R; Stations: Weight 124.8; Station 1 | Weight 125.4;           Arjun Das          25-OCT-2026
+                         Station 2 | Weight 125.9; Station 3 | Weight 124.6; Station 4; Instrument: BAL-                         15:33:56
+                         COMP-01; Recorded by: Arjun Das; Sampled at: 25-OCT-2026 15:33
+  Run end                Recorded by: Arjun Das                                                               Arjun Das          25-OCT-2026
+                                                                                                                                 15:34:04
+  Weight check           GROUP weight check, stream L: PASS (n 20, mean 125.0500 mg)                          Arjun Das          25-OCT-2026
+                                                                                                                                 15:34:13
+  Weight check           GROUP weight check, stream R: PASS (n 20, mean 124.9500 mg)                          Arjun Das          25-OCT-2026
+                                                                                                                                 15:34:23
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:34:26 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:34:30
+  ⚠ EX-15: The station sweep at step 4.2.3 Compression run with left and right IPC was keyed by hand instead of taken from the instrument
+  interface; the step now needs a second person — dispositioned
+  ⚠ EX-16: The station sweep at step 4.2.3 Compression run with left and right IPC was keyed by hand instead of taken from the instrument
+  interface; the step now needs a second person — dispositioned
+  ⚠ EX-17: The weight check at step 4.2.3 Compression run with left and right IPC was keyed by hand instead of taken from the instrument interface;
+  the step now needs a second person — dispositioned
+  ⚠ EX-18: The weight check at step 4.2.3 Compression run with left and right IPC was keyed by hand instead of taken from the instrument interface;
+  the step now needs a second person — dispositioned
+
+
+
+  4.2.4 Weight of the cores (group of 20)                                                                                               Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                                    By                 When
+  Weight check           GROUP weight check, stream : PASS (n 20, mean 125.1000 mg)                           Arjun Das          25-OCT-2026
+                                                                                                                                 15:34:38
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:34:41 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:34:46
+  ⚠ EX-19: The weight check at step 4.2.4 Weight of the cores (group of 20) was keyed by hand instead of taken from the instrument interface; the
+  step now needs a second person — dispositioned
+
+
+
+  4.2.5 Thickness and breaking force of the cores                                                                                       Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                                    By                 When
+  Physical check         Result: PASS; Tablets: Hardness 95; Thickness 5.10 | Hardness 98; Thickness          Arjun Das          25-OCT-2026
+                         5.12 | Hardness 92; Thickness 5.08; Instrument: HT-01; Recorded by: Arjun Das;                          15:34:53
+                         Sampled at: 25-OCT-2026 15:34
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:34:56 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:35:01
+  ⚠ EX-20: The physical check at step 4.2.5 Thickness and breaking force of the cores was keyed by hand instead of taken from the instrument
+  interface; the step now needs a second person — dispositioned
+
+
+
+  4.2.6 Friability of the cores                                                                                                         Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                  What was recorded                                                                    By                 When
+
+  Friability run         Rpm: 25.0; Run: 1; Loss: 0.2; Limit: 1; Broken: no; Result: PASS; Tablets: 52;       Arjun Das          25-OCT-2026
+                         Reported: 0.2; Final mass: 6.495; Rotations: 100; Instrument: FRB-01; Recorded                          15:35:09
+                         by: Arjun Das; Initial mass: 6.510; Sampled at: 25-OCT-2026 15:35; Average
+                         weight: 125.19
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:35:13 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:35:17
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                      8 / 20
+  ⚠ EX-21: Friability run 1 at step 4.2.6 Friability of the cores was keyed by hand instead of taken from the instrument interface; the step now needs a
+  second person — dispositioned
+
+
+
+  4.2.7 Tooling return and inspection after use                                                                                             Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Entry                   What was recorded                                                                      By                  When
+  Tooling returned        Set: TS-RAB-DEMO; Strokes: 148500; Returned by: Arjun Das; Stroke source:              Arjun Das           25-OCT-2026
+                          MANUAL; Count mismatch: no; Limit exceeded: no                                                             15:35:27
+  Tooling inspected       Set: TS-RAB-DEMO; When: AFTER; Result: PASS; Inspected by: Arjun Das                   Arjun Das           25-OCT-2026
+                                                                                                                                     15:35:33
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:35:36 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:35:41
+  4.2.8 Compression yield and accountability                                                                                                Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester
+
+  Recorded value                                                              Value          How                      By          When
+
+  Good cores (A)                                                              18.400 kg      typed                    Arjun       25-OCT-2026
+                                                                                                                      Das         15:35:48
+  Reusable residue of compression (B)                                         0.100 kg       typed                    Arjun       25-OCT-2026
+                                                                                                                      Das         15:35:50
+  Compression rejects for destruction                                         0.050 kg       typed                    Arjun       25-OCT-2026
+                                                                                                                      Das         15:35:53
+  Theoretical compression output T (core batch dispensed plus milled          18.751 kg      computed by the          Arjun       25-OCT-2026
+  rejects added)                                                                             system                   Das         15:35:45
+  Good-output yield A/T                                                       ≈ 98.128 %     computed by the          Arjun       25-OCT-2026
+                                                                                             system                   Das         15:35:48
+  Yield with the reusable residue (A + B)/T                                   ≈ 98.661 %     computed by the          Arjun       25-OCT-2026
+                                                                                             system                   Das         15:35:50
+  Compression accountability against the blend                                ≈ 100.270      computed by the          Arjun       25-OCT-2026
+                                                                              %              system                   Das         15:35:53
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:35:57 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:36:02
+  ⚠ EX-22: Good cores (A) was keyed by hand although it is configured for device capture; the step now needs a second person — dispositioned
+  ⚠ EX-23: Reusable residue of compression (B) was keyed by hand although it is configured for device capture; the step now needs a second
+  person — dispositioned
+  ⚠ EX-24: Compression rejects for destruction was keyed by hand although it is configured for device capture; the step now needs a second person
+  — dispositioned
+
+
+
+  4.2.9 Cores approved for coating                                                                                                          Completed
+ Room COMP-1 · EQC-BAL Balance, platform, calibrated, EQC-PRESS-GBT Double-rotary tablet press, EQC-HT Tablet hardness and thickness tester,
+ EQC-FRB Friability tester · instruction: Cores approved for coating: QA decides (APPROVED or NOT_APPROVED).
+
+  ✍ Hold point released by Fatima Sheikh, 25-OCT-2026 15:36:08
+  Stage 4 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:37:32
+
+
+
+ Stage 5: Enteric film coating
+
+  5.1.1 Coating: room clearance, verified, room occupied                                                                                    Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Entry                   What was recorded                                                                      By                  When
+
+  Area occupancy          Area code: COAT-1; Recorded by: Arjun Das                                              Arjun Das           25-OCT-2026
+                                                                                                                                     15:37:56
+
+  ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:37:59 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:38:04
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                       9 / 20
+  5.1.2 Coating: equipment status and use                                                                                                  Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Entry                     What was recorded                                                                    By                 When
+
+  Equipment use             Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-COAT-01              Arjun Das          25-OCT-2026
+                                                                                                                                    15:38:14
+  Equipment use             Recorded by: Arjun Das; Equipment ref: COATER; Equipment code: COATER-01             Arjun Das          25-OCT-2026
+                                                                                                                                    15:38:16
+
+  Equipment use             Recorded by: Arjun Das; Equipment ref: DT; Equipment code: DT-01                     Arjun Das          25-OCT-2026
+                                                                                                                                    15:38:22
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:38:25
+  5.2.1 Seal: suspension                                                                                                                   Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Entry                     What was recorded                                                                    By                 When
+  Prepared                  Use by: 25-OCT-2026 19:38; Quantity: 2.500 kg; Appearance: COMPLIES;                 Arjun Das          25-OCT-2026
+                            Prepared by: Arjun Das; Prepared at: 25-OCT-2026 15:38                                                  15:38:32
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:38:35 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:38:40
+  5.2.2 Seal: tablets, room and pan load before coating                                                                                    Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                                 Value                  How                               By              When
+  Core mean weight before the seal               125.000000 mg          computed by the system            Arjun Das       25-OCT-2026 15:38:56
+
+  Entry                     What was recorded                                                                    By                 When
+  Room check                Humidity: 45; Checked by: Arjun Das; Filtered air: yes; Temperature: 23.0; Within    Arjun Das          25-OCT-2026
+                            limits: yes                                                                                             15:38:47
+  Pan load                  Quantity: 18.400 kg; Recorded by: Arjun Das; Within range: yes                       Arjun Das          25-OCT-2026
+                                                                                                                                    15:38:50
+
+  Core sample               Unit: g; Count: 20; Total: 2.5; Mean mg: 125.0; Total mg: 2500; Weighing:            Arjun Das          25-OCT-2026
+                            GROUP; Instrument: BAL-COAT-01; Recorded by: Arjun Das                                                  15:38:53
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:38:57 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:39:03
+  5.2.3 (iteration 1) Seal to its weight gain                                                                                              Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                         Value             How                                    By                  When
+  Weight gain of the seal                2.0000 %          computed by the system                 Arjun Das           25-OCT-2026 15:39:38
+
+  Entry                     What was recorded                                                                    By                 When
+  Recipe check              Recipe: RCP-RTW-COAT; Matches: yes; Checked by: Arjun Das; Recipe version:           Arjun Das          25-OCT-2026
+                            1                                                                                                       15:39:10
+  Spray start               Started by: Arjun Das                                                                Arjun Das          25-OCT-2026
+                                                                                                                                    15:39:13
+  Actual                    Tag: inlet.temp_C; Unit: degC; Value: 55.0; Recorded by: Arjun Das; Within limits:   Arjun Das          25-OCT-2026
+                            yes                                                                                                     15:39:16
+
+  Actual                    Tag: exhaust.temp_C; Unit: degC; Value: 42.0; Recorded by: Arjun Das; Within         Arjun Das          25-OCT-2026
+                            limits: yes                                                                                             15:39:19
+  Actual                    Tag: bed.temp_C; Unit: degC; Value: 41.5; Recorded by: Arjun Das; Within limits:     Arjun Das          25-OCT-2026
+                            yes                                                                                                     15:39:22
+
+  Actual                    Tag: spray.rate_g_min; Unit: g/min; Value: 120.0; Recorded by: Arjun Das; Within     Arjun Das          25-OCT-2026
+                            limits: yes                                                                                             15:39:24
+  Actual                    Tag: pan.speed_rpm; Unit: rpm; Value: 5.0; Recorded by: Arjun Das; Within limits:    Arjun Das          25-OCT-2026
+                            yes                                                                                                     15:39:27
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                    10 / 20
+  Spray end              Ended by: Arjun Das; Spraying seconds: 17 s                                          Arjun Das          25-OCT-2026
+                                                                                                                                 15:39:30
+  Suspension used        Used by: Arjun Das; Quantity: 2.300 kg; Preparation: EN-69                           Arjun Das          25-OCT-2026
+                                                                                                                                 15:39:33
+  Weight check           weight check, stream :                                                               Arjun Das          25-OCT-2026
+                                                                                                                                 15:39:35
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:39:39 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:39:44
+  ⚠ EX-25: inlet.temp_C at step 5.2.3 (iteration 1) Seal to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+  ⚠ EX-26: exhaust.temp_C at step 5.2.3 (iteration 1) Seal to its weight gain was keyed by hand under the MBR's fallback path; the step now needs
+  a second person — dispositioned
+  ⚠ EX-27: bed.temp_C at step 5.2.3 (iteration 1) Seal to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+  ⚠ EX-28: spray.rate_g_min at step 5.2.3 (iteration 1) Seal to its weight gain was keyed by hand under the MBR's fallback path; the step now needs
+  a second person — dispositioned
+  ⚠ EX-29: pan.speed_rpm at step 5.2.3 (iteration 1) Seal to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+
+
+
+  5.2.4 Enteric coating suspension                                                                                                      Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Entry                  What was recorded                                                                    By                 When
+  Prepared               Use by: 26-OCT-2026 03:39; Quantity: 9.000 kg; Appearance: COMPLIES;                 Arjun Das          25-OCT-2026
+                         Prepared by: Arjun Das; Prepared at: 25-OCT-2026 15:39                                                  15:39:54
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:39:58 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:40:03
+  5.2.5 Cores, room and pan load before coating                                                                                         Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value               Value                     How                                    By                 When
+  Core mean weight             127.500000 mg             computed by the system                 Arjun Das          25-OCT-2026 15:40:20
+
+  Entry                  What was recorded                                                                    By                 When
+  Room check             Humidity: 45; Checked by: Arjun Das; Filtered air: yes; Temperature: 23.0; Within    Arjun Das          25-OCT-2026
+                         limits: yes                                                                                             15:40:12
+  Pan load               Quantity: 18.400 kg; Recorded by: Arjun Das; Within range: yes                       Arjun Das          25-OCT-2026
+                                                                                                                                 15:40:15
+  Core sample            Unit: g; Count: 20; Total: 2.5; Mean mg: 127.5; Total mg: 2550; Weighing:            Arjun Das          25-OCT-2026
+                         GROUP; Instrument: BAL-COAT-01; Recorded by: Arjun Das                                                  15:40:18
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:40:22 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:40:26
+  5.2.6 (iteration 1) Enteric film coating to the weight gain                                                                           Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                   Value             How                                     By                 When
+  Coating weight gain              9.0000 %          computed by the system                  Arjun Das          25-OCT-2026 15:41:02
+
+  Entry                  What was recorded                                                                    By                 When
+  Recipe check           Recipe: RCP-RTW-COAT; Matches: yes; Checked by: Arjun Das; Recipe version:           Arjun Das          25-OCT-2026
+                         1                                                                                                       15:40:34
+  Spray start            Started by: Arjun Das                                                                Arjun Das          25-OCT-2026
+                                                                                                                                 15:40:37
+  Actual                 Tag: inlet.temp_C; Unit: degC; Value: 55.0; Recorded by: Arjun Das; Within limits:   Arjun Das          25-OCT-2026
+                         yes                                                                                                     15:40:40
+  Actual                 Tag: exhaust.temp_C; Unit: degC; Value: 42.0; Recorded by: Arjun Das; Within         Arjun Das          25-OCT-2026
+                         limits: yes                                                                                             15:40:42
+  Actual                 Tag: bed.temp_C; Unit: degC; Value: 41.5; Recorded by: Arjun Das; Within limits:     Arjun Das          25-OCT-2026
+                         yes                                                                                                     15:40:45
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                  11 / 20
+  Actual                   Tag: spray.rate_g_min; Unit: g/min; Value: 120.0; Recorded by: Arjun Das; Within     Arjun Das           25-OCT-2026
+                           limits: yes                                                                                              15:40:48
+  Actual                   Tag: pan.speed_rpm; Unit: rpm; Value: 5.0; Recorded by: Arjun Das; Within limits:    Arjun Das           25-OCT-2026
+                           yes                                                                                                      15:40:51
+  Spray end                Ended by: Arjun Das; Spraying seconds: 17 s                                          Arjun Das           25-OCT-2026
+                                                                                                                                    15:40:54
+  Suspension used          Used by: Arjun Das; Quantity: 8.500 kg; Preparation: EN-83                           Arjun Das           25-OCT-2026
+                                                                                                                                    15:40:56
+  Weight check             weight check, stream :                                                               Arjun Das           25-OCT-2026
+                                                                                                                                    15:40:59
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:41:03 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:41:09
+  ⚠ EX-30: inlet.temp_C at step 5.2.6 (iteration 1) Enteric film coating to the weight gain was keyed by hand under the MBR's fallback path; the step
+  now needs a second person — dispositioned
+  ⚠ EX-31: exhaust.temp_C at step 5.2.6 (iteration 1) Enteric film coating to the weight gain was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+  ⚠ EX-32: bed.temp_C at step 5.2.6 (iteration 1) Enteric film coating to the weight gain was keyed by hand under the MBR's fallback path; the step
+  now needs a second person — dispositioned
+  ⚠ EX-33: spray.rate_g_min at step 5.2.6 (iteration 1) Enteric film coating to the weight gain was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+  ⚠ EX-34: pan.speed_rpm at step 5.2.6 (iteration 1) Enteric film coating to the weight gain was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+
+
+
+  5.2.7 Top: suspension                                                                                                                     Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Entry                    What was recorded                                                                    By                  When
+
+  Prepared                 Use by: 25-OCT-2026 19:41; Quantity: 3.500 kg; Appearance: COMPLIES;                 Arjun Das           25-OCT-2026
+                           Prepared by: Arjun Das; Prepared at: 25-OCT-2026 15:41                                                   15:41:19
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:41:23 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:41:27
+  5.2.8 Top: tablets, room and pan load before coating                                                                                      Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                               Value                   How                               By              When
+  Core mean weight before the top              138.975000 mg           computed by the system            Arjun Das       25-OCT-2026 15:41:44
+
+  Entry                    What was recorded                                                                    By                  When
+  Room check               Humidity: 45; Checked by: Arjun Das; Filtered air: yes; Temperature: 23.0; Within    Arjun Das           25-OCT-2026
+                           limits: yes                                                                                              15:41:36
+  Pan load                 Quantity: 18.400 kg; Recorded by: Arjun Das; Within range: yes                       Arjun Das           25-OCT-2026
+                                                                                                                                    15:41:38
+  Core sample              Unit: g; Count: 20; Total: 2.8; Mean mg: 139.0; Total mg: 2779.5; Weighing:          Arjun Das           25-OCT-2026
+                           GROUP; Instrument: BAL-COAT-01; Recorded by: Arjun Das                                                   15:41:41
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:41:45 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:41:51
+  5.2.9 (iteration 1) Top to its weight gain                                                                                                Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                       Value             How                                     By                  When
+  Weight gain of the top               3.0005 %          computed by the system                  Arjun Das           25-OCT-2026 15:42:26
+
+  Entry                    What was recorded                                                                    By                  When
+  Recipe check             Recipe: RCP-RTW-COAT; Matches: yes; Checked by: Arjun Das; Recipe version:           Arjun Das           25-OCT-2026
+                           1                                                                                                        15:41:58
+  Spray start              Started by: Arjun Das                                                                Arjun Das           25-OCT-2026
+                                                                                                                                    15:42:01
+  Actual                   Tag: inlet.temp_C; Unit: degC; Value: 55.0; Recorded by: Arjun Das; Within limits:   Arjun Das           25-OCT-2026
+                           yes                                                                                                      15:42:04
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                    12 / 20
+  Actual                  Tag: exhaust.temp_C; Unit: degC; Value: 42.0; Recorded by: Arjun Das; Within           Arjun Das           25-OCT-2026
+                          limits: yes                                                                                                15:42:07
+  Actual                  Tag: bed.temp_C; Unit: degC; Value: 41.5; Recorded by: Arjun Das; Within limits:       Arjun Das           25-OCT-2026
+                          yes                                                                                                        15:42:09
+  Actual                  Tag: spray.rate_g_min; Unit: g/min; Value: 120.0; Recorded by: Arjun Das; Within       Arjun Das           25-OCT-2026
+                          limits: yes                                                                                                15:42:12
+  Actual                  Tag: pan.speed_rpm; Unit: rpm; Value: 5.0; Recorded by: Arjun Das; Within limits:      Arjun Das           25-OCT-2026
+                          yes                                                                                                        15:42:15
+  Spray end               Ended by: Arjun Das; Spraying seconds: 16 s                                            Arjun Das           25-OCT-2026
+                                                                                                                                     15:42:18
+
+  Suspension used         Used by: Arjun Das; Quantity: 3.200 kg; Preparation: EN-97                             Arjun Das           25-OCT-2026
+                                                                                                                                     15:42:21
+  Weight check            weight check, stream :                                                                 Arjun Das           25-OCT-2026
+                                                                                                                                     15:42:23
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:42:27 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:42:33
+  ⚠ EX-35: inlet.temp_C at step 5.2.9 (iteration 1) Top to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+  ⚠ EX-36: exhaust.temp_C at step 5.2.9 (iteration 1) Top to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+  ⚠ EX-37: bed.temp_C at step 5.2.9 (iteration 1) Top to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+  ⚠ EX-38: spray.rate_g_min at step 5.2.9 (iteration 1) Top to its weight gain was keyed by hand under the MBR's fallback path; the step now needs
+  a second person — dispositioned
+  ⚠ EX-39: pan.speed_rpm at step 5.2.9 (iteration 1) Top to its weight gain was keyed by hand under the MBR's fallback path; the step now needs a
+  second person — dispositioned
+
+
+
+  5.2.10 Coated tablets into containers                                                                                                     Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                   Value               How                                      By                 When
+
+  Coated tablets (net)             21.070 kg           computed by the system                   Arjun Das          25-OCT-2026 15:42:46
+
+  Entry                   What was recorded                                                                      By                  When
+
+  Output container        Container RAB26002/C12 of I-COATED: net 21.070 kg (gross 22.070 kg, tare               Arjun Das           25-OCT-2026
+                          1.000 kg) on MANUAL, keyed by hand                                                                         15:42:43
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:42:48 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:42:53
+  ⚠ EX-40: A weight for Coated tablets (net) at step 5.2.10 Coated tablets into containers was keyed by hand instead of taken from the balance
+  interface; the step now needs a second person — dispositioned
+
+
+
+  5.2.11 Disintegration of the coated tablets: acid stage, then buffer stage                                                                Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Entry                   What was recorded                                                                      By                  When
+
+  Dt start                Stage: ACID; Units: 6; Instrument: DT-01; Recorded by: Arjun Das; Sampled at:          Arjun Das           25-OCT-2026
+                          25-OCT-2026 15:43; Temperature: Max 39; Min 35; Limit seconds: 60 s; Bath                                  15:43:11
+                          temperature: 37.0
+  Dt end                  Stage: ACID; Start: EN-112; Units: Disintegrated no | Disintegrated no |               Arjun Das           25-OCT-2026
+                          Disintegrated no | Disintegrated no | Disintegrated no | Disintegrated no; Passed:                         15:44:15
+                          6; Result: BUFFER; Recorded by: Arjun Das; Elapsed seconds: 64 s
+  Dt start                Stage: BUFFER; Units: 6; After acid: EN-113; Instrument: DT-01; Recorded by:           Arjun Das           25-OCT-2026
+                          Arjun Das; Sampled at: 25-OCT-2026 15:44; Temperature: Max 39; Min 35; Limit                               15:44:18
+                          seconds: 3600 s; Bath temperature: 37.0
+
+  Dt end                  Stage: BUFFER; Start: EN-114; Units: Disintegrated yes | Disintegrated yes |           Arjun Das           25-OCT-2026
+                          Disintegrated yes | Disintegrated yes | Disintegrated yes | Disintegrated yes;                             15:44:51
+                          Passed: 6; Result: PASS; Recorded by: Arjun Das; Elapsed seconds: 34 s
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:44:55 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:44:59
+  ⚠ EX-41: The disintegration start at step 5.2.11 Disintegration of the coated tablets: acid stage, then buffer stage was keyed by hand instead of
+  taken from the instrument interface; the step now needs a second person — dispositioned
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                        13 / 20
+  ⚠ EX-42: The disintegration (acid stage) at step 5.2.11 Disintegration of the coated tablets: acid stage, then buffer stage was keyed by hand
+  instead of taken from the instrument interface; the step now needs a second person — dispositioned
+  ⚠ EX-43: The disintegration start at step 5.2.11 Disintegration of the coated tablets: acid stage, then buffer stage was keyed by hand instead of
+  taken from the instrument interface; the step now needs a second person — dispositioned
+  ⚠ EX-44: The disintegration (buffer stage) at step 5.2.11 Disintegration of the coated tablets: acid stage, then buffer stage was keyed by hand
+  instead of taken from the instrument interface; the step now needs a second person — dispositioned
+
+
+
+  5.2.12 Coating weight gain of the batch                                                                                                   Completed
+ Room COAT-1 · EQC-BAL Balance, platform, calibrated, EQC-COATER Perforated coating pan, EQC-DT Disintegration tester
+
+  Recorded value                                 Value             How                                  By              When
+  Coating weight gain of the batch               ≈ 14.511 %        computed by the system               Arjun Das       25-OCT-2026 15:45:06
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:45:10 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:45:14
+  Stage 5 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:48:03
+
+
+
+ Stage 6: Inspection and release for packing
+
+  6.1.1 Inspection: room clearance, verified, room occupied                                                                                 Completed
+ Room INSP-1 · EQC-BAL Balance, platform, calibrated
+
+  Entry                   What was recorded                                                                      By                  When
+  Area occupancy          Area code: INSP-1; Recorded by: Arjun Das                                              Arjun Das           25-OCT-2026
+                                                                                                                                     15:48:27
+
+  ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:48:30 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:48:36
+  6.1.2 Inspection: equipment status and use                                                                                                Completed
+ Room INSP-1 · EQC-BAL Balance, platform, calibrated
+
+  Entry                   What was recorded                                                                      By                  When
+
+  Equipment use           Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-INSP-01                Arjun Das           25-OCT-2026
+                                                                                                                                     15:48:47
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:48:50
+  6.2.1 Visual inspection, sorting and AQL                                                                                                  Completed
+ Room INSP-1 · EQC-BAL Balance, platform, calibrated
+
+  Recorded value                                          Value                How          By                  When
+  Inspected tablets accepted (net)                        20.955 kg            typed        Arjun Das           25-OCT-2026 15:49:30
+
+  Entry                   What was recorded                                                                      By                  When
+  Inspection start        Inspector: Arjun Das                                                                   Arjun Das           25-OCT-2026
+                                                                                                                                     15:49:16
+  Inspection end          Inspector: Arjun Das; Inspection seconds: 6 s                                          Arjun Das           25-OCT-2026
+                                                                                                                                     15:49:22
+  Sort result             Defects: Code CHIPPED; Count 500 | Code COLOUR-SPOT; Count 300; Rejects:               Arjun Das           25-OCT-2026
+                          Mass 0.043 kg; Count 300; Category DESTRUCTION; Container OC-RAB26002-                                     15:49:24
+                          0006 | Mass 0.072 kg; Count 500; Category REUSABLE_RESIDUE; Container
+                          OC-RAB26002-0007; Accepted: Mass 20.955 kg; Count 146300; Inspected: Mass
+                          21.070 kg; Count 147100; Recorded by: Arjun Das; Reject count: 800; Defects by
+                          class: Major 500; Minor 300; Critical 0; Unaccounted mass: 0 kg
+  Aql result              Level: II; Letter: N; Result: ACCEPTED; Scheme: AQL-SINGLE-SAMPLING;                   Arjun Das           25-OCT-2026
+                          Classes: Major N 500; Ac 7; Re 8; Aql 0.65; Found 0; Letter N; Accepted yes;                               15:49:27
+                          Minor N 500; Ac 21; Re 22; Aql 2.5; Found 1; Letter N; Accepted yes; Critical Ac 0;
+                          Re 1; Found 0; Accepted yes; Lot size: 146300; Severity: NORMAL; Recorded by:
+                          Arjun Das; Sample size: 500; Scheme version: 1
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:49:33 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:49:39
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                        14 / 20
+  ⚠ EX-45: Inspected tablets accepted (net) was keyed by hand although it is configured for device capture; the step now needs a second person —
+  dispositioned
+
+
+
+  6.2.2 Witnessed destruction of the inspection rejects                                                                                   Completed
+ Room INSP-1 · EQC-BAL Balance, platform, calibrated
+
+  Entry                    What was recorded                                                                      By               When
+  Disposal                 Kind: DISPOSAL; Method: Incineration; Category: DESTRUCTION; Material:                 Arjun Das        25-OCT-2026
+                           Coated tablets rejected at inspection; Quantity: 0.043 kg; Container: OC-                               15:49:46
+                           RAB26002-0006; Batch coded: no
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:49:50 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:49:54
+  6.2.3 Inspection yield                                                                                                                  Completed
+ Room INSP-1 · EQC-BAL Balance, platform, calibrated
+
+  Recorded value                 Value                How                                     By                   When
+  Inspection yield               ≈ 99.454 %           computed by the system                  Arjun Das            25-OCT-2026 15:49:59
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:50:03 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:50:09
+  6.2.4 Bulk released for packing                                                                                                         Completed
+ Room INSP-1 · EQC-BAL Balance, platform, calibrated · instruction: Bulk released for packing: QA decides (APPROVED or NOT_APPROVED).
+
+  ✍ Hold point released by Fatima Sheikh, 25-OCT-2026 15:50:14
+  Stage 6 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:50:30
+
+
+Containers made
+
+Container                       Stage                Net              Closed by                                        Net verified by       State
+OC-RAB26002-0001                granulation          17.250 kg        Arjun Das, 25-OCT-2026 15:26:53                  Kavya Reddy           closed
+OC-RAB26002-0002                blending             18.500 kg        Arjun Das, 25-OCT-2026 15:31:13                  Kavya Reddy           closed
+
+OC-RAB26002-0003                compression          9.200 kg         Arjun Das, 25-OCT-2026 15:34:07                  Kavya Reddy           closed
+OC-RAB26002-0004                compression          9.200 kg         Arjun Das, 25-OCT-2026 15:34:16                  Kavya Reddy           closed
+OC-RAB26002-0005                coating              21.070 kg        Arjun Das, 25-OCT-2026 15:43:00                  Kavya Reddy           closed
+OC-RAB26002-0006                inspection           0.043 kg         Arjun Das, 25-OCT-2026 15:48:56                  Kavya Reddy           closed
+
+OC-RAB26002-0007                inspection           0.072 kg         Arjun Das, 25-OCT-2026 15:49:05                  Kavya Reddy           closed
+OC-RAB26002-0008                inspection           1000 units       Arjun Das, 25-OCT-2026 15:50:39                  Kavya Reddy           closed
+
+
+Exceptions and how they were closed (45)
+
+No.       Step            What happened                                                                                Floor decision       QA
+                                                                                                                                            review
+EX-1      1.2.1           A weight for Exemplazine sodium dispensed (potency-adjusted)                                 no impact by         accepted
+                                                                                                                       Fatima Sheikh
+EX-       2.2.3           granulator.power_kW                                                                          no impact by         accepted
+10                                                                                                                     Fatima Sheikh
+EX-       2.2.4           dryer.inlet_temp_C                                                                           no impact by         accepted
+11        (iteration 1)                                                                                                Fatima Sheikh
+EX-       2.2.6           A weight for Dried granules (net)                                                            no impact by         accepted
+12                                                                                                                     Fatima Sheikh
+
+EX-       3.2.1           Milled rejects added (net) was keyed by hand although it is configured for automation        no impact by         accepted
+13                        capture; the step now needs a second person                                                  Fatima Sheikh
+EX-       3.2.4           A weight for Lubricated blend discharged (net)                                               no impact by         accepted
+14                                                                                                                     Fatima Sheikh
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                   15 / 20
+EX-     4.2.3           The station sweep                                                                         no impact by    accepted
+15                                                                                                                Fatima Sheikh
+EX-     4.2.3           The station sweep                                                                         no impact by    accepted
+16                                                                                                                Fatima Sheikh
+EX-     4.2.3           The weight check                                                                          no impact by    accepted
+17                                                                                                                Fatima Sheikh
+EX-     4.2.3           The weight check                                                                          no impact by    accepted
+18                                                                                                                Fatima Sheikh
+EX-     4.2.4           The weight check                                                                          no impact by    accepted
+19                                                                                                                Fatima Sheikh
+
+EX-2    1.2.1           A weight for Microcrystalline cellulose dispensed (compensating)                          no impact by    accepted
+                                                                                                                  Fatima Sheikh
+EX-     4.2.5           The physical check                                                                        no impact by    accepted
+20                                                                                                                Fatima Sheikh
+
+EX-     4.2.6           Friability run 1                                                                          no impact by    accepted
+21                                                                                                                Fatima Sheikh
+EX-     4.2.8           Good cores (A) was keyed by hand although it is configured for device capture; the step   no impact by    accepted
+22                      now needs a second person                                                                 Fatima Sheikh
+EX-     4.2.8           Reusable residue of compression (B) was keyed by hand although it is configured for       no impact by    accepted
+23                      device capture; the step now needs a second person                                        Fatima Sheikh
+EX-     4.2.8           Compression rejects for destruction was keyed by hand although it is configured for       no impact by    accepted
+24                      device capture; the step now needs a second person                                        Fatima Sheikh
+EX-     5.2.3           inlet.temp_C                                                                              no impact by    accepted
+25      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.3           exhaust.temp_C                                                                            no impact by    accepted
+26      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.3           bed.temp_C                                                                                no impact by    accepted
+27      (iteration 1)                                                                                             Fatima Sheikh
+
+EX-     5.2.3           spray.rate_g_min                                                                          no impact by    accepted
+28      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.3           pan.speed_rpm                                                                             no impact by    accepted
+29      (iteration 1)                                                                                             Fatima Sheikh
+
+EX-3    1.2.2           A weight for Lactose monohydrate dispensed                                                no impact by    accepted
+                                                                                                                  Fatima Sheikh
+EX-     5.2.6           inlet.temp_C                                                                              no impact by    accepted
+30      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.6           exhaust.temp_C                                                                            no impact by    accepted
+31      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.6           bed.temp_C                                                                                no impact by    accepted
+32      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.6           spray.rate_g_min                                                                          no impact by    accepted
+33      (iteration 1)                                                                                             Fatima Sheikh
+
+EX-     5.2.6           pan.speed_rpm                                                                             no impact by    accepted
+34      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.9           inlet.temp_C                                                                              no impact by    accepted
+35      (iteration 1)                                                                                             Fatima Sheikh
+
+EX-     5.2.9           exhaust.temp_C                                                                            no impact by    accepted
+36      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.9           bed.temp_C                                                                                no impact by    accepted
+37      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.9           spray.rate_g_min                                                                          no impact by    accepted
+38      (iteration 1)                                                                                             Fatima Sheikh
+EX-     5.2.9           pan.speed_rpm                                                                             no impact by    accepted
+39      (iteration 1)                                                                                             Fatima Sheikh
+EX-4    1.2.2           A weight for Povidone K30 dispensed                                                       no impact by    accepted
+                                                                                                                  Fatima Sheikh
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                       16 / 20
+EX-     5.2.10           A weight for Coated tablets (net)                                                         no impact by    accepted
+40                                                                                                                 Fatima Sheikh
+EX-     5.2.11           The disintegration start                                                                  no impact by    accepted
+41                                                                                                                 Fatima Sheikh
+EX-     5.2.11           The disintegration (acid stage)                                                           no impact by    accepted
+42                                                                                                                 Fatima Sheikh
+EX-     5.2.11           The disintegration start                                                                  no impact by    accepted
+43                                                                                                                 Fatima Sheikh
+EX-     5.2.11           The disintegration (buffer stage)                                                         no impact by    accepted
+44                                                                                                                 Fatima Sheikh
+
+EX-     6.2.1            Inspected tablets accepted (net) was keyed by hand although it is configured for device   no impact by    accepted
+45                       capture; the step now needs a second person                                               Fatima Sheikh
+EX-5    1.2.2            A weight for Isopropyl alcohol dispensed                                                  no impact by    accepted
+                                                                                                                   Fatima Sheikh
+
+EX-6    1.2.2            A weight for Croscarmellose sodium dispensed                                              no impact by    accepted
+                                                                                                                   Fatima Sheikh
+EX-7    1.2.2            A weight for Colloidal silicon dioxide dispensed                                          no impact by    accepted
+                                                                                                                   Fatima Sheikh
+EX-8    1.2.2            A weight for Magnesium stearate dispensed                                                 no impact by    accepted
+                                                                                                                   Fatima Sheikh
+EX-9    1.2.2            A weight for Film-coating system dispensed                                                no impact by    accepted
+                                                                                                                   Fatima Sheikh
+
+
+Review signatures
+
+Act                                                               By                                  When
+Production approved (cycle 1)                                     Lakshmi Iyengar                     25-OCT-2026 15:57:47
+Audit trail reviewed (cycle 1)                                    Divya Menon                         25-OCT-2026 16:00:21
+Qa reviewed (cycle 1)                                             Arvind Rao                          25-OCT-2026 16:00:25
+
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                        17 / 20
+Packaging record (packing the tablets): batch RAB26002/P02
+Product                       Rabeprazole sodium 20 mg gastro-resistant tablets (invented, DEMO-ONLY) (RAB-GR-20, 20 mg)
+Master batch record           RAB-CF-DEMO version 1 revision 1
+
+Markets                       IN
+Status                        Execution complete; review:
+
+Size of this record           1 stage(s), 11 steps, 4 exceptions
+
+
+Stages at a glance
+
+Stage                                    Steps      Result                                     Signed off by          When
+
+1. Cold-form blister packaging           11         completed per mbr, 4 exceptions            Sanjay Kulkarni        25-OCT-2026 15:57:02
+
+
+
+ Stage 1: Cold-form blister packaging
+
+  1.1.1 Cold-form line clearance for the order and its artwork, verified, line occupied                                                Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                   By                 When
+  Area occupancy         Area code: PL-2; Recorded by: Arjun Das                                             Arjun Das          25-OCT-2026
+                                                                                                                                15:51:39
+
+  ✍ Line clearance performed by Arjun Das, 25-OCT-2026 15:51:43 · ✍ Line clearance verified by Kavya Reddy, 25-OCT-2026 15:51:47
+  1.1.2 Cold-form line: equipment status and use                                                                                       Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                   By                 When
+  Equipment use          Recorded by: Arjun Das; Equipment ref: BAL; Equipment code: BAL-PL-02               Arjun Das          25-OCT-2026
+                                                                                                                                15:51:56
+  Equipment use          Recorded by: Arjun Das; Equipment ref: BLISTER; Equipment code: CFORM-01            Arjun Das          25-OCT-2026
+                                                                                                                                15:51:59
+  Equipment use          Recorded by: Arjun Das; Equipment ref: CARTONER; Equipment code: CTN-03             Arjun Das          25-OCT-2026
+                                                                                                                                15:52:02
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:52:05
+  1.2.1 Cold-form laminate issued by weight                                                                                            Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Recorded value                        Value         How                                 By                       When
+  Cold-form laminate issued             0.500 kg      computed by the system              Pooja Venkatesh          25-OCT-2026 15:52:15
+
+  Entry                  What was recorded                                                                   By                 When
+  Container weighing     Container RAB26002/P02/C1: lot RTW-ACF-001, net 0.500 kg (gross 1.500 kg,           Pooja              25-OCT-2026
+                         tare 1.000 kg) on BAL-PL-02, keyed by hand (balance not named: the room's one       Venkatesh          15:52:12
+                         balance booked for the batch)
+
+  ✍ Performed by Pooja Venkatesh, 25-OCT-2026 15:52:16 · ✍ Dispensed container checked by Kavya Reddy, 25-OCT-2026 15:52:20
+  ⚠ EX-1: A weight for Cold-form laminate issued at step 1.2.1 Cold-form laminate issued by weight was keyed by hand instead of taken from the
+  balance interface; the step now needs a second person — dispositioned
+
+
+
+  1.3.1 Printed foil and cartons: issue, coding and reconciliation                                                                     Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                   By                 When
+
+  Issue                  Lot: RAB-FOIL-0001 (MAT-RAB-FOIL); Item: FOIL; Artwork: ART-RAB-FOIL-1;             Arjun Das          25-OCT-2026
+                         Counting: ROLL_COUNTER; Issued by: Arjun Das; Quantity: 110                                            15:52:37
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                   18 / 20
+  Issue                  Lot: RAB-CTN-0001 (MAT-RAB-CTN); Item: CARTON; Artwork: ART-RAB-CTN-1;              Arjun Das          25-OCT-2026
+                         Counting: MANUAL_COUNT; Issued by: Arjun Das; Quantity: 12                                             15:52:40
+  Reconciliation         Item: FOIL; Unit: 1; Used: 105; Issued: 110; Counted: TYPED; Damaged: 0;            Arjun Das          25-OCT-2026
+                         Specimens: 0; Setup waste: 2; Unexplained: 0; Reconciled by: Arjun Das; Within                         15:54:02
+                         limits: yes; Coded destroyed: 0; Uncoded returned: 3
+
+  Reconciliation         Item: CARTON; Unit: 1; Used: 10; Issued: 12; Counted: TYPED; Damaged: 0;            Arjun Das          25-OCT-2026
+                         Specimens: 1; Setup waste: 0; Unexplained: 0; Reconciled by: Arjun Das; Within                         15:54:05
+                         limits: yes; Coded destroyed: 1; Uncoded returned: 0
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:54:19 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:54:23
+  1.3.2 Cold-form line set-up and independent line check                                                                               Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                   By                 When
+  Line setup             Reels: Lot RTW-ACF-001; Role FORMING_FILM; Material MAT-ALU-CF | Lot                Arjun Das          25-OCT-2026
+                         RAB-FOIL-0001; Item FOIL; Role LIDDING_FOIL; Material MAT-RAB-FOIL;                                    15:52:48
+                         Machine: CFORM-01; Set up by: Arjun Das; Materials: Lot RTW-ACF-001; Role
+                         FORMING_FILM; Material MAT-ALU-CF | Lot RAB-FOIL-0001; Role
+                         LIDDING_FOIL; Material MAT-RAB-FOIL; Artwork set: FOIL:ART-RAB-FOIL-
+                         1,CARTON:ART-RAB-CTN-1; Change parts: CF-TOOL-RTW, SEAL-PLATE-RTW
+
+  Equipment check        Result: PASS; Checked by: Arjun Das; Rogue removed: yes; Change parts fitted:       Arjun Das          25-OCT-2026
+                         yes; Empty pocket detector: PASS                                                                       15:52:51
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:52:54 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:52:58
+  1.3.3 Cold forming and sealing run with defect checks                                                                                Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                   By                 When
+  Run start              Machine: CFORM-01; Started by: Arjun Das                                            Arjun Das          25-OCT-2026
+                                                                                                                                15:53:04
+  Recipe check           Recipe: RCP-CF-RTW; Matches: yes; Checked by: Arjun Das; Recipe version: 1          Arjun Das          25-OCT-2026
+                                                                                                                                15:53:12
+  Actual                 Tag: blister.seal_temp_C; Unit: degC; Value: 175.0; Recorded by: Arjun Das;         Arjun Das          25-OCT-2026
+                         Within limits: yes                                                                                     15:53:15
+
+  Actual                 Tag: blister.seal_pressure_bar; Unit: bar; Value: 4.00; Recorded by: Arjun Das;     Arjun Das          25-OCT-2026
+                         Within limits: yes                                                                                     15:53:18
+  Actual                 Tag: blister.seal_dwell_s; Unit: s; Value: 1.00; Recorded by: Arjun Das; Within     Arjun Das          25-OCT-2026
+                         limits: yes                                                                                            15:53:20
+
+  Defect check           Result: PASS; Examined: 20; Checked by: Arjun Das; Defect total: 0; Defect          Arjun Das          25-OCT-2026
+                         counts: Foil cut 0; Misprint 0; Improper seal 0; Missing tablet 0                                      15:53:23
+  Run end                Ended by: Arjun Das                                                                 Arjun Das          25-OCT-2026
+                                                                                                                                15:53:37
+  Count                  Good: 100; Formed: 105; Rejects: 0; Samples: 2; Good units: 1000; Recorded by:      Arjun Das          25-OCT-2026
+                         Arjun Das; Setup waste: 3; Unexplained: 0                                                              15:53:40
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:54:27 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:54:31
+  ⚠ EX-2: blister.seal_temp_C at step 1.3.3 Cold forming and sealing run with defect checks was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+  ⚠ EX-3: blister.seal_pressure_bar at step 1.3.3 Cold forming and sealing run with defect checks was keyed by hand under the MBR's fallback path;
+  the step now needs a second person — dispositioned
+  ⚠ EX-4: blister.seal_dwell_s at step 1.3.3 Cold forming and sealing run with defect checks was keyed by hand under the MBR's fallback path; the
+  step now needs a second person — dispositioned
+
+
+
+  1.3.4 Leak tests of the cold-form blisters                                                                                           Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                   By                 When
+
+  Run start              Machine: CFORM-01; Started by: Arjun Das                                            Arjun Das          25-OCT-2026
+                                                                                                                                15:53:07
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                                19 / 20
+  Leak test              Track: T1; Result: PASS; Tested: 10; Vacuum: 70; Leaking: 0; Tested by: Arjun    Arjun Das        25-OCT-2026
+                         Das; Hold seconds: 45 s                                                                           15:53:09
+  Run end                Ended by: Arjun Das                                                              Arjun Das        25-OCT-2026
+                                                                                                                           15:53:42
+  Leak test              Track: T1; Result: PASS; Tested: 10; Vacuum: 70; Leaking: 0; Tested by: Arjun    Arjun Das        25-OCT-2026
+                         Das; Hold seconds: 45 s                                                                           15:53:45
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:54:35 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:54:38
+  1.3.5 Cartoning, finished-pack examination and shippers                                                                         Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                By               When
+  Challenge              Device: CW; Result: PASS; Trigger: START; Challenged by: Arjun Das               Arjun Das        25-OCT-2026
+                                                                                                                           15:53:26
+  Atd check              Result: PASS; Stream: ATD; Examined: 5; Checked by: Arjun Das; Defective: 0      Arjun Das        25-OCT-2026
+                                                                                                                           15:53:29
+  Examination            Result: PASS; Stream: EXAM; Timing: IN_RUN; Examined: 2; Checked by: Arjun       Arjun Das        25-OCT-2026
+                         Das; Defective: 0; Label correct: yes                                                             15:53:31
+  Packs made             Packs: 10; Recorded by: Arjun Das                                                Arjun Das        25-OCT-2026
+                                                                                                                           15:53:34
+  Shipper                Part: no; Sscc: 089012345000000064; Packs: 10; Labelled by: Arjun Das            Arjun Das        25-OCT-2026
+                                                                                                                           15:53:51
+  Examination            Result: PASS; Stream: EXAM; Timing: END; Examined: 5; Checked by: Arjun          Arjun Das        25-OCT-2026
+                         Das; Defective: 0; Label correct: yes                                                             15:53:53
+
+  Challenge              Device: CW; Result: PASS; Trigger: END; Challenged by: Arjun Das                 Arjun Das        25-OCT-2026
+                                                                                                                           15:53:56
+  Reconciliation         Made: 10; Rejects: 0; Samples: 0; Shipped: 10; Set aside: 0; Re entered: 0;      Arjun Das        25-OCT-2026
+                         Unexplained: 0; Reconciled by: Arjun Das; Within limits: yes                                      15:53:59
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:54:42 · ✍ Verified by Kavya Reddy, 25-OCT-2026 15:54:46
+  1.3.6 Witnessed destruction of coded surplus and rejects                                                                        Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Entry                  What was recorded                                                                By               When
+  Disposal               Kind: DISPOSAL; Method: Shredding; Category: DESTRUCTION; Material: MAT-         Arjun Das        25-OCT-2026
+                         RAB-CTN; Quantity: 1; Batch coded: yes                                                            15:54:07
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:54:50 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:54:54
+  1.3.7 Tablets issued and packed                                                                                                 Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Recorded value                                         Value                 How            By           When
+  Tablets issued from bulk (counted)                     1000 tablets          typed          Arjun Das    25-OCT-2026 15:56:04
+
+  Tablets packed in good packs                           1000 tablets          typed          Arjun Das    25-OCT-2026 15:56:07
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:56:10 · ✍ Witnessed by Kavya Reddy, 25-OCT-2026 15:56:14
+  1.3.8 Packaging yield                                                                                                           Completed
+ Room PL-2 · EQC-BAL Balance, platform, calibrated, EQC-COLDFORM Cold-form blister machine, EQC-CARTONER Cartoner with checkweigher
+
+  Recorded value                 Value         How                                       By               When
+  Packaging yield                100 %         computed by the system                    Arjun Das        25-OCT-2026 15:56:18
+
+  ✍ Performed by Arjun Das, 25-OCT-2026 15:56:21 · ✍ Yield verified by Kavya Reddy, 25-OCT-2026 15:56:25
+  Stage 1 signed off: Stage signed off by Sanjay Kulkarni, 25-OCT-2026 15:57:02
+
+
+
+Batch record RAB26002 · DEMO-ONLY · made from the demo screens                                                                           20 / 20
+
