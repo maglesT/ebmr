@@ -307,6 +307,25 @@ describe('TB-01 on the GMP installation (site lots, reservations, consumption)',
     expect(data?.['excipient']).toMatchObject({ target: '8.639' });
   });
 
+  it('[PR-19][DI-33] R10 #1, #2: after the calculation the step shows its result (lot, assay, as-is potency, each target), each dispensed box shows its target, and what is still to weigh counts against the potency targets', async () => {
+    const d = await dispenser(b.batchId);
+    const view = valueOf(await d.browser('operator1').call(routes.batches.step, { params: { batchId: b.batchId, stepKey: KEY } }));
+    const p = view.potency;
+    expect(p?.lots).toEqual([expect.objectContaining({ lotCode: 'L26-0201', asIs: '98.5', target: '50.762' })]);
+    expect(p?.active).toMatchObject({ bomLine: 'BOM-PCM', target: '50.762', unit: 'kg' });
+    expect(p?.excipient).toMatchObject({ bomLine: 'BOM-MCC', target: '8.639', unit: 'kg' });
+    expect(p?.summary).toMatch(/Lot L26-0201: .*98\.5 % as is; .*50\.762 kg; .*8\.639 kg/);
+    expect(view.entries.find((e) => e.kind === 'POTENCY_CALCULATION')?.summary).toBe(p?.summary);
+    expect(p?.lots[0]?.changed).toBe(false);
+    expect(view.fields.find((f) => f.item === 'tbApi')?.target?.value).toEqual({ kind: 'DECIMAL', value: '50.762', unit: 'kg' });
+    expect(view.fields.find((f) => f.item === 'tbMcc')?.target?.value).toEqual({ kind: 'DECIMAL', value: '8.639', unit: 'kg' });
+    const remaining = view.bomRemaining ?? [];
+    expect(remaining.map((l) => [l.bomLine, l.basis, l.required, l.remaining])).toEqual([
+      ['BOM-PCM', 'POTENCY', '50.762', '50.762'],
+      ['BOM-MCC', 'POTENCY', '8.639', '8.639'],
+    ]);
+  });
+
   it('[INV-13][INV-14][PR-18][PR-20] the dispensed net is consumed from the batch\'s reservation in the same command and the entry names that consumption; the hand-keyed weighing needs a second person', async () => {
     const d = await dispenser(b.batchId);
     const before = (await gmp.db.admin.query<{ q: string }>('select site.lot_quantity($1)::text as q', [lotIds.get('L26-0201')])).rows[0]?.q;
