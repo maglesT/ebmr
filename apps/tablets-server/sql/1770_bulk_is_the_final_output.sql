@@ -1,5 +1,6 @@
 -- Tablets server: the bulk a packaging order takes from its processing batch is that batch's final output only (owner demo
 -- report R10 #4; PR-38, PR-46, PR-57).
+-- Handbook: modules/tablets-server.md
 --
 -- Found. A packaging order's bulk read (recipe.packaging_order_bulk, recipe-core 0762) listed every closed container of
 -- the processing batch, and the bulk issue (recipe.issue_packaging_bulk, recipe-core 0871) accepted any usable one: the

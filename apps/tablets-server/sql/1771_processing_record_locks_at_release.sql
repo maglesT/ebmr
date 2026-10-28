@@ -1,5 +1,6 @@
 -- Tablets server: a processing record's bulk reconciliation closes, and the record locks, at the first disposition of a
 -- lot packed from it once nothing is left for production to decide (owner demo report R10 #5; INV-21, PR-38).
+-- Handbook: modules/tablets-server.md
 --
 -- Found. A processing record locks only at its bulk reconciliation's closure (outline 5.2.10 "Locking", INV-21), and the
 -- closure was only production's own act on the record screen (recipe.close_bulk_reconciliation, recipe-core 0871). The

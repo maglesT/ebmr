@@ -153,6 +153,17 @@ two-stage dissolution as one release line (own-p3, 12 of 12); recipe-core 1750, 
 `cli/demo-p3.ts`) loads P3 ready for the presenter (approved, IN-authorised masters with the three coats, specifications
 with the two-stage dissolution, released lots, numbering, tooling); E2E group `p3-demo`; `slice-7s-routes.md`.
 
+**Slice 7t (28 October, branch `phase-7/slice-7t-potency`): R10 #1 to #5 and R13** from the owner's rabeprazole demo
+(`docs/build-plan/phase-7/demo-requirements-R10-R13.txt`). TB-01 shows its calculation and weighs against its targets;
+a lot's potency with its history, a potency preview at reservation and planning, QC's guided "Update the potency" page,
+POTENCY_RECALCULATED for QA; after TB-21's Run end a missing entry follows a LATE_REASON (RUN_ENTRY_LATE for QA), with a
+warning before Run end; bulk issue offers only the final stage's non-reject containers; the processing record closes at
+the first lot disposition when no bulk is left. Tablets 1760, 1770, 1771. Defaults: D-7t-1 the potency change is an
+attributed QC act with a reason (no e-signature; the results it takes are signed); D-7t-2 every recalculation is an
+exception; D-7t-3 TB-21@1 changed in place (additive) so the stuck order RAB26001/P01 can finish; D-7t-4 the automatic
+lock is attributed to the releasing AP, and RAB26001/2 are closed by production on /records. Next: slices B (R10 #6-#20),
+C (R11), D (R12).
+
 **Slice 7n (23 October): R7, a beta-lactam product in a dedicated suite** (`docs/build-plan/phase-7/slice-7n-routes.md`).
 Recipe-core 1655 dedicates rooms and lines to beta-lactam products (IN-27 dedications, class `BETA_LACTAM`) and refuses
 a beta-lactam batch outside them and any other batch inside them (PR-27). Demo route B (CXC-325, invented: direct

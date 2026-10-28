@@ -2,6 +2,7 @@
 -- was not recorded before RUN_END no longer traps the step. Before, TB-21 refused every G-06 entry after the run's end
 -- (tablets 0971, TB21-ENDED) while G-06's completeness still asked for it at PERFORMED (G06-RECIPE-UNCHECKED and the
 -- others), so the step could never be signed and the packaging order never completed. Controls DI-28, PR-11, PR-37.
+-- Handbook: modules/tablets-server.md
 --
 --   * recipe.block_data_schema: TB-21@1 takes one more entry kind, LATE_REASON {reason}, as blocks/tb-21.ts declares it
 --     (an addition: every entry the version took before is taken and judged as before).
