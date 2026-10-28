@@ -103,7 +103,7 @@ export const SCREEN_EN = {
   'cockpit.view': 'View step {number}',
   'runs.title': 'Test runs',
   'runs.titleGmp': 'Batches',
-  'runs.empty': 'No test runs yet.',
+  'runs.empty': 'No batches yet.',
   'runs.issued': 'Issued {at}',
   'runs.openExceptions': '{count} open exceptions',
   'runs.open': 'Open run {batch}',

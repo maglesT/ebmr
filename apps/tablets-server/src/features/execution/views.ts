@@ -672,7 +672,9 @@ function equipmentLabel(def: engine.BatchDefinition, stepDef: engine.StepDef, re
 }
 
 /** Forms of the entry kinds the browser can send for this step's block (the client entry variants). */
-function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): EntryFormT[] {
+export function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef, installation: 'GMP' | 'SANDBOX' = 'SANDBOX'): EntryFormT[] {
+  // Slice 7u (R10 #10): the sandbox takes TEST- lots and batches only; the GMP installation says nothing of test data.
+  const sandboxOnly = installation === 'SANDBOX';
   if (stepDef.node.kind !== 'phase' || !stepDef.block) return [];
   const phase = stepDef.node;
   const kinds = Object.keys(stepDef.block.dataSchema?.entries ?? {});
@@ -700,7 +702,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
               ? [field('item', 'Quantity', 'enum', 'The dispensed quantity this container counts towards', { options: massItems.map((i) => ({ value: i, label: def.mbr.parameters.find((p) => p.id === i)?.name ?? i })) })]
               : []),
             field('bomLine', 'Material', 'enum', 'The BOM line dispensed into this container', { options: bom }),
-            field('lotCode', 'Lot', 'lot', 'Scan the lot label (TEST- lots only)'),
+            field('lotCode', 'Lot', 'lot', sandboxOnly ? 'Scan the lot label (TEST- lots only)' : 'Scan the lot label'),
             ...readings(),
           ],
         });
@@ -733,7 +735,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
           kind,
           title: 'Previous batch',
           description: 'Product and batch number last processed in this area.',
-          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', 'The test batch (TEST-...) last processed here, or NONE')],
+          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', sandboxOnly ? 'The test batch (TEST-...) last processed here, or NONE' : 'The batch last processed here, or NONE')],
         });
         break;
       case 'EQUIPMENT_STATUS': {
@@ -983,7 +985,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     },
     fields: node.kind === 'phase' ? withPotencyTargets(fieldsOf(ctx, stepDef, inst, stepKey), potency, node, def.mbr, ctx.state, stepKey) : fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
-    entryForms: entryFormsOf(def, stepDef),
+    entryForms: entryFormsOf(def, stepDef, ctx.app.installation),
     blockEntries: withWarnings(blockEntryForms(stepDef.block), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
     alternative: alternativeOf(ctx, stepKey, stepDef),
