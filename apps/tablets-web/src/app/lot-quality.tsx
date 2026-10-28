@@ -13,10 +13,10 @@ import { ActButton, ActResult, Section, useCommand } from './acts.tsx';
 import { DefineForm } from './define-form.tsx';
 import { RefusalMessage } from './refusal.tsx';
 
-const REFRESH = [routes.execution.lotQuality.id];
+const REFRESH = [routes.execution.lotQuality.id, routes.batches.potencyPreview.id];
 const BASES = ['AS_IS', 'ANHYDROUS_WATER', 'DRIED_LOD', 'ANHYDROUS_SOLVENT_FREE'] as const;
 
-type Basis = (typeof BASES)[number];
+export type Basis = (typeof BASES)[number];
 const NEEDS: Record<Basis, readonly ('assay' | 'water' | 'lod' | 'solvents')[]> = {
   AS_IS: ['assay'],
   ANHYDROUS_WATER: ['assay', 'water'],
@@ -34,14 +34,14 @@ const TEST: Record<string, string> = {
  * GMP (tablets 1001): the values are the lot's approved, passing LIMS results, chosen by the person, never typed; the
  * database copies each value and records its source.
  */
-function GmpAssayForm({ lotCode, results }: { lotCode: string; results: readonly LotResultView[] }) {
-  const [basis, setBasis] = useState<Basis | null>(null);
+export function GmpAssayForm({ lotCode, results, initialBasis = null, title = `Record the assay result of ${lotCode}`, saveLabel = 'Record the assay result', reasonRequired = false }: { lotCode: string; results: readonly LotResultView[]; initialBasis?: Basis | null; title?: string; saveLabel?: string; reasonRequired?: boolean }) {
+  const [basis, setBasis] = useState<Basis | null>(initialBasis);
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [certificate, setCertificate] = useState('');
   const [reason, setReason] = useState('');
   const cmd = useCommand(routes.execution.recordLotAssay, REFRESH, 'recording the assay result');
   const needs = basis ? NEEDS[basis] : [];
-  const ready = basis !== null && needs.every((m) => chosen[m]) && certificate.trim() !== '';
+  const ready = basis !== null && needs.every((m) => chosen[m]) && certificate.trim() !== '' && (!reasonRequired || reason.trim() !== '');
   const send = async (): Promise<void> => {
     if (!basis) return;
     const ids = Object.fromEntries(needs.map((m) => [`${m}ResultId`, chosen[m] ?? '']));
@@ -56,8 +56,8 @@ function GmpAssayForm({ lotCode, results }: { lotCode: string; results: readonly
     });
   };
   return (
-    <form aria-label={`Record the assay result of ${lotCode}`} onSubmit={(e) => e.preventDefault()}>
-      <h3>Record the assay result of {lotCode}</h3>
+    <form aria-label={title} onSubmit={(e) => e.preventDefault()}>
+      <h3>{title}</h3>
       <floor.ChoiceGroup label="Basis" options={BASES.map((b) => ({ value: b, label: b }))} value={basis} onChange={(v) => setBasis(v as Basis)} />
       {needs.map((m) => {
         const options = results.filter((r) => r.testCode === TEST[m] && r.state === 'APPROVED' && r.verdict === 'PASS' && r.unit === '%');
@@ -76,8 +76,8 @@ function GmpAssayForm({ lotCode, results }: { lotCode: string; results: readonly
         );
       })}
       <Field name="certificateRef" label="Certificate or result reference" value={certificate} onChange={setCertificate} />
-      <Field name="reason" label="Reason (when it replaces the current result)" description="optional" value={reason} onChange={setReason} />
-      <ActButton label="Record the assay result" onPress={send} disabled={!ready || cmd.busy} />
+      <Field name="reason" label={reasonRequired ? 'Reason for the change' : 'Reason (when it replaces the current result)'} description={reasonRequired ? 'kept with the lot\'s potency history' : 'optional'} value={reason} onChange={setReason} />
+      <ActButton label={saveLabel} onPress={send} disabled={!ready || cmd.busy} />
       <ActResult error={cmd.error} done={cmd.done} />
     </form>
   );

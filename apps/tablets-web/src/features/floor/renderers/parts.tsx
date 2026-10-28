@@ -699,11 +699,17 @@ function StillToWeigh({ view }: { view: StepScreenView }) {
     <ul data-testid="still-to-weigh" aria-label={st('weigh.remainingTitle')}>
       {lines.map((l) => (
         <li key={l.bomLine} data-testid={`still-to-weigh-${l.bomLine}`}>
-          {l.remaining.startsWith('-')
-            ? st('weigh.over', { material: l.material, over: l.remaining.slice(1), unit: l.unit, required: l.required })
-            : /^0(\.0+)?$/.test(l.remaining)
-              ? st('weigh.done', { material: l.material, required: l.required, unit: l.unit })
-              : st('weigh.remaining', { material: l.material, remaining: l.remaining, unit: l.unit, required: l.required, weighed: l.weighed })}
+          {l.basis === 'POTENCY'
+            ? l.remaining.startsWith('-')
+              ? st('weigh.overTarget', { material: l.material, over: l.remaining.slice(1), unit: l.unit, required: l.required })
+              : /^0(\.0+)?$/.test(l.remaining)
+                ? st('weigh.doneTarget', { material: l.material, required: l.required, unit: l.unit })
+                : st('weigh.remainingTarget', { material: l.material, remaining: l.remaining, unit: l.unit, required: l.required, weighed: l.weighed })
+            : l.remaining.startsWith('-')
+              ? st('weigh.over', { material: l.material, over: l.remaining.slice(1), unit: l.unit, required: l.required })
+              : /^0(\.0+)?$/.test(l.remaining)
+                ? st('weigh.done', { material: l.material, required: l.required, unit: l.unit })
+                : st('weigh.remaining', { material: l.material, remaining: l.remaining, unit: l.unit, required: l.required, weighed: l.weighed })}
         </li>
       ))}
     </ul>

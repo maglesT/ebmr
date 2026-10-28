@@ -53,6 +53,24 @@ describe('the GMP floor uses the batches routes (D-S6-1)', () => {
     });
   });
 
+  it('[DI-28][PR-37] R10 #3: the RUN_END form shows the server\'s warning of a missing check and sends only after the person confirms', async () => {
+    const view = tb08();
+    view.step.block = 'TB-21@1';
+    const warning = 'Check the recipe the equipment runs first (G06-RECIPE-UNCHECKED; DI-04, PR-14). After the run ends, each of these is recorded only as a late entry with a reason, which QA reviews.';
+    view.blockEntries = [{ kind: 'RUN_END', title: 'Run end', description: 'The run ends', schema: { type: 'object', description: 'The run ends', fields: {} }, warning }];
+    const ui = renderFloor(stepPath(view.step.stepKey), { installation: 'GMP', fixtures: gmpStep(view) });
+    await screen.findByTestId('step-card');
+    await userEvent.click(screen.getByRole('button', { name: 'Record: Run end' }));
+    const form = screen.getByTestId('block-form-RUN_END');
+    expect(within(form).getByTestId('entry-warning').textContent).toBe(`Before you save: ${warning}`);
+    await userEvent.click(within(form).getByRole('button', { name: 'Save: Run end' }));
+    expect(ui.commands()).toHaveLength(0);
+    expect(within(form).getByRole('alert').textContent).toContain('G06-RECIPE-UNCHECKED');
+    await userEvent.click(within(form).getByRole('button', { name: 'Save anyway: Run end' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect(ui.commands()[0]?.body?.['intent']).toEqual({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry: { kind: 'BLOCK_ENTRY', entryKind: 'RUN_END', data: {} } });
+  });
+
   it('lists the GMP batches from /api/batches on the runs page (its answer is { batches }, not { runs }; A11Y-4)', async () => {
     const ui = renderFloor('/runs', { installation: 'GMP' });
     const run = await screen.findByTestId('run-B26-0001');

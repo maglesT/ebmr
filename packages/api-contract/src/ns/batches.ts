@@ -15,6 +15,36 @@ import { PlantEntryAct, StepPlantView } from './plant-floor.ts';
 import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
+
+/** R13: the potency preview of a batch (batches.potencyPreview). */
+export const BatchPotencyPreviewView = z.strictObject({
+  batchId: Uuid,
+  batchNumber: z.string(),
+  note: z.string(),
+  steps: z.array(
+    z.strictObject({
+      stepId: z.string(),
+      number: z.string(),
+      title: z.string(),
+      active: z.strictObject({ bomLine: z.string(), material: z.string(), standard: z.string(), unit: z.string() }),
+      excipient: z.strictObject({ bomLine: z.string(), material: z.string(), standard: z.string(), unit: z.string() }).nullable(),
+      lots: z.array(
+        z.strictObject({
+          lotCode: z.string(),
+          reserved: z.boolean(),
+          status: z.string(),
+          assay: z.string().nullable(),
+          asIs: z.string().nullable(),
+          activeTarget: z.string().nullable(),
+          excipientTarget: z.string().nullable(),
+          total: z.string().nullable(),
+          problem: z.string().nullable(),
+        }),
+      ),
+    }),
+  ),
+});
+
 const stepParams = z.strictObject({ batchId: Uuid, stepKey: StepKey });
 
 /** The plant act a status or clearance step stands on, recorded in the step as one act (R3.3; in plant-floor.ts since slice 7o). */
@@ -298,6 +328,19 @@ export const batches = {
     summary: 'A printed packaging lot as the batch issues it now (its code, material, status, recorded artwork and expiry), for the G-21 issue entry; 404 when it is no printed packaging lot with a recorded artwork',
     params: z.strictObject({ batchId: Uuid, code: z.string().min(1).max(64) }),
     response: PrintedLotFactsView,
+  }),
+  // R13 (owner, 25 October 2026): what TB-01 will calculate for the batch's reserved lots, before dispensing.
+  potencyPreview: defineRoute({
+    id: 'batches.potencyPreview',
+    method: 'GET',
+    path: '/api/batches/:batchId/potency-preview',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Preview of the potency-adjusted targets each TB-01 step of the batch will calculate for the reserved lots (or a lot about to be reserved); never recorded (PR-19, DI-33)',
+    params: batchParams,
+    query: z.strictObject({ lotCode: z.string().trim().min(1).max(64).optional() }),
+    response: BatchPotencyPreviewView,
   }),
   cleaningNeeds: defineRoute({
     id: 'batches.cleaningNeeds',

@@ -160,7 +160,7 @@ test('[DI-30][INV-40][PR-20][IN-13] route D 2: dispensing on KIOSK-DISP-1, the a
     const potency = page.getByTestId('potency-calculation');
     await potency.getByRole('textbox', { name: 'Lot 1 of the active' }).fill('RTW-API-001');
     await act(page, potency.getByRole('button', { name: 'Calculate from the lots' }), dispenser);
-    await expect(potency.getByText('Calculated from the lots (see the entries)')).toBeVisible();
+    await expect(potency.getByText('Calculated from the lots', { exact: true })).toBeVisible();
     await weigh(page, dispenser, 'MAT-EXZ-NA', API_KG, 'RTW-API-001', 0);
     await weigh(page, dispenser, 'MAT-MCC-101', MCC_KG, 'RTW-MCC-001', 1);
     await performAndCheck(page, dispenser, verifier, op);

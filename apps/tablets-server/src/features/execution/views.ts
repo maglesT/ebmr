@@ -17,6 +17,7 @@ import { Dec } from '@ebmr/expr';
 import { blocks, engine, flow } from '@ebmr/recipe-core';
 import type {
   ActionView,
+  BlockEntryFormView,
   AttemptView,
   EntryFormView,
   EntryView,
@@ -43,6 +44,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { signaturesOf as recordSignaturesOf } from '../esig/views.ts';
 import { parseStepKey, stepRoomReason, wireOf } from './intents.ts';
 import { peopleText } from './people-text.ts';
+import { bomMaterialName, potencyFromCalculation, potencyOf, withPotencyTargets } from './potency-view.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
 
@@ -293,6 +295,11 @@ export async function checkersOf(ctx: ViewContext, stepDef: engine.StepDef, inst
   return out;
 }
 
+/** R10 #3: the block's advisory warning on each entry form it names (engine.entryWarnings); never a refusal. */
+function withWarnings(forms: BlockEntryFormView[], warnings: Readonly<Record<string, string>>): BlockEntryFormView[] {
+  return forms.map((f) => (warnings[f.kind] === undefined ? f : { ...f, warning: warnings[f.kind] }));
+}
+
 /** The actions a step's screen offers for its status (the engine decides each one), plus the run-level ones of the step's card. */
 function stepActions(ctx: ViewContext, inst: engine.StepInstance | undefined, stepKey: string): engine.AvailableAction[] {
   const all = engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }, { stepKey });
@@ -498,7 +505,7 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
 /** Plain text of a scalar entry member ('' for anything else). */
 const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
 
-function summaryOf(e: engine.EntryRecord): string {
+function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent): string {
   const d = e.data;
   const s = (k: string): string => text(d[k]);
   switch (e.kind) {
@@ -508,6 +515,8 @@ function summaryOf(e: engine.EntryRecord): string {
     }
     case 'OUTPUT_CONTAINER':
       return `Container ${s('container')} of ${s('intermediate')}: net ${s('net')} ${s('unit')} (gross ${s('gross')} ${s('unit')}, tare ${s('tare')} ${s('unit')}) on ${s('balance')}${s('source') === 'MANUAL' ? ', keyed by hand' : ''}`;
+    case 'POTENCY_CALCULATION':
+      return potencyFromCalculation(mbr, d).summary;
     case 'CHARGE_CONTAINER':
       return `Charged ${s('container')} (${s('holds')})`;
     case 'CHARGE_LOT':
@@ -540,7 +549,7 @@ function entryViews(ctx: ViewContext, keep: (e: ViewContext['state']['entries'][
   return Object.values(ctx.state.entries)
     .filter(keep)
     .sort((a, b) => a.recordedSeq - b.recordedSeq)
-    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e)}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
+    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e, ctx.run.def.mbr)}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
 }
 
 /**
@@ -906,6 +915,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     roomReason: stepRoomReason(def, stepId, ctx.session?.roomCode ?? null),
     checkers: inst && inst.kind !== 'HOLD' && inst.status === 'AWAITING_VERIFICATION' ? await checkersOf(ctx, stepDef, inst) : [],
   };
+  const potency = kinds.includes('POTENCY_CALCULATION') ? await potencyOf(ctx.db, def.mbr, ctx.state, ctx.run.batch.id, stepKey) : null;
   return {
     asOf: fmt(ctx, ctx.nowUs),
     run: await header(ctx, stepDef.stage, withScale),
@@ -924,10 +934,10 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
       instruction: { text, sop: sop ? { refId: sop.id, code: sop.code, title: sop.title ?? sop.code, version: sop.version, hash: sop.hash ?? '' } : null },
       dispositions: node.kind === 'holdPoint' ? [...node.dispositions] : [],
     },
-    fields: fieldsOf(ctx, stepDef, inst, stepKey),
+    fields: node.kind === 'phase' ? withPotencyTargets(fieldsOf(ctx, stepDef, inst, stepKey), potency, node, def.mbr, ctx.state, stepKey) : fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
     entryForms: entryFormsOf(def, stepDef),
-    blockEntries: blockEntryForms(stepDef.block),
+    blockEntries: withWarnings(blockEntryForms(stepDef.block), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),
@@ -936,7 +946,8 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
-    ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 ? { bomRemaining: await bomRemainingOf(ctx, node.consumes) } : {}),
+    ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 ? { bomRemaining: await bomRemainingOf(ctx, node.consumes, potency) } : {}),
+    ...(kinds.includes('POTENCY_CALCULATION') ? { potency } : {}),
   };
 }
 
@@ -945,7 +956,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
  * production order needs for the line's material, less the net of the batch's container weighings of the line in the
  * same unit. GMP batches only (a sandbox test run has no production order: nothing is listed). Exact decimals.
  */
-async function bomRemainingOf(ctx: ViewContext, lines: readonly string[]): Promise<NonNullable<StepScreenView['bomRemaining']>> {
+async function bomRemainingOf(ctx: ViewContext, lines: readonly string[], potency: StepScreenView['potency'] = null): Promise<NonNullable<StepScreenView['bomRemaining']>> {
   const def = ctx.run.def;
   const { rows } = await ctx.db.query<{ bom: unknown }>(
     'select o.bom from recipe.batch_erp_order b join site.erp_production_order o on o.id = b.order_id where b.batch_id = $1',
@@ -953,27 +964,36 @@ async function bomRemainingOf(ctx: ViewContext, lines: readonly string[]): Promi
   );
   const bom = Array.isArray(rows[0]?.bom) ? (rows[0]?.bom as { materialCode?: unknown; quantity?: unknown; unit?: unknown }[]) : [];
   const out: NonNullable<StepScreenView['bomRemaining']> = [];
+  // R10 #2: a line of the step's potency calculation counts against its calculated target, in the BOM unit.
+  const calculated = new Map((potency ? [potency.active, ...(potency.excipient ? [potency.excipient] : [])] : []).filter((l) => l.target !== '').map((l) => [l.bomLine, l]));
   for (const id of lines) {
+    const target = calculated.get(id);
+    if (target) {
+      out.push({ bomLine: id, material: bomMaterialName(def.mbr, id), unit: target.unit, basis: 'POTENCY', ...remainingOf(ctx, id, target.unit, Dec.parse(target.target)) });
+      continue;
+    }
     const line = def.mbr.bom.find((x) => x.id === id);
     const ref = line ? def.mbr.references.find((r) => r.id === line.material) : undefined;
     const code = ref?.code ?? line?.material;
     // The order names the material by its code, or (orders posted from the master itself) by the BOM line's material.
     const ordered = bom.find((b) => b.materialCode === code) ?? bom.find((b) => line !== undefined && b.materialCode === line.material);
     if (!ordered || typeof ordered.quantity !== 'string' || typeof ordered.unit !== 'string' || !Dec.isValid(ordered.quantity)) continue;
-    const unit = ordered.unit;
-    let weighed = Dec.ZERO;
-    for (const e of Object.values(ctx.state.entries)) {
-      if (e.kind !== 'CONTAINER_WEIGHING' || e.data['bomLine'] !== id || e.data['unit'] !== unit) continue;
-      const net = e.data['net'];
-      if (typeof net === 'string' && Dec.isValid(net)) weighed = weighed.plus(Dec.parse(net));
-    }
-    const required = Dec.parse(ordered.quantity);
-    // Shown to the order's precision, at least to the gram of a kilogram (three decimals).
-    const places = Math.max(required.decimalPlaces(), 3);
-    const shown = (d: Dec): string => d.toFixed(places, 'HALF_UP');
-    out.push({ bomLine: id, material: ref ? `${ref.title} (${ref.code})` : String(code), unit, required: shown(required), weighed: shown(weighed), remaining: shown(required.minus(weighed)) });
+    out.push({ bomLine: id, material: ref ? `${ref.title} (${ref.code})` : String(code), unit: ordered.unit, basis: 'ORDER', ...remainingOf(ctx, id, ordered.unit, Dec.parse(ordered.quantity)) });
   }
   return out;
+}
+
+/** The required quantity, the batch's net weighed of the line in `unit` and what is left, shown to the required quantity's precision (at least three decimals). */
+function remainingOf(ctx: ViewContext, bomLine: string, unit: string, required: Dec): { required: string; weighed: string; remaining: string } {
+  let weighed = Dec.ZERO;
+  for (const e of Object.values(ctx.state.entries)) {
+    if (e.kind !== 'CONTAINER_WEIGHING' || e.data['bomLine'] !== bomLine || e.data['unit'] !== unit) continue;
+    const net = e.data['net'];
+    if (typeof net === 'string' && Dec.isValid(net)) weighed = weighed.plus(Dec.parse(net));
+  }
+  const places = Math.max(required.decimalPlaces(), 3);
+  const shown = (d: Dec): string => d.toFixed(places, 'HALF_UP');
+  return { required: shown(required), weighed: shown(weighed), remaining: shown(required.minus(weighed)) };
 }
 
 // ---------------------------------------------------------------------------------------------

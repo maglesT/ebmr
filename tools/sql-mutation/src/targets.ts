@@ -70,7 +70,8 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
-      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents',
+      'recipe.packaging_order_bulk'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
@@ -862,7 +863,9 @@ export const TARGETS: Target[] = [
                 'tab.leak_overdue', 'tab.leak_entry', 'tab.ipc_pass_check', 'tab.blister_line_problem',
                 'tab.blister_lot_problem', 'tab.blister_line_check_problem', 'tab.blister_hold',
                 'tab.blister_entry_problem', 'tab.blister_close_problem', 'tab.blister_apply_holds',
-                'tab.blister_state_check', 'tab.g21_pass_ok', 'tab.blister_isolation_problem'],
+                'tab.blister_state_check', 'tab.g21_pass_ok', 'tab.blister_isolation_problem',
+                // Slice 7t (tablets 1760, R10 #3): a late entry after the run's end with its reason and QA's exception.
+                'tab.blister_late_problem', 'tab.blister_late_check'],
     tests: [s('blocks/blister/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts')],
     threshold: 90,
   },
@@ -1038,8 +1041,12 @@ export const TARGETS: Target[] = [
     functions: ['recipe.batch_family_kind', 'recipe.order_status', 'recipe.bulk_container_disposition', 'recipe.bulk_totals',
                 'recipe.bulk_close_problems', 'recipe.close_bulk_reconciliation', 'recipe.bulk_issue_within_produced',
                 'recipe.set_bright_stock_hold', 'recipe.bright_stock_max_hold_of', 'recipe.bright_stock_deviation_covers',
-                'recipe.bright_stock_container_problem', 'recipe.bright_stock_hold_problem'],
-    tests: [r('lifecycle/record-lock.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts')],
+                'recipe.bright_stock_container_problem', 'recipe.bright_stock_hold_problem',
+                // Slice 7t (tablets 1770, 1772; R10 #4, #5): only the final stage's non-reject containers are bulk; the
+                // reconciliation closes at the end of QA's review when all bulk is packed.
+                'recipe.packaging_reject_problem', 'recipe.packaging_bulk_problem', 'recipe.bulk_reconciliation_close_after_review',
+                'recipe.close_bulk_after_review', 'recipe.close_bulk_after_packing'],
+    tests: [r('lifecycle/record-lock.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), s('execution/packaging-planning-routes.test.ts')],
     threshold: 90,
   },
   {

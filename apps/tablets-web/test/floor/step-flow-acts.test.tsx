@@ -156,4 +156,43 @@ describe('the potency calculation of TB-01', () => {
     await waitFor(() => expect(ui.commands()).toHaveLength(1));
     expect(intentOf(ui)).toEqual({ type: 'RECORD_ENTRY', stepKey: 'p-disp-api@', entry: { kind: 'POTENCY_CALCULATION', lots: [{ lotCode: 'RTW-API-001' }] } });
   });
+  it('[PR-19][DI-33] R10 #1, #2: after the calculation the box shows each lot\'s assay, water, as-is potency and target, the excipient\'s target, and the still-to-weigh list counts against those targets', async () => {
+    const lot = { lotCode: 'RAB-API-0001', basis: 'ANHYDROUS_WATER', assay: '99.40', water: '0.60', lod: null, asIs: '98.8036', baseEquivalent: '3.000', target: '3.037', changed: false };
+    const view = gmpView('TB-01@1', 'p-disp-api@', (v) => {
+      v.potency = {
+        lots: [lot],
+        active: { bomLine: 'BOM-API', material: 'Rabeprazole sodium (MAT-RAB)', unit: 'kg', standard: '3.000', target: '3.037' },
+        excipient: { bomLine: 'BOM-MCC', material: 'Microcrystalline cellulose (MAT-MCC)', unit: 'kg', standard: '4.500', target: '4.464' },
+        total: '7.501',
+        summary: 'Lot RAB-API-0001: assay 99.40 %, water 0.60 % → 98.8036 % as is; Rabeprazole sodium (MAT-RAB) 3.037 kg; Microcrystalline cellulose (MAT-MCC) 4.464 kg',
+      };
+      v.entryForms = structuredClone(example('step-g07-weighing').entryForms);
+      v.bomRemaining = [
+        { bomLine: 'BOM-API', material: 'Rabeprazole sodium (MAT-RAB)', unit: 'kg', basis: 'POTENCY', required: '3.037', weighed: '0.000', remaining: '3.037' },
+        { bomLine: 'BOM-MCC', material: 'Microcrystalline cellulose (MAT-MCC)', unit: 'kg', basis: 'POTENCY', required: '4.464', weighed: '4.500', remaining: '-0.036' },
+      ];
+    });
+    render(view);
+    const result = await screen.findByTestId('potency-result');
+    expect(within(result).getByTestId('potency-lot-RAB-API-0001').textContent).toMatch(/RAB-API-0001.*99\.40 %.*0\.60 %.*98\.8036 %.*3\.037 kg/);
+    expect(within(result).getByTestId('potency-target-active').textContent).toContain('target 3.037 kg');
+    expect(within(result).getByTestId('potency-target-excipient').textContent).toContain('target 4.464 kg');
+    expect(within(result).queryByTestId('potency-changed')).toBeNull();
+    expect(screen.getByTestId('still-to-weigh-BOM-API').textContent).toBe('Rabeprazole sodium (MAT-RAB): still to weigh 3.037 kg (target from the potency calculation 3.037 kg, weighed 0.000 kg)');
+    expect(screen.getByTestId('still-to-weigh-BOM-MCC').textContent).toContain('0.036 kg over the target from the potency calculation (4.464 kg)');
+  });
+
+  it('[PR-19] R13: a lot whose approved result changed since the calculation asks for a recalculation', async () => {
+    const view = gmpView('TB-01@1', 'p-disp-api@', (v) => {
+      v.potency = {
+        lots: [{ lotCode: 'RAB-API-0001', basis: 'AS_IS', assay: '99.40', water: null, lod: null, asIs: '99.40', baseEquivalent: '3.000', target: '3.019', changed: true }],
+        active: { bomLine: 'BOM-API', material: 'Rabeprazole sodium', unit: 'kg', standard: '3.000', target: '3.019' },
+        excipient: null,
+        total: '3.019',
+        summary: 'x',
+      };
+    });
+    render(view);
+    expect((await screen.findByTestId('potency-changed')).textContent).toMatch(/Potency changed since the calculation \(RAB-API-0001\): recalculate/);
+  });
 });

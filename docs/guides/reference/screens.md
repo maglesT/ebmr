@@ -7,7 +7,7 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 146 screens, 82 home tiles.
+In all: 147 screens, 82 home tiles.
 
 ## access
 
@@ -293,6 +293,7 @@ In all: 146 screens, 82 home tiles.
 | `/quality/deviations/$deviationId` | DeviationPage |  |  |
 | `/quality/lots` | LotsPage |  |  |
 | `/quality/lots/$lotId` | LotPage |  |  |
+| `/quality/lots/$lotId/potency` | UpdatePotencyPage |  |  |
 | `/quality/specifications` | SpecificationsPage |  |  |
 | `/quality/returns` | ReturnsPage |  |  |
 | `/quality/extra-testing` | BatchQualityPage |  |  |

@@ -270,7 +270,48 @@ export const StepScreenView = z.strictObject({
    * production order needs, the net weighed so far for the batch (its containers' entries in the line's unit) and what
    * is still to weigh (negative: weighed over the order's quantity). Advisory: the reconciliation stays the record's.
    */
-  bomRemaining: z.array(z.strictObject({ bomLine: z.string(), material: z.string(), unit: z.string(), required: DecimalString, weighed: DecimalString, remaining: DecimalString })).optional(),
+  bomRemaining: z
+    .array(
+      z.strictObject({
+        bomLine: z.string(),
+        material: z.string(),
+        unit: z.string(),
+        required: DecimalString,
+        weighed: DecimalString,
+        remaining: DecimalString,
+        /** R10 #2: ORDER, the production order's quantity; POTENCY, the target of the step's potency calculation (TB-01). */
+        basis: z.enum(['ORDER', 'POTENCY']).optional(),
+      }),
+    )
+    .optional(),
+  /**
+   * R10 #1 (owner's rabeprazole demo): the result of the step's governing potency calculation (TB-01), read from its
+   * stored entry: each lot with its approved assay and as-is potency, the active's and the compensating excipient's
+   * targets, the total, and the summary sentence. Display only; the entry is the record.
+   */
+  potency: z
+    .strictObject({
+      lots: z.array(
+        z.strictObject({
+          lotCode: z.string(),
+          basis: z.string(),
+          assay: DecimalString,
+          water: DecimalString.nullable(),
+          lod: DecimalString.nullable(),
+          asIs: DecimalString,
+          baseEquivalent: DecimalString,
+          target: DecimalString,
+          /** R13: the lot's approved result has changed since this calculation (a new calculation is needed). */
+          changed: z.boolean(),
+        }),
+      ),
+      active: z.strictObject({ bomLine: z.string(), material: z.string(), unit: z.string(), standard: DecimalString, target: DecimalString }),
+      excipient: z.strictObject({ bomLine: z.string(), material: z.string(), unit: z.string(), standard: DecimalString, target: DecimalString }).nullable(),
+      total: DecimalString,
+      summary: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 export type StepScreenView = z.infer<typeof StepScreenView>;
 
@@ -447,9 +488,33 @@ export const LotQualityView = z.strictObject({
       solvents: z.string().nullable(),
       certificateRef: z.string(),
       recordedAt: Instant,
+      /** R13: the lot's as-is potency in % from the result's values (exact; null when it cannot be computed). */
+      asIs: z.string().nullable().optional(),
+      /** R13 (GMP): false while a LIMS result it came from is no longer approved (a dispensing cannot use it). */
+      usable: z.boolean().optional(),
+      /** R13 (GMP): the approved LIMS results each value was copied from. */
+      sources: z.array(z.strictObject({ value: z.enum(['assay', 'water', 'lod', 'solvents']), resultId: Uuid, testCode: z.string(), result: z.string(), unit: z.string(), state: z.string() })).optional(),
     })
     .nullable(),
   artwork: z.string().nullable(),
+  /** R13: every assay result of the lot, newest first, with who recorded it, when and why it replaced the one before. */
+  history: z
+    .array(
+      z.strictObject({
+        basis: z.string(),
+        assay: z.string(),
+        water: z.string().nullable(),
+        lod: z.string().nullable(),
+        solvents: z.string().nullable(),
+        asIs: z.string().nullable(),
+        certificateRef: z.string(),
+        reason: z.string().nullable(),
+        by: z.string(),
+        recordedAt: Instant,
+        current: z.boolean(),
+      }),
+    )
+    .optional(),
 });
 
 export const CommandResultView = z.strictObject({

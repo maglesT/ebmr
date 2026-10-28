@@ -159,6 +159,11 @@ export interface PhaseHandler {
   onPerform?(view: HandlerView): { exceptions?: ExceptionDraft[]; notifications?: Notification[] };
   /** Refusals at the PERFORMED transition (e.g. acknowledgement missing, containers not charged). */
   beforePerform?(view: HandlerView): HandlerProblem[];
+  /**
+   * Advisory warnings by entry kind, shown on the entry's form before the person records it (e.g. RUN_END while a check
+   * the step needs is missing, R10 #3). Never a refusal: the engine and the database decide when the entry is sent.
+   */
+  entryWarnings?(view: HandlerView): Readonly<Record<string, string>>;
   /** Signature meanings accepted for PERFORMED and for the check, besides the generic ones. */
   meanings?: { perform?: readonly string[]; check?: readonly string[] };
   /** The item that holds the executed quantity for target comparisons (dispensing, charge-in). */

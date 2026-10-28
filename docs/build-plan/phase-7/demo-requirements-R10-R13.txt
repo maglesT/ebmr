@@ -1,0 +1,411 @@
+   Requirements from the rabeprazole demo (R10–R13)
+   For: the software chat. From: the owner, after building and running rabeprazole (P3, main 9fc3c5a) on the hosted
+   demo, 25–28 Oct 2026. Goes with: RAB26002-batch-record.pdf , the model for R11. This document replaces the
+   separate R11 PDF of 26 Oct.
+
+     #            Subject                                               In one line
+
+     R10          Bugs found in the live batches                        20 defects; the potency calculation that shows no numbers is the
+                                                                        first
+
+     R11          The whole batch record together, on one               One page per batch with everything from the ERP order to the
+                  screen                                                release: every stage, step, value, person, time and signature; view
+                                                                        only, no download
+
+     R12          Dissolution as an in-process test                     A block that records dissolution during manufacture, not only as a
+                                                                        lab release test
+
+     R13          See and change the potency before dispensing          Show the lot's potency and the calculated weights before weighing;
+                                                                        a clear QC path to change the potency %
+
+
+   Priority marks: P1 wrong or blocks a batch · P2 misleading on screen · P3 wording or polish. Each fix follows fix-
+   finding (reproduce first, a test, database guard where it is a control).
+
+
+
+   R10 · Bugs found in the live batches
+
+   Seen on RAB26001, RAB26002 (released) and RAB26003 (owner's own run, 25 Oct). Step numbers are the
+   rabeprazole MBR's (RAB-WG-DEMO v1 r2).
+
+     #     Pri.     What happens                                            What it should do
+
+     1     P1       Potency calculation shows no numbers. After             Show the result in the Potency calculation box and in the entry:
+                    "Calculate from the lots" (step 1.2.1, TB-01) the       lot, assay, water, basis, as-is potency, the active's target, the
+                    screen shows only "Calculated from the lots (see        compensating excipient's target, the total. Show each target as
+                    the entries)", an entry reading "potency                the computed box's value before weighing.
+                    calculation", and two computed boxes with no
+                    value. The saved entry holds as-is 98.8036 %,
+                    active 3.037 kg, MCC 4.464 kg, but the operator
+                    never sees them.
+
+     2     P1       Weighing panel compares with the order, not             For a potency-adjusted line, compare with the calculated
+                    the potency target. At 1.2.1 "Weigh one                 targets (3.037 / 4.464 kg) and say so ("target from the potency
+                    container" says "still to weigh 3.000 kg" and           calculation").
+                    "4.500 kg"; after the correct weights it says "0.037
+                    kg over the order" and "0.036 kg still to weigh".
+
+     3     P1       No recovery after Run end. If the sealing step's        A controlled way out: QA reopens the run, or voids and repeats
+                    recipe check (1.3.3, TB-21) is not recorded before      the step with a reason, signature and linked deviation, all in the
+                    "Run end", the step can never be signed and the         record. Better still, warn before "Run end" while a required
+                    packaging order can never complete                      check is missing.
+                    (RAB26001/P01 is stuck for ever). There is no
+                    void, abort or reopen.
+
+     4     P1       Bulk issue offers the wrong containers.                 Offer only the released bulk (the final intermediate of the
+                    "Containers of batch RAB26001" offers every             MBR). Never offer destroyed or reject containers.
+                    closed container for packaging: granules, cores,
+                    coated tablets and the inspection-rejects
+                    container that was destroyed at 6.2.2.
+
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                                 1/7
+     5     P1       The processing record is never locked.                 Lock it at the end of review (or at release, whichever the plan
+                    /records/RAB26002 shows "Unlocked, not locked          says), as the packaging record is.
+                    yet" after QA review and release.
+
+     6     P2       A released lot still shows the release form.           Show "Released by … on …" and no form.
+                    Release cockpit → RAB26002/P02 (released) still
+                    offers the decision form.
+
+     7     P2       Stale disposition button. The step card still          Refresh the card and the marks after each act.
+                    showed "Disposition the exception (QA)" for EX-1
+                    after it was dispositioned; Sign then refused (DI-
+                    26). The run overview also shows stale "N open"
+                    marks for a few seconds.
+
+     8     P2       QA act offered to an operator. Arjun (operator)        Show it only to roles that may do it; to others, show who can.
+                    sees "Disposition the exception (QA)…" as the
+                    primary action.
+
+     9     P2       Wrong product name. The active's quantity is           Use the material name from the MBR or BOM.
+                    labelled "Exemplazine sodium dispensed
+                    (potency-adjusted)" on a rabeprazole batch (step
+                    1.2.1, the exceptions, the record).
+
+     10    P2       "Test" wording on GMP. The lot hint says "             No sandbox wording on the GMP installation.
+                    (TEST- lots only)". A refusal says "recorded in the
+                    test run" on a GMP batch.
+
+     11    P2       Yield shown unrounded.                                 Show the value at its declared precision, show a sensible limit
+                    "99.1322337796678351818860985000862 %"                 text, and cite the product's own report.
+                    (granulation, 2.2.7). The limit line reads "pass low
+                    99.1 high 99.1". The validated range cites another
+                    product's report (VR-RTW).
+
+     12    P2       The finished lot box gives nothing back. After         Show the lot code with a link to it.
+                    "Post the finished lot in quarantine" it shows only
+                    "Saved." with the fields emptied.
+
+     13    P2       No link to the containers. The run and step            Add the links from the run, the step and the packaging run.
+                    pages have no link to the output containers; the
+                    only path is through Complaint lookup → trace
+                    forward. Line completion has no link from the
+                    packaging run.
+
+     14    P3       Internal codes on screen: "dispMcc at p-disp-          MBR names, step numbers and plain states everywhere.
+                    api@", "step p-g21@ is not performed",
+                    "granulator.power_kW",
+                    "EXECUTION_COMPLETE; 7 usable containers".
+
+     15    P3       Unit placeholders: "1000 {tbl}" (planning card);       "tablets", "labels", "units".
+                    printed lots show the unit as "1" ("20000 1").
+
+     16    P3       The finished lot's page offers starting-material       Offer only the forms that fit a finished lot.
+                    forms (assay basis, artwork version, identity
+                    test).
+
+     17    P3       Anti-tampering check on an India-only order.           Offer it only when a market of the order needs it, or say why it
+                    Cartoning offered "Record: Atd check" on an IN-        is asked.
+                    only order.
+
+     18    P3       Misleading message while loading: "No open             Show "Loading…" until the list is in.
+                    batch to reserve for." flashes before the batches
+                    appear (lot reservation).
+
+
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                              2/7
+     19    P3       Packaging order numbers skip. The second                 Owner's default: number per parent batch (/P01 for each
+                    batch's packing order is RAB26002/P02, not /P01          batch's first order), unless the numbering rule says otherwise.
+                    (the {SEQ} counts across parent batches).
+
+     20    P3       Entry summaries are only the kind's name                 A plain sentence with the values, per kind (also needed by
+                    ("area occupancy", "end point", "recipe check",          R11).
+                    "count": about 60 kinds).
+
+
+
+   R11 · The whole batch record together, on one screen
+
+   Model: the attached RAB26002-batch-record.pdf (20 pages), made from the hosted demo's own data for the
+   released batch RAB26002 and its packing order RAB26002/P02.
+
+
+      Owner's request: "this pdf is what i was talking about, we want this like in the software. The PDF should not have
+      a download option, but with this method we should be able to view it."
+
+
+   1. The gap today
+
+     Where in the software                         What it gives                                                  Problem
+
+     Shop floor → run → each step                  Every step's values, entries and signatures                    One step at a time; 63
+                                                                                                                  clicks for one batch
+
+     Batch record review                           Review acts, exception register, containers                    No stage or step content
+
+     Archive → "PDF/A-3 true copy"                 Everything (704 pages for RAB26002)                            Raw table rows and
+                                                                                                                  JSON, not readable by a
+                                                                                                                  person
+
+
+   The plan already expects a human-readable rendering: the outline's archival section names a "canonical PDF/A-3
+   rendering", and ADR 0010 rejected frozen JSON alone because it is "not a human-readable true copy". There is no
+   page today that reads like a batch manufacturing record.
+
+   2. What to build
+
+   One Batch record page per batch that tells the whole story, from the ERP order to the release (owner, 28 Oct:
+   "from ERP order to release, all details should be there"). It covers the processing record and its packaging order(s)
+   together, on one scrolling page, in the order things happened. Every item shows who did it, when, and the signature
+   with its meaning.
+
+          1. Header:
+                  product, strength, batch number, batch size;
+                     MBR family, version and revision;
+                     markets, made and expiry dates;
+                     status, review state, release state;
+                     the record's content hash.
+          2. ERP order: order number and ERP reference, product, quantity, the order's BOM, when it was received, and
+             the BOM-versus-MBR check.
+          3. Planning and batch issue: the batch number allocated (rule and serial), who planned and issued it, the MBR
+             pinned, and when.
+          4. Materials:
+                   every lot reserved: lot, material, quantity, its status and expiry, who reserved it;
+                     for an API, its assay, water and as-is potency at the time;
+                     later, what was actually consumed from each lot.
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                               3/7
+         5. Before production: the cleaning of each room and machine (who cleaned, who checked, the cleaning status
+            at use), the room clearances and the equipment booked.
+         6. Manufacturing: stages at a glance, then each stage and each step, with:
+                 status;
+                     room and equipment;
+                     the recorded values (value, unit, how captured, who, when, any correction and its reason);
+                     the entries in plain language, with the in-process tests in their steps (disintegration, and R12's
+                     dissolution);
+                     the signatures (performed, verified, witnessed);
+                     the exceptions and their dispositions;
+                     and the stage sign-off.
+         7. Containers and yields: every container (OC-…) with net quantity, who closed it, who verified it, its state and
+            where it went; the yields and the reconciliations of each stage.
+         8. Packaging: each packaging order of the batch: its ERP order, the bulk issued, line clearance, then every
+            packaging step. It also shows:
+                  printed materials issued, the coding specimens (start, middle, end) and their reconciliation;
+                     destruction of surplus;
+                     packs, shippers, packaging yield;
+                     the finished lot posted in quarantine.
+         9. Laboratory:
+                  samples taken;
+                     every release test of the specification with its points (e.g. dissolution acid 2 h and buffer 45 min): value,
+                     limits, verdict, analyst, approver;
+                     any OOS and how it closed;
+                     the reserve sample.
+            These release results are shown here as part of the release, as on the release cockpit. They are not added to
+            the manufacturing steps.
+       10. Exceptions and deviations: the full register, with each floor disposition and QA review outcome, and the
+           linked deviation, CAPA or change records.
+       11. Review: production approval, audit-trail review, QA review (each signature, with any reopening and its reason).
+       12. Release:
+                 the release checklist as it stood when signed;
+                     the decision, the authorised person and the time;
+                     the markets;
+                     anything after release (suspension, recall, amendment).
+       13. Audit trail: its own section at the end (collapsed by default), or a link to the existing audit-trail page.
+
+   The model PDF ( RAB26002-batch-record.pdf ) shows items 1, 6, 7, 10 and 11, and the packaging steps of item 8. It
+   does not yet show items 2–5, 9, 12 and 13, or the printed-material detail of item 8. The view must add them in the
+   same style.
+
+   Where to reach it: a "Batch record" link on these pages:
+
+            the Shop floor run page;
+            Batch record review;
+            Batches;
+            Packaging orders;
+            Release cockpit;
+            Archive;
+
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                     4/7
+            Complaint lookup / genealogy.
+
+   3. View only: no download
+
+            It is a screen view: no download, export or "save as PDF" button on it.
+            Printing is turned off for this page: a print stylesheet that shows only "Printing is not available; use the
+            Archive for a controlled true copy". Screenshots cannot be prevented, so every screen carries a watermark
+            with the viewer's name and the time, plus "Controlled view, not a copy".
+            Reading it needs a record-view permission held by the review, QA, production-head and QC roles. Floor roles
+            see only their own batch, and a contract giver only its loan-licence batches.
+            Opening the record is written to the access log (who viewed which record and when).
+            A batch that is still running shows the record so far, with a red "IN PROGRESS: not final" band. A locked
+            record shows "Final, locked on …".
+
+
+      Keep the controlled copy for inspectors. The regulations require a site to provide accurate and complete
+      copies of records, both human-readable and electronic, for inspection. The Archive true-copy export therefore
+      stays, but only for the archive and QA roles, with a reason and an audit entry. It should use the same readable
+      layout as this view, instead of the raw rows it has today (the record's data stays embedded, as now). Only the
+      everyday view has no download.
+
+
+   4. Text fixes the view needs (seen while making the model)
+
+     Seen in the demo data                         Wanted on the record
+
+     About 60 entry kinds summarise as their       A plain sentence per kind with its values, e.g. "End point by time: 31.6 s, within
+     own name only ("area occupancy", "end         range", "Recipe RCP-CF-RTW v1 matches"
+     point", "recipe check", "count")
+
+     The potency calculation summarises as         "Lot RAB-API-0001: assay 99.40 %, water 0.60 % → 98.8036 % as is; active 3.037
+     "potency calculation"                         kg; MCC 4.464 kg" (this also fixes the weighing screen, which shows no targets after
+                                                   Calculate)
+
+     Units {tbl} ; yield 100.004943429…            "tablets"; a yield at its declared precision
+     %
+
+     Internal tags ( blister.seal_temp_C ),        The MBR names ("Sealing temperature, °C"), plain exception names, never ids
+     codes ( MANUAL_ENTRY_FALLBACK ),
+     item keys ( dispApi ), ids
+
+     The active labelled "Exemplazine sodium"      The material name from the MBR or BOM
+     on a rabeprazole batch
+
+
+   5. How the model was made (for the build)
+
+   Everything in the model came from views the server already serves:
+
+             /api/batches/{id} (stages, sign-offs, exceptions);
+             /api/batches/{id}/steps/{stepKey} for each of the 52 + 11 steps (fields with attempts, entries with data,
+            signatures, exceptions);
+             /api/review/batches/{id} and …/register ;
+             /api/containers .
+
+   The sample generator is a 200-line script. In the product:
+
+            One server view should assemble the record from the stored record content as of a point in time, and show its
+            content hash, so the page and the true copy say the same thing.
+            The entry texts belong in the block definitions next to each entry schema.
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                          5/7
+   6. Done when
+
+            The page exists for processing and packaging records.
+            For RAB26002 and RAB26002/P02 it shows all 63 steps, matching the step views value for value, with no raw
+            codes, ids or JSON.
+            There is no download or print control; the watermark shows; viewing is permission-checked and logged.
+            The Archive true copy uses the same readable layout and stays restricted.
+            Covered by tests:
+                  a browser test opens the record from each place listed in section 2 and checks that there is no download
+                  control;
+                     the golden batches compare the rendered record;
+                     tests carry the IDs of the controls the slice touches (copies, access, audit trail).
+
+   Open owner question (the default is used unless the owner says otherwise): should production supervisors on the
+   floor see the full record? Default: yes, for batches of their own area.
+
+
+   R12 · Dissolution as an in-process test
+
+   Today: dissolution exists only as a lab release test on the finished lot (specification test, two-stage profile, slice 7p). No
+   MBR block records dissolution during manufacture. Disintegration is an in-process block (rabeprazole step 5.2.11).
+   Owner: dissolution should also be possible as an in-process test.
+
+   Why plants need it:
+
+            the acid-resistance check of enteric-coated cores before they are released to packing;
+            a dissolution check of sustained-release cores before coating;
+            a check after a coating-level change or a reprocessing step.
+
+   The result decides whether the batch goes on, so it must be in the batch record.
+
+   What to build: a new tablet block, "In-process dissolution", that can be placed in any stage of an MBR.
+
+         1. In the MBR:
+                   apparatus (basket or paddle), medium, volume, temperature, speed;
+                     the time points (one or several; two-stage acid → buffer for delayed release);
+                     units per stage (6);
+                     limits per point;
+                     the staging rule of the pharmacopoeia cited (for example S1/S2/S3, or A1–A3 and B1–B3 for delayed
+                     release, with the edition: IN-33);
+                     sample size;
+                     whether the batch waits for the result (hold point) or goes on at risk.
+         2. Two ways to record, chosen in the MBR:
+                 (a) on the floor or in the IPC lab: the analyst records the start (instrument ID, calibration status
+                 checked at point of use), each unit's % released at each point, and the end. The block computes the
+                 mean and the stage outcome. When a stage fails, it asks for the next stage's units.
+                     (b) as a sample to QC: the step sends an in-process sample request (to LIMS-lite or the LIMS), and the
+                     result comes back into the step. A hold point keeps the next stage closed until the approved result is in.
+         3. Instrument data: the values can come from a dissolution tester or its software (adapter), or be typed with the
+            manual-entry rules (second person, exception), the same as for balances.
+         4. Results:
+                  a failing result raises an exception and blocks the stage sign-off until it is dispositioned or a deviation is
+                  linked;
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                   6/7
+                     a result outside the alert limits is flagged;
+                     the result shows in the step, the stage summary, the R11 record view and the review.
+                     Where results show (owner, 28 Oct): an in-process dissolution result belongs in the batch record (the
+                     step, the stage summary, the R11 record view and the review). A release dissolution test stays where it
+                     is today, on the finished lot and in the release cockpit. Nothing more is needed for release tests.
+         5. Demo: add it to the rabeprazole MBR as an acid-resistance check of the coated tablets (2 h in 0.1 M HCl, at
+            most 10 % released), before inspection, and to the guide's golden batch.
+
+
+   R13 · See and change the potency before dispensing
+
+   Owner's questions (25 Oct): "Can I see the potency calculation before dispensing?" and "I want to adjust the potency
+   percentage." Today:
+
+            the lot's potency (assay 99.40 %, water 0.60 %, as-is 98.80 %) and the calculated weights show nowhere
+            before the weighing step;
+            even there, the weights do not show (R10 #1);
+            changing the potency % is possible: QC records a new ASSAY result, the head of QC approves it, QC records
+            the lot assay with a reason, all before the operator presses Calculate. But the path is spread over several
+            pages and no guide or screen explains it.
+
+   What to build:
+
+         1. Potency on the lot: Material lots → an API lot shows its current assay, water, basis, as-is potency, the results it
+            came from, and its history of changes (who, when, why).
+         2. Preview before dispensing: at lot reservation and on the batch's planning page, a "Potency preview" shows
+            what TB-01 will calculate for the reserved lot(s): the active's target and the compensating excipient's target. It is
+            marked "preview: the weighing step recalculates" and is never a recorded value.
+         3. Change the potency %, one guided page for QC:
+                 "Update the potency of lot X": choose the new approved ASSAY and WATER results, give a reason,
+                 sign;
+                     the preview updates;
+                     if the batch has already calculated, the step shows "Potency changed since the calculation: recalculate",
+                     and the change is an exception for QA;
+                     typed values stay refused (results only), as now.
+         4. Never let the floor type a potency % or a target weight. The controls stay as they are (PR-19, DI-33).
+
+
+      Still waiting on the owner (not for building yet): R9 "Demo observer", a view-only login for an audience to
+      watch a live batch, was offered on 23 Oct and not confirmed.
+
+
+
+
+R10–R13 · requirements from the rabeprazole demo                                                                                    7/7
+

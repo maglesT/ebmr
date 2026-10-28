@@ -13,6 +13,7 @@ import { sandbox } from '@ebmr/kernel';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { Db } from './runs.ts';
+import { asIsAssay, exact, type LotAssay } from '../../blocks/dispensing/potency.ts';
 
 type View = z.infer<typeof LotQualityView>;
 
@@ -42,18 +43,68 @@ export async function lotQuality(app: AppContext, db: Db, code: string): Promise
     const known = await db.query('select 1 from tab.sandbox_lot where lot_code = $1', [code]);
     if ((known.rowCount ?? 0) === 0) throw refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `Lot ${code} was not found.`, why: 'No test lot has this code.', whatYouCanDo: ['Check the lot code.'] });
   }
-  const a = await db.query<{ basis: NonNullable<View['assay']>['basis']; assay: string; water: string | null; lod: string | null; solvents: string | null; certificate_ref: string; us: string }>(
-    `select r.basis, r.assay::text as assay, r.water::text as water, r.lod::text as lod, r.solvents::text as solvents, r.certificate_ref,
-            (extract(epoch from r.recorded_at) * 1000000)::numeric(20, 0)::text as us
+  const a = await db.query<{ id: string; basis: NonNullable<View['assay']>['basis']; assay: string; water: string | null; lod: string | null; solvents: string | null; certificate_ref: string; reason: string | null; by: string | null; us: string; current: boolean }>(
+    `select r.id::text as id, r.basis, r.assay::text as assay, r.water::text as water, r.lod::text as lod, r.solvents::text as solvents, r.certificate_ref, r.reason,
+            (select p.legal_name from iam.person p where p.id = r.recorded_by_person) as by,
+            (extract(epoch from r.recorded_at) * 1000000)::numeric(20, 0)::text as us,
+            not exists (select 1 from tab.lot_assay_result n where n.supersedes = r.id) as current
        from tab.lot_assay_result r
-      where r.${where} and not exists (select 1 from tab.lot_assay_result n where n.supersedes = r.id)`,
+      where r.${where}
+      order by r.recorded_at desc, r.id`,
     params,
   );
   const w = await db.query<{ artwork: string }>(`select artwork_version as artwork from tab.printed_lot_artwork where ${where}`, params);
-  const r = a.rows[0];
+  const r = a.rows.find((x) => x.current);
+  // R13: on GMP, the LIMS results the current result's values were copied from, and whether all are still approved.
+  const sources = r && app.installation === 'GMP'
+    ? (
+        await db.query<{ value: 'assay' | 'water' | 'lod' | 'solvents'; result_id: string; test_code: string; result: string; unit: string; state: string | null }>(
+          `select s.value_kind as value, s.lims_result_id::text as result_id, t.test_code, trim_scale(t.result_value)::text as result, t.unit, site.lot_test_state(t.id) as state
+             from tab.lot_assay_source s join site.lot_test_result t on t.id = s.lims_result_id
+            where s.assay_result_id = $1 order by array_position(array['assay', 'water', 'lod', 'solvents'], s.value_kind)`,
+          [r.id],
+        )
+      ).rows
+    : null;
   return {
     lotCode: code,
-    assay: r ? { basis: r.basis, assay: r.assay, water: r.water, lod: r.lod, solvents: r.solvents, certificateRef: r.certificate_ref, recordedAt: app.formatInstant(r.us) } : null,
+    assay: r
+      ? {
+          basis: r.basis,
+          assay: r.assay,
+          water: r.water,
+          lod: r.lod,
+          solvents: r.solvents,
+          certificateRef: r.certificate_ref,
+          recordedAt: app.formatInstant(r.us),
+          asIs: asIsOf(r),
+          ...(sources
+            ? {
+                usable: sources.some((x) => x.value === 'assay') && sources.every((x) => x.state === 'APPROVED'),
+                sources: sources.map((x) => ({ value: x.value, resultId: x.result_id, testCode: x.test_code, result: x.result, unit: x.unit, state: x.state ?? 'UNKNOWN' })),
+              }
+            : {}),
+        }
+      : null,
     artwork: w.rows[0]?.artwork ?? null,
+    history: a.rows.map((x) => ({
+      basis: x.basis,
+      assay: x.assay,
+      water: x.water,
+      lod: x.lod,
+      solvents: x.solvents,
+      asIs: asIsOf(x),
+      certificateRef: x.certificate_ref,
+      reason: x.reason,
+      by: x.by ?? 'unknown person',
+      recordedAt: app.formatInstant(x.us),
+      current: x.current,
+    })),
   };
+}
+
+/** R13: the as-is potency in % of a result's values, exactly as TB-01 takes it (null when it cannot be computed). */
+function asIsOf(r: { basis: string; assay: string; water: string | null; lod: string | null; solvents: string | null }): string | null {
+  const v = asIsAssay({ basis: r.basis as LotAssay['basis'], assay: r.assay, ...(r.water !== null ? { water: r.water } : {}), ...(r.lod !== null ? { lod: r.lod } : {}), ...(r.solvents !== null ? { solvents: r.solvents } : {}) });
+  return v.ok ? exact(v.value) : null;
 }

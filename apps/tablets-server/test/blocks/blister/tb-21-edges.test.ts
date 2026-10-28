@@ -85,6 +85,37 @@ describe('TB-21 run', () => {
     expect(w.rec({ kind: 'DEFECT_CHECK', examined: '20', defects: {} }).data?.['result']).toBe('PASS');
   });
 
+  it('[DI-28][PR-11][PR-37] R10 #3: RUN_END warns while G-06 misses something; after the end each needed G-06 entry follows its own LATE_REASON (non-blank, RUN_ENTRY_LATE for QA); never an alarm or an interface loss; never before the end', () => {
+    const w = new World(RUN);
+    const warnings = (): Record<string, string> => (TB21.handler?.entryWarnings?.bind(TB21.handler) as unknown as (v: blocks.HandlerView) => Record<string, string>)(w.view());
+    expect(warnings()).toEqual({});
+    w.rec({ kind: 'RUN_START', machine: 'M-1' });
+    expect(w.rec({ kind: 'LATE_REASON', reason: 'x' }).refused).toBe('The run of p@ has not ended: record the entry itself while it runs (TB21-RUNNING; DI-28, PR-37)');
+    expect(warnings()['RUN_END']).toBe(
+      'blister.form_temp_C, blister.seal_temp_C, blister.seal_pressure_bar, blister.seal_dwell_s has no usable value yet (G06-ACTUAL-MISSING; DI-31, DI-32). After the run ends, each of these is recorded only as a late entry with a reason, which QA reviews.',
+    );
+    for (const tag of ['blister.form_temp_C', 'blister.seal_temp_C', 'blister.seal_pressure_bar']) w.rec({ kind: 'ACTUAL', tag, value: '1', unit: 'degC', source: 'MANUAL' });
+    w.rec({ kind: 'RUN_END' });
+    expect(warnings()).toEqual({});
+    const dwell = { kind: 'ACTUAL', tag: 'blister.seal_dwell_s', value: '1.00', unit: 's', source: 'MANUAL' };
+    expect(w.rec(dwell).refused).toBe('The run of p@ has ended: record the reason it is late first (a late entry) (TB21-ENDED; PR-37)');
+    for (const bad of ['', ' \n\t', 7]) expect(w.rec({ kind: 'LATE_REASON', reason: bad }).refused).toBe('A late entry needs the reason it was not recorded during the run (TB21-LATE-REASON; DI-28, PR-11)');
+    const r = w.rec({ kind: 'LATE_REASON', reason: 'Dwell read from the HMI log' });
+    expect(r.data).toStrictEqual({ reason: 'Dwell read from the HMI log', recordedBy: 'OP1' });
+    expect(r.exceptions?.map((x) => [x['type'], x['title'], x['severity'], x['category'], x['blocks'], x['qaOnly']])).toEqual([
+      ['RUN_ENTRY_LATE', 'An entry of p@ is recorded after its run ended, as a late entry; reason: Dwell read from the HMI log', 'ALERT', 'LATE_ENTRY', 'NONE', true],
+    ]);
+    expect(w.rec({ kind: 'LATE_REASON', reason: 'again' }).refused).toBe('The late entry of the reason given last at p@ is not recorded yet: record it first (TB21-LATE-REASON; DI-28, PR-11)');
+    expect(w.rec({ kind: 'ALARM', tag: 'blister.seal_temp_C', value: '1', unit: 'degC', source: 'MANUAL' }).refused).toBe('The run of p@ has ended (TB21-ENDED; PR-37)');
+    expect(w.rec({ kind: 'INTERFACE_LOSS', reason: 'x' }).refused).toBe('The run of p@ has ended (TB21-ENDED; PR-37)');
+    expect(w.rec({ kind: 'REEL_CHANGE', ...reels[0] }).refused).toBe('The run of p@ has ended (TB21-ENDED; PR-37)');
+    expect(w.rec(dwell).data).toMatchObject({ tag: 'blister.seal_dwell_s', value: '1.00' });
+    expect(w.rec(dwell).refused).toMatch(/TB21-ENDED/);
+    w.rec({ kind: 'LATE_REASON', reason: 'second' });
+    expect(w.rec({ kind: 'ALARM_ACK', alarm: 'E1' }).refused).not.toMatch(/TB21-ENDED/);
+    expect(new World(LINE).rec({ kind: 'LATE_REASON', reason: 'x' }).refused).toBe('LATE_REASON is not an entry of the line check part of a blister step (TB21-PART; IN-38)');
+  });
+
   it('[PR-33][PR-37] a reel change is a web of the format of its material, checked by a second person', () => {
     const w = new World({ ...RUN, materials: [{ role: 'FORMING_FILM', material: 'PVC-250', item: 'F' }, { role: 'LIDDING_FOIL', material: 'ALU-20' }] });
     w.rec({ kind: 'RUN_START', machine: 'M-1' });

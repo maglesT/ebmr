@@ -318,6 +318,26 @@ export const EXAMPLES = {
     },
     routeId: r.batches.cleaningNeeds.id,
   },
+  // R13: what TB-01 will calculate for the batch's reserved lots (a preview, never recorded).
+  'batches-potency-preview': {
+    schema: r.batches.potencyPreview.response,
+    data: {
+      batchId: '7d1e2f3a-4b5c-4d6e-8f7a-9b0c1d2e3f40',
+      batchNumber: 'RAB26004',
+      note: 'Preview: the weighing step recalculates from the lots it is given; nothing here is recorded.',
+      steps: [
+        {
+          stepId: 'p-disp-api',
+          number: '1.2.1',
+          title: 'Potency-adjusted dispensing',
+          active: { bomLine: 'BOM-API', material: 'Rabeprazole sodium (MAT-RAB)', standard: '3.000', unit: 'kg' },
+          excipient: { bomLine: 'BOM-MCC', material: 'Microcrystalline cellulose (MAT-MCC)', standard: '4.500', unit: 'kg' },
+          lots: [{ lotCode: 'RAB-API-0001', reserved: true, status: 'RELEASED', assay: '99.4', asIs: '98.8036', activeTarget: '3.037', excipientTarget: '4.464', total: '7.501', problem: null }],
+        },
+      ],
+    },
+    routeId: r.batches.potencyPreview.id,
+  },
   // Phase 7 slice 7h (gap report D2): a printed packaging lot's facts for the G-21 issue entry.
   'batches-printed-lot': { schema: r.batches.printedLot.response, data: { id: 'GBT2-LBL-001', material: 'MAT-LBL-GBT02', status: 'RELEASED', artwork: 'ART-GBT02-LBL-1', expiresAtUs: '1877472000000000' }, routeId: r.batches.printedLot.id },
   'plant-start-occupancy': { schema: r.plant.startAreaOccupancy.response, data: PF_OCCUPANCY, routeId: r.plant.startAreaOccupancy.id },

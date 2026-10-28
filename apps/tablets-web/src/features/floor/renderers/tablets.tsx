@@ -82,7 +82,7 @@ export const BLOCK_LAYOUTS: Readonly<Record<string, readonly EntrySection[]>> = 
   'TB-21@1': [
     PROCESS,
     { title: 'Line set-up', kinds: ['LINE_SETUP', 'EQUIPMENT_CHECK'] },
-    { title: 'Run', kinds: ['RUN_START', 'REEL_CHANGE', 'RUN_END'] },
+    { title: 'Run', kinds: ['RUN_START', 'REEL_CHANGE', 'RUN_END', 'LATE_REASON'] },
     { title: 'Defect checks', kinds: ['DEFECT_CHECK'] },
     { title: 'Rejects and count', kinds: ['REJECTS', 'COUNT'] },
   ],
@@ -205,6 +205,62 @@ export function SsccRegister({ view }: RendererProps) {
 // ---------------------------------------------------------------------------------------------
 // Potency calculation (TB-01)
 
+/** R10 #1: the governing calculation's result as the server read it from the entry: each lot, then each target. */
+export function PotencyResult({ potency }: { potency: NonNullable<StepScreenView['potency']> }) {
+  const changed = potency.lots.filter((l) => l.changed);
+  return (
+    <div data-testid="potency-result">
+      <table className={wcls('table')} aria-label="Lots of the calculation">
+        <thead>
+          <tr>
+            <th scope="col">Lot</th>
+            <th scope="col">Assay</th>
+            <th scope="col">Water</th>
+            <th scope="col">Basis</th>
+            <th scope="col">As-is potency</th>
+            <th scope="col">Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          {potency.lots.map((l) => (
+            <tr key={l.lotCode} data-testid={`potency-lot-${l.lotCode}`}>
+              <td>{l.lotCode}</td>
+              <td>{l.assay} %</td>
+              <td>{l.water !== null ? `${l.water} %` : l.lod !== null ? `LOD ${l.lod} %` : '–'}</td>
+              <td>{basisText(l.basis)}</td>
+              <td>{l.asIs} %</td>
+              <td>
+                {l.target} {potency.active.unit}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ul className={wcls('list')} aria-label="Targets of the calculation">
+        <li data-testid="potency-target-active">
+          {potency.active.material}: target {potency.active.target} {potency.active.unit} (standard {potency.active.standard} {potency.active.unit})
+        </li>
+        {potency.excipient ? (
+          <li data-testid="potency-target-excipient">
+            {potency.excipient.material} (compensating): target {potency.excipient.target} {potency.excipient.unit} (standard {potency.excipient.standard} {potency.excipient.unit})
+          </li>
+        ) : null}
+        <li>
+          Total: {potency.total} {potency.active.unit}
+        </li>
+      </ul>
+      {changed.length > 0 ? (
+        <p role="alert" data-testid="potency-changed">
+          Potency changed since the calculation ({changed.map((l) => l.lotCode).join(', ')}): recalculate before weighing.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+const BASIS_TEXT: Readonly<Record<string, string>> = { AS_IS: 'as is', ANHYDROUS_WATER: 'anhydrous (water)', DRIED_LOD: 'dried (LOD)', ANHYDROUS_SOLVENT_FREE: 'anhydrous, solvent-free', ACTIVITY: 'activity' };
+const basisText = (b: string): string => BASIS_TEXT[b] ?? b.toLowerCase().replace(/_/g, ' ');
+
 /**
  * Phase 7 slice 7l (R1): the potency-adjusted quantities of TB-01 calculated from the active's lots, scanned in
  * allocation order (with more than one lot, each lot's base-equivalent share). The server reads each lot's status and
@@ -228,7 +284,8 @@ export function PotencyCalculation({ view }: RendererProps) {
   return (
     <section className={wcls('formCard')} aria-label="Potency calculation" data-testid="potency-calculation">
       <h3 className={wcls('formTitle')}>Potency calculation</h3>
-      {done ? <StatusChip tone="ok" label="Calculated from the lots (see the entries)" /> : <p className={wcls('muted')}>Scan the active's lots in the order they are used; the targets are calculated from each lot's approved assay.</p>}
+      {done ? <StatusChip tone="ok" label="Calculated from the lots" /> : <p className={wcls('muted')}>Scan the active's lots in the order they are used; the targets are calculated from each lot's approved assay.</p>}
+      {view.potency ? <PotencyResult potency={view.potency} /> : null}
       {lots.map((l, i) => (
         <div key={i}>
           <Field name={`potency-lot-${i}`} label={`Lot ${i + 1} of the active`} value={l.lotCode} onChange={(v) => set(i, 'lotCode', v)} isDisabled={locked} autoComplete="off" />

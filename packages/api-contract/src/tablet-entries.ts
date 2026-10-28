@@ -57,7 +57,7 @@ export const TABLET_ENTRY_KINDS_BY_BLOCK = {
   'TB-20@2': ['INSPECTION_START', 'INSPECTION_END', 'SORT_RESULT', 'AQL_RESULT'],
   'TB-21@1': [
     'SETPOINT_READBACK', 'ACTUAL', 'ALARM', 'ALARM_ACK', 'INTERFACE_LOSS', 'RECIPE_CHECK', 'LINE_SETUP', 'EQUIPMENT_CHECK', 'RUN_START', 'REEL_CHANGE', 'DEFECT_CHECK',
-    'REJECTS', 'RUN_END', 'COUNT',
+    'REJECTS', 'RUN_END', 'COUNT', 'LATE_REASON',
   ],
   'TB-22@1': ['RUN_START', 'EVENT', 'LEAK_TEST', 'RUN_END'],
   'TB-23@1': ['COUNT_CHECK', 'DESICCANT_CHECK', 'TORQUE_CHECK', 'SEAL_CHECK', 'CHALLENGE', 'REJECTS', 'BRIGHT_STOCK', 'BRIGHT_STOCK_USE', 'GOOD_OUTPUT'],
@@ -121,5 +121,10 @@ export const BlockEntryFormView = z.strictObject({
   title: z.string(),
   description: z.string(),
   schema: BlockObjectSchemaWire,
+  /**
+   * R10 #3: the block's advisory warning while recording this kind now would leave something the step needs missing
+   * (e.g. RUN_END before the recipe check); the browser asks the person to confirm. Never a refusal.
+   */
+  warning: z.string().optional(),
 });
 export type BlockEntryFormView = z.infer<typeof BlockEntryFormView>;

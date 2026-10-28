@@ -15,6 +15,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useRefresh, useSignedAct } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
 import { LotQualityForms } from '../../app/lot-quality.tsx';
+import { LotPotency } from '../../app/potency.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
@@ -75,6 +76,15 @@ export function LotPage() {
           />
         ) : null}
       </Section>
+      {/* R13: the lot's potency for anyone who sees the lot; QC changes it on its own guided page. */}
+      {lot ? <LotPotency lotCode={lot.lotCode} /> : null}
+      {qc && lot ? (
+        <p>
+          <Link to="/quality/lots/$lotId/potency" params={{ lotId }} data-testid="update-potency">
+            Update the potency of lot {lot.lotCode}
+          </Link>
+        </p>
+      ) : null}
       {/* Slice 7o (R4, R8): the assay result TB-01 reads and a printed lot's artwork version G-21 checks. */}
       {qc && lot ? <LotQualityForms lotCode={lot.lotCode} results={results.data?.results ?? []} /> : null}
       {qc && lot ? (
