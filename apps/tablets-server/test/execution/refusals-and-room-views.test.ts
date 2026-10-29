@@ -253,6 +253,14 @@ describe('a QA act on an exception, seen by an operator (R10 #8)', () => {
   }, 300_000);
 });
 
+describe('the record kind of a run (R10 #13)', () => {
+  it('the run and step views name the record the master makes, for the screens\' links to the containers and the line completion', async () => {
+    const d = await newRun();
+    expect((await d.stepView('operator1', CLEAR)).run.recordKind).toBe('PROCESSING');
+    expect((await d.runView('operator1')).header.recordKind).toBe('PROCESSING');
+  }, 300_000);
+});
+
 describe('the answer of a committed command (DI-34)', () => {
   it('[DI-34] a command committed before its answer view fails is answered as saved, with the step left to the screen to read again, never "nothing was saved"', async () => {
     const d = await newRun();

@@ -10,6 +10,7 @@ import { BatchAlarmLog } from '../../plant-status/BatchAlarmLog.tsx';
 import { isGmpFloor } from '../family.ts';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
+import { BatchLinks } from '../components/BatchLinks.tsx';
 import { StepExceptions } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
@@ -49,6 +50,7 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
         <Link to="/runs/$runId" params={{ runId: view.run.runId }} className={wcls('link')}>
           {st('outline.overview')}
         </Link>
+        <BatchLinks run={view.run} />
         <Link to="/cockpit" className={wcls('link')}>
           {st('back.cockpit')}
         </Link>

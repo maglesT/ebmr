@@ -172,6 +172,8 @@ export type ExceptionView = z.infer<typeof ExceptionView>;
 export const RunHeaderView = z.strictObject({
   runId: Uuid,
   batchNumber: z.string(),
+  /** The record the master makes (processing, packaging or reprocessing), for the screens' links to its containers, line completion and bulk (R10 #13). */
+  recordKind: z.enum(['PROCESSING', 'PACKAGING', 'REPROCESSING']).optional(),
   product: ProductRef,
   markets: z.array(z.string()),
   status: BatchStatus,

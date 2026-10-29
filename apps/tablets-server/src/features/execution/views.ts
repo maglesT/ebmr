@@ -889,6 +889,7 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
   return {
     runId: ctx.run.batch.id,
     batchNumber: ctx.state.header.batchNumber,
+    recordKind: ctx.run.def.mbr.header.recordKind,
     product: productOf(ctx),
     markets: [...ctx.state.header.marketSet],
     status: ctx.state.status,
