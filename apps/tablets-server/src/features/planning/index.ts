@@ -198,8 +198,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const r = rows[0]?.r;
       if (!r) throw notFound('packaging order');
       const people = await peopleOf(pool, r.issued.map((i) => i.personId));
+      // R10 #12: the order's finished lot once posted, so the screen gives it back instead of the post.
+      const lot = (
+        await pool.query<{ lotId: string; lotCode: string }>('select f.lot_id as "lotId", l.lot_code as "lotCode" from site.finished_lot f join site.material_lot l on l.id = f.lot_id where f.batch_id = $1', [params.batchId])
+      ).rows[0];
       return {
         ...r,
+        finishedLot: lot ?? null,
         issued: r.issued.map((i) => ({
           label: i.label,
           containerId: i.containerId,

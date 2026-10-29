@@ -89,6 +89,7 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > G-07 on the GMP installation (slice 6d: every dispensed lot is consumed, tablets 1093) > [INV-13][INV-14][PR-57][DI-20][DI-30] a G-07 weighing of a site lot on GMP is consumed from the batch's reservation in the same command, so the genealogy holds the lot; keyed with no balance named, it records the room's one booked balance and says the balance was inferred (P7L-1)"
   - "tools/e2e/specs/phase7/route-w2.spec.ts > [PR-47][IN-18][IN-19][INV-33][PR-57][DI-30] route W2 4: TB-08 on KIOSK-BLEND-1: the quality unit reserves route W's residue and authorises its use at the TB-08 step, the supervisor chooses the addition, the operator adds the residue and a second person verifies @office"
   - "apps/tablets-server/test/execution/packaging-planning-routes.test.ts > packaging orders over HTTP (Phase 4 slice 2c) > [PR-46][PR-57][PR-38] the bulk of a packaging order is the processing batch's final output only (its last stage's containers): earlier stages' containers and the inspection rejects (a sort result's reject or a disposal's container) are neither offered nor issued, for every writer (R10 #4; tablets 1770)"
+  - "packages/ui-kit/test/floor/words.test.ts > units and states in plain words (R10 #14, #15) > [IN-24][PR-57] a count annotation reads as tablets, labels or units; a unit of measure stays"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
     tests:

@@ -58,6 +58,7 @@ import {
 } from './coating/common.ts';
 import { AQL_SCHEME, codeLetter, INSPECTION_LEVELS, planOf, SEVERITIES, SUPPORTED_AQLS, type InspectionLevel, type Severity } from './coating/aql.ts';
 import { cmp, scaled, plainText, sumText } from './coating/calc.ts';
+import { S } from './summaries.ts';
 
 const CONTROLS = ['PR-46', 'PR-47', 'PR-50', 'IN-35', 'PR-29', 'DI-10', 'INV-41'];
 export const DEFECT_CLASSES = ['CRITICAL', 'MAJOR', 'MINOR'] as const;
@@ -329,6 +330,23 @@ export const TB20: BlockVersion = {
       },
       reusableResidue: { type: 'boolean', optional: true, default: false, description: 'A reusable residue category (only with a recovery step, TB-08)' },
       destructionStep: { type: 'string', description: 'The witnessed G-23 step that destroys the rejects' },
+    },
+  },
+  entrySummaries: {
+    INSPECTION_START: () => 'Inspection started',
+    INSPECTION_END: (d) => `Inspection ended${S.str(d['inspectionSeconds']) !== '' ? ` after ${S.str(d['inspectionSeconds'])} s` : ''}`,
+    SORT_RESULT: (d) => {
+      const inspected = S.rec(d['inspected']);
+      const accepted = S.rec(d['accepted']);
+      return `Sorted ${S.count(inspected['count'], 'tablet')} (${S.qty(inspected['mass'])}): ${S.val(accepted['count'])} accepted (${S.qty(accepted['mass'])}), ${S.str(d['rejectCount']) !== '' ? S.str(d['rejectCount']) : String(S.list(d['rejects']).length)} rejected`;
+    },
+    AQL_RESULT: (d) => {
+      if (d['result'] === 'NO_PLAN' || d['outcome'] === 'NO_PLAN') {
+        return `No sampling plan for the lot${S.str(d['lotSize']) !== '' ? ` of ${S.str(d['lotSize'])} tablets` : ''}: it leaves the inspection through deviation ${S.val(d['deviationRef'])}`;
+      }
+      const classes = S.rec(d['classes']);
+      const found = Object.keys(classes).length > 0 ? Object.fromEntries(Object.entries(classes).map(([k, v]) => [k, S.rec(v)['found']])) : d['found'];
+      return `AQL inspection (${S.words(d['severity'])})${S.str(d['sampleSize']) !== '' ? `, sample of ${S.str(d['sampleSize'])}` : ''}: found ${S.tally(found)}${S.str(d['result']) !== '' ? `: lot ${S.verdict(d['result'])}` : ''}`;
     },
   },
   dataSchema: {

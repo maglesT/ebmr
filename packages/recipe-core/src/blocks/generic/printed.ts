@@ -29,6 +29,7 @@ import type { JsonValue } from '../../flow/model.ts';
 import type { BlockVersion, ConfigProblem, EntryResult, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import type { FieldSchema, ObjectSchema } from '../schema.ts';
 import { CORE_VALUE_RULES, EPOCH_MICROS, micros, problem, QUANTITY_SCHEMA } from './common.ts';
+import * as S from '../summary.ts';
 
 const CODE = /^[A-Z0-9][A-Z0-9_-]{0,31}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -567,6 +568,17 @@ export const G21: BlockVersion = {
   level: 'PHASE',
   controls: ['PR-32', 'PR-33', 'PR-36', 'PR-37', 'PR-39', 'PR-40', 'PR-42', 'IN-16', 'IN-17', 'IN-22', 'IN-31', 'INV-32'],
   configSchema: CONFIG_SCHEMA,
+  entrySummaries: {
+    ISSUE: (d, c) =>
+      `Issued ${S.qty(d['quantity'])} of ${printedItemName(d['item'], c)}: lot ${S.val(S.rec(d['lot'])['id'])}, artwork ${S.val(d['artwork'])}${d['counting'] === 'MANUAL_COUNT' ? ', counted by hand' : ''}`,
+    RECONCILIATION: (d, c) =>
+      `${S.cap(printedItemName(d['item'], c))} reconciled: ${S.amount(d['issued'], d['unit'])} issued, ${S.val(d['used'])} used, ${S.val(d['setupWaste'])} set-up waste, ${S.val(d['damaged'])} damaged, ${S.val(d['codedDestroyed'])} coded and destroyed, ${S.val(d['uncodedReturned'])} returned, ${S.val(d['specimens'])} specimens; ${S.val(d['unexplained'])} unexplained${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}`,
+    FIRST_PRINT: (d) => `First print on ${S.val(d['device'])} ${d['approved'] === true ? 'approved' : 'not approved'}`,
+    CHALLENGE: (d) => `Challenge of ${S.val(d['device'])} (${S.words(d['trigger'])}): ${S.verdict(d['result'])}`,
+    SERIAL_POOL: (d) => `Serial pool for ${S.val(d['market'])}: ${S.count(d['quantity'], 'serial')} for GTIN ${S.val(d['gtin'])}`,
+    SERIAL_RECONCILIATION: (d) =>
+      `Serial pool reconciled: ${S.val(d['commissioned'])} commissioned, ${S.val(d['decommissioned'])} decommissioned, ${S.val(d['destroyed'])} destroyed, ${S.val(d['samples'])} samples, ${S.val(d['unusedReturned'])} returned unused; ${S.val(d['unexplained'])} unexplained${d['closed'] === true ? ', closed' : d['closed'] === false ? ', not closed' : ''}`,
+  },
   dataSchema: DATA_SCHEMA,
   checkConfig,
   handler: {
@@ -683,3 +695,9 @@ export const G21: BlockVersion = {
 };
 
 export const PRINTED_BLOCKS: readonly BlockVersion[] = [G21];
+
+/** A printed item of the step by the master's name of its material. */
+function printedItemName(id: unknown, c: S.EntrySummaryContext): string {
+  const item = printedItems(c.config).find((i) => i.id === id);
+  return item ? S.materialName(c.mbr, item.material) : S.UNNAMED_ITEM;
+}

@@ -7,6 +7,7 @@ import { durationToMicros } from '../../flow/decimal.ts';
 import type { BlockVersion, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import { convert, micros, problem, QUANTITY_SCHEMA, SKIPPABLE } from './common.ts';
 import { G24V2 } from './reprocessing.ts';
+import * as S from '../summary.ts';
 
 // ---------------------------------------------------------------------------------------------
 // G-12 Sampling
@@ -44,6 +45,9 @@ export const G12: BlockVersion = {
       purpose: { type: 'string', optional: true, description: 'What the samples are for (test id)' },
       skippable: SKIPPABLE,
     },
+  },
+  entrySummaries: {
+    SAMPLE: (d) => `Sampled ${S.count(d['units'], 'unit')} at ${S.val(d['point'])} for ${S.val(d['purpose'])}${S.str(d['container']) !== '' ? `, from container ${S.str(d['container'])}` : ''}`,
   },
   dataSchema: {
     entries: {
@@ -126,6 +130,10 @@ export const G15: BlockVersion = {
     description: 'Timers are the MBR time constraints (engine); this step records a material transfer when configured',
     fields: { transfer: { type: 'boolean', optional: true, default: false, description: 'Record issued-by and received-by for a transfer (two different persons)' }, skippable: SKIPPABLE },
   },
+  entrySummaries: {
+    TRANSFER_ISSUED: (d, c) => `Transfer issued: ${S.nameOrText(c, d['material'])}${d['quantity'] ? `, ${S.qty(d['quantity'])}` : ''}`,
+    TRANSFER_RECEIVED: (d, c) => `Transfer received: ${S.nameOrText(c, d['material'])}`,
+  },
   dataSchema: {
     entries: {
       TRANSFER_ISSUED: { type: 'object', description: 'Material handed over', fields: { material: { type: 'string', description: 'What is transferred' }, quantity: { ...QUANTITY_SCHEMA, optional: true } } },
@@ -183,6 +191,10 @@ export const G24: BlockVersion = {
   level: 'PHASE',
   controls: ['PR-47', 'IN-18', 'IN-19'],
   configSchema: { type: 'object', description: 'Case and limits come from the phase reprocessing declaration (outline 5.2.9)', fields: {} },
+  entrySummaries: {
+    SOURCE_ADDITION: (d) =>
+      `Added ${S.qty(d['quantity'])} from batch ${S.val(d['sourceBatch'])} of ${S.val(d['productCode'])}${d['containsRecovered'] === true ? ', which itself contains recovered material' : ''}`,
+  },
   dataSchema: {
     startData: {
       type: 'object',

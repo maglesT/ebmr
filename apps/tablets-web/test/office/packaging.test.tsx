@@ -134,4 +134,28 @@ describe('packaging orders and their bulk', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.queryByRole('button', { name: /^Issue / })).toBeNull();
   });
+
+  it('R10 #12: the posted finished lot is given back with its code and a link to it, and the post is not offered again', async () => {
+    const done = { ...bulk, status: 'EXECUTION_COMPLETE', finishedLot: null };
+    const lot = example('specifications-post-finished-lot');
+    const ui = renderOffice(`/planning/packaging/${bulk.batchId}`, { role: 'STORES_OFFICER', fixtures: { 'planning.packagingBulk': done, 'specifications.postFinishedLot': lot } });
+    const box = await screen.findByTestId('finished-lot');
+    await userEvent.type(within(box).getByRole('textbox', { name: 'Finished quantity' }), '48000');
+    await userEvent.type(within(box).getByRole('textbox', { name: 'Unit' }), 'units');
+    await userEvent.click(within(box).getByRole('button', { name: 'Post the finished lot in quarantine' }));
+    await waitFor(() => expect(ui.posts('/api/quality/finished-lots')).toHaveLength(1));
+    const posted = await within(box).findByTestId('finished-lot-posted');
+    expect(posted.textContent).toContain(`Finished lot ${lot.lotCode} posted in quarantine`);
+    expect(within(posted).getByRole('link', { name: lot.lotCode }).getAttribute('href')).toBe(`/quality/lots/${lot.lotId}`);
+    expect(within(posted).getByRole('link', { name: /release cockpit/ }).getAttribute('href')).toBe(`/release/${lot.lotId}`);
+    expect(within(box).queryByRole('button', { name: 'Post the finished lot in quarantine' })).toBeNull();
+  });
+
+  it('R10 #12: an order whose finished lot is posted shows the lot, not the post', async () => {
+    const posted = { ...bulk, status: 'EXECUTION_COMPLETE', finishedLot: { lotId: '8e4b6f5a-7c9d-4e0f-9a1b-3c4d5e6f7a81', lotCode: 'G2600012' } };
+    renderOffice(`/planning/packaging/${bulk.batchId}`, { role: 'STORES_OFFICER', fixtures: { 'planning.packagingBulk': posted } });
+    const box = await screen.findByTestId('finished-lot');
+    expect(within(box).getByRole('link', { name: 'G2600012' }).getAttribute('href')).toBe('/quality/lots/8e4b6f5a-7c9d-4e0f-9a1b-3c4d5e6f7a81');
+    expect(within(box).queryByRole('button', { name: 'Post the finished lot in quarantine' })).toBeNull();
+  });
 });

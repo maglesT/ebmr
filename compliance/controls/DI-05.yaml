@@ -469,6 +469,8 @@ tests:
   - "apps/tablets-server/test/plant/sandbox-configured-unit.test.ts > the unit a packaging master configures, on each installation (slice 7r, D-7r-5) > [DI-04][DI-05][PR-22][PR-37] on the sandbox, a configured unit code that is no sandbox unit reads as its TEST- unit, which the plant knows; an unknown code stays unknown and refused (EBMR-CNT-023)"
   - "apps/tablets-server/test/plant/sandbox-configured-unit.test.ts > the unit a packaging master configures, on each installation (slice 7r, D-7r-5) > [DI-05][PR-22] on GMP the configured code is read as it is"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-04][DI-05][INV-18][PR-03][IN-38] Rabeprazole 9: the packaging master's sandbox test run on the sandbox's PL-2 kiosk with TEST- printed lots; its result imported as evidence; the four signatures and the IN authorisation @office"
+  - "apps/tablets-server/test/execution/gmp-wording.test.ts > no sandbox wording on the GMP installation (R10 #10) > [DI-05][DI-34] a GMP refusal of the engine says the refusal is recorded in the batch; the sandbox says the test run"
+  - "apps/tablets-server/test/execution/gmp-wording.test.ts > no sandbox wording on the GMP installation (R10 #10) > [DI-05] the weighing lot hint and the previous batch hint name TEST- lots and batches in the sandbox only"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

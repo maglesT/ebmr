@@ -232,6 +232,35 @@ describe('who may verify a step (P46; INV-03)', () => {
   }, 300_000);
 });
 
+describe('a QA act on an exception, seen by an operator (R10 #8)', () => {
+  it('[DI-17][PR-15] the disposition of an exception is never the operator\'s primary action: it names who may give it; QA sees it as the primary action', async () => {
+    const d = await newRun(dcMini(), { qa1: ['qa1'] });
+    await performClearance(d);
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    await d.ok('verifier1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Booth door found ajar after clearance', severity: 'ALERT' });
+    const mine = (await d.stepView('operator1', CLEAR)).actions;
+    const disposition = mine.find((a) => a.action === 'DISPOSITION_EXCEPTION');
+    expect(disposition).toMatchObject({ available: false, primary: false });
+    // Who may give it: the installation's roles that carry a QA or supervisor engine role and hold the command's permission.
+    expect(disposition?.whoCanHelp.length).toBeGreaterThan(0);
+    expect(disposition?.whoCanHelp.every((w) => /\([A-Z_]+\)$/.test(w))).toBe(true);
+    expect(disposition?.whoCanHelp.some((w) => w.includes('(QA'))).toBe(true);
+    expect(disposition?.whoCanHelp.some((w) => w.includes('(PRODUCTION_OPERATOR)'))).toBe(false);
+    expect(mine.filter((a) => a.primary).map((a) => a.action)).not.toContain('DISPOSITION_EXCEPTION');
+    const qa = (await d.stepView('qa1', CLEAR)).actions.find((a) => a.action === 'DISPOSITION_EXCEPTION');
+    expect(qa).toMatchObject({ available: true, primary: true, whoCanHelp: [] });
+    expect(await violations(server)).toEqual([]);
+  }, 300_000);
+});
+
+describe('the record kind of a run (R10 #13)', () => {
+  it('the run and step views name the record the master makes, for the screens\' links to the containers and the line completion', async () => {
+    const d = await newRun();
+    expect((await d.stepView('operator1', CLEAR)).run.recordKind).toBe('PROCESSING');
+    expect((await d.runView('operator1')).header.recordKind).toBe('PROCESSING');
+  }, 300_000);
+});
+
 describe('the answer of a committed command (DI-34)', () => {
   it('[DI-34] a command committed before its answer view fails is answered as saved, with the step left to the screen to read again, never "nothing was saved"', async () => {
     const d = await newRun();

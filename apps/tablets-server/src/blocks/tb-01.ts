@@ -30,6 +30,7 @@
 import { Dec } from '@ebmr/expr';
 import { blocks, type flow } from '@ebmr/recipe-core/pure';
 import { ACTIVITY_BASIS, ASSAY_BASES, ASSAY_BASES_V2, MG_PER_UNIT, potencyTargets, type AssayBasisV2, type PotencyInput, type PotencyResult } from './dispensing/potency.ts';
+import { S } from './summaries.ts';
 
 type BlockVersion = blocks.BlockVersion;
 type HandlerView = blocks.HandlerView;
@@ -583,6 +584,16 @@ export const TB01: BlockVersion = {
   level: 'PHASE',
   controls: TB01_CONTROLS,
   configSchema: CONFIG_SCHEMA,
+  entrySummaries: {
+    POTENCY_CALCULATION: (d, c) => {
+      const active = S.rec(d['active']);
+      const lots = S.list(d['lots']).map((l) => S.val(S.rec(S.rec(l)['lot'])['id']));
+      const total = S.str(d['total']) !== '' ? `, ${S.amount(d['total'], active['unit'])} to dispense` : '';
+      const adjust = S.str(d['adjustmentPercent']) !== '' ? `, adjusted by ${S.str(d['adjustmentPercent'])} %` : '';
+      return `Potency calculation for ${c.name(active['bomLine'])}: ${lots.length === 1 ? 'lot' : 'lots'} ${lots.join(', ')}${total}${adjust}`;
+    },
+    CONTAINER_WEIGHING: blocks.G07.entrySummaries?.['CONTAINER_WEIGHING'] ?? ((d) => `Container ${S.val(d['container'])} weighed`),
+  },
   dataSchema: { entries: { POTENCY_CALCULATION: CALCULATION_ENTRY, CONTAINER_WEIGHING: WEIGHING_ENTRY } },
   checkConfig,
   handler: {

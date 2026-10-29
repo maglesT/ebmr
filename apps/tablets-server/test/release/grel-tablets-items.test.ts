@@ -666,3 +666,11 @@ describe('mutation triage T11: container exclusions of the Tablets items read th
     expect(i.evidence.map((e) => e.ref)).toContain(h.id);
   });
 });
+
+describe('the bulk read of a packaging order with its finished lot (R10 #12)', () => {
+  it('names the finished lot posted for the order by its id and code, so the screen gives it back instead of the post', async () => {
+    const issuer = await w.gmp.asPersona('issuer');
+    const code = (await w.gmp.db.admin.query<{ c: string }>('select lot_code as c from site.material_lot where id = $1', [lotId])).rows[0]?.c;
+    expect(valueOf(await issuer.call(routes.planning.packagingBulk, { params: { batchId: orderId } })).finishedLot).toEqual({ lotId, lotCode: code });
+  });
+});

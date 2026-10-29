@@ -153,6 +153,14 @@ two-stage dissolution as one release line (own-p3, 12 of 12); recipe-core 1750, 
 `cli/demo-p3.ts`) loads P3 ready for the presenter (approved, IN-authorised masters with the three coats, specifications
 with the two-stage dissolution, released lots, numbering, tooling); E2E group `p3-demo`; `slice-7s-routes.md`.
 
+**Slice 7u (29 October, branch `phase-7/slice-7u-r10-p2p3`): R10 #6 to #20** (P2/P3 from the rabeprazole demo): a
+released lot shows its release; reads refreshed after each act; QA's disposition offered only to roles that may give it;
+a copied master names its own active; no test-run wording on GMP; computed values at their limits' precision (display
+only); the finished lot given back by its code; container links; plain words and unit words; lot forms by material kind;
+the anti-tampering check explained; packaging {SEQ} per parent batch (recipe-core 1790; IN-18 kept: after a counter skip
+a parent's next serial may jump, D-7u-1); every entry kind summarised as a sentence in its block definition (R11 needs
+it). Demo databases seeded before keep the old master names; a fresh seed takes the fixes.
+
 **Slice 7t (28 October, branch `phase-7/slice-7t-potency`): R10 #1 to #5 and R13** from the owner's rabeprazole demo
 (`docs/build-plan/phase-7/demo-requirements-R10-R13.txt`). TB-01 shows its calculation and weighs against its targets;
 a lot's potency with its history, a potency preview at reservation and planning, QC's guided "Update the potency" page,

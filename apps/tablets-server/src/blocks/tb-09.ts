@@ -43,6 +43,7 @@ import {
   type HandlerView,
   type ObjectSchema,
 } from './compression/common.ts';
+import { S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'INV-24', 'PR-22', 'PR-23', 'PR-27'];
 
@@ -193,6 +194,12 @@ export const TB09: BlockVersion = {
         },
       },
     },
+  },
+  entrySummaries: {
+    TOOLING_INSPECTED: (d) => `Tooling set ${S.val(d['set'])} inspected ${d['when'] === 'AFTER' ? 'after return' : 'before issue'}${S.str(d['result']) !== '' ? `: ${S.verdict(d['result'])}` : ''}`,
+    TOOLING_ISSUED: (d) => `Tooling set ${S.val(d['set'])} issued for press ${S.val(d['press'])}`,
+    TOOLING_RETURNED: (d) =>
+      `Tooling set ${S.val(d['set'])} returned after ${S.val(d['strokes'])} strokes (${d['strokeSource'] === 'PRESS_COUNTER' ? 'press counter' : 'keyed by hand'})${d['countMismatch'] === true ? ', punches or dies differ from those issued' : ''}${d['limitExceeded'] === true ? ', stroke limit passed' : ''}`,
   },
   dataSchema: {
     entries: {

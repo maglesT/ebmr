@@ -4,7 +4,7 @@
  * it let the shipment through. The ERP ships under its own identity; this is the read of what it did.
  */
 import { routes } from '@ebmr/api-contract';
-import { StatusChip } from '@ebmr/ui-kit';
+import { floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -39,7 +39,7 @@ export function LotShipments({ lotId }: { lotId: string }) {
                   {s.consigneeName} ({s.consigneeCode})
                 </td>
                 <td>
-                  {s.quantity} {s.unit} {s.quarantine ? <StatusChip tone="warning" label="Under quarantine" /> : null}
+                  {floor.quantityText(s.quantity, s.unit)} {s.quarantine ? <StatusChip tone="warning" label="Under quarantine" /> : null}
                 </td>
                 <td>
                   Manufacturer {words(s.manufacturerState)}, market {words(s.dispositionState)}

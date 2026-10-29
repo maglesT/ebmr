@@ -112,6 +112,8 @@ export const CodedData = z.strictObject({ batch: z.string().min(1).max(64), mfgD
 
 export const PackagingStepView = z.strictObject({
   stepKey: z.string(),
+  /** Slice 7u (R10 #14): the step as people read it, its number and MBR name ("3.3.1 Printed foil and cartons ..."). */
+  stepText: z.string().optional(),
   status: z.string(),
   /** The step codes on the line (a printer or a coded item): START, MIDDLE and END specimens are required (IN-16). */
   coding: z.boolean(),

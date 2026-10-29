@@ -15,8 +15,29 @@ export interface GuidanceEntry {
   retryable?: boolean;
 }
 
+/** "test run" and "test runs" that name the batch at hand, not the sandbox's own ("sandbox test run", "test runs in the sandbox"). */
+const TEST_RUN = /(?<!sandbox )\b([Tt])est run(s?)\b(?! in the sandbox)/g;
+
+/**
+ * Slice 7u (R10 #10): a guidance text as the installation says it. The execution guidance is shared by sandbox test runs
+ * and GMP batches; on the GMP installation it never speaks of a test run ("the refusal is recorded in the batch"). The
+ * sandbox keeps its wording.
+ */
+export function forInstallation(text: string, installation: 'GMP' | 'SANDBOX' | undefined): string {
+  if (installation !== 'GMP') return text;
+  return text.replace(TEST_RUN, (_m, t: string, s: string) => `${t === 'T' ? 'B' : 'b'}atch${s ? 'es' : ''}`);
+}
+
 export class GuidanceCatalogue {
   private readonly entries = new Map<string, { entry: GuidanceEntry; owner: string }>();
+
+  /** `installation`: the installation the server runs; GMP guidance never speaks of a test run (forInstallation). */
+  constructor(private readonly installation?: 'GMP' | 'SANDBOX') {}
+
+  private said(entry: GuidanceEntry): GuidanceEntry {
+    if (this.installation !== 'GMP') return entry;
+    return { ...entry, whatHappened: forInstallation(entry.whatHappened, 'GMP'), whatYouCanDo: entry.whatYouCanDo.map((t) => forInstallation(t, 'GMP')) };
+  }
 
   register(owner: string, entries: Readonly<Record<string, GuidanceEntry>>): void {
     for (const [code, entry] of Object.entries(entries)) {
@@ -29,9 +50,10 @@ export class GuidanceCatalogue {
   /** The entry for a code, else for its prefix family (e.g. EBMR-IAM-), else undefined. */
   lookup(code: string): GuidanceEntry | undefined {
     const exact = this.entries.get(code);
-    if (exact) return exact.entry;
+    if (exact) return this.said(exact.entry);
     const family = /^(EBMR-[A-Z]+-|[A-Z0-9]+-)/.exec(code)?.[1];
-    return family ? this.entries.get(`${family}*`)?.entry : undefined;
+    const entry = family ? this.entries.get(`${family}*`)?.entry : undefined;
+    return entry ? this.said(entry) : undefined;
   }
 
   codes(): string[] {

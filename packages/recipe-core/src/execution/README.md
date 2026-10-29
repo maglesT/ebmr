@@ -1456,6 +1456,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `demo-trial-acts.test.ts` (slice 7k, R3.3, R3.8, R3.10, R3.11): the plant act and its step entry as one tapped act
   (batches.plantEntry, 701), what is still to weigh per BOM line, the cleaning needs of a batch's stages, and the notice of
   a kiosk session ended by a sign-in on another kiosk.
+- `gmp-wording.test.ts` (slice 7u, R10 #10): the GMP installation's refusals and hints never speak of a test run or of
+  TEST- lots.
+- `plain-words.test.ts` (slice 7u, R10 #14, #15): MBR step numbers and names, process tags and states in plain words,
+  and unit words instead of placeholders.
+- `value-display.test.ts` (slice 7u, R10 #11): a computed value shown at its limits' precision, the stored value
+  unchanged.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures. REPLAY-GATE (decision REPLAY-GATE.1): a computed value

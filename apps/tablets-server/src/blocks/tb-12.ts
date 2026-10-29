@@ -67,6 +67,7 @@ import {
   type Outcome,
 } from './ipc/common.ts';
 import { resolveRuleSets, RULE_SETS, uncoveredMarkets, type RuleSet, type TabletType, type SubdivisionParams, type UniformityParams, type WeightVariationParams } from './ipc/rule-sets.ts';
+import { WEIGHT_SUMMARIES } from './summaries.ts';
 
 const CONTROLS = ['IN-34', 'IN-35', 'PR-29', 'DI-10', 'DI-29', 'DI-32'];
 export const WEIGHT_MODES = ['GROUP', 'UNIFORMITY', 'INDIVIDUAL', 'CONTENT', 'SUBDIVISION'] as const;
@@ -345,6 +346,7 @@ export const TB12: BlockVersion = {
   level: 'PHASE',
   controls: CONTROLS,
   configSchema: WEIGHT_CONFIG,
+  entrySummaries: WEIGHT_SUMMARIES,
   dataSchema: { entries: WEIGHT_ENTRIES },
   checkConfig,
   handler: { acceptEntry: accept, beforePerform },

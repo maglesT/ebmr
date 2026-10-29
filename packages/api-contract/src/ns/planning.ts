@@ -172,6 +172,8 @@ export const PackagingBulkView = z.strictObject({
       issueProblem: z.string().nullable(),
     }),
   ),
+  /** The finished lot posted for the order (site.finished_lot), or null: once posted it is shown, not offered again (R10 #12). */
+  finishedLot: z.strictObject({ lotId: Uuid, lotCode: z.string() }).nullable(),
 });
 export type PackagingBulkView = z.infer<typeof PackagingBulkView>;
 

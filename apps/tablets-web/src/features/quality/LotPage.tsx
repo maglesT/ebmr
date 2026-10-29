@@ -28,6 +28,16 @@ import { LOT_READS } from './LotsPage.tsx';
 
 type CallErr = Parameters<typeof RefusalMessage>[0]['error'];
 
+/**
+ * Slice 7u (R10 #16): the forms a lot's material kind takes. A starting material (an active, an excipient, a packaging
+ * material) takes the identity test; an active or excipient its assay and potency; a printed packaging lot its artwork
+ * version; a finished or intermediate lot none of these (its results, decision and handling stay).
+ */
+export function lotForms(kind: string): { identity: boolean; assay: boolean; artwork: boolean; retest: boolean } {
+  const starting = ['API', 'EXCIPIENT', 'PRIMARY_PACKAGING', 'PRINTED_PACKAGING'].includes(kind);
+  return { identity: starting, assay: kind === 'API' || kind === 'EXCIPIENT', artwork: kind === 'PRINTED_PACKAGING', retest: starting || kind === 'INTERMEDIATE' };
+}
+
 export function LotPage() {
   const lotId = useRouteParams()['lotId'] ?? '';
   const lots = useApiQuery(routes.quality.lots);
@@ -35,6 +45,7 @@ export function LotPage() {
   const lot = lots.data?.lots.find((l) => l.lotId === lotId) ?? null;
   const qc = useOffered('QC');
   const qa = useOffered('QA');
+  const forms = lot ? lotForms(lot.material.kind) : null;
   return (
     <>
       <h1>Lot {lot ? `${lot.lotCode} ${lot.material.name}` : lotId}</h1>
@@ -45,7 +56,7 @@ export function LotPage() {
       </p>
       {lot ? (
         <p data-testid="lot-status">
-          <StatusChip tone={lot.status === 'RELEASED' ? 'ok' : lot.status === 'REJECTED' ? 'error' : 'warning'} label={lot.status} /> {lot.quantity} {lot.unit}
+          <StatusChip tone={lot.status === 'RELEASED' ? 'ok' : lot.status === 'REJECTED' ? 'error' : 'warning'} label={lot.status} /> {floor.quantityText(lot.quantity, lot.unit)}
           {lot.expiry ? ` · expiry ${lot.expiry.text}` : ''}
           {lot.retest ? ` · retest ${lot.retest.text}` : ''}
         </p>
@@ -77,8 +88,8 @@ export function LotPage() {
         ) : null}
       </Section>
       {/* R13: the lot's potency for anyone who sees the lot; QC changes it on its own guided page. */}
-      {lot ? <LotPotency lotCode={lot.lotCode} /> : null}
-      {qc && lot ? (
+      {lot && forms?.assay ? <LotPotency lotCode={lot.lotCode} /> : null}
+      {qc && lot && forms?.assay ? (
         <p>
           <Link to="/quality/lots/$lotId/potency" params={{ lotId }} data-testid="update-potency">
             Update the potency of lot {lot.lotCode}
@@ -86,8 +97,8 @@ export function LotPage() {
         </p>
       ) : null}
       {/* Slice 7o (R4, R8): the assay result TB-01 reads and a printed lot's artwork version G-21 checks. */}
-      {qc && lot ? <LotQualityForms lotCode={lot.lotCode} results={results.data?.results ?? []} /> : null}
-      {qc && lot ? (
+      {qc && lot && (forms?.assay || forms?.artwork) ? <LotQualityForms lotCode={lot.lotCode} results={results.data?.results ?? []} assay={forms.assay} artwork={forms.artwork} /> : null}
+      {qc && lot && forms?.identity ? (
         <Section title="Identity test" testId="lot-identity">
           <DefineForm
             title={`Record the identity test result of ${lot.lotCode}`}
@@ -105,7 +116,7 @@ export function LotPage() {
       ) : null}
       {/* Phase 7 slice 7p: each profile test as one release requirement, its points recorded one by one. */}
       <LotProfiles lotId={lotId} qc={qc} />
-      {qc && lot ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}
+      {qc && lot && forms?.retest ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}
       {qa && lot ? <LotDecision lot={lot} /> : null}
       <LotReleaseCheck lotId={lotId} />
       {qa && lot ? <LotEvents lot={lot} /> : null}

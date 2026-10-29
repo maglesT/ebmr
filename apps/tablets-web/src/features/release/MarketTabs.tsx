@@ -76,7 +76,7 @@ export function IndiaTab({ lot }: { lot: LotReleaseView }) {
       </p>
       {lot.decision ? (
         <p>
-          {words(lot.decision.decision)} by {lot.decision.by.legalName} ({words(lot.decision.by.role)}), {lot.decision.at.text}.
+          {words(lot.decision.decision)} by {lot.decision.by.legalName} ({words(lot.decision.by.role)}) on {lot.decision.at.text}.
         </p>
       ) : (
         <p>No manufacturer decision is recorded yet.</p>
@@ -106,7 +106,7 @@ function UsDecision({ d }: { d: MarketDispositionView }) {
   return (
     <Section title="US decision" testId="us-decision">
       <p>
-        <StatusChip tone={x.decision === 'RELEASED' ? 'ok' : 'error'} label={words(x.decision)} /> by {x.by.legalName} ({words(x.by.role)}), {x.at.text}
+        <StatusChip tone={x.decision === 'RELEASED' ? 'ok' : 'error'} label={words(x.decision)} /> by {x.by.legalName} ({words(x.by.role)}) on {x.at.text}
         {x.withManufacturerRelease ? ', in the same ceremony as the manufacturer release' : ''}
         {x.reason ? `: ${x.reason}` : ''}
       </p>

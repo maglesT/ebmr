@@ -60,6 +60,7 @@ tests:
   - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] the serialisation routes: a serial query through the server answers the record's lot, expiry and status; the pools of the order show the release problem; QA rejects a pool through the L3 and nobody else may"
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [PR-42] the serial lookup shows the record's lot, expiry and status; the pools of an order show a stale L3 mirror and why release waits"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [PR-42][PR-39][DI-31] serialises the US cartons through the L3/L4 system: the worksheet's pool, commissioning, destruction, specimens and aggregations, the L3 report closing the step; a stale L3 mirror refuses the US release item and a synchronisation clears it"
+  - "apps/tablets-server/test/execution/plain-words.test.ts > the anti-tampering check on an order whose markets do not need it (R10 #17) > [PR-41][PR-42] not offered where the master configures no anti-tampering check; offered with why where it does"
 clauses:
   - clause: "A wrong expiry encoded in a test code is rejected."
     tests:

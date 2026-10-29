@@ -71,6 +71,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './bottle/common.ts';
+import { CHALLENGE_SUMMARY, checkSentence, S } from './summaries.ts';
 
 /** G-21@1's CHALLENGE schema, unchanged (the entries are G-21's). */
 export const G21_CHALLENGE = (blocks.G21.dataSchema as NonNullable<BlockVersion['dataSchema']>).entries['CHALLENGE'] as NonNullable<BlockVersion['dataSchema']>['entries'][string];
@@ -270,6 +271,18 @@ export const TB23: BlockVersion = {
       labelItem: { type: 'string', description: 'The roll-label item of that step' },
       brightStock: { type: 'boolean', optional: true, default: false, description: 'Filled, unlabelled bottles may be set aside for later labelling' },
     },
+  },
+  entrySummaries: {
+    COUNT_CHECK: (d) => checkSentence(`Count check of ${S.count(S.list(d['counts']).length, 'bottle')}${S.str(d['expected']) !== '' ? `, ${S.str(d['expected'])} tablets expected in each` : ''}`, d),
+    DESICCANT_CHECK: (d) => checkSentence(`Desiccant check: ${S.val(d['missing'])} of ${S.count(d['examined'], 'bottle')} without the desiccant`, d),
+    TORQUE_CHECK: (d) =>
+      checkSentence(`Torque check on ${S.val(d['tester'])}: ${S.list(d['application']).map(S.str).join(', ')} application, ${S.list(d['removal']).map(S.str).join(', ')} removal${S.str(d['unit']) !== '' ? ` (${S.unitText(d['unit'])})` : ''}`, d),
+    SEAL_CHECK: (d) => checkSentence(`Seal check: ${S.val(d['defective'])} of ${S.count(d['examined'], 'bottle')} defective${d['statementChecked'] === true ? ', labelling statement checked' : ''}`, d),
+    CHALLENGE: CHALLENGE_SUMMARY,
+    REJECTS: (d) => `${S.cap(S.count(d['bottles'], 'bottle'))} rejected (${S.words(d['reason'])})`,
+    BRIGHT_STOCK: (d) => `${S.cap(S.count(d['bottles'], 'bottle'))} set aside as bright stock under tag ${S.val(d['tag'])}`,
+    BRIGHT_STOCK_USE: (d) => `${S.cap(S.count(d['bottles'], 'bottle'))} of bright stock used: tag ${S.val(d['tag'])}, batch ${S.val(d['scannedBatch'])} of ${S.val(d['scannedProduct'])}`,
+    GOOD_OUTPUT: (d) => `${S.cap(S.count(d['bottles'], 'good bottle'))}`,
   },
   dataSchema: {
     entries: {

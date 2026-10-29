@@ -38,6 +38,7 @@ import {
   type ObjectSchema,
 } from './ipc/common.ts';
 import { resultOf, type TestOutcome } from './tb-12.ts';
+import { PHYSICAL_SUMMARIES } from './summaries.ts';
 
 const CONTROLS = ['IN-35', 'PR-29', 'DI-32'];
 export const PHYSICAL_PARAMETERS = ['thickness', 'diameter', 'hardness'] as const;
@@ -207,6 +208,7 @@ export const TB13: BlockVersion = {
   level: 'PHASE',
   controls: CONTROLS,
   configSchema: PHYSICAL_CONFIG,
+  entrySummaries: PHYSICAL_SUMMARIES,
   dataSchema: { entries: PHYSICAL_ENTRIES },
   checkConfig: (phase, config) => physicalConfigProblems(`Physical check ${phase.id}`, config),
   handler: { acceptEntry: accept, beforePerform },

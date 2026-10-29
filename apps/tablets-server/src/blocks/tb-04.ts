@@ -63,6 +63,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './granulation/common.ts';
+import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'IN-13', 'PR-08', 'PR-29', 'DI-31', 'DI-49'];
 const TAG = /^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/;
@@ -311,6 +312,15 @@ export const TB04: BlockVersion = {
         fields: { max: POSITIVE_QUANTITY, roles: { type: 'array', minItems: 1, maxItems: 10, description: 'Roles allowed to add it', items: { type: 'string', description: 'Role code' } } },
       },
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    MASSING_START: () => 'Wet massing started',
+    END_POINT: (d) =>
+      `End point by ${S.words(d['criterion'])}: ${S.amount(d['value'], d['unit'])}${S.str(d['withinRange']) !== '' ? `, ${S.inRange(d['withinRange'])}` : ''}${S.str(d['reason']) !== '' ? ` (${S.str(d['reason'])})` : ''}`,
+    BINDER_ADDITION: (d) => `Binder solution added: ${S.qty(d['quantity'])}`,
+    EXTRA_FLUID: (d) =>
+      `Extra granulating fluid added: ${S.qty(d['quantity'])} (${S.val(d['reason'])})${d['withinMaximum'] === false ? ', above the maximum' : d['withinMaximum'] === true ? ', within the maximum' : ''}`,
   },
   dataSchema: {
     entries: {

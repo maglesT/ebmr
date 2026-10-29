@@ -53,6 +53,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './granulation/common.ts';
+import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'IN-13', 'PR-29', 'DI-29'];
 
@@ -269,6 +270,15 @@ export const TB07: BlockVersion = {
         },
       },
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    BLEND_START: () => 'Blending started',
+    BLEND_END: (d) => `Blending ended after ${S.val(d['seconds'])} s${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}`,
+    LUBRICANT_ADDED: (d) => `Lubricant added: ${S.qty(d['quantity'])}${S.str(d['lot']) !== '' ? `, lot ${S.str(d['lot'])}` : ''}`,
+    LUBRICATION_END: (d) => `Lubrication ended after ${S.val(d['seconds'])} s${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}`,
+    BU_SAMPLE: (d) =>
+      `Blend uniformity sample at ${S.val(d['location'])}, replicate ${S.val(d['replicate'])}: ${S.qty(d['mass'])}${d['withinDoseRange'] === false ? `, outside 1 to 3 unit doses${S.str(d['justification']) !== '' ? ` (${S.str(d['justification'])})` : ''}` : ''}`,
   },
   dataSchema: {
     entries: {

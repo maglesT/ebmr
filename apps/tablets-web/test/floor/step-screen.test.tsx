@@ -276,7 +276,7 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     const changes = await screen.findByTestId('stale-changes');
     expect(changes.textContent).toContain('The run moved on (version 7 to 9).');
     expect(changes.textContent).toContain('Blend time: 15 min recorded by TEST-Priya Nair');
-    expect(screen.getByText('The test run changed before your entry arrived. Your entry was not saved: the refusal is recorded in the test run, and no scale reading was used. Check the changes, then save again.')).toBeTruthy();
+    expect(screen.getByText('The batch changed before your entry arrived. Your entry was not saved: the refusal is recorded in the batch, and no scale reading was used. Check the changes, then save again.')).toBeTruthy();
     expect(screen.queryByText(/Nothing was saved/)).toBeNull();
     expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe('16');
   });

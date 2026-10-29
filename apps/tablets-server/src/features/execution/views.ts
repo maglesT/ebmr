@@ -13,7 +13,7 @@
  */
 import { blockEntryForms } from './block-entries.ts';
 import { sandbox } from '@ebmr/kernel';
-import { Dec } from '@ebmr/expr';
+import { Dec, formatForDisplay, writtenDecimals, writtenSignificantFigures, type Precision } from '@ebmr/expr';
 import { blocks, engine, flow } from '@ebmr/recipe-core';
 import type {
   ActionView,
@@ -206,6 +206,20 @@ export interface ActionExtras {
   checkers?: readonly string[];
   /** The engine's text as people read it: steps by number and name, items and persons by name (T4; peopleText). */
   say?: (text: string) => string;
+  /** Who may act on an exception the viewer's role may not act on (decidersOf), by `${action}|${target}` (R10 #8). */
+  deciders?: ReadonlyMap<string, readonly string[]>;
+}
+
+/**
+ * The quality unit's act on an exception (its disposition): never the primary action of a role that may not take it, and
+ * shown with who may (R10 #8). Linking a deviation keeps its greyed button with the permission it needs (the floor's
+ * supervisor act, which the operator raising the exception is told about).
+ */
+const ON_EXCEPTION: ReadonlySet<ActionView['action']> = new Set(['DISPOSITION_EXCEPTION']);
+
+/** Whether the viewer's role is what refuses the action: the engine's role rule (ENG-ROLE) or the command's permission (display only). */
+function refusedByRole(p: DisplayPermissions | undefined, a: engine.AvailableAction): boolean {
+  return a.refusal?.code === 'ENG-ROLE' || (a.available && permissionRefusal(p, a.action, a.meaning) !== null);
 }
 
 const sayIt = (say: ((text: string) => string) | undefined, text: string | null): string | null => (text !== null && say ? say(text) : text);
@@ -236,11 +250,14 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
     const available = a.available && denied === null && elsewhere === null;
     const check = a.action === 'VERIFY' || a.action === 'WITNESS';
     const byWho = check && !available && (denied !== null || a.refusal?.code === 'ENG-SEGREGATION' || a.refusal?.code === 'ENG-ROLE');
+    // R10 #8: an act on an exception the viewer's role may not take names who may, and is never the primary action.
+    const notForRole = ON_EXCEPTION.has(a.action) && !available && (denied !== null || a.refusal?.code === 'ENG-ROLE');
     return {
       a,
       available,
+      notForRole,
       reason: sayIt(extras.say, a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : (denied ?? elsewhere)),
-      whoCanHelp: byWho ? [...(extras.checkers ?? [])] : [],
+      whoCanHelp: byWho ? [...(extras.checkers ?? [])] : notForRole ? [...(extras.deciders?.get(`${a.action}|${a.target ?? ''}`) ?? [])] : [],
     };
   });
   // A step whose completion an open exception blocks (ENG-BLOCKED; PR-08): its signature is the greyed primary,
@@ -252,7 +269,7 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
   }
   if (primary < 0) {
     for (const kind of PRIMARY_ORDER) {
-      primary = checked.findIndex((c) => c.a.action === kind);
+      primary = checked.findIndex((c) => c.a.action === kind && !c.notForRole);
       if (primary >= 0) break;
     }
   }
@@ -295,6 +312,35 @@ export async function checkersOf(ctx: ViewContext, stepDef: engine.StepDef, inst
   return out;
 }
 
+/**
+ * Who may disposition an exception the viewer's role may not (R10 #8), in words, by `${action}|${target}`: the roles of
+ * this installation that hold the command's permission (recipe.execution_command_permission) and carry one of the
+ * engine roles that may give it (QA where the exception is QA only, else a supervisor or QA; engine
+ * dispositionException). Display only: the engine and the database decide at the act.
+ */
+export async function decidersOf(ctx: ViewContext, actions: readonly engine.AvailableAction[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const policy = ctx.run.def.policy;
+  for (const a of actions) {
+    if (!ON_EXCEPTION.has(a.action) || !refusedByRole(ctx.permissions, a)) continue;
+    const e = a.target ? ctx.state.exceptions[a.target] : undefined;
+    const engineRoles = e?.qaOnly ? [...policy.qaRoles] : [...policy.supervisorRoles, ...policy.qaRoles];
+    const permissions = [...(ctx.permissions?.needs.get(a.action) ?? [])];
+    const { rows } = await ctx.db.query<{ code: string; name: string }>(
+      `select r.code, r.name
+         from iam.role r
+        where exists (select 1 from tab.engine_role_map m
+                       where m.kernel_role = r.code and m.engine_role = any($1::text[])
+                         and m.via_permission = any(iam.role_permissions_at(r.code, clock_timestamp())))
+          and (cardinality($2::text[]) = 0 or iam.role_permissions_at(r.code, clock_timestamp()) && $2::text[])
+        order by r.name, r.code`,
+      [engineRoles, permissions],
+    );
+    out.set(`${a.action}|${a.target ?? ''}`, rows.length > 0 ? rows.map((r) => `${r.name} (${r.code})`) : ['No role of this installation may do this. Ask QA.']);
+  }
+  return out;
+}
+
 /** R10 #3: the block's advisory warning on each entry form it names (engine.entryWarnings); never a refusal. */
 function withWarnings(forms: BlockEntryFormView[], warnings: Readonly<Record<string, string>>): BlockEntryFormView[] {
   return forms.map((f) => (warnings[f.kind] === undefined ? f : { ...f, warning: warnings[f.kind] }));
@@ -331,12 +377,56 @@ function stepActions(ctx: ViewContext, inst: engine.StepInstance | undefined, st
 // ---------------------------------------------------------------------------------------------
 // Values
 
-function verdictText(ev: engine.StoredEvaluation | undefined, failed: boolean): string {
+/** "VALIDATED" -> "validated", "INTERNAL_ACTION" -> "internal action". */
+const tierWords = (tier: string): string => tier.toLowerCase().replace(/_/g, ' ');
+
+/** One tier of the engine's stored evaluation ("VALIDATED: pass low 99.1 high 99.1"). */
+const DETAIL = /^([A-Z_]+): (pass|FAIL)(?: low (\S+)(?: \(outside\))?)?(?: high (\S+)(?: \(outside\))?)?$/;
+
+/**
+ * Slice 7u (R10 #11): a tier of the stored evaluation in words, with the limit it was judged against ("validated 97.0 to
+ * 101.0 %: 99.1 as compared"). Display only; the stored evaluation keeps the engine's text.
+ */
+export function detailWords(detail: string, spec: flow.LimitSpec | undefined, unit: string | undefined): string {
+  const m = DETAIL.exec(detail);
+  const range = m ? spec?.ranges.find((r) => r.tier === m[1]) : undefined;
+  if (!m || !range) return detail;
+  const u = unit && unit !== '1' ? ` ${unit}` : '';
+  const low = range.low ? `${range.low.inclusive ? 'at least' : 'more than'} ${range.low.value}` : '';
+  const high = range.high ? `${range.high.inclusive ? 'at most' : 'less than'} ${range.high.value}` : '';
+  const limit = range.low && range.high && range.low.inclusive && range.high.inclusive ? `${range.low.value} to ${range.high.value}${u}` : `${[low, high].filter((x) => x !== '').join(' and ')}${u}`;
+  const compared = m[3] ?? m[4];
+  return `${tierWords(m[1] ?? '')} ${limit}${compared !== undefined ? `: ${compared} as compared` : ''}${m[2] === 'pass' ? '' : ', outside'}`;
+}
+
+export function verdictText(ev: engine.StoredEvaluation | undefined, failed: boolean, spec?: flow.LimitSpec, unit?: string): string {
   if (!ev) return failed ? 'Failed' : 'No limit applies';
   if (ev.requirement === 'ENDPOINT_IN_PROGRESS') return 'Judged when the loop ends';
-  if (ev.breached) return `Outside the ${ev.breached.toLowerCase().replace(/_/g, ' ')} limit: ${ev.detail.join('; ')}`;
+  const detail = ev.detail.map((d) => detailWords(d, spec, unit)).join('; ');
+  if (ev.breached) return `Outside the ${tierWords(ev.breached)} limit: ${detail}`;
   if (ev.requirement === 'UNEXPECTED_ANSWER') return 'Not the expected answer';
-  return `Within limits (${ev.detail.join('; ')})`;
+  return `Within limits (${detail})`;
+}
+
+/**
+ * Slice 7u (R10 #11): the precision a computed value is shown at: the decimals (USP rounding) or significant figures
+ * (Ph. Eur.) its limits are written to; without a limit, three decimals at most. Display only: the stored value is
+ * never changed.
+ */
+export function limitPrecision(spec: flow.LimitSpec | undefined): Precision {
+  const ranges = spec?.ranges ?? [];
+  const bounds = ranges.flatMap((r) => [r.low?.value, r.high?.value]).filter((v): v is string => typeof v === 'string');
+  if (bounds.length === 0) return { decimals: 3 };
+  if (ranges.every((r) => r.rounding === 'PH_EUR_SIG_FIGS')) return { significantFigures: Math.max(...bounds.map((b) => writtenSignificantFigures(b) ?? 1)) };
+  return { decimals: Math.max(...bounds.map(writtenDecimals)) };
+}
+
+/** A decimal value as shown at `precision` ("99.1 %"), or undefined when it holds no more digits than that (shown as stored). */
+export function shownAt(v: engine.DataValue | undefined, precision: Precision): string | undefined {
+  if (v?.kind !== 'DECIMAL' || !/^-?[0-9]+(\.[0-9]+)?$/.test(v.value)) return undefined;
+  const shown = formatForDisplay(v.value, precision);
+  if (writtenDecimals(shown) >= writtenDecimals(v.value)) return undefined;
+  return `${shown} ${v.unit}`;
 }
 
 function echoOf(v: engine.DataValue | undefined, source: engine.DataSource): string {
@@ -356,7 +446,7 @@ function echoOf(v: engine.DataValue | undefined, source: engine.DataSource): str
   }
 }
 
-function attemptOfPoint(ctx: ViewContext, p: engine.DataPoint): Attempt {
+function attemptOfPoint(ctx: ViewContext, p: engine.DataPoint, spec?: flow.LimitSpec, unit?: string): Attempt {
   const s = p.source;
   return {
     pointId: p.id,
@@ -372,24 +462,27 @@ function attemptOfPoint(ctx: ViewContext, p: engine.DataPoint): Attempt {
       raw: s.mode === 'DEVICE' ? (s.raw ?? null) : null,
       code: s.mode === 'SCAN' ? s.code : null,
     },
-    verdict: p.evaluation || p.failed ? { tier: p.evaluation?.breached ?? null, failed: p.failed, text: verdictText(p.evaluation, p.failed) } : null,
+    verdict: p.evaluation || p.failed ? { tier: p.evaluation?.breached ?? null, failed: p.failed, text: verdictText(p.evaluation, p.failed, spec, unit) } : null,
     flags: [...p.flags],
     status: p.status,
   };
 }
 
-function attemptOfDerived(ctx: ViewContext, d: engine.DerivedValue): Attempt {
+function attemptOfDerived(ctx: ViewContext, d: engine.DerivedValue, spec?: flow.LimitSpec, unit?: string): Attempt {
   const row = ctx.rows.atEvent(d.computedSeq);
+  // Slice 7u (R10 #11): a computed value at the precision of its limits (the stored value stays as computed).
+  const shown = shownAt(d.value, limitPrecision(spec));
   return {
     pointId: d.id,
     attempt: 1,
     version: d.version,
     value: wireOf(d.value),
-    echo: `Computed ${engine.showValue(d.value)}`,
+    echo: `Computed ${shown ?? engine.showValue(d.value)}`,
+    ...(shown !== undefined ? { shown } : {}),
     by: row?.actor ?? personOrId(ctx, 'SYSTEM'),
     at: fmt(ctx, d.computedAt),
     source: { mode: 'BLOCK', deviceCode: null, raw: null, code: null },
-    verdict: d.evaluation || d.failed ? { tier: d.evaluation?.breached ?? null, failed: d.failed, text: verdictText(d.evaluation, d.failed) } : null,
+    verdict: d.evaluation || d.failed ? { tier: d.evaluation?.breached ?? null, failed: d.failed, text: verdictText(d.evaluation, d.failed, spec, unit) } : null,
     flags: d.reason ? ['RECOMPUTED'] : [],
     status: d.status === 'CURRENT' ? 'VALID' : 'SUPERSEDED',
   };
@@ -476,11 +569,11 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
       ? Object.values(ctx.state.derived)
           .filter((d) => d.stepKey === stepKey && d.calculation === item)
           .sort((a, b) => a.computedSeq - b.computedSeq)
-          .map((d) => attemptOfDerived(ctx, d))
+          .map((d) => attemptOfDerived(ctx, d, spec, unit))
       : Object.values(ctx.state.points)
           .filter((p) => p.stepKey === stepKey && p.item === item)
           .sort((a, b) => a.attempt - b.attempt || a.version - b.version || a.recordedSeq - b.recordedSeq)
-          .map((p) => attemptOfPoint(ctx, p));
+          .map((p) => attemptOfPoint(ctx, p, spec, unit));
     out.push({
       item,
       name: param?.name ?? calc?.name ?? item,
@@ -505,7 +598,11 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
 /** Plain text of a scalar entry member ('' for anything else). */
 const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
 
-function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent): string {
+/**
+ * The sentence of an entry (owner report #20): the cases kept here first, then the sentence the step's block gives
+ * for the kind (BlockVersion.entrySummaries, from the stored data and the master's names), else the kind in words.
+ */
+export function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent, step?: engine.StepDef): string {
   const d = e.data;
   const s = (k: string): string => text(d[k]);
   switch (e.kind) {
@@ -513,29 +610,37 @@ function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent): string {
       const lot = (d['lot'] ?? {}) as Record<string, unknown>;
       return `Container ${s('container')}: lot ${text(lot['id'])}, net ${s('net')} ${s('unit')} (gross ${s('gross')} ${s('unit')}, tare ${s('tare')} ${s('unit')}) on ${s('balance')}${s('source') === 'MANUAL' ? ', keyed by hand' : ''}`;
     }
-    case 'OUTPUT_CONTAINER':
-      return `Container ${s('container')} of ${s('intermediate')}: net ${s('net')} ${s('unit')} (gross ${s('gross')} ${s('unit')}, tare ${s('tare')} ${s('unit')}) on ${s('balance')}${s('source') === 'MANUAL' ? ', keyed by hand' : ''}`;
     case 'POTENCY_CALCULATION':
       return potencyFromCalculation(mbr, d).summary;
-    case 'CHARGE_CONTAINER':
-      return `Charged ${s('container')} (${s('holds')})`;
-    case 'CHARGE_LOT':
-      return `Charged lot ${text(((d['lot'] ?? {}) as Record<string, unknown>)['id'])} for ${s('bomLine')}`;
-    case 'CLEARANCE_CHECK':
-    case 'EQUIPMENT_STATUS': {
+    case 'CLEARANCE_CHECK': {
       const answers = Array.isArray(d['answers']) ? (d['answers'] as { id: string; answer: string }[]) : [];
       const tally = new Map<string, number>();
       for (const a of answers) tally.set(a.answer, (tally.get(a.answer) ?? 0) + 1);
-      const parts = [...tally].map(([k, n]) => `${n} ${k.toLowerCase().replace(/_/g, ' ')}`).join(', ');
-      return e.kind === 'EQUIPMENT_STATUS' ? `${s('equipmentRef')} (label ${s('labelId')}): ${parts}` : `Checklist: ${parts}`;
+      return `Checklist: ${[...tally].map(([k, n]) => `${n} ${k.toLowerCase().replace(/_/g, ' ')}`).join(', ')}`;
     }
+    // OUTPUT_CONTAINER, CHARGE_CONTAINER, CHARGE_LOT and EQUIPMENT_STATUS showed an item or equipment key: their
+    // blocks' sentences name it as the master does (owner report #20).
     case 'PREVIOUS_BATCH':
       return `Previous batch: ${s('product')} ${s('batchNumber')}`;
     case 'ACKNOWLEDGE':
       return `${s('mode') === 'CONFIRM_PERFORMED' ? 'Confirmed performed' : 'Read'}${d['sop'] ? `: ${s('sop')} version ${s('sopVersion')}` : ''}`;
-    default:
-      return e.kind.toLowerCase().replace(/_/g, ' ');
+    default: {
+      const own = step?.block?.entrySummaries?.[e.kind];
+      const plain = e.kind.toLowerCase().replace(/_/g, ' ');
+      if (!own) return plain;
+      // A summary is display only: one that cannot read its entry's data must not take the step view down with it.
+      try {
+        return own(d, blocks.summaries.entrySummaryContext(mbr, step?.config ?? {}));
+      } catch {
+        return plain;
+      }
+    }
   }
+}
+
+/** The step definition an entry's step instance runs. */
+function entryStep(ctx: ViewContext, stepKey: string): engine.StepDef | undefined {
+  return ctx.run.def.steps.get(ctx.state.steps[stepKey]?.step ?? stepKey.slice(0, Math.max(0, stepKey.indexOf('@'))));
 }
 
 /** P7L-1 (slice 7m): the balance of a weighing keyed by hand that the operator did not name. */
@@ -549,7 +654,7 @@ function entryViews(ctx: ViewContext, keep: (e: ViewContext['state']['entries'][
   return Object.values(ctx.state.entries)
     .filter(keep)
     .sort((a, b) => a.recordedSeq - b.recordedSeq)
-    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e, ctx.run.def.mbr)}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
+    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e, ctx.run.def.mbr, entryStep(ctx, e.stepKey))}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
 }
 
 /**
@@ -625,7 +730,9 @@ function equipmentLabel(def: engine.BatchDefinition, stepDef: engine.StepDef, re
 }
 
 /** Forms of the entry kinds the browser can send for this step's block (the client entry variants). */
-function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): EntryFormT[] {
+export function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef, installation: 'GMP' | 'SANDBOX' = 'SANDBOX'): EntryFormT[] {
+  // Slice 7u (R10 #10): the sandbox takes TEST- lots and batches only; the GMP installation says nothing of test data.
+  const sandboxOnly = installation === 'SANDBOX';
   if (stepDef.node.kind !== 'phase' || !stepDef.block) return [];
   const phase = stepDef.node;
   const kinds = Object.keys(stepDef.block.dataSchema?.entries ?? {});
@@ -653,7 +760,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
               ? [field('item', 'Quantity', 'enum', 'The dispensed quantity this container counts towards', { options: massItems.map((i) => ({ value: i, label: def.mbr.parameters.find((p) => p.id === i)?.name ?? i })) })]
               : []),
             field('bomLine', 'Material', 'enum', 'The BOM line dispensed into this container', { options: bom }),
-            field('lotCode', 'Lot', 'lot', 'Scan the lot label (TEST- lots only)'),
+            field('lotCode', 'Lot', 'lot', sandboxOnly ? 'Scan the lot label (TEST- lots only)' : 'Scan the lot label'),
             ...readings(),
           ],
         });
@@ -686,7 +793,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
           kind,
           title: 'Previous batch',
           description: 'Product and batch number last processed in this area.',
-          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', 'The test batch (TEST-...) last processed here, or NONE')],
+          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', sandboxOnly ? 'The test batch (TEST-...) last processed here, or NONE' : 'The batch last processed here, or NONE')],
         });
         break;
       case 'EQUIPMENT_STATUS': {
@@ -843,6 +950,7 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
   return {
     runId: ctx.run.batch.id,
     batchNumber: ctx.state.header.batchNumber,
+    recordKind: ctx.run.def.mbr.header.recordKind,
     product: productOf(ctx),
     markets: [...ctx.state.header.marketSet],
     status: ctx.state.status,
@@ -915,6 +1023,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     roomReason: stepRoomReason(def, stepId, ctx.session?.roomCode ?? null),
     checkers: inst && inst.kind !== 'HOLD' && inst.status === 'AWAITING_VERIFICATION' ? await checkersOf(ctx, stepDef, inst) : [],
   };
+  const offered = stepActions(ctx, inst, stepKey);
   const potency = kinds.includes('POTENCY_CALCULATION') ? await potencyOf(ctx.db, def.mbr, ctx.state, ctx.run.batch.id, stepKey) : null;
   return {
     asOf: fmt(ctx, ctx.nowUs),
@@ -936,14 +1045,14 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     },
     fields: node.kind === 'phase' ? withPotencyTargets(fieldsOf(ctx, stepDef, inst, stepKey), potency, node, def.mbr, ctx.state, stepKey) : fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
-    entryForms: entryFormsOf(def, stepDef),
-    blockEntries: withWarnings(blockEntryForms(stepDef.block), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
+    entryForms: entryFormsOf(def, stepDef, ctx.app.installation),
+    blockEntries: withWarnings(blockEntryForms(stepDef.block, { config: stepDef.config, markets: def.mbr.header.marketSet }), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),
     exceptions: exceptions.map((e) => shownException(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
-    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),
+    actions: actionViews(offered, shopFloor, whoOf(ctx), ctx.permissions, { ...extras, deciders: await decidersOf(ctx, offered), say: sayFor(ctx.run.def, ctx.rows) }),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
     ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 ? { bomRemaining: await bomRemainingOf(ctx, node.consumes, potency) } : {}),
@@ -1105,6 +1214,7 @@ function holdView(ctx: ViewContext, h: engine.HoldRecord): Hold {
 
 export async function runView(ctx: ViewContext): Promise<RunView> {
   const shopFloor = ctx.session?.deviceClass === 'SHARED' || ctx.session?.deviceClass === 'GRADE_A_B';
+  const offered = engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs });
   return {
     asOf: fmt(ctx, ctx.nowUs),
     header: await header(ctx, currentStage(ctx), false),
@@ -1113,7 +1223,7 @@ export async function runView(ctx: ViewContext): Promise<RunView> {
       .sort((a, b) => a.raisedSeq - b.raisedSeq)
       .map((e) => shownException(ctx, e)),
     holds: Object.values(ctx.state.holds).map((h) => holdView(ctx, h)),
-    actions: actionViews(engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }), shopFloor, whoOf(ctx), ctx.permissions, { say: sayFor(ctx.run.def, ctx.rows) }),
+    actions: actionViews(offered, shopFloor, whoOf(ctx), ctx.permissions, { deciders: await decidersOf(ctx, offered), say: sayFor(ctx.run.def, ctx.rows) }),
     auditChain: `batch:${ctx.run.batch.id}`,
   };
 }

@@ -345,7 +345,7 @@ export function useRunCommand(
       // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
       // in is no longer the sender; then the step is read again).
       const put = value.step ? await applyStepView(qc, value.step, signedInNow) : false;
-      await refreshRun(qc, { steps: !put });
+      await refreshRun(qc, put && value.step ? { steps: true, keep: value.step } : { steps: true });
     },
     onNotApplied: (refusal) => extraRef.current.onNotApplied?.(refusal),
     onDiscarded: () => extraRef.current.onDiscarded?.(),

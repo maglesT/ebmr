@@ -24,6 +24,7 @@ import type {
   ReviewCategory,
 } from '../engine/types.ts';
 import type { FieldSchema, ObjectSchema } from './schema.ts';
+import type { EntrySummary } from './summary.ts';
 
 /** Where a block acts: as a flow phase, or as part of the batch, a stage, a construct or a service. */
 export type BlockLevel = 'PHASE' | 'BATCH' | 'STAGE' | 'HOLD_POINT' | 'CONSTRUCT' | 'SERVICE';
@@ -258,6 +259,12 @@ export interface BlockVersion {
   configSchema?: ObjectSchema;
   /** Block entry kinds and their schemas. PHASE blocks without entries declare an empty map. */
   dataSchema?: { entries: Readonly<Record<string, ObjectSchema>>; startData?: ObjectSchema };
+  /**
+   * Phase 7 slice 7u (owner report #20): the plain sentence of each entry kind, from the entry's stored data (summary.ts),
+   * shown on the step screens and in the whole batch record. Not part of the registry fingerprint: it describes, it
+   * decides nothing.
+   */
+  entrySummaries?: Readonly<Record<string, EntrySummary>>;
   /** Cross-field configuration checks (beyond the schema). */
   checkConfig?(phase: PhaseNode, config: Readonly<Record<string, JsonValue>>, mbr: MbrContent): ConfigProblem[];
   handler?: PhaseHandler;
@@ -280,3 +287,4 @@ export interface BlockVersion {
 }
 
 export type { FieldSchema, ObjectSchema };
+export type { EntrySummary, EntrySummaryContext } from './summary.ts';

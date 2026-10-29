@@ -71,6 +71,7 @@ import {
   type PhaseNode,
 } from './coating/common.ts';
 import { cmp, compareGain, fixedText, roundHalfAway, scaled, weightGain } from './coating/calc.ts';
+import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-37', 'PR-08', 'PR-29', 'DI-29', 'DI-49'];
 /** The loop bound of the block (maximum iterations 1 to 20). */
@@ -359,6 +360,19 @@ export const TB18: BlockVersion = {
       logInterval: { ...DURATION, optional: true, description: 'Coating parameters logged at least this often (D 15 min)' },
     },
   },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    ROOM_CHECK: (d) =>
+      `Room at ${S.amount(d['temperature'], 'Cel')} and ${S.val(d['humidity'])} % RH, ${d['filteredAir'] === true ? 'filtered pan air' : 'pan air not filtered'}${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}`,
+    PAN_LOAD: (d) => `Pan loaded with ${S.qty(d['quantity'])}${S.str(d['withinRange']) !== '' ? `, ${S.inRange(d['withinRange'])}` : ''}`,
+    CORE_SAMPLE: (d) => `Core tablets: ${coatingSample(d)}`,
+    SPRAY_START: () => 'Spraying started',
+    SPRAY_END: (d) => `Spraying ended${S.str(d['sprayingSeconds']) !== '' ? ` after ${S.str(d['sprayingSeconds'])} s` : ''}${S.list(d['logGaps']).length > 0 ? ', with gaps in the process log' : ''}`,
+    SUSPENSION_USED: (d) => `Coating suspension used: ${S.qty(d['quantity'])}`,
+    APPLICATION: (d) => `${S.cap(S.words(d['phase']))} coat applied`,
+    WEIGHT_CHECK: (d) =>
+      `Coated tablets: ${coatingSample(d)}${S.str(d['weightGain']) !== '' ? `, weight gain ${S.str(d['weightGain'])} %` : ''}${d['belowMinimum'] === true ? ', below the minimum' : d['aboveMaximum'] === true ? ', above the maximum' : ''}`,
+  },
   dataSchema: {
     entries: {
       ...PROCESS_ENTRIES,
@@ -456,3 +470,10 @@ export const TB18: BlockVersion = {
   },
   tests: ['apps/tablets-server/test/blocks/coating/blocks.test.ts', 'apps/tablets-server/test/blocks/coating/calc.test.ts', 'apps/tablets-server/test/blocks/coating/db-guards.test.ts'],
 };
+
+/** A coating sample in words: how many tablets, weighed how, and their weight. */
+function coatingSample(d: Readonly<Record<string, unknown>>): string {
+  const weights = S.list(d['weights']);
+  const weight = weights.length > 0 ? `weighed one by one` : `${S.amount(d['total'], d['unit'])} together`;
+  return `${S.count(d['count'], 'tablet')}${S.str(d['instrument']) !== '' ? ` on ${S.str(d['instrument'])}` : ''}, ${weight}${S.str(d['coreMeanMg']) !== '' ? `, core mean ${S.str(d['coreMeanMg'])} mg` : ''}`;
+}

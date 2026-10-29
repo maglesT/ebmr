@@ -77,6 +77,8 @@ tests:
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > the vendor-history routes > [IN-24] lists the routes with their state and QA disables an enabled one with the reason"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and the printed materials received and examined by stores, tested by QC and approved by the head of QC, their assay and artwork recorded, released by QA; the tooling set defined @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-17][IN-24][IN-33][PR-32] Rabeprazole 5: the first lots of the active and the printed materials received, examined, tested and approved, their assay and artwork recorded, released by QA; the tooling set defined @office"
+  - "apps/tablets-web/test/receipt/lot-forms.test.ts > the forms a lot is offered by its material kind (R10 #16) > [IN-24][PR-17] a finished lot takes no identity test, assay or artwork; a starting material takes its own"
+  - "packages/ui-kit/test/floor/words.test.ts > units and states in plain words (R10 #14, #15) > [IN-24][PR-57] a count annotation reads as tablets, labels or units; a unit of measure stays"
 clauses:
   - clause: "release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists."
     tests:

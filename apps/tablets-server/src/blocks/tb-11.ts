@@ -65,6 +65,7 @@ import { acceptSecondStage, acceptWeightCheck, pendingFirstStages, resultOf, WEI
 import { acceptPhysicalCheck, PHYSICAL_CONFIG, PHYSICAL_ENTRIES, physicalConfigProblems, physicalNominal } from './tb-13.ts';
 import { acceptFriabilityRun, FRIABILITY_CONFIG, FRIABILITY_ENTRIES, friabilityConfigProblems, friabilityNominal, pendingFriability } from './tb-14.ts';
 import { acceptDtEnd, acceptDtStart, DT_CONFIG, DT_ENTRIES, dtConfigProblems, dtNominal, dtPending } from './tb-15.ts';
+import { DT_SUMMARIES, FRIABILITY_SUMMARIES, PHYSICAL_SUMMARIES, RUN_SUMMARIES, WEIGHT_SUMMARIES } from './summaries.ts';
 
 const CONTROLS = ['PR-07', 'PR-29', 'IN-35', 'DI-28', 'DI-29'];
 
@@ -570,6 +571,7 @@ export const TB11: BlockVersion = {
   level: 'PHASE',
   controls: CONTROLS,
   configSchema: SCHEDULER_CONFIG,
+  entrySummaries: { ...RUN_SUMMARIES, ...WEIGHT_SUMMARIES, ...PHYSICAL_SUMMARIES, ...FRIABILITY_SUMMARIES, ...DT_SUMMARIES },
   dataSchema: { entries: TB11_ENTRIES },
   checkConfig,
   handler: { acceptEntry: accept, beforePerform },

@@ -60,3 +60,32 @@ export function clockText(seconds: number): string {
   const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
   return `${h > 0 ? `${h}:` : ''}${mm}:${String(r).padStart(2, '0')}`;
 }
+
+/**
+ * Slice 7u (R10 #14): a state code in plain words ("EXECUTION_COMPLETE" -> "execution complete", "QA_REVIEWED" ->
+ * "QA reviewed"), for a state shown inside a sentence.
+ */
+export function stateWords(code: string): string {
+  return code.replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|qp|ipc|lims|erp)\b/g, (w) => w.toUpperCase());
+}
+
+/** UCUM annotations of a count as people read them (slice 7u, R10 #15). */
+const COUNT_UNITS: Readonly<Record<string, string>> = {
+  '{tbl}': 'tablets', '{tablets}': 'tablets', '{tab}': 'tablets', '{cap}': 'capsules', '{lbl}': 'labels', '{label}': 'labels', '{labels}': 'labels',
+  '{u}': 'units', '{unit}': 'units', '{units}': 'units', '{ea}': 'units', '{pack}': 'packs', '{packs}': 'packs', '{ctn}': 'cartons', '{carton}': 'cartons', '{bottle}': 'bottles', '1': 'units',
+};
+
+/**
+ * Slice 7u (R10 #15): a unit as people read it after a quantity: "{tbl}" -> "tablets", "1" (a plain count) -> "units",
+ * another annotation without its braces; a unit of measure ("kg", "%") as it is.
+ */
+export function unitText(unit: string | null | undefined): string {
+  if (!unit) return '';
+  return COUNT_UNITS[unit] ?? (/^\{[^{}]+\}$/.test(unit) ? unit.slice(1, -1) : unit);
+}
+
+/** A quantity with its unit as people read it ("1000 tablets", "20000 units", "12.5 kg"). */
+export function quantityText(quantity: string, unit: string | null | undefined): string {
+  const u = unitText(unit);
+  return u === '' ? quantity : `${quantity} ${u}`;
+}

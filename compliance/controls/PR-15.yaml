@@ -35,6 +35,7 @@ tests:
   - "packages/kernel/test/mutation/plant-rules.test.ts > an area authorisation at the edges of its window (kernel 1190) > [PR-15][INV-26] it counts from the microsecond it was recorded and the first microsecond of its validity, and not at the microsecond it ends or is withdrawn"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15][PR-25][PR-35] the master-data steward saves a room's rules and records an adjacency; a refusal is shown in the database's words"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15] a QA reviewer is offered neither a room rule nor an adjacency"
+  - "apps/tablets-server/test/execution/refusals-and-room-views.test.ts > a QA act on an exception, seen by an operator (R10 #8) > [DI-17][PR-15] the disposition of an exception is never the operator's primary action: it names who may give it; QA sees it as the primary action"
 clauses:
   - clause: "A user whose training has lapsed is refused on the step."
     tests:

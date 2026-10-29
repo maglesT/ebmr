@@ -910,6 +910,8 @@ test('[IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] route W 9: the cold-for
     await as(page, verifier);
     await page.goto(`${base}/labels/packaging/${orderId}`);
     await act(page, page.getByTestId('post-use-inspection').getByRole('button', { name: 'Verify the inspection' }), verifier);
+    // The verification is answered before the person changes (act clicks and taps; it does not wait for the answer).
+    await expect(page.getByTestId('post-use-inspection').getByText(/verified by /)).toBeVisible();
     // The verification saved before the person changes (as in gmp-kiosk-batch 6); else the stage sign-off can find the
     // inspection still unverified (PR-34).
     await expect(page.getByTestId('post-use-inspection').getByText(`verified by ${verifier.legalName}`)).toBeVisible();

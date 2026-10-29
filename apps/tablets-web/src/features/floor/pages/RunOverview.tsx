@@ -14,6 +14,7 @@ import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
+import { BatchLinks } from '../components/BatchLinks.tsx';
 import { ExceptionList } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
@@ -226,6 +227,8 @@ export function RunOverviewPage() {
         <a href={auditHref(view.auditChain)} className={wcls('link')}>
           {st('run.audit')}
         </a>
+        {/* R10 #13: the batch's containers and, for a packaging order, its line completion and bulk. */}
+        <BatchLinks run={view.header} />
         {runActions.map((a) => (
           <span key={`${a.action}-${a.target ?? ''}`}>
             <Button onPress={() => perform(a)} isDisabled={!a.available}>

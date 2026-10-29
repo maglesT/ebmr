@@ -30,6 +30,7 @@ import { Dec } from '@ebmr/expr';
 import { durationToMicros } from '../../flow/decimal.ts';
 import type { BlockVersion, EntryResult, HandlerProblem, HandlerView, ObjectSchema } from '../contract.ts';
 import { convert, micros, netOf, problem } from './common.ts';
+import * as S from '../summary.ts';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DIGITS = /^[0-9]{1,20}$/;
@@ -258,6 +259,7 @@ export const G24V2: BlockVersion = {
   level: 'PHASE',
   controls: ['PR-47', 'IN-18', 'IN-19', 'PR-57'],
   configSchema: { type: 'object', description: 'Case and limits come from the phase reprocessing declaration (outline 5.2.9)', fields: {} },
+  entrySummaries: { ADDITION: (d) => additionSummary(d) },
   dataSchema: {
     entries: {
       ADDITION: {
@@ -334,4 +336,16 @@ export const G24V2: BlockVersion = {
 export function weighedNet(gross: unknown, tare: unknown): { ok: true; net: string } | { ok: false; message: string } {
   if (typeof gross !== 'string' || typeof tare !== 'string') return { ok: false, message: 'gross and tare are decimal text' };
   return netOf(gross, tare);
+}
+
+/** The sentence of a reprocessing or recovery addition (G-24@2, TB-08): the net taken and where it came from. */
+export function additionSummary(d: Readonly<Record<string, unknown>>): string {
+  const source = S.rec(d['source']);
+  const unit = S.rec(d['net'])['unit'];
+  const from = S.str(source['product']) !== '' ? ` of ${S.str(source['product'])}${S.str(source['strength']) !== '' ? ` ${S.str(source['strength'])}` : ''}` : '';
+  const weighed = S.str(d['gross']) !== '' ? ` (gross ${S.amount(d['gross'], unit)}, tare ${S.amount(d['tare'], unit)})` : '';
+  const kind = d['case'] === 'RECOVERY' || source['case'] === 'RECOVERY' ? 'recovered material' : 'reprocessing residue';
+  // The source container is a database id (plant.output_container): the sentence names its batch's product and stage instead.
+  const stage = S.str(source['stage']) !== '' ? `, ${S.words(source['stage'])} stage` : '';
+  return `Added ${S.qty(d['net'] ?? d['quantity'])} of ${kind} from a container${from}${stage}${weighed}`;
 }
