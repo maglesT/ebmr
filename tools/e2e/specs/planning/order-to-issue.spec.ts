@@ -9,6 +9,10 @@ import { expect, signIn, test } from '../../fixtures/index.ts';
 import { signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 
+/** The unit as the screen words it (R10 #15: ui-kit unitText): a count's annotation in words, "1" as units. */
+const COUNTS: Readonly<Record<string, string>> = { '{tbl}': 'tablets', '{tablets}': 'tablets', '{tab}': 'tablets', '{lbl}': 'labels', '{u}': 'units', '{unit}': 'units', '1': 'units' };
+const screenUnit = (u: string): string => COUNTS[u] ?? (/^\{[^{}]+\}$/.test(u) ? u.slice(1, -1) : u);
+
 test('planning: every open order is listed with its matching MBR or the reason none matches @office', async ({ e2e, officePage, persona, evidence }) => {
   const issuer = persona('GMP', 'issuer');
   const page = await officePage('GMP', 'PC-PLAN-01');
@@ -20,7 +24,7 @@ test('planning: every open order is listed with its matching MBR or the reason n
     await page.goto(`${e2e.url('GMP')}/planning`);
     for (const o of orders) {
       const card = page.getByTestId(`order-${o.orderNo}`);
-      await expect(card).toContainText(`${o.batchSize} ${o.batchSizeUnit}`);
+      await expect(card).toContainText(`${o.batchSize} ${screenUnit(o.batchSizeUnit)}`);
       if (o.match) await expect(card.getByTestId('match')).toContainText(o.match.familyCode);
       else {
         await expect(card).toContainText(o.noMatch ?? 'missing reason');
