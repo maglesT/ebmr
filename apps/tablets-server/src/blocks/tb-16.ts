@@ -68,6 +68,7 @@ import {
   type ObjectSchema,
   type PhaseNode,
 } from './forming/common.ts';
+import { DT_SUMMARIES, FRIABILITY_SUMMARIES, PHYSICAL_SUMMARIES, PROCESS_SUMMARIES, RUN_SUMMARIES, S, WEIGHT_SUMMARIES } from './summaries.ts';
 
 const CONTROLS = ['PR-21', 'PR-29', 'IN-26', 'IN-35', 'DI-31'];
 type Config = Readonly<Record<string, unknown>>;
@@ -276,6 +277,15 @@ export const TB16: BlockVersion = {
       restartAfter: { ...DURATION, optional: true, description: 'A stoppage longer than this makes every check due at the restart (D: 15 min; 0 to 60 min)' },
       lateEntry: LATE_ENTRY,
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    HOPPER_CHARGE: (d, c) => `Hopper ${S.val(d['hopper'])} of the ${S.words(d['layer'])} layer charged with ${c.name(d['blend'])}`,
+    ...RUN_SUMMARIES,
+    ...WEIGHT_SUMMARIES,
+    ...PHYSICAL_SUMMARIES,
+    ...FRIABILITY_SUMMARIES,
+    ...DT_SUMMARIES,
   },
   dataSchema: {
     entries: {

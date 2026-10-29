@@ -76,6 +76,7 @@ import {
 } from './bottle/common.ts';
 import { G21_CHALLENGE } from './tb-23.ts';
 import { blocks } from '@ebmr/recipe-core/pure';
+import { CHALLENGE_SUMMARY, checkSentence, S } from './summaries.ts';
 
 const CONTROLS = ['PR-37', 'PR-41', 'PR-42', 'IN-22'];
 export const PACK_DEVICE_KINDS = ['CHECKWEIGHER', 'LEAFLET_DETECTOR', 'VISION', 'READER'] as const;
@@ -262,6 +263,20 @@ export const TB24: BlockVersion = {
       maxUnexplained: { type: 'string', pattern: COUNT, optional: true, description: 'Packs the reconciliation may leave unexplained (D 0)' },
       printedStep: { type: 'string', description: 'The G-21 step that issues, codes and reconciles the cartons and leaflets and holds the serial pools' },
     },
+  },
+  entrySummaries: {
+    CHALLENGE: CHALLENGE_SUMMARY,
+    ATD_CHECK: (d) => checkSentence(`Anti-tampering check: ${S.val(d['defective'])} of ${S.count(d['examined'], 'pack')} with a defective device`, d),
+    EXAMINATION: (d) =>
+      checkSentence(`${d['timing'] === 'END' ? 'End-of-run' : 'In-run'} examination: ${S.val(d['defective'])} of ${S.count(d['examined'], 'pack')} defective, ${d['labelCorrect'] === true ? 'labels correct' : 'labels not correct'}`, d),
+    PACKS_MADE: (d) => `${S.cap(S.count(d['packs'], 'pack'))} made`,
+    REJECTS: (d) => `${S.cap(S.count(d['packs'], 'pack'))} rejected (${S.words(d['reason'])})`,
+    PACK_SAMPLE: (d) => `${S.cap(S.count(d['packs'], 'pack'))} taken for ${S.words(d['purpose'])}`,
+    SET_ASIDE: (d) => `${S.cap(S.count(d['packs'], 'pack'))} set aside: ${S.val(d['description'])}`,
+    RE_ENTRY: (d) => `${S.cap(S.count(d['packs'], 'pack'))} re-entered after a special inspection that ${S.verdict(d['inspection'])} (investigation ${S.val(d['investigation'])})`,
+    SHIPPER: (d) => `Shipper ${S.val(d['sscc'])}: ${S.count(d['packs'], 'pack')}${d['part'] === true ? ', the part shipper' : ''}`,
+    RECONCILIATION: (d) =>
+      `Packs reconciled: ${S.val(d['made'])} made, ${S.val(d['shipped'])} shipped, ${S.val(d['rejects'])} rejected, ${S.val(d['samples'])} samples, ${S.val(d['setAside'])} set aside and ${S.val(d['reEntered'])} re-entered; ${S.val(d['unexplained'])} unexplained${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}`,
   },
   dataSchema: {
     entries: {

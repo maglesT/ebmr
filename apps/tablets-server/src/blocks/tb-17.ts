@@ -44,6 +44,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './compression/common.ts';
+import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'IN-35', 'DI-49', 'PR-29'];
 /** Default challenge interval (tablets spec TB-17: start, every 2 h, end; a shorter one may be configured). */
@@ -198,6 +199,12 @@ export const TB17: BlockVersion = {
       rejectGate: DEVICE_CONFIG(false),
       deDuster: { type: 'string', pattern: CODE, optional: true, description: 'De-duster code' },
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    CHALLENGE: (d) => `${S.cap(S.words(d['device']))} challenge (${S.words(d['timing'])}): ${d['passed'] === true ? 'every test piece detected and rejected' : 'fails'}`,
+    REJECT_COUNT: (d) => `${S.count(d['count'], 'tablet')} rejected at the ${S.words(d['device'])}, for ${S.words(d['disposition'])}`,
+    DEDUSTING: (d) => `De-duster ${S.val(d['deDuster'])} ${d['inUse'] === true ? 'in use' : 'not in use'}`,
   },
   dataSchema: {
     entries: {

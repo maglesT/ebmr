@@ -12,6 +12,7 @@ import { Dec } from '@ebmr/expr';
 import type { MbrContent, PhaseNode } from '../../flow/model.ts';
 import type { BlockVersion, ComputedItem, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import { configRecord, convert, convertAtResolution, CORE_VALUE_RULES, countableInto, isMassUnit, LOT_SCHEMA, massItems, micros, netOf, problem, QUANTITY_SCHEMA, sumDecimals } from './common.ts';
+import * as S from '../summary.ts';
 
 const WEIGHING_FIELDS = {
   gross: { type: 'decimal' as const, description: 'Gross weight from the balance' },
@@ -125,6 +126,7 @@ export const G07: BlockVersion = {
       method: { type: 'string', enum: ['NET', 'BY_DIFFERENCE', 'WHOLE_CONTAINER'], optional: true, description: 'Weighing method (default NET)' },
     },
   },
+  entrySummaries: { CONTAINER_WEIGHING: weighingSummary },
   dataSchema: {
     entries: {
       CONTAINER_WEIGHING: {
@@ -287,6 +289,11 @@ export const G08: BlockVersion = {
       chargeAll: { type: 'boolean', optional: true, defaultText: 'yes outside a sub-lot section, no inside one', description: 'Every container of the used intermediates must be charged here (default: true outside sub-lot sections)' },
     },
   },
+  entrySummaries: {
+    CHARGE_CONTAINER: (d, c) => `Charged container ${S.val(d['container'])}${S.str(d['holds']) !== '' ? ` of ${S.nameOrText(c, d['holds'])}` : ''}`,
+    CHARGE_LOT: (d, c) =>
+      `Charged lot ${S.val(S.rec(d['lot'])['id'])} of ${c.name(d['bomLine'])}${d['quantity'] ? `: ${S.qty(d['quantity'])}` : ''}${S.str(d['container']) !== '' ? ` from container ${S.str(d['container'])}` : ''}`,
+  },
   dataSchema: {
     entries: {
       CHARGE_CONTAINER: {
@@ -393,6 +400,10 @@ export const G22: BlockVersion = {
     description: 'Uniquely identified output containers in quarantine with computed net weights',
     fields: { tare: { type: 'string', enum: ['WEIGHED', 'NOMINAL'], optional: true, description: 'Weighed tare (default) or nominal for validated container types' } },
   },
+  entrySummaries: {
+    OUTPUT_CONTAINER: (d, c) =>
+      `Container ${S.val(d['container'])} of ${c.name(d['intermediate'])}: net ${S.amount(d['net'], d['unit'])} (gross ${S.amount(d['gross'], d['unit'])}, tare ${S.amount(d['tare'], d['unit'])}) on ${S.val(d['balance'])}${d['source'] === 'MANUAL' ? ', keyed by hand' : ''}`,
+  },
   dataSchema: {
     entries: {
       OUTPUT_CONTAINER: {
@@ -471,6 +482,10 @@ export const G23: BlockVersion = {
     description: 'Returns to stores, reject containers, waste and witnessed destruction',
     fields: { witness: { type: 'boolean', optional: true, default: true, description: 'Destruction is witnessed (default true)' } },
   },
+  entrySummaries: {
+    DISPOSAL: (d, c) =>
+      `${S.cap(S.words(d['category']))}: ${S.qty(d['quantity'])} of ${S.nameOrText(c, d['material'])}${d['batchCoded'] === true ? ', printed with the batch code' : ''}${S.str(d['container']) !== '' ? `, container ${S.str(d['container'])}` : ''}${S.str(d['method']) !== '' ? `, by ${S.str(d['method'])}` : ''}`,
+  },
   dataSchema: {
     entries: {
       DISPOSAL: {
@@ -524,4 +539,11 @@ export const MATERIAL_BLOCKS: readonly BlockVersion[] = [G07, G08, G22, G23];
 export function computedItemsOf(phase: PhaseNode, mbr: MbrContent): string[] {
   const block = MATERIAL_BLOCKS.find((b) => b.type === phase.block.type && b.version === phase.block.version);
   return block?.handler?.computedItems?.(phase, mbr) ?? [];
+}
+
+/** The sentence of a container weighing (G-07, TB-01): what it counts towards, by the master's names. */
+export function weighingSummary(d: Readonly<Record<string, unknown>>, c: S.EntrySummaryContext): string {
+  const u = d['unit'];
+  const of = S.str(d['item']) !== '' && c.name(d['item']) !== S.UNNAMED_ITEM ? c.name(d['item']) : c.name(d['bomLine']);
+  return `${S.cap(of)}: container ${S.val(d['container'])}, lot ${S.val(S.rec(d['lot'])['id'])}, net ${S.amount(d['net'], u)} (gross ${S.amount(d['gross'], u)}, tare ${S.amount(d['tare'], u)}) on ${S.val(d['balance'])}${d['source'] === 'MANUAL' ? ', keyed by hand' : ''}`;
 }

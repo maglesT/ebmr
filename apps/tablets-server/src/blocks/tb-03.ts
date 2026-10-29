@@ -32,6 +32,7 @@ import {
   type HandlerView,
   type Entry,
 } from './granulation/common.ts';
+import { S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'IN-13', 'PR-30', 'IN-37'];
 
@@ -110,6 +111,10 @@ export const TB03: BlockVersion = {
       useBy: { ...DURATION, description: 'Maximum hold from the end of preparation to the end of use (from hold-time data)' },
       appearance: { type: 'string', optional: true, description: 'Appearance criterion' },
     },
+  },
+  entrySummaries: {
+    PREPARED: (d) => `Prepared ${S.qty(d['quantity'])}, appearance ${S.words(d['appearance'])}`,
+    DISCARD: (d) => `Discarded ${S.qty(d['quantity'])}: ${S.val(d['method'])}`,
   },
   dataSchema: {
     entries: {

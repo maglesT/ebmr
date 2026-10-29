@@ -47,6 +47,7 @@ import {
   type PhaseNode,
 } from './granulation/common.ts';
 import { plainText, scaled, sumText } from './coating/calc.ts';
+import { S } from './summaries.ts';
 
 const R = blocks.reprocessing;
 
@@ -209,6 +210,9 @@ export const TB08: BlockVersion = {
       },
       addedItem: { type: 'string', optional: true, description: 'Parameter (kg or g) the block computes as the net added (C-07)' },
     },
+  },
+  entrySummaries: {
+    ADDITION: blocks.G24V2.entrySummaries?.['ADDITION'] ?? ((d) => `Added ${S.qty(d['net'])} from container ${S.val(d['container'])}`),
   },
   dataSchema: {
     entries: {

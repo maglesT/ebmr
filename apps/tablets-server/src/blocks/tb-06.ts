@@ -78,6 +78,7 @@ import {
   type PhaseNode,
   type Quantity,
 } from './forming/common.ts';
+import { PROCESS_SUMMARIES, RUN_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['PR-08', 'PR-29', 'IN-36', 'DI-31'];
 const HUNDRED = dec('100');
@@ -419,6 +420,18 @@ export const TB06: BlockVersion = {
         fields: { min: { type: 'decimal', optional: true, description: 'Lowest yield, %' }, max: { type: 'decimal', optional: true, description: 'Highest yield, %' } },
       },
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    RUN_START: RUN_SUMMARIES.RUN_START,
+    RUN_END: RUN_SUMMARIES.RUN_END,
+    FEED: (d) => `Pre-blend fed: ${S.qty(d['quantity'])}`,
+    RIBBON_CHECK: (d) =>
+      `Ribbon check: ${S.join(S.str(d['thickness']) !== '' && `thickness ${S.str(d['thickness'])} mm`, S.str(d['density']) !== '' && `density ${S.str(d['density'])} g/cm3`, S.str(d['solidFraction']) !== '' && `solid fraction ${S.str(d['solidFraction'])} %`, `appearance ${S.words(d['appearance'])}`)}${S.str(d['result']) !== '' ? `: ${S.verdict(d['result'])}` : ''}`,
+    SCREEN_CHECK: (d) => `Screen ${S.val(d['screen'])} (${S.qty(d['aperture'])}) ${d['when'] === 'AFTER' ? 'after' : 'before'} use: ${S.words(d['result'])}`,
+    GRANULE_OUTPUT: (d) => `Discharged ${S.qty(d['granules'])} of granules and ${S.qty(d['fines'])} of fines through screen ${S.val(d['screen'])}`,
+    FINES_RECYCLED: (d) => `Fines recycled: ${S.qty(d['quantity'])}${S.str(d['recycledPercent']) !== '' ? ` (${S.str(d['recycledPercent'])} % of the pre-blend fed in all)` : ''}`,
+    YIELD: (d) => `Stage yield ${S.val(d['yieldPercent'])} %${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}`,
   },
   dataSchema: {
     entries: {

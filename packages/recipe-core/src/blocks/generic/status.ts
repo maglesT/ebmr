@@ -22,6 +22,7 @@ import type { PhaseNode } from '../../flow/model.ts';
 import type { BlockVersion, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import type { FieldSchema } from '../schema.ts';
 import { problem } from './common.ts';
+import * as S from '../summary.ts';
 
 /** A check of the equipment-status attestation: id and the question shown. */
 export interface StatusCheck {
@@ -140,6 +141,9 @@ export const G09: BlockVersion = {
         items: { type: 'object', description: 'One check', fields: { id: CHECK_ID, text: { type: 'string', description: 'Question shown to the person' } } },
       },
     },
+  },
+  entrySummaries: {
+    EQUIPMENT_STATUS: (d, c) => `${S.cap(c.name(d['equipmentRef']))}, status label ${S.val(d['labelId'])}: ${answerTally(d)}${d['passed'] === false ? ', not ready for use' : ''}`,
   },
   dataSchema: {
     entries: {
@@ -278,6 +282,10 @@ export const G10: BlockVersion = {
       },
     },
   },
+  entrySummaries: {
+    CLEARANCE_CHECK: (d) => `Clearance checklist: ${answerTally(d)}${d['passed'] === false ? ', not cleared' : ''}`,
+    PREVIOUS_BATCH: (d) => `Previous batch: ${S.val(d['product'])} ${S.val(d['batchNumber'])}`,
+  },
   dataSchema: {
     entries: {
       CLEARANCE_CHECK: {
@@ -398,6 +406,9 @@ export const G09V2: BlockVersion = {
   level: 'PHASE',
   controls: ['PR-23', 'IN-25', 'INV-12', 'DI-05'],
   configSchema: { type: 'object', description: 'The units are the phase STATUS_CHECK equipment; their status is read from site services when the use starts', fields: {} },
+  entrySummaries: {
+    EQUIPMENT_USE: (d, c) => `Equipment ${S.val(d['equipmentCode'])} (${c.name(d['equipmentRef'])}) in use for the batch`,
+  },
   dataSchema: {
     entries: {
       EQUIPMENT_USE: {
@@ -463,6 +474,9 @@ export const G10V2: BlockVersion = {
   level: 'PHASE',
   controls: ['PR-26', 'PR-34', 'IN-21', 'INV-15', 'DI-05'],
   configSchema: { type: 'object', description: 'The clearance is performed, verified by a second person and the area occupied for the batch in site services', fields: {} },
+  entrySummaries: {
+    AREA_OCCUPANCY: (d) => `Area ${S.val(d['areaCode'])} occupied by the batch`,
+  },
   dataSchema: {
     entries: {
       AREA_OCCUPANCY: {
@@ -503,3 +517,13 @@ export const G10V2: BlockVersion = {
 };
 
 export const STATUS_BLOCKS: readonly BlockVersion[] = [G09, G10, G09V2, G10V2];
+
+/** The answers of a checklist entry counted by answer: "12 confirmed, 1 not applicable". */
+function answerTally(d: Readonly<Record<string, unknown>>): string {
+  const tally = new Map<string, number>();
+  for (const a of S.list(d['answers'])) {
+    const answer = S.words(S.rec(a)['answer']);
+    tally.set(answer, (tally.get(answer) ?? 0) + 1);
+  }
+  return tally.size === 0 ? 'no answers' : [...tally].map(([k, n]) => `${String(n)} ${k}`).join(', ');
+}

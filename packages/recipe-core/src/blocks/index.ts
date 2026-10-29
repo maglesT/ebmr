@@ -4,5 +4,6 @@
  */
 export * from './contract.ts';
 export { validateSchema, describeSchema, type BooleanSchema, type SchemaProblem } from './schema.ts';
+export * as summaries from './summary.ts';
 export { BlockRegistry, BlockRegistryError, blockKey, missingParts, type BlockVersionReport } from './registry.ts';
 export * from './generic/index.ts';

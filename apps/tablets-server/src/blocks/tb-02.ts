@@ -42,6 +42,7 @@ import {
   type Entry,
   type ObjectSchema,
 } from './granulation/common.ts';
+import { S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'PR-23', 'PR-29', 'DI-29', 'INV-24'];
 
@@ -226,6 +227,11 @@ export const TB02: BlockVersion = {
       },
       oversizeExamination: { type: 'boolean', optional: true, default: true, description: 'The oversize retained is examined and recorded for every material (Sched M VIII 2.2)' },
     },
+  },
+  entrySummaries: {
+    SCREEN_CHECK: (d) => `Screen ${S.val(d['screen'])} (${S.qty(d['aperture'])}) ${d['when'] === 'AFTER' ? 'after' : 'before'} use: ${S.words(d['result'])}`,
+    MATERIAL_PASS: (d, c) =>
+      `${S.cap(S.nameOrText(c, d['material']))}${S.str(d['lot']) !== '' ? ` (lot ${S.str(d['lot'])})` : ''} through screen ${S.val(d['screen'])}: ${S.qty(d['quantityIn'])} fed, ${S.qty(d['quantityOut'])} through${d['oversize'] ? `, ${S.qty(d['oversize'])} oversize` : ''}, ${d['foreignMatter'] === true ? `foreign matter found: ${S.val(d['foreignMatterDescription'])}` : 'no foreign matter'}`,
   },
   dataSchema: {
     entries: {

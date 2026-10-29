@@ -50,6 +50,7 @@ import {
 } from './ipc/common.ts';
 import { recorded, resolveRuleSets, uncoveredMarkets, type RuleSet, type TabletType } from './ipc/rule-sets.ts';
 import { resultOf, type TestOutcome } from './tb-12.ts';
+import { DT_SUMMARIES } from './summaries.ts';
 
 const CONTROLS = ['IN-35', 'PR-29', 'DI-29'];
 
@@ -301,6 +302,7 @@ export const TB15: BlockVersion = {
   level: 'PHASE',
   controls: CONTROLS,
   configSchema: DT_CONFIG,
+  entrySummaries: DT_SUMMARIES,
   dataSchema: { entries: DT_ENTRIES },
   checkConfig: (phase, config, mbr) => dtConfigProblems(`Disintegration step ${phase.id}`, config, mbr.header.marketSet),
   handler: { acceptEntry: accept, beforePerform },

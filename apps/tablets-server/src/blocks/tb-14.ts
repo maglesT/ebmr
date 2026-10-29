@@ -42,6 +42,7 @@ import {
 } from './ipc/common.ts';
 import { recorded, resolveRuleSets, uncoveredMarkets, type FriabilityParams, type TabletType } from './ipc/rule-sets.ts';
 import { resultOf, type TestOutcome } from './tb-12.ts';
+import { FRIABILITY_SUMMARIES } from './summaries.ts';
 
 const CONTROLS = ['IN-35', 'PR-29', 'DI-29'];
 
@@ -210,6 +211,7 @@ export const TB14: BlockVersion = {
   level: 'PHASE',
   controls: CONTROLS,
   configSchema: FRIABILITY_CONFIG,
+  entrySummaries: FRIABILITY_SUMMARIES,
   dataSchema: { entries: FRIABILITY_ENTRIES },
   checkConfig: (phase, config, mbr) => friabilityConfigProblems(`Friability step ${phase.id}`, config, mbr.header.marketSet),
   handler: { acceptEntry: accept, beforePerform },
