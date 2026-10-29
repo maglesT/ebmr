@@ -986,7 +986,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     fields: node.kind === 'phase' ? withPotencyTargets(fieldsOf(ctx, stepDef, inst, stepKey), potency, node, def.mbr, ctx.state, stepKey) : fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
     entryForms: entryFormsOf(def, stepDef, ctx.app.installation),
-    blockEntries: withWarnings(blockEntryForms(stepDef.block), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
+    blockEntries: withWarnings(blockEntryForms(stepDef.block, { config: stepDef.config, markets: def.mbr.header.marketSet }), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),

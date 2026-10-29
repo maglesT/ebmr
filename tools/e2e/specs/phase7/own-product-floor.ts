@@ -1106,7 +1106,7 @@ export async function packagingRun(f: Floor, p: PackPlan): Promise<void> {
     await step(f, page, 'p-tb24@');
     await entry(page, 'CHALLENGE', op, { Device: 'CW', Trigger: 'START', Result: 'PASS' });
     // The master's TB-24 checks the anti-tampering device hourly when it was copied for EU too; an IN-only order has none.
-    if ((await page.getByRole('button', { name: 'Record: Atd check', exact: true }).count()) > 0) await entry(page, 'ATD_CHECK', op, { Examined: '5', Defective: '0' });
+    if ((await page.getByRole('button', { name: 'Record: Anti-tampering check', exact: true }).count()) > 0) await entry(page, 'ATD_CHECK', op, { Examined: '5', Defective: '0' });
     await entry(page, 'EXAMINATION', op, { Timing: 'IN_RUN', Examined: '2', Defective: '0', 'Label correct': 'Yes' });
     await entry(page, 'PACKS_MADE', op, { Packs: '10' });
     await step(f, page, 'p-tb21@');

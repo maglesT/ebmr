@@ -410,7 +410,7 @@ export async function closeTyped(page: Page, base: string, batchId: string, labe
 export async function saveBlock(page: Page, kind: string, who: SeededPersona, fill?: (form: Locator) => Promise<void>): Promise<void> {
   const form = page.getByTestId(`block-form-${kind}`);
   if ((await form.count()) === 0) {
-    const words = kind.charAt(0) + kind.slice(1).toLowerCase().replace(/_/g, ' ');
+    const words = kind === 'ATD_CHECK' ? 'Anti-tampering check' : kind.charAt(0) + kind.slice(1).toLowerCase().replace(/_/g, ' ');
     await page.getByRole('button', { name: `Record: ${words}`, exact: true }).click();
   }
   if (fill) await fill(form);
