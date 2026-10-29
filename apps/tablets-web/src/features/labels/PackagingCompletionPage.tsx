@@ -63,7 +63,7 @@ function StepPanel({ batchId, s }: { batchId: string; s: Step }) {
   const recorded = new Set(s.codingSpecimens.map((c) => c.position));
   const next = POSITIONS.find((p) => !recorded.has(p)) ?? null;
   return (
-    <Section title={`Printed materials ${s.stepKey}`} testId={`packaging-step-${s.stepKey}`}>
+    <Section title={`Printed materials: step ${s.stepText ?? s.stepKey}`} testId={`packaging-step-${s.stepKey}`}>
       <p>
         Status: {words(s.status)}.{' '}
         {s.problem ? <StatusChip tone="warning" label={s.problem} /> : <StatusChip tone="ok" label="Specimens complete" />}

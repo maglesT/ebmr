@@ -83,7 +83,7 @@ function Recorded({ view: v, d }: { view: LotAfterReleaseView; d: DisposalView }
   return (
     <Section title="Disposal of the lot" testId="disposal-recorded">
       <p data-testid="disposal-state" data-state={d.state}>
-        <StatusChip tone={stateTone(d.state)} label={words(d.state)} /> {words(d.route)}, {d.quantity} {d.unit}
+        <StatusChip tone={stateTone(d.state)} label={words(d.state)} /> {words(d.route)}, {floor.quantityText(d.quantity, d.unit)}
         {d.returnTo ? ` to the ${d.returnTo.toLowerCase()}` : ''}
         {d.reference ? `, reference ${d.reference}` : ''}
         {d.reprocessingRef ? `, reprocessing ${d.reprocessingRef}` : ''}

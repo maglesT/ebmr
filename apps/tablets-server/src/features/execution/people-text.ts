@@ -26,6 +26,45 @@ const FRAME = /^([^=]+)=(0|[1-9][0-9]{0,8})(?:\/(.*))?$/s;
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** The units a process tag ends with ("power_kW", "inlet_temp_C"), as people write them. */
+const TAG_UNITS: Readonly<Record<string, string>> = {
+  kW: 'kW', W: 'W', C: '°C', degC: '°C', K: 'K', rpm: 'rpm', bar: 'bar', mbar: 'mbar', kPa: 'kPa', Pa: 'Pa', pct: '%', percent: '%', RH: '% RH',
+  s: 's', min: 'min', h: 'h', mm: 'mm', kg: 'kg', g: 'g', mg: 'mg', L: 'L', mL: 'mL', A: 'A', V: 'V', Hz: 'Hz', N: 'N', kN: 'kN', m3h: 'm³/h', mps: 'm/s',
+};
+const TAG_WORDS: Readonly<Record<string, string>> = { temp: 'temperature', press: 'pressure', dp: 'differential pressure', rh: 'relative humidity', spd: 'speed', pos: 'position' };
+
+/**
+ * Slice 7u (R10 #14): a process tag as people read it, "granulator.power_kW" -> "Granulator power, kW",
+ * "dryer.inlet_temp_C" -> "Dryer inlet temperature, °C". The tag itself stays in the record.
+ */
+export function tagWords(tag: string): string {
+  const parts = tag.split(/[._]/).filter((p) => p !== '');
+  const last = parts[parts.length - 1] ?? '';
+  const unit = parts.length > 1 ? TAG_UNITS[last] : undefined;
+  const words = (unit ? parts.slice(0, -1) : parts).map((w) => TAG_WORDS[w.toLowerCase()] ?? w.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase());
+  const text = words.join(' ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}${unit ? `, ${unit}` : ''}`;
+}
+
+/** The process tags the MBR's steps name (a configuration object with a `tag`), with the name the MBR gives one, if any. */
+function tagsOf(def: engine.BatchDefinition): Map<string, string> {
+  const out = new Map<string, string>();
+  const visit = (o: unknown): void => {
+    if (Array.isArray(o)) o.forEach(visit);
+    else if (o !== null && typeof o === 'object') {
+      const r = o as Record<string, unknown>;
+      const tag = r['tag'];
+      if (typeof tag === 'string' && /^[A-Za-z][A-Za-z0-9]*([._][A-Za-z0-9]+)+$/.test(tag) && !out.has(tag)) {
+        const named = typeof r['name'] === 'string' ? r['name'] : typeof r['label'] === 'string' ? r['label'] : null;
+        out.set(tag, named ?? tagWords(tag));
+      }
+      Object.values(r).forEach(visit);
+    }
+  };
+  for (const s of def.steps.values()) visit(s.config);
+  return out;
+}
+
 function framesOf(context: string): flow.Frame[] | null {
   const frames: flow.Frame[] = [];
   let rest = context;
@@ -80,6 +119,11 @@ export function peopleText(c: PeopleTextContext, text: string): string {
   for (const [id, name] of [...items].sort((a, b) => b[0].length - a[0].length)) {
     if (!IDENTIFIER_LIKE.test(id) || id === name) continue;
     out = out.replace(new RegExp(`(?<![\\w@/-])${escape(id)}(?![\\w@/-])`, 'g'), () => hold(name));
+  }
+
+  // Process tags of the MBR's steps (slice 7u, R10 #14): "granulator.power_kW" -> "Granulator power, kW".
+  for (const [tag, name] of [...tagsOf(c.def)].sort((a, b) => b[0].length - a[0].length)) {
+    out = out.replace(new RegExp(`(?<![\\w@/.-])${escape(tag)}(?![\\w@/-]|\\.\\w)`, 'g'), () => hold(name));
   }
 
   // Person ids the record knows.

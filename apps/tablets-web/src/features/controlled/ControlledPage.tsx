@@ -276,7 +276,7 @@ function Extract({ extractId }: { extractId: string }) {
               <td>{words(r.movement)}</td>
               <td>{r.lot}</td>
               <td>
-                {r.quantity} {r.unit}
+                {floor.quantityText(r.quantity, r.unit)}
               </td>
               <td>{r.batch ?? ''}</td>
               <td>{r.persons.filter((p) => p !== null).length.toString()}</td>

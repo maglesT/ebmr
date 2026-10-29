@@ -4,7 +4,7 @@
  */
 import { Link } from '@tanstack/react-router';
 import { routes } from '@ebmr/api-contract';
-import { StatusChip } from '@ebmr/ui-kit';
+import { floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { Section } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
@@ -47,7 +47,7 @@ export function LotsPage() {
                 <StatusChip tone={l.status === 'RELEASED' ? 'ok' : l.status === 'REJECTED' ? 'error' : 'warning'} label={l.status} />
               </td>
               <td>
-                {l.quantity} {l.unit}
+                {floor.quantityText(l.quantity, l.unit)}
               </td>
               <td>{[l.supplier, l.supplierLot].filter(Boolean).join(' / ') || '-'}</td>
               <td>{l.expiry?.text ?? '-'}</td>

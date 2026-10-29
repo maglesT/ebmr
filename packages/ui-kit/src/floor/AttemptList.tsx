@@ -8,7 +8,7 @@ import type { DataValueWire, FieldView } from '@ebmr/api-contract';
 import { StatusChip } from '../primitives/StatusChip.tsx';
 import type { StateTone } from '../tokens/tokens.ts';
 import { fcls } from './classes.ts';
-import { enumText, personLine } from './format.ts';
+import { enumText, personLine, unitText } from './format.ts';
 import { ft } from './messages.ts';
 
 export type AttemptData = FieldView['attempts'][number];
@@ -18,7 +18,7 @@ export function valueText(v: DataValueWire | null, fallback: string): string {
   if (!v) return fallback;
   switch (v.kind) {
     case 'DECIMAL':
-      return `${v.value} ${v.unit}`;
+      return `${v.value} ${v.unit.startsWith('{') ? unitText(v.unit) : v.unit}`;
     case 'COUNT':
       return v.value;
     case 'BOOLEAN':

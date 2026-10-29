@@ -8,6 +8,7 @@
  */
 import { routes, type LabelStoreView, type LabelTemplateView, type MasterLabellingView, type PackagingCompletionView } from '@ebmr/api-contract';
 import type { commands } from '@ebmr/kernel';
+import type { engine } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
@@ -16,6 +17,8 @@ import type { GuidanceEntry } from '../../platform/http/guidance.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { compact, peopleOf } from '../common/people.ts';
+import { peopleText } from '../execution/people-text.ts';
+import { runContext } from '../execution/runs.ts';
 
 type JsonValue = commands.JsonValue;
 type Db = Pick<pg.Pool, 'query'>;
@@ -127,10 +130,29 @@ async function store(db: Db, lotId: string): Promise<LabelStoreView> {
   };
 }
 
-async function packaging(db: Db, batchId: string): Promise<PackagingCompletionView> {
+async function packaging(db: pg.Pool, batchId: string): Promise<PackagingCompletionView> {
   const v = (await db.query<{ v: PackagingCompletionView | null }>('select tab.packaging_completion_view($1) as v', [batchId])).rows[0]?.v;
   if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
-  return v;
+  return withPeopleText(db, batchId, v);
+}
+
+/**
+ * Slice 7u (R10 #14): the database's words name steps by key ("step p-g21@ is not performed"); the screen names them by
+ * number and MBR name, as the step screens do (peopleText). Display only; without the batch's definition the words stay.
+ */
+async function withPeopleText(db: pg.Pool, batchId: string, v: PackagingCompletionView): Promise<PackagingCompletionView> {
+  try {
+    return packagingViewText((await runContext(db, batchId)).def, v);
+  } catch {
+    return v;
+  }
+}
+
+/** The packaging view with its steps and problems as people read them (withPeopleText). */
+export function packagingViewText(def: engine.BatchDefinition, v: PackagingCompletionView): PackagingCompletionView {
+  const say = (t: string | null): string | null => (t === null ? null : peopleText({ def }, t));
+  const stepText = (key: string): string => peopleText({ def }, `step ${key}`).replace(/^step /, '');
+  return { ...v, completionProblem: say(v.completionProblem), steps: v.steps.map((s) => ({ ...s, stepText: stepText(s.stepKey), problem: say(s.problem) })) };
 }
 
 async function master(db: Db, versionId: string): Promise<MasterLabellingView> {
