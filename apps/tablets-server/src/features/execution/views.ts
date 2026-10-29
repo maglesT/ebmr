@@ -551,7 +551,11 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
 /** Plain text of a scalar entry member ('' for anything else). */
 const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
 
-function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent): string {
+/**
+ * The sentence of an entry (owner report #20): the cases kept here first, then the sentence the step's block gives
+ * for the kind (BlockVersion.entrySummaries, from the stored data and the master's names), else the kind in words.
+ */
+export function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent, step?: engine.StepDef): string {
   const d = e.data;
   const s = (k: string): string => text(d[k]);
   switch (e.kind) {
@@ -559,29 +563,30 @@ function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent): string {
       const lot = (d['lot'] ?? {}) as Record<string, unknown>;
       return `Container ${s('container')}: lot ${text(lot['id'])}, net ${s('net')} ${s('unit')} (gross ${s('gross')} ${s('unit')}, tare ${s('tare')} ${s('unit')}) on ${s('balance')}${s('source') === 'MANUAL' ? ', keyed by hand' : ''}`;
     }
-    case 'OUTPUT_CONTAINER':
-      return `Container ${s('container')} of ${s('intermediate')}: net ${s('net')} ${s('unit')} (gross ${s('gross')} ${s('unit')}, tare ${s('tare')} ${s('unit')}) on ${s('balance')}${s('source') === 'MANUAL' ? ', keyed by hand' : ''}`;
     case 'POTENCY_CALCULATION':
       return potencyFromCalculation(mbr, d).summary;
-    case 'CHARGE_CONTAINER':
-      return `Charged ${s('container')} (${s('holds')})`;
-    case 'CHARGE_LOT':
-      return `Charged lot ${text(((d['lot'] ?? {}) as Record<string, unknown>)['id'])} for ${s('bomLine')}`;
-    case 'CLEARANCE_CHECK':
-    case 'EQUIPMENT_STATUS': {
+    case 'CLEARANCE_CHECK': {
       const answers = Array.isArray(d['answers']) ? (d['answers'] as { id: string; answer: string }[]) : [];
       const tally = new Map<string, number>();
       for (const a of answers) tally.set(a.answer, (tally.get(a.answer) ?? 0) + 1);
-      const parts = [...tally].map(([k, n]) => `${n} ${k.toLowerCase().replace(/_/g, ' ')}`).join(', ');
-      return e.kind === 'EQUIPMENT_STATUS' ? `${s('equipmentRef')} (label ${s('labelId')}): ${parts}` : `Checklist: ${parts}`;
+      return `Checklist: ${[...tally].map(([k, n]) => `${n} ${k.toLowerCase().replace(/_/g, ' ')}`).join(', ')}`;
     }
+    // OUTPUT_CONTAINER, CHARGE_CONTAINER, CHARGE_LOT and EQUIPMENT_STATUS showed an item or equipment key: their
+    // blocks' sentences name it as the master does (owner report #20).
     case 'PREVIOUS_BATCH':
       return `Previous batch: ${s('product')} ${s('batchNumber')}`;
     case 'ACKNOWLEDGE':
       return `${s('mode') === 'CONFIRM_PERFORMED' ? 'Confirmed performed' : 'Read'}${d['sop'] ? `: ${s('sop')} version ${s('sopVersion')}` : ''}`;
-    default:
-      return e.kind.toLowerCase().replace(/_/g, ' ');
+    default: {
+      const own = step?.block?.entrySummaries?.[e.kind];
+      return own ? own(d, blocks.summaries.entrySummaryContext(mbr, step?.config ?? {})) : e.kind.toLowerCase().replace(/_/g, ' ');
+    }
   }
+}
+
+/** The step definition an entry's step instance runs. */
+function entryStep(ctx: ViewContext, stepKey: string): engine.StepDef | undefined {
+  return ctx.run.def.steps.get(ctx.state.steps[stepKey]?.step ?? stepKey.slice(0, Math.max(0, stepKey.indexOf('@'))));
 }
 
 /** P7L-1 (slice 7m): the balance of a weighing keyed by hand that the operator did not name. */
@@ -595,7 +600,7 @@ function entryViews(ctx: ViewContext, keep: (e: ViewContext['state']['entries'][
   return Object.values(ctx.state.entries)
     .filter(keep)
     .sort((a, b) => a.recordedSeq - b.recordedSeq)
-    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e, ctx.run.def.mbr)}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
+    .map((e) => ({ entryId: e.id, kind: e.kind, summary: `${summaryOf(e, ctx.run.def.mbr, entryStep(ctx, e.stepKey))}${ctx.rows.atEvent(e.recordedSeq)?.balanceInferred === true ? INFERRED : ''}`, data: JSON.parse(JSON.stringify(e.data)) as Record<string, unknown>, by: personOrId(ctx, e.enteredBy, e.recordedSeq), at: fmt(ctx, e.recordedAt) }));
 }
 
 /**

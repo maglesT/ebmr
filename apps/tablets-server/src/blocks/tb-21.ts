@@ -81,6 +81,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './blister/common.ts';
+import { PROCESS_SUMMARIES, RUN_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-38', 'PR-33', 'PR-34', 'PR-35', 'PR-37'];
 export const DEFECT_KINDS = ['MISPRINT', 'FOIL_CUT', 'MISSING_TABLET', 'IMPROPER_SEAL'] as const;
@@ -420,6 +421,23 @@ export const TB21: BlockVersion = {
       },
       ...PROCESS_CONFIG_FIELDS,
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    LINE_SETUP: (d) =>
+      `Line set up on ${S.val(d['machine'])}: artwork set ${S.val(d['artworkSet'])}, ${S.count(S.list(d['changeParts']).length, 'change part')}, ${S.count(S.list(d['materials']).length, 'reel')} scanned`,
+    EQUIPMENT_CHECK: (d) =>
+      `Equipment check: ${d['rogueRemoved'] === true ? 'previous order removed' : 'previous order not removed'}, ${d['changePartsFitted'] === true ? 'change parts fitted' : 'change parts not fitted'}, empty-pocket detector ${S.verdict(d['emptyPocketDetector'])}${S.str(d['result']) !== '' ? `: ${S.verdict(d['result'])}` : ''}`,
+    RUN_START: RUN_SUMMARIES.RUN_START,
+    REEL_CHANGE: (d) => `${S.cap(S.words(d['role']))} reel changed: ${S.val(d['material'])} lot ${S.val(d['lot'])}`,
+    DEFECT_CHECK: (d) =>
+      `Defect check of ${S.count(d['examined'], 'blister')}: ${S.str(d['defectTotal']) !== '' ? `${S.str(d['defectTotal'])} defective` : `defects ${S.tally(d['defects'])}`}${S.str(d['result']) !== '' ? `: ${S.verdict(d['result'])}` : ''}`,
+    REJECTS: (d) =>
+      `Rejects${S.str(d['total']) !== '' ? `: ${S.str(d['total'])}` : ''} (empty pocket ${S.val(d['emptyPocket'])}, broken pocket ${S.val(d['brokenPocket'])}, vision ${S.val(d['vision'])})`,
+    RUN_END: RUN_SUMMARIES.RUN_END,
+    COUNT: (d) =>
+      `Count: ${S.val(d['formed'])} blisters formed, ${S.val(d['good'])} good${S.str(d['rejects']) !== '' ? `, ${S.str(d['rejects'])} rejected` : ''}, ${S.val(d['setupWaste'])} set-up waste, ${S.val(d['samples'])} samples${S.str(d['unexplained']) !== '' ? `; ${S.str(d['unexplained'])} unexplained` : ''}`,
+    LATE_REASON: (d) => `Recorded after the run: ${S.val(d['reason'])}`,
   },
   dataSchema: {
     entries: {

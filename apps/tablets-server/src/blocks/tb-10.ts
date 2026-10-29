@@ -51,6 +51,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './compression/common.ts';
+import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['INV-24', 'IN-26', 'PR-23', 'PR-22', 'DI-31'];
 
@@ -225,6 +226,18 @@ export const TB10: BlockVersion = {
         },
       },
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    PRESS_SETUP: (d) => `Press ${S.val(d['press'])} set up with the tooling issued to the batch`,
+    PRE_USE_CHECKLIST: (d) => {
+      const items = S.list(d['items']);
+      return `Pre-use checklist: ${String(items.filter((i) => S.rec(i)['ok'] === true).length)} of ${S.count(items.length, 'check')} in order`;
+    },
+    HOPPER_CHARGE: () => 'Hopper charged with a scanned container',
+    FIRST_OFF: (d) => `First-off check: ${S.verdict(d['result'])}${S.str(d['observations']) !== '' ? ` (${S.str(d['observations'])})` : ''}`,
+    SETTING_CHANGE: (d) =>
+      `Setting ${S.val(d['tag'])} changed to ${S.amount(d['value'], d['unit'])} (${S.val(d['reason'])})${S.str(d['withinRange']) !== '' ? `, ${S.inRange(d['withinRange'])}` : ''}`,
   },
   dataSchema: {
     entries: {

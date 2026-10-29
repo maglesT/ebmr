@@ -38,6 +38,7 @@ import type { JsonValue, PhaseNode } from '../../flow/model.ts';
 import type { BlockVersion, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import type { FieldSchema, ObjectSchema } from '../schema.ts';
 import { micros, problem } from './common.ts';
+import * as S from '../summary.ts';
 
 const CONTROLS = ['PR-14', 'DI-04', 'DI-31', 'DI-32', 'DI-49'];
 /** Default age after which a device value is stale (seconds, database time). */
@@ -325,6 +326,15 @@ export const G06: BlockVersion = {
       manualFallback: { type: 'boolean', optional: true, default: false, description: 'The MBR allows values to be keyed by hand when the interface is unavailable (flagged, two persons)' },
     },
   },
+  entrySummaries: {
+    SETPOINT_READBACK: (d) =>
+      `Setpoint ${S.val(d['tag'])} read back as ${S.amount(d['value'], d['unit'])}${S.str(S.rec(d['setpoint'])['value']) !== '' ? ` (setpoint ${S.qty(d['setpoint'])})` : ''}${S.str(d['matches']) !== '' ? `, ${S.inRange(d['matches'], 'matches', 'does not match')}` : ''}${valueFlags(d)}`,
+    ACTUAL: (d) => `${S.val(d['tag'])}: ${S.amount(d['value'], d['unit'])}${S.str(d['withinLimits']) !== '' ? `, ${S.inRange(d['withinLimits'], 'within limits', 'outside limits')}` : ''}${valueFlags(d)}`,
+    ALARM: (d) => `Alarm on ${S.val(d['tag'])} at ${S.amount(d['value'], d['unit'])}${d['critical'] === true ? ', GMP-critical' : ''}${valueFlags(d)}`,
+    ALARM_ACK: (d) => `Alarm acknowledged${S.str(d['comment']) !== '' ? `: ${S.str(d['comment'])}` : ''}`,
+    INTERFACE_LOSS: (d) => `Link to the equipment lost: ${S.val(d['reason'])}`,
+    RECIPE_CHECK: (d) => `Recipe ${S.val(d['recipe'])} v${S.val(d['recipeVersion'])} ${d['matches'] === false ? "does not match the master's" : 'matches'}`,
+  },
   dataSchema: {
     entries: {
       SETPOINT_READBACK: valueEntry('A setpoint as the equipment reports it holds it'),
@@ -478,3 +488,8 @@ export const G06: BlockVersion = {
 };
 
 export const AUTOMATED_BLOCKS: readonly BlockVersion[] = [G06];
+
+/** What a stored value of the step adds to its sentence: keyed by hand, not counted (stale or not good). */
+function valueFlags(d: Readonly<Record<string, unknown>>): string {
+  return `${d['source'] === 'MANUAL' ? ', keyed by hand' : ''}${d['usable'] === false ? ', not counted (stale or not good)' : ''}`;
+}

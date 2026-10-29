@@ -51,6 +51,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './granulation/common.ts';
+import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'IN-13', 'PR-27', 'PR-29', 'DI-29'];
 /** The loop bound the spec allows (maximum iterations 1 to 10; tablets spec TB-05). */
@@ -202,6 +203,14 @@ export const TB05: BlockVersion = {
       lodItem: { type: 'string', description: 'The LOD parameter the step records (the enclosing loop exits on it)' },
       dedicatedBags: { type: 'boolean', optional: true, default: false, description: 'Only filter bags dedicated to the product (highly potent or sensitising products)' },
     },
+  },
+  entrySummaries: {
+    ...PROCESS_SUMMARIES,
+    DRYING_START: () => 'Drying started',
+    DRYING_END: (d) => `Drying ended${S.str(d['dryingSeconds']) !== '' ? ` after ${S.str(d['dryingSeconds'])} s` : ''}`,
+    LOD_SAMPLE: (d) => `LOD sample of ${S.qty(d['sampleMass'])} on ${S.val(d['analyser'])}`,
+    BAG_CHECK: (d) =>
+      `Filter bag ${S.val(d['bag'])} ${d['when'] === 'AFTER' ? 'after' : 'before'} use: ${S.words(d['result'])}${d['newBag'] === true ? ', a new bag' : ''}${S.str(d['lastProduct']) !== '' ? `, last used for ${S.str(d['lastProduct'])}` : ''}${S.str(d['dedicatedTo']) !== '' ? `, dedicated to ${S.str(d['dedicatedTo'])}` : ''}${S.str(d['washRecord']) !== '' ? `, wash record ${S.str(d['washRecord'])}` : ''}`,
   },
   dataSchema: {
     entries: {

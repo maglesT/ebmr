@@ -779,8 +779,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Copies for inspection, printouts that flag changes, GMP communications.** [DI-40.yaml](../../../compliance/controls/DI-40.yaml). Target phase 4; editions tablets, injectables; VERIFIED.
 
-- Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [ts-records](../code-map.md#ts-records)
-- Tests: [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts)
+- Modules: [kernel-qp-evidence](../code-map.md#kernel-qp-evidence), [ts-blocks](../code-map.md#ts-blocks), [ts-records](../code-map.md#ts-records)
+- Tests: [apps/tablets-server/test/blocks/entry-summaries.test.ts](../../../apps/tablets-server/test/blocks/entry-summaries.test.ts), [apps/tablets-server/test/records/archive-routes.test.ts](../../../apps/tablets-server/test/records/archive-routes.test.ts), [packages/kernel/test/records/evidence-export.test.ts](../../../packages/kernel/test/records/evidence-export.test.ts)
 
 ## DI-41
 

@@ -10,6 +10,7 @@
 import type { PhaseNode } from '../../flow/model.ts';
 import type { BlockVersion, ExceptionDraft, SimulatorModel } from '../contract.ts';
 import { configRecord, CORE_VALUE_RULES, expectedAnswer, isUnexpected, problem, SKIPPABLE } from './common.ts';
+import * as S from '../summary.ts';
 
 const NO_ENTRIES = { entries: {} };
 const noEntryModel = (types: (phase: PhaseNode) => string[]): SimulatorModel => ({ exceptionTypes: types, nominalEntries: () => [] });
@@ -34,6 +35,9 @@ export const G03: BlockVersion = {
       sop: { type: 'string', optional: true, description: 'Reference id (kind SOP) of the procedure; its version in force is written into the record' },
       skippable: SKIPPABLE,
     },
+  },
+  entrySummaries: {
+    ACKNOWLEDGE: (d) => `${d['mode'] === 'CONFIRM_PERFORMED' ? 'Confirmed performed' : 'Read'}${S.str(d['sop']) !== '' ? `: SOP ${S.str(d['sop'])} version ${S.val(d['sopVersion'])}` : ''}`,
   },
   dataSchema: {
     entries: {
@@ -154,6 +158,9 @@ export const G05: BlockVersion = {
       blockOnUnexpected: { type: 'boolean', optional: true, default: true, description: 'An unexpected answer stops the steps after it until a deviation is linked (default true)' },
       skippable: SKIPPABLE,
     },
+  },
+  entrySummaries: {
+    ATTACHMENT: (d) => `Attached: ${S.val(d['description'])} (${S.val(d['mediaType'])})${d['paperOriginal'] === true ? ', a scan of a paper original' : ''}`,
   },
   dataSchema: {
     entries: {

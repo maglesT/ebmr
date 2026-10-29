@@ -52,6 +52,7 @@ import {
   type PhaseNode,
 } from './blister/common.ts';
 import { dec } from './ipc/calc.ts';
+import { RUN_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-38', 'PR-29', 'PR-37'];
 export const LEAK_EVENTS = ['RESTART', 'REEL_CHANGE', 'ADJUSTMENT'] as const;
@@ -255,6 +256,13 @@ export const TB22: BlockVersion = {
       qrmRef: { type: 'string', pattern: /^[A-Z0-9][A-Z0-9_./-]{0,63}$/, optional: true, description: 'The risk assessment the frequency rests on (required: TB22-QRM)' },
       triggers: { type: 'array', optional: true, maxItems: 3, items: { type: 'string', enum: [...LEAK_EVENTS], description: 'Event' }, description: 'Events after which a test falls due at once (D all)' },
     },
+  },
+  entrySummaries: {
+    RUN_START: RUN_SUMMARIES.RUN_START,
+    EVENT: (d) => `${S.cap(S.words(d['event']))}${S.str(d['counter']) !== '' ? ` at counter ${S.str(d['counter'])}` : ''}`,
+    LEAK_TEST: (d) =>
+      `Leak test of track ${S.val(d['track'])}: ${S.val(d['leaking'])} of ${S.count(d['tested'], 'unit')} leaking at ${S.val(d['vacuum'])} kPa for ${S.val(d['holdSeconds'])} s${S.str(d['result']) !== '' ? `: ${S.verdict(d['result'])}` : ''}`,
+    RUN_END: RUN_SUMMARIES.RUN_END,
   },
   dataSchema: {
     entries: {

@@ -34,6 +34,11 @@ export interface BatchNumberRuleInput {
   reason: string;
   /** Values reserved per write-ahead block (default 50). */
   blockSize?: number;
+  /**
+   * What {SEQ:n} counts: RULE, one serial across the rule; PARENT, a serial per processing batch (needs {PARENT}).
+   * Omitted: a packaging rule with {PARENT} counts per parent, any other rule across the rule (recipe-core 1790).
+   */
+  serialScope?: 'RULE' | 'PARENT';
 }
 
 export interface AllocationRequest {
@@ -67,6 +72,8 @@ export interface RecoveryRequest {
   restoreEventId: string;
   ruleCode: string;
   serial: string;
+  /** A per-parent packaging number: the serial its {SEQ:n} shows (the rule's serial stays in `serial`). */
+  parentSerial?: string;
   batchNumber: string;
   productCode: string;
   productName: string;
@@ -131,6 +138,7 @@ export async function defineBatchNumberRule(db: Queryable, input: BatchNumberRul
       effective_from: input.effectiveFrom ?? null,
       reason: input.reason,
       block_size: input.blockSize ?? null,
+      serial_scope: input.serialScope ?? null,
     }),
   ]);
   return firstRow<{ id: string }>(rows).id;
@@ -178,6 +186,7 @@ export async function recoverBatchNumber(db: Queryable, req: RecoveryRequest): P
       restore_event_id: req.restoreEventId,
       rule_code: req.ruleCode,
       serial: req.serial,
+      parent_serial: req.parentSerial ?? null,
       batch_number: req.batchNumber,
       product_code: req.productCode,
       product_name: req.productName,

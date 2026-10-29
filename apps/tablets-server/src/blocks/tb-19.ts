@@ -44,6 +44,7 @@ import {
   type PhaseNode,
 } from './coating/common.ts';
 import { ancestorsOf } from './coating/common.ts';
+import { S } from './summaries.ts';
 
 const CONTROLS = ['IN-37', 'PR-29'];
 export const PRINT_DEFECTS = ['SMUDGED', 'MISSING', 'MISREGISTERED'] as const;
@@ -164,6 +165,12 @@ export const TB19: BlockVersion = {
       maxDefects: { type: 'string', pattern: COUNT, optional: true, description: 'Defects a check may find and still pass (D 0)' },
       gateRole: { type: 'string', optional: true, description: 'Role of the QC approval hold point after the step (D QA)' },
     },
+  },
+  entrySummaries: {
+    PRINT_SETUP: (d) =>
+      `Printer ${S.val(d['printer'])} set up with ink lot ${S.val(d['inkLot'])}${d['inkEdibleGrade'] === true ? ' (edible grade)' : ''}${d['otherProductsPrinting'] === true ? `, other products printed at the same time${S.str(d['segregationRecord']) !== '' ? ` (segregation record ${S.str(d['segregationRecord'])})` : ''}` : ''}`,
+    PRINT_CHECK: (d) =>
+      `Print check of ${S.count(d['examined'], 'tablet')}: ${d['legible'] === true ? 'legible' : 'not legible'}, ${d['contentMatches'] === true ? 'content matches' : 'content does not match'}, ${S.str(d['defectTotal']) !== '' ? `${S.str(d['defectTotal'])} defects` : `defects ${S.tally(d['defects'])}`}${S.str(d['result']) !== '' ? `: ${S.verdict(d['result'])}` : ''}`,
   },
   dataSchema: {
     entries: {

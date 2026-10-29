@@ -162,6 +162,82 @@ describe('batch-number register', () => {
     await expect(allocate({ ...atv, batchKind: 'PACKAGING', parentBatchNumber: pack.batchNumber, batchSize: '1' })).rejects.toThrow('EBMR-SITE-014');
   });
 
+  it('[IN-18][INV-27] a packaging rule counts {SEQ:n} per processing batch unless it says otherwise: each batch\'s first packaging number is P01 (owner report #19)', async () => {
+    const pack = (parent: string) => allocate({ ...atv, batchKind: 'PACKAGING', parentBatchNumber: parent, batchSize: '1000' });
+    const [b1, b2] = [(await allocate(atv)).batchNumber, (await allocate(atv)).batchNumber];
+    expect([(await pack(b1)).batchNumber, (await pack(b1)).batchNumber, (await pack(b2)).batchNumber]).toEqual([`${b1}-P01`, `${b1}-P02`, `${b2}-P01`]);
+    // A number already in the register (here registered from outside) moves on to the parent's next serial; the skip is recorded.
+    await register({ ...atv, batchKind: 'PACKAGING', parentBatchNumber: b2, batchSize: '1', batchNumber: `${b2}-P02` });
+    expect((await pack(b2)).batchNumber).toBe(`${b2}-P03`);
+    const skip = await db.admin.query<{ n: string; ps: string }>('select rendered_number as n, parent_serial::text as ps from site.batch_number_serial_skip where rendered_number = $1', [`${b2}-P02`]);
+    expect(skip.rows).toEqual([{ n: `${b2}-P02`, ps: '2' }]);
+    // The rule's own serial is still drawn for every number, unique per rule.
+    const serials = await db.admin.query<{ s: string; ps: string | null }>(
+      "select a.serial::text as s, a.parent_serial::text as ps from site.batch_number_allocation a join site.batch_number_rule r on r.id = a.rule_id where r.rule_code = 'AT-PACK' order by a.serial",
+    );
+    expect(new Set(serials.rows.map((r) => r.s)).size).toBe(serials.rows.length);
+    // A rule that says RULE counts across the rule, as before; PARENT without {PARENT} in the format is refused.
+    const base = { siteCode: SITE, siteZone: ZONE, reason: 'Numbering SOP-QA-017 rev 4' };
+    const rw: AllocationRequest = { ...atv, productCode: 'RW1', productName: 'Rule-wide product' };
+    await define({ ...base, ruleCode: 'RW-TAB', productCode: 'RW1', batchKind: 'PROCESSING', format: 'RW{SEQ:3}' });
+    await define({ ...base, ruleCode: 'RW-PACK', productCode: 'RW1', batchKind: 'PACKAGING', format: '{PARENT}-Q{SEQ:2}', serialScope: 'RULE' });
+    const [r1, r2] = [(await allocate(rw)).batchNumber, (await allocate(rw)).batchNumber];
+    const rwPack = (parent: string) => allocate({ ...rw, batchKind: 'PACKAGING', parentBatchNumber: parent, batchSize: '1' });
+    expect([(await rwPack(r1)).batchNumber, (await rwPack(r2)).batchNumber]).toEqual([`${r1}-Q01`, `${r2}-Q02`]);
+    await expect(define({ ...base, ruleCode: 'NP-PACK', productCode: 'NP1', batchKind: 'PACKAGING', format: 'NP{SEQ:3}', serialScope: 'PARENT' })).rejects.toThrow(
+      'EBMR-SITE-010 a serial per parent batch needs {PARENT} in the format',
+    );
+    // The database holds it for a direct write too: a second number of the same parent serial, or a parent serial on a processing number.
+    const c = await db.admin.connect();
+    try {
+      for (const sql of [
+        `insert into site.batch_number_allocation (batch_number, site_code, site_zone, product_code, product_name, edition, batch_kind, parent_allocation_id, batch_size, batch_size_unit, source, rule_id, serial, parent_serial, allocated_by_person_id, allocated_by_account_id, correlation_id)
+         select '${b1}-X01', a.site_code, a.site_zone, a.product_code, a.product_name, a.edition, a.batch_kind, a.parent_allocation_id, 1, '{tbl}', 'GENERATED', a.rule_id, 99, a.parent_serial, a.allocated_by_person_id, a.allocated_by_account_id, gen_random_uuid()
+         from site.batch_number_allocation a where a.batch_number = '${b1}-P01'`,
+        `insert into site.batch_number_allocation (batch_number, site_code, site_zone, product_code, product_name, edition, batch_kind, batch_size, batch_size_unit, source, rule_id, serial, parent_serial, allocated_by_person_id, allocated_by_account_id, correlation_id)
+         select 'ATZ0001', a.site_code, a.site_zone, a.product_code, a.product_name, a.edition, a.batch_kind, 1, '{tbl}', 'GENERATED', a.rule_id, 98, 1, a.allocated_by_person_id, a.allocated_by_account_id, gen_random_uuid()
+         from site.batch_number_allocation a where a.batch_number = '${b1}'`,
+      ]) {
+        await c.query('begin');
+        try {
+          await c.query('set local role ebmr_owner');
+          await expect(c.query(sql)).rejects.toThrow(/batch_number_allocation_parent_serial/);
+        } finally {
+          await c.query('rollback');
+        }
+      }
+    } finally {
+      c.release();
+    }
+  });
+
+  it('[IN-18][INV-27] after the rule\'s counter skipped (restart, restore, ledger ahead) a parent\'s next packaging number passes every number that may have been lost; a parent from before per-parent numbering keeps the rule-wide serial', async () => {
+    const pack = (parent: string) => allocate({ ...atv, batchKind: 'PACKAGING', parentBatchNumber: parent, batchSize: '1000' });
+    const b = (await allocate(atv)).batchNumber;
+    expect((await pack(b)).batchNumber).toBe(`${b}-P01`);
+    const c = await db.admin.connect();
+    try {
+      // The rule's counter skipped three serials after the parent was allocated: up to three of its numbers may exist elsewhere.
+      await c.query(
+        "begin; set local session_replication_role = replica; insert into continuity.sequence_bump (sequence_key, source_kind, reason, value_before, value_after, correlation_id) values ('site.batch_number:AT-PACK', 'COUNTER', 'SERVER_RESTART', 100, 103, gen_random_uuid()); commit",
+      );
+      expect((await pack(b)).batchNumber).toBe(`${b}-P05`);
+      expect((await pack(b)).batchNumber).toBe(`${b}-P06`);
+      // A parent allocated after the skip starts at P01.
+      const later = (await allocate(atv)).batchNumber;
+      expect((await pack(later)).batchNumber).toBe(`${later}-P01`);
+      // A parent allocated before per-parent numbering came into force continues on the rule's serial.
+      await c.query("begin; set local session_replication_role = replica; update site.batch_number_parent_serial_since set since = clock_timestamp() + interval '1 day'; commit");
+      const old = await pack(later);
+      expect(old.batchNumber).toBe(`${later}-P${String(old.serial).padStart(2, '0')}`);
+      expect(Number(old.serial)).toBeGreaterThan(2);
+    } finally {
+      await c.query("begin; set local session_replication_role = replica; update site.batch_number_parent_serial_since set since = '-infinity'; commit");
+      c.release();
+    }
+    expect(await batchNumberInvariantViolations(db.app)).toEqual([]);
+  });
+
   it('[DI-27][IN-18] a numbering rule or a registered number dated in another zone than the site\'s (an Etc offset, an alias, another IANA zone) is refused (EBMR-SITE-002) and nothing is written, also when the owner writes the row (lead TODO T10)', async () => {
     const counts = async () =>
       (await db.admin.query<{ rules: string; numbers: string }>('select (select count(*) from site.batch_number_rule)::text as rules, (select count(*) from site.batch_number_allocation)::text as numbers')).rows[0];
@@ -255,6 +331,10 @@ describe('batch-number register across a restore', () => {
   const before: string[] = [];
   let lost: string;
   let restoreEventId: string;
+  const pk8: AllocationRequest = { siteCode: 'PLANT8', productCode: 'PK8', productName: 'Packed product 8', edition: 'TABLETS', batchSize: '1000', batchSizeUnit: '{tbl}' };
+  let packParent: string;
+  let packBefore: string;
+  let packLost: string;
 
   const allocateIn = (db: TestDatabase, req: AllocationRequest) => withProtectedNumbers(db.app, issuer, ledger, (c) => allocateBatchNumber(c, req));
 
@@ -270,10 +350,20 @@ describe('batch-number register across a restore', () => {
     await withCommand(src.app, steward, (c) =>
       defineBatchNumberRule(c, { ruleCode: 'RS-TAB', siteCode: 'PLANT9', productCode: 'RSV5', batchKind: 'PROCESSING', format: '{SITE}{YY}{SEQ:3}', siteZone, reason: 'SOP', blockSize: 2 }),
     );
+    // A packaging rule of another site and product, counting per parent batch (recipe-core 1790).
+    await withCommand(src.app, steward, (c) =>
+      defineBatchNumberRule(c, { ruleCode: 'P8-TAB', siteCode: 'PLANT8', productCode: 'PK8', batchKind: 'PROCESSING', format: 'P8{SEQ:3}', siteZone, reason: 'SOP', blockSize: 2 }),
+    );
+    await withCommand(src.app, steward, (c) =>
+      defineBatchNumberRule(c, { ruleCode: 'P8-PACK', siteCode: 'PLANT8', productCode: 'PK8', batchKind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', siteZone, reason: 'SOP', blockSize: 2 }),
+    );
     before.push((await allocateIn(src, rsv)).batchNumber, (await allocateIn(src, rsv)).batchNumber);
+    packParent = (await allocateIn(src, pk8)).batchNumber;
+    packBefore = (await allocateIn(src, { ...pk8, batchKind: 'PACKAGING', parentBatchNumber: packParent })).batchNumber;
     await exportAnchor(src.app, ledger);
     const backup = await backupTestDatabase(src, dir.path);
     lost = (await allocateIn(src, rsv)).batchNumber; // issued after the backup, printed on labels, then lost
+    packLost = (await allocateIn(src, { ...pk8, batchKind: 'PACKAGING', parentBatchNumber: packParent })).batchNumber;
     await exportAnchor(src.app, ledger);
     restored = await restoreCopy(src, backup, dir.path);
 
@@ -304,6 +394,24 @@ describe('batch-number register across a restore', () => {
     const next = await allocateIn(restored, { ...rsv, externalReference: 'ERP 1' });
     expect(next.batchNumber).toBe(`PLANT9${yy}005`); // serials 3 and 4 were covered by the lost write-ahead block
     expect([...before, lost]).not.toContain(next.batchNumber);
+  });
+
+  it('[IN-18][INV-27] after a restore a packaging number counted per parent batch is never reissued: the parent\'s next number passes every number the skipped serials may have given', async () => {
+    expect([packBefore, packLost]).toEqual([`${packParent}/P01`, `${packParent}/P02`]);
+    const next = (await allocateIn(restored, { ...pk8, batchKind: 'PACKAGING', parentBatchNumber: packParent })).batchNumber;
+    expect([packBefore, packLost]).not.toContain(next);
+    expect(next).toBe(`${packParent}/P03`); // the restore skipped one serial: P02 may exist, so P03
+    // The lost number is re-entered with the parent serial it shows (and the rule's serial in the skipped range).
+    const recover = (parentSerial: string, ruleCode = 'P8-PACK') =>
+      withCommand(restored.app, issuer, (c) =>
+        recoverBatchNumber(c, { ...pk8, restoreEventId, ruleCode, serial: '2', parentSerial, batchNumber: packLost, parentBatchNumber: packParent, evidenceReference: 'Label specimen' }),
+      );
+    await expect(recover('3')).rejects.toThrow(`EBMR-SITE-016 ${packLost} is not what rule P8-PACK`);
+    await expect(recover('2', 'P8-TAB')).rejects.toThrow('EBMR-SITE-016 rule P8-TAB does not number per parent batch');
+    await recover('2');
+    const row = await restored.admin.query<{ s: string; ps: string }>('select serial::text as s, parent_serial::text as ps from site.batch_number_allocation where batch_number = $1', [packLost]);
+    expect(row.rows).toEqual([{ s: '2', ps: '2' }]);
+    expect(await batchNumberInvariantViolations(restored.app)).toEqual([]);
   });
 
   it('[IN-18][INV-27] a lost number is re-entered only with evidence and only inside the range the restore skipped', async () => {
