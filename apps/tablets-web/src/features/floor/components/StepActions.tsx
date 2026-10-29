@@ -15,6 +15,7 @@ import { st, actionLabel } from '../text.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 import type { useSignedAction } from '../useSignedAction.ts';
 import { EntryStatus } from './EntryStatus.tsx';
+import { notForMe } from './Exceptions.tsx';
 
 type Signed = ReturnType<typeof useSignedAction>;
 
@@ -211,7 +212,8 @@ export function toBarAction(a: ActionView, view: StepScreenView): floor.BarActio
 }
 
 export function StepActionBar({ view, perform, busy }: { view: StepScreenView; perform: (a: ActionView) => void; busy: boolean }) {
-  const actions = barActions(view);
+  // R10 #8: an act on an exception this person's role may not take is not offered; the exception names who can.
+  const actions = barActions(view).filter((a) => !notForMe(a));
   const primaryAction = actions.find((a) => a.primary) ?? (actions.find((a) => a.action === 'DISPOSITION_HOLD_POINT' && view.actions.some((x) => x.action === a.action && x.primary)) ?? null);
   const toBar = (a: ActionView) => toBarAction(a, view);
   const primary = primaryAction && !RECORDING.has(primaryAction.action) ? toBar(primaryAction) : null;

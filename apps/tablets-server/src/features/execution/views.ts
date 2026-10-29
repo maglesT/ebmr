@@ -206,6 +206,20 @@ export interface ActionExtras {
   checkers?: readonly string[];
   /** The engine's text as people read it: steps by number and name, items and persons by name (T4; peopleText). */
   say?: (text: string) => string;
+  /** Who may act on an exception the viewer's role may not act on (decidersOf), by `${action}|${target}` (R10 #8). */
+  deciders?: ReadonlyMap<string, readonly string[]>;
+}
+
+/**
+ * The quality unit's act on an exception (its disposition): never the primary action of a role that may not take it, and
+ * shown with who may (R10 #8). Linking a deviation keeps its greyed button with the permission it needs (the floor's
+ * supervisor act, which the operator raising the exception is told about).
+ */
+const ON_EXCEPTION: ReadonlySet<ActionView['action']> = new Set(['DISPOSITION_EXCEPTION']);
+
+/** Whether the viewer's role is what refuses the action: the engine's role rule (ENG-ROLE) or the command's permission (display only). */
+function refusedByRole(p: DisplayPermissions | undefined, a: engine.AvailableAction): boolean {
+  return a.refusal?.code === 'ENG-ROLE' || (a.available && permissionRefusal(p, a.action, a.meaning) !== null);
 }
 
 const sayIt = (say: ((text: string) => string) | undefined, text: string | null): string | null => (text !== null && say ? say(text) : text);
@@ -236,11 +250,14 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
     const available = a.available && denied === null && elsewhere === null;
     const check = a.action === 'VERIFY' || a.action === 'WITNESS';
     const byWho = check && !available && (denied !== null || a.refusal?.code === 'ENG-SEGREGATION' || a.refusal?.code === 'ENG-ROLE');
+    // R10 #8: an act on an exception the viewer's role may not take names who may, and is never the primary action.
+    const notForRole = ON_EXCEPTION.has(a.action) && !available && (denied !== null || a.refusal?.code === 'ENG-ROLE');
     return {
       a,
       available,
+      notForRole,
       reason: sayIt(extras.say, a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : (denied ?? elsewhere)),
-      whoCanHelp: byWho ? [...(extras.checkers ?? [])] : [],
+      whoCanHelp: byWho ? [...(extras.checkers ?? [])] : notForRole ? [...(extras.deciders?.get(`${a.action}|${a.target ?? ''}`) ?? [])] : [],
     };
   });
   // A step whose completion an open exception blocks (ENG-BLOCKED; PR-08): its signature is the greyed primary,
@@ -252,7 +269,7 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
   }
   if (primary < 0) {
     for (const kind of PRIMARY_ORDER) {
-      primary = checked.findIndex((c) => c.a.action === kind);
+      primary = checked.findIndex((c) => c.a.action === kind && !c.notForRole);
       if (primary >= 0) break;
     }
   }
@@ -292,6 +309,35 @@ export async function checkersOf(ctx: ViewContext, stepDef: engine.StepDef, inst
   const out = rows.length > 0 ? rows.map((r) => `${r.name} (${r.code})`) : [`No role of this installation may give this check: none that carries ${engineRoles.join(' or ')} holds ${permission}. Ask QA or the MBR author.`];
   const involved = [...new Set([...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners])];
   if (involved.length > 0) out.push(`Not ${involved.map((id) => personRef(ctx, id)?.legalName ?? id).join(', ')}: a person who performed, entered data in or corrected the step never checks it (INV-03)`);
+  return out;
+}
+
+/**
+ * Who may disposition an exception the viewer's role may not (R10 #8), in words, by `${action}|${target}`: the roles of
+ * this installation that hold the command's permission (recipe.execution_command_permission) and carry one of the
+ * engine roles that may give it (QA where the exception is QA only, else a supervisor or QA; engine
+ * dispositionException). Display only: the engine and the database decide at the act.
+ */
+export async function decidersOf(ctx: ViewContext, actions: readonly engine.AvailableAction[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const policy = ctx.run.def.policy;
+  for (const a of actions) {
+    if (!ON_EXCEPTION.has(a.action) || !refusedByRole(ctx.permissions, a)) continue;
+    const e = a.target ? ctx.state.exceptions[a.target] : undefined;
+    const engineRoles = e?.qaOnly ? [...policy.qaRoles] : [...policy.supervisorRoles, ...policy.qaRoles];
+    const permissions = [...(ctx.permissions?.needs.get(a.action) ?? [])];
+    const { rows } = await ctx.db.query<{ code: string; name: string }>(
+      `select r.code, r.name
+         from iam.role r
+        where exists (select 1 from tab.engine_role_map m
+                       where m.kernel_role = r.code and m.engine_role = any($1::text[])
+                         and m.via_permission = any(iam.role_permissions_at(r.code, clock_timestamp())))
+          and (cardinality($2::text[]) = 0 or iam.role_permissions_at(r.code, clock_timestamp()) && $2::text[])
+        order by r.name, r.code`,
+      [engineRoles, permissions],
+    );
+    out.set(`${a.action}|${a.target ?? ''}`, rows.length > 0 ? rows.map((r) => `${r.name} (${r.code})`) : ['No role of this installation may do this. Ask QA.']);
+  }
   return out;
 }
 
@@ -915,6 +961,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     roomReason: stepRoomReason(def, stepId, ctx.session?.roomCode ?? null),
     checkers: inst && inst.kind !== 'HOLD' && inst.status === 'AWAITING_VERIFICATION' ? await checkersOf(ctx, stepDef, inst) : [],
   };
+  const offered = stepActions(ctx, inst, stepKey);
   const potency = kinds.includes('POTENCY_CALCULATION') ? await potencyOf(ctx.db, def.mbr, ctx.state, ctx.run.batch.id, stepKey) : null;
   return {
     asOf: fmt(ctx, ctx.nowUs),
@@ -943,7 +990,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     loop: loopOf(ctx, inst),
     exceptions: exceptions.map((e) => shownException(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
-    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),
+    actions: actionViews(offered, shopFloor, whoOf(ctx), ctx.permissions, { ...extras, deciders: await decidersOf(ctx, offered), say: sayFor(ctx.run.def, ctx.rows) }),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
     ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 ? { bomRemaining: await bomRemainingOf(ctx, node.consumes, potency) } : {}),
@@ -1105,6 +1152,7 @@ function holdView(ctx: ViewContext, h: engine.HoldRecord): Hold {
 
 export async function runView(ctx: ViewContext): Promise<RunView> {
   const shopFloor = ctx.session?.deviceClass === 'SHARED' || ctx.session?.deviceClass === 'GRADE_A_B';
+  const offered = engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs });
   return {
     asOf: fmt(ctx, ctx.nowUs),
     header: await header(ctx, currentStage(ctx), false),
@@ -1113,7 +1161,7 @@ export async function runView(ctx: ViewContext): Promise<RunView> {
       .sort((a, b) => a.raisedSeq - b.raisedSeq)
       .map((e) => shownException(ctx, e)),
     holds: Object.values(ctx.state.holds).map((h) => holdView(ctx, h)),
-    actions: actionViews(engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }), shopFloor, whoOf(ctx), ctx.permissions, { say: sayFor(ctx.run.def, ctx.rows) }),
+    actions: actionViews(offered, shopFloor, whoOf(ctx), ctx.permissions, { deciders: await decidersOf(ctx, offered), say: sayFor(ctx.run.def, ctx.rows) }),
     auditChain: `batch:${ctx.run.batch.id}`,
   };
 }

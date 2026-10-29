@@ -93,6 +93,7 @@ export const SCREEN_EN = {
   'header.scale': 'Scale',
   'header.mbr': 'MBR {family} version {version} revision {revision}',
   'exceptions.title': 'Exceptions',
+  'exceptions.byWho': '{action}: not for your role; it is for {who}.',
   'signatures.title': 'Signatures',
   'outline.title': 'Steps of this stage',
   'outline.overview': 'Run overview',
