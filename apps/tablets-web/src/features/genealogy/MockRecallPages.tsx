@@ -199,7 +199,7 @@ function MockRecall({ v }: { v: MockRecallView }) {
               <ul>
                 {c.shipments.map((s) => (
                   <li key={s.shipmentNo}>
-                    {s.shipmentNo}: lot {s.lotCode}, {s.quantity} {s.unit}, {s.shippedAt.text}
+                    {s.shipmentNo}: lot {s.lotCode}, {floor.quantityText(s.quantity, s.unit)}, {s.shippedAt.text}
                   </li>
                 ))}
               </ul>

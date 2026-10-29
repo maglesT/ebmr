@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { routes, type DistributionRecordView, type GenealogyNodeView } from '@ebmr/api-contract';
-import { Field, StatusChip } from '@ebmr/ui-kit';
+import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -118,7 +118,7 @@ export function Shipments({ rows }: { rows: readonly DistributionRecordView[] })
               {s.consigneeName} ({s.consigneeCode}){s.consigneeAddress ? `, ${s.consigneeAddress}` : ''}
             </td>
             <td>
-              {s.quantity} {s.unit}
+              {floor.quantityText(s.quantity, s.unit)}
             </td>
             <td>{s.shippedAt.text}</td>
           </tr>

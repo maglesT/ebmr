@@ -50,7 +50,7 @@ function Destruction({ lot, h }: { lot: LotSummaryView; h: LotHandlingView }) {
     <Section title="Destruction" testId="lot-destruction">
       {d ? (
         <p data-testid="destruction-record">
-          {d.quantity} {d.unit} by {d.method}, recorded by {d.performedBy.legalName} at {d.recordedAt.text}. Reason: {d.reason}
+          {floor.quantityText(d.quantity, d.unit)} by {d.method}, recorded by {d.performedBy.legalName} at {d.recordedAt.text}. Reason: {d.reason}
         </p>
       ) : (
         <>
@@ -113,7 +113,7 @@ function Reservations({ h, lot }: { h: LotHandlingView; lot: LotSummaryView }) {
       <ul>
         {h.reservations.map((r) => (
           <li key={r.reservationId} data-testid={`reservation-${r.batchNumber}`}>
-            {r.quantity} {r.unit} for batch {r.batchNumber}, by {r.reservedBy.legalName} at {r.reservedAt.text}, until {r.expiresAt.text}{' '}
+            {floor.quantityText(r.quantity, r.unit)} for batch {r.batchNumber}, by {r.reservedBy.legalName} at {r.reservedAt.text}, until {r.expiresAt.text}{' '}
             {r.revoked ? <StatusChip tone="neutral" label={`${r.revoked.kind.toLowerCase()} by ${r.revoked.by.legalName}${r.revoked.reason ? `: ${r.revoked.reason}` : ''}`} /> : <StatusChip tone="ok" label="open" />}
           </li>
         ))}

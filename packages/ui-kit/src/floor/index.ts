@@ -6,7 +6,7 @@
 export const READY = true as const;
 
 export { FLOOR_EN, ft, type FloorMessageKey } from './messages.ts';
-export { clockText, enumText, personLine, roleTitle, severityTone, stepTone } from './format.ts';
+export { clockText, enumText, personLine, quantityText, roleTitle, severityTone, stateWords, stepTone, unitText } from './format.ts';
 export { Keypad, type KeypadProps } from './Keypad.tsx';
 export { NumericEntry, type NumericEntryProps, type NumericTarget } from './NumericEntry.tsx';
 export { LimitDisplay, boundsText, type LimitDisplayProps, type LimitViewData } from './LimitDisplay.tsx';

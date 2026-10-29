@@ -70,3 +70,20 @@ describe('a copy of an approved master for another formula (slice 7o, D-7o-5)', 
     expect(definitionFindings(c).filter((f) => f.severity === 'ERROR')).toEqual([]);
   });
 });
+
+describe('a copy names the copy\'s own materials (R10 #9, slice 7u)', () => {
+  it('[PR-01][INV-25] a parameter, calculation or step named after the source\'s active takes the name of this formula\'s active from its material master; the source is not changed', () => {
+    const source = rtwProcessingContent('RTW-WG-SRC');
+    const base = TEMPLATES.get('dc-mini');
+    if (!base) throw new Error('no dc-mini');
+    const named: FormulaSource = { ...SRC, materials: SRC.materials.map((m) => (m.code === 'DMT-API-T' ? { ...m, name: 'Demotab sodium (invented data)' } : m)) };
+    const c = contentFromFormula(base, named, { familyCode: 'DMT400-T-01', markets: ['IN'], start: 'COPY' }, source);
+    expect(source.parameters.find((p) => p.id === 'dispApi')?.name).toBe('Exemplazine sodium dispensed (potency-adjusted)');
+    expect(c.parameters.find((p) => p.id === 'dispApi')?.name).toBe('Demotab sodium dispensed (potency-adjusted)');
+    const names = [...c.parameters, ...c.calculations, ...c.yieldCheckpoints].map((x) => x.name);
+    expect(names.filter((n) => /exemplazine/i.test(n))).toEqual([]);
+    // A material the copy keeps (the compensating cellulose) keeps its names.
+    expect(c.parameters.find((p) => p.id === 'dispMcc')?.name).toBe(source.parameters.find((p) => p.id === 'dispMcc')?.name);
+    expect(definitionFindings(c).filter((f) => f.severity === 'ERROR')).toEqual([]);
+  });
+});

@@ -104,18 +104,47 @@ export function objectWire(s: ObjectSchema): BlockObjectSchemaWire {
 
 const KIND_SET: ReadonlySet<string> = new Set(TabletEntryKind.options);
 
+/** Entry kinds whose words are not the kind's own (an abbreviation in the code). */
+const TITLES: Readonly<Record<string, string>> = { ATD_CHECK: 'Anti-tampering check' };
+
 const titleOf = (kind: string): string => {
+  const own = TITLES[kind];
+  if (own) return own;
   const words = kind.toLowerCase().split('_');
   return words.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(' ');
 };
 
+/**
+ * Slice 7u (R10 #17): entry kinds a block takes only when the step's configuration asks for them (the block refuses them
+ * otherwise), with why they are asked. The anti-tampering check of TB-24 is the MBR's choice for the step: the EU
+ * requires one (TB24-ATD-REQUIRED), and US OTC retail a tamper-evident feature; for other markets the master may ask it.
+ */
+const CONFIGURED_ONLY: Readonly<Record<string, { member: string; why: (markets: readonly string[]) => string }>> = {
+  ATD_CHECK: {
+    member: 'atd',
+    why: (markets) =>
+      markets.includes('EU')
+        ? 'Asked because the master record configures it on this step: the EU, a market of this order, requires an anti-tampering device.'
+        : `Asked because the master record configures it on this step (markets of this order: ${markets.join(', ') || 'none named'}; the EU would require it).`,
+  },
+};
+
+/** The step a form is offered for: its configuration and the markets of its master record (CONFIGURED_ONLY). */
+export interface EntryFormStep {
+  config: Readonly<Record<string, unknown>>;
+  markets: readonly string[];
+}
+
 /** The BLOCK_ENTRY forms of a step's block: none for a block outside the slice 6 list, never the typed kinds. */
-export function blockEntryForms(block: blocks.BlockVersion | undefined): BlockEntryFormView[] {
+export function blockEntryForms(block: blocks.BlockVersion | undefined, step?: EntryFormStep): BlockEntryFormView[] {
   if (!block || !(`${block.type}@${block.version}` in TABLET_ENTRY_KINDS_BY_BLOCK)) return [];
   const out: BlockEntryFormView[] = [];
   for (const [kind, schema] of Object.entries(block.dataSchema?.entries ?? {})) {
     if (!KIND_SET.has(kind) || TYPED_ENTRY_KINDS.includes(kind as TabletEntryKind)) continue;
-    out.push({ kind: kind as TabletEntryKind, title: titleOf(kind), description: schema.description, schema: objectWire(schema) });
+    const only = CONFIGURED_ONLY[kind];
+    if (only && step && !isRecord(step.config[only.member])) continue;
+    const description = only && step ? `${schema.description}. ${only.why(step.markets)}` : schema.description;
+    out.push({ kind: kind as TabletEntryKind, title: titleOf(kind), description, schema: objectWire(schema) });
   }
   return out;
 }

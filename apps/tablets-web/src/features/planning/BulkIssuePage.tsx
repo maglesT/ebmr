@@ -11,7 +11,7 @@
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { routes, type PackagingBulkView } from '@ebmr/api-contract';
-import { Banner, StatusChip } from '@ebmr/ui-kit';
+import { Banner, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
@@ -77,7 +77,7 @@ function BulkIssue({ v }: { v: PackagingBulkView }) {
         <ul aria-label="Bulk issued">
           {v.issued.map((i) => (
             <li key={i.containerId} data-testid={`issued-${i.label}`}>
-              {i.label}: {i.quantity} {i.unit}, issued by {i.issuedBy.legalName}, {i.issuedAt.text}
+              {i.label}: {floor.quantityText(i.quantity, i.unit)}, issued by {i.issuedBy.legalName}, {i.issuedAt.text}
             </li>
           ))}
         </ul>

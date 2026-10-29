@@ -46,9 +46,9 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
   return (
     <article aria-label={`Order ${order.orderNo}`}>
       <h2>
-        {order.orderNo} · {order.productName ?? order.productCode} {order.strength} · {order.batchSize} {order.batchSizeUnit}
+        {order.orderNo} · {order.productName ?? order.productCode} {order.strength} · {floor.quantityText(order.batchSize, order.batchSizeUnit)}
       </h2>
-      <p>Bill of materials: {order.bom.map((b) => `${b.materialCode} ${b.quantity} ${b.unit}`).join('; ')}</p>
+      <p>Bill of materials: {order.bom.map((b) => `${b.materialCode} ${floor.quantityText(b.quantity, b.unit)}`).join('; ')}</p>
       {order.match ? (
         <p data-testid="match">
           MBR {order.match.familyCode} version {order.match.versionNumber} (batch size {order.match.batchSizeId}; markets {order.match.markets.join(', ')})
@@ -59,7 +59,7 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
           {order.noMatch}
         </Banner>
       )}
-      {order.batches.length > 0 ? <p>Batches: {order.batches.map((b) => `${b.batchNumber} (${b.status})`).join(', ')}</p> : null}
+      {order.batches.length > 0 ? <p>Batches: {order.batches.map((b) => `${b.batchNumber} (${floor.stateWords(b.status)})`).join(', ')}</p> : null}
       {order.match && canPlan && !planned ? (
         order.match.recordKind === 'PACKAGING' ? <PackagingPlanForm order={order} site={site} onPlanned={setPlanned} /> : <PlanForm order={order} site={site} onPlanned={setPlanned} />
       ) : null}
@@ -159,7 +159,7 @@ function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderVie
           {match.parents.map((p) => (
             <li key={p.batchId} data-testid={`parent-${p.batchNumber}`}>
               <label>
-                <input type="radio" name={`parent-${order.orderNo}`} checked={parent === p.batchId} onChange={() => setParent(p.batchId)} /> {p.batchNumber} ({p.status}; {p.usableContainers} usable
+                <input type="radio" name={`parent-${order.orderNo}`} checked={parent === p.batchId} onChange={() => setParent(p.batchId)} /> {p.batchNumber} ({floor.stateWords(p.status)}; {p.usableContainers} usable
                 containers)
               </label>
               {p.releaseForPackingProblem ? <p>Not released for packing yet: {p.releaseForPackingProblem}</p> : <p>Released for packing.</p>}

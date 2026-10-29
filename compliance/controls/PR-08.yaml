@@ -177,6 +177,7 @@ tests:
   - "apps/tablets-web/test/designer/coating-layer.test.ts > add a coating layer (slice 7o) > [IN-37][PR-08] refusals change nothing: a functional film without its minimum, a minimum above the maximum, an unknown step, iterations outside 1 to 20"
   - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-36][PR-08][PR-29][DI-31][DI-32] route D 3: roller compaction on KIOSK-RC-1: the compactor's values keyed by hand, the ribbon checks and the mill screen (TB-06), sizing through a checked screen (TB-02) @office"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [IN-37][PR-08][PR-29][DI-29][DI-30][INV-19] route S 6: sugar coating on KIOSK-COAT-1: the sugar syrup (TB-03), the cores and the pan, five applications in the coating loop (TB-18 SC: seal, sub-coat, smoothing, colour, polish) to the weight gain @office"
+  - "apps/tablets-server/test/execution/value-display.test.ts > a computed value and its verdict as shown (R10 #11) > [PR-31][PR-08] the verdict names the limit it was judged against, not \"pass low 99.1 high 99.1\""
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

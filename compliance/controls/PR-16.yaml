@@ -53,6 +53,7 @@ tests:
   - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16] removing one label specimen or one checker signature blocks completion and names the gap"
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [IN-16] the packaging page offers the next coding specimen in order and posts what the operator read off it; [PR-16] it lists every printed item without its label specimen"
   - "apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts > packaging line completion, rule by rule (tablets 1230) > [PR-16] a label specimen's note is 1 to 500 characters, one item's specimen does not stand for another's, and each withdrawal is its own specimen's"
+  - "apps/tablets-server/test/execution/plain-words.test.ts > MBR names and plain words instead of internal codes (R10 #14) > [DI-34][PR-16] the packaging completion view names its steps by number and MBR name, not by key"
 clauses:
   - clause: "Removing one label specimen"
     tests:

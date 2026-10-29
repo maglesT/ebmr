@@ -121,7 +121,7 @@ function SampleRow({ s, canDispose }: { s: SampleView; canDispose: boolean }) {
   return (
     <>
       <p>
-        {s.kind} · {s.quantity} {s.unit} (required {s.requiredQuantity}) · {s.container}, {s.storageLocation} · kept until {s.retainUntil.text} · pulled by {s.pulledBy.legalName}, {s.pulledAt.text}
+        {s.kind} · {floor.quantityText(s.quantity, s.unit)} (required {s.requiredQuantity}) · {s.container}, {s.storageLocation} · kept until {s.retainUntil.text} · pulled by {s.pulledBy.legalName}, {s.pulledAt.text}
         {s.disposedAt ? ` · disposed ${s.disposedAt.text} by ${s.disposedBy?.legalName ?? 'unknown'}: ${s.disposalReason ?? ''}` : ''}
       </p>
       {canDispose && !s.disposedAt ? (

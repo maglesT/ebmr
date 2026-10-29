@@ -88,7 +88,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // Every actor context this server builds declares this zone (EBMR-IAM-118): never a configured constant.
     const config: ServerConfig = { ...env, siteZone: await siteZoneFromPolicy(pools.app, env) };
     const demo = await demoState(pools.app, config);
-    const guidance = new GuidanceCatalogue();
+    const guidance = new GuidanceCatalogue(config.installation);
     guidance.register('platform', PLATFORM_GUIDANCE);
     const app = Fastify({
       logger: loggerOptions(config.logLevel, config.logPretty, deps.logStream),

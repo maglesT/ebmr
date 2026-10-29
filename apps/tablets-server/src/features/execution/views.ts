@@ -13,7 +13,7 @@
  */
 import { blockEntryForms } from './block-entries.ts';
 import { sandbox } from '@ebmr/kernel';
-import { Dec } from '@ebmr/expr';
+import { Dec, formatForDisplay, writtenDecimals, writtenSignificantFigures, type Precision } from '@ebmr/expr';
 import { blocks, engine, flow } from '@ebmr/recipe-core';
 import type {
   ActionView,
@@ -377,12 +377,56 @@ function stepActions(ctx: ViewContext, inst: engine.StepInstance | undefined, st
 // ---------------------------------------------------------------------------------------------
 // Values
 
-function verdictText(ev: engine.StoredEvaluation | undefined, failed: boolean): string {
+/** "VALIDATED" -> "validated", "INTERNAL_ACTION" -> "internal action". */
+const tierWords = (tier: string): string => tier.toLowerCase().replace(/_/g, ' ');
+
+/** One tier of the engine's stored evaluation ("VALIDATED: pass low 99.1 high 99.1"). */
+const DETAIL = /^([A-Z_]+): (pass|FAIL)(?: low (\S+)(?: \(outside\))?)?(?: high (\S+)(?: \(outside\))?)?$/;
+
+/**
+ * Slice 7u (R10 #11): a tier of the stored evaluation in words, with the limit it was judged against ("validated 97.0 to
+ * 101.0 %: 99.1 as compared"). Display only; the stored evaluation keeps the engine's text.
+ */
+export function detailWords(detail: string, spec: flow.LimitSpec | undefined, unit: string | undefined): string {
+  const m = DETAIL.exec(detail);
+  const range = m ? spec?.ranges.find((r) => r.tier === m[1]) : undefined;
+  if (!m || !range) return detail;
+  const u = unit && unit !== '1' ? ` ${unit}` : '';
+  const low = range.low ? `${range.low.inclusive ? 'at least' : 'more than'} ${range.low.value}` : '';
+  const high = range.high ? `${range.high.inclusive ? 'at most' : 'less than'} ${range.high.value}` : '';
+  const limit = range.low && range.high && range.low.inclusive && range.high.inclusive ? `${range.low.value} to ${range.high.value}${u}` : `${[low, high].filter((x) => x !== '').join(' and ')}${u}`;
+  const compared = m[3] ?? m[4];
+  return `${tierWords(m[1] ?? '')} ${limit}${compared !== undefined ? `: ${compared} as compared` : ''}${m[2] === 'pass' ? '' : ', outside'}`;
+}
+
+export function verdictText(ev: engine.StoredEvaluation | undefined, failed: boolean, spec?: flow.LimitSpec, unit?: string): string {
   if (!ev) return failed ? 'Failed' : 'No limit applies';
   if (ev.requirement === 'ENDPOINT_IN_PROGRESS') return 'Judged when the loop ends';
-  if (ev.breached) return `Outside the ${ev.breached.toLowerCase().replace(/_/g, ' ')} limit: ${ev.detail.join('; ')}`;
+  const detail = ev.detail.map((d) => detailWords(d, spec, unit)).join('; ');
+  if (ev.breached) return `Outside the ${tierWords(ev.breached)} limit: ${detail}`;
   if (ev.requirement === 'UNEXPECTED_ANSWER') return 'Not the expected answer';
-  return `Within limits (${ev.detail.join('; ')})`;
+  return `Within limits (${detail})`;
+}
+
+/**
+ * Slice 7u (R10 #11): the precision a computed value is shown at: the decimals (USP rounding) or significant figures
+ * (Ph. Eur.) its limits are written to; without a limit, three decimals at most. Display only: the stored value is
+ * never changed.
+ */
+export function limitPrecision(spec: flow.LimitSpec | undefined): Precision {
+  const ranges = spec?.ranges ?? [];
+  const bounds = ranges.flatMap((r) => [r.low?.value, r.high?.value]).filter((v): v is string => typeof v === 'string');
+  if (bounds.length === 0) return { decimals: 3 };
+  if (ranges.every((r) => r.rounding === 'PH_EUR_SIG_FIGS')) return { significantFigures: Math.max(...bounds.map((b) => writtenSignificantFigures(b) ?? 1)) };
+  return { decimals: Math.max(...bounds.map(writtenDecimals)) };
+}
+
+/** A decimal value as shown at `precision` ("99.1 %"), or undefined when it holds no more digits than that (shown as stored). */
+export function shownAt(v: engine.DataValue | undefined, precision: Precision): string | undefined {
+  if (v?.kind !== 'DECIMAL' || !/^-?[0-9]+(\.[0-9]+)?$/.test(v.value)) return undefined;
+  const shown = formatForDisplay(v.value, precision);
+  if (writtenDecimals(shown) >= writtenDecimals(v.value)) return undefined;
+  return `${shown} ${v.unit}`;
 }
 
 function echoOf(v: engine.DataValue | undefined, source: engine.DataSource): string {
@@ -402,7 +446,7 @@ function echoOf(v: engine.DataValue | undefined, source: engine.DataSource): str
   }
 }
 
-function attemptOfPoint(ctx: ViewContext, p: engine.DataPoint): Attempt {
+function attemptOfPoint(ctx: ViewContext, p: engine.DataPoint, spec?: flow.LimitSpec, unit?: string): Attempt {
   const s = p.source;
   return {
     pointId: p.id,
@@ -418,24 +462,27 @@ function attemptOfPoint(ctx: ViewContext, p: engine.DataPoint): Attempt {
       raw: s.mode === 'DEVICE' ? (s.raw ?? null) : null,
       code: s.mode === 'SCAN' ? s.code : null,
     },
-    verdict: p.evaluation || p.failed ? { tier: p.evaluation?.breached ?? null, failed: p.failed, text: verdictText(p.evaluation, p.failed) } : null,
+    verdict: p.evaluation || p.failed ? { tier: p.evaluation?.breached ?? null, failed: p.failed, text: verdictText(p.evaluation, p.failed, spec, unit) } : null,
     flags: [...p.flags],
     status: p.status,
   };
 }
 
-function attemptOfDerived(ctx: ViewContext, d: engine.DerivedValue): Attempt {
+function attemptOfDerived(ctx: ViewContext, d: engine.DerivedValue, spec?: flow.LimitSpec, unit?: string): Attempt {
   const row = ctx.rows.atEvent(d.computedSeq);
+  // Slice 7u (R10 #11): a computed value at the precision of its limits (the stored value stays as computed).
+  const shown = shownAt(d.value, limitPrecision(spec));
   return {
     pointId: d.id,
     attempt: 1,
     version: d.version,
     value: wireOf(d.value),
-    echo: `Computed ${engine.showValue(d.value)}`,
+    echo: `Computed ${shown ?? engine.showValue(d.value)}`,
+    ...(shown !== undefined ? { shown } : {}),
     by: row?.actor ?? personOrId(ctx, 'SYSTEM'),
     at: fmt(ctx, d.computedAt),
     source: { mode: 'BLOCK', deviceCode: null, raw: null, code: null },
-    verdict: d.evaluation || d.failed ? { tier: d.evaluation?.breached ?? null, failed: d.failed, text: verdictText(d.evaluation, d.failed) } : null,
+    verdict: d.evaluation || d.failed ? { tier: d.evaluation?.breached ?? null, failed: d.failed, text: verdictText(d.evaluation, d.failed, spec, unit) } : null,
     flags: d.reason ? ['RECOMPUTED'] : [],
     status: d.status === 'CURRENT' ? 'VALID' : 'SUPERSEDED',
   };
@@ -522,11 +569,11 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
       ? Object.values(ctx.state.derived)
           .filter((d) => d.stepKey === stepKey && d.calculation === item)
           .sort((a, b) => a.computedSeq - b.computedSeq)
-          .map((d) => attemptOfDerived(ctx, d))
+          .map((d) => attemptOfDerived(ctx, d, spec, unit))
       : Object.values(ctx.state.points)
           .filter((p) => p.stepKey === stepKey && p.item === item)
           .sort((a, b) => a.attempt - b.attempt || a.version - b.version || a.recordedSeq - b.recordedSeq)
-          .map((p) => attemptOfPoint(ctx, p));
+          .map((p) => attemptOfPoint(ctx, p, spec, unit));
     out.push({
       item,
       name: param?.name ?? calc?.name ?? item,
@@ -676,7 +723,9 @@ function equipmentLabel(def: engine.BatchDefinition, stepDef: engine.StepDef, re
 }
 
 /** Forms of the entry kinds the browser can send for this step's block (the client entry variants). */
-function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): EntryFormT[] {
+export function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef, installation: 'GMP' | 'SANDBOX' = 'SANDBOX'): EntryFormT[] {
+  // Slice 7u (R10 #10): the sandbox takes TEST- lots and batches only; the GMP installation says nothing of test data.
+  const sandboxOnly = installation === 'SANDBOX';
   if (stepDef.node.kind !== 'phase' || !stepDef.block) return [];
   const phase = stepDef.node;
   const kinds = Object.keys(stepDef.block.dataSchema?.entries ?? {});
@@ -704,7 +753,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
               ? [field('item', 'Quantity', 'enum', 'The dispensed quantity this container counts towards', { options: massItems.map((i) => ({ value: i, label: def.mbr.parameters.find((p) => p.id === i)?.name ?? i })) })]
               : []),
             field('bomLine', 'Material', 'enum', 'The BOM line dispensed into this container', { options: bom }),
-            field('lotCode', 'Lot', 'lot', 'Scan the lot label (TEST- lots only)'),
+            field('lotCode', 'Lot', 'lot', sandboxOnly ? 'Scan the lot label (TEST- lots only)' : 'Scan the lot label'),
             ...readings(),
           ],
         });
@@ -737,7 +786,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
           kind,
           title: 'Previous batch',
           description: 'Product and batch number last processed in this area.',
-          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', 'The test batch (TEST-...) last processed here, or NONE')],
+          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', sandboxOnly ? 'The test batch (TEST-...) last processed here, or NONE' : 'The batch last processed here, or NONE')],
         });
         break;
       case 'EQUIPMENT_STATUS': {
@@ -989,8 +1038,8 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     },
     fields: node.kind === 'phase' ? withPotencyTargets(fieldsOf(ctx, stepDef, inst, stepKey), potency, node, def.mbr, ctx.state, stepKey) : fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
-    entryForms: entryFormsOf(def, stepDef),
-    blockEntries: withWarnings(blockEntryForms(stepDef.block), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
+    entryForms: entryFormsOf(def, stepDef, ctx.app.installation),
+    blockEntries: withWarnings(blockEntryForms(stepDef.block, { config: stepDef.config, markets: def.mbr.header.marketSet }), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),

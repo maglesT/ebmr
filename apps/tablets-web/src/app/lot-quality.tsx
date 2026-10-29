@@ -84,22 +84,22 @@ export function GmpAssayForm({ lotCode, results, initialBasis = null, title = `R
 }
 
 /** `results`: on GMP the lot's LIMS results (the assay is chosen from the approved ones); absent in the sandbox (typed). */
-export function LotQualityForms({ lotCode, results }: { lotCode: string; results?: readonly LotResultView[] }) {
+export function LotQualityForms({ lotCode, results, assay = true, artwork = true }: { lotCode: string; results?: readonly LotResultView[]; assay?: boolean; artwork?: boolean }) {
   const q = useApiQuery(routes.execution.lotQuality, {
     params: { code: lotCode },
   });
   const v = q.data;
   const params = { code: lotCode };
   return (
-    <Section title={`Assay and artwork of lot ${lotCode}`} testId={`lot-quality-${lotCode}`}>
+    <Section title={assay && artwork ? `Assay and artwork of lot ${lotCode}` : assay ? `Assay of lot ${lotCode}` : `Artwork of lot ${lotCode}`} testId={`lot-quality-${lotCode}`}>
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
-      <p data-testid="lot-assay">
+      {assay ? <p data-testid="lot-assay">
         {v?.assay
           ? `Assay ${v.assay.assay} % (${v.assay.basis}${v.assay.water ? `, water ${v.assay.water} %` : ''}${v.assay.lod ? `, loss on drying ${v.assay.lod} %` : ''}${v.assay.solvents ? `, solvents ${v.assay.solvents} %` : ''}), certificate ${v.assay.certificateRef}, recorded ${v.assay.recordedAt.text}`
           : 'No assay result recorded.'}
-      </p>
-      <p data-testid="lot-artwork">{v?.artwork ? `Artwork version ${v.artwork}` : 'No artwork version recorded.'}</p>
-      {results ? (
+      </p> : null}
+      {artwork ? <p data-testid="lot-artwork">{v?.artwork ? `Artwork version ${v.artwork}` : 'No artwork version recorded.'}</p> : null}
+      {!assay ? null : results ? (
         <GmpAssayForm lotCode={lotCode} results={results} />
       ) : (
         <DefineForm
@@ -146,7 +146,7 @@ export function LotQualityForms({ lotCode, results }: { lotCode: string; results
           ]}
         />
       )}
-      {v && v.artwork === null ? (
+      {artwork && v && v.artwork === null ? (
         <DefineForm
           title={`Record the artwork version of ${lotCode}`}
           route={routes.execution.recordLotArtwork}
