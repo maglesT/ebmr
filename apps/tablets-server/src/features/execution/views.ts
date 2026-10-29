@@ -626,7 +626,14 @@ export function summaryOf(e: engine.EntryRecord, mbr: flow.MbrContent, step?: en
       return `${s('mode') === 'CONFIRM_PERFORMED' ? 'Confirmed performed' : 'Read'}${d['sop'] ? `: ${s('sop')} version ${s('sopVersion')}` : ''}`;
     default: {
       const own = step?.block?.entrySummaries?.[e.kind];
-      return own ? own(d, blocks.summaries.entrySummaryContext(mbr, step?.config ?? {})) : e.kind.toLowerCase().replace(/_/g, ' ');
+      const plain = e.kind.toLowerCase().replace(/_/g, ' ');
+      if (!own) return plain;
+      // A summary is display only: one that cannot read its entry's data must not take the step view down with it.
+      try {
+        return own(d, blocks.summaries.entrySummaryContext(mbr, step?.config ?? {}));
+      } catch {
+        return plain;
+      }
     }
   }
 }
