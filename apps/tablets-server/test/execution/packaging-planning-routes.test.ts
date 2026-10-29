@@ -121,7 +121,7 @@ describe('packaging orders over HTTP (Phase 4 slice 2c)', () => {
     expect(order).toBeDefined();
     const batchId = order?.batchId ?? '';
     const bulk = valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } }));
-    expect(bulk).toMatchObject({ batchId, orderProblem: null, parent: { batchId: parentId, batchNumber: parentNumber, releaseForPackingProblem: (expect.stringMatching(/H-PACK/) as unknown) }, issued: [], containers: [] });
+    expect(bulk).toMatchObject({ batchId, orderProblem: null, parent: { batchId: parentId, batchNumber: parentNumber, releaseForPackingProblem: (expect.stringMatching(/H-PACK/) as unknown) }, issued: [], containers: [], finishedLot: null });
     const body = { labels: [`OC-${parentNumber}-1001`] };
     const tap = await tapFor(operator, personaIn(w.gmp, 'operator1'), 'POST', `/api/batches/${batchId}/bulk`, body);
     const refused = refusalOf(await operator.call(routes.batches.issueBulk, { params: { batchId }, body, attribution: tap }));

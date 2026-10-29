@@ -73,6 +73,7 @@
       { "label": "OC-G2600001-1001", "containerId": "7f4e2d9a-0b3c-4e5f-9a6b-2c3d4e5f6071", "stage": "COMPRESSION", "state": "CLOSED", "netQuantity": "25.500", "unit": "kg", "issueProblem": "issued to packaging order G2600001/P01" },
       { "label": "OC-G2600001-1002", "containerId": "2e9d7c4f-5a81-4dae-8fb0-718293041526", "stage": "COMPRESSION", "state": "CLOSED", "netQuantity": "24.800", "unit": "kg", "issueProblem": null },
       { "label": "OC-G2600001-1003", "containerId": "3fae8d50-6b92-4ebf-90c1-829304152637", "stage": "COMPRESSION", "state": "HELD", "netQuantity": "25.100", "unit": "kg", "issueProblem": "container OC-G2600001-1003 is HELD: held containers are never merged, charged or packed until QA releases them" }
-    ]
+    ],
+    "finishedLot": null
   }
 }

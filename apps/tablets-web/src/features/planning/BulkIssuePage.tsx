@@ -104,18 +104,38 @@ function BulkIssue({ v }: { v: PackagingBulkView }) {
         ) : null}
         <ActResult error={issue.error} done={issue.done} label="Bulk issued." />
       </Section>
-      {v.status === 'EXECUTION_COMPLETE' ? <FinishedLot batchId={v.batchId} /> : null}
+      {v.status === 'EXECUTION_COMPLETE' || v.finishedLot ? <FinishedLot batchId={v.batchId} posted={v.finishedLot} /> : null}
     </>
   );
 }
 
 /**
  * The finished lot of a completed packaging order, posted in quarantine (slice 2b's route; IN-05 (a), PR-45): it leaves
- * quarantine only through the release model. The quantity is the person's count; the database checks the order.
+ * quarantine only through the release model. The quantity is the person's count; the database checks the order. Once
+ * posted the lot is given back by its code with links to it and to its release (R10 #12), and the post is not offered
+ * again (the database allows one finished lot per order).
  */
-function FinishedLot({ batchId }: { batchId: string }) {
+function FinishedLot({ batchId, posted }: { batchId: string; posted: PackagingBulkView['finishedLot'] }) {
   const stores = useOffered('STORES');
   const planner = useOffered('PLANNING');
+  const [answer, setAnswer] = useState<{ lotId: string; lotCode: string } | null>(null);
+  const lot = answer ?? posted;
+  if (lot) {
+    return (
+      <Section title="Finished lot" testId="finished-lot">
+        <p data-testid="finished-lot-posted">
+          Finished lot{' '}
+          <Link to="/quality/lots/$lotId" params={{ lotId: lot.lotId }}>
+            {lot.lotCode}
+          </Link>{' '}
+          posted in quarantine ·{' '}
+          <Link to="/release/$lotId" params={{ lotId: lot.lotId }}>
+            Its release in the release cockpit
+          </Link>
+        </p>
+      </Section>
+    );
+  }
   if (!stores && !planner) return null;
   return (
     <Section title="Finished lot" testId="finished-lot">
@@ -123,8 +143,9 @@ function FinishedLot({ batchId }: { batchId: string }) {
         title="Post the finished lot"
         route={routes.specifications.postFinishedLot}
         fixed={{ batchId }}
-        refresh={[routes.quality.lots.id]}
+        refresh={[routes.quality.lots.id, routes.planning.packagingBulk.id, routes.release.queue.id]}
         submitLabel="Post the finished lot in quarantine"
+        onDone={(r) => setAnswer({ lotId: r.lotId, lotCode: r.lotCode })}
         fields={[
           { name: 'quantity', label: 'Finished quantity', kind: 'decimal' },
           { name: 'unit', label: 'Unit', kind: 'text', description: 'e.g. units, packs' },
