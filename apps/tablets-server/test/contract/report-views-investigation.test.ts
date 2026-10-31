@@ -1,21 +1,22 @@
 /**
  * The investigation report views of tablets 1801 (slice S16; ADR 0022, D-S16-6), read as the reporting role ebmr_report:
- * a run through the real server and engine (the execution test world: a dc-mini variant with an in-process physical
- * check, TB-13, and a dryer step collecting a process value, G-06) records a failing breaking-force check (48, 95 and
- * 52 N against 60 to 140 N; mean 65 N against the action minimum 60 and the alert minimum 70), the thickness readings,
- * the inlet temperature 51.0 degC against 50 to 70, and the exceptions they raise, one dispositioned by QA. The plant
- * (press, tester) is arranged as the IPC block tests arrange it (superuser master data). The run is a test run on the
- * sandbox database, the only installation where the execution world issues one; the row functions read every batch record
- * of their database, and on a GMP database those are GMP records only (the reporting role never connects to a sandbox).
+ * a GMP batch of the GMP test world (dc-mini as a GMP master with an in-process physical check, TB-13, and a dryer step
+ * collecting a process value, G-06, first in its preparation), driven through the real server and engine, records a
+ * failing breaking-force check (48, 95 and 52 N against 60 to 140 N; mean 65 N against the action minimum 60 and the
+ * alert minimum 70), the thickness readings, the inlet temperature 51.0 degC against 50 to 70, and the exceptions they
+ * raise, one dispositioned by QA. The plant (press, tester) is arranged as the IPC block tests arrange it (superuser
+ * master data).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import type { ClientIntent } from '@ebmr/api-contract';
-import { actorOfBrowser } from '../esig/support.ts';
-import { dcMiniVariant, importAndIssue, RunDriver, startExecServer, writePackage, type ExecServer } from '../execution/support.ts';
+import { actorOfBrowser, personaIn } from '../esig/support.ts';
+import { RunDriver, type ExecServer } from '../execution/support.ts';
+import { gmpContent, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 
 type Json = Record<string, unknown>;
 
+let w: GmpBatchWorld;
 let sbx: ExecServer;
 let d: RunDriver;
 let batchNumber: string;
@@ -48,12 +49,28 @@ async function asReport<T>(sql: string, params: unknown[] = []): Promise<T[]> {
 }
 
 beforeAll(async () => {
-  sbx = await startExecServer();
+  // The two steps first in dc-mini's preparation, in branches of one parallel node so each can start at once.
+  const content = gmpContent((m) => {
+    const body = (m['procedure'] as Json)['body'] as Json;
+    const prep = ((((body['children'] as Json[])[0] as Json)['body'] as Json)['children'] as Json[])[0] as Json;
+    const prepBody = prep['body'] as Json;
+    prepBody['children'] = [
+      {
+        kind: 'parallel', id: 'par-s16', branches: [
+          { id: 'br-s16-dry', name: 'Drying', body: { ...phaseOf('p-dry', 'Fluid-bed drying: inlet air temperature', 'G-06', ACTUALS), system: { kind: 'PLC', ref: 'SYS-WEIGH-01', recipe: 'RCP-FBD-DRY', recipeVersion: '1' } } },
+          { id: 'br-s16-ipc', name: 'In-process check', body: phaseOf('p-ipc-phys', 'Thickness and breaking force of the cores', 'TB-13', PHYSICAL) },
+        ],
+      },
+      ...(prepBody['children'] as Json[]),
+    ];
+  });
+  w = await startGmpBatchWorld(content);
+  sbx = w.gmp;
   const c = await sbx.db.admin.connect();
   try {
     await c.query('begin');
     await c.query('set local session_replication_role = replica');
-    await c.query("insert into plant.product (code, name, highly_potent, recorded_by) values ('PCM500', 'Paracetamol tablets', false, gen_random_uuid()) on conflict do nothing");
+    await c.query("insert into plant.product (code, name, highly_potent, recorded_by) values ($1, 'Paracetamol tablets', false, gen_random_uuid()) on conflict do nothing", [content.header.product.code]);
     await c.query("insert into plant.equipment_class (code, kind, description, calibration_required, check_regime, recorded_by) values ('EQC-IPC', 'INSTRUMENT', 'IPC testers', true, 'PER_USE', gen_random_uuid())");
     await c.query("insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by) values ('EQC-PRESS', 'PROCESS', 'Rotary press', interval '3 days', interval '2 days', false, gen_random_uuid())");
     await c.query("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ('TEST-PRESS-01', 'Rotary press', 'EQC-PRESS', 'PROCESS', gen_random_uuid())");
@@ -64,30 +81,20 @@ beforeAll(async () => {
   } finally {
     c.release();
   }
-  // The two steps in branches of one parallel node, so each can start at once (as the IPC block tests do).
-  const mbr = dcMiniVariant((prep) => [
-    {
-      kind: 'parallel', id: 'par-s16', branches: [
-        { id: 'br-s16-dry', name: 'Drying', body: { ...phaseOf('p-dry', 'Fluid-bed drying: inlet air temperature', 'G-06', ACTUALS), system: { kind: 'PLC', ref: 'SYS-WEIGH-01', recipe: 'RCP-FBD-DRY', recipeVersion: '1' } } },
-        { id: 'br-s16-ipc', name: 'In-process check', body: phaseOf('p-ipc-phys', 'Thickness and breaking force of the cores', 'TB-13', PHYSICAL) },
-      ],
-    },
-    ...prep,
-  ]);
   const issuer = await sbx.asPersona('issuer');
-  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, mbr));
+  const runId = await w.issued(issuer);
   d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1'), qa1: await sbx.asPersona('qa1') });
   batchNumber = (await sbx.db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [runId])).rows[0]?.n ?? '';
-  // The press in use for the run (superuser master data, as the IPC block tests), the tester checked and in use (operator1).
+  // The press in use for the batch (superuser master data, as the IPC block tests), the tester checked and in use (operator1).
   const c2 = await sbx.db.admin.connect();
   try {
     await c2.query('begin');
     await c2.query('set local session_replication_role = replica');
     await c2.query(
       `insert into plant.equipment_use (equipment_id, previous_use_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
-       select q.id, null, b.id, b.batch_number, 'PCM500', clock_timestamp() + interval '8 hours', gen_random_uuid(), gen_random_uuid()
+       select q.id, null, b.id, b.batch_number, $2, clock_timestamp() + interval '8 hours', gen_random_uuid(), gen_random_uuid()
          from plant.equipment q, recipe.batch_execution b where q.code = 'TEST-PRESS-01' and b.id = $1`,
-      [runId],
+      [runId, content.header.product.code],
     );
     await c2.query('commit');
   } finally {
@@ -99,6 +106,9 @@ beforeAll(async () => {
   });
   // The physical check: 2 of 3 tablets below 60 N, so the check fails (IPC_CHECK_FAILED); then the dryer's inlet temperature.
   await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-ipc-phys@' });
+  // operator1 binds the press to the check step (plant.bind_step_equipment, as the step-binding route does): the binding
+  // names the phase, p-ipc-phys.
+  await withCommand(sbx.db.app, await actorOfBrowser(sbx, d.browser('operator1'), 'operator1'), (cl) => cl.query("select plant.bind_step_equipment($1, 'p-ipc-phys', 'TEST-PRESS-01')", [runId]));
   await d.ok('operator1', entry('p-ipc-phys@', 'PHYSICAL_CHECK', {
     instrument: 'TEST-HT-01', capture: 'MANUAL',
     tablets: [{ thickness: '4.31', hardness: '48' }, { thickness: '4.28', hardness: '95' }, { thickness: '4.35', hardness: '52' }],
@@ -108,7 +118,7 @@ beforeAll(async () => {
 }, 300_000);
 
 afterAll(async () => {
-  await sbx?.close();
+  await w?.close();
 });
 
 describe('the investigation report views (tablets 1801), read as ebmr_report', () => {
@@ -145,20 +155,32 @@ describe('the investigation report views (tablets 1801), read as ebmr_report', (
     expect(alert).toBeDefined();
     await d.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception: String(alert?.['exception_id']), outcome: 'NO_IMPACT', justification: 'Values keyed by hand were checked by the second person at the time.' });
     const after = (await asReport<Json>('select exception_id, status, disposition, disposed_by, disposed_at from report.exception_detail_v1 where batch_number = $1 and exception_id = $2', [batchNumber, alert?.['exception_id']]))[0];
-    expect(after).toMatchObject({ status: 'DISPOSITIONED', disposition: 'NO_IMPACT', disposed_by: 'TEST-Fatima Sheikh' });
+    expect(after).toMatchObject({ status: 'DISPOSITIONED', disposition: 'NO_IMPACT', disposed_by: personaIn(sbx, 'qa1').personId });
     expect(after?.['disposed_at']).toBeInstanceOf(Date);
     // The register's own view gives the same exceptions.
     const plain = await asReport<{ exception_id: string }>('select exception_id from report.exception_v1 where batch_number = $1 order by 1', [batchNumber]);
     expect(before.map((r) => r['exception_id']).sort()).toEqual(plain.map((r) => r.exception_id));
   });
 
-  it('equipment_use_v1 gives the press and the tester the run uses, with class, start and end', async () => {
+  it('equipment_use_v1 gives the press and the tester the batch uses, with class, the bound step, start and end', async () => {
     const rows = await asReport<Json>('select equipment_code, equipment_type, room_code, step, started_at, ended_at from report.equipment_use_v1 where batch_number = $1 order by equipment_code', [batchNumber]);
-    expect(rows.map((r) => [r['equipment_code'], r['equipment_type'], r['ended_at']])).toEqual([['TEST-HT-01', 'EQC-IPC', null], ['TEST-PRESS-01', 'EQC-PRESS', null]]);
+    // One row per use and step: the press once, for the step its binding names (by phase); the tester with no step.
+    expect(rows.map((r) => [r['equipment_code'], r['equipment_type'], r['step'], r['ended_at']])).toEqual([['TEST-HT-01', 'EQC-IPC', null, null], ['TEST-PRESS-01', 'EQC-PRESS', 'p-ipc-phys@', null]]);
     for (const r of rows) expect(r['started_at']).toBeInstanceOf(Date);
   });
 
-  it('the reporting role reaches no table or helper behind the views, and the sandbox database\'s segregation check stays clean', async () => {
+  it('the _for functions give a chosen batch\'s rows, the same as the views; a batch not named gives none', async () => {
+    for (const v of ['equipment_use', 'ipc_result', 'process_actual', 'exception_detail']) {
+      const cols = v === 'exception_detail' ? 'exception_id, status' : v === 'process_actual' ? 'tag, value_text' : v === 'ipc_result' ? 'item, reading, value_text, aggregate' : 'equipment_code, step';
+      const viaView = await asReport(`select ${cols} from report.${v}_v1 where batch_number = $1`, [batchNumber]);
+      const viaFor = await asReport(`select ${cols} from report.${v}_v1_for($1)`, [[batchNumber]]);
+      expect(viaFor, v).toEqual(viaView);
+      expect(viaFor.length, v).toBeGreaterThan(0);
+      expect(await asReport(`select 1 from report.${v}_v1_for($1)`, [['NO-SUCH-BATCH']]), v).toEqual([]);
+    }
+  });
+
+  it('[DI-17] the reporting role reaches no table or helper behind the views, and the GMP database\'s segregation check stays clean', async () => {
     expect((await sbx.db.admin.query<{ p: string }>('select p from sandbox.segregation_problems() p')).rows.map((r) => r.p)).toEqual([]);
     await expect(asReport('select 1 from recipe.execution_state limit 1')).rejects.toThrow(/permission denied/);
     await expect(asReport('select 1 from plant.equipment_use limit 1')).rejects.toThrow(/permission denied/);

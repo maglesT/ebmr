@@ -10,6 +10,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { startServer } from '../support/harness.ts';
 import { valueOf } from '../esig/support.ts';
 
 /** The columns of each view (name and type as pg_catalog.format_type gives them), in their order. */
@@ -102,12 +103,23 @@ describe('the report views the Deviations system reads (slice S16, D-S16-2)', ()
     expect(Object.fromEntries(catalogue.map((r) => [r.view_name, r.columns.map((x) => `${x.name} ${x.type}`)]))).toEqual(CONTRACT);
   });
 
-  it('the segregation check of the GMP database stays clean with the S16 views (tablets 1800, 1801): the reporting role reads report views only', async () => {
+  it('[DI-17] the segregation check of the GMP database stays clean with the S16 views (tablets 1800, 1801): the reporting role reads report views only', async () => {
     const { rows } = await w.gmp.db.admin.query<{ p: string }>('select p from sandbox.segregation_problems() p');
     expect(rows.map((r) => r.p)).toEqual([]);
     // The reporting role reaches no table behind the views.
     await expect(asReport('select 1 from tab.reference_document limit 1')).rejects.toThrow(/permission denied/);
   });
+
+  it('[DI-05] in a sandbox database the reporting role cannot connect and the segregation check stays clean with the S16 views', async () => {
+    const sbx = await startServer('SANDBOX');
+    try {
+      const { rows } = await sbx.db.admin.query<{ ok: boolean }>("select has_database_privilege('ebmr_report', current_database(), 'CONNECT') as ok");
+      expect(rows[0]?.ok).toBe(false);
+      expect((await sbx.db.admin.query<{ p: string }>('select p from sandbox.segregation_problems() p')).rows.map((r) => r.p)).toEqual([]);
+    } finally {
+      await sbx.close();
+    }
+  }, 300_000);
 
   it('reference_document_v1 lists the recorded reference document versions with their effective dates', async () => {
     const steward = await w.gmp.asPersona('steward');

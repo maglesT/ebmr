@@ -3005,3 +3005,9 @@ withinLimits) and `report.exception_detail_v1` (step, step title, text, status a
 the execution test world (`report-views-investigation.test.ts`): breaking force 48, 95 and 52 N against 60 to 140, mean 65
 N against action 60 and alert 70, FAIL; inlet temperature 51.0 degC within 50 to 70; IPC_CHECK_FAILED open, the manual-entry
 alert dispositioned by QA. All eleven views pinned in the contract test.
+Review fixes (same branch): every S16 view filters GMP batch records itself (D-S16-3); exception_detail_v1.disposed_by
+is the pseudonymous person id, never a name (D-S16-4); report.<name>_v1_for(batch_numbers text[]) beside the four 1801
+views reads only the batches named, EXECUTE to ebmr_report only (D-S16-5); equipment_use_v1 matches a step binding by
+key or phase, once per use; ipc_result_v1 gives TB-11 STATION_SWEEP values per station and documents its verdicts (PASS,
+ALERT, FAIL; one per parameter); the investigation test now runs a GMP batch of the GMP test world; control IDs on the
+segregation tests (DI-17, DI-05). Decision IDs D-S16-1 to 6 recorded in ADR 0022.

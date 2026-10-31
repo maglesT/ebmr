@@ -186,10 +186,11 @@ charges, TB-17 challenge entry, TB-08 authorisation request and sources picked o
 (recipe-core 1650). Decisions D-7m-1 to 5. Every tablet block and every coating and pack type is now on a route.
 
 **Slice S16 (31 October, branch `s16-reference-views`, not merged): report views for the external Deviations and CAPA
-system** (ADR 0022, D-S16-1 and D-S16-2). Tablets 1800 adds `report.reference_document_v1` and `report.batch_reference_v1`
+system** (ADR 0022, D-S16-1 to D-S16-6). Tablets 1800 adds `report.reference_document_v1` and `report.batch_reference_v1`
 (the documents a GMP batch's pinned master cites in its `references`); tablets 1801 adds `equipment_use_v1`,
-`ipc_result_v1`, `process_actual_v1` and `exception_detail_v1` (D-S16-6; tested on a run with a failing physical check in
-`report-views-investigation.test.ts`). SELECT to `ebmr_app` and `ebmr_report` only; the segregation check is unchanged and
+`ipc_result_v1`, `process_actual_v1` and `exception_detail_v1`, each with a `_v1_for(batch_numbers)` function for one
+batch (tested on a GMP batch with a failing physical check in `report-views-investigation.test.ts`). GMP records only;
+persons by pseudonymous id only. SELECT to `ebmr_app` and `ebmr_report` only; the segregation check is unchanged and
 stays clean. The eleven views the reader uses are pinned by
 `apps/tablets-server/test/contract/report-views-deviations.test.ts`; a column change is a new `_v2`. Ops note
 `docs/operations/report-reader.md` and an `ebmr_report` line in the `pg_hba.conf` template. The shared demo scenario is on
