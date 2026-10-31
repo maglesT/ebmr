@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 20 October 2026 (slice 7i: the hosted demo's follow-up).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 31 October 2026 (slice S16: report views for the Deviations system).
 
 ## What this is
 
@@ -184,6 +184,16 @@ thermoform) with their plant, kiosks, masters, lots and orders in the GMP demo s
 ERP order to the released lot; TB-08 on a second route W batch (`route-w2.spec.ts`). Fixes 7M-1 to 7M-4 (TB-16 layer
 charges, TB-17 challenge entry, TB-08 authorisation request and sources picked on screen) and review finding P7L-1
 (recipe-core 1650). Decisions D-7m-1 to 5. Every tablet block and every coating and pack type is now on a route.
+
+**Slice S16 (31 October, branch `s16-reference-views`, not merged): report views for the external Deviations and CAPA
+system** (ADR 0022, D-S16-1 and D-S16-2). Tablets 1800 adds `report.reference_document_v1` and `report.batch_reference_v1`
+(the documents a GMP batch's pinned master cites in its `references`); tablets 1801 adds `equipment_use_v1`,
+`ipc_result_v1`, `process_actual_v1` and `exception_detail_v1` (D-S16-6; tested on a run with a failing physical check in
+`report-views-investigation.test.ts`). SELECT to `ebmr_app` and `ebmr_report` only; the segregation check is unchanged and
+stays clean. The eleven views the reader uses are pinned by
+`apps/tablets-server/test/contract/report-views-deviations.test.ts`; a column change is a new `_v2`. Ops note
+`docs/operations/report-reader.md` and an `ebmr_report` line in the `pg_hba.conf` template. The shared demo scenario is on
+the hosted demo (RAB-GR-20, RAB26002 and RAB26004), built there by the owner's server session; no demo tooling here.
 
 Next: update the hosted demo to 7i and rehearse the demo guide's full-batch act on it (D2), then Tablets v1.0.
 Injectables (Phase 5) after that.

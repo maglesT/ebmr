@@ -1126,6 +1126,14 @@ modules:
     screens: [apps/tablets-web/src/features/operations]
     tests: ['apps/tablets-server/test/operations/**', 'apps/tablets-web/test/operations/**']
 
+  - id: ts-report-views
+    title: "Report views for an external reader (slice S16, ADR 0022): reference documents, cited documents, unit uses, in-process results, process values, exception detail"
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^180[01]_']
+    tests: ['apps/tablets-server/test/contract/report-views-deviations.test.ts', 'apps/tablets-server/test/contract/report-views-investigation.test.ts']
+
   - id: ts-validation
     title: Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3)
     page: modules/tablets-server.md
