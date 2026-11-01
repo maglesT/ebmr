@@ -106,6 +106,29 @@ the `p3-demo` browser test):
   `COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile`, runs the reset script and prints the deployed
   commit; it stops at the first failing command (`set -e`). Every update resets the demo data.
 
+## The gateway's journals (1 November 2026)
+
+The site gateway journals every reading it forwards under `var/demo/gateway-journal/`. The demo's device simulator sends
+about 20 process readings a second even when idle (about 400 MB a day), and on 1 November the process journal had passed
+2 GiB (12.5 million lines). Before the fix that followed, the gateway read each journal whole at start, and Node refuses
+one read past 2 GiB, so the gateway no longer started (`ERR_FS_FILE_TOO_LARGE`, the service restarting in a loop).
+
+- Every journal is now read line by line at start. Nothing is moved aside or trimmed by hand: device sequences must
+  continue (the server keeps each gateway device's sequence unique), and the journal refuses to start if its lines do
+  not follow on.
+- The process journal seals what the server holds. Once every line is delivered and the active
+  `process-journal.jsonl` is past 64 MiB, the file is renamed to `process-journal.sealed-<first>-<last>.jsonl`, never
+  changed again, and `process-checkpoint.json` records the sealed lines and each device's last sequence. A start reads
+  the checkpoint and the active file only.
+- **The first start after the fix** reads the old single file once, about a minute for 12.5 million lines on a small
+  machine, then seals it. `pnpm demo` waits 45 s for the gateway, then logs "site gateway not ready" and goes on, and
+  the gateway comes up when its start ends; the scales and process readings follow then. If the service's unit has a
+  start limit (systemd's default is 90 s for units that report readiness), raise it before that start with
+  `systemctl edit batchwright-demo`, adding `[Service]` and `TimeoutStartSec=15min`. Later starts take seconds.
+- Sealed segments stay on disk (about 400 MB a day of demo readings). Delete them only when the demo data is reset, or
+  archive them. `batchwright-demo-update` resets the demo data; to deploy this fix without a reset, run its steps
+  without the reset script.
+
 ## Known gaps
 
 Deferred to deployment (decision D-P7R-17):

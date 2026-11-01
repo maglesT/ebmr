@@ -5,6 +5,16 @@
  *   <dir>/process-journal.jsonl            one line per reading: {"sessionId":..., "reading": ProcessReading}
  *   <dir>/process-ack.json                 {"delivered": "<n>"}: the first n lines are held by the server
  *   <dir>/process-journal.partial-<n>      a trailing partial line found at start (a crash mid-write), kept as evidence
+ *   <dir>/process-journal.sealed-<a>-<b>.jsonl  lines a to b, sealed once all were delivered (never rewritten or deleted)
+ *   <dir>/process-checkpoint.json          {lines, lastSeq}: the lines in sealed segments and each device's last
+ *                                          sequence in them, written atomically after each seal
+ *
+ * The active file holds the lines after the sealed ones; line numbers (and the delivered mark) count from the first
+ * line ever written. Start reads the checkpoint and the active file only, streamed line by line (the hosted demo's
+ * journal passed 2 GiB, the most one read can return; 1 November 2026). Once every line is delivered and the active
+ * file is past `sealBytes`, it is renamed to its sealed segment, the checkpoint follows, and a new active file
+ * starts; a crash between the rename and the checkpoint is repaired at the next start by checking the segment's
+ * lines. A journal of one large file from before is sealed on its first start once delivered.
  *
  * A poll's readings are written in one append and synced before they exist for anyone (the uplink sends only what is
  * on disk). Each reading takes the next number of its device's sequence under the journal lock, so the sequence has
@@ -19,10 +29,11 @@
  * duplicates by device and sequence.
  */
 import { existsSync } from 'node:fs';
-import { mkdir, open, readFile, rename, writeFile, type FileHandle } from 'node:fs/promises';
+import { mkdir, open, readdir, readFile, rename, type FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { ProcessReading } from '@ebmr/integration-sdk/process';
+import { forEachLine, READ_CHUNK_BYTES, setAsideTail } from './journal-file.ts';
 
 export class ProcessJournalIntegrityError extends Error {
   constructor(message: string) {
@@ -42,8 +53,17 @@ export type JournalEntry = z.infer<typeof JournalEntry>;
 
 const AckFile = z.strictObject({ delivered: z.string().regex(/^(0|[1-9][0-9]*)$/) });
 
+const Checkpoint = z.strictObject({
+  lines: z.string().regex(/^(0|[1-9][0-9]*)$/),
+  lastSeq: z.record(z.string(), z.string().regex(/^(0|[1-9][0-9]*)$/)),
+});
+
 const JOURNAL = 'process-journal.jsonl';
 const ACK = 'process-ack.json';
+const CHECKPOINT = 'process-checkpoint.json';
+const SEALED = /^process-journal\.sealed-([1-9][0-9]*)-([1-9][0-9]*)\.jsonl$/;
+/** The active file is sealed past this size once all of it is delivered (about four hours of the demo's readings). */
+const SEAL_BYTES = 64 * 1024 * 1024;
 
 async function fsyncDir(dir: string): Promise<void> {
   const fh = await open(dir, 'r');
@@ -71,6 +91,10 @@ async function writeAtomic(dir: string, name: string, text: string): Promise<voi
 export interface ProcessJournalOptions {
   dir: string;
   onAlarm?: (alarm: ProcessJournalAlarm) => void;
+  /** The active file's size from which it is sealed once delivered (tests set it low). */
+  sealBytes?: number;
+  /** Bytes read per step at start (a test seam). */
+  chunkBytes?: number;
 }
 
 export class ProcessJournal {
@@ -81,6 +105,8 @@ export class ProcessJournal {
   /** Why the journal takes no more readings in this process (null while none failed); cleared only by a restart. */
   writeFailure: string | null = null;
   private total = 0n;
+  /** Lines in sealed segments (the active file starts after them). */
+  private sealed = 0n;
   /** The lines from `delivered` on, in order (what remains to send). */
   private pendingEntries: JournalEntry[] = [];
   private readonly lastSeq = new Map<string, bigint>();
@@ -102,48 +128,111 @@ export class ProcessJournal {
   }
 
   private async load(): Promise<void> {
-    const file = join(this.options.dir, JOURNAL);
-    let text = existsSync(file) ? await readFile(file, 'latin1') : '';
-    const end = text.lastIndexOf('\n') + 1;
-    if (end < text.length) {
-      // An unterminated last line was never synced, answered or sent: set it aside as evidence, then cut it off.
-      let n = 1;
-      while (existsSync(join(this.options.dir, `process-journal.partial-${n}`))) n += 1;
-      await writeFile(join(this.options.dir, `process-journal.partial-${n}`), text.slice(end), { encoding: 'latin1', mode: 0o600 });
-      const fh = await open(file, 'r+');
-      try {
-        await fh.truncate(end);
-        await fh.sync();
-      } finally {
-        await fh.close();
-      }
-      this.alarm({ kind: 'PARTIAL_LINE_QUARANTINED', message: `an unfinished process journal line was set aside as process-journal.partial-${n}`, details: { bytes: String(text.length - end) } });
-      text = text.slice(0, end);
-    }
-    const ackFile = join(this.options.dir, ACK);
+    const dir = this.options.dir;
+    const file = join(dir, JOURNAL);
+    const chunk = this.options.chunkBytes ?? READ_CHUNK_BYTES;
+    const ackFile = join(dir, ACK);
     const delivered = existsSync(ackFile) ? BigInt(AckFile.parse(JSON.parse(await readFile(ackFile, 'utf8'))).delivered) : 0n;
-    const lines = text === '' ? [] : text.slice(0, -1).split('\n');
-    lines.forEach((line, i) => {
-      let entry: JournalEntry;
+    // The sealed lines and each device's last sequence in them.
+    const cpFile = join(dir, CHECKPOINT);
+    if (existsSync(cpFile)) {
+      let cp: z.infer<typeof Checkpoint>;
       try {
-        entry = JournalEntry.parse(JSON.parse(line));
+        cp = Checkpoint.parse(JSON.parse(await readFile(cpFile, 'utf8')));
       } catch {
-        throw new ProcessJournalIntegrityError(`line ${i + 1} of ${file} is not a process reading; the gateway refuses to start`);
+        throw new ProcessJournalIntegrityError(`${cpFile} is not a process journal checkpoint; the gateway refuses to start`);
       }
-      const prev = this.lastSeq.get(entry.reading.deviceSerial) ?? 0n;
-      const seq = BigInt(entry.reading.sequence);
-      if (seq !== prev + 1n) {
-        throw new ProcessJournalIntegrityError(`line ${i + 1} of ${file}: sequence ${entry.reading.sequence} of ${entry.reading.deviceSerial} does not follow ${prev.toString()}`);
-      }
-      this.lastSeq.set(entry.reading.deviceSerial, seq);
-      if (BigInt(i) >= delivered) this.pendingEntries.push(entry);
-    });
-    this.total = BigInt(lines.length);
-    if (delivered > this.total) throw new ProcessJournalIntegrityError(`${ackFile} marks ${delivered.toString()} lines delivered, the journal holds ${lines.length}`);
+      this.sealed = BigInt(cp.lines);
+      for (const [serial, seq] of Object.entries(cp.lastSeq)) this.lastSeq.set(serial, BigInt(seq));
+    }
+    const segments = (await readdir(dir))
+      .map((name) => ({ name, m: SEALED.exec(name) }))
+      .filter((x): x is { name: string; m: RegExpExecArray } => x.m !== null)
+      .map((x) => ({ name: x.name, from: BigInt(x.m[1] ?? '0'), to: BigInt(x.m[2] ?? '0') }))
+      .sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
+    let expected = 1n;
+    for (const seg of segments) {
+      if (seg.from !== expected || seg.to < seg.from) throw new ProcessJournalIntegrityError(`${seg.name} does not continue the sealed segments at line ${expected.toString()}`);
+      expected = seg.to + 1n;
+    }
+    // A segment sealed after the checkpoint was written (a crash between the rename and the checkpoint): its lines are
+    // checked as the active file's are, and the checkpoint is brought up to date.
+    this.total = this.sealed;
+    for (const seg of segments.filter((x) => x.from > this.sealed)) {
+      if (seg.from !== this.sealed + 1n) throw new ProcessJournalIntegrityError(`${cpFile} ends inside ${seg.name}; the gateway refuses to start`);
+      const n = await this.readLines(join(dir, seg.name), delivered, chunk);
+      if (BigInt(n) !== seg.to - seg.from + 1n) throw new ProcessJournalIntegrityError(`${seg.name} holds ${n} lines, its name says ${(seg.to - seg.from + 1n).toString()}`);
+      this.sealed = this.total;
+      await this.writeCheckpoint();
+    }
+    if (this.sealed !== expected - 1n) throw new ProcessJournalIntegrityError(`${cpFile} counts ${this.sealed.toString()} sealed lines, the sealed segments hold ${(expected - 1n).toString()}`);
+    const tail = await setAsideTail(file, join(dir, 'process-journal.partial'), chunk);
+    if (tail.quarantined) {
+      // An unterminated last line was never synced, answered or sent: set aside as evidence, then cut off.
+      const name = tail.quarantined.file.slice(dir.length + 1);
+      this.alarm({ kind: 'PARTIAL_LINE_QUARANTINED', message: `an unfinished process journal line was set aside as ${name}`, details: { bytes: String(tail.quarantined.bytes) } });
+    }
+    await this.readLines(file, delivered, chunk);
+    if (delivered > this.total) throw new ProcessJournalIntegrityError(`${ackFile} marks ${delivered.toString()} lines delivered, the journal holds ${this.total.toString()}`);
     this.delivered = delivered;
     this.deliveredOnDisk = delivered;
     this.fh = await open(file, 'a', 0o600);
-    this.size = Buffer.byteLength(text, 'latin1');
+    this.size = (await this.fh.stat()).size;
+    await this.sealIfDue();
+  }
+
+  /** Checks each line of `file` (schema, each device's sequence), counting on from `total`; returns its line count. */
+  private async readLines(file: string, delivered: bigint, chunk: number): Promise<number> {
+    const first = this.total;
+    const n = await forEachLine(
+      file,
+      (line, i) => {
+        const at = first + BigInt(i) + 1n;
+        let entry: JournalEntry;
+        try {
+          entry = JournalEntry.parse(JSON.parse(line));
+        } catch {
+          throw new ProcessJournalIntegrityError(`line ${at.toString()} of the process journal (${file}) is not a process reading; the gateway refuses to start`);
+        }
+        const prev = this.lastSeq.get(entry.reading.deviceSerial) ?? 0n;
+        const seq = BigInt(entry.reading.sequence);
+        if (seq !== prev + 1n) {
+          throw new ProcessJournalIntegrityError(`line ${at.toString()} of the process journal (${file}): sequence ${entry.reading.sequence} of ${entry.reading.deviceSerial} does not follow ${prev.toString()}`);
+        }
+        this.lastSeq.set(entry.reading.deviceSerial, seq);
+        if (at > delivered) this.pendingEntries.push(entry);
+      },
+      chunk,
+    );
+    this.total += BigInt(n);
+    return n;
+  }
+
+  private async writeCheckpoint(): Promise<void> {
+    const lastSeq = Object.fromEntries([...this.lastSeq].map(([serial, seq]) => [serial, seq.toString()]));
+    await writeAtomic(this.options.dir, CHECKPOINT, `${JSON.stringify({ lines: this.sealed.toString(), lastSeq })}\n`);
+  }
+
+  /**
+   * Seals the active file when every line is delivered and it is past `sealBytes`: renamed to its segment (never
+   * changed again), the checkpoint written, a new active file opened. A failure leaves the journal as it was (the
+   * active file still open) and is tried again after the next acknowledgement.
+   */
+  private async sealIfDue(): Promise<void> {
+    if (this.writeFailure !== null || this.delivered !== this.total || this.total === this.sealed || this.size < (this.options.sealBytes ?? SEAL_BYTES)) return;
+    const dir = this.options.dir;
+    const name = `process-journal.sealed-${(this.sealed + 1n).toString()}-${this.total.toString()}.jsonl`;
+    await this.fh?.close();
+    this.fh = null;
+    try {
+      await rename(join(dir, JOURNAL), join(dir, name));
+      await fsyncDir(dir);
+      this.sealed = this.total;
+      await this.writeCheckpoint();
+    } finally {
+      this.fh = await open(join(dir, JOURNAL), 'a', 0o600);
+      this.size = (await this.fh.stat()).size;
+    }
   }
 
   private exclusive<T>(fn: () => Promise<T>): Promise<T> {
@@ -228,6 +317,14 @@ export class ProcessJournal {
       } catch (error) {
         const cause = error instanceof Error ? error.message : String(error);
         this.alarm({ kind: 'ACK_WRITE_FAILED', message: `the delivered mark of the process journal could not be written (${cause}); it is kept in memory`, details: { delivered: this.delivered.toString(), onDisk: this.deliveredOnDisk.toString() } });
+      }
+      // Sealing needs the mark on disk: a restart must never count sealed lines as undelivered.
+      if (this.deliveredOnDisk === this.delivered) {
+        try {
+          await this.sealIfDue();
+        } catch {
+          // Tried again after the next acknowledgement; the journal goes on in its active file.
+        }
       }
     });
   }

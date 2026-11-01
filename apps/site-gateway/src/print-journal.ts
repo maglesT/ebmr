@@ -16,10 +16,11 @@
  * file, so after a restart the gateway asks the printer only for the events after it: none is taken twice.
  */
 import { existsSync } from 'node:fs';
-import { mkdir, open, readFile, rename, writeFile, type FileHandle } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, type FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { PrintEvent } from '@ebmr/integration-sdk/printer';
+import { forEachLine, setAsideTail } from './journal-file.ts';
 
 export class PrintJournalIntegrityError extends Error {
   constructor(message: string) {
@@ -109,27 +110,16 @@ export class PrintJournal {
 
   private async load(): Promise<void> {
     const file = join(this.options.dir, JOURNAL);
-    let text = existsSync(file) ? await readFile(file, 'latin1') : '';
-    const end = text.lastIndexOf('\n') + 1;
-    if (end < text.length) {
-      // An unterminated last line was never synced, answered or sent: set it aside as evidence, then cut it off.
-      let n = 1;
-      while (existsSync(join(this.options.dir, `print-journal.partial-${n}`))) n += 1;
-      await writeFile(join(this.options.dir, `print-journal.partial-${n}`), text.slice(end), { encoding: 'latin1', mode: 0o600 });
-      const fh = await open(file, 'r+');
-      try {
-        await fh.truncate(end);
-        await fh.sync();
-      } finally {
-        await fh.close();
-      }
-      this.alarm({ kind: 'PARTIAL_LINE_QUARANTINED', message: `an unfinished print journal line was set aside as print-journal.partial-${n}`, details: { bytes: String(text.length - end) } });
-      text = text.slice(0, end);
+    // Streamed, never read whole: a journal can pass the 2 GiB one read returns (the hosted demo, 1 November 2026).
+    const tail = await setAsideTail(file, join(this.options.dir, 'print-journal.partial'));
+    if (tail.quarantined) {
+      // An unterminated last line was never synced, answered or sent: set aside as evidence, then cut off.
+      const name = tail.quarantined.file.slice(this.options.dir.length + 1);
+      this.alarm({ kind: 'PARTIAL_LINE_QUARANTINED', message: `an unfinished print journal line was set aside as ${name}`, details: { bytes: String(tail.quarantined.bytes) } });
     }
     const ackFile = join(this.options.dir, ACK);
     const delivered = existsSync(ackFile) ? BigInt(AckFile.parse(JSON.parse(await readFile(ackFile, 'utf8'))).delivered) : 0n;
-    const lines = text === '' ? [] : text.slice(0, -1).split('\n');
-    lines.forEach((line, i) => {
+    const lines = await forEachLine(file, (line, i) => {
       let entry: PrintJournalEntry;
       try {
         entry = PrintJournalEntry.parse(JSON.parse(line));
@@ -145,12 +135,12 @@ export class PrintJournal {
       this.noteEntry(entry);
       if (BigInt(i) >= delivered) this.pendingEntries.push(entry);
     });
-    this.total = BigInt(lines.length);
-    if (delivered > this.total) throw new PrintJournalIntegrityError(`${ackFile} marks ${delivered.toString()} lines delivered, the journal holds ${lines.length}`);
+    this.total = BigInt(lines);
+    if (delivered > this.total) throw new PrintJournalIntegrityError(`${ackFile} marks ${delivered.toString()} lines delivered, the journal holds ${lines}`);
     this.delivered = delivered;
     this.deliveredOnDisk = delivered;
     this.fh = await open(file, 'a', 0o600);
-    this.size = Buffer.byteLength(text, 'latin1');
+    this.size = (await this.fh.stat()).size;
   }
 
   private exclusive<T>(fn: () => Promise<T>): Promise<T> {

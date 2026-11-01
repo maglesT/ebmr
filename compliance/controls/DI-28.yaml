@@ -165,6 +165,14 @@ tests:
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [DI-28][PR-11][PR-37][DI-26] R10 #3: the recipe check missed before RUN_END is still recorded after it, only as a late entry after its own reason, which is stored with an open RUN_ENTRY_LATE for QA naming the reason; a forged engine cannot skip the reason, the exception or the one-entry-per-reason rule; the step then closes"
   - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 run > [DI-28][PR-11][PR-37] R10 #3: RUN_END warns while G-06 misses something; after the end each needed G-06 entry follows its own LATE_REASON (non-blank, RUN_ENTRY_LATE for QA); never an alarm or an interface loss; never before the end"
   - "apps/tablets-web/test/floor/tablet-blocks.test.tsx > the GMP floor uses the batches routes (D-S6-1) > [DI-28][PR-37] R10 #3: the RUN_END form shows the server's warning of a missing check and sends only after the person confirms"
+  - "apps/site-gateway/test/journal-large.test.ts > a large process journal at start > [DI-28][DI-31] starts without reading the journal whole: every line is checked from a stream (lines across read boundaries), sequences go on, the undelivered ones are kept"
+  - "apps/site-gateway/test/journal-large.test.ts > a large process journal at start > [DI-28][DI-31] a broken line or a gap in a device's sequence still refuses the start (fail closed)"
+  - "apps/site-gateway/test/journal-large.test.ts > a large process journal at start > [DI-28] an unterminated last line is set aside as evidence and cut off, found from the file's end only"
+  - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] once all is delivered the active file is sealed (never rewritten); a restart reads the checkpoint and the new active file, and each device's sequence goes on across the boundary"
+  - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28] a crash between sealing and the checkpoint is repaired at the next start by checking the segment; a checkpoint that does not match the segments refuses the start"
+  - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] a journal of one large file from before is sealed on its first start once delivered; nothing is lost and its lines are unchanged"
+  - "apps/site-gateway/test/journal-large.test.ts > the scale and print journals stream too > [DI-28] a print journal starts from a stream (each line checked, sequences go on)"
+  - "apps/site-gateway/test/journal-large.test.ts > the scale and print journals stream too > [DI-28] a scale journal starts from a stream and verifies its chain as before"
 clauses:
   - clause: "Enter a value, then kill the browser. The value persists with its timestamp."
     tests:
