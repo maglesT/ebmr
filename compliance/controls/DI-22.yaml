@@ -203,6 +203,8 @@ tests:
   - "apps/tablets-web/test/receipt/lot-handling.test.tsx > a lot's reservations and stock-location exceptions > [DI-22] stores cancel an open reservation with their own reason"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > R13: the potency before dispensing (lot view, preview, a QC change and the recalculation) > [PR-19][DI-33][DI-22] after QC changes the potency by an approved result with a reason, the calculated step says so, the preview follows, and the recalculation is an exception for QA"
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19][DI-33][DI-22] QC changes the potency on the guided page by choosing approved results and giving a reason; nothing is typed"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them"
+  - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-22] QA retires an approved version only with a reason"
 clauses:
   - clause: "As each role, create, modify and void a value. Every entry carries all fields."
     tests:

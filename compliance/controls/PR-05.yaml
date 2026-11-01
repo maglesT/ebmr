@@ -81,6 +81,10 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-05] a version is a whole number of 1 or more"
   - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [PR-05] the content hash pinned at formulation approval must match the library version used"
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-05] a batch cannot be defined when the pinned content hash does not match the library version"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [PR-03][PR-05] the author drafts versions; the server refuses a definition with problems; the hash is the canonical hash the formulation pins"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-35][PR-05] QA approves with a LIBRARY_BLOCK_APPROVED signature, never the author; an approved version is retired with a reason"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them"
+  - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-35][PR-05] QA sees a draft with its fields and approves it through the ceremony with LIBRARY_ACT"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

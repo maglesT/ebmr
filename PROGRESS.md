@@ -74,7 +74,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 model and sanity checks, `packages/recipe-core/src/library/`) are on branch `dyn/s0-s1`. S1 includes the plan
 review's additions (inputs from outside the step, conditional fields, the content hash). S2 (branch `dyn/s2`): the generic
 handler `library/block-version.ts` runs any library definition in the engine (O-9 b: calculated figures stored with
-their evaluation record). Next: S3, library storage, versions and QA approval. O-7 still waits for the owner. The Phase 7 notes below are history for the frozen work.
+their evaluation record). S3 (branch `dyn/s3`): library storage
+(recipe-core 1800, tablets 1802), routes `ns/library.ts` with LIBRARY_ACT approval, the `/mbr/library` screen. Next: S4,
+the registry reads approved definitions and the database checks library entries against limits. O-7 still waits for
+the owner. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.

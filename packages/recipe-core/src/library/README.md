@@ -74,5 +74,21 @@ existing engine runs it with no code of its own:
 Smart fields (weighing, lot, equipment, container, sample) record identifiers and quantities. Their checks against the
 plant and the stores come in S6, and signature roles are mapped to steps in S4.
 
-Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts` (examples in `examples.ts`: friability, fluid bed drying
+## Storage and approval (slice S3)
+
+`sql/1800_library_blocks.sql` stores versions of a definition in `recipe.library_block`. The table is insert-only and
+audited. The row's code, version, title and category must match the definition, and `content_hash` is
+`recipe.json_hash(definition)`, the same canonical hash as `definitionHash`.
+
+- `recipe.draft_library_block(definition)` needs MBR.AUTHOR and only accepts the next version number.
+- `recipe.approve_library_block(id, signature)` needs MBR.APPROVE and a LIBRARY_BLOCK_APPROVED signature, never by the
+  author. The meaning excludes performers, and the command checks it too.
+- `recipe.retire_library_block(id, reason)` needs MBR.APPROVE and retires an approved version with a reason.
+
+The server feature `apps/tablets-server/src/features/library` runs `checkBlockDefinition` before storing. Errors
+refuse; warnings are returned. Its routes are in `ns/library.ts`, and the approval is the signable action
+`LIBRARY_ACT` (`tablets-server sql/1802` lets QA read and sign a `library_block`). The screen is `/mbr/library`.
+
+Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts`;
+`apps/tablets-server/test/library/library-routes.test.ts`; `apps/tablets-web/test/library/library-page.test.tsx` (examples in `examples.ts`: friability, fluid bed drying
 with an LOD loop, a dissolution profile).

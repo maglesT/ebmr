@@ -550,6 +550,22 @@ modules:
       - 'packages/recipe-core/test/blocks/**'
       - 'packages/recipe-core/test/mutation/packaging-g21-rules.test.ts'
 
+  - id: rc-library
+    title: Library of block definitions (decision 0026; blocks as data, QA-approved)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^1800_']
+      apps/tablets-server/sql: ['^1802_']
+    src: [packages/recipe-core/src/library]
+    server: [apps/tablets-server/src/features/library]
+    contract:
+      - packages/api-contract/src/ns/library.ts
+    tests:
+      - 'packages/recipe-core/test/library/**'
+      - 'apps/tablets-server/test/library/**'
+      - 'apps/tablets-web/test/library/**'
+
   - id: rc-reprocessing
     title: Reprocessing and recovery
     page: modules/recipe-core.md

@@ -300,6 +300,8 @@ tests:
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-05][PR-45][DI-35][IN-33] Rabeprazole 11: the finished lot posted in quarantine; QC records the assay and both stages of the dissolution against the product's specification and pulls the reserve sample; the head of QC approves them @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [IN-05][PR-45][DI-35][IN-33] P3 demo 4: the finished lot posted in quarantine; QC records the assay and both stages of the dissolution against the seeded specification and pulls the reserve sample; the head of QC approves them @office"
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-35] every block needs a PERFORMED signature with a role, each meaning once"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-35][PR-05] QA approves with a LIBRARY_BLOCK_APPROVED signature, never the author; an approved version is retired with a reason"
+  - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-35][PR-05] QA sees a draft with its fields and approves it through the ceremony with LIBRARY_ACT"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

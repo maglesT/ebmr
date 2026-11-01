@@ -36,6 +36,7 @@ import * as plant from './plant/index.ts';
 import * as qpPackage from './qp-package/index.ts';
 import * as quality from './quality/index.ts';
 import * as lims from './quality/lims.ts';
+import * as libraryBlocks from './library/index.ts';
 import * as notifications from './notifications/index.ts';
 import * as operations from './operations/index.ts';
 import * as records from './records/index.ts';
@@ -73,6 +74,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'review', installations: ['GMP'], module: review satisfies FeatureModule },
   { name: 'containers', installations: ['GMP', 'SANDBOX'], module: containers satisfies FeatureModule },
   { name: 'lims', installations: ['GMP'], module: lims satisfies FeatureModule },
+  // Decision 0026 slice S3: the library of block definitions.
+  { name: 'library', installations: ['GMP'], module: libraryBlocks satisfies FeatureModule },
   { name: 'release', installations: ['GMP'], module: release satisfies FeatureModule },
   { name: 'notifications', installations: ['GMP'], module: notifications satisfies FeatureModule },
   { name: 'qp-package', installations: ['GMP'], module: qpPackage satisfies FeatureModule },
