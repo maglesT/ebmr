@@ -2982,3 +2982,32 @@ mutants) and six Stryker features, triage T1 to T5 in their own worktrees; no pr
 stale generated handbook page and for the E2E terminal picker meeting the server's identify limit in a full run.
 `compliance/validation/` brought up to date (Phase 1 to 4 exit reviews and the Phase 7 reviews; fixed findings
 removed). register:status: 111 VERIFIED, 13 IMPLEMENTED. Decisions taken in 7f, recorded in RESUME.md: D-P7R-12 to 15.
+
+## Slice S16 (31 October 2026): report views for the external Deviations and CAPA system
+
+Branch `s16-reference-views`. The owner's separate Deviations and CAPA system reads Batchwright read-only as
+`ebmr_report` through the `report.*_v1` views, never Batchwright's deviation module (ADR 0022, D-S16-1). Tablets 1800:
+`report.reference_document_v1` (kind, code, version, title, effective_from) and `report.batch_reference_v1` (batch number
+and the kind, code, version and title of each document the batch's master record cites: the references of the control
+recipe's snapshot of the pinned version; GMP batch records only, as batch_fact_v1), each with read_at and data_as_of,
+SELECT to ebmr_app and ebmr_report, in the report catalogue. Contract test (D-S16-2):
+`apps/tablets-server/test/contract/report-views-deviations.test.ts` pins the columns of batch_fact_v1, step_use_v1,
+cpp_value_v1, exception_v1, alarm_v1 and the two new views, checks the grants and the catalogue, that
+sandbox.segregation_problems() stays empty, and the rows of both views for a batch issued from dc-mini (which cites SOPs).
+Ops: `docs/operations/report-reader.md`, an ebmr_report line in `ops/postgres/pg_hba.conf.template`. A local PCM500 demo
+batch was built during the slice and then dropped from the change at the owner's request: the shared scenario is on the
+hosted demo (RAB-GR-20, RAB26002 normal, RAB26004 failing), made there by the server session.
+Second part (D-S16-6, at the owner's server session's request after checking the hosted demo's RAB26004): tablets 1801
+adds `report.equipment_use_v1` (plant.equipment_use and instrument_use with the steps that name each use),
+`report.ipc_result_v1` (PHYSICAL_CHECK and WEIGHT_CHECK values with the step's action and alert limits and the stored
+result; other test entries one row), `report.process_actual_v1` (ACTUAL entries with the tag's limits and the stored
+withinLimits) and `report.exception_detail_v1` (step, step title, text, status and disposition). Tested on a sandbox run of
+the execution test world (`report-views-investigation.test.ts`): breaking force 48, 95 and 52 N against 60 to 140, mean 65
+N against action 60 and alert 70, FAIL; inlet temperature 51.0 degC within 50 to 70; IPC_CHECK_FAILED open, the manual-entry
+alert dispositioned by QA. All eleven views pinned in the contract test.
+Review fixes (same branch): every S16 view filters GMP batch records itself (D-S16-3); exception_detail_v1.disposed_by
+is the pseudonymous person id, never a name (D-S16-4); report.<name>_v1_for(batch_numbers text[]) beside the four 1801
+views reads only the batches named, EXECUTE to ebmr_report only (D-S16-5); equipment_use_v1 matches a step binding by
+key or phase, once per use; ipc_result_v1 gives TB-11 STATION_SWEEP values per station and documents its verdicts (PASS,
+ALERT, FAIL; one per parameter); the investigation test now runs a GMP batch of the GMP test world; control IDs on the
+segregation tests (DI-17, DI-05). Decision IDs D-S16-1 to 6 recorded in ADR 0022.

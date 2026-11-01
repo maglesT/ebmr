@@ -340,6 +340,7 @@ password file, never in the URLs.
 | [ha-and-restore.md](../operations/ha-and-restore.md) | High availability, backup and restore: principles, topology per site, RPO and RTO proposals for the owner, backup tiers and what each job does, write-once storage, how a restore is detected, the restore and failover steps, restore drills, and the status table of what is built and tested |
 | [restore-drill-report-template.md](../operations/restore-drill-report-template.md) | The report a restore drill fills in: backup used, restore, audit-trail verification, content comparison, sample records, findings, reviewer assessment and sign-off |
 | [test-package-exchange.md](../operations/test-package-exchange.md) | What an administrator does when a test package exported from the GMP installation does not reach the sandbox inbox (`TEST_PACKAGE_INBOX_BEHIND`), and how to check every recorded export has its file (DI-05, DI-04) |
+| [report-reader.md](../operations/report-reader.md) | Connecting an external reader (dashboards, the Deviations and CAPA system) as `ebmr_report`: the vault password, the `pg_hba.conf` line, the connection setting and the views it may read (ADR 0022) |
 
 Security documents beside them: [docs/security/](../security/) (threat model, ASVS level 2 review, security baseline).
 

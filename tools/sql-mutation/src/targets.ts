@@ -1649,4 +1649,15 @@ export const TARGETS: Target[] = [
     tests: [site('quality/profiles.test.ts'), site('quality/specifications.test.ts'), r('release/release.test.ts')],
     threshold: 90,
   },
+  // Slice S16 (ADR 0022): the report views an external Deviations and CAPA system reads as ebmr_report (tablets 1800,
+  // 1801): reference documents and the documents a batch cites, unit uses, in-process results, process values and
+  // exception detail, with their one-batch functions.
+  {
+    group: 'deviations-reader-views',
+    functions: ['report.reference_document_rows_v1', 'report.batch_reference_rows_v1', 'report.phase_of', 'report.equipment_use_v1_for',
+                'report.ipc_result_v1_for', 'report.process_actual_v1_for', 'report.exception_detail_v1_for', 'report.equipment_use_rows_v1',
+                'report.ipc_result_rows_v1', 'report.process_actual_rows_v1', 'report.exception_detail_rows_v1'],
+    tests: [s('contract/report-views-deviations.test.ts'), s('contract/report-views-investigation.test.ts')],
+    threshold: 90,
+  },
 ];

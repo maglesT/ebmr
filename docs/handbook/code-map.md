@@ -115,6 +115,7 @@ of each database function.
 | [ts-india](#ts-india) | India features (licences, labels, expiry rule) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 15 | 5 | 8 |
 | [ts-execution](#ts-execution) | Execution on the shop floor (batches, entries, lots) | [modules/tablets-server.md](modules/tablets-server.md) | 17 | 42 | 115 | 68 |
 | [ts-operations](#ts-operations) | Operations screens without a terminal (set-up, demo data, backups, workers, simulators, API reference; Phase 7 slice 7g-4) | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 26 | 12 | 13 |
+| [ts-report-views](#ts-report-views) | Report views for an external reader (slice S16, ADR 0022): reference documents, cited documents, unit uses, in-process results, process values, exception detail | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 2 | 2 |
 | [ts-validation](#ts-validation) | Validation and records screens (system description, validation summary, evidence bundle and pack, IQ, full export, evaluation pack, records register, signature catalogue; Phase 7 slice 7g-3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 24 | 7 | 10 |
 | [ts-administration](#ts-administration) | People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 60 | 6 | 12 |
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 2 | 0 | 0 |
@@ -2706,6 +2707,23 @@ of each database function.
 **Tests** (12): [tablets-server/test/operations/api-reference.test.ts](../../apps/tablets-server/test/operations/api-reference.test.ts), [tablets-server/test/operations/authorised-orders.test.ts](../../apps/tablets-server/test/operations/authorised-orders.test.ts), [tablets-server/test/operations/demo-and-simulators.test.ts](../../apps/tablets-server/test/operations/demo-and-simulators.test.ts), [tablets-server/test/operations/drills.test.ts](../../apps/tablets-server/test/operations/drills.test.ts), [tablets-server/test/operations/restore-and-alarms.test.ts](../../apps/tablets-server/test/operations/restore-and-alarms.test.ts), [tablets-server/test/operations/send-order.test.ts](../../apps/tablets-server/test/operations/send-order.test.ts), [tablets-server/test/operations/session-checked-reads.test.ts](../../apps/tablets-server/test/operations/session-checked-reads.test.ts), [tablets-server/test/operations/setup.test.ts](../../apps/tablets-server/test/operations/setup.test.ts), [tablets-server/test/operations/workers-and-backups.test.ts](../../apps/tablets-server/test/operations/workers-and-backups.test.ts), [tablets-web/test/operations/operations.test.tsx](../../apps/tablets-web/test/operations/operations.test.tsx), [tablets-web/test/operations/setup-wizard.test.tsx](../../apps/tablets-web/test/operations/setup-wizard.test.tsx), [tablets-web/test/operations/wp2-operations.test.tsx](../../apps/tablets-web/test/operations/wp2-operations.test.tsx)
 
 **Controls** (13): [DI-05](../../compliance/controls/DI-05.yaml), [DI-09](../../compliance/controls/DI-09.yaml), [DI-14](../../compliance/controls/DI-14.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-19](../../compliance/controls/DI-19.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-27](../../compliance/controls/DI-27.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-45](../../compliance/controls/DI-45.yaml), [DI-50](../../compliance/controls/DI-50.yaml), [PR-04](../../compliance/controls/PR-04.yaml)
+
+## ts-report-views
+
+**Report views for an external reader (slice S16, ADR 0022): reference documents, cited documents, unit uses, in-process results, process values, exception detail.** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Migrations** (2):
+
+- `apps/tablets-server/sql`: [1800_reference_report_views.sql](../../apps/tablets-server/sql/1800_reference_report_views.sql), [1801_investigation_report_views.sql](../../apps/tablets-server/sql/1801_investigation_report_views.sql)
+
+**Database objects** created in these migrations:
+
+- Views (6): `report.batch_reference_v1`, `report.equipment_use_v1`, `report.exception_detail_v1`, `report.ipc_result_v1`, `report.process_actual_v1`, `report.reference_document_v1`
+- Functions (11): `report.batch_reference_rows_v1`, `report.equipment_use_rows_v1`, `report.equipment_use_v1_for`, `report.exception_detail_rows_v1`, `report.exception_detail_v1_for`, `report.ipc_result_rows_v1`, `report.ipc_result_v1_for`, `report.phase_of`, `report.process_actual_rows_v1`, `report.process_actual_v1_for`, `report.reference_document_rows_v1`
+
+**Tests** (2): [report-views-deviations.test.ts](../../apps/tablets-server/test/contract/report-views-deviations.test.ts), [report-views-investigation.test.ts](../../apps/tablets-server/test/contract/report-views-investigation.test.ts)
+
+**Controls** (2): [DI-05](../../compliance/controls/DI-05.yaml), [DI-17](../../compliance/controls/DI-17.yaml)
 
 ## ts-validation
 
