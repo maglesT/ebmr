@@ -45,5 +45,34 @@ responsibility (decision 0026 point 3).
 | Conditional fields: shown when an earlier yes/no or choice field has one of its answers; a calculation reads one only under the same condition; a repeat never waits on one | LIB-SHOW-WHEN, LIB-CALC-CONDITIONAL, LIB-REPEAT-UNTIL | DI-33, INV-20 |
 | The content hash pinned at formulation approval matches the library version (`definitionHash`) | LIB-USE-HASH | PR-05, DI-10 |
 
-Tests: `packages/recipe-core/test/library/library.test.ts` (examples in `examples.ts`: friability, fluid bed drying
+## The generic handler (`block-version.ts`, slice S2)
+
+`libraryBlockVersion(def, expr)` builds the registry block version `LIB-<code>@<version>` of a definition, so the
+existing engine runs it with no code of its own:
+
+- The phase configuration is the product's values (a `BlockUse` without `block`, plus the pinned `hash`); the batch
+  definition runs `checkBlockUse` on it (errors refuse, warnings need a justification).
+- One entry kind per section (the section id); `TIMER_START` and `TIMER_STOP` for timers, whose duration comes from the
+  engine's trusted time and is checked against its limit when the timer stops (PR-30).
+- A calculated field is never typed (the entry schema refuses it, INV-25). The server computes it and stores it with
+  its evaluation record: expression, language version and the inputs it read (owner decision O-9 b; DI-33). External
+  inputs are read from the phase's targets (`view.target(id)`); the formulation wires them in S9.
+- Each value with a limit is evaluated against the formulation's tiered limit and a breach raises the engine's
+  `LIMIT_BREACH` with its tier's consequences (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER`; a
+  not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.
+- Repeats: ONCE and COUNT sections refuse an extra entry. In an UNTIL_PASS loop, a value that does not pass is a repeat,
+  not a breach, and the step cannot be signed until it passes. The last allowed repeat without a pass raises
+  `LIB_REPEAT_LIMIT_REACHED`, which holds the following steps until a deviation is linked. A PER_INTERVAL round recorded
+  late raises `LIB_IPC_INTERVAL_MISSED`.
+- Test results need the planned number of readings, and each statistic is judged against its limit. A per-point result
+  needs readings for exactly the formulation's points, each judged against that point's limits. `statistic` computes
+  mean, min, max, range and the sample RSD in exact decimals.
+- Conditional fields: a hidden field is refused, and a shown required field must be given.
+- `nominalEntries` (the simulator model) gives a nominal execution: each section once (or its count), values at the
+  target or inside the innermost range. The driver supplies the time.
+
+Smart fields (weighing, lot, equipment, container, sample) record identifiers and quantities. Their checks against the
+plant and the stores come in S6, and signature roles are mapped to steps in S4.
+
+Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts` (examples in `examples.ts`: friability, fluid bed drying
 with an LOD loop, a dissolution profile).

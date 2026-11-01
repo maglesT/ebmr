@@ -305,6 +305,9 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [DI-33] a calculation reads the formula line, the lot assay, an earlier step and the batch size"
   - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [DI-33] an input names a known kind, a unit, and (for a lot assay) a lot or weighing field of the block"
   - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [DI-33] a calculation may read a conditional field only under the same condition"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [DI-33] the server computes a calculated field and stores it with its evaluation record (O-9 b)"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [DI-33] conditional fields: a hidden field is refused, a shown one is required, and a calculation reads the formula line and the lot assay"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [DI-33] a calculation whose external input the batch does not provide refuses the entry"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

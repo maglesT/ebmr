@@ -80,6 +80,7 @@ tests:
   - "apps/tablets-server/test/market/mbr-new-master-routes.test.ts > a new master record: change record, risk assessment, draft attributes > [PR-02][PR-05][PR-06] the author sets the draft's change record, effective-from and review due; a member left out keeps its value; an unknown change record is refused; QA holds no MBR.AUTHOR"
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-05] a version is a whole number of 1 or more"
   - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [PR-05] the content hash pinned at formulation approval must match the library version used"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-05] a batch cannot be defined when the pinned content hash does not match the library version"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

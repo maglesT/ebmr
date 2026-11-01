@@ -94,7 +94,7 @@ export function slotsOf(def: BlockDefinition): Slot[] {
         case 'TEST_RESULT':
           slots.push({ name: f.replicatesSlot, kind: 'COUNT', owner: f.id, required: true });
           // A per-point result takes its limits from each point instead of from the statistic slots.
-          for (const st of f.statistics ?? []) slots.push({ name: st.limitSlot, kind: 'LIMIT', owner: f.id, unit: f.unit, required: f.perPoint !== true });
+          for (const st of f.statistics ?? []) slots.push({ name: st.limitSlot, kind: 'LIMIT', owner: f.id, unit: st.statistic === 'RSD' ? '%' : f.unit, required: f.perPoint !== true });
           break;
         default:
           break;
@@ -133,7 +133,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
     (s.fields ?? []).forEach((f, fi) => {
       fieldCount += 1;
       const fp = `${sp}.fields[${fi}]`;
-      problems.push(...checkField(f, fp, expr));
+      problems.push(...checkField(f, fp, expr, repeats(s)));
       if (typeof f.id === 'string' && IDENT.test(f.id)) {
         if (seen.has(f.id) || inputIds.has(f.id)) problems.push(err('LIB-FIELD-ID', `${fp}.id`, `Field id ${f.id} is used twice; each field and input needs its own id`));
         else {
@@ -179,7 +179,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   return problems;
 }
 
-function checkField(f: FieldDef, fp: string, expr: ExpressionService): LibraryProblem[] {
+function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: boolean): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   if (!(FIELD_TYPES as readonly string[]).includes((f as { type: string }).type)) {
     return [err('LIB-FIELD-TYPE', `${fp}.type`, `Unknown field type ${JSON.stringify((f as { type: string }).type)}; the field types are ${FIELD_TYPES.join(', ')}`)];
@@ -211,6 +211,7 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService): LibraryPr
       break;
     case 'TIMER': {
       const unit = f.durationUnit ?? 'min';
+      if (inRepeat) out.push(err('LIB-TIMER-REPEAT', fp, `Field ${f.id}: a timer runs once per step, so it cannot sit in a repeating section`));
       if (unitOk(unit, `${fp}.durationUnit`) && !commensurable(expr, unit, 's')) out.push(err('LIB-FIELD-UNIT', `${fp}.durationUnit`, `Field ${f.id}: a timer is measured in a time unit, not ${unit}`));
       criticalNeedsLimit(f.critical, f.limitSlot);
       break;

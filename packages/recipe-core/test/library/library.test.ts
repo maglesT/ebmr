@@ -44,6 +44,12 @@ describe('library block definitions', () => {
     expect(codes(checkBlockDefinition(unknown, expr))).toEqual(['LIB-FIELD-TYPE']);
   });
 
+  it('[PR-30] a timer runs once per step, so it cannot sit in a repeating section', () => {
+    const def = fluidBedDrying();
+    def.sections[1]!.fields.push({ id: 'spin', label: 'Spin', type: 'TIMER' });
+    expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-TIMER-REPEAT']);
+  });
+
   it('[PR-03] a weighing in a non-mass unit and a timer in a non-time unit are refused', () => {
     const w = withField(friability(), { id: 'net', label: 'Net', type: 'WEIGHING', unit: 'mL' });
     const t = withField(friability(), { id: 'mix', label: 'Mixing', type: 'TIMER', durationUnit: 'kg' });

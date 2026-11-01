@@ -6,3 +6,4 @@ export * from './model.ts';
 export { checkBlockDefinition, slotsOf, commensurable } from './check-definition.ts';
 export { checkBlockUse } from './check-use.ts';
 export { definitionHash } from './hash.ts';
+export { libraryBlockVersion, libraryBlockType, nominalEntries, statistic, LIBRARY_EXCEPTION_RULES, TIMER_START, TIMER_STOP } from './block-version.ts';
