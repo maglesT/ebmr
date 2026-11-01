@@ -162,7 +162,7 @@ a { color: var(--accent); }
   sections: [{ title: "Run", fields: [
     { id: "units", type: "NUMBER", unit: "1", limitSlot: "units" },
     { id: "w0", type: "NUMBER", unit: "g" }, { id: "w1", type: "NUMBER", unit: "g" },
-    { id: "loss", type: "CALC", expr: "(w0 - w1) / w0 * 100", unit: "%", limitSlot: "loss" },
+    { id: "loss", type: "CALC", expr: "(w0 - w1) / w0 * 100 [%]", unit: "%", limitSlot: "loss" },
     { id: "cracked", type: "YES_NO", expected: false } ]}],
   frequencySlot: true,
   signatures: [{ meaning: "PERFORMED", role: "IPC_OPERATOR" }],
