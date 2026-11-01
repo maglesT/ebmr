@@ -300,6 +300,8 @@ tests:
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19][DI-33] the lot shows its as-is potency, the approved results it came from and who changed it when and why; only QC is offered the change"
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19][DI-33][DI-22] QC changes the potency on the guided page by choosing approved results and giving a reason; nothing is typed"
   - "apps/tablets-server/test/execution/value-display.test.ts > a computed value and its verdict as shown (R10 #11) > [PR-31][DI-33] a yield is shown at the decimals of its limits; the stored value is unchanged"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33] a calculation must check against the fields declared before it, in its declared unit"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33] a calculation outside a repeating section reads its fields as a series"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

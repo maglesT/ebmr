@@ -78,6 +78,7 @@ tests:
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-05] records the periodic review with its outcome and next due date, and unlinks a risk assessment; a refusal is shown in the server's words"
   - "apps/tablets-web/test/market/market-screens.test.tsx > master records > [PR-05][DI-22] the reference documents screen retires a version from a date with the reason"
   - "apps/tablets-server/test/market/mbr-new-master-routes.test.ts > a new master record: change record, risk assessment, draft attributes > [PR-02][PR-05][PR-06] the author sets the draft's change record, effective-from and review due; a member left out keeps its value; an unknown change record is refused; QA holds no MBR.AUTHOR"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-05] a version is a whole number of 1 or more"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

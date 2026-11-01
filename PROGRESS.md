@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 31 October 2026 (slice S16: report views for the Deviations system).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 1 November 2026 (decision 0026: dynamic library; slices S0 and S1).
 
 ## What this is
 
@@ -12,6 +12,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Rules in force (owner)
 
+- **Decision 0026 (1 November 2026): dynamic library, freeze the extras.** Library blocks are data (forms built
+  from fixed field types, QA-approved and versioned); formulations are assembled on screen and batches generated from
+  them. Frozen (kept in the repo and in CI, no new work): injectables, site gateway, simulators, analytics/MSPC,
+  integrations, QP package, contract giver, EU importer register, PQR, dashboards, CAPA, training, incidents,
+  alarms, kiosk extras, the sandbox evidence package and the Phase 7 product backlog (R7, R8, R11, R12). Plan:
+  `docs/build-plan/dynamic-library/plan.html`.
 - Owner, 19 October: the focus is functionality; open questions take the less strict option, the minimum compliance
   that keeps the product usable (within the CLAUDE.md hard rules). Load test and soak move to deployment (D-P7R-7).
 
@@ -62,6 +68,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   lint now runs with an 8 GB heap.
 
 ## Next
+
+**Start here (1 November 2026): the dynamic library (decision 0026).** Slices S0 to S11 in
+`docs/build-plan/dynamic-library/plan.html` section 5. S0 (decision record, this page) and S1 (block-definition
+model and sanity checks, `packages/recipe-core/src/library/`) are on branch `dyn/s0-s1`. Next: S2, the generic
+handler that runs a library definition in the engine. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.

@@ -15,3 +15,4 @@ export * as limits from './limits/index.ts';
 export * as simulator from './simulator/index.ts';
 export * as engine from './engine/index.ts';
 export * as blocks from './blocks/index.ts';
+export * as library from './library/index.ts';
