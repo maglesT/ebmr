@@ -52,8 +52,10 @@ not right.
      earlier step's value (S1).
    - Conditional fields, shown when an earlier field has a given answer (S1).
    - The formulation pins each block's version and content hash at approval, and batches inherit it (S1 hash, S9 pin).
-   - **O-9, open, to settle before S2 (decision 0008 §2):** does the database recompute calculated fields, or store
-     the server's figure with its evaluation record? The recommendation is to store the figure with its record.
+   - **O-9 (decision 0008 §2), decided by the owner on 1 November: option (b).** The database does not recompute
+     calculated fields of library blocks in SQL. It stores the server's figure with its evaluation record (inputs,
+     formula hash, language version), so every figure can be re-verified, and it still checks entered values against
+     the formulation's limits.
    - PQR is frozen, not dropped; Schedule M requires it.
 6. **Freeze, not delete:** injectables, the site gateway, simulators, analytics/MSPC, the ERP/LIMS/QMS/LMS
    integrations, the QP package, contract giver, EU importer register, PQR, dashboards, CAPA, training, incidents,
