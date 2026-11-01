@@ -27,10 +27,11 @@
  */
 import type { KeyObject } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, open, readFile, rename, writeFile, type FileHandle } from 'node:fs/promises';
+import { mkdir, open, readFile, rename, type FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { ScaleReading, genesisHash, readingProblem } from '@ebmr/integration-sdk/scale';
+import { forEachLine, setAsideTail } from './journal-file.ts';
 
 export class JournalIntegrityError extends Error {
   constructor(message: string) {
@@ -152,32 +153,19 @@ export class Journal {
     await this.fh?.close();
     this.fh = null;
     const path = this.file(chainId);
-    let text = existsSync(path) ? await readFile(path, 'latin1') : '';
-    if (text.length > 0 && !text.endsWith('\n')) {
-      const cut = text.lastIndexOf('\n') + 1;
-      const partial = text.slice(cut);
-      let n = 1;
-      while (existsSync(`${path}.partial-${n}`)) n += 1;
-      await writeFile(`${path}.partial-${n}`, partial, { encoding: 'latin1', mode: 0o600 });
-      const fh = await open(path, 'r+');
-      try {
-        await fh.truncate(cut);
-        await fh.sync();
-      } finally {
-        await fh.close();
-      }
+    // Streamed, never read whole: a journal can pass the 2 GiB one read returns (the hosted demo, 1 November 2026).
+    const tail = await setAsideTail(path, `${path}.partial`);
+    if (tail.quarantined) {
       await fsyncDir(this.options.dir);
-      text = text.slice(0, cut);
       this.alarm({
         kind: 'PARTIAL_LINE_QUARANTINED',
         message: 'an unterminated last journal line (a crash while writing, never answered or uploaded) was set aside',
-        details: { file: `${path}.partial-${n}`, bytes: String(partial.length) },
+        details: { file: tail.quarantined.file, bytes: String(tail.quarantined.bytes) },
       });
     }
     const readings: ScaleReading[] = [];
     let prev = genesisHash(chainId);
-    const lines = text === '' ? [] : text.slice(0, -1).split('\n');
-    for (const [i, line] of lines.entries()) {
+    await forEachLine(path, (line, i) => {
       let candidate: unknown;
       try {
         candidate = JSON.parse(line);
@@ -192,7 +180,7 @@ export class Journal {
       if (r.prevHash !== prev) throw new JournalIntegrityError(`journal line ${i + 1} does not link to the reading before it`);
       prev = r.hash;
       readings.push(r);
-    }
+    });
     let acked = 0n;
     const ackPath = join(this.options.dir, `ack-${chainId}.json`);
     if (existsSync(ackPath)) {

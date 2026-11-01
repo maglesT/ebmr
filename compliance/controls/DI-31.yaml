@@ -456,6 +456,12 @@ tests:
   - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [DI-31][IN-33] a LIMS result names its time point; an unknown point is refused and the database computes the verdict against the point's limits"
   - "packages/site-services/test/quality/profiles.test.ts > profile limits at their boundaries and profile codes (slice 7p review) > [DI-31][IN-33] a LIMS result exactly on a point's limit is judged PASS by the database at any scale, just beyond it FAIL, whatever the LIMS says (P7P-3)"
   - "tools/e2e/specs/phase7/route-d.spec.ts > [IN-36][PR-08][PR-29][DI-31][DI-32] route D 3: roller compaction on KIOSK-RC-1: the compactor's values keyed by hand, the ribbon checks and the mill screen (TB-06), sizing through a checked screen (TB-02) @office"
+  - "apps/site-gateway/test/journal-large.test.ts > a large process journal at start > [DI-28][DI-31] starts without reading the journal whole: every line is checked from a stream (lines across read boundaries), sequences go on, the undelivered ones are kept"
+  - "apps/site-gateway/test/journal-large.test.ts > a large process journal at start > [DI-28][DI-31] a broken line or a gap in a device's sequence still refuses the start (fail closed)"
+  - "apps/site-gateway/test/journal-large.test.ts > a large process journal at start > [DI-31] a delivered mark past the journal's end refuses the start"
+  - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] once all is delivered the active file is sealed (never rewritten); a restart reads the checkpoint and the new active file, and each device's sequence goes on across the boundary"
+  - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] a journal of one large file from before is sealed on its first start once delivered; nothing is lost and its lines are unchanged"
+  - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-31] lines not yet delivered are never sealed"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:
