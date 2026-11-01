@@ -1,5 +1,5 @@
 -- Slice S16: two report views of the documents a batch's master record cites, for a separate Deviations and CAPA system
--- that reads Batchwright batch data read-only through the reporting role (ADR 0022, decisions D-S16-1 to D-S16-3 and
+-- that reads the batch data read-only through the reporting role (ADR 0022, decisions D-S16-1 to D-S16-3 and
 -- D-S16-6; kernel 1210, recipe-core 1070 and 1115).
 -- Handbook: modules/tablets-server.md
 --

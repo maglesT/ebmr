@@ -9,7 +9,7 @@
 -- plant.step_equipment, which only a gateway binding or a person's explicit binding fills, so most steps show no unit;
 -- exception_v1 has no step, text or disposition. These views read the record as the engine stored it (the execution
 -- state, its master content, the exception register and the plant's use records), and evaluate nothing themselves:
--- every result and limit flag is the one Batchwright stored with the entry.
+-- every result and limit flag is the one the engine stored with the entry.
 --
 --   report.equipment_use_v1       one row per use of a unit by a GMP batch record and step that names it:
 --                                 plant.equipment_use (with its end) and plant.instrument_use (an instrument use has no
@@ -29,7 +29,7 @@
 --                                   any other test entry (friability, disintegration, ...): one row, aggregate 'result'.
 --                                 Limits are the step's configuration in the record's master (individual or mean, action and
 --                                 alert). Breaking force read in kp is given in N (1 kp = 9.80665 N exactly), as the limits
---                                 are and as the block evaluates it. result is what Batchwright stored: PASS, ALERT (outside
+--                                 are and as the block evaluates it. result is what the block stored: PASS, ALERT (outside
 --                                 alert limits only) or FAIL (and PENDING or SECOND_STAGE for a weight check awaiting its
 --                                 second stage). The blocks store one verdict per parameter of an entry, not per reading: a
 --                                 PHYSICAL_CHECK's verdict combines the individual and the mean limits, so its reading rows
