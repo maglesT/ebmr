@@ -37,15 +37,25 @@ not right.
    - O-3: library blocks need no per-block simulator model or golden fixture. One generic simulator and one generic
      golden test cover all of them. "Customers cannot create primitive types" stays true for field types.
    - O-4 (PR-02, PR-03): the automated consistency checks are the sanity checks of point 3.
-   - O-5: pharmacopoeia limits become reference limits on the library test. A looser product limit needs a written
-     reason (a warning), not a refusal. The PR-08 tiers stay enforced.
+   - O-5: pharmacopoeia limits become reference limits on the library test. A product limit looser than the reference
+     needs a written reason (a warning), not a refusal. A limit looser than the product's registered specification for
+     a market is still refused (plan review, 1 November). The PR-08 tiers stay enforced.
    - O-6: TB-01..24 and existing masters keep running and stay in CI. They leave the designer palette after S11.
      Nothing is deleted.
-   - O-7: frozen areas keep their unit tests on every PR. Their E2E groups may move to a weekly run (to be wired in a
-     later slice).
+   - O-7: frozen areas keep their unit tests on every PR. Moving their E2E groups to a weekly run changes the test
+     cadence of decision 0008, so it waits for the owner's explicit decision (plan review, 1 November). Until then,
+     every group keeps running on every PR.
    - O-8: batch sizes stay a list of approved sizes, scaled by the system and approved together (IN-13 and PR-01 as
      written).
-5. **Freeze, not delete:** injectables, the site gateway, simulators, analytics/MSPC, the ERP/LIMS/QMS/LMS
+5. **Plan review (1 November, approved with additions; owner: keep 11 slices).**
+   - Calculations read values from outside the step: a formula line, the batch size, a lot's approved assay, and an
+     earlier step's value (S1).
+   - Conditional fields, shown when an earlier field has a given answer (S1).
+   - The formulation pins each block's version and content hash at approval, and batches inherit it (S1 hash, S9 pin).
+   - **O-9, open, to settle before S2 (decision 0008 §2):** does the database recompute calculated fields, or store
+     the server's figure with its evaluation record? The recommendation is to store the figure with its record.
+   - PQR is frozen, not dropped; Schedule M requires it.
+6. **Freeze, not delete:** injectables, the site gateway, simulators, analytics/MSPC, the ERP/LIMS/QMS/LMS
    integrations, the QP package, contract giver, EU importer register, PQR, dashboards, CAPA, training, incidents,
    alarms, kiosk extras, the sandbox test-run evidence package, and the Phase 7 product backlog (R7, R8 P1-P12, R11,
    R12). Their code and tests stay in the repo and in CI, untouched, and get no new work.

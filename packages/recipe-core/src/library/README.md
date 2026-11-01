@@ -13,6 +13,7 @@ import { library } from '@ebmr/recipe-core/pure';
 library.checkBlockDefinition(def, expr); // problems with the form itself; [] means it may go to QA
 library.slotsOf(def);                    // what the formulation must or may fill: LIMIT, EQUIPMENT_CLASS, COUNT, INTERVAL
 library.checkBlockUse(def, use, expr);   // problems with the product's values for one use of the block
+library.definitionHash(def);             // content hash the formulation pins with code@version
 ```
 
 ## Field types (`model.ts`)
@@ -40,6 +41,9 @@ responsibility (decision 0026 point 3).
 | A use: required slots filled, no unknown slot, whole-number counts, positive time intervals | LIB-USE-* | PR-03, PR-29 |
 | A use's limits: well-formed nested tiers (`limits/checkLimitSpec`), a unit that converts to the field's, a target inside its limits, time points each with limits | LIB-USE-LIMIT-*, LIB-USE-TARGET, LIB-USE-POINTS | PR-08 |
 | A limit looser than the reference limit: a warning that a written reason clears | LIB-USE-LOOSER-THAN-REFERENCE | PR-08, IN-33 |
+| Inputs from outside the step (formula line, batch size, lot assay, earlier step's value): known kind, unit; a lot assay names a lot or weighing field; a use names the line and the step | LIB-INPUT-*, LIB-USE-BOM-LINE, LIB-USE-STEP-VALUE | DI-33 |
+| Conditional fields: shown when an earlier yes/no or choice field has one of its answers; a calculation reads one only under the same condition; a repeat never waits on one | LIB-SHOW-WHEN, LIB-CALC-CONDITIONAL, LIB-REPEAT-UNTIL | DI-33, INV-20 |
+| The content hash pinned at formulation approval matches the library version (`definitionHash`) | LIB-USE-HASH | PR-05, DI-10 |
 
 Tests: `packages/recipe-core/test/library/library.test.ts` (examples in `examples.ts`: friability, fluid bed drying
 with an LOD loop, a dissolution profile).

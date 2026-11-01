@@ -11,6 +11,7 @@ import type { ExpressionService } from '../flow/expression-port.ts';
 import type { LimitRange, LimitSpec } from '../limits/model.ts';
 import { checkLimitSpec } from '../limits/nesting.ts';
 import { commensurable, slotsOf } from './check-definition.ts';
+import { definitionHash } from './hash.ts';
 import type { BlockDefinition, BlockUse, LibraryProblem, Slot } from './model.ts';
 
 const WHOLE = /^[1-9][0-9]{0,6}$/;
@@ -31,6 +32,11 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
   const classSlots = byKind('EQUIPMENT_CLASS');
   const countSlots = byKind('COUNT');
   const intervalSlots = byKind('INTERVAL');
+  const bomSlots = byKind('BOM_LINE');
+  const stepSlots = byKind('STEP_VALUE');
+  if (use.block.hash !== undefined && use.block.hash !== definitionHash(def)) {
+    out.push(err('LIB-USE-HASH', 'block.hash', `${def.code}@${def.version} does not match the content the formulation pinned; the library item changed [PR-05, DI-10]`, ['PR-05', 'DI-10']));
+  }
 
   const unknown = (given: Record<string, unknown> | undefined, known: Map<string, Slot>, what: string, key: string): void => {
     for (const name of Object.keys(given ?? {})) if (!known.has(name)) out.push(err('LIB-USE-UNKNOWN-SLOT', `${key}.${name}`, `${def.code} has no ${what} slot ${name}`));
@@ -41,6 +47,16 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
   unknown(use.equipmentClasses, classSlots, 'equipment class', 'equipmentClasses');
   unknown(use.counts, countSlots, 'count', 'counts');
   unknown(use.intervals, intervalSlots, 'interval', 'intervals');
+  unknown(use.bomLines, bomSlots, 'formula line', 'bomLines');
+  unknown(use.stepValues, stepSlots, 'earlier-step value', 'stepValues');
+  for (const slot of bomSlots.values()) {
+    const v = use.bomLines?.[slot.name];
+    if (typeof v !== 'string' || v.trim() === '') out.push(err('LIB-USE-BOM-LINE', `bomLines.${slot.name}`, `${def.title}: name the formula line ${slot.owner} reads`, ['DI-33']));
+  }
+  for (const slot of stepSlots.values()) {
+    const v = use.stepValues?.[slot.name];
+    if (!v || typeof v.step !== 'string' || v.step.trim() === '' || typeof v.field !== 'string' || v.field.trim() === '') out.push(err('LIB-USE-STEP-VALUE', `stepValues.${slot.name}`, `${def.title}: name the earlier step and field ${slot.owner} reads`, ['DI-33']));
+  }
 
   for (const slot of limitSlots.values()) {
     const spec = use.limits?.[slot.name];

@@ -5,3 +5,4 @@
 export * from './model.ts';
 export { checkBlockDefinition, slotsOf, commensurable } from './check-definition.ts';
 export { checkBlockUse } from './check-use.ts';
+export { definitionHash } from './hash.ts';

@@ -3,9 +3,9 @@
  * The software checks the form and the limits; it does not judge the process (the author and QA own that).
  */
 import { describe, expect, it } from 'vitest';
-import { checkBlockDefinition, checkBlockUse, slotsOf, type BlockDefinition, type FieldDef, type LibraryProblem } from '../../src/library/index.ts';
+import { checkBlockDefinition, checkBlockUse, definitionHash, slotsOf, type BlockDefinition, type FieldDef, type LibraryProblem } from '../../src/library/index.ts';
 import { expr } from '../flow/support.ts';
-import { dissolutionProfile, dissolutionUse, fluidBedDrying, fluidBedDryingUse, friability, friabilityUse, range } from './examples.ts';
+import { dissolutionProfile, dissolutionUse, fluidBedDrying, fluidBedDryingUse, friability, friabilityUse, potencyDispensing, range } from './examples.ts';
 
 const codes = (ps: LibraryProblem[]): string[] => ps.map((p) => p.code);
 const errors = (ps: LibraryProblem[]): LibraryProblem[] => ps.filter((p) => p.severity === 'ERROR');
@@ -212,5 +212,72 @@ describe("a product's values for a library block", () => {
 
   it('a use checked against another block or version is refused', () => {
     expect(codes(checkBlockUse(friability(), { ...friabilityUse(), block: { code: 'IPC-FRIAB', version: 2 } }, expr))).toEqual(['LIB-USE-BLOCK']);
+  });
+});
+
+describe('review additions: inputs from outside the step, conditional fields, pinning', () => {
+  it('[DI-33] a calculation reads the formula line, the lot assay, an earlier step and the batch size', () => {
+    expect(checkBlockDefinition(potencyDispensing(), expr)).toEqual([]);
+    expect(slotsOf(potencyDispensing()).map((s) => `${s.kind}:${s.name}`)).toEqual(['BOM_LINE:activeLine', 'STEP_VALUE:lodSource']);
+  });
+
+  it('[DI-33] an input names a known kind, a unit, and (for a lot assay) a lot or weighing field of the block', () => {
+    const def = potencyDispensing();
+    def.inputs = [
+      { id: 'assay', label: 'Assay', kind: 'LOT_ASSAY', unit: '%', lotField: 'reworkRef' },
+      { id: 'size', label: 'Size', kind: 'BATCH_SIZE', unit: 'parsecs' },
+      { id: 'x', label: 'X', kind: 'GUESS' } as unknown as NonNullable<BlockDefinition['inputs']>[number],
+    ];
+    const cs = codes(checkBlockDefinition(def, expr));
+    expect(cs).toEqual(expect.arrayContaining(['LIB-INPUT-LOT', 'LIB-INPUT-UNIT', 'LIB-INPUT-KIND']));
+  });
+
+  it('a field id may not repeat an input id', () => {
+    const def = withField(potencyDispensing(), { id: 'assay', label: 'Assay again', type: 'NUMBER', unit: '%' });
+    expect(codes(checkBlockDefinition(def, expr))).toContain('LIB-FIELD-ID');
+  });
+
+  it('[PR-03] a use names the formula line and the earlier step its inputs read', () => {
+    const def = potencyDispensing();
+    const base = { block: { code: def.code, version: 1 } };
+    expect(codes(checkBlockUse(def, base, expr)).sort()).toEqual(['LIB-USE-BOM-LINE', 'LIB-USE-STEP-VALUE']);
+    expect(checkBlockUse(def, { ...base, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: { step: 'lod-test', field: 'lod' } } }, expr)).toEqual([]);
+  });
+
+  it('a conditional field depends on an earlier yes/no or choice field and one of its answers', () => {
+    const before = potencyDispensing();
+    before.sections[0]!.fields = before.sections[0]!.fields.map((f) => (f.id === 'reworkRef' ? { ...f, showWhen: { field: 'reworkQty', equals: true } } : f));
+    expect(codes(checkBlockDefinition(before, expr))).toEqual(['LIB-SHOW-WHEN']);
+    const notOption = withField(friability(), { id: 'peel', label: 'Peel test', type: 'YES_NO', showWhen: { field: 'cracked', equals: 'PEEL_OFF' } });
+    expect(codes(checkBlockDefinition(notOption, expr))).toEqual(['LIB-SHOW-WHEN']);
+    const choice = withField(withField(friability(), { id: 'pack', label: 'Pack', type: 'CHOICE', options: ['THERMOFORM', 'PEEL_OFF'] }), { id: 'peel', label: 'Peel test passed', type: 'YES_NO', expected: true, showWhen: { field: 'pack', equals: 'PEEL_OFF' } });
+    expect(checkBlockDefinition(choice, expr)).toEqual([]);
+  });
+
+  it('[DI-33] a calculation may read a conditional field only under the same condition', () => {
+    const bad = withField(potencyDispensing(), { id: 'total', label: 'Total', type: 'CALC', expression: 'net + reworkQty', unit: 'kg' });
+    expect(codes(checkBlockDefinition(bad, expr))).toEqual(['LIB-CALC-CONDITIONAL']);
+    const ok = withField(potencyDispensing(), { id: 'total', label: 'Total', type: 'CALC', expression: 'net + reworkQty', unit: 'kg', showWhen: { field: 'rework', equals: true } });
+    expect(checkBlockDefinition(ok, expr)).toEqual([]);
+  });
+
+  it('[INV-20] a repeat cannot wait on a conditional field', () => {
+    const def = fluidBedDrying();
+    const loop = def.sections[1]!;
+    loop.fields = [{ id: 'skip', label: 'Skip', type: 'YES_NO' }, ...loop.fields.map((f) => (f.id === 'lod' ? { ...f, showWhen: { field: 'skip', equals: false } } : f))];
+    // The output's max(lod) now reads a conditional field too, so the calculation is refused as well.
+    expect(codes(checkBlockDefinition(def, expr)).sort()).toEqual(['LIB-CALC-CONDITIONAL', 'LIB-REPEAT-UNTIL']);
+  });
+
+  it('[PR-05] the content hash pinned at formulation approval must match the library version used', () => {
+    const def = friability();
+    const pinned = { ...friabilityUse(), block: { code: def.code, version: 1, hash: definitionHash(def) } };
+    expect(checkBlockUse(def, pinned, expr)).toEqual([]);
+    const changed = { ...def, title: 'Friability (edited)' };
+    expect(definitionHash(changed)).not.toEqual(definitionHash(def));
+    expect(codes(checkBlockUse(changed, pinned, expr))).toEqual(['LIB-USE-HASH']);
+    // Key order does not change the hash.
+    const reordered = Object.fromEntries(Object.entries(def).reverse()) as unknown as BlockDefinition;
+    expect(definitionHash(reordered)).toEqual(definitionHash(def));
   });
 });

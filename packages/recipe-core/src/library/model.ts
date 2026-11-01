@@ -46,6 +46,11 @@ interface FieldBase {
   /** Default true. A CALC field is never typed, so `required` does not apply to it. */
   required?: boolean;
   help?: string;
+  /**
+   * Shown (and then required, if `required`) only when an EARLIER yes/no or choice field has the given answer, e.g.
+   * rework fields when "Rework added" is yes, or a peel test only when the pack is a peel-off blister.
+   */
+  showWhen?: { field: string; equals: string | boolean };
 }
 
 export interface NumberField extends FieldBase {
@@ -194,6 +199,22 @@ export interface ReferenceLimit {
   note: string;
 }
 
+/**
+ * A value a calculation reads from outside the step (review addition 1). The id is usable in calculations like a field
+ * id. Where it comes from is filled by the formulation (BOM line, earlier step) or is the batch itself.
+ *  - FORMULA_LINE: the scaled quantity of a bill-of-materials line for this batch (`slot` names the line to fill);
+ *  - BATCH_SIZE: the batch's approved size;
+ *  - LOT_ASSAY: the approved assay or potency of the lot recorded in a MATERIAL_LOT or WEIGHING field of this block
+ *    (`lotField`), as potency-adjusted dispensing needs;
+ *  - STEP_VALUE: a value recorded in an earlier step of the formulation, e.g. the LOD or the granule yield (`slot`
+ *    names the step and field to fill).
+ */
+export type ExternalInput =
+  | { id: string; label: string; kind: 'FORMULA_LINE'; unit: string; slot: string }
+  | { id: string; label: string; kind: 'BATCH_SIZE'; unit: string }
+  | { id: string; label: string; kind: 'LOT_ASSAY'; unit: string; lotField: string }
+  | { id: string; label: string; kind: 'STEP_VALUE'; unit: string; slot: string };
+
 export interface BlockDefinition {
   /** Upper-case code, e.g. "IPC-FRIAB". */
   code: string;
@@ -204,13 +225,15 @@ export interface BlockDefinition {
   description?: string;
   /** Standing instructions shown with the form; the formulation may add product text. */
   instructions?: string;
+  /** Values from outside the step that calculations read. */
+  inputs?: ExternalInput[];
   sections: SectionDef[];
   signatures: SignatureDef[];
   referenceLimits?: Record<string, ReferenceLimit>;
 }
 
 /** The kinds of slot a definition exposes to the formulation. */
-export type SlotKind = 'LIMIT' | 'EQUIPMENT_CLASS' | 'COUNT' | 'INTERVAL';
+export type SlotKind = 'LIMIT' | 'EQUIPMENT_CLASS' | 'COUNT' | 'INTERVAL' | 'BOM_LINE' | 'STEP_VALUE';
 
 export interface Slot {
   name: string;
@@ -225,7 +248,11 @@ export interface Slot {
 
 /** The product's values for one use of a library block in a formulation. */
 export interface BlockUse {
-  block: { code: string; version: number };
+  /**
+   * The library version, pinned with its content hash (`definitionHash`) when the formulation is approved (review
+   * addition 4): batches inherit what the formulation pinned, and a new block version needs a new formulation version.
+   */
+  block: { code: string; version: number; hash?: string };
   limits?: Record<string, LimitSpec>;
   /** Targets for limit slots (a decimal in the limit's unit). */
   targets?: Record<string, string>;
@@ -235,6 +262,10 @@ export interface BlockUse {
   intervals?: Record<string, { value: string; unit: string }>;
   /** Written reasons, by limit slot, for a limit looser than the block's reference limit (O-5). */
   justifications?: Record<string, string>;
+  /** BOM line ids for FORMULA_LINE inputs, by slot. */
+  bomLines?: Record<string, string>;
+  /** Earlier step and field for STEP_VALUE inputs, by slot (resolved against the formulation in S9). */
+  stepValues?: Record<string, { step: string; field: string }>;
   /** Time points or stages of a per-point test result, by field id. */
   points?: Record<string, { id: string; label: string; limits: LimitSpec }[]>;
 }

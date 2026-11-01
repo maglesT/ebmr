@@ -167,6 +167,7 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-03] a test result judges at least one statistic"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-03] a required slot left empty is refused: limits of a CPP, the equipment class, counts"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-03] a profile test needs its time points, each with its own well-formed limits"
+  - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [PR-03] a use names the formula line and the earlier step its inputs read"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

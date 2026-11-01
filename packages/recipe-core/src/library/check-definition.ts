@@ -15,6 +15,7 @@ import {
   SIGNATURE_MEANINGS,
   TEST_STATISTICS,
   type BlockDefinition,
+  type ExternalInput,
   type FieldDef,
   type LibraryProblem,
   type SectionDef,
@@ -65,6 +66,10 @@ function repeats(s: SectionDef): boolean {
 /** The slots a definition exposes to the formulation, in definition order. */
 export function slotsOf(def: BlockDefinition): Slot[] {
   const slots: Slot[] = [];
+  for (const i of def.inputs ?? []) {
+    if (i.kind === 'FORMULA_LINE') slots.push({ name: i.slot, kind: 'BOM_LINE', owner: i.id, required: true });
+    if (i.kind === 'STEP_VALUE') slots.push({ name: i.slot, kind: 'STEP_VALUE', owner: i.id, required: true });
+  }
   for (const s of def.sections ?? []) {
     const r = s.repeat;
     if (r?.kind === 'COUNT') slots.push({ name: r.countSlot, kind: 'COUNT', owner: s.id, required: true });
@@ -111,7 +116,10 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
     return problems.concat(checkSignatures(def));
   }
 
-  // Field ids are unique across the whole definition: calculations and limits refer to them.
+  problems.push(...checkInputs(def, expr));
+  const inputIds = new Set((def.inputs ?? []).map((i) => i.id));
+
+  // Field ids are unique across the whole definition (and apart from the input ids): calculations and limits refer to them.
   const seen = new Map<string, { field: FieldDef; section: SectionDef; index: number }>();
   let order = 0;
   let fieldCount = 0;
@@ -127,9 +135,10 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
       const fp = `${sp}.fields[${fi}]`;
       problems.push(...checkField(f, fp, expr));
       if (typeof f.id === 'string' && IDENT.test(f.id)) {
-        if (seen.has(f.id)) problems.push(err('LIB-FIELD-ID', `${fp}.id`, `Field id ${f.id} is used twice; each field needs its own id`));
+        if (seen.has(f.id) || inputIds.has(f.id)) problems.push(err('LIB-FIELD-ID', `${fp}.id`, `Field id ${f.id} is used twice; each field and input needs its own id`));
         else {
-          if (f.type === 'CALC') problems.push(...checkCalc(f, fp, s, seen, expr));
+          if (f.showWhen !== undefined) problems.push(...checkShowWhen(f, fp, seen));
+          if (f.type === 'CALC') problems.push(...checkCalc(f, fp, s, seen, def.inputs ?? [], expr));
           seen.set(f.id, { field: f, section: s, index: order });
         }
       }
@@ -149,6 +158,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
       return;
     }
     const decides = (target.type === 'YES_NO' && target.expected !== undefined) || ('limitSlot' in target && target.limitSlot !== undefined);
+    if (target.showWhen !== undefined) problems.push(err('LIB-REPEAT-UNTIL', `sections[${si}].repeat.untilField`, `The repeat of section ${s.id} waits for field ${target.id}, which is shown only under a condition, so it might never be recorded [INV-20]`, ['PR-03', 'INV-20']));
     if (!decides) problems.push(err('LIB-REPEAT-UNTIL', `sections[${si}].repeat.untilField`, `The repeat of section ${s.id} can never end: field ${target.id} has neither limits nor an expected answer [INV-20]`, ['PR-03', 'INV-20']));
   });
 
@@ -252,11 +262,55 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService): LibraryPr
   return out;
 }
 
-function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionDef, earlier: ReadonlyMap<string, { field: FieldDef; section: SectionDef }>, expr: ExpressionService): LibraryProblem[] {
+const INPUT_KINDS = ['FORMULA_LINE', 'BATCH_SIZE', 'LOT_ASSAY', 'STEP_VALUE'];
+
+/** External inputs: known kind, identifier, label, unit; a lot assay names a lot or weighing field of this block. */
+function checkInputs(def: BlockDefinition, expr: ExpressionService): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  const ids = new Set<string>();
+  const fields = new Map(def.sections.flatMap((s) => s.fields ?? []).map((f) => [f.id, f]));
+  (def.inputs ?? []).forEach((i, n) => {
+    const at = `inputs[${n}]`;
+    if (!INPUT_KINDS.includes(i.kind)) {
+      out.push(err('LIB-INPUT-KIND', `${at}.kind`, `Unknown input kind ${JSON.stringify(i.kind)}; it is one of ${INPUT_KINDS.join(', ')}`, ['DI-33']));
+      return;
+    }
+    if (typeof i.id !== 'string' || !IDENT.test(i.id)) out.push(err('LIB-INPUT-ID', `${at}.id`, `Input id ${JSON.stringify(i.id)} must start with a lower-case letter and use letters, digits or underscores`, ['DI-33']));
+    else if (ids.has(i.id)) out.push(err('LIB-INPUT-ID', `${at}.id`, `Input id ${i.id} is used twice`, ['DI-33']));
+    ids.add(i.id);
+    if (typeof i.label !== 'string' || i.label.trim() === '') out.push(err('LIB-INPUT-LABEL', `${at}.label`, `Input ${i.id} needs a label`, ['DI-33']));
+    const u = typeof i.unit === 'string' ? expr.unit(i.unit) : { ok: false as const, message: 'no unit' };
+    if (!u.ok) out.push(err('LIB-INPUT-UNIT', `${at}.unit`, `Input ${i.id}: ${JSON.stringify(i.unit)} is not a unit`, ['DI-33']));
+    if (i.kind === 'LOT_ASSAY') {
+      const lot = fields.get(i.lotField);
+      if (!lot || (lot.type !== 'MATERIAL_LOT' && lot.type !== 'WEIGHING')) out.push(err('LIB-INPUT-LOT', `${at}.lotField`, `Input ${i.id} reads the assay of the lot in ${JSON.stringify(i.lotField)}, which is not a material lot or weighing field of this block`, ['DI-33']));
+    }
+  });
+  return out;
+}
+
+/** A condition refers to an earlier yes/no or choice field and to one of its answers. */
+function checkShowWhen(f: FieldDef, fp: string, earlier: ReadonlyMap<string, { field: FieldDef }>): LibraryProblem[] {
+  const w = f.showWhen;
+  if (w === undefined) return [];
+  const on = earlier.get(w.field)?.field;
+  const at = `${fp}.showWhen`;
+  if (!on) return [err('LIB-SHOW-WHEN', at, `Field ${f.id} is shown when ${JSON.stringify(w.field)} has an answer, but no earlier field has that id`)];
+  if (on.type === 'YES_NO') return typeof w.equals === 'boolean' ? [] : [err('LIB-SHOW-WHEN', at, `Field ${f.id}: ${on.id} is a yes/no field, so the condition is yes or no`)];
+  if (on.type === 'CHOICE') return typeof w.equals === 'string' && on.options.includes(w.equals) ? [] : [err('LIB-SHOW-WHEN', at, `Field ${f.id}: ${JSON.stringify(w.equals)} is not an option of ${on.id}`)];
+  return [err('LIB-SHOW-WHEN', at, `Field ${f.id} depends on ${on.id}, which is not a yes/no or choice field`)];
+}
+
+function sameCondition(a: FieldDef['showWhen'], b: FieldDef['showWhen']): boolean {
+  return a === undefined ? b === undefined : b !== undefined && a.field === b.field && a.equals === b.equals;
+}
+
+function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionDef, earlier: ReadonlyMap<string, { field: FieldDef; section: SectionDef }>, external: readonly ExternalInput[], expr: ExpressionService): LibraryProblem[] {
   if (typeof f.expression !== 'string' || f.expression.trim() === '') return [err('LIB-CALC-EXPRESSION', `${fp}.expression`, `Field ${f.id} is calculated but has no formula`, ['PR-03', 'DI-33'])];
   if (typeof f.unit !== 'string' || !expr.unit(f.unit).ok) return [];
   // Only fields declared earlier are inputs, so a calculation can never read itself or a later calculation (no cycles).
   const inputs = new Map<string, ExprType>();
+  for (const i of external) if (typeof i.unit === 'string' && expr.unit(i.unit).ok) inputs.set(i.id, { kind: 'DECIMAL', unit: i.unit });
   for (const [id, { field, section: from }] of earlier) {
     const t = exprTypeOf(field);
     if (t === undefined) continue;
@@ -266,13 +320,17 @@ function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionD
     } else inputs.set(id, t);
   }
   const c = expr.check(f.expression, inputs, { role: 'CALCULATION', output: { kind: 'DECIMAL', unit: f.unit } });
-  return c.problems.map((p) => ({
+  // A calculation may read a conditional field only under the same condition: otherwise its input may never exist.
+  const conditional = c.reads
+    .filter((r) => { const src = earlier.get(r)?.field; return src !== undefined && src.showWhen !== undefined && !sameCondition(src.showWhen, f.showWhen); })
+    .map((r) => err('LIB-CALC-CONDITIONAL', `${fp}.expression`, `Field ${f.id} reads ${r}, which is shown only under a condition that ${f.id} does not share [DI-33]`, ['DI-33']));
+  return conditional.concat(c.problems.map((p) => ({
     code: 'LIB-CALC-EXPRESSION',
     severity: p.severity,
     path: `${fp}.expression`,
     message: `Field ${f.id}: ${p.message} (a calculation reads fields declared before it) [DI-33]`,
     controls: ['DI-33'],
-  }));
+  })));
 }
 
 function checkRepeat(s: SectionDef, sp: string): LibraryProblem[] {

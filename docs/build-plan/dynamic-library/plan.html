@@ -53,7 +53,7 @@ a { color: var(--accent); }
 <main>
 <header>
   <h1>Batchwright: a dynamic library of tablet blocks</h1>
-  <div class="meta">Assessment and plan for the owner · 1 November 2026 · nothing gets built until you approve this plan · slices C (R11) and D (R12) are paused</div>
+  <div class="meta">Assessment and plan for the owner · 1 November 2026 · approved by the owner on 1 November (decision 0026) · revised the same day with the plan review's additions, still 11 slices · slices C (R11) and D (R12) are paused</div>
 </header>
 
 <section class="summary">
@@ -63,6 +63,7 @@ a { color: var(--accent); }
     <li><b>Fix:</b> turn a block into a <b>form defined as data</b>. It is built from about 14 field types, and only those field types are code, written once. QA approves library items and formulations. Batches are generated from the formulation. One generic screen shows every block.</li>
     <li><b>What stays:</b> the compliance core you already paid for: the engine, audit trail, e-signatures, the master record life cycle, execution, review, release, materials and formula, equipment and cleaning.</li>
     <li><b>Freeze, not delete:</b> injectables, the site gateway, simulators, analytics, integrations and the other extras. Their code and tests stay in the repo, but no new work goes into them.</li>
+    <li><b>Review (1 November):</b> approved with additions, now folded in. Calculations can read values from outside the step (formula line, batch size, lot assay, earlier steps). Fields can be conditional. The formulation pins each block's version and content hash. A limit looser than the registered specification is still refused. There is one new decision (O-9), and O-7 needs your explicit answer.</li>
     <li><b>Size:</b> 11 slices. Slice 11 is the acceptance test: three very different tablets set up on screen with no code changes. Eight owner decisions are listed in section 6, and one of them changes how DI-04 is implemented.</li>
   </ul>
 </section>
@@ -123,7 +124,7 @@ a { color: var(--accent); }
     <tr><td><span class="pill freeze">freeze</span> Analytics / MSPC (6A)</td><td>Advisory statistics. Not needed to make a batch record.</td></tr>
     <tr><td><span class="pill freeze">freeze</span> Integrations (ERP, LIMS, QMS, LMS adapters)</td><td>Batches, materials and results are entered on screen for now.</td></tr>
     <tr><td><span class="pill freeze">freeze</span> QP package, contract giver, EU importer register</td><td>Export-market extras. Revisit them per market.</td></tr>
-    <tr><td><span class="pill freeze">freeze</span> PQR, dashboards, CAPA, training, incidents, alarms</td><td>Quality-system modules outside the batch record.</td></tr>
+    <tr><td><span class="pill freeze">freeze</span> PQR, dashboards, CAPA, training, incidents, alarms</td><td>Quality-system modules outside the batch record. PQR is frozen, not dropped: Schedule M requires it.</td></tr>
     <tr><td><span class="pill freeze">freeze</span> Kiosk extras</td><td>Device registry polish and the scale console. Badge-tap sign-in and signatures stay.</td></tr>
     <tr><td><span class="pill freeze">freeze</span> Sandbox test-run evidence package</td><td>The sandbox-to-GMP round trip (gap B4). It becomes optional under decision O-2.</td></tr>
     <tr><td><span class="pill freeze">freeze</span> Per-block simulator models and golden fixtures for new blocks</td><td>One generic simulator and one generic golden test cover every library block instead.</td></tr>
@@ -152,6 +153,8 @@ a { color: var(--accent); }
     <tr><td>Calculated</td><td>An expr formula over other fields: yield, reconciliation, weight gain %, mean. It cannot be typed by hand (INV-25).</td></tr>
     <tr><td>Signature</td><td>Meaning (performed, checked, verified, QA) and role, with the two-person rule</td></tr>
   </table></div>
+  <p><b>Values from outside the step.</b> A calculation can read four kinds of value: the scaled quantity of a formula line, the batch size, the approved assay of the lot being weighed, and a value from an earlier step (such as the LOD or the granule yield). The formulation says which line or step. This covers potency-adjusted dispensing (today's TB-01) with no code.</p>
+  <p><b>Conditional fields.</b> A field can be shown only when an earlier yes/no or choice field has a given answer. Examples are rework fields when "rework added" is yes, or a peel test only for a peel-off blister. A calculation may read a conditional field only under the same condition.</p>
   <p>The fields are arranged with two pieces of structure. <b>Sections</b> group fields. <b>Repeat groups</b> add rows per container, per time interval, or "until within limits", which covers the LOD drying loop, coating weight-gain checks and IPC rounds every 30 minutes.</p>
 
   <h3>4.2 Block definition (data)</h3>
@@ -183,11 +186,12 @@ a { color: var(--accent); }
     <li>Process: add stages, drop library blocks into each stage, and fill each block's slots (limits, frequencies, methods, equipment class, hold times). Every list can be edited on screen.</li>
     <li>Specifications: IPC tests are blocks, release tests are the existing specifications.</li>
     <li>Batch sizes: list the sizes. The system scales the BOM for each one, and all of them are approved together (IN-13 stays as it is).</li>
-    <li>Sanity checks only: required slots filled, lower limit &lt; upper limit, target inside the limits, units compatible, BOM adds up, every CPP and IPC has limits (PR-03), only approved library versions used. A limit looser than a block's reference limit gives a warning that needs a written reason, not a refusal.</li>
+    <li>Sanity checks only: required slots filled, lower limit &lt; upper limit, target inside the limits, units compatible, BOM adds up, every CPP and IPC has limits (PR-03), only approved library versions used. A limit looser than the product's <b>registered specification for a market</b> is still refused (PR-08). A limit looser than the library's reference limit gives a warning that needs a written reason.</li>
+    <li>On approval, the formulation pins each block's library version <b>and its content hash</b>. A new block version means a new formulation version.</li>
     <li>Preparer signs, an independent checker signs, QA approves (PR-02). It becomes effective with its change record (DI-04 per O-2).</li>
   </ol>
   <h3>4.5 Batch generation and execution</h3>
-  <p>Issuing a batch picks an approved size. The system creates the record with the scaled quantities and pins each block version and its hash, so later library changes do not touch a running batch. The kiosk step screen, the review screen and the printed copy are each <b>one generic renderer</b> that draws any definition: fields by type, limits shown beside each field, an out-of-limit warning as the value is typed, and the signature bar. The per-block layout tables go.</p>
+  <p>Issuing a batch picks an approved size. The system creates the record with the scaled quantities. The batch inherits the block versions and hashes the formulation pinned, so later library changes do not touch it. The kiosk step screen, the review screen and the printed copy are each <b>one generic renderer</b> that draws any definition: fields by type, limits shown beside each field, an out-of-limit warning as the value is typed, and the signature bar. The per-block layout tables go.</p>
 </section>
 
 <section id="slices">
@@ -196,15 +200,15 @@ a { color: var(--accent); }
   <div class="tbl"><table>
     <tr><th>#</th><th>Slice</th><th>Proves</th></tr>
     <tr><td>S0</td><td>Freeze notice in PROGRESS.md and the plan. No code.</td><td>Scope</td></tr>
-    <tr><td>S1</td><td>Block-definition model, field types and sanity validator (pure recipe-core)</td><td>PR-03 checks on data</td></tr>
-    <tr><td>S2</td><td>Generic handler in the engine, plus the generic simulator and golden test</td><td>PR-08, PR-29, PR-30, DI-33, INV-25, INV-41</td></tr>
+    <tr><td>S1</td><td>Block-definition model, field types and sanity validator (pure recipe-core), with inputs from outside the step, conditional fields and the definition content hash. <b>Done, branch <code>dyn/s0-s1</code>.</b></td><td>PR-03, PR-05, PR-08, DI-33</td></tr>
+    <tr><td>S2</td><td>Generic handler in the engine, plus the generic simulator and golden test. Needs O-9 answered first.</td><td>PR-08, PR-29, PR-30, DI-33, INV-25, INV-41</td></tr>
     <tr><td>S3</td><td>Library tables, versions, QA approval, audit, routes and a list/edit screen, plus the generic database limit check</td><td>PR-05, DI-22, DI-35</td></tr>
     <tr><td>S4</td><td>Registry reads approved definitions. The validator and engine accept <code>LIB:</code> blocks.</td><td>Guard kept: no unexecutable block</td></tr>
     <tr><td>S5</td><td>Generic kiosk, review and print renderer</td><td>One record, three views</td></tr>
     <tr><td>S6</td><td>Smart fields: weighing, lot, equipment/room booking, container (closes A1–A5)</td><td>Lot status, equipment status</td></tr>
     <tr><td>S7</td><td>Seed catalogue: process, controls, packaging</td><td>Data only</td></tr>
     <tr><td>S8</td><td>Seed catalogue: coatings and tests (dissolution profile replaces paused slice D)</td><td>Data only</td></tr>
-    <tr><td>S9</td><td>Formulation builder screen (stages, slots, editable lists, sizes) and the approval path through screens (closes B1–B3)</td><td>PR-02, PR-03, DI-04</td></tr>
+    <tr><td>S9</td><td>Formulation builder screen (stages, slots, editable lists, sizes, inputs from earlier steps) and the approval path through screens (closes B1–B3). Pins block versions and hashes. Refuses limits looser than the registered specification.</td><td>PR-02, PR-03, DI-04</td></tr>
     <tr><td>S10</td><td>Batch generation with scaling and pinned versions</td><td>PR-01, IN-13</td></tr>
     <tr><td>S11</td><td><b>Acceptance:</b> one browser test, screens only, no database setup, three tablets: (1) wet-granulated film-coated IR, (2) direct-compression uncoated, (3) rabeprazole enteric-coated with three coats. Each goes from library to released lot with <b>zero code changes</b>, checked by running on the S10 commit with only data added.</td><td>The goal</td></tr>
   </table></div>
@@ -219,9 +223,10 @@ a { color: var(--accent); }
     <tr><td>O-2</td><td><b>DI-04 (control).</b> The control text says simulation is "one acceptable method, not a requirement", but the code requires a validator report, a simulation, test vectors <i>and</i> a sandbox run before a master can become effective. Proposal: the evidence becomes the validator's sanity report, the independent check signature and the QA approval, with the sandbox run optional. The control text is not edited. Its implementation and <code>implemented_by</code> change, and you record the decision.</td><td>Approve. It matches the control's own text.</td></tr>
     <tr><td>O-3</td><td><b>Block contract (outline 6.6, ADRs 0010/0011).</b> "Customers cannot create primitive types" stays true for field types. Library blocks become QA-approved data with no per-block simulator model or golden fixture. This is a plan change, not a control change.</td><td>Approve</td></tr>
     <tr><td>O-4</td><td><b>PR-02 / PR-03 (controls, scope of the automated checks).</b> The automatic consistency checks are limited to the sanity list in 4.4. Whether a process is correct is the preparer's, checker's and QA's responsibility (211.186, Schedule M). Both controls' wording already fits, so this is listed so you can confirm it.</td><td>Confirm</td></tr>
-    <tr><td>O-5</td><td><b>Pharmacopoeia limits.</b> Today the code refuses a limit looser than its built-in rule set. Proposal: the reference limits become data on the library test, and a looser limit needs a written reason instead of being refused. PR-08 tiers (registered / action / alert) stay enforced.</td><td>Approve the warning plus reason</td></tr>
+    <tr><td>O-5</td><td><b>Pharmacopoeia limits.</b> Today the code refuses a limit looser than its built-in rule set. Proposal: the reference limits become data on the library test, and a looser limit needs a written reason instead of being refused. A limit looser than the product's <b>registered specification for that market</b> is still refused. The PR-08 tiers stay enforced.</td><td>Approved (as refined)</td></tr>
     <tr><td>O-6</td><td>TB-01..24 and existing masters keep running and stay in CI. They leave the designer palette after S11 passes. No deletion.</td><td>Approve</td></tr>
-    <tr><td>O-7</td><td>CI for frozen areas: (a) keep everything on every PR, or (b) run frozen E2E groups weekly. Their unit tests stay on every PR, so the trace stays whole.</td><td>(b)</td></tr>
+    <tr><td>O-7</td><td>CI for frozen areas: (a) keep everything on every PR, or (b) run frozen E2E groups weekly. Their unit tests stay on every PR, so the trace stays whole. <b>This changes test cadence under decision 0008, so it needs your explicit answer.</b> Until then, (a) applies.</td><td>(b), awaiting your answer</td></tr>
+    <tr><td>O-9</td><td><b>Database enforcement of calculated fields (decision 0008 §2), settled before S2.</b> (a) The database recomputes each calculated field (the calculation language in SQL, as the current per-block SQL does for some blocks). (b) The database stores the server's figure with its evaluation record (inputs, formula hash, language version), checks entered values against limits, and the server's figure can be re-verified from the record. Option (b) is far less code, and every calculation stays re-checkable. Option (a) is stronger against a faulty server.</td><td>(b), awaiting your answer</td></tr>
     <tr><td>O-8</td><td>Batch sizes: listed sizes, scaled by the system and approved together (fits IN-13 and PR-01 as written), or a free range (needs a change to IN-13)</td><td>Listed sizes</td></tr>
   </table></div>
   <p>Paused slice C (R11 view-only record) becomes part of S5. Paused slice D (R12 dissolution) becomes library data in S8.</p>

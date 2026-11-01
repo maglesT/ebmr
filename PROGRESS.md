@@ -71,8 +71,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 **Start here (1 November 2026): the dynamic library (decision 0026).** Slices S0 to S11 in
 `docs/build-plan/dynamic-library/plan.html` section 5. S0 (decision record, this page) and S1 (block-definition
-model and sanity checks, `packages/recipe-core/src/library/`) are on branch `dyn/s0-s1`. Next: S2, the generic
-handler that runs a library definition in the engine. The Phase 7 notes below are history for the frozen work.
+model and sanity checks, `packages/recipe-core/src/library/`) are on branch `dyn/s0-s1`. S1 includes the plan
+review's additions (inputs from outside the step, conditional fields, the content hash). Next: S2, the generic handler,
+after the owner answers O-9 (database recompute or stored figure). O-7 also waits for the owner. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.

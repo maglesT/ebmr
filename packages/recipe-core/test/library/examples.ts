@@ -129,3 +129,37 @@ export function dissolutionUse(): BlockUse {
     },
   };
 }
+
+/** Potency-adjusted dispensing: reads the formula line, the lot's assay and the LOD of an earlier step. */
+export function potencyDispensing(): BlockDefinition {
+  return {
+    code: 'PROC-DISP-POTENCY',
+    version: 1,
+    title: 'Potency-adjusted dispensing',
+    category: 'PROCESS',
+    inputs: [
+      { id: 'labelQty', label: 'Formula quantity (100 % basis)', kind: 'FORMULA_LINE', unit: 'kg', slot: 'activeLine' },
+      { id: 'assay', label: 'Approved assay of the lot', kind: 'LOT_ASSAY', unit: '%', lotField: 'lot' },
+      { id: 'lodLot', label: 'LOD of the lot', kind: 'STEP_VALUE', unit: '%', slot: 'lodSource' },
+      { id: 'batchSize', label: 'Batch size', kind: 'BATCH_SIZE', unit: 'kg' },
+    ],
+    sections: [
+      {
+        id: 'weigh',
+        title: 'Weigh',
+        fields: [
+          { id: 'lot', label: 'Lot', type: 'MATERIAL_LOT' },
+          { id: 'required', label: 'Quantity to dispense', type: 'CALC', expression: 'labelQty * 100 [%] / assay * 100 [%] / (100 [%] - lodLot)', unit: 'kg' },
+          { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg', bomLine: true },
+          { id: 'rework', label: 'Rework material added', type: 'YES_NO' },
+          { id: 'reworkRef', label: 'Rework authorisation', type: 'TEXT', showWhen: { field: 'rework', equals: true } },
+          { id: 'reworkQty', label: 'Rework quantity', type: 'NUMBER', unit: 'kg', showWhen: { field: 'rework', equals: true } },
+        ],
+      },
+    ],
+    signatures: [
+      { meaning: 'PERFORMED', role: 'DISPENSER' },
+      { meaning: 'VERIFIED', role: 'DISPENSER' },
+    ],
+  };
+}
