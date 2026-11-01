@@ -461,6 +461,14 @@ export const TARGETS: Target[] = [
             k('sandbox/reporting-and-training.test.ts')],
     threshold: 90,
   },
+  // ---- Decision 0026 slice S3: the library of block definitions (recipe-core 1800) -------------------------------------
+  {
+    group: 'library-blocks',
+    functions: ['recipe.library_block_guard', 'recipe.library_block_state', 'recipe.library_block_content', 'recipe.draft_library_block',
+                'recipe.approve_library_block', 'recipe.retire_library_block'],
+    tests: [s('library/library-routes.test.ts')],
+    threshold: 90,
+  },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------
   {
     group: 'batch-number-register',

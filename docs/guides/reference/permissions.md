@@ -7,7 +7,7 @@ asks for. The guides name the right and the meaning of each task; this page list
 them. A person acts through a role granted to their account for a scope (site, product); a role grant needs a
 requester and a second person who approves it.
 
-In all: 163 rights, 39 roles, 117 signature meanings.
+In all: 163 rights, 39 roles, 118 signature meanings.
 
 ## Rights by domain
 
@@ -295,6 +295,7 @@ Each electronic signature states one of these meanings; the signer must hold one
 | `IPC_VERIFIED` | In-process control verified | VERIFICATION | VERIFIER | STEP.VERIFY |
 | `ISSUED` | Issued | BATCH_RECORD | APPROVER | BATCH.ISSUE |
 | `LATE_ENTRY_APPROVED` | Late entry approved | EXCEPTION | SUPERVISOR | STEP.SUPERVISE |
+| `LIBRARY_BLOCK_APPROVED` | Library block approved | MASTER_RECORD | APPROVER | MBR.APPROVE |
 | `LICENCE_APPROVED` | Licence approved | MASTER_RECORD | APPROVER | LICENCE.APPROVE |
 | `LINE_CLEARANCE_PERFORMED` | Line clearance performed | EXECUTION | PERFORMER | STEP.SIGN_PERFORMED |
 | `LINE_CLEARANCE_VERIFIED` | Line clearance verified | VERIFICATION | VERIFIER | STEP.VERIFY |
