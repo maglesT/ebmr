@@ -138,6 +138,24 @@ export async function registerPlantUnits(page: Page, base: string, units: readon
   }
 }
 
+/**
+ * The steward defines the product in the plant's product list (Plant definitions, Products): a room's clearance for a
+ * batch names its product, and the plant refuses a product it does not list (EBMR-PLANT-012). Left alone when listed.
+ */
+export async function definePlantProduct(page: Page, base: string, product: { code: string; name: string }): Promise<void> {
+  await page.goto(`${base}/master-data/plant`);
+  await choose(page.getByRole('radiogroup', { name: 'Show' }).getByRole('radio', { name: 'Products', exact: true }));
+  const table = page.getByRole('table', { name: 'Products' });
+  await expect(table).toBeVisible();
+  if ((await table.getByText(product.code, { exact: true }).count()) > 0) return;
+  const form = page.getByRole('form', { name: 'Define: Products' });
+  await form.getByRole('textbox', { name: 'Code' }).fill(product.code);
+  await form.getByRole('textbox', { name: 'Name' }).fill(product.name);
+  await choose(form.getByRole('radiogroup', { name: /^Highly potent/ }).getByRole('radio', { name: 'No', exact: true }));
+  await form.getByRole('button', { name: 'Define' }).click();
+  await expect(table).toContainText(product.code);
+}
+
 // ---------------------------------------------------------------------------------------------
 // The designer
 

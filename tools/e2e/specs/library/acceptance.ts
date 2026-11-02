@@ -40,7 +40,7 @@ import {
   receiveDelivery, recordArtwork, recordIdentity, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial, type StageCtx } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
 
 /** The start page (the application's address; the shell has no home link) and a tile of it. */
@@ -411,12 +411,12 @@ export function defineAcceptance(tabletKey: string): void {
     let batchNumber = '';
     await evidence.step('Sandbox: the steward registers TEST- lots of the new materials; the test batch, issued at the further size, runs every library step on the kiosks to Execution complete and its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
       await registerTestLots({ officePage, kioskPage, persona }, lots);
-      if (t.plant) {
-        const sp = await officePage('SANDBOX', 'TEST-PC-01');
-        await signIn.office(sp, persona('SANDBOX', 'steward'));
-        await registerPlantUnits(sp, e2e.url('SANDBOX'), t.plant);
-        await sp.context().close();
-      }
+      // The sandbox plant's data: the product in its product list (a room's clearance names it), units it lacks.
+      const sp = await officePage('SANDBOX', 'TEST-PC-01');
+      await signIn.office(sp, persona('SANDBOX', 'steward'));
+      await definePlantProduct(sp, e2e.url('SANDBOX'), product);
+      if (t.plant) await registerPlantUnits(sp, e2e.url('SANDBOX'), t.plant);
+      await sp.context().close();
       const shellLot = t.shells ? { shellLot: lots[t.materials.length]?.lotCode ?? '' } : {};
       const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona, browser }, packageHash, lots.slice(0, t.materials.length), t.discharge, {
         // S10: the batch is issued at the further size (not the reference size); every quantity is scaled to it.
@@ -644,6 +644,9 @@ export function defineAcceptance(tabletKey: string): void {
       await home(st, /^Batch numbers/);
       await defineNumberingRule(st, { ruleCode: `${t.prefix}-PROC-${s.tag}`, kind: 'PROCESSING', format: `L${s.tag}{SEQ:3}`, product: s.product.code });
       await defineNumberingRule(st, { ruleCode: `${t.prefix}-PACK-${s.tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', product: s.product.code });
+    }, st);
+    await evidence.step('The steward lists the product in the GMP plant\'s product list (a room\'s clearance names it)', 'The product is listed on Plant definitions', async () => {
+      await definePlantProduct(st, base, s.product);
     }, st);
     await st.context().close();
     const op = await officePage('GMP', PC_PLAN);
