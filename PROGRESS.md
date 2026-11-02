@@ -69,17 +69,21 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-**Resume here (2 November 2026): S11b on branch `dyn/s11`, in progress.** The acceptance is now `tools/e2e/specs/library/
-acceptance.ts` with one spec file and E2E group per tablet (`library-wg-fc`, `library-dc`, `library-rabe-ec`; replaces
-`library-acceptance`): the catalogue, S11a, then GMP 1 to 9 (Demotab 4 to 12's screens; the GMP batch at the authorised
-reference size, 1,00,000; D-S11b-3). The floor of a skeleton master is `library/skeleton-floor.ts` (sandbox and GMP alike).
-Found and fixed in shared code (tested): the formula skeleton used the sandbox-only G-10@1/G-09@1, so no GMP batch could be
-issued, and had no H-PACK, so none could be packed: now G-10@2/G-09@2 and H-PACK after the blend yield (D-S11b-1, -2;
-the sandbox run of a skeleton master now cleans, clears and books on Plant). The agreed follow-up is done: a master from a
-formula records `header.unitMassMg`, so R3.1 pre-fills each size's exact tablet count and refuses a mismatch; the sandbox
-issue refuses it too (EBMR-EXE-700). Commit 87c01b17 (badge-tap pacing) cherry-picked from `dyn/s11a`. Next: get
-`library-wg-fc` green locally, then the other two; then update the controls' test lists (they still name
-`three-tablets.spec.ts`), regenerate the handbook (`pnpm handbook`), run `pnpm run ci`. Local E2E: start PostgreSQL;
+**Resume here (3 November 2026): S11 passes; checks before the PR.** S11b passes locally on branch `dyn/s11`: each tablet
+11 of 11, from the catalogue to its released lot, screens only (`library-wg-fc` 46 min, `library-dc` 45 min,
+`library-rabe-ec` 46 min). The acceptance is `tools/e2e/specs/library/acceptance.ts`, one spec file and E2E group per tablet
+(replaces `library-acceptance`): the catalogue, S11a, then GMP 1 to 9 (Demotab 4 to 12's screens; the GMP batch at the
+authorised reference size, 1,00,000, D-S11b-3). The floor of a skeleton master is `library/skeleton-floor.ts` (sandbox and
+GMP alike). Defects found and fixed in shared code, each with its test (no tablet code): the formula skeleton used the
+sandbox-only G-10@1/G-09@1, so no GMP batch could be issued (D-S11b-1: now G-10@2/G-09@2); it had no H-PACK, so no batch
+could be packed (D-S11b-2: H-PACK after the blend yield); its weighings were an operator's, and the GMP database lets only a
+DISPENSER consume (D-S11b-4). The agreed follow-up is done: a master from a formula records `header.unitMassMg`, so R3.1
+pre-fills each size's exact tablet count and refuses a mismatch; the sandbox issue refuses it too (EBMR-EXE-700). Test-side
+findings (the controls were right): the product must be in the plant's product list before a clearance (EBMR-PLANT-012);
+typed weighings when the GMP balance is offline; a sandbox TEST- code may not contain a word shaped like a real batch
+number (DI-05). Commits 87c01b17, b334a88f and 0a252802 of `dyn/s11a` cherry-picked. The controls list the new tests;
+the handbook is regenerated. Next: the 7j `own-product.spec.ts` (its sandbox run now uses the skeleton floor), then
+`pnpm run ci`; a PR only when the owner asks. Local E2E: start PostgreSQL;
 `/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell` must point at the installed -1243
 `chrome-headless-shell` (local only); one group: `EBMR_E2E_GROUP=library-wg-fc PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock
 /tmp/ebmr-e2e.lock -c 'CI=true pnpm --filter @ebmr/e2e test'` (about 20 minutes of set-up first).
