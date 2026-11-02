@@ -218,7 +218,8 @@ export async function runLibraryStep(page: Page, ctx: { base: string; runId: str
         case 'TIMER':
           break;
         default:
-          await form.getByRole('textbox', { name: f.label, exact: true }).fill(String(v));
+          // A sandbox run names things only by TEST- identifiers (DI-05): the nominal SIM- text becomes a TEST- one.
+          await form.getByRole('textbox', { name: f.label, exact: true }).fill(String(v).replace(/^SIM-/, 'TEST-'));
       }
     }
     await withTap(page, ctx.operator, form.getByRole('button', { name: `Save ${section.title}` }));
