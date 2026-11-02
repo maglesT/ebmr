@@ -1,6 +1,7 @@
 /**
  * The ready-made catalogue of library blocks (decision 0026, S7 and S8), by group. See types.ts.
  */
+import { CAPSULE_RELEASE_SEEDS, CAPSULE_SEEDS } from './capsules.ts';
 import { COATING_SEEDS } from './coating.ts';
 import { CONTROL_SEEDS } from './controls.ts';
 import { PACKAGING_SEEDS } from './packaging.ts';
@@ -17,7 +18,9 @@ export const SEED_GROUPS: Readonly<Record<string, readonly SeedItem[]>> = {
   packaging: PACKAGING_SEEDS,
   coating: COATING_SEEDS,
   'ipc tests': IPC_TEST_SEEDS,
-  'release tests': RELEASE_TEST_SEEDS,
+  // Owner direction, 2 November 2026: hard capsules within the eleven slices.
+  capsules: CAPSULE_SEEDS,
+  'release tests': [...RELEASE_TEST_SEEDS, ...CAPSULE_RELEASE_SEEDS],
 };
 
 /** Every item of the catalogue. */
