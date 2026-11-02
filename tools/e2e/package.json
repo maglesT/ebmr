@@ -8,6 +8,7 @@
     "@ebmr/api-contract": "workspace:0.1.0",
     "@ebmr/demo": "workspace:0.1.0",
     "@ebmr/kernel": "workspace:0.1.0",
+    "@ebmr/recipe-core": "workspace:0.1.0",
     "@ebmr/test-kit": "workspace:0.1.0",
     "pg": "8.23.0"
   },
