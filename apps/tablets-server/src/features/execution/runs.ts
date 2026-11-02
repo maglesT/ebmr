@@ -15,7 +15,7 @@
  * describe() leave the meaning to be checked there (fail closed, never guessed).
  */
 import type pg from 'pg';
-import { engine, execution, flow } from '@ebmr/recipe-core';
+import { engine, execution, flow, library } from '@ebmr/recipe-core';
 import type { PersonRef } from '@ebmr/api-contract';
 import { refusal } from '../../platform/http/refusal.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../edition-blocks.ts';
@@ -159,7 +159,8 @@ function defineCached(source: string, content: unknown, installation: 'GMP' | 'S
   if (hit) return hit;
   const parsed = flow.parseMbr(content);
   if (!parsed.ok) throw new engine.EngineDefinitionError(parsed.problems.map((p) => ({ code: 'ENG-DEF-PARSE', severity: 'ERROR' as const, subject: p.path, message: `${p.path}: ${p.message}`, controls: ['DI-34'], key: `ENG-DEF-PARSE@${p.path}` })));
-  const def = engine.defineBatch(parsed.mbr, { registry: REGISTRY, catalog: tabletsBlockCatalog, installation, justifications });
+  // Decision 0026 (S4): the master's own library block snapshots extend the registry and the catalogue for this batch.
+  const def = engine.defineBatch(parsed.mbr, library.defineOptionsFor(parsed.mbr, { registry: REGISTRY, catalog: tabletsBlockCatalog, installation, justifications }));
   definitions.set(key, def);
   return def;
 }

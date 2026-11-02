@@ -8,7 +8,7 @@
  * A GMP definition refuses the SANDBOX_ONLY block versions (G-09@1, G-10@1) until Phase 3; that is shown as
  * information on those steps, never hidden.
  */
-import { engine, type validator } from '@ebmr/recipe-core/pure';
+import { engine, library, type validator } from '@ebmr/recipe-core/pure';
 import type { flow , blocks} from '@ebmr/recipe-core/pure';
 import { EXPRESSIONS } from './adapters/expressions.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../edition-blocks.ts';
@@ -23,7 +23,7 @@ export interface DefinitionFinding extends Omit<validator.Finding, 'severity'> {
 
 function problemsOf(mbr: flow.MbrContent, installation: 'SANDBOX' | 'GMP'): engine.DefinitionProblem[] {
   try {
-    engine.defineBatch(mbr, { registry: BLOCK_REGISTRY, catalog: tabletsBlockCatalog, expressions: EXPRESSIONS, installation, justifications: [] });
+    engine.defineBatch(mbr, library.defineOptionsFor(mbr, { registry: BLOCK_REGISTRY, catalog: tabletsBlockCatalog, expressions: EXPRESSIONS, installation, justifications: [] }));
     return [];
   } catch (error) {
     if (error instanceof engine.EngineDefinitionError) return error.problems;

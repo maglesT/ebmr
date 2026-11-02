@@ -524,6 +524,14 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       const entry = await resolveBlockEntry({ client: ctx.client, batchId: ctx.state.header.batchId, stepKey, ...(target ? { step: target.step } : {}), block }, e.entryKind, e.data);
       return { entry, evidence: {} };
     }
+    case 'LIBRARY_ENTRY': {
+      // Decision 0026 (S4): only a library block's step takes one; its section ids are the entry kinds.
+      const block = target ? ctx.def.steps.get(target.step)?.block : undefined;
+      if (!block?.type.startsWith('LIB-')) {
+        throw refuse('EBMR-API-LIBRARY-ENTRY', 'This step is not a library block, so it takes no library entry. Nothing was saved.', `Step ${stepKey} runs block ${block?.type ?? 'none'}.`, ['DI-30'], ['Record the entry from the step screen\'s own form.']);
+      }
+      return { entry: { ...e.data, kind: e.entryKind }, evidence: {} };
+    }
   }
 }
 

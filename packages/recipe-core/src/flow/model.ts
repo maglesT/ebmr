@@ -506,6 +506,12 @@ export interface MbrContent {
   riskReductions: RiskReduction[];
   goldenCases: GoldenCase[];
   procedure: Procedure;
+  /**
+   * Decision 0026 (S4): snapshots of the library block definitions the master uses, one per code@version its phases
+   * name (recipe-core library BlockDefinition; checked by library/snapshotProblems). Absent when the master uses no
+   * library block, so the content and its hash stay as they were for every earlier master.
+   */
+  blockDefinitions?: { [key: string]: JsonValue }[];
 }
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };

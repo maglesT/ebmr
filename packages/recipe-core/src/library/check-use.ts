@@ -96,8 +96,10 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
 function checkLimit(def: BlockDefinition, slot: Slot, spec: LimitSpec, at: string, expr: ExpressionService): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   if (!expr.unit(spec.unit).ok) return [err('LIB-USE-LIMIT-UNIT', `${at}.unit`, `${def.title}: ${JSON.stringify(spec.unit)} is not a unit`, ['PR-08'])];
-  if (slot.unit !== undefined && !commensurable(expr, spec.unit, slot.unit)) {
-    out.push(err('LIB-USE-LIMIT-UNIT', `${at}.unit`, `${def.title}: the limit for ${slot.owner} is in ${spec.unit}, which does not convert to the field's unit ${slot.unit} [PR-08]`, ['PR-08']));
+  // S4: a limit is written in its field's unit, so the database compares in one unit (recipe-core 1810).
+  if (slot.unit !== undefined && spec.unit !== slot.unit) {
+    const converts = commensurable(expr, spec.unit, slot.unit);
+    out.push(err('LIB-USE-LIMIT-UNIT', `${at}.unit`, `${def.title}: the limit for ${slot.owner} is in ${spec.unit}; write it in the field's unit ${slot.unit}${converts ? '' : ' (the two do not convert)'} [PR-08]`, ['PR-08']));
   }
   for (const p of checkLimitSpec(spec)) out.push(err(`LIB-USE-LIMIT-${p.code}`, at, `${def.title}, ${slot.owner}: ${p.message} [PR-08]`, ['PR-08']));
   return out;

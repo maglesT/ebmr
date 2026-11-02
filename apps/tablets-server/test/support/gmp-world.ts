@@ -112,10 +112,16 @@ export async function gmpLifecycleWorld(gmp: TestServer): Promise<World> {
   return new GmpWorld(db, cast, key);
 }
 
-export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent(), env: Record<string, string> = {}): Promise<GmpBatchWorld> {
+export async function startGmpBatchWorld(
+  content: flow.MbrContent = gmpContent(),
+  env: Record<string, string> = {},
+  /** Decision 0026 (S4): arrangements before the master is approved (e.g. the library blocks it uses, approved by QA). */
+  opts: { beforeApproval?: (gmp: TestServer) => Promise<void> } = {},
+): Promise<GmpBatchWorld> {
   const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-gmp-ledger-'));
   const server = await startSigningServer('GMP', { stub: false, env: { ...env, EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } });
   const gmp: ExecServer = Object.assign(server, { exchangeDir: ledgerDir });
+  await opts.beforeApproval?.(gmp);
   const world = await gmpLifecycleWorld(gmp);
   const v = await world.approvedVersion(content);
   await world.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, BATCH_SIZE)], regulatoryBasis: 'IN: registration on file' });

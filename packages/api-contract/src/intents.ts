@@ -112,6 +112,14 @@ export const ClientEntry = z.discriminatedUnion('kind', [
     entryKind: TabletEntryKind,
     data: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/).refine((k) => k !== 'kind', 'kind is the entry kind'), BlockFieldWire),
   }),
+  // Decision 0026 (S4): an entry of a library block, by its section id (or TIMER_START / TIMER_STOP). The kinds come from
+  // the master's own library snapshot, not from a list in code; the engine checks the entry against the block's schema
+  // and the database against the snapshot (recipe-core 1810).
+  z.strictObject({
+    kind: z.literal('LIBRARY_ENTRY'),
+    entryKind: z.string().regex(/^([a-z][A-Za-z0-9_]{0,39}|TIMER_START|TIMER_STOP)$/),
+    data: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/).refine((k) => k !== 'kind', 'kind is the entry kind'), BlockFieldWire),
+  }),
 ]);
 export type ClientEntry = z.infer<typeof ClientEntry>;
 export type ClientEntryKind = ClientEntry['kind'];

@@ -57,8 +57,8 @@ existing engine runs it with no code of its own:
 - A calculated field is never typed (the entry schema refuses it, INV-25). The server computes it and stores it with
   its evaluation record: expression, language version and the inputs it read (owner decision O-9 b; DI-33). External
   inputs are read from the phase's targets (`view.target(id)`); the formulation wires them in S9.
-- Each value with a limit is evaluated against the formulation's tiered limit and a breach raises the engine's
-  `LIMIT_BREACH` with its tier's consequences (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER`; a
+- Each value with a limit is evaluated against the formulation's tiered limit and a breach raises
+  `LIB_LIMIT_BREACH` with the consequences the engine gives that tier (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER`; a
   not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.
 - Repeats: ONCE and COUNT sections refuse an extra entry. In an UNTIL_PASS loop, a value that does not pass is a repeat,
   not a breach, and the step cannot be signed until it passes. The last allowed repeat without a pass raises
@@ -89,6 +89,37 @@ The server feature `apps/tablets-server/src/features/library` runs `checkBlockDe
 refuse; warnings are returned. Its routes are in `ns/library.ts`, and the approval is the signable action
 `LIBRARY_ACT` (`tablets-server sql/1802` lets QA read and sign a `library_block`). The screen is `/mbr/library`.
 
-Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts`;
+## Masters and batches (`integration.ts`, slice S4)
+
+A master carries a snapshot of each library definition its phases name, in `MbrContent.blockDefinitions`. A phase names
+it as block `LIB-<code>@<version>`, with the product's values as its configuration (and the pinned `hash`).
+`defineOptionsFor(mbr, options)` extends the registry and the catalogue with the master's own snapshots before
+`engine.defineBatch`. The batch therefore never depends on the library's current state: approving or retiring a block
+later changes no issued batch and no registry fingerprint. A master without library blocks keeps exactly the registry
+it had. A snapshot that is not well made, or one carried twice, refuses the batch (`ENG-DEF-LIBRARY-BLOCK`).
+
+- `catalogWithLibrary` makes the validator accept a carried library block (FLOW-BLOCKS). A block with a CHECKED or
+  VERIFIED signature is significant, so its phase needs a checker who is not the performer. The block's validator
+  `roles` come from a safe list, for example CLEARANCE for a line clearance block, or default from its category.
+- A library limit is written in its field's unit (`LIB-USE-LIMIT-UNIT`), so the database compares in one unit.
+- A breach raises `LIB_LIMIT_BREACH` with the consequences the engine gives that tier. The engine's `LIMIT_BREACH`
+  stays the verdict of an MBR parameter (EBMR-EXE-044).
+- Over HTTP, an entry is a `LIBRARY_ENTRY` whose kind is a section id, or `TIMER_START` / `TIMER_STOP`. The server
+  refuses one for a step that is not a library block (`EBMR-API-LIBRARY-ENTRY`).
+
+`sql/1810_library_execution.sql` covers the database side:
+- Library entries are held to the snapshot's schema: an unknown section or field, or a typed calculated field, is
+  refused (`entry_schema_problem` re-created).
+- Every number, weighing, calculated value or timer duration outside the formulation's limit must carry its
+  `LIB_LIMIT_BREACH` in the same row (EBMR-LIB-020). Owner decision O-9 (b): the figure is the server's, and the
+  database does not recompute it.
+- The snapshots must be approved library versions with the same content hash, and a master's phases must name only
+  carried snapshots. This is checked when a master version is approved (not retired, EBMR-LIB-021) and when a GMP
+  batch is issued (a retired version still serves masters approved on it, EBMR-LIB-022).
+
+Test results' statistics are judged by the engine; their database re-check comes with the test catalogue (S8).
+
+Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts`, `integration.test.ts`;
+`apps/tablets-server/test/library/library-batch-gmp.test.ts`;
 `apps/tablets-server/test/library/library-routes.test.ts`; `apps/tablets-web/test/library/library-page.test.tsx` (examples in `examples.ts`: friability, fluid bed drying
 with an LOD loop, a dissolution profile).

@@ -10,7 +10,7 @@
  * - O-9 (b): a calculated field is stored with its evaluation record (expression, language version, the inputs it
  *   read), so every figure can be re-verified; the database does not recompute it.
  * - Limits: each value with a limit slot is evaluated against the formulation's tiered limits; a breach raises the
- *   engine's own LIMIT_BREACH exception with its tier's consequences (PR-08).
+ *   exception LIB_LIMIT_BREACH with the consequences the engine gives that tier (PR-08).
  * - External inputs (formula line, batch size, lot assay, earlier step) are read from the phase's targets
  *   (`view.target(id)`); wiring them from the formulation is S9.
  * - Smart fields (weighing, lot, equipment, container, sample) record their identifiers and quantities here; their
@@ -37,8 +37,9 @@ export function libraryBlockType(code: string): string {
 export const TIMER_START = 'TIMER_START';
 export const TIMER_STOP = 'TIMER_STOP';
 
-/** Exception types a library block raises besides the engine's LIMIT_BREACH. */
+/** Exception types a library block raises. */
 export const LIBRARY_EXCEPTION_RULES: ExceptionRule[] = [
+  { type: 'LIB_LIMIT_BREACH', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A value outside the formulation\'s limit (with the consequences of the tier breached)', controls: ['PR-08'] },
   { type: 'LIB_UNEXPECTED_ANSWER', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A yes/no answer other than the expected one', controls: ['PR-29', 'PR-08'] },
   { type: 'LIB_NOT_ALLOWED_CHOICE', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A choice the formulation marks as not allowed', controls: ['PR-29', 'PR-08'] },
   { type: 'LIB_IPC_INTERVAL_MISSED', category: 'TIME_LIMIT', severity: 'ACTION', summary: 'An in-process check was recorded later than its interval', controls: ['PR-29', 'PR-30'] },
@@ -229,7 +230,10 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   const breach = (spec: LimitSpec | undefined, value: string, unit: string, subject: string, item: string): ExceptionDraft | undefined => {
     if (!spec) return undefined;
     const ev = evaluateLimits(spec, { value, unit }, expr);
-    return tierDraft(ev, subject, 'PARAMETER', item, ev.currentStepMayContinueWithDeviation);
+    const d = tierDraft(ev, subject, 'PARAMETER', item, ev.currentStepMayContinueWithDeviation);
+    // The tier's consequences as the engine gives them, under the library's own type: the engine's LIMIT_BREACH stays the
+    // verdict of an MBR parameter (recipe-core 0305, EBMR-EXE-044); the database checks this one (recipe-core 1810).
+    return d ? { ...d, type: 'LIB_LIMIT_BREACH', title: `${d.title} [${ev.breached?.toLowerCase().replace('_', ' ') ?? ''} tier]` } : undefined;
   };
 
   /** Whether one section instance passes (for UNTIL_PASS): its until-field within limits or with the expected answer. */
@@ -466,7 +470,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     },
     exceptionRules: LIBRARY_EXCEPTION_RULES,
     simulatorModel: {
-      exceptionTypes: () => ['LIMIT_BREACH', ...LIBRARY_EXCEPTION_RULES.map((r) => r.type)],
+      exceptionTypes: () => LIBRARY_EXCEPTION_RULES.map((r) => r.type),
       nominalEntries: ({ config }) => nominalEntries(def, config),
     },
     tests: ['packages/recipe-core/test/library/block-version.test.ts'],

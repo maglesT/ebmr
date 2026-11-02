@@ -215,6 +215,15 @@ export type ExternalInput =
   | { id: string; label: string; kind: 'LOT_ASSAY'; unit: string; lotField: string }
   | { id: string; label: string; kind: 'STEP_VALUE'; unit: string; slot: string };
 
+/**
+ * Validator roles a library block may take (decision 0026, S4): the ones whose meaning needs no block code. A line or
+ * room clearance block is CLEARANCE, a yield or reconciliation block YIELD_RECONCILIATION (its phase names the
+ * formulation's yield checkpoint), and so on. Automated phases, dispensing, charge-in, timers with time constraints,
+ * printed materials, containers, returns and reprocessing stay with their system blocks.
+ */
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION'] as const;
+export type LibraryRole = (typeof LIBRARY_ROLES)[number];
+
 export interface BlockDefinition {
   /** Upper-case code, e.g. "IPC-FRIAB". */
   code: string;
@@ -222,6 +231,8 @@ export interface BlockDefinition {
   version: number;
   title: string;
   category: BlockCategory;
+  /** Validator roles (default: IPC for tests, PARAMETER_RECORD otherwise). */
+  roles?: LibraryRole[];
   description?: string;
   /** Standing instructions shown with the form; the formulation may add product text. */
   instructions?: string;

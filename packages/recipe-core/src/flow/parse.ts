@@ -683,7 +683,8 @@ function phase(r: Reader, o: Record<string, unknown>, path: string): PhaseNode |
   let block: PhaseNode['block'] | undefined;
   const bo = r.object(o['block'], `${path}.block`, ['type', 'version']);
   if (bo) {
-    const type = r.string(bo, 'type', `${path}.block`, /^[A-Z]{1,3}-\d{2}$/);
+    // Decision 0026 (S4): a library block is LIB-<code> (its definition is in the master's blockDefinitions).
+    const type = r.string(bo, 'type', `${path}.block`, /^([A-Z]{1,3}-\d{2}|LIB-[A-Z][A-Z0-9-]{1,39})$/);
     const version = r.string(bo, 'version', `${path}.block`, /^\d+(\.\d+){0,2}$/);
     if (type && version) block = { type, version };
   }
@@ -1026,7 +1027,7 @@ export function parseMbr(json: unknown): ParseResult {
     'riskReductions',
     'goldenCases',
     'procedure',
-  ]);
+  ], ['blockDefinitions']);
   if (!o) return { ok: false, problems: r.problems };
   if (o['format'] !== MBR_FORMAT) r.fail('$.format', `must be "${MBR_FORMAT}"`);
   if (o['formatVersion'] !== MBR_FORMAT_VERSION) r.fail('$.formatVersion', `must be ${MBR_FORMAT_VERSION} (no other content format is known to this version)`);
@@ -1058,6 +1059,20 @@ export function parseMbr(json: unknown): ParseResult {
     const body = po['body'] === undefined ? undefined : parseFlowNode(r, po['body'], '$.procedure.body');
     if (id && name && body) procedure = { id, name, body };
   }
+  // Decision 0026 (S4): library block snapshots, objects with a code and a version; the library checks their form.
+  let blockDefinitions: { [key: string]: JsonValue }[] | undefined;
+  if (o['blockDefinitions'] !== undefined) {
+    const list = o['blockDefinitions'];
+    if (!Array.isArray(list)) r.fail('$.blockDefinitions', 'must be an array of library block definitions');
+    else {
+      list.forEach((d: unknown, i) => {
+        const at = `$.blockDefinitions[${i}]`;
+        if (typeof d !== 'object' || d === null || Array.isArray(d)) r.fail(at, 'must be a library block definition (an object)');
+        else if (typeof (d as Record<string, unknown>)['code'] !== 'string' || !Number.isInteger((d as Record<string, unknown>)['version'])) r.fail(at, 'must name its code and its version');
+      });
+      blockDefinitions = list as { [key: string]: JsonValue }[];
+    }
+  }
   if (r.problems.length > 0) return { ok: false, problems: r.problems };
   const mbr: MbrContent = {
     format: MBR_FORMAT,
@@ -1077,6 +1092,7 @@ export function parseMbr(json: unknown): ParseResult {
     riskReductions: need(riskReductions),
     goldenCases: need(goldenCases),
     procedure: need(procedure),
+    ...(blockDefinitions !== undefined ? { blockDefinitions } : {}),
   };
   return { ok: true, mbr };
 }

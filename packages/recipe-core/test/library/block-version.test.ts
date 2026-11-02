@@ -1,6 +1,6 @@
 /**
  * The generic handler, slice S2 (decision 0026): a library definition runs in the existing engine with no code of its
- * own. Limits raise the engine's LIMIT_BREACH (PR-08); calculated fields are computed by the server and stored with
+ * own. Limits raise the engine's LIB_LIMIT_BREACH (PR-08); calculated fields are computed by the server and stored with
  * their evaluation record (owner decision O-9 b, DI-33); repeats, timers, tests and conditional fields behave as the
  * definition says.
  */
@@ -90,10 +90,10 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(Object.keys(loss?.inputs ?? {}).sort()).toEqual(['w0', 'w1']);
   });
 
-  it('[PR-08] a calculated value outside its limit raises the engine LIMIT_BREACH with its tier', () => {
+  it('[PR-08] a calculated value outside its limit raises LIB_LIMIT_BREACH with the consequences of its tier', () => {
     const run = runFor(friability(), friabilityUse());
     run.entry('p', { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.400', cracked: false });
-    expect(types(run)).toEqual(['LIMIT_BREACH']);
+    expect(types(run)).toEqual(['LIB_LIMIT_BREACH']);
     expect(run.exceptions()[0]?.severity).toBe('CRITICAL');
   });
 
@@ -151,7 +151,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     run.entry('p', { kind: 'setup', dryer: 'FBD-1', inletTemp: '60' });
     run.advance(10n * MIN);
     run.entry('p', { kind: TIMER_STOP, field: 'drying' });
-    expect(types(run)).toEqual(['LIMIT_BREACH']);
+    expect(types(run)).toEqual(['LIB_LIMIT_BREACH']);
     expect(run.exceptions()[0]?.title).toMatch(/Drying time 10 min/);
     run.entry('p', { kind: 'lodLoop', sample: 1, lod: '2.0' });
     run.entry('p', { kind: 'out', container: 'C1', net: '50' });
@@ -166,7 +166,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     run.refused(entryCmd(run, { kind: 'run', apparatus: 'D1', released: { h1: six('30'), h8: six('90') } }), 'LIB-ENTRY-POINTS');
     run.entry('p', { kind: 'run', apparatus: 'D1', released: { h1: six('30'), h4: six('70'), h8: six('90') } });
     // The 4 h point fails on its individual results and on its mean: one exception per statistic.
-    expect(types(run)).toEqual(['LIMIT_BREACH', 'LIMIT_BREACH']);
+    expect(types(run)).toEqual(['LIB_LIMIT_BREACH', 'LIB_LIMIT_BREACH']);
     for (const e of run.exceptions()) expect(e.title).toMatch(/at 4 h/);
   });
 

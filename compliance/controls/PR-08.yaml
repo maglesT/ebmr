@@ -184,7 +184,10 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] a limit in a unit that does not convert to the field unit is refused"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] a target outside its own limits is refused"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] a limit looser than the reference limit is a warning, cleared by a written reason (O-5)"
-  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-08] a calculated value outside its limit raises the engine LIMIT_BREACH with its tier"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [DI-33][PR-08] the step runs from the master's snapshot: the server computes the loss and stores it with its evaluation record; a value outside the limit carries LIB_LIMIT_BREACH"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [PR-08] the database refuses a library value outside its limit stored without the engine's LIB_LIMIT_BREACH (O-9 b: the figure is the server's, the check is the database's)"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-08] a calculated value outside its limit raises LIB_LIMIT_BREACH with the consequences of its tier"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-08] a library limit is written in its field's unit, so the database compares in one unit"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

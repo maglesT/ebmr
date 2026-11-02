@@ -302,6 +302,7 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-35] every block needs a PERFORMED signature with a role, each meaning once"
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-35][PR-05] QA approves with a LIBRARY_BLOCK_APPROVED signature, never the author; an approved version is retired with a reason"
   - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-35][PR-05] QA sees a draft with its fields and approves it through the ceremony with LIBRARY_ACT"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03][DI-35] a library block that needs a checker or a verifier is significant, so its phase needs a checker who is not the performer"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

@@ -12,6 +12,7 @@ import {
   BLOCK_CATEGORIES,
   EQUIPMENT_KINDS,
   FIELD_TYPES,
+  LIBRARY_ROLES,
   SIGNATURE_MEANINGS,
   TEST_STATISTICS,
   type BlockDefinition,
@@ -111,6 +112,9 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   if (!Number.isInteger(def.version) || def.version < 1) problems.push(err('LIB-VERSION', 'version', 'The version must be a whole number of 1 or more [PR-05]', ['PR-05']));
   if (typeof def.title !== 'string' || def.title.trim() === '') problems.push(err('LIB-TITLE', 'title', 'The block needs a title'));
   if (!(BLOCK_CATEGORIES as readonly string[]).includes(def.category)) problems.push(err('LIB-CATEGORY', 'category', `Unknown category ${JSON.stringify(def.category)}`));
+  if (def.roles !== undefined && (!Array.isArray(def.roles) || def.roles.length === 0 || def.roles.some((r) => !(LIBRARY_ROLES as readonly string[]).includes(r)))) {
+    problems.push(err('LIB-ROLES', 'roles', `Roles are one or more of ${LIBRARY_ROLES.join(', ')}`));
+  }
   if (!Array.isArray(def.sections) || def.sections.length === 0) {
     problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no sections; a form needs at least one field'));
     return problems.concat(checkSignatures(def));

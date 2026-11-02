@@ -175,6 +175,11 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-03] a required field must be given, and a section recorded once cannot be recorded again"
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [PR-03][PR-05] the author drafts versions; the server refuses a definition with problems; the hash is the canonical hash the formulation pins"
   - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [PR-03] the author checks a definition, sees its problems in the server's words, and stores it as the next version"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [DI-34][PR-03] a batch is defined from the master's own snapshot; a snapshot that is not well made, or one carried twice, refuses the batch"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03] a phase naming a library version the master does not carry cannot be defined (ENG-DEF-BLOCK)"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03] the validator knows a carried library block (FLOW-BLOCKS) and an unknown one stays refused"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03][DI-35] a library block that needs a checker or a verifier is significant, so its phase needs a checker who is not the performer"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03] a library block takes only roles whose meaning needs no block code"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

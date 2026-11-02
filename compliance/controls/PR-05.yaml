@@ -85,6 +85,7 @@ tests:
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-35][PR-05] QA approves with a LIBRARY_BLOCK_APPROVED signature, never the author; an approved version is retired with a reason"
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them"
   - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-35][PR-05] QA sees a draft with its fields and approves it through the ceremony with LIBRARY_ACT"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [PR-05] the snapshots must be approved library versions with the same content hash; a retired version serves approved masters but no new approval"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:
