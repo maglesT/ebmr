@@ -295,4 +295,9 @@ describe('reserved field ids (S7 catalogue finding)', () => {
       expect(codes(checkBlockDefinition(def, expr)), id).toEqual(['LIB-FIELD-RESERVED']);
     }
   });
+
+  it('[PR-03][DI-30] a field may not be named balance: the database\'s weighing rules take any entry with that member for a scale weighing (S11 finding)', () => {
+    const def = withField(friability(), { id: 'balance', label: 'X', type: 'TEXT' });
+    expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-FIELD-RESERVED']);
+  });
 });

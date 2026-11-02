@@ -134,7 +134,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'levelled', label: 'Level indicator centred', type: 'YES_NO', expected: true },
             { id: 'zeroed', label: 'Balance zeroed', type: 'YES_NO', expected: true },
           ],
@@ -197,7 +197,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
           id: 'yield',
           title: 'Yield',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'output', label: 'Output weight', type: 'WEIGHING', unit: 'kg', limitSlot: 'output' },
             { id: 'samples', label: 'Samples taken', type: 'WEIGHING', unit: 'kg', limitSlot: 'samples' },
             { id: 'rejects', label: 'Rejects and recoverable loss', type: 'WEIGHING', unit: 'kg', limitSlot: 'rejects' },

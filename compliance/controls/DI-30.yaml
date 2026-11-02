@@ -528,6 +528,7 @@ tests:
   - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [DI-30][PR-14] the database refuses a hand-keyed library weighing stored without two-person verification"
   - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [DI-30][PR-14] a hand-keyed weighing makes two-person verification mandatory for the step"
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [DI-30][PR-03] a sample field shows the planned number of units and records it unless the operator changes it (S11 finding)"
+  - "packages/recipe-core/test/library/library.test.ts > reserved field ids (S7 catalogue finding) > [PR-03][DI-30] a field may not be named balance: the database's weighing rules take any entry with that member for a scale weighing (S11 finding)"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

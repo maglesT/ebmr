@@ -27,7 +27,9 @@ const CODE = /^[A-Z][A-Z0-9-]{1,39}$/;
 const IDENT = /^[a-z][A-Za-z0-9_]{0,39}$/;
 const SLOT = /^[a-z][A-Za-z0-9_]{0,39}$/;
 /** Members an entry carries besides its fields (the kind, server-filled facts, calculated values, timers). */
-const RESERVED_IDS = ['kind', 'lots', 'equipment', 'computed', 'field', 'duration'];
+// Names the entry itself uses, and `balance`: the database's weighing rules (tablets 0310 to 0710) take any entry with a
+// `balance` member for a scale weighing and require its source (S11 finding).
+const RESERVED_IDS = ['kind', 'lots', 'equipment', 'computed', 'field', 'duration', 'balance'];
 
 /** True when two UCUM units measure the same kind of quantity (a value converts exactly between them). */
 export function commensurable(expr: ExpressionService, a: string, b: string): boolean {

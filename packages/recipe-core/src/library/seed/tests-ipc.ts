@@ -23,7 +23,7 @@ export const IPC_TEST_SEEDS: readonly SeedItem[] = [
       category: 'TEST_IPC',
       instructions: 'At each round, take the tablets the formulation names from the running press and weigh them one by one.',
       sections: [
-        { id: 'setup', title: 'Set-up', fields: [{ id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' }] },
+        { id: 'setup', title: 'Set-up', fields: [{ id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' }] },
         {
           id: 'round',
           title: 'IPC round',
@@ -64,7 +64,7 @@ export const IPC_TEST_SEEDS: readonly SeedItem[] = [
           id: 'test',
           title: 'Test',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             {
               id: 'weights',
               label: 'Individual tablet weights',
@@ -470,7 +470,7 @@ export const IPC_TEST_SEEDS: readonly SeedItem[] = [
           id: 'check',
           title: 'Check',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'coreWeight', label: 'Average core tablet weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'coreWeight' },
             { id: 'coatedWeight', label: 'Average coated tablet weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'coatedWeight' },
             { id: 'weightGain', label: 'Weight gain', type: 'CALC', expression: '(coatedWeight - coreWeight) / coreWeight * 100 [%]', unit: '%', limitSlot: 'weightGain', critical: true },

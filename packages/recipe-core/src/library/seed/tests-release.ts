@@ -254,7 +254,7 @@ export const RELEASE_TEST_SEEDS: readonly SeedItem[] = [
           id: 'test',
           title: 'Test',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             {
               id: 'mass',
               label: 'Mass of each unit',

@@ -57,7 +57,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'dailyCheck', label: 'Balance daily check done and within limits', type: 'YES_NO', expected: true },
             { id: 'booth', label: 'Dispensing booth airflow on', type: 'YES_NO', expected: true },
           ],
@@ -95,7 +95,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           id: 'weigh',
           title: 'Weigh',
           fields: [
-            { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'lot', label: 'Active lot', type: 'MATERIAL_LOT' },
             { id: 'required', label: 'Quantity to dispense', type: 'CALC', expression: 'labelQty * 100 [%] / assay * 100 [%] / (100 [%] - lodLot)', unit: 'kg' },
             { id: 'container', label: 'Dispensed container', type: 'CONTAINER', action: 'REGISTER' },

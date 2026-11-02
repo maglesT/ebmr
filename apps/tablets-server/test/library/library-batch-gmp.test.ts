@@ -155,7 +155,7 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
         id: 'weigh',
         title: 'Weigh',
         fields: [
-          { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+          { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
           { id: 'lot', label: 'Lot', type: 'MATERIAL_LOT' },
           { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
         ],
@@ -186,13 +186,13 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
   });
 
   it('[PR-19][IN-11] the database refuses equipment it does not hold, facts other than its register\'s, and equipment that is not fit for use', async () => {
-    expect(await problem(state({ balance: 'BAL-NOT-THERE', equipment: { balance: { code: 'BAL-NOT-THERE', classCode: 'CL-BAL-S6', fitness: 'QUALIFIED' } } }))).toMatch(/plant register does not hold/);
+    expect(await problem(state({ weighBalance: 'BAL-NOT-THERE', equipment: { weighBalance: { code: 'BAL-NOT-THERE', classCode: 'CL-BAL-S6', fitness: 'QUALIFIED' } } }))).toMatch(/plant register does not hold/);
     await asSetup(w.gmp, `insert into plant.equipment_class (code, kind, description, calibration_required, check_regime, recorded_by)
                           values ('CL-BAL-S6', 'INSTRUMENT', 'Balance 150 kg (test)', true, 'DAILY', gen_random_uuid())`);
     await asSetup(w.gmp, "insert into plant.equipment (code, name, class_code, kind, recorded_by) values ('BAL-S6-1', 'Balance', 'CL-BAL-S6', 'INSTRUMENT', gen_random_uuid())");
     const fit = (await w.gmp.db.admin.query<{ f: string }>("select plant.equipment_fitness(id) as f from plant.equipment where code = 'BAL-S6-1'")).rows[0]?.f ?? '';
-    expect(await problem(state({ balance: 'BAL-S6-1', equipment: { balance: { code: 'BAL-S6-1', classCode: 'CL-OTHER', fitness: fit } } }))).toMatch(/other than the plant register holds/);
-    const told = await problem(state({ balance: 'BAL-S6-1', equipment: { balance: { code: 'BAL-S6-1', classCode: 'CL-BAL-S6', fitness: fit } } }));
+    expect(await problem(state({ weighBalance: 'BAL-S6-1', equipment: { weighBalance: { code: 'BAL-S6-1', classCode: 'CL-OTHER', fitness: fit } } }))).toMatch(/other than the plant register holds/);
+    const told = await problem(state({ weighBalance: 'BAL-S6-1', equipment: { weighBalance: { code: 'BAL-S6-1', classCode: 'CL-BAL-S6', fitness: fit } } }));
     if (fit === 'QUALIFIED' || fit === 'CALIBRATION_DUE_SOON') expect(told).toBeNull();
     else expect(told).toMatch(new RegExp(`which is ${fit.toLowerCase().replace(/_/g, ' ')}`));
   });
@@ -205,9 +205,9 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
           [JSON.stringify(smartContent()), JSON.stringify({ type: 'LIB-PROC-DISP-S6', version: '1' }), JSON.stringify(data), kind],
         )
       ).rows[0]?.p ?? null;
-    const facts = { balance: 'BAL-1', lot: 'L1', net: '1.5', lots: { lot: { id: 'L1', material: 'M', status: 'RELEASED', identityTested: true } }, equipment: { balance: { code: 'BAL-1', classCode: 'CL', fitness: 'QUALIFIED' } } };
+    const facts = { weighBalance: 'BAL-1', lot: 'L1', net: '1.5', lots: { lot: { id: 'L1', material: 'M', status: 'RELEASED', identityTested: true } }, equipment: { weighBalance: { code: 'BAL-1', classCode: 'CL', fitness: 'QUALIFIED' } } };
     expect(await check('weigh', facts)).toBeNull();
-    expect(await check('weigh', { ...facts, equipment: { balance: { code: 'BAL-1', classCode: 'CL', fitness: 'QUALIFIED', extra: 'x' } } })).not.toBeNull();
+    expect(await check('weigh', { ...facts, equipment: { weighBalance: { code: 'BAL-1', classCode: 'CL', fitness: 'QUALIFIED', extra: 'x' } } })).not.toBeNull();
     expect(await check('weigh', { ...facts, forged: 'x' })).not.toBeNull();
   });
 
