@@ -83,6 +83,7 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-30] a timer runs on trusted time: its duration is checked against its limit when it is stopped"
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception"
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-30] a timer runs once per step, so it cannot sit in a repeating section"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-30] a timer is started and stopped on the server's clock; a section recorded once closes"
 clauses:
   - clause: "A simulated breach creates a deviation automatically and flags the batch."
     tests:

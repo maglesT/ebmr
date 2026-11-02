@@ -77,8 +77,10 @@ handler `library/block-version.ts` runs any library definition in the engine (O-
 their evaluation record). S3 (branch `dyn/s3`): library storage
 (recipe-core 1800, tablets 1802), routes `ns/library.ts` with LIBRARY_ACT approval, the `/mbr/library` screen. S4 (branch `dyn/s4`): masters
 carry library snapshots (`MbrContent.blockDefinitions`, `library/integration.ts`), batches run them, the API takes
-`LIBRARY_ENTRY`, and recipe-core 1810 checks entries, limits (`LIB_LIMIT_BREACH`) and snapshots. Next: S5, the generic
-kiosk, review and print renderer. O-7 still waits for the owner. The Phase 7 notes below are history for the frozen work.
+`LIBRARY_ENTRY`, and recipe-core 1810 checks entries, limits (`LIB_LIMIT_BREACH`) and snapshots. S5 (branch `dyn/s5`): the generic
+library renderer (`floor/renderers/Library.tsx`) and the entry sentences. **Owner, 2 November 2026: do not ask before each
+slice; go through S6 to S11 one after another** (only genuine owner decisions wait; O-7 still does). Next: S6, the
+smart fields. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.

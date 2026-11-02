@@ -117,6 +117,19 @@ it had. A snapshot that is not well made, or one carried twice, refuses the batc
   carried snapshots. This is checked when a master version is approved (not retired, EBMR-LIB-021) and when a GMP
   batch is issued (a retired version still serves masters approved on it, EBMR-LIB-022).
 
+## Screens (slice S5)
+
+The step view carries a library step's definition and the product's values (`StepScreenView.library`). One generic
+renderer draws every library block: `apps/tablets-web/src/features/floor/renderers/Library.tsx`.
+- Fields appear by type. Limits are shown beside them, and a breach is flagged while typing (display only).
+- Conditional fields appear only when their condition holds. Calculated fields are never offered; they show once saved.
+- Timers are started and stopped on the server's clock. Test readings follow the planned count, per time point for a
+  profile.
+- A section stays open while the definition allows another entry.
+
+`entrySummariesOf` gives each entry its plain sentence (fields with units, calculated values marked, timer durations).
+The step screens, the review reads and the whole batch record use it.
+
 Test results' statistics are judged by the engine; their database re-check comes with the test catalogue (S8).
 
 Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts`, `integration.test.ts`;

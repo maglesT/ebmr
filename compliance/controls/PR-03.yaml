@@ -180,6 +180,8 @@ tests:
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03] the validator knows a carried library block (FLOW-BLOCKS) and an unknown one stays refused"
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03][DI-35] a library block that needs a checker or a verifier is significant, so its phase needs a checker who is not the performer"
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03] a library block takes only roles whose meaning needs no block code"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-03] every library block has the one generic renderer, never the schema fallback"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-03] a section recorded once closes; the recorded entry is listed with its sentence"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

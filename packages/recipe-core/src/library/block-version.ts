@@ -429,6 +429,8 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     controls: ['PR-03', 'PR-08', 'PR-29', 'DI-33'],
     configSchema: CONFIG_SCHEMA,
     dataSchema: { entries },
+    // S5: the plain sentence of each entry, for the step screens, the review and the printed record.
+    entrySummaries: entrySummariesOf(def),
     checkConfig: (_phase, config) =>
       checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr).map((p) => ({
         code: p.code,
@@ -475,6 +477,49 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     },
     tests: ['packages/recipe-core/test/library/block-version.test.ts'],
   };
+}
+
+/** One recorded value as people read it: the label, the value and its unit; a calculated value says so. */
+function valueText(f: FieldDef, v: unknown): string | undefined {
+  if (v === undefined || v === null) return undefined;
+  switch (f.type) {
+    case 'YES_NO':
+      return `${f.label}: ${v === true ? 'yes' : 'no'}`;
+    case 'NUMBER':
+    case 'WEIGHING':
+      return `${f.label} ${text(v)} ${f.unit}`;
+    case 'CALC':
+      return `${f.label} ${text((v as { value?: unknown }).value)} ${f.unit} (calculated)`;
+    case 'TEST_RESULT':
+      if (Array.isArray(v)) return `${f.label}: ${v.map(text).join(', ')} ${f.unit}`;
+      return `${f.label}: ${Object.entries(v as Record<string, unknown[]>).map(([p, rs]) => `${p} ${rs.map(text).join(', ')}`).join('; ')} ${f.unit}`;
+    case 'SAMPLE':
+      return `${f.label}: ${text(v)} units`;
+    default:
+      return `${f.label}: ${text(v)}`;
+  }
+}
+
+/** The sentences of a definition's entry kinds (sections and timers), from the stored data. */
+export function entrySummariesOf(def: BlockDefinition): Record<string, (data: Readonly<Record<string, unknown>>) => string> {
+  const out: Record<string, (data: Readonly<Record<string, unknown>>) => string> = {};
+  for (const s of def.sections) {
+    out[s.id] = (d) => {
+      const computed = (d['computed'] ?? {}) as Record<string, unknown>;
+      const parts = s.fields.flatMap((f) => {
+        const t = valueText(f, f.type === 'CALC' ? computed[f.id] : d[f.id]);
+        return t === undefined ? [] : [t];
+      });
+      return `${s.title}: ${parts.length > 0 ? parts.join('; ') : 'recorded'}`;
+    };
+  }
+  const label = (d: Readonly<Record<string, unknown>>): string => def.sections.flatMap((s) => s.fields).find((f) => f.id === d['field'])?.label ?? text(d['field']);
+  out[TIMER_START] = (d) => `${label(d)} started`;
+  out[TIMER_STOP] = (d) => {
+    const dur = d['duration'] as { value?: unknown; unit?: unknown } | undefined;
+    return `${label(d)} stopped${dur ? ` after ${text(dur.value)} ${text(dur.unit)}` : ''}`;
+  };
+  return out;
 }
 
 /** A value inside a limit: the target, else the middle of the innermost range, else its one bound. */

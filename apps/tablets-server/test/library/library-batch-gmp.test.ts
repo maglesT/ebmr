@@ -92,6 +92,11 @@ describe('a library block in a GMP batch', () => {
     expect(String(loss?.['value']).startsWith('0.307')).toBe(true);
     expect(loss?.['expression']).toBe('(w0 - w1) / w0 * 100 [%]');
     expect(Object.values(s.exceptions)).toEqual([]);
+    // S5: the step view carries the definition and the product's values for the generic form, and the entry's sentence.
+    const view = await d.stepView('operator1', 'p-lib@');
+    expect((view.library?.definition as Json | undefined)?.['code']).toBe('IPC-FRIAB-S4');
+    expect(view.library?.config['limits']).toBeDefined();
+    expect(view.entries.find((e) => e.kind === 'run')?.summary).toMatch(/^Run: Weight before 6\.500 g; Weight after 6\.480 g; Weight loss 0\.307\d* % \(calculated\); Any tablet cracked or broken: no$/);
 
     const second = await runOnLibraryStep();
     await second.d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-lib@', entry: { kind: 'LIBRARY_ENTRY', entryKind: 'run', data: { w0: '6.500', w1: '6.400', cracked: false } } });

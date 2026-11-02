@@ -246,6 +246,12 @@ export const StepScreenView = z.strictObject({
    */
   citable: z.array(EntryView).optional(),
   /**
+   * Decision 0026 slice S5: for a library block step, its definition (the master's snapshot: sections, typed fields,
+   * signatures) and the product's values (limits, targets, counts, points, equipment classes), so one generic form draws
+   * it. Absent for every other block.
+   */
+  library: z.strictObject({ definition: z.record(z.string(), z.unknown()), config: z.record(z.string(), z.unknown()) }).optional(),
+  /**
    * Phase 7 slice 7l (R1): the alternative the step's branch belongs to when a person chooses it (OPERATOR_CHOICE): its
    * branches, the roles that may choose and the branch chosen (null while undecided), so the authorised person
    * chooses it on the step screen with a reason (CHOOSE_ALTERNATIVE; the engine decides, DI-34, PR-13).

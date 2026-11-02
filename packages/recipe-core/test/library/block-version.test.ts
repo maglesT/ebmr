@@ -229,3 +229,13 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(types(run)).toEqual(['LIB_IPC_INTERVAL_MISSED']);
   });
 });
+
+describe('the sentences of library entries (S5: step screens, review and the printed record)', () => {
+  it('[DI-33] a section entry reads as its fields with units, a calculated value says so, a timer stop says how long', () => {
+    const s = libraryBlockVersion(friability(), expr).entrySummaries ?? {};
+    const run = s['run']?.({ drum: 'F1', w0: '6.500', w1: '6.480', cracked: false, computed: { loss: { value: '0.3077', unit: '%' } } }, undefined as never);
+    expect(run).toBe('Run: Friabilator: F1; Weight before 6.500 g; Weight after 6.480 g; Weight loss 0.3077 % (calculated); Any tablet cracked or broken: no');
+    const t = libraryBlockVersion(fluidBedDrying(), expr).entrySummaries ?? {};
+    expect(t[TIMER_STOP]?.({ field: 'drying', duration: { value: '45', unit: 'min' } }, undefined as never)).toBe('Drying time stopped after 45 min');
+  });
+});

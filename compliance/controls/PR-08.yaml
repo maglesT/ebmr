@@ -188,6 +188,7 @@ tests:
   - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [PR-08] the database refuses a library value outside its limit stored without the engine's LIB_LIMIT_BREACH (O-9 b: the figure is the server's, the check is the database's)"
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-08] a calculated value outside its limit raises LIB_LIMIT_BREACH with the consequences of its tier"
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-08] a library limit is written in its field's unit, so the database compares in one unit"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-08][INV-25] shows the limits, flags a value outside them while typing, never offers the calculated field, and sends LIBRARY_ENTRY"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

@@ -598,6 +598,14 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
 /** Plain text of a scalar entry member ('' for anything else). */
 const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
 
+/** Decision 0026 slice S5: a library block step's definition (the master's snapshot) and the product's values. */
+function libraryOf(mbr: flow.MbrContent, stepDef: engine.StepDef): { library?: { definition: Record<string, unknown>; config: Record<string, unknown> } } {
+  const block = stepDef.block;
+  if (!block?.type.startsWith('LIB-')) return {};
+  const definition = (mbr.blockDefinitions ?? []).find((d) => `LIB-${String(d['code'])}` === block.type && String(d['version']) === block.version);
+  return definition ? { library: { definition, config: { ...stepDef.config } } } : {};
+}
+
 /**
  * The sentence of an entry (owner report #20): the cases kept here first, then the sentence the step's block gives
  * for the kind (BlockVersion.entrySummaries, from the stored data and the master's names), else the kind in words.
@@ -1048,6 +1056,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     entryForms: entryFormsOf(def, stepDef, ctx.app.installation),
     blockEntries: withWarnings(blockEntryForms(stepDef.block, { config: stepDef.config, markets: def.mbr.header.marketSet }), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
+    ...libraryOf(def.mbr, stepDef),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),
     exceptions: exceptions.map((e) => shownException(ctx, e)),
