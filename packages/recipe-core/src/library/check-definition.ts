@@ -89,6 +89,9 @@ export function slotsOf(def: BlockDefinition): Slot[] {
         case 'EQUIPMENT':
           slots.push({ name: f.classSlot, kind: 'EQUIPMENT_CLASS', owner: f.id, required: true });
           break;
+        case 'MATERIAL_LOT':
+          if (f.bomLineSlot !== undefined) slots.push({ name: f.bomLineSlot, kind: 'BOM_LINE', owner: f.id, required: true });
+          break;
         case 'SAMPLE':
           slots.push({ name: f.unitsSlot, kind: 'COUNT', owner: f.id, required: true });
           break;

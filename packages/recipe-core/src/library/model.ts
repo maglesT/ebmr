@@ -108,6 +108,8 @@ export interface WeighingField extends FieldBase {
 
 export interface MaterialLotField extends FieldBase {
   type: 'MATERIAL_LOT';
+  /** S6: slot where the formulation names the BOM line whose material the lot must be (the lot's material is checked). */
+  bomLineSlot?: string;
 }
 
 export const EQUIPMENT_KINDS = ['EQUIPMENT', 'ROOM', 'LINE', 'BALANCE', 'INSTRUMENT'] as const;

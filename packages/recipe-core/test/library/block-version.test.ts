@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { DataValue } from '../../src/engine/types.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockType, libraryBlockVersion, nominalEntries, statistic, TIMER_START, TIMER_STOP, type BlockDefinition, type BlockUse } from '../../src/library/index.ts';
-import { definitionHash } from '../../src/library/index.ts';
+import { checkBlockUse, definitionHash } from '../../src/library/index.ts';
 import { define, MIN, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 import { dissolutionProfile, dissolutionUse, fluidBedDrying, fluidBedDryingUse, friability, friabilityUse, potencyDispensing, range } from './examples.ts';
@@ -74,12 +74,12 @@ describe('the generic handler runs library blocks in the engine', () => {
 
   it('[INV-25] a calculated field cannot be typed', () => {
     const run = runFor(friability(), friabilityUse());
-    run.refused(entryCmd(run, { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.480', cracked: false, loss: '0.1' }), 'ENG-ENTRY-SCHEMA');
+    run.refused(entryCmd(run, { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false, loss: '0.1' }), 'ENG-ENTRY-SCHEMA');
   });
 
   it('[DI-33] the server computes a calculated field and stores it with its evaluation record (O-9 b)', () => {
     const run = runFor(friability(), friabilityUse());
-    run.entry('p', { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.480', cracked: false });
+    run.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false });
     const e = Object.values(run.state.entries).find((x) => x.kind === 'run');
     const loss = (e?.data['computed'] as Record<string, { value: string; unit: string; expression: string; languageVersion: string; inputs: Record<string, unknown> }>)['loss'];
     expect(loss?.unit).toBe('%');
@@ -92,28 +92,28 @@ describe('the generic handler runs library blocks in the engine', () => {
 
   it('[PR-08] a calculated value outside its limit raises LIB_LIMIT_BREACH with the consequences of its tier', () => {
     const run = runFor(friability(), friabilityUse());
-    run.entry('p', { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.400', cracked: false });
+    run.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.400', cracked: false });
     expect(types(run)).toEqual(['LIB_LIMIT_BREACH']);
     expect(run.exceptions()[0]?.severity).toBe('CRITICAL');
   });
 
   it('[PR-29] an unexpected yes/no answer raises an exception', () => {
     const run = runFor(friability(), friabilityUse());
-    run.entry('p', { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.490', cracked: true });
+    run.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.490', cracked: true });
     expect(types(run)).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
   it('[PR-03] a required field must be given, and a section recorded once cannot be recorded again', () => {
     const run = runFor(friability(), friabilityUse());
-    run.refused(entryCmd(run, { kind: 'run', drum: 'F1', w0: '6.500', cracked: false }), 'LIB-ENTRY-REQUIRED');
-    run.entry('p', { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.490', cracked: false });
-    run.refused(entryCmd(run, { kind: 'run', drum: 'F1', w0: '6.500', w1: '6.490', cracked: false }), 'LIB-SECTION-ONCE');
+    run.refused(entryCmd(run, { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', cracked: false }), 'LIB-ENTRY-REQUIRED');
+    run.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.490', cracked: false });
+    run.refused(entryCmd(run, { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.490', cracked: false }), 'LIB-SECTION-ONCE');
   });
 
   it('[INV-20] an LOD loop repeats until the value passes; the step cannot be performed before, nor repeated after', () => {
     const run = runFor(fluidBedDrying(), fluidBedDryingUse());
     run.entry('p', { kind: TIMER_START, field: 'drying' });
-    run.entry('p', { kind: 'setup', dryer: 'FBD-1', inletTemp: '60' });
+    run.entry('p', { kind: 'setup', dryer: 'FBD-1', equipment: { dryer: { code: 'FBD-1', classCode: 'FBD', fitness: 'QUALIFIED' } }, inletTemp: '60' });
     run.minutes(45);
     run.entry('p', { kind: TIMER_STOP, field: 'drying' });
     run.entry('p', { kind: 'lodLoop', sample: 1, lod: '3.4' });
@@ -132,7 +132,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     const use = { ...fluidBedDryingUse(), counts: { maxLodChecks: '2', lodSampleUnits: '1' } };
     const run = runFor(fluidBedDrying(), use);
     run.entry('p', { kind: TIMER_START, field: 'drying' });
-    run.entry('p', { kind: 'setup', dryer: 'FBD-1', inletTemp: '60' });
+    run.entry('p', { kind: 'setup', dryer: 'FBD-1', equipment: { dryer: { code: 'FBD-1', classCode: 'FBD', fitness: 'QUALIFIED' } }, inletTemp: '60' });
     run.minutes(30);
     run.entry('p', { kind: TIMER_STOP, field: 'drying' });
     run.entry('p', { kind: 'lodLoop', sample: 1, lod: '3.4' });
@@ -148,7 +148,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     const run = runFor(fluidBedDrying(), fluidBedDryingUse());
     run.refused(entryCmd(run, { kind: TIMER_STOP, field: 'drying' }), 'LIB-TIMER-NOT-STARTED');
     run.entry('p', { kind: TIMER_START, field: 'drying' });
-    run.entry('p', { kind: 'setup', dryer: 'FBD-1', inletTemp: '60' });
+    run.entry('p', { kind: 'setup', dryer: 'FBD-1', equipment: { dryer: { code: 'FBD-1', classCode: 'FBD', fitness: 'QUALIFIED' } }, inletTemp: '60' });
     run.advance(10n * MIN);
     run.entry('p', { kind: TIMER_STOP, field: 'drying' });
     expect(types(run)).toEqual(['LIB_LIMIT_BREACH']);
@@ -162,9 +162,9 @@ describe('the generic handler runs library blocks in the engine', () => {
   it('[PR-29] a test result needs the planned number of readings and is judged per statistic and per point', () => {
     const run = runFor(dissolutionProfile(), dissolutionUse());
     const six = (v: string): string[] => Array.from({ length: 6 }, () => v);
-    run.refused(entryCmd(run, { kind: 'run', apparatus: 'D1', released: { h1: six('30').slice(0, 5), h4: six('55'), h8: six('90') } }), 'LIB-ENTRY-REPLICATES');
-    run.refused(entryCmd(run, { kind: 'run', apparatus: 'D1', released: { h1: six('30'), h8: six('90') } }), 'LIB-ENTRY-POINTS');
-    run.entry('p', { kind: 'run', apparatus: 'D1', released: { h1: six('30'), h4: six('70'), h8: six('90') } });
+    run.refused(entryCmd(run, { kind: 'run', apparatus: 'D1', equipment: { apparatus: { code: 'D1', classCode: 'USP-2', fitness: 'QUALIFIED' } }, released: { h1: six('30').slice(0, 5), h4: six('55'), h8: six('90') } }), 'LIB-ENTRY-REPLICATES');
+    run.refused(entryCmd(run, { kind: 'run', apparatus: 'D1', equipment: { apparatus: { code: 'D1', classCode: 'USP-2', fitness: 'QUALIFIED' } }, released: { h1: six('30'), h8: six('90') } }), 'LIB-ENTRY-POINTS');
+    run.entry('p', { kind: 'run', apparatus: 'D1', equipment: { apparatus: { code: 'D1', classCode: 'USP-2', fitness: 'QUALIFIED' } }, released: { h1: six('30'), h4: six('70'), h8: six('90') } });
     // The 4 h point fails on its individual results and on its mean: one exception per statistic.
     expect(types(run)).toEqual(['LIB_LIMIT_BREACH', 'LIB_LIMIT_BREACH']);
     for (const e of run.exceptions()) expect(e.title).toMatch(/at 4 h/);
@@ -192,9 +192,9 @@ describe('the generic handler runs library blocks in the engine', () => {
     };
     const extra: Partial<MbrContent> = { inputs: Object.entries(inputs).map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: (v as { unit: string }).unit })) };
     const run = runFor(def, use, { extra, reads: Object.keys(inputs), inputs });
-    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', net: '10.4', rework: false, reworkQty: '1' }), 'LIB-ENTRY-HIDDEN');
-    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', net: '10.4', rework: true, reworkQty: '1' }), 'LIB-ENTRY-REQUIRED');
-    run.entry('p', { kind: 'weigh', lot: 'L1', net: '10.4', rework: true, reworkRef: 'RW-1', reworkQty: '1' });
+    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false, reworkQty: '1' }), 'LIB-ENTRY-HIDDEN');
+    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: true, reworkQty: '1' }), 'LIB-ENTRY-REQUIRED');
+    run.entry('p', { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: true, reworkRef: 'RW-1', reworkQty: '1' });
     const e = Object.values(run.state.entries).find((x) => x.kind === 'weigh');
     const required = (e?.data['computed'] as Record<string, { value: string; inputs: Record<string, unknown> }>)['required'];
     // 10 kg / 0.98 / 0.98 = 10.412... kg
@@ -206,7 +206,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     const def = potencyDispensing();
     const use: BlockUse = { block: { code: def.code, version: 1 }, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: { step: 'lod', field: 'lod' } } };
     const run = runFor(def, use);
-    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', net: '10.4', rework: false }), 'LIB-CALC-FAILED');
+    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false }), 'LIB-CALC-FAILED');
   });
 
   it('[PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception', () => {
@@ -233,9 +233,71 @@ describe('the generic handler runs library blocks in the engine', () => {
 describe('the sentences of library entries (S5: step screens, review and the printed record)', () => {
   it('[DI-33] a section entry reads as its fields with units, a calculated value says so, a timer stop says how long', () => {
     const s = libraryBlockVersion(friability(), expr).entrySummaries ?? {};
-    const run = s['run']?.({ drum: 'F1', w0: '6.500', w1: '6.480', cracked: false, computed: { loss: { value: '0.3077', unit: '%' } } }, undefined as never);
+    const run = s['run']?.({ drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false, computed: { loss: { value: '0.3077', unit: '%' } } }, undefined as never);
     expect(run).toBe('Run: Friabilator: F1; Weight before 6.500 g; Weight after 6.480 g; Weight loss 0.3077 % (calculated); Any tablet cracked or broken: no');
     const t = libraryBlockVersion(fluidBedDrying(), expr).entrySummaries ?? {};
     expect(t[TIMER_STOP]?.({ field: 'drying', duration: { value: '45', unit: 'min' } }, undefined as never)).toBe('Drying time stopped after 45 min');
+  });
+});
+
+describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
+  const dispense = (): BlockDefinition => ({
+    code: 'PROC-DISP',
+    version: 1,
+    title: 'Dispensing',
+    category: 'PROCESS',
+    sections: [
+      {
+        id: 'weigh',
+        title: 'Weigh',
+        repeat: { kind: 'PER_CONTAINER' },
+        fields: [
+          { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+          { id: 'lot', label: 'Lot', type: 'MATERIAL_LOT', bomLineSlot: 'line' },
+          { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
+        ],
+      },
+    ],
+    signatures: [
+      { meaning: 'PERFORMED', role: 'DISPENSER' },
+      { meaning: 'VERIFIED', role: 'DISPENSER' },
+    ],
+  });
+  const use: BlockUse = { block: { code: 'PROC-DISP', version: 1 }, equipmentClasses: { balanceClass: 'BAL-150' }, bomLines: { line: 'BOM-API' } };
+  const extra: Partial<MbrContent> = { bom: [{ id: 'BOM-API', material: 'MAT-API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }] };
+  const lot = (over: Record<string, unknown> = {}) => ({ id: 'L1', material: 'MAT-API', status: 'RELEASED', identityTested: true, ...over });
+  const bal = (over: Record<string, unknown> = {}) => ({ code: 'BAL-1', classCode: 'BAL-150', fitness: 'QUALIFIED', ...over });
+  const entry = (l = lot(), b = bal()) => ({ kind: 'weigh', balance: 'BAL-1', lot: 'L1', net: '10.0', lots: { lot: l }, equipment: { balance: b } });
+
+  it('[PR-18][IN-23] only a released, unexpired lot of the formulation line\'s material is used, with no operator override', () => {
+    const run = runFor(dispense(), use, { extra });
+    run.refused(entryCmd(run, entry(lot({ status: 'QUARANTINE' }))), 'G07-LOT-STATUS');
+    run.refused(entryCmd(run, entry(lot({ material: 'MAT-OTHER' }))), 'G07-WRONG-MATERIAL');
+    run.refused(entryCmd(run, entry(lot({ expiresAtUs: '1' }))), 'G07-LOT-EXPIRED');
+    run.refused(entryCmd(run, { ...entry(), lots: { lot: lot({ id: 'L2' }) } }), 'LIB-LOT-FACTS');
+    run.entry('p', entry());
+  });
+
+  it('[PR-19][IN-11] equipment must be of the class the formulation names and fit for use', () => {
+    const run = runFor(dispense(), use, { extra });
+    run.refused(entryCmd(run, entry(lot(), bal({ classCode: 'BAL-5' }))), 'LIB-EQUIPMENT-CLASS');
+    run.refused(entryCmd(run, entry(lot(), bal({ fitness: 'CALIBRATION_OVERDUE' }))), 'LIB-EQUIPMENT-FITNESS');
+    run.entry('p', entry(lot(), bal({ fitness: 'CALIBRATION_DUE_SOON' })));
+  });
+
+  it('[DI-30][PR-14] a hand-keyed weighing makes two-person verification mandatory for the step', () => {
+    const run = runFor(dispense(), use, { extra });
+    run.entry('p', entry());
+    expect(run.inst('p')?.verificationRequired).toBe(true);
+    run.perform('p');
+    expect(run.status('p')).toBe('AWAITING_VERIFICATION');
+  });
+
+  it('[PR-03] a lot field may name the BOM line the formulation fills; the browser never sends the register\'s facts', () => {
+    expect(checkBlockUse(dispense(), { ...use, bomLines: {} }, expr).map((p) => p.code)).toEqual(['LIB-USE-BOM-LINE']);
+    const v = libraryBlockVersion(dispense(), expr);
+    const schema = v.dataSchema?.entries['weigh'];
+    expect((schema?.fields['lots'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
+    expect((schema?.fields['equipment'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
   });
 });

@@ -462,6 +462,7 @@ tests:
   - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] once all is delivered the active file is sealed (never rewritten); a restart reads the checkpoint and the new active file, and each device's sequence goes on across the boundary"
   - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] a journal of one large file from before is sealed on its first start once delivered; nothing is lost and its lines are unchanged"
   - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-31] lines not yet delivered are never sealed"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [DI-31][PR-18] the server refuses lot facts sent by the browser, and a lot its register does not hold"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

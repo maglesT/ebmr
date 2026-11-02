@@ -11,6 +11,7 @@ import { library } from '@ebmr/recipe-core/pure';
 import { refusalOf, valueOf } from '../esig/support.ts';
 import { RunDriver } from '../execution/support.ts';
 import type { TestServer } from '../support/harness.ts';
+import { asSetup } from '../blocks/compression/plant-support.ts';
 import { gmpContent, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 import { signAction } from '../support/signed-acts.ts';
 
@@ -139,5 +140,70 @@ describe('a library block in a GMP batch', () => {
     valueOf(await approver.call(routes.library.retire, { body: { blockId: b?.blockId ?? '', reason: 'Replaced by a revised form' } }));
     expect((await q(c, true)).rows[0]?.p).toMatch(/retired/);
     expect((await q(c, false)).rows[0]?.p).toBeNull();
+  });
+});
+
+describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
+  const smartDef = {
+    code: 'PROC-DISP-S6',
+    version: 1,
+    title: 'Dispensing',
+    category: 'PROCESS',
+    sections: [
+      {
+        id: 'weigh',
+        title: 'Weigh',
+        fields: [
+          { id: 'balance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+          { id: 'lot', label: 'Lot', type: 'MATERIAL_LOT' },
+          { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
+        ],
+      },
+    ],
+    signatures: [{ meaning: 'PERFORMED', role: 'DISPENSER' }, { meaning: 'VERIFIED', role: 'DISPENSER' }],
+  };
+  const smartContent = (): Json => {
+    const c = content() as unknown as Json;
+    const stage = ((((c['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
+    const prep = ((stage['children'] as Json[])[0] as Json)['body'] as Json;
+    const node: Json = { ...((prep['children'] as Json[])[0] as Json), id: 'p-disp-lib', block: { type: 'LIB-PROC-DISP-S6', version: '1' }, config: { equipmentClasses: { balanceClass: 'CL-BAL-S6' } } };
+    prep['children'] = [node, ...(prep['children'] as Json[])];
+    return { ...c, blockDefinitions: [...(c['blockDefinitions'] as Json[]), smartDef] };
+  };
+  const state = (data: Json, verificationRequired = true) => ({
+    lastRecordedUs: '1793500000000000',
+    header: { marketSet: ['IN'] },
+    entries: { E1: { kind: 'weigh', stepKey: 'p-disp-lib@', data } },
+    steps: { 'p-disp-lib@': { step: 'p-disp-lib', verificationRequired } },
+  });
+  const old = { entries: {}, steps: { 'p-disp-lib@': { step: 'p-disp-lib' } } };
+  const problem = async (s: Json): Promise<string | null> =>
+    (await w.gmp.db.admin.query<{ p: string | null }>('select tab.library_smart_problem(null, $1::jsonb, $2::jsonb, $3::jsonb) as p', [JSON.stringify(smartContent()), JSON.stringify(old), JSON.stringify(s)])).rows[0]?.p ?? null;
+
+  it('[PR-18][IN-23] the database refuses a library entry naming a lot its register does not hold', async () => {
+    expect(await problem(state({ lot: 'L-NOT-THERE', lots: { lot: { id: 'L-NOT-THERE', material: 'M', status: 'RELEASED', identityTested: true } } }))).toMatch(/lot register does not hold/);
+  });
+
+  it('[PR-19][IN-11] the database refuses equipment it does not hold, facts other than its register\'s, and equipment that is not fit for use', async () => {
+    expect(await problem(state({ balance: 'BAL-NOT-THERE', equipment: { balance: { code: 'BAL-NOT-THERE', classCode: 'CL-BAL-S6', fitness: 'QUALIFIED' } } }))).toMatch(/plant register does not hold/);
+    await asSetup(w.gmp, `insert into plant.equipment_class (code, kind, description, calibration_required, check_regime, recorded_by)
+                          values ('CL-BAL-S6', 'INSTRUMENT', 'Balance 150 kg (test)', true, 'DAILY', gen_random_uuid())`);
+    await asSetup(w.gmp, "insert into plant.equipment (code, name, class_code, kind, recorded_by) values ('BAL-S6-1', 'Balance', 'CL-BAL-S6', 'INSTRUMENT', gen_random_uuid())");
+    const fit = (await w.gmp.db.admin.query<{ f: string }>("select plant.equipment_fitness(id) as f from plant.equipment where code = 'BAL-S6-1'")).rows[0]?.f ?? '';
+    expect(await problem(state({ balance: 'BAL-S6-1', equipment: { balance: { code: 'BAL-S6-1', classCode: 'CL-OTHER', fitness: fit } } }))).toMatch(/other than the plant register holds/);
+    const told = await problem(state({ balance: 'BAL-S6-1', equipment: { balance: { code: 'BAL-S6-1', classCode: 'CL-BAL-S6', fitness: fit } } }));
+    if (fit === 'QUALIFIED' || fit === 'CALIBRATION_DUE_SOON') expect(told).toBeNull();
+    else expect(told).toMatch(new RegExp(`which is ${fit.toLowerCase().replace(/_/g, ' ')}`));
+  });
+
+  it('[DI-30][PR-14] the database refuses a hand-keyed library weighing stored without two-person verification', async () => {
+    expect(await problem(state({ net: '10.0' }, false))).toMatch(/without two-person verification/);
+    expect(await problem(state({ net: '10.0' }, true))).toBeNull();
+  });
+
+  it('[DI-31][PR-18] the server refuses lot facts sent by the browser, and a lot its register does not hold', async () => {
+    const { d } = await runOnLibraryStep();
+    const sent = await d.command('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-lib@', entry: { kind: 'LIBRARY_ENTRY', entryKind: 'run', data: { w0: '6.5', w1: '6.4', cracked: false, lots: {} } } });
+    expect(refusalOf(sent).code).toBe('EBMR-API-SERVER-FILLED');
   });
 });

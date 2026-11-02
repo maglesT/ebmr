@@ -71,8 +71,17 @@ existing engine runs it with no code of its own:
 - `nominalEntries` (the simulator model) gives a nominal execution: each section once (or its count), values at the
   target or inside the innermost range. The driver supplies the time.
 
-Smart fields (weighing, lot, equipment, container, sample) record identifiers and quantities. Their checks against the
-plant and the stores come in S6, and signature roles are mapped to steps in S4.
+Smart fields (slice S6):
+- **Material lot:** the server reads the lot from the lot register (`lotForEngine`, as a G-07 weighing has it), and the
+  browser never sends those facts. The handler applies G-07's own lot checks (`lotProblems`): released, not expired or
+  past retest, identity-tested for export markets, and the material of the BOM line the field's `bomLineSlot` names.
+- **Equipment:** the server reads the unit from the plant register. It must be of the class the formulation names and
+  fit for use (`plant.equipment_fitness` QUALIFIED or CALIBRATION_DUE_SOON).
+- **Weighing:** keyed by hand, so the step needs two-person verification (DI-30, PR-14).
+- **Database:** `tablets sql/1803` compares the facts with the registers, re-runs the lot check and checks the
+  verification (EBMR-TAB-480).
+- **Not yet:** booking a unit (start or end of use), container registration and balance readings are not yet part of
+  library fields. Process-unit cleanliness stays with the clearance and equipment-status steps.
 
 ## Storage and approval (slice S3)
 

@@ -32,7 +32,7 @@
  */
 import type pg from 'pg';
 import { sandbox } from '@ebmr/kernel';
-import { engine, type flow } from '@ebmr/recipe-core';
+import { engine, library, type flow } from '@ebmr/recipe-core';
 import { type ClientDataSource, type ClientEntry, type ClientIntent, type DataValueWire, type Refusal, type SignedIntent } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { ClaimedReading } from '../../platform/ports.ts';
@@ -530,7 +530,7 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       if (!block?.type.startsWith('LIB-')) {
         throw refuse('EBMR-API-LIBRARY-ENTRY', 'This step is not a library block, so it takes no library entry. Nothing was saved.', `Step ${stepKey} runs block ${block?.type ?? 'none'}.`, ['DI-30'], ['Record the entry from the step screen\'s own form.']);
       }
-      return { entry: { ...e.data, kind: e.entryKind }, evidence: {} };
+      return { entry: await libraryEntry(ctx, block.type, block.version, e.entryKind, e.data), evidence: {} };
     }
   }
 }
@@ -554,6 +554,52 @@ export async function actApproval(client: pg.PoolClient, batchId: string, actId:
   const role = typeof sig.manifestation['role_code'] === 'string' ? sig.manifestation['role_code'] : '';
   const { rows: map } = await client.query<{ engine_role: string }>('select engine_role from tab.engine_role_map where kernel_role = $1 order by engine_role', [role]);
   return { approver: { id: sig.signer_person, kind: 'PERSON', roles: map.map((m) => m.engine_role) }, signature: { id: sig.signature_id, meaning, signer: sig.signer_person } };
+}
+
+/**
+ * Decision 0026 slice S6: a library entry with the facts the server reads, never the browser: each lot field's lot from
+ * the lot register (lotForEngine, as a G-07 weighing has it) and each equipment field's unit from the plant register
+ * (its class and fitness). The engine judges them; the database compares them with its registers (tablets 1803).
+ */
+async function libraryEntry(ctx: IntentContext, type: string, version: string, kind: string, data: Readonly<Record<string, unknown>>): Promise<Record<string, unknown> & { kind: string }> {
+  const sent = ['lots', 'equipment'].filter((k) => k in data);
+  if (sent.length > 0) {
+    throw refuse('EBMR-API-SERVER-FILLED', `The entry names ${sent.join(', ')}, which the system fills itself. Nothing was saved.`, 'The facts of a lot or a piece of equipment are read from the registers, never typed (DI-31, DI-32).', ['DI-31', 'DI-32'], ['Send the entry without these members.']);
+  }
+  const def = library.definitionsOf(ctx.def.mbr).find((d) => library.libraryBlockType(d.code) === type && String(d.version) === version);
+  const section = def?.sections.find((s) => s.id === kind);
+  const entry: Record<string, unknown> & { kind: string } = { ...data, kind };
+  if (!section) return entry;
+  const lots: Record<string, unknown> = {};
+  const equipment: Record<string, unknown> = {};
+  const installation = ctx.app.installation;
+  for (const f of section.fields) {
+    const code = data[f.id];
+    if (typeof code !== 'string' || code.trim() === '') continue;
+    if (f.type === 'MATERIAL_LOT') {
+      if (installation === 'GMP') requireOwnIdentifier(installation, 'LOT_NUMBER', code, 'lot');
+      const lot = await resolveLot(ctx.client, code, ctx.state.header.batchId);
+      if (!lot) {
+        throw refuse('EBMR-EXE-072', `Lot ${code.slice(0, 64)} is not known on this installation. Nothing was saved.`, 'The lot status comes from the lot register, never from the terminal (PR-18).', ['PR-18', 'DI-05'], ['Scan the lot label again, or ask for the lot to be registered.']);
+      }
+      lots[f.id] = lotForEngine(lot);
+      entry[f.id] = lot.lotCode;
+    }
+    if (f.type === 'EQUIPMENT') {
+      const { rows } = await ctx.client.query<{ code: string; class_code: string; fitness: string }>(
+        'select e.code, e.class_code, plant.equipment_fitness(e.id) as fitness from plant.equipment e where e.code = $1',
+        [code.trim()],
+      );
+      const row = rows[0];
+      if (!row) {
+        throw refuse('EBMR-API-EQUIPMENT-UNKNOWN', `Equipment ${code.slice(0, 64)} is not in the plant register. Nothing was saved.`, 'Equipment is named by its code in the plant register (PR-19).', ['PR-19'], ['Scan the equipment label again.']);
+      }
+      equipment[f.id] = { code: row.code, classCode: row.class_code, fitness: row.fitness };
+    }
+  }
+  if (section.fields.some((f) => f.type === 'MATERIAL_LOT')) entry['lots'] = lots;
+  if (section.fields.some((f) => f.type === 'EQUIPMENT')) entry['equipment'] = equipment;
+  return entry;
 }
 
 /** The engine command of a plain client intent (claims readings and reads lots in the command's transaction). */

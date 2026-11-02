@@ -199,6 +199,8 @@ tests:
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19][DI-33] the lot shows its as-is potency, the approved results it came from and who changed it when and why; only QC is offered the change"
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19][DI-33][DI-22] QC changes the potency on the guided page by choosing approved results and giving a reason; nothing is typed"
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19] reserving the lot for a batch previews what the batch's potency-adjusted dispensing will calculate with it, marked as a preview"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [PR-19][IN-11] the database refuses equipment it does not hold, facts other than its register's, and equipment that is not fit for use"
+  - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [PR-19][IN-11] equipment must be of the class the formulation names and fit for use"
 clauses:
   - clause: "An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail."
     tests:

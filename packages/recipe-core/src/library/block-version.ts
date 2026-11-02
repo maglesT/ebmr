@@ -23,9 +23,10 @@ import { tierDraft } from '../engine/exceptions.ts';
 import type { EntryRecord } from '../engine/types.ts';
 import type { ExpressionService, ExprType, ExprValue } from '../flow/expression-port.ts';
 import { durationToMicros, midpointDecimal } from '../flow/decimal.ts';
-import type { JsonValue } from '../flow/model.ts';
+import type { JsonValue, MbrContent } from '../flow/model.ts';
 import { evaluateLimits } from '../limits/evaluate.ts';
 import { LIMIT_SOURCE_KINDS, LIMIT_TIERS, ROUNDING_RULES, type LimitSpec } from '../limits/model.ts';
+import { lotProblems } from '../blocks/generic/material.ts';
 import { checkBlockUse } from './check-use.ts';
 import type { BlockDefinition, BlockUse, FieldDef, SectionDef, TestStatistic } from './model.ts';
 
@@ -127,12 +128,51 @@ function fieldSchema(f: FieldDef): FieldSchema | undefined {
   }
 }
 
+/** S6: the facts the server reads from the stores and the plant, by field id; the browser never sends them. */
+const LOT_FACTS: FieldSchema = {
+  type: 'record',
+  optional: true,
+  serverFilled: true,
+  description: 'Lot facts by field, read by the server from the lot register',
+  values: {
+    type: 'object',
+    description: 'A lot',
+    fields: {
+      id: { type: 'string', description: 'Lot code' },
+      material: { type: 'string', description: 'Material code' },
+      status: { type: 'string', description: 'Lot status' },
+      expiresAtUs: { type: 'string', optional: true, description: 'Expiry (epoch microseconds)' },
+      retestAtUs: { type: 'string', optional: true, description: 'Retest date (epoch microseconds)' },
+      identityTested: { type: 'boolean', description: 'Identity tested' },
+    },
+  },
+};
+const EQUIPMENT_FACTS: FieldSchema = {
+  type: 'record',
+  optional: true,
+  serverFilled: true,
+  description: 'Equipment facts by field, read by the server from the plant register',
+  values: {
+    type: 'object',
+    description: 'Equipment',
+    fields: {
+      code: { type: 'string', description: 'Equipment code' },
+      classCode: { type: 'string', description: 'Equipment class' },
+      fitness: { type: 'string', description: 'Fitness (QUALIFIED, CALIBRATION_DUE_SOON, ...)' },
+    },
+  },
+};
+/** Fitness states in which equipment may be used (plant.equipment_fitness). */
+export const USABLE_FITNESS = ['QUALIFIED', 'CALIBRATION_DUE_SOON'];
+
 function sectionSchema(s: SectionDef): ObjectSchema {
   const fields: Record<string, FieldSchema> = {};
   for (const f of s.fields) {
     const fs = fieldSchema(f);
     if (fs) fields[f.id] = fs;
   }
+  if (s.fields.some((f) => f.type === 'MATERIAL_LOT')) fields['lots'] = LOT_FACTS;
+  if (s.fields.some((f) => f.type === 'EQUIPMENT')) fields['equipment'] = EQUIPMENT_FACTS;
   return { type: 'object', description: s.title, fields };
 }
 
@@ -329,6 +369,34 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       }
       data[f.id] = v;
     }
+    // S6: lots and equipment, from the facts the server read (the database compares them with its registers).
+    const lots = (entry['lots'] ?? {}) as Record<string, Record<string, unknown>>;
+    const equipment = (entry['equipment'] ?? {}) as Record<string, Record<string, unknown>>;
+    let manualWeighing = false;
+    for (const f of section.fields) {
+      if (!shown(f, entry) || data[f.id] === undefined) continue;
+      if (f.type === 'MATERIAL_LOT') {
+        const lot = lots[f.id];
+        if (!lot || lot['id'] !== data[f.id]) {
+          problems.push(problem('LIB-LOT-FACTS', `${f.label}: the lot register has no facts for lot ${text(data[f.id])}`, ['PR-18', 'IN-23']));
+          continue;
+        }
+        const line = f.bomLineSlot !== undefined ? config.bomLines?.[f.bomLineSlot] : undefined;
+        const material = line !== undefined ? view.mbr.bom.find((b) => b.id === line)?.material : undefined;
+        problems.push(...lotProblems(view, lot, material));
+      }
+      if (f.type === 'EQUIPMENT') {
+        const e = equipment[f.id];
+        const wanted = config.equipmentClasses?.[f.classSlot];
+        if (!e || e['code'] !== data[f.id]) problems.push(problem('LIB-EQUIPMENT-FACTS', `${f.label}: the plant register has no equipment ${text(data[f.id])}`, ['PR-19']));
+        else if (wanted !== undefined && e['classCode'] !== wanted) problems.push(problem('LIB-EQUIPMENT-CLASS', `${f.label}: ${text(e['code'])} is of class ${text(e['classCode'])}, not ${wanted} as the formulation requires`, ['PR-19', 'IN-11']));
+        else if (!USABLE_FITNESS.includes(text(e['fitness']))) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-19', 'IN-11']));
+      }
+      // Every library weighing is keyed by hand (balances join in a later slice): two-person verification (DI-30, PR-14).
+      if (f.type === 'WEIGHING') manualWeighing = true;
+    }
+    if (section.fields.some((f) => f.type === 'MATERIAL_LOT')) data['lots'] = lots;
+    if (section.fields.some((f) => f.type === 'EQUIPMENT')) data['equipment'] = equipment;
     if (problems.length > 0) return { ok: false, problems };
 
     // O-9 (b): the server computes each calculated field and stores it with its evaluation record.
@@ -398,7 +466,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         exceptions.push({ type: 'LIB_IPC_INTERVAL_MISSED', title: `${where}: check ${previous.length + 1} came later than every ${iv?.value ?? ''} ${iv?.unit ?? ''}`, controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' });
       }
     }
-    return { ok: true, data: stored, exceptions };
+    return { ok: true, data: stored, exceptions, ...(manualWeighing ? { verificationRequired: true } : {}) };
   };
 
   const acceptTimer = (view: HandlerView, kind: string, entry: Readonly<Record<string, unknown>>): EntryResult => {
@@ -473,7 +541,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     exceptionRules: LIBRARY_EXCEPTION_RULES,
     simulatorModel: {
       exceptionTypes: () => LIBRARY_EXCEPTION_RULES.map((r) => r.type),
-      nominalEntries: ({ config }) => nominalEntries(def, config),
+      nominalEntries: ({ config, mbr }) => nominalEntries(def, config, mbr),
     },
     tests: ['packages/recipe-core/test/library/block-version.test.ts'],
   };
@@ -535,7 +603,7 @@ function nominalValue(spec: LimitSpec | undefined, target: string | undefined): 
 }
 
 /** The entries a nominal execution records: every section once (or its count), values inside their limits. */
-export function nominalEntries(def: BlockDefinition, rawConfig: Readonly<Record<string, JsonValue>>): (Record<string, unknown> & { kind: string })[] {
+export function nominalEntries(def: BlockDefinition, rawConfig: Readonly<Record<string, JsonValue>>, mbr?: Pick<MbrContent, 'bom'>): (Record<string, unknown> & { kind: string })[] {
   const config = rawConfig as unknown as Config;
   const out: (Record<string, unknown> & { kind: string })[] = [];
   const timers = def.sections.flatMap((s) => s.fields).filter((f) => f.type === 'TIMER');
@@ -565,8 +633,18 @@ export function nominalEntries(def: BlockDefinition, rawConfig: Readonly<Record<
           case 'DATE_TIME':
             e[f.id] = '2026-01-01';
             break;
-          case 'MATERIAL_LOT':
+          case 'MATERIAL_LOT': {
+            // The facts the server would read: a released lot of the line's material (S6).
+            e[f.id] = `SIM-${f.id.toUpperCase()}`;
+            const line = f.bomLineSlot !== undefined ? config.bomLines?.[f.bomLineSlot] : undefined;
+            const material = (line !== undefined ? mbr?.bom.find((b) => b.id === line)?.material : undefined) ?? 'SIM-MATERIAL';
+            e['lots'] = { ...((e['lots']) ?? {}), [f.id]: { id: e[f.id], material, status: 'RELEASED', identityTested: true } };
+            break;
+          }
           case 'EQUIPMENT':
+            e[f.id] = `SIM-${f.id.toUpperCase()}`;
+            e['equipment'] = { ...((e['equipment']) ?? {}), [f.id]: { code: e[f.id], classCode: config.equipmentClasses?.[f.classSlot] ?? 'SIM', fitness: 'QUALIFIED' } };
+            break;
           case 'CONTAINER':
             e[f.id] = `SIM-${f.id.toUpperCase()}`;
             break;

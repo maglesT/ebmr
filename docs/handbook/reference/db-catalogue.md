@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3436 objects.
+3439 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -3065,6 +3065,8 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`tab.leak_overdue`](../../../apps/tablets-server/sql/0971_blister_rules.sql#sym=tab.leak_overdue) | function | [0971_blister_rules.sql](../../../apps/tablets-server/sql/0971_blister_rules.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`tab.leak_tracks`](../../../apps/tablets-server/sql/0971_blister_rules.sql#sym=tab.leak_tracks) | function | [0971_blister_rules.sql](../../../apps/tablets-server/sql/0971_blister_rules.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`tab.legal_hold_overview`](../../../apps/tablets-server/sql/1491_validation_signing_meanings.sql#sym=tab.legal_hold_overview) | function | [1491_validation_signing_meanings.sql](../../../apps/tablets-server/sql/1491_validation_signing_meanings.sql) |  | [ts-validation](../code-map.md#ts-validation) |
+| [`tab.library_smart_fields_check`](../../../apps/tablets-server/sql/1803_library_smart_fields.sql#sym=tab.library_smart_fields_check) | function | [1803_library_smart_fields.sql](../../../apps/tablets-server/sql/1803_library_smart_fields.sql) |  | [rc-library](../code-map.md#rc-library) |
+| [`tab.library_smart_problem`](../../../apps/tablets-server/sql/1803_library_smart_fields.sql#sym=tab.library_smart_problem) | function | [1803_library_smart_fields.sql](../../../apps/tablets-server/sql/1803_library_smart_fields.sql) |  | [rc-library](../code-map.md#rc-library) |
 | [`tab.line_isolated`](../../../apps/tablets-server/sql/0970_blister_registers.sql#sym=tab.line_isolated) | function | [0970_blister_registers.sql](../../../apps/tablets-server/sql/0970_blister_registers.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`tab.link_process_device_unit`](../../../apps/tablets-server/sql/0870_process_device_units.sql#sym=tab.link_process_device_unit) | function | [0870_process_device_units.sql](../../../apps/tablets-server/sql/0870_process_device_units.sql) |  | [ts-devices](../code-map.md#ts-devices) |
 | [`tab.listener_attested_from`](../../../apps/tablets-server/sql/0350_scale_room_locks_and_report_evidence.sql#sym=tab.listener_attested_from) | function | [0350_scale_room_locks_and_report_evidence.sql](../../../apps/tablets-server/sql/0350_scale_room_locks_and_report_evidence.sql) |  | [ts-devices](../code-map.md#ts-devices) |
@@ -3378,6 +3380,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`zzg_tab_forming`](../../../apps/tablets-server/sql/0932_forming_guards.sql#sym=zzg_tab_forming) on `recipe.execution_state` | trigger | [0932_forming_guards.sql](../../../apps/tablets-server/sql/0932_forming_guards.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`zzh_execution_row_context`](../../../packages/recipe-core/sql/0338_row_context_and_content_versions.sql#sym=zzh_execution_row_context) on `recipe.execution_state` | trigger | [0338_row_context_and_content_versions.sql](../../../packages/recipe-core/sql/0338_row_context_and_content_versions.sql) |  | [rc-execution](../code-map.md#rc-execution) |
 | [`zzh_tab_blister`](../../../apps/tablets-server/sql/0972_blister_guards.sql#sym=zzh_tab_blister) on `recipe.execution_state` | trigger | [0972_blister_guards.sql](../../../apps/tablets-server/sql/0972_blister_guards.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
+| [`zzh_tab_library_smart_fields`](../../../apps/tablets-server/sql/1803_library_smart_fields.sql#sym=zzh_tab_library_smart_fields) on `recipe.execution_state` | trigger | [1803_library_smart_fields.sql](../../../apps/tablets-server/sql/1803_library_smart_fields.sql) |  | [rc-library](../code-map.md#rc-library) |
 | [`zzi_execution_state_engine_version`](../../../packages/recipe-core/sql/0338_row_context_and_content_versions.sql#sym=zzi_execution_state_engine_version) on `recipe.execution_state` | trigger | [0338_row_context_and_content_versions.sql](../../../packages/recipe-core/sql/0338_row_context_and_content_versions.sql) |  | [rc-execution](../code-map.md#rc-execution) |
 | [`zzi_tab_held_cores`](../../../apps/tablets-server/sql/1092_held_cores_not_coated.sql#sym=zzi_tab_held_cores) on `recipe.execution_state` | trigger | [1092_held_cores_not_coated.sql](../../../apps/tablets-server/sql/1092_held_cores_not_coated.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`zzi_tab_packline`](../../../apps/tablets-server/sql/0987_bottle_guards.sql#sym=zzi_tab_packline) on `recipe.execution_state` | trigger | [0987_bottle_guards.sql](../../../apps/tablets-server/sql/0987_bottle_guards.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |

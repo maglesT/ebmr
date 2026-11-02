@@ -64,7 +64,7 @@ of each database function.
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 17 | 0 | 3 | 8 |
 | [rc-blocks](#rc-blocks) | Generic block versions (G-06, G-21 and others) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 13 | 55 |
-| [rc-library](#rc-library) | Library of block definitions (decision 0026; blocks as data, QA-approved) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 4 | 6 | 11 |
+| [rc-library](#rc-library) | Library of block definitions (decision 0026; blocks as data, QA-approved) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 4 | 6 | 17 |
 | [rc-reprocessing](#rc-reprocessing) | Reprocessing and recovery | [modules/recipe-core.md](modules/recipe-core.md) | 8 | 0 | 0 | 4 |
 | [rc-formula](#rc-formula) | Formulation library and planning reads | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 1 | 2 |
 | [rc-review](#rc-review) | Batch record review (production approval, QA review, audit-trail review, evidence epochs) | [modules/recipe-core.md](modules/recipe-core.md) | 15 | 0 | 3 | 12 |
@@ -1132,16 +1132,16 @@ of each database function.
 
 **Library of block definitions (decision 0026; blocks as data, QA-approved).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (3):
+**Migrations** (4):
 
 - `packages/recipe-core/sql`: [1800_library_blocks.sql](../../packages/recipe-core/sql/1800_library_blocks.sql), [1810_library_execution.sql](../../packages/recipe-core/sql/1810_library_execution.sql)
-- `apps/tablets-server/sql`: [1802_library_block_signing.sql](../../apps/tablets-server/sql/1802_library_block_signing.sql)
+- `apps/tablets-server/sql`: [1802_library_block_signing.sql](../../apps/tablets-server/sql/1802_library_block_signing.sql), [1803_library_smart_fields.sql](../../apps/tablets-server/sql/1803_library_smart_fields.sql)
 
 **Database objects** created in these migrations:
 
 - Tables (3): `recipe.library_block`, `recipe.library_block_approval`, `recipe.library_block_retirement`
-- Functions (18): `recipe.approve_library_block`, `recipe.draft_library_block`, `recipe.entry_schema_of`, `recipe.entry_schema_problem`, `recipe.library_at_approval_check`, `recipe.library_at_issue_check`, `recipe.library_block_content`, `recipe.library_block_guard`, `recipe.library_block_state`, `recipe.library_definition`, `recipe.library_entry_schema`, `recipe.library_field_schema`, `recipe.library_limits_check`, `recipe.library_limits_problem`, `recipe.library_snapshot_problem`, `recipe.retire_library_block`, `tab.aggregate_read_class`, `tab.kernel_signing_meanings`
-- Triggers (4): `a1_library_block_guard on recipe.library_block`, `a4_library_at_approval on platform.state_history`, `a4_library_at_issue on recipe.control_recipe`, `zzg_library_limits on recipe.execution_state`
+- Functions (20): `recipe.approve_library_block`, `recipe.draft_library_block`, `recipe.entry_schema_of`, `recipe.entry_schema_problem`, `recipe.library_at_approval_check`, `recipe.library_at_issue_check`, `recipe.library_block_content`, `recipe.library_block_guard`, `recipe.library_block_state`, `recipe.library_definition`, `recipe.library_entry_schema`, `recipe.library_field_schema`, `recipe.library_limits_check`, `recipe.library_limits_problem`, `recipe.library_snapshot_problem`, `recipe.retire_library_block`, `tab.aggregate_read_class`, `tab.kernel_signing_meanings`, `tab.library_smart_fields_check`, `tab.library_smart_problem`
+- Triggers (5): `a1_library_block_guard on recipe.library_block`, `a4_library_at_approval on platform.state_history`, `a4_library_at_issue on recipe.control_recipe`, `zzg_library_limits on recipe.execution_state`, `zzh_tab_library_smart_fields on recipe.execution_state`
 
 **Server files** (1): [index.ts](../../apps/tablets-server/src/features/library/index.ts)
 
@@ -1160,7 +1160,7 @@ of each database function.
 
 **Tests** (6): [apps/tablets-server/test/library/library-batch-gmp.test.ts](../../apps/tablets-server/test/library/library-batch-gmp.test.ts), [apps/tablets-server/test/library/library-routes.test.ts](../../apps/tablets-server/test/library/library-routes.test.ts), [apps/tablets-web/test/library/library-page.test.tsx](../../apps/tablets-web/test/library/library-page.test.tsx), [packages/recipe-core/test/library/block-version.test.ts](../../packages/recipe-core/test/library/block-version.test.ts), [packages/recipe-core/test/library/integration.test.ts](../../packages/recipe-core/test/library/integration.test.ts), [packages/recipe-core/test/library/library.test.ts](../../packages/recipe-core/test/library/library.test.ts)
 
-**Controls** (11): [DI-10](../../compliance/controls/DI-10.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [PR-03](../../compliance/controls/PR-03.yaml), [PR-05](../../compliance/controls/PR-05.yaml), [PR-08](../../compliance/controls/PR-08.yaml), [PR-29](../../compliance/controls/PR-29.yaml), [PR-30](../../compliance/controls/PR-30.yaml)
+**Controls** (17): [DI-10](../../compliance/controls/DI-10.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [IN-11](../../compliance/controls/IN-11.yaml), [IN-23](../../compliance/controls/IN-23.yaml), [PR-03](../../compliance/controls/PR-03.yaml), [PR-05](../../compliance/controls/PR-05.yaml), [PR-08](../../compliance/controls/PR-08.yaml), [PR-14](../../compliance/controls/PR-14.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-29](../../compliance/controls/PR-29.yaml), [PR-30](../../compliance/controls/PR-30.yaml)
 
 ## rc-reprocessing
 

@@ -182,6 +182,7 @@ tests:
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03] a library block takes only roles whose meaning needs no block code"
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-03] every library block has the one generic renderer, never the schema fallback"
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-03] a section recorded once closes; the recorded entry is listed with its sentence"
+  - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [PR-03] a lot field may name the BOM line the formulation fills; the browser never sends the register's facts"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:
