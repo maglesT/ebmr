@@ -555,7 +555,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_']
+      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_']
       apps/tablets-server/sql: ['^1802_', '^1803_']
     src: [packages/recipe-core/src/library]
     server: [apps/tablets-server/src/features/library]

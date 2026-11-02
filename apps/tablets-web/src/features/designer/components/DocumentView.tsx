@@ -11,7 +11,7 @@
  * limit bound says in words whether its value passes. test/designer/document-complete.test.tsx walks every member.
  */
 import { useState, type ReactNode } from 'react';
-import { flow } from '@ebmr/recipe-core/pure';
+import { flow, library } from '@ebmr/recipe-core/pure';
 import type { VersionView } from '@ebmr/api-contract';
 import { dcls } from '../classes.ts';
 import { KNOWN_MARKETS, type Content, type Op } from '../model/ops.ts';
@@ -441,6 +441,30 @@ export function DocumentView(props: DocumentProps) {
           </tbody>
         </table>
       </Section>
+
+      {(c.blockDefinitions ?? []).length > 0 ? (
+        // Decision 0026 S9: the library blocks this master carries, each pinned by its content hash.
+        <table className={dcls('grid')} aria-label="Library blocks carried" data-testid="library-blocks-carried">
+          <thead>
+            <tr>
+              <th scope="col">Library block</th>
+              <th scope="col">Title</th>
+              <th scope="col">Content hash</th>
+            </tr>
+          </thead>
+          <tbody>
+            {library.definitionsOf(c).map((d) => (
+              <tr key={`${d.code}@${String(d.version)}`}>
+                <td className={dcls('mono')}>
+                  {d.code} v{String(d.version)}
+                </td>
+                <td>{d.title}</td>
+                <td className={dcls('mono')}>{library.definitionHash(d)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
 
       <Section id="4">
         <table className={dcls('grid')} aria-label="Bill of materials">

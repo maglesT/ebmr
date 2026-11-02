@@ -273,6 +273,11 @@ export interface BlockUse {
   /** Whole numbers as decimal text, e.g. "20". */
   counts?: Record<string, string>;
   intervals?: Record<string, { value: string; unit: string }>;
+  /**
+   * S9 (O-5): limit slots bound to a market rule (the registered value for each market); the validator refuses a limit
+   * looser than the value the rule resolves to, as it does for an MBR parameter (validator rules-market).
+   */
+  marketRules?: Record<string, { key: string; bound: 'LOW' | 'HIGH' }>;
   /** Written reasons, by limit slot, for a limit looser than the block's reference limit (O-5). */
   justifications?: Record<string, string>;
   /** BOM line ids for FORMULA_LINE inputs, by slot. */

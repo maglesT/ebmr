@@ -42,10 +42,18 @@ describe('the ready-made catalogue', () => {
     for (const s of SEED_CATALOGUE) expect(s.definition.version, s.definition.code).toBe(1);
   });
 
+  it('[PR-03][DI-34] every catalogue item is well made, its example values pass the formulation checks, and a nominal batch completes it (each item also has its own test below)', () => {
+    for (const item of SEED_CATALOGUE) {
+      expect(checkBlockDefinition(item.definition, expr).filter((p) => p.code !== 'LIB-REPEAT-NO-MAX'), item.definition.code).toEqual([]);
+      expect(checkBlockUse(item.definition, { block: { code: item.definition.code, version: item.definition.version }, ...item.exampleUse }, expr), item.definition.code).toEqual([]);
+      expect(nominalRun(item), item.definition.code).toEqual({ exceptions: [], status: 'COMPLETED' });
+    }
+  });
+
   for (const [group, items] of Object.entries(SEED_GROUPS)) {
     for (const item of items) {
       const code = item.definition.code;
-      it(`[PR-03][DI-34] ${group}: ${code} is well made, its example values pass, and a nominal batch completes it`, () => {
+      it(`${group}: ${code} is well made, its example values pass, and a nominal batch completes it`, () => {
         const problems = checkBlockDefinition(item.definition, expr).filter((p) => p.code !== 'LIB-REPEAT-NO-MAX');
         expect(problems, `${code} definition`).toEqual([]);
         const use = checkBlockUse(item.definition, { block: { code, version: item.definition.version }, ...item.exampleUse }, expr);

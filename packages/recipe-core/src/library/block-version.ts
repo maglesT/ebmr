@@ -86,6 +86,12 @@ const CONFIG_SCHEMA: ObjectSchema = {
     counts: { type: 'record', optional: true, values: { type: 'string', pattern: /^[1-9][0-9]{0,6}$/, description: 'Whole number' }, description: 'Counts by slot' },
     intervals: { type: 'record', optional: true, values: { type: 'object', description: 'Interval', fields: { value: { type: 'decimal', description: 'Value' }, unit: { type: 'string', description: 'Time unit' } } }, description: 'Intervals by slot' },
     justifications: { type: 'record', optional: true, values: { type: 'string', description: 'Reason' }, description: 'Reasons for limits looser than the reference' },
+    marketRules: {
+      type: 'record',
+      optional: true,
+      description: 'Limit slots bound to a market rule (O-5)',
+      values: { type: 'object', description: 'Market rule', fields: { key: { type: 'string', description: 'Rule key' }, bound: { type: 'string', enum: ['LOW', 'HIGH'], description: 'Bound' } } },
+    },
     bomLines: { type: 'record', optional: true, values: { type: 'string', description: 'BOM line id' }, description: 'Formula lines by slot' },
     stepValues: { type: 'record', optional: true, values: { type: 'object', description: 'Earlier step value', fields: { step: { type: 'string', description: 'Step' }, field: { type: 'string', description: 'Field' } } }, description: 'Earlier-step values by slot' },
     points: {

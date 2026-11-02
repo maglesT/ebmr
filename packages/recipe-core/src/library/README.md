@@ -139,6 +139,29 @@ renderer draws every library block: `apps/tablets-web/src/features/floor/rendere
 `entrySummariesOf` gives each entry its plain sentence (fields with units, calculated values marked, timer durations).
 The step screens, the review reads and the whole batch record use it.
 
+## Formulation builder (slice S9)
+
+An author builds a formulation from library blocks in the designer, using `library.libraryPhase` and
+`library.withSnapshot`:
+- **Add:** "Add a library block after this step" lists the approved versions and inserts one. That single undoable
+  change (ADD_LIBRARY_BLOCK) adds the step, pins the version's content hash in it and adds the snapshot to the master;
+  another content under the same version is refused.
+- **Product values:** the step's values are typed in a form built from the block's slots (`LibraryBlocks.tsx`), with
+  the formulation checks shown live:
+  - limits as the registered range, with a target and the reason for a limit looser than the reference;
+  - equipment classes, counts and intervals;
+  - the BOM line, chosen from the master's bill of materials;
+  - an earlier step's value;
+  - the time points of a profile test.
+- **Document view:** the read-only document lists the library blocks carried, with their content hashes.
+- **Market rules (O-5):** a limit slot can be bound to a market rule (`marketRules`). The validator then refuses a
+  limit looser than the registered value, as it does for an MBR parameter (rules-market). There is no screen control
+  for this binding yet.
+- **Approval:** the life cycle and its screens, as for any master. The database checks the snapshots
+  (EBMR-LIB-021).
+- **Evidence (O-2):** the evidence is the validator report, the simulation and the test vectors. A sandbox run is
+  optional; one recorded that did not pass keeps the evidence incomplete (recipe-core 1830).
+
 ## Ready-made catalogue (`seed/`, slices S7 and S8)
 
 The catalogue has 79 blocks, shipped as data:

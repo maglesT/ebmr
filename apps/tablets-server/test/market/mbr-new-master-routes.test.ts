@@ -115,8 +115,9 @@ describe('verification evidence: recorded at the start, and the sandbox run retu
       { kind: 'TEST_VECTORS', result: 'PASS', problems: [] },
     ]);
     expect(review.evidence.contentHash).toBe(v.contentHash);
-    expect(review.evidence.complete).toBe(false);
-    expect(review.evidence.missing).toEqual(['a passing sandbox test run on this exact content (SANDBOX_RUN)']);
+    // Decision 0026 O-2 (recipe-core 1830): a sandbox run is optional; the evidence is complete without one.
+    expect(review.evidence.complete).toBe(true);
+    expect(review.evidence.missing).toEqual([]);
     const { rows } = await gmp.db.admin.query<{ kind: string; person: string }>("select kind, report ->> 'confirmedBy' as person from recipe.mbr_evidence where version_id = $1 and kind = 'TEST_VECTORS'", [v.versionId]);
     expect(rows.map((r) => r.person)).toEqual([gmp.seed.personas.find((p) => p.key === 'author')?.personId]);
   }, 180_000);
@@ -166,6 +167,9 @@ describe('verification evidence: recorded at the start, and the sandbox run retu
     expect(failed.passed).toBe(false);
     const review = valueOf(await (as['author'] as TestBrowser).call(M.importSandboxRunResult, { params: { versionId: v.versionId }, body: { text: JSON.stringify(failed) } }));
     expect(review.evidence.items.find((i) => i.kind === 'SANDBOX_RUN')).toEqual({ kind: 'SANDBOX_RUN', result: 'FAIL', problems: ['the sandbox run did not pass'] });
+    // O-2: a sandbox run is optional, but one recorded that did not pass keeps the evidence incomplete.
+    expect(review.evidence.complete).toBe(false);
+    expect(review.evidence.missing).toContain('a sandbox test run recorded for this content that passes (SANDBOX_RUN did not pass)');
 
     const saved = valueOf(await saveContent(as['author'] as TestBrowser, v, edited(v, (c) => (findPhase(c, 'p-disp-exc').name = 'Dispense the excipients')), 'renamed a step'));
     expect(saved.contentHash).not.toBe(v.contentHash);

@@ -942,7 +942,7 @@ files that raise, define or pass it on. To find where a code is raised, open the
 | `EBMR-LIB-008` | [packages/recipe-core/sql/1800_library_blocks.sql](../../../packages/recipe-core/sql/1800_library_blocks.sql) |
 | `EBMR-LIB-019` | [packages/recipe-core/sql/1800_library_blocks.sql](../../../packages/recipe-core/sql/1800_library_blocks.sql) |
 | `EBMR-LIB-020` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
-| `EBMR-LIB-021` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
+| `EBMR-LIB-021` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql), [packages/recipe-core/src/library/formulation.ts](../../../packages/recipe-core/src/library/formulation.ts) |
 | `EBMR-LIB-022` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
 | `EBMR-LIB-029` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
 | `EBMR-LIMS-101` | [packages/integration-sdk/src/adapter/systems/lims.ts](../../../packages/integration-sdk/src/adapter/systems/lims.ts), [packages/site-services/sql/0926_lims_results_inbound.sql](../../../packages/site-services/sql/0926_lims_results_inbound.sql), [packages/site-services/sql/1720_specification_profiles.sql](../../../packages/site-services/sql/1720_specification_profiles.sql) |

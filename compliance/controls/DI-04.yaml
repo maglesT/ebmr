@@ -29,6 +29,7 @@ implemented_by:
     - "packages/recipe-core/src/simulator (simulate, evidence)"
     - "packages/recipe-core/sql/0120_mbr_evidence.sql (MBR life cycle: evidence stored with the exact content hash, result decided by the database, voided by any content edit)"
     - "packages/recipe-core/sql/0130_mbr_guards.sql (guards validator_passed, evidence_complete)"
+    - "packages/recipe-core/sql/1830_evidence_sandbox_optional.sql (owner decision 0026 O-2: the evidence is the validator report, the simulation and the test vectors on the exact content; a sandbox run is optional, and one recorded that did not pass keeps the evidence incomplete)"
     - "packages/recipe-core/sql/0160_market_authorisation.sql (no market authorisation without complete verification evidence)"
     - "packages/recipe-core/src/lifecycle/verification.ts (verification port over the validator and simulator)"
     - "apps/tablets-server/sql/0150_designer.sql (tab.reference_document DMS stand-in: insert-only, audited, hash recomputed; tab.designer_justification)"

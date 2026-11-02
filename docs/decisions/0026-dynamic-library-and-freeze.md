@@ -32,8 +32,9 @@ not right.
 4. **Owner decisions O-1 to O-8 (plan section 6), approved as recommended:**
    - O-1: the direction and the freeze list.
    - O-2 (DI-04): verification evidence for a master becomes the validator's sanity report, the independent check
-     and QA approval. A sandbox run is optional, which matches the control's own text. The control file is not
-     edited. The implementation and `implemented_by` change in S9 and are recorded there.
+     and QA approval. A sandbox run is optional, which matches the control's own text. The control file's text is
+     not edited. Implemented in S9 by recipe-core 1830 (recorded in DI-04's `implemented_by`): a sandbox run is optional;
+     one recorded that did not pass keeps the evidence incomplete.
    - O-3: library blocks need no per-block simulator model or golden fixture. One generic simulator and one generic
      golden test cover all of them. "Customers cannot create primitive types" stays true for field types.
    - O-4 (PR-02, PR-03): the automated consistency checks are the sanity checks of point 3.

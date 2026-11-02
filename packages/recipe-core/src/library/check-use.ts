@@ -44,6 +44,10 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
   unknown(use.limits, limitSlots, 'limit', 'limits');
   unknown(use.targets, limitSlots, 'limit', 'targets');
   unknown(use.justifications, limitSlots, 'limit', 'justifications');
+  unknown(use.marketRules, limitSlots, 'limit', 'marketRules');
+  for (const [slot, rule] of Object.entries(use.marketRules ?? {})) {
+    if (use.limits?.[slot] === undefined) out.push(err('LIB-USE-MARKET-RULE', `marketRules.${slot}`, `${def.title}: ${slot} is bound to market rule ${rule.key} but has no limits`, ['PR-08']));
+  }
   unknown(use.equipmentClasses, classSlots, 'equipment class', 'equipmentClasses');
   unknown(use.counts, countSlots, 'count', 'counts');
   unknown(use.intervals, intervalSlots, 'interval', 'intervals');
