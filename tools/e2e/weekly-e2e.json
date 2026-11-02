@@ -1,0 +1,11 @@
+{
+  "comment": "Owner decision O-7 (b), 2 November 2026 (decision 0026): the end-to-end specs of frozen areas run weekly (the scheduled CI run, or a run by hand naming the group frozen-weekly), not on every pull request. Paths are relative to dir. playwright.config.ts makes them the group frozen-weekly; the trace (tools/register cli --weekly-e2e) lets them be absent, never failed, in a run that is not the weekly one.",
+  "dir": "tools/e2e/specs",
+  "specs": [
+    "pqr/pqr-flow.spec.ts",
+    "phase6a/analytics.spec.ts",
+    "phase6/alarms.spec.ts",
+    "phase7/incidents.spec.ts",
+    "devices/devices.spec.ts"
+  ]
+}

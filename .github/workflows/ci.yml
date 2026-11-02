@@ -4,13 +4,18 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly (owner decision O-7 (b), 2 November 2026; decision 0026): the full run with the end-to-end group
+  # frozen-weekly, the specs of frozen areas (tools/e2e/weekly-e2e.json), which pull requests and pushes leave out.
+  # Sunday 02:17 UTC, off-peak.
+  schedule:
+    - cron: '17 2 * * 0'
   # Run by hand on a branch (Actions > CI > Run workflow, or `gh workflow run ci.yml --ref <branch> -f e2e_groups=...`).
   # With e2e_groups (comma-separated, for example "route-w,rest") only those end-to-end groups run, on the pod, and
   # nothing else: a check of the affected groups before a pull request. Empty: the full run, as on a pull request.
   workflow_dispatch:
     inputs:
       e2e_groups:
-        description: 'End-to-end groups only, comma-separated (route-w, route-d, route-s, route-b, gmp-batches, own-demotab, own-p3, p3-demo, rest); empty = the full run'
+        description: 'End-to-end groups only, comma-separated (route-w, route-d, route-s, route-b, gmp-batches, own-demotab, own-p3, p3-demo, frozen-weekly, rest); empty = the full run (without frozen-weekly)'
         required: false
         default: ''
         type: string
@@ -266,7 +271,9 @@ jobs:
           if-no-files-found: ignore
 
   # The end-to-end groups of this run: all of them, or on a run by hand the ones its e2e_groups input names (an unknown
-  # name fails here). The full list is the e2e job's matrix as it was; a new group is added here.
+  # name fails here). The full list is the e2e job's matrix as it was; a new group is added here. Owner decision O-7 (b):
+  # frozen-weekly (the frozen areas' specs) runs on the weekly scheduled run and when a run by hand names it; a pull
+  # request, a push and a full run by hand plan every other group.
   e2e-plan:
     name: End-to-end groups to run
     runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
@@ -276,12 +283,16 @@ jobs:
     steps:
       - id: plan
         env:
-          ALL: route-w route-d route-s route-b gmp-batches own-demotab own-p3 p3-demo rest
+          ALL: route-w route-d route-s route-b gmp-batches own-demotab own-p3 p3-demo frozen-weekly rest
+          WEEKLY: frozen-weekly
+          EVENT: ${{ github.event_name }}
           CHOSEN: ${{ github.event_name == 'workflow_dispatch' && inputs.e2e_groups || '' }}
         run: |
           set -euo pipefail
           want=$(echo "$CHOSEN" | tr ',' ' ' | xargs)
-          [ -n "$want" ] || want="$ALL"
+          if [ -z "$want" ]; then
+            if [ "$EVENT" = schedule ]; then want="$ALL"; else want=$(for g in $ALL; do [ "$g" = "$WEEKLY" ] || echo "$g"; done | xargs); fi
+          fi
           json=""
           for g in $want; do
             case " $ALL " in *" $g "*) ;; *) echo "::error::unknown end-to-end group '$g' (known: $ALL)"; exit 1 ;; esac
@@ -348,7 +359,8 @@ jobs:
           if-no-files-found: ignore
 
   # The groups' blob reports merged into the reports of one run (P7K-5): .reports/playwright.json for the trace and
-  # .reports/e2e-evidence.json for the validation pack. A missing group leaves its tests out, and the trace fails on them.
+  # .reports/e2e-evidence.json for the validation pack. A missing group leaves its tests out, and the trace fails on them
+# (except frozen-weekly outside the weekly run, decision O-7 (b): the traceability job passes --weekly-e2e then).
   e2e-report:
     name: End-to-end reports merged
     needs: [e2e]
@@ -412,7 +424,12 @@ jobs:
       # The reports were written on other pod runners (the Playwright report's rootDir, the Vitest files): their
       # folders become this job's workspace, as in the report job (a no-op on GitHub-hosted runners).
       - run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/*.json
-      - run: pnpm trace:e2e
+      # Owner decision O-7 (b): only the weekly scheduled run has the frozen-weekly group, so every other run passes its
+      # spec list; their listed tests may then be absent from the report (never failed). The weekly run requires them all.
+      - if: ${{ github.event_name == 'schedule' }}
+        run: pnpm trace:e2e
+      - if: ${{ github.event_name != 'schedule' }}
+        run: pnpm trace:e2e --weekly-e2e tools/e2e/weekly-e2e.json
       - name: Upload the traceability matrix with the end-to-end results
         if: always()
         uses: actions/upload-artifact@v4

@@ -7,7 +7,8 @@
  *   trace      traceability matrix from a Vitest JSON report (--results <file>) and, when present, the
  *              Playwright JSON report (--playwright <file>; --require-playwright fails without it): passing tests
  *              per control, listed tests reported, every passing tagged test listed (review F15), each clause of a
- *              due control tested or deferred to a later phase
+ *              due control tested or deferred to a later phase; --weekly-e2e <file> (decision O-7 (b), a run that is
+ *              not the weekly one): the listed tests of those weekly spec files may be absent, never failed
  *   sync-tests adds to each control's tests list the passing tests of the same reports tagged with it that the
  *              list does not name yet (review F15, round 2)
  *   status     --bundle <file>: sets each control's build_status by D-P7-2 from an evidence bundle (only that field;
@@ -19,7 +20,7 @@ import { checkPins, readManifests } from './pins.ts';
 import { currentPhase, gateEditions, loadControls } from './register.ts';
 import { existsSync, readFileSync } from 'node:fs';
 import { appendListedTests, testsToAdd } from './sync.ts';
-import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
+import { buildTrace, readPlaywrightResults, readVitestResults, readWeeklyE2e, writeMatrix, type TestResult } from './trace.ts';
 import { validateRegister } from './validate.ts';
 import { parseBundle } from '../../../packages/validation-kit/src/index.ts';
 import { applyStatuses, statusContext, verifiedProblems } from './build-status.ts';
@@ -94,11 +95,20 @@ switch (command) {
     const editions = gateEditions();
     const { results, e2e } = runResults();
     // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
-    const report = buildTrace(loadControls(), results, phase, { e2e, editions });
+    // --weekly-e2e <file> (owner decision O-7 (b)): on a run that is not the weekly one, the listed tests of the frozen
+    // areas' weekly spec files may be absent from the Playwright report; failed ones still fail.
+    const weeklyFile = option('--weekly-e2e');
+    if (args.includes('--weekly-e2e') && !weeklyFile) fail('trace', ['--weekly-e2e needs the file of weekly spec files']);
+    const weeklyE2e = weeklyFile ? readWeeklyE2e(weeklyFile) : undefined;
+    const report = buildTrace(loadControls(), results, phase, { e2e, editions, ...(weeklyE2e ? { weeklyE2e } : {}) });
     writeMatrix(report, phase, '.reports/trace-matrix.md', editions);
     if (report.skipped.length) {
       console.log(`${report.skipped.length} listed test(s) skipped themselves in this run, as their source allows (they prove nothing here):`);
       for (const s of report.skipped) console.log(`  - ${s}`);
+    }
+    if (report.weekly.length) {
+      console.log(`${report.weekly.length} listed end-to-end test(s) of the weekly spec files were not in this run (decision O-7; the weekly run requires them):`);
+      for (const w of report.weekly) console.log(`  - ${w}`);
     }
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;
@@ -113,5 +123,5 @@ switch (command) {
     break;
   }
   default:
-    fail('usage', ['register <import|validate|pins|trace --results file [--golden file] [--require-golden] [--playwright file] [--require-playwright]|sync-tests --results file [--golden file] [--playwright file]>']);
+    fail('usage', ['register <import|validate|pins|trace --results file [--golden file] [--require-golden] [--playwright file] [--require-playwright] [--weekly-e2e file]|sync-tests --results file [--golden file] [--playwright file]>']);
 }

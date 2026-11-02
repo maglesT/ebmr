@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/register.ts';
 import { appendListedTests, testsToAdd } from '../src/sync.ts';
 import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
-import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
+import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, readWeeklyE2e, writeMatrix, type TestResult } from '../src/trace.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
 
 const control = (id: string): ControlRecord => {
@@ -493,5 +493,59 @@ describe('catalog-test clauses (review F14)', () => {
     expect(md).toMatch(/\| PR-01 \| 1\. Creating a batch at a size that no approved master lists is refused\. \| TESTED \| 2 of 2 listed tests passed \|/);
     expect(md).toMatch(/\| DI-33 \| Reprocessing and recovery[^|]*\| 3 \|/);
     expect(md).toMatch(/^\| DI-33 \| Calculations and reprocessing \|.*\| SPECIFIED \| \d+ \| 2 tested; 1 scope deferred \|$/m);
+  });
+});
+
+describe('the end-to-end specs of frozen areas run weekly (owner decision O-7 (b), 2 November 2026)', () => {
+  const weeklyFile = 'tools/e2e/specs/pqr/pqr-flow.spec.ts';
+  const weeklyE2e = `${weeklyFile} > [DI-20] weekly listed`;
+  const everyPr = 'tools/e2e/specs/x/x.spec.ts > [DI-20] e2e listed';
+  const vitest = 'packages/x/test/a.test.ts > d > [DI-20] listed';
+  const base: ControlRecord = { ...control('DI-20'), target_phase: 1, tests: [vitest, everyPr, weeklyE2e], clauses: [{ clause: 'one clause', tests: [vitest] }] };
+  const run = (results: TestResult[], c: ControlRecord = base, weekly?: string[]) => buildTrace([c], results, 1, { e2e: true, ...(weekly ? { weeklyE2e: weekly } : {}) });
+
+  it('[meta] on a run that is not the weekly one, a listed test of a weekly spec file may be absent; failed or skipped it still fails, and every other listed test is still required', () => {
+    const others = [result(vitest), result(everyPr)];
+    const absent = run(others, base, [weeklyFile]);
+    expect(absent.errors).toEqual([]);
+    expect(absent.weekly).toEqual([`DI-20: ${weeklyE2e}`]);
+    expect(run([...others, result(weeklyE2e, 'failed')], base, [weeklyFile]).errors.join('\n')).toContain('DI-20 has failing tests');
+    expect(run([...others, result(weeklyE2e, 'skipped')], base, [weeklyFile]).errors).toEqual([`DI-20 lists a test that did not run (skipped): "${weeklyE2e}"`]);
+    expect(run([result(vitest)], base, [weeklyFile]).errors).toEqual([`DI-20 lists a test the run did not report: "${everyPr}"`]);
+    // A spec file the list does not name gets no allowance, and the weekly run (no list) requires them all.
+    expect(run(others, base, ['tools/e2e/specs/phase7/route-w.spec.ts']).errors).toEqual([`DI-20 lists a test the run did not report: "${weeklyE2e}"`]);
+    expect(run(others).errors).toEqual([`DI-20 lists a test the run did not report: "${weeklyE2e}"`]);
+    expect(run([...others, result(weeklyE2e)]).errors).toEqual([]);
+    // Without the Playwright report the end-to-end tests are not checked at all, as before.
+    expect(buildTrace([base], [result(vitest)], 1, { weeklyE2e: [weeklyFile] }).weekly).toEqual([]);
+  });
+
+  it('[meta] a clause or a control whose only missing proof is an absent weekly test is left to the weekly run; one with nothing listed from a weekly file is not', () => {
+    const weeklyClause = { clause: 'proved weekly', tests: [weeklyE2e] };
+    const prClause = { clause: 'proved on every pull request', tests: [vitest] };
+    const c: ControlRecord = { ...base, tests: [vitest, weeklyE2e], clauses: [weeklyClause, prClause] };
+    expect(run([result(vitest)], c, [weeklyFile]).errors).toEqual([]);
+    expect(run([result(vitest)], c).errors.join('\n')).toContain('DI-20 clause 1 has no passing test');
+    const nothing = run([], c, [weeklyFile]).errors.join('\n');
+    expect(nothing).toContain(`DI-20 lists a test the run did not report: "${vitest}"`);
+    expect(nothing).toContain('DI-20 clause 2 has no passing test');
+    expect(nothing).not.toContain('DI-20 clause 1');
+    const onlyWeekly: ControlRecord = { ...base, tests: [weeklyE2e], clauses: [weeklyClause] };
+    expect(run([], onlyWeekly, [weeklyFile]).errors).toEqual([]);
+    expect(run([], onlyWeekly).errors.join('\n')).toContain('DI-20 (target phase 1) has no passing test');
+  });
+
+  it('[meta] the weekly list is one file: the Playwright group frozen-weekly is it, each spec exists, and the trace reads it as files from the repository root', () => {
+    const files = readWeeklyE2e(join(ROOT, 'tools/e2e/weekly-e2e.json'));
+    expect(files.length).toBeGreaterThan(0);
+    for (const f of files) expect(existsSync(join(ROOT, f)), f).toBe(true);
+    const config = readFileSync(join(ROOT, 'tools/e2e/playwright.config.ts'), 'utf8');
+    expect(config).toContain("'frozen-weekly': WEEKLY_E2E_SPECS");
+    expect(config).toContain("readFileSync(new URL('./weekly-e2e.json', import.meta.url)");
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-weekly-'));
+    writeFileSync(join(dir, 'bad.json'), JSON.stringify({ dir: 'packages/x/test', specs: ['a.spec.ts'] }));
+    expect(() => readWeeklyE2e(join(dir, 'bad.json'))).toThrow('is not an end-to-end spec under tools/e2e/');
+    writeFileSync(join(dir, 'shape.json'), JSON.stringify({ dir: 'tools/e2e/specs', specs: ['a.test.ts'] }));
+    expect(() => readWeeklyE2e(join(dir, 'shape.json'))).toThrow('expected { dir: string, specs: string[] }');
   });
 });

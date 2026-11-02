@@ -17,6 +17,11 @@
  *    list is every test that proves the control, titles built from data included, so it cannot drift as tests are
  *    added; `register sync-tests` adds them from the run (sync.ts);
  *  - a DONT_FOLLOW control still has tests proving active enforcement.
+ * Owner decision O-7 (b), 2 November 2026 (decision 0026): the end-to-end specs of frozen areas run weekly. A run that is
+ * not the weekly one names their files (`weeklyE2e`, from tools/e2e/weekly-e2e.json): a listed test of those files the
+ * run did not report is not an error there (it is reported as left to the weekly run), nor is a clause or a control whose
+ * only missing proof is such a test. A failed or skipped one, and every other check, stay as above; the weekly run
+ * passes no such list and requires them all.
  * A control none of whose editions the gate covers (phase.yaml `editions`, decision 0010) is not due and its deferrals
  * are not checked; a test tagged with it is still checked (unknown IDs, failures, the tests list).
  * Phase 5 is the Injectables edition, built after Phase 7 (decision 0010): a deferral to phase 5 counts as not started
@@ -133,6 +138,8 @@ export interface TraceReport {
   errors: string[];
   /** Listed tests the run skipped as their source allows (`<control>: <entry>`); they prove nothing in this run. */
   skipped: string[];
+  /** Listed end-to-end tests of the weekly spec files the run did not report (`<control>: <entry>`; decision O-7). */
+  weekly: string[];
 }
 
 export interface TraceOptions {
@@ -142,6 +149,22 @@ export interface TraceOptions {
   declared?: (file: string) => readonly DeclaredTest[] | null;
   /** The editions the gate covers (phase.yaml `editions`, decision 0010); default both. */
   editions?: readonly EditionName[];
+  /**
+   * The end-to-end spec files (from the repository root) that run weekly, not in this run (owner decision O-7 (b)):
+   * their listed tests may be absent from the report. Given only on a run that is not the weekly one.
+   */
+  weeklyE2e?: readonly string[];
+}
+
+/** The weekly spec files of tools/e2e/weekly-e2e.json (`dir` and `specs`), from the repository root (decision O-7). */
+export function readWeeklyE2e(file: string): string[] {
+  const json = JSON.parse(readFileSync(file, 'utf8')) as { dir?: unknown; specs?: unknown };
+  if (typeof json.dir !== 'string' || !Array.isArray(json.specs) || !json.specs.every((s): s is string => typeof s === 'string' && s.endsWith('.spec.ts'))) {
+    throw new Error(`${file}: expected { dir: string, specs: string[] } of .spec.ts files`);
+  }
+  const files = json.specs.map((s) => `${json.dir as string}/${s}`.replace(/\/+/g, '/'));
+  for (const f of files) if (!f.startsWith(E2E_DIR)) throw new Error(`${file}: ${f} is not an end-to-end spec under ${E2E_DIR}`);
+  return files;
 }
 
 const isE2e = (entry: string): boolean => fileOfEntry(entry).startsWith(E2E_DIR);
@@ -169,6 +192,7 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
   const byId = new Map(controls.map((c) => [c.id, { control: c, passing: [] as string[], failing: [] as string[], clauses: [] as ClauseStatus[] }]));
   const errors: string[] = [];
   const skipped: string[] = [];
+  const weekly: string[] = [];
   /** Per control, the passing tests tagged with it that its tests list does not name (review F15, round 2). */
   const unlisted = new Map<string, Set<string>>();
   for (const t of results) {
@@ -200,6 +224,9 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     return r.status === 'skipped' && entry !== undefined && (declared(fileOfEntry(entry)) ?? []).some((d) => d.runs === 'conditionally' && names(entry, d));
   };
   const passed = (entry: string): boolean => checked(entry) && resultsNamed(entry, byFile).some((r) => r.status === 'passed');
+  const weeklyFiles = new Set(options.weeklyE2e ?? []);
+  /** A listed end-to-end test of a weekly spec file that this run did not report at all (decision O-7). */
+  const leftToWeekly = (entry: string): boolean => checked(entry) && isE2e(entry) && weeklyFiles.has(fileOfEntry(entry)) && resultsNamed(entry, byFile).length === 0;
 
   for (const row of byId.values()) {
     const c = row.control;
@@ -210,7 +237,7 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     // that has not started has nothing due to prove yet; it shows DEFERRED in the matrix. One clause not deferred, or
     // deferred to a phase that has started (refused below), and it needs its passing tests again.
     const fullyDeferred = (c.clauses ?? []).length > 0 && (c.clauses ?? []).every((k) => k.deferred !== undefined && !started(k.deferred.phase) && k.deferred.reason.trim() !== '');
-    if (due && row.passing.length === 0 && !fullyDeferred) {
+    if (due && row.passing.length === 0 && !fullyDeferred && !c.tests.some(leftToWeekly)) {
       errors.push(`${c.id} (target phase ${c.target_phase}) has no passing test`);
     }
     if (rejected && row.passing.length > 0) errors.push(`${c.id} is DONT_FOLLOW but tests still prove enforcement`);
@@ -220,7 +247,10 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     // allows (review F15, round 3).
     for (const entry of c.tests.filter(checked)) {
       const named = resultsNamed(entry, byFile);
-      if (named.length === 0) errors.push(`${c.id} lists a test the run did not report: "${entry}"`);
+      if (named.length === 0) {
+        if (leftToWeekly(entry)) weekly.push(`${c.id}: ${entry}`);
+        else errors.push(`${c.id} lists a test the run did not report: "${entry}"`);
+      }
       else if (!named.some((r) => r.status === 'passed' || r.status === 'failed')) {
         if (named.some(skippedAsDeclared)) skipped.push(`${c.id}: ${entry}`);
         else errors.push(`${c.id} lists a test that did not run (${named[0]?.status ?? ''}): "${entry}"`);
@@ -244,13 +274,13 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
       const deferred = k.clause.deferred;
       if (gated && deferred && started(deferred.phase)) {
         errors.push(`${c.id} clause ${i + 1} is deferred to phase ${deferred.phase}, which has started: "${k.clause.clause}"`);
-      } else if (due && k.state === 'NO_TEST') {
+      } else if (due && k.state === 'NO_TEST' && !(k.clause.tests ?? []).some(leftToWeekly)) {
         const onlyE2e = (k.clause.tests ?? []).every(isE2e) && options.e2e !== true;
         errors.push(`${c.id} clause ${i + 1} has no passing test${onlyE2e ? ' (only end-to-end tests are listed, and they are not in this run)' : ''} and no deferral: "${k.clause.clause}"`);
       }
     });
   }
-  return { rows: [...byId.values()], errors, skipped };
+  return { rows: [...byId.values()], errors, skipped, weekly };
 }
 
 const cell = (s: string): string => s.replace(/\|/g, '/').replace(/\s+/g, ' ').trim();

@@ -43,9 +43,17 @@ not right.
      a market is still refused (plan review, 1 November). The PR-08 tiers stay enforced.
    - O-6: TB-01..24 and existing masters keep running and stay in CI. They leave the designer palette after S11.
      Nothing is deleted.
-   - O-7: frozen areas keep their unit tests on every PR. Moving their E2E groups to a weekly run changes the test
-     cadence of decision 0008, so it waits for the owner's explicit decision (plan review, 1 November). Until then,
-     every group keeps running on every PR.
+   - O-7: **decided (b) by the owner on 2 November 2026.** Frozen areas keep their unit tests on every PR; their
+     end-to-end specs run weekly. Implementation: the specs are listed once in `tools/e2e/weekly-e2e.json` (PQR,
+     analytics/MSPC, alarms, incidents, devices/scale console); `tools/e2e/playwright.config.ts` makes them the group
+     `frozen-weekly`, so `rest` no longer runs them. CI plans every other group on a pull request or push; the weekly
+     scheduled run (Sunday 02:17 UTC) plans them all, and a run by hand can name `frozen-weekly`. On every run but the
+     scheduled one the traceability job passes `--weekly-e2e tools/e2e/weekly-e2e.json`: a listed test of those files
+     may then be absent from the Playwright report (it is printed as left to the weekly run), but a failed or skipped
+     one still fails, and every other check is unchanged; the scheduled run requires them all. The Phase 7 product
+     backlog spec `phase7/sr-profile.spec.ts` stays on every PR: it proves release specifications and dissolution
+     profiles, a kept area. Before any deployment or release the full suite runs, the `frozen-weekly` group included
+     (the scheduled run, or a run by hand naming it), and a deployment needs that run green.
    - O-8: batch sizes stay a list of approved sizes, scaled by the system and approved together (IN-13 and PR-01 as
      written).
 5. **Plan review (1 November, approved with additions; owner: keep 11 slices).**

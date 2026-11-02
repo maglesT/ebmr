@@ -4,7 +4,15 @@
  * worker. Office contexts run at 1440x900, kiosk contexts at 1280x800 (projects select by tag).
  * The global set-up creates unique e2e databases, builds the SPA once and starts the stack on free ports.
  */
+import { readFileSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
+
+/**
+ * The end-to-end specs of frozen areas (owner decision O-7 (b), 2 November 2026; decision 0026): the group
+ * 'frozen-weekly', run by the weekly scheduled CI run, not on every pull request. One list (weekly-e2e.json), read here
+ * and by the trace (tools/register cli --weekly-e2e), so the group and the trace's allowance cannot drift apart.
+ */
+export const WEEKLY_E2E_SPECS: string[] = (JSON.parse(readFileSync(new URL('./weekly-e2e.json', import.meta.url), 'utf8')) as { specs: string[] }).specs;
 
 // The end-to-end groups of CI (P7K-5): each runs on its own runner with its own set-up. The long route specs (about 30
 // minutes each) get groups of their own; 'rest' runs every spec no group names, so a new spec file is never left out.
@@ -20,6 +28,8 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'own-p3': ['phase7/own-product-p3.spec.ts'],
   // Slice 7s: the presenter's P3 rabeprazole batch from the demo set-up's seeded state (--gmp-p3-demo, D-7s-1).
   'p3-demo': ['phase7/p3-demo.spec.ts'],
+  // Owner decision O-7 (b): the frozen areas' specs (weekly-e2e.json), run weekly; 'rest' no longer runs them.
+  'frozen-weekly': WEEKLY_E2E_SPECS,
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

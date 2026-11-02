@@ -79,13 +79,15 @@ their evaluation record). S3 (branch `dyn/s3`): library storage
 carry library snapshots (`MbrContent.blockDefinitions`, `library/integration.ts`), batches run them, the API takes
 `LIBRARY_ENTRY`, and recipe-core 1810 checks entries, limits (`LIB_LIMIT_BREACH`) and snapshots. S5 (branch `dyn/s5`): the generic
 library renderer (`floor/renderers/Library.tsx`) and the entry sentences. **Owner, 2 November 2026: do not ask before each
-slice; go through S6 to S11 one after another** (only genuine owner decisions wait; O-7 still does). S6 (branch `dyn/s6`): smart
+slice; go through S6 to S11 one after another** (only genuine owner decisions wait). S6 (branch `dyn/s6`): smart
 fields (lots, equipment, hand-keyed weighings; tablets 1803). S7 and S8 (branch `dyn/s7-s8`): the
 ready-made catalogue (79 blocks, `library/seed/`, loaded as drafts; recipe-core 1820). S9 (branch `dyn/s9`): the formulation
 builder in the designer (`LibraryBlocks.tsx`, ADD_LIBRARY_BLOCK), market rules on library limits (O-5) and the
 sandbox run optional as evidence (O-2, recipe-core 1830). S10 (branch `dyn/s10`): batch generation with scaling, a library
 formula line is the master's BOM line scaled exactly from the reference size (first listed) to the issued size, and the batch
-size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). Next: S11,
+size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). O-7 decided (b), 2 November (branch `dyn/o7`):
+the frozen areas' E2E specs (`tools/e2e/weekly-e2e.json`, group `frozen-weekly`) run weekly, not on every PR; the full suite with
+that group runs before any deployment. Next: S11,
 the three-tablet acceptance. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
