@@ -216,6 +216,9 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
     reads: [`${g.key}Target`],
     consumes: g.lines.map(bomId),
     config: { tolerance: { percent: g.tol } },
+    // Decision 0026 S11b (D-S11b-4): a weighing that consumes materials is the designated dispenser's (the GMP database
+    // refuses anyone without DISPENSE.EXECUTE, recipe-core 0700), as in the route masters; a verifier checks it.
+    signatures: { perform: { role: 'DISPENSER' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } },
   }));
   walk(disp, (o) => {
     if (o['kind'] === 'sequence' && Array.isArray(o['children'])) {

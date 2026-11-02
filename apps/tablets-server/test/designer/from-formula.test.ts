@@ -109,6 +109,9 @@ describe('a new master from an approved formula (slice 7j)', () => {
     const blockOf = (id: string): string => { const b = steps.find((x) => x.id === id)?.block; return b ? `${b.type}@${b.version}` : ''; };
     expect(['p-disp-clear', 'p-disp-bal', 'p-blend-clear', 'p-blend-status'].map(blockOf)).toEqual(['G-10@2', 'G-09@2', 'G-10@2', 'G-09@2']);
     expect(steps.some((x) => x.block && ['G-09@1', 'G-10@1'].includes(`${x.block.type}@${x.block.version}`))).toBe(false);
+    // The weighings are the designated dispenser's, checked by a verifier (D-S11b-4).
+    const signaturesOf = (id: string): unknown => { let out: unknown; const find = (n: unknown): void => { if (Array.isArray(n)) n.forEach(find); else if (n && typeof n === 'object') { const o = n as { id?: string; signatures?: unknown }; if (o.id === id) out = o.signatures; Object.values(o).forEach(find); } }; find((v.content as unknown as { procedure: unknown }).procedure); return out; };
+    for (const id of ['p-disp-act', 'p-disp-exc']) expect(signaturesOf(id)).toEqual({ perform: { role: 'DISPENSER' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } });
     // The release for packing comes last, after the blend yield.
     expect(steps.map((x) => x.id).slice(-2)).toEqual(['p-blend-yield', 'H-PACK']);
     // A GMP batch defines on it: no step is one a GMP batch refuses (the designer's INFO findings), and the gate passes.
