@@ -15,7 +15,25 @@ export async function tap(page: Page, who: SeededPersona): Promise<void> {
   const field = page.getByLabel('Badge', { exact: true }).last();
   await expect(field).toBeVisible();
   await field.focus();
+  await withinTapRate(page, who.badgeUid);
   await readerTap(page, who.badgeUid);
+}
+
+/**
+ * The kiosk accepts at most 30 badge taps a minute per terminal and badge (a security control). A person never comes
+ * near it; a test can, on a fast runner. Taps stay at most TAP_BUDGET in any minute per page and badge: a test waits
+ * only when it would go over, as a person would be slower anyway.
+ */
+const TAP_BUDGET = 25;
+const tapTimes = new WeakMap<Page, Map<string, number[]>>();
+async function withinTapRate(page: Page, badge: string): Promise<void> {
+  const byBadge = tapTimes.get(page) ?? new Map<string, number[]>();
+  tapTimes.set(page, byBadge);
+  const now = Date.now();
+  const recent = (byBadge.get(badge) ?? []).filter((t) => now - t < 60_000);
+  if (recent.length >= TAP_BUDGET) await page.waitForTimeout(60_000 - (now - (recent[recent.length - TAP_BUDGET] ?? now)) + 250);
+  recent.push(Date.now());
+  byBadge.set(badge, recent.filter((t) => Date.now() - t < 60_000));
 }
 
 /** Chooses a react-aria radio the way a person does: its label covers the input, so the label is tapped. */
