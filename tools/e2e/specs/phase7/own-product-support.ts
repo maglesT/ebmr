@@ -97,6 +97,8 @@ export interface StageCtx {
 export interface SkeletonExtras {
   /** Which approved batch size to issue (0: the first listed, the reference size). */
   sizeIndex?: number;
+  /** The batch size in tablets typed in the master's input when issuing (the chosen size's; default 100000). */
+  sizeUnits?: string;
   /** Steps the master adds after the dispensing of the other components, on the dispensing kiosk. */
   afterDispensing?: (page: Page, ctx: StageCtx) => Promise<void>;
   /** Steps the master adds after the blend's discharge, on the blending kiosk. */
@@ -135,7 +137,7 @@ export async function runSkeletonTestBatch(
   await item.getByRole('link', { name: 'Issue a test batch' }).click();
   await choose(office.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').nth(extra.sizeIndex ?? 0));
   for (const input of await office.getByRole('main').getByRole('textbox').all()) {
-    if ((await input.inputValue()) === '') await input.fill('100000');
+    if ((await input.inputValue()) === '') await input.fill(extra.sizeUnits ?? '100000');
   }
   await office.getByRole('button', { name: 'Issue the test batch' }).click();
   await expect(office).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);

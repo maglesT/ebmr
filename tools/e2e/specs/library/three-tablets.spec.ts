@@ -323,6 +323,7 @@ for (const t of TABLETS) {
       const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona }, packageHash, lots, t.discharge, {
         // S10: the batch is issued at the further size (not the reference size); every quantity is scaled to it.
         sizeIndex: 1,
+      sizeUnits: '50000',
         afterDispensing: async (page, ctx) => {
           for (const b of t.afterDispensing) await runLibraryStep(page, ctx, b, SANDBOX_UNITS);
         },
