@@ -27,7 +27,7 @@ const home = async (page: Page, tile: RegExp): Promise<void> => {
   await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: tile }).click();
 };
 
-test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office', async ({ e2e, officePage, kioskPage, persona, evidence }, testInfo) => {
+test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office', async ({ e2e, officePage, kioskPage, persona, evidence, browser }, testInfo) => {
   test.setTimeout(45 * 60_000);
   const steward = persona('GMP', 'steward');
   const qa = persona('GMP', 'approver');
@@ -209,7 +209,7 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
   let batchNumber = '';
   await evidence.step('Sandbox: the steward registers TEST- lots of the new materials; the test batch runs to Execution complete and its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
     await registerTestLots({ officePage, kioskPage, persona }, lots);
-    const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona }, packageHash, lots, { tare: '1.000', gross: '56.300' });
+    const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona, browser }, packageHash, lots, { tare: '1.000', gross: '56.300' });
     batchNumber = run.batchNumber;
     return run;
   });

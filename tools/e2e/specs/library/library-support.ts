@@ -221,6 +221,8 @@ export async function runLibraryStep(
   equipment: Readonly<Record<string, string>>,
   lots: Readonly<Record<string, string>> = {},
   n = 1,
+  /** The prefix of the identifiers the operator writes: a sandbox run names things only by TEST- ones (DI-05). */
+  idPrefix = 'TEST-',
 ): Promise<void> {
   const key = `${stepIdOf(b.def.code)}@`;
   await openStep(page, ctx.base, ctx.runId, key, b.def.title);
@@ -274,14 +276,14 @@ export async function runLibraryStep(
         }
         case 'CONTAINER':
           container += 1;
-          await form.getByRole('textbox', { name: f.label, exact: true }).fill(`TEST-${b.def.code}-${String(n)}-${String(container)}`);
+          await form.getByRole('textbox', { name: f.label, exact: true }).fill(`${idPrefix}${b.def.code}-${String(n)}-${String(container)}`);
           break;
         case 'CALC':
         case 'TIMER':
           break;
         default:
-          // A sandbox run names things only by TEST- identifiers (DI-05): the nominal SIM- text becomes a TEST- one.
-          await form.getByRole('textbox', { name: f.label, exact: true }).fill(String(v).replace(/^SIM-/, 'TEST-'));
+          // A sandbox run names things only by TEST- identifiers (DI-05): the nominal SIM- text takes the run's prefix.
+          await form.getByRole('textbox', { name: f.label, exact: true }).fill(String(v).replace(/^SIM-/, idPrefix));
       }
     }
     await withTap(page, ctx.operator, form.getByRole('button', { name: `Save ${section.title}` }));
