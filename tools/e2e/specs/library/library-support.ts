@@ -211,8 +211,9 @@ export async function runLibraryStep(page: Page, ctx: { base: string; runId: str
     await withTap(page, ctx.operator, form.getByRole('button', { name: `Save ${section.title}` }));
   }
   await signPrimary(page, 'Sign as performed', ctx.operator);
-  const verify = page.getByTestId('primary-action').filter({ hasText: /^Verify$/ });
-  if (await verify.isVisible({ timeout: 5_000 }).catch(() => false)) {
+  // A step with a check (or a hand-keyed weighing) waits for its verifier; one without completes.
+  await expect(card(page)).toContainText(/waiting for verification|Completed/);
+  if (/waiting for verification/.test((await card(page).textContent()) ?? '')) {
     await switchUser(page, ctx.verifier);
     await signPrimary(page, 'Verify', ctx.verifier);
     await switchUser(page, ctx.operator);
