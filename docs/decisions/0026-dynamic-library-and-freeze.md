@@ -69,3 +69,9 @@ S0 (this record and PROGRESS.md), S1 (block-definition model and sanity checks),
 storage and approval), S4 (registry bridge), S5 (generic renderer), S6 (smart fields), S7 and S8 (seed catalogue), S9
 (formulation builder and approval), S10 (batch generation), S11 (acceptance: three tablets with zero code changes). See
 the plan, section 5.
+
+S11a (2 November 2026) passes: three tablets set up from the library through the screens, each sandbox batch run through every
+library step at the further size, with no tablet-specific code. The acceptance run found five generic defects, fixed in shared
+code with tests (see PROGRESS.md). Open findings: the issue screen's typed tablet count is not tied to the chosen size for
+masters from a formula; a timer exception prints an unrounded duration; release-test blocks name QC roles no floor session
+carries (they cannot sit in a master yet).

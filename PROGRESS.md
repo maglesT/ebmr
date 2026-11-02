@@ -85,12 +85,15 @@ ready-made catalogue (79 blocks, `library/seed/`, loaded as drafts; recipe-core 
 builder in the designer (`LibraryBlocks.tsx`, ADD_LIBRARY_BLOCK), market rules on library limits (O-5) and the
 sandbox run optional as evidence (O-2, recipe-core 1830). S10 (branch `dyn/s10`): batch generation with scaling, a library
 formula line is the master's BOM line scaled exactly from the reference size (first listed) to the issued size, and the batch
-size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). S11 (branch
-`dyn/s11`, in progress): `tools/e2e/specs/library/three-tablets.spec.ts` (group `library-acceptance`) sets up three tablets
-from the catalogue on screen and runs each sandbox batch at the further size through every library step. Defects it found and
-fixed (generic, no tablet code): identical limit labels in the values form; catalogue signature roles no session carries
-(IPC_OPERATOR, QA_SHOP_FLOOR); the database's entry schema lacked the server-filled lot and equipment facts (recipe-core
-1840); a sample field's shown planned units not recorded. Open findings: the issue screen's typed tablet count is not tied to
+size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). S11a (branch
+`dyn/s11`, **passing**, 4 of 4 in 34 minutes, 2 November): `tools/e2e/specs/library/three-tablets.spec.ts` (group
+`library-acceptance`) sets up three tablets from the catalogue on screen (QA approves the blocks; the designer adds them with
+the product's values; change control; four signatures; the IN authorisation) and runs each sandbox batch at the further size
+through every library step on the kiosks. Defects it found and fixed (generic, no tablet code): identical limit labels in the
+values form; catalogue signature roles no session carries (IPC_OPERATOR, QA_SHOP_FLOOR); the database's entry schema lacked the
+server-filled lot and equipment facts (recipe-core 1840); a sample field's shown planned units not recorded; the field id
+`balance` (now reserved) taken by the database's weighing rules for a scale weighing. Hard capsules: catalogue blocks added,
+the capsule product deferred by the owner (2 November). Open findings: the issue screen's typed tablet count is not tied to
 the chosen size for masters from a formula (fix next: pre-fill and check, R3.1's mechanism); a timer exception prints an
 unrounded duration; release-test blocks name QC roles no floor session carries. S11b (GMP batch to released lot) follows. The Phase 7 notes below are history for the frozen work.
 
