@@ -85,8 +85,14 @@ ready-made catalogue (79 blocks, `library/seed/`, loaded as drafts; recipe-core 
 builder in the designer (`LibraryBlocks.tsx`, ADD_LIBRARY_BLOCK), market rules on library limits (O-5) and the
 sandbox run optional as evidence (O-2, recipe-core 1830). S10 (branch `dyn/s10`): batch generation with scaling, a library
 formula line is the master's BOM line scaled exactly from the reference size (first listed) to the issued size, and the batch
-size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). Next: S11,
-the three-tablet acceptance. The Phase 7 notes below are history for the frozen work.
+size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). S11 (branch
+`dyn/s11`, in progress): `tools/e2e/specs/library/three-tablets.spec.ts` (group `library-acceptance`) sets up three tablets
+from the catalogue on screen and runs each sandbox batch at the further size through every library step. Defects it found and
+fixed (generic, no tablet code): identical limit labels in the values form; catalogue signature roles no session carries
+(IPC_OPERATOR, QA_SHOP_FLOOR); the database's entry schema lacked the server-filled lot and equipment facts (recipe-core
+1840); a sample field's shown planned units not recorded. Open findings: the issue screen's typed tablet count is not tied to
+the chosen size for masters from a formula (fix next: pre-fill and check, R3.1's mechanism); a timer exception prints an
+unrounded duration; release-test blocks name QC roles no floor session carries. S11b (GMP batch to released lot) follows. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.
