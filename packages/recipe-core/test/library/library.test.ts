@@ -287,3 +287,12 @@ describe('review additions: inputs from outside the step, conditional fields, pi
     expect(definitionHash(reordered)).toEqual(definitionHash(def));
   });
 });
+
+describe('reserved field ids (S7 catalogue finding)', () => {
+  it('[PR-03] a field may not take an id the entry itself uses', () => {
+    for (const id of ['kind', 'lots', 'equipment', 'computed', 'field', 'duration']) {
+      const def = withField(friability(), { id, label: 'X', type: 'TEXT' });
+      expect(codes(checkBlockDefinition(def, expr)), id).toEqual(['LIB-FIELD-RESERVED']);
+    }
+  });
+});

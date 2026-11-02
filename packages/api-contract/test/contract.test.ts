@@ -223,7 +223,7 @@ describe('route table', () => {
       'execution.releasePrintJob', 'incidents.assessImpact', 'incidents.close', 'incidents.link', 'incidents.markCertInReportable', 'incidents.raise',
       'incidents.reclassify', 'incidents.recordCertInReport', 'incidents.startInvestigation', 'india.issueH2', 'integrations.acknowledgeAlarm', 'labels.approveTemplate',
       'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
-      'labels.recordLabelSpecimen', 'labels.recordPostUseInspection', 'labels.resolveLineStop', 'labels.verifyPostUseInspection', 'labels.voidSpecimen', 'library.draft', 'library.retire',
+      'labels.recordLabelSpecimen', 'labels.recordPostUseInspection', 'labels.resolveLineStop', 'labels.verifyPostUseInspection', 'labels.voidSpecimen', 'library.draft', 'library.loadCatalogue', 'library.retire',
       'marketConfig.addChangeRegulatory', 'marketConfig.addChangeValidation', 'marketConfig.applyPolicyTightening', 'marketConfig.closeCampaign',
       'marketConfig.defineAlarmCode', 'marketConfig.definePolicy', 'marketConfig.importSandboxRunResult', 'marketConfig.linkRiskAssessment',
       'marketConfig.openCampaign', 'marketConfig.recordChangeRecord', 'marketConfig.recordLineIsolation', 'marketConfig.recordPeriodicReview',

@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3439 objects.
+3440 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -2001,6 +2001,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`recipe.require_actor`](../../../packages/recipe-core/sql/0100_recipe_foundation.sql#sym=recipe.require_actor) | function | [0100_recipe_foundation.sql](../../../packages/recipe-core/sql/0100_recipe_foundation.sql) |  | [rc-lifecycle](../code-map.md#rc-lifecycle) |
 | [`recipe.require_command_permission`](../../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql#sym=recipe.require_command_permission) | function | [0210_execution_writers.sql](../../../packages/recipe-core/sql/0210_execution_writers.sql) | [1100_batch_product_in_step_authority.sql](../../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql) | [rc-execution](../code-map.md#rc-execution) |
 | [`recipe.require_issue_permission`](../../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql#sym=recipe.require_issue_permission) | function | [1218_batch_issue_order_product_scope.sql](../../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql) |  | [rc-execution](../code-map.md#rc-execution) |
+| [`recipe.require_library_author`](../../../packages/recipe-core/sql/1820_library_catalogue.sql#sym=recipe.require_library_author) | function | [1820_library_catalogue.sql](../../../packages/recipe-core/sql/1820_library_catalogue.sql) |  | [rc-library](../code-map.md#rc-library) |
 | [`recipe.require_own_reason`](../../../packages/recipe-core/sql/0290_market_activation_reason.sql#sym=recipe.require_own_reason) | function | [0290_market_activation_reason.sql](../../../packages/recipe-core/sql/0290_market_activation_reason.sql) |  | [rc-lifecycle](../code-map.md#rc-lifecycle) |
 | [`recipe.reserve_residue`](../../../packages/recipe-core/sql/0621_reprocessing_registers.sql#sym=recipe.reserve_residue) | function | [0621_reprocessing_registers.sql](../../../packages/recipe-core/sql/0621_reprocessing_registers.sql) |  | [rc-reprocessing](../code-map.md#rc-reprocessing) |
 | [`recipe.residue_source_problem`](../../../apps/tablets-server/sql/1021_tb08_guards.sql#sym=recipe.residue_source_problem) | function | [0621_reprocessing_registers.sql](../../../packages/recipe-core/sql/0621_reprocessing_registers.sql) | [1021_tb08_guards.sql](../../../apps/tablets-server/sql/1021_tb08_guards.sql) | [rc-reprocessing](../code-map.md#rc-reprocessing) |

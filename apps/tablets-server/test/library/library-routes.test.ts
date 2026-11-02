@@ -91,6 +91,19 @@ describe('the library of block definitions', () => {
     expect(refusalOf(await approver.call(L.retire, { body: { blockId: draftOnly.blockId, reason: 'not approved' } })).code).toBe('EBMR-LIB-008');
   });
 
+  it('[PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone', async () => {
+    const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
+    expect(refusalOf(await approver.call(L.loadCatalogue, { body: {} })).status).toBeGreaterThanOrEqual(400);
+    const first = valueOf(await author.call(L.loadCatalogue, { body: {} }));
+    expect(first.drafted).toContain('PROC-SIFT');
+    expect(first.drafted).toContain('CTRL-LINE-CLEAR-START');
+    const listed = valueOf(await author.call(L.list, { query: { code: 'PROC-SIFT' } })).blocks;
+    expect(listed.map((b) => [b.version, b.state])).toEqual([[1, 'DRAFT']]);
+    const second = valueOf(await author.call(L.loadCatalogue, { body: {} }));
+    expect(second.drafted).toEqual([]);
+    expect(second.skipped).toEqual(expect.arrayContaining(first.drafted));
+  });
+
   it('[DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them', async () => {
     const author = await gmp.asPersona('author');
     const v1 = valueOf(await author.call(L.draft, { body: { definition: friability(newCode(), 1) } })).block;

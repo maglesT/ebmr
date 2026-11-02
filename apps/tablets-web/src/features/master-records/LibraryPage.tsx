@@ -56,6 +56,7 @@ export function LibraryPage() {
           onNewVersion={author ? () => setSeed((x) => ({ text: JSON.stringify({ ...b.definition, version: b.version + 1 }, null, 2), n: (x?.n ?? 0) + 1 })) : undefined}
         />
       ))}
+      {author ? <LoadCatalogue /> : null}
       {author ? <DraftForm key={seed ? String(seed.n) : 'blank'} initial={seed?.text ?? ''} /> : null}
     </>
   );
@@ -101,6 +102,23 @@ function BlockCard({ b, canApprove, onNewVersion }: { b: LibraryBlockView; canAp
           <ActResult error={retire.error} done={retire.done} label="Retired." />
         </>
       ) : null}
+    </Section>
+  );
+}
+
+/** S7: the ready-made catalogue, stored as drafts (codes the library holds are left alone); QA approves what is used. */
+function LoadCatalogue() {
+  const load = useCommand(routes.library.loadCatalogue, READS, 'loading the ready-made catalogue');
+  return (
+    <Section title="Ready-made catalogue" testId="library-catalogue">
+      <p>Load the ready-made blocks (process steps, coatings, tests, controls and packaging) as drafts. Codes the library already holds are left alone; nothing is used until QA approves it.</p>
+      <ActButton primary={false} label="Load the ready-made catalogue as drafts" onPress={() => load.run({ body: {} })} disabled={load.busy} />
+      {load.done ? (
+        <p data-testid="library-catalogue-result">
+          {load.done.drafted.length} stored as drafts{load.done.skipped.length > 0 ? `; ${String(load.done.skipped.length)} already in the library` : ''}.
+        </p>
+      ) : null}
+      <ActResult error={load.error} />
     </Section>
   );
 }

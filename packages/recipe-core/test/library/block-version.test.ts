@@ -301,3 +301,25 @@ describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
     expect((schema?.fields['equipment'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
   });
 });
+
+describe('timer durations in any time unit (S7 catalogue finding)', () => {
+  it('[PR-30] 64 minutes in an hours timer is 1.0666... h, never 3840 h, and is judged as such', () => {
+    const def: BlockDefinition = {
+      code: 'PROC-TIMED',
+      version: 1,
+      title: 'Timed step',
+      category: 'PROCESS',
+      sections: [{ id: 'run', title: 'Run', fields: [{ id: 'hold', label: 'Hold', type: 'TIMER', durationUnit: 'h', limitSlot: 'hold', critical: true }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    const run = runFor(def, { block: { code: 'PROC-TIMED', version: 1 }, limits: { hold: range('h', '1', '2') } });
+    run.entry('p', { kind: TIMER_START, field: 'hold' });
+    run.minutes(64);
+    run.entry('p', { kind: TIMER_STOP, field: 'hold' });
+    const stop = Object.values(run.state.entries).find((e) => e.kind === TIMER_STOP);
+    const d = stop?.data['duration'] as { value: string; unit: string };
+    expect(d.unit).toBe('h');
+    expect(d.value.startsWith('1.0666')).toBe(true);
+    expect(run.exceptions()).toEqual([]);
+  });
+});

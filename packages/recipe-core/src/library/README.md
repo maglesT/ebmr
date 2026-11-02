@@ -139,6 +139,34 @@ renderer draws every library block: `apps/tablets-web/src/features/floor/rendere
 `entrySummariesOf` gives each entry its plain sentence (fields with units, calculated values marked, timer durations).
 The step screens, the review reads and the whole batch record use it.
 
+## Ready-made catalogue (`seed/`, slices S7 and S8)
+
+The catalogue has 79 blocks, shipped as data:
+- process (25): dispensing, potency-adjusted and liquid dispensing, sifting, milling, mixing, binder, RMG and fluid bed
+  granulation, fluid bed and tray drying with an LOD loop, sizing, roller compaction, blending, lubrication, geometric
+  dilution, single, bilayer and trilayer compression, de-dusting and metal detection, printing, rework, hold, transfer;
+- controls (12): line clearance at start and end, room status, equipment status, balance check, sampling, yield,
+  material and printed-packaging reconciliation, stage sign-off, deviation reference, QA verification;
+- packaging (10);
+- coating (8): suspension, seal, film, enteric, top, sugar phases, polishing, inspection;
+- IPC tests (14);
+- release tests (11), including dissolution single-point, profile and two-stage. The profile replaces the paused slice
+  D (R12).
+
+Each item carries example product values. `test/library/seed.test.ts` proves that every item is well made, that its
+example values pass the formulation checks, and that a nominal batch completes it with no exception.
+
+An author loads the catalogue into the library as drafts (`library.loadCatalogue`, the screen's "Load the ready-made
+catalogue as drafts"; recipe-core 1820 checks MBR.AUTHOR first). Codes the library already holds are left alone, and
+nothing is used until QA approves it.
+
+Gaps the catalogue met (follow-ups):
+- the unit catalogue has no electrical units (A, W, kW) and no torque;
+- staged dissolution acceptance (S1/S2/S3, L1/L2/L3) and content-uniformity second stages cannot be expressed;
+- uniformity of weight is limited in absolute mg rather than as % of the measured mean;
+- a choice cannot select a set of limits;
+- a container cannot be moved, and equipment cannot be booked, from a library field.
+
 Test results' statistics are judged by the engine; their database re-check comes with the test catalogue (S8).
 
 Tests: `packages/recipe-core/test/library/library.test.ts`, `block-version.test.ts`, `integration.test.ts`;

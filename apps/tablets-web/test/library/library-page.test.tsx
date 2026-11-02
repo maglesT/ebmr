@@ -85,4 +85,11 @@ describe('the block library screen', () => {
     await waitFor(() => expect(ui.posts('/api/library/blocks')).toHaveLength(1));
     expect((ui.posts('/api/library/blocks')[0]?.body as { definition: { version: number } }).definition.version).toBe(2);
   });
+
+  it('[PR-05] an author loads the ready-made catalogue as drafts and sees how many were stored', async () => {
+    const ui = renderOffice('/mbr/library', { role: 'MBR_AUTHOR', fixtures: { 'library.list': { blocks: [] }, 'library.loadCatalogue': { drafted: ['PROC-SIFT', 'CTRL-LINE-CLEAR-START'], skipped: ['IPC-FRIAB'] } } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Load the ready-made catalogue as drafts' }));
+    await waitFor(() => expect(ui.posts('/api/library/catalogue/load')).toHaveLength(1));
+    expect((await screen.findByTestId('library-catalogue-result')).textContent).toBe('2 stored as drafts; 1 already in the library.');
+  });
 });

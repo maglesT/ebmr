@@ -471,7 +471,9 @@ export const TARGETS: Target[] = [
                 'recipe.library_limits_problem', 'recipe.library_limits_check', 'recipe.library_snapshot_problem',
                 'recipe.library_at_approval_check', 'recipe.library_at_issue_check',
                 // Decision 0026 slice S6 (tablets 1803): lots, equipment and hand-keyed weighings of library entries.
-                'tab.library_smart_problem', 'tab.library_smart_fields_check'],
+                'tab.library_smart_problem', 'tab.library_smart_fields_check',
+                // Decision 0026 slice S7 (recipe-core 1820): the catalogue load's author check.
+                'recipe.require_library_author'],
     tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts')],
     threshold: 90,
   },

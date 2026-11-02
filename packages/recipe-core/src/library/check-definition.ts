@@ -26,6 +26,8 @@ import {
 const CODE = /^[A-Z][A-Z0-9-]{1,39}$/;
 const IDENT = /^[a-z][A-Za-z0-9_]{0,39}$/;
 const SLOT = /^[a-z][A-Za-z0-9_]{0,39}$/;
+/** Members an entry carries besides its fields (the kind, server-filled facts, calculated values, timers). */
+const RESERVED_IDS = ['kind', 'lots', 'equipment', 'computed', 'field', 'duration'];
 
 /** True when two UCUM units measure the same kind of quantity (a value converts exactly between them). */
 export function commensurable(expr: ExpressionService, a: string, b: string): boolean {
@@ -192,6 +194,7 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: 
     return [err('LIB-FIELD-TYPE', `${fp}.type`, `Unknown field type ${JSON.stringify((f as { type: string }).type)}; the field types are ${FIELD_TYPES.join(', ')}`)];
   }
   if (typeof f.id !== 'string' || !IDENT.test(f.id)) out.push(err('LIB-FIELD-ID', `${fp}.id`, `Field id ${JSON.stringify(f.id)} must start with a lower-case letter and use letters, digits or underscores`));
+  else if (RESERVED_IDS.includes(f.id)) out.push(err('LIB-FIELD-RESERVED', `${fp}.id`, `Field id ${f.id} is a name the entry itself uses (${RESERVED_IDS.join(', ')}); choose another`));
   if (typeof f.label !== 'string' || f.label.trim() === '') out.push(err('LIB-FIELD-LABEL', `${fp}.label`, `Field ${String(f.id)} needs a label the operator reads`));
   const unitOk = (unit: unknown, at: string): boolean => {
     if (typeof unit !== 'string') {

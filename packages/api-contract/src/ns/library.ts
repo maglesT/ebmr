@@ -65,6 +65,18 @@ export const library = {
     body: withAttribution({ definition: z.record(z.string(), z.unknown()) }),
     response: z.strictObject({ block: LibraryBlockView, warnings: z.array(LibraryProblemView) }),
   }),
+  loadCatalogue: defineRoute({
+    id: 'library.loadCatalogue',
+    method: 'POST',
+    path: '/api/library/catalogue/load',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Store every block of the ready-made catalogue whose code the library does not hold yet as a draft (author); QA approves what the site uses',
+    body: withAttribution({}),
+    response: z.strictObject({ drafted: z.array(z.string()), skipped: z.array(z.string()) }),
+  }),
   retire: defineRoute({
     id: 'library.retire',
     method: 'POST',

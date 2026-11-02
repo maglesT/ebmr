@@ -8,6 +8,7 @@
  * with a reason.
  */
 import { routes, type LibraryBlockView, type SignableAction } from '@ebmr/api-contract';
+import { librarySeed } from '@ebmr/recipe-core';
 import { library } from '@ebmr/recipe-core/pure';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
@@ -125,6 +126,28 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const [block] = await blocks(app, pool, { id: out.result });
       if (!block) throw refusal(404, { code: 'LIB-NOT-FOUND', kind: 'STALE', whatHappened: 'The stored block could not be read back.' });
       return { block, warnings: problems.filter((p) => p.severity === 'WARNING') };
+    },
+    loadCatalogue: async ({ actor, idempotencyKey, requestHash }) => {
+      // S7: the catalogue goes into the library as drafts through the same command as any author's draft; codes the
+      // library already holds are left alone (a site's own versions are never overwritten).
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select recipe.require_library_author()');
+        const { rows } = await c.query<{ code: string }>('select distinct code from recipe.library_block');
+        const held = new Set(rows.map((r) => r.code));
+        const drafted: string[] = [];
+        const skipped: string[] = [];
+        for (const item of librarySeed.SEED_CATALOGUE) {
+          const def = item.definition;
+          if (held.has(def.code) || checkDefinition(def as unknown as Record<string, unknown>).some((p) => p.severity === 'ERROR')) {
+            skipped.push(def.code);
+            continue;
+          }
+          await c.query('select recipe.draft_library_block($1::jsonb)', [JSON.stringify(def)]);
+          drafted.push(def.code);
+        }
+        return { drafted, skipped };
+      });
+      return out.result;
     },
     retire: async ({ body, actor, idempotencyKey, requestHash }) => {
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {

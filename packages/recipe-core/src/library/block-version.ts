@@ -481,8 +481,12 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     const start = view.entries(TIMER_START).find((e) => e.data['field'] === field);
     if (!f || f.type !== 'TIMER' || !start) return { ok: true, data: { field } };
     const unit = f.durationUnit ?? 'min';
-    const seconds = Dec.parse((view.nowUs - start.recordedAt).toString()).div(Dec.parse('1000000')).toString();
-    const d = expr.convert(seconds, 's', unit) ?? seconds;
+    const seconds = Dec.parse((view.nowUs - start.recordedAt).toString()).div(Dec.parse('1000000'));
+    // The length of one `unit` in seconds converts exactly (min, h, d); the duration is the division in decimals, so a
+    // duration that is no whole number of the unit (64 min in h) is still that duration, never seconds under another name.
+    const perUnit = expr.convert('1', unit, 's');
+    if (perUnit === undefined) return { ok: false, problems: [problem('LIB-TIMER-UNIT', `The timer ${field} is in ${unit}, which is not a time`, ['PR-30'])] };
+    const d = seconds.div(Dec.parse(perUnit)).toString();
     const draft = f.limitSlot !== undefined ? breach(configOf(view).limits?.[f.limitSlot], d, unit, `${def.title}: ${f.label}`, `${view.phase.id}.${f.id}`) : undefined;
     return { ok: true, data: { field, duration: { value: d, unit } }, ...(draft ? { exceptions: [draft] } : {}) };
   };
