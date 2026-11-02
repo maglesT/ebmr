@@ -10,6 +10,7 @@ import { terminalOf } from '@ebmr/test-kit';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
+import { definitionFindings } from '../../src/features/designer/definition.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
 import { publishTables, saveContent, stewardActor } from './support.ts';
 
@@ -73,7 +74,7 @@ afterAll(async () => {
 });
 
 describe('a new master from an approved formula (slice 7j)', () => {
-  it('[INV-25][PR-01] the skeleton takes its header, batch sizes and bill of materials from the formula, pins it, blends with TB-07 and passes the validator gate and the simulation', async () => {
+  it('[INV-25][PR-01][DI-05][INV-27] the skeleton takes its header, batch sizes and bill of materials from the formula, pins it, blends with TB-07, runs the database-backed clearance and status steps, ends with QA\'s release for packing (H-PACK) and passes the validator gate and the simulation', async () => {
     const v = valueOf(await create('DMT7JF-SK', 'SKELETON'));
     const c = v.content as unknown as { header: { product: { dosageForm: string; name: string }; batchSizes: { id: string; quantity: { value: string } }[] }; bom: { id: string; quantity: { value: string } }[] };
     expect(c.header.product).toMatchObject({ name: 'Demotab 400 mg', dosageForm: 'Film-coated tablet' });
@@ -90,6 +91,27 @@ describe('a new master from an approved formula (slice 7j)', () => {
     const sim = valueOf(await author.call(routes.designer.simulate, { params: { versionId: v.versionId }, body: {} }));
     expect(sim.problems.map((p) => p.message)).toEqual([]);
     expect(sim.passed).toBe(true);
+
+    // Decision 0026 S11b: the clearance and status steps are the database-backed versions a GMP batch runs, and the
+    // blending stage ends with QA's release for packing (H-PACK).
+    const steps: { id: string; kind: string; block?: { type: string; version: string } }[] = [];
+    const visit = (n: unknown): void => {
+      if (Array.isArray(n)) n.forEach(visit);
+      else if (n && typeof n === 'object') {
+        const o = n as { id?: string; kind?: string; block?: { type: string; version: string } };
+        if (o.kind === 'phase' || o.kind === 'holdPoint') steps.push({ id: o.id ?? '', kind: o.kind, ...(o.block ? { block: o.block } : {}) });
+        Object.values(o).forEach(visit);
+      }
+    };
+    visit((v.content as { procedure: unknown }).procedure);
+    const blockOf = (id: string): string => { const b = steps.find((x) => x.id === id)?.block; return b ? `${b.type}@${b.version}` : ''; };
+    expect(['p-disp-clear', 'p-disp-bal', 'p-blend-clear', 'p-blend-status'].map(blockOf)).toEqual(['G-10@2', 'G-09@2', 'G-10@2', 'G-09@2']);
+    expect(steps.some((x) => x.block && ['G-09@1', 'G-10@1'].includes(`${x.block.type}@${x.block.version}`))).toBe(false);
+    // The release for packing comes last, after the blend yield.
+    expect(steps.map((x) => x.id).slice(-2)).toEqual(['p-blend-yield', 'H-PACK']);
+    // A GMP batch defines on it: no step is one a GMP batch refuses (the designer's INFO findings), and the gate passes.
+    expect(definitionFindings(v.content as never).filter((f) => f.rule === 'ENG-DEF-SANDBOX-ONLY')).toEqual([]);
+    expect(report.findings.filter((f) => f.rule === 'ENG-DEF-SANDBOX-ONLY').map((f) => f.message)).toEqual([]);
   }, 120_000);
 
   it('[INV-25][DI-35][PR-04] overages (slice 7q, C1): an excess per line in percent or as a quantity, always with its reason; the label claim stays; the batch quantity, the batch mass and the master\'s bill of materials include it; the approver signs it', async () => {

@@ -8,7 +8,8 @@
  * checks the content carries exactly its composition (recipe-core 0640, 0690). Three starts:
  *  - SKELETON: the required skeleton of a processing master: a dispensing stage (room clearance, balance status, SOP,
  *    dispensing quantities, weighing of the actives, the other unit components and the processing aids, reconciliation)
- *    and a blending stage (clearance, equipment status, charge, blend, QA hold point, discharge, yield), with their
+ *    and a blending stage (clearance, equipment status, charge, blend, QA hold point, discharge, yield, QA's release for
+ *    packing H-PACK), with their
  *    parameters, calculations (from the formula's per-unit quantities), yield checkpoints, hold time and golden cases,
  *    shaped as the dc-mini demo master's two stages; the author adds, removes and reorders stages and steps in the designer;
  *  - BLANK: the header, the bill of materials and one dispensing stage with its clearance and balance status only;
@@ -239,8 +240,23 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   t.timeConstraints = t.timeConstraints.map((tc) => ({ ...tc, from: { ...tc.from, node: 'p-disp-act' } }));
   t.intermediates = t.intermediates.map((i) => ({ ...i, name: 'Final blend' }));
 
-  // The clearance and equipment status stay the sandbox versions (G-10@1, G-09@1) the demo plant runs (D-7j-6); the
-  // validator says a GMP batch refuses them, and the author inserts the database-backed versions from the palette.
+  // Decision 0026 S11b (D-S11b-1): the clearance and equipment status are the database-backed versions G-10@2 and G-09@2
+  // (the room's verified clearance and occupancy, each unit's status, check and booking on Plant). D-7j-6 kept the
+  // sandbox versions (G-10@1, G-09@1) because the sandbox plant could not run the others then; it mirrors the GMP plant
+  // since slice 7o, and a GMP batch refuses the sandbox versions, so a master from the formula could make no GMP batch.
+  walk(t.procedure, (o) => {
+    const b = o['block'] as { type?: unknown; version?: unknown } | undefined;
+    if (o['kind'] === 'phase' && b && (b.type === 'G-10' || b.type === 'G-09') && b.version === '1') o['block'] = { type: b.type, version: '2' };
+  });
+  // D-S11b-2: the blending stage ends with QA's release for packing (H-PACK), the gate a packaging order of the batch
+  // needs (recipe-core 0701); the steps the author adds after the discharge (compression, coating, tests) come before it.
+  walk(blend, (o) => {
+    if (o['kind'] === 'sequence' && Array.isArray(o['children'])) {
+      const children = o['children'] as flow.FlowNode[];
+      const at = children.findIndex((n) => n.id === 'p-blend-yield');
+      if (at >= 0) children.splice(at + 1, 0, { kind: 'holdPoint', id: 'H-PACK', name: 'Bulk released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] } as flow.FlowNode);
+    }
+  });
   t.header = header(src, req, markets);
   t.references = [...base.content.references.filter((r) => SKELETON_REFS.includes(r.id)), ...(timeSystem ? [timeSystem] : []), ...materialRefs(src)];
   t.bom = bomOf(src);
