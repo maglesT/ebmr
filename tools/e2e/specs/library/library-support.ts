@@ -41,7 +41,20 @@ export function productBlock(code: string, classes: string | Readonly<Record<str
     if (!cls) throw new Error(`${code}: no plant class given for its equipment slot ${s.name}`);
     equipmentClasses[s.name] = cls;
   }
-  return { def, use: { ...item.exampleUse, equipmentClasses } };
+  // The sandbox run is compressed in time: a timer runs seconds, not the product's minutes. A timer's limit keeps its upper
+  // bound and loses its lower one, here only; every other limit is the catalogue's example, as typed by the author.
+  const timed = new Set(def.sections.flatMap((x) => x.fields).flatMap((f) => (f.type === 'TIMER' && f.limitSlot !== undefined ? [f.limitSlot] : [])));
+  const limits = Object.fromEntries(
+    Object.entries(item.exampleUse.limits ?? {}).map(([slot, spec]) => [slot, timed.has(slot) ? { ...spec, ranges: spec.ranges.map((r) => withoutLow(r)) } : spec]),
+  );
+  return { def, use: { ...item.exampleUse, equipmentClasses, limits } };
+}
+
+/** A range without its lower bound. */
+function withoutLow<R extends { low?: unknown }>(r: R): Omit<R, 'low'> {
+  const copy = { ...r };
+  delete copy.low;
+  return copy;
 }
 
 /** The step id the designer gives the first library step of a code (designer LibraryBlocks.tsx libraryStepId). */
