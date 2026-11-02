@@ -297,13 +297,20 @@ export async function runLibraryStep(
   await expect(card(page)).toContainText('Completed');
 }
 
+/** When each kiosk page last sent a badge tap (the kiosk accepts at most 30 a minute per terminal and badge). */
+const lastTap = new WeakMap<Page, number>();
+
 /** A kiosk act sent with the person's badge tap; it is recorded when the entries list grows. */
 async function withTap(page: Page, who: SeededPersona, button: Locator): Promise<void> {
   const entries = page.locator('li[data-testid^="entry-"]');
   const before = await entries.count();
   await expect(button).toBeEnabled();
+  // A person taps no faster than the kiosk's rate limit allows: at least 2.1 s between taps on one terminal.
+  const wait = (lastTap.get(page) ?? 0) + 2_100 - Date.now();
+  if (wait > 0) await page.waitForTimeout(wait);
   await button.click();
   await tap(page, who);
+  lastTap.set(page, Date.now());
   await expect(async () => expect(await entries.count()).toBeGreaterThan(before)).toPass({ timeout: 20_000 });
 }
 
