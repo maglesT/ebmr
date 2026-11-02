@@ -69,7 +69,13 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-**Resume here (3 November 2026): S11 passes; checks before the PR.** S11b passes locally on branch `dyn/s11`: each tablet
+**Resume here (3 November 2026): S11 passes, CI green on the RunPod pod.** Full CI run 370 on `dyn/s11` at 5c81fc0 is green
+(https://github.com/maglesT/ebmr/actions/runs/41533692154): static checks, supply chain, golden batches, all eight test
+shards (one rerun: a random 3-byte room code clash in `packages/recipe-core/test/plant/support.ts` `tag()`, a pre-existing
+flake) and all twelve E2E groups, the three library tablets among them. Run 369 found two of this branch's own defects,
+fixed in 5c81fc0: a circular import in the e2e helpers, and the sandbox count check applied beyond masters from a formula.
+The pod (32 vCPU, 14 runners `pod-1`..`pod-14`, label `ebmr-pod`) is up and `CI_RUNNER` is deleted (owner, 2 November).
+Next: a PR when the owner asks. S11b passes locally on branch `dyn/s11` as well: each tablet
 11 of 11, from the catalogue to its released lot, screens only (`library-wg-fc` 46 min, `library-dc` 45 min,
 `library-rabe-ec` 46 min). The acceptance is `tools/e2e/specs/library/acceptance.ts`, one spec file and E2E group per tablet
 (replaces `library-acceptance`): the catalogue, S11a, then GMP 1 to 9 (Demotab 4 to 12's screens; the GMP batch at the
@@ -82,8 +88,7 @@ pre-fills each size's exact tablet count and refuses a mismatch; the sandbox iss
 findings (the controls were right): the product must be in the plant's product list before a clearance (EBMR-PLANT-012);
 typed weighings when the GMP balance is offline; a sandbox TEST- code may not contain a word shaped like a real batch
 number (DI-05). Commits 87c01b17, b334a88f and 0a252802 of `dyn/s11a` cherry-picked. The controls list the new tests;
-the handbook is regenerated. Next: the 7j `own-product.spec.ts` (its sandbox run now uses the skeleton floor), then
-`pnpm run ci`; a PR only when the owner asks. Local E2E: start PostgreSQL;
+the handbook is regenerated. The 7j `own-product.spec.ts` passes locally too. Local E2E: start PostgreSQL;
 `/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell` must point at the installed -1243
 `chrome-headless-shell` (local only); one group: `EBMR_E2E_GROUP=library-wg-fc PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock
 /tmp/ebmr-e2e.lock -c 'CI=true pnpm --filter @ebmr/e2e test'` (about 20 minutes of set-up first).
