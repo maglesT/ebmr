@@ -110,19 +110,23 @@ export async function addLibraryBlocks(page: Page, afterId: string, blocks: read
 async function fillValues(page: Page, b: ProductBlock): Promise<void> {
   const form = page.getByTestId('library-values');
   const use = b.use;
-  for (const s of library.slotsOf(b.def)) {
+  const slots = library.slotsOf(b.def);
+  const owners = slots.filter((s) => s.kind === 'LIMIT').map((s) => s.owner);
+  const shared = new Set(owners.filter((o, i) => owners.indexOf(o) !== i));
+  for (const s of slots) {
     const label = `${s.name} (${s.owner})`;
     switch (s.kind) {
       case 'LIMIT': {
         const l = use.limits?.[s.name];
         const range = l?.ranges.find((r) => r.tier === 'REGISTERED') ?? l?.ranges[0];
-        const box = form.getByRole('group', { name: `Limits of ${s.owner}` });
-        if (range?.low) await commit(box, `${s.owner}: lower limit`, range.low.value);
-        if (range?.high) await commit(box, `${s.owner}: upper limit`, range.high.value);
+        const who = shared.has(s.owner) ? `${s.owner}, ${s.name}` : s.owner;
+        const box = form.getByRole('group', { name: `Limits of ${who}`, exact: true });
+        if (range?.low) await commit(box, `${who}: lower limit`, range.low.value);
+        if (range?.high) await commit(box, `${who}: upper limit`, range.high.value);
         const target = use.targets?.[s.name];
-        if (target) await commit(box, `${s.owner}: target`, target);
+        if (target) await commit(box, `${who}: target`, target);
         const why = use.justifications?.[s.name];
-        if (why) await commit(box, `${s.owner}: reason if looser than the reference`, why);
+        if (why) await commit(box, `${who}: reason if looser than the reference`, why);
         break;
       }
       case 'EQUIPMENT_CLASS':

@@ -95,6 +95,8 @@ export function LibraryValuesForm({ content, step, readOnly, onChange }: { conte
   if (!def) return <p className={dcls('small')}>This master carries no snapshot of {step.block.type}@{step.block.version}; add the block again from the library.</p>;
   const config = step.config;
   const slots = library.slotsOf(def);
+  const limitOwners = slots.filter((s) => s.kind === 'LIMIT').map((s) => s.owner);
+  const shared = new Set(limitOwners.filter((o, i) => limitOwners.indexOf(o) !== i));
   const problems = library.checkBlockUse(def, { block: { code: def.code, version: def.version }, ...(config as unknown as Omit<library.BlockUse, 'block'>) }, EXPR);
   const bom: Option[] = [{ value: '', label: '— choose a line —' }, ...content.bom.map((b) => ({ value: b.id, label: `${b.id}: ${content.references.find((r) => r.id === b.material)?.title ?? b.material}` }))];
   const perPoint = def.sections.flatMap((s) => s.fields).filter((f): f is library.FieldDef & { type: 'TEST_RESULT' } => f.type === 'TEST_RESULT' && f.perPoint === true);
@@ -108,16 +110,18 @@ export function LibraryValuesForm({ content, step, readOnly, onChange }: { conte
         if (s.kind === 'LIMIT') {
           const l = limitOf(config, s.name);
           const ref = def.referenceLimits?.[s.name];
+          // A field with several limits (a test's mean, minimum and maximum) names each by its slot (S11 finding).
+          const who = shared.has(s.owner) ? `${s.owner}, ${s.name}` : s.owner;
           return (
-            <fieldset key={s.name} aria-label={`Limits of ${s.owner}`} className={dcls('stack')}>
+            <fieldset key={s.name} aria-label={`Limits of ${who}`} className={dcls('stack')}>
               <legend>
-                Limits of {s.owner} ({s.unit}){s.required ? ', required' : ''}
+                Limits of {who} ({s.unit}){s.required ? ', required' : ''}
                 {ref ? ` · reference ${ref.low ?? ''}${ref.low && ref.high ? ' to ' : ''}${ref.high ?? ''} ${ref.unit}: ${ref.note}` : ''}
               </legend>
-              <CommitText label={`${s.owner}: lower limit`} value={boundOf(l, 'low')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', v, boundOf(l, 'high'), l?.ranges[0]?.source.ref ?? ''))} />
-              <CommitText label={`${s.owner}: upper limit`} value={boundOf(l, 'high')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', boundOf(l, 'low'), v, l?.ranges[0]?.source.ref ?? ''))} />
-              <CommitText label={`${s.owner}: target`} value={String((config['targets'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'targets', s.name, v.trim()))} />
-              <CommitText label={`${s.owner}: reason if looser than the reference`} value={String((config['justifications'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'justifications', s.name, v.trim()))} />
+              <CommitText label={`${who}: lower limit`} value={boundOf(l, 'low')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', v, boundOf(l, 'high'), l?.ranges[0]?.source.ref ?? ''))} />
+              <CommitText label={`${who}: upper limit`} value={boundOf(l, 'high')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', boundOf(l, 'low'), v, l?.ranges[0]?.source.ref ?? ''))} />
+              <CommitText label={`${who}: target`} value={String((config['targets'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'targets', s.name, v.trim()))} />
+              <CommitText label={`${who}: reason if looser than the reference`} value={String((config['justifications'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'justifications', s.name, v.trim()))} />
             </fieldset>
           );
         }

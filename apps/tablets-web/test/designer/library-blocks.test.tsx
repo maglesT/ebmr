@@ -87,6 +87,46 @@ describe('library blocks in the designer', () => {
     expect(config['hash']).toBe(library.definitionHash(FRIAB));
   });
 
+  it('[PR-03] a field with several limits (a test\'s mean, minimum and maximum) names each limit by its slot, so the author can tell them apart (S11 finding)', async () => {
+    const HARD: library.BlockDefinition = {
+      code: 'IPC-HARD-T',
+      version: 1,
+      title: 'Hardness',
+      category: 'TEST_IPC',
+      sections: [
+        {
+          id: 'run',
+          title: 'Run',
+          fields: [
+            {
+              id: 'force',
+              label: 'Breaking force',
+              type: 'TEST_RESULT',
+              unit: 'N',
+              replicatesSlot: 'tablets',
+              statistics: [
+                { statistic: 'MEAN', limitSlot: 'meanForce' },
+                { statistic: 'MIN', limitSlot: 'minForce' },
+              ],
+            },
+            { id: 'note', label: 'Note', type: 'NUMBER', unit: 'mm', limitSlot: 'note' },
+          ],
+        },
+      ],
+      signatures: [{ meaning: 'PERFORMED', role: 'IPC_OPERATOR' }],
+    };
+    const c = applyOp(content(), { kind: 'ADD_LIBRARY_BLOCK', ...(insertionPoint(content(), firstPhase(content()).id) as { sequenceId: string; index: number }), stepId: 'p-ipc-hard-t', definition: HARD });
+    const step = byId(c, 'p-ipc-hard-t');
+    if (!step) throw new Error('no step');
+    renderRouted(() => <LibraryValuesForm content={c} step={step} readOnly={false} onChange={vi.fn()} />);
+    const form = await screen.findByTestId('library-values');
+    expect(within(form).getByRole('group', { name: 'Limits of force, meanForce' })).toBeTruthy();
+    expect(within(form).getByRole('group', { name: 'Limits of force, minForce' })).toBeTruthy();
+    expect(within(form).getAllByLabelText('force, minForce: lower limit')).toHaveLength(1);
+    // A field with one limit keeps the plain name.
+    expect(within(form).getByRole('group', { name: 'Limits of note' })).toBeTruthy();
+  });
+
   it('[PR-05] the author picks an approved library block and adds it after the step', async () => {
     installFixtures({
       'library.list': {
