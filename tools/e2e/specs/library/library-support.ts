@@ -90,6 +90,55 @@ export async function approveBlocks(page: Page, base: string, codes: readonly st
 }
 
 // ---------------------------------------------------------------------------------------------
+// The plant
+
+/** A unit a product needs that the plant does not have yet: its class and the unit itself. */
+export interface PlantUnit {
+  classCode: string;
+  classKind: 'PROCESS' | 'INSTRUMENT';
+  classDescription: string;
+  code: string;
+  name: string;
+  area: string;
+}
+
+/**
+ * The steward defines each unit's class and the unit on the Plant definitions screen and records its qualification in
+ * the equipment logbook: the plant's data, entered on screen (a process unit needs no calibration).
+ */
+export async function registerPlantUnits(page: Page, base: string, units: readonly PlantUnit[]): Promise<void> {
+  await page.goto(`${base}/master-data/plant`);
+  for (const u of units) {
+    await choose(page.getByRole('radiogroup', { name: 'Show' }).getByRole('radio', { name: 'Equipment classes', exact: true }));
+    const cf = page.getByRole('form', { name: 'Define: Equipment classes' });
+    await cf.getByRole('textbox', { name: 'Code', exact: true }).fill(u.classCode);
+    await choose(cf.getByRole('radiogroup', { name: 'Kind' }).getByRole('radio', { name: u.classKind, exact: true }));
+    await cf.getByRole('textbox', { name: 'Description', exact: true }).fill(u.classDescription);
+    await cf.getByRole('button', { name: 'Define' }).click();
+    await expect(page.getByRole('table', { name: 'Equipment classes' })).toContainText(u.classCode);
+    await choose(page.getByRole('radiogroup', { name: 'Show' }).getByRole('radio', { name: 'Equipment', exact: true }));
+    const ef = page.getByRole('form', { name: 'Define: Equipment' });
+    await ef.getByRole('textbox', { name: 'Code', exact: true }).fill(u.code);
+    await ef.getByRole('textbox', { name: 'Name', exact: true }).fill(u.name);
+    await ef.getByRole('textbox', { name: 'Class', exact: true }).fill(u.classCode);
+    await ef.getByRole('textbox', { name: 'Area', exact: true }).fill(u.area);
+    await ef.getByRole('button', { name: 'Define' }).click();
+    await expect(page.getByRole('table', { name: 'Equipment' })).toContainText(u.code);
+  }
+  await page.goto(`${base}/plant`);
+  const log = page.getByTestId('equipment-event');
+  for (const u of units) {
+    await log.getByRole('textbox', { name: 'Equipment code' }).fill(u.code);
+    await choose(log.getByRole('radiogroup', { name: 'Record' }).getByRole('radio', { name: 'A logbook event' }));
+    await choose(log.getByRole('radiogroup', { name: 'Event' }).getByRole('radio', { name: 'QUALIFIED', exact: true }));
+    await log.getByRole('textbox', { name: 'Detail' }).fill('IQ/OQ/PQ approved (DEMO-ONLY)');
+    await log.getByRole('textbox', { name: 'Reference (optional)' }).fill(`QUAL-${u.code}`);
+    await log.getByRole('button', { name: 'Record in the logbook' }).click();
+    await expect(log.getByText('Recorded.')).toBeVisible();
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // The designer
 
 async function commit(scope: Locator, label: string, value: string): Promise<void> {
@@ -165,7 +214,14 @@ async function fillValues(page: Page, b: ProductBlock): Promise<void> {
  * Runs the library step of `b` on the kiosk `page`: started by the operator, each nominal entry recorded through the
  * generic screen (`equipment` gives the unit to name for each class), signed as performed and verified.
  */
-export async function runLibraryStep(page: Page, ctx: { base: string; runId: string; operator: SeededPersona; verifier: SeededPersona }, b: ProductBlock, equipment: Readonly<Record<string, string>>, n = 1): Promise<void> {
+export async function runLibraryStep(
+  page: Page,
+  ctx: { base: string; runId: string; operator: SeededPersona; verifier: SeededPersona },
+  b: ProductBlock,
+  equipment: Readonly<Record<string, string>>,
+  lots: Readonly<Record<string, string>> = {},
+  n = 1,
+): Promise<void> {
   const key = `${stepIdOf(b.def.code)}@`;
   await openStep(page, ctx.base, ctx.runId, key, b.def.title);
   await startStep(page, ctx.operator);
@@ -208,6 +264,12 @@ export async function runLibraryStep(page: Page, ctx: { base: string; runId: str
           const unit = equipment[cls];
           if (!unit) throw new Error(`${b.def.code}: no unit of class ${cls} on this plant`);
           await form.getByRole('textbox', { name: f.label, exact: true }).fill(unit);
+          break;
+        }
+        case 'MATERIAL_LOT': {
+          const lot = lots[f.id];
+          if (!lot) throw new Error(`${b.def.code}: no lot given for ${f.id}`);
+          await form.getByRole('textbox', { name: f.label, exact: true }).fill(lot);
           break;
         }
         case 'CONTAINER':

@@ -1,6 +1,6 @@
 /**
- * Decision 0026 slice S11, the acceptance of the dynamic library: three very different tablets set up through the
- * screens only, from the library, with no change to the product's code. The ready-made catalogue is loaded and QA
+ * Decision 0026 slice S11, the acceptance of the dynamic library: three very different tablets and a hard capsule set up
+ * through the screens only, from the library, with no change to the product's code. The ready-made catalogue is loaded and QA
  * approves the blocks the three use; then for each tablet, as a company does for its own product (phase7/own-product):
  *  1. the steward enters the materials and the product, QA confirms them; the formula is written and approved;
  *  2. the author starts the master from the formula with the required skeleton (dispensing; blending with TB-07) and
@@ -27,7 +27,7 @@ import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
 import { checksPass, saveRevision } from '../phase7/own-product-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, loadCatalogue, productBlock, runLibraryStep, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -49,6 +49,9 @@ const SANDBOX_UNITS: Readonly<Record<string, string>> = {
   'EQC-FBD': 'TEST-FBD-01',
   'EQC-MILL': 'TEST-MILL-01',
   'EQC-COATER': 'TEST-COATER-01',
+  // Registered on screen by the capsule product's test (its plant data, not the demo plant's).
+  'EQC-CAPS-FILLER': 'TEST-CAPS-01',
+  'EQC-CAPS-POLISH': 'TEST-POLISH-01',
 };
 
 interface Tablet {
@@ -64,6 +67,10 @@ interface Tablet {
   discharge: { tare: string; gross: string };
   afterDispensing: readonly ProductBlock[];
   afterDischarge: readonly ProductBlock[];
+  /** Empty capsule shells: a material of its own, not in the formula; its lot is named in the filling step. */
+  shells?: string;
+  /** Units the plant does not have yet, registered on the sandbox's screens before the batch. */
+  plant?: readonly PlantUnit[];
 }
 
 const TABLETS: readonly Tablet[] = [
@@ -115,6 +122,35 @@ const TABLETS: readonly Tablet[] = [
     afterDispensing: [],
     afterDischarge: [productBlock('PROC-COMPRESS', 'EQC-PRESS-GBT'), productBlock('COAT-SEAL', 'EQC-COATER'), productBlock('COAT-ENTERIC', 'EQC-COATER'), productBlock('COAT-TOP', 'EQC-COATER'), productBlock('IPC-DT-ENTERIC', 'EQC-DT')],
   },
+  {
+    // Owner direction, 2 November 2026: a hard capsule beside the three tablets, with no code change either.
+    key: 'caps',
+    prefix: 'LCP200',
+    name: 'Libcap 200 mg, hard capsules size 0 (library)',
+    strength: '200 mg',
+    dosageForm: 'Hard capsule',
+    targetMg: '300',
+    materials: [
+      { id: 'api', name: 'Libcap active', mgPerUnit: '200', tare: '1.000', gross: '11.000' },
+      { id: 'lac', name: 'Lactose monohydrate (capsule grade)', mgPerUnit: '95', tare: '1.000', gross: '5.750' },
+      { id: 'mgs', name: 'Magnesium stearate (lubricant)', mgPerUnit: '5', tare: '0.200', gross: '0.450' },
+    ],
+    discharge: { tare: '1.000', gross: '16.000' },
+    shells: 'Empty hard gelatin capsule shells, size 0',
+    plant: [
+      { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'TEST-CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'TEST-POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
+    ],
+    afterDispensing: [],
+    afterDischarge: [
+      productBlock('PROC-CAPS-FILL', 'EQC-CAPS-FILLER'),
+      productBlock('IPC-CAPS-FILL-WEIGHT', 'EQC-BAL'),
+      productBlock('IPC-CAPS-LOCK-LENGTH', 'EQC-HT'),
+      productBlock('IPC-CAPS-APPEARANCE', {}),
+      productBlock('IPC-CAPS-DT', 'EQC-DT'),
+      productBlock('PROC-CAPS-POLISH', 'EQC-CAPS-POLISH'),
+    ],
+  },
 ];
 
 const CODES = [...new Set(TABLETS.flatMap((t) => [...t.afterDispensing, ...t.afterDischarge].map((b) => b.def.code)))];
@@ -147,6 +183,8 @@ for (const t of TABLETS) {
     const tag = `R${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
     const product = { code: `${t.prefix}-${tag}`, strength: t.strength, name: t.name };
     const materials: OwnMaterial[] = t.materials.map((m, i) => ({ code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, tare: m.tare, gross: m.gross, group: i === 0 ? 'act' : 'exc' }));
+    // The empty shells are entered and confirmed like any material; the formula does not hold them.
+    if (t.shells) materials.push({ code: `${t.prefix}-SHELL-${tag}`, name: t.shells, tare: '0', gross: '0', group: 'exc' });
 
     const s = await officePage('GMP', 'PC-QA-01');
     await signIn.office(s, steward);
@@ -320,15 +358,22 @@ for (const t of TABLETS) {
     let batchNumber = '';
     await evidence.step('Sandbox: the steward registers TEST- lots of the new materials; the test batch, issued at the further size, runs every library step on the kiosks to Execution complete and its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
       await registerTestLots({ officePage, kioskPage, persona }, lots);
-      const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona }, packageHash, lots, t.discharge, {
+      if (t.plant) {
+        const sp = await officePage('SANDBOX', 'TEST-PC-01');
+        await signIn.office(sp, persona('SANDBOX', 'steward'));
+        await registerPlantUnits(sp, e2e.url('SANDBOX'), t.plant);
+        await sp.context().close();
+      }
+      const shellLot = t.shells ? { shellLot: lots[t.materials.length]?.lotCode ?? '' } : {};
+      const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona }, packageHash, lots.slice(0, t.materials.length), t.discharge, {
         // S10: the batch is issued at the further size (not the reference size); every quantity is scaled to it.
         sizeIndex: 1,
       sizeUnits: '50000',
         afterDispensing: async (page, ctx) => {
-          for (const b of t.afterDispensing) await runLibraryStep(page, ctx, b, SANDBOX_UNITS);
+          for (const b of t.afterDispensing) await runLibraryStep(page, ctx, b, SANDBOX_UNITS, shellLot);
         },
         afterDischarge: async (page, ctx) => {
-          for (const b of t.afterDischarge) await runLibraryStep(page, ctx, b, SANDBOX_UNITS);
+          for (const b of t.afterDischarge) await runLibraryStep(page, ctx, b, SANDBOX_UNITS, shellLot);
         },
       });
       batchNumber = run.batchNumber;
