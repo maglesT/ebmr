@@ -109,6 +109,11 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [INV-01][PR-04][PR-18] Demotab 6: the ERP simulator sends Demotab's processing order; the batch planned and issued; stores reserve the lots @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole 6: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued; stores reserve the lots @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [INV-01][PR-04][PR-18][IN-18] P3 demo 1: the seeded numbering rules listed; the ERP simulator sends the processing order; the batch planned and issued from the seeded master; stores reserve the seeded lots @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libtab 400 mg, wet granulation, film coated (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libtab 250 mg, direct compression, uncoated (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
+  - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [PR-01][PR-04] decision 0026 S11b: a master that records its unit mass (one from a formula) refuses a test batch whose tablet count does not fit the chosen size; the count of the size is issued"
+  - "apps/tablets-server/test/execution/issue-expectations.test.ts > R3.1: the tablet count at issue against the master > [PR-01][PR-04] decision 0026 S11b: a master from a formula records its unit mass, so each batch size gives its own count exactly (it wins over a compression target that includes a coat); the parser keeps it and refuses a zero"
 clauses:
   - clause: "Widening a registered CPP range with no variation reference is blocked."
     tests:

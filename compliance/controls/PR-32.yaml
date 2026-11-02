@@ -48,6 +48,9 @@ tests:
   - "apps/tablets-server/test/designer/packaging-copy.test.ts > a packaging master copied for another product (slice 7o, D-7o-3) > [PR-43][PR-32] the copy's printed-materials step states the new product's shelf life from its product master, not the source product's (D-7r-2)"
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-17][IN-24][IN-33][PR-32] Demotab 5: the first lots of the active and the printed materials received and examined by stores, tested by QC and approved by the head of QC, their assay and artwork recorded, released by QA; the tooling set defined @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-17][IN-24][IN-33][PR-32] Rabeprazole 5: the first lots of the active and the printed materials received, examined, tested and approved, their assay and artwork recorded, released by QA; the tooling set defined @office"
+  - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Libtab 400 mg, wet granulation, film coated (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
+  - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Libtab 250 mg, direct compression, uncoated (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
+  - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
 clauses:
   - clause: "Issuing a label lot with obsolete artwork is blocked."
     tests:

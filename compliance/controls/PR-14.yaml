@@ -167,6 +167,9 @@ tests:
   - "apps/tablets-web/test/floor/entries.test.tsx > a value configured for device capture > [DI-30][PR-14] is keyed by hand as the fallback while no balance of the room is online, said as such, and sent as a manual entry"
   - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [DI-30][PR-14] the database refuses a hand-keyed library weighing stored without two-person verification"
   - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [DI-30][PR-14] a hand-keyed weighing makes two-person verification mandatory for the step"
+  - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libtab 400 mg, wet granulation, film coated (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
+  - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libtab 250 mg, direct compression, uncoated (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
+  - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
 clauses:
   - clause: "With the scale disconnected during an automated dispense, the step demands a second, different user."
     tests:

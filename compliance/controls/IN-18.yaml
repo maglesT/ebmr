@@ -107,6 +107,9 @@ tests:
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] a packaging rule counts {SEQ:n} per processing batch unless it says otherwise: each batch's first packaging number is P01 (owner report #19)"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] after the rule's counter skipped (restart, restore, ledger ahead) a parent's next packaging number passes every number that may have been lost; a parent from before per-parent numbering keeps the rule-wide serial"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register across a restore > [IN-18][INV-27] after a restore a packaging number counted per parent batch is never reissued: the parent's next number passes every number the skipped serials may have given"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libtab 400 mg, wet granulation, film coated (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libtab 250 mg, direct compression, uncoated (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
 clauses:
   - clause: "cancel a batch; its number is never offered again."
     tests:
