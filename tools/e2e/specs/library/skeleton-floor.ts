@@ -68,6 +68,8 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const base = baseOf(f);
   const op1 = f.persona('operator1');
   const op2 = f.persona('operator2');
+  // The weighing is the dispenser's (DISPENSE.EXECUTE): an operator may not dispense on the GMP plant.
+  const dispenser = f.persona('dispenser1');
   const verifier = f.persona('verifier1');
   const qa = f.persona('qa1');
   const sim = f.e2e.state.urls.simulatorConsole;
@@ -102,7 +104,7 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
     if ((await typed.count()) > 0) {
       await typed.fill(l.material.tare);
       await form.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(l.material.gross);
-      await save(disp, form, op1);
+      await save(disp, form, dispenser);
       return;
     }
     await simulator(sim, 'set', { mass: l.material.tare });
@@ -112,17 +114,18 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
     await simulator(sim, 'set', { mass: l.material.gross });
     await form.getByRole('button', { name: 'Capture gross' }).click();
     await expect(form.getByTestId('reading-GROSS')).toContainText(`${l.material.gross} kg on ${bal}`, { timeout: 30_000 });
-    await save(disp, form, op1);
+    await save(disp, form, dispenser);
     await simulator(sim, 'remove');
   };
   await withSimulator(f.e2e.state, async () => {
     await simulator(sim, 'clear-faults');
     await simulator(sim, 'remove');
     for (const [key, group] of [['p-disp-act@', 'act'], ['p-disp-exc@', 'exc']] as const) {
+      await as(disp, dispenser);
       await step(f, disp, key);
-      await startStep(disp, op1);
+      await startStep(disp, dispenser);
       for (const l of p.lots.filter((x) => x.material.group === group)) await weigh(l);
-      await performAndCheck(disp, op1, verifier, op1);
+      await performAndCheck(disp, dispenser, verifier, op1);
       await completed(disp);
     }
   });
