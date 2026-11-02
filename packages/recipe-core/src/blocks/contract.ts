@@ -98,7 +98,7 @@ export interface HandlerView {
   readonly subLot: string | undefined;
   readonly nowUs: bigint;
   readonly actor: Actor;
-  readonly batch: { readonly batchId: string; readonly batchNumber: string; readonly productCode: string; readonly marketSet: readonly string[] };
+  readonly batch: { readonly batchId: string; readonly batchNumber: string; readonly productCode: string; readonly marketSet: readonly string[]; /** Decision 0026 S10: the approved batch size id the batch was issued at. */ readonly batchSize?: string };
   readonly mbr: MbrContent;
   readonly expr: ExpressionService;
   /** Entries recorded in this step instance (optionally of one kind), in order. */

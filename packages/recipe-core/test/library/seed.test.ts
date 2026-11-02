@@ -15,12 +15,19 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
   const config = item.exampleUse as Record<string, unknown>;
   const lines = Object.values(item.exampleUse.bomLines ?? {});
   const inputs = Object.entries(item.exampleInputs ?? {});
-  const bom: MbrContent['bom'] = lines.map((id) => ({ id, material: `MAT-${id}`, role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }));
+  // S10: formula-line and batch-size inputs come from the master (BOM at the reference size, the batch's size), so the
+  // example values are written there; the other inputs stay MBR inputs the phase reads.
+  const ex = item.exampleInputs ?? {};
+  const lineInputs = new Map((def.inputs ?? []).flatMap((i) => (i.kind === 'FORMULA_LINE' ? [[item.exampleUse.bomLines?.[i.slot], ex[i.id]] as const] : [])));
+  const sizeInput = (def.inputs ?? []).find((i) => i.kind === 'BATCH_SIZE');
+  const bom: MbrContent['bom'] = lines.map((id) => ({ id, material: `MAT-${id}`, role: 'ACTIVE', quantity: lineInputs.get(id) ?? { value: '10', unit: 'kg' } }));
   const p = phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: config as never, reads: inputs.map(([k]) => k) });
-  const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [p, phase('after')] }, {
+  const base = mbrWith({ kind: 'sequence', id: 'ops', children: [p, phase('after')] }, {
     bom,
     inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
   });
+  const size = sizeInput ? ex[sizeInput.id] : undefined;
+  const mbr: MbrContent = size ? { ...base, header: { ...base.header, batchSizes: [{ id: 'BS', quantity: size }] } } : base;
   const d = define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) });
   const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
   const run = Run.issue(d, { inputs: values }, T0);

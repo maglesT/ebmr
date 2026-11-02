@@ -23,7 +23,7 @@ export function makeView(tx: Tx, step: StepDef, inst: StepInstance): HandlerView
     subLot,
     nowUs: tx.now,
     actor: tx.actor ?? { id: 'SYSTEM', kind: 'SYSTEM', roles: [] },
-    batch: { batchId: s.header.batchId, batchNumber: s.header.batchNumber, productCode: def.mbr.header.product.code, marketSet: s.header.marketSet },
+    batch: { batchId: s.header.batchId, batchNumber: s.header.batchNumber, productCode: def.mbr.header.product.code, marketSet: s.header.marketSet, batchSize: s.header.batchSize },
     mbr: def.mbr,
     expr: def.expr,
     entries: (kind) => Object.values(s.entries).filter((e) => e.stepKey === inst.key && (kind === undefined || e.kind === kind)).sort((a, b) => a.recordedSeq - b.recordedSeq),

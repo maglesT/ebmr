@@ -14,7 +14,7 @@
 import { blockEntryForms } from './block-entries.ts';
 import { sandbox } from '@ebmr/kernel';
 import { Dec, formatForDisplay, writtenDecimals, writtenSignificantFigures, type Precision } from '@ebmr/expr';
-import { blocks, engine, flow } from '@ebmr/recipe-core';
+import { blocks, engine, flow, library } from '@ebmr/recipe-core';
 import type {
   ActionView,
   BlockEntryFormView,
@@ -599,11 +599,16 @@ export function fieldsOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine
 const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
 
 /** Decision 0026 slice S5: a library block step's definition (the master's snapshot) and the product's values. */
-function libraryOf(mbr: flow.MbrContent, stepDef: engine.StepDef): { library?: { definition: Record<string, unknown>; config: Record<string, unknown> } } {
+function libraryOf(def: engine.BatchDefinition, stepDef: engine.StepDef, sizeId: string): { library?: { definition: Record<string, unknown>; config: Record<string, unknown>; inputs: Record<string, { value: string; unit: string }> } } {
+  const mbr = def.mbr;
   const block = stepDef.block;
   if (!block?.type.startsWith('LIB-')) return {};
-  const definition = (mbr.blockDefinitions ?? []).find((d) => `LIB-${String(d['code'])}` === block.type && String(d['version']) === block.version);
-  return definition ? { library: { definition, config: { ...stepDef.config } } } : {};
+  const scalar = (v: unknown): string => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
+  const definition = (mbr.blockDefinitions ?? []).find((d) => `LIB-${scalar(d['code'])}` === block.type && scalar(d['version']) === block.version);
+  if (!definition) return {};
+  const config = { ...stepDef.config };
+  const inputs = library.scaledInputs(definition as unknown as library.BlockDefinition, config, mbr, sizeId, def.expr);
+  return { library: { definition, config, inputs } };
 }
 
 /**
@@ -1056,7 +1061,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     entryForms: entryFormsOf(def, stepDef, ctx.app.installation),
     blockEntries: withWarnings(blockEntryForms(stepDef.block, { config: stepDef.config, markets: def.mbr.header.marketSet }), engine.entryWarnings(def, ctx.state, stepKey, { nowUs: ctx.nowUs }, ctx.viewer)),
     citable: citableOf(ctx, stepKey, stepDef.block),
-    ...libraryOf(def.mbr, stepDef),
+    ...libraryOf(def, stepDef, ctx.state.header.batchSize),
     alternative: alternativeOf(ctx, stepKey, stepDef),
     loop: loopOf(ctx, inst),
     exceptions: exceptions.map((e) => shownException(ctx, e)),

@@ -243,6 +243,14 @@ export function LibraryRenderer({ view }: RendererProps) {
   return (
     <>
       {def.instructions ? <p>{def.instructions}</p> : null}
+      {(def.inputs ?? []).some((i) => lib?.inputs?.[i.id]) ? (
+        <ul aria-label="Values for this batch">
+          {(def.inputs ?? []).map((i) => {
+            const v = lib?.inputs?.[i.id];
+            return v ? <li key={i.id}>{`${i.label}: ${v.value} ${v.unit}`}</li> : null;
+          })}
+        </ul>
+      ) : null}
       <EntryList entries={view.entries} />
       {working ? timers.map((t) => <TimerControl key={t.id} view={view} f={t} />) : null}
       {working ? def.sections.filter((s) => openFor(s, config, view.entries)).map((s) => <SectionForm key={s.id} view={view} section={s} config={config} />) : null}

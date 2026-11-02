@@ -126,4 +126,15 @@ describe('the generic library renderer', () => {
     expect(await screen.findByText(/Weight loss 0.31 % \(calculated\)/)).toBeTruthy();
     expect(screen.queryByTestId('lib-section-run')).toBeNull();
   });
+
+  it('[PR-01][IN-13] shows the formula quantity and batch size the server scaled to this batch\'s issued size', async () => {
+    const def = { ...DEF, inputs: [{ id: 'line', label: 'Formula quantity', kind: 'FORMULA_LINE', unit: 'kg', slot: 'activeLine' }, { id: 'size', label: 'Batch size', kind: 'BATCH_SIZE', unit: 'kg' }] };
+    const view = libraryStep(def, CONFIG, (v) => {
+      v.library = { definition: def, config: CONFIG, inputs: { line: { value: '31.25', unit: 'kg' }, size: { value: '250', unit: 'kg' } } };
+    });
+    renderFloor(stepPath('p-lib@'), { fixtures: stepFixtures(view) });
+    const list = await screen.findByRole('list', { name: 'Values for this batch' });
+    expect(within(list).getByText('Formula quantity: 31.25 kg')).toBeTruthy();
+    expect(within(list).getByText('Batch size: 250 kg')).toBeTruthy();
+  });
 });

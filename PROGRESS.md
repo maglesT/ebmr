@@ -83,7 +83,10 @@ slice; go through S6 to S11 one after another** (only genuine owner decisions wa
 fields (lots, equipment, hand-keyed weighings; tablets 1803). S7 and S8 (branch `dyn/s7-s8`): the
 ready-made catalogue (79 blocks, `library/seed/`, loaded as drafts; recipe-core 1820). S9 (branch `dyn/s9`): the formulation
 builder in the designer (`LibraryBlocks.tsx`, ADD_LIBRARY_BLOCK), market rules on library limits (O-5) and the
-sandbox run optional as evidence (O-2, recipe-core 1830). Next: S10, batch generation with scaling. The Phase 7 notes below are history for the frozen work.
+sandbox run optional as evidence (O-2, recipe-core 1830). S10 (branch `dyn/s10`): batch generation with scaling, a library
+formula line is the master's BOM line scaled exactly from the reference size (first listed) to the issued size, and the batch
+size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). Next: S11,
+the three-tablet acceptance. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.

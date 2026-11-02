@@ -10,3 +10,4 @@ export { libraryBlockVersion, libraryBlockType, nominalEntries, statistic, LIBRA
 export { definitionsOf, snapshotProblems, descriptorOf, catalogWithLibrary, registryWithLibrary, defineOptionsFor } from './integration.ts';
 export { entrySummariesOf } from './block-version.ts';
 export { libraryPhase, withSnapshot } from './formulation.ts';
+export { batchSizeOf, scaledLine, scaledInputs, type ScaledQuantity } from './scaling.ts';

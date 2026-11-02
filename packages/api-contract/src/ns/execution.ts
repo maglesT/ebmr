@@ -250,7 +250,14 @@ export const StepScreenView = z.strictObject({
    * signatures) and the product's values (limits, targets, counts, points, equipment classes), so one generic form draws
    * it. Absent for every other block.
    */
-  library: z.strictObject({ definition: z.record(z.string(), z.unknown()), config: z.record(z.string(), z.unknown()) }).optional(),
+  library: z
+    .strictObject({
+      definition: z.record(z.string(), z.unknown()),
+      config: z.record(z.string(), z.unknown()),
+      /** S10: the formula-line and batch-size inputs for this batch's issued size (BOM scaled from the reference size). */
+      inputs: z.record(z.string(), z.strictObject({ value: z.string(), unit: z.string() })).optional(),
+    })
+    .optional(),
   /**
    * Phase 7 slice 7l (R1): the alternative the step's branch belongs to when a person chooses it (OPERATOR_CHOICE): its
    * branches, the roles that may choose and the branch chosen (null while undecided), so the authorised person

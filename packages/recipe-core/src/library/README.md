@@ -56,7 +56,9 @@ existing engine runs it with no code of its own:
   engine's trusted time and is checked against its limit when the timer stops (PR-30).
 - A calculated field is never typed (the entry schema refuses it, INV-25). The server computes it and stores it with
   its evaluation record: expression, language version and the inputs it read (owner decision O-9 b; DI-33). External
-  inputs are read from the phase's targets (`view.target(id)`); the formulation wires them in S9.
+  inputs: since S10 a formula line is the master's BOM line scaled exactly to the batch's issued size (the BOM is
+  written for the first listed size) and the batch size is that size (`scaling.ts`); lot assay and earlier-step inputs
+  are read from the phase's targets (`view.target(id)`).
 - Each value with a limit is evaluated against the formulation's tiered limit and a breach raises
   `LIB_LIMIT_BREACH` with the consequences the engine gives that tier (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER`; a
   not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.

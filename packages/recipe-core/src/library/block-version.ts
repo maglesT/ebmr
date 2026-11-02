@@ -11,8 +11,9 @@
  *   read), so every figure can be re-verified; the database does not recompute it.
  * - Limits: each value with a limit slot is evaluated against the formulation's tiered limits; a breach raises the
  *   exception LIB_LIMIT_BREACH with the consequences the engine gives that tier (PR-08).
- * - External inputs (formula line, batch size, lot assay, earlier step) are read from the phase's targets
- *   (`view.target(id)`); wiring them from the formulation is S9.
+ * - External inputs: a formula line is the master's BOM line scaled exactly to the batch's issued size, and the batch
+ *   size is that size (S10, ./scaling.ts); lot assay and earlier-step values are read from the phase's targets
+ *   (`view.target(id)`), as is a formula line or size the master cannot give.
  * - Smart fields (weighing, lot, equipment, container, sample) record their identifiers and quantities here; their
  *   status checks against the plant and stores arrive in S6. Signature roles are mapped to steps in S4.
  */
@@ -28,6 +29,7 @@ import { evaluateLimits } from '../limits/evaluate.ts';
 import { LIMIT_SOURCE_KINDS, LIMIT_TIERS, ROUNDING_RULES, type LimitSpec } from '../limits/model.ts';
 import { lotProblems } from '../blocks/generic/material.ts';
 import { checkBlockUse } from './check-use.ts';
+import { scaledInputs } from './scaling.ts';
 import type { BlockDefinition, BlockUse, FieldDef, SectionDef, TestStatistic } from './model.ts';
 
 /** Block type of a library definition in the registry and in the MBR, e.g. LIB-IPC-FRIAB. */
@@ -301,8 +303,15 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   const calcInputs = (view: HandlerView, section: SectionDef, data: Readonly<Record<string, unknown>>): { types: Map<string, ExprType>; values: Map<string, ExprValue>; missingInput?: string } => {
     const types = new Map<string, ExprType>();
     const values = new Map<string, ExprValue>();
+    // S10: formula-line and batch-size inputs come from the master's BOM scaled to the batch's issued size.
+    const scaled = scaledInputs(def, configOf(view), view.mbr, view.batch.batchSize, expr);
     for (const i of def.inputs ?? []) {
       types.set(i.id, { kind: 'DECIMAL', unit: i.unit });
+      const sc = scaled[i.id];
+      if (sc) {
+        values.set(i.id, { kind: 'DECIMAL', value: sc.value, unit: sc.unit });
+        continue;
+      }
       const t = view.target(i.id);
       if (t?.kind === 'DECIMAL') values.set(i.id, { kind: 'DECIMAL', value: t.value, unit: t.unit });
       else if (t?.kind === 'COUNT') values.set(i.id, { kind: 'DECIMAL', value: t.value, unit: '1' });

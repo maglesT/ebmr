@@ -53,6 +53,10 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Demotab 7: the GMP batch processed on the kiosks: dispensing (the active potency-adjusted from its own lot), granulation, blending, compression with Demotab's tooling, the film coat, inspection; QA's hold points; the bulk for packing @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] Rabeprazole 7: the GMP batch processed on the kiosks: dispensing from the active's own lot, granulation, blending, compression with the product's tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] P3 demo 2: the GMP batch processed on the kiosks: dispensing from the active's seeded lot, granulation, blending, compression with the seeded tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-01][IN-13] shows the formula quantity and batch size the server scaled to this batch's issued size"
+  - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13] the formula line scales exactly from the reference size (the first listed) to the batch size"
+  - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13][DI-33] one approved master runs each listed size, and the calculation reads the quantity scaled to the issued size"
+  - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [IN-13] a size the master does not list is refused at issue: no free scaling"
 clauses:
   - clause: "approve an MBR with one intermediate lacking a hold time; approval is refused."
     tests:
