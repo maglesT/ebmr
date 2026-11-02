@@ -57,6 +57,9 @@ tests:
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13] the formula line scales exactly from the reference size (the first listed) to the batch size"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13][DI-33] one approved master runs each listed size, and the calculation reads the quantity scaled to the issued size"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [IN-13] a size the master does not list is refused at issue: no free scaling"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libtab 400 mg, wet granulation, film coated (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libtab 250 mg, direct compression, uncoated (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Rabeprazole sodium 20 mg, enteric coated, three coats (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
 clauses:
   - clause: "approve an MBR with one intermediate lacking a hold time; approval is refused."
     tests:

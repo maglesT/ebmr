@@ -93,6 +93,7 @@ tests:
   - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-05][DI-35] a library step pins the hash and takes its roles from the block; a block with a verifier is significant"
   - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-05] a master carries one snapshot per version; another content under the same version is refused"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-05] every code is unique across the catalogue, and every item is version 1"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block the three tablets use through the signature ceremony @office"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:
