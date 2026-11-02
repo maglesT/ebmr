@@ -57,6 +57,21 @@ describe('the ready-made catalogue', () => {
     }
   });
 
+  it('[PR-03][PR-45] every signature a library step carries names a role a session can carry (the engine roles of recipe.engine_role_permission): a master using any process, control, coating, packaging or IPC block saves (S11 finding)', () => {
+    // The engine roles the database lists (recipe-core 0200; the refusal of 0324 names them).
+    const ENGINE_ROLES = ['DISPENSER', 'HEAD_OF_PRODUCTION', 'PRODUCTION_OPERATOR', 'PRODUCTION_SUPERVISOR', 'PRODUCTION_VERIFIER', 'QA', 'QA_REVIEWER', 'STAGE_RESPONSIBLE'];
+    // Release tests are QC's (QC_ANALYST, QC_REVIEWER): no engine role signs them on the floor yet; a known gap
+    // (decision 0026), so they are not used in a master until it is closed.
+    for (const [group, items] of Object.entries(SEED_GROUPS)) {
+      if (group === 'release tests') continue;
+      for (const item of items) {
+        for (const sig of item.definition.signatures.filter((x) => ['PERFORMED', 'VERIFIED', 'CHECKED'].includes(x.meaning))) {
+          expect(ENGINE_ROLES, `${item.definition.code} ${sig.meaning}`).toContain(sig.role);
+        }
+      }
+    }
+  });
+
   for (const [group, items] of Object.entries(SEED_GROUPS)) {
     for (const item of items) {
       const code = item.definition.code;

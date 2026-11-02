@@ -6,7 +6,7 @@
 import type { LimitSpec } from '../../limits/model.ts';
 import type { SeedItem } from './types.ts';
 
-const IPC = { meaning: 'PERFORMED' as const, role: 'IPC_OPERATOR' };
+const IPC = { meaning: 'PERFORMED' as const, role: 'PRODUCTION_OPERATOR' };
 
 /** A registered limit range from the product specification (inclusive bounds). */
 const spec = (unit: string, low?: string, high?: string): LimitSpec => ({

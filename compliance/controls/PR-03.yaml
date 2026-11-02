@@ -187,6 +187,7 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > reserved field ids (S7 catalogue finding) > [PR-03] a field may not take an id the entry itself uses"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-03][DI-34] every catalogue item is well made, its example values pass the formulation checks, and a nominal batch completes it (each item also has its own test below)"
   - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-03] a field with several limits (a test's mean, minimum and maximum) names each limit by its slot, so the author can tell them apart (S11 finding)"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-03][PR-45] every signature a library step carries names a role a session can carry (the engine roles of recipe.engine_role_permission): a master using any process, control, coating, packaging or IPC block saves (S11 finding)"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

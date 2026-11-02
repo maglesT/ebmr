@@ -4,7 +4,7 @@ import type { SeedItem } from './types.ts';
 const OPERATOR = { meaning: 'PERFORMED' as const, role: 'PRODUCTION_OPERATOR' };
 const VERIFIER = { meaning: 'VERIFIED' as const, role: 'PRODUCTION_VERIFIER' };
 const CHECKER = { meaning: 'CHECKED' as const, role: 'PRODUCTION_VERIFIER' };
-const QA = { meaning: 'QA_APPROVED' as const, role: 'QA_SHOP_FLOOR' };
+const QA = { meaning: 'QA_APPROVED' as const, role: 'QA' };
 const reg = (unit: string, low?: string, high?: string) => ({
   unit,
   ranges: [{ tier: 'REGISTERED' as const, ...(low ? { low: { value: low, inclusive: true } } : {}), ...(high ? { high: { value: high, inclusive: true } } : {}), rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS' as const, source: { kind: 'VALIDATION_REPORT' as const, ref: 'PV-REF' } }],

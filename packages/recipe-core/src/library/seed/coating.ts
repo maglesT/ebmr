@@ -220,7 +220,7 @@ export const COATING_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [{ meaning: 'PERFORMED', role: 'IPC_OPERATOR' }, VERIFIER],
+      signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }, VERIFIER],
     },
     exampleUse: {
       limits: { criticalDefects: val('1', undefined, '0'), majorDefects: val('1', undefined, '2'), minorDefects: val('1', undefined, '10') },

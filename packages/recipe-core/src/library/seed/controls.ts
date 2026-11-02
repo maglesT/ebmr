@@ -179,7 +179,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [{ meaning: 'PERFORMED', role: 'QA_SHOP_FLOOR' }],
+      signatures: [{ meaning: 'PERFORMED', role: 'QA' }],
     },
     exampleUse: { counts: { sampleUnits: '20' } },
   },
@@ -300,7 +300,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
       ],
       signatures: [
         { meaning: 'PERFORMED', role: 'PRODUCTION_SUPERVISOR' },
-        { meaning: 'CHECKED', role: 'QA_SHOP_FLOOR' },
+        { meaning: 'CHECKED', role: 'QA' },
       ],
     },
     exampleUse: {},
@@ -354,7 +354,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
       ],
       signatures: [
         { meaning: 'PERFORMED', role: 'PRODUCTION_SUPERVISOR' },
-        { meaning: 'QA_APPROVED', role: 'QA_SHOP_FLOOR' },
+        { meaning: 'QA_APPROVED', role: 'QA' },
       ],
     },
     exampleUse: {},
