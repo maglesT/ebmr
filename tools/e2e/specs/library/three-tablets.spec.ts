@@ -258,8 +258,8 @@ for (const t of TABLETS) {
 
     // Decision 0026 S11: the product's own steps are library blocks, chosen and given the product's values on screen.
     await evidence.step('The author adds the product\'s library blocks in the designer with the product\'s values; the checks pass', 'Each block pinned with its version and content hash; the values form shows no problem; the revision saved', async () => {
-      if (t.afterDispensing.length > 0) await addLibraryBlocks(a, /Dispense other unit components/, t.afterDispensing);
-      if (t.afterDischarge.length > 0) await addLibraryBlocks(a, /Discharge/, t.afterDischarge);
+      if (t.afterDispensing.length > 0) await addLibraryBlocks(a, 'p-disp-exc', t.afterDispensing);
+      if (t.afterDischarge.length > 0) await addLibraryBlocks(a, 'p-blend-out', t.afterDischarge);
       await saveRevision(a, `${product.name}: its library blocks and values`);
       await checksPass(a);
       return { blocks: [...t.afterDispensing, ...t.afterDischarge].map((b) => b.def.code).join(', ') };

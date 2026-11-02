@@ -79,38 +79,36 @@ export async function approveBlocks(page: Page, base: string, codes: readonly st
 // ---------------------------------------------------------------------------------------------
 // The designer
 
-/** The selected step's tab panel (the step editor). */
-function stepPanel(page: Page): Locator {
-  return page.getByRole('tabpanel').filter({ has: page.getByRole('heading', { level: 3, name: /^Step / }) }).first();
-}
-
 async function commit(scope: Locator, label: string, value: string): Promise<void> {
   const box = scope.getByRole('textbox', { name: label, exact: true });
   await box.fill(value);
   await box.press('Tab');
 }
 
+/** The procedure table's row of step `id` (not a row of the document's other tables naming the same title). */
+const stepRow = (page: Page, id: string): Locator => page.locator(`tr[data-step-row][data-node="${id}"]`);
+
 /**
- * Adds `blocks` in order after the step whose row matches `after`, each typed with its product values; the values form
- * shows no problem for any of them.
+ * Adds `blocks` in order after step `afterId`, each typed with its product values; the values form shows no problem for
+ * any of them.
  */
-export async function addLibraryBlocks(page: Page, after: RegExp, blocks: readonly ProductBlock[]): Promise<void> {
-  let row = after;
+export async function addLibraryBlocks(page: Page, afterId: string, blocks: readonly ProductBlock[]): Promise<void> {
+  let row = afterId;
   for (const b of blocks) {
-    await page.getByRole('row', { name: row }).first().click();
+    await stepRow(page, row).click();
     const adder = page.getByRole('group', { name: 'Add a library block' });
     await adder.getByRole('combobox', { name: 'Approved library block' }).selectOption({ label: `${b.def.code} v${String(b.def.version)}: ${b.def.title}` });
     await adder.getByRole('button', { name: 'Add the block' }).click();
-    row = new RegExp(escape(b.def.title));
-    await page.getByRole('row', { name: row }).first().click();
+    row = stepIdOf(b.def.code);
+    await stepRow(page, row).click();
     await fillValues(page, b);
-    await expect(stepPanel(page).getByTestId('library-values-ok')).toBeVisible();
+    await expect(page.getByTestId('library-values-ok')).toBeVisible();
   }
 }
 
 /** The values form of the selected library step, from the block's slots (the same labels the form derives). */
 async function fillValues(page: Page, b: ProductBlock): Promise<void> {
-  const form = stepPanel(page).getByTestId('library-values');
+  const form = page.getByTestId('library-values');
   const use = b.use;
   for (const s of library.slotsOf(b.def)) {
     const label = `${s.name} (${s.owner})`;
@@ -142,7 +140,6 @@ async function fillValues(page: Page, b: ProductBlock): Promise<void> {
   }
 }
 
-const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // ---------------------------------------------------------------------------------------------
 // The kiosk
