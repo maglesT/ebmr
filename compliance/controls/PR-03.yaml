@@ -188,6 +188,7 @@ tests:
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-03][DI-34] every catalogue item is well made, its example values pass the formulation checks, and a nominal batch completes it (each item also has its own test below)"
   - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-03] a field with several limits (a test's mean, minimum and maximum) names each limit by its slot, so the author can tell them apart (S11 finding)"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-03][PR-45] every signature a library step carries names a role a session can carry (the engine roles of recipe.engine_role_permission): a master using any process, control, coating, packaging or IPC block saves (S11 finding)"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [PR-03][INV-25] the database's entry schema carries the server-filled lot and equipment facts of a section with such fields, and only there (S11 finding; recipe-core 1840)"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

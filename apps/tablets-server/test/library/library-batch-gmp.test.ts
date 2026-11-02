@@ -197,6 +197,20 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
     else expect(told).toMatch(new RegExp(`which is ${fit.toLowerCase().replace(/_/g, ' ')}`));
   });
 
+  it('[PR-03][INV-25] the database\'s entry schema carries the server-filled lot and equipment facts of a section with such fields, and only there (S11 finding; recipe-core 1840)', async () => {
+    const check = async (kind: string, data: Json): Promise<string | null> =>
+      (
+        await w.gmp.db.admin.query<{ p: string | null }>(
+          "select coalesce(recipe.block_schema_problem(s, $3::jsonb, 'entry'), recipe.block_schema_unknown_member(s, $3::jsonb, 'entry')) as p from recipe.library_entry_schema($1::jsonb, $2::jsonb, $4) s",
+          [JSON.stringify(smartContent()), JSON.stringify({ type: 'LIB-PROC-DISP-S6', version: '1' }), JSON.stringify(data), kind],
+        )
+      ).rows[0]?.p ?? null;
+    const facts = { balance: 'BAL-1', lot: 'L1', net: '1.5', lots: { lot: { id: 'L1', material: 'M', status: 'RELEASED', identityTested: true } }, equipment: { balance: { code: 'BAL-1', classCode: 'CL', fitness: 'QUALIFIED' } } };
+    expect(await check('weigh', facts)).toBeNull();
+    expect(await check('weigh', { ...facts, equipment: { balance: { code: 'BAL-1', classCode: 'CL', fitness: 'QUALIFIED', extra: 'x' } } })).not.toBeNull();
+    expect(await check('weigh', { ...facts, forged: 'x' })).not.toBeNull();
+  });
+
   it('[DI-30][PR-14] the database refuses a hand-keyed library weighing stored without two-person verification', async () => {
     expect(await problem(state({ net: '10.0' }, false))).toMatch(/without two-person verification/);
     expect(await problem(state({ net: '10.0' }, true))).toBeNull();
