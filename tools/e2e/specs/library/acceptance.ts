@@ -513,8 +513,10 @@ export function defineAcceptance(tabletKey: string): void {
   const key = stateKey(t);
   const mats = (s: ProductState): GmpMaterial[] => gmpMaterials(t, s.tag);
   const printedOf = (s: ProductState) => ({
-    foil: { material: `${t.prefix}-FOIL-${s.tag}`, name: `Printed aluminium lidding foil, ${t.strength} (invented)`, artwork: `ART-${t.prefix}-FOIL-${s.tag}-1` },
-    carton: { material: `${t.prefix}-CTN-${s.tag}`, name: `Printed carton, ${t.strength} 10 x 10 (invented)`, artwork: `ART-${t.prefix}-CTN-${s.tag}-1` },
+    // No product prefix (LWG400 and the like) in what a sandbox entry names: the sandbox refuses a word shaped like a real
+    // batch or lot number (DI-05); the run's tag keeps each unique.
+    foil: { material: `FOIL-${s.tag}`, name: `Printed aluminium lidding foil, ${t.strength} (invented)`, artwork: `ART-FOIL-${s.tag}-1` },
+    carton: { material: `CTN-${s.tag}`, name: `Printed carton, ${t.strength} 10 x 10 (invented)`, artwork: `ART-CTN-${s.tag}-1` },
   });
   const manufacturer = (s: ProductState) => ({ code: `MFR-${t.prefix}-${s.tag}`, name: `${t.prefix} Fine Chemicals Pvt Ltd (invented)` });
 
@@ -735,7 +737,7 @@ export function defineAcceptance(tabletKey: string): void {
     const s = loadProduct(e2e, key);
     const sbx = e2e.url('SANDBOX');
     const pr = printedOf(s);
-    const lotCode = (id: string): string => `TEST-L26-${t.prefix}-${s.tag}-${id.toUpperCase()}`;
+    const lotCode = (id: string): string => `TEST-L26-${s.tag}-PK-${id.toUpperCase()}`;
     const st = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(st, persona('SANDBOX', 'steward'));
     await evidence.step('Sandbox: TEST- lots of the laminate and of the product\'s printed foil and carton, with their artwork versions', 'TEST- lots RELEASED (sandbox database only)', async () => {
