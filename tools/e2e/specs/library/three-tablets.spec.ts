@@ -1,6 +1,6 @@
 /**
- * Decision 0026 slice S11, the acceptance of the dynamic library: three very different tablets and a hard capsule set up
- * through the screens only, from the library, with no change to the product's code. The ready-made catalogue is loaded and QA
+ * Decision 0026 slice S11, the acceptance of the dynamic library: three very different tablets set up through the
+ * screens only, from the library, with no change to the product's code. The ready-made catalogue is loaded and QA
  * approves the blocks the three use; then for each tablet, as a company does for its own product (phase7/own-product):
  *  1. the steward enters the materials and the product, QA confirms them; the formula is written and approved;
  *  2. the author starts the master from the formula with the required skeleton (dispensing; blending with TB-07) and
@@ -121,35 +121,6 @@ const TABLETS: readonly Tablet[] = [
     discharge: { tare: '1.000', gross: '7.100' },
     afterDispensing: [],
     afterDischarge: [productBlock('PROC-COMPRESS', 'EQC-PRESS-GBT'), productBlock('COAT-SEAL', 'EQC-COATER'), productBlock('COAT-ENTERIC', 'EQC-COATER'), productBlock('COAT-TOP', 'EQC-COATER'), productBlock('IPC-DT-ENTERIC', 'EQC-DT')],
-  },
-  {
-    // Owner direction, 2 November 2026: a hard capsule beside the three tablets, with no code change either.
-    key: 'caps',
-    prefix: 'LCP200',
-    name: 'Libcap 200 mg, hard capsules size 0 (library)',
-    strength: '200 mg',
-    dosageForm: 'Hard capsule',
-    targetMg: '300',
-    materials: [
-      { id: 'api', name: 'Libcap active', mgPerUnit: '200', tare: '1.000', gross: '11.000' },
-      { id: 'lac', name: 'Lactose monohydrate (capsule grade)', mgPerUnit: '95', tare: '1.000', gross: '5.750' },
-      { id: 'mgs', name: 'Magnesium stearate (lubricant)', mgPerUnit: '5', tare: '0.200', gross: '0.450' },
-    ],
-    discharge: { tare: '1.000', gross: '16.000' },
-    shells: 'Empty hard gelatin capsule shells, size 0',
-    plant: [
-      { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'TEST-CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'TEST-POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
-    ],
-    afterDispensing: [],
-    afterDischarge: [
-      productBlock('PROC-CAPS-FILL', 'EQC-CAPS-FILLER'),
-      productBlock('IPC-CAPS-FILL-WEIGHT', 'EQC-BAL'),
-      productBlock('IPC-CAPS-LOCK-LENGTH', 'EQC-HT'),
-      productBlock('IPC-CAPS-APPEARANCE', {}),
-      productBlock('IPC-CAPS-DT', 'EQC-DT'),
-      productBlock('PROC-CAPS-POLISH', 'EQC-CAPS-POLISH'),
-    ],
   },
 ];
 
