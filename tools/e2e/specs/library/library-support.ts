@@ -15,7 +15,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { library, librarySeed } from '@ebmr/recipe-core';
 import { expect } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
-import { card, choose, openStep, primary, signPrimary, startStep, switchUser, tap } from '../journey/support.ts';
+import { card, choose, openStep, paceTaps, primary, signPrimary, startStep, switchUser, tap } from '../journey/support.ts';
 
 type Def = library.BlockDefinition;
 type Use = librarySeed.SeedItem['exampleUse'];
@@ -244,6 +244,7 @@ export async function runLibraryStep(
 ): Promise<void> {
   const key = `${stepIdOf(b.def.code)}@`;
   await openStep(page, ctx.base, ctx.runId, key, b.def.title);
+  await paceTaps(page, ctx.operator);
   await startStep(page, ctx.operator);
   const fields = new Map(b.def.sections.flatMap((s) => s.fields.map((f) => [f.id, f] as const)));
   let container = 0;
@@ -306,12 +307,15 @@ export async function runLibraryStep(
     }
     await withTap(page, ctx.operator, form.getByRole('button', { name: `Save ${section.title}` }));
   }
+  await paceTaps(page, ctx.operator);
   await signPrimary(page, 'Sign as performed', ctx.operator);
   // A step with a check (or a hand-keyed weighing) waits for its verifier; one without completes.
   await expect(card(page)).toContainText(/waiting for verification|Completed/);
   if (/waiting for verification/.test((await card(page).textContent()) ?? '')) {
+    await paceTaps(page, ctx.verifier);
     await switchUser(page, ctx.verifier);
     await signPrimary(page, 'Verify', ctx.verifier);
+    await paceTaps(page, ctx.operator);
     await switchUser(page, ctx.operator);
   }
   await expect(card(page)).toContainText('Completed');
@@ -322,8 +326,9 @@ async function withTap(page: Page, who: SeededPersona, button: Locator): Promise
   const entries = page.locator('li[data-testid^="entry-"]');
   const before = await entries.count();
   await expect(button).toBeEnabled();
+  // The kiosk's tap rate limit: wait before the act that opens the badge prompt (journey/support.ts paceTaps).
+  await paceTaps(page, who);
   await button.click();
-  // The kiosk's tap rate limit is kept by tap() itself (journey/support.ts).
   await tap(page, who);
   await expect(async () => expect(await entries.count()).toBeGreaterThan(before)).toPass({ timeout: 20_000 });
 }
