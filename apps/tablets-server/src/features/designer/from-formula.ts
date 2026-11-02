@@ -87,6 +87,9 @@ function header(src: FormulaSource, req: FormulaFamilyRequest, markets: string[]
     marketSet: markets,
     predicates: {},
     variants: [],
+    // Decision 0026 S11b (the R3.1 follow-up): the mass of one unit the batch sizes are computed from, so the issue
+    // pre-fills each size's tablet count and refuses a count that does not fit it.
+    unitMassMg: sum(c.lines.filter((l) => l.basis === 'PER_UNIT').map(unitMg)),
   };
 }
 

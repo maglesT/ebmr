@@ -81,6 +81,8 @@ describe('a new master from an approved formula (slice 7j)', () => {
     // 408 + 150 + 6 mg per tablet x 1,00,000 = 56.4 kg; half the size, half the mass.
     expect(c.header.batchSizes.map((b) => [b.id, b.quantity.value])).toEqual([['BS-100000U', '56.4'], ['BS-50000U', '28.200']]);
     expect(c.bom.map((b) => [b.id, b.quantity.value])).toEqual([['BOM-API', '40.8'], ['BOM-LAC', '15'], ['BOM-MGS', '0.6'], ['BOM-IPA', '12.5']]);
+    // S11b: the unit mass the sizes are computed from (408 + 150 + 6 mg), so each size's tablet count is exact at issue.
+    expect((v.content as unknown as { header: { unitMassMg?: string } }).header.unitMassMg).toBe('564');
     const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
     const errors = report.findings.filter((f) => f.severity === 'ERROR');
     expect(errors.map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
@@ -103,7 +105,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
         Object.values(o).forEach(visit);
       }
     };
-    visit((v.content as { procedure: unknown }).procedure);
+    visit((v.content as unknown as { procedure: unknown }).procedure);
     const blockOf = (id: string): string => { const b = steps.find((x) => x.id === id)?.block; return b ? `${b.type}@${b.version}` : ''; };
     expect(['p-disp-clear', 'p-disp-bal', 'p-blend-clear', 'p-blend-status'].map(blockOf)).toEqual(['G-10@2', 'G-09@2', 'G-10@2', 'G-09@2']);
     expect(steps.some((x) => x.block && ['G-09@1', 'G-10@1'].includes(`${x.block.type}@${x.block.version}`))).toBe(false);

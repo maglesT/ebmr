@@ -31,6 +31,7 @@ import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { floorActHandlers } from './floor-acts.ts';
 import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
+import { unconfirmedCounts } from './issue-expectations.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent, stepTarget } from './intents.ts';
 import { additionSources } from './addition-sources.ts';
@@ -431,6 +432,20 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         issuedBy: engineActor(a.personId, []),
       };
       checkIssue(def, request, await dbNowUs(pool));
+      // Decision 0026 S11b (R3.1 on the sandbox): a tablet count that does not fit the chosen size is refused; a test run
+      // has no reason to differ from it, so no confirmation is offered here.
+      const counts = unconfirmedCounts(def.mbr, body.batchSize, Object.fromEntries(Object.entries(inputs).map(([id, v]) => [id, v.value])));
+      const p = counts[0];
+      if (p) {
+        throw refusal(422, {
+          code: 'EBMR-EXE-700',
+          kind: 'NOT_ALLOWED',
+          whatHappened: p.malformed ? `${p.name} "${p.entered}" is not a whole number of tablets. Nothing was issued.` : `${p.name} ${p.entered} is ${p.deviation} % away from the ${p.expected.value} the master gives for batch size ${body.batchSize}. Nothing was issued.`,
+          why: `The master gives ${p.expected.value} tablets for this size (${p.expected.basis}); a test batch is issued with the count of the size it is issued at.`,
+          controls: ['PR-01', 'PR-04', 'DI-24'],
+          whatYouCanDo: [`Enter ${p.expected.value}, or choose the batch size whose count you meant.`],
+        });
+      }
       const out = await withIdempotentActorCommand(pool, a, idempotencyKey ?? '', requestHash, async (client) => {
         const roles = await engineRoles(client);
         const batchId = randomUUID();

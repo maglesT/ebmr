@@ -1,7 +1,8 @@
 /**
  * Requirement R3.1 (hosted-demo trials, October 2026; decision D-7k-1): a batch size in tablets mistyped at issue (10000
  * for 100000) was accepted, and the dispensing reconciliation later read 1000 %. The master implies the count: its batch
- * size (a mass) divided by the target tablet weight of its compression (the first `targetWeightMg` of the procedure). The
+ * size (a mass) divided by the unit mass a master from a formula records (header `unitMassMg`, decision 0026 S11b) or else
+ * the target tablet weight of its compression (the first `targetWeightMg` of the procedure). The
  * issue form is pre-filled with that count; an entered count more than TOLERANCE_PERCENT away from it is refused at issue
  * unless the issuer confirms it with their own reason, which the record keeps with the value (the input's source).
  *
@@ -30,7 +31,7 @@ interface DeclaredInput {
 }
 
 interface MasterLike {
-  header: { batchSizes: readonly { id: string; quantity: { value: string; unit: string } }[] };
+  header: { batchSizes: readonly { id: string; quantity: { value: string; unit: string } }[]; unitMassMg?: string };
   inputs: readonly DeclaredInput[];
   procedure: unknown;
 }
@@ -73,12 +74,16 @@ export function isTabletCount(i: DeclaredInput): boolean {
 export function expectedTabletCount(mbr: MasterLike, batchSizeId: string): InputExpectation | null {
   const size = mbr.header.batchSizes.find((b) => b.id === batchSizeId);
   const factor = size ? MG_PER[size.quantity.unit] : undefined;
-  const target = firstTargetWeightMg(mbr.procedure);
+  // Decision 0026 S11b: a master from a formula records the unit mass its batch sizes are computed from; it wins over
+  // the compression's target (which may include what is added after the formula's lines, a coat).
+  const recorded = mbr.header.unitMassMg !== undefined && Dec.isValid(mbr.header.unitMassMg) ? mbr.header.unitMassMg : null;
+  const target = recorded ?? firstTargetWeightMg(mbr.procedure);
   if (!size || factor === undefined || target === null || !Dec.isValid(size.quantity.value)) return null;
   const weight = Dec.parse(target);
   if (!weight.isPositive()) return null;
   const count = Dec.parse(size.quantity.value).times(Dec.parse(factor)).div(weight).roundToDecimals(0, 'HALF_UP');
-  return { value: count.toString(), basis: `batch size ${size.quantity.value} ${size.quantity.unit} / target tablet weight ${target} mg`, tolerancePercent: TOLERANCE_PERCENT };
+  const of = recorded !== null ? `the formula's unit mass ${target} mg` : `target tablet weight ${target} mg`;
+  return { value: count.toString(), basis: `batch size ${size.quantity.value} ${size.quantity.unit} / ${of}`, tolerancePercent: TOLERANCE_PERCENT };
 }
 
 /** The expectation of each issue input that has one (the tablet count), by input id. */

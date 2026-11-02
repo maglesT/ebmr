@@ -106,6 +106,24 @@ describe('test packages and issue (DI-05, INV-18)', () => {
     expect(b).toMatchObject({ engineVersion: engine.ENGINE_VERSION, registryFingerprint: REGISTRY.fingerprint(), policyHash: execution.policyHash(engine.DEFAULT_POLICY), packageHash: pkg.packageHash });
     expect(await violations(server)).toEqual([]);
   }, 180_000);
+
+  it('[PR-01][PR-04] decision 0026 S11b: a master that records its unit mass (one from a formula) refuses a test batch whose tablet count does not fit the chosen size; the count of the size is issued', async () => {
+    const issuer = await server.asPersona('issuer');
+    const base = dcMini();
+    // dc-mini's BS-100K is 60.000 kg: at 600 mg a unit, exactly 1,00,000 tablets (BS-50K, 30.000 kg: 50,000).
+    expect(base.header.batchSizes.find((b) => b.id === 'BS-100K')?.quantity).toEqual({ value: '60.000', unit: 'kg' });
+    const pkg = writePackage(server, { ...base, header: { ...base.header, family: 'DC-MINI-UNITMASS', unitMassMg: '600' } });
+    valueOf(await issuer.call(routes.execution.importPackage, { params: { packageId: pkg.packageHash }, body: {} }));
+    const body = { packageId: pkg.packageHash, markets: ['IN'], variants: {} };
+    // The further size's count typed for the reference size is refused, and the reverse.
+    for (const [batchSize, value, expected] of [['BS-100K', '50000', '100000'], ['BS-50K', '100000', '50000']] as const) {
+      const r = await issuer.call(routes.execution.issue, { body: { ...body, batchSize, inputs: { tabletsPerBatch: { kind: 'COUNT', value } } } });
+      expect(outcomeOf(r)).toBe('422:EBMR-EXE-700');
+      expect(JSON.stringify(refusalOf(r))).toContain(`The master gives ${expected} tablets for this size`);
+    }
+    const run = valueOf(await issuer.call(routes.execution.issue, { body: { ...body, batchSize: 'BS-50K', inputs: { tabletsPerBatch: { kind: 'COUNT', value: '50000' } } } }));
+    expect(run.header.batchNumber).toMatch(/^TEST-B\d{2}-\d{4}$/);
+  }, 180_000);
 });
 
 describe('commands', () => {
