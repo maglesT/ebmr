@@ -137,4 +137,12 @@ describe('the generic library renderer', () => {
     expect(within(list).getByText('Formula quantity: 31.25 kg')).toBeTruthy();
     expect(within(list).getByText('Batch size: 250 kg')).toBeTruthy();
   });
+
+  it('[DI-30][PR-03] a sample field shows the planned number of units and records it unless the operator changes it (S11 finding)', () => {
+    const section = { id: 'lod', title: 'LOD check', fields: [{ id: 'sample', label: 'LOD sample', type: 'SAMPLE', unitsSlot: 'units', purpose: 'Loss on drying' }] } as never;
+    const config = { counts: { units: '3' } } as never;
+    expect(buildSectionEntry(section, config, {})).toMatchObject({ data: { sample: 3 }, pending: [] });
+    expect(buildSectionEntry(section, config, { sample: '5' })).toMatchObject({ data: { sample: 5 }, pending: [] });
+    expect(buildSectionEntry(section, {}, {}).pending).toEqual(['LOD sample']);
+  });
 });

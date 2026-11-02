@@ -527,6 +527,7 @@ tests:
   - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [INV-25][DI-30] a typed calculated field and an unknown section are refused; a library entry to a step of another block is refused"
   - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [DI-30][PR-14] the database refuses a hand-keyed library weighing stored without two-person verification"
   - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [DI-30][PR-14] a hand-keyed weighing makes two-person verification mandatory for the step"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [DI-30][PR-03] a sample field shows the planned number of units and records it unless the operator changes it (S11 finding)"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

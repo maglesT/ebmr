@@ -52,13 +52,17 @@ function shownIn(f: FieldDef, values: Readonly<Record<string, unknown>>): boolea
 }
 
 /** The typed value of a draft for the entry, as the block's schema takes it. */
-function typedValue(f: FieldDef, drafts: Drafts): unknown {
+function typedValue(f: FieldDef, drafts: Drafts, config: Config): unknown {
   const v = drafts[f.id];
   switch (f.type) {
     case 'YES_NO':
       return v === 'yes' ? true : v === 'no' ? false : undefined;
-    case 'SAMPLE':
-      return v !== undefined && /^[1-9][0-9]{0,5}$/.test(v) ? Number(v) : undefined;
+    case 'SAMPLE': {
+      // The planned number of units is shown in the field until the operator changes it: what is shown is what is
+      // recorded (S11 finding: a shown default was not counted as entered).
+      const units = v ?? config.counts?.[f.unitsSlot];
+      return units !== undefined && /^[1-9][0-9]{0,5}$/.test(units) ? Number(units) : undefined;
+    }
     default:
       return v === undefined || v.trim() === '' ? undefined : v.trim();
   }
@@ -77,7 +81,7 @@ export function buildSectionEntry(section: Section, config: Config, drafts: Draf
   for (const f of section.fields) {
     if (f.type === 'CALC' || f.type === 'TIMER') continue;
     const values: Record<string, unknown> = {};
-    for (const g of section.fields) values[g.id] = typedValue(g, drafts);
+    for (const g of section.fields) values[g.id] = typedValue(g, drafts, config);
     if (!shownIn(f, values)) continue;
     if (f.type === 'TEST_RESULT') {
       const n = Number(config.counts?.[f.replicatesSlot] ?? '1');
@@ -90,7 +94,7 @@ export function buildSectionEntry(section: Section, config: Config, drafts: Draf
       data[f.id] = f.perPoint === true ? Object.fromEntries(sets) : sets[0]?.[1];
       continue;
     }
-    const v = typedValue(f, drafts);
+    const v = typedValue(f, drafts, config);
     if (v === undefined) {
       if (f.required !== false) pending.push(f.label);
       continue;
@@ -192,7 +196,7 @@ function SectionForm({ view, section, config }: { view: StepScreenView; section:
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, `recording ${section.title}`, { onSaved: () => setDrafts({}), onDiscarded: () => setDrafts({}) });
   const set = (k: string, v: string) => setDrafts((d) => ({ ...d, [k]: v }));
   const values: Record<string, unknown> = {};
-  for (const f of section.fields) values[f.id] = typedValue(f, drafts);
+  for (const f of section.fields) values[f.id] = typedValue(f, drafts, config);
   const { data, pending, problems } = buildSectionEntry(section, config, drafts);
   const locked = cmd.busy || cmd.state === 'notSaved';
   const save = () => {
