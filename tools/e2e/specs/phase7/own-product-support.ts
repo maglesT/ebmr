@@ -7,22 +7,14 @@
  * sign-offs), and the issuer exports the test-run result for GMP. DEMO-ONLY data; every name is unique per run.
  */
 import type { Browser, Page } from '@playwright/test';
-import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, type E2eWorld } from '../../fixtures/index.ts';
 import { choose } from '../journey/support.ts';
-import { skeletonRun } from '../library/skeleton-floor.ts';
+import { skeletonRun, type OwnMaterial, type StageCtx } from '../library/skeleton-floor.ts';
+
+export type { OwnMaterial, StageCtx } from '../library/skeleton-floor.ts';
 import { closeFloor, type Floor } from './own-product-floor.ts';
 import type { SandboxPages } from './support.ts';
 
-export interface OwnMaterial {
-  code: string;
-  name: string;
-  /** Tare and gross (kg) of its one container at dispensing. */
-  tare: string;
-  gross: string;
-  /** The skeleton's weighing step: 'act' (actives) or 'exc' (the other unit components). */
-  group: 'act' | 'exc';
-}
 
 /** The steward registers one TEST- lot per material on the sandbox's Test lots screen (reached from the home tile). */
 export async function registerTestLots(pages: SandboxPages, lots: readonly { lotCode: string; material: OwnMaterial }[]): Promise<void> {
@@ -43,14 +35,6 @@ export async function registerTestLots(pages: SandboxPages, lots: readonly { lot
   await page.context().close();
 }
 
-/** Where a master built on the skeleton runs its own further steps (decision 0026 S11: library blocks added on screen). */
-export interface StageCtx {
-  base: string;
-  runId: string;
-  operator: SeededPersona;
-  verifier: SeededPersona;
-  qa: SeededPersona;
-}
 export interface SkeletonExtras {
   /** Which approved batch size to issue (0: the first listed, the reference size). */
   sizeIndex?: number;

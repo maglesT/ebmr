@@ -7,6 +7,7 @@
  * Plant and its use started in the step, each unit checked and booked; the plant cleaned for the batch before it starts.
  */
 import type { Page } from '@playwright/test';
+import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, withSimulator } from '../../fixtures/index.ts';
 import { choose, dispositionOpenExceptions, simulator } from '../journey/support.ts';
 import { as, completed, performAndCheck, save, saveBlock, startStep } from '../phase7/kiosk-batch-support.ts';
@@ -14,7 +15,24 @@ import { load } from '../phase7/own-product-flow.ts';
 import {
   balanceOf, baseOf, cleanForBatch, clearance, clearanceStep, closeStage, closeTyped, explained, floorKiosk, holdPoint, openContainer, releasePlant, statusStep, step, unitOf, type Floor,
 } from '../phase7/own-product-floor.ts';
-import type { OwnMaterial, StageCtx } from '../phase7/own-product-support.ts';
+export interface OwnMaterial {
+  code: string;
+  name: string;
+  /** Tare and gross (kg) of its one container at dispensing. */
+  tare: string;
+  gross: string;
+  /** The skeleton's weighing step: 'act' (actives) or 'exc' (the other unit components). */
+  group: 'act' | 'exc';
+}
+
+/** Where a master built on the skeleton runs its own further steps (decision 0026 S11: library blocks added on screen). */
+export interface StageCtx {
+  base: string;
+  runId: string;
+  operator: SeededPersona;
+  verifier: SeededPersona;
+  qa: SeededPersona;
+}
 
 export interface SkeletonPlan {
   /** The lot of each material of the formula (its one container's tare and gross at dispensing, kg). */

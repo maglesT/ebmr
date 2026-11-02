@@ -432,9 +432,10 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         issuedBy: engineActor(a.personId, []),
       };
       checkIssue(def, request, await dbNowUs(pool));
-      // Decision 0026 S11b (R3.1 on the sandbox): a tablet count that does not fit the chosen size is refused; a test run
-      // has no reason to differ from it, so no confirmation is offered here.
-      const counts = unconfirmedCounts(def.mbr, body.batchSize, Object.fromEntries(Object.entries(inputs).map(([id, v]) => [id, v.value])));
+      // Decision 0026 S11b (R3.1 on the sandbox): for a master from a formula (it records the unit mass its sizes are
+      // computed from), a tablet count that does not fit the chosen size is refused; a test run has no reason to differ
+      // from it, so no confirmation is offered here. Other masters keep the sandbox's free count (test runs of any size).
+      const counts = def.mbr.header.unitMassMg === undefined ? [] : unconfirmedCounts(def.mbr, body.batchSize, Object.fromEntries(Object.entries(inputs).map(([id, v]) => [id, v.value])));
       const p = counts[0];
       if (p) {
         throw refusal(422, {
