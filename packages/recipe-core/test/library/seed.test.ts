@@ -4,7 +4,6 @@
  * engine and generic handler as any library block. Codes are unique across the catalogue.
  */
 import { describe, expect, it } from 'vitest';
-import type { DataValue } from '../../src/engine/types.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
@@ -23,7 +22,7 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
     inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
   });
   const d = define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) });
-  const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL', value: v.value, unit: v.unit } as DataValue, source: 'seed example' }]));
+  const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
   const run = Run.issue(d, { inputs: values }, T0);
   run.start('p');
   for (const e of nominalEntries(def, config as never, mbr)) {
