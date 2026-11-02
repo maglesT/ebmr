@@ -97,6 +97,14 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
     await lotField.fill(l.lotCode);
     await lotField.press('Enter');
     await explained(expect(form.getByTestId('lot-info')).toContainText(l.lotCode), form);
+    // A balance the plant cannot read now: the tare and gross typed by hand, which the step's verifier checks (DI-30).
+    const typed = form.getByRole('textbox', { name: 'Tare (typed by hand)' });
+    if ((await typed.count()) > 0) {
+      await typed.fill(l.material.tare);
+      await form.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(l.material.gross);
+      await save(disp, form, op1);
+      return;
+    }
     await simulator(sim, 'set', { mass: l.material.tare });
     await expect(form.getByText('live, not recorded').first()).toBeVisible();
     await form.getByRole('button', { name: 'Capture tare' }).click();
