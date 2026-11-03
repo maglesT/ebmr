@@ -185,6 +185,30 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
     expect(await problem(state({ lot: 'L-NOT-THERE', lots: { lot: { id: 'L-NOT-THERE', material: 'M', status: 'RELEASED', identityTested: true } } }))).toMatch(/lot register does not hold/);
   });
 
+  it('[PR-18][IN-23][INV-25] R3-ENG-3: the database refuses a library lot whose formulation line is not a line of the master\'s bill of materials', async () => {
+    // The lot field reads a formulation line; the step's config names it (or not).
+    const withLine = (bomLines: Json): Json => {
+      const c = smartContent();
+      const defs = (c['blockDefinitions'] as Json[]).map((d) => (d['code'] !== smartDef.code ? d : {
+        ...smartDef,
+        sections: smartDef.sections.map((sec) => ({ ...sec, fields: sec.fields.map((f) => (f.id === 'lot' ? { ...f, bomLineSlot: 'line' } : f)) })),
+      }));
+      const stage = ((((c['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
+      const prep = ((stage['children'] as Json[])[0] as Json)['body'] as Json;
+      const [node, ...rest] = prep['children'] as Json[];
+      prep['children'] = [{ ...(node as Json), config: { ...((node as Json)['config'] as Json), bomLines } }, ...rest];
+      return { ...c, blockDefinitions: defs };
+    };
+    const problemIn = async (c: Json, s: Json): Promise<string | null> =>
+      (await w.gmp.db.admin.query<{ p: string | null }>('select tab.library_smart_problem(null, $1::jsonb, $2::jsonb, $3::jsonb) as p', [JSON.stringify(c), JSON.stringify(old), JSON.stringify(s)])).rows[0]?.p ?? null;
+    const anyLot = state({ lot: 'L-ANY', lots: { lot: { id: 'L-ANY', material: 'ANY-MATERIAL', status: 'RELEASED', identityTested: true } } });
+    const realLine = String(((smartContent()['bom'] as Json[])[0] as Json)['id']);
+    expect(await problemIn(withLine({ line: 'BOM-TYPO' }), anyLot)).toMatch(/formulation line BOM-TYPO, which is not a line of the master's bill of materials \(LIB-LOT-BOM-LINE\)/);
+    expect(await problemIn(withLine({}), anyLot)).toMatch(/formulation line \(none\), which is not a line of the master's bill of materials/);
+    // A line of the BOM passes this check and goes on to the register's (the lot is not there).
+    expect(await problemIn(withLine({ line: realLine }), anyLot)).toMatch(/lot register does not hold/);
+  });
+
   it('[PR-19][IN-11] the database refuses equipment it does not hold, facts other than its register\'s, and equipment that is not fit for use', async () => {
     expect(await problem(state({ weighBalance: 'BAL-NOT-THERE', equipment: { weighBalance: { code: 'BAL-NOT-THERE', classCode: 'CL-BAL-S6', fitness: 'QUALIFIED' } } }))).toMatch(/plant register does not hold/);
     await asSetup(w.gmp, `insert into plant.equipment_class (code, kind, description, calibration_required, check_regime, recorded_by)

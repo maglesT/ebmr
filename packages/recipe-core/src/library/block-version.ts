@@ -397,8 +397,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
           continue;
         }
         const line = f.bomLineSlot !== undefined ? config.bomLines?.[f.bomLineSlot] : undefined;
-        const material = line !== undefined ? view.mbr.bom.find((b) => b.id === line)?.material : undefined;
-        problems.push(...lotProblems(view, lot, material));
+        const bomLine = line !== undefined ? view.mbr.bom.find((b) => b.id === line) : undefined;
+        // R3-ENG-3: a field that reads a formula line whose line is not in the BOM is refused, never left unchecked.
+        if (f.bomLineSlot !== undefined && bomLine === undefined) {
+          problems.push(problem('LIB-LOT-BOM-LINE', `${f.label}: the formulation's line ${line ?? '(none)'} is not a line of the master's bill of materials, so lot ${text(data[f.id])} cannot be checked against it`, ['PR-18', 'IN-23', 'INV-25']));
+          continue;
+        }
+        problems.push(...lotProblems(view, lot, bomLine?.material));
       }
       if (f.type === 'EQUIPMENT') {
         const e = equipment[f.id];
@@ -522,8 +527,8 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     dataSchema: { entries },
     // S5: the plain sentence of each entry, for the step screens, the review and the printed record.
     entrySummaries: entrySummariesOf(def),
-    checkConfig: (_phase, config) =>
-      checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr).map((p) => ({
+    checkConfig: (_phase, config, mbr) =>
+      checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr, mbr.bom).map((p) => ({
         code: p.code,
         severity: p.severity,
         message: `${p.path}: ${p.message}`,
