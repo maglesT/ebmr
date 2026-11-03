@@ -14,7 +14,7 @@
  *      logins), is NOLOGIN, so no migration default password ('ebmr_authn' and the like) stays usable;
  *   5. the CSRF and nonce keys and the service-keys file in the keys directory, generated once.
  *
- *   MIGRATE_DATABASE_URL=postgres://postgres:...@localhost/ebmr?host=/var/run/postgresql EBMR_AUTHN_PASSWORD=... \
+ *   MIGRATE_DATABASE_URL=postgres://postgres:<password>@db:5432/ebmr?sslmode=verify-full&sslrootcert=/tls-ca/server.crt EBMR_AUTHN_PASSWORD=... \
  *   EBMR_ANALYTICS_PASSWORD=... EBMR_KEYS_DIR=/var/lib/ebmr/keys node --import tsx apps/tablets-server/src/cli/platform-migrate.ts
  */
 import { randomBytes } from 'node:crypto';

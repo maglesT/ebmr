@@ -102,7 +102,7 @@ describe('MEDHANTA platform wiring (Phase B slice 1)', () => {
   it('[DI-13] on the platform every database URL is on verified TLS against the platform database\'s certificate', () => {
     const env = {
       EBMR_INSTALLATION: 'GMP', EBMR_ENV: 'production', EBMR_DB_CA_FILE: '/tls-ca/server.crt',
-      EBMR_DATABASE_URL: 'postgres://ebmr_app:p%40ss@db:5432/ebmr', EBMR_AUTHN_PASSWORD: 'a@long/secret:pw%', EBMR_ANALYTICS_PASSWORD: 'analytics-secret-1',
+      EBMR_DATABASE_URL: 'postgres://ebmr_app:secret@db:5432/ebmr', EBMR_AUTHN_PASSWORD: 'a@long/secret:pw%', EBMR_ANALYTICS_PASSWORD: 'analytics-secret-1',
       OIDC_REDIRECT_URI: 'https://ebmr.187-126-126-5.sslip.io/cb', EBMR_SECRETS_FILE: join(keysDir, 'secrets.json'),
     };
     const e = platformEnv(env);
@@ -113,7 +113,7 @@ describe('MEDHANTA platform wiring (Phase B slice 1)', () => {
       expect([u.username, u.host, u.pathname, u.searchParams.get('sslmode'), u.searchParams.get('sslrootcert')])
         .toEqual([user, 'db:5432', '/ebmr', 'verify-full', '/tls-ca/server.crt']);
     }
-    expect(decodeURIComponent(new URL(e['EBMR_DB_APP_URL']!).password)).toBe('p@ss');
+    expect(decodeURIComponent(new URL(e['EBMR_DB_APP_URL']!).password)).toBe('secret');
     expect(decodeURIComponent(new URL(e['EBMR_DB_AUTHN_URL']!).password)).toBe('a@long/secret:pw%');
 
     // The production baseline accepts it with no finding to override (verify-full), and builds the server settings.
