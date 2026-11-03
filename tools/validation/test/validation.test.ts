@@ -11,6 +11,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { asAdmin, createGmpDatabase, dropDatabase, editionMigrationSources, uniqueSuffix, urlFor } from '@ebmr/test-kit';
 import { canonicalJson, generatePack, PACK_ARTEFACTS, type Bundle } from '@ebmr/validation-kit';
+import { loadControls } from '../../register/src/register.ts';
 import { buildBundle } from '../src/bundle.ts';
 import { stampReport } from '../src/reports.ts';
 import { runIq } from '../src/iq.ts';
@@ -123,6 +124,22 @@ describe('the evidence bundle of a migrated database (tools/validation)', () => 
     const http = await runIq({ db: client, bundle, server: 'http://ebmr.plant.example', host, fetchFn: fakeMeta(bundle) });
     expect(http.checks.find((c) => c.id === 'IQ-09')?.problems).toContain('the server is reached over plain HTTP off loopback (http://ebmr.plant.example)');
   }, LONG);
+
+  it('[meta] the bundle carries the build status its own evidence supports: a stored VERIFIED it does not support is lowered, never printed (R3-VAL-3)', () => {
+    const stored = new Map(loadControls().map((c) => [c.id, c.build_status]));
+    const verifiedStored = [...stored].filter(([, s]) => s === 'VERIFIED').map(([id]) => id);
+    expect(verifiedStored.length).toBeGreaterThan(0);
+    // This run proves two DI-03 tests only: no control is VERIFIED on its evidence, so none is VERIFIED in the bundle.
+    expect(bundle.register.controls.filter((c) => c.buildStatus === 'VERIFIED')).toEqual([]);
+    for (const id of verifiedStored) expect(['SPECIFIED', 'IMPLEMENTED'], id).toContain(bundle.register.controls.find((c) => c.id === id)?.buildStatus);
+    // Never raised above the register's own status (register:status is the only writer of VERIFIED).
+    const rank = { SPECIFIED: 0, IMPLEMENTED: 1, VERIFIED: 2 } as const;
+    for (const c of bundle.register.controls) expect(rank[c.buildStatus], c.id).toBeLessThanOrEqual(rank[stored.get(c.id) ?? 'SPECIFIED']);
+    // The pack prints what the bundle carries.
+    const release = generatePack(bundle).files.find((f) => f.path === 'release-notes.md')?.content ?? '';
+    expect(release).toContain('Build status');
+    for (const id of verifiedStored.slice(0, 5)) expect(release).not.toMatch(new RegExp(`\\| ${id} \\|[^\\n]*\\| VERIFIED \\|`));
+  });
 
   it('[meta] the OQ record lists every test of the run with its controls and result', () => {
     const r = oqRecord(dir, commit.commit, host, 'https://ebmr.plant.example');

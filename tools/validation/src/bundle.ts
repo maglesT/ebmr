@@ -4,13 +4,17 @@
  * files of compliance/validation/, the analytics method registry, the Phase 7 records, the SBOM and the known issues,
  * in one JSON file the generators read. Every array sorted by its key (compareText), no field from the clock: the same
  * inputs give the same bytes. The bundle is checked with the kit's parseBundle before it is written.
+ *
+ * Each control's build status in the bundle is the one its own evidence supports (R3-VAL-3): the status D-P7-2 gives
+ * from this bundle (computeStatus), never above the register's (register:status is the only writer of VERIFIED). A
+ * stored VERIFIED the bundle does not support is lowered, so the pack never prints a status its evidence lacks.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type pg from 'pg';
 import { catalogMethods } from '../../../apps/tablets-server/src/analytics/catalog.ts';
 import { canonicalJson, compareText, hostOfThisMachine, parseBundle, type Bundle, type Control, type Host, type Measure, type PhaseRecord, type RecordKind } from '@ebmr/validation-kit';
-import { statusContext } from '../../register/src/build-status.ts';
+import { computeStatus, statusContext, type BuildStatus } from '../../register/src/build-status.ts';
 import { currentPhase, gateEditions, loadControls, loadRequirements, type ControlRecord } from '../../register/src/register.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults } from '../../register/src/trace.ts';
 import { controlClass, loadValidationFiles } from '../../register/src/validation-files.ts';
@@ -74,6 +78,13 @@ export function readRecords(dir: string | undefined): PhaseRecord[] {
     out.push({ kind: r.kind, file: relative(ROOT, join(dir, f)).split('\\').join('/'), sha256: sha256(text), passed: r.passed, summary: r.summary || r.kind, measures: r.measures ?? [] });
   }
   return out.sort((a, b) => compareText(a.kind, b.kind));
+}
+
+const RANK: Readonly<Record<BuildStatus, number>> = { SPECIFIED: 0, IMPLEMENTED: 1, VERIFIED: 2 };
+
+/** The lower of the register's status and the one the bundle supports. */
+export function supportedStatus(stored: BuildStatus, computed: BuildStatus): BuildStatus {
+  return RANK[computed] < RANK[stored] ? computed : stored;
 }
 
 /** Builds and checks the bundle (header). */
@@ -142,5 +153,11 @@ export async function buildBundle(inp: BundleInputs): Promise<Bundle> {
     sbom: { file: inp.sbomFile, sha256: sha256(sbomText), format: 'CycloneDX 1.5' },
     knownIssues: ctx.findings.map((f) => ({ id: f.id, severity: f.severity, controls: [...f.controls], text: f.summary })).sort((a, b) => compareText(a.id, b.id)),
   };
+  // The build status the bundle's own evidence supports (computeStatus reads the runs, results and commit only).
+  const byId = new Map(controls.map((c) => [c.id, c]));
+  for (const c of bundle.register.controls) {
+    const rec = byId.get(c.id);
+    if (rec) c.buildStatus = supportedStatus(rec.build_status, computeStatus(rec, bundle, ctx).status);
+  }
   return parseBundle(JSON.parse(canonicalJson(bundle)));
 }
