@@ -644,6 +644,9 @@ describe('release review R3: the database judges library values as the engine do
       const actionFacts = { severity: 'ACTION', registrationRelevant: false, qaOnly: false, stageSignOffBlocked: false, releaseBlocking: false, title: 'x [internal action tier]' };
       expect(await judged(c, rsdAction, { entries: W2, exceptions: { X1: breach('p-lib.wt', { ...actionFacts, block: { steps: [], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } } }) } })).toBeNull();
       expect(await judged(c, rsdAction, { entries: W2, exceptions: { X1: breach('p-lib.wt', actionFacts) } })).toMatch(/^adds exception X1 /);
+      // Without the formulation's leave to continue, an internal action breach also holds the step.
+      const rsdStop = { limits: { rsd: RANGE('mg', null, '0.0001', 'INTERNAL_ACTION') } };
+      expect(await judged(c, rsdStop, { entries: W2, exceptions: { X1: breach('p-lib.wt', actionFacts) } })).toBeNull();
       // A zero duration in a unit the engine's durations do not hold is not worked out either.
       expect((await c.query<{ d: string | null }>("select recipe.library_timer_duration(5, 5, 'wk') as d")).rows[0]?.d).toBeNull();
       // The trigger also runs for a library exception added after a state that had no exceptions member.
