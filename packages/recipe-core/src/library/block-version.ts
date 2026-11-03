@@ -430,6 +430,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       computed[f.id] = { value: outcome.value.value, unit: f.unit, expression: f.expression, languageVersion: expr.languageVersion, inputs: Object.fromEntries(read.flatMap((k) => { const v = values.get(k); return v ? [[k, v]] : []; })) };
     }
 
+    const stored = { ...data, ...(Object.keys(computed).length > 0 ? { computed } : {}) };
+    // A loop: a value that does not pass is a repeat while repeats remain (the loop decides at its exit, as an MBR loop
+    // endpoint does). R3-ENG-1: the last allowed repeat without a pass exhausts the loop; its endpoint is then judged
+    // against its tier like any value (an MBR loop's exit judges it, recipe-core advance.ts raiseForEvaluationAtExit).
+    const maxRepeats = r.kind === 'UNTIL_PASS' && r.maxRepeatsSlot !== undefined ? config.counts?.[r.maxRepeatsSlot] : undefined;
+    const exhausted = r.kind === 'UNTIL_PASS' && maxRepeats !== undefined && previous.length + 1 >= Number(maxRepeats) && !passes(section, stored, config);
+
     // Values against limits, expected answers and allowed choices.
     const exceptions: ExceptionDraft[] = [];
     const where = `${def.title}, ${section.title}`;
@@ -439,7 +446,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       const v = f.type === 'CALC' ? computed[f.id]?.value : data[f.id];
       if (v === undefined) continue;
       const loopEndpoint = section.repeat?.kind === 'UNTIL_PASS' && section.repeat.untilField === f.id;
-      if (loopEndpoint) continue;
+      if (loopEndpoint && (!exhausted || f.type === 'YES_NO')) continue;
       if ((f.type === 'NUMBER' || f.type === 'WEIGHING' || f.type === 'CALC') && f.limitSlot !== undefined) {
         const d = breach(config.limits?.[f.limitSlot], text(v), f.unit, `${where}: ${f.label}`, item);
         if (d) exceptions.push(d);
@@ -465,15 +472,22 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         else judge(v as string[], (_st, slot) => config.limits?.[slot], '');
       }
     }
-    const stored = { ...data, ...(Object.keys(computed).length > 0 ? { computed } : {}) };
-
-    // A loop: a value that does not pass is a repeat while repeats remain (the loop decides at its exit, as an MBR loop
-    // endpoint does); the last allowed repeat without a pass raises the deviation exception.
-    if (r.kind === 'UNTIL_PASS' && !passes(section, stored, config)) {
-      const max = r.maxRepeatsSlot !== undefined ? config.counts?.[r.maxRepeatsSlot] : undefined;
-      if (max !== undefined && previous.length + 1 >= Number(max)) {
-        exceptions.push({ type: 'LIB_REPEAT_LIMIT_REACHED', title: `${where}: the maximum of ${max} repeats was reached without a passing value`, controls: ['PR-08', 'INV-20'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item: `${view.phase.id}.${r.untilField}`, blocks: 'DOWNSTREAM', until: 'DEVIATION', deviationRequired: true });
-      }
+    // An exhausted loop has the consequences of an MBR loop's LOOP_EXHAUSTED (recipe-core advance.ts): the steps after it
+    // wait for QA's disposition, a deviation is required, and release is blocked.
+    if (exhausted) {
+      exceptions.push({
+        type: 'LIB_REPEAT_LIMIT_REACHED',
+        title: `${where}: the maximum of ${maxRepeats ?? ''} repeats was reached without a passing value; QA must disposition it before the steps after it run`,
+        controls: ['PR-08', 'INV-20'],
+        severity: 'ACTION',
+        category: 'OUT_OF_LIMIT',
+        item: `${view.phase.id}.${r.untilField}`,
+        blocks: 'DOWNSTREAM',
+        until: 'DISPOSITION',
+        qaOnly: true,
+        deviationRequired: true,
+        releaseBlocking: true,
+      });
     }
 
     // IPC rounds: a round recorded later than the interval after the previous one.

@@ -264,7 +264,11 @@ describe('repeats: counts and loops (INV-20)', () => {
     const fail = new Bench(def, use);
     expect(types(fail.ok('lod', { lod: '3', temp: '60' }))).toEqual([]);
     const last = fail.ok('lod', { lod: '3', temp: '60' });
-    expect(last.exceptions?.map((e) => [e.type, e.item, e.blocks, e.deviationRequired])).toEqual([['LIB_REPEAT_LIMIT_REACHED', 'p.lod', 'DOWNSTREAM', true]]);
+    // R3-ENG-1: the last value is judged against its tier too, and the exhaustion waits for QA's disposition.
+    expect(last.exceptions?.map((e) => [e.type, e.item, e.blocks, e.until, e.deviationRequired])).toEqual([
+      ['LIB_LIMIT_BREACH', 'p.lod', 'STEP_AND_DOWNSTREAM', 'DEVIATION', true],
+      ['LIB_REPEAT_LIMIT_REACHED', 'p.lod', 'DOWNSTREAM', 'DISPOSITION', true],
+    ]);
     expect(fail.refused('lod', { lod: '2', temp: '60' })).toEqual(['LIB-SECTION-MAX']);
   });
 });
@@ -375,5 +379,22 @@ describe('release review R3: the run-time judgement of library limits (decision 
     const alert = new Bench(def, use).ok('chk', { wt: ['100', '106', '107'] });
     expect(alert.exceptions?.map((e) => [e.severity, e.title.includes(' 106 mg ')])).toEqual([['ALERT', true]]);
     expect(types(new Bench(def, use).ok('chk', { wt: ['100', '101', '99'] }))).toEqual([]);
+  });
+
+  it('[INV-20][PR-08] R3-ENG-1: a loop that ends at its maximum without a pass raises its exhaustion with a loop\'s consequences (QA disposition, release blocked) and judges the last value against its tier', () => {
+    const def = block([once('lod', [{ id: 'lod', label: 'LOD', type: 'NUMBER', unit: '%', limitSlot: 'lod', critical: true }], { kind: 'UNTIL_PASS', untilField: 'lod', maxRepeatsSlot: 'max' })]);
+    const use: Config = { limits: { lod: tiered('%', [['1.0', '3.0', 'REGISTERED'], ['1.5', '2.5', 'INTERNAL_ACTION']]) }, counts: { max: '2' } };
+    const b = new Bench(def, use);
+    expect(types(b.ok('lod', { lod: '9' }))).toEqual([]);
+    const last = b.ok('lod', { lod: '2.8' });
+    expect(last.exceptions?.map((e) => [e.type, e.item, e.severity, e.blocks, e.until, e.qaOnly ?? false, e.deviationRequired, e.releaseBlocking ?? false])).toEqual([
+      ['LIB_LIMIT_BREACH', 'p.lod', 'ACTION', 'STEP_AND_DOWNSTREAM', 'DEVIATION', false, true, false],
+      ['LIB_REPEAT_LIMIT_REACHED', 'p.lod', 'ACTION', 'DOWNSTREAM', 'DISPOSITION', true, true, true],
+    ]);
+    const worse = new Bench(def, use);
+    worse.ok('lod', { lod: '9' });
+    expect(worse.ok('lod', { lod: '3.5' }).exceptions?.map((e) => [e.type, e.severity])).toEqual([['LIB_LIMIT_BREACH', 'CRITICAL'], ['LIB_REPEAT_LIMIT_REACHED', 'ACTION']]);
+    // A loop value that fails before the last allowed repeat is a repeat, not a breach.
+    expect(types(new Bench(def, { ...use, counts: { max: '3' } }).ok('lod', { lod: '9' }))).toEqual([]);
   });
 });
