@@ -96,6 +96,8 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libtab 400 mg, wet granulation, film coated (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libtab 250 mg, direct compression, uncoated (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Rabeprazole sodium 20 mg, enteric coated, three coats (library) uses through the signature ceremony @office"
+  - "apps/tablets-server/test/designer/palette-tablets.test.ts > the tablets palette (slice 7j) > [PR-05][PR-03] decision 0026 O-6: after the library acceptance the tablet blocks are no longer offered for a new step; they stay described for existing masters; every generic step block is still offered"
+  - "apps/tablets-web/test/designer/insert-dialog.test.tsx > the Insert a step dialog (decision 0026 O-6) > [PR-05] lists the insertable blocks and not a tablet block that left the palette"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

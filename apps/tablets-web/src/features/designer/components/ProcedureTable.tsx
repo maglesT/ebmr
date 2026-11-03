@@ -140,9 +140,9 @@ export interface ProcedureProps {
 export function InsertDialog({ open, onClose, palette, onInsert }: { open: boolean; onClose: () => void; palette: readonly PaletteItem[]; onInsert: (block: PaletteItem) => void }) {
   return (
     <Dialog title="Insert a step" isOpen={open} onOpenChange={(o) => (o ? undefined : onClose())}>
-      <p className={dcls('small')}>Choose what the new step does. Blocks marked "sandbox only" run in test runs until Phase 3.</p>
+      <p className={dcls('small')}>Choose what the new step does. Blocks marked "sandbox only" run in test runs until Phase 3. A product's own process steps are library blocks (Add a library block).</p>
       <ul className={dcls('list')} style={{ listStyle: 'none', padding: 0 }}>
-        {palette.map((b) => (
+        {palette.filter((b) => b.insertable).map((b) => (
           <li key={b.key} style={{ margin: '6px 0' }}>
             <Button onPress={() => onInsert(b)} className={dcls('paletteItem')} aria-label={`Insert ${b.plainName}`}>
               <span>
