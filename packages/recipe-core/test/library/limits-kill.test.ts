@@ -5,7 +5,7 @@
  * is driven directly through a small view, so every draft, problem and stored value is visible.
  */
 import { describe, expect, it } from 'vitest';
-import type { EntryResult, HandlerProblem, HandlerView } from '../../src/blocks/contract.ts';
+import type { EntryResult, ExceptionDraft, HandlerProblem, HandlerView } from '../../src/blocks/contract.ts';
 import type { DataValue, EntryRecord } from '../../src/engine/types.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockVersion, statistic, TIMER_START, TIMER_STOP, type BlockDefinition, type BlockUse, type FieldDef, type SectionDef } from '../../src/library/index.ts';
@@ -21,7 +21,7 @@ class Bench {
   readonly records: EntryRecord[] = [];
   nowUs = 1_000_000_000n;
   /** The step instance started when the bench was set up (trusted time). */
-  readonly startedAtUs = this.nowUs;
+  startedAtUs: bigint | undefined = this.nowUs;
   private readonly handler;
   constructor(
     def: BlockDefinition,
@@ -76,7 +76,10 @@ class Bench {
   }
   /** The exceptions the step's PERFORMED transition raises now. */
   onPerform(): string[] {
-    return (this.handler.onPerform?.(this.view()).exceptions ?? []).map((e) => e.type);
+    return this.performDrafts().map((e) => e.type);
+  }
+  performDrafts(): ExceptionDraft[] {
+    return this.handler.onPerform?.(this.view()).exceptions ?? [];
   }
   beforePerform(): string[] {
     return (this.handler.beforePerform?.(this.view()) ?? []).map((p: HandlerProblem) => p.code);
@@ -370,7 +373,7 @@ describe('release review R3: the run-time judgement of library limits (decision 
     const use: Config = { counts: { n: '3' }, limits: { ind: tiered('mg', [['90', '110', 'REGISTERED'], ['95', '105', 'ALERT']]) } };
     const worst = new Bench(def, use).ok('chk', { wt: ['104', '106', '150'] });
     expect(worst.exceptions?.map((e) => [e.type, e.severity, e.deviationRequired, e.qaOnly])).toEqual([['LIB_LIMIT_BREACH', 'CRITICAL', true, true]]);
-    expect(worst.exceptions?.[0]?.title).toContain(' 150 mg ');
+    expect(worst.exceptions?.[0]?.title).toContain('Kill, chk: Weights (individual) 150 mg ');
     expect(worst.exceptions?.[0]?.title).toMatch(/\[registered tier\]$/);
     // Two readings at the same most severe tier: the first of them is named.
     const two = new Bench(def, use).ok('chk', { wt: ['80', '106', '150'] });
@@ -394,8 +397,25 @@ describe('release review R3: the run-time judgement of library limits (decision 
     const worse = new Bench(def, use);
     worse.ok('lod', { lod: '9' });
     expect(worse.ok('lod', { lod: '3.5' }).exceptions?.map((e) => [e.type, e.severity])).toEqual([['LIB_LIMIT_BREACH', 'CRITICAL'], ['LIB_REPEAT_LIMIT_REACHED', 'ACTION']]);
-    // A loop value that fails before the last allowed repeat is a repeat, not a breach.
+    expect(last.exceptions?.[1]).toEqual({
+      type: 'LIB_REPEAT_LIMIT_REACHED',
+      title: 'Kill, lod: the maximum of 2 repeats was reached without a passing value; QA must disposition it before the steps after it run',
+      controls: ['PR-08', 'INV-20'],
+      severity: 'ACTION',
+      category: 'OUT_OF_LIMIT',
+      item: 'p.lod',
+      blocks: 'DOWNSTREAM',
+      until: 'DISPOSITION',
+      qaOnly: true,
+      deviationRequired: true,
+      releaseBlocking: true,
+    });
+    // A loop value that fails before the last allowed repeat is a repeat, not a breach; with no maximum given, never.
     expect(types(new Bench(def, { ...use, counts: { max: '3' } }).ok('lod', { lod: '9' }))).toEqual([]);
+    expect(types(new Bench(def, { limits: use.limits ?? {} }).ok('lod', { lod: '9' }))).toEqual([]);
+    // A yes/no loop has no tier: its exhaustion alone, not an unexpected answer besides.
+    const yn = block([once('chk', [{ id: 'ok', label: 'OK', type: 'YES_NO', expected: true }], { kind: 'UNTIL_PASS', untilField: 'ok', maxRepeatsSlot: 'max' })]);
+    expect(types(new Bench(yn, { counts: { max: '1' } }).ok('chk', { ok: false }))).toEqual(['LIB_REPEAT_LIMIT_REACHED']);
   });
 
   it('[PR-29][PR-30] R3-ENG-4: an IPC interval is held from the step\'s start to the first round and from the last round to the step\'s end, on trusted time', () => {
@@ -406,10 +426,16 @@ describe('release review R3: the run-time judgement of library limits (decision 
     expect(types(onTime.minutes(30).ok('round', { wt }))).toEqual([]);
     expect(onTime.minutes(30).onPerform()).toEqual([]);
     const first = new Bench(ipc, use).minutes(31).ok('round', { wt });
-    expect(first.exceptions?.map((e) => [e.type, e.title])).toEqual([['LIB_IPC_INTERVAL_MISSED', 'Kill, round: check 1 came later than every 30 min']]);
+    expect(first.exceptions).toEqual([{ type: 'LIB_IPC_INTERVAL_MISSED', title: 'Kill, round: check 1 came later than every 30 min', controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' }]);
     const lateEnd = new Bench(ipc, use);
     lateEnd.ok('round', { wt });
-    expect(lateEnd.minutes(31).onPerform()).toEqual(['LIB_IPC_INTERVAL_MISSED']);
+    expect(lateEnd.minutes(31).performDrafts().map((e) => [e.type, e.title])).toEqual([['LIB_IPC_INTERVAL_MISSED', 'Kill, round: the step ended later after its last check than every 30 min']]);
+    // Without a known start (before the step starts) the first round has nothing to be late against.
+    const unstarted = new Bench(ipc, use);
+    unstarted.startedAtUs = undefined;
+    expect(types(unstarted.minutes(31).ok('round', { wt }))).toEqual([]);
+    // An interval the engine cannot hold in microseconds holds nothing.
+    expect(types(new Bench(ipc, { ...use, intervals: { every: { value: '30', unit: 'wk' } } }).minutes(500000).ok('round', { wt }))).toEqual([]);
     // A step with no round at all: the interval from its start to its end.
     expect(new Bench(ipc, use).minutes(31).onPerform()).toEqual(['LIB_IPC_INTERVAL_MISSED']);
     expect(new Bench(ipc, use).minutes(30).onPerform()).toEqual([]);

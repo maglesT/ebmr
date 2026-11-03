@@ -356,9 +356,10 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   const intervalMissed = (view: HandlerView, section: SectionDef, what: string): ExceptionDraft | undefined => {
     if (section.repeat?.kind !== 'PER_INTERVAL') return undefined;
     const iv = configOf(view).intervals?.[section.repeat.intervalSlot];
-    const limitUs = iv ? durationToMicros(iv.value, iv.unit) : undefined;
+    if (!iv) return undefined;
+    const limitUs = durationToMicros(iv.value, iv.unit);
     const since = view.entries(section.id).at(-1)?.recordedAt ?? view.startedAtUs;
-    if (!iv || limitUs === undefined || since === undefined || view.nowUs - since <= limitUs) return undefined;
+    if (limitUs === undefined || since === undefined || view.nowUs - since <= limitUs) return undefined;
     return { type: 'LIB_IPC_INTERVAL_MISSED', title: `${def.title}, ${section.title}: ${what} every ${iv.value} ${iv.unit}`, controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' };
   };
 
@@ -448,7 +449,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     // endpoint does). R3-ENG-1: the last allowed repeat without a pass exhausts the loop; its endpoint is then judged
     // against its tier like any value (an MBR loop's exit judges it, recipe-core advance.ts raiseForEvaluationAtExit).
     const maxRepeats = r.kind === 'UNTIL_PASS' && r.maxRepeatsSlot !== undefined ? config.counts?.[r.maxRepeatsSlot] : undefined;
-    const exhausted = r.kind === 'UNTIL_PASS' && maxRepeats !== undefined && previous.length + 1 >= Number(maxRepeats) && !passes(section, stored, config);
+    const exhausted = maxRepeats !== undefined && previous.length + 1 >= Number(maxRepeats) && !passes(section, stored, config);
 
     // Values against limits, expected answers and allowed choices.
     const exceptions: ExceptionDraft[] = [];
@@ -487,7 +488,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     }
     // An exhausted loop has the consequences of an MBR loop's LOOP_EXHAUSTED (recipe-core advance.ts): the steps after it
     // wait for QA's disposition, a deviation is required, and release is blocked.
-    if (exhausted) {
+    if (exhausted && r.kind === 'UNTIL_PASS') {
       exceptions.push({
         type: 'LIB_REPEAT_LIMIT_REACHED',
         title: `${where}: the maximum of ${maxRepeats ?? ''} repeats was reached without a passing value; QA must disposition it before the steps after it run`,
@@ -504,11 +505,9 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     }
 
     // IPC rounds: a round recorded later than the interval after the previous one, the first round after the step's start
-    // (R3-ENG-4; the end of the step after the last round is held at PERFORMED, onPerform).
-    if (r.kind === 'PER_INTERVAL') {
-      const missed = intervalMissed(view, section, `check ${previous.length + 1} came later than`);
-      if (missed) exceptions.push(missed);
-    }
+    // (R3-ENG-4; the end of the step after the last round is held at PERFORMED, onPerform). Only a PER_INTERVAL section has one.
+    const missed = intervalMissed(view, section, `check ${previous.length + 1} came later than`);
+    if (missed) exceptions.push(missed);
     return { ok: true, data: stored, exceptions, ...(manualWeighing ? { verificationRequired: true } : {}) };
   };
 

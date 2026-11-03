@@ -149,6 +149,23 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
   });
 
+  it('[PR-29][PR-30] R3-ENG-4: in a batch, an IPC interval runs from the step\'s start on trusted time: a first round later than the interval is late', () => {
+    const ipc: BlockDefinition = {
+      code: 'IPC-R3', version: 1, title: 'Rounds', category: 'TEST_IPC',
+      sections: [{ id: 'round', title: 'Round', repeat: { kind: 'PER_INTERVAL', intervalSlot: 'every' }, fields: [{ id: 'v', label: 'V', type: 'NUMBER', unit: 'g' }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    const use: BlockUse = { block: { code: 'IPC-R3', version: 1 }, intervals: { every: { value: '30', unit: 'min' } } };
+    const onTime = runFor(ipc, use);
+    onTime.minutes(30);
+    onTime.entry('p', { kind: 'round', v: '1' });
+    expect(types(onTime)).toEqual([]);
+    const late = runFor(ipc, use);
+    late.minutes(31);
+    late.entry('p', { kind: 'round', v: '1' });
+    expect(types(late)).toEqual(['LIB_IPC_INTERVAL_MISSED']);
+  });
+
   it('[PR-30] a timer runs on trusted time: its duration is checked against its limit when it is stopped', () => {
     const run = runFor(fluidBedDrying(), fluidBedDryingUse());
     run.refused(entryCmd(run, { kind: TIMER_STOP, field: 'drying' }), 'LIB-TIMER-NOT-STARTED');

@@ -38,13 +38,20 @@ describe('library block definitions', () => {
       version: 1,
       title: 'Loop',
       category: 'PROCESS',
-      sections: [{ id: 'chk', title: 'Check', repeat: { kind: 'UNTIL_PASS', untilField: 'w' }, fields: [{ id: 'w', label: 'W', type: 'WEIGHING', unit: 'kg', limitSlot: 'w' }, { id: 'n', label: 'N', type: 'NUMBER', unit: 'g', limitSlot: 'n' }] }],
+      sections: [{ id: 'chk', title: 'Check', repeat: { kind: 'UNTIL_PASS', untilField: 'w' }, fields: [
+        { id: 'w', label: 'W', type: 'WEIGHING', unit: 'kg', limitSlot: 'w' },
+        { id: 'n', label: 'N', type: 'NUMBER', unit: 'g', limitSlot: 'n' },
+        // Not the endpoint: a weighing's limit stays optional even when stored definition JSON marks it critical (the type has
+        // no such flag; a weighing's target comes from the formula); a critical number's is required.
+        { id: 'h', label: 'H', type: 'WEIGHING', unit: 'kg', limitSlot: 'h', critical: true } as unknown as FieldDef,
+        { id: 'c', label: 'C', type: 'NUMBER', unit: 'g', limitSlot: 'c', critical: true },
+      ] }],
       signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
     };
     expect(errors(checkBlockDefinition(def, expr))).toEqual([]);
-    expect(slotsOf(def).map((s) => `${s.name}:${String(s.required)}`)).toEqual(['w:true', 'n:false']);
-    expect(codes(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 } }, expr)))).toEqual(['LIB-USE-LIMIT-MISSING']);
-    expect(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 }, limits: { w: range('kg', '9', '11') } }, expr))).toEqual([]);
+    expect(slotsOf(def).map((s) => `${s.name}:${String(s.required)}`)).toEqual(['w:true', 'n:false', 'h:false', 'c:true']);
+    expect(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 }, limits: { c: range('g', '1', '2') } }, expr)).map((p) => [p.code, p.path])).toEqual([['LIB-USE-LIMIT-MISSING', 'limits.w']]);
+    expect(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 }, limits: { w: range('kg', '9', '11'), c: range('g', '1', '2') } }, expr))).toEqual([]);
   });
 
   it('[PR-03] a critical number without a limit slot is refused: every CPP and IPC has limits', () => {
