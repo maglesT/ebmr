@@ -144,6 +144,9 @@ export async function enterMaterials(page: Page, materials: readonly OwnMaterial
     await m.getByRole('textbox', { name: 'Reason for the entry' }).fill(REASON);
     await m.getByRole('button', { name: 'Enter the material' }).click();
     await expect(page.getByTestId('masters-waiting')).toContainText(mat.code);
+    // The form clears only when the command returns, which can be after the list shows the code: typing the next
+    // material before then loses it (GitHub-hosted run 41580034990).
+    await expect(m.getByRole('textbox', { name: 'Material code' })).toHaveValue('');
   }
 }
 
