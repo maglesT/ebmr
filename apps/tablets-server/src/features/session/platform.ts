@@ -12,6 +12,7 @@
  * PLATFORM). platformAuthEvent turns it into the kernel's own authentication event (iam.platform_auth_event, kernel 1400):
  * at sign-on the person's grants are first brought in line with the token's codes (iam.platform_sync_grants).
  */
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { identity } from '@ebmr/kernel';
 import { SignonError, permissionOf, type ProofPurpose, type SignonProof } from '../../platform/auth/core-signon.ts';
@@ -49,13 +50,13 @@ function openProof(app: AppContext, proof: string, purpose: ProofPurpose): Signo
   }
 }
 
-async function onAuthn<T>(app: AppContext, work: (q: (sql: string, params: unknown[]) => Promise<T>) => Promise<T>): Promise<T> {
+async function onAuthn<T>(app: AppContext, work: (q: (sql: string, params: unknown[]) => Promise<unknown>) => Promise<T>): Promise<T> {
   const db = app.pools.authn;
   const client = await db.pool.connect();
   try {
     await client.query('begin');
     if (db.setRole) await client.query(`set local role ${db.setRole}`);
-    const out = await work(async (sql, params) => (await client.query<{ r: T }>(sql, params)).rows[0]?.r as T);
+    const out = await work(async (sql, params) => (await client.query<{ r: unknown }>(sql, params)).rows[0]?.r);
     await client.query('commit');
     return out;
   } catch (e) {
@@ -115,9 +116,27 @@ export async function platformAuthEvent(
       });
     }
   }
-  // At sign-on, and again at every signing, the grants follow the token: a code removed at core counts from now on.
-  const sync = await onAuthn<KernelAnswer>(app, (q) =>
-    q('select iam.platform_sync_grants($1, $2, $3, $4, $5, $6) as r', [p.sub, p.login, p.name, p.codes, `core sign-on of ${p.login}`, input.fingerprint]));
+  // At sign-on, and again at every signing, the grants follow the token: a code removed at core counts from now on. One
+  // transaction: the sync spends the proof's nonce first (a used proof changes nothing), then the event is made of it. A
+  // refused sync still commits (the revocations and the spent nonce), and nothing more is made.
+  const nonce = input.nonceUse ? `${p.nonce}:${input.nonceUse}` : p.nonce;
+  let out: { sync: KernelAnswer; ev: KernelAnswer | null };
+  try {
+    out = await onAuthn<{ sync: KernelAnswer; ev: KernelAnswer | null }>(app, async (q) => {
+      const sync = (await q('select iam.platform_sync_grants($1, $2, $3, $4, $5, $6, $7, $8) as r', [
+        p.sub, p.login, p.name, p.codes, `core sign-on of ${p.login}`, input.fingerprint, input.purpose, nonce,
+      ])) as KernelAnswer;
+      if (sync.status !== 'OK') return { sync, ev: null };
+      const ev = (await q('select iam.platform_auth_event($1, $2, $3, $4, to_timestamp($5::bigint), $6) as r', [
+        p.sub, input.purpose, input.challengeId ?? null, input.fingerprint, String(p.authTime), nonce,
+      ])) as KernelAnswer;
+      return { sync, ev };
+    });
+  } catch (e) {
+    if (identity.ebmrCode(e) === 'EBMR-IAM-091') throw signonRefused('PROOF_USED', 'the sign-on proof has already been used');
+    throw e;
+  }
+  const { sync, ev } = out;
   if (sync.status !== 'OK') {
     throw refusal(403, {
       code: 'EBMR-IAM-302',
@@ -139,18 +158,8 @@ export async function platformAuthEvent(
       whoCanHelp: ['The platform administrator'],
     });
   }
-  const nonce = input.nonceUse ? `${p.nonce}:${input.nonceUse}` : p.nonce;
-  let ev: KernelAnswer;
-  try {
-    ev = await onAuthn<KernelAnswer>(app, (q) =>
-      q('select iam.platform_auth_event($1, $2, $3, $4, to_timestamp($5::bigint), $6) as r', [p.sub, input.purpose, input.challengeId ?? null, input.fingerprint, String(p.authTime), nonce]));
-  } catch (e) {
-    const code = identity.ebmrCode(e);
-    if (code === 'EBMR-IAM-091') throw signonRefused('PROOF_USED', 'the sign-on proof has already been used');
-    throw e;
-  }
-  if (ev.status !== 'OK' || !ev.auth_event_id || !ev.person_id || !ev.account_id) {
-    throw signonRefused(ev.reason ?? 'REFUSED', 'the platform sign-on cannot be used here');
+  if (!ev || ev.status !== 'OK' || !ev.auth_event_id || !ev.person_id || !ev.account_id) {
+    throw signonRefused(ev?.reason ?? 'REFUSED', 'the platform sign-on cannot be used here');
   }
   return { authEventId: ev.auth_event_id, personId: ev.person_id, accountId: ev.account_id };
 }
@@ -170,45 +179,71 @@ function toPage(reply: FastifyReply, fragment: Record<string, string>): FastifyR
   return reply.header('cache-control', 'no-store').redirect(`/platform-signon#${new URLSearchParams(fragment).toString()}`, 303);
 }
 
+/** The browser-facing routes' own limit per address (a sign-on start costs a pending entry at the server). */
+const SIGNON_RATE_LIMIT = { rateLimit: { max: 120, timeWindow: '1 minute' } };
+const SIGNON_COOKIE_MAX_AGE_S = 600;
+
+/** The cookie binding a started sign-on to the browser that started it (one per purpose: a signing window beside a sign-in). */
+function signonCookie(app: AppContext, purpose: ProofPurpose): string {
+  const short = app.installation === 'GMP' ? 'gmp' : 'sbx';
+  const name = purpose === 'LOGIN' ? 'signon' : 'sign';
+  return app.config.https ? `__Host-ebmr-${short}-${name}` : `ebmr_${short}_${name}`;
+}
+
+const stateHash = (state: string): string => createHash('sha256').update(state).digest('hex');
+
 /** The browser-facing routes (not under /api: they are top-level navigations to and from core). */
 export function platformRoutes(scope: FastifyInstance, app: AppContext): void {
   if (!app.platform.build) return;
   const signon = signonOf(app);
-  const failed = (reply: FastifyReply, e: unknown) => {
-    if (e instanceof SignonError) return toPage(reply, { error: e.reason });
+  const failed = (reply: FastifyReply, e: unknown, purpose: ProofPurpose = 'LOGIN') => {
+    if (e instanceof SignonError) return toPage(reply, { error: e.reason, purpose });
     app.log.warn({ error: (e as Error).message }, 'platform sign-on failed');
-    return toPage(reply, { error: 'CORE_UNREACHABLE' });
+    return toPage(reply, { error: 'CORE_UNREACHABLE', purpose });
   };
+  const toCore = (reply: FastifyReply, purpose: ProofPurpose, started: { url: string; state: string }) =>
+    reply
+      .setCookie(signonCookie(app, purpose), started.state, { path: '/', httpOnly: true, sameSite: 'lax', secure: app.config.https, maxAge: SIGNON_COOKIE_MAX_AGE_S })
+      .header('cache-control', 'no-store')
+      .redirect(started.url, 303);
 
-  scope.get('/signin', async (_request, reply) => {
+  scope.get('/signin', { config: SIGNON_RATE_LIMIT }, async (_request, reply) => {
     try {
-      return reply.header('cache-control', 'no-store').redirect(signon.start({ purpose: 'LOGIN', challengeIds: [], sessionTokenHash: null }), 303);
+      return toCore(reply, 'LOGIN', signon.start({ purpose: 'LOGIN', challengeIds: [], sessionTokenHash: null }));
     } catch (e) {
       return failed(reply, e);
     }
   });
 
-  scope.get<{ Querystring: { challenge?: string | string[] } }>('/sign', async (request, reply) => {
+  scope.get<{ Querystring: { challenge?: string | string[] } }>('/sign', { config: SIGNON_RATE_LIMIT }, async (request, reply) => {
     const ids = [request.query.challenge ?? []].flat();
     const tokenHash = requestTokenHash(request, app.config);
     if (tokenHash === null || ids.length < 1 || ids.length > 2 || !ids.every((x) => UUID.test(x)) || !(await ownOpenChallenges(app, tokenHash, ids))) {
       return toPage(reply, { error: 'CHALLENGE_UNKNOWN', purpose: 'SIGNATURE' });
     }
     try {
-      return reply.header('cache-control', 'no-store').redirect(signon.start({ purpose: 'SIGNATURE', challengeIds: ids, sessionTokenHash: tokenHash }), 303);
+      return toCore(reply, 'SIGNATURE', signon.start({ purpose: 'SIGNATURE', challengeIds: ids, sessionTokenHash: tokenHash }));
     } catch (e) {
-      return failed(reply, e);
+      return failed(reply, e, 'SIGNATURE');
     }
   });
 
-  scope.get<{ Querystring: { state?: string; code?: string; error?: string } }>('/cb', async (request, reply) => {
+  scope.get<{ Querystring: { state?: string; code?: string; error?: string } }>('/cb', { config: SIGNON_RATE_LIMIT }, async (request, reply) => {
     const { state, code, error } = request.query;
     if (typeof state !== 'string' || typeof code !== 'string' || error !== undefined) return toPage(reply, { error: error === undefined ? 'CODE_MISSING' : 'CORE_REFUSED' });
+    // Only the browser that started this sign-on may finish it (login CSRF: a /cb link of another person's sign-on).
+    const bound = (['LOGIN', 'SIGNATURE'] as const).find((pp) => {
+      const c = request.cookies[signonCookie(app, pp)];
+      return typeof c === 'string' && c.length === state.length && timingSafeEqual(Buffer.from(stateHash(c)), Buffer.from(stateHash(state)));
+    });
+    if (!bound) return toPage(reply, { error: 'STATE_UNKNOWN' });
+    reply.clearCookie(signonCookie(app, bound), { path: '/', httpOnly: true, sameSite: 'lax', secure: app.config.https });
     try {
       const { proof, claims } = await signon.finish(state, code);
+      if (claims.purpose !== bound) return toPage(reply, { error: 'STATE_UNKNOWN', purpose: bound });
       return toPage(reply, { proof, purpose: claims.purpose });
     } catch (e) {
-      return failed(reply, e);
+      return failed(reply, e, bound);
     }
   });
 }

@@ -288,7 +288,7 @@ tests:
   - "apps/tablets-server/test/security/kiosk-read-order.test.ts > kiosk reads: the permission before the badge tap (D-P7R-18) > [INV-40][DI-14] a read the operator's role may make still needs the fresh badge tap on the kiosk (the kernel's per-command attribution is unchanged)"
   - "apps/tablets-server/test/operations/send-order.test.ts > R3.13: the DEMO-ONLY credential card on the operations screen > [DI-05][DI-14] a demo installation shows its set-up's administrators (this set-up's passwords) and every demo persona with how and where they sign in; any other installation refuses it"
   - "tools/e2e/specs/phase7/presenter-floor.spec.ts > [DI-05][DI-14] R5, R3.13: the administrator sees the DEMO-ONLY credential card and the ERP simulator sends a GB-T-02 processing order @office"
-  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > core's answers are checked > [DI-14][PL-05] an ID token of another issuer, for another application, answering another sign-on or expired gives no proof; a signature needs a fresh re-authentication"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > core's answers are checked > [DI-14][PL-05] an ID token of another issuer, for another application, answering another sign-on or expired gives no proof; a callback started in another browser is refused; a signature needs a fresh re-authentication"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > people and their codes come from core > [DI-14][DI-15][PL-03] the first sign-on creates one person with one account, identity verified at core; the next reuses them; a proof is used once"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."

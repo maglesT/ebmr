@@ -22,8 +22,13 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { moment } from '../clock.ts';
 
-/** How long a proof made at /cb may be used (it is used within seconds by the page that received it). */
-export const PROOF_TTL_S = 120;
+/**
+ * How long a proof made at /cb may be used (the page that received it posts it within seconds). With FRESH_AUTH_S, the
+ * proof is always used within the kernel's window for an authentication event (authn.event_max_age_seconds, 120 s).
+ */
+export const PROOF_TTL_S = 60;
+/** At /cb, core's authentication is at most this old: re-authentication for a signature, and a sign-in (max_age). */
+export const FRESH_AUTH_S = 60;
 /** How long a sign-on started at /signin or /sign may take at core. */
 export const PENDING_TTL_MS = 10 * 60 * 1000;
 /** Clock skew accepted between core and this server. */
@@ -111,8 +116,11 @@ export class CoreSignon {
     this.endpoints = { authorization: `${base}/auth`, token: `${base}/token`, userinfo: `${base}/me` };
   }
 
-  /** Step 1: where to send the browser, and the state it comes back with. */
-  start(p: Omit<PendingSignon, 'verifier' | 'nonce'>): string {
+  /**
+   * Step 1: where to send the browser, and the state it comes back with. The caller binds the state to the browser (a
+   * cookie), so a /cb link made by someone else's sign-on is refused (login CSRF).
+   */
+  start(p: Omit<PendingSignon, 'verifier' | 'nonce'>): { url: string; state: string } {
     const now = moment().wallMs;
     for (const [k, v] of this.pending) if (now - v.at > PENDING_TTL_MS) this.pending.delete(k);
     if (this.pending.size >= MAX_PENDING) throw new SignonError('BUSY', 'too many sign-ons are under way; try again in a minute');
@@ -133,8 +141,11 @@ export class CoreSignon {
       // DI-38 / PL-05: core asks for the user ID and the password again, whatever session it holds.
       u.searchParams.set('prompt', 'login');
       u.searchParams.set('max_age', '0');
+    } else {
+      // A sign-in uses core's session only while it is fresh enough for the kernel's login event; otherwise core asks again.
+      u.searchParams.set('max_age', String(FRESH_AUTH_S));
     }
-    return u.toString();
+    return { url: u.toString(), state };
   }
 
   /** Step 2: the code core returned, exchanged and verified; the proof for the page. */
@@ -159,8 +170,9 @@ export class CoreSignon {
     const c: Record<string, unknown> = { ...idc, ...info };
     const authTime = idc['auth_time'] ?? info['auth_time'];
     if (typeof authTime !== 'number' || !Number.isInteger(authTime)) throw new SignonError('TOKEN_INVALID', 'the ID token carries no auth_time');
-    if (p.purpose === 'SIGNATURE' && nowS() - authTime > SKEW_S) {
-      // DI-38: a signature needs a fresh re-authentication (max_age=0); the kernel also checks it against the challenge.
+    if (nowS() - authTime > FRESH_AUTH_S) {
+      // DI-38: a signature needs a fresh re-authentication (max_age=0), a sign-in a recent one (max_age); the kernel also
+      // checks the time against the challenge and its event window.
       throw new SignonError('NOT_REAUTHENTICATED', 'core did not ask for the password again');
     }
     const codes = c[this.config.codesClaim];
@@ -203,7 +215,7 @@ export class CoreSignon {
     const now = nowS();
     const aud = claims['aud'];
     const audiences = Array.isArray(aud) ? aud : [aud];
-    if (claims['iss'] !== this.config.issuer) throw new SignonError('TOKEN_INVALID', 'the ID token comes from another issuer');
+    if (typeof claims['iss'] !== 'string' || claims['iss'].replace(/\/+$/, '') !== this.config.issuer.replace(/\/+$/, '')) throw new SignonError('TOKEN_INVALID', 'the ID token comes from another issuer');
     if (!audiences.includes(this.config.clientId) || (audiences.length > 1 && claims['azp'] !== this.config.clientId)) {
       throw new SignonError('TOKEN_INVALID', 'the ID token is for another application');
     }

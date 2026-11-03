@@ -84,6 +84,13 @@ export class FakeCore {
     return `${head}.${body}.${rsaSign('sha256', Buffer.from(`${head}.${body}`), this.keys.privateKey).toString('base64url')}`;
   }
 
+  /** A /cb link of a sign-on started in another browser (login CSRF), returned as the attacker would send it. */
+  async foreignCallback(attacker: TestBrowser, person: CorePerson): Promise<string> {
+    const first = await attacker.inject({ method: 'GET', url: '/signin' });
+    const { state, code } = this.login(String(first.headers['location'] ?? ''), person);
+    return `/cb?state=${encodeURIComponent(state)}&code=${code}`;
+  }
+
   /** The person signs in at core on the page `authorizeUrl` sent them to; the code core gives back. */
   login(authorizeUrl: string, person: CorePerson): { state: string; code: string; params: URLSearchParams } {
     const u = new URL(authorizeUrl);
@@ -106,7 +113,9 @@ export class FakeCore {
     const location = String(first.headers['location'] ?? '');
     if (!location.startsWith(CORE_ISSUER)) return fragmentOf(location);
     const { state, code, params } = this.login(location, person);
-    const back = await b.inject({ method: 'GET', url: `/cb?state=${encodeURIComponent(state)}&code=${code}` });
+    // The browser keeps the sign-on cookie /signin or /sign set (it binds the sign-on to this browser).
+    const set = [first.headers['set-cookie'] ?? []].flat().map((c) => String(c).split(';')[0] ?? '').filter((c) => c !== '');
+    const back = await b.inject({ method: 'GET', url: `/cb?state=${encodeURIComponent(state)}&code=${code}`, headers: { cookie: set.join('; ') } });
     return { ...fragmentOf(String(back.headers['location'] ?? '')), params };
   }
 }

@@ -414,14 +414,13 @@ export const PLATFORM_MANAGED_ROUTES: ReadonlySet<string> = new Set([
 
 /**
  * Phase B slice 2: the person a platform sign-on proof names, for the login's rate limit only (as the identifier of a
- * password login; people behind one address do not share one allowance). Read without checking the proof's MAC: a forged
- * name only gets its own allowance, and a forged proof is refused before the database is asked.
+ * password login, so people behind one address do not share one allowance). Only a proof this server made counts (its MAC
+ * is checked, which costs no database work); anything else shares the address's own allowance.
  */
-function signonSubject(proof: unknown): string {
-  if (typeof proof !== 'string') return '';
+function signonSubject(app: AppContext, proof: unknown): string {
+  if (typeof proof !== 'string' || !app.platform.signon) return '';
   try {
-    const sub = (JSON.parse(Buffer.from(proof.split('.')[0] ?? '', 'base64url').toString('utf8')) as { sub?: unknown }).sub;
-    return typeof sub === 'string' ? `platform:${sub.slice(0, 128)}` : '';
+    return `platform:${app.platform.signon.open(proof, 'LOGIN').sub.slice(0, 128)}`;
   } catch {
     return '';
   }
@@ -523,7 +522,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
                 keyGenerator: (request: FastifyRequest) => {
                   if (rl.by === 'SESSION') return `${route.id}|${requestTokenHash(request, app.config) ?? request.ip}`;
                   const body = (request.body ?? {}) as Record<string, unknown>;
-                  const who = typeof body['identifier'] === 'string' ? body['identifier'] : typeof body['badgeUid'] === 'string' ? body['badgeUid'] : signonSubject(body['signonProof']);
+                  const who = typeof body['identifier'] === 'string' ? body['identifier'] : typeof body['badgeUid'] === 'string' ? body['badgeUid'] : signonSubject(app, body['signonProof']);
                   return `${route.id}|${request.ip}|${who.toLowerCase()}`;
                 },
               },

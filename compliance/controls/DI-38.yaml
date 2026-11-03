@@ -248,7 +248,7 @@ tests:
   - "apps/tablets-server/test/execution/demo-trial-acts.test.ts > R3.11: a kiosk session ended by a sign-in elsewhere says so > [DI-38] the old kiosk's next request is NO_SESSION naming the person and the kiosk they signed in on"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38][DI-35][PL-05] a signature with core's re-authentication is signed; the proof is bound to its challenge and used once; the performer cannot verify their own entry"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38][PL-05] another person's re-authentication, a proof without the meaning's code and /sign for a challenge of another session are refused"
-  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38] the kernel refuses a platform signing event whose re-authentication is older than the challenge, or whose nonce was used"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38] the kernel refuses a platform signing event whose re-authentication is older than the challenge, whose nonce was used, or whose proof was not spent with its grants"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

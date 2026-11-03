@@ -139,7 +139,7 @@ describe('core\'s sign-on configuration', () => {
 });
 
 describe('core\'s answers are checked', () => {
-  it('[DI-14][PL-05] an ID token of another issuer, for another application, answering another sign-on or expired gives no proof; a signature needs a fresh re-authentication', async () => {
+  it('[DI-14][PL-05] an ID token of another issuer, for another application, answering another sign-on or expired gives no proof; a callback started in another browser is refused; a signature needs a fresh re-authentication', async () => {
     const b = plat.browser('PC-QA-05');
     const p = person(WORKER);
     for (const tamper of [{ iss: 'https://elsewhere.test/oidc' }, { aud: 'other-app' }, { nonce: 'not-this-one' }, { exp: 1_000_000 }]) {
@@ -148,6 +148,9 @@ describe('core\'s answers are checked', () => {
       expect([r.proof, r.error], JSON.stringify(tamper)).toEqual([undefined, 'TOKEN_INVALID']);
     }
     core.tamper = null;
+    // Login CSRF: a /cb link of a sign-on another browser started is refused here (the sign-on is bound to its browser).
+    const link = await core.foreignCallback(plat.browser('PC-QA-04'), person(WORKER));
+    expect(String((await b.inject({ method: 'GET', url: link })).headers['location'])).toContain('error=STATE_UNKNOWN');
     valueOf((await signIn(b, p)).r);
     await acknowledge(b);
     // An old sign-on at core does not count as a re-authentication for a signature (max_age=0 ignored by core).
@@ -349,7 +352,7 @@ describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
     expect(foreign.error).toBe('CHALLENGE_UNKNOWN');
   });
 
-  it('[DI-38] the kernel refuses a platform signing event whose re-authentication is older than the challenge, or whose nonce was used', async () => {
+  it('[DI-38] the kernel refuses a platform signing event whose re-authentication is older than the challenge, whose nonce was used, or whose proof was not spent with its grants', async () => {
     const p = person(WORKER);
     const b = plat.browser('PC-QA-06');
     valueOf((await signIn(b, p)).r);
@@ -362,17 +365,27 @@ describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
     }));
     const s = await sessionOfBrowser(plat, b);
     const at = (await q<{ t: string }>('select recorded_at::text as t from esig.challenge where id = $1', [ch.challengeId]))[0]?.t;
-    const event = async (shiftS: number, nonce: string) => {
+    /** Core's re-authentication as the server presents it: the sync spends the nonce, then the event, one transaction. */
+    const event = async (shiftS: number, nonce: string, withSync = true) => {
+      const c = await plat.db.authn.pool.connect();
       try {
-        const { rows } = await plat.db.authn.pool.query<{ r: { status: string; reason?: string } }>(
+        await c.query('begin');
+        if (withSync) await c.query('select iam.platform_sync_grants($1, $2, $3, $4, $5, $6, $7, $8)', [p.sub, p.login, p.name, p.codes, 'test', s.deviceFingerprint, 'SIGNATURE', nonce]);
+        const { rows } = await c.query<{ r: { status: string; reason?: string } }>(
           "select iam.platform_auth_event($1, 'SIGNATURE', $2, $3, $4::timestamptz - make_interval(secs => $5), $6) as r",
           [p.sub, ch.challengeId, s.deviceFingerprint, at, shiftS, nonce]);
+        await c.query('commit');
         return rows[0]?.r;
       } catch (e) {
+        await c.query('rollback');
         return { status: 'ERROR', reason: (e as Error).message.slice(0, 12) };
+      } finally {
+        c.release();
       }
     };
     expect(await event(5, `n-${randomUUID()}`)).toMatchObject({ status: 'REFUSED', reason: 'AUTH_BEFORE_CHALLENGE' });
+    // An event without the proof spent in the same transaction (its grants not brought in line first) is refused.
+    expect(await event(-1, `n-${randomUUID()}`, false)).toMatchObject({ status: 'ERROR', reason: 'EBMR-IAM-091' });
     const nonce = `n-${randomUUID()}`;
     expect(await event(-1, nonce)).toMatchObject({ status: 'OK' });
     expect(await event(-1, nonce)).toMatchObject({ status: 'ERROR', reason: 'EBMR-IAM-091' });

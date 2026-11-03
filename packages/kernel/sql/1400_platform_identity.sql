@@ -14,8 +14,8 @@
 --                              roles PLATFORM_<id>_WORK (GMP, GOVERNANCE and READ_ONLY codes) and PLATFORM_<id>_ADMIN
 --                              (ADMINISTRATION codes). Neither role mixes the two domains (INV-11, DI-18).
 --   iam.platform_proof_use     insert-only: the one-time nonces of core's sign-on proofs, each used once
---   iam.platform_sync_grants(employee_id, login, legal_name, codes, grant_ref, fingerprint)
---                              ebmr_authn only, after core's token was verified: finds or creates the person (identity
+--   iam.platform_sync_grants(employee_id, login, legal_name, codes, grant_ref, fingerprint, purpose, nonce)
+--                              ebmr_authn only, after core's token was verified: spends the proof's nonce first, then finds or creates the person (identity
 --                              verified at core, PL-03), maps the token's ebmr.* codes back to today's codes and brings
 --                              the two mirror roles and their APPROVED grants in line with them, through the kernel's own
 --                              request and approval rows (a removed code is removed, a role left without codes has its
@@ -23,7 +23,7 @@
 --                              code (PL-01) or holds administration and GMP codes together (INV-11: never both, for one
 --                              person).
 --   iam.platform_auth_event(employee_id, purpose, challenge, fingerprint, auth_time, nonce)
---                              ebmr_authn only: core's sign-on as an ordinary authentication event, method PLATFORM with
+--                              ebmr_authn only, in the transaction that spent the nonce (one event per proof): core's sign-on as an ordinary authentication event, method PLATFORM with
 --                              components USER_ID and PASSWORD (core asked for both; PL-05), for LOGIN or SIGNATURE. A
 --                              SIGNATURE event is bound to its challenge and made only when core's re-authentication
 --                              (auth_time) is not earlier than the challenge (DI-38); the proof's nonce is used once.
@@ -103,14 +103,22 @@ create table iam.platform_identity (
 );
 select iam.protect_log('iam.platform_identity');
 
+-- A proof's nonce is spent by iam.platform_sync_grants, first, before anything else it does (a used proof changes no
+-- grant); iam.platform_auth_event then makes at most one event of it, in the same transaction.
 create table iam.platform_proof_use (
   nonce_sha256   text primary key check (nonce_sha256 ~ '^[0-9a-f]{64}$'),
   employee_id    text not null,
-  purpose        text not null,
-  auth_event_id  uuid references iam.auth_event (id),
+  purpose        text not null check (purpose in ('LOGIN', 'SIGNATURE')),
+  xact_id        xid8 not null default pg_current_xact_id(),
   used_at        timestamptz not null default clock_timestamp()
 );
 select iam.protect_log('iam.platform_proof_use');
+
+create table iam.platform_proof_event (
+  nonce_sha256   text primary key references iam.platform_proof_use (nonce_sha256),
+  auth_event_id  uuid not null unique references iam.auth_event (id)
+);
+select iam.protect_log('iam.platform_proof_event');
 
 -- ---------------------------------------------------------------------------------------------
 -- Grants from the token
@@ -174,7 +182,7 @@ end
 $$;
 
 create function iam.platform_sync_grants(p_employee_id text, p_login text, p_legal_name text, p_codes text[], p_grant_ref text,
-                                         p_fingerprint text) returns jsonb
+                                         p_fingerprint text, p_purpose text, p_nonce text) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 declare
   v_nil     uuid := '00000000-0000-0000-0000-000000000000';
@@ -198,6 +206,16 @@ begin
   if not found then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-300 this is not a platform build; sign in with the installation''s own credentials';
   end if;
+  -- The proof is spent first: a proof used before changes nothing (EBMR-IAM-091 rolls the whole call back).
+  if p_nonce is null or length(p_nonce) < 16 or length(p_nonce) > 256 or p_purpose is null or p_purpose not in ('LOGIN', 'SIGNATURE') then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-304 the platform proof carries no valid nonce or purpose';
+  end if;
+  begin
+    insert into iam.platform_proof_use (nonce_sha256, employee_id, purpose)
+    values (encode(sha256(convert_to(p_nonce, 'UTF8')), 'hex'), v_emp, p_purpose);
+  exception when unique_violation then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-091 the platform proof has already been used';
+  end;
   if v_emp = '' or length(v_emp) > 128 or v_name = '' or length(v_name) > 200 then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-301 the platform token names the employee id and the person''s name';
   end if;
@@ -302,6 +320,7 @@ declare
   v_ctx    jsonb;
   v_reason text;
   v_event  uuid;
+  v_nonce  text;
   v_max    interval := make_interval(secs => iam.policy_int('authn.event_max_age_seconds'));
 begin
   if not iam.platform_build() then
@@ -316,13 +335,14 @@ begin
   if p_nonce is null or length(p_nonce) < 16 or length(p_nonce) > 256 then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-304 the platform proof carries no valid nonce';
   end if;
-  -- The proof is used once, whatever comes of it (a refused use spends it too).
-  begin
-    insert into iam.platform_proof_use (nonce_sha256, employee_id, purpose)
-    values (encode(sha256(convert_to(p_nonce, 'UTF8')), 'hex'), coalesce(p_employee_id, ''), p_purpose);
-  exception when unique_violation then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-091 the platform proof has already been used';
-  end;
+  -- The proof was spent by iam.platform_sync_grants in this same transaction, for this person and purpose; it makes one
+  -- event at most.
+  v_nonce := encode(sha256(convert_to(p_nonce, 'UTF8')), 'hex');
+  if not exists (select 1 from iam.platform_proof_use u where u.nonce_sha256 = v_nonce and u.employee_id = btrim(coalesce(p_employee_id, ''))
+                   and u.purpose = p_purpose and u.xact_id = pg_current_xact_id())
+     or exists (select 1 from iam.platform_proof_event e where e.nonce_sha256 = v_nonce) then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-091 the platform proof has already been used or was not presented with its grants';
+  end if;
 
   select * into v_ident from iam.platform_identity where employee_id = btrim(coalesce(p_employee_id, ''));
   v_hash := sha256(convert_to(coalesce(v_ident.login_name, btrim(coalesce(p_employee_id, ''))), 'UTF8'));
@@ -375,6 +395,7 @@ begin
   insert into iam.auth_event (person_id, account_id, device_id, device_class, method, components, purpose, challenge_id)
   values (v_acc.person_id, v_acc.id, v_dev.id, v_dev.device_class, 'PLATFORM', array['USER_ID', 'PASSWORD'], p_purpose, p_challenge)
   returning id into v_event;
+  insert into iam.platform_proof_event (nonce_sha256, auth_event_id) values (v_nonce, v_event);
   insert into iam.authn_attempt (method, purpose, identifier_hash, account_id, device_id, device_fingerprint, outcome, reason, auth_event_id)
   values ('PLATFORM', p_purpose, v_hash, v_acc.id, v_dev.id, v_fp, 'SUCCESS', 'OK', v_event);
   return jsonb_build_object('status', 'OK', 'auth_event_id', v_event, 'person_id', v_acc.person_id, 'account_id', v_acc.id,
@@ -465,14 +486,14 @@ revoke all on function platform.is_platform_register_write(text, jsonb, jsonb) f
 -- Privileges
 -- ---------------------------------------------------------------------------------------------
 
-revoke all on table iam.platform_mode, iam.platform_identity, iam.platform_proof_use from public;
+revoke all on table iam.platform_mode, iam.platform_identity, iam.platform_proof_use, iam.platform_proof_event from public;
 revoke all on function iam.platform_build(), iam.enable_platform_build(), iam.platform_code_to_permission(text),
   iam.platform_mirror_role(iam.platform_mode, iam.platform_identity, text, text[], text, text),
-  iam.platform_sync_grants(text, text, text, text[], text, text),
+  iam.platform_sync_grants(text, text, text, text[], text, text, text, text),
   iam.platform_auth_event(text, text, uuid, text, timestamptz, text) from public;
 grant select on iam.platform_identity to ebmr_app;
 grant execute on function iam.platform_build() to ebmr_app, ebmr_authn;
-grant execute on function iam.platform_sync_grants(text, text, text, text[], text, text),
+grant execute on function iam.platform_sync_grants(text, text, text, text[], text, text, text, text),
   iam.platform_auth_event(text, text, uuid, text, timestamptz, text) to ebmr_authn;
 
 reset role;
