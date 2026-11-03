@@ -231,7 +231,9 @@ const KDEF: Json = {
         { id: 't2', label: 'Hold time in seconds', type: 'TIMER', durationUnit: 's', limitSlot: 't2' },
       ],
     },
-    { id: 'retry', title: 'Retry', repeat: { kind: 'UNTIL_PASS', untilField: 'r' }, fields: [{ id: 'r', label: 'R', type: 'NUMBER', unit: 'g', limitSlot: 'r' }] },
+    { id: 'retry', title: 'Retry', repeat: { kind: 'UNTIL_PASS', untilField: 'r', maxRepeatsSlot: 'maxR' }, fields: [{ id: 'r', label: 'R', type: 'NUMBER', unit: 'g', limitSlot: 'r' }] },
+    { id: 'confirm', title: 'Confirm', repeat: { kind: 'UNTIL_PASS', untilField: 'ok', maxRepeatsSlot: 'maxC' }, fields: [{ id: 'ok', label: 'OK', type: 'YES_NO', expected: true, required: false }] },
+    { id: 'calcLoop', title: 'Calculated loop', repeat: { kind: 'UNTIL_PASS', untilField: 'g', maxRepeatsSlot: 'maxG' }, fields: [{ id: 'x', label: 'X', type: 'NUMBER', unit: 'g' }, { id: 'g', label: 'G', type: 'CALC', expression: 'x * 1 [%]', unit: '%', limitSlot: 'g' }] },
     {
       id: 'ipc',
       title: 'IPC',
@@ -425,7 +427,9 @@ describe('release review R3: the database judges library values as the engine do
   /** recipe.library_limits_problem with the library step configured by `config` (its limits added to LIMITS). */
   const judged = async (c: PoolClient, config: Json, next: { entries?: Json; exceptions?: Json }, old: { entries?: Json; exceptions?: Json } = {}): Promise<string | null> => {
     const cfg = config as Record<string, Json>;
-    const content = { ...CONTENT, procedure: { kind: 'procedure', id: 'proc', children: [phase('p-lib', 'LIB-KILL-LIM', { ...cfg, limits: { ...LIMITS, ...(cfg['limits'] as Record<string, Json> | undefined) } })] } };
+    // A slot given as null is left without limits.
+    const lims = Object.fromEntries(Object.entries({ ...LIMITS, ...(cfg['limits'] as Record<string, Json> | undefined) }).filter(([, v]) => v !== null));
+    const content = { ...CONTENT, procedure: { kind: 'procedure', id: 'proc', children: [phase('p-lib', 'LIB-KILL-LIM', { ...cfg, limits: lims })] } };
     const { rows } = await c.query<{ p: string | null }>('select recipe.library_limits_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [
       JSON.stringify(content), JSON.stringify({ steps: STEPS, entries: {}, exceptions: {}, ...old }), JSON.stringify({ steps: STEPS, entries: {}, exceptions: {}, ...next }),
     ]);
@@ -546,6 +550,65 @@ describe('release review R3: the database judges library values as the engine do
         ])).rows[0]?.p ?? null;
       expect(await q({ computed: { loss: LOSS('0.5') } })).toBeNull();
       expect(await q({})).toMatch(noRecord);
+    });
+  });
+
+  it('[INV-20][PR-08] R3-SQL-4: a library loop is decided as the engine decides it: no repeat beyond the maximum or after a pass; the last allowed repeat without a pass needs its endpoint\'s breach and LIB_REPEAT_LIMIT_REACHED with a loop\'s consequences', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const rep = (seq: number, data: Json, kind = 'retry', stepKey = 'p-lib@'): Json => ({ ...(entry(kind, data, stepKey) as Record<string, Json>), recordedSeq: seq });
+      /** The exhaustion the engine raises for the loop field `field` (block-version.ts, R3-ENG-1). */
+      const exhausted = (field: string, extra: Json = {}, id = 'X9'): Json => ({
+        id, type: 'LIB_REPEAT_LIMIT_REACHED', category: 'OUT_OF_LIMIT', title: 'the maximum of 2 repeats was reached without a passing value', controls: ['PR-08', 'INV-20'],
+        severity: 'ACTION', source: { stepKey: 'p-lib@', step: 'p-lib', frames: [], item: `p-lib.${field}` }, raisedAt: { $u: '1000' }, raisedSeq: 3, raisedBy: OP,
+        deviationRequired: true, registrationRelevant: false, qaOnly: true, stageSignOffBlocked: false, releaseBlocking: true, status: 'OPEN',
+        block: { steps: [], until: 'DISPOSITION', downstream: { node: 'task:p-lib', frames: [] } }, ...extra,
+      });
+      const two = { counts: { maxR: '2', maxC: '1', maxG: '1' }, limits: { g: RANGE('%', null, '10') } };
+      const first = { E1: rep(1, { r: '50' }) };
+      const second = (r: string): Json => ({ ...first, E2: rep(2, { r }) });
+      // A failing value before the last allowed repeat is a repeat: nothing judged, nothing raised.
+      expect(await judged(c, two, { entries: first })).toBeNull();
+      // The finding: the last allowed repeat fails, and the row raises neither the exhaustion nor the endpoint's breach.
+      expect(await judged(c, two, { entries: second('50') }, { entries: first })).toBe('stores the last allowed repeat (2) of section retry at step p-lib, which did not pass, without the LIB_REPEAT_LIMIT_REACHED it requires (severity ACTION, deviation required)');
+      expect(await judged(c, two, { entries: second('50'), exceptions: { X9: exhausted('r') } }, { entries: first })).toMatch(/^stores r = 50 g at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH/);
+      const both = { X1: breach('p-lib.r'), X9: exhausted('r') };
+      expect(await judged(c, two, { entries: second('50'), exceptions: both }, { entries: first })).toBeNull();
+      for (const over of [{ qaOnly: false }, { releaseBlocking: false }, { deviationRequired: false }, { severity: 'ALERT' }, { controls: ['PR-08'] },
+        { block: { steps: [], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } } }, { block: { steps: ['p-lib@'], until: 'DISPOSITION', downstream: { node: 'task:p-lib', frames: [] } } },
+        { source: { stepKey: 'p-lib@', step: 'p-lib', frames: [], item: 'p-lib.w' } }, { raisedBy: 'OP-2' }]) {
+        expect(await judged(c, two, { entries: second('50'), exceptions: { X1: breach('p-lib.r'), X9: exhausted('r', over) } }, { entries: first }), JSON.stringify(over)).toMatch(/without the LIB_REPEAT_LIMIT_REACHED it requires/);
+      }
+      // A pass on the last allowed repeat raises nothing; an exhaustion added for it is refused.
+      expect(await judged(c, two, { entries: second('5') }, { entries: first })).toBeNull();
+      expect(await judged(c, two, { entries: second('5'), exceptions: { X9: exhausted('r') } }, { entries: first })).toBe('adds exception X9 (LIB_REPEAT_LIMIT_REACHED, severity ACTION, item p-lib.r), which no value of the row requires with these facts');
+      // No repeat beyond the maximum, and none after a pass.
+      expect(await judged(c, two, { entries: { ...(second('50') as Record<string, Json>), E3: rep(3, { r: '5' }) } }, { entries: second('50') })).toBe('stores repeat 3 of section retry at step p-lib, beyond its maximum of 2');
+      expect(await judged(c, two, { entries: { E1: rep(1, { r: '5' }), E2: rep(2, { r: '5' }) } }, { entries: { E1: rep(1, { r: '5' }) } })).toBe('stores a repeat of section retry at step p-lib after it passed');
+      expect(await judged(c, two, { entries: { E1: rep(1, {}), E2: rep(2, { r: '5' }) } }, { entries: { E1: rep(1, {}) } })).toBeNull();
+      // Only earlier entries of this section in this step instance count.
+      expect(await judged(c, two, { entries: { E0: rep(1, { r: '50' }, 'confirm'), E1: rep(1, { r: '50' }, 'retry', 'p-plain@'), E2: rep(2, { r: '50' }), E5: rep(5, { r: '50' }) } }, { entries: { E0: rep(1, { r: '50' }, 'confirm'), E1: rep(1, { r: '50' }, 'retry', 'p-plain@'), E5: rep(5, { r: '50' }) } })).toBeNull();
+      // Without a maximum the loop is never exhausted; a loop field without a limit passes.
+      expect(await judged(c, { limits: {} }, { entries: second('50') }, { entries: first })).toBeNull();
+      const noLimit = { counts: { maxR: '2' }, limits: { r: null } };
+      expect(await judged(c, noLimit, { entries: second('5') }, { entries: { E1: rep(1, { r: '5' }) } })).toBe('stores a repeat of section retry at step p-lib after it passed');
+      // A loop field the database cannot read against its limit is refused.
+      expect(await judged(c, { ...two, limits: { r: RANGE('kg', null, '1') } }, { entries: first })).toBe('stores section retry at step p-lib, whose loop field r the database cannot read against its limit');
+      expect(await judged(c, two, { entries: { E1: rep(1, { r: 50 }) } })).toBe('stores section retry at step p-lib, whose loop field r the database cannot read against its limit');
+      expect(await judged(c, two, { entries: { E1: rep(1, { r: 50 }), E2: rep(2, { r: '5' }) } }, { entries: { E1: rep(1, { r: 50 }) } })).toBe('stores section retry at step p-lib, whose loop field r the database cannot read against its limit');
+      // A yes/no loop: the expected answer passes; another answer, or none, on the last allowed repeat exhausts it (no tier).
+      const conf = (data: Json): Json => ({ E1: rep(1, data, 'confirm') });
+      expect(await judged(c, two, { entries: conf({ ok: true }) })).toBeNull();
+      expect(await judged(c, two, { entries: conf({ ok: false }) })).toMatch(/^stores the last allowed repeat \(1\) of section confirm at step p-lib, which did not pass, without/);
+      expect(await judged(c, two, { entries: conf({ ok: false }), exceptions: { X9: exhausted('ok') } })).toBeNull();
+      expect(await judged(c, two, { entries: conf({}), exceptions: { X9: exhausted('ok') } })).toBeNull();
+      // A calculated loop field: its figure decides, and at exhaustion it is judged against its tier.
+      const g = (value: string): Json => ({ E1: rep(1, { x: value, computed: { g: { value, unit: '%', expression: 'x * 1 [%]', languageVersion: '1.0', inputs: {} } } }, 'calcLoop') });
+      expect(await judged(c, two, { entries: g('5') })).toBeNull();
+      expect(await judged(c, two, { entries: g('50'), exceptions: { X9: exhausted('g') } })).toMatch(/^stores g = 50 % at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH/);
+      expect(await judged(c, two, { entries: g('50'), exceptions: { X9: exhausted('g'), X1: breach('p-lib.g') } })).toBeNull();
+      // The trigger runs for a row that adds only an exhaustion.
+      const t = await batchState(c, { steps: STEPS, entries: {}, exceptions: {} }, 'zzg_library_limits');
+      expect(await t.update({ steps: STEPS, entries: {}, exceptions: { X9: exhausted('r') } })).toMatch(/^This row adds exception X9 \(LIB_REPEAT_LIMIT_REACHED.*\[EBMR-LIB-020\]$/);
     });
   });
 

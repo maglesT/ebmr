@@ -27,8 +27,14 @@
 --     condition, or its condition's field holds the given answer) now carries its evaluation record (O-9 (b)): a decimal
 --     value in the field's unit, the expression of the master's snapshot, a language version and the inputs read; a field
 --     its condition hides carries none. The figure itself stays the server's (O-9 (b): not recomputed in SQL).
+--   * R3-SQL-4: 1810 skipped a loop's (UNTIL_PASS) endpoint and nothing judged the loop's exit. The database now refuses
+--     a repeat beyond the formulation's maximum and a repeat after a passing entry (recipe.library_loop_pass decides a
+--     pass as block-version.ts passes()), and at the last allowed repeat without a pass it judges the endpoint against
+--     its tier and requires LIB_REPEAT_LIMIT_REACHED with an MBR loop's LOOP_EXHAUSTED consequences (QA only, the steps
+--     after it blocked until disposition, a deviation required, release blocked; R3-ENG-1). A LIB_REPEAT_LIMIT_REACHED
+--     added for no exhausted loop is refused. Entries are ordered by recordedSeq within their step instance.
 --
---   recipe.library_breach_record, recipe.library_statistic, recipe.library_timer_duration: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
+--   recipe.library_breach_record, recipe.library_statistic, recipe.library_timer_duration, recipe.library_loop_pass: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
 --   their latest definitions (1810). The trigger zzg_library_limits is unchanged.
 
 set local role ebmr_owner;
@@ -82,6 +88,27 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
                  (case p_unit when 'ms' then 1000 when 's' then 1000000 when 'min' then 60000000 when 'h' then 3600000000 when 'd' then 86400000000 end)::numeric as per) q
 $$;
 
+-- Whether entry data p_data of UNTIL_PASS section p_section passes, as block-version.ts passes() decides (INV-20): its
+-- until-field (or its calculated figure) within the limits of formulation config p_config, or the expected answer; a
+-- field left empty does not pass; a slot without limits passes. NULL when the database cannot read the value against
+-- its limits (a limit in another unit than the field's, a value that is not a decimal).
+create function recipe.library_loop_pass(p_section jsonb, p_data jsonb, p_config jsonb) returns boolean
+language sql immutable set search_path = pg_catalog, recipe, pg_temp as $$
+  select case
+    when q.f is null or q.v is null then false
+    when q.f ->> 'type' = 'YES_NO' then not (q.f ? 'expected') or q.v = q.f -> 'expected'
+    when q.f ? 'limitSlot' and q.f ? 'unit' then
+      case when q.spec is null then true
+           when (q.spec ->> 'unit') is distinct from (q.f ->> 'unit') or jsonb_typeof(q.v) is distinct from 'string' then null
+           else (select case when ev is null then null else ev ->> 'breached' is null end from recipe.limit_reading(q.spec, q.v #>> '{}') ev)
+      end
+    else true
+  end
+    from (select f.f, coalesce(p_data -> (p_section -> 'repeat' ->> 'untilField'), p_data -> 'computed' -> (p_section -> 'repeat' ->> 'untilField') -> 'value') as v,
+                 p_config -> 'limits' -> (f.f ->> 'limitSlot') as spec
+            from (select (select y from jsonb_array_elements(p_section -> 'fields') y where y ->> 'id' = p_section -> 'repeat' ->> 'untilField' limit 1) as f) f) q
+$$;
+
 -- PR-08 (header): library values against the formulation's limits; the row adds exactly the exceptions they require.
 create or replace function recipe.library_limits_problem(p_content jsonb, p_old jsonb, p_new jsonb) returns text
 language plpgsql stable set search_path = pg_catalog, recipe, pg_temp as $$
@@ -113,6 +140,11 @@ declare
   st       jsonb;
   v_pt     jsonb;
   v_vals   text[];
+  v_n      integer;
+  v_last   jsonb;
+  v_max    integer;
+  v_pass   boolean;
+  v_exhausted boolean;
 begin
   for k, e in select y.key, y.value from jsonb_each(e1) y where not (e0 ? y.key) order by y.key loop
     v_step := p_new -> 'steps' -> (e ->> 'stepKey') ->> 'step';
@@ -192,8 +224,47 @@ begin
       end if;
     end loop;
     v_until := case when s -> 'repeat' ->> 'kind' = 'UNTIL_PASS' then s -> 'repeat' ->> 'untilField' end;
+    -- R3-SQL-4: a loop (UNTIL_PASS) is decided as the engine decides it: no repeat after a pass or beyond the maximum,
+    -- and the last allowed repeat without a pass exhausts it: its endpoint is judged against its tier and the
+    -- LIB_REPEAT_LIMIT_REACHED it raises has an MBR loop's LOOP_EXHAUSTED consequences (R3-ENG-1).
+    v_exhausted := false;
+    if v_until is not null then
+      select count(*), (array_agg(y.value -> 'data' order by y.value -> 'recordedSeq' desc))[1] into v_n, v_last
+        from jsonb_each(e1) y
+       where y.key <> k and y.value ->> 'kind' = e ->> 'kind' and y.value ->> 'stepKey' = e ->> 'stepKey' and (y.value -> 'recordedSeq') < (e -> 'recordedSeq');
+      v_max := case when (v_node -> 'config' -> 'counts' ->> (s -> 'repeat' ->> 'maxRepeatsSlot')) ~ '^[0-9]{1,7}$'
+                    then (v_node -> 'config' -> 'counts' ->> (s -> 'repeat' ->> 'maxRepeatsSlot'))::integer end;
+      if v_max is not null and v_n >= v_max then
+        return format('stores repeat %s of section %s at step %s, beyond its maximum of %s', v_n + 1, s ->> 'id', v_step, v_max);
+      end if;
+      v_pass := case when v_n = 0 then false else recipe.library_loop_pass(s, v_last, v_node -> 'config') end;
+      if v_pass then
+        return format('stores a repeat of section %s at step %s after it passed', s ->> 'id', v_step);
+      end if;
+      if v_pass is not null then
+        v_pass := recipe.library_loop_pass(s, e -> 'data', v_node -> 'config');
+      end if;
+      if v_pass is null then
+        return format('stores section %s at step %s, whose loop field %s the database cannot read against its limit', s ->> 'id', v_step, v_until);
+      end if;
+      v_exhausted := v_max is not null and v_n + 1 >= v_max and not v_pass;
+      if v_exhausted then
+        if v_inst is null then
+          return format('stores the last repeat of section %s at step %s without a pass in step instance %s, which the state does not hold', s ->> 'id', v_step, e ->> 'stepKey');
+        end if;
+        v_want := v_want || jsonb_build_object(
+          'type', 'LIB_REPEAT_LIMIT_REACHED', 'category', 'OUT_OF_LIMIT', 'controls', '["PR-08", "INV-20"]'::jsonb, 'severity', 'ACTION',
+          'source', jsonb_build_object('stepKey', v_inst -> 'key', 'step', v_inst -> 'step', 'frames', v_inst -> 'frames', 'item', v_step || '.' || v_until),
+          'raisedBy', e -> 'enteredBy', 'deviationRequired', true, 'registrationRelevant', false, 'qaOnly', true, 'stageSignOffBlocked', false,
+          'releaseBlocking', true, 'status', 'OPEN',
+          'block', jsonb_build_object('steps', '[]'::jsonb, 'until', 'DISPOSITION',
+                                      'downstream', jsonb_build_object('node', recipe.step_graph_node(p_content, v_step), 'frames', v_inst -> 'frames')));
+        v_what := v_what || format('the last allowed repeat (%s) of section %s at step %s, which did not pass,', v_max, s ->> 'id', v_step);
+        v_used := v_used || false;
+      end if;
+    end if;
     for f in select y from jsonb_array_elements(s -> 'fields') y
-              where y ->> 'type' in ('NUMBER', 'WEIGHING', 'CALC') and y ? 'limitSlot' and (y ->> 'id') is distinct from v_until loop
+              where y ->> 'type' in ('NUMBER', 'WEIGHING', 'CALC') and y ? 'limitSlot' and ((y ->> 'id') is distinct from v_until or v_exhausted) loop
       v_spec := v_node -> 'config' -> 'limits' -> (f ->> 'limitSlot');
       v_val := case when f ->> 'type' = 'CALC' then e -> 'data' -> 'computed' -> (f ->> 'id') ->> 'value' else e -> 'data' ->> (f ->> 'id') end;
       if v_spec is null or v_val is null then
@@ -262,9 +333,9 @@ begin
       end loop;
     end loop;
   end loop;
-  -- The row's new library limit exceptions, one for one with the records its values require (R3-SQL-1).
+  -- The row's new library limit and loop exceptions, one for one with the records its values require (R3-SQL-1, R3-SQL-4).
   for k, x in select y.key, y.value from jsonb_each(x1) y
-               where not (x0 ? y.key) and jsonb_typeof(y.value) = 'object' and y.value ->> 'type' = 'LIB_LIMIT_BREACH' order by y.key loop
+               where not (x0 ? y.key) and jsonb_typeof(y.value) = 'object' and y.value ->> 'type' in ('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED') order by y.key loop
     v_hit := null;
     for i in 1 .. coalesce(array_length(v_want, 1), 0) loop
       if not v_used[i] and x ->> 'id' = k
@@ -315,6 +386,6 @@ end
 $$;
 
 revoke all on function recipe.library_breach_record(jsonb, jsonb, jsonb, text, text, text), recipe.library_statistic(text, jsonb),
-                       recipe.library_timer_duration(bigint, bigint, text) from public;
+                       recipe.library_timer_duration(bigint, bigint, text), recipe.library_loop_pass(jsonb, jsonb, jsonb) from public;
 
 reset role;
