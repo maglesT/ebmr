@@ -159,6 +159,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Libtab 400 mg, wet granulation, film coated (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
   - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Libtab 250 mg, direct compression, uncoated (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
   - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
+  - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-03][PR-45] S11a finding: a release test (QC's record on the lot, signed by QC roles no floor session carries) is not offered for a master; an IPC test is"
 clauses:
   - clause: "Shipping a quarantined lot through the ERP interface is rejected."
     tests:

@@ -13,6 +13,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Instruction shown from the approved MBR text; acknowledgement type; the SOP it follows",
@@ -64,6 +65,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Parameters, units and limit tiers come from the MBR parameter list",
@@ -97,6 +99,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Expected answers of categorical checks, and whether an unexpected answer stops the steps after it",
@@ -144,6 +147,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Setpoints downloaded and read back, values collected with their limits, GMP-critical alarm tags, stale age and the manual fallback path",
@@ -261,6 +265,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Dispensing into containers labelled for this batch, within tolerance of the target",
@@ -329,6 +334,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Charge the dispensed containers or issued lots this step uses, once each, verified by scan",
@@ -361,6 +367,7 @@
       "significant": false,
       "availability": "SANDBOX_ONLY",
       "badge": "sandbox only",
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Checks a person attests for each piece of equipment before use (sandbox only until Phase 3, when equipment, room and cleaning status come from site services)",
@@ -409,6 +416,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "The units are the phase STATUS_CHECK equipment; their status is read from site services when the use starts",
@@ -435,6 +443,7 @@
       "significant": true,
       "availability": "SANDBOX_ONLY",
       "badge": "sandbox only",
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Room or line clearance against a checklist, with the previous product and batch (sandbox only until Phase 3, when equipment, room and cleaning status come from site services)",
@@ -492,6 +501,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "The clearance is performed, verified by a second person and the area occupied for the batch in site services",
@@ -519,6 +529,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Room conditions (temperature, humidity, pressure difference) against room and product limits",
@@ -569,6 +580,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Samples from a plan (the phase sampling plan, or locations x replicates), with system-generated ids and labels",
@@ -621,6 +633,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "IPC test: readings per sample come from the parameter; statistics are calculations; acceptance may be an ALL_APPLY scheme",
@@ -673,6 +686,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Calculations come from the MBR; the formula is shown to the operator",
@@ -705,6 +719,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Timers are the MBR time constraints (engine); this step records a material transfer when configured",
@@ -744,6 +759,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "A standalone independent check with its expected answers",
@@ -785,6 +801,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Role and dispositions come from the MBR hold point",
@@ -809,6 +826,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Yield or reconciliation computed from quantities recorded elsewhere; limits come from the yield checkpoint",
@@ -842,6 +860,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Printed packaging materials, printing and challenges, serialisation",
@@ -1102,6 +1121,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Uniquely identified output containers in quarantine with computed net weights",
@@ -1138,6 +1158,7 @@
       "significant": false,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Returns to stores, reject containers, waste and witnessed destruction",
@@ -1171,6 +1192,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Case and limits come from the phase reprocessing declaration (outline 5.2.9)",
@@ -1196,6 +1218,7 @@
       "significant": true,
       "availability": "ALL",
       "badge": null,
+      "insertable": true,
       "configSchema": {
         "type": "object",
         "description": "Case and limits come from the phase reprocessing declaration (outline 5.2.9)",
@@ -1222,7 +1245,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Potency-adjusted dispensing of one active with its compensating excipient",
@@ -1422,7 +1446,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Potency-adjusted dispensing of one active with its compensating excipient",
@@ -1629,7 +1654,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The sifter or mill class, the screens the step may use with their approved aperture, and the residue examination",
@@ -1723,7 +1749,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Kind of solution, solvent, the use-by from the end of preparation and the appearance criterion",
@@ -1802,7 +1829,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Process values through G-06, the end point (power, torque or massing time), the binder range and the extra-fluid branch",
@@ -2067,7 +2095,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Process values through G-06, the LOD end point the loop exits on, the dryer and its filter-bag rule",
@@ -2205,7 +2234,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Process values through G-06, the ribbon checks and their schedule, the mill screens, the fines recycle limit and the yield limits",
@@ -2585,7 +2615,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Process values through G-06, the blend and lubrication times, and the blend-uniformity sampling plan",
@@ -2866,7 +2897,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Age reference, source types, pre-treatment, per-use authorisation and the computed added-material item (the case and limits are the phase reprocessing declaration)",
@@ -2947,7 +2979,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Which part of the custody the step records, and the approved tooling specification of the product",
@@ -3017,7 +3050,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Press settings through G-06, the press, its pre-use checklist and the approved ranges of in-run setting changes",
@@ -3203,7 +3237,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Streams, the test plan with intervals and QRM references, the grace and restart times, the station sweep, and each planned test's configuration",
@@ -4181,7 +4216,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The weight check: its mode, the tablet type and the in-house limits the mode needs",
@@ -4338,7 +4374,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Tablets per check, the parameters examined with their limits, and the appearance defects examined",
@@ -4684,7 +4721,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Tablet type (selects the rule sets) and an optional tighter in-house limit",
@@ -4757,7 +4795,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Tablet type (selects the rule sets) and the MBR's own time limits",
@@ -4869,7 +4908,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Press values through G-06, the layers in their order with their blends, hoppers and IPC plans, and the run's grace and restart times",
@@ -5953,7 +5993,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Weight-control settings through G-06, the metal detector and reject gate with their challenges, and the de-duster",
@@ -6153,7 +6194,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The part (cores or a coating iteration), the coating type, the coater values through G-06 and the weight-gain end point",
@@ -6387,7 +6429,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Marking method and content, the check sample, the defects allowed and the role of the QC approval gate",
@@ -6444,7 +6487,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Sorting mode, defect catalogue, AQL plan, reject categories and the destruction step",
@@ -6590,7 +6634,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "Sorting mode, defect catalogue, AQL plan, reject categories and the destruction step",
@@ -6736,7 +6781,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The part, the pack format and its webs, the product's line eligibility, the defect check and the sealing values through G-06",
@@ -7001,7 +7047,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The validated method, the units per test and track, and the schedule with its triggers",
@@ -7178,7 +7225,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The bottle line: its unit, count, desiccant, torque and seal checks, devices, roll-label step and bright stock",
@@ -7440,7 +7488,8 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": null,
+      "badge": "existing masters only (library replaces it)",
+      "insertable": false,
       "configSchema": {
         "type": "object",
         "description": "The cartoning line: its unit, devices, anti-tampering check, examinations, shippers, reconciliation limit and printed-materials step",

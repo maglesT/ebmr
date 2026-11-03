@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { blocks } from '@ebmr/recipe-core/pure';
-import { paletteBlocks } from '../../src/features/designer/palette.ts';
+import { paletteBlocks, RETIRED_BADGE } from '../../src/features/designer/palette.ts';
 import { tabletsBlockRegistry } from '../../src/features/edition-blocks.ts';
 
 describe('the tablets palette (slice 7j)', () => {
@@ -16,6 +16,18 @@ describe('the tablets palette (slice 7j)', () => {
     for (const g of ['G-03', 'G-04', 'G-05', 'G-06', 'G-07', 'G-08', 'G-09', 'G-10', 'G-11', 'G-12', 'G-13', 'G-14', 'G-15', 'G-16', 'G-17', 'G-20', 'G-21', 'G-22', 'G-23', 'G-24']) expect(types.has(g), g).toBe(true);
     for (const hidden of ['G-01', 'G-02', 'G-18', 'G-19']) expect(types.has(hidden)).toBe(false);
     for (const b of palette.filter((x) => x.type.startsWith('TB-'))) expect(Object.keys(b.configSchema).length, b.key).toBeGreaterThan(0);
+  });
+
+  it('[PR-05][PR-03] decision 0026 O-6: after the library acceptance the tablet blocks are no longer offered for a new step; they stay described for existing masters; every generic step block is still offered', () => {
+    const palette = paletteBlocks();
+    const tb = palette.filter((b) => b.type.startsWith('TB-'));
+    expect(tb.length).toBeGreaterThanOrEqual(24);
+    for (const b of tb) {
+      expect(b.insertable, b.key).toBe(false);
+      expect(b.badge, b.key).toBe(RETIRED_BADGE);
+      expect(Object.keys(b.configSchema).length, b.key).toBeGreaterThan(0);
+    }
+    for (const b of palette.filter((x) => !x.type.startsWith('TB-'))) expect(b.insertable, b.key).toBe(true);
   });
 
   it('every palette entry is a block version of the edition registry the definition check and the runs use', () => {

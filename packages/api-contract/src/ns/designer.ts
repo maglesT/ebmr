@@ -139,6 +139,12 @@ export const PaletteBlock = z.strictObject({
   availability: z.enum(['ALL', 'SANDBOX_ONLY']),
   /** e.g. "sandbox only until Phase 3". */
   badge: z.string().nullable(),
+  /**
+   * Whether the designer offers the block for a new step. Decision 0026 O-6: after the library acceptance (S11) the
+   * tablet blocks TB-01 to TB-24 leave the palette; they stay described here so existing masters, and copies of them,
+   * keep their steps' configuration forms and keep running.
+   */
+  insertable: z.boolean(),
   configSchema: z.looseObject({}),
   defaultConfig: z.looseObject({}),
   controls: z.array(z.string()),

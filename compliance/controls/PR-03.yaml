@@ -200,6 +200,8 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Rabeprazole sodium 20 mg, enteric coated, three coats (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-01][PR-03][DI-04] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 5: the packaging master as a copy of the approved cold-form master with the product's own printed foil and carton; the checks pass; change control; the test package in the sandbox inbox @office"
   - "tools/e2e/specs/library/acceptance.ts > [DI-04][DI-05][INV-18][PR-03][IN-38] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 6: the packaging master's sandbox test run on the sandbox's PL-2 kiosk with TEST- printed lots; its result imported as evidence; the four signatures and the IN authorisation @office"
+  - "apps/tablets-server/test/designer/palette-tablets.test.ts > the tablets palette (slice 7j) > [PR-05][PR-03] decision 0026 O-6: after the library acceptance the tablet blocks are no longer offered for a new step; they stay described for existing masters; every generic step block is still offered"
+  - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-03][PR-45] S11a finding: a release test (QC's record on the lot, signed by QC roles no floor session carries) is not offered for a master; an IPC test is"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

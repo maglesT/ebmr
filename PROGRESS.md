@@ -69,6 +69,15 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**3 November 2026: O-6 done on branch `dyn/o6`** (from `dyn/s11`): the designer no longer offers TB-01 to TB-24 for a new
+step (`insertable` false in the palette, badged "existing masters only (library replaces it)"; the Insert dialog lists only
+insertable blocks); they stay described, so existing masters and copies keep their steps' forms and run as before. Nothing
+deleted. S11b is PR #84 (`dyn/s11`). The two S11a findings are fixed on `dyn/s11-findings` (from `dyn/o6`): a timer's
+exception shows its duration to three decimals (recorded and judged exactly as before); release-test blocks (QC_ANALYST,
+QC_REVIEWER: no floor session carries them) are not offered in the designer's library picker, release tests staying QC's
+record on the lot (D-S11-R1; the validator still refuses an unknown role). Next: O-7 (b) on `dyn/o7` (owner's OK to merge,
+decision 0008 cadence), then the owner's choice of the next direction.
+
 **Resume here (3 November 2026): S11 passes, CI green on the RunPod pod.** Full CI run 370 on `dyn/s11` at 5c81fc0 is green
 (https://github.com/maglesT/ebmr/actions/runs/41533692154): static checks, supply chain, golden batches, all eight test
 shards (one rerun: a random 3-byte room code clash in `packages/recipe-core/test/plant/support.ts` `tag()`, a pre-existing

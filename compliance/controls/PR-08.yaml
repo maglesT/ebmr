@@ -191,6 +191,7 @@ tests:
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-08][INV-25] shows the limits, flags a value outside them while typing, never offers the calculated field, and sends LIBRARY_ENTRY"
   - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-03][PR-08] the values form shows each slot, the reference limit, and the formulation checks as values are typed"
   - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-08] a library limit bound to a market rule is refused when looser than the registered value (O-5)"
+  - "packages/recipe-core/test/library/block-version.test.ts > timer durations in any time unit (S7 catalogue finding) > [PR-30][PR-08] S11a finding: a timer outside its limit is recorded and judged exactly, and its exception shows the duration to three decimals"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

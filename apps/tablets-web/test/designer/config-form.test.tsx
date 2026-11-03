@@ -111,7 +111,7 @@ describe('optional yes/no members (review F52)', () => {
   });
 
   it('[PR-02][PR-03][DI-04] the checker\'s document says which yes/no members a step leaves to the block default, and what the block then does', async () => {
-    const real = (type: string): PaletteItem => ({ key: `${type}@1`, type, version: '1', title: type, plainName: type, level: 'PHASE', roles: [], significant: true, availability: 'ALL', badge: null, configSchema: schemaOf(type), defaultConfig: {}, controls: [] });
+    const real = (type: string): PaletteItem => ({ key: `${type}@1`, type, version: '1', title: type, plainName: type, level: 'PHASE', roles: [], significant: true, availability: 'ALL', badge: null, insertable: !type.startsWith('TB-'), configSchema: schemaOf(type), defaultConfig: {}, controls: [] });
     const palette = [...PALETTE, real('G-08'), real('G-23'), real('G-14')];
     const content = fixtureContent();
     const r = renderRouted(() => (
