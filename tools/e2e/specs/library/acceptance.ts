@@ -254,6 +254,9 @@ export function defineAcceptance(tabletKey: string): void {
         await m.getByRole('textbox', { name: 'Reason for the entry' }).fill('New in-house product; the ERP item is not created yet');
         await m.getByRole('button', { name: 'Enter the material' }).click();
         await expect(s.getByTestId('masters-waiting')).toContainText(mat.code);
+        // The form clears only when the command returns, which can be after the list shows the code: typing the next
+        // material before then loses it (GitHub-hosted run 41580034990).
+        await expect(m.getByRole('textbox', { name: 'Material code' })).toHaveValue('');
       }
       const p = s.getByRole('form', { name: 'Enter a product' });
       await p.getByRole('textbox', { name: 'Product code' }).fill(product.code);

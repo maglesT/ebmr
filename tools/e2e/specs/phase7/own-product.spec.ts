@@ -60,6 +60,9 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
       await m.getByRole('textbox', { name: 'Reason for the entry' }).fill('New in-house product; the ERP item is not created yet');
       await m.getByRole('button', { name: 'Enter the material' }).click();
       await expect(s.getByTestId('masters-waiting')).toContainText(mat.code);
+      // The form clears only when the command returns, which can be after the list shows the code: typing the next
+      // material before then loses it (GitHub-hosted run 41580034990).
+      await expect(m.getByRole('textbox', { name: 'Material code' })).toHaveValue('');
     }
     const p = s.getByRole('form', { name: 'Enter a product' });
     await p.getByRole('textbox', { name: 'Product code' }).fill(product.code);
