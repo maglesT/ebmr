@@ -270,9 +270,34 @@ const contentWith = (balanceClass: string | null = 'CL-K'): Json => ({
 });
 const CONTENT = contentWith();
 
-const STEPS = { 'p-lib@': { step: 'p-lib' }, 'p-smart@': { step: 'p-smart' }, 'p-plain@': { step: 'p-plain' } };
-const entry = (kind: string, data: Json, stepKey = 'p-lib@'): Json => ({ kind, stepKey, data });
-const breach = (item: string, extra: Json = {}): Json => ({ type: 'LIB_LIMIT_BREACH', source: { stepKey: 'p-lib@', item }, ...extra });
+const STEPS = { 'p-lib@': { key: 'p-lib@', step: 'p-lib', frames: [] }, 'p-smart@': { key: 'p-smart@', step: 'p-smart', frames: [] }, 'p-plain@': { key: 'p-plain@', step: 'p-plain', frames: [] } };
+const OP = 'OP-1';
+const entry = (kind: string, data: Json, stepKey = 'p-lib@'): Json => ({ kind, stepKey, data, enteredBy: OP });
+/**
+ * The LIB_LIMIT_BREACH the engine raises for a value of `item` outside its registered limit (exceptions.ts tierDraft, tx.ts
+ * raise): a registration-relevant deviation only QA dispositions, the step and the steps after it blocked until it is
+ * linked. `extra` replaces members (R3-SQL-1: each fact is compared).
+ */
+const breach = (item: string, extra: Json = {}, id = 'X1'): Json => ({
+  id,
+  type: 'LIB_LIMIT_BREACH',
+  category: 'OUT_OF_LIMIT',
+  title: `Limits, Run: ${item} is outside its registered limit: a registration-relevant deviation is mandatory and only QA dispositions it [registered tier]`,
+  controls: ['PR-08'],
+  severity: 'CRITICAL',
+  source: { stepKey: 'p-lib@', step: 'p-lib', frames: [], item },
+  raisedAt: { $u: '1000' },
+  raisedSeq: 2,
+  raisedBy: OP,
+  deviationRequired: true,
+  registrationRelevant: true,
+  qaOnly: true,
+  stageSignOffBlocked: true,
+  releaseBlocking: true,
+  status: 'OPEN',
+  block: { steps: ['p-lib@'], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } },
+  ...extra,
+});
 const timer = (field: string, value?: string): Json => entry('TIMER_STOP', { field, ...(value === undefined ? {} : { duration: { value, unit: 'min' } }) });
 
 /** recipe.library_limits_problem for a row moving from `old` to `next` (entries and exceptions over the same steps). */
@@ -311,7 +336,7 @@ describe('library values against the formulation\'s limits (recipe-core 1810)', 
     await inCommand(gmp, 'author', async (c) => {
       const out = { E1: entry('run', { w: '50' }) };
       const t = await batchState(c, { steps: STEPS, entries: {}, exceptions: {} }, 'zzg_library_limits');
-      expect(await t.update({ steps: STEPS, entries: out, exceptions: {} })).toMatch(/^This row stores w = 50 g at step p-lib, outside its \w+ limit, without the LIB_LIMIT_BREACH it requires: .*\[EBMR-LIB-020\]$/);
+      expect(await t.update({ steps: STEPS, entries: out, exceptions: {} })).toMatch(/^This row stores w = 50 g at step p-lib, outside its \w+ limit, without the LIB_LIMIT_BREACH it requires \(severity CRITICAL, deviation required\): .*\[EBMR-LIB-020\]$/);
       expect(await t.update({ steps: STEPS, entries: out, exceptions: { X1: breach('p-lib.w') } })).toBe('');
       // A later row that adds no entry is not checked again (the value was taken with its exception).
       expect(await t.update({ steps: STEPS, entries: out, exceptions: {}, note: 'later' })).toBe('');
@@ -363,6 +388,66 @@ describe('library values against the formulation\'s limits (recipe-core 1810)', 
       expect(await limits(c, {}, { entries: { E1: entry('run', { nolim: '50' }) } })).toBeNull();
       expect(await limits(c, {}, { entries: { E1: entry('run', { note: '50' }) } })).toBeNull();
       expect(await limits(c, {}, { entries: { E1: entry('run', { w: '50' }, 'p-plain@') } })).toBeNull();
+    });
+  });
+});
+
+describe('release review R3: the database judges library values as the engine does (recipe-core 1862)', () => {
+  const W = { E1: entry('run', { w: '50' }) };
+  const missing = /^stores w = 50 g at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH it requires \(severity CRITICAL, deviation required\)$/;
+
+  it('[PR-08][PR-49] R3-SQL-1: a LIB_LIMIT_BREACH carries the facts of the tier breached; one stored as an alert needing no deviation, or with any other fact changed, is refused', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      expect(await limits(c, {}, { entries: W, exceptions: { X1: breach('p-lib.w') } })).toBeNull();
+      // The finding: a registered breach recorded as an alert that needs no deviation (QA could then record NO_IMPACT).
+      expect(await limits(c, {}, { entries: W, exceptions: { X1: breach('p-lib.w', { severity: 'ALERT', deviationRequired: false }) } })).toMatch(missing);
+      const changed: Json[] = [
+        { severity: 'ACTION' }, { deviationRequired: false }, { qaOnly: false }, { registrationRelevant: false }, { stageSignOffBlocked: false },
+        { releaseBlocking: false }, { category: 'TIME_LIMIT' }, { controls: [] }, { status: 'DISPOSITIONED' }, { raisedBy: 'OP-2' },
+        { block: { steps: [], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } } }, { block: { steps: ['p-lib@'], until: 'DISPOSITION', downstream: { node: 'task:p-lib', frames: [] } } },
+        { source: { stepKey: 'p-lib@', step: 'p-lib', frames: [{ construct: 'L', index: 1 }], item: 'p-lib.w' } },
+        { title: 'w is outside its limit [alert tier]' }, { title: 'w is outside its limit' }, { id: 'X9' },
+      ];
+      for (const over of changed) expect(await limits(c, {}, { entries: W, exceptions: { X1: breach('p-lib.w', over) } }), JSON.stringify(over)).toMatch(missing);
+      // The title's wording beyond its tier mark is the engine's and is not compared; the time of raising is not either.
+      expect(await limits(c, {}, { entries: W, exceptions: { X1: breach('p-lib.w', { title: 'other words [registered tier]', raisedAt: { $u: '7' }, raisedSeq: 9 }) } })).toBeNull();
+    });
+  });
+
+  it('[PR-08][PR-49] R3-SQL-1: an internal action or alert tier gives its own facts; a LIB_LIMIT_BREACH that no value of the row breaches is refused, also on a row that adds no entry (EBMR-LIB-020)', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const tiers = (actionBreach?: string): Json => ({
+        unit: 'g',
+        ...(actionBreach ? { actionBreach } : {}),
+        ranges: [
+          { tier: 'INTERNAL_ACTION', high: { value: '10', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'INTERNAL', ref: 'R' } },
+          { tier: 'ALERT', high: { value: '8', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'INTERNAL', ref: 'R' } },
+        ],
+      });
+      const run = async (spec: Json, w: string, x: Json): Promise<string | null> => {
+        const content = { ...CONTENT, procedure: { kind: 'procedure', id: 'proc', children: [phase('p-lib', 'LIB-KILL-LIM', { limits: { ...LIMITS, w: spec } })] } };
+        const { rows } = await c.query<{ p: string | null }>('select recipe.library_limits_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [
+          JSON.stringify(content), JSON.stringify({ steps: STEPS, entries: {}, exceptions: {} }), JSON.stringify({ steps: STEPS, entries: { E1: entry('run', { w }) }, exceptions: { X1: x } }),
+        ]);
+        return rows[0]?.p ?? null;
+      };
+      const action = { severity: 'ACTION', registrationRelevant: false, qaOnly: false, stageSignOffBlocked: false, releaseBlocking: false, title: 'w [internal action tier]' };
+      expect(await run(tiers(), '11', breach('p-lib.w', action))).toBeNull();
+      expect(await run(tiers('CONTINUE_CURRENT_STEP_WITH_DEVIATION'), '11', breach('p-lib.w', { ...action, block: { steps: [], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } } }))).toBeNull();
+      expect(await run(tiers(), '11', breach('p-lib.w', { ...action, title: 'w [registered tier]' }))).toMatch(/without the LIB_LIMIT_BREACH it requires \(severity ACTION, deviation required\)$/);
+      const alert = { severity: 'ALERT', deviationRequired: false, registrationRelevant: false, qaOnly: false, stageSignOffBlocked: false, releaseBlocking: false, title: 'w [alert tier]' };
+      const noBlock = breach('p-lib.w', alert) as Record<string, Json>;
+      delete noBlock['block'];
+      expect(await run(tiers(), '9', noBlock)).toBeNull();
+      expect(await run(tiers(), '9', breach('p-lib.w', alert))).toMatch(/without the LIB_LIMIT_BREACH it requires \(severity ALERT, deviation not required\)$/);
+      // No value of the row is outside its limit: the exception is not one it requires.
+      expect(await limits(c, {}, { entries: { E1: entry('run', { w: '5' }) }, exceptions: { X1: breach('p-lib.w') } })).toBe('adds exception X1 (LIB_LIMIT_BREACH, severity CRITICAL, item p-lib.w), which no value of the row requires with these facts');
+      expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w') } })).toMatch(/^adds exception X1 /);
+      // Another type of exception is not a library limit exception.
+      expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w', { type: 'LIB_UNEXPECTED_ANSWER' }) } })).toBeNull();
+      const t = await batchState(c, { steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w') } }, 'zzg_library_limits');
+      expect(await t.update({ steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w'), X2: breach('p-lib.w', {}, 'X2') } })).toMatch(/^This row adds exception X2 .*\[EBMR-LIB-020\]$/);
+      expect(await t.update({ steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w'), X2: breach('p-lib.w', { type: 'LIB_UNEXPECTED_ANSWER' }, 'X2') } })).toBe('');
     });
   });
 });

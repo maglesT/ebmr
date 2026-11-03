@@ -118,13 +118,20 @@ describe('a library block in a GMP batch', () => {
 
   it('[PR-08] the database refuses a library value outside its limit stored without the engine\'s LIB_LIMIT_BREACH (O-9 b: the figure is the server\'s, the check is the database\'s)', async () => {
     const c = content() as unknown as Json;
-    const step = { key: 'p-lib@', step: 'p-lib' };
-    const entry = (loss: string) => ({ kind: 'run', stepKey: 'p-lib@', data: { w0: '6.5', w1: '6.4', cracked: false, computed: { loss: { value: loss, unit: '%' } } } });
+    const step = { key: 'p-lib@', step: 'p-lib', frames: [] };
+    const entry = (loss: string) => ({ kind: 'run', stepKey: 'p-lib@', enteredBy: 'OP-1', data: { w0: '6.5', w1: '6.4', cracked: false, computed: { loss: { value: loss, unit: '%' } } } });
     const old = { entries: {}, exceptions: {}, steps: { 'p-lib@': step } };
     const q = (s: Json) => w.gmp.db.admin.query<{ p: string | null }>('select recipe.library_limits_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [JSON.stringify(c), JSON.stringify(old), JSON.stringify(s)]);
     expect((await q({ ...old, entries: { E1: entry('0.5') } })).rows[0]?.p).toBeNull();
     expect((await q({ ...old, entries: { E1: entry('1.5') } })).rows[0]?.p).toMatch(/without the LIB_LIMIT_BREACH/);
-    const raised = { X1: { type: 'LIB_LIMIT_BREACH', source: { stepKey: 'p-lib@', item: 'p-lib.loss' } } };
+    // R3-SQL-1: the exception carries the facts of the registered tier breached (a registration-relevant deviation, QA only).
+    const raised = {
+      X1: {
+        id: 'X1', type: 'LIB_LIMIT_BREACH', category: 'OUT_OF_LIMIT', title: 'Weight loss [registered tier]', controls: ['PR-08'], severity: 'CRITICAL',
+        source: { stepKey: 'p-lib@', step: 'p-lib', frames: [], item: 'p-lib.loss' }, raisedBy: 'OP-1', deviationRequired: true, registrationRelevant: true,
+        qaOnly: true, stageSignOffBlocked: true, releaseBlocking: true, status: 'OPEN', block: { steps: ['p-lib@'], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } },
+      },
+    };
     expect((await q({ ...old, entries: { E1: entry('1.5') }, exceptions: raised })).rows[0]?.p).toBeNull();
   });
 
