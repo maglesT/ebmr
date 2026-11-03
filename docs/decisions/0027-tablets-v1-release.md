@@ -33,3 +33,20 @@ The rc.1 criteria of D-P7-1, applied to the release:
 - One review pass of the library code.
 - The full suite, golden batches, browser suite and trace at phase 7 green in one final run (at most two).
 - The release notes and the validation pack are regenerated from that run's evidence.
+
+## Amendment, 3 November 2026: the platform move comes before the release
+
+The MEDHANTA lead relayed the owner's instruction: Batchwright does not go live on its own; it moves onto the MEDHANTA
+platform (`maglesT/databsee`, Phase B) and goes live together with the other products. Asked which order is better, the
+owner took the recommendation:
+
+1. Finish what is in flight: PR #85 (O-6 and the S11a findings), R3's review with its critical, high and medium findings
+   fixed (each with its test), V3 done.
+2. Tag that point `batchwright-tablets-v1.0.0-rc.2` and keep it on a `standalone` branch: the reviewed baseline and the
+   fallback.
+3. Write the handover ("S11b done → Phase B next") and stop; a fresh session does the move.
+4. R2's bundle part, R4 (guides), R5 (release notes and pack) and R6 (final run) are done once, on the platform version,
+   which is tagged `v1.0.0` for the joint go-live. The move changes sign-on, e-signature re-authentication and master
+   data, so doing R4 to R6 before it would mean doing them twice.
+
+V1 changes accordingly (rc.2 now, `v1.0.0` after the move); V2 to V6 stand.

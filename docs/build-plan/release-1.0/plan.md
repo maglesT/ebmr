@@ -1,7 +1,8 @@
 # Batchwright Tablets v1.0: release plan
 
-Status: **approved, 3 November 2026: the owner took every recommendation of section 4 (decision 0027).** R1 is under
-way.
+Status: **approved, 3 November 2026 (decision 0027); amended the same day: R1, R3 and V3 now, then the tag
+`v1.0.0-rc.2` on a `standalone` branch and the MEDHANTA platform move (Phase B); R2's bundle part and R4 to R6 follow on
+the platform version (decision 0027, amendment).**
 
 ## 1. Where we start
 
