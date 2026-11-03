@@ -31,7 +31,7 @@ implemented_by:
   db_constraints: []
   rule_keys: []
 tests:
-  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
   - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the segregation check reports the analytics role missing, each elevated attribute alone and a membership either way; the role never connects to a sandbox"
   - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] no GMP table, function, view or trigger depends on the analytics schema"
   - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] no floating-point column exists outside the analytics schema"
@@ -85,11 +85,11 @@ tests:
 clauses:
   - clause: "as the analytics role, insert, update and delete in a GMP table and run a command; all are refused;"
     tests:
-      - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
+      - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
       - "apps/tablets-server/test/analytics/role-permissions.test.ts > the analytics permissions of the Tablets roles (tablets 1330) > [DI-51] on the Tablets GMP database the analytics role connects and holds nothing beyond its allow-list"
   - clause: "grant the role one extra privilege; the segregation check reports it;"
     tests:
-      - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
+      - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
       - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the segregation check reports the analytics role missing, each elevated attribute alone and a membership either way; the role never connects to a sandbox"
   - clause: "search the database for a GMP table, function, view or trigger that depends on the analytics schema; none;"
     tests:

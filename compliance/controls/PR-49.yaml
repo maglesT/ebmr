@@ -175,6 +175,8 @@ tests:
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][PR-49] the disposition proposal: this product's requirement still applies, and once qualified QA proposes"
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][PR-49] the disposition proposal: a requirement without a product limit still applies"
   - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-31][PR-49] the disposition proposal: a stale qualification source is still refused"
+  - "apps/tablets-server/test/mutation/library-blocks.test.ts > release review R3: the database judges library values as the engine does (recipe-core 1862) > [PR-08][PR-49] R3-SQL-1: a LIB_LIMIT_BREACH carries the facts of the tier breached; one stored as an alert needing no deviation, or with any other fact changed, is refused"
+  - "apps/tablets-server/test/mutation/library-blocks.test.ts > release review R3: the database judges library values as the engine does (recipe-core 1862) > [PR-08][PR-49] R3-SQL-1: an internal action or alert tier gives its own facts; a LIB_LIMIT_BREACH that no value of the row breaches is refused, also on a row that adds no entry (EBMR-LIB-020)"
 clauses:
   - clause: "A failure of a registered limit creates a deviation with the MA flag."
     tests:

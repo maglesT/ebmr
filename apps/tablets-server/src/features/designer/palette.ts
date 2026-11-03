@@ -10,6 +10,11 @@
  * Slice 7j (R4, D-7j-7): the palette is the Tablets edition's registry: every generic block, G-06 (device readings) and
  * G-21 (labels and printing) included since their interfaces exist, and every tablet block TB-01 to TB-24 with its
  * configuration schema, so a master can be built without a template.
+ *
+ * Decision 0026 O-6 (after S11 passed): a new product's own steps are library blocks, so the tablet blocks TB-01 to
+ * TB-24 are no longer offered for a new step (`insertable` false, badged). They stay described, with their schemas, so
+ * existing masters and copies of them keep their steps' configuration forms; their batches run as before. Nothing is
+ * deleted.
  */
 import type { PaletteBlock } from './wire.ts';
 import type { flow } from '@ebmr/recipe-core/pure';
@@ -17,6 +22,10 @@ import { blocks } from '@ebmr/recipe-core/pure';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../edition-blocks.ts';
 
 const HIDDEN = new Set<string>();
+
+/** Decision 0026 O-6: a block an author no longer inserts (the tablet blocks; the library replaces them). */
+export const retiredFromPalette = (type: string): boolean => /^TB-\d{2}$/.test(type);
+export const RETIRED_BADGE = 'existing masters only (library replaces it)';
 
 /** Plain names an author recognises from a paper batch record. */
 export const PLAIN_NAMES: Readonly<Record<string, string>> = {
@@ -98,7 +107,8 @@ export function paletteBlocks(registry: blocks.BlockRegistry = tabletsBlockRegis
       roles: [...(d?.roles ?? [])],
       significant: d?.significant ?? false,
       availability,
-      badge: availability === 'SANDBOX_ONLY' ? 'sandbox only' : null,
+      badge: retiredFromPalette(b.type) ? RETIRED_BADGE : availability === 'SANDBOX_ONLY' ? 'sandbox only' : null,
+      insertable: !retiredFromPalette(b.type),
       configSchema: schemaJson(schema),
       defaultConfig: b.level === 'HOLD_POINT' ? {} : (defaultConfig(schema) as Record<string, Json>),
       controls: [...b.controls],

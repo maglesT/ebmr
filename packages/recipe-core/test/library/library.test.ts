@@ -32,6 +32,28 @@ describe('library block definitions', () => {
     ]);
   });
 
+  it('[INV-20][PR-08] R3-ENG-5: the limit of a loop\'s endpoint is a required slot even when the field is not critical, so a formulation cannot leave it empty and let any value pass', () => {
+    const def: BlockDefinition = {
+      code: 'LOOP-K',
+      version: 1,
+      title: 'Loop',
+      category: 'PROCESS',
+      sections: [{ id: 'chk', title: 'Check', repeat: { kind: 'UNTIL_PASS', untilField: 'w' }, fields: [
+        { id: 'w', label: 'W', type: 'WEIGHING', unit: 'kg', limitSlot: 'w' },
+        { id: 'n', label: 'N', type: 'NUMBER', unit: 'g', limitSlot: 'n' },
+        // Not the endpoint: a weighing's limit stays optional even when stored definition JSON marks it critical (the type has
+        // no such flag; a weighing's target comes from the formula); a critical number's is required.
+        { id: 'h', label: 'H', type: 'WEIGHING', unit: 'kg', limitSlot: 'h', critical: true } as unknown as FieldDef,
+        { id: 'c', label: 'C', type: 'NUMBER', unit: 'g', limitSlot: 'c', critical: true },
+      ] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    expect(errors(checkBlockDefinition(def, expr))).toEqual([]);
+    expect(slotsOf(def).map((s) => `${s.name}:${String(s.required)}`)).toEqual(['w:true', 'n:false', 'h:false', 'c:true']);
+    expect(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 }, limits: { c: range('g', '1', '2') } }, expr)).map((p) => [p.code, p.path])).toEqual([['LIB-USE-LIMIT-MISSING', 'limits.w']]);
+    expect(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 }, limits: { w: range('kg', '9', '11'), c: range('g', '1', '2') } }, expr))).toEqual([]);
+  });
+
   it('[PR-03] a critical number without a limit slot is refused: every CPP and IPC has limits', () => {
     const def = withField(friability(), { id: 'hardness', label: 'Hardness', type: 'NUMBER', unit: 'N', critical: true });
     expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-CRITICAL-NO-LIMIT']);
@@ -131,6 +153,17 @@ describe('library block definitions', () => {
   it('[PR-08] a reference limit names a limit slot, has a note, and its bounds are in order and in a compatible unit', () => {
     const def = { ...friability(), referenceLimits: { loss: { unit: 'g', low: '2', high: '1', note: '' }, ghost: { unit: '%', high: '1', note: 'x' } } };
     expect(codes(checkBlockDefinition(def, expr)).sort()).toEqual(['LIB-REFERENCE-BOUND', 'LIB-REFERENCE-NOTE', 'LIB-REFERENCE-SLOT', 'LIB-REFERENCE-UNIT']);
+    const ref = (r: Record<string, unknown>): string[] => codes(checkBlockDefinition({ ...friability(), referenceLimits: r as NonNullable<BlockDefinition['referenceLimits']> }, expr));
+    // A slot of another kind (the equipment class) is no limit slot.
+    expect(ref({ friabilatorClass: { unit: '%', high: '1', note: 'x' } })).toEqual(['LIB-REFERENCE-SLOT']);
+    expect(ref({ loss: { unit: '%', high: '1' } })).toEqual(['LIB-REFERENCE-NOTE']);
+    expect(ref({ loss: { unit: '%', high: '1', note: '  ' } })).toEqual(['LIB-REFERENCE-NOTE']);
+    expect(ref({ loss: { unit: '%', note: 'x' } })).toEqual(['LIB-REFERENCE-BOUND']);
+    expect(ref({ loss: { unit: '%', low: 'abc', high: '1', note: 'x' } })).toEqual(['LIB-REFERENCE-BOUND']);
+    expect(ref({ loss: { unit: '%', high: 'x', note: 'x' } })).toEqual(['LIB-REFERENCE-BOUND']);
+    // One bound is enough, and equal bounds are in order.
+    expect(ref({ loss: { unit: '%', low: '0.1', note: 'x' } })).toEqual([]);
+    expect(ref({ loss: { unit: '%', low: '1', high: '1', note: 'x' } })).toEqual([]);
   });
 
   it('[PR-05] a version is a whole number of 1 or more', () => {
@@ -152,6 +185,13 @@ describe("a product's values for a library block", () => {
     delete use.equipmentClasses!['dryerClass'];
     delete use.counts!['maxLodChecks'];
     expect(codes(checkBlockUse(fluidBedDrying(), use, expr)).sort()).toEqual(['LIB-USE-COUNT', 'LIB-USE-EQUIPMENT-CLASS', 'LIB-USE-LIMIT-MISSING']);
+    // A blank class, no classes or counts at all, and a count that is a number instead of text are refused too.
+    expect(codes(checkBlockUse(fluidBedDrying(), { ...fluidBedDryingUse(), equipmentClasses: { dryerClass: '  ' } }, expr))).toEqual(['LIB-USE-EQUIPMENT-CLASS']);
+    const bare = fluidBedDryingUse();
+    delete bare.equipmentClasses;
+    delete bare.counts;
+    expect(codes(checkBlockUse(fluidBedDrying(), bare, expr))).toEqual(['LIB-USE-EQUIPMENT-CLASS', 'LIB-USE-COUNT', 'LIB-USE-COUNT']);
+    expect(codes(checkBlockUse(fluidBedDrying(), { ...fluidBedDryingUse(), counts: { maxLodChecks: 6 as unknown as string, lodSampleUnits: '1' } }, expr))).toEqual(['LIB-USE-COUNT']);
   });
 
   it('a value for a slot the block does not have is refused', () => {
@@ -177,11 +217,41 @@ describe("a product's values for a library block", () => {
     const use = fluidBedDryingUse();
     use.limits!['lod'] = range('mg', '1.5', '2.5');
     expect(codes(checkBlockUse(fluidBedDrying(), use, expr))).toEqual(['LIB-USE-LIMIT-UNIT']);
+    use.limits!['lod'] = range('parsec', '1.5', '2.5');
+    const notUnit = checkBlockUse(fluidBedDrying(), use, expr);
+    expect(codes(notUnit)).toEqual(['LIB-USE-LIMIT-UNIT']);
+    expect(notUnit[0]?.message).toMatch(/is not a unit/);
   });
 
   it('[PR-08] a target outside its own limits is refused', () => {
     const use = { ...fluidBedDryingUse(), targets: { inletTemp: '70' } };
     expect(codes(checkBlockUse(fluidBedDrying(), use, expr))).toEqual(['LIB-USE-TARGET']);
+    const target = (t: string, limits = range('Cel', '55', '65')): string[] => codes(checkBlockUse(fluidBedDrying(), { ...fluidBedDryingUse(), limits: { ...fluidBedDryingUse().limits, inletTemp: limits }, targets: { inletTemp: t } }, expr));
+    expect(target('50')).toEqual(['LIB-USE-TARGET']);
+    expect(target('abc')).toEqual(['LIB-USE-TARGET']);
+    expect(target('55')).toEqual([]);
+    // The innermost tier decides: inside the registered range but outside the alert range is outside.
+    const tiered = { unit: 'Cel', ranges: [...range('Cel', '55', '65').ranges, ...range('Cel', '58', '62', 'ALERT').ranges] };
+    expect(target('56', tiered)).toEqual(['LIB-USE-TARGET']);
+    expect(target('60', tiered)).toEqual([]);
+    // An exclusive bound is itself outside.
+    const open = range('Cel', '55', '65');
+    open.ranges[0]!.low!.inclusive = false;
+    open.ranges[0]!.high!.inclusive = false;
+    expect(target('55', open)).toEqual(['LIB-USE-TARGET']);
+    expect(target('65', open)).toEqual(['LIB-USE-TARGET']);
+    expect(target('55.1', open)).toEqual([]);
+    expect(target('64.9', open)).toEqual([]);
+    // A limit with no range, and a target with no limit at all.
+    expect(target('60', { unit: 'Cel', ranges: [] })).not.toContain('LIB-USE-TARGET');
+    const noLimit = { ...friabilityUse(), limits: {}, targets: { loss: '0.5' } };
+    expect(codes(checkBlockUse(friability(), noLimit, expr))).toEqual(['LIB-USE-LIMIT-MISSING', 'LIB-USE-TARGET']);
+  });
+
+  it('[PR-08] a market rule binds a slot that has limits', () => {
+    const rule = { loss: { key: 'K', bound: 'HIGH' as const } };
+    expect(checkBlockUse(friability(), { ...friabilityUse(), marketRules: rule }, expr)).toEqual([]);
+    expect(codes(checkBlockUse(friability(), { ...friabilityUse(), limits: {}, marketRules: rule }, expr))).toEqual(['LIB-USE-MARKET-RULE', 'LIB-USE-LIMIT-MISSING']);
   });
 
   it('[PR-29] an IPC interval is a positive time', () => {
@@ -199,6 +269,7 @@ describe("a product's values for a library block", () => {
     expect(codes(checkBlockUse(def, { ...base, intervals: { every: { value: '0', unit: 'min' } } }, expr))).toEqual(['LIB-USE-INTERVAL']);
     expect(codes(checkBlockUse(def, { ...base, intervals: { every: { value: '30', unit: 'kg' } } }, expr))).toEqual(['LIB-USE-INTERVAL']);
     expect(codes(checkBlockUse(def, { ...base, counts: { n: '20.5' }, intervals: { every: { value: '30', unit: 'min' } } }, expr))).toEqual(['LIB-USE-COUNT']);
+    expect(codes(checkBlockUse(def, base, expr))).toEqual(['LIB-USE-INTERVAL']);
   });
 
   it('[PR-08] a limit looser than the reference limit is a warning, cleared by a written reason (O-5)', () => {
@@ -206,6 +277,23 @@ describe("a product's values for a library block", () => {
     const ps = checkBlockUse(friability(), loose, expr);
     expect(ps.map((p) => `${p.severity}:${p.code}`)).toEqual(['WARNING:LIB-USE-LOOSER-THAN-REFERENCE']);
     expect(checkBlockUse(friability(), { ...loose, justifications: { loss: 'Coated core, validated in the product development report' } }, expr)).toEqual([]);
+    expect(codes(checkBlockUse(friability(), { ...loose, justifications: { loss: '  ' } }, expr))).toEqual(['LIB-USE-LOOSER-THAN-REFERENCE']);
+    // No upper bound is looser than any reference maximum.
+    expect(checkBlockUse(friability(), { ...friabilityUse(), limits: { loss: range('%', '0', undefined) } }, expr).map((p) => p.message)).toEqual([expect.stringMatching(/upper none above 1 %/)]);
+    // Every outer tier is compared (registered, validated, internal action); an alert range is not.
+    const validated = range('%', undefined, '1.5');
+    validated.ranges[0]!.tier = 'VALIDATED';
+    expect(codes(checkBlockUse(friability(), { ...friabilityUse(), limits: { loss: validated } }, expr))).toEqual(['LIB-USE-LOOSER-THAN-REFERENCE']);
+    expect(codes(checkBlockUse(friability(), { ...friabilityUse(), limits: { loss: range('%', undefined, '1.5', 'INTERNAL_ACTION') } }, expr))).toEqual(['LIB-USE-LOOSER-THAN-REFERENCE']);
+    const alertOnly = { unit: '%', ranges: [...range('%', undefined, '0.8').ranges, ...range('%', undefined, '1.5', 'ALERT').ranges] };
+    expect(codes(checkBlockUse(friability(), { ...friabilityUse(), limits: { loss: alertOnly } }, expr))).not.toContain('LIB-USE-LOOSER-THAN-REFERENCE');
+    // A reference minimum: a lower bound below it, or none, is looser; the minimum itself is not.
+    const lod = { ...fluidBedDrying(), referenceLimits: { lod: { unit: '%', low: '1.0', note: 'Process validation' } } };
+    const lodUse = (low: string | undefined) => ({ ...fluidBedDryingUse(), limits: { ...fluidBedDryingUse().limits, lod: range('%', low, '2.5') } });
+    expect(checkBlockUse(lod, lodUse('1.5'), expr)).toEqual([]);
+    expect(checkBlockUse(lod, lodUse('1.0'), expr)).toEqual([]);
+    expect(checkBlockUse(lod, lodUse('0.5'), expr).map((p) => p.message)).toEqual([expect.stringMatching(/lower 0\.5 below 1 %/)]);
+    expect(checkBlockUse(lod, lodUse(undefined), expr).map((p) => p.message)).toEqual([expect.stringMatching(/lower none below 1 %/)]);
   });
 
   it('[PR-03] a profile test needs its time points, each with its own well-formed limits', () => {
@@ -214,10 +302,21 @@ describe("a product's values for a library block", () => {
     const bad = dissolutionUse();
     bad.points!['released']![1] = { id: 'h1', label: '4 h', limits: range('%', '65', '45') };
     expect(codes(checkBlockUse(dissolutionProfile(), bad, expr)).sort()).toEqual(['LIB-USE-LIMIT-EMPTY_RANGE', 'LIB-USE-POINTS']);
+    const noPoints = dissolutionUse();
+    delete noPoints.points;
+    expect(codes(checkBlockUse(dissolutionProfile(), noPoints, expr))).toEqual(['LIB-USE-POINTS']);
+    for (const id of ['  ', 5 as unknown as string]) {
+      const blank = dissolutionUse();
+      blank.points!['released']![0] = { ...blank.points!['released']![0]!, id };
+      expect(codes(checkBlockUse(dissolutionProfile(), blank, expr))).toEqual(['LIB-USE-POINTS']);
+    }
+    // Points for a test that is not a profile are refused.
+    expect(codes(checkBlockUse(friability(), { ...friabilityUse(), points: { loss: [{ id: 'h1', label: '1 h', limits: range('%', '0', '1') }] } }, expr))).toEqual(['LIB-USE-POINTS']);
   });
 
   it('a use checked against another block or version is refused', () => {
     expect(codes(checkBlockUse(friability(), { ...friabilityUse(), block: { code: 'IPC-FRIAB', version: 2 } }, expr))).toEqual(['LIB-USE-BLOCK']);
+    expect(codes(checkBlockUse(friability(), { ...friabilityUse(), block: { code: 'IPC-OTHER', version: 1 } }, expr))).toEqual(['LIB-USE-BLOCK']);
   });
 });
 
@@ -248,6 +347,10 @@ describe('review additions: inputs from outside the step, conditional fields, pi
     const base = { block: { code: def.code, version: 1 } };
     expect(codes(checkBlockUse(def, base, expr)).sort()).toEqual(['LIB-USE-BOM-LINE', 'LIB-USE-STEP-VALUE']);
     expect(checkBlockUse(def, { ...base, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: { step: 'lod-test', field: 'lod' } } }, expr)).toEqual([]);
+    expect(codes(checkBlockUse(def, { ...base, bomLines: { activeLine: '  ' }, stepValues: { lodSource: { step: 'lod-test', field: 'lod' } } }, expr))).toEqual(['LIB-USE-BOM-LINE']);
+    for (const v of [{ step: '  ', field: 'lod' }, { step: 5, field: 'lod' }, { step: 'lod-test', field: ' ' }, { step: 'lod-test', field: 5 }]) {
+      expect(codes(checkBlockUse(def, { ...base, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: v as { step: string; field: string } } }, expr))).toEqual(['LIB-USE-STEP-VALUE']);
+    }
   });
 
   it('a conditional field depends on an earlier yes/no or choice field and one of its answers', () => {

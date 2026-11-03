@@ -110,7 +110,7 @@ export const COATING_SEEDS: readonly SeedItem[] = [
           title: 'Prepare',
           fields: [
             { id: 'vessel', label: 'Preparation vessel with stirrer', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'vesselClass' },
-            { id: 'coatingLot', label: 'Coating material lot', type: 'MATERIAL_LOT' },
+            { id: 'coatingLot', label: 'Coating material lot', type: 'MATERIAL_LOT', bomLineSlot: 'coatingLine' },
             { id: 'water', label: 'Purified water', type: 'WEIGHING', unit: 'kg', limitSlot: 'waterQty' },
             { id: 'powder', label: 'Coating material', type: 'WEIGHING', unit: 'kg', limitSlot: 'powderQty' },
             { id: 'solids', label: 'Solids content', type: 'CALC', expression: 'powder / (powder + water) * 100 [%]', unit: '%', limitSlot: 'solids', critical: true },
@@ -133,6 +133,7 @@ export const COATING_SEEDS: readonly SeedItem[] = [
       limits: { waterQty: val('kg', '43.5', '44.5'), powderQty: val('kg', '5.95', '6.05'), solids: val('%', '11.5', '12.5'), stirTime: val('min', '45', '120'), viscosity: val('mPa.s', '50', '250') },
       targets: { waterQty: '44.0', powderQty: '6.00' },
       equipmentClasses: { vesselClass: 'SS-VESSEL-STIRRER', viscometerClass: 'VISCOMETER' },
+      bomLines: { coatingLine: 'L1' },
     },
   },
   { definition: panCoat('COAT-SEAL', 'Seal coating', 'seal coat'), exampleUse: panCoatExample('1.0', '2.0', '253.75') },
@@ -182,7 +183,7 @@ export const COATING_SEEDS: readonly SeedItem[] = [
           title: 'Polish',
           fields: [
             { id: 'pan', label: 'Polishing pan', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'panClass' },
-            { id: 'waxLot', label: 'Polishing agent lot', type: 'MATERIAL_LOT' },
+            { id: 'waxLot', label: 'Polishing agent lot', type: 'MATERIAL_LOT', bomLineSlot: 'waxLine' },
             { id: 'waxQty', label: 'Polishing agent', type: 'WEIGHING', unit: 'g', limitSlot: 'waxQty' },
             { id: 'panSpeed', label: 'Pan speed', type: 'NUMBER', unit: '/min', decimals: 1, limitSlot: 'panSpeed', critical: true },
             { id: 'polishing', label: 'Polishing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'polishTime', critical: true },
@@ -196,6 +197,7 @@ export const COATING_SEEDS: readonly SeedItem[] = [
       limits: { waxQty: val('g', '48', '52'), panSpeed: val('/min', '4.0', '10.0'), polishTime: val('min', '30', '120') },
       targets: { waxQty: '50', panSpeed: '6.0' },
       equipmentClasses: { panClass: 'POLISHING-PAN' },
+      bomLines: { waxLine: 'L1' },
     },
   },
   {

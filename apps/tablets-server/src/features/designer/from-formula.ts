@@ -88,8 +88,9 @@ function header(src: FormulaSource, req: FormulaFamilyRequest, markets: string[]
     predicates: {},
     variants: [],
     // Decision 0026 S11b (the R3.1 follow-up): the mass of one unit the batch sizes are computed from, so the issue
-    // pre-fills each size's tablet count and refuses a count that does not fit it.
-    unitMassMg: sum(c.lines.filter((l) => l.basis === 'PER_UNIT').map(unitMg)),
+    // pre-fills each size's tablet count and refuses a count that does not fit it. Processing aids are left out, as in
+    // the batch mass (recipe.formula_batch_mass): a per-unit aid is removed in processing (R3-APP-1).
+    unitMassMg: sum(c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role !== 'PROCESSING_AID').map(unitMg)),
   };
 }
 

@@ -128,7 +128,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(run.status('p')).toBe('COMPLETED');
   });
 
-  it('[INV-20] reaching the maximum number of repeats without a pass lets the step end with a deviation exception', () => {
+  it('[INV-20][PR-08] reaching the maximum number of repeats without a pass raises the loop\'s exhaustion for QA and judges the last value against its tier', () => {
     const use = { ...fluidBedDryingUse(), counts: { maxLodChecks: '2', lodSampleUnits: '1' } };
     const run = runFor(fluidBedDrying(), use);
     run.entry('p', { kind: TIMER_START, field: 'drying' });
@@ -139,9 +139,31 @@ describe('the generic handler runs library blocks in the engine', () => {
     run.entry('p', { kind: 'lodLoop', sample: 1, lod: '3.0' });
     run.refused(entryCmd(run, { kind: 'lodLoop', sample: 1, lod: '2.0' }), 'LIB-SECTION-MAX');
     run.entry('p', { kind: 'out', container: 'C1', net: '50' });
-    expect(types(run)).toEqual(['LIB_REPEAT_LIMIT_REACHED']);
-    // It blocks the steps after it until a deviation is linked, not this step's own signature.
-    run.perform('p');
+    // R3-ENG-1: the last value (3.0 %, outside the registered 1.5-2.5 %) is judged at the exhaustion, and the exhaustion
+    // has an MBR loop's consequences: the steps after it wait for QA's disposition, release is blocked.
+    expect(types(run)).toEqual(['LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED']);
+    const exhausted = run.exceptions().find((e) => e.type === 'LIB_REPEAT_LIMIT_REACHED');
+    expect([exhausted?.block?.until, exhausted?.block?.steps, exhausted?.qaOnly, exhausted?.releaseBlocking, exhausted?.deviationRequired]).toEqual(['DISPOSITION', [], true, true, true]);
+    expect(run.exceptions().find((e) => e.type === 'LIB_LIMIT_BREACH')?.severity).toBe('CRITICAL');
+    // The registered-tier breach holds this step until a deviation is linked, as any registered breach does.
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
+  });
+
+  it('[PR-29][PR-30] R3-ENG-4: in a batch, an IPC interval runs from the step\'s start on trusted time: a first round later than the interval is late', () => {
+    const ipc: BlockDefinition = {
+      code: 'IPC-R3', version: 1, title: 'Rounds', category: 'TEST_IPC',
+      sections: [{ id: 'round', title: 'Round', repeat: { kind: 'PER_INTERVAL', intervalSlot: 'every' }, fields: [{ id: 'v', label: 'V', type: 'NUMBER', unit: 'g' }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    const use: BlockUse = { block: { code: 'IPC-R3', version: 1 }, intervals: { every: { value: '30', unit: 'min' } } };
+    const onTime = runFor(ipc, use);
+    onTime.minutes(30);
+    onTime.entry('p', { kind: 'round', v: '1' });
+    expect(types(onTime)).toEqual([]);
+    const late = runFor(ipc, use);
+    late.minutes(31);
+    late.entry('p', { kind: 'round', v: '1' });
+    expect(types(late)).toEqual(['LIB_IPC_INTERVAL_MISSED']);
   });
 
   it('[PR-30] a timer runs on trusted time: its duration is checked against its limit when it is stopped', () => {
@@ -190,7 +212,7 @@ describe('the generic handler runs library blocks in the engine', () => {
       lodLot: { kind: 'DECIMAL', value: '2', unit: '%' },
       batchSize: { kind: 'DECIMAL', value: '100', unit: 'kg' },
     };
-    const extra: Partial<MbrContent> = { inputs: Object.entries(inputs).map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: (v as { unit: string }).unit })) };
+    const extra: Partial<MbrContent> = { bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }], inputs: Object.entries(inputs).map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: (v as { unit: string }).unit })) };
     const run = runFor(def, use, { extra, reads: Object.keys(inputs), inputs });
     run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false, reworkQty: '1' }), 'LIB-ENTRY-HIDDEN');
     run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: true, reworkQty: '1' }), 'LIB-ENTRY-REQUIRED');
@@ -205,7 +227,7 @@ describe('the generic handler runs library blocks in the engine', () => {
   it('[DI-33] a calculation whose external input the batch does not provide refuses the entry', () => {
     const def = potencyDispensing();
     const use: BlockUse = { block: { code: def.code, version: 1 }, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: { step: 'lod', field: 'lod' } } };
-    const run = runFor(def, use);
+    const run = runFor(def, use, { extra: { bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }] } });
     run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false }), 'LIB-CALC-FAILED');
   });
 
@@ -300,6 +322,39 @@ describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
     expect((schema?.fields['lots'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
     expect((schema?.fields['equipment'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
   });
+
+  it('[PR-18][IN-23][INV-25] R3-ENG-3: a formulation line that names no line of the master\'s bill of materials refuses the batch definition', () => {
+    const typo: BlockUse = { ...use, bomLines: { line: 'BOM-TYPO' } };
+    expect(checkBlockUse(dispense(), typo, expr, extra.bom).map((p) => p.code)).toEqual(['LIB-USE-BOM-LINE']);
+    expect(checkBlockUse(dispense(), use, expr, extra.bom)).toEqual([]);
+    const registry = testRegistry().extend(libraryBlockVersion(dispense(), expr));
+    expect(() => define(mbrFor(dispense(), typo, extra), { registry })).toThrow(/LIB-USE-BOM-LINE/);
+    // A FORMULA_LINE input reads the same way: a line removed from the BOM leaves the calculation nothing to read.
+    const potency = potencyDispensing();
+    const gone: BlockUse = { block: { code: potency.code, version: 1 }, bomLines: { activeLine: 'BOM-GONE' }, stepValues: { lodSource: { step: 'lod', field: 'lod' } } };
+    expect(checkBlockUse(potency, gone, expr, extra.bom).map((p) => `${p.code} ${p.path}`)).toEqual(['LIB-USE-BOM-LINE bomLines.activeLine']);
+    const potencyRegistry = testRegistry().extend(libraryBlockVersion(potency, expr));
+    expect(() => define(mbrFor(potency, gone, extra), { registry: potencyRegistry })).toThrow(/LIB-USE-BOM-LINE/);
+  });
+
+  it('[PR-18][IN-23][INV-25] R3-ENG-3: at run time a lot whose formulation line is not in the bill of materials is refused, never left unchecked', () => {
+    const v = libraryBlockVersion(dispense(), expr);
+    const view = (bomLines: Record<string, string>) => ({
+      phase: { id: 'p' },
+      config: configOf({ ...use, bomLines }),
+      nowUs: T0,
+      batch: { batchId: 'B', batchNumber: 'B1', productCode: 'P', marketSet: ['IN'] },
+      mbr: mbrFor(dispense(), use, extra),
+      entries: () => [],
+    }) as never;
+    const accept = (bomLines: Record<string, string>, e: ReturnType<typeof entry>) => v.handler!.acceptEntry!(view(bomLines), e);
+    const codesOf = (r: ReturnType<typeof accept>): string[] => (r.ok ? [] : r.problems.map((p) => p.code));
+    // A lot of any material: with the line missing, nothing may say the material is right.
+    expect(codesOf(accept({ line: 'BOM-TYPO' }, entry(lot({ material: 'MAT-OTHER' }))))).toEqual(['LIB-LOT-BOM-LINE']);
+    expect(codesOf(accept({}, entry(lot())))).toEqual(['LIB-LOT-BOM-LINE']);
+    expect(codesOf(accept({ line: 'BOM-API' }, entry(lot({ material: 'MAT-OTHER' }))))).toEqual(['G07-WRONG-MATERIAL']);
+    expect(accept({ line: 'BOM-API' }, entry()).ok).toBe(true);
+  });
 });
 
 describe('timer durations in any time unit (S7 catalogue finding)', () => {
@@ -321,5 +376,25 @@ describe('timer durations in any time unit (S7 catalogue finding)', () => {
     expect(d.unit).toBe('h');
     expect(d.value.startsWith('1.0666')).toBe(true);
     expect(run.exceptions()).toEqual([]);
+  });
+
+  it('[PR-30][PR-08] S11a finding: a timer outside its limit is recorded and judged exactly, and its exception shows the duration to three decimals', () => {
+    const def: BlockDefinition = {
+      code: 'PROC-TIMED',
+      version: 1,
+      title: 'Timed step',
+      category: 'PROCESS',
+      sections: [{ id: 'run', title: 'Run', fields: [{ id: 'hold', label: 'Hold', type: 'TIMER', durationUnit: 'h', limitSlot: 'hold', critical: true }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    const run = runFor(def, { block: { code: 'PROC-TIMED', version: 1 }, limits: { hold: range('h', '2', '3') } });
+    run.entry('p', { kind: TIMER_START, field: 'hold' });
+    run.minutes(64);
+    run.entry('p', { kind: TIMER_STOP, field: 'hold' });
+    const stop = Object.values(run.state.entries).find((e) => e.kind === TIMER_STOP);
+    expect((stop?.data['duration'] as { value: string }).value.startsWith('1.06666666')).toBe(true);
+    const ex = run.exceptions().find((e) => e.type === 'LIB_LIMIT_BREACH');
+    expect(ex?.title).toContain('Timed step: Hold 1.067 h');
+    expect(ex?.title).not.toContain('1.06666');
   });
 });

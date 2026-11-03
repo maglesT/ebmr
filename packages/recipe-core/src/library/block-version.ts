@@ -51,6 +51,9 @@ export const LIBRARY_EXCEPTION_RULES: ExceptionRule[] = [
 
 type Config = Omit<BlockUse, 'block'> & { hash?: string };
 
+/** Severity of a tier's breach, least to most severe (an alert, an internal action, a registered or validated tier). */
+const SEVERITY_RANK: Readonly<Record<ExceptionDraft['severity'], number>> = { ALERT: 1, ACTION: 2, CRITICAL: 3 };
+
 const LIMIT_SCHEMA: ObjectSchema = {
   type: 'object',
   description: 'A tiered limit (PR-08)',
@@ -346,6 +349,20 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     return { types, values };
   };
 
+  /**
+   * An IPC section's interval missed now (trusted time): more than the formulation's interval since its last round, or
+   * since the step started when it has none yet (R3-ENG-4). `what` says which gap, e.g. "check 3 came later than".
+   */
+  const intervalMissed = (view: HandlerView, section: SectionDef, what: string): ExceptionDraft | undefined => {
+    if (section.repeat?.kind !== 'PER_INTERVAL') return undefined;
+    const iv = configOf(view).intervals?.[section.repeat.intervalSlot];
+    if (!iv) return undefined;
+    const limitUs = durationToMicros(iv.value, iv.unit);
+    const since = view.entries(section.id).at(-1)?.recordedAt ?? view.startedAtUs;
+    if (limitUs === undefined || since === undefined || view.nowUs - since <= limitUs) return undefined;
+    return { type: 'LIB_IPC_INTERVAL_MISSED', title: `${def.title}, ${section.title}: ${what} every ${iv.value} ${iv.unit}`, controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' };
+  };
+
   const acceptSection = (view: HandlerView, section: SectionDef, entry: Readonly<Record<string, unknown>>): EntryResult => {
     const config = configOf(view);
     const previous = view.entries(section.id);
@@ -397,8 +414,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
           continue;
         }
         const line = f.bomLineSlot !== undefined ? config.bomLines?.[f.bomLineSlot] : undefined;
-        const material = line !== undefined ? view.mbr.bom.find((b) => b.id === line)?.material : undefined;
-        problems.push(...lotProblems(view, lot, material));
+        const bomLine = line !== undefined ? view.mbr.bom.find((b) => b.id === line) : undefined;
+        // R3-ENG-3: a field that reads a formula line whose line is not in the BOM is refused, never left unchecked.
+        if (f.bomLineSlot !== undefined && bomLine === undefined) {
+          problems.push(problem('LIB-LOT-BOM-LINE', `${f.label}: the formulation's line ${line ?? '(none)'} is not a line of the master's bill of materials, so lot ${text(data[f.id])} cannot be checked against it`, ['PR-18', 'IN-23', 'INV-25']));
+          continue;
+        }
+        problems.push(...lotProblems(view, lot, bomLine?.material));
       }
       if (f.type === 'EQUIPMENT') {
         const e = equipment[f.id];
@@ -427,6 +449,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       computed[f.id] = { value: outcome.value.value, unit: f.unit, expression: f.expression, languageVersion: expr.languageVersion, inputs: Object.fromEntries(read.flatMap((k) => { const v = values.get(k); return v ? [[k, v]] : []; })) };
     }
 
+    const stored = { ...data, ...(Object.keys(computed).length > 0 ? { computed } : {}) };
+    // A loop: a value that does not pass is a repeat while repeats remain (the loop decides at its exit, as an MBR loop
+    // endpoint does). R3-ENG-1: the last allowed repeat without a pass exhausts the loop; its endpoint is then judged
+    // against its tier like any value (an MBR loop's exit judges it, recipe-core advance.ts raiseForEvaluationAtExit).
+    const maxRepeats = r.kind === 'UNTIL_PASS' && r.maxRepeatsSlot !== undefined ? config.counts?.[r.maxRepeatsSlot] : undefined;
+    const exhausted = maxRepeats !== undefined && previous.length + 1 >= Number(maxRepeats) && !passes(section, stored, config);
+
     // Values against limits, expected answers and allowed choices.
     const exceptions: ExceptionDraft[] = [];
     const where = `${def.title}, ${section.title}`;
@@ -436,7 +465,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       const v = f.type === 'CALC' ? computed[f.id]?.value : data[f.id];
       if (v === undefined) continue;
       const loopEndpoint = section.repeat?.kind === 'UNTIL_PASS' && section.repeat.untilField === f.id;
-      if (loopEndpoint) continue;
+      if (loopEndpoint && (!exhausted || f.type === 'YES_NO')) continue;
       if ((f.type === 'NUMBER' || f.type === 'WEIGHING' || f.type === 'CALC') && f.limitSlot !== undefined) {
         const d = breach(config.limits?.[f.limitSlot], text(v), f.unit, `${where}: ${f.label}`, item);
         if (d) exceptions.push(d);
@@ -446,41 +475,44 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         exceptions.push({ type: 'LIB_NOT_ALLOWED_CHOICE', title: `${where}: ${f.label} is "${text(v)}", which is not allowed`, controls: ['PR-29'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item, blocks: 'STEP', until: 'DEVIATION', deviationRequired: true });
       } else if (f.type === 'TEST_RESULT') {
         const unitOf = (st: TestStatistic): string => (st === 'RSD' ? '%' : f.unit);
+        // R3-ENG-2: every value of a statistic is judged; one exception per statistic, that of the most severe tier any
+        // value breaches (the first value at that tier), as the engine judges a series (its worst reading governs).
         const judge = (readings: string[], spec: (st: TestStatistic, slot: string) => LimitSpec | undefined, label: string): void => {
           for (const { statistic: st, limitSlot } of f.statistics) {
+            let worst: ExceptionDraft | undefined;
             for (const value of statistic(st, readings)) {
               const d = breach(spec(st, limitSlot), value, unitOf(st), `${where}: ${f.label}${label} (${st.toLowerCase()})`, item);
-              if (d) {
-                exceptions.push(d);
-                break;
-              }
+              if (d && (worst === undefined || SEVERITY_RANK[d.severity] > SEVERITY_RANK[worst.severity])) worst = d;
             }
+            if (worst) exceptions.push(worst);
           }
         };
         if (f.perPoint === true) for (const p of config.points?.[f.id] ?? []) judge((v as Record<string, string[]>)[p.id] ?? [], () => p.limits, ` at ${p.label}`);
         else judge(v as string[], (_st, slot) => config.limits?.[slot], '');
       }
     }
-    const stored = { ...data, ...(Object.keys(computed).length > 0 ? { computed } : {}) };
-
-    // A loop: a value that does not pass is a repeat while repeats remain (the loop decides at its exit, as an MBR loop
-    // endpoint does); the last allowed repeat without a pass raises the deviation exception.
-    if (r.kind === 'UNTIL_PASS' && !passes(section, stored, config)) {
-      const max = r.maxRepeatsSlot !== undefined ? config.counts?.[r.maxRepeatsSlot] : undefined;
-      if (max !== undefined && previous.length + 1 >= Number(max)) {
-        exceptions.push({ type: 'LIB_REPEAT_LIMIT_REACHED', title: `${where}: the maximum of ${max} repeats was reached without a passing value`, controls: ['PR-08', 'INV-20'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item: `${view.phase.id}.${r.untilField}`, blocks: 'DOWNSTREAM', until: 'DEVIATION', deviationRequired: true });
-      }
+    // An exhausted loop has the consequences of an MBR loop's LOOP_EXHAUSTED (recipe-core advance.ts): the steps after it
+    // wait for QA's disposition, a deviation is required, and release is blocked.
+    if (exhausted && r.kind === 'UNTIL_PASS') {
+      exceptions.push({
+        type: 'LIB_REPEAT_LIMIT_REACHED',
+        title: `${where}: the maximum of ${maxRepeats ?? ''} repeats was reached without a passing value; QA must disposition it before the steps after it run`,
+        controls: ['PR-08', 'INV-20'],
+        severity: 'ACTION',
+        category: 'OUT_OF_LIMIT',
+        item: `${view.phase.id}.${r.untilField}`,
+        blocks: 'DOWNSTREAM',
+        until: 'DISPOSITION',
+        qaOnly: true,
+        deviationRequired: true,
+        releaseBlocking: true,
+      });
     }
 
-    // IPC rounds: a round recorded later than the interval after the previous one.
-    if (r.kind === 'PER_INTERVAL') {
-      const iv = config.intervals?.[r.intervalSlot];
-      const limitUs = iv ? durationToMicros(iv.value, iv.unit) : undefined;
-      const last = previous[previous.length - 1];
-      if (last && limitUs !== undefined && view.nowUs - last.recordedAt > limitUs) {
-        exceptions.push({ type: 'LIB_IPC_INTERVAL_MISSED', title: `${where}: check ${previous.length + 1} came later than every ${iv?.value ?? ''} ${iv?.unit ?? ''}`, controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' });
-      }
-    }
+    // IPC rounds: a round recorded later than the interval after the previous one, the first round after the step's start
+    // (R3-ENG-4; the end of the step after the last round is held at PERFORMED, onPerform). Only a PER_INTERVAL section has one.
+    const missed = intervalMissed(view, section, `check ${previous.length + 1} came later than`);
+    if (missed) exceptions.push(missed);
     return { ok: true, data: stored, exceptions, ...(manualWeighing ? { verificationRequired: true } : {}) };
   };
 
@@ -502,7 +534,11 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     const perUnit = expr.convert('1', unit, 's');
     if (perUnit === undefined) return { ok: false, problems: [problem('LIB-TIMER-UNIT', `The timer ${field} is in ${unit}, which is not a time`, ['PR-30'])] };
     const d = seconds.div(Dec.parse(perUnit)).toString();
-    const draft = f.limitSlot !== undefined ? breach(configOf(view).limits?.[f.limitSlot], d, unit, `${def.title}: ${f.label}`, `${view.phase.id}.${f.id}`) : undefined;
+    const found = f.limitSlot !== undefined ? breach(configOf(view).limits?.[f.limitSlot], d, unit, `${def.title}: ${f.label}`, `${view.phase.id}.${f.id}`) : undefined;
+    // S11a finding: the duration is recorded and compared exactly (the limit check rounds it at the limit's decimals);
+    // the exception's text shows it to three decimals of its unit, not the full quotient (0.58333333333333333333 min).
+    const shown = Dec.parse(d).roundToDecimals(3, 'HALF_UP').toString();
+    const draft = found && shown !== d ? { ...found, title: found.title.replace(`${d} ${unit}`, `${shown} ${unit}`) } : found;
     return { ok: true, data: { field, duration: { value: d, unit } }, ...(draft ? { exceptions: [draft] } : {}) };
   };
 
@@ -518,8 +554,8 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     dataSchema: { entries },
     // S5: the plain sentence of each entry, for the step screens, the review and the printed record.
     entrySummaries: entrySummariesOf(def),
-    checkConfig: (_phase, config) =>
-      checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr).map((p) => ({
+    checkConfig: (_phase, config, mbr) =>
+      checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr, mbr.bom).map((p) => ({
         code: p.code,
         severity: p.severity,
         message: `${p.path}: ${p.message}`,
@@ -533,6 +569,10 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         const fields = Object.fromEntries(Object.entries(entry).filter(([k]) => k !== 'kind'));
         return acceptSection(view, section, fields);
       },
+      // R3-ENG-4: the step's end is held to each IPC interval too (after its last round, or its start without one).
+      onPerform: (view) => ({
+        exceptions: def.sections.flatMap((s) => intervalMissed(view, s, 'the step ended later after its last check than') ?? []),
+      }),
       beforePerform: (view) => {
         const config = configOf(view);
         const out: HandlerProblem[] = [];

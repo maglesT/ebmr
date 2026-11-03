@@ -30,17 +30,20 @@ export function verdictOf(v: ReturnType<typeof verdicts>, test: string): { verdi
 }
 
 /**
- * A test that exercises the database's own enforcement: a test of a package whose tests run against PostgreSQL
- * (kernel, site services, recipe core), a server database-guard test, or one whose title names a bypass or the
- * database. The register's core controls need one (D-P7-2).
+ * A test that exercises the database's own enforcement, known by where it lives, never by the words of its title: a
+ * test of a package whose tests run against PostgreSQL (kernel, site services, recipe core), a server database-guard
+ * test (a file whose name starts db-guards), a test of the SQL mutation groups (apps/<app>/test/mutation/, written
+ * against the database functions with the database-guard support), or a drill run on a real database
+ * (tools/drills/test/). The register's core controls need one (D-P7-2).
  */
 export const DATABASE_TEST_RULE =
-  'a test under packages/kernel/test, packages/site-services/test or packages/recipe-core/test, a server test whose file name starts db-guards, or a test whose title names a bypass, a guard or the database';
+  "a test under packages/kernel/test, packages/site-services/test or packages/recipe-core/test, a server test whose file name starts db-guards, a test under apps/<app>/test/mutation/ (the SQL mutation groups), or a drill test under tools/drills/test/ (run on a real database); a test's title does not make it one";
 export function isDatabaseTest(test: string): boolean {
-  if (/^packages\/(kernel|site-services|recipe-core)\/test\//.test(test)) return true;
-  if (/^apps\/[^/]+\/test\/(.*\/)?db-guards[^/]*\.test\.ts/.test(test)) return true;
-  const title = test.split(' > ').at(-1) ?? '';
-  return /\b(bypass|guard|database|directly)\b/i.test(title);
+  const file = test.split(' > ')[0] ?? '';
+  if (/^packages\/(kernel|site-services|recipe-core)\/test\//.test(file)) return true;
+  if (/^apps\/[^/]+\/test\/(.*\/)?db-guards[^/]*\.test\.ts$/.test(file)) return true;
+  if (/^apps\/[^/]+\/test\/mutation\/[^/]+\.test\.ts$/.test(file)) return true;
+  return /^tools\/drills\/test\/[^/]+\.test\.ts$/.test(file);
 }
 
 /** The user-requirement id of a control. */

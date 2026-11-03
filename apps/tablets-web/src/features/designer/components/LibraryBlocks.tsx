@@ -40,7 +40,10 @@ function idsOf(content: Content): Set<string> {
 export function AddLibraryBlock({ content, afterId, dispatch }: { content: Content; afterId: string; dispatch: (op: Op) => void }) {
   const q = useApiQuery(routes.library.list, { query: { state: 'APPROVED' } });
   const [chosen, setChosen] = useState('');
-  const blocks = q.data?.blocks ?? [];
+  // S11a finding (decision D-S11-R1): a release test is QC's laboratory record, kept on the lot against its
+  // specification; no floor session carries its QC roles, so a master offers no place to sign it. The picker leaves the
+  // release-test blocks out (the library keeps them); the validator still refuses a role no session carries.
+  const blocks = (q.data?.blocks ?? []).filter((b) => (b.definition as unknown as library.BlockDefinition).category !== 'TEST_RELEASE');
   const options: Option[] = [{ value: '', label: '— choose an approved block —' }, ...blocks.map((b) => ({ value: b.blockId, label: `${b.code} v${String(b.version)}: ${b.title}` }))];
   const add = () => {
     const b = blocks.find((x) => x.blockId === chosen);
@@ -54,6 +57,7 @@ export function AddLibraryBlock({ content, afterId, dispatch }: { content: Conte
     <fieldset className={dcls('fieldset')} aria-label="Add a library block">
       <legend className={dcls('legend')}>Add a library block after this step</legend>
       <Select label="Approved library block" value={chosen} options={options} onChange={setChosen} />
+      <p className={dcls('small')}>Release tests are recorded by QC on the lot, against the product's specification, so they are not offered here.</p>
       <Button onPress={add} isDisabled={chosen === ''}>
         Add the block
       </Button>

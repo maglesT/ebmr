@@ -4,9 +4,15 @@
  * the browser suite's (`playwright.json`). Each report is a run, identified by its kind and the file's hash; each test
  * is named as a control lists it (`<file> > <describe> > ... > <title>`), with the control ids of its title. Times come
  * from the reports, never from the clock.
+ *
+ * Each report carries a stamp beside it (`<report>.stamp.json`, R3-VAL-2), written when the report is written: the
+ * commit of the tree that produced it, whether that tree had uncommitted changes, and the report's SHA-256. The bundle
+ * and the OQ record take a report only with a stamp of their commit, from a clean tree, that matches the report's
+ * bytes; a report left over from another run, another commit or a working tree is refused, never counted as passed.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { isAbsolute, join, relative } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, isAbsolute, join, relative } from 'node:path';
 import { compareText, type Host, type Result, type Run, type RunKind } from '@ebmr/validation-kit';
 import { entryOf } from '../../register/src/test-index.ts';
 import { controlTags } from '../../register/src/trace.ts';
@@ -61,6 +67,53 @@ function merge(results: Result[]): Result[] {
     }
   }
   return [...byKey.values()];
+}
+
+export interface ReportStamp {
+  kind: 'ebmr.report-stamp';
+  version: 1;
+  /** The report's file name. */
+  report: string;
+  reportSha256: string;
+  /** The commit checked out when the report was written. */
+  commit: string;
+  /** Whether the working tree had changes against that commit (tracked or untracked files, not ignored ones). */
+  dirty: boolean;
+}
+
+export const stampFileOf = (report: string): string => `${report}.stamp.json`;
+
+/** The commit of the repository's working tree and whether it has changes (tracked or untracked, not ignored). */
+export function treeState(root = ROOT): { commit: string; dirty: boolean } {
+  const commit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const status = execFileSync('git', ['-C', root, 'status', '--porcelain'], { encoding: 'utf8' });
+  return { commit, dirty: status.trim() !== '' };
+}
+
+/** Writes the stamp of a report just written (`pnpm validation:stamp <report>...`); the tree state is this checkout's. */
+export function stampReport(file: string, state: { commit: string; dirty: boolean } = treeState()): ReportStamp {
+  const stamp: ReportStamp = { kind: 'ebmr.report-stamp', version: 1, report: basename(file), reportSha256: sha256(readFileSync(file)), commit: state.commit, dirty: state.dirty };
+  writeFileSync(stampFileOf(file), `${JSON.stringify(stamp, null, 2)}\n`);
+  return stamp;
+}
+
+/** Why a report may not count for `commit` (empty when it may): no stamp, another commit, a dirty tree, other bytes. */
+export function stampProblems(file: string, commit: string): string[] {
+  const name = fromRoot(file);
+  const sf = stampFileOf(file);
+  if (!existsSync(sf)) return [`${name} has no stamp (${basename(sf)}): it is not known which commit produced it; write the report again and stamp it (pnpm validation:stamp ${name})`];
+  let st: Partial<ReportStamp>;
+  try {
+    st = JSON.parse(readFileSync(sf, 'utf8')) as Partial<ReportStamp>;
+  } catch {
+    return [`${name}: its stamp ${basename(sf)} is not JSON`];
+  }
+  if (st.kind !== 'ebmr.report-stamp' || typeof st.commit !== 'string' || typeof st.dirty !== 'boolean' || typeof st.reportSha256 !== 'string') return [`${name}: its stamp ${basename(sf)} is not a report stamp`];
+  const out: string[] = [];
+  if (st.reportSha256 !== sha256(readFileSync(file))) out.push(`${name} is not the report its stamp was written for (another SHA-256): it was written again or changed after it was stamped`);
+  if (st.commit !== commit) out.push(`${name} was produced on commit ${st.commit}, not on ${commit}: a report of another commit is not evidence for this one`);
+  if (st.dirty) out.push(`${name} was produced in a working tree with uncommitted changes (on ${st.commit}): its tests are not the commit's`);
+  return out;
 }
 
 /** One report as a run and its results. */
@@ -126,9 +179,15 @@ export function readReport(r: ReportFile, commit: string, host: Host, runId?: st
   };
 }
 
-/** Every report of the directory as runs and results, sorted as the bundle wants them. */
+/**
+ * Every report of the directory as runs and results, sorted as the bundle wants them. Refuses the whole directory when a
+ * report has no stamp, or one of another commit, of a dirty tree or of other bytes (stampProblems).
+ */
 export function readRuns(dir: string, commit: string, host: Host): { runs: Run[]; results: Result[] } {
-  const all = reportsIn(dir).map((r) => readReport(r, commit, host));
+  const reports = reportsIn(dir);
+  const problems = reports.flatMap((r) => stampProblems(r.file, commit));
+  if (problems.length > 0) throw new Error(`the reports in ${dir} are not evidence for commit ${commit}:\n- ${problems.join('\n- ')}`);
+  const all = reports.map((r) => readReport(r, commit, host));
   return {
     runs: all.map((a) => a.run).sort((a, b) => compareText(a.id, b.id)),
     results: all.flatMap((a) => a.results).sort((a, b) => compareText(a.test, b.test) || compareText(a.run, b.run)),

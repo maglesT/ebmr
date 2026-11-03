@@ -5,7 +5,7 @@
  * personas' sessions (fixture.ts); the rendering after the upgrade and after the restore also goes through the archive
  * route as a QA person in a server built on the upgraded and on the restored database.
  */
-import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -96,7 +96,7 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     }
   });
 
-  it('[DI-48] a migration that changes an earlier row fails the dry run, names the table and shows the changed unit', async () => {
+  it('[DI-48] a migration that changes an earlier database row fails the dry run, names the table and shows the changed unit', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-bad-'));
     mkdirSync(join(dir, 'sql'));
     writeFileSync(join(dir, 'sql', '9999_bad_rewrite.sql'), "-- Handbook: test only\nupdate platform.setting_definition set unit = unit || 'x' where unit is not null;\n");
@@ -113,6 +113,62 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     // The spot check of the unit reads the change too.
     expect(bad.report.spotChecks.some((x) => x.kind === 'UNIT_VALUE' && x.table === 'platform.setting_definition' && !x.same)).toBe(true);
     expect(bad.report.copy.dropped).toBe(true);
+  });
+
+  it('[DI-48] a migration that drops or renames a database table holding records fails the dry run and names the table (R3-VAL-1)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-drop-'));
+    mkdirSync(join(dir, 'sql'));
+    writeFileSync(join(dir, 'sql', '9999_bad_rename.sql'), '-- Handbook: test only\nalter table platform.setting_definition rename to setting_definition_v2;\n');
+    const bad = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: [...tabletsMigrationSources(), { namespace: 'drill-test', directory: join(dir, 'sql') }],
+      fromRelease: manifest.release, reportDir: reports, spotChecks: 4, renderLimit: 1,
+    });
+    rmSync(dir, { recursive: true, force: true });
+    expect(bad.report.tables.find((t) => t.table === '"platform"."setting_definition"')?.status).toBe('DROPPED');
+    expect(bad.report.result).toBe('FAIL');
+    expect(bad.report.failures.join('\n')).toMatch(/"platform"\."setting_definition".*dropped/);
+    // The renamed table's rows sit in a new table, which the report lists for review.
+    expect(bad.report.toReview.join('\n')).toContain('"platform"."setting_definition_v2"');
+  });
+
+  it('[DI-48] a table the release retires on purpose is listed with its reason, which the report shows; the dry run then passes (R3-VAL-1)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-retire-'));
+    mkdirSync(join(dir, 'sql'));
+    writeFileSync(join(dir, 'sql', '9999_retire.sql'), '-- Handbook: test only\nalter table platform.setting_definition rename to setting_definition_v2;\n');
+    const reason = 'test only: renamed to setting_definition_v2, its rows kept there';
+    const ok = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: [...tabletsMigrationSources(), { namespace: 'drill-test', directory: join(dir, 'sql') }],
+      fromRelease: manifest.release, reportDir: reports, spotChecks: 4, renderLimit: 1,
+      retiredTables: [{ table: '"platform"."setting_definition"', reason }],
+    });
+    rmSync(dir, { recursive: true, force: true });
+    expect(ok.report.failures).toEqual([]);
+    expect(ok.report.result).toBe('PASS');
+    expect(ok.report.tables.find((t) => t.table === '"platform"."setting_definition"')).toMatchObject({ status: 'DROPPED', reason });
+    expect(readFileSync(ok.markdownPath, 'utf8')).toContain(reason);
+    expect(ok.report.toReview.join('\n')).toContain('"platform"."setting_definition_v2"');
+  });
+
+  it('[DI-48] a migration that adds rows to a table of records (not the release\'s configuration) fails the dry run and names the table (R3-VAL-6)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-add-'));
+    mkdirSync(join(dir, 'sql'));
+    writeFileSync(join(dir, 'sql', '9999_bad_insert.sql'), '-- Handbook: test only\ninsert into iam.authn_attempt (method, purpose, outcome, reason) select method, purpose, outcome, reason from iam.authn_attempt order by id limit 1;\n');
+    const bad = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: [...tabletsMigrationSources(), { namespace: 'drill-test', directory: join(dir, 'sql') }],
+      fromRelease: manifest.release, reportDir: reports, spotChecks: 4, renderLimit: 1,
+    });
+    rmSync(dir, { recursive: true, force: true });
+    expect(bad.report.tables.find((t) => t.table === '"iam"."authn_attempt"')?.status).toBe('ADDED_ONLY');
+    expect(bad.report.result).toBe('FAIL');
+    expect(bad.report.failures.join('\n')).toMatch(/"iam"\."authn_attempt".*added/);
+  });
+
+  it('[DI-48] a dry run without a spot check of signatures, audit events and units has no evidence for them and fails (R3-VAL-5)', async () => {
+    const none = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: tabletsMigrationSources(), fromRelease: manifest.release, reportDir: reports, spotChecks: 0, renderLimit: 1,
+    });
+    expect(none.report.result).toBe('FAIL');
+    for (const kind of ['SIGNATURE', 'AUDIT_EVENT', 'UNIT_VALUE']) expect(none.report.failures.join('\n')).toContain(`no ${kind} spot check`);
   });
 });
 

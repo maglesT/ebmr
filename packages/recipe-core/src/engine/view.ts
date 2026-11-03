@@ -22,6 +22,7 @@ export function makeView(tx: Tx, step: StepDef, inst: StepInstance): HandlerView
     frames: inst.frames,
     subLot,
     nowUs: tx.now,
+    startedAtUs: inst.startedAt,
     actor: tx.actor ?? { id: 'SYSTEM', kind: 'SYSTEM', roles: [] },
     batch: { batchId: s.header.batchId, batchNumber: s.header.batchNumber, productCode: def.mbr.header.product.code, marketSet: s.header.marketSet, batchSize: s.header.batchSize },
     mbr: def.mbr,
