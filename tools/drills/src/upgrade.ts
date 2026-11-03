@@ -53,6 +53,8 @@ export interface UpgradeDrillOptions {
   retiredTables?: readonly { table: string; reason: string }[];
 }
 
+export const SPOT_CHECK_KINDS = ['SIGNATURE', 'AUDIT_EVENT', 'UNIT_VALUE'] as const;
+
 export type TableStatus = 'MATCH' | 'ADDED_ONLY' | 'ADVANCED' | 'CHANGED' | 'NEW' | 'DROPPED';
 
 /** The tables whose rows are signatures (the rest of esig is its catalogue: meanings, content providers, keys). */
@@ -74,7 +76,7 @@ export interface TableResult {
 }
 
 export interface SpotCheck {
-  kind: 'SIGNATURE' | 'AUDIT_EVENT' | 'UNIT_VALUE';
+  kind: (typeof SPOT_CHECK_KINDS)[number];
   table: string;
   key: string;
   shown: string;
@@ -218,7 +220,7 @@ async function takeSamples(c: pg.Client, n: number, seed: string): Promise<Sampl
     const shownText = t.units.map((u) => `x.${quoteIdent(u)}::text`).join(` || ' ' || `);
     const rows = await c.query<{ k: string; v: string; shown: string | null }>(
       `select x.${quoteIdent(t.pk)}::text as k, ${rowText} as v, ${shownText} as shown from ${t.qualified} x order by md5(x.${quoteIdent(t.pk)}::text || $2) limit $1`,
-      [Math.max(1, Math.ceil(n / 4)), seed],
+      [n === 0 ? 0 : Math.max(1, Math.ceil(n / 4)), seed],
     );
     for (const r of rows.rows) {
       out.push({ kind: 'UNIT_VALUE', table: t.qualified, ref: `${quoteIdent(t.schema)}.${quoteIdent(t.rel)}`, key: r.k, value: r.v, shown: r.shown ?? '', params: [r.k], sql: `select ${rowText} as v from ${t.qualified} x where x.${quoteIdent(t.pk)}::text = $1` });
@@ -273,6 +275,10 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
     }
     const chainsBefore = await verifyChains(c);
     const samples = await takeSamples(c, spot, seed);
+    // Each kind of spot check is evidence DI-48 asks for: a dry run without one has no evidence for it and fails.
+    for (const kind of SPOT_CHECK_KINDS) {
+      if (!samples.some((x) => x.kind === kind)) failures.push(`no ${kind} spot check: the dry run sampled no ${kind === 'SIGNATURE' ? 'signature' : kind === 'AUDIT_EVENT' ? 'audit event' : 'row of a table holding a unit'} (spotChecks ${String(spot)}), so it has no evidence that they read the same after the upgrade`);
+    }
     const keys = await recordsToRender(c, o.renderLimit ?? 16);
     const rendersBefore = new Map<string, RenderedRecord>();
     for (const k of keys) rendersBefore.set(k, await renderRecord(c, k));
@@ -354,6 +360,12 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
       else if (v === undefined) failures.push(`${what} is gone after the upgrade`);
       else if (!same) failures.push(`${what} reads differently after the upgrade`);
     }
+    // Each kind of spot check is evidence DI-48 asks for: a dry run without one read again has no evidence for it.
+    for (const kind of SPOT_CHECK_KINDS) {
+      if (samples.some((x) => x.kind === kind) && !spotChecks.some((x) => x.kind === kind && x.retired === undefined)) {
+        failures.push(`no ${kind} spot check: every sample of it lies in a retired table, so the dry run has no evidence that they read the same after the upgrade`);
+      }
+    }
     const renders: UpgradeReport['renders'] = [];
     for (const [k, b] of rendersBefore) {
       let a: RenderedRecord | null = null;
@@ -431,7 +443,7 @@ export function renderUpgradeMarkdown(r: UpgradeReport): string {
   for (const x of r.renders) {
     L.push(`| ${cell(x.chainKey)} | ${String(x.before.events)} | ${String(x.before.signatures)} | ${String(x.before.rows)} | \`${x.before.contentSha256.slice(0, 16)}\` | \`${(x.after?.contentSha256 ?? '-').slice(0, 16)}\` | ${x.same ? 'yes' : 'NO'} | ${x.before.problems.length + (x.after?.problems.length ?? 1) === 0 ? 'yes' : 'NO'} |`);
   }
-  L.push('', '## Spot checks (DI-48: audit trails, e-signature meaning and date-time, units)', '', '| Kind | Table | Key | Shown | Same after |', '|---|---|---|---|---|');
+  L.push('', '## Spot checks (DI-48: audit trails, e-signature meaning and date-time, units)', '', `Sampled: ${SPOT_CHECK_KINDS.map((k) => `${k} ${String(r.spotChecks.filter((s) => s.kind === k).length)}`).join(', ')}.`, '', '| Kind | Table | Key | Shown | Same after |', '|---|---|---|---|---|');
   for (const s of r.spotChecks) L.push(`| ${s.kind} | ${cell(s.table)} | ${cell(s.key)} | ${cell(s.shown)} | ${s.retired ? `table retired (${cell(s.retired)})` : s.same ? 'yes' : 'NO'} |`);
   L.push('', '## Migrations applied', '', r.migrations.applied.map((a) => `\`${a.namespace}/${a.name}\``).join(', ') || '(none)', '');
   return `${L.join('\n')}\n`;
