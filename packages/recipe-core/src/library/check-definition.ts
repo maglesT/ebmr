@@ -81,11 +81,13 @@ export function slotsOf(def: BlockDefinition): Slot[] {
     if (r?.kind === 'PER_INTERVAL') slots.push({ name: r.intervalSlot, kind: 'INTERVAL', owner: s.id, required: true });
     if (r?.kind === 'UNTIL_PASS' && r.maxRepeatsSlot !== undefined) slots.push({ name: r.maxRepeatsSlot, kind: 'COUNT', owner: s.id, required: true });
     for (const f of s.fields ?? []) {
+      // R3-ENG-5: a loop's endpoint decides when the loop ends; without its limit every value would pass (INV-20).
+      const loopEndpoint = r?.kind === 'UNTIL_PASS' && r.untilField === f.id;
       switch (f.type) {
         case 'NUMBER':
         case 'WEIGHING':
         case 'CALC':
-          if (f.limitSlot !== undefined) slots.push({ name: f.limitSlot, kind: 'LIMIT', owner: f.id, unit: f.unit, required: f.type !== 'WEIGHING' && f.critical === true });
+          if (f.limitSlot !== undefined) slots.push({ name: f.limitSlot, kind: 'LIMIT', owner: f.id, unit: f.unit, required: loopEndpoint || (f.type !== 'WEIGHING' && f.critical === true) });
           break;
         case 'TIMER':
           if (f.limitSlot !== undefined) slots.push({ name: f.limitSlot, kind: 'LIMIT', owner: f.id, unit: f.durationUnit ?? 'min', required: f.critical === true });

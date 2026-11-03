@@ -32,6 +32,21 @@ describe('library block definitions', () => {
     ]);
   });
 
+  it('[INV-20][PR-08] R3-ENG-5: the limit of a loop\'s endpoint is a required slot even when the field is not critical, so a formulation cannot leave it empty and let any value pass', () => {
+    const def: BlockDefinition = {
+      code: 'LOOP-K',
+      version: 1,
+      title: 'Loop',
+      category: 'PROCESS',
+      sections: [{ id: 'chk', title: 'Check', repeat: { kind: 'UNTIL_PASS', untilField: 'w' }, fields: [{ id: 'w', label: 'W', type: 'WEIGHING', unit: 'kg', limitSlot: 'w' }, { id: 'n', label: 'N', type: 'NUMBER', unit: 'g', limitSlot: 'n' }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    expect(errors(checkBlockDefinition(def, expr))).toEqual([]);
+    expect(slotsOf(def).map((s) => `${s.name}:${String(s.required)}`)).toEqual(['w:true', 'n:false']);
+    expect(codes(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 } }, expr)))).toEqual(['LIB-USE-LIMIT-MISSING']);
+    expect(errors(checkBlockUse(def, { block: { code: 'LOOP-K', version: 1 }, limits: { w: range('kg', '9', '11') } }, expr))).toEqual([]);
+  });
+
   it('[PR-03] a critical number without a limit slot is refused: every CPP and IPC has limits', () => {
     const def = withField(friability(), { id: 'hardness', label: 'Hardness', type: 'NUMBER', unit: 'N', critical: true });
     expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-CRITICAL-NO-LIMIT']);
