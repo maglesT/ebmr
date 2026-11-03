@@ -195,6 +195,9 @@ tests:
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-19][DI-13] sign-in is rate-limited per address and user ID (10 a minute), signing per session (20 a minute)"
   - "apps/tablets-server/test/security/tls.test.ts > TLS settings of the adapters (slice 7d) > [DI-13][DI-31] the adapters negotiate TLS 1.2 or later; a system that offers only TLS 1.1 or older is refused"
   - "apps/tablets-server/test/security/tls.test.ts > TLS settings of the adapters (slice 7d) > [DI-13][DI-31] an adapter that holds TLS material speaks https only, and a system certificate from the public trust store does not do"
+  - "apps/tablets-server/test/medhanta/platform-wiring.test.ts > MEDHANTA platform wiring (Phase B slice 1) > [DI-13] the keys are generated once and never overwritten"
+  - "apps/tablets-server/test/medhanta/platform-wiring.test.ts > MEDHANTA platform wiring (Phase B slice 1) > [DI-13] no migration default password stays usable: authn and analytics get their secrets, every other extra login is NOLOGIN"
+  - "apps/tablets-server/test/medhanta/platform-wiring.test.ts > MEDHANTA platform wiring (Phase B slice 1) > [DI-13] on the platform every database URL is on verified TLS against the platform database's certificate"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:
