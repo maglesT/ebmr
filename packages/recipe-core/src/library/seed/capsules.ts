@@ -42,7 +42,7 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'filler', label: 'Capsule filling machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'fillerClass' },
             { id: 'capsuleSize', label: 'Capsule size (change parts fitted)', type: 'CHOICE', options: SIZES },
-            { id: 'shellLot', label: 'Empty capsule shells lot', type: 'MATERIAL_LOT' },
+            { id: 'shellLot', label: 'Empty capsule shells lot', type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' },
             { id: 'shellsInspected', label: 'Shells of the right colour and print, free of dents and splits', type: 'YES_NO', expected: true },
             { id: 'blendIn', label: 'Blend container', type: 'CONTAINER', action: 'CONSUME' },
           ],
@@ -73,6 +73,7 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
       limits: { fillWeight: spec('mg', '285.0', '315.0'), speed: spec('/h', '60000', '90000') },
       targets: { fillWeight: '300.0', speed: '75000' },
       equipmentClasses: { fillerClass: 'CAPSULE-FILLER-AUTO' },
+      bomLines: { shellLine: 'L1' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
     },
   },

@@ -96,7 +96,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           title: 'Weigh',
           fields: [
             { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
-            { id: 'lot', label: 'Active lot', type: 'MATERIAL_LOT' },
+            { id: 'lot', label: 'Active lot', type: 'MATERIAL_LOT', bomLineSlot: 'activeLotLine' },
             { id: 'required', label: 'Quantity to dispense', help: 'Formula quantity divided by the assay on the dried basis and by the dry fraction (100 % less the LOD): the water is corrected once, here.', type: 'CALC', expression: 'labelQty * 100 [%] / assay * 100 [%] / (100 [%] - lodLot)', unit: 'kg' },
             { id: 'container', label: 'Dispensed container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg', bomLine: true, limitSlot: 'net' },
@@ -110,7 +110,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
       limits: { net: reg('kg', '10.0', '11.0'), difference: reg('%', '-0.5', '0.5') },
       targets: { net: '10.412' },
       equipmentClasses: { balanceClass: 'BENCH-BALANCE-30KG' },
-      bomLines: { activeLine: 'L1' },
+      bomLines: { activeLine: 'L1', activeLotLine: 'L1' },
       stepValues: { lodSource: { step: 'lodTest', field: 'lod' } },
     },
     exampleInputs: { labelQty: { value: '10', unit: 'kg' }, assay: { value: '98', unit: '%' }, lodLot: { value: '2', unit: '%' } },

@@ -69,6 +69,17 @@ describe('the ready-made catalogue', () => {
     expect(item.exampleUse.targets?.['net']).toBe('10.412');
   });
 
+  it('[PR-18][PR-03] every material lot a catalogue block records names the bill-of-materials line whose material it must be, and the example fills that line, so the lot is checked as the right material and not only as released (R3-CAT-2)', () => {
+    for (const item of SEED_CATALOGUE) {
+      for (const f of item.definition.sections.flatMap((s) => s.fields)) {
+        if (f.type !== 'MATERIAL_LOT') continue;
+        const where = `${item.definition.code} ${f.id}`;
+        expect(f.bomLineSlot, where).toBeDefined();
+        expect(item.exampleUse.bomLines?.[f.bomLineSlot ?? ''], where).toBeDefined();
+      }
+    }
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);
