@@ -8,6 +8,9 @@
  *             the IQ checks of an installation and their record; exits 1 when a check fails
  *   oq        --server <url> [--out .reports/validation/oq-record.json] [--no-run]
  *             runs the regression, golden and browser suites and writes the OQ record from their reports
+ *   stamp     <report>...
+ *             writes each report's stamp (<report>.stamp.json: this checkout's commit, whether its tree is clean, the
+ *             report's SHA-256) right after the report is written; bundle and oq take only stamped reports (R3-VAL-2)
  * The pack is not committed (D-P7-13): it is rebuilt from the bundle.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -18,6 +21,7 @@ import { canonicalJson, generatePack, parseBundle } from '@ebmr/validation-kit';
 import { buildBundle, hostOfThisMachine } from './bundle.ts';
 import { runIq } from './iq.ts';
 import { oqRecord, runSuites } from './oq.ts';
+import { stampReport } from './reports.ts';
 import { cycloneDx } from './sbom.ts';
 import { commitOf, productVersion, ROOT } from './sources.ts';
 
@@ -39,8 +43,9 @@ async function withClient<T>(url: string, work: (c: pg.Client) => Promise<T>): P
 
 async function main(): Promise<number> {
   const [command, ...rest] = process.argv.slice(2);
-  const { values } = parseArgs({
+  const { values, positionals } = parseArgs({
     args: rest,
+    allowPositionals: true,
     options: {
       results: { type: 'string', default: '.reports' },
       db: { type: 'string' },
@@ -95,8 +100,16 @@ async function main(): Promise<number> {
       console.log(`OQ record written: ${out}: ${record.summary}`);
       return record.passed ? 0 : 1;
     }
+    case 'stamp': {
+      if (positionals.length === 0) throw new Error('name the report files to stamp');
+      for (const f of positionals) {
+        const s = stampReport(resolve(f));
+        console.log(`stamped ${f}: commit ${s.commit}${s.dirty ? ' (working tree with uncommitted changes: the bundle will refuse it)' : ''}`);
+      }
+      return 0;
+    }
     default:
-      console.error('usage: validation <bundle|generate|iq|oq> [options] (tools/validation/src/cli.ts)');
+      console.error('usage: validation <bundle|generate|iq|oq|stamp> [options] (tools/validation/src/cli.ts)');
       return 2;
   }
 }

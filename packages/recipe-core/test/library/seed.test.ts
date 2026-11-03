@@ -5,6 +5,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
+import type { LimitSpec } from '../../src/limits/model.ts';
+import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
@@ -32,8 +34,21 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
   const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
   const run = Run.issue(d, { inputs: values }, T0);
   run.start('p');
-  for (const e of nominalEntries(def, config as never, mbr)) {
-    if (e.kind === TIMER_STOP) run.minutes(60);
+  const entries = nominalEntries(def, config as never, mbr);
+  // A nominal run keeps its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
+  // step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
+  // every per-interval section (the catalogue's intervals are 15 minutes or more).
+  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
+  for (const e of entries) {
+    if (e.kind === TIMER_STOP) {
+      for (let i = 0; i < 6; i++) {
+        run.minutes(10 - rounds.length);
+        for (const r of rounds) {
+          run.entry('p', r);
+          run.minutes(1);
+        }
+      }
+    }
     run.entry('p', e);
     run.minutes(1);
   }
@@ -42,7 +57,80 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
   return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
 }
 
+function byCode(code: string): SeedItem {
+  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
+  if (!item) throw new Error(`no catalogue item ${code}`);
+  return item;
+}
+
+function fieldOf(item: SeedItem, id: string): FieldDef {
+  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
+  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
+  return f;
+}
+
 describe('the ready-made catalogue', () => {
+  it('[PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)', () => {
+    const item = byCode('PROC-DISP-POTENCY');
+    const assay = (item.definition.inputs ?? []).find((i) => i.id === 'assay');
+    expect(assay?.label).toMatch(/dried basis/);
+    expect(assay?.label).not.toMatch(/as is/);
+    expect(item.definition.instructions).toMatch(/dried basis/);
+    expect(fieldOf(item, 'required').help).toMatch(/dried basis/);
+    // 10 kg at 100 %, assay 98 % on the dried basis, LOD 2 %: 10 / 0.98 / 0.98 = 10.412 kg.
+    expect(item.exampleInputs?.['assay']?.value).toBe('98');
+    expect(item.exampleInputs?.['lodLot']?.value).toBe('2');
+    expect(item.exampleUse.targets?.['net']).toBe('10.412');
+  });
+
+  it('[PR-18][PR-03] every material lot a catalogue block records names the bill-of-materials line whose material it must be, and the example fills that line, so the lot is checked as the right material and not only as released (R3-CAT-2)', () => {
+    for (const item of SEED_CATALOGUE) {
+      for (const f of item.definition.sections.flatMap((s) => s.fields)) {
+        if (f.type !== 'MATERIAL_LOT') continue;
+        const where = `${item.definition.code} ${f.id}`;
+        expect(f.bomLineSlot, where).toBeDefined();
+        expect(item.exampleUse.bomLines?.[f.bomLineSlot ?? ''], where).toBeDefined();
+      }
+    }
+  });
+
+  it('[PR-19][PR-03] geometric dilution weighs the active and each diluent addition as bill-of-materials lines against limits, records the diluent lot as its line\'s material, and limits the premix net (R3-CAT-3)', () => {
+    const item = byCode('PROC-GEO-DIL');
+    for (const id of ['activeQty', 'diluentQty']) {
+      const f = fieldOf(item, id);
+      expect(f.type, id).toBe('WEIGHING');
+      expect(f.type === 'WEIGHING' && f.bomLine, id).toBe(true);
+      expect(f.type === 'WEIGHING' && f.limitSlot !== undefined && item.exampleUse.limits?.[f.limitSlot] !== undefined, id).toBe(true);
+    }
+    const net = fieldOf(item, 'net');
+    expect(net.type === 'WEIGHING' && net.limitSlot !== undefined && item.exampleUse.limits?.[net.limitSlot] !== undefined).toBe(true);
+    const diluentLot = item.definition.sections.flatMap((s) => s.fields).find((f) => f.type === 'MATERIAL_LOT' && f.bomLineSlot === 'diluentLine');
+    expect(diluentLot).toBeDefined();
+    expect(item.exampleUse.bomLines?.['diluentLine']).toBeDefined();
+  });
+
+  it('[PR-14][DI-17] no catalogue block has two of its signatures signed by the same role: the checker or verifier is never the performer\'s role (R3-CAT-5)', () => {
+    for (const item of SEED_CATALOGUE) {
+      const roles = item.definition.signatures.map((x) => x.role);
+      expect(new Set(roles).size, `${item.definition.code} ${roles.join(', ')}`).toBe(roles.length);
+    }
+  });
+
+  it('[PR-08][PR-03] content uniformity holds its first-stage acceptance value to 10 units: a critical check that exactly 10 units were tested, a wider limit on it is flagged for a written reason, and a batch testing 30 units raises a registered-limit exception that blocks the step; the help states the first-stage scope (R3-CAT-6)', () => {
+    const item = byCode('REL-CONTENT-UNIFORMITY');
+    expect(fieldOf(item, 'tenUnits')).toMatchObject({ type: 'CALC', expression: 'count(content) == 10 ? 1 : 0', critical: true, limitSlot: 'tenUnits' });
+    expect(item.definition.referenceLimits?.['tenUnits']).toMatchObject({ low: '1', high: '1' });
+    expect(fieldOf(item, 'acceptanceValue').help).toMatch(/[Ff]irst stage.*exactly 10 units/);
+    expect(item.definition.instructions).toMatch(/First stage only/);
+    // A product widening the check to let another count pass is flagged at design until a reason is recorded (O-5).
+    const own = item.exampleUse.limits?.['tenUnits'] as LimitSpec;
+    const wider: LimitSpec = { ...own, ranges: own.ranges.map((r) => ({ ...r, low: { value: '0', inclusive: true } })) };
+    const use = { block: { code: item.definition.code, version: 1 }, ...item.exampleUse, counts: { units: '30' }, limits: { ...item.exampleUse.limits, tenUnits: wider } };
+    expect(checkBlockUse(item.definition, use, expr).map((p) => [p.code, p.path])).toEqual([['LIB-USE-LOOSER-THAN-REFERENCE', 'limits.tenUnits']]);
+    // A batch testing 30 units raises an exception on the check and cannot complete with it open (no wrong AV passes).
+    expect(() => nominalRun({ ...item, exampleUse: { ...item.exampleUse, counts: { units: '30' } } })).toThrow(/First stage: 10 units tested.*outside its registered limit/);
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);

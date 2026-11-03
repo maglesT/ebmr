@@ -142,7 +142,7 @@ afterAll(async () => {
 });
 
 describe('the analytics role (kernel 1240, 1242)', () => {
-  it('[DI-51] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant', async () => {
+  it('[DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant', async () => {
     // It reads its catalogued inputs, the catalogue and the methods in force, and records through the runner functions.
     const reads = await asAnalytics(gmp, [`select * from ${INPUT}`, 'select * from analytics.input_catalog_v1', 'select * from analytics.effective_methods()']);
     expect(Object.values(reads)).toEqual([null, null, null]);

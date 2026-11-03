@@ -31,6 +31,7 @@ themselves are in [validation-kit](validation-kit.md).
 | `pnpm validation:generate --bundle <file> [--previous <file>] --out .reports/validation/pack` | the pack: a `.md` and an `.html` per document, and `manifest.json` |
 | `pnpm validation:iq --db <url> --server <url> --bundle <file> [--out <file>]` | the IQ checks; writes the IQ record; exit 1 when a check fails |
 | `pnpm validation:oq --server <url> [--no-run] [--out <file>]` | runs the suites, then writes the OQ record from their reports |
+| `pnpm validation:stamp <report>...` | writes each report's stamp, `<report>.stamp.json` (commit, clean or not, SHA-256) |
 | `pnpm register:status --bundle <file>` | sets each control's `build_status` by D-P7-2 (only that field) |
 
 - The database is opened read only (`default_transaction_read_only=on`, and each read in a READ ONLY transaction): the
@@ -38,6 +39,10 @@ themselves are in [validation-kit](validation-kit.md).
 - `validation:bundle` refuses a database whose `platform.schema_release()` differs from the release's files: migrate it
   to the release first.
 - The bundle carries no time of its own: run times come from the reports, the commit time from git.
+- A report counts only with its stamp (R3-VAL-2): written for its bytes, on the bundle's commit, from a clean tree.
+  `pnpm test:json`, the OQ suites and CI (the report and end-to-end report jobs) stamp the reports they write;
+  `validation:bundle` and `validation:oq` refuse a report without a stamp, of another commit, of a working tree with
+  changes, or written again after its stamp, and name it.
 - A record of `--records <dir>` is a JSON file with `kind` (load, soak, restore, ..., iq, oq), `passed`, `summary` and
   `measures`; the IQ and OQ records are written in that shape, so the bundle can be built again with them.
 - The pack is not committed (D-P7-13). The release candidate's pack and bundle go to the branch `phase-7/rc-evidence`.

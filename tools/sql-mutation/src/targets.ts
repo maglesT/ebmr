@@ -473,8 +473,10 @@ export const TARGETS: Target[] = [
                 // Decision 0026 slice S6 (tablets 1803): lots, equipment and hand-keyed weighings of library entries.
                 'tab.library_smart_problem', 'tab.library_smart_fields_check',
                 // Decision 0026 slice S7 (recipe-core 1820): the catalogue load's author check.
-                'recipe.require_library_author'],
-    tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts')],
+                'recipe.require_library_author',
+                // Release review R3 (recipe-core 1862): the exceptions' facts, test results, timers, calculated fields, loops.
+                'recipe.library_breach_record', 'recipe.library_statistic', 'recipe.library_timer_duration', 'recipe.library_loop_pass'],
+    tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts'), s('mutation/library-blocks.test.ts')],
     threshold: 90,
   },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------

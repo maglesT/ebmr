@@ -69,6 +69,23 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
+`dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
+is stopped). R2 static part done: PR-08 and PR-29 list their boundary tests; PR-60 lists its database test (kernel's
+analytics role cannot write, now named `[DI-51][PR-60]`); DI-48's drill test title says it changes a database row; IN-12
+and DI-48 name their implementation. Left for R2: the short-form listings and anything else `register:status` finds on a
+full run's bundle. DI-48 needs R3 to review `tools/drills/src` (no review covered it; 7d checked only for secrets), and
+R3 also takes `packages/validation-kit/src/pack`. PR-28 stays SPECIFIED (Injectables part).
+V3 done (owner confirmed; `docs/build-plan/release-1.0/mutation-results.md`): SQL group `library-blocks` 48.5 % → 100 %
+(new `apps/tablets-server/test/mutation/library-blocks.test.ts`); Stryker on the library's guard ranges 71 % → 91.8 % on
+logic mutants (new `packages/recipe-core/test/library/limits-kill.test.ts`); the 89 left are low (listed). No guard
+defect. Owner's triage rule from 3 November: fix critical, high and medium; list low. PR #84 merged (fccdffc); PR #85
+(O-6 and the S11a findings) open, CI running. PR #85 merged (b12c6dd). R3 done on `dyn/v1-plan` (`docs/build-plan/release-1.0/r3-review.md`): 1 critical, 10 high,
+12 medium found; all fixed with tests (branches r3/validation, r3/limits, r3/bom, r3/catalogue merged); 6 low listed;
+R3-APP-2 and R3-ENG-6 (found during the fixes) after Phase B. Hard capsules left out of the Tablets catalogue load
+(owner, 3 November). Next: the PR of `dyn/v1-plan` to main with full CI, then the tag `v1.0.0-rc.2` on a `standalone`
+branch, the handover (`docs/handover.md`, "S11b done → Phase B next") and stop (decision 0027 amendment).
+
 **3 November 2026: O-6 done on branch `dyn/o6`** (from `dyn/s11`): the designer no longer offers TB-01 to TB-24 for a new
 step (`insertable` false in the palette, badged "existing masters only (library replaces it)"; the Insert dialog lists only
 insertable blocks); they stay described, so existing masters and copies keep their steps' forms and run as before. Nothing

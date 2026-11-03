@@ -205,6 +205,8 @@ tests:
   - "apps/tablets-web/test/receipt/potency.test.tsx > R13: the potency of a lot > [PR-19][DI-33][DI-22] QC changes the potency on the guided page by choosing approved results and giving a reason; nothing is typed"
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them"
   - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-22] QA retires an approved version only with a reason"
+  - "apps/tablets-server/test/mutation/library-blocks.test.ts > the library rows and their writers (recipe-core 1800) > [PR-05][DI-22] a library row whose content hash is not the canonical hash of its definition is refused (EBMR-LIB-002)"
+  - "apps/tablets-server/test/mutation/library-blocks.test.ts > the library rows and their writers (recipe-core 1800) > [DI-22][PR-05] a retirement is refused for an unknown block (EBMR-LIB-005) and without a reason (EBMR-LIB-008)"
 clauses:
   - clause: "As each role, create, modify and void a value. Every entry carries all fields."
     tests:

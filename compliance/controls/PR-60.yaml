@@ -25,12 +25,14 @@ behaviour: |-
 catalog_test: In the AI feature inventory, no feature changes GMP data without a human e-signature.
 implemented_by: {}
 tests:
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
   - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [PR-60] the analytics catalogue lists every method and none changes GMP data"
   - "apps/tablets-web/test/analytics/analytics.test.tsx > analytics screens (GMP) > [PR-60] the overview lists every method with its intended use and \"changes GMP data: no\""
   - "packages/validation-kit/test/pack.test.ts > the AI feature inventory (PR-60) > [PR-60] the AI feature inventory lists every analytics method and none changes GMP data without a human e-signature"
 clauses:
   - clause: "In the AI feature inventory, no feature changes GMP data without a human e-signature."
     tests:
+      - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
       - "packages/validation-kit/test/pack.test.ts > the AI feature inventory (PR-60) > [PR-60] the AI feature inventory lists every analytics method and none changes GMP data without a human e-signature"
       - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [PR-60] the analytics catalogue lists every method and none changes GMP data"
 expert_decision:

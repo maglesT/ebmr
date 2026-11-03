@@ -20,8 +20,14 @@ function err(code: string, path: string, message: string, controls: string[] = [
   return { code, severity: 'ERROR', path, message, controls };
 }
 
-/** Checks a block use against its definition. Errors refuse the formulation; warnings need a written reason. */
-export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: ExpressionService): LibraryProblem[] {
+/**
+ * Checks a block use against its definition. Errors refuse the formulation; warnings need a written reason.
+ *
+ * With `bom` (the master's bill of materials, when the use is checked inside a master), every formula line the use
+ * names must be a line of that BOM: a line that is not there would leave a lot field with no material to check and a
+ * FORMULA_LINE input with nothing to read (R3-ENG-3; PR-18, IN-23, INV-25).
+ */
+export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: ExpressionService, bom?: readonly { readonly id: string }[]): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   if (use.block.code !== def.code || use.block.version !== def.version) {
     return [err('LIB-USE-BLOCK', 'block', `The use names ${use.block.code}@${use.block.version} but was checked against ${def.code}@${def.version}`)];
@@ -56,6 +62,7 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
   for (const slot of bomSlots.values()) {
     const v = use.bomLines?.[slot.name];
     if (typeof v !== 'string' || v.trim() === '') out.push(err('LIB-USE-BOM-LINE', `bomLines.${slot.name}`, `${def.title}: name the formula line ${slot.owner} reads`, ['DI-33']));
+    else if (bom !== undefined && !bom.some((b) => b.id === v)) out.push(err('LIB-USE-BOM-LINE', `bomLines.${slot.name}`, `${def.title}: ${v} is not a line of the master's bill of materials, so ${slot.owner} would have no material to check [PR-18, IN-23]`, ['PR-18', 'IN-23', 'INV-25']));
   }
   for (const slot of stepSlots.values()) {
     const v = use.stepValues?.[slot.name];

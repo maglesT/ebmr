@@ -78,5 +78,37 @@ describe('R3.1: the tablet count at issue against the master', () => {
     expect(deviationPercent('110001', '100000')).toBe('10');
     expect(deviationPercent('1000000', '100000')).toBe('900');
     expect(deviationPercent('x', '100000')).toBeNull();
+    expect(deviationPercent('5', '0')).toBeNull();
+  });
+
+  it('[PR-01][PR-04] only a COUNT named for tablets is checked; a size that is no mass, a master with no positive unit mass or target, or a malformed procedure give no expectation, never a wrong one', () => {
+    const inputs = [
+      { id: 'operators', name: 'Operators on the line', valueType: 'COUNT' },
+      { id: 'tabletMass', name: 'Tablet mass', valueType: 'DECIMAL' },
+      { id: 'tabletsPerBatch', name: 'Units per batch', valueType: 'COUNT' },
+      { id: 'coreCount', name: 'Number of TABLETS (cores)', valueType: 'COUNT' },
+    ];
+    const master = (procedure: unknown, sizes = [{ id: 'S', quantity: { value: '40', unit: 'kg' } }], unitMassMg?: string) => ({ header: { batchSizes: sizes, ...(unitMassMg === undefined ? {} : { unitMassMg }) }, inputs, procedure });
+    const flat = master({ steps: [{ a: null }, { targetWeightMg: '400' }] });
+    expect([...inputExpectations(flat, 'S').entries()].map(([k, v]) => [k, v.value])).toEqual([['tabletsPerBatch', '100000'], ['coreCount', '100000']]);
+    expect(inputExpectations(flat, 'NONE').size).toBe(0);
+    // A target that is no decimal is skipped for the next one; a recorded unit mass that is no decimal falls back to it.
+    expect(expectedTabletCount(master({ targetWeightMg: 'abc', next: { targetWeightMg: '400' } }), 'S')?.value).toBe('100000');
+    expect(expectedTabletCount(master({ targetWeightMg: '400' }, undefined, 'abc'), 'S')?.basis).toBe('batch size 40 kg / target tablet weight 400 mg');
+    // A bilayer run with no usable full-tablet weight on its last layer reads the next target.
+    for (const layers of [[null], [{ weight: null }], [{ weight: {} }], [{ weight: { targetWeightMg: 'abc' } }]]) {
+      expect(expectedTabletCount(master({ layers, targetWeightMg: '400' }), 'S')?.value).toBe('100000');
+    }
+    expect(expectedTabletCount(master({ steps: [] }), 'S')).toBeNull();
+    expect(expectedTabletCount(master({ targetWeightMg: '400' }, [{ id: 'S', quantity: { value: '40', unit: 'L' } }]), 'S')).toBeNull();
+    expect(expectedTabletCount(master({ targetWeightMg: '0' }), 'S')).toBeNull();
+    expect(expectedTabletCount(master({ targetWeightMg: '-400' }), 'S')).toBeNull();
+    // Problems name the input as the master does; an input not entered is not checked; an expected count of zero judges nothing.
+    const named = unconfirmedCounts(flat, 'S', { tabletsPerBatch: { kind: 'COUNT', value: '5' }, coreCount: { kind: 'COUNT', value: '1e5' } });
+    expect(named.map((p) => [p.inputId, p.name, p.malformed ?? false])).toEqual([['tabletsPerBatch', 'Units per batch', false], ['coreCount', 'Number of TABLETS (cores)', true]]);
+    expect(unconfirmedCounts(flat, 'S', {})).toEqual([]);
+    const tiny = master({ targetWeightMg: '400' }, [{ id: 'S', quantity: { value: '0.1', unit: 'mg' } }]);
+    expect(expectedTabletCount(tiny, 'S')?.value).toBe('0');
+    expect(unconfirmedCounts(tiny, 'S', { tabletsPerBatch: { kind: 'COUNT', value: '5' } })).toEqual([]);
   });
 });

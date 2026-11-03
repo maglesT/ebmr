@@ -11,6 +11,7 @@ import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 import { definitionFindings } from '../../src/features/designer/definition.ts';
+import { expectedTabletCount } from '../../src/features/execution/issue-expectations.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
 import { publishTables, saveContent, stewardActor } from './support.ts';
 
@@ -33,6 +34,8 @@ const LINES: FormulaLineInput[] = [
   { lineId: 'ipa', materialCode: 'RM-7JF-IPA', role: 'PROCESSING_AID', basis: 'PER_BATCH', quantity: '12.5', potencyAdjusted: false, compensating: false },
 ];
 
+type FlowLike = { header: { unitMassMg?: string; batchSizes: { id: string; quantity: { value: string; unit: string } }[] }; bom: { id: string }[] };
+
 const create = (familyCode: string, start: 'SKELETON' | 'BLANK' | 'COPY', extra: Record<string, unknown> = {}) =>
   author.call(routes.designer.createFamily, { body: { familyCode, product: PRODUCT, markets: ['IN'], formulaVersionId, start, ...extra } });
 
@@ -54,6 +57,7 @@ beforeAll(async () => {
     ['RM-7JF-LAC', 'Lactose monohydrate', 'EXCIPIENT'],
     ['RM-7JF-MGS', 'Magnesium stearate', 'EXCIPIENT'],
     ['RM-7JF-IPA', 'Isopropyl alcohol', 'EXCIPIENT'],
+    ['RM-7JF-WAT', 'Purified water', 'EXCIPIENT'],
   ] as const) {
     valueOf(await steward.call(md.enterMaterial, { body: { materialCode: code, materialName: name, materialKind: kind, unit: 'kg', pharmacopoeia: 'IP', changeReason: REASON } }));
   }
@@ -74,7 +78,7 @@ afterAll(async () => {
 });
 
 describe('a new master from an approved formula (slice 7j)', () => {
-  it('[INV-25][PR-01][DI-05][INV-27] the skeleton takes its header, batch sizes and bill of materials from the formula, pins it, blends with TB-07, runs the database-backed clearance and status steps, ends with QA\'s release for packing (H-PACK) and passes the validator gate and the simulation', async () => {
+  it('[INV-25][PR-01][DI-05][INV-27] the skeleton takes its header, batch sizes and bill of materials from the formula (its unit mass, like the batch mass, leaves out processing aids, also per-unit ones, so the expected tablet count is the formula\'s units: R3-APP-1), pins it, blends with TB-07, runs the database-backed clearance and status steps, ends with QA\'s release for packing (H-PACK) and passes the validator gate and the simulation', async () => {
     const v = valueOf(await create('DMT7JF-SK', 'SKELETON'));
     const c = v.content as unknown as { header: { product: { dosageForm: string; name: string }; batchSizes: { id: string; quantity: { value: string } }[] }; bom: { id: string; quantity: { value: string } }[] };
     expect(c.header.product).toMatchObject({ name: 'Demotab 400 mg', dosageForm: 'Film-coated tablet' });
@@ -117,6 +121,15 @@ describe('a new master from an approved formula (slice 7j)', () => {
     // A GMP batch defines on it: no step is one a GMP batch refuses (the designer's INFO findings), and the gate passes.
     expect(definitionFindings(v.content as never).filter((f) => f.rule === 'ENG-DEF-SANDBOX-ONLY')).toEqual([]);
     expect(report.findings.filter((f) => f.rule === 'ENG-DEF-SANDBOX-ONLY').map((f) => f.message)).toEqual([]);
+    // R3-APP-1: a per-unit processing aid (100 mg of water, removed in drying) is in the bill of materials but not in
+    // the unit mass or the batch mass, so the tablet count the issue expects is the formula's 1,25,000 (not 1,06,175).
+    const water: FormulaLineInput = { lineId: 'wat', materialCode: 'RM-7JF-WAT', role: 'PROCESSING_AID', basis: 'PER_UNIT', quantity: '100', potencyAdjusted: false, compensating: false };
+    const wet = valueOf(await create('DMT7JF-SKW', 'SKELETON', { formulaVersionId: await approvedFormula('125000', undefined, [...LINES, water]) }));
+    const w = wet.content as unknown as FlowLike;
+    expect(w.header.unitMassMg).toBe('564');
+    expect(w.header.batchSizes.map((b) => [b.id, b.quantity.value])).toEqual([['BS-125000U', '70.5']]);
+    expect(w.bom.map((b) => b.id)).toContain('BOM-WAT');
+    expect(expectedTabletCount(w as never, 'BS-125000U')?.value).toBe('125000');
   }, 120_000);
 
   it('[INV-25][DI-35][PR-04] overages (slice 7q, C1): an excess per line in percent or as a quantity, always with its reason; the label claim stays; the batch quantity, the batch mass and the master\'s bill of materials include it; the approver signs it', async () => {
