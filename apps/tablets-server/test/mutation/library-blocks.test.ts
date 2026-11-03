@@ -612,6 +612,34 @@ describe('release review R3: the database judges library values as the engine do
     });
   });
 
+  it('[PR-08][PR-30] R3: the database\'s library judgement at its edges (SQL mutation run of recipe-core 1862)', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      // Loops: an entry of the same row (same recordedSeq) is not an earlier repeat.
+      const rep = (seq: number, r: string): Json => ({ ...(entry('retry', { r }) as Record<string, Json>), recordedSeq: seq });
+      expect(await judged(c, { counts: { maxR: '2' } }, { entries: { E1: rep(1, '50'), E2: rep(1, '50') } }, { entries: { E1: rep(1, '50') } })).toBeNull();
+      // A pass is decided as passes() does: a field with neither limits nor an expected answer passes, as does a slot
+      // given to a field that has no unit (a text).
+      const pass = async (field: Json, data: Json, config: Json = {}): Promise<boolean | null> =>
+        (await c.query<{ p: boolean | null }>('select recipe.library_loop_pass($1::jsonb, $2::jsonb, $3::jsonb) as p', [
+          JSON.stringify({ id: 's', repeat: { kind: 'UNTIL_PASS', untilField: 'f' }, fields: [{ id: 'f', label: 'F', ...(field as Record<string, Json>) }] }), JSON.stringify(data), JSON.stringify(config),
+        ])).rows[0]?.p ?? null;
+      expect(await pass({ type: 'TEXT' }, { f: 'anything' })).toBe(true);
+      expect(await pass({ type: 'TEXT', limitSlot: 'f' }, { f: 'anything' }, { limits: { f: RANGE('g', null, '1') } })).toBe(true);
+      expect(await pass({ type: 'NUMBER', unit: 'g' }, { f: '99' }, { limits: { f: RANGE('g', null, '1') } })).toBe(true);
+      expect(await pass({ type: 'NUMBER', unit: 'g', limitSlot: 'f' }, { f: '99' }, { limits: { f: RANGE('g', null, '1') } })).toBe(false);
+      // An optional profile left empty is not read.
+      const points = { points: { rel: [{ id: 'h1', label: '1 h', limits: RANGE('%', '20', '40') }] } };
+      expect(await judged(c, points, { entries: { E1: entry('ipc', { wt: ['250'] }) } })).toBeNull();
+      // Of two readings at the most severe tier, the first is named.
+      expect(await judged(c, { limits: { ind: RANGE('mg', '237.5', '262.5') } }, { entries: { E1: entry('ipc', { wt: ['250', '270', '280'] }) } })).toMatch(/^stores wt \(individual\) = 270 mg/);
+      // A zero duration in a unit the engine's durations do not hold is not worked out either.
+      expect((await c.query<{ d: string | null }>("select recipe.library_timer_duration(5, 5, 'wk') as d")).rows[0]?.d).toBeNull();
+      // The trigger also runs for a library exception added after a state that had no exceptions member.
+      const t = await batchState(c, { steps: STEPS, entries: {} }, 'zzg_library_limits');
+      expect(await t.update({ steps: STEPS, entries: {}, exceptions: { X1: breach('p-lib.w') } })).toMatch(/^This row adds exception X1 .*\[EBMR-LIB-020\]$/);
+    });
+  });
+
   it('[PR-08][PR-29] R3-SQL-2: of individual readings the most severe tier any reading breaches requires the exception, as the engine raises it (R3-ENG-2)', async () => {
     await inCommand(gmp, 'author', async (c) => {
       const tiers = { limits: { ind: { unit: 'mg', ranges: [...(RANGE('mg', '90', '110') as { ranges: Json[] }).ranges, ...(RANGE('mg', '95', '105', 'ALERT') as { ranges: Json[] }).ranges] } } };
