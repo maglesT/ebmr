@@ -316,6 +316,10 @@ tests:
   - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29][PR-08] a test result that is not a profile is judged on its statistics; with no count given any number of readings is taken"
   - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29] a profile needs readings for exactly its points: an extra point, or points the formulation does not give, are refused"
   - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29][PR-30] an IPC round exactly at its interval is on time; one later is late, and the exception names the round and the interval"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > release review R3: the run-time judgement of library limits (decision 0026) > [PR-08][PR-29] R3-ENG-2: individual results are all judged; the exception is that of the most severe tier any reading breaches (the first reading at that tier), not of the first reading outside a limit"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > release review R3: the run-time judgement of library limits (decision 0026) > [PR-29][PR-30] R3-ENG-4: an IPC interval is held from the step's start to the first round and from the last round to the step's end, on trusted time"
+  - "apps/tablets-server/test/mutation/library-blocks.test.ts > release review R3: the database judges library values as the engine does (recipe-core 1862) > [PR-08][PR-29] R3-SQL-2: test results are judged against their limits: individual readings, minimum, maximum, mean and range, and each point of a profile; the breach needs its exception"
+  - "apps/tablets-server/test/mutation/library-blocks.test.ts > release review R3: the database judges library values as the engine does (recipe-core 1862) > [PR-08][PR-29] R3-SQL-2: of individual readings the most severe tier any reading breaches requires the exception, as the engine raises it (R3-ENG-2)"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:
