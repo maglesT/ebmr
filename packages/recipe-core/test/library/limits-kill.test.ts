@@ -20,6 +20,8 @@ type Ok = Extract<EntryResult, { ok: true }>;
 class Bench {
   readonly records: EntryRecord[] = [];
   nowUs = 1_000_000_000n;
+  /** The step instance started when the bench was set up (trusted time). */
+  readonly startedAtUs = this.nowUs;
   private readonly handler;
   constructor(
     def: BlockDefinition,
@@ -39,6 +41,7 @@ class Bench {
       frames: [],
       subLot: undefined,
       nowUs: this.nowUs,
+      startedAtUs: this.startedAtUs,
       actor: { kind: 'PERSON', id: 'OP1', roles: ['OPERATOR'] },
       batch: { batchId: 'B1', batchNumber: 'B1', productCode: 'P1', marketSet: ['IN'] },
       mbr: this.mbr,
@@ -70,6 +73,10 @@ class Bench {
     const r = this.try(kind, fields);
     if (r.ok) throw new Error('accepted');
     return r.problems.map((p) => p.code);
+  }
+  /** The exceptions the step's PERFORMED transition raises now. */
+  onPerform(): string[] {
+    return (this.handler.onPerform?.(this.view()).exceptions ?? []).map((e) => e.type);
   }
   beforePerform(): string[] {
     return (this.handler.beforePerform?.(this.view()) ?? []).map((p: HandlerProblem) => p.code);
@@ -346,5 +353,27 @@ describe('timers on trusted time (PR-30)', () => {
     const kg = new Bench(block([once('run', [{ id: 't', label: 'T', type: 'TIMER', durationUnit: 'kg' }])]), {});
     kg.ok(TIMER_START, { field: 't' });
     expect(kg.minutes(5).refused(TIMER_STOP, { field: 't' })).toEqual(['LIB-TIMER-UNIT']);
+  });
+});
+
+describe('release review R3: the run-time judgement of library limits (decision 0026)', () => {
+  type Tier = 'REGISTERED' | 'INTERNAL_ACTION' | 'ALERT';
+  /** Limits of several tiers in one unit. */
+  const tiered = (unit: string, ranges: [string, string, Tier][]): NonNullable<Config['limits']>[string] => ({ unit, ranges: ranges.flatMap(([lo, hi, tier]) => range(unit, lo, hi, tier).ranges) });
+
+  it('[PR-08][PR-29] R3-ENG-2: individual results are all judged; the exception is that of the most severe tier any reading breaches (the first reading at that tier), not of the first reading outside a limit', () => {
+    const def = block([once('chk', [{ id: 'wt', label: 'Weights', type: 'TEST_RESULT', unit: 'mg', replicatesSlot: 'n', statistics: [{ statistic: 'INDIVIDUAL', limitSlot: 'ind' }] }])]);
+    const use: Config = { counts: { n: '3' }, limits: { ind: tiered('mg', [['90', '110', 'REGISTERED'], ['95', '105', 'ALERT']]) } };
+    const worst = new Bench(def, use).ok('chk', { wt: ['104', '106', '150'] });
+    expect(worst.exceptions?.map((e) => [e.type, e.severity, e.deviationRequired, e.qaOnly])).toEqual([['LIB_LIMIT_BREACH', 'CRITICAL', true, true]]);
+    expect(worst.exceptions?.[0]?.title).toContain(' 150 mg ');
+    expect(worst.exceptions?.[0]?.title).toMatch(/\[registered tier\]$/);
+    // Two readings at the same most severe tier: the first of them is named.
+    const two = new Bench(def, use).ok('chk', { wt: ['80', '106', '150'] });
+    expect(two.exceptions?.map((e) => [e.severity, e.title.includes(' 80 mg ')])).toEqual([['CRITICAL', true]]);
+    // Only alert-tier readings: one ALERT, named by the first.
+    const alert = new Bench(def, use).ok('chk', { wt: ['100', '106', '107'] });
+    expect(alert.exceptions?.map((e) => [e.severity, e.title.includes(' 106 mg ')])).toEqual([['ALERT', true]]);
+    expect(types(new Bench(def, use).ok('chk', { wt: ['100', '101', '99'] }))).toEqual([]);
   });
 });

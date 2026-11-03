@@ -51,6 +51,9 @@ export const LIBRARY_EXCEPTION_RULES: ExceptionRule[] = [
 
 type Config = Omit<BlockUse, 'block'> & { hash?: string };
 
+/** Severity of a tier's breach, least to most severe (an alert, an internal action, a registered or validated tier). */
+const SEVERITY_RANK: Readonly<Record<ExceptionDraft['severity'], number>> = { ALERT: 1, ACTION: 2, CRITICAL: 3 };
+
 const LIMIT_SCHEMA: ObjectSchema = {
   type: 'object',
   description: 'A tiered limit (PR-08)',
@@ -446,15 +449,16 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         exceptions.push({ type: 'LIB_NOT_ALLOWED_CHOICE', title: `${where}: ${f.label} is "${text(v)}", which is not allowed`, controls: ['PR-29'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item, blocks: 'STEP', until: 'DEVIATION', deviationRequired: true });
       } else if (f.type === 'TEST_RESULT') {
         const unitOf = (st: TestStatistic): string => (st === 'RSD' ? '%' : f.unit);
+        // R3-ENG-2: every value of a statistic is judged; one exception per statistic, that of the most severe tier any
+        // value breaches (the first value at that tier), as the engine judges a series (its worst reading governs).
         const judge = (readings: string[], spec: (st: TestStatistic, slot: string) => LimitSpec | undefined, label: string): void => {
           for (const { statistic: st, limitSlot } of f.statistics) {
+            let worst: ExceptionDraft | undefined;
             for (const value of statistic(st, readings)) {
               const d = breach(spec(st, limitSlot), value, unitOf(st), `${where}: ${f.label}${label} (${st.toLowerCase()})`, item);
-              if (d) {
-                exceptions.push(d);
-                break;
-              }
+              if (d && (worst === undefined || SEVERITY_RANK[d.severity] > SEVERITY_RANK[worst.severity])) worst = d;
             }
+            if (worst) exceptions.push(worst);
           }
         };
         if (f.perPoint === true) for (const p of config.points?.[f.id] ?? []) judge((v as Record<string, string[]>)[p.id] ?? [], () => p.limits, ` at ${p.label}`);
