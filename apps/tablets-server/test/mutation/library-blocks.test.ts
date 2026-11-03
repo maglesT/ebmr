@@ -444,7 +444,7 @@ describe('release review R3: the database judges library values as the engine do
 
   it('[PR-08][PR-29] R3-SQL-2: test results are judged against their limits: individual readings, minimum, maximum, mean and range, and each point of a profile; the breach needs its exception', async () => {
     await inCommand(gmp, 'author', async (c) => {
-      const ipc = (wt: Json, extra: Json = {}): Json => ({ E1: entry('ipc', { wt, ...(extra as Record<string, Json>) }) });
+      const ipc = (wt: unknown, extra: Json = {}): Json => ({ E1: entry('ipc', { wt, ...(extra as Record<string, Json>) }) });
       const req = /^stores wt \((\w+)\) = [0-9.]+ mg at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH it requires/;
       const cases: [string, Json, string[], string[]][] = [
         // slot, limit, readings outside, readings inside
@@ -527,7 +527,7 @@ describe('release review R3: the database judges library values as the engine do
       // The finding: a shown calculated field with a limit and no figure was skipped.
       expect(await run({ calc: true })).toMatch(noRecord);
       expect(await run({ calc: true, computed: {} })).toMatch(noRecord);
-      const bad: Json[] = [
+      const bad: (Json | string)[] = [
         'x', { value: '' }, { value: 0.5 }, { value: '5e-1' }, { unit: 'g' }, { unit: undefined }, { expression: 'w * 2 [%]' }, { expression: undefined },
         { languageVersion: '' }, { languageVersion: 1 }, { languageVersion: undefined }, { inputs: [] }, { inputs: undefined },
       ];
