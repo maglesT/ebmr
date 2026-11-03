@@ -148,4 +148,20 @@ describe('library blocks in the designer', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add the block' }));
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ kind: 'ADD_LIBRARY_BLOCK', stepId: 'p-ipc-friab', definition: FRIAB }));
   });
+
+  it('[PR-03][PR-45] S11a finding: a release test (QC\'s record on the lot, signed by QC roles no floor session carries) is not offered for a master; an IPC test is', async () => {
+    const entry = (blockId: string, def: typeof FRIAB) => ({
+      blockId, code: def.code, version: 1, title: def.title, category: def.category, state: 'APPROVED', contentHash: library.definitionHash(def),
+      definition: def, draftedBy: { personId: '7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11', legalName: 'Asha Rao', loginName: 'asha.rao', role: 'AUTHOR' }, draftedAt: { us: '1', text: 'now' },
+      approvedBy: null, approvedAt: null, retiredAt: null, retirementReason: null,
+    });
+    const RELEASE = { ...FRIAB, code: 'REL-ASSAY', title: 'Assay (release)', category: 'TEST_RELEASE' as const, signatures: [{ meaning: 'PERFORMED' as const, role: 'QC_ANALYST' }] };
+    installFixtures({ 'library.list': { blocks: [entry('3b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', FRIAB), entry('4c2f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5f', RELEASE)] } });
+    const c = content();
+    renderRouted(() => <AddLibraryBlock content={c} afterId={firstPhase(c).id} dispatch={vi.fn()} />);
+    const select = await screen.findByLabelText('Approved library block');
+    await waitFor(() => expect(within(select).getByText('IPC-FRIAB v1: Friability')).toBeTruthy());
+    expect(within(select).queryByText('REL-ASSAY v1: Assay (release)')).toBeNull();
+    expect(screen.getByText(/Release tests are recorded by QC on the lot/)).toBeTruthy();
+  });
 });

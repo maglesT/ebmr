@@ -322,4 +322,24 @@ describe('timer durations in any time unit (S7 catalogue finding)', () => {
     expect(d.value.startsWith('1.0666')).toBe(true);
     expect(run.exceptions()).toEqual([]);
   });
+
+  it('[PR-30][PR-08] S11a finding: a timer outside its limit is recorded and judged exactly, and its exception shows the duration to three decimals', () => {
+    const def: BlockDefinition = {
+      code: 'PROC-TIMED',
+      version: 1,
+      title: 'Timed step',
+      category: 'PROCESS',
+      sections: [{ id: 'run', title: 'Run', fields: [{ id: 'hold', label: 'Hold', type: 'TIMER', durationUnit: 'h', limitSlot: 'hold', critical: true }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    const run = runFor(def, { block: { code: 'PROC-TIMED', version: 1 }, limits: { hold: range('h', '2', '3') } });
+    run.entry('p', { kind: TIMER_START, field: 'hold' });
+    run.minutes(64);
+    run.entry('p', { kind: TIMER_STOP, field: 'hold' });
+    const stop = Object.values(run.state.entries).find((e) => e.kind === TIMER_STOP);
+    expect((stop?.data['duration'] as { value: string }).value.startsWith('1.06666666')).toBe(true);
+    const ex = run.exceptions().find((e) => e.type === 'LIB_LIMIT_BREACH');
+    expect(ex?.title).toContain('Timed step: Hold 1.067 h');
+    expect(ex?.title).not.toContain('1.06666');
+  });
 });

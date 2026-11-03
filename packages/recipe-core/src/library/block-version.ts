@@ -502,7 +502,11 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     const perUnit = expr.convert('1', unit, 's');
     if (perUnit === undefined) return { ok: false, problems: [problem('LIB-TIMER-UNIT', `The timer ${field} is in ${unit}, which is not a time`, ['PR-30'])] };
     const d = seconds.div(Dec.parse(perUnit)).toString();
-    const draft = f.limitSlot !== undefined ? breach(configOf(view).limits?.[f.limitSlot], d, unit, `${def.title}: ${f.label}`, `${view.phase.id}.${f.id}`) : undefined;
+    const found = f.limitSlot !== undefined ? breach(configOf(view).limits?.[f.limitSlot], d, unit, `${def.title}: ${f.label}`, `${view.phase.id}.${f.id}`) : undefined;
+    // S11a finding: the duration is recorded and compared exactly (the limit check rounds it at the limit's decimals);
+    // the exception's text shows it to three decimals of its unit, not the full quotient (0.58333333333333333333 min).
+    const shown = Dec.parse(d).roundToDecimals(3, 'HALF_UP').toString();
+    const draft = found && shown !== d ? { ...found, title: found.title.replace(`${d} ${unit}`, `${shown} ${unit}`) } : found;
     return { ok: true, data: { field, duration: { value: d, unit } }, ...(draft ? { exceptions: [draft] } : {}) };
   };
 

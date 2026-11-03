@@ -85,6 +85,7 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-30] a timer runs once per step, so it cannot sit in a repeating section"
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-30] a timer is started and stopped on the server's clock; a section recorded once closes"
   - "packages/recipe-core/test/library/block-version.test.ts > timer durations in any time unit (S7 catalogue finding) > [PR-30] 64 minutes in an hours timer is 1.0666... h, never 3840 h, and is judged as such"
+  - "packages/recipe-core/test/library/block-version.test.ts > timer durations in any time unit (S7 catalogue finding) > [PR-30][PR-08] S11a finding: a timer outside its limit is recorded and judged exactly, and its exception shows the duration to three decimals"
 clauses:
   - clause: "A simulated breach creates a deviation automatically and flags the batch."
     tests:
