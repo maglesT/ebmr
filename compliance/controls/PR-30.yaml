@@ -80,6 +80,11 @@ tests:
   - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] discards follow the preparation, in its unit, never above what was prepared in total (equal allowed)"
   - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] PERFORMED needs the preparation; the MBR gives a positive use-by in whole microseconds"
   - "apps/tablets-server/test/execution/sweeper.test.ts > a time limit across a client and server restart (PR-30) > [PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start with the system's exception that needs a deviation and flags the batch"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-30] a timer runs on trusted time: its duration is checked against its limit when it is stopped"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-30] a timer runs once per step, so it cannot sit in a repeating section"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-30] a timer is started and stopped on the server's clock; a section recorded once closes"
+  - "packages/recipe-core/test/library/block-version.test.ts > timer durations in any time unit (S7 catalogue finding) > [PR-30] 64 minutes in an hours timer is 1.0666... h, never 3840 h, and is judged as such"
 clauses:
   - clause: "A simulated breach creates a deviation automatically and flags the batch."
     tests:

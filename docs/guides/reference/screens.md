@@ -7,7 +7,7 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 147 screens, 82 home tiles.
+In all: 148 screens, 83 home tiles.
 
 ## access
 
@@ -220,6 +220,7 @@ In all: 147 screens, 82 home tiles.
 | `/mbr/change-records` | ChangeRecordsPage | MBR change records (GMP) | The validation and per-market regulatory assessments of master-record changes. |
 | `/mbr/versions/$versionId/review` | VersionReviewPage |  |  |
 | `/mbr/versions/$versionId/labelling` | LabellingPage |  |  |
+| `/mbr/library` | LibraryPage | Block library (GMP) | The library of block definitions (forms built from typed fields), their versions and QA approval. |
 
 ## notifications
 

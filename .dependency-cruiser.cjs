@@ -8,7 +8,7 @@
 // (dependency-cruiser refuses regular expressions with nested quantifiers.)
 const DB_DRIVERS = '^(pg|kysely)$|^@node-rs/|(^|/)node_modules/(pg|kysely|@node-rs)/';
 // recipe-core folders that must stay browser-safe (plan section 3: the ./pure subpath).
-const RECIPE_PURE = 'packages/recipe-core/src/(flow|validator|limits|simulator|engine|blocks)/|packages/recipe-core/src/pure\\.ts$';
+const RECIPE_PURE = 'packages/recipe-core/src/(flow|validator|limits|simulator|engine|blocks|library)/|packages/recipe-core/src/pure\\.ts$';
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -97,7 +97,7 @@ module.exports = {
     },
     {
       name: 'recipe-core-pure-no-kernel',
-      comment: 'flow, validator, limits, simulator, engine and blocks never import the kernel, a database driver or a node core module (they run in the browser).',
+      comment: 'flow, validator, limits, simulator, engine, blocks and library never import the kernel, a database driver or a node core module (they run in the browser).',
       severity: 'error',
       from: { path: `^(${RECIPE_PURE})` },
       to: { path: `^packages/(kernel|site-services)/|${DB_DRIVERS}` },

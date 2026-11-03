@@ -29,6 +29,7 @@ implemented_by:
     - "packages/recipe-core/src/simulator (simulate, evidence)"
     - "packages/recipe-core/sql/0120_mbr_evidence.sql (MBR life cycle: evidence stored with the exact content hash, result decided by the database, voided by any content edit)"
     - "packages/recipe-core/sql/0130_mbr_guards.sql (guards validator_passed, evidence_complete)"
+    - "packages/recipe-core/sql/1830_evidence_sandbox_optional.sql (owner decision 0026 O-2: the evidence is the validator report, the simulation and the test vectors on the exact content; a sandbox run is optional, and one recorded that did not pass keeps the evidence incomplete)"
     - "packages/recipe-core/sql/0160_market_authorisation.sql (no market authorisation without complete verification evidence)"
     - "packages/recipe-core/src/lifecycle/verification.ts (verification port over the validator and simulator)"
     - "apps/tablets-server/sql/0150_designer.sql (tab.reference_document DMS stand-in: insert-only, audited, hash recomputed; tab.designer_justification)"
@@ -220,6 +221,10 @@ tests:
   - "apps/tablets-server/test/plant/sandbox-configured-unit.test.ts > the unit a packaging master configures, on each installation (slice 7r, D-7r-5) > [DI-04][DI-05][PR-22][PR-37] on the sandbox, a configured unit code that is no sandbox unit reads as its TEST- unit, which the plant knows; an unknown code stays unknown and refused (EBMR-CNT-023)"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][DI-04] Rabeprazole 8: the packaging master as a copy of the approved cold-form master with the product's own printed foil and cartons; the checks pass; change control; the test package in the sandbox inbox @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [DI-04][DI-05][INV-18][PR-03][IN-38] Rabeprazole 9: the packaging master's sandbox test run on the sandbox's PL-2 kiosk with TEST- printed lots; its result imported as evidence; the four signatures and the IN authorisation @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block the three tablets use through the signature ceremony @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libtab 400 mg, wet granulation, film coated (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libtab 250 mg, direct compression, uncoated (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Rabeprazole sodium 20 mg, enteric coated, three coats (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:

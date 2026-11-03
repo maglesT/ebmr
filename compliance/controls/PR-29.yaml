@@ -303,6 +303,12 @@ tests:
   - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the edited master with the seal, enteric and top coats defines without an error and parses as content"
   - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the edits carry the product's values (salt form, compensation, binder, 125 mg core, R20 tooling, enteric gain 8 to 10 %, batch gain 13 to 16.5 %); the source is not changed"
   - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the master cites the product's own registration and validation report, never route W's, and holds no other active's declared form (R10 #9, #11)"
+  - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-29] an IPC interval is a positive time"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29] an unexpected yes/no answer raises an exception"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29] a test result needs the planned number of readings and is judged per statistic and per point"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29] statistics are exact decimals: mean, min, max, range and the sample RSD in %"
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-29] a profile test takes the planned readings at each time point with its limit; the entry carries them by point"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:

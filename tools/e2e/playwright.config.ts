@@ -20,6 +20,8 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'own-p3': ['phase7/own-product-p3.spec.ts'],
   // Slice 7s: the presenter's P3 rabeprazole batch from the demo set-up's seeded state (--gmp-p3-demo, D-7s-1).
   'p3-demo': ['phase7/p3-demo.spec.ts'],
+  // Decision 0026 S11: three tablets from the library through the screens, each with its sandbox batch (long).
+  'library-acceptance': ['library/three-tablets.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

@@ -28,6 +28,8 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 lots at the moment of use > [PR-18][IN-23] a lot expires, or falls due for retest, at its instant; one microsecond before it, it is usable"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 lots at the moment of use > [PR-18][IN-23][IN-24] status and material refusals name the lot; the material may be the MBR reference's code; identity testing is needed for any market beyond India"
   - "apps/tablets-web/test/floor/step-flow-acts.test.tsx > the potency calculation of TB-01 > [PR-19][IN-23] sends the active's lot scanned as POTENCY_CALCULATION (the server reads its assay; nothing typed but the lot)"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [PR-18][IN-23] the database refuses a library entry naming a lot its register does not hold"
+  - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [PR-18][IN-23] only a released, unexpired lot of the formulation line's material is used, with no operator override"
 clauses:
   - clause: "scan a quarantined lot, an expired lot and a lot past retest; all refused."
     tests:

@@ -13,6 +13,7 @@ import type { PaletteItem } from '../model/types.ts';
 import { Check, CheckList, CommitText, roleTitle, Select, type Option } from './common.tsx';
 import { CoatingLayerForm } from './CoatingLayerForm.tsx';
 import { ConfigForm } from './ConfigForm.tsx';
+import { AddLibraryBlock, LibraryValuesForm } from './LibraryBlocks.tsx';
 import { ConfigList } from './ConfigView.tsx';
 import { checkInThisRelease } from './words.ts';
 
@@ -94,7 +95,9 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
       ) : null}
       <CommitText label="Step name (as the operator sees it)" value={p.name} readOnly={readOnly} onCommit={(v) => update({ name: v })} />
       <h4>Configuration</h4>
-      {block ? (
+      {p.block.type.startsWith('LIB-') ? (
+        <LibraryValuesForm content={content} step={p} readOnly={readOnly} onChange={(config) => update({ config })} />
+      ) : block ? (
         <ConfigForm schema={block.configSchema} value={p.config} readOnly={readOnly} sopOptions={sopOptions} onChange={(config) => update({ config })} />
       ) : (
         <>
@@ -168,6 +171,7 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
         </p>
       ) : null}
       {!readOnly && coatingStage ? <CoatingLayerForm stepId={p.id} stepName={p.name} dispatch={dispatch} /> : null}
+      {!readOnly ? <AddLibraryBlock content={content} afterId={p.id} dispatch={dispatch} /> : null}
     </div>
   );
 }

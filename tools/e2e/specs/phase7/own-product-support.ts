@@ -86,6 +86,25 @@ export async function registerTestLots(pages: SandboxPages, lots: readonly { lot
   await page.context().close();
 }
 
+/** Where a master built on the skeleton runs its own further steps (decision 0026 S11: library blocks added on screen). */
+export interface StageCtx {
+  base: string;
+  runId: string;
+  operator: SeededPersona;
+  verifier: SeededPersona;
+  qa: SeededPersona;
+}
+export interface SkeletonExtras {
+  /** Which approved batch size to issue (0: the first listed, the reference size). */
+  sizeIndex?: number;
+  /** The batch size in tablets typed in the master's input when issuing (the chosen size's; default 100000). */
+  sizeUnits?: string;
+  /** Steps the master adds after the dispensing of the other components, on the dispensing kiosk. */
+  afterDispensing?: (page: Page, ctx: StageCtx) => Promise<void>;
+  /** Steps the master adds after the blend's discharge, on the blending kiosk. */
+  afterDischarge?: (page: Page, ctx: StageCtx) => Promise<void>;
+}
+
 /**
  * The sandbox test run of the skeleton master in package `packageHash`, to Execution complete, and the export of its
  * result for GMP. `lots` maps each material to the TEST- lot registered for it.
@@ -96,6 +115,7 @@ export async function runSkeletonTestBatch(
   packageHash: string,
   lots: readonly { lotCode: string; material: OwnMaterial }[],
   discharge: { tare: string; gross: string },
+  extra: SkeletonExtras = {},
 ): Promise<{ runId: string; batchNumber: string; resultFile: string }> {
   const sbx = e2e.url('SANDBOX');
   const sim = e2e.state.urls.simulatorConsole;
@@ -115,9 +135,9 @@ export async function runSkeletonTestBatch(
   await item.getByRole('button', { name: 'Import' }).click();
   await expect(item.getByText(/^Imported /)).toBeVisible();
   await item.getByRole('link', { name: 'Issue a test batch' }).click();
-  await choose(office.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first());
+  await choose(office.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').nth(extra.sizeIndex ?? 0));
   for (const input of await office.getByRole('main').getByRole('textbox').all()) {
-    if ((await input.inputValue()) === '') await input.fill('100000');
+    if ((await input.inputValue()) === '') await input.fill(extra.sizeUnits ?? '100000');
   }
   await office.getByRole('button', { name: 'Issue the test batch' }).click();
   await expect(office).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
@@ -172,6 +192,7 @@ export async function runSkeletonTestBatch(
       await performAndCheck(disp, operator1, verifier1);
     }
   });
+  if (extra.afterDispensing) await extra.afterDispensing(disp, { base: sbx, runId, operator: operator1, verifier: verifier1, qa });
   await openStep(disp, sbx, runId, 'p-disp-recon@', 'Dispensing reconciliation');
   await startStep(disp, operator1);
   await performAndCheck(disp, operator1, verifier1);
@@ -239,6 +260,7 @@ export async function runSkeletonTestBatch(
   await out.getByRole('textbox', { name: 'Gross (typed by hand)' }).fill(discharge.gross);
   await saveForm(blend, out, operator2);
   await performAndCheck(blend, operator2, verifier2);
+  if (extra.afterDischarge) await extra.afterDischarge(blend, { base: sbx, runId, operator: operator2, verifier: verifier2, qa });
   await openStep(blend, sbx, runId, 'p-blend-yield@', 'yield');
   await startStep(blend, operator2);
   await performAndCheck(blend, operator2, verifier2);

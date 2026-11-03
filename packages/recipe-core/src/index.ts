@@ -29,6 +29,10 @@ export * as lifecycle from './lifecycle/index.ts';
 // Namespaces, like the A2 modules. See engine/README.md and blocks/README.md.
 export * as engine from './engine/index.ts';
 export * as blocks from './blocks/index.ts';
+// Decision 0026, slice S1: library block definitions (pure; also in ./pure).
+export * as library from './library/index.ts';
+// Decision 0026 slices S7 and S8: the ready-made catalogue of library blocks (data; loaded as drafts, approved by QA).
+export * as librarySeed from './library/seed/index.ts';
 // ---- end of module B1 exports ---------------------------------------------------------------------
 
 // ---- Phase 2 apps, module C3: database-backed execution store (node-only; stub until C3 lands) -----

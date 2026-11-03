@@ -524,6 +524,11 @@ tests:
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] Rabeprazole 10: the packaging order sent, planned from the batch released for packing and issued; the laminate reserved; the order run on KIOSK-PACK-2 with the product's printed lots @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [DI-30][INV-40][PR-20][IN-13][IN-35][IN-37] P3 demo 2: the GMP batch processed on the kiosks: dispensing from the active's seeded lot, granulation, blending, compression with the seeded tooling, the seal, enteric and top coats, inspection; QA's hold points; the bulk for packing @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [IN-38][PR-37][PR-33][PR-34][PR-36][INV-40][DI-30] P3 demo 3: the packaging order sent, planned from the batch released for packing and issued on the seeded cold-form master; the laminate reserved; the order run on KIOSK-PACK-2 with the seeded printed lots @office"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [INV-25][DI-30] a typed calculated field and an unknown section are refused; a library entry to a step of another block is refused"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [DI-30][PR-14] the database refuses a hand-keyed library weighing stored without two-person verification"
+  - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [DI-30][PR-14] a hand-keyed weighing makes two-person verification mandatory for the step"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [DI-30][PR-03] a sample field shows the planned number of units and records it unless the operator changes it (S11 finding)"
+  - "packages/recipe-core/test/library/library.test.ts > reserved field ids (S7 catalogue finding) > [PR-03][DI-30] a field may not be named balance: the database's weighing rules take any entry with that member for a scale weighing (S11 finding)"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

@@ -79,7 +79,7 @@ jobs:
                 evidence-source-and-entries, execution-steps-and-order, system-facts-and-time, exceptions-and-dispositions,
                 limit-exceptions, involvement-and-independence, weighing, signed-content, sandbox-and-import,
                 device-readings, evidence-listener, manual-weighing-gate, read-authorisation, tablets-sessions,
-                designer-guards, site-zone, signing-failure-and-reasons, connection-roles, batch-number-register,
+                designer-guards, site-zone, signing-failure-and-reasons, connection-roles, library-blocks, batch-number-register,
                 stale-commands-and-readings, exception-source, entry-references-and-schema, late-witness-and-step-times,
                 execution-row-shape, state-engine-rows,
                 plant-equipment-and-areas, output-containers, change-paths-and-hand-over, gmp-batch-issue, lots-and-lims,

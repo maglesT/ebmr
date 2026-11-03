@@ -299,6 +299,12 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [IN-05][PR-45][DI-35][IN-33] Demotab 11: the finished lot posted in quarantine; QC records its results against Demotab's specification and pulls the reserve sample; the head of QC approves them @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [IN-05][PR-45][DI-35][IN-33] Rabeprazole 11: the finished lot posted in quarantine; QC records the assay and both stages of the dissolution against the product's specification and pulls the reserve sample; the head of QC approves them @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [IN-05][PR-45][DI-35][IN-33] P3 demo 4: the finished lot posted in quarantine; QC records the assay and both stages of the dissolution against the seeded specification and pulls the reserve sample; the head of QC approves them @office"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-35] every block needs a PERFORMED signature with a role, each meaning once"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-35][PR-05] QA approves with a LIBRARY_BLOCK_APPROVED signature, never the author; an approved version is retired with a reason"
+  - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-35][PR-05] QA sees a draft with its fields and approves it through the ceremony with LIBRARY_ACT"
+  - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03][DI-35] a library block that needs a checker or a verifier is significant, so its phase needs a checker who is not the performer"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone"
+  - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-05][DI-35] a library step pins the hash and takes its roles from the block; a block with a verifier is significant"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

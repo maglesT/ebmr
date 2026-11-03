@@ -13,6 +13,7 @@ import { G10Renderer } from './G-10@1.tsx';
 import { G20Renderer } from './G-20@1.tsx';
 import { G22Renderer } from './G-22@1.tsx';
 import { HoldPointRenderer } from './HoldPoint.tsx';
+import { LibraryRenderer } from './Library.tsx';
 import { TABLET_RENDERERS } from './tablets.tsx';
 import type { BlockRenderer } from './types.ts';
 
@@ -41,6 +42,8 @@ export interface RendererChoice {
 
 export function rendererFor(view: StepScreenView): RendererChoice {
   const key = view.step.kind === 'HOLD' ? 'G-17@1' : (view.step.block ?? 'none');
+  // Decision 0026 slice S5: every library block (LIB-<code>@<version>) has the one generic renderer.
+  if (key.startsWith('LIB-')) return { key, Renderer: LibraryRenderer, fallback: false };
   const Renderer = RENDERERS[key];
   return Renderer ? { key, Renderer, fallback: false } : { key, Renderer: FallbackRenderer, fallback: true };
 }

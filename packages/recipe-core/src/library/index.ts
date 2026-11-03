@@ -1,0 +1,13 @@
+/**
+ * Library block definitions (decision 0026, slice S1): the data model of a block as a digital form, and the sanity
+ * checks of a definition and of a product's values for it. Pure: no kernel, no database, no node core module.
+ */
+export * from './model.ts';
+export { checkBlockDefinition, slotsOf, commensurable } from './check-definition.ts';
+export { checkBlockUse } from './check-use.ts';
+export { definitionHash } from './hash.ts';
+export { libraryBlockVersion, libraryBlockType, nominalEntries, statistic, LIBRARY_EXCEPTION_RULES, TIMER_START, TIMER_STOP } from './block-version.ts';
+export { definitionsOf, snapshotProblems, descriptorOf, catalogWithLibrary, registryWithLibrary, defineOptionsFor } from './integration.ts';
+export { entrySummariesOf } from './block-version.ts';
+export { libraryPhase, withSnapshot } from './formulation.ts';
+export { batchSizeOf, scaledLine, scaledInputs, type ScaledQuantity } from './scaling.ts';

@@ -19,7 +19,7 @@
  */
 import { ENGINE_ROLES, PINNED_POLICY_ROLES } from '@ebmr/api-contract';
 import { unstorableText } from '@ebmr/expr';
-import { flow, type limits } from '@ebmr/recipe-core/pure';
+import { flow, library, type limits } from '@ebmr/recipe-core/pure';
 import { coatingLayerParts, layerProblem, type CoatingLayer } from './coating-layer.ts';
 
 export type Content = flow.MbrContent;
@@ -64,7 +64,9 @@ export type Op =
   | { kind: 'ADD_STAGE_EQUIPMENT'; stageId: string; equipment: flow.StageEquipment; reference?: flow.Reference }
   | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string }
   // Slice 7o (R4, R8 C3; D-7o-2): one more coat of the same tablets after a step (coating-layer.ts).
-  | { kind: 'ADD_COATING_LAYER'; stepId: string; place: 'BEFORE' | 'AFTER'; layer: CoatingLayer };
+  | { kind: 'ADD_COATING_LAYER'; stepId: string; place: 'BEFORE' | 'AFTER'; layer: CoatingLayer }
+  // Decision 0026 slice S9: an approved library block as a step, its snapshot carried by the master (pinned by hash).
+  | { kind: 'ADD_LIBRARY_BLOCK'; sequenceId: string; index: number; stepId: string; definition: library.BlockDefinition };
 
 export const KNOWN_MARKETS = ['IN', 'US', 'EU'] as const;
 
@@ -193,6 +195,21 @@ function applyInPlace(c: Content, op: Op): void {
       const parts = coatingLayerParts(c, op.layer, allIds(c));
       anchor.parent.children.splice(op.place === 'BEFORE' ? anchor.index : anchor.index + 1, 0, ...parts.steps);
       c.parameters.push(...parts.parameters);
+      return;
+    }
+    case 'ADD_LIBRARY_BLOCK': {
+      const l = locate(c, op.sequenceId);
+      if (!l || l.node.kind !== 'sequence') throw new OpError(`There is no sequence ${op.sequenceId} to insert into.`);
+      if (op.index < 0 || op.index > l.node.children.length || !Number.isInteger(op.index)) throw new OpError('The position is outside the sequence.');
+      if (allIds(c).has(op.stepId)) throw new OpError(`The id ${op.stepId} is already used.`);
+      let snapshots: Content['blockDefinitions'];
+      try {
+        snapshots = library.withSnapshot(c, op.definition);
+      } catch (e) {
+        throw new OpError(e instanceof Error ? e.message : 'The library block cannot be added.');
+      }
+      l.node.children.splice(op.index, 0, library.libraryPhase(op.definition, op.stepId, defaultRiskClass(c)));
+      c.blockDefinitions = snapshots;
       return;
     }
     case 'SET_TITLE':

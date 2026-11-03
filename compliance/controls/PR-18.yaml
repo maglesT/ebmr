@@ -109,6 +109,9 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [INV-01][PR-04][PR-18] Demotab 6: the ERP simulator sends Demotab's processing order; the batch planned and issued; stores reserve the lots @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole 6: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued; stores reserve the lots @office"
   - "tools/e2e/specs/phase7/p3-demo.spec.ts > [INV-01][PR-04][PR-18][IN-18] P3 demo 1: the seeded numbering rules listed; the ERP simulator sends the processing order; the batch planned and issued from the seeded master; stores reserve the seeded lots @office"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [PR-18][IN-23] the database refuses a library entry naming a lot its register does not hold"
+  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [DI-31][PR-18] the server refuses lot facts sent by the browser, and a lot its register does not hold"
+  - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [PR-18][IN-23] only a released, unexpired lot of the formulation line's material is used, with no operator override"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:

@@ -56,6 +56,8 @@ const LATER_READ_ROUTES = [
   'features/india/index.ts#suspendExportPermission',
   'features/india/index.ts#suspendLicence',
   'features/integrations/index.ts#acknowledgeAlarm',
+  'features/library/index.ts#draft',
+  'features/library/index.ts#retire',
   'features/market/master-records.ts#addChangeRegulatory',
   'features/market/master-records.ts#addChangeValidation',
   'features/market/master-records.ts#importSandboxRunResult',

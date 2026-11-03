@@ -22,7 +22,8 @@ const WEIGHING_FIELDS = {
   source: { type: 'string' as const, enum: ['DEVICE', 'MANUAL'], description: 'From the balance interface, or keyed by hand (flagged; two-person mode)' },
 };
 
-function lotProblems(view: HandlerView, lot: Record<string, unknown>, expectedMaterial: string | undefined): HandlerProblem[] {
+/** The lot checks of a material use (G-07; also library MATERIAL_LOT fields, decision 0026 S6). */
+export function lotProblems(view: HandlerView, lot: Record<string, unknown>, expectedMaterial: string | undefined): HandlerProblem[] {
   const out: HandlerProblem[] = [];
   const ref = expectedMaterial === undefined ? undefined : view.mbr.references.find((r) => r.id === expectedMaterial);
   const material = lot['material'];

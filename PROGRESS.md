@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 31 October 2026 (slice S16: report views for the Deviations system).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 1 November 2026 (decision 0026: dynamic library; slices S0 and S1).
 
 ## What this is
 
@@ -12,6 +12,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Rules in force (owner)
 
+- **Decision 0026 (1 November 2026): dynamic library, freeze the extras.** Library blocks are data (forms built
+  from fixed field types, QA-approved and versioned); formulations are assembled on screen and batches generated from
+  them. Frozen (kept in the repo and in CI, no new work): injectables, site gateway, simulators, analytics/MSPC,
+  integrations, QP package, contract giver, EU importer register, PQR, dashboards, CAPA, training, incidents,
+  alarms, kiosk extras, the sandbox evidence package and the Phase 7 product backlog (R7, R8, R11, R12). Plan:
+  `docs/build-plan/dynamic-library/plan.html`.
 - Owner, 19 October: the focus is functionality; open questions take the less strict option, the minimum compliance
   that keeps the product usable (within the CLAUDE.md hard rules). Load test and soak move to deployment (D-P7R-7).
 
@@ -62,6 +68,53 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   lint now runs with an 8 GB heap.
 
 ## Next
+
+**Resume here (2 November 2026, new session): S11b on branch `dyn/s11`.** S11a passes (below). S11b: the GMP batch of
+each of the three tablets of `tools/e2e/specs/library/three-tablets.spec.ts` to a released lot, screens only, reusing the
+Demotab acts (`phase7/own-product-gmp.spec.ts` Demotab 4 to 12, `own-product-gmp-flow.ts`, `own-product-floor.ts`):
+materials' specifications and first lots (QC, head of QC, QA), the ERP order, planning and issue at the further size, the GMP
+floor run (the skeleton's dispensing and blending as on GMP kiosks, then each library step with `runLibraryStep` and the GMP
+plant's units), the packaging master and order, QC results, review and release. Steps:
+1. Hand the S11a state to S11b (the `ProductState` file of `own-product-flow.ts`: tag, versionId, familyCode per tablet).
+2. Check what the GMP demo plant holds (`apps/tablets-server/src/cli/release-path.ts`, `demo-routes.ts`) against the classes
+   the three tablets use (the sandbox plant mirrors it, `cli/sandbox-plant.ts`); a unit it lacks is registered on screen
+   (`registerPlantUnits` in `library-support.ts`), never in the database.
+3. A GMP equivalent of `runSkeletonTestBatch` (`own-product-support.ts`) for the skeleton's two stages on GMP kiosks.
+4. New spec file (its own E2E group; it is long), one test per act like Demotab; run one tablet first, then all three.
+Then the agreed follow-up: the issue screen's tablet count for masters from a formula (the from-formula skeleton records the
+formula's target tablet weight so R3.1's expectation pre-fills the count and refuses a mismatch; the sandbox test-batch issue
+gets the same check). Local E2E here: `sudo pg_ctlcluster 16 main start`; the repo's Playwright wants
+`/opt/pw-browsers/chromium_headless_shell-1194` (link it to the installed `-1243` shell, local only); one run of the group:
+`EBMR_E2E_GROUP=library-acceptance PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock /tmp/ebmr-e2e.lock -c 'CI=true pnpm
+--filter @ebmr/e2e test'` (about 20 minutes of set-up before the first test). O-7 (b) is on branch `dyn/o7`, unmerged.
+
+**Start here (1 November 2026): the dynamic library (decision 0026).** Slices S0 to S11 in
+`docs/build-plan/dynamic-library/plan.html` section 5. S0 (decision record, this page) and S1 (block-definition
+model and sanity checks, `packages/recipe-core/src/library/`) are on branch `dyn/s0-s1`. S1 includes the plan
+review's additions (inputs from outside the step, conditional fields, the content hash). S2 (branch `dyn/s2`): the generic
+handler `library/block-version.ts` runs any library definition in the engine (O-9 b: calculated figures stored with
+their evaluation record). S3 (branch `dyn/s3`): library storage
+(recipe-core 1800, tablets 1802), routes `ns/library.ts` with LIBRARY_ACT approval, the `/mbr/library` screen. S4 (branch `dyn/s4`): masters
+carry library snapshots (`MbrContent.blockDefinitions`, `library/integration.ts`), batches run them, the API takes
+`LIBRARY_ENTRY`, and recipe-core 1810 checks entries, limits (`LIB_LIMIT_BREACH`) and snapshots. S5 (branch `dyn/s5`): the generic
+library renderer (`floor/renderers/Library.tsx`) and the entry sentences. **Owner, 2 November 2026: do not ask before each
+slice; go through S6 to S11 one after another** (only genuine owner decisions wait; O-7 still does). S6 (branch `dyn/s6`): smart
+fields (lots, equipment, hand-keyed weighings; tablets 1803). S7 and S8 (branch `dyn/s7-s8`): the
+ready-made catalogue (79 blocks, `library/seed/`, loaded as drafts; recipe-core 1820). S9 (branch `dyn/s9`): the formulation
+builder in the designer (`LibraryBlocks.tsx`, ADD_LIBRARY_BLOCK), market rules on library limits (O-5) and the
+sandbox run optional as evidence (O-2, recipe-core 1830). S10 (branch `dyn/s10`): batch generation with scaling, a library
+formula line is the master's BOM line scaled exactly from the reference size (first listed) to the issued size, and the batch
+size input is that size (`library/scaling.ts`; shown on the step screen; IN-13 refusal of unlisted sizes unchanged). S11a (branch
+`dyn/s11`, **passing**, 4 of 4 in 34 minutes, 2 November): `tools/e2e/specs/library/three-tablets.spec.ts` (group
+`library-acceptance`) sets up three tablets from the catalogue on screen (QA approves the blocks; the designer adds them with
+the product's values; change control; four signatures; the IN authorisation) and runs each sandbox batch at the further size
+through every library step on the kiosks. Defects it found and fixed (generic, no tablet code): identical limit labels in the
+values form; catalogue signature roles no session carries (IPC_OPERATOR, QA_SHOP_FLOOR); the database's entry schema lacked the
+server-filled lot and equipment facts (recipe-core 1840); a sample field's shown planned units not recorded; the field id
+`balance` (now reserved) taken by the database's weighing rules for a scale weighing. Hard capsules: catalogue blocks added,
+the capsule product deferred by the owner (2 November). Open findings: the issue screen's typed tablet count is not tied to
+the chosen size for masters from a formula (fix next: pre-fill and check, R3.1's mechanism); a timer exception prints an
+unrounded duration; release-test blocks name QC roles no floor session carries. S11b (GMP batch to released lot) follows. The Phase 7 notes below are history for the frozen work.
 
 **Start here (24 October 2026):** `docs/build-plan/phase-7/HANDOVER-2026-10-24.md`: open PRs and branches (7p, 7q, 7o),
 the next work in order, the RunPod CI runner plan and the token rules.

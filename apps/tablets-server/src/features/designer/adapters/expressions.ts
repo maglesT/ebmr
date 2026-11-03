@@ -5,7 +5,7 @@
  * simulator run in the designer's Web Worker later (A2); the server stays authoritative.
  */
 import type pg from 'pg';
-import { flow, validator } from '@ebmr/recipe-core/pure';
+import { flow, library, validator } from '@ebmr/recipe-core/pure';
 import { tabletsBlockCatalog } from '../../edition-blocks.ts';
 import { loadMarketMinimaPort } from './market-minima.ts';
 import { loadReferencePort, type ReferenceRow } from './references.ts';
@@ -87,7 +87,7 @@ export async function loadValidationContext(db: Db, mbr: flow.MbrContent, asOf?:
   const roles = await engineRoles(db);
   const checkers = await checkerRoles(db);
   return {
-    context: { expressions: EXPRESSIONS, blocks: BLOCK_CATALOG, references: refs.port, market: market.port, roles: { engineRoles: roles, checkers }, asOf: date },
+    context: { expressions: EXPRESSIONS, blocks: library.catalogWithLibrary(BLOCK_CATALOG, mbr), references: refs.port, market: market.port, roles: { engineRoles: roles, checkers }, asOf: date },
     asOf: date,
     references: refs.rows,
     minimaRequest: request,

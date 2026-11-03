@@ -461,6 +461,22 @@ export const TARGETS: Target[] = [
             k('sandbox/reporting-and-training.test.ts')],
     threshold: 90,
   },
+  // ---- Decision 0026 slice S3: the library of block definitions (recipe-core 1800) -------------------------------------
+  {
+    group: 'library-blocks',
+    functions: ['recipe.library_block_guard', 'recipe.library_block_state', 'recipe.library_block_content', 'recipe.draft_library_block',
+                'recipe.approve_library_block', 'recipe.retire_library_block',
+                // Decision 0026 slice S4 (recipe-core 1810): library entries, limits and snapshots in batches and masters.
+                'recipe.library_definition', 'recipe.library_field_schema', 'recipe.library_entry_schema', 'recipe.entry_schema_of',
+                'recipe.library_limits_problem', 'recipe.library_limits_check', 'recipe.library_snapshot_problem',
+                'recipe.library_at_approval_check', 'recipe.library_at_issue_check',
+                // Decision 0026 slice S6 (tablets 1803): lots, equipment and hand-keyed weighings of library entries.
+                'tab.library_smart_problem', 'tab.library_smart_fields_check',
+                // Decision 0026 slice S7 (recipe-core 1820): the catalogue load's author check.
+                'recipe.require_library_author'],
+    tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts')],
+    threshold: 90,
+  },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------
   {
     group: 'batch-number-register',
@@ -509,7 +525,9 @@ export const TARGETS: Target[] = [
                 'recipe.execution_entry_schema_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('blocks/reprocessing/db-guards.test.ts'), s('blocks/packaging/db-guards.test.ts'), s('blocks/granulation/db-guards.test.ts')],
+            s('blocks/reprocessing/db-guards.test.ts'), s('blocks/packaging/db-guards.test.ts'), s('blocks/granulation/db-guards.test.ts'),
+            // Decision 0026 slice S4: entry_schema_problem as recipe-core 1810 re-created it (library entries).
+            s('library/library-batch-gmp.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit follow-ups: once a witness is no longer possible, the later review and its WITNESS_LATE; the

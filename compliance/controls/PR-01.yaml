@@ -61,6 +61,13 @@ tests:
   - "tools/e2e/specs/phase7/own-product-gmp.spec.ts > [PR-01][PR-03][DI-04] Demotab 8: the packaging master as a copy of the approved cold-form master with Demotab's own printed foil and cartons; the checks pass; change control; the test package in the sandbox inbox @office"
   - "tools/e2e/specs/phase7/own-product-p3.spec.ts > [PR-01][PR-03][DI-04] Rabeprazole 8: the packaging master as a copy of the approved cold-form master with the product's own printed foil and cartons; the checks pass; change control; the test package in the sandbox inbox @office"
   - "apps/tablets-server/test/designer/copy-formula.test.ts > a copy names the copy's own materials (R10 #9, slice 7u) > [PR-01][INV-25] a parameter, calculation or step named after the source's active takes the name of this formula's active from its material master; the source is not changed"
+  - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-01][IN-13] shows the formula quantity and batch size the server scaled to this batch's issued size"
+  - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13] the formula line scales exactly from the reference size (the first listed) to the batch size"
+  - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01] the inputs are given in the unit the definition declares"
+  - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13][DI-33] one approved master runs each listed size, and the calculation reads the quantity scaled to the issued size"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libtab 400 mg, wet granulation, film coated (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libtab 250 mg, direct compression, uncoated (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/three-tablets.spec.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Rabeprazole sodium 20 mg, enteric coated, three coats (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:

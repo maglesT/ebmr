@@ -6,7 +6,8 @@
  * an error.
  */
 import { compareDecimal, durationToMicros } from '../flow/decimal.ts';
-import type { Edition } from '../flow/model.ts';
+import { childrenOf, type Edition, type FlowNode } from '../flow/model.ts';
+import type { LimitSpec } from '../limits/model.ts';
 import type { Analysis } from './analysis.ts';
 import { defineRule, error, label, type Rule } from './rule-kit.ts';
 import type { MinimaRequest, ResolvedMinimum, RuleFinding } from './types.ts';
@@ -16,7 +17,28 @@ export function boundRuleKeys(a: Pick<Analysis, 'mbr'>): string[] {
   const keys = new Set<string>();
   for (const p of a.mbr.parameters) if (p.marketRule) keys.add(p.marketRule.key);
   for (const t of a.mbr.timeConstraints) if (t.marketRule) keys.add(t.marketRule.key);
+  for (const l of libraryLimits(a)) keys.add(l.rule.key);
   return [...keys].sort();
+}
+
+/**
+ * Decision 0026 S9 (O-5): the limits of library steps that the formulation binds to a market rule (phase config
+ * marketRules by limit slot), so a library limit looser than the registered value is refused like a parameter's.
+ */
+function libraryLimits(a: Pick<Analysis, 'mbr'>): { subject: string; slot: string; limits: LimitSpec; rule: { key: string; bound: 'LOW' | 'HIGH' } }[] {
+  const out: { subject: string; slot: string; limits: LimitSpec; rule: { key: string; bound: 'LOW' | 'HIGH' } }[] = [];
+  const visit = (n: FlowNode): void => {
+    if (n.kind === 'phase' && n.block.type.startsWith('LIB-')) {
+      const config = n.config as { marketRules?: Record<string, { key: string; bound: 'LOW' | 'HIGH' }>; limits?: Record<string, LimitSpec> };
+      for (const [slot, rule] of Object.entries(config.marketRules ?? {})) {
+        const limits = config.limits?.[slot];
+        if (limits) out.push({ subject: n.id, slot, limits, rule });
+      }
+    }
+    for (const c of childrenOf(n)) visit(c);
+  };
+  visit(a.mbr.procedure.body);
+  return out;
 }
 
 export function minimaRequest(a: Pick<Analysis, 'mbr' | 'ctx'>): MinimaRequest {
@@ -54,6 +76,26 @@ function checkLimit(a: Analysis, m: Extract<ResolvedMinimum, { kind: 'LIMIT' }>)
             `The ${r.tier.toLowerCase().replace('_', ' ')} limit of ${label(a, p.id)} (${b ? b.value : 'none'} ${p.limits.unit}) is looser than ${m.bound === 'HIGH' ? 'the maximum' : 'the minimum'} of ${resolved} ${p.limits.unit} required by ${governs}`,
           ),
         );
+      }
+    }
+  }
+  for (const l of libraryLimits(a)) {
+    if (l.rule.key !== m.ruleKey) continue;
+    bound++;
+    if (l.rule.bound !== m.bound) {
+      out.push(error(l.subject, `${label(a, l.subject)} binds ${m.ruleKey} to ${l.slot} as a ${l.rule.bound.toLowerCase()} bound, but the rule is a ${m.bound.toLowerCase()} bound`));
+      continue;
+    }
+    const resolved = l.limits.unit === m.unit ? m.value : a.ctx.expressions.convert(m.value, m.unit, l.limits.unit);
+    if (resolved === undefined) {
+      out.push(error(l.subject, `${label(a, l.subject)}: ${l.slot} is in ${l.limits.unit}, which cannot be compared with ${m.ruleKey} in ${m.unit}`));
+      continue;
+    }
+    for (const r of l.limits.ranges) {
+      const b = m.bound === 'HIGH' ? r.high : r.low;
+      const looser = !b || (m.bound === 'HIGH' ? compareDecimal(b.value, resolved) > 0 : compareDecimal(b.value, resolved) < 0);
+      if (looser) {
+        out.push(error(l.subject, `The ${r.tier.toLowerCase().replace('_', ' ')} limit of ${label(a, l.subject)} for ${l.slot} (${b ? b.value : 'none'} ${l.limits.unit}) is looser than ${m.bound === 'HIGH' ? 'the maximum' : 'the minimum'} of ${resolved} ${l.limits.unit} required by ${governs} [PR-08; decision 0026 O-5]`));
       }
     }
   }

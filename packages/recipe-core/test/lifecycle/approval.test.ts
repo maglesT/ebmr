@@ -430,7 +430,8 @@ describe('verification before submission (DI-04, PR-02)', () => {
       ['VERIFICATION', 'PASS'],
       ['TEST_VECTORS', 'PASS'],
     ]);
-    expect((await lc.evidenceStatus(db.app, v.versionId)).missing).toEqual(['a passing sandbox test run on this exact content (SANDBOX_RUN)']);
+    // Decision 0026 O-2 (recipe-core 1830): a sandbox run is optional evidence; the three stored pieces complete it.
+    expect((await lc.evidenceStatus(db.app, v.versionId)).missing).toEqual([]);
   });
 
   it('[IN-13][INV-34] approve an MBR with one intermediate lacking a hold time: approval is refused (the validator fails on the stored content, naming the intermediate, and the version stays DRAFT)', async () => {
@@ -506,7 +507,8 @@ describe('verification before submission (DI-04, PR-02)', () => {
     await expect(w.submit(v.versionId)).rejects.toThrow(/evidence_complete: the verification evidence for this exact content is incomplete: missing a passing simulation/);
     const status = await lc.evidenceStatus(db.app, v.versionId);
     expect(status.complete).toBe(false);
-    expect(status.missing).toHaveLength(3);
+    // Decision 0026 O-2 (recipe-core 1830): the sandbox run is no longer among the missing pieces.
+    expect(status.missing).toHaveLength(2);
   });
 
   it('[DI-04] evidence is bound to the exact content hash: an edit voids it, and evidence for other content fails', async () => {
