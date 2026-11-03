@@ -20,7 +20,8 @@ into `dyn/v1-plan` when done. The status column is updated at the merge.
 | R3-VAL-8 | low | validation-kit qualification.ts, release.ts | Pack documents are RELEASED whatever the bundle holds | listed |
 | R3-ENG-1 | high | block-version.ts:439, 465 | An exhausted library loop raises only an ACTION exception; the final value's tier breach is lost | open |
 | R3-ENG-2 | high | block-version.ts:450 | Individual readings: judging stops at the first breach; a later, stricter-tier breach is lost | open |
-| R3-ENG-3 | high | check-use.ts:54, block-version.ts:398 | A `bomLines` value naming no BOM line switches off the material-identity check | open |
+| R3-ENG-3 | high | check-use.ts:54, block-version.ts:398 | A `bomLines` value naming no BOM line switches off the material-identity check | fixed (15870d3) |
+| R3-ENG-6 | medium | check-use.ts | A STEP_VALUE slot is only checked for being non-empty, not that the step and field exist in the master (found while fixing ENG-3) | open (after Phase B) |
 | R3-ENG-4 | medium | block-version.ts:476, 545 | IPC interval not checked from step start to the first round nor from the last round to perform | open |
 | R3-ENG-5 | medium | block-version.ts:297, check-use.ts | A non-critical until-field left without limits passes any value | open |
 | R3-SQL-1 | high | 1810:271, 298 | The database checks that a LIB_LIMIT_BREACH exists, not its facts (tier, severity, deviation) | open |
@@ -61,3 +62,7 @@ Notes from the fixes (for the owner):
   locally must be stamped again on a clean checkout of the same commit.
 - The restore drill test timed out on a heavily loaded machine (30 s default); its CI result decides whether it needs its
   own timeout.
+- R3-ENG-3: the route-master path has no such hole (G-07 refuses an unknown line; the database requires a consumed
+  line; the validator requires consumed lines to be BOM lines). Left as is: `recipe.lot_usability_problem` still skips a
+  line it cannot find, and the database does not itself check a master's consumed lines against its BOM (the validator
+  does); this matters only for a master that was never validated.
