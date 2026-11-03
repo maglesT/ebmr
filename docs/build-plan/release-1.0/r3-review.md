@@ -29,13 +29,14 @@ into `dyn/v1-plan` when done. The status column is updated at the merge.
 | R3-SQL-4 | medium | 1810:283 | No database guard on a library loop's repeats and exit | open |
 | R3-SQL-5 | medium | 1810:287 | A limited CALC value can be stored without the server's figure and evaluation record | open |
 | R3-SQL-6 | low | 1810:331 | Master approval does not re-check that required slots are filled (the validator does) | listed |
-| R3-APP-1 | high | from-formula.ts:92 | The skeleton's unit mass counts per-unit processing aids; the expected tablet count is too low | open |
-| R3-CAT-1 | high | seed/process.ts:100 | Potency dispensing corrects for water twice (as-is assay and LOD) | open |
-| R3-CAT-2 | high | seed process, coating, capsules | Material-lot fields without a BOM-line slot: the lot is not checked as the right material | open |
-| R3-CAT-3 | medium | seed/process.ts:649 | Geometric dilution weighings without BOM line, limit or diluent lot | open |
-| R3-CAT-4 | medium | seed/index.ts, library/index.ts:139 | The Tablets catalogue load includes the deferred hard-capsule blocks (owner: leave them out) | open |
-| R3-CAT-5 | medium | seed/process.ts:1034 | PROC-TRANSFER performed and checked by the same role | open |
-| R3-CAT-6 | medium | seed/tests-release.ts:198 | Content uniformity's AV constant is for 10 units but the count is free | open |
+| R3-APP-1 | high | from-formula.ts:92 | The skeleton's unit mass counts per-unit processing aids; the expected tablet count is too low | fixed (3b7fb32) |
+| R3-CAT-1 | high | seed/process.ts:100 | Potency dispensing corrects for water twice (as-is assay and LOD) | fixed (e9bd706) |
+| R3-CAT-2 | high | seed process, coating, capsules | Material-lot fields without a BOM-line slot: the lot is not checked as the right material | fixed (88607e7) |
+| R3-CAT-3 | medium | seed/process.ts:649 | Geometric dilution weighings without BOM line, limit or diluent lot | fixed (ce7496f) |
+| R3-CAT-4 | medium | seed/index.ts, library/index.ts:139 | The Tablets catalogue load includes the deferred hard-capsule blocks (owner: leave them out) | fixed (d0cb760) |
+| R3-CAT-5 | medium | seed/process.ts:1034 | PROC-TRANSFER performed and checked by the same role | fixed (25549ca) |
+| R3-CAT-6 | medium | seed/tests-release.ts:198 | Content uniformity's AV constant is for 10 units but the count is free | fixed (58b31d6) |
+| R3-APP-2 | medium | apps/tablets-server (formulary routes) | A second formula for the same product, strength and batch size gives a server error (500) instead of a refusal (found while fixing APP-1) | open |
 | R3-CAT-7 | low | seed/controls.ts:220 | Material reconciliation uses the formula quantity, not the issued one | listed |
 | R3-CAT-8 | low | seed/tests-ipc.ts:196 | Friability records no sample count | listed |
 | R3-CAT-9 | low | seed/capsules.ts:44 | Capsule size is a free choice | listed |
@@ -44,3 +45,11 @@ Checked without a finding (summary): the library routes' permissions, segregatio
 browser's lot and equipment facts refused; content hashes; snapshots at approval and issue; O-6; decimal handling and
 trusted time in the engine; the drill's row hashing, multiset comparison, SQL quoting and source isolation; the pack's
 escaping and AI inventory.
+
+Notes from the fixes (for the owner):
+- R3-CAT-3: one limit range covers every geometric-dilution step (49.5 to 404 g), since the additions double each step.
+- R3-CAT-6: the block covers the first stage only (exactly 10 units, held by a critical field with a 1-to-1 limit); a
+  second stage needs its own block.
+- Library blocks do not yet receive the lot's assay at run time (nothing fills LOT_ASSAY); when wired, a lot whose assay
+  is not on the dried basis should be refused.
+- Hard capsules, when they return, need the empty shells as a bill-of-materials line.
