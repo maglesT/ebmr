@@ -10,12 +10,12 @@ into `dyn/v1-plan` when done. The status column is updated at the merge.
 
 | Id | Severity | Where | Defect | Status |
 |---|---|---|---|---|
-| R3-VAL-1 | critical | tools/drills/src/upgrade.ts:288 | A table dropped or renamed by an upgrade is recorded DROPPED but the drill still passes | open |
-| R3-VAL-2 | high | tools/validation/src/reports.ts:124, bundle.ts:87 | Every report in the results directory is stamped with HEAD, so stale reports count as passed on the bundle's commit | open |
-| R3-VAL-3 | medium | validation-kit pack, bundle.ts | The pack prints the stored build status without recomputing it from the bundle | open |
-| R3-VAL-4 | medium | validation-kit pack/facts.ts:39 | `isDatabaseTest` trusts words in a test's title | open |
-| R3-VAL-5 | medium | upgrade.ts spot checks | A dry run with no signature, audit or unit spot check passes | open |
-| R3-VAL-6 | medium | upgrade.ts:297 | Rows added to record tables (ADDED_ONLY) pass | open |
+| R3-VAL-1 | critical | tools/drills/src/upgrade.ts:288 | A table dropped or renamed by an upgrade is recorded DROPPED but the drill still passes | fixed (662375e) |
+| R3-VAL-2 | high | tools/validation/src/reports.ts:124, bundle.ts:87 | Every report in the results directory is stamped with HEAD, so stale reports count as passed on the bundle's commit | fixed (e354d87) |
+| R3-VAL-3 | medium | validation-kit pack, bundle.ts | The pack prints the stored build status without recomputing it from the bundle | fixed (4be9072) |
+| R3-VAL-4 | medium | validation-kit pack/facts.ts:39 | `isDatabaseTest` trusts words in a test's title | fixed (eb81f44) |
+| R3-VAL-5 | medium | upgrade.ts spot checks | A dry run with no signature, audit or unit spot check passes | fixed (169a985) |
+| R3-VAL-6 | medium | upgrade.ts:297 | Rows added to record tables (ADDED_ONLY) pass | fixed (4cfe27e) |
 | R3-VAL-7 | low | tools/drills/src/restore.ts:176 | A longer restored chain counts as the same without a prefix check | listed |
 | R3-VAL-8 | low | validation-kit qualification.ts, release.ts | Pack documents are RELEASED whatever the bundle holds | listed |
 | R3-ENG-1 | high | block-version.ts:439, 465 | An exhausted library loop raises only an ACTION exception; the final value's tier breach is lost | open |
@@ -53,3 +53,11 @@ Notes from the fixes (for the owner):
 - Library blocks do not yet receive the lot's assay at run time (nothing fills LOT_ASSAY); when wired, a lot whose assay
   is not on the dried basis should be refused.
 - Hard capsules, when they return, need the empty shells as a bill-of-materials line.
+- R3-VAL-6: tables a release may grow are listed with a reason in `ADDED_ONLY_ALLOWED` (tools/drills/src/upgrade.ts);
+  the owner should look at `kernel.audit_event` and `iam.role_permission`. A future release's new catalogue table fails
+  the drill until listed (deliberate: a person reviews each one).
+- R3-VAL-2: every test report now carries a stamp (commit, clean tree, SHA-256) written by `pnpm validation:stamp`; a
+  report without one, from another commit or rewritten after stamping is refused. Reports copied from CI and rewritten
+  locally must be stamped again on a clean checkout of the same commit.
+- The restore drill test timed out on a heavily loaded machine (30 s default); its CI result decides whether it needs its
+  own timeout.
