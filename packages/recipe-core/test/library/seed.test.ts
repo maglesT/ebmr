@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
+import type { LimitSpec } from '../../src/limits/model.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
@@ -100,6 +101,21 @@ describe('the ready-made catalogue', () => {
       const roles = item.definition.signatures.map((x) => x.role);
       expect(new Set(roles).size, `${item.definition.code} ${roles.join(', ')}`).toBe(roles.length);
     }
+  });
+
+  it('[PR-08][PR-03] content uniformity holds its first-stage acceptance value to 10 units: a critical check that exactly 10 units were tested, a wider limit on it is flagged for a written reason, and a batch testing 30 units raises a registered-limit exception that blocks the step; the help states the first-stage scope (R3-CAT-6)', () => {
+    const item = byCode('REL-CONTENT-UNIFORMITY');
+    expect(fieldOf(item, 'tenUnits')).toMatchObject({ type: 'CALC', expression: 'count(content) == 10 ? 1 : 0', critical: true, limitSlot: 'tenUnits' });
+    expect(item.definition.referenceLimits?.['tenUnits']).toMatchObject({ low: '1', high: '1' });
+    expect(fieldOf(item, 'acceptanceValue').help).toMatch(/[Ff]irst stage.*exactly 10 units/);
+    expect(item.definition.instructions).toMatch(/First stage only/);
+    // A product widening the check to let another count pass is flagged at design until a reason is recorded (O-5).
+    const own = item.exampleUse.limits?.['tenUnits'] as LimitSpec;
+    const wider: LimitSpec = { ...own, ranges: own.ranges.map((r) => ({ ...r, low: { value: '0', inclusive: true } })) };
+    const use = { block: { code: item.definition.code, version: 1 }, ...item.exampleUse, counts: { units: '30' }, limits: { ...item.exampleUse.limits, tenUnits: wider } };
+    expect(checkBlockUse(item.definition, use, expr).map((p) => [p.code, p.path])).toEqual([['LIB-USE-LOOSER-THAN-REFERENCE', 'limits.tenUnits']]);
+    // A batch testing 30 units raises an exception on the check and cannot complete with it open (no wrong AV passes).
+    expect(() => nominalRun({ ...item, exampleUse: { ...item.exampleUse, counts: { units: '30' } } })).toThrow(/First stage: 10 units tested.*outside its registered limit/);
   });
 
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
