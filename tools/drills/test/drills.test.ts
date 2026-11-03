@@ -114,6 +114,28 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     expect(bad.report.spotChecks.some((x) => x.kind === 'UNIT_VALUE' && x.table === 'platform.setting_definition' && !x.same)).toBe(true);
     expect(bad.report.copy.dropped).toBe(true);
   });
+
+  it('[DI-48] a migration that drops or renames a database table holding records fails the dry run and names the table (R3-VAL-1)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-drop-'));
+    mkdirSync(join(dir, 'sql'));
+    writeFileSync(join(dir, 'sql', '9999_bad_rename.sql'), '-- Handbook: test only\nalter table platform.setting_definition rename to setting_definition_v2;\n');
+    const bad = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: [...tabletsMigrationSources(), { namespace: 'drill-test', directory: join(dir, 'sql') }],
+      fromRelease: manifest.release, reportDir: reports, spotChecks: 4, renderLimit: 1,
+    });
+    rmSync(dir, { recursive: true, force: true });
+    expect(bad.report.tables.find((t) => t.table === '"platform"."setting_definition"')?.status).toBe('DROPPED');
+    expect(bad.report.result).toBe('FAIL');
+    expect(bad.report.failures.join('\n')).toMatch(/"platform"\."setting_definition".*dropped/);
+  });
+
+  it('[DI-48] a dry run without a spot check of signatures, audit events and units has no evidence for them and fails (R3-VAL-5)', async () => {
+    const none = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: tabletsMigrationSources(), fromRelease: manifest.release, reportDir: reports, spotChecks: 0, renderLimit: 1,
+    });
+    expect(none.report.result).toBe('FAIL');
+    for (const kind of ['SIGNATURE', 'AUDIT_EVENT', 'UNIT_VALUE']) expect(none.report.failures.join('\n')).toContain(`no ${kind} spot check`);
+  });
 });
 
 describe('restore drill with its record (slice 7d)', () => {
