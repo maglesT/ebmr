@@ -74,6 +74,9 @@ export interface BuiltApp {
  * configured refuses to start (nobody could sign in); a standalone database ignores the setting.
  */
 async function platformState(pool: Pools['app'], config: ServerConfig, coreFetch?: FetchFn): Promise<AppContext['platform']> {
+  // A database at an earlier release (an upgrade or restore drill) has no platform build function: it is no platform build.
+  const { rows: fn } = await pool.query<{ present: boolean }>("select to_regprocedure('iam.platform_build()') is not null as present");
+  if (!fn[0]?.present) return { build: false, signon: null };
   const { rows } = await pool.query<{ build: boolean }>('select iam.platform_build() as build');
   if (!rows[0]?.build) return { build: false, signon: null };
   if (!config.oidc) throw new Error('this is a platform build: core sign-on (EBMR_OIDC_ISSUER, EBMR_OIDC_CLIENT_ID, EBMR_OIDC_REDIRECT_URI) must be configured');

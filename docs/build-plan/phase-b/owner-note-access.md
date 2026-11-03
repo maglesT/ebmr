@@ -55,8 +55,8 @@ core has passwords only. Shared terminals sign in at core.
 
 Batchwright never lets one person hold administration and GMP permissions at the same time (INV-11, DI-18, kernel static
 segregation). Core can give one person both. On the platform build, such a sign-on is refused with this message:
-"Your Batchwright permissions mix administration and GMP work, which Batchwright does not allow. Ask your platform
-administrator to give these permissions to two different people." The person's Batchwright grants are also revoked
+"Your permissions for this application mix administration and GMP work, which it does not allow. Ask your platform
+administrator to give these permissions to two different people." (The message names no product: GMP records keep the manufacturer's identity, decision 0020.) The person's Batchwright grants are also revoked
 until the codes are corrected. A person with administration codes plus governance or read-only codes chooses a work mode
 (Work or Administration) at sign-in.
 

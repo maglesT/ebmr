@@ -143,17 +143,17 @@ export async function platformAuthEvent(
       kind: 'NOT_ALLOWED',
       whatHappened:
         sync.reason === 'ADMINISTRATION_AND_GMP'
-          ? 'Your Batchwright permissions mix administration and GMP work, which Batchwright does not allow.'
-          : 'The platform gives you no Batchwright permission.',
+          ? 'Your permissions for this application mix administration and GMP work, which it does not allow.'
+          : 'The platform gives you no permission for this application.',
       why:
         sync.reason === 'ADMINISTRATION_AND_GMP'
-          ? 'One person never holds administration and GMP work together (INV-11, DI-18). You hold no Batchwright authority until this is corrected.'
-          : 'Only people with at least one Batchwright permission sign in here (PL-01).',
+          ? 'One person never holds administration and GMP work together (INV-11, DI-18). You hold no authority here until this is corrected.'
+          : 'Only people with at least one permission for this application sign in here (PL-01).',
       controls: ['DI-16', 'DI-18'],
       whatYouCanDo: [
         sync.reason === 'ADMINISTRATION_AND_GMP'
           ? 'Ask your platform administrator to give these permissions to two different people.'
-          : 'Ask your platform administrator for the Batchwright permissions your work needs.',
+          : 'Ask your platform administrator for the permissions your work needs here.',
       ],
       whoCanHelp: ['The platform administrator'],
     });

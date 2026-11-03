@@ -19,7 +19,7 @@
 --                              verified at core, PL-03), maps the token's ebmr.* codes back to today's codes and brings
 --                              the two mirror roles and their APPROVED grants in line with them, through the kernel's own
 --                              request and approval rows (a removed code is removed, a role left without codes has its
---                              grant revoked). Refused (and every mirror grant revoked) when the token holds no Batchwright
+--                              grant revoked). Refused (and every mirror grant revoked) when the token holds no code of this product
 --                              code (PL-01) or holds administration and GMP codes together (INV-11: never both, for one
 --                              person).
 --   iam.platform_auth_event(employee_id, purpose, challenge, fingerprint, auth_time, nonce)
@@ -232,7 +232,7 @@ begin
     into v_work, v_admin
     from iam.permission p where p.code = any (v_known);
   v_refusal := case
-    when cardinality(v_known) = 0 then 'NO_BATCHWRIGHT_CODE'
+    when cardinality(v_known) = 0 then 'NO_PRODUCT_CODE'
     when cardinality(v_admin) > 0 and exists (select 1 from iam.permission p where p.code = any (v_work) and p.domain = 'GMP') then 'ADMINISTRATION_AND_GMP'
   end;
 

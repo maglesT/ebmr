@@ -29,7 +29,7 @@ register (PL-02), not site configuration; the kernel already treats role grants 
   and a write that imitates a mirror role outside the sync alike, still needs an approved change record. Tests (control
   ID DI-09): `apps/tablets-server/test/medhanta/platform-signon.test.ts`, "change control of the mirror roles".
 - **D-B2-2 (INV-11, DI-18):** a token holding administration and GMP codes together is refused at sign-on, and the
-  person's mirror grants are revoked until core corrects the codes. The message: "Your Batchwright permissions mix
+  person's mirror grants are revoked until core corrects the codes. The message: "Your permissions for this application mix
   administration and GMP work, which Batchwright does not allow. Ask your platform administrator to give these
   permissions to two different people." Administration with governance or read-only codes chooses a work mode at sign-in.
 
