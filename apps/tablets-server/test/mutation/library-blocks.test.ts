@@ -632,6 +632,18 @@ describe('release review R3: the database judges library values as the engine do
       expect(await judged(c, points, { entries: { E1: entry('ipc', { wt: ['250'] }) } })).toBeNull();
       // Of two readings at the most severe tier, the first is named.
       expect(await judged(c, { limits: { ind: RANGE('mg', '237.5', '262.5') } }, { entries: { E1: entry('ipc', { wt: ['250', '270', '280'] }) } })).toMatch(/^stores wt \(individual\) = 270 mg/);
+      // The engine's RSD breach is admitted with the facts of one of the limit's tiers, once; not with other facts, not twice,
+      // and not without an RSD limit.
+      const rsd = { limits: { rsd: RANGE('mg', null, '0.0001') } };
+      const W2 = { E1: entry('ipc', { wt: ['250', '260'] }) };
+      expect(await judged(c, rsd, { entries: W2, exceptions: { X1: breach('p-lib.wt') } })).toBeNull();
+      expect(await judged(c, rsd, { entries: W2, exceptions: { X1: breach('p-lib.wt'), X2: breach('p-lib.wt', {}, 'X2') } })).toMatch(/^adds exception X2 /);
+      expect(await judged(c, rsd, { entries: W2, exceptions: { X1: alertBreach('p-lib.wt') } })).toMatch(/^adds exception X1 /);
+      expect(await judged(c, {}, { entries: W2, exceptions: { X1: breach('p-lib.wt') } })).toMatch(/^adds exception X1 /);
+      const rsdAction = { limits: { rsd: { ...RANGE('mg', null, '0.0001', 'INTERNAL_ACTION'), actionBreach: 'CONTINUE_CURRENT_STEP_WITH_DEVIATION' } } };
+      const actionFacts = { severity: 'ACTION', registrationRelevant: false, qaOnly: false, stageSignOffBlocked: false, releaseBlocking: false, title: 'x [internal action tier]' };
+      expect(await judged(c, rsdAction, { entries: W2, exceptions: { X1: breach('p-lib.wt', { ...actionFacts, block: { steps: [], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } } }) } })).toBeNull();
+      expect(await judged(c, rsdAction, { entries: W2, exceptions: { X1: breach('p-lib.wt', actionFacts) } })).toMatch(/^adds exception X1 /);
       // A zero duration in a unit the engine's durations do not hold is not worked out either.
       expect((await c.query<{ d: string | null }>("select recipe.library_timer_duration(5, 5, 'wk') as d")).rows[0]?.d).toBeNull();
       // The trigger also runs for a library exception added after a state that had no exceptions member.

@@ -19,7 +19,8 @@
 --     exception): each statistic but RSD (individual readings, minimum, maximum, mean, range; plain decimal arithmetic
 --     on the entered readings), of the readings or of each point's readings for a profile, against the slot's limits
 --     or the point's; per statistic and point, the most severe tier any value breaches requires its exception (R3-ENG-2).
---     RSD needs a square root at the engine's precision; it stays the engine's judgement.
+--     RSD needs a square root at the engine's precision; it stays the engine's judgement, and the engine's RSD breach is
+--     admitted (not required) when its facts are those of one of that limit's tiers.
 --   * R3-SQL-3: a timer's duration is no longer the application's figure: the database works it out from the trusted
 --     recordedAt of the timer's start and of its stop, in the field's duration unit (ms, s, min, h or d, the units the
 --     engine's durations hold), and refuses a stop without its start, another figure or another unit.
@@ -145,6 +146,8 @@ declare
   v_max    integer;
   v_pass   boolean;
   v_exhausted boolean;
+  v_opt    jsonb[] := '{}';
+  v_opt_used boolean[] := '{}';
 begin
   for k, e in select y.key, y.value from jsonb_each(e1) y where not (e0 ? y.key) order by y.key loop
     v_step := p_new -> 'steps' -> (e ->> 'stepKey') ->> 'step';
@@ -290,16 +293,28 @@ begin
     -- Test results (R3-SQL-2): each statistic's values, of the readings or of each point's readings, against its limits.
     for f in select y from jsonb_array_elements(s -> 'fields') y where y ->> 'type' = 'TEST_RESULT' and e -> 'data' ? (y ->> 'id') loop
       v_item := v_step || '.' || (f ->> 'id');
-      -- One judgement per statistic (RSD excepted: a square root the database does not take), and per point of a profile.
+      -- One judgement per statistic, and per point of a profile.
       for st, v_pt in select q1.st, case when (f -> 'perPoint') = 'true'::jsonb then p.pt end
                         from jsonb_array_elements(case when jsonb_typeof(f -> 'statistics') = 'array' then f -> 'statistics' else '[]'::jsonb end) with ordinality q1 (st, n1)
                         cross join jsonb_array_elements(case when (f -> 'perPoint') = 'true'::jsonb
                                                              then case when jsonb_typeof(v_node -> 'config' -> 'points' -> (f ->> 'id')) = 'array' then v_node -> 'config' -> 'points' -> (f ->> 'id') else '[]'::jsonb end
                                                              else '[null]'::jsonb end) with ordinality p (pt, n2)
-                       where q1.st ->> 'statistic' is distinct from 'RSD'
                        order by q1.n1, p.n2 loop
         v_spec := case when v_pt is not null then v_pt -> 'limits' else v_node -> 'config' -> 'limits' -> (st ->> 'limitSlot') end;
         if v_spec is null then
+          continue;
+        end if;
+        -- RSD needs a square root at the engine's precision, which the database does not take: the engine's breach of it is
+        -- admitted (not required) when its facts are those of one of the limit's tiers.
+        if st ->> 'statistic' = 'RSD' then
+          if v_inst is not null then
+            for x in select r from jsonb_array_elements(case when jsonb_typeof(v_spec -> 'ranges') = 'array' then v_spec -> 'ranges' else '[]'::jsonb end) r loop
+              v_ev := jsonb_build_object('breached', x -> 'tier', 'rank', case x ->> 'tier' when 'ALERT' then 1 when 'INTERNAL_ACTION' then 2 when 'REGISTERED' then 3 when 'VALIDATED' then 3 end,
+                                         'continueAllowed', x ->> 'tier' = 'INTERNAL_ACTION' and (v_spec -> 'actionBreach') = '"CONTINUE_CURRENT_STEP_WITH_DEVIATION"'::jsonb);
+              v_opt := v_opt || recipe.library_breach_record(v_spec, v_ev, v_inst, recipe.step_graph_node(p_content, v_step), v_item, e ->> 'enteredBy');
+              v_opt_used := v_opt_used || false;
+            end loop;
+          end if;
           continue;
         end if;
         if (v_spec ->> 'unit') is distinct from (f ->> 'unit') then
@@ -344,6 +359,20 @@ begin
         exit;
       end if;
     end loop;
+    if v_hit is null then
+      -- An engine's RSD breach the row's judgement admits (each once).
+      for i in 1 .. coalesce(array_length(v_opt, 1), 0) loop
+        if not v_opt_used[i] and x ->> 'id' = k
+           and (x - 'id' - 'title' - 'raisedAt' - 'raisedSeq') || jsonb_strip_nulls(jsonb_build_object('tierTag', substring(x ->> 'title' from ' \[[a-z ]+ tier\]$'))) = v_opt[i] then
+          v_opt_used[i] := true;
+          v_hit := 0;
+          exit;
+        end if;
+      end loop;
+    end if;
+    if v_hit = 0 then
+      continue;
+    end if;
     if v_hit is null then
       v_extra := coalesce(v_extra, format('adds exception %s (%s, severity %s, item %s), which no value of the row requires with these facts', k, x ->> 'type',
                                           coalesce(x ->> 'severity', 'none'), coalesce(x -> 'source' ->> 'item', 'none')));
