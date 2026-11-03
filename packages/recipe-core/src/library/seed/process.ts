@@ -658,7 +658,8 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'mixer', label: 'Mixer', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'mixerClass' },
             { id: 'activeLot', label: 'Active lot', type: 'MATERIAL_LOT', bomLineSlot: 'activeLine' },
-            { id: 'activeQty', label: 'Active charged', type: 'WEIGHING', unit: 'g' },
+            { id: 'activeQty', label: 'Active charged', type: 'WEIGHING', unit: 'g', bomLine: true, limitSlot: 'activeQty' },
+            { id: 'diluentLot', label: 'Diluent lot', type: 'MATERIAL_LOT', bomLineSlot: 'diluentLine' },
           ],
         },
         {
@@ -666,7 +667,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           title: 'Dilution step',
           repeat: { kind: 'COUNT', countSlot: 'dilutionSteps' },
           fields: [
-            { id: 'diluentQty', label: 'Diluent added in this step', type: 'WEIGHING', unit: 'g' },
+            { id: 'diluentQty', label: 'Diluent added in this step', help: 'Each addition equals the mix in hand; the limits span the planned additions, from the first (equal to the active) to the last.', type: 'WEIGHING', unit: 'g', bomLine: true, limitSlot: 'diluentQty' },
             { id: 'stepMixTime', label: 'Mixing time of this step', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'stepMixTime', critical: true },
             { id: 'uniform', label: 'Mix visually uniform', type: 'YES_NO', expected: true },
           ],
@@ -676,17 +677,18 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           title: 'Output',
           fields: [
             { id: 'container', label: 'Premix container', type: 'CONTAINER', action: 'REGISTER' },
-            { id: 'net', label: 'Premix net weight', type: 'WEIGHING', unit: 'g' },
+            { id: 'net', label: 'Premix net weight', type: 'WEIGHING', unit: 'g', limitSlot: 'premixNet' },
           ],
         },
       ],
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      limits: { stepMixTime: reg('min', '4', '6') },
-      targets: { stepMixTime: '5' },
+      // 50 g of active doubled four times: additions of 50, 100, 200 and 400 g, a premix of 800 g.
+      limits: { activeQty: reg('g', '49.5', '50.5'), diluentQty: reg('g', '49.5', '404.0'), premixNet: reg('g', '790', '805'), stepMixTime: reg('min', '4', '6') },
+      targets: { activeQty: '50.0', premixNet: '800', stepMixTime: '5' },
       equipmentClasses: { mixerClass: 'PLANETARY-MIXER' },
-      bomLines: { activeLine: 'L1' },
+      bomLines: { activeLine: 'L1', diluentLine: 'L2' },
       counts: { dilutionSteps: '4' },
     },
   },

@@ -80,6 +80,21 @@ describe('the ready-made catalogue', () => {
     }
   });
 
+  it('[PR-19][PR-03] geometric dilution weighs the active and each diluent addition as bill-of-materials lines against limits, records the diluent lot as its line\'s material, and limits the premix net (R3-CAT-3)', () => {
+    const item = byCode('PROC-GEO-DIL');
+    for (const id of ['activeQty', 'diluentQty']) {
+      const f = fieldOf(item, id);
+      expect(f.type, id).toBe('WEIGHING');
+      expect(f.type === 'WEIGHING' && f.bomLine, id).toBe(true);
+      expect(f.type === 'WEIGHING' && f.limitSlot !== undefined && item.exampleUse.limits?.[f.limitSlot] !== undefined, id).toBe(true);
+    }
+    const net = fieldOf(item, 'net');
+    expect(net.type === 'WEIGHING' && net.limitSlot !== undefined && item.exampleUse.limits?.[net.limitSlot] !== undefined).toBe(true);
+    const diluentLot = item.definition.sections.flatMap((s) => s.fields).find((f) => f.type === 'MATERIAL_LOT' && f.bomLineSlot === 'diluentLine');
+    expect(diluentLot).toBeDefined();
+    expect(item.exampleUse.bomLines?.['diluentLine']).toBeDefined();
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);
