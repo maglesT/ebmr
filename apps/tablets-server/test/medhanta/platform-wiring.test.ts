@@ -90,6 +90,13 @@ describe('MEDHANTA platform wiring (Phase B slice 1)', () => {
     expect(s.filter((x) => x.sql.includes(' nologin')).map((x) => x.params[0]).sort())
       .toEqual(['ebmr_listener', 'ebmr_report', 'ebmr_sandbox', 'ebmr_sandbox_listener']);
     expect(() => extraLoginStatements({ authn: 'short', analytics: 'another-long-secret' })).toThrow(/ebmr_authn must have at least 16/);
+    // A run that stopped part-way locks every extra login, whatever the passwords.
+    expect(extraLoginStatements({ authn: 'short', analytics: 'short' }, true).every((x) => x.sql.includes(' nologin'))).toBe(true);
+  });
+
+  it('[DI-13] a short secret stops the migrator before it changes anything', async () => {
+    await expect(platformMigrate({ url: urlFor(database), passwords: { authn: 'short', analytics: 'y'.repeat(16) }, keysDir, setLogins: false }))
+      .rejects.toThrow(/at least 16 characters/);
   });
 
   it('[DI-13] on the platform every database URL is on verified TLS against the platform database\'s certificate', () => {

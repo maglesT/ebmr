@@ -42,15 +42,20 @@ export interface ExtraPasswords {
   analytics: string;
 }
 
-/** Step 4: ebmr_authn and ebmr_analytics log in with their passwords; every other extra login is NOLOGIN (format() quotes). */
-export function extraLoginStatements(p: ExtraPasswords): { sql: string; params: string[] }[] {
-  const used: Partial<Record<(typeof EXTRA_LOGINS)[number], string>> = { ebmr_authn: p.authn, ebmr_analytics: p.analytics };
-  for (const [role, pw] of Object.entries(used)) if (pw.length < 16) throw new Error(`the password of ${role} must have at least 16 characters`);
+/**
+ * Step 4: ebmr_authn and ebmr_analytics log in with their passwords; every other extra login is NOLOGIN. With
+ * `lockAll` (a migration failed) every extra login is NOLOGIN, so no default password from a migration stays usable.
+ * A role that does not exist yet is skipped (format() quotes; the statement is empty then).
+ */
+export function extraLoginStatements(p: ExtraPasswords, lockAll = false): { sql: string; params: string[] }[] {
+  const used: Partial<Record<(typeof EXTRA_LOGINS)[number], string>> = lockAll ? {} : { ebmr_authn: p.authn, ebmr_analytics: p.analytics };
+  if (!lockAll) for (const [role, pw] of Object.entries(used)) if (pw.length < 16) throw new Error(`the password of ${role} must have at least 16 characters`);
+  const exists = 'where exists (select from pg_catalog.pg_roles where rolname = $1::text)';
   return EXTRA_LOGINS.map((role) => {
     const pw = used[role];
     return pw !== undefined
-      ? { sql: `select format('alter role %I login password %L', $1::text, $2::text) as ddl`, params: [role, pw] }
-      : { sql: `select format('alter role %I nologin', $1::text) as ddl`, params: [role] };
+      ? { sql: `select format('alter role %I login password %L', $1::text, $2::text) as ddl ${exists}`, params: [role, pw] }
+      : { sql: `select format('alter role %I nologin', $1::text) as ddl ${exists}`, params: [role] };
   });
 }
 
@@ -64,32 +69,46 @@ export interface PlatformMigrateOptions {
 }
 
 export async function platformMigrate(opts: PlatformMigrateOptions): Promise<{ applied: number }> {
+  // The passwords are checked before anything changes (a short secret stops the run here).
+  const logins = extraLoginStatements(opts.passwords);
   const client = new pg.Client({ connectionString: opts.url });
   await client.connect();
+  let ok = false;
   try {
     await client.query(`select format('revoke temporary on database %I from public', current_database()) as ddl`)
       .then((r) => client.query((r.rows[0] as { ddl: string }).ddl));
     const applied = await migrate(client, platformSources());
     await client.query('select sandbox.apply_connect_policy()');
-    if (opts.setLogins !== false) {
-      for (const s of extraLoginStatements(opts.passwords)) {
-        const { rows } = await client.query<{ ddl: string }>(s.sql, s.params);
-        await client.query(rows[0]!.ddl);
-      }
-    }
+    if (opts.setLogins !== false) await runAll(client, logins);
     writeKeysOnce(opts.keysDir);
+    ok = true;
     return { applied: applied.length };
   } finally {
+    // A run that stopped part-way locks every extra login the migrations may have created with a default password.
+    if (!ok && opts.setLogins !== false) await runAll(client, extraLoginStatements(opts.passwords, true)).catch(() => undefined);
     await client.end();
+  }
+}
+
+async function runAll(client: pg.Client, statements: { sql: string; params: string[] }[]): Promise<void> {
+  for (const s of statements) {
+    const { rows } = await client.query<{ ddl: string }>(s.sql, s.params);
+    if (rows[0]) await client.query(rows[0].ddl);
   }
 }
 
 /** The keys the installer generates once (tools/install plan, "keep"), under the platform's file names. */
 export function writeKeysOnce(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
+  // 'wx': never overwrite, also when two runs race (the second one keeps the first one's file).
   const keep = (file: string, content: string) => {
     const path = join(dir, file);
-    if (!existsSync(path)) writeFileSync(path, content, { mode: 0o600 });
+    if (existsSync(path)) return;
+    try {
+      writeFileSync(path, content, { mode: 0o600, flag: 'wx' });
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+    }
   };
   const random = () => randomBytes(32).toString('hex');
   keep('secrets.json', `${JSON.stringify({ csrfHmacKey: random(), nonceKey: random() }, null, 2)}\n`);
