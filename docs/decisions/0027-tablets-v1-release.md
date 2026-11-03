@@ -15,6 +15,8 @@
 - **V3:** a focused mutation campaign runs on the library's guard code only (SQL and TypeScript of S1 to S11 and the
   S11b skeleton changes), in a box of a few pod hours. Scores are reported against decision 0008's targets. A
   Priority 1 defect is always fixed; a missed target does not block the release.
+  Asked on 3 November whether it is needed, the owner confirmed it ("go for it"); it runs in the session container
+  (the library-blocks SQL group, 130 mutants, and Stryker on the library's TypeScript), the pod being kept for R6.
 - **V4:** release tests are not signed inside the batch record in v1.0. They stay QC's record on the lot (D-S11-R1).
   QC roles on the floor are a feature for after v1.0.
 - **V5:** O-7 (b) is not taken before v1.0. Every E2E group runs on every PR until the tag; reconsider after it.
