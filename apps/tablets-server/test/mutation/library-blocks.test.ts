@@ -309,7 +309,14 @@ const breach = (item: string, extra: Json = {}, id = 'X1'): Json => ({
   block: { steps: ['p-lib@'], until: 'DEVIATION', downstream: { node: 'task:p-lib', frames: [] } },
   ...extra,
 });
-const timer = (field: string, value?: string): Json => entry('TIMER_STOP', { field, ...(value === undefined ? {} : { duration: { value, unit: 'min' } }) });
+/**
+ * A timer's start (entry S-<field>, at trusted time 0) and its stop (entry E1) `minutes` later, the stop carrying the
+ * duration `value` in `unit` (R3-SQL-3: the database works the duration out from the two times).
+ */
+const timer = (field: string, value: string | undefined, minutes: number, unit = 'min'): Json => ({
+  [`S-${field}`]: { ...(entry('TIMER_START', { field }) as Record<string, Json>), recordedAt: { $u: '0' } },
+  E1: { ...(entry('TIMER_STOP', { field, ...(value === undefined ? {} : { duration: { value, unit } }) }) as Record<string, Json>), recordedAt: { $u: String(BigInt(minutes) * 60_000_000n) } },
+});
 
 /** recipe.library_limits_problem for a row moving from `old` to `next` (entries and exceptions over the same steps). */
 async function limits(c: PoolClient, old: { entries?: Json; exceptions?: Json }, next: { entries?: Json; exceptions?: Json }): Promise<string | null> {
@@ -358,17 +365,19 @@ describe('library values against the formulation\'s limits (recipe-core 1810)', 
 
   it('[PR-08] a timer\'s duration is read in its own unit: a limit in another unit and a missing duration are refused, each on its own; another field of the block is not the timer', async () => {
     await inCommand(gmp, 'author', async (c) => {
-      expect(await limits(c, {}, { entries: { E1: timer('t2', '20') } })).toMatch(/^stores the stop of timer t2 at step p-lib without a duration the database can read/);
-      expect(await limits(c, {}, { entries: { E1: timer('t1') } })).toMatch(/^stores the stop of timer t1 at step p-lib without a duration the database can read/);
-      expect(await limits(c, {}, { entries: { E1: timer('t1', 'soon') } })).toMatch(/^stores the duration soon of timer t1 at step p-lib, which the database cannot read/);
-      expect(await limits(c, {}, { entries: { E1: timer('t1', '20') } })).toBeNull();
-      expect(await limits(c, {}, { entries: { E1: timer('t1', '45') } })).toMatch(/^stores timer t1 at step p-lib with 45 min, outside its \w+ limit, without the LIB_LIMIT_BREACH/);
+      // R3-SQL-3 wording: the duration is now worked out from the start and the stop, so a missing or unreadable figure is
+      // refused as another figure than the trusted one, and a limit in another unit than the timer's as such.
+      expect(await limits(c, {}, { entries: timer('t2', '1200', 20, 's') })).toBe('stores timer t2 at step p-lib, whose limit is not written in the timer\'s unit s');
+      expect(await limits(c, {}, { entries: timer('t1', undefined, 20) })).toBe('stores timer t1 at step p-lib with a duration of none (no unit), where its start and stop on trusted time give 20 min');
+      expect(await limits(c, {}, { entries: timer('t1', 'soon', 20) })).toMatch(/^stores timer t1 at step p-lib with a duration of soon min, where/);
+      expect(await limits(c, {}, { entries: timer('t1', '20', 20) })).toBeNull();
+      expect(await limits(c, {}, { entries: timer('t1', '45', 45) })).toMatch(/^stores timer t1 at step p-lib with 45 min, outside its \w+ limit, without the LIB_LIMIT_BREACH/);
     });
   });
 
   it('[PR-08] only a new LIB_LIMIT_BREACH of this step and this item admits a timer outside its limit', async () => {
     await inCommand(gmp, 'author', async (c) => {
-      const E = { E1: timer('t1', '45') };
+      const E = timer('t1', '45', 45);
       expect(await limits(c, {}, { entries: E, exceptions: { X1: breach('p-lib.t1') } })).toBeNull();
       for (const x of [breach('p-lib.t1', { type: 'OUT_OF_LIMIT' }), breach('p-lib.t1', { source: { stepKey: 'p-lib@2', item: 'p-lib.t1' } }), breach('p-lib.t2')]) {
         expect(await limits(c, {}, { entries: E, exceptions: { X1: x } }), JSON.stringify(x)).toMatch(/^stores timer t1 .* without the LIB_LIMIT_BREACH/);
@@ -465,6 +474,41 @@ describe('release review R3: the database judges library values as the engine do
       expect(await judged(c, { limits: { min: RANGE('g', '0.24', null) } }, { entries: ipc(['250']) })).toBe('stores wt at step p-lib, whose min limit is not written in the field\'s unit mg');
       expect(await judged(c, { limits: { min: RANGE('mg', '240', null) } }, { entries: ipc(['2.5e2']) })).toBe('stores wt at step p-lib with readings the database cannot read');
       expect(await judged(c, { limits: { min: RANGE('mg', '240', null) } }, { entries: ipc('250') })).toBe('stores wt at step p-lib with readings the database cannot read');
+    });
+  });
+
+  it('[PR-30][PR-08] R3-SQL-3: a timer\'s duration is the time between its start and its stop on trusted time, in the timer\'s unit; another figure, another unit or a stop without its start is refused', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      // The finding: a 45-minute hold stored as 20 minutes, inside its 30-minute limit.
+      expect(await limits(c, {}, { entries: timer('t1', '20', 45) })).toBe('stores timer t1 at step p-lib with a duration of 20 min, where its start and stop on trusted time give 45 min');
+      expect(await limits(c, {}, { entries: timer('t1', '2700', 45, 's') })).toBe('stores timer t1 at step p-lib with a duration of 2700 s, where its start and stop on trusted time give 45 min');
+      expect(await limits(c, {}, { entries: timer('t1', '45.0', 45) })).toMatch(/^stores timer t1 at step p-lib with a duration of 45\.0 min, where/);
+      const inSeconds = { limits: { t2: RANGE('s', null, '1800') } };
+      expect(await judged(c, inSeconds, { entries: timer('t2', '1200', 20, 's') })).toBeNull();
+      expect(await judged(c, inSeconds, { entries: timer('t2', '20', 20) })).toMatch(/^stores timer t2 at step p-lib with a duration of 20 min, where its start and stop on trusted time give 1200 s$/);
+      // A duration that is no whole number of the unit: the engine's quotient, to 34 significant digits.
+      const stopAt = (us: string, value: string): Json => {
+        const t = timer('t1', value, 0) as Record<string, Record<string, Json>>;
+        return { ...t, E1: { ...t['E1'], recordedAt: { $u: us } } };
+      };
+      expect(await limits(c, {}, { entries: stopAt('35000000', '0.5833333333333333333333333333333333') })).toBeNull();
+      expect(await limits(c, {}, { entries: stopAt('35000000', '0.583') })).toMatch(/give 0\.5833333333333333333333333333333333 min$/);
+      // A stop without its start, or with only another timer's or another step instance's start.
+      const stop = (timer('t1', '20', 20) as Record<string, Json>)['E1'];
+      expect(await limits(c, {}, { entries: { E1: stop } })).toBe('stores the stop of timer t1 at step p-lib without its start');
+      expect(await limits(c, {}, { entries: { E1: stop, S1: { ...(entry('TIMER_START', { field: 't2' }) as Record<string, Json>), recordedAt: { $u: '0' } }, S2: { ...(entry('TIMER_START', { field: 't1' }, 'p-smart@') as Record<string, Json>), recordedAt: { $u: '0' } } } })).toBe('stores the stop of timer t1 at step p-lib without its start');
+      // A start the previous state already held counts (the stop is the new entry).
+      const t = timer('t1', '20', 20) as Record<string, Json>;
+      expect(await limits(c, { entries: { 'S-t1': t['S-t1'] } }, { entries: t })).toBeNull();
+      // A stop recorded before its start cannot be worked out.
+      expect(await limits(c, {}, { entries: { ...t, 'S-t1': { ...(t['S-t1'] as Record<string, Json>), recordedAt: { $u: '9999999999' } } } })).toBe('stores the stop of timer t1 at step p-lib, whose duration in min the database cannot work out from its start and stop');
+      // The conversion of each unit the engine's durations hold.
+      const dur = async (start: string, stopUs: string, unit: string): Promise<string | null> =>
+        (await c.query<{ d: string | null }>('select recipe.library_timer_duration($1::bigint, $2::bigint, $3) as d', [start, stopUs, unit])).rows[0]?.d ?? null;
+      expect(await Promise.all([dur('0', '1234567', 'ms'), dur('0', '1234567', 's'), dur('0', '3840000000', 'h'), dur('100', '100', 'min'), dur('0', '7', 'd'), dur('0', '100000000000', 'h')])).toEqual([
+        '1234.567', '1.234567', '1.066666666666666666666666666666667', '0', '0.00000000008101851851851851851851851851851852', '27.77777777777777777777777777777778',
+      ]);
+      expect(await Promise.all([dur('0', '60000000', 'wk'), dur('5', '1', 'min'), dur('0', '36000000', 'h'), dur('0', '60000000', 'min')])).toEqual([null, null, '0.01', '1']);
     });
   });
 

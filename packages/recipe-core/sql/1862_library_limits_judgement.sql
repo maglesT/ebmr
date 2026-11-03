@@ -20,8 +20,11 @@
 --     on the entered readings), of the readings or of each point's readings for a profile, against the slot's limits
 --     or the point's; per statistic and point, the most severe tier any value breaches requires its exception (R3-ENG-2).
 --     RSD needs a square root at the engine's precision; it stays the engine's judgement.
+--   * R3-SQL-3: a timer's duration is no longer the application's figure: the database works it out from the trusted
+--     recordedAt of the timer's start and of its stop, in the field's duration unit (ms, s, min, h or d, the units the
+--     engine's durations hold), and refuses a stop without its start, another figure or another unit.
 --
---   recipe.library_breach_record, recipe.library_statistic: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
+--   recipe.library_breach_record, recipe.library_statistic, recipe.library_timer_duration: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
 --   their latest definitions (1810). The trigger zzg_library_limits is unchanged.
 
 set local role ebmr_owner;
@@ -59,6 +62,20 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
                  end
             from (select (r #>> '{}')::numeric as v from jsonb_array_elements(p_readings) r) q)
   end
+$$;
+
+-- The duration from p_start to p_stop (epoch microseconds) in time unit p_unit, as block-version.ts acceptTimer gives it:
+-- the exact quotient, rounded to 34 significant digits as @ebmr/expr's Dec divides (half-even; a quotient that needs
+-- rounding has a factor 3 or 7 in its divisor and so never ends in an exact half), written without trailing zeros. NULL
+-- for a time unit the engine's durations do not hold, or times that are not in order.
+create function recipe.library_timer_duration(p_start bigint, p_stop bigint, p_unit text) returns text
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select case when q.us is null or q.per is null then null
+              when q.us = 0 then '0'
+              else (select trim_scale(round(r.v, 33 - floor(log(r.v))::integer))::text from (select q.us::numeric(1000, 60) / q.per as v) r)
+         end
+    from (select case when p_stop >= p_start then p_stop - p_start end as us,
+                 (case p_unit when 'ms' then 1000 when 's' then 1000000 when 'min' then 60000000 when 'h' then 3600000000 when 'd' then 86400000000 end)::numeric as per) q
 $$;
 
 -- PR-08 (header): library values against the formulation's limits; the row adds exactly the exceptions they require.
@@ -105,13 +122,32 @@ begin
     end if;
     v_inst := recipe.limit_instance(p_new, e ->> 'stepKey', v_step);
     if e ->> 'kind' = 'TIMER_STOP' then
-      select y into f from jsonb_array_elements(d -> 'sections') sec, jsonb_array_elements(sec -> 'fields') y where y ->> 'id' = e -> 'data' ->> 'field' limit 1;
-      v_val := e -> 'data' -> 'duration' ->> 'value';
+      select y into f from jsonb_array_elements(d -> 'sections') sec, jsonb_array_elements(sec -> 'fields') y
+       where y ->> 'id' = e -> 'data' ->> 'field' and y ->> 'type' = 'TIMER' limit 1;
+      if f is null then
+        continue;
+      end if;
+      -- R3-SQL-3: the duration is the time from the timer's start to this stop, both recorded on trusted time, in the
+      -- field's unit (block-version.ts acceptTimer); the application's figure is compared with it.
       v_unit := coalesce(f ->> 'durationUnit', 'min');
+      select y.value into x from jsonb_each(e1) y
+       where y.value ->> 'kind' = 'TIMER_START' and y.value ->> 'stepKey' = e ->> 'stepKey' and y.value -> 'data' ->> 'field' = f ->> 'id'
+       order by recipe.micros_of(y.value -> 'recordedAt') limit 1;
+      if x is null then
+        return format('stores the stop of timer %s at step %s without its start', f ->> 'id', v_step);
+      end if;
+      v_val := recipe.library_timer_duration(recipe.micros_of(x -> 'recordedAt'), recipe.micros_of(e -> 'recordedAt'), v_unit);
+      if v_val is null then
+        return format('stores the stop of timer %s at step %s, whose duration in %s the database cannot work out from its start and stop', f ->> 'id', v_step, v_unit);
+      end if;
+      if (e -> 'data' -> 'duration' -> 'unit') is distinct from to_jsonb(v_unit) or (e -> 'data' -> 'duration' -> 'value') is distinct from to_jsonb(v_val) then
+        return format('stores timer %s at step %s with a duration of %s %s, where its start and stop on trusted time give %s %s', f ->> 'id', v_step,
+                      coalesce(e -> 'data' -> 'duration' ->> 'value', 'none'), coalesce(e -> 'data' -> 'duration' ->> 'unit', '(no unit)'), v_val, v_unit);
+      end if;
       v_spec := case when f ? 'limitSlot' then v_node -> 'config' -> 'limits' -> (f ->> 'limitSlot') end;
       if v_spec is not null then
-        if v_val is null or (v_spec ->> 'unit') is distinct from v_unit then
-          return format('stores the stop of timer %s at step %s without a duration the database can read against its limit', f ->> 'id', v_step);
+        if (v_spec ->> 'unit') is distinct from v_unit then
+          return format('stores timer %s at step %s, whose limit is not written in the timer''s unit %s', f ->> 'id', v_step, v_unit);
         end if;
         v_ev := recipe.limit_reading(v_spec, v_val);
         if v_ev is null then
@@ -256,6 +292,7 @@ begin
 end
 $$;
 
-revoke all on function recipe.library_breach_record(jsonb, jsonb, jsonb, text, text, text), recipe.library_statistic(text, jsonb) from public;
+revoke all on function recipe.library_breach_record(jsonb, jsonb, jsonb, text, text, text), recipe.library_statistic(text, jsonb),
+                       recipe.library_timer_duration(bigint, bigint, text) from public;
 
 reset role;
