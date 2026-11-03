@@ -1,7 +1,7 @@
-# Batchwright Tablets v1.0: release plan (draft for the owner)
+# Batchwright Tablets v1.0: release plan
 
-Status: **draft, 3 November 2026, waiting for the owner's decisions (section 4).** Nothing below starts before they are
-taken, except step R1, which is already under way.
+Status: **approved, 3 November 2026: the owner took every recommendation of section 4 (decision 0027).** R1 is under
+way.
 
 ## 1. Where we start
 
