@@ -258,7 +258,8 @@ export function platformEnv(env: Readonly<Record<string, string | undefined>>): 
     EBMR_DB_ANALYTICS_URL: analytics ? verified('ebmr_analytics', analytics) : undefined,
     EBMR_PUBLIC_ORIGIN: redirect ? new URL(redirect).origin : undefined,
     EBMR_OIDC_ISSUER: env['OIDC_ISSUER'],
-    EBMR_OIDC_CLIENT_ID: env['OIDC_CLIENT_ID'],
+    // databsee deploy/apply.ts: no client id variable; core registers the product name as the client id.
+    EBMR_OIDC_CLIENT_ID: env['OIDC_ISSUER'] ? 'ebmr' : undefined,
     EBMR_OIDC_CLIENT_SECRET: env['OIDC_CLIENT_SECRET'],
     EBMR_OIDC_REDIRECT_URI: redirect,
     EBMR_HOST: '0.0.0.0',
