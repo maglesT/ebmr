@@ -46,6 +46,11 @@ export interface UpgradeDrillOptions {
   keepCopy?: boolean;
   /** Name of the copy (default <source>_upg_<hex>). */
   workDatabase?: string;
+  /**
+   * Tables the release retires on purpose (DI-48): a table present before and absent after fails the dry run unless it
+   * is listed here with the reason, which the report shows. Names as the report gives them ("schema"."table").
+   */
+  retiredTables?: readonly { table: string; reason: string }[];
 }
 
 export type TableStatus = 'MATCH' | 'ADDED_ONLY' | 'ADVANCED' | 'CHANGED' | 'NEW' | 'DROPPED';
@@ -64,6 +69,8 @@ export interface TableResult {
   sha256Before: string | null;
   sha256After: string | null;
   columnsAdded: string[];
+  /** Why the status is accepted: a retired table's reason (retiredTables). */
+  reason?: string;
 }
 
 export interface SpotCheck {
@@ -72,6 +79,8 @@ export interface SpotCheck {
   key: string;
   shown: string;
   same: boolean;
+  /** The reason of the retired table the sample lies in (it is not read again). */
+  retired?: string;
 }
 
 export interface UpgradeReport {
@@ -80,6 +89,8 @@ export interface UpgradeReport {
   drillId: string;
   result: 'PASS' | 'FAIL';
   failures: string[];
+  /** What a person reviews although it does not fail the run: each NEW table that holds rows (a renamed table's rows land in one). */
+  toReview: string[];
   fromRelease: string;
   source: { database: string; sizeBytes: number; serverVersion: string; schemaReleaseBefore: string | null; schemaReleaseAfter: string | null; migrationsBefore: number };
   copy: { database: string; dropped: boolean };
@@ -151,6 +162,8 @@ async function schemaRelease(c: pg.Client): Promise<string | null> {
 interface Sample {
   kind: SpotCheck['kind'];
   table: string;
+  /** The table as the report's table list names it ("schema"."table"). */
+  ref: string;
   key: string;
   sql: string;
   params: unknown[];
@@ -171,7 +184,7 @@ async function takeSamples(c: pg.Client, n: number, seed: string): Promise<Sampl
     [n, seed],
   );
   for (const r of sig.rows) {
-    out.push({ kind: 'SIGNATURE', table: 'esig.signature', key: r.id, value: r.v, shown: r.shown, params: [r.id], sql: `select jsonb_build_object('meaning', s.meaning_code, 'meaningText', s.meaning_text, 'signer', s.signer_legal_name, 'role', s.signer_role_code,
+    out.push({ kind: 'SIGNATURE', table: 'esig.signature', ref: '"esig"."signature"', key: r.id, value: r.v, shown: r.shown, params: [r.id], sql: `select jsonb_build_object('meaning', s.meaning_code, 'meaningText', s.meaning_text, 'signer', s.signer_legal_name, 'role', s.signer_role_code,
                                'recordedAtUtc', to_char(s.recorded_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), 'zone', s.site_zone,
                                'contentHash', s.content_hash, 'aggregate', s.aggregate_type || ':' || s.aggregate_id)::text as v from esig.signature s where s.id = $1::uuid` });
   }
@@ -184,20 +197,20 @@ async function takeSamples(c: pg.Client, n: number, seed: string): Promise<Sampl
     [n, seed],
   );
   for (const r of ev.rows) {
-    out.push({ kind: 'AUDIT_EVENT', table: 'kernel.audit_event', key: r.id, value: r.v, shown: r.shown, params: [r.id], sql: `select jsonb_build_object('chain', e.chain_key, 'seq', e.seq, 'hash', encode(e.hash, 'hex'), 'prev', encode(e.prev_hash, 'hex'),
+    out.push({ kind: 'AUDIT_EVENT', table: 'kernel.audit_event', ref: '"kernel"."audit_event"', key: r.id, value: r.v, shown: r.shown, params: [r.id], sql: `select jsonb_build_object('chain', e.chain_key, 'seq', e.seq, 'hash', encode(e.hash, 'hex'), 'prev', encode(e.prev_hash, 'hex'),
                                'recordedAtUtc', to_char(e.recorded_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), 'action', e.action,
                                'payload', md5(e.payload::text))::text as v from kernel.audit_event e where e.id = $1::bigint` });
   }
   // Tables holding a unit, with a single-column primary key: sampled rows, every column as text.
-  const unitTables = await c.query<{ qualified: string; pk: string; units: string[] }>(
-    `select format('%I.%I', n.nspname, c.relname) as qualified, pa.attname as pk,
+  const unitTables = await c.query<{ qualified: string; pk: string; schema: string; rel: string; units: string[] }>(
+    `select format('%I.%I', n.nspname, c.relname) as qualified, pa.attname as pk, n.nspname as schema, c.relname as rel,
             array_agg(a.attname::text order by a.attnum) as units
        from pg_class c join pg_namespace n on n.oid = c.relnamespace
        join pg_index i on i.indrelid = c.oid and i.indisprimary and i.indnkeyatts = 1
        join pg_attribute pa on pa.attrelid = c.oid and pa.attnum = i.indkey[0]
        join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped and (a.attname = 'unit' or a.attname like '%\\_unit')
       where c.relkind = 'r' and n.nspname not in ('pg_catalog', 'information_schema', '${SNAPSHOT}')
-      group by 1, 2 order by 1`,
+      group by 1, 2, 3, 4 order by 1`,
   );
   for (const t of unitTables.rows) {
     const cols = (await c.query<{ name: string }>(`select a.attname as name from pg_attribute a where a.attrelid = $1::regclass and a.attnum > 0 and not a.attisdropped order by a.attnum`, [t.qualified])).rows.map((r) => r.name);
@@ -208,7 +221,7 @@ async function takeSamples(c: pg.Client, n: number, seed: string): Promise<Sampl
       [Math.max(1, Math.ceil(n / 4)), seed],
     );
     for (const r of rows.rows) {
-      out.push({ kind: 'UNIT_VALUE', table: t.qualified, key: r.k, value: r.v, shown: r.shown ?? '', params: [r.k], sql: `select ${rowText} as v from ${t.qualified} x where x.${quoteIdent(t.pk)}::text = $1` });
+      out.push({ kind: 'UNIT_VALUE', table: t.qualified, ref: `${quoteIdent(t.schema)}.${quoteIdent(t.rel)}`, key: r.k, value: r.v, shown: r.shown ?? '', params: [r.k], sql: `select ${rowText} as v from ${t.qualified} x where x.${quoteIdent(t.pk)}::text = $1` });
     }
   }
   return out;
@@ -286,7 +299,11 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
     const results: TableResult[] = [];
     for (const [q, b] of before) {
       if (!after.some((t) => t.qualified === q)) {
-        results.push({ table: q, category: b.t.category, status: 'DROPPED', rowsBefore: b.n, rowsAfter: 0, missing: b.n, sha256Before: b.sha, sha256After: null, columnsAdded: [] });
+        // A table that went (dropped, or renamed: its rows then sit in a NEW table) takes its earlier rows with it: the
+        // dry run fails unless the release retires it on purpose, with the reason in the report.
+        const retired = o.retiredTables?.find((x) => x.table === q);
+        results.push({ table: q, category: b.t.category, status: 'DROPPED', rowsBefore: b.n, rowsAfter: 0, missing: b.n, sha256Before: b.sha, sha256After: null, columnsAdded: [], ...(retired ? { reason: retired.reason } : {}) });
+        if (!retired) failures.push(`${q}: the table was dropped or renamed by the upgrade, with its ${String(b.n)} earlier row(s); a table the release retires on purpose is listed in retiredTables with the reason`);
         continue;
       }
       const colsAfter = await columnsOf(c, b.t);
@@ -317,10 +334,25 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
     for (const p of chainsAfter.problems) failures.push(`after the upgrade: ${p}`);
     const spotChecks: SpotCheck[] = [];
     for (const s of samples) {
-      const r = await c.query<{ v: string }>(s.sql, s.params);
-      const same = r.rows[0]?.v === s.value;
+      // A sample of a table the release retires (retiredTables) is shown with the reason; it is not read again.
+      const retired = o.retiredTables?.find((x) => x.table === s.ref);
+      if (retired) {
+        spotChecks.push({ kind: s.kind, table: s.table, key: s.key, shown: s.shown, same: false, retired: retired.reason });
+        continue;
+      }
+      let v: string | undefined;
+      let unreadable: string | undefined;
+      try {
+        v = (await c.query<{ v: string }>(s.sql, s.params)).rows[0]?.v;
+      } catch (error) {
+        unreadable = (error as Error).message;
+      }
+      const same = unreadable === undefined && v === s.value;
       spotChecks.push({ kind: s.kind, table: s.table, key: s.key, shown: s.shown, same });
-      if (!same) failures.push(`spot check ${s.kind} ${s.table} ${s.key} reads differently after the upgrade`);
+      const what = `spot check ${s.kind} ${s.table} ${s.key}`;
+      if (unreadable !== undefined) failures.push(`${what} could not be read after the upgrade: ${unreadable}`);
+      else if (v === undefined) failures.push(`${what} is gone after the upgrade`);
+      else if (!same) failures.push(`${what} reads differently after the upgrade`);
     }
     const renders: UpgradeReport['renders'] = [];
     for (const [k, b] of rendersBefore) {
@@ -344,6 +376,7 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
       drillId,
       result: failures.length === 0 ? 'PASS' : 'FAIL',
       failures,
+      toReview: results.filter((t) => t.status === 'NEW' && t.rowsAfter > 0).map((t) => `${t.table}: a new table holding ${String(t.rowsAfter)} row(s) after the upgrade (not compared: check that they are the release's own and not an earlier table's rows moved)`),
       fromRelease: o.fromRelease,
       source: { database: o.sourceDatabase, sizeBytes, serverVersion, schemaReleaseBefore: releaseBefore, schemaReleaseAfter: releaseAfter, migrationsBefore },
       copy: { database: work, dropped: !o.keepCopy },
@@ -389,16 +422,17 @@ export function renderUpgradeMarkdown(r: UpgradeReport): string {
   L.push(`| Chains and anchors before | ${String(r.chains.before.chains)} chains, ${String(r.chains.before.anchors)} anchors, ${String(r.chains.before.problems.length)} problems |`);
   L.push(`| Chains and anchors after | ${String(r.chains.after.chains)} chains, ${String(r.chains.after.anchors)} anchors, ${String(r.chains.after.problems.length)} problems |`, '');
   if (r.failures.length > 0) L.push('Failures:', '', ...r.failures.map((f) => `- ${f}`), '');
+  if (r.toReview.length > 0) L.push('To review (not compared by the dry run):', '', ...r.toReview.map((f) => `- ${f}`), '');
   L.push('## Counts and hashes per category (DI-48)', '', '| Category | Tables | MATCH | ADDED_ONLY | CHANGED | Rows before | Rows after |', '|---|---|---|---|---|---|---|');
   for (const [k, s] of Object.entries(r.summary)) L.push(`| ${k} | ${String(s.tables)} | ${String(s.match)} | ${String(s.addedOnly)} | ${String(s.changed)} | ${String(s.rowsBefore)} | ${String(s.rowsAfter)} |`);
   L.push('', '## Tables the upgrade changed (every other table: MATCH, the same rows and hash)', '', '| Table | Category | Status | Rows before | Rows after | Earlier rows missing | Columns added |', '|---|---|---|---|---|---|---|');
-  for (const t of r.tables.filter((x) => x.status !== 'MATCH')) L.push(`| ${cell(t.table)} | ${t.category} | ${t.status} | ${String(t.rowsBefore)} | ${String(t.rowsAfter)} | ${String(t.missing)} | ${cell(t.columnsAdded.join(', '))} |`);
+  for (const t of r.tables.filter((x) => x.status !== 'MATCH')) L.push(`| ${cell(t.table)} | ${t.category} | ${t.status}${t.reason ? ` (${cell(t.reason)})` : ''} | ${String(t.rowsBefore)} | ${String(t.rowsAfter)} | ${String(t.missing)} | ${cell(t.columnsAdded.join(', '))} |`);
   L.push('', '## Records retrieved and rendered (DI-46)', '', '| Record | Events | Signatures | Rows | Content SHA-256 before | After | Same | Complete |', '|---|---|---|---|---|---|---|---|');
   for (const x of r.renders) {
     L.push(`| ${cell(x.chainKey)} | ${String(x.before.events)} | ${String(x.before.signatures)} | ${String(x.before.rows)} | \`${x.before.contentSha256.slice(0, 16)}\` | \`${(x.after?.contentSha256 ?? '-').slice(0, 16)}\` | ${x.same ? 'yes' : 'NO'} | ${x.before.problems.length + (x.after?.problems.length ?? 1) === 0 ? 'yes' : 'NO'} |`);
   }
   L.push('', '## Spot checks (DI-48: audit trails, e-signature meaning and date-time, units)', '', '| Kind | Table | Key | Shown | Same after |', '|---|---|---|---|---|');
-  for (const s of r.spotChecks) L.push(`| ${s.kind} | ${cell(s.table)} | ${cell(s.key)} | ${cell(s.shown)} | ${s.same ? 'yes' : 'NO'} |`);
+  for (const s of r.spotChecks) L.push(`| ${s.kind} | ${cell(s.table)} | ${cell(s.key)} | ${cell(s.shown)} | ${s.retired ? `table retired (${cell(s.retired)})` : s.same ? 'yes' : 'NO'} |`);
   L.push('', '## Migrations applied', '', r.migrations.applied.map((a) => `\`${a.namespace}/${a.name}\``).join(', ') || '(none)', '');
   return `${L.join('\n')}\n`;
 }
