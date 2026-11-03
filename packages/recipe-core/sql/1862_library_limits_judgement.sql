@@ -15,8 +15,13 @@
 --     alert, or without its need of a deviation, is refused, so check_disposition_state (0270) can no longer accept
 --     NO_IMPACT for it; a LIB_LIMIT_BREACH that no value of the row breaches is refused too, also from a row that adds
 --     no entry.
+--   * R3-SQL-2: test results are judged (1810 skipped them, so a 270 mg tablet against 237.5-262.5 mg was stored with no
+--     exception): each statistic but RSD (individual readings, minimum, maximum, mean, range; plain decimal arithmetic
+--     on the entered readings), of the readings or of each point's readings for a profile, against the slot's limits
+--     or the point's; per statistic and point, the most severe tier any value breaches requires its exception (R3-ENG-2).
+--     RSD needs a square root at the engine's precision; it stays the engine's judgement.
 --
---   recipe.library_breach_record: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
+--   recipe.library_breach_record, recipe.library_statistic: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
 --   their latest definitions (1810). The trigger zzg_library_limits is unchanged.
 
 set local role ebmr_owner;
@@ -31,6 +36,29 @@ language sql immutable set search_path = pg_catalog, recipe, pg_temp as $$
            (q.r - 'tier' - 'title') || jsonb_build_object('type', 'LIB_LIMIT_BREACH', 'tierTag', ' [' || regexp_replace(lower(p_ev ->> 'breached'), '_', ' ') || ' tier]')
          end
     from (select recipe.limit_exception_record('PARAMETER', '', p_item, p_spec, p_ev, p_inst, p_node, '{}'::jsonb, p_by) as r) q
+$$;
+
+-- The values statistic p_stat (INDIVIDUAL, MIN, MAX, MEAN, RANGE) gives of readings p_readings, as library/block-version.ts
+-- statistic() does: every reading, or the one value; none for no reading. NULL when the readings are not a list of
+-- decimals written as text, or for another statistic (RSD is not judged here). The mean is exact to 40 decimals where
+-- the engine keeps 34 significant digits: the limits round a value at their own decimals or significant figures first,
+-- so the two give the same verdict.
+create function recipe.library_statistic(p_stat text, p_readings jsonb) returns text[]
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select case
+    when jsonb_typeof(p_readings) is distinct from 'array'
+         or exists (select 1 from jsonb_array_elements(p_readings) r where jsonb_typeof(r) is distinct from 'string' or (r #>> '{}') !~ '^-?[0-9]+(\.[0-9]+)?$')
+      then null
+    when jsonb_array_length(p_readings) = 0 then case when p_stat in ('INDIVIDUAL', 'MIN', 'MAX', 'MEAN', 'RANGE') then '{}'::text[] end
+    when p_stat = 'INDIVIDUAL' then array(select r #>> '{}' from jsonb_array_elements(p_readings) with ordinality a (r, n) order by n)
+    else (select case p_stat
+                   when 'MIN' then array[trim_scale(min(v))::text]
+                   when 'MAX' then array[trim_scale(max(v))::text]
+                   when 'RANGE' then array[trim_scale(max(v) - min(v))::text]
+                   when 'MEAN' then array[trim_scale(round(sum(v)::numeric(1000, 40) / count(*), 40))::text]
+                 end
+            from (select (r #>> '{}')::numeric as v from jsonb_array_elements(p_readings) r) q)
+  end
 $$;
 
 -- PR-08 (header): library values against the formulation's limits; the row adds exactly the exceptions they require.
@@ -61,6 +89,9 @@ declare
   v_used   boolean[] := '{}';
   v_hit    integer;
   v_extra  text;
+  st       jsonb;
+  v_pt     jsonb;
+  v_vals   text[];
 begin
   for k, e in select y.key, y.value from jsonb_each(e1) y where not (e0 ? y.key) order by y.key loop
     v_step := p_new -> 'steps' -> (e ->> 'stepKey') ->> 'step';
@@ -127,6 +158,51 @@ begin
         v_used := v_used || false;
       end if;
     end loop;
+    -- Test results (R3-SQL-2): each statistic's values, of the readings or of each point's readings, against its limits.
+    for f in select y from jsonb_array_elements(s -> 'fields') y where y ->> 'type' = 'TEST_RESULT' and e -> 'data' ? (y ->> 'id') loop
+      v_item := v_step || '.' || (f ->> 'id');
+      -- One judgement per statistic (RSD excepted: a square root the database does not take), and per point of a profile.
+      for st, v_pt in select q1.st, case when (f -> 'perPoint') = 'true'::jsonb then p.pt end
+                        from jsonb_array_elements(case when jsonb_typeof(f -> 'statistics') = 'array' then f -> 'statistics' else '[]'::jsonb end) with ordinality q1 (st, n1)
+                        cross join jsonb_array_elements(case when (f -> 'perPoint') = 'true'::jsonb
+                                                             then case when jsonb_typeof(v_node -> 'config' -> 'points' -> (f ->> 'id')) = 'array' then v_node -> 'config' -> 'points' -> (f ->> 'id') else '[]'::jsonb end
+                                                             else '[null]'::jsonb end) with ordinality p (pt, n2)
+                       where q1.st ->> 'statistic' is distinct from 'RSD'
+                       order by q1.n1, p.n2 loop
+        v_spec := case when v_pt is not null then v_pt -> 'limits' else v_node -> 'config' -> 'limits' -> (st ->> 'limitSlot') end;
+        if v_spec is null then
+          continue;
+        end if;
+        if (v_spec ->> 'unit') is distinct from (f ->> 'unit') then
+          return format('stores %s at step %s, whose %s limit is not written in the field''s unit %s', f ->> 'id', v_step, lower(st ->> 'statistic'), f ->> 'unit');
+        end if;
+        v_vals := recipe.library_statistic(st ->> 'statistic',
+                                           case when v_pt is not null then e -> 'data' -> (f ->> 'id') -> (v_pt ->> 'id') else e -> 'data' -> (f ->> 'id') end);
+        if v_vals is null then
+          return format('stores %s at step %s with readings the database cannot read', f ->> 'id', v_step);
+        end if;
+        -- The worst value governs: the most severe tier any value breaches, the first value at that tier (R3-ENG-2).
+        v_ev := null;
+        foreach v_val in array v_vals loop
+          x := recipe.limit_reading(v_spec, v_val);
+          if x is null then
+            return format('stores %s = %s at step %s, which the database cannot read against its limit', f ->> 'id', v_val, v_step);
+          end if;
+          if v_ev is null or (x ->> 'rank')::integer > (v_ev ->> 'rank')::integer then
+            v_ev := x;
+          end if;
+        end loop;
+        if v_ev ->> 'breached' is not null then
+          if v_inst is null then
+            return format('stores %s at step %s outside its %s limit in step instance %s, which the state does not hold', f ->> 'id', v_step, lower(v_ev ->> 'breached'), e ->> 'stepKey');
+          end if;
+          v_want := v_want || recipe.library_breach_record(v_spec, v_ev, v_inst, recipe.step_graph_node(p_content, v_step), v_item, e ->> 'enteredBy');
+          v_what := v_what || format('%s (%s%s) = %s %s at step %s, outside its %s limit,', f ->> 'id', lower(st ->> 'statistic'),
+                                     case when v_pt is not null then ' at ' || (v_pt ->> 'id') else '' end, v_ev ->> 'value', f ->> 'unit', v_step, lower(v_ev ->> 'breached'));
+          v_used := v_used || false;
+        end if;
+      end loop;
+    end loop;
   end loop;
   -- The row's new library limit exceptions, one for one with the records its values require (R3-SQL-1).
   for k, x in select y.key, y.value from jsonb_each(x1) y
@@ -180,6 +256,6 @@ begin
 end
 $$;
 
-revoke all on function recipe.library_breach_record(jsonb, jsonb, jsonb, text, text, text) from public;
+revoke all on function recipe.library_breach_record(jsonb, jsonb, jsonb, text, text, text), recipe.library_statistic(text, jsonb) from public;
 
 reset role;

@@ -231,6 +231,17 @@ const KDEF: Json = {
       ],
     },
     { id: 'retry', title: 'Retry', repeat: { kind: 'UNTIL_PASS', untilField: 'r' }, fields: [{ id: 'r', label: 'R', type: 'NUMBER', unit: 'g', limitSlot: 'r' }] },
+    {
+      id: 'ipc',
+      title: 'IPC',
+      fields: [
+        {
+          id: 'wt', label: 'Weights', type: 'TEST_RESULT', unit: 'mg', replicatesSlot: 'n',
+          statistics: [{ statistic: 'INDIVIDUAL', limitSlot: 'ind' }, { statistic: 'MIN', limitSlot: 'min' }, { statistic: 'MAX', limitSlot: 'max' }, { statistic: 'MEAN', limitSlot: 'mean' }, { statistic: 'RANGE', limitSlot: 'rng' }, { statistic: 'RSD', limitSlot: 'rsd' }],
+        },
+        { id: 'rel', label: 'Released', type: 'TEST_RESULT', unit: '%', replicatesSlot: 'v', perPoint: true, required: false, statistics: [{ statistic: 'MEAN', limitSlot: 'relMean' }] },
+      ],
+    },
   ],
   signatures: [],
 };
@@ -394,6 +405,78 @@ describe('library values against the formulation\'s limits (recipe-core 1810)', 
 
 describe('release review R3: the database judges library values as the engine does (recipe-core 1862)', () => {
   const W = { E1: entry('run', { w: '50' }) };
+  /** A one-tier limit in `unit` from `low` to `high` (either may be absent). */
+  const RANGE = (unit: string, low: string | null, high: string | null, tier = 'REGISTERED'): Json => ({
+    unit,
+    ranges: [{ tier, ...(low !== null ? { low: { value: low, inclusive: true } } : {}), ...(high !== null ? { high: { value: high, inclusive: true } } : {}), rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: 'REF-1' } }],
+  });
+  /** recipe.library_limits_problem with the library step configured by `config` (its limits added to LIMITS). */
+  const judged = async (c: PoolClient, config: Json, next: { entries?: Json; exceptions?: Json }, old: { entries?: Json; exceptions?: Json } = {}): Promise<string | null> => {
+    const cfg = config as Record<string, Json>;
+    const content = { ...CONTENT, procedure: { kind: 'procedure', id: 'proc', children: [phase('p-lib', 'LIB-KILL-LIM', { ...cfg, limits: { ...LIMITS, ...(cfg['limits'] as Record<string, Json> | undefined) } })] } };
+    const { rows } = await c.query<{ p: string | null }>('select recipe.library_limits_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [
+      JSON.stringify(content), JSON.stringify({ steps: STEPS, entries: {}, exceptions: {}, ...old }), JSON.stringify({ steps: STEPS, entries: {}, exceptions: {}, ...next }),
+    ]);
+    return rows[0]?.p ?? null;
+  };
+  const ALERT_FACTS = { severity: 'ALERT', deviationRequired: false, registrationRelevant: false, qaOnly: false, stageSignOffBlocked: false, releaseBlocking: false, title: 'x [alert tier]' };
+  const alertBreach = (item: string, id = 'X1'): Json => {
+    const b = breach(item, ALERT_FACTS, id) as Record<string, Json>;
+    delete b['block'];
+    return b;
+  };
+
+  it('[PR-08][PR-29] R3-SQL-2: test results are judged against their limits: individual readings, minimum, maximum, mean and range, and each point of a profile; the breach needs its exception', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const ipc = (wt: Json, extra: Json = {}): Json => ({ E1: entry('ipc', { wt, ...(extra as Record<string, Json>) }) });
+      const req = /^stores wt \((\w+)\) = [0-9.]+ mg at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH it requires/;
+      const cases: [string, Json, string[], string[]][] = [
+        // slot, limit, readings outside, readings inside
+        ['ind', RANGE('mg', '237.5', '262.5'), ['250', '270', '250'], ['250', '262.5', '237.5']],
+        ['min', RANGE('mg', '240', null), ['239', '250'], ['240', '250']],
+        ['max', RANGE('mg', null, '260'), ['250', '261'], ['260', '250']],
+        ['mean', RANGE('mg', '237.5', '262.5'), ['270', '270', '250'], ['270', '250', '250']],
+        ['rng', RANGE('mg', null, '10'), ['250', '261'], ['250', '260']],
+      ];
+      for (const [slot, spec, out, inside] of cases) {
+        const config = { limits: { [slot]: spec } };
+        expect(await judged(c, config, { entries: ipc(out) }), slot).toMatch(req);
+        expect(await judged(c, config, { entries: ipc(out), exceptions: { X1: breach('p-lib.wt') } }), slot).toBeNull();
+        expect(await judged(c, config, { entries: ipc(inside) }), slot).toBeNull();
+        expect(await judged(c, config, { entries: ipc([]) }), slot).toBeNull();
+      }
+      // The finding: one 270 mg tablet against 237.5-262.5 mg.
+      expect(await judged(c, { limits: { ind: RANGE('mg', '237.5', '262.5') } }, { entries: ipc(['250', '270', '250']) })).toMatch(/^stores wt \(individual\) = 270 mg/);
+      // The relative standard deviation is the engine's judgement alone.
+      expect(await judged(c, { limits: { rsd: RANGE('mg', null, '0.0001') } }, { entries: ipc(['250', '260']) })).toBeNull();
+      // Two statistics breached need two exceptions.
+      const two = { limits: { ind: RANGE('mg', '237.5', '262.5'), max: RANGE('mg', null, '260') } };
+      expect(await judged(c, two, { entries: ipc(['250', '270']), exceptions: { X1: breach('p-lib.wt') } })).toMatch(/^stores wt \(max\) = 270 mg/);
+      expect(await judged(c, two, { entries: ipc(['250', '270']), exceptions: { X1: breach('p-lib.wt'), X2: breach('p-lib.wt', {}, 'X2') } })).toBeNull();
+      // A profile: each point's readings against that point's limits.
+      const points = { points: { rel: [{ id: 'h1', label: '1 h', limits: RANGE('%', '20', '40') }, { id: 'h4', label: '4 h', limits: RANGE('%', '45', '65') }] } };
+      const rel = (h1: string[], h4: string[]): Json => ({ E1: entry('ipc', { wt: ['250'], rel: { h1, h4 } }) });
+      expect(await judged(c, points, { entries: rel(['30', '30'], ['70', '70']) })).toMatch(/^stores rel \(mean at h4\) = 70 % at step p-lib, outside its registered limit/);
+      expect(await judged(c, points, { entries: rel(['10', '10'], ['50', '50']) })).toMatch(/^stores rel \(mean at h1\) = 10 %/);
+      expect(await judged(c, points, { entries: rel(['30', '30'], ['70', '70']), exceptions: { X1: breach('p-lib.rel') } })).toBeNull();
+      expect(await judged(c, points, { entries: rel(['30', '30'], ['50', '50']) })).toBeNull();
+      expect(await judged(c, {}, { entries: rel(['0', '0'], ['0', '0']) })).toBeNull();
+      // Limits in another unit, and readings the database cannot read, are refused.
+      expect(await judged(c, { limits: { min: RANGE('g', '0.24', null) } }, { entries: ipc(['250']) })).toBe('stores wt at step p-lib, whose min limit is not written in the field\'s unit mg');
+      expect(await judged(c, { limits: { min: RANGE('mg', '240', null) } }, { entries: ipc(['2.5e2']) })).toBe('stores wt at step p-lib with readings the database cannot read');
+      expect(await judged(c, { limits: { min: RANGE('mg', '240', null) } }, { entries: ipc('250') })).toBe('stores wt at step p-lib with readings the database cannot read');
+    });
+  });
+
+  it('[PR-08][PR-29] R3-SQL-2: of individual readings the most severe tier any reading breaches requires the exception, as the engine raises it (R3-ENG-2)', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const tiers = { limits: { ind: { unit: 'mg', ranges: [...(RANGE('mg', '90', '110') as { ranges: Json[] }).ranges, ...(RANGE('mg', '95', '105', 'ALERT') as { ranges: Json[] }).ranges] } } };
+      const E = { E1: entry('ipc', { wt: ['104', '106', '150'] }) };
+      expect(await judged(c, tiers, { entries: E, exceptions: { X1: alertBreach('p-lib.wt') } })).toMatch(/^stores wt \(individual\) = 150 mg at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH it requires \(severity CRITICAL/);
+      expect(await judged(c, tiers, { entries: E, exceptions: { X1: breach('p-lib.wt') } })).toBeNull();
+      expect(await judged(c, tiers, { entries: { E1: entry('ipc', { wt: ['100', '106', '107'] }) }, exceptions: { X1: alertBreach('p-lib.wt') } })).toBeNull();
+    });
+  });
   const missing = /^stores w = 50 g at step p-lib, outside its registered limit, without the LIB_LIMIT_BREACH it requires \(severity CRITICAL, deviation required\)$/;
 
   it('[PR-08][PR-49] R3-SQL-1: a LIB_LIMIT_BREACH carries the facts of the tier breached; one stored as an alert needing no deviation, or with any other fact changed, is refused', async () => {
