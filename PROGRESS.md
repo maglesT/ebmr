@@ -83,8 +83,9 @@ defect. Owner's triage rule from 3 November: fix critical, high and medium; list
 (O-6 and the S11a findings) open, CI running. PR #85 merged (b12c6dd). R3 done on `dyn/v1-plan` (`docs/build-plan/release-1.0/r3-review.md`): 1 critical, 10 high,
 12 medium found; all fixed with tests (branches r3/validation, r3/limits, r3/bom, r3/catalogue merged); 6 low listed;
 R3-APP-2 and R3-ENG-6 (found during the fixes) after Phase B. Hard capsules left out of the Tablets catalogue load
-(owner, 3 November). Next: the PR of `dyn/v1-plan` to main with full CI, then the tag `v1.0.0-rc.2` on a `standalone`
-branch, the handover (`docs/handover.md`, "S11b done → Phase B next") and stop (decision 0027 amendment).
+(owner, 3 November). PR #86 merged (0bb289c; CI run 378 green, every E2E group). Branch `standalone` at 0bb289c; the
+tag `batchwright-tablets-v1.0.0-rc.2` is the owner's to push there (the session's proxy refused tag pushes). **Next:
+Phase B (the MEDHANTA platform move) on a fresh session, from `docs/handover.md`.**
 
 **3 November 2026: O-6 done on branch `dyn/o6`** (from `dyn/s11`): the designer no longer offers TB-01 to TB-24 for a new
 step (`insertable` false in the palette, badged "existing masters only (library replaces it)"; the Insert dialog lists only
