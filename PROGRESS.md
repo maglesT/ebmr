@@ -80,7 +80,11 @@ V3 done (owner confirmed; `docs/build-plan/release-1.0/mutation-results.md`): SQ
 (new `apps/tablets-server/test/mutation/library-blocks.test.ts`); Stryker on the library's guard ranges 71 % → 91.8 % on
 logic mutants (new `packages/recipe-core/test/library/limits-kill.test.ts`); the 89 left are low (listed). No guard
 defect. Owner's triage rule from 3 November: fix critical, high and medium; list low. PR #84 merged (fccdffc); PR #85
-(O-6 and the S11a findings) open, CI running. Next: #85, then R2's bundle part, R3.
+(O-6 and the S11a findings) open, CI running. PR #85 merged (b12c6dd). R3 done on `dyn/v1-plan` (`docs/build-plan/release-1.0/r3-review.md`): 1 critical, 10 high,
+12 medium found; all fixed with tests (branches r3/validation, r3/limits, r3/bom, r3/catalogue merged); 6 low listed;
+R3-APP-2 and R3-ENG-6 (found during the fixes) after Phase B. Hard capsules left out of the Tablets catalogue load
+(owner, 3 November). Next: the PR of `dyn/v1-plan` to main with full CI, then the tag `v1.0.0-rc.2` on a `standalone`
+branch, the handover (`docs/handover.md`, "S11b done → Phase B next") and stop (decision 0027 amendment).
 
 **3 November 2026: O-6 done on branch `dyn/o6`** (from `dyn/s11`): the designer no longer offers TB-01 to TB-24 for a new
 step (`insertable` false in the palette, badged "existing masters only (library replaces it)"; the Insert dialog lists only

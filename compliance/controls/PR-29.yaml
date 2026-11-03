@@ -42,6 +42,7 @@ implemented_by:
     - "G-12: fewer units than the sampling plan requires raises SAMPLING_SHORTFALL; sample ids and labels are system-generated"
     - "G-13: all readings kept with their statistics; a failing IPC and its re-test are both visible (IPC_RESULT_FAILED, REPEAT_AFTER_FAIL)"
 tests:
+  - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29][PR-30] R3-ENG-4: in a batch, an IPC interval runs from the step's start on trusted time: a first round later than the interval is late"
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-13 IPC with readings and statistics: Twenty tablet weights with their mean and RSD computed, all readings kept"
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-12 Sampling: A plan of 2 locations x 3 units with one location short: a sampling-shortfall exception (PR-29 catalog test)"
   - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [PR-29][IN-20][DI-29] a failing categorical IPC stops the step until a deviation is linked, and a passing re-test never replaces it"
