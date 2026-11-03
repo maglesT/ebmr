@@ -216,7 +216,8 @@ const KDEF: Json = {
       fields: [
         { id: 'note', label: 'Note', type: 'NUMBER', unit: 'g' },
         { id: 'w', label: 'W', type: 'NUMBER', unit: 'g', limitSlot: 'w' },
-        { id: 'loss', label: 'Loss', type: 'CALC', expression: 'w * 1 [%]', unit: '%', limitSlot: 'loss' },
+        { id: 'calc', label: 'Calculate', type: 'YES_NO', required: false },
+        { id: 'loss', label: 'Loss', type: 'CALC', expression: 'w * 1 [%]', unit: '%', limitSlot: 'loss', showWhen: { field: 'calc', equals: true } },
         { id: 'flag', label: 'Flag', type: 'TEXT', limitSlot: 'flag' },
         { id: 'nolim', label: 'No limit', type: 'NUMBER', unit: 'g', limitSlot: 'nolim' },
       ],
@@ -283,6 +284,8 @@ const CONTENT = contentWith();
 
 const STEPS = { 'p-lib@': { key: 'p-lib@', step: 'p-lib', frames: [] }, 'p-smart@': { key: 'p-smart@', step: 'p-smart', frames: [] }, 'p-plain@': { key: 'p-plain@', step: 'p-plain', frames: [] } };
 const OP = 'OP-1';
+/** The server's figure for the calculated loss with its evaluation record (O-9 (b); R3-SQL-5). */
+const LOSS = (value: string, extra: Json = {}): Json => ({ value, unit: '%', expression: 'w * 1 [%]', languageVersion: '1.0', inputs: { w: { kind: 'DECIMAL', value, unit: 'g' } }, ...extra });
 const entry = (kind: string, data: Json, stepKey = 'p-lib@'): Json => ({ kind, stepKey, data, enteredBy: OP });
 /**
  * The LIB_LIMIT_BREACH the engine raises for a value of `item` outside its registered limit (exceptions.ts tierDraft, tx.ts
@@ -397,7 +400,7 @@ describe('library values against the formulation\'s limits (recipe-core 1810)', 
       expect(await limits(c, { exceptions: { X1: breach('p-lib.w') } }, { entries: E, exceptions: { X1: breach('p-lib.w') } })).toMatch(/without the LIB_LIMIT_BREACH/);
       expect(await limits(c, { entries: E }, { entries: E })).toBeNull();
       expect(await limits(c, {}, { entries: { E1: entry('run', { w: '5' }) } })).toBeNull();
-      expect(await limits(c, {}, { entries: { E1: entry('run', { computed: { loss: { value: '1.5', unit: '%' } } }) } })).toMatch(/^stores loss = 1\.5 % at step p-lib/);
+      expect(await limits(c, {}, { entries: { E1: entry('run', { calc: true, computed: { loss: LOSS('1.5') } }) } })).toMatch(/^stores loss = 1\.5 % at step p-lib/);
     });
   });
 
@@ -512,6 +515,40 @@ describe('release review R3: the database judges library values as the engine do
     });
   });
 
+  it('[DI-33][PR-08][INV-25] R3-SQL-5: a calculated field the entry shows carries the server\'s figure with its evaluation record; one its condition hides carries none', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const run = (data: Json): Promise<string | null> => limits(c, {}, { entries: { E1: entry('run', { w: '0.5', ...(data as Record<string, Json>) }) } });
+      const noRecord = /^stores entry E1 at step p-lib without the evaluation record of its calculated loss \(a decimal value in %, /;
+      expect(await run({ calc: true, computed: { loss: LOSS('0.5') } })).toBeNull();
+      // The finding: a shown calculated field with a limit and no figure was skipped.
+      expect(await run({ calc: true })).toMatch(noRecord);
+      expect(await run({ calc: true, computed: {} })).toMatch(noRecord);
+      const bad: Json[] = [
+        'x', { value: '' }, { value: 0.5 }, { value: '5e-1' }, { unit: 'g' }, { unit: undefined }, { expression: 'w * 2 [%]' }, { expression: undefined },
+        { languageVersion: '' }, { languageVersion: 1 }, { languageVersion: undefined }, { inputs: [] }, { inputs: undefined },
+      ];
+      for (const b of bad) {
+        const rec = typeof b === 'string' ? b : JSON.parse(JSON.stringify(LOSS('0.5', b))) as Json;
+        expect(await run({ calc: true, computed: { loss: rec } }), JSON.stringify(b)).toMatch(noRecord);
+      }
+      expect(await run({ calc: true, computed: { loss: LOSS('-0.5') } })).toBeNull();
+      // Hidden by its condition (the answer is not the given one, or not given): no figure, and one given is refused.
+      expect(await run({})).toBeNull();
+      expect(await run({ calc: false })).toBeNull();
+      expect(await run({ calc: 'true' })).toBeNull();
+      expect(await run({ calc: false, computed: { loss: LOSS('0.5') } })).toBe('stores a calculated loss at step p-lib, which its condition hides');
+      expect(await run({ computed: { loss: LOSS('0.5') } })).toBe('stores a calculated loss at step p-lib, which its condition hides');
+      // A calculated field with no condition is always shown.
+      const always = { ...CONTENT, blockDefinitions: [{ ...KDEF, sections: [{ id: 'run', title: 'Run', fields: [{ id: 'loss', label: 'Loss', type: 'CALC', expression: 'w * 1 [%]', unit: '%' }] }] }, SDEF] };
+      const q = async (data: Json): Promise<string | null> =>
+        (await c.query<{ p: string | null }>('select recipe.library_limits_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [
+          JSON.stringify(always), JSON.stringify({ steps: STEPS, entries: {}, exceptions: {} }), JSON.stringify({ steps: STEPS, entries: { E1: entry('run', data) }, exceptions: {} }),
+        ])).rows[0]?.p ?? null;
+      expect(await q({ computed: { loss: LOSS('0.5') } })).toBeNull();
+      expect(await q({})).toMatch(noRecord);
+    });
+  });
+
   it('[PR-08][PR-29] R3-SQL-2: of individual readings the most severe tier any reading breaches requires the exception, as the engine raises it (R3-ENG-2)', async () => {
     await inCommand(gmp, 'author', async (c) => {
       const tiers = { limits: { ind: { unit: 'mg', ranges: [...(RANGE('mg', '90', '110') as { ranges: Json[] }).ranges, ...(RANGE('mg', '95', '105', 'ALERT') as { ranges: Json[] }).ranges] } } };
@@ -599,7 +636,7 @@ describe('the database\'s schema of a library entry (recipe-core 1810, 1840)', (
         (await c.query<{ s: Json | null }>('select recipe.library_entry_schema($1::jsonb, $2::jsonb, $3) as s', [JSON.stringify(CONTENT), JSON.stringify({ type, version: '1' }), kind])).rows[0]?.s ?? null;
       expect(await entrySchema('LIB-KILL-LIM', 'TIMER_STOP')).toEqual({ type: 'object', fields: { field: { type: 'string', enum: ['t1', 't2'] } } });
       expect(await entrySchema('LIB-KILL-SMART', 'TIMER_START')).toBeNull();
-      expect(Object.keys((await entrySchema('LIB-KILL-LIM', 'run'))?.['fields'] as Json).sort()).toEqual(['flag', 'nolim', 'note', 'w']);
+      expect(Object.keys((await entrySchema('LIB-KILL-LIM', 'run'))?.['fields'] as Json).sort()).toEqual(['calc', 'flag', 'nolim', 'note', 'w']);
       const only = async (fields: Json[]): Promise<string[]> => {
         const content = { ...CONTENT, blockDefinitions: [{ ...SDEF, sections: [{ id: 'one', title: 'One', fields }] }] };
         const s = (await c.query<{ s: Json | null }>('select recipe.library_entry_schema($1::jsonb, $2::jsonb, $3) as s', [JSON.stringify(content), JSON.stringify({ type: 'LIB-KILL-SMART', version: '1' }), 'one'])).rows[0]?.s;

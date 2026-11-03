@@ -23,6 +23,10 @@
 --   * R3-SQL-3: a timer's duration is no longer the application's figure: the database works it out from the trusted
 --     recordedAt of the timer's start and of its stop, in the field's duration unit (ms, s, min, h or d, the units the
 --     engine's durations hold), and refuses a stop without its start, another figure or another unit.
+--   * R3-SQL-5: a calculated field with no computed figure was skipped. Every calculated field an entry shows (no
+--     condition, or its condition's field holds the given answer) now carries its evaluation record (O-9 (b)): a decimal
+--     value in the field's unit, the expression of the master's snapshot, a language version and the inputs read; a field
+--     its condition hides carries none. The figure itself stays the server's (O-9 (b): not recomputed in SQL).
 --
 --   recipe.library_breach_record, recipe.library_statistic, recipe.library_timer_duration: new. recipe.library_limits_problem, recipe.library_limits_check: CREATE OR REPLACE from
 --   their latest definitions (1810). The trigger zzg_library_limits is unchanged.
@@ -169,6 +173,24 @@ begin
     if s is null then
       continue;
     end if;
+    -- R3-SQL-5 (O-9 (b)): a calculated field the entry shows carries the server's figure with its evaluation record (the
+    -- value, in the field's unit, the snapshot's expression, the language version and the inputs read); one its condition
+    -- hides carries none (block-version.ts shown: the condition's field holds the given answer).
+    for f in select y from jsonb_array_elements(s -> 'fields') y where y ->> 'type' = 'CALC' loop
+      x := e -> 'data' -> 'computed' -> (f ->> 'id');
+      if f ? 'showWhen' and (e -> 'data' -> (f -> 'showWhen' ->> 'field')) is distinct from (f -> 'showWhen' -> 'equals') then
+        if x is not null then
+          return format('stores a calculated %s at step %s, which its condition hides', f ->> 'id', v_step);
+        end if;
+        continue;
+      end if;
+      if jsonb_typeof(x) is distinct from 'object' or jsonb_typeof(x -> 'value') is distinct from 'string' or (x ->> 'value') !~ '^-?[0-9]+(\.[0-9]+)?$'
+         or (x -> 'unit') is distinct from (f -> 'unit') or (x -> 'expression') is distinct from (f -> 'expression')
+         or jsonb_typeof(x -> 'languageVersion') is distinct from 'string' or (x ->> 'languageVersion') = '' or jsonb_typeof(x -> 'inputs') is distinct from 'object' then
+        return format('stores entry %s at step %s without the evaluation record of its calculated %s (a decimal value in %s, the expression of the master''s snapshot, the language version and the inputs read; O-9)',
+                      k, v_step, f ->> 'id', f ->> 'unit');
+      end if;
+    end loop;
     v_until := case when s -> 'repeat' ->> 'kind' = 'UNTIL_PASS' then s -> 'repeat' ->> 'untilField' end;
     for f in select y from jsonb_array_elements(s -> 'fields') y
               where y ->> 'type' in ('NUMBER', 'WEIGHING', 'CALC') and y ? 'limitSlot' and (y ->> 'id') is distinct from v_until loop

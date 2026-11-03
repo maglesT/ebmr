@@ -119,7 +119,7 @@ describe('a library block in a GMP batch', () => {
   it('[PR-08] the database refuses a library value outside its limit stored without the engine\'s LIB_LIMIT_BREACH (O-9 b: the figure is the server\'s, the check is the database\'s)', async () => {
     const c = content() as unknown as Json;
     const step = { key: 'p-lib@', step: 'p-lib', frames: [] };
-    const entry = (loss: string) => ({ kind: 'run', stepKey: 'p-lib@', enteredBy: 'OP-1', data: { w0: '6.5', w1: '6.4', cracked: false, computed: { loss: { value: loss, unit: '%' } } } });
+    const entry = (loss: string) => ({ kind: 'run', stepKey: 'p-lib@', enteredBy: 'OP-1', data: { w0: '6.5', w1: '6.4', cracked: false, computed: { loss: { value: loss, unit: '%', expression: '(w0 - w1) / w0 * 100 [%]', languageVersion: '1', inputs: {} } } } });
     const old = { entries: {}, exceptions: {}, steps: { 'p-lib@': step } };
     const q = (s: Json) => w.gmp.db.admin.query<{ p: string | null }>('select recipe.library_limits_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [JSON.stringify(c), JSON.stringify(old), JSON.stringify(s)]);
     expect((await q({ ...old, entries: { E1: entry('0.5') } })).rows[0]?.p).toBeNull();
