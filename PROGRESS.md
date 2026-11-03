@@ -69,6 +69,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
+`dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
+is stopped). R2 static part done: PR-08 and PR-29 list their boundary tests; PR-60 lists its database test (kernel's
+analytics role cannot write, now named `[DI-51][PR-60]`); DI-48's drill test title says it changes a database row; IN-12
+and DI-48 name their implementation. Left for R2: the short-form listings and anything else `register:status` finds on a
+full run's bundle. DI-48 needs R3 to review `tools/drills/src` (no review covered it; 7d checked only for secrets), and
+R3 also takes `packages/validation-kit/src/pack`. PR-28 stays SPECIFIED (Injectables part).
+
 **3 November 2026: O-6 done on branch `dyn/o6`** (from `dyn/s11`): the designer no longer offers TB-01 to TB-24 for a new
 step (`insertable` false in the palette, badged "existing masters only (library replaces it)"; the Insert dialog lists only
 insertable blocks); they stay described, so existing masters and copies keep their steps' forms and run as before. Nothing

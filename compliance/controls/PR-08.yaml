@@ -192,6 +192,8 @@ tests:
   - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-03][PR-08] the values form shows each slot, the reference limit, and the formulation checks as values are typed"
   - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-08] a library limit bound to a market rule is refused when looser than the registered value (O-5)"
   - "packages/recipe-core/test/library/block-version.test.ts > timer durations in any time unit (S7 catalogue finding) > [PR-30][PR-08] S11a finding: a timer outside its limit is recorded and judged exactly, and its exception shows the duration to three decimals"
+  - "apps/tablets-server/test/mutation/tablets-dispensing.test.ts > a TB-01 step closes within its tolerance or with the held exception (tablets 0843) > [PR-19][INV-25] each line within its tolerance of its target, the edge included; outside it, or without a target or tolerance, only with DISPENSE_OUT_OF_TOLERANCE raised and holding"
+  - "apps/tablets-server/test/blocks/ipc/calc-edges.test.ts > IPC limits and verdicts > [IN-35][PR-29] a value shown with decimals is rounded half away from zero, as PostgreSQL round() does"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

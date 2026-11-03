@@ -309,6 +309,7 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29] statistics are exact decimals: mean, min, max, range and the sample RSD in %"
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception"
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-29] a profile test takes the planned readings at each time point with its limit; the entry carries them by point"
+  - "apps/tablets-server/test/blocks/ipc/calc-edges.test.ts > IPC limits and verdicts > [IN-35][PR-08] one-sided limits judge only the side they state; the alert tier warns inside the action tier"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:

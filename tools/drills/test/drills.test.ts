@@ -96,7 +96,7 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     }
   });
 
-  it('[DI-48] a migration that changes an earlier row fails the dry run, names the table and shows the changed unit', async () => {
+  it('[DI-48] a migration that changes an earlier database row fails the dry run, names the table and shows the changed unit', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-bad-'));
     mkdirSync(join(dir, 'sql'));
     writeFileSync(join(dir, 'sql', '9999_bad_rewrite.sql'), "-- Handbook: test only\nupdate platform.setting_definition set unit = unit || 'x' where unit is not null;\n");
