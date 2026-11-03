@@ -305,6 +305,9 @@ tests:
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-03][DI-35] a library block that needs a checker or a verifier is significant, so its phase needs a checker who is not the performer"
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone"
   - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-05][DI-35] a library step pins the hash and takes its roles from the block; a block with a verifier is significant"
+  - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Libtab 400 mg, wet granulation, film coated (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
+  - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Libtab 250 mg, direct compression, uncoated (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
+  - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

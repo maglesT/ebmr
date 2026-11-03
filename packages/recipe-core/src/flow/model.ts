@@ -48,6 +48,11 @@ export interface MbrHeader {
    * size it is the packaging family's identity. Absent reads STANDARD; a processing master names none.
    */
   packType?: string;
+  /**
+   * The theoretical mass of one unit (mg) the batch sizes are computed from: a master started from an approved formula
+   * records it (decision 0026 S11b), so the tablet count of each batch size is its mass divided by this, exactly (R3.1).
+   */
+  unitMassMg?: string;
 }
 
 /** A controlled, versioned risk scale (IN-02). */

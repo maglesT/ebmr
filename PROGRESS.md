@@ -69,24 +69,29 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-**Resume here (2 November 2026, new session): S11b on branch `dyn/s11`.** S11a passes (below). S11b: the GMP batch of
-each of the three tablets of `tools/e2e/specs/library/three-tablets.spec.ts` to a released lot, screens only, reusing the
-Demotab acts (`phase7/own-product-gmp.spec.ts` Demotab 4 to 12, `own-product-gmp-flow.ts`, `own-product-floor.ts`):
-materials' specifications and first lots (QC, head of QC, QA), the ERP order, planning and issue at the further size, the GMP
-floor run (the skeleton's dispensing and blending as on GMP kiosks, then each library step with `runLibraryStep` and the GMP
-plant's units), the packaging master and order, QC results, review and release. Steps:
-1. Hand the S11a state to S11b (the `ProductState` file of `own-product-flow.ts`: tag, versionId, familyCode per tablet).
-2. Check what the GMP demo plant holds (`apps/tablets-server/src/cli/release-path.ts`, `demo-routes.ts`) against the classes
-   the three tablets use (the sandbox plant mirrors it, `cli/sandbox-plant.ts`); a unit it lacks is registered on screen
-   (`registerPlantUnits` in `library-support.ts`), never in the database.
-3. A GMP equivalent of `runSkeletonTestBatch` (`own-product-support.ts`) for the skeleton's two stages on GMP kiosks.
-4. New spec file (its own E2E group; it is long), one test per act like Demotab; run one tablet first, then all three.
-Then the agreed follow-up: the issue screen's tablet count for masters from a formula (the from-formula skeleton records the
-formula's target tablet weight so R3.1's expectation pre-fills the count and refuses a mismatch; the sandbox test-batch issue
-gets the same check). Local E2E here: `sudo pg_ctlcluster 16 main start`; the repo's Playwright wants
-`/opt/pw-browsers/chromium_headless_shell-1194` (link it to the installed `-1243` shell, local only); one run of the group:
-`EBMR_E2E_GROUP=library-acceptance PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock /tmp/ebmr-e2e.lock -c 'CI=true pnpm
---filter @ebmr/e2e test'` (about 20 minutes of set-up before the first test). O-7 (b) is on branch `dyn/o7`, unmerged.
+**Resume here (3 November 2026): S11 passes, CI green on the RunPod pod.** Full CI run 370 on `dyn/s11` at 5c81fc0 is green
+(https://github.com/maglesT/ebmr/actions/runs/41533692154): static checks, supply chain, golden batches, all eight test
+shards (one rerun: a random 3-byte room code clash in `packages/recipe-core/test/plant/support.ts` `tag()`, a pre-existing
+flake) and all twelve E2E groups, the three library tablets among them. Run 369 found two of this branch's own defects,
+fixed in 5c81fc0: a circular import in the e2e helpers, and the sandbox count check applied beyond masters from a formula.
+The pod (32 vCPU, 14 runners `pod-1`..`pod-14`, label `ebmr-pod`) is up and `CI_RUNNER` is deleted (owner, 2 November).
+Next: a PR when the owner asks. S11b passes locally on branch `dyn/s11` as well: each tablet
+11 of 11, from the catalogue to its released lot, screens only (`library-wg-fc` 46 min, `library-dc` 45 min,
+`library-rabe-ec` 46 min). The acceptance is `tools/e2e/specs/library/acceptance.ts`, one spec file and E2E group per tablet
+(replaces `library-acceptance`): the catalogue, S11a, then GMP 1 to 9 (Demotab 4 to 12's screens; the GMP batch at the
+authorised reference size, 1,00,000, D-S11b-3). The floor of a skeleton master is `library/skeleton-floor.ts` (sandbox and
+GMP alike). Defects found and fixed in shared code, each with its test (no tablet code): the formula skeleton used the
+sandbox-only G-10@1/G-09@1, so no GMP batch could be issued (D-S11b-1: now G-10@2/G-09@2); it had no H-PACK, so no batch
+could be packed (D-S11b-2: H-PACK after the blend yield); its weighings were an operator's, and the GMP database lets only a
+DISPENSER consume (D-S11b-4). The agreed follow-up is done: a master from a formula records `header.unitMassMg`, so R3.1
+pre-fills each size's exact tablet count and refuses a mismatch; the sandbox issue refuses it too (EBMR-EXE-700). Test-side
+findings (the controls were right): the product must be in the plant's product list before a clearance (EBMR-PLANT-012);
+typed weighings when the GMP balance is offline; a sandbox TEST- code may not contain a word shaped like a real batch
+number (DI-05). Commits 87c01b17, b334a88f and 0a252802 of `dyn/s11a` cherry-picked. The controls list the new tests;
+the handbook is regenerated. The 7j `own-product.spec.ts` passes locally too. Local E2E: start PostgreSQL;
+`/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell` must point at the installed -1243
+`chrome-headless-shell` (local only); one group: `EBMR_E2E_GROUP=library-wg-fc PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock
+/tmp/ebmr-e2e.lock -c 'CI=true pnpm --filter @ebmr/e2e test'` (about 20 minutes of set-up first).
 
 **Start here (1 November 2026): the dynamic library (decision 0026).** Slices S0 to S11 in
 `docs/build-plan/dynamic-library/plan.html` section 5. S0 (decision record, this page) and S1 (block-definition

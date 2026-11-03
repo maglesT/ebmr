@@ -248,7 +248,7 @@ function marketRule(r: Reader, v: unknown, path: string): { key: string; bound: 
 }
 
 function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
-  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType']);
+  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType', 'unitMassMg']);
   if (!o) return undefined;
   const family = r.id(o, 'family', path);
   const title = r.string(o, 'title', path);
@@ -290,7 +290,9 @@ function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
   const packType = r.string(o, 'packType', path, /^[A-Z0-9][A-Z0-9-]{0,31}$/);
   if (packType !== undefined && recordKind !== undefined && recordKind !== 'PACKAGING') r.fail(`${path}.packType`, 'is named only by a packaging master (D-P4-13)');
   if (!family || !title || !edition || !recordKind || !product || !batchSizes || !marketSet || !variants) return undefined;
-  return { family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants, ...(packType !== undefined ? { packType } : {}) };
+  const unitMassMg = r.string(o, 'unitMassMg', path, /^(0|[1-9][0-9]*)(\.[0-9]+)?$/);
+  if (unitMassMg !== undefined && /^0(\.0*)?$/.test(unitMassMg)) r.fail(`${path}.unitMassMg`, 'is the mass of one unit, above zero');
+  return { family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants, ...(packType !== undefined ? { packType } : {}), ...(unitMassMg !== undefined ? { unitMassMg } : {}) };
 }
 
 function reference(r: Reader, v: unknown, path: string): Reference | undefined {

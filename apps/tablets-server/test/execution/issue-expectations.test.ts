@@ -31,6 +31,22 @@ describe('R3.1: the tablet count at issue against the master', () => {
     expect(unconfirmedCounts(routeD, 'BS-200K', { tabletsPerBatch: { kind: 'COUNT', value: '200000' } })).toEqual([]);
   });
 
+  it('[PR-01][PR-04] decision 0026 S11b: a master from a formula records its unit mass, so each batch size gives its own count exactly (it wins over a compression target that includes a coat); the parser keeps it and refuses a zero', () => {
+    // Two sizes from a formula of 556 mg a tablet: 55.6 kg for 1,00,000 and 27.800 kg for 50,000; a coat after the formula
+    // (a compression target of 570 mg) does not change the count.
+    const fromFormula = { ...gbt01, header: { ...gbt01.header, unitMassMg: '556', batchSizes: [{ id: 'BS-100000U', quantity: { value: '55.6', unit: 'kg' } }, { id: 'BS-50000U', quantity: { value: '27.800', unit: 'kg' } }] } };
+    expect(expectedTabletCount(fromFormula, 'BS-100000U')).toEqual({ value: '100000', basis: 'batch size 55.6 kg / the formula\'s unit mass 556 mg', tolerancePercent: '10' });
+    expect(expectedTabletCount(fromFormula, 'BS-50000U')?.value).toBe('50000');
+    // The further size's count typed for the reference size (or the reverse) is refused without a reason.
+    expect(unconfirmedCounts(fromFormula, 'BS-100000U', { tabletsPerBatch: { kind: 'COUNT', value: '50000' } }).map((p) => [p.expected.value, p.deviation])).toEqual([['100000', '50']]);
+    expect(unconfirmedCounts(fromFormula, 'BS-50000U', { tabletsPerBatch: { kind: 'COUNT', value: '50000' } })).toEqual([]);
+    const raw = JSON.parse(readFileSync(TEMPLATE, 'utf8')) as { header: Record<string, unknown> };
+    const withMass = (v: string) => flow.parseMbr({ ...raw, header: { ...raw.header, unitMassMg: v } });
+    const kept = withMass('556.25');
+    expect(kept.ok && kept.mbr.header.unitMassMg).toBe('556.25');
+    for (const bad of ['0', '0.000', '-5', '5e2', 'abc']) expect(withMass(bad).ok).toBe(false);
+  });
+
   it('a count within 10 % passes; one further away (a digit short) needs the issuer\'s reason', () => {
     const count = (value: string) => ({ tabletsPerBatch: { kind: 'COUNT', value } });
     expect(unconfirmedCounts(gbt01, 'BS-200K', count('200000'))).toEqual([]);

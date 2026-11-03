@@ -19,6 +19,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
+import { definePlantProduct } from '../library/library-support.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from './own-product-support.ts';
 
 /** The start page (the application's address; the shell has no home link) and a tile of it. */
@@ -27,7 +28,7 @@ const home = async (page: Page, tile: RegExp): Promise<void> => {
   await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: tile }).click();
 };
 
-test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office', async ({ e2e, officePage, kioskPage, persona, evidence }, testInfo) => {
+test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet product without a template: materials and product on screen confirmed by QA, its formula approved, a master from the formula with the skeleton, the sandbox run returned as evidence, four signatures and the market authorisation @office', async ({ e2e, officePage, kioskPage, persona, evidence, browser }, testInfo) => {
   test.setTimeout(45 * 60_000);
   const steward = persona('GMP', 'steward');
   const qa = persona('GMP', 'approver');
@@ -59,6 +60,9 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
       await m.getByRole('textbox', { name: 'Reason for the entry' }).fill('New in-house product; the ERP item is not created yet');
       await m.getByRole('button', { name: 'Enter the material' }).click();
       await expect(s.getByTestId('masters-waiting')).toContainText(mat.code);
+      // The form clears only when the command returns, which can be after the list shows the code: typing the next
+      // material before then loses it (GitHub-hosted run 41580034990).
+      await expect(m.getByRole('textbox', { name: 'Material code' })).toHaveValue('');
     }
     const p = s.getByRole('form', { name: 'Enter a product' });
     await p.getByRole('textbox', { name: 'Product code' }).fill(product.code);
@@ -209,7 +213,12 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
   let batchNumber = '';
   await evidence.step('Sandbox: the steward registers TEST- lots of the new materials; the test batch runs to Execution complete and its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
     await registerTestLots({ officePage, kioskPage, persona }, lots);
-    const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona }, packageHash, lots, { tare: '1.000', gross: '56.300' });
+    // S11b: the skeleton's database-backed clearance names the product, so the sandbox plant lists it.
+    const sp = await officePage('SANDBOX', 'TEST-PC-01');
+    await signIn.office(sp, persona('SANDBOX', 'steward'));
+    await definePlantProduct(sp, e2e.url('SANDBOX'), product);
+    await sp.context().close();
+    const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona, browser }, packageHash, lots, { tare: '1.000', gross: '56.300' });
     batchNumber = run.batchNumber;
     return run;
   });
