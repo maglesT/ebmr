@@ -1033,7 +1033,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           fields: [{ id: 'allReceived', label: 'All containers received', type: 'YES_NO', expected: true }],
         },
       ],
-      signatures: [OPERATOR, { meaning: 'CHECKED', role: 'PRODUCTION_OPERATOR' }],
+      signatures: [OPERATOR, CHECKER],
     },
     exampleUse: { equipmentClasses: { fromAreaClass: 'GRANULATION-ROOM', toAreaClass: 'COMPRESSION-ROOM' } },
   },

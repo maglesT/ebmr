@@ -171,6 +171,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libtab 250 mg, direct compression, uncoated (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
   - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > smart fields of library entries (tablets 1803) > [DI-30][PR-14] the trigger itself refuses a row adding a hand-keyed library weighing without two-person verification (EBMR-TAB-480), also after a state without entries; a row adding no entry is not checked"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-14][DI-17] no catalogue block has two of its signatures signed by the same role: the checker or verifier is never the performer's role (R3-CAT-5)"
 clauses:
   - clause: "With the scale disconnected during an automated dispense, the step demands a second, different user."
     tests:

@@ -95,6 +95,13 @@ describe('the ready-made catalogue', () => {
     expect(item.exampleUse.bomLines?.['diluentLine']).toBeDefined();
   });
 
+  it('[PR-14][DI-17] no catalogue block has two of its signatures signed by the same role: the checker or verifier is never the performer\'s role (R3-CAT-5)', () => {
+    for (const item of SEED_CATALOGUE) {
+      const roles = item.definition.signatures.map((x) => x.role);
+      expect(new Set(roles).size, `${item.definition.code} ${roles.join(', ')}`).toBe(roles.length);
+    }
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);
