@@ -60,6 +60,31 @@ export type TableStatus = 'MATCH' | 'ADDED_ONLY' | 'ADVANCED' | 'CHANGED' | 'NEW
 /** The tables whose rows are signatures (the rest of esig is its catalogue: meanings, content providers, keys). */
 export const SIGNATURE_RECORDS: readonly string[] = ['"esig"."signature"'];
 
+/**
+ * The tables a release's migrations may add rows to (DI-48), each with the reason. Every other table outside the SYSTEM
+ * category (public.schema_migration, the migration ledger) holds records or execution data, so an upgrade that adds
+ * rows to it fails the dry run: a migration must not write records. A new table of a release that holds its own
+ * catalogue is added here, with its reason, when a later release's drill first sees it ADDED_ONLY.
+ */
+export const ADDED_ONLY_ALLOWED: Readonly<Record<string, string>> = {
+  '"esig"."content_provider"': 'catalogue of the content providers a signature can cover: a release registers its new ones',
+  '"esig"."meaning_type"': 'catalogue of signature meanings: a release adds the meanings of its new acts (the signatures themselves, esig.signature, may not grow)',
+  '"iam"."permission"': 'catalogue of permissions: a release adds the permissions of its new commands',
+  '"iam"."role_permission"': "the release's grants of its new permissions to the standard roles (configuration, not a person's record)",
+  '"kernel"."audit_event"': 'the audit events of the configuration rows the migrations add; the chains are verified after the upgrade and every earlier event must be unchanged',
+  '"kernel"."audited_table"': 'registry of the tables the audit trail covers: a release registers its new tables',
+  '"kernel"."ddl_log"': 'the DDL log of the release\'s own migrations',
+  '"platform"."config_area"': 'catalogue of configuration areas',
+  '"platform"."config_version"': 'configuration versions with basis RELEASE, recorded for the catalogue rows the migrations add',
+  '"platform"."db_time_column"': 'registry of the columns that take database time: a release registers its new columns',
+  '"platform"."inbound_schema"': 'the inbound message schemas the eBMR accepts (insert-only; a release adds its own)',
+  '"platform"."setting_definition"': 'catalogue of setting definitions: a release defines its new settings (earlier definitions must be unchanged)',
+  '"recipe"."block_data_schema"': 'catalogue of block data schemas',
+  '"recipe"."block_signature_meaning"': 'catalogue of the signature meanings each block type uses',
+  '"recipe"."engine_name"': "the names the engine's registers give (rule codes, block types, controls, schema tags): a release registers its new ones",
+  '"report"."view_registry"': 'registry of the report views (insert-only; a release adds its new views)',
+};
+
 export interface TableResult {
   table: string;
   category: string;
@@ -330,6 +355,9 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
       if (status === 'MATCH' && sha !== b.sha) failures.push(`${q}: same rows but another hash`);
       if (status === 'CHANGED') failures.push(`${q}: ${String(missing)} earlier row(s) changed or removed by the upgrade`);
       if (status === 'ADDED_ONLY' && SIGNATURE_RECORDS.includes(q)) failures.push(`${q}: the upgrade added ${String(n - b.n)} signature(s)`);
+      else if (status === 'ADDED_ONLY' && b.t.category !== 'SYSTEM' && ADDED_ONLY_ALLOWED[q] === undefined) {
+        failures.push(`${q}: the upgrade added ${String(n - b.n)} row(s) to a table of ${b.t.category === 'RECORDS' ? 'records' : b.t.category.toLowerCase().replace('_', ' ')}; only the tables of ADDED_ONLY_ALLOWED (the release's catalogues, registries and ledgers) may grow`);
+      }
     }
     for (const t of after) {
       if (before.has(t.qualified)) continue;

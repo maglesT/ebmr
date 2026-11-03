@@ -149,6 +149,20 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     expect(ok.report.toReview.join('\n')).toContain('"platform"."setting_definition_v2"');
   });
 
+  it('[DI-48] a migration that adds rows to a table of records (not the release\'s configuration) fails the dry run and names the table (R3-VAL-6)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-drill-add-'));
+    mkdirSync(join(dir, 'sql'));
+    writeFileSync(join(dir, 'sql', '9999_bad_insert.sql'), '-- Handbook: test only\ninsert into iam.authn_attempt (method, purpose, outcome, reason) select method, purpose, outcome, reason from iam.authn_attempt order by id limit 1;\n');
+    const bad = await runUpgradeDrill({
+      adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: [...tabletsMigrationSources(), { namespace: 'drill-test', directory: join(dir, 'sql') }],
+      fromRelease: manifest.release, reportDir: reports, spotChecks: 4, renderLimit: 1,
+    });
+    rmSync(dir, { recursive: true, force: true });
+    expect(bad.report.tables.find((t) => t.table === '"iam"."authn_attempt"')?.status).toBe('ADDED_ONLY');
+    expect(bad.report.result).toBe('FAIL');
+    expect(bad.report.failures.join('\n')).toMatch(/"iam"\."authn_attempt".*added/);
+  });
+
   it('[DI-48] a dry run without a spot check of signatures, audit events and units has no evidence for them and fails (R3-VAL-5)', async () => {
     const none = await runUpgradeDrill({
       adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: tabletsMigrationSources(), fromRelease: manifest.release, reportDir: reports, spotChecks: 0, renderLimit: 1,
