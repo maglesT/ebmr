@@ -214,8 +214,47 @@ function l3UrlOf(raw: string | undefined, production: boolean): string | null {
   return u.toString().replace(/\/+$/, '');
 }
 
+/**
+ * Shared hosting platform (Phase B slice 1): the platform's apply writes EBMR_DATABASE_URL (ebmr_app on the shared server),
+ * OIDC_REDIRECT_URI (https://ebmr.<domain>/cb) and, from the customer secrets, EBMR_AUTHN_PASSWORD and
+ * EBMR_ANALYTICS_PASSWORD; the compose service sets EBMR_DB_CA_FILE, the certificate of the platform's database server
+ * (self-signed, for the name "db"). From those this fills the EBMR_* settings a standalone installer writes, with every
+ * database URL on verified TLS (sslmode=verify-full against that certificate, DI-13 unchanged). A setting given
+ * explicitly wins; without both EBMR_DATABASE_URL and EBMR_DB_CA_FILE the environment is returned unchanged (standalone).
+ */
+export function platformEnv(env: Readonly<Record<string, string | undefined>>): Record<string, string | undefined> {
+  const own = env['EBMR_DATABASE_URL'];
+  const ca = env['EBMR_DB_CA_FILE'];
+  if (!own || !ca) return { ...env };
+  if (!ca.startsWith('/')) throw new ConfigError('EBMR_DB_CA_FILE is an absolute file path');
+  const verified = (user?: string, password?: string): string => {
+    const u = new URL(own);
+    if (user) u.username = user;
+    if (password !== undefined) u.password = encodeURIComponent(password);
+    u.searchParams.set('sslmode', 'verify-full');
+    u.searchParams.set('sslrootcert', ca);
+    return u.toString();
+  };
+  const database = decodeURIComponent(new URL(own).pathname.replace(/^\//, ''));
+  const redirect = env['OIDC_REDIRECT_URI'];
+  const authn = env['EBMR_AUTHN_PASSWORD'];
+  const analytics = env['EBMR_ANALYTICS_PASSWORD'];
+  const derived: Record<string, string | undefined> = {
+    EBMR_DATABASE: database,
+    EBMR_DB_APP_URL: verified(),
+    EBMR_DB_AUTHN_URL: authn ? verified('ebmr_authn', authn) : undefined,
+    EBMR_DB_ANALYTICS_URL: analytics ? verified('ebmr_analytics', analytics) : undefined,
+    EBMR_PUBLIC_ORIGIN: redirect ? new URL(redirect).origin : undefined,
+    EBMR_HOST: '0.0.0.0',
+    EBMR_PORT: env['PORT'] ?? '3000',
+  };
+  const out: Record<string, string | undefined> = { ...env };
+  for (const [k, v] of Object.entries(derived)) if (out[k] === undefined && v !== undefined) out[k] = v;
+  return out;
+}
+
 export function parseConfig(env: Readonly<Record<string, string | undefined>>, randomKey: () => string): EnvConfig {
-  const parsed = EnvSchema.safeParse(env);
+  const parsed = EnvSchema.safeParse(platformEnv(env));
   if (!parsed.success) throw new ConfigError(`invalid server configuration: ${z.prettifyError(parsed.error)}`);
   const e = parsed.data;
   const origin = new URL(e.EBMR_PUBLIC_ORIGIN);

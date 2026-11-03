@@ -69,6 +69,13 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
+`docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.
+The product is `ebmr` at `https://ebmr.<domain>`. Slice 1 (platform wiring) is in progress: the one-shot migrator
+(`src/cli/platform-migrate.ts`), the platform env with verified TLS to the platform database (decision 3 revised:
+TLS, not a socket), and `ops/Dockerfile`. The databsee side is on branch `b-ebmr-1`. Frozen baseline: branch
+`standalone` at 0bb289c.
+
 **3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
 `dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
 is stopped). R2 static part done: PR-08 and PR-29 list their boundary tests; PR-60 lists its database test (kernel's

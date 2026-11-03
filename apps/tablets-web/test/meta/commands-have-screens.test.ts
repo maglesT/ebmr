@@ -71,6 +71,8 @@ const INSTALLER: Readonly<Record<string, string>> = {
   'ebmr#install:server': 'the one-command installer',
   'tools/install/src/cli.ts': 'the one-command installer',
   'tools/install/install.sh': 'the one-command installer',
+  'apps/tablets-server/src/cli/platform-migrate.ts': 'the installer on the shared hosting platform (Phase B: its apply runs it, never a person)',
+  'ops/entrypoint.sh': 'the server image on the shared hosting platform (starts the server, or runs its installer step)',
   'apps/tablets-server/src/main.ts': 'the server process itself, started by the service the installer writes (systemd or docker compose)',
   'apps/site-gateway/src/main.ts': 'the site gateway, a device on the plant network with its own service on its own machine, installed like the server',
 };

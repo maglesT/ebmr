@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+.git
+.reports
+var
+graphify-out
+tools/e2e/test-results
+tools/e2e/playwright-report
+**/.env*
+**/*.pem
+**/*.key
+**/*secrets*.json
+docs
