@@ -165,8 +165,25 @@ describe('the risk assessment and the release documents', () => {
     const deferred = assessRisk(control({ clauses: [{ clause: 'x', tests: [], deferred: { phase: 9, reason: 'later' } }] }), v);
     expect(deferred).toMatchObject({ probability: 'high', detectability: 'low', riskClass: 'high' });
     expect(isDatabaseTest('apps/tablets-server/test/execution/db-guards-roles.test.ts > x > y')).toBe(true);
-    expect(isDatabaseTest('apps/tablets-server/test/review/screens.test.ts > x > [DI-1] a bypass is refused')).toBe(true);
     expect(isDatabaseTest('apps/tablets-web/test/a.test.ts > x > shows a label')).toBe(false);
+  });
+
+  it('[meta] a database test is known by where it lives, not by a word of its title (R3-VAL-4)', () => {
+    // A title that names a bypass, a guard or the database does not make a server or screen test a database test.
+    for (const t of [
+      'apps/tablets-server/test/review/screens.test.ts > x > [DI-1] a bypass is refused',
+      'apps/tablets-web/test/a.test.ts > x > the guard shows the database is directly refused',
+      'tools/register/test/x.test.ts > a database guard',
+    ]) expect(isDatabaseTest(t), t).toBe(false);
+    for (const t of [
+      'packages/kernel/test/inbound/inbound.test.ts > x > y',
+      'packages/recipe-core/test/a/b.test.ts > y',
+      'apps/tablets-server/test/execution/db-guards-roles.test.ts > x > y',
+      'apps/tablets-server/test/mutation/weighing.test.ts > x > y',
+      'tools/drills/test/drills.test.ts > upgrade > [DI-48] counts match',
+    ]) expect(isDatabaseTest(t), t).toBe(true);
+    // A path rule matches the file, not a describe or title that looks like one.
+    expect(isDatabaseTest('apps/tablets-web/test/a.test.ts > packages/kernel/test/x > y')).toBe(false);
   });
 
   it('[meta] the release notes list the requirement-level delta against the previous bundle', () => {

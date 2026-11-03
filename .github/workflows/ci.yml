@@ -228,6 +228,12 @@ jobs:
           sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .vitest-blobs/blob-*.json
           mkdir -p .reports
           pnpm vitest run --mergeReports=.vitest-blobs --reporter=json --outputFile=.reports/vitest.json
+      # The stamp beside each report (R3-VAL-2): the commit checked out here (every job of a run checks out the same
+      # one), whether the tree is clean, and the report's SHA-256. The evidence bundle takes only a report stamped on
+      # its commit, from a clean tree, for those bytes; a stale report is refused.
+      - name: Stamp the Vitest report
+        if: ${{ !cancelled() && hashFiles('.reports/vitest.json') != '' }}
+        run: pnpm -s validation:stamp .reports/vitest.json
       - name: Failed tests (summary)
         if: failure()
         run: |
@@ -247,6 +253,8 @@ jobs:
           path: .reports
       # The golden job ran on another pod runner: its report names files from that runner's folder (see the merge above).
       - run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/vitest-golden.json
+      # Stamped after the rewrite above, which changes its bytes (same run, same commit as the golden job).
+      - run: pnpm -s validation:stamp .reports/vitest-golden.json
       - run: pnpm trace --require-golden
       - name: OpenAPI document of the frozen contract
         run: pnpm openapi
@@ -260,7 +268,9 @@ jobs:
           # downloads this artifact for vitest.json.
           path: |
             .reports/vitest.json
+            .reports/vitest.json.stamp.json
             .reports/vitest-golden.json
+            .reports/vitest-golden.json.stamp.json
             .reports/trace-matrix.md
             .reports/openapi.json
           if-no-files-found: ignore
@@ -372,6 +382,10 @@ jobs:
           path: .reports/blob
           merge-multiple: true
       - run: pnpm --filter @ebmr/e2e exec playwright merge-reports --config merge.config.ts ../../.reports/blob
+      # Its stamp (R3-VAL-2; see the report job).
+      - name: Stamp the Playwright report
+        if: ${{ !cancelled() && hashFiles('.reports/playwright.json') != '' }}
+        run: pnpm -s validation:stamp .reports/playwright.json
       - name: Upload end-to-end reports and evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -379,6 +393,7 @@ jobs:
           name: e2e-reports
           path: |
             .reports/playwright.json
+            .reports/playwright.json.stamp.json
             .reports/e2e-evidence.json
           if-no-files-found: ignore
 
