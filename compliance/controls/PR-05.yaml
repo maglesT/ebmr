@@ -86,7 +86,7 @@ tests:
   - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them"
   - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [DI-35][PR-05] QA sees a draft with its fields and approves it through the ceremony with LIBRARY_ACT"
   - "apps/tablets-server/test/library/library-batch-gmp.test.ts > a library block in a GMP batch > [PR-05] the snapshots must be approved library versions with the same content hash; a retired version serves approved masters but no new approval"
-  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone"
+  - "apps/tablets-server/test/library/library-routes.test.ts > the library of block definitions > [PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone; the deferred hard-capsule blocks are not in the Tablets load (R3-CAT-4)"
   - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-05] adding a library block inserts its step and carries its snapshot in one change; a different content under the same version is refused"
   - "apps/tablets-web/test/designer/library-blocks.test.tsx > library blocks in the designer > [PR-05] the author picks an approved library block and adds it after the step"
   - "apps/tablets-web/test/library/library-page.test.tsx > the block library screen > [PR-05] an author loads the ready-made catalogue as drafts and sees how many were stored"

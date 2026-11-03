@@ -208,6 +208,7 @@ tests:
   - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29][PR-08] a test result that is not a profile is judged on its statistics; with no count given any number of readings is taken"
   - "packages/recipe-core/test/library/limits-kill.test.ts > timers on trusted time (PR-30) > [PR-30][PR-08] two timers are kept apart: each starts and stops once, and each duration runs from its own start"
   - "packages/recipe-core/test/library/limits-kill.test.ts > timers on trusted time (PR-30) > [PR-30][PR-08] a timer whose limit the formulation leaves empty is not judged; a timer in a unit that is no time is refused"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-08][PR-03] content uniformity holds its first-stage acceptance value to 10 units: a critical check that exactly 10 units were tested, a wider limit on it is flagged for a written reason, and a batch testing 30 units raises a registered-limit exception that blocks the step; the help states the first-stage scope (R3-CAT-6)"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

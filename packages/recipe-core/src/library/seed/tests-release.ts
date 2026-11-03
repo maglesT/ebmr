@@ -199,7 +199,7 @@ export const RELEASE_TEST_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Content uniformity',
       category: 'TEST_RELEASE',
-      instructions: 'Assay each unit separately and record each result as % of the label claim.',
+      instructions: 'First stage only: assay 10 units separately and record each result as % of the label claim. The acceptance value here holds for 10 units; a second stage (further units, another constant) is not this block.',
       sections: [
         {
           id: 'test',
@@ -220,10 +220,11 @@ export const RELEASE_TEST_SEEDS: readonly SeedItem[] = [
             },
             { id: 'unitMean', label: 'Mean content', type: 'CALC', expression: 'mean(content)', unit: '%' },
             { id: 'unitSd', label: 'Standard deviation of content', type: 'CALC', expression: 'sd(content)', unit: '%' },
+            { id: 'tenUnits', label: 'First stage: 10 units tested (1 yes, 0 no)', help: 'The acceptance value below is the first-stage one, defined for exactly 10 units; another number of units gives 0, which is out of limits.', type: 'CALC', expression: 'count(content) == 10 ? 1 : 0', unit: '1', limitSlot: 'tenUnits', critical: true },
             {
               id: 'acceptanceValue',
               label: 'Acceptance value (first stage, 10 units)',
-              help: 'Distance of the mean from the 98.5 to 101.5 % window plus 2.4 times the standard deviation; valid for 10 units and a target content of 100 %.',
+              help: 'First stage only: distance of the mean from the 98.5 to 101.5 % window plus 2.4 times the standard deviation; valid for exactly 10 units and a target content of 100 %.',
               type: 'CALC',
               expression: 'abs(min(max(unitMean, 98.5 [%]), 101.5 [%]) - unitMean) + 2.4 * unitSd',
               unit: '%',
@@ -234,10 +235,13 @@ export const RELEASE_TEST_SEEDS: readonly SeedItem[] = [
         },
       ],
       signatures: QC,
-      referenceLimits: { acceptanceValue: { unit: '%', high: '15.0', note: 'A common compendial maximum acceptance value at the first stage' } },
+      referenceLimits: {
+        acceptanceValue: { unit: '%', high: '15.0', note: 'A common compendial maximum acceptance value at the first stage' },
+        tenUnits: { unit: '1', low: '1', high: '1', note: 'The first-stage acceptance value (constant 2.4, maximum 15.0) is defined for 10 units' },
+      },
     },
     exampleUse: {
-      limits: { contentMean: spec('%', '95.0', '105.0'), contentIndividual: spec('%', '85.0', '115.0'), contentRsd: spec('%', undefined, '6.0'), acceptanceValue: spec('%', undefined, '15.0') },
+      limits: { contentMean: spec('%', '95.0', '105.0'), contentIndividual: spec('%', '85.0', '115.0'), contentRsd: spec('%', undefined, '6.0'), acceptanceValue: spec('%', undefined, '15.0'), tenUnits: spec('1', '1', '1') },
       equipmentClasses: { instrumentClass: 'HPLC' },
       counts: { units: '10' },
     },
