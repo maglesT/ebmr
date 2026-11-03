@@ -1,5 +1,5 @@
 /**
- * Ready-made library blocks: hard capsules (decision 0026, owner direction 2 November 2026, within the eleven slices).
+ * Ready-made library blocks: hard capsules (decision 0026). The owner deferred hard capsules on 3 November 2026 (R3-CAT-4): the blocks stay here, but the Tablets library load leaves them out (index.ts, TABLETS_CATALOGUE).
  * Filling (the filler, the capsule size, the empty shells' lot, the fill weight and machine speed at each round),
  * polishing and sorting, and the capsule's own in-process tests (fill weight variation, locked length, appearance,
  * disintegration), and a capsule dissolution test (QC's, with sinkers). The empty capsule shells are a material like any
