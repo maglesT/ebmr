@@ -190,7 +190,7 @@ describe('the generic handler runs library blocks in the engine', () => {
       lodLot: { kind: 'DECIMAL', value: '2', unit: '%' },
       batchSize: { kind: 'DECIMAL', value: '100', unit: 'kg' },
     };
-    const extra: Partial<MbrContent> = { inputs: Object.entries(inputs).map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: (v as { unit: string }).unit })) };
+    const extra: Partial<MbrContent> = { bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }], inputs: Object.entries(inputs).map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: (v as { unit: string }).unit })) };
     const run = runFor(def, use, { extra, reads: Object.keys(inputs), inputs });
     run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false, reworkQty: '1' }), 'LIB-ENTRY-HIDDEN');
     run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: true, reworkQty: '1' }), 'LIB-ENTRY-REQUIRED');
@@ -205,7 +205,7 @@ describe('the generic handler runs library blocks in the engine', () => {
   it('[DI-33] a calculation whose external input the batch does not provide refuses the entry', () => {
     const def = potencyDispensing();
     const use: BlockUse = { block: { code: def.code, version: 1 }, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: { step: 'lod', field: 'lod' } } };
-    const run = runFor(def, use);
+    const run = runFor(def, use, { extra: { bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }] } });
     run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false }), 'LIB-CALC-FAILED');
   });
 
@@ -299,6 +299,39 @@ describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
     const schema = v.dataSchema?.entries['weigh'];
     expect((schema?.fields['lots'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
     expect((schema?.fields['equipment'] as { serverFilled?: boolean } | undefined)?.serverFilled).toBe(true);
+  });
+
+  it('[PR-18][IN-23][INV-25] R3-ENG-3: a formulation line that names no line of the master\'s bill of materials refuses the batch definition', () => {
+    const typo: BlockUse = { ...use, bomLines: { line: 'BOM-TYPO' } };
+    expect(checkBlockUse(dispense(), typo, expr, extra.bom).map((p) => p.code)).toEqual(['LIB-USE-BOM-LINE']);
+    expect(checkBlockUse(dispense(), use, expr, extra.bom)).toEqual([]);
+    const registry = testRegistry().extend(libraryBlockVersion(dispense(), expr));
+    expect(() => define(mbrFor(dispense(), typo, extra), { registry })).toThrow(/LIB-USE-BOM-LINE/);
+    // A FORMULA_LINE input reads the same way: a line removed from the BOM leaves the calculation nothing to read.
+    const potency = potencyDispensing();
+    const gone: BlockUse = { block: { code: potency.code, version: 1 }, bomLines: { activeLine: 'BOM-GONE' }, stepValues: { lodSource: { step: 'lod', field: 'lod' } } };
+    expect(checkBlockUse(potency, gone, expr, extra.bom).map((p) => `${p.code} ${p.path}`)).toEqual(['LIB-USE-BOM-LINE bomLines.activeLine']);
+    const potencyRegistry = testRegistry().extend(libraryBlockVersion(potency, expr));
+    expect(() => define(mbrFor(potency, gone, extra), { registry: potencyRegistry })).toThrow(/LIB-USE-BOM-LINE/);
+  });
+
+  it('[PR-18][IN-23][INV-25] R3-ENG-3: at run time a lot whose formulation line is not in the bill of materials is refused, never left unchecked', () => {
+    const v = libraryBlockVersion(dispense(), expr);
+    const view = (bomLines: Record<string, string>) => ({
+      phase: { id: 'p' },
+      config: configOf({ ...use, bomLines }),
+      nowUs: T0,
+      batch: { batchId: 'B', batchNumber: 'B1', productCode: 'P', marketSet: ['IN'] },
+      mbr: mbrFor(dispense(), use, extra),
+      entries: () => [],
+    }) as never;
+    const accept = (bomLines: Record<string, string>, e: ReturnType<typeof entry>) => v.handler!.acceptEntry!(view(bomLines), e);
+    const codesOf = (r: ReturnType<typeof accept>): string[] => (r.ok ? [] : r.problems.map((p) => p.code));
+    // A lot of any material: with the line missing, nothing may say the material is right.
+    expect(codesOf(accept({ line: 'BOM-TYPO' }, entry(lot({ material: 'MAT-OTHER' }))))).toEqual(['LIB-LOT-BOM-LINE']);
+    expect(codesOf(accept({}, entry(lot())))).toEqual(['LIB-LOT-BOM-LINE']);
+    expect(codesOf(accept({ line: 'BOM-API' }, entry(lot({ material: 'MAT-OTHER' }))))).toEqual(['G07-WRONG-MATERIAL']);
+    expect(accept({ line: 'BOM-API' }, entry()).ok).toBe(true);
   });
 });
 
