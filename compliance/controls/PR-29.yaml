@@ -310,6 +310,12 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception"
   - "apps/tablets-web/test/floor/library-renderer.test.tsx > the generic library renderer > [PR-29] a profile test takes the planned readings at each time point with its limit; the entry carries them by point"
   - "apps/tablets-server/test/blocks/ipc/calc-edges.test.ts > IPC limits and verdicts > [IN-35][PR-08] one-sided limits judge only the side they state; the alert tier warns inside the action tier"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > statistics at their edges > [PR-29] no readings give no statistic, two readings give a sample RSD, and individual results are a copy"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > every limited field kind raises its breach (PR-08) > [PR-08][PR-29] a number, a weighing, a not-allowed choice and an unexpected answer each raise their exception, with the tier and a deviation; values inside raise none"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > repeats: counts and loops (INV-20) > [INV-20][PR-29] a loop on a yes/no exits on the expected answer, or on any answer when none is expected"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29][PR-08] a test result that is not a profile is judged on its statistics; with no count given any number of readings is taken"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29] a profile needs readings for exactly its points: an extra point, or points the formulation does not give, are refused"
+  - "packages/recipe-core/test/library/limits-kill.test.ts > test results: replicates, points and statistics (PR-29) > [PR-29][PR-30] an IPC round exactly at its interval is on time; one later is late, and the exception names the round and the interval"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:
