@@ -215,7 +215,7 @@ function l3UrlOf(raw: string | undefined, production: boolean): string | null {
 }
 
 /**
- * MEDHANTA platform (Phase B slice 1): the platform's apply writes EBMR_DATABASE_URL (ebmr_app on the shared server),
+ * Shared hosting platform (Phase B slice 1): the platform's apply writes EBMR_DATABASE_URL (ebmr_app on the shared server),
  * OIDC_REDIRECT_URI (https://ebmr.<domain>/cb) and, from the customer secrets, EBMR_AUTHN_PASSWORD and
  * EBMR_ANALYTICS_PASSWORD; the compose service sets EBMR_DB_CA_FILE, the certificate of the platform's database server
  * (self-signed, for the name "db"). From those this fills the EBMR_* settings a standalone installer writes, with every

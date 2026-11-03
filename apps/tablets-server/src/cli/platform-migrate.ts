@@ -1,7 +1,7 @@
 /**
- * Batchwright's migrator on the MEDHANTA platform (Phase B slice 1; plan decision 2, approved by the lead on 3 Nov 2026).
+ * The eBMR's migrator on the shared hosting platform (Phase B slice 1; plan decision 2, approved by the lead on 3 Nov 2026).
  * The platform's apply runs it once per apply, in a one-shot container, before it starts the server
- * (databsee manifest `"migrate": "own"`). It connects as a superuser, as Batchwright's own installer does (it creates
+ * (databsee manifest `"migrate": "own"`). It connects as a superuser, as the standalone installer does (it creates
  * roles, the DDL-audit event triggers and connection limits), to the database the platform's set-up already created
  * (owner ebmr_owner, app login ebmr_app). Idempotent: an empty database gets every migration, a migrated one only the
  * pending ones; an applied file that changed stops it (kernel migrate).
@@ -10,7 +10,7 @@
  *   2. kernel, site services, recipe-core and tablets migrations, in the standalone order;
  *   3. the connect policy (sandbox.apply_connect_policy, as the installer runs it);
  *   4. the extra login roles: ebmr_authn and ebmr_analytics get EBMR_AUTHN_PASSWORD and EBMR_ANALYTICS_PASSWORD (customer
- *      secrets); every other Batchwright login, which the platform does not use (listener, report and the sandbox
+ *      secrets); every other eBMR login, which the platform does not use (listener, report and the sandbox
  *      logins), is NOLOGIN, so no migration default password ('ebmr_authn' and the like) stays usable;
  *   5. the CSRF and nonce keys and the service-keys file in the keys directory, generated once.
  *
@@ -28,7 +28,7 @@ import { TABLETS_SQL } from './installation.ts';
 
 export const PLATFORM_SQL = new URL('../../sql-platform', import.meta.url).pathname;
 
-/** Batchwright's login roles besides ebmr_app (whose login and password the platform's apply manages). */
+/** The eBMR's login roles besides ebmr_app (whose login and password the platform's apply manages). */
 export const EXTRA_LOGINS = ['ebmr_authn', 'ebmr_listener', 'ebmr_analytics', 'ebmr_report', 'ebmr_sandbox', 'ebmr_sandbox_listener'] as const;
 
 /** The platform source runs first, then the standalone sources in their standalone order. */
