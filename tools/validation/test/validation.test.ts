@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { asAdmin, createGmpDatabase, dropDatabase, editionMigrationSources, uniqueSuffix, urlFor } from '@ebmr/test-kit';
 import { canonicalJson, generatePack, PACK_ARTEFACTS, type Bundle } from '@ebmr/validation-kit';
 import { buildBundle } from '../src/bundle.ts';
+import { stampReport } from '../src/reports.ts';
 import { runIq } from '../src/iq.ts';
 import { oqRecord } from '../src/oq.ts';
 import { cycloneDx } from '../src/sbom.ts';
@@ -54,6 +55,7 @@ beforeAll(async () => {
     '[DI-03] the schema release is the SHA-256 of the migration ledger in namespace and name order, the same as computed from the files': 'passed',
     '[DI-03] the ledger is not writable by the application role, so the release cannot be faked from a session': 'passed',
   });
+  stampReport(join(dir, 'vitest.json'), { commit: commit.commit, dirty: false });
   writeFileSync(join(dir, 'sbom.cdx.json'), `${canonicalJson(cycloneDx('1.0.0-rc.1'))}\n`);
   bundle = await buildBundle({ resultsDir: dir, db: client, sbomFile: relative(ROOT, join(dir, 'sbom.cdx.json')), commit, host, lockedSettings: locked, version: '1.0.0-rc.1' });
 }, LONG);

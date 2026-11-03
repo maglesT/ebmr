@@ -9,8 +9,10 @@
  * a residual for slice 7f.
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Host, Measure } from '@ebmr/validation-kit';
-import { readRuns } from './reports.ts';
+import { readRuns, stampFileOf, stampReport } from './reports.ts';
 import { ROOT } from './sources.ts';
 
 export interface OqRecord {
@@ -46,10 +48,10 @@ export function oqRecord(dir: string, commit: string, host: Host, server: string
 }
 
 /** The suites of the OQ, as CI runs them. */
-export const OQ_SUITES: readonly { name: string; command: string[] }[] = [
-  { name: 'regression suite', command: ['pnpm', 'test:json'] },
-  { name: 'golden batches', command: ['pnpm', 'vitest', 'run', '--project', 'server', 'apps/tablets-server/test/golden', '--reporter=json', '--outputFile=.reports/vitest-golden.json'] },
-  { name: 'browser suite', command: ['pnpm', 'e2e'] },
+export const OQ_SUITES: readonly { name: string; command: string[]; report: string }[] = [
+  { name: 'regression suite', command: ['pnpm', 'test:json'], report: '.reports/vitest.json' },
+  { name: 'golden batches', command: ['pnpm', 'vitest', 'run', '--project', 'server', 'apps/tablets-server/test/golden', '--reporter=json', '--outputFile=.reports/vitest-golden.json'], report: '.reports/vitest-golden.json' },
+  { name: 'browser suite', command: ['pnpm', 'e2e'], report: '.reports/playwright.json' },
 ];
 
 /** Runs each suite (its exit status is in its report; a suite that leaves no report shows as not run). */
@@ -57,6 +59,11 @@ export function runSuites(server: string, suites = OQ_SUITES, log: (m: string) =
   for (const s of suites) {
     log(`OQ: ${s.name}: ${s.command.join(' ')}`);
     const [cmd = 'pnpm', ...args] = s.command;
+    // A report left from an earlier run is not this run's: removed first, and the suite's own report stamped after it.
+    const report = join(ROOT, s.report);
+    rmSync(report, { force: true });
+    rmSync(stampFileOf(report), { force: true });
     spawnSync(cmd, args, { cwd: ROOT, stdio: 'inherit', env: { ...process.env, EBMR_OQ_SERVER: server } });
+    if (existsSync(report)) stampReport(report);
   }
 }
