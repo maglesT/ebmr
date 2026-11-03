@@ -941,7 +941,7 @@ files that raise, define or pass it on. To find where a code is raised, open the
 | `EBMR-LIB-007` | [packages/recipe-core/sql/1800_library_blocks.sql](../../../packages/recipe-core/sql/1800_library_blocks.sql) |
 | `EBMR-LIB-008` | [packages/recipe-core/sql/1800_library_blocks.sql](../../../packages/recipe-core/sql/1800_library_blocks.sql) |
 | `EBMR-LIB-019` | [packages/recipe-core/sql/1800_library_blocks.sql](../../../packages/recipe-core/sql/1800_library_blocks.sql) |
-| `EBMR-LIB-020` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
+| `EBMR-LIB-020` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql), [packages/recipe-core/sql/1862_library_limits_judgement.sql](../../../packages/recipe-core/sql/1862_library_limits_judgement.sql) |
 | `EBMR-LIB-021` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql), [packages/recipe-core/src/library/formulation.ts](../../../packages/recipe-core/src/library/formulation.ts) |
 | `EBMR-LIB-022` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
 | `EBMR-LIB-029` | [packages/recipe-core/sql/1810_library_execution.sql](../../../packages/recipe-core/sql/1810_library_execution.sql) |
@@ -1776,7 +1776,7 @@ files that raise, define or pass it on. To find where a code is raised, open the
 | `EBMR-TAB-472` | [apps/tablets-server/sql/1479_mbr_signing_screens.sql](../../../apps/tablets-server/sql/1479_mbr_signing_screens.sql) |
 | `EBMR-TAB-473` | [apps/tablets-server/sql/1479_mbr_signing_screens.sql](../../../apps/tablets-server/sql/1479_mbr_signing_screens.sql) |
 | `EBMR-TAB-474` | [apps/tablets-server/sql/1479_mbr_signing_screens.sql](../../../apps/tablets-server/sql/1479_mbr_signing_screens.sql) |
-| `EBMR-TAB-480` | [apps/tablets-server/sql/1803_library_smart_fields.sql](../../../apps/tablets-server/sql/1803_library_smart_fields.sql) |
+| `EBMR-TAB-480` | [apps/tablets-server/sql/1803_library_smart_fields.sql](../../../apps/tablets-server/sql/1803_library_smart_fields.sql), [apps/tablets-server/sql/1806_library_lot_bom_line.sql](../../../apps/tablets-server/sql/1806_library_lot_bom_line.sql) |
 | `EBMR-TAB-850` | [apps/tablets-server/sql/1150_finished_lot_post.sql](../../../apps/tablets-server/sql/1150_finished_lot_post.sql), [apps/tablets-server/sql/1201_one_expiry_rule.sql](../../../apps/tablets-server/sql/1201_one_expiry_rule.sql) |
 | `EBMR-TAB-851` | [apps/tablets-server/sql/1150_finished_lot_post.sql](../../../apps/tablets-server/sql/1150_finished_lot_post.sql), [apps/tablets-server/sql/1201_one_expiry_rule.sql](../../../apps/tablets-server/sql/1201_one_expiry_rule.sql) |
 | `EBMR-TAB-852` | [apps/tablets-server/sql/1150_finished_lot_post.sql](../../../apps/tablets-server/sql/1150_finished_lot_post.sql), [apps/tablets-server/sql/1201_one_expiry_rule.sql](../../../apps/tablets-server/sql/1201_one_expiry_rule.sql) |
