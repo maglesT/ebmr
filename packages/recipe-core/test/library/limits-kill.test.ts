@@ -397,4 +397,23 @@ describe('release review R3: the run-time judgement of library limits (decision 
     // A loop value that fails before the last allowed repeat is a repeat, not a breach.
     expect(types(new Bench(def, { ...use, counts: { max: '3' } }).ok('lod', { lod: '9' }))).toEqual([]);
   });
+
+  it('[PR-29][PR-30] R3-ENG-4: an IPC interval is held from the step\'s start to the first round and from the last round to the step\'s end, on trusted time', () => {
+    const ipc = block([once('round', [{ id: 'wt', label: 'Weights', type: 'TEST_RESULT', unit: 'mg', replicatesSlot: 'n', statistics: [{ statistic: 'MEAN', limitSlot: 'mean' }] }], { kind: 'PER_INTERVAL', intervalSlot: 'every' })]);
+    const use: Config = { limits: { mean: range('mg', '237.5', '262.5') }, counts: { n: '1' }, intervals: { every: { value: '30', unit: 'min' } } };
+    const wt = ['250'];
+    const onTime = new Bench(ipc, use);
+    expect(types(onTime.minutes(30).ok('round', { wt }))).toEqual([]);
+    expect(onTime.minutes(30).onPerform()).toEqual([]);
+    const first = new Bench(ipc, use).minutes(31).ok('round', { wt });
+    expect(first.exceptions?.map((e) => [e.type, e.title])).toEqual([['LIB_IPC_INTERVAL_MISSED', 'Kill, round: check 1 came later than every 30 min']]);
+    const lateEnd = new Bench(ipc, use);
+    lateEnd.ok('round', { wt });
+    expect(lateEnd.minutes(31).onPerform()).toEqual(['LIB_IPC_INTERVAL_MISSED']);
+    // A step with no round at all: the interval from its start to its end.
+    expect(new Bench(ipc, use).minutes(31).onPerform()).toEqual(['LIB_IPC_INTERVAL_MISSED']);
+    expect(new Bench(ipc, use).minutes(30).onPerform()).toEqual([]);
+    // A formulation without an interval holds none.
+    expect(new Bench(ipc, { ...use, intervals: {} }).minutes(300).onPerform()).toEqual([]);
+  });
 });

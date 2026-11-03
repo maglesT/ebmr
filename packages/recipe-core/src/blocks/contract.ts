@@ -97,6 +97,8 @@ export interface HandlerView {
   /** Sub-lot id when the step runs inside a replicate-per-sub-lot instance (innermost). */
   readonly subLot: string | undefined;
   readonly nowUs: bigint;
+  /** When this step instance started (trusted time); absent before it starts. */
+  readonly startedAtUs?: bigint;
   readonly actor: Actor;
   readonly batch: { readonly batchId: string; readonly batchNumber: string; readonly productCode: string; readonly marketSet: readonly string[]; /** Decision 0026 S10: the approved batch size id the batch was issued at. */ readonly batchSize?: string };
   readonly mbr: MbrContent;

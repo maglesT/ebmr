@@ -349,6 +349,19 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     return { types, values };
   };
 
+  /**
+   * An IPC section's interval missed now (trusted time): more than the formulation's interval since its last round, or
+   * since the step started when it has none yet (R3-ENG-4). `what` says which gap, e.g. "check 3 came later than".
+   */
+  const intervalMissed = (view: HandlerView, section: SectionDef, what: string): ExceptionDraft | undefined => {
+    if (section.repeat?.kind !== 'PER_INTERVAL') return undefined;
+    const iv = configOf(view).intervals?.[section.repeat.intervalSlot];
+    const limitUs = iv ? durationToMicros(iv.value, iv.unit) : undefined;
+    const since = view.entries(section.id).at(-1)?.recordedAt ?? view.startedAtUs;
+    if (!iv || limitUs === undefined || since === undefined || view.nowUs - since <= limitUs) return undefined;
+    return { type: 'LIB_IPC_INTERVAL_MISSED', title: `${def.title}, ${section.title}: ${what} every ${iv.value} ${iv.unit}`, controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' };
+  };
+
   const acceptSection = (view: HandlerView, section: SectionDef, entry: Readonly<Record<string, unknown>>): EntryResult => {
     const config = configOf(view);
     const previous = view.entries(section.id);
@@ -490,14 +503,11 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       });
     }
 
-    // IPC rounds: a round recorded later than the interval after the previous one.
+    // IPC rounds: a round recorded later than the interval after the previous one, the first round after the step's start
+    // (R3-ENG-4; the end of the step after the last round is held at PERFORMED, onPerform).
     if (r.kind === 'PER_INTERVAL') {
-      const iv = config.intervals?.[r.intervalSlot];
-      const limitUs = iv ? durationToMicros(iv.value, iv.unit) : undefined;
-      const last = previous[previous.length - 1];
-      if (last && limitUs !== undefined && view.nowUs - last.recordedAt > limitUs) {
-        exceptions.push({ type: 'LIB_IPC_INTERVAL_MISSED', title: `${where}: check ${previous.length + 1} came later than every ${iv?.value ?? ''} ${iv?.unit ?? ''}`, controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' });
-      }
+      const missed = intervalMissed(view, section, `check ${previous.length + 1} came later than`);
+      if (missed) exceptions.push(missed);
     }
     return { ok: true, data: stored, exceptions, ...(manualWeighing ? { verificationRequired: true } : {}) };
   };
@@ -555,6 +565,10 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         const fields = Object.fromEntries(Object.entries(entry).filter(([k]) => k !== 'kind'));
         return acceptSection(view, section, fields);
       },
+      // R3-ENG-4: the step's end is held to each IPC interval too (after its last round, or its start without one).
+      onPerform: (view) => ({
+        exceptions: def.sections.flatMap((s) => intervalMissed(view, s, 'the step ended later after its last check than') ?? []),
+      }),
       beforePerform: (view) => {
         const config = configOf(view);
         const out: HandlerProblem[] = [];
