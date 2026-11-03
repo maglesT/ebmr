@@ -76,6 +76,11 @@ analytics role cannot write, now named `[DI-51][PR-60]`); DI-48's drill test tit
 and DI-48 name their implementation. Left for R2: the short-form listings and anything else `register:status` finds on a
 full run's bundle. DI-48 needs R3 to review `tools/drills/src` (no review covered it; 7d checked only for secrets), and
 R3 also takes `packages/validation-kit/src/pack`. PR-28 stays SPECIFIED (Injectables part).
+V3 done (owner confirmed; `docs/build-plan/release-1.0/mutation-results.md`): SQL group `library-blocks` 48.5 % → 100 %
+(new `apps/tablets-server/test/mutation/library-blocks.test.ts`); Stryker on the library's guard ranges 71 % → 91.8 % on
+logic mutants (new `packages/recipe-core/test/library/limits-kill.test.ts`); the 89 left are low (listed). No guard
+defect. Owner's triage rule from 3 November: fix critical, high and medium; list low. PR #84 merged (fccdffc); PR #85
+(O-6 and the S11a findings) open, CI running. Next: #85, then R2's bundle part, R3.
 
 **3 November 2026: O-6 done on branch `dyn/o6`** (from `dyn/s11`): the designer no longer offers TB-01 to TB-24 for a new
 step (`insertable` false in the palette, badged "existing masters only (library replaces it)"; the Insert dialog lists only
