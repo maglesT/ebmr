@@ -128,7 +128,7 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(run.status('p')).toBe('COMPLETED');
   });
 
-  it('[INV-20] reaching the maximum number of repeats without a pass lets the step end with a deviation exception', () => {
+  it('[INV-20][PR-08] reaching the maximum number of repeats without a pass raises the loop\'s exhaustion for QA and judges the last value against its tier', () => {
     const use = { ...fluidBedDryingUse(), counts: { maxLodChecks: '2', lodSampleUnits: '1' } };
     const run = runFor(fluidBedDrying(), use);
     run.entry('p', { kind: TIMER_START, field: 'drying' });
@@ -139,9 +139,31 @@ describe('the generic handler runs library blocks in the engine', () => {
     run.entry('p', { kind: 'lodLoop', sample: 1, lod: '3.0' });
     run.refused(entryCmd(run, { kind: 'lodLoop', sample: 1, lod: '2.0' }), 'LIB-SECTION-MAX');
     run.entry('p', { kind: 'out', container: 'C1', net: '50' });
-    expect(types(run)).toEqual(['LIB_REPEAT_LIMIT_REACHED']);
-    // It blocks the steps after it until a deviation is linked, not this step's own signature.
-    run.perform('p');
+    // R3-ENG-1: the last value (3.0 %, outside the registered 1.5-2.5 %) is judged at the exhaustion, and the exhaustion
+    // has an MBR loop's consequences: the steps after it wait for QA's disposition, release is blocked.
+    expect(types(run)).toEqual(['LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED']);
+    const exhausted = run.exceptions().find((e) => e.type === 'LIB_REPEAT_LIMIT_REACHED');
+    expect([exhausted?.block?.until, exhausted?.block?.steps, exhausted?.qaOnly, exhausted?.releaseBlocking, exhausted?.deviationRequired]).toEqual(['DISPOSITION', [], true, true, true]);
+    expect(run.exceptions().find((e) => e.type === 'LIB_LIMIT_BREACH')?.severity).toBe('CRITICAL');
+    // The registered-tier breach holds this step until a deviation is linked, as any registered breach does.
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
+  });
+
+  it('[PR-29][PR-30] R3-ENG-4: in a batch, an IPC interval runs from the step\'s start on trusted time: a first round later than the interval is late', () => {
+    const ipc: BlockDefinition = {
+      code: 'IPC-R3', version: 1, title: 'Rounds', category: 'TEST_IPC',
+      sections: [{ id: 'round', title: 'Round', repeat: { kind: 'PER_INTERVAL', intervalSlot: 'every' }, fields: [{ id: 'v', label: 'V', type: 'NUMBER', unit: 'g' }] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+    };
+    const use: BlockUse = { block: { code: 'IPC-R3', version: 1 }, intervals: { every: { value: '30', unit: 'min' } } };
+    const onTime = runFor(ipc, use);
+    onTime.minutes(30);
+    onTime.entry('p', { kind: 'round', v: '1' });
+    expect(types(onTime)).toEqual([]);
+    const late = runFor(ipc, use);
+    late.minutes(31);
+    late.entry('p', { kind: 'round', v: '1' });
+    expect(types(late)).toEqual(['LIB_IPC_INTERVAL_MISSED']);
   });
 
   it('[PR-30] a timer runs on trusted time: its duration is checked against its limit when it is stopped', () => {

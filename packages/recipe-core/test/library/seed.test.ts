@@ -34,8 +34,21 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
   const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
   const run = Run.issue(d, { inputs: values }, T0);
   run.start('p');
-  for (const e of nominalEntries(def, config as never, mbr)) {
-    if (e.kind === TIMER_STOP) run.minutes(60);
+  const entries = nominalEntries(def, config as never, mbr);
+  // A nominal run keeps its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
+  // step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
+  // every per-interval section (the catalogue's intervals are 15 minutes or more).
+  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
+  for (const e of entries) {
+    if (e.kind === TIMER_STOP) {
+      for (let i = 0; i < 6; i++) {
+        run.minutes(10 - rounds.length);
+        for (const r of rounds) {
+          run.entry('p', r);
+          run.minutes(1);
+        }
+      }
+    }
     run.entry('p', e);
     run.minutes(1);
   }

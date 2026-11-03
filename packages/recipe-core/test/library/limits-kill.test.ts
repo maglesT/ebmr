@@ -5,7 +5,7 @@
  * is driven directly through a small view, so every draft, problem and stored value is visible.
  */
 import { describe, expect, it } from 'vitest';
-import type { EntryResult, HandlerProblem, HandlerView } from '../../src/blocks/contract.ts';
+import type { EntryResult, ExceptionDraft, HandlerProblem, HandlerView } from '../../src/blocks/contract.ts';
 import type { DataValue, EntryRecord } from '../../src/engine/types.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockVersion, statistic, TIMER_START, TIMER_STOP, type BlockDefinition, type BlockUse, type FieldDef, type SectionDef } from '../../src/library/index.ts';
@@ -20,6 +20,8 @@ type Ok = Extract<EntryResult, { ok: true }>;
 class Bench {
   readonly records: EntryRecord[] = [];
   nowUs = 1_000_000_000n;
+  /** The step instance started when the bench was set up (trusted time). */
+  startedAtUs: bigint | undefined = this.nowUs;
   private readonly handler;
   constructor(
     def: BlockDefinition,
@@ -39,6 +41,7 @@ class Bench {
       frames: [],
       subLot: undefined,
       nowUs: this.nowUs,
+      startedAtUs: this.startedAtUs,
       actor: { kind: 'PERSON', id: 'OP1', roles: ['OPERATOR'] },
       batch: { batchId: 'B1', batchNumber: 'B1', productCode: 'P1', marketSet: ['IN'] },
       mbr: this.mbr,
@@ -70,6 +73,13 @@ class Bench {
     const r = this.try(kind, fields);
     if (r.ok) throw new Error('accepted');
     return r.problems.map((p) => p.code);
+  }
+  /** The exceptions the step's PERFORMED transition raises now. */
+  onPerform(): string[] {
+    return this.performDrafts().map((e) => e.type);
+  }
+  performDrafts(): ExceptionDraft[] {
+    return this.handler.onPerform?.(this.view()).exceptions ?? [];
   }
   beforePerform(): string[] {
     return (this.handler.beforePerform?.(this.view()) ?? []).map((p: HandlerProblem) => p.code);
@@ -257,7 +267,11 @@ describe('repeats: counts and loops (INV-20)', () => {
     const fail = new Bench(def, use);
     expect(types(fail.ok('lod', { lod: '3', temp: '60' }))).toEqual([]);
     const last = fail.ok('lod', { lod: '3', temp: '60' });
-    expect(last.exceptions?.map((e) => [e.type, e.item, e.blocks, e.deviationRequired])).toEqual([['LIB_REPEAT_LIMIT_REACHED', 'p.lod', 'DOWNSTREAM', true]]);
+    // R3-ENG-1: the last value is judged against its tier too, and the exhaustion waits for QA's disposition.
+    expect(last.exceptions?.map((e) => [e.type, e.item, e.blocks, e.until, e.deviationRequired])).toEqual([
+      ['LIB_LIMIT_BREACH', 'p.lod', 'STEP_AND_DOWNSTREAM', 'DEVIATION', true],
+      ['LIB_REPEAT_LIMIT_REACHED', 'p.lod', 'DOWNSTREAM', 'DISPOSITION', true],
+    ]);
     expect(fail.refused('lod', { lod: '2', temp: '60' })).toEqual(['LIB-SECTION-MAX']);
   });
 });
@@ -346,5 +360,86 @@ describe('timers on trusted time (PR-30)', () => {
     const kg = new Bench(block([once('run', [{ id: 't', label: 'T', type: 'TIMER', durationUnit: 'kg' }])]), {});
     kg.ok(TIMER_START, { field: 't' });
     expect(kg.minutes(5).refused(TIMER_STOP, { field: 't' })).toEqual(['LIB-TIMER-UNIT']);
+  });
+});
+
+describe('release review R3: the run-time judgement of library limits (decision 0026)', () => {
+  type Tier = 'REGISTERED' | 'INTERNAL_ACTION' | 'ALERT';
+  /** Limits of several tiers in one unit. */
+  const tiered = (unit: string, ranges: [string, string, Tier][]): NonNullable<Config['limits']>[string] => ({ unit, ranges: ranges.flatMap(([lo, hi, tier]) => range(unit, lo, hi, tier).ranges) });
+
+  it('[PR-08][PR-29] R3-ENG-2: individual results are all judged; the exception is that of the most severe tier any reading breaches (the first reading at that tier), not of the first reading outside a limit', () => {
+    const def = block([once('chk', [{ id: 'wt', label: 'Weights', type: 'TEST_RESULT', unit: 'mg', replicatesSlot: 'n', statistics: [{ statistic: 'INDIVIDUAL', limitSlot: 'ind' }] }])]);
+    const use: Config = { counts: { n: '3' }, limits: { ind: tiered('mg', [['90', '110', 'REGISTERED'], ['95', '105', 'ALERT']]) } };
+    const worst = new Bench(def, use).ok('chk', { wt: ['104', '106', '150'] });
+    expect(worst.exceptions?.map((e) => [e.type, e.severity, e.deviationRequired, e.qaOnly])).toEqual([['LIB_LIMIT_BREACH', 'CRITICAL', true, true]]);
+    expect(worst.exceptions?.[0]?.title).toContain('Kill, chk: Weights (individual) 150 mg ');
+    expect(worst.exceptions?.[0]?.title).toMatch(/\[registered tier\]$/);
+    // Two readings at the same most severe tier: the first of them is named.
+    const two = new Bench(def, use).ok('chk', { wt: ['80', '106', '150'] });
+    expect(two.exceptions?.map((e) => [e.severity, e.title.includes(' 80 mg ')])).toEqual([['CRITICAL', true]]);
+    // Only alert-tier readings: one ALERT, named by the first.
+    const alert = new Bench(def, use).ok('chk', { wt: ['100', '106', '107'] });
+    expect(alert.exceptions?.map((e) => [e.severity, e.title.includes(' 106 mg ')])).toEqual([['ALERT', true]]);
+    expect(types(new Bench(def, use).ok('chk', { wt: ['100', '101', '99'] }))).toEqual([]);
+  });
+
+  it('[INV-20][PR-08] R3-ENG-1: a loop that ends at its maximum without a pass raises its exhaustion with a loop\'s consequences (QA disposition, release blocked) and judges the last value against its tier', () => {
+    const def = block([once('lod', [{ id: 'lod', label: 'LOD', type: 'NUMBER', unit: '%', limitSlot: 'lod', critical: true }], { kind: 'UNTIL_PASS', untilField: 'lod', maxRepeatsSlot: 'max' })]);
+    const use: Config = { limits: { lod: tiered('%', [['1.0', '3.0', 'REGISTERED'], ['1.5', '2.5', 'INTERNAL_ACTION']]) }, counts: { max: '2' } };
+    const b = new Bench(def, use);
+    expect(types(b.ok('lod', { lod: '9' }))).toEqual([]);
+    const last = b.ok('lod', { lod: '2.8' });
+    expect(last.exceptions?.map((e) => [e.type, e.item, e.severity, e.blocks, e.until, e.qaOnly ?? false, e.deviationRequired, e.releaseBlocking ?? false])).toEqual([
+      ['LIB_LIMIT_BREACH', 'p.lod', 'ACTION', 'STEP_AND_DOWNSTREAM', 'DEVIATION', false, true, false],
+      ['LIB_REPEAT_LIMIT_REACHED', 'p.lod', 'ACTION', 'DOWNSTREAM', 'DISPOSITION', true, true, true],
+    ]);
+    const worse = new Bench(def, use);
+    worse.ok('lod', { lod: '9' });
+    expect(worse.ok('lod', { lod: '3.5' }).exceptions?.map((e) => [e.type, e.severity])).toEqual([['LIB_LIMIT_BREACH', 'CRITICAL'], ['LIB_REPEAT_LIMIT_REACHED', 'ACTION']]);
+    expect(last.exceptions?.[1]).toEqual({
+      type: 'LIB_REPEAT_LIMIT_REACHED',
+      title: 'Kill, lod: the maximum of 2 repeats was reached without a passing value; QA must disposition it before the steps after it run',
+      controls: ['PR-08', 'INV-20'],
+      severity: 'ACTION',
+      category: 'OUT_OF_LIMIT',
+      item: 'p.lod',
+      blocks: 'DOWNSTREAM',
+      until: 'DISPOSITION',
+      qaOnly: true,
+      deviationRequired: true,
+      releaseBlocking: true,
+    });
+    // A loop value that fails before the last allowed repeat is a repeat, not a breach; with no maximum given, never.
+    expect(types(new Bench(def, { ...use, counts: { max: '3' } }).ok('lod', { lod: '9' }))).toEqual([]);
+    expect(types(new Bench(def, { limits: use.limits ?? {} }).ok('lod', { lod: '9' }))).toEqual([]);
+    // A yes/no loop has no tier: its exhaustion alone, not an unexpected answer besides.
+    const yn = block([once('chk', [{ id: 'ok', label: 'OK', type: 'YES_NO', expected: true }], { kind: 'UNTIL_PASS', untilField: 'ok', maxRepeatsSlot: 'max' })]);
+    expect(types(new Bench(yn, { counts: { max: '1' } }).ok('chk', { ok: false }))).toEqual(['LIB_REPEAT_LIMIT_REACHED']);
+  });
+
+  it('[PR-29][PR-30] R3-ENG-4: an IPC interval is held from the step\'s start to the first round and from the last round to the step\'s end, on trusted time', () => {
+    const ipc = block([once('round', [{ id: 'wt', label: 'Weights', type: 'TEST_RESULT', unit: 'mg', replicatesSlot: 'n', statistics: [{ statistic: 'MEAN', limitSlot: 'mean' }] }], { kind: 'PER_INTERVAL', intervalSlot: 'every' })]);
+    const use: Config = { limits: { mean: range('mg', '237.5', '262.5') }, counts: { n: '1' }, intervals: { every: { value: '30', unit: 'min' } } };
+    const wt = ['250'];
+    const onTime = new Bench(ipc, use);
+    expect(types(onTime.minutes(30).ok('round', { wt }))).toEqual([]);
+    expect(onTime.minutes(30).onPerform()).toEqual([]);
+    const first = new Bench(ipc, use).minutes(31).ok('round', { wt });
+    expect(first.exceptions).toEqual([{ type: 'LIB_IPC_INTERVAL_MISSED', title: 'Kill, round: check 1 came later than every 30 min', controls: ['PR-29', 'PR-30'], severity: 'ACTION', category: 'TIME_LIMIT', blocks: 'NONE' }]);
+    const lateEnd = new Bench(ipc, use);
+    lateEnd.ok('round', { wt });
+    expect(lateEnd.minutes(31).performDrafts().map((e) => [e.type, e.title])).toEqual([['LIB_IPC_INTERVAL_MISSED', 'Kill, round: the step ended later after its last check than every 30 min']]);
+    // Without a known start (before the step starts) the first round has nothing to be late against.
+    const unstarted = new Bench(ipc, use);
+    unstarted.startedAtUs = undefined;
+    expect(types(unstarted.minutes(31).ok('round', { wt }))).toEqual([]);
+    // An interval the engine cannot hold in microseconds holds nothing.
+    expect(types(new Bench(ipc, { ...use, intervals: { every: { value: '30', unit: 'wk' } } }).minutes(500000).ok('round', { wt }))).toEqual([]);
+    // A step with no round at all: the interval from its start to its end.
+    expect(new Bench(ipc, use).minutes(31).onPerform()).toEqual(['LIB_IPC_INTERVAL_MISSED']);
+    expect(new Bench(ipc, use).minutes(30).onPerform()).toEqual([]);
+    // A formulation without an interval holds none.
+    expect(new Bench(ipc, { ...use, intervals: {} }).minutes(300).onPerform()).toEqual([]);
   });
 });
