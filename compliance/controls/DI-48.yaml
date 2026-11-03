@@ -33,11 +33,19 @@ implemented_by:
 tests:
   - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] in the migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged"
   - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that changes an earlier database row fails the dry run, names the table and shows the changed unit"
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that drops or renames a database table holding records fails the dry run and names the table (R3-VAL-1)"
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a table the release retires on purpose is listed with its reason, which the report shows; the dry run then passes (R3-VAL-1)"
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that adds rows to a table of records (not the release's configuration) fails the dry run and names the table (R3-VAL-6)"
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a dry run without a spot check of signatures, audit events and units has no evidence for them and fails (R3-VAL-5)"
 clauses:
   - clause: "In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged."
     tests:
       - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] in the migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged"
       - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that changes an earlier database row fails the dry run, names the table and shows the changed unit"
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that drops or renames a database table holding records fails the dry run and names the table (R3-VAL-1)"
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a table the release retires on purpose is listed with its reason, which the report shows; the dry run then passes (R3-VAL-1)"
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that adds rows to a table of records (not the release's configuration) fails the dry run and names the table (R3-VAL-6)"
+      - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a dry run without a spot check of signatures, audit events and units has no evidence for them and fails (R3-VAL-5)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
