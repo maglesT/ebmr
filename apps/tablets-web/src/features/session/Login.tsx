@@ -374,26 +374,21 @@ const SIGNON_ERRORS: Readonly<Record<string, string>> = {
  */
 export function PlatformLogin() {
   const boot = useBoot();
+  // The sign-on that just came back from core, taken once (a proof is used once).
+  const [back] = useState(() => takePendingLogin());
+  const note = back && !back.proof ? (SIGNON_ERRORS[back.error ?? ''] ?? 'The sign-in through the platform did not complete.') : null;
   const [error, setError] = useState<CallError | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(back?.proof != null);
   const started = useRef(false);
   useEffect(() => {
-    if (started.current) return;
+    const proofText = back?.proof;
+    if (started.current || !proofText || !boot.deviceKey) return;
     started.current = true;
-    const back = takePendingLogin();
-    if (!back) return;
-    if (!back.proof) {
-      setNote(SIGNON_ERRORS[back.error ?? ''] ?? 'The sign-in through the platform did not complete.');
-      return;
-    }
-    const proofText = back.proof;
+    const key = boot.deviceKey;
     void (async () => {
-      if (!boot.deviceKey) return;
-      setBusy(true);
       try {
         const body = { method: 'PLATFORM' as const, signonProof: proofText };
-        const proof = await deviceProof(boot.deviceKey, 'POST', '/api/session/login', body);
+        const proof = await deviceProof(key, 'POST', '/api/session/login', body);
         if (!proof.ok) {
           setError(proof.error);
           return;
@@ -405,7 +400,7 @@ export function PlatformLogin() {
         setBusy(false);
       }
     })();
-  }, [boot]);
+  }, [back, boot]);
   return (
     <div className={cls('center')}>
       <brand.SignInBrand edition={EDITION} />

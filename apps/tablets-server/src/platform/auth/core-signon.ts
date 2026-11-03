@@ -4,16 +4,22 @@
  *
  *   1. GET /signin (sign-in) or GET /sign?challenge=… (re-authentication for a signature, prompt=login and max_age=0) sends
  *      the browser to core's authorization endpoint with PKCE (S256), a state and a nonce held here for 10 minutes.
- *   2. GET /cb exchanges the code, verifies the ID token (core's JWKS, issuer, audience, expiry, the nonce, auth_time) and
- *      turns it into a short proof (HMAC-SHA256 under a key derived from the installation's nonce key): who (sub, login,
+ *   2. GET /cb exchanges the code at core's token endpoint (a confidential client: client id and secret in the
+ *      Authorization header, plus the PKCE verifier), checks the ID token of that answer (issuer, audience, expiry, the
+ *      nonce, auth_time), reads the person from core's user-info endpoint (sub, name, permissions; the same sub), and turns
+ *      it into a short proof (HMAC-SHA256 under a key derived from the installation's nonce key): who (sub, login,
  *      name), the token's codes, auth_time, the purpose, the challenges it was asked for, and a one-time nonce.
  *   3. The page posts the proof: to POST /api/session/login (LOGIN) or with the signing (SIGNATURE). The server checks it
  *      here (MAC, expiry, purpose) and the kernel uses its nonce once (iam.platform_auth_event).
  *
+ * Core's endpoints are fixed under its issuer (databsee apps/hello): <issuer>/auth, <issuer>/token and <issuer>/me. The ID
+ * token comes straight from core's token endpoint over TLS to this authenticated client, so its signature is not checked
+ * again here (OpenID Connect Core 3.1.3.7, point 6); its issuer, audience, expiry and nonce are.
+ *
  * The proof travels in the URL fragment of /platform-signon, which the browser never sends to a server or a log. It
  * carries no secret: it is the server's own statement of what core said, valid for PROOF_TTL_S seconds and one use.
  */
-import { constants, createHash, createHmac, createPublicKey, randomBytes, timingSafeEqual, verify as verifySignature, type JsonWebKey, type KeyObject } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { moment } from '../clock.ts';
 
 /** How long a proof made at /cb may be used (it is used within seconds by the page that received it). */
@@ -25,10 +31,10 @@ const SKEW_S = 60;
 const MAX_PENDING = 10_000;
 
 export interface CoreSignonConfig {
-  /** Core's issuer URL (its discovery document is <issuer>/.well-known/openid-configuration). */
+  /** Core's issuer URL (https://<domain>/oidc); its endpoints are <issuer>/auth, <issuer>/token and <issuer>/me. */
   issuer: string;
   clientId: string;
-  /** Null: a public client (PKCE only). */
+  /** Core's client secret (OIDC_CLIENT_SECRET); null only for a public client (PKCE only). */
   clientSecret: string | null;
   /** https://<host>/cb, as registered at core. */
   redirectUri: string;
@@ -84,16 +90,14 @@ export class SignonError extends Error {
 const b64url = (b: Buffer): string => b.toString('base64url');
 const nowS = (): number => Math.floor(moment().wallMs / 1000);
 
-interface Discovery {
-  authorization_endpoint: string;
-  token_endpoint: string;
-  jwks_uri: string;
-  issuer: string;
+interface Endpoints {
+  authorization: string;
+  token: string;
+  userinfo: string;
 }
 
 export class CoreSignon {
-  private discovery: Discovery | null = null;
-  private keys: Map<string, KeyObject> | null = null;
+  private readonly endpoints: Endpoints;
   private readonly pending = new Map<string, PendingSignon & { at: number }>();
   private readonly proofKey: Buffer;
 
@@ -103,35 +107,12 @@ export class CoreSignon {
     private readonly fetchFn: FetchFn = (url, init) => fetch(url, init),
   ) {
     this.proofKey = createHmac('sha256', nonceKey).update('ebmr platform sign-on proof v1').digest();
-  }
-
-  private async discover(): Promise<Discovery> {
-    if (this.discovery) return this.discovery;
-    const res = await this.fetchFn(`${this.config.issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`);
-    if (!res.ok) throw new SignonError('CORE_UNREACHABLE', `core's discovery document answered ${res.status}`);
-    const d = (await res.json()) as Partial<Discovery>;
-    if (typeof d.authorization_endpoint !== 'string' || typeof d.token_endpoint !== 'string' || typeof d.jwks_uri !== 'string' || d.issuer !== this.config.issuer) {
-      throw new SignonError('CORE_UNREACHABLE', "core's discovery document is incomplete or names another issuer");
-    }
-    this.discovery = d as Discovery;
-    return this.discovery;
-  }
-
-  private async key(kid: string | undefined, refresh: boolean): Promise<KeyObject | undefined> {
-    if (!this.keys || refresh) {
-      const res = await this.fetchFn((await this.discover()).jwks_uri);
-      if (!res.ok) throw new SignonError('CORE_UNREACHABLE', `core's key set answered ${res.status}`);
-      const { keys } = (await res.json()) as { keys?: (JsonWebKey & { kid?: string; use?: string })[] };
-      const map = new Map<string, KeyObject>();
-      for (const k of keys ?? []) if (k.use === undefined || k.use === 'sig') map.set(k.kid ?? '', createPublicKey({ key: k, format: 'jwk' }));
-      this.keys = map;
-    }
-    return kid === undefined && this.keys.size === 1 ? [...this.keys.values()][0] : this.keys.get(kid ?? '');
+    const base = config.issuer.replace(/\/+$/, '');
+    this.endpoints = { authorization: `${base}/auth`, token: `${base}/token`, userinfo: `${base}/me` };
   }
 
   /** Step 1: where to send the browser, and the state it comes back with. */
-  async start(p: Omit<PendingSignon, 'verifier' | 'nonce'>): Promise<string> {
-    const d = await this.discover();
+  start(p: Omit<PendingSignon, 'verifier' | 'nonce'>): string {
     const now = moment().wallMs;
     for (const [k, v] of this.pending) if (now - v.at > PENDING_TTL_MS) this.pending.delete(k);
     if (this.pending.size >= MAX_PENDING) throw new SignonError('BUSY', 'too many sign-ons are under way; try again in a minute');
@@ -139,7 +120,7 @@ export class CoreSignon {
     const verifier = b64url(randomBytes(32));
     const nonce = b64url(randomBytes(24));
     this.pending.set(state, { ...p, verifier, nonce, at: now });
-    const u = new URL(d.authorization_endpoint);
+    const u = new URL(this.endpoints.authorization);
     u.searchParams.set('response_type', 'code');
     u.searchParams.set('client_id', this.config.clientId);
     u.searchParams.set('redirect_uri', this.config.redirectUri);
@@ -161,18 +142,22 @@ export class CoreSignon {
     const p = this.pending.get(state);
     this.pending.delete(state);
     if (!p || moment().wallMs - p.at > PENDING_TTL_MS) throw new SignonError('STATE_UNKNOWN', 'this sign-on is not known here or took too long');
-    const d = await this.discover();
     const body = new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: this.config.redirectUri, code_verifier: p.verifier, client_id: this.config.clientId });
     const headers: Record<string, string> = { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' };
     if (this.config.clientSecret !== null) {
       headers['authorization'] = `Basic ${Buffer.from(`${encodeURIComponent(this.config.clientId)}:${encodeURIComponent(this.config.clientSecret)}`).toString('base64')}`;
     }
-    const res = await this.fetchFn(d.token_endpoint, { method: 'POST', headers, body: body.toString() });
+    const res = await this.fetchFn(this.endpoints.token, { method: 'POST', headers, body: body.toString() });
     if (!res.ok) throw new SignonError('CODE_REFUSED', `core refused the code (${res.status})`);
-    const tokens = (await res.json()) as { id_token?: unknown };
-    if (typeof tokens.id_token !== 'string') throw new SignonError('TOKEN_INVALID', 'core returned no ID token');
-    const c = await this.verifyIdToken(tokens.id_token, p.nonce);
-    const authTime = c['auth_time'];
+    const tokens = (await res.json()) as { id_token?: unknown; access_token?: unknown };
+    if (typeof tokens.id_token !== 'string' || typeof tokens.access_token !== 'string') throw new SignonError('TOKEN_INVALID', 'core returned no ID token or access token');
+    const idc = this.checkIdToken(tokens.id_token, p.nonce);
+    const me = await this.fetchFn(this.endpoints.userinfo, { headers: { authorization: `Bearer ${tokens.access_token}`, accept: 'application/json' } });
+    if (!me.ok) throw new SignonError('TOKEN_INVALID', `core's user information answered ${me.status}`);
+    const info = (await me.json()) as Record<string, unknown>;
+    if (info['sub'] !== idc['sub']) throw new SignonError('TOKEN_INVALID', "core's user information names another person than the ID token");
+    const c: Record<string, unknown> = { ...idc, ...info };
+    const authTime = idc['auth_time'] ?? info['auth_time'];
     if (typeof authTime !== 'number' || !Number.isInteger(authTime)) throw new SignonError('TOKEN_INVALID', 'the ID token carries no auth_time');
     if (p.purpose === 'SIGNATURE' && nowS() - authTime > SKEW_S) {
       // DI-38: a signature needs a fresh re-authentication (max_age=0); the kernel also checks it against the challenge.
@@ -180,7 +165,8 @@ export class CoreSignon {
     }
     const codes = c[this.config.codesClaim];
     const sub = c['sub'];
-    const login = c['preferred_username'];
+    // Core's login, when it gives one; otherwise its employee id (both are never reused, PL-03).
+    const login = typeof c['preferred_username'] === 'string' ? c['preferred_username'] : sub;
     const name = c['name'];
     if (typeof sub !== 'string' || sub === '' || typeof login !== 'string' || typeof name !== 'string') {
       throw new SignonError('TOKEN_INVALID', 'the ID token names no subject, login or name');
@@ -204,38 +190,16 @@ export class CoreSignon {
     return { proof: this.seal(claims), claims };
   }
 
-  private async verifyIdToken(token: string, nonce: string): Promise<Record<string, unknown>> {
+  /** The ID token of core's token answer: issuer, audience, expiry and nonce (its signature: see the header). */
+  private checkIdToken(token: string, nonce: string): Record<string, unknown> {
     const parts = token.split('.');
-    if (parts.length !== 3) throw new SignonError('TOKEN_INVALID', 'the ID token is not a signed JWT');
-    const [h = '', pl = '', sig = ''] = parts;
-    let header: { alg?: unknown; kid?: unknown };
+    if (parts.length !== 3) throw new SignonError('TOKEN_INVALID', 'the ID token is not a JWT');
     let claims: Record<string, unknown>;
     try {
-      header = JSON.parse(Buffer.from(h, 'base64url').toString('utf8')) as typeof header;
-      claims = JSON.parse(Buffer.from(pl, 'base64url').toString('utf8')) as Record<string, unknown>;
+      claims = JSON.parse(Buffer.from(parts[1] ?? '', 'base64url').toString('utf8')) as Record<string, unknown>;
     } catch {
       throw new SignonError('TOKEN_INVALID', 'the ID token cannot be read');
     }
-    const kid = typeof header.kid === 'string' ? header.kid : undefined;
-    const data = Buffer.from(`${h}.${pl}`);
-    const signature = Buffer.from(sig, 'base64url');
-    const check = (key: KeyObject): boolean => {
-      switch (header.alg) {
-        case 'RS256':
-          return key.asymmetricKeyType === 'rsa' && verifySignature('sha256', data, key, signature);
-        case 'PS256':
-          return key.asymmetricKeyType === 'rsa' && verifySignature('sha256', data, { key, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }, signature);
-        case 'ES256':
-          return key.asymmetricKeyType === 'ec' && verifySignature('sha256', data, { key, dsaEncoding: 'ieee-p1363' }, signature);
-        case 'EdDSA':
-          return key.asymmetricKeyType === 'ed25519' && verifySignature(null, data, key, signature);
-        default:
-          return false;
-      }
-    };
-    let key = await this.key(kid, false);
-    if (!key) key = await this.key(kid, true); // core rotated its keys
-    if (!key || !check(key)) throw new SignonError('TOKEN_INVALID', 'the ID token is not signed by core');
     const now = nowS();
     const aud = claims['aud'];
     const audiences = Array.isArray(aud) ? aud : [aud];

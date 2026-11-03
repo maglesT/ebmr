@@ -96,8 +96,9 @@ create table iam.platform_identity (
   person_id    uuid not null unique references iam.person (id),
   account_id   uuid not null unique,
   login_name   text not null unique,
-  work_role    text not null unique references iam.role (code),
-  admin_role   text not null unique references iam.role (code),
+  -- The map row is written before its roles, so the change-control guard below can recognise them (deferred keys).
+  work_role    text not null unique references iam.role (code) deferrable initially deferred,
+  admin_role   text not null unique references iam.role (code) deferrable initially deferred,
   created_at   timestamptz not null default clock_timestamp(),
   foreign key (account_id, person_id) references iam.account (id, person_id)
 );
@@ -233,7 +234,8 @@ begin
   perform iam.set_internal_actor(jsonb_build_object(
     'person_id', v_mode.register_person, 'account_id', v_nil, 'role_code', 'PLATFORM_SIGN_ON', 'session_id', v_nil, 'source', 'SYSTEM',
     'site_zone', iam.policy_text('site.zone'), 'correlation_id', gen_random_uuid(), 'legal_name', 'Platform core: permission register',
-    'reason_code', 'PLATFORM_SIGN_ON', 'reason_text', 'codes from the verified platform sign-on token (' || v_ref || ')'));
+    'reason_code', 'PLATFORM_SIGN_ON', 'reason_text', 'codes from the verified platform sign-on token (' || v_ref || ')',
+    'platform_ref', v_ref));
 
   if v_ident.id is null then
     -- First sign-on (PL-03): a natural person with one human account, identity verified at core. The login is core's and,
@@ -249,13 +251,13 @@ begin
     insert into iam.account (id, person_id, login_name, kind) values (v_account, v_person, v_login, 'HUMAN');
     update iam.account set status = 'ACTIVE', status_reason = 'first platform sign-on' where id = v_account;
     v_n := nextval(pg_get_serial_sequence('iam.platform_identity', 'id'));
-    insert into iam.role (code, name, role_group, description, account_kinds)
-    values ('PLATFORM_' || v_n || '_WORK', 'Work', 'EXECUTION', 'Platform codes of ' || v_login || ': GMP, governance and read-only work', array['HUMAN']),
-           ('PLATFORM_' || v_n || '_ADMIN', 'Administration', 'ADMINISTRATION_SECURITY', 'Platform codes of ' || v_login || ': administration', array['HUMAN']);
     insert into iam.platform_identity (id, employee_id, person_id, account_id, login_name, work_role, admin_role)
       overriding system value
     values (v_n, v_emp, v_person, v_account, v_login, 'PLATFORM_' || v_n || '_WORK', 'PLATFORM_' || v_n || '_ADMIN')
     returning * into v_ident;
+    insert into iam.role (code, name, role_group, description, account_kinds)
+    values (v_ident.work_role, 'Work', 'EXECUTION', 'Platform codes of ' || v_login || ': GMP, governance and read-only work', array['HUMAN']),
+           (v_ident.admin_role, 'Administration', 'ADMINISTRATION_SECURITY', 'Platform codes of ' || v_login || ': administration', array['HUMAN']);
   elsif (select legal_name from iam.person where id = v_ident.person_id) <> v_name then
     update iam.person set legal_name = v_name where id = v_ident.person_id;
   end if;
@@ -381,6 +383,84 @@ begin
                             'components', jsonb_build_array('USER_ID', 'PASSWORD'));
 end
 $$;
+
+-- ---------------------------------------------------------------------------------------------
+-- DI-09 change control for the mirror roles (owner-approved lead decision of 3 Nov 2026,
+-- docs/decisions/0028-platform-mirror-roles.md)
+--
+-- A mirror role and its permissions are one person's grant from core's permission register (PL-02), not site
+-- configuration. They pass the ROLE and ROLE_PERMISSION change-control guard without a change record only when ALL of
+-- these hold: this is a platform build; the actor is core's permission register as iam.platform_sync_grants installs it
+-- (the register's SYSTEM person, role PLATFORM_SIGN_ON, source SYSTEM, the zero session, core's grant reference; no
+-- command a person starts can carry it, because kernel.validate_actor_context needs a live session of the actor and
+-- kernel.set_actor_context is the owner's); and the row's role is a mirror role of iam.platform_identity. Each such row
+-- is still a configuration version (basis PLATFORM_REGISTER, with the register's person and core's grant reference).
+-- Every other write of a role or a role permission, customer roles and a write that imitates a mirror role outside the
+-- sync alike, still needs an approved change record.
+-- ---------------------------------------------------------------------------------------------
+
+alter table platform.config_version drop constraint config_version_basis_check;
+alter table platform.config_version add constraint config_version_basis_check
+  check (basis in ('CHANGE_RECORD', 'RELEASE', 'BEFORE_CONTROL', 'PLATFORM_REGISTER'));
+alter table platform.config_version add column platform_ref text;
+alter table platform.config_version add constraint config_version_platform_ref
+  check ((basis = 'PLATFORM_REGISTER') = (platform_ref is not null and person_id is not null));
+
+create function platform.is_platform_register_write(p_area text, p_ctx jsonb, p_row jsonb) returns boolean
+language sql stable security definer set search_path = pg_catalog, platform, iam, pg_temp as $$
+  select p_area in ('ROLE', 'ROLE_PERMISSION') and p_ctx is not null
+     and coalesce(p_ctx ->> 'role_code' = 'PLATFORM_SIGN_ON' and p_ctx ->> 'source' = 'SYSTEM'
+                  and p_ctx ->> 'session_id' = '00000000-0000-0000-0000-000000000000'
+                  and nullif(btrim(p_ctx ->> 'platform_ref'), '') is not null, false)
+     and exists (select 1 from iam.platform_mode m where m.register_person::text = p_ctx ->> 'person_id')
+     and exists (select 1 from iam.platform_identity i
+                 where coalesce(p_row ->> case p_area when 'ROLE' then 'code' else 'role_code' end, '') in (i.work_role, i.admin_role))
+$$;
+
+create or replace function platform.config_change_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_ctx jsonb := kernel.current_actor();
+begin
+  if v_ctx is not null and platform.is_release_actor(v_ctx) then
+    return new;
+  end if;
+  if platform.is_platform_register_write(tg_argv[0], v_ctx, to_jsonb(new)) then
+    return new;
+  end if;
+  perform platform.require_change_record(tg_argv[0], format('%s on %s', lower(tg_op), tg_relid::regclass));
+  return new;
+end
+$$;
+
+create or replace function platform.config_version_log() returns trigger
+language plpgsql security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  a      platform.config_area;
+  v_ctx  jsonb := kernel.current_actor();
+  v_row  jsonb := to_jsonb(new);
+  v_rel  boolean := platform.is_release_actor(v_ctx);
+  v_reg  boolean;
+  v_cr   uuid;
+  v_from timestamptz;
+begin
+  select * into a from platform.config_area where code = tg_argv[0];
+  v_reg := not v_rel and platform.is_platform_register_write(a.code, v_ctx, v_row);
+  if not v_rel and not v_reg then
+    v_cr := platform.require_change_record(a.code, format('%s on %s', lower(tg_op), tg_relid::regclass));
+  end if;
+  v_from := case when tg_op = 'UPDATE' or a.valid_from_column is null then clock_timestamp()
+                 else coalesce((v_row ->> a.valid_from_column)::timestamptz, clock_timestamp()) end;
+  insert into platform.config_version (area, item_key, value, valid_from, source_row, basis, change_record_id, person_id, platform_ref)
+  values (a.code, platform.config_item_key(a, v_row), platform.config_item_value(a, v_row), v_from, v_row,
+          case when v_rel then 'RELEASE' when v_reg then 'PLATFORM_REGISTER' else 'CHANGE_RECORD' end, v_cr,
+          case when v_rel then null else (v_ctx ->> 'person_id')::uuid end,
+          case when v_reg then v_ctx ->> 'platform_ref' end);
+  return null;
+end
+$$;
+
+revoke all on function platform.is_platform_register_write(text, jsonb, jsonb) from public;
 
 -- ---------------------------------------------------------------------------------------------
 -- Privileges

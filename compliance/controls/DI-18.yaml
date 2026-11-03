@@ -145,6 +145,7 @@ tests:
   - "apps/tablets-server/test/operations/restore-and-alarms.test.ts > the restore procedure (DI-45) > [DI-45][DI-18] the approvers a restore may name are exactly the active persons of human accounts holding a role, in force, that approves restores: no operator, no administrator, no service identity, each once"
   - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-18] the database issues a set-up token only as a SHA-256 of 64 lowercase hex digits valid for 5 minutes to 7 days, and takes a token of 32 to 256 characters with the set-up naming its site (a name of 1 to 200 characters), its administrator and its process owner; each part refused on its own"
   - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the operations acts in the database, whoever writes them (kernel 1376) > [DI-17][DI-18][DI-45] the database refuses a worker act that is not one, without its reason or over 1000 characters, and an invalid record; a backup request without its tier or reason; and the copy of a backup not in the catalogue; nothing is recorded"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > people and their codes come from core > [DI-18][INV-11] administration and GMP codes together are refused and leave no authority; administration with governance codes asks for the work mode, and neither role mixes the two domains"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

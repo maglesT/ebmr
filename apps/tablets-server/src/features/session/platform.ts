@@ -182,7 +182,7 @@ export function platformRoutes(scope: FastifyInstance, app: AppContext): void {
 
   scope.get('/signin', async (_request, reply) => {
     try {
-      return reply.header('cache-control', 'no-store').redirect(await signon.start({ purpose: 'LOGIN', challengeIds: [], sessionTokenHash: null }), 303);
+      return reply.header('cache-control', 'no-store').redirect(signon.start({ purpose: 'LOGIN', challengeIds: [], sessionTokenHash: null }), 303);
     } catch (e) {
       return failed(reply, e);
     }
@@ -195,7 +195,7 @@ export function platformRoutes(scope: FastifyInstance, app: AppContext): void {
       return toPage(reply, { error: 'CHALLENGE_UNKNOWN', purpose: 'SIGNATURE' });
     }
     try {
-      return reply.header('cache-control', 'no-store').redirect(await signon.start({ purpose: 'SIGNATURE', challengeIds: ids, sessionTokenHash: tokenHash }), 303);
+      return reply.header('cache-control', 'no-store').redirect(signon.start({ purpose: 'SIGNATURE', challengeIds: ids, sessionTokenHash: tokenHash }), 303);
     } catch (e) {
       return failed(reply, e);
     }

@@ -246,6 +246,9 @@ tests:
   - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] a DSC is not recorded on a signing whose meaning needs none, even from an enrolled signer"
   - "packages/kernel/test/mutation/india-dsc.test.ts > the DSC functions as kernel 1321 re-creates them (Phase 7 exit, D-P7-1 item 4) > [IN-10][DI-38] with the option off nothing is enrolled; with no live anchor nothing is enrolled and no DSC recorded"
   - "apps/tablets-server/test/execution/demo-trial-acts.test.ts > R3.11: a kiosk session ended by a sign-in elsewhere says so > [DI-38] the old kiosk's next request is NO_SESSION naming the person and the kiosk they signed in on"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38][DI-35][PL-05] a signature with core's re-authentication is signed; the proof is bound to its challenge and used once; the performer cannot verify their own entry"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38][PL-05] another person's re-authentication, a proof without the meaning's code and /sign for a challenge of another session are refused"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38] the kernel refuses a platform signing event whose re-authentication is older than the challenge, or whose nonce was used"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

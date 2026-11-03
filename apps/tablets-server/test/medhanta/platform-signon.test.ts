@@ -59,13 +59,13 @@ const livePermissions = async (role: string) =>
 const liveGrant = async (role: string) =>
   (await q<{ n: string }>("select count(*)::text as n from iam.role_grant where role_code = $1 and iam.grant_is_live(status, valid_to, revoked_at)", [role]))[0]?.n === '1';
 
-/** DI-21 stays Batchwright's own screen: the fixture records the acknowledgement as the person's own screen would. */
-async function acknowledge(p: CorePerson): Promise<void> {
-  const id = await identityOf(p);
-  await q(
-    `insert into iam.esig_acknowledgement (person_id, account_id, policy_code, policy_version, manifestation_name, handwritten_equivalence)
-     select $1, $2, (iam.current_esig_policy()).code, (iam.current_esig_policy()).version, $3, true`,
-    [id?.person_id, id?.account_id, p.name],
+/** DI-21 stays Batchwright's own screen: the person acknowledges the e-signature policy in their own command. */
+async function acknowledge(b: TestBrowser): Promise<void> {
+  const s = await sessionOfBrowser(plat, b);
+  await withCommand(
+    plat.db.app,
+    { personId: s.personId, accountId: s.accountId, roleCode: s.roleCode ?? '', sessionId: s.sessionId, deviceId: s.deviceId, source: 'UI', siteZone: plat.seed.zone, legalName: s.legalName, correlationId: randomUUID() },
+    (c) => c.query('select iam.acknowledge_esig_policy()'),
   );
 }
 
@@ -112,7 +112,7 @@ describe('the platform build switches the local credentials off (DI-19)', () => 
       const r = await b.inject({ method: 'POST', url: path, payload: {} });
       if (r.statusCode !== 404) expect(r.statusCode, path).toBe(410);
     }
-    const all = new Set(Object.values(routes).flatMap((ns) => Object.values(ns).map((r) => r.id)));
+    const all = new Set((Object.values(routes) as Record<string, { id: string }>[]).flatMap((ns) => Object.values(ns).map((r) => r.id)));
     expect([...PLATFORM_MANAGED_ROUTES].filter((r) => !all.has(r))).toEqual([]);
   });
 
@@ -122,6 +122,30 @@ describe('the platform build switches the local credentials off (DI-19)', () => 
     const r = refusalOf(await b.call(routes.session.login, { body: { ...body, proof: await b.proof('POST', '/api/session/login', body) } }));
     expect([r.status, r.code]).toEqual([410, 'MANAGED_IN_PLATFORM']);
     expect((await b.inject({ method: 'GET', url: '/signin' })).headers['location']).toBeUndefined();
+  });
+});
+
+describe('core\'s answers are checked', () => {
+  it('[DI-14][PL-05] an ID token of another issuer, for another application, answering another sign-on or expired gives no proof; a signature needs a fresh re-authentication', async () => {
+    const b = plat.browser('PC-QA-05');
+    const p = person(WORKER);
+    for (const tamper of [{ iss: 'https://elsewhere.test/oidc' }, { aud: 'other-app' }, { nonce: 'not-this-one' }, { exp: 1_000_000 }]) {
+      core.tamper = tamper;
+      const r = await core.roundTrip(b, '/signin', p);
+      expect([r.proof, r.error], JSON.stringify(tamper)).toEqual([undefined, 'TOKEN_INVALID']);
+    }
+    core.tamper = null;
+    valueOf((await signIn(b, p)).r);
+    await acknowledge(b);
+    // An old sign-on at core does not count as a re-authentication for a signature (max_age=0 ignored by core).
+    core.authTimeShiftS = 600;
+    try {
+      const action = { kind: 'ESIG_STUB' as const, stubId: await stubBy(b) };
+      const late = await signWithCore(b, p, action, 'PERFORMED');
+      expect(late.trip.error).toBe('NOT_REAUTHENTICATED');
+    } finally {
+      core.authTimeShiftS = 0;
+    }
   });
 });
 
@@ -199,6 +223,58 @@ describe('people and their codes come from core', () => {
   });
 });
 
+describe('change control of the mirror roles (DI-09; decision 0028)', () => {
+  const ZERO = '00000000-0000-0000-0000-000000000000';
+  /** One write as the superuser under an installed actor context, always rolled back; '' or the refusal's code. */
+  async function attempt(ctx: Record<string, unknown>, sql: string, params: unknown[]): Promise<string> {
+    const c = await plat.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({ session_id: ZERO, account_id: ZERO, site_zone: plat.seed.zone, correlation_id: randomUUID(), legal_name: 'x', reason_code: 'X', reason_text: 'x', ...ctx })]);
+      await c.query(sql, params);
+      return '';
+    } catch (e) {
+      return (e as Error).message.slice(0, 12);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }
+
+  it('[DI-09][PL-02] the sync\'s rows of a mirror role are configuration versions with basis PLATFORM_REGISTER, core\'s grant reference and the register\'s person', async () => {
+    const p = person(WORKER);
+    valueOf((await signIn(plat.browser('PC-PLAN-02'), p)).r);
+    const id = await identityOf(p);
+    const rows = await q<{ area: string; basis: string; ref: string | null; person: string }>(
+      `select v.area, v.basis, v.platform_ref as ref, n.legal_name as person from platform.config_version v join iam.person n on n.id = v.person_id
+        where (v.area = 'ROLE' and v.item_key in ($1, $2)) or (v.area = 'ROLE_PERMISSION' and v.item_key like $1 || '|%') order by v.id`,
+      [id?.work_role, id?.admin_role]);
+    expect(rows.map((r) => r.area)).toEqual(['ROLE', 'ROLE', 'ROLE_PERMISSION', 'ROLE_PERMISSION', 'ROLE_PERMISSION', 'ROLE_PERMISSION']);
+    expect(new Set(rows.map((r) => `${r.basis}|${r.person}`))).toEqual(new Set(['PLATFORM_REGISTER|Platform core: permission register']));
+    expect(rows.every((r) => (r.ref ?? '').includes(p.login))).toBe(true);
+  });
+
+  it('[DI-09] every other write of a role or a role permission still needs an approved change record, also one that imitates the sync', async () => {
+    const p = person(WORKER);
+    valueOf((await signIn(plat.browser('PC-PLAN-02'), p)).r);
+    const id = await identityOf(p);
+    const work = id?.work_role ?? '';
+    const register = (await q<{ r: string }>('select register_person::text as r from iam.platform_mode'))[0]?.r ?? '';
+    const sync = { person_id: register, role_code: 'PLATFORM_SIGN_ON', source: 'SYSTEM', platform_ref: 'imitation' };
+    const addPerm = 'insert into iam.role_permission (role_code, permission_code) values ($1, $2)';
+    // The sync's own identity and a mirror role: the guard lets it through (the role-permission guard then decides).
+    expect(await attempt(sync, addPerm, [work, 'STEP.WITNESS'])).not.toBe('EBMR-CFG-001');
+    // Another person under the same role code and source, a customer role, a missing grant reference, another session.
+    expect(await attempt({ ...sync, person_id: randomUUID() }, addPerm, [work, 'STEP.WITNESS'])).toBe('EBMR-CFG-001');
+    expect(await attempt(sync, addPerm, ['QA_REVIEWER', 'STEP.WITNESS'])).toBe('EBMR-CFG-001');
+    expect(await attempt({ ...sync, platform_ref: ' ' }, addPerm, [work, 'STEP.WITNESS'])).toBe('EBMR-CFG-001');
+    expect(await attempt({ ...sync, session_id: randomUUID() }, addPerm, [work, 'STEP.WITNESS'])).toBe('EBMR-CFG-001');
+    // A role named like a mirror role but not in the identity map, and a person's ordinary command on a mirror role.
+    expect(await attempt(sync, "insert into iam.role (code, name, role_group, description, account_kinds) values ('PLATFORM_999999_WORK', 'Work', 'EXECUTION', 'x', array['HUMAN'])", [])).toBe('EBMR-CFG-001');
+    expect(await attempt({ person_id: id?.person_id, role_code: work, source: 'UI' }, "update iam.role set description = 'changed' where code = $1", [work])).toBe('EBMR-CFG-001');
+  });
+});
+
 describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
   it('[DI-38][DI-35][PL-05] a signature with core\'s re-authentication is signed; the proof is bound to its challenge and used once; the performer cannot verify their own entry', async () => {
     const performer = person(WORKER);
@@ -207,8 +283,8 @@ describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
     const vb = plat.browser('PC-QA-01');
     valueOf((await signIn(pb, performer)).r);
     valueOf((await signIn(vb, verifier)).r);
-    await acknowledge(performer);
-    await acknowledge(verifier);
+    await acknowledge(pb);
+    await acknowledge(vb);
     const stub = await stubBy(pb);
     const action = { kind: 'ESIG_STUB' as const, stubId: stub };
 
@@ -246,7 +322,7 @@ describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
     const sb = plat.browser('PC-QA-02');
     valueOf((await signIn(sb, signer)).r);
     valueOf((await signIn(plat.browser('PC-QA-04'), intruder)).r);
-    await acknowledge(signer);
+    await acknowledge(sb);
     const action = { kind: 'ESIG_STUB' as const, stubId: await stubBy(sb) };
 
     // Core signs the intruder in on the signer's /sign: the kernel refuses (the challenge is the signer's).
@@ -264,7 +340,7 @@ describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
     const p = person(WORKER);
     const b = plat.browser('PC-QA-06');
     valueOf((await signIn(b, p)).r);
-    await acknowledge(p);
+    await acknowledge(b);
     const action = { kind: 'ESIG_STUB' as const, stubId: await stubBy(b) };
     const d = valueOf(await b.call(routes.esig.describe, { body: { action } }));
     const content = valueOf(await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: 'PERFORMED' } }));
@@ -296,8 +372,8 @@ describe('e-signatures re-authenticate at core (DI-38, PL-05)', () => {
     const qb = plat.browser('PC-QA-09');
     valueOf((await signIn(ab, author)).r);
     valueOf((await signIn(qb, approver)).r);
-    await acknowledge(author);
-    await acknowledge(approver);
+    await acknowledge(ab);
+    await acknowledge(qb);
     const code = `KP-${randomUUID().slice(0, 6).toUpperCase()}`;
     const definition = {
       code, version: 1, title: 'Platform block', category: 'TEST_IPC',

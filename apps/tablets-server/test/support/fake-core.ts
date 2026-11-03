@@ -1,13 +1,14 @@
 /**
- * A stand-in for the platform's core in server tests (Phase B slice 2): an OpenID provider with a discovery document,
- * a JWKS (RS256) and a token endpoint that checks PKCE and answers with an ID token for the person the test says is at
- * core. The browser's trip to core is the test reading the authorization URL: core "signs the person in" by
+ * A stand-in for the platform's core in server tests (Phase B slice 2), with core's fixed endpoints (databsee apps/hello):
+ * <issuer>/auth, a token endpoint that checks the client secret (Basic) and PKCE and answers with an ID token and an access
+ * token, and <issuer>/me with the person's sub, name, login and permissions. The browser's trip to core is the test reading the authorization URL: core "signs the person in" by
  * remembering the URL's state, nonce and code challenge and handing back a code.
  */
 import { createHash, generateKeyPairSync, randomBytes, sign as rsaSign } from 'node:crypto';
 import type { TestBrowser } from './harness.ts';
 
-export const CORE_ISSUER = 'https://core.platform.test';
+export const CORE_ISSUER = 'https://platform.test/oidc';
+export const CORE_SECRET = 'core-client-secret-for-tests';
 export const CORE_CLIENT = 'ebmr';
 
 export interface CorePerson {
@@ -30,6 +31,7 @@ const nowS = (): number => Math.floor((performance.timeOrigin + performance.now(
 export class FakeCore {
   private readonly keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
   private readonly codes = new Map<string, Issued>();
+  private readonly access = new Map<string, Issued>();
   /** Overrides of the next ID token's claims (attacks). */
   tamper: Record<string, unknown> | null = null;
   /** Seconds to subtract from auth_time (a stale or pre-challenge re-authentication). */
@@ -38,22 +40,28 @@ export class FakeCore {
   readonly env = {
     EBMR_OIDC_ISSUER: CORE_ISSUER,
     EBMR_OIDC_CLIENT_ID: CORE_CLIENT,
+    EBMR_OIDC_CLIENT_SECRET: CORE_SECRET,
     EBMR_OIDC_REDIRECT_URI: 'http://localhost:3001/cb',
   };
 
   readonly fetch = async (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
     const answer = (status: number, body: unknown) => Promise.resolve({ ok: status < 300, status, json: () => Promise.resolve(body) });
-    if (url === `${CORE_ISSUER}/.well-known/openid-configuration`) {
-      return answer(200, { issuer: CORE_ISSUER, authorization_endpoint: `${CORE_ISSUER}/authorize`, token_endpoint: `${CORE_ISSUER}/token`, jwks_uri: `${CORE_ISSUER}/jwks` });
-    }
-    if (url === `${CORE_ISSUER}/jwks`) return answer(200, { keys: [{ ...this.keys.publicKey.export({ format: 'jwk' }), kid: 'k1', use: 'sig', alg: 'RS256' }] });
     if (url === `${CORE_ISSUER}/token` && init?.method === 'POST') {
+      const basic = `Basic ${Buffer.from(`${CORE_CLIENT}:${CORE_SECRET}`).toString('base64')}`;
+      if (init.headers?.['authorization'] !== basic) return answer(401, { error: 'invalid_client' });
       const form = new URLSearchParams(init.body ?? '');
       const issued = this.codes.get(form.get('code') ?? '');
       this.codes.delete(form.get('code') ?? '');
       const verifier = form.get('code_verifier') ?? '';
       if (!issued || createHash('sha256').update(verifier).digest('base64url') !== issued.challenge) return answer(400, { error: 'invalid_grant' });
-      return answer(200, { id_token: this.idToken(issued), token_type: 'Bearer' });
+      const accessToken = randomBytes(16).toString('hex');
+      this.access.set(accessToken, issued);
+      return answer(200, { id_token: this.idToken(issued), access_token: accessToken, token_type: 'Bearer' });
+    }
+    if (url === `${CORE_ISSUER}/me`) {
+      const issued = this.access.get((init?.headers?.['authorization'] ?? '').replace(/^Bearer /, ''));
+      if (!issued) return answer(401, {});
+      return answer(200, { sub: issued.person.sub, name: issued.person.name, preferred_username: issued.person.login, permissions: issued.person.codes });
     }
     return answer(404, {});
   };
@@ -64,9 +72,6 @@ export class FakeCore {
       iss: CORE_ISSUER,
       aud: CORE_CLIENT,
       sub: i.person.sub,
-      preferred_username: i.person.login,
-      name: i.person.name,
-      permissions: i.person.codes,
       nonce: i.nonce,
       auth_time: i.authTime,
       iat: now,

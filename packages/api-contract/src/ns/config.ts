@@ -53,7 +53,7 @@ export const ConfigItemView = z.strictObject({
   itemKey: z.string(),
   value: z.record(z.string(), z.unknown()),
   validFrom: z.string(),
-  basis: z.enum(['CHANGE_RECORD', 'RELEASE', 'BEFORE_CONTROL']),
+  basis: z.enum(['CHANGE_RECORD', 'RELEASE', 'BEFORE_CONTROL', 'PLATFORM_REGISTER']),
   changeRecord: z.string().nullable(),
 });
 export type ConfigItemView = z.infer<typeof ConfigItemView>;

@@ -412,6 +412,21 @@ export const PLATFORM_MANAGED_ROUTES: ReadonlySet<string> = new Set([
   'access.unlock', 'access.switchUser',
 ]);
 
+/**
+ * Phase B slice 2: the person a platform sign-on proof names, for the login's rate limit only (as the identifier of a
+ * password login; people behind one address do not share one allowance). Read without checking the proof's MAC: a forged
+ * name only gets its own allowance, and a forged proof is refused before the database is asked.
+ */
+function signonSubject(proof: unknown): string {
+  if (typeof proof !== 'string') return '';
+  try {
+    const sub = (JSON.parse(Buffer.from(proof.split('.')[0] ?? '', 'base64url').toString('utf8')) as { sub?: unknown }).sub;
+    return typeof sub === 'string' ? `platform:${sub.slice(0, 128)}` : '';
+  } catch {
+    return '';
+  }
+}
+
 /** The answer of what is switched off on the platform build. */
 export function managedInPlatform(what: string): Error {
   return refusal(410, {
@@ -508,7 +523,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
                 keyGenerator: (request: FastifyRequest) => {
                   if (rl.by === 'SESSION') return `${route.id}|${requestTokenHash(request, app.config) ?? request.ip}`;
                   const body = (request.body ?? {}) as Record<string, unknown>;
-                  const who = typeof body['identifier'] === 'string' ? body['identifier'] : typeof body['badgeUid'] === 'string' ? body['badgeUid'] : '';
+                  const who = typeof body['identifier'] === 'string' ? body['identifier'] : typeof body['badgeUid'] === 'string' ? body['badgeUid'] : signonSubject(body['signonProof']);
                   return `${route.id}|${request.ip}|${who.toLowerCase()}`;
                 },
               },

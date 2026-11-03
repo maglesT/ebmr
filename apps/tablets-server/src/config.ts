@@ -281,6 +281,7 @@ function oidcOf(e: z.infer<typeof EnvSchema>, production: boolean): EnvConfig['o
   if (production && (!issuer.startsWith('https:') || !redirectUri.startsWith('https:'))) {
     throw new ConfigError('EBMR_ENV=production refuses an http core sign-on: use https (DI-13)');
   }
+  if (production && e.EBMR_OIDC_CLIENT_SECRET === undefined) throw new ConfigError('EBMR_ENV=production needs core\'s client secret (OIDC_CLIENT_SECRET)');
   return { issuer, clientId, clientSecret: e.EBMR_OIDC_CLIENT_SECRET ?? null, redirectUri, codesClaim: e.EBMR_OIDC_CODES_CLAIM };
 }
 

@@ -207,6 +207,8 @@ tests:
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > security alerts (DI-19) > [DI-19] an alert about another person is acknowledged with a comment; an alert about the person signed in is not offered to them"
   - "apps/tablets-web/test/administration/wp2-administration.test.tsx > the device configuration > [DI-19][DI-20][DI-31] the administrator sets a kiosk class's attribution, revokes a hardening attestation, retires an OPC UA endpoint and links a process device to its unit, each with the reason"
   - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-19][DI-20][DI-31] the administrator registers a kiosk and attests it, registers a balance and a gateway, enrols the gateway key, binds the balance behind it and binds an OPC UA adapter to the gateway feed"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > the platform build switches the local credentials off (DI-19) > [DI-19][PL-05] a password sign-in, a secret change and the people and grant routes answer MANAGED_IN_PLATFORM; the terminal offers only the platform sign-on"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > the platform build switches the local credentials off (DI-19) > [DI-19] the standalone build takes no platform proof and has no core routes"
 clauses:
   - clause: "Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time."
     tests:

@@ -72,6 +72,8 @@ tests:
   - "apps/tablets-web/test/market/market-screens.test.tsx > site values > [IN-52][ST-01][DI-09] previews a site value; a loosening with a justification offers QA's approval through the ceremony; the value is set under a change record"
   - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-16][DI-18][DI-09] the administrator requests a permission for a role; the process owner approves it under the change record; the administrator removes it"
   - "apps/tablets-server/test/market/master-data-acts-routes.test.ts > C5: platform settings on the configuration screen > [DI-09] every platform setting the database defines is offered by the settings read of the configuration screen, and its key fits the change route (one screen covers every setting)"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > change control of the mirror roles (DI-09; decision 0028) > [DI-09][PL-02] the sync's rows of a mirror role are configuration versions with basis PLATFORM_REGISTER, core's grant reference and the register's person"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > change control of the mirror roles (DI-09; decision 0028) > [DI-09] every other write of a role or a role permission still needs an approved change record, also one that imitates the sync"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:
