@@ -1,6 +1,7 @@
 # Phase B: Batchwright (Tablets) onto the MEDHANTA platform. Plan, draft 1 (3 Nov 2026)
 
-Status: **draft, waiting for the lead's approval** (the owner delegated plan approval to the lead). Scope: platform
+Status: **approved by the lead on 3 Nov 2026 with every recommendation** (decisions 1-6; the owner delegated plan
+approval to the lead). Decision 3 changed in slice 1, see below. Scope: platform
 D-11, rewire only. Batchwright gets its own database on the shared server, signs people on through core OIDC,
 re-authenticates e-signatures through core, reads master data through the platform's versioned views, publishes its
 report views as platform links, and its data moves with PL-13 checks. No new features, no rewrites; the block-library
@@ -40,7 +41,7 @@ Most of the regulated core already lives in the database, so the move changes *w
   - sets connection limits;
   - writes bootstrap rows.
 
-  It also refuses to start unless its database session is encrypted, or it reaches the database over a local socket.
+  It also refuses to start unless the database itself reports its session as TLS-encrypted.
 
 ## What maps to what
 
@@ -123,8 +124,8 @@ listed in the mapping report.
 1. **Platform wiring.**
    - databsee `apps/ebmr/manifest.json` (codes, publishes, reads `master_data` equipment/instrument/room/material/product
      `_v1`, pinned commit), compose service, port 8109, config and secrets template.
-   - Batchwright: `EBMR_DATABASE_URL` and the master pool, the database reached over the server's Unix socket, keys
-     volume, and `test/platform` (a platform-initialised empty database migrates, starts, and passes its start-up
+   - Batchwright: `EBMR_DATABASE_URL`, verified TLS to the platform database, the one-shot migrator, the image, the keys
+     volume (the master pool comes in slice 3), and `test/platform` (a platform-initialised empty database migrates, starts, and passes its start-up
      checks).
 2. **Sign-on, permissions and e-signature through core** (PL-01, PL-05, DI-08, DI-18, DI-35, EBMR-LIB-007), one slice
    as in Deviations (D-43): OIDC + PKCE, `iam.platform_grant`, work mode, proof → auth event, the platform build's sign-in
@@ -154,8 +155,8 @@ listed in the mapping report.
 ## Risks
 
 1. **Superuser set-up** (decision 2): without it the migrations stop at the extra roles and the event triggers.
-2. **Unencrypted platform database connection:** Batchwright refuses to start. Fix: the Unix socket (decision 3); no
-   control is relaxed.
+2. **Unencrypted platform database connection:** Batchwright refuses to start. Fix: TLS on the platform database
+   (decision 3, as revised); no control is relaxed.
 3. **Area and product scope on grants is lost:** platform codes are site-wide (D-16), so a grant can no longer be
    limited to one area or product. I will write this up for the owner against DI-08/DI-18 (controls are not edited).
    Qualification gates still apply per person.
@@ -183,9 +184,12 @@ listed in the mapping report.
    change: a manifest `"migrate": "own"` in apply. Alternatives:
    - give `ebmr_owner` CREATEROLE, and still lose the DDL-audit event triggers, which would weaken a control (no);
    - flatten the 4 sources into `db/ebmr` and patch the superuser statements (that rewrites released migrations; no).
-3. **Database connection:** the platform db's Unix socket is shared into the `ebmr` container with
-   `EBMR_DB_ALLOW_LOCAL_SOCKET=1` (*recommended*, compose only). The alternative is TLS on the platform database for
-   everyone (a platform change).
+3. **Database connection:** ~~the platform db's Unix socket shared into the `ebmr` container~~. Slice 1 found that
+   Batchwright's runtime check (`assertEncryptedDatabaseSession`, DI-13) refuses any session that `pg_stat_ssl` does
+   not report as encrypted, a socket included. Relaxing it would weaken DI-13. Instead, the platform's database runs
+   TLS with a self-signed certificate for the name `db`, made once in its entrypoint. Batchwright connects with
+   `sslmode=verify-full` against that certificate, which is shared read-only. This is a compose-only change; other
+   products are unaffected.
 4. **Platform demo data:** start from the demo company (fresh, codes aligned). The move is proven in CI and by a full
    run on a copy of today's demo database (*recommended*). The alternative is to move today's demo records and remap
    their codes.
