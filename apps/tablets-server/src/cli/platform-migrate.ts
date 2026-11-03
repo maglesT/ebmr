@@ -8,7 +8,8 @@
  *
  *   1. the platform defaults are taken back first (sql-platform/0000_platform_defaults.sql);
  *   2. kernel, site services, recipe-core and tablets migrations, in the standalone order;
- *   3. the connect policy (sandbox.apply_connect_policy, as the installer runs it);
+ *   3. the connect policy (sandbox.apply_connect_policy, as the installer runs it), then the platform build is switched
+ *      on (iam.enable_platform_build, kernel 1400; Phase B slice 2): people sign on and re-authenticate through core;
  *   4. the extra login roles: ebmr_authn and ebmr_analytics get EBMR_AUTHN_PASSWORD and EBMR_ANALYTICS_PASSWORD (customer
  *      secrets); every other eBMR login, which the platform does not use (listener, report and the sandbox
  *      logins), is NOLOGIN, so no migration default password ('ebmr_authn' and the like) stays usable;
@@ -79,6 +80,8 @@ export async function platformMigrate(opts: PlatformMigrateOptions): Promise<{ a
       .then((r) => client.query((r.rows[0] as { ddl: string }).ddl));
     const applied = await migrate(client, platformSources());
     await client.query('select sandbox.apply_connect_policy()');
+    // Phase B slice 2: the platform build (sign-on, codes and re-authentication through core); set once, never undone.
+    await client.query('select iam.enable_platform_build()');
     if (opts.setLogins !== false) await runAll(client, logins);
     writeKeysOnce(opts.keysDir);
     ok = true;

@@ -126,6 +126,11 @@ export type ChallengeView = z.infer<typeof ChallengeView>;
 export const SignatureCredentials = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('PIN'), pin: z.string().min(4).max(PIN_MAX_LENGTH) }),
   z.strictObject({ kind: z.literal('PASSWORD'), loginName: z.string().min(1).max(128), password: z.string().min(1).max(256) }),
+  /**
+   * Phase B slice 2, the platform build: core re-authenticated the signer (prompt=login, after the challenge); the proof
+   * GET /cb handed the page, used once (DI-38, PL-05).
+   */
+  z.strictObject({ kind: z.literal('PLATFORM'), signonProof: z.string().min(16).max(8192) }),
 ]);
 export type SignatureCredentials = z.infer<typeof SignatureCredentials>;
 

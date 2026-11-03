@@ -7,6 +7,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { setTransport } from './api/client.ts';
 import { App } from './app/App.tsx';
+import { takeSignonFragment } from './app/platform-signon.ts';
 
 async function start(): Promise<void> {
   if (import.meta.env['VITE_EBMR_FIXTURES'] === '1') {
@@ -16,6 +17,11 @@ async function start(): Promise<void> {
   }
   const root = document.getElementById('root');
   if (!root) throw new Error('no #root element');
+  // Phase B slice 2: the window core's re-authentication came back to only hands the proof to its signature dialog.
+  if (takeSignonFragment()) {
+    root.textContent = 'Confirmed. You can close this window.';
+    return;
+  }
   createRoot(root).render(
     <StrictMode>
       <App />

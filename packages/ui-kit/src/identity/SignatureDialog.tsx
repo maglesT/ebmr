@@ -61,6 +61,22 @@ function PasswordForm({ onSubmit, disabled }: { onSubmit: (loginName: string, pa
   );
 }
 
+/**
+ * Phase B slice 2, the platform build: the signer re-authenticates at the platform's core in a window of its own (user
+ * ID and password asked again there); the dialog waits for that window's answer.
+ */
+function PlatformReauth({ onStart, disabled, note }: { onStart: () => void; disabled: boolean; note: string | null }) {
+  return (
+    <div aria-label="Sign by confirming your user ID and password at the platform">
+      <p>A platform window asks for your user ID and password again. The signature is applied once you have confirmed there.</p>
+      {note ? <Banner tone="warning" title={note} /> : null}
+      <Button variant="primary" onPress={onStart} isDisabled={disabled}>
+        Confirm at the platform and sign
+      </Button>
+    </div>
+  );
+}
+
 export interface SignatureDialogProps {
   state: CeremonyState;
   context: CeremonyContext;
@@ -83,6 +99,10 @@ export interface SignatureDialogProps {
   onTapTimeout: () => void;
   onPin: (pin: string) => void;
   onPassword: (loginName: string, password: string) => void;
+  /** The platform build: re-authentication at core instead of the password form (no PIN pad either). */
+  onPlatform?: () => void;
+  /** Why the last platform re-authentication brought nothing back (closed window, blocked pop-up), or null. */
+  platformNote?: string | null;
   /** switchOffered: the PIN of the person whose badge was tapped. */
   onSwitchPin: (pin: string) => void;
 }
@@ -144,7 +164,9 @@ export function SignatureDialog(p: SignatureDialogProps) {
                 ) : null}
                 <Countdown seconds={p.secondsLeft} />
                 {c.attemptError ? <RefusalNotice envelope={c.attemptError} tone="warning" /> : null}
-                {c.challenge.requires.includes('PIN') ? (
+                {p.onPlatform ? (
+                  <PlatformReauth onStart={p.onPlatform} disabled={p.state === 'signing'} note={p.platformNote ?? null} />
+                ) : c.challenge.requires.includes('PIN') ? (
                   <PinPad label="Enter your PIN to sign" onSubmit={p.onPin} disabled={p.state === 'signing'} />
                 ) : (
                   <PasswordForm onSubmit={p.onPassword} disabled={p.state === 'signing'} />

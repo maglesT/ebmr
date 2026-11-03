@@ -17,7 +17,7 @@
  * choose the absent person's PIN (the kernel also refuses a change on a shared terminal past its attribution window).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
-import { badgeUidOf, PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
+import { badgeUidOf, PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LocalLoginMethod } from '@ebmr/api-contract';
 import { Banner, brand, Button, Field, identity, t, takeSecret, wasFilled } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
@@ -26,11 +26,12 @@ import { EDITION } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { sessionEndNotice, setSessionEndNotice } from '../../app/session-end-notice.ts';
+import { startPlatformSignIn, takePendingLogin } from '../../app/platform-signon.ts';
 import { demoBadgesOf } from './demo-badges.ts';
 
 /** What the screen shows during a first-login change (no secret). */
 interface ChangeState {
-  method: LoginMethod;
+  method: LocalLoginMethod;
   kind: 'PASSWORD' | 'PIN';
   /** Whose secret is changed (the server names the person who proved the current secret). */
   legalName: string | null;
@@ -108,7 +109,7 @@ function useLogin(changeIdleMs: number | null = null) {
     }, changeIdleMs);
   };
 
-  const login = async (method: LoginMethod, identifier: string, secret: string) => {
+  const login = async (method: LocalLoginMethod, identifier: string, secret: string) => {
     if (!boot.deviceKey) return;
     setBusy(true);
     setError(null);
@@ -355,6 +356,68 @@ export function OfficeLogin() {
           </Button>
         </form>
       )}
+    </div>
+  );
+}
+
+/** Why a sign-on through the platform came back without a proof (the server's reason codes; features/session/platform.ts). */
+const SIGNON_ERRORS: Readonly<Record<string, string>> = {
+  CORE_UNREACHABLE: 'The platform could not be reached. Try again in a moment.',
+  CORE_REFUSED: 'The platform did not sign you in.',
+  STATE_UNKNOWN: 'The sign-in took too long or was started elsewhere. Sign in again.',
+  TOKEN_INVALID: 'The platform\'s answer could not be verified. Nothing was done.',
+};
+
+/**
+ * Phase B slice 2, the platform build: sign-in through the platform's core. The button sends the page to core; back here,
+ * the proof /cb handed the page (platform-signon.ts) is posted once with the device proof.
+ */
+export function PlatformLogin() {
+  const boot = useBoot();
+  const [error, setError] = useState<CallError | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const back = takePendingLogin();
+    if (!back) return;
+    if (!back.proof) {
+      setNote(SIGNON_ERRORS[back.error ?? ''] ?? 'The sign-in through the platform did not complete.');
+      return;
+    }
+    const proofText = back.proof;
+    void (async () => {
+      if (!boot.deviceKey) return;
+      setBusy(true);
+      try {
+        const body = { method: 'PLATFORM' as const, signonProof: proofText };
+        const proof = await deviceProof(boot.deviceKey, 'POST', '/api/session/login', body);
+        if (!proof.ok) {
+          setError(proof.error);
+          return;
+        }
+        const r = await api.call(routes.session.login, { body: { ...body, proof: proof.proof } });
+        if (r.ok) boot.setSession(r.value);
+        else setError(r.error);
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }, [boot]);
+  return (
+    <div className={cls('center')}>
+      <brand.SignInBrand edition={EDITION} />
+      <h1>{t('session.signIn')}</h1>
+      <p className={cls('muted')}>
+        {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode}
+      </p>
+      {note ? <Banner tone="warning" title={note} /> : null}
+      {error ? <RefusalMessage error={error} /> : null}
+      <Button variant="primary" isDisabled={busy} onPress={startPlatformSignIn}>
+        Sign in through the platform
+      </Button>
     </div>
   );
 }

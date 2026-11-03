@@ -126,6 +126,16 @@ export const EnvSchema = z.object({
    * a sandbox); default EBMR_PG_ADMIN_URL. Without either the screen runs no hardening check.
    */
   EBMR_HARDENING_DB_URL: z.string().optional(),
+  /**
+   * Phase B slice 2, the platform build (iam.platform_build()): sign-on through the platform's core. Issuer, client and
+   * the redirect URI registered at core (https://<host>/cb); the client secret is optional (a public client uses PKCE
+   * only); the ID-token claim that lists the person's codes.
+   */
+  EBMR_OIDC_ISSUER: z.url().optional(),
+  EBMR_OIDC_CLIENT_ID: z.string().min(1).optional(),
+  EBMR_OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+  EBMR_OIDC_REDIRECT_URI: z.url().optional(),
+  EBMR_OIDC_CODES_CLAIM: z.string().min(1).default('permissions'),
 });
 
 /** What the environment configures (parseConfig). */
@@ -178,6 +188,8 @@ export interface EnvConfig {
   validation: { bundleFile: string | null; exportDir: string; reportUrl: string | null };
   /** Slice 7g, work package 2: the hardening check's database login (EBMR_HARDENING_DB_URL, else EBMR_PG_ADMIN_URL), or null. */
   hardeningDbUrl: string | null;
+  /** Phase B slice 2: core's sign-on (EBMR_OIDC_*), or null when not configured (a platform build then refuses to start). */
+  oidc: { issuer: string; clientId: string; clientSecret: string | null; redirectUri: string; codesClaim: string } | null;
 }
 
 /** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
@@ -245,12 +257,30 @@ export function platformEnv(env: Readonly<Record<string, string | undefined>>): 
     EBMR_DB_AUTHN_URL: authn ? verified('ebmr_authn', authn) : undefined,
     EBMR_DB_ANALYTICS_URL: analytics ? verified('ebmr_analytics', analytics) : undefined,
     EBMR_PUBLIC_ORIGIN: redirect ? new URL(redirect).origin : undefined,
+    EBMR_OIDC_ISSUER: env['OIDC_ISSUER'],
+    EBMR_OIDC_CLIENT_ID: env['OIDC_CLIENT_ID'],
+    EBMR_OIDC_CLIENT_SECRET: env['OIDC_CLIENT_SECRET'],
+    EBMR_OIDC_REDIRECT_URI: redirect,
     EBMR_HOST: '0.0.0.0',
     EBMR_PORT: env['PORT'] ?? '3000',
   };
   const out: Record<string, string | undefined> = { ...env };
   for (const [k, v] of Object.entries(derived)) if (out[k] === undefined && v !== undefined) out[k] = v;
   return out;
+}
+
+/** Core's sign-on: all of issuer, client id and redirect URI, or none; production refuses http (DI-13). */
+function oidcOf(e: z.infer<typeof EnvSchema>, production: boolean): EnvConfig['oidc'] {
+  const { EBMR_OIDC_ISSUER: issuer, EBMR_OIDC_CLIENT_ID: clientId, EBMR_OIDC_REDIRECT_URI: redirectUri } = e;
+  if (issuer === undefined && clientId === undefined && redirectUri === undefined) return null;
+  if (issuer === undefined || clientId === undefined || redirectUri === undefined) {
+    throw new ConfigError('core sign-on needs EBMR_OIDC_ISSUER, EBMR_OIDC_CLIENT_ID and EBMR_OIDC_REDIRECT_URI together');
+  }
+  if (new URL(redirectUri).pathname !== '/cb') throw new ConfigError('EBMR_OIDC_REDIRECT_URI ends in /cb');
+  if (production && (!issuer.startsWith('https:') || !redirectUri.startsWith('https:'))) {
+    throw new ConfigError('EBMR_ENV=production refuses an http core sign-on: use https (DI-13)');
+  }
+  return { issuer, clientId, clientSecret: e.EBMR_OIDC_CLIENT_SECRET ?? null, redirectUri, codesClaim: e.EBMR_OIDC_CODES_CLAIM };
 }
 
 export function parseConfig(env: Readonly<Record<string, string | undefined>>, randomKey: () => string): EnvConfig {
@@ -337,6 +367,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     cookies: cookieNames(e.EBMR_INSTALLATION, https),
     adminUrl: e.EBMR_PG_ADMIN_URL ?? null,
     hardeningDbUrl: e.EBMR_HARDENING_DB_URL ?? e.EBMR_PG_ADMIN_URL ?? null,
+    oidc: oidcOf(e, production),
     keysDir: e.EBMR_KEYS_DIR ?? (e.EBMR_DEMO_KEYS_FILE ? dirname(e.EBMR_DEMO_KEYS_FILE) : null),
     backup: e.EBMR_BACKUP_DIR
       ? {

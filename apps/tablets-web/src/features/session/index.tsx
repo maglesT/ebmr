@@ -10,7 +10,7 @@ import { DemoPicker } from './DemoPicker.tsx';
 import { Home } from './Home.tsx';
 
 export { DemoPicker, NotEnrolled } from './DemoPicker.tsx';
-export { KioskLogin, OfficeLogin, RoleChoice } from './Login.tsx';
+export { KioskLogin, OfficeLogin, PlatformLogin, RoleChoice } from './Login.tsx';
 export { About } from './About.tsx';
 
 export function routes(root: AnyRootRoute): AnyRoute[] {

@@ -17,11 +17,12 @@ import type { AppContext } from '../../platform/context.ts';
 import { bindRoutes, pathOf, type DeviceRateLimitSpec } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { demoDevicesView } from './demo-devices.ts';
+import { managedInPlatform, platformAuthEvent, platformRoutes } from './platform.ts';
 import { SESSION_GUIDANCE } from './guidance.ts';
 
 export const guidance = SESSION_GUIDANCE;
 
-function deviceView(device: identity.DeviceInfo): DeviceView {
+function deviceView(device: identity.DeviceInfo, platformBuild: boolean): DeviceView {
   const floor = isShopFloor(device.deviceClass);
   return {
     deviceCode: device.code,
@@ -30,7 +31,7 @@ function deviceView(device: identity.DeviceInfo): DeviceView {
     roomCode: device.roomCode,
     lineCode: device.lineCode,
     density: floor ? 'FLOOR' : 'OFFICE',
-    loginMethods: floor ? ['BADGE_PIN'] : ['PASSWORD'],
+    loginMethods: platformBuild ? ['PLATFORM'] : floor ? ['BADGE_PIN'] : ['PASSWORD'],
   };
 }
 
@@ -84,6 +85,7 @@ export const DEVICE_NONCE_RATE_LIMIT = { by: 'DEVICE', timeWindow: '1 minute', m
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const tickets = new ChangeTicketStore();
+  platformRoutes(scope, app);
   bindRoutes(
     scope,
     app,
@@ -94,7 +96,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
 
       identify: async ({ body, request }) => {
         const { device } = await app.devices.identify(body.proof, { method: request.method, path: pathOf(request), body: without(body, 'proof') });
-        return deviceView(device);
+        return deviceView(device, app.platform.build);
       },
 
       demoDevices: () => {
@@ -113,38 +115,49 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
 
       login: async ({ body, request, reply }) => {
         const { fingerprint, device } = await app.devices.identify(body.proof, { method: request.method, path: pathOf(request), body: without(body, 'proof') });
-        const wanted = isShopFloor(device.deviceClass) ? 'BADGE_PIN' : 'PASSWORD';
-        if (body.method !== wanted) throw loginMethodRefused(device, body.method);
-        const ev = await identity.authenticate(app.pools.authn, {
-          method: body.method,
-          identifier: body.identifier,
-          secret: body.secret,
-          deviceFingerprint: fingerprint,
-          purpose: 'LOGIN',
-        });
-        if (ev.restricted) {
-          const shopFloor = isShopFloor(device.deviceClass);
-          const changeTicket = tickets.issue(
-            { authEventId: ev.authEventId, method: body.method, identifier: body.identifier, fingerprint },
-            shopFloor ? SHOP_FLOOR_CHANGE_TICKET_TTL_MS : CHANGE_TICKET_TTL_MS,
-          );
-          // Whose secret is changed, so the screen can say it (F04): the person who just proved the current secret.
-          const { rows } = await app.pools.app.query<{ legal_name: string }>('select legal_name from iam.person where id = $1', [ev.personId]);
-          throw refusal(409, {
-            code: 'MUST_CHANGE_SECRET',
-            kind: 'NOT_ALLOWED',
-            whatHappened: 'You must choose a new password or PIN before you continue.',
-            why: 'The secret you used is an initial, reset or expired one.',
-            controls: ['DI-15'],
-            whatYouCanDo: [shopFloor ? 'Set a new PIN of your own now, then tap your badge to confirm it; nobody else will know it.' : 'Set a new secret of your own; nobody else will know it.'],
-            details: {
-              kind: body.method === 'PASSWORD' ? 'PASSWORD' : 'PIN',
-              changeTicket,
-              ...(rows[0] ? { legalName: rows[0].legal_name } : {}),
-            },
-          });
+        // Phase B slice 2: the platform build signs on through core only (DI-19: no local password path); the standalone
+        // build takes no platform proof.
+        if (app.platform.build !== (body.method === 'PLATFORM')) {
+          throw body.method === 'PLATFORM' ? managedInPlatform('Sign-on through the platform') : managedInPlatform('Sign-in with a password, badge or PIN');
         }
-        const opened = await identity.openSession(app.pools.app, ev.authEventId, fingerprint);
+        let authEventId: string;
+        if (body.method === 'PLATFORM') {
+          authEventId = (await platformAuthEvent(app, { proof: body.signonProof, purpose: 'LOGIN', fingerprint })).authEventId;
+        } else {
+          const wanted = isShopFloor(device.deviceClass) ? 'BADGE_PIN' : 'PASSWORD';
+          if (body.method !== wanted) throw loginMethodRefused(device, body.method);
+          const ev = await identity.authenticate(app.pools.authn, {
+            method: body.method,
+            identifier: body.identifier,
+            secret: body.secret,
+            deviceFingerprint: fingerprint,
+            purpose: 'LOGIN',
+          });
+          if (ev.restricted) {
+            const shopFloor = isShopFloor(device.deviceClass);
+            const changeTicket = tickets.issue(
+              { authEventId: ev.authEventId, method: body.method, identifier: body.identifier, fingerprint },
+              shopFloor ? SHOP_FLOOR_CHANGE_TICKET_TTL_MS : CHANGE_TICKET_TTL_MS,
+            );
+            // Whose secret is changed, so the screen can say it (F04): the person who just proved the current secret.
+            const { rows } = await app.pools.app.query<{ legal_name: string }>('select legal_name from iam.person where id = $1', [ev.personId]);
+            throw refusal(409, {
+              code: 'MUST_CHANGE_SECRET',
+              kind: 'NOT_ALLOWED',
+              whatHappened: 'You must choose a new password or PIN before you continue.',
+              why: 'The secret you used is an initial, reset or expired one.',
+              controls: ['DI-15'],
+              whatYouCanDo: [shopFloor ? 'Set a new PIN of your own now, then tap your badge to confirm it; nobody else will know it.' : 'Set a new secret of your own; nobody else will know it.'],
+              details: {
+                kind: body.method === 'PASSWORD' ? 'PASSWORD' : 'PIN',
+                changeTicket,
+                ...(rows[0] ? { legalName: rows[0].legal_name } : {}),
+              },
+            });
+          }
+          authEventId = ev.authEventId;
+        }
+        const opened = await identity.openSession(app.pools.app, authEventId, fingerprint);
         const roles = await liveRoles(app, opened.accountId);
         if (roles.length === 0) {
           await identity.endSession(app.pools.app, opened.sessionId);
@@ -169,6 +182,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       },
 
       changeSecret: async ({ body, request }) => {
+        if (app.platform.build) throw managedInPlatform('Changing a password or PIN');
         const { fingerprint, device } = await app.devices.identify(body.proof, { method: request.method, path: pathOf(request), body: without(body, 'proof') });
         if ((body.method === 'PASSWORD') !== (body.kind === 'PASSWORD')) {
           throw refusal(400, { code: 'SCHEMA', kind: 'INVALID_INPUT', whatHappened: 'A password is changed with the user ID; a PIN with the badge.' });

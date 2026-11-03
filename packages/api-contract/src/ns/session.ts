@@ -12,7 +12,11 @@ import { defineRoute } from '../route.ts';
 
 export const DeviceClass = z.enum(['PERSONAL', 'SHARED', 'GRADE_A_B', 'SERVER', 'INSTRUMENT']);
 export type DeviceClass = z.infer<typeof DeviceClass>;
-export const LoginMethod = z.enum(['PASSWORD', 'BADGE_PIN']);
+/** The installation's own credentials (the standalone build). */
+export const LocalLoginMethod = z.enum(['PASSWORD', 'BADGE_PIN']);
+export type LocalLoginMethod = z.infer<typeof LocalLoginMethod>;
+/** PLATFORM: sign-on through the platform's core (Phase B slice 2; the platform build only, which takes nothing else). */
+export const LoginMethod = z.enum(['PASSWORD', 'BADGE_PIN', 'PLATFORM']);
 export type LoginMethod = z.infer<typeof LoginMethod>;
 
 /** The terminal as the server knows it from its enrolled key (never what the browser claims). */
@@ -24,7 +28,7 @@ export const DeviceView = z.strictObject({
   lineCode: z.string().nullable(),
   /** OFFICE for PERSONAL devices; FLOOR (kiosk density) for SHARED and GRADE_A_B terminals. */
   density: z.enum(['OFFICE', 'FLOOR']),
-  /** PASSWORD on office devices, BADGE_PIN on kiosks. */
+  /** PASSWORD on office devices, BADGE_PIN on kiosks; PLATFORM alone on the platform build. */
   loginMethods: z.array(LoginMethod),
 });
 export type DeviceView = z.infer<typeof DeviceView>;
@@ -81,8 +85,8 @@ export const DemoDeviceView = z.strictObject({
 });
 export type DemoDeviceView = z.infer<typeof DemoDeviceView>;
 
-export const LoginRequest = z.strictObject({
-  method: LoginMethod,
+export const LocalLoginRequest = z.strictObject({
+  method: LocalLoginMethod,
   /** Login name (PASSWORD) or badge UID from the reader (BADGE_PIN). */
   identifier: z.string().min(1).max(128),
   /** Password or PIN; never logged, never stored by the browser. */
@@ -92,13 +96,24 @@ export const LoginRequest = z.strictObject({
   proof: DeviceProof,
 });
 
+/** Phase B slice 2: the proof GET /cb handed the page after core's sign-on (used once), with the usual device proof. */
+export const PlatformLoginRequest = z.strictObject({
+  method: z.literal('PLATFORM'),
+  signonProof: z.string().min(16).max(8192),
+  /** The work mode (decision 6): the person's Work or Administration role, when they hold both. */
+  roleCode: z.string().optional(),
+  proof: DeviceProof,
+});
+
+export const LoginRequest = z.union([LocalLoginRequest, PlatformLoginRequest]);
+
 /**
  * A secret change proves the current secret either by the ticket a MUST_CHANGE_SECRET login refusal returned
  * (an initial secret is single use, so the refused login already used it) or by the current secret itself.
  */
 export const ChangeSecretRequest = z
   .strictObject({
-    method: LoginMethod,
+    method: LocalLoginMethod,
     identifier: z.string().min(1).max(128),
     currentSecret: z.string().min(1).max(256).optional(),
     changeTicket: z.string().min(16).max(128).optional(),
@@ -160,7 +175,7 @@ export const session = {
     installation: 'ANY',
     auth: 'NONE',
     mutating: true,
-    summary: 'Log in with user ID and password (office) or badge and PIN (kiosk)',
+    summary: 'Log in with user ID and password (office) or badge and PIN (kiosk); on the platform build, with core\'s sign-on proof',
     body: LoginRequest,
     response: SessionView,
   }),
