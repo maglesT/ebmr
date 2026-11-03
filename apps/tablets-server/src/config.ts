@@ -270,12 +270,13 @@ export function platformEnv(env: Readonly<Record<string, string | undefined>>): 
   return out;
 }
 
-/** Core's sign-on: all of issuer, client id and redirect URI, or none; production refuses http (DI-13). */
+/** Core's sign-on: issuer, client id and redirect URI together, or no issuer; production refuses http (DI-13). */
 function oidcOf(e: z.infer<typeof EnvSchema>, production: boolean): EnvConfig['oidc'] {
   const { EBMR_OIDC_ISSUER: issuer, EBMR_OIDC_CLIENT_ID: clientId, EBMR_OIDC_REDIRECT_URI: redirectUri } = e;
-  if (issuer === undefined && clientId === undefined && redirectUri === undefined) return null;
-  if (issuer === undefined || clientId === undefined || redirectUri === undefined) {
-    throw new ConfigError('core sign-on needs EBMR_OIDC_ISSUER, EBMR_OIDC_CLIENT_ID and EBMR_OIDC_REDIRECT_URI together');
+  // No issuer: no core sign-on (a platform build then refuses to start, app.ts); the redirect URI alone only names the origin.
+  if (issuer === undefined) return null;
+  if (clientId === undefined || redirectUri === undefined) {
+    throw new ConfigError('core sign-on needs EBMR_OIDC_CLIENT_ID and EBMR_OIDC_REDIRECT_URI with EBMR_OIDC_ISSUER');
   }
   if (new URL(redirectUri).pathname !== '/cb') throw new ConfigError('EBMR_OIDC_REDIRECT_URI ends in /cb');
   if (production && (!issuer.startsWith('https:') || !redirectUri.startsWith('https:'))) {

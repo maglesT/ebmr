@@ -11,7 +11,7 @@
 --                              and the sign-on (approvals): two different persons, as every grant needs (DI-16).
 --   iam.platform_build()       is the platform build on (the server switches local credentials off with it)
 --   iam.platform_identity      insert-only id map: core's employee id ↔ person, account, login, and the person's two mirror
---                              roles PLATFORM_<n>_WORK (GMP, GOVERNANCE and READ_ONLY codes) and PLATFORM_<n>_ADMIN
+--                              roles PLATFORM_<id>_WORK (GMP, GOVERNANCE and READ_ONLY codes) and PLATFORM_<id>_ADMIN
 --                              (ADMINISTRATION codes). Neither role mixes the two domains (INV-11, DI-18).
 --   iam.platform_proof_use     insert-only: the one-time nonces of core's sign-on proofs, each used once
 --   iam.platform_sync_grants(employee_id, login, legal_name, codes, grant_ref, fingerprint)
@@ -91,8 +91,7 @@ alter table iam.identity_verification add constraint identity_verification_metho
 -- ---------------------------------------------------------------------------------------------
 
 create table iam.platform_identity (
-  id           bigint generated always as identity primary key,
-  employee_id  text not null unique check (btrim(employee_id) <> '' and length(employee_id) <= 128),
+  employee_id  text primary key check (btrim(employee_id) <> '' and length(employee_id) <= 128),
   person_id    uuid not null unique references iam.person (id),
   account_id   uuid not null unique,
   login_name   text not null unique,
@@ -188,7 +187,7 @@ declare
   v_login   text;
   v_person  uuid;
   v_account uuid := gen_random_uuid();
-  v_n       bigint;
+  v_n       text;
   v_known   text[];
   v_ignored text[];
   v_work    text[];
@@ -237,7 +236,7 @@ begin
     'reason_code', 'PLATFORM_SIGN_ON', 'reason_text', 'codes from the verified platform sign-on token (' || v_ref || ')',
     'platform_ref', v_ref));
 
-  if v_ident.id is null then
+  if v_ident.employee_id is null then
     -- First sign-on (PL-03): a natural person with one human account, identity verified at core. The login is core's and,
     -- like every login here, is never issued twice (INV-27).
     if exists (select 1 from iam.issued_identifier where identifier = v_login) or exists (select 1 from iam.reserved_identifier where identifier = v_login) then
@@ -250,10 +249,10 @@ begin
     insert into iam.issued_identifier (identifier, account_id) values (v_login, v_account);
     insert into iam.account (id, person_id, login_name, kind) values (v_account, v_person, v_login, 'HUMAN');
     update iam.account set status = 'ACTIVE', status_reason = 'first platform sign-on' where id = v_account;
-    v_n := nextval(pg_get_serial_sequence('iam.platform_identity', 'id'));
-    insert into iam.platform_identity (id, employee_id, person_id, account_id, login_name, work_role, admin_role)
-      overriding system value
-    values (v_n, v_emp, v_person, v_account, v_login, 'PLATFORM_' || v_n || '_WORK', 'PLATFORM_' || v_n || '_ADMIN')
+    -- The roles are named after the account's id (no sequence: INV-27, nothing a restore could hand out twice).
+    v_n := upper(replace(v_account::text, '-', ''));
+    insert into iam.platform_identity (employee_id, person_id, account_id, login_name, work_role, admin_role)
+    values (v_emp, v_person, v_account, v_login, 'PLATFORM_' || v_n || '_WORK', 'PLATFORM_' || v_n || '_ADMIN')
     returning * into v_ident;
     insert into iam.role (code, name, role_group, description, account_kinds)
     values (v_ident.work_role, 'Work', 'EXECUTION', 'Platform codes of ' || v_login || ': GMP, governance and read-only work', array['HUMAN']),
@@ -339,7 +338,7 @@ begin
   if v_dev.device_class in ('INSTRUMENT', 'SERVER') then
     return iam.authn_record_refusal(v_ctx || jsonb_build_object('reason', 'DEVICE_CLASS_MISUSE', 'alert', 'DEVICE_CLASS_MISUSE', 'severity', 'HIGH'));
   end if;
-  if v_ident.id is null then
+  if v_ident.employee_id is null then
     return iam.authn_record_refusal(v_ctx || jsonb_build_object('reason', 'UNKNOWN_IDENTIFIER', 'alert', 'UNKNOWN_IDENTIFIER', 'severity', 'MEDIUM'));
   end if;
   select * into v_acc from iam.account where id = v_ident.account_id for update;

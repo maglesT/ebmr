@@ -12,6 +12,7 @@ import { routes, type SignableAction } from '@ebmr/api-contract';
 import { withCommand } from '@ebmr/kernel';
 import { sha256Hex } from '@ebmr/expr';
 import { asAdmin } from '@ebmr/test-kit';
+import { parseConfig, platformEnv } from '../../src/config.ts';
 import { PLATFORM_MANAGED_ROUTES } from '../../src/platform/http/bind.ts';
 import { FakeCore, type CorePerson } from '../support/fake-core.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -122,6 +123,18 @@ describe('the platform build switches the local credentials off (DI-19)', () => 
     const r = refusalOf(await b.call(routes.session.login, { body: { ...body, proof: await b.proof('POST', '/api/session/login', body) } }));
     expect([r.status, r.code]).toEqual([410, 'MANAGED_IN_PLATFORM']);
     expect((await b.inject({ method: 'GET', url: '/signin' })).headers['location']).toBeUndefined();
+  });
+});
+
+describe('core\'s sign-on configuration', () => {
+  it('[DI-13] the platform\'s OIDC variables become core\'s sign-on with client id ebmr; production needs https and the client secret', () => {
+    const env = { EBMR_DATABASE_URL: 'postgres://ebmr_app:pw@db:5432/ebmr', EBMR_DB_CA_FILE: '/tls-ca/server.crt', OIDC_ISSUER: 'https://example.test/oidc', OIDC_CLIENT_SECRET: 's3cret', OIDC_REDIRECT_URI: 'https://ebmr.example.test/cb' };
+    expect(platformEnv(env)).toMatchObject({ EBMR_OIDC_ISSUER: 'https://example.test/oidc', EBMR_OIDC_CLIENT_ID: 'ebmr', EBMR_OIDC_CLIENT_SECRET: 's3cret', EBMR_OIDC_REDIRECT_URI: 'https://ebmr.example.test/cb' });
+    const base = { EBMR_INSTALLATION: 'GMP', EBMR_DATABASE: 'ebmr', EBMR_PUBLIC_ORIGIN: 'http://localhost:3001' };
+    expect(parseConfig({ ...base, EBMR_OIDC_ISSUER: 'https://x.test/oidc', EBMR_OIDC_CLIENT_ID: 'ebmr', EBMR_OIDC_REDIRECT_URI: 'http://localhost:3001/cb' }, () => 'k'.repeat(64)).oidc)
+      .toEqual({ issuer: 'https://x.test/oidc', clientId: 'ebmr', clientSecret: null, redirectUri: 'http://localhost:3001/cb', codesClaim: 'permissions' });
+    expect(parseConfig(base, () => 'k'.repeat(64)).oidc).toBeNull();
+    expect(() => parseConfig({ ...base, EBMR_OIDC_ISSUER: 'https://x.test/oidc', EBMR_OIDC_CLIENT_ID: 'ebmr', EBMR_OIDC_REDIRECT_URI: 'http://localhost:3001/elsewhere' }, () => 'k'.repeat(64))).toThrow(/ends in \/cb/);
   });
 });
 
