@@ -206,6 +206,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > smart fields of library entries (tablets 1803) > [PR-19][IN-11] equipment of another class than the formulation requires is refused; with no class required the class is not compared"
   - "packages/recipe-core/test/library/limits-kill.test.ts > lots and equipment (S6) > [PR-19][PR-18] equipment needs the register's facts for that very code; an optional lot left empty is not looked up; the facts read are stored with the entry"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)"
 clauses:
   - clause: "An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail."
     tests:

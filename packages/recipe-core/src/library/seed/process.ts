@@ -84,10 +84,10 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Potency-adjusted dispensing',
       category: 'PROCESS',
-      instructions: 'Dispense the active on its approved assay and its moisture; the quantity to dispense is calculated, then weighed.',
+      instructions: 'Dispense the active on its approved assay on the dried basis and its loss on drying; the quantity to dispense is calculated, then weighed. The assay must be the dried-basis result: an as-is assay already includes the water and would be corrected twice.',
       inputs: [
         { id: 'labelQty', label: 'Formula quantity (100 % basis)', kind: 'FORMULA_LINE', unit: 'kg', slot: 'activeLine' },
-        { id: 'assay', label: 'Approved assay of the lot (as is)', kind: 'LOT_ASSAY', unit: '%', lotField: 'lot' },
+        { id: 'assay', label: 'Approved assay of the lot (dried basis)', kind: 'LOT_ASSAY', unit: '%', lotField: 'lot' },
         { id: 'lodLot', label: 'LOD of the lot', kind: 'STEP_VALUE', unit: '%', slot: 'lodSource' },
       ],
       sections: [
@@ -97,7 +97,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'lot', label: 'Active lot', type: 'MATERIAL_LOT' },
-            { id: 'required', label: 'Quantity to dispense', type: 'CALC', expression: 'labelQty * 100 [%] / assay * 100 [%] / (100 [%] - lodLot)', unit: 'kg' },
+            { id: 'required', label: 'Quantity to dispense', help: 'Formula quantity divided by the assay on the dried basis and by the dry fraction (100 % less the LOD): the water is corrected once, here.', type: 'CALC', expression: 'labelQty * 100 [%] / assay * 100 [%] / (100 [%] - lodLot)', unit: 'kg' },
             { id: 'container', label: 'Dispensed container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg', bomLine: true, limitSlot: 'net' },
             { id: 'difference', label: 'Weighed against calculated', type: 'CALC', expression: '(net - required) / required * 100 [%]', unit: '%', limitSlot: 'difference', critical: true },

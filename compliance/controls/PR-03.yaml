@@ -209,6 +209,7 @@ tests:
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > the database's schema of a library entry (recipe-core 1810, 1840) > [INV-25][PR-03] a timer entry names one of the block's timers, and only a block with timers takes one; the lot and equipment facts belong to a section with such a field only"
   - "packages/recipe-core/test/library/limits-kill.test.ts > every limited field kind raises its breach (PR-08) > [PR-08][PR-03] an optional value left empty is not judged, a slot the formulation left without limits judges nothing, and a field marked required must be given"
   - "packages/recipe-core/test/library/limits-kill.test.ts > repeats: counts and loops (INV-20) > [PR-03] a counted section is recorded exactly its count, once when the formulation gives none"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

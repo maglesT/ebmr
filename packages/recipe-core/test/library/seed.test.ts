@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
+import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
@@ -42,7 +43,32 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
   return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
 }
 
+function byCode(code: string): SeedItem {
+  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
+  if (!item) throw new Error(`no catalogue item ${code}`);
+  return item;
+}
+
+function fieldOf(item: SeedItem, id: string): FieldDef {
+  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
+  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
+  return f;
+}
+
 describe('the ready-made catalogue', () => {
+  it('[PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)', () => {
+    const item = byCode('PROC-DISP-POTENCY');
+    const assay = (item.definition.inputs ?? []).find((i) => i.id === 'assay');
+    expect(assay?.label).toMatch(/dried basis/);
+    expect(assay?.label).not.toMatch(/as is/);
+    expect(item.definition.instructions).toMatch(/dried basis/);
+    expect(fieldOf(item, 'required').help).toMatch(/dried basis/);
+    // 10 kg at 100 %, assay 98 % on the dried basis, LOD 2 %: 10 / 0.98 / 0.98 = 10.412 kg.
+    expect(item.exampleInputs?.['assay']?.value).toBe('98');
+    expect(item.exampleInputs?.['lodLot']?.value).toBe('2');
+    expect(item.exampleUse.targets?.['net']).toBe('10.412');
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);
