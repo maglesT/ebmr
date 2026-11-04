@@ -45,7 +45,7 @@ async function approved(edition?: string): Promise<{ id: string; definition: Jso
 }
 
 /** The tablets GMP master with one library step of `def` in it. */
-const withLibraryStep = (def: Json): Json =>
+const withLibraryStep = (def: Json) =>
   gmpContent((m) => {
     const stage = ((((m['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
     const prep = ((stage['children'] as Json[])[0] as Json)['body'] as Json;
