@@ -1,5 +1,5 @@
 -- Phase B slice 4 (docs/build-plan/phase-b/platform-move-plan.md, "Published views"; PL-08, PL-13): the report views
--- Batchwright publishes to linked products on the platform (Deviations and Operations read them through their platform
+-- this installation publishes to linked products on the platform (Deviations and Operations read them through their platform
 -- link, as their own login, which the platform's apply grants SELECT on the views and USAGE on the schema report).
 -- Each already carries read_at and data_as_of; no column is removed or renamed.
 --
