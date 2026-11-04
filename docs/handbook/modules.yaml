@@ -45,6 +45,7 @@ modules:
     package: packages/kernel
     migrations:
       packages/kernel/sql: ['^01\d\d_', '^0940_', '^0990_', '^1000_', '^1202_', '^1204_', '^1400_']
+      apps/tablets-server/sql: ['^1900_']
     src: [packages/kernel/src/identity]
     tests: ['packages/kernel/test/identity/**']
 

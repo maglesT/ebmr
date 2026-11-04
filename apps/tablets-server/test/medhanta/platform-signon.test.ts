@@ -15,17 +15,21 @@ import { asAdmin } from '@ebmr/test-kit';
 import { parseConfig, platformEnv } from '../../src/config.ts';
 import { PLATFORM_MANAGED_ROUTES } from '../../src/platform/http/bind.ts';
 import { FakeCore, type CorePerson } from '../support/fake-core.ts';
+import { FakeMaster } from '../support/fake-master.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { refusalOf, sessionOfBrowser, startSigningServer, valueOf } from '../esig/support.ts';
 
 const core = new FakeCore();
+// Phase B slice 3: a platform build reads master data (an empty stand-in here).
+const master = new FakeMaster();
 let plat: TestServer;
 let solo: TestServer;
 
 beforeAll(async () => {
+  await master.create();
   [plat, solo] = await Promise.all([
     startSigningServer('GMP', {
-      env: core.env,
+      env: { ...core.env, EBMR_MASTER_DATA_URL: master.url },
       coreFetch: core.fetch,
       beforeStart: (db) => asAdmin(db.name, (c) => c.query('select iam.enable_platform_build()')).then(() => undefined),
     }),
@@ -34,6 +38,7 @@ beforeAll(async () => {
 }, 300_000);
 afterAll(async () => {
   await Promise.all([plat?.close(), solo?.close()]);
+  await master.drop();
 });
 
 let n = 0;

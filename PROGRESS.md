@@ -82,6 +82,13 @@ the migrator, `iam.platform_identity`, auth method PLATFORM, `iam.platform_sync_
 410 MANAGED_IN_PLATFORM on the people and grant routes, the web sign-in and signing window. Decision 0028 (owner-approved):
 the mirror roles' DI-09 path; admin + GMP codes refused (INV-11). Open for later slices: platform first-run set-up,
 idle-lock unlock through core (a locked platform session signs in again).
+Slice 3 (master data, PL-07/PL-08): tablets 1900 (`md.item_map`, insert-only `md.master_fact`, `md.record_fact`
+for ebmr_app, `md.require_active` with database triggers on product, room, equipment, instrument, ERP material,
+received lot, equipment and instrument use, entries naming a received lot, and the batch issue). The kernel's
+`withCommand` answers the database's EBM01 ("fact needed") by reading the item through `report.<kind>_v1` on the
+master link (`MASTER_DATA_DATABASE_URL`, verified TLS) and running the command again with the fact recorded first; a
+cut link answers 503 MASTER_DATA_OFF. On the platform build the define routes take core's name. Tests:
+`test/medhanta/platform-master-data.test.ts` (stand-in master DB, `test/support/fake-master.ts`).
 
 **3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
 `dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
