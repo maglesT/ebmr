@@ -126,6 +126,12 @@ SU=<platform superuser>   # the db service's superuser
    - Apply once more (`apply.sh`), so the moved `ebmr` database gets the platform's database set-up again: links and
      their grants, logins, the migrator's idempotent run and keys. Then start ebmr.
    - Check that the health is green.
+   - First terminal, while none is registered. Open `ebmr.<domain>` in the administrator's browser; the "not an enrolled
+     terminal" page creates the browser's key (button) and shows its fingerprint. Register it once:
+     `plat run --rm --no-deps -e MIGRATE_DATABASE_URL="$EBMR_URL" ebmr first-terminal --code PC-ADMIN-01 --fingerprint <hex> --by "<name>" --reason "<why>" [--site <site>]`.
+     Here `EBMR_URL` is the superuser URL of database ebmr on db:5432; the audit trail records who ran it and why. Further
+     terminals are registered on the device screens by a person holding `ebmr.iam.device_manage` in core (no GMP code,
+     INV-11).
    - A moved person signs in at `ebmr.<domain>`, which is reachable on the server only, through a hosts entry or a
      temporary host block. Their records open, signatures show, and work mode and codes are as in the report.
    - The first administrator (the `ebmr.system.configure` holder) opens the administration screens.

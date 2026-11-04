@@ -72,6 +72,7 @@ const INSTALLER: Readonly<Record<string, string>> = {
   'tools/install/src/cli.ts': 'the one-command installer',
   'tools/install/install.sh': 'the one-command installer',
   'apps/tablets-server/src/cli/platform-migrate.ts': 'the installer on the shared hosting platform (Phase B: its apply runs it, never a person)',
+  'apps/tablets-server/src/cli/first-terminal.ts': 'the installer on the shared hosting platform: the first browser terminal, once, before anyone can use the device screens (`ebmr first-terminal`)',
   'tools/platform/src/cli.ts': 'the move onto the shared hosting platform, run once at cutover from the server image (`ebmr move`; Phase B cutover runbook)',
   'ops/entrypoint.sh': 'the server image on the shared hosting platform (starts the server, or runs its installer step)',
   'apps/tablets-server/src/main.ts': 'the server process itself, started by the service the installer writes (systemd or docker compose)',
