@@ -1,6 +1,6 @@
 # Batchwright API (drug substance): edition plan
 
-- **Status:** reviewed by the lead on 4 November (answers in section 10); waiting for the owner's binding rule and approval. No code until approved.
+- **Status:** approved by the owner on 4 November 2026, after the lead's review (answers in section 10). The binding rule is confirmed, and the clause table was re-checked against it. A0 starts after injectables I-0.
 - **Date:** 4 November 2026. **Owner decision:** 4 November 2026 (API manufacturing as its own edition on the same kernel).
 - **Builds on:** decisions 0010, 0011, 0020, 0026 (dynamic library); ADRs 0001 (separate edition databases), 0011
   (recipe-core shared), 0019 (generic guards in recipe-core). The binding text was checked against the official
@@ -127,6 +127,7 @@ existing generic block, used as it is.
 | Semi-synthesis | A fermentation or natural-source intermediate master, then chemical-step masters (section 2.3) | as for each step |
 | Solid-phase peptide and oligonucleotide synthesis **(added; not on the brief's list)** | API-SPPS-CYCLE (repeat group per coupling cycle: reagent lots, coupling time, completion test), cleavage, then API-CHROM, API-LYO | SM 6.5.3 (iii), (iv) |
 | Biocatalytic and enzymatic steps **(added)** | API-REACT with the enzyme lot as a MATERIAL_LOT | as for reactions |
+| APIs for clinical trials **(added; not on the brief's list)** | The same blocks; the master is marked investigational, and its label text says so | SM 18.2.6, 18.5 |
 | Sterile APIs (sterile filtration, aseptic crystallisation, sterile drying and filling) | Reuse the injectables edition's sterile blocks and rules (Annex 1). Sequenced last (Q5). | SM Part XII scope stops before sterilisation (as Q7 1.3); the sterile rules then apply |
 | Equipment cleaning: changeover vs campaign | Existing plant cleaning (MINOR, MAJOR) and campaigns (maximum batches and days); API-CLEAN block for the record | SM 5.2.4, 5.2.5, 5.2.7, 6.2.1 |
 | Dedicated vs shared equipment; closed systems; HPAPI containment | Data: an equipment class per dedication (for example "REACTOR-ONCO-DEDICATED") named in the master's class slot. The equipment field already refuses another class. A closed-system YES_NO where the master needs it. | SM 4.4.1, 4.4.2, 5.1.6, 6.2.2 |
@@ -180,6 +181,15 @@ existing generic block, used as it is.
 | AS-22 | 17.2.3, 17.3.4, 17.3.8 | 18.22, 18.33, 18.37 | Cell bank vial use recorded; critical fermentation parameters monitored; contamination events recorded | API-CELLBANK, API-FERM, deviation |
 | AS-23 | 17.5.1 | 18.51 | Viral removal or inactivation within validated parameters | API-VIRAL critical limits |
 | AS-24 | 6.1.4 | 6.13 | Retention: 1 year after expiry; for retest-dated APIs, 3 years after complete distribution | **C5** |
+| AS-25 | 1.2.8, 1.2.9 and its table | 1.3 and Table 1 | The table shows, per type of manufacture (synthesis, natural source, extraction, fermentation, biotech), the step from which the API rules apply | The first master record of a route starts at the API starting material's introduction (data); the API starting material is a received lot |
+| AS-26 | 7.5, 8.1.2 | 7.50, 8.11 | Materials re-evaluated when due; a sub-divided container shows the material, its control number, the quantity and the retest date | Lot status RETEST_DUE (site-services 0712, 0752) refuses use; the dispensing label content is checked in A1 |
+| AS-27 | 8.1.1, 5.3 | 8.10, 5.30, 5.32 | Weighing and measuring devices of suitable accuracy; instruments calibrated | EQUIPMENT field of kind BALANCE or INSTRUMENT (calibration status) |
+| AS-28 | 9.4.7 | 9.46 | Containers leaving the manufacturer's control are sealed so a breach shows | API-PACK seal number per drum |
+| AS-29 | 10.2.5 | 10.24 | Each batch's distribution can be found, for recall | Distribution records (site-services 0961) |
+| AS-30 | 13.5, 13.6 | 13.14, 13.15 | After a change, documents are updated and the first batches made after it are evaluated | Change control (existing); the first batch from a new master version is flagged for QA review. Checked in A1, data or config |
+| AS-31 | 14.5.1, 14.5.3 | 14.50, 14.52 | Returned intermediates or APIs quarantined; a record of each return (consignee, batch, quantity, reason, fate) | Returned goods (site-services, existing) |
+| AS-32 | 17.3.5, 17.3.6, 17.4.3 | 18.34, 18.35, 18.42 | Fermentation equipment cleaned and sterilised or sanitised after use; media sterilised when needed | API-STERILISE-MEDIA, plant cleaning |
+| AS-33 | 18.2.2, 18.2.6, 18.5 | 19.21, 19.25, 19.50 | APIs for clinical trials: QU approval of each batch; labels show investigational use; production recorded | Clinical-trial master records (data: label text, QA release as usual) |
 | (kernel) | 6.1.5, 5.4.4 | 6.14, 5.43 | Entries made at the time, attributable; corrections keep the original; access control; record of changes | Existing DI controls; `api` added to their editions |
 
 Each AS control gets a file in `compliance/controls/` (new files only, no existing control text changed), with tests
@@ -253,6 +263,10 @@ Each slice is one PR: tests named by rule ID, green CI, one review, squash-merge
 | Q7 | QC and QMS clauses outside the batch record | Agreed out of scope (they live in QMS and qualification). |
 | Q8 | Methods added beyond the brief | Included (flagged). |
 
-**Pending the owner:** the binding rule. Every numbered requirement of a binding instrument counts: Schedule M Part
-XII and EU Part II/ICH Q7 as adopted, including their limit tables. Separate guidance documents and the examples the
-text itself names are excluded. The clause table (section 6) is re-checked against this rule once the owner confirms it.
+**The binding rule (owner, 4 November 2026):** every numbered requirement of a binding instrument counts. That means
+Schedule M Part XII and EU Part II/ICH Q7 as adopted, including their tables. Separate guidance documents and the
+examples the text itself names do not count. The clause table (section 6) was re-checked against this rule on the
+same day, and AS-25 to AS-33 were added. Part XII has one table (1.2.9, where API GMP starts), now AS-25. Neither
+Part XII nor Part II carries a numerical limit table. Residual-solvent and impurity limits come from separate ICH
+guidelines (Q3A, Q3C) and the pharmacopoeias, so they are the product's specification data, not rules of the
+software.
