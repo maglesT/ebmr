@@ -18,6 +18,7 @@ import type { SignableActionHandler, SignableActionRegistry } from '../../platfo
 import { compact, peopleOf, personRef, usOf } from '../common/people.ts';
 import { dbActHandler } from '../esig/db-acts.ts';
 import { plantFloorHandlers } from './floor.ts';
+import type { MasterKind } from '../../platform/master-data.ts';
 
 /** The body without its badge-tap attribution (a FRESH_ON_SHARED route's, INV-40): the database gets the command's own members. */
 const bare = <T extends object>(body: T): Omit<T, 'attribution'> => withoutAttribution(body) as unknown as Omit<T, 'attribution'>;
@@ -172,6 +173,16 @@ const one = <T>(xs: T[], what: string): T => {
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
+  /**
+   * Phase B slice 3 (PL-08): on the platform build an item's name is core's, as master data holds it; the typed name is
+   * not used. The database still checks the item at the write (md.require_active); an unknown item is refused there.
+   */
+  const named = async <B extends { code: string; name: string }>(kind: MasterKind, body: B): Promise<B> => {
+    const item = await app.platform.master?.read(kind, { code: body.code });
+    return item ? { ...body, name: item.name } : body;
+  };
+  const equipmentKind = async (classCode: string): Promise<MasterKind> =>
+    ((await classes(pool, classCode))[0]?.kind === 'INSTRUMENT' ? 'instrument' : 'equipment');
   /** One idempotent command of the person's; the database's answer as text (an id). */
   const write = async (ctx: { actor: () => ActorContext & { deviceId: string }; idempotencyKey: string | null; requestHash: string }, work: (c: pg.PoolClient) => Promise<unknown>): Promise<string> => {
     const out = await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => {
@@ -190,7 +201,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineProduct: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, (c) => plant.defineProduct(c, bare(ctx.body)));
+      const body = await named('product', bare(ctx.body));
+      await write(ctx, (c) => plant.defineProduct(c, body));
       return one(await products(app, pool, ctx.body.code), 'product');
     },
     areas: async ({ requireSession }) => {
@@ -199,7 +211,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineArea: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, (c) => plant.defineArea(c, compact(bare(ctx.body)) as plant.AreaDefinition));
+      const body = ctx.body.kind === 'ROOM' ? await named('room', ctx.body) : ctx.body;
+      await write(ctx, (c) => plant.defineArea(c, compact(bare(body)) as plant.AreaDefinition));
       return one(await areas(pool, ctx.body.code), 'area');
     },
     equipmentClasses: async ({ requireSession }) => {
@@ -217,7 +230,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineEquipment: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, (c) => plant.defineEquipment(c, compact(bare(ctx.body)) as plant.EquipmentDefinition));
+      const body = await named(await equipmentKind(ctx.body.classCode), ctx.body);
+      await write(ctx, (c) => plant.defineEquipment(c, compact(bare(body)) as plant.EquipmentDefinition));
       return one(await equipment(pool, { code: ctx.body.code }), 'equipment');
     },
     toolingSets: async ({ requireSession }) => {
@@ -257,7 +271,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       if (cls && cls.kind !== 'UTILITY') {
         throw refusal(422, { code: 'EBMR-API-NOT-UTILITY', kind: 'INVALID_INPUT', whatHappened: 'This class is not a utility class.', why: `${cls.code} is a ${cls.kind} class.`, whatYouCanDo: ['Choose a UTILITY class.'] });
       }
-      await write(ctx, (c) => plant.defineEquipment(c, compact(bare(ctx.body)) as plant.EquipmentDefinition));
+      const body = await named('equipment', ctx.body);
+      await write(ctx, (c) => plant.defineEquipment(c, compact(bare(body)) as plant.EquipmentDefinition));
       return one(await equipment(pool, { code: ctx.body.code }), 'utility');
     },
     startCleaning: async (ctx) => {

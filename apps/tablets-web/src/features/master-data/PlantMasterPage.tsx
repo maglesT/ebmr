@@ -10,6 +10,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { DefineForm, type FormField } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
+import { useBoot } from '../../app/boot.tsx';
 
 const CODE = 'Upper-case letters, digits, dashes';
 const INTERVAL = 'e.g. "72 hours"';
@@ -161,9 +162,21 @@ export function cellText(v: unknown): string {
   return typeof v === 'string' || typeof v === 'number' ? String(v) : JSON.stringify(v);
 }
 
+/** The kinds whose code and name are core's on the platform build (Phase B slice 3; master data, PL-08). */
+const MASTER_KEYS = new Set(['products', 'areas', 'equipment', 'utilities']);
+
+/** On the platform build the code is the master-data code and the name is taken from master data. */
+function platformFields(fields: readonly FormField[]): readonly FormField[] {
+  return fields.map((f) =>
+    f.name === 'code' ? { ...f, description: 'The code as held in master data (rooms, equipment, instruments and products)' }
+    : f.name === 'name' ? { ...f, description: 'Taken from master data when the item is held there' } : f);
+}
+
 function KindPanel({ kind }: { kind: Kind }) {
   const q = useApiQuery(kind.list);
   const steward = useOffered('PLANT_MASTER');
+  const platform = useBoot().device?.loginMethods.includes('PLATFORM') === true;
+  const fields = platform && MASTER_KEYS.has(kind.key) ? platformFields(kind.fields) : kind.fields;
   const rows = ((q.data as Record<string, unknown> | undefined)?.[kind.key] ?? []) as Record<string, unknown>[];
   return (
     <section aria-label={kind.title} data-testid={`plant-${kind.key}`}>
@@ -189,7 +202,7 @@ function KindPanel({ kind }: { kind: Kind }) {
           ))}
         </tbody>
       </table>
-      {steward ? <DefineForm title={`Define: ${kind.title}`} route={kind.define} fields={kind.fields} refresh={[kind.list.id]} submitLabel="Define" /> : null}
+      {steward ? <DefineForm title={`Define: ${kind.title}`} route={kind.define} fields={fields} refresh={[kind.list.id]} submitLabel="Define" /> : null}
     </section>
   );
 }
