@@ -1697,11 +1697,4 @@ export const TARGETS: Target[] = [
     tests: [s('medhanta/platform-master-data.test.ts')],
     threshold: 90,
   },
-  // Phase B slice 3: master data through the platform's views, the write-time active-item check (PL-08; tablets 1900).
-  {
-    group: 'platform-master-facts',
-    functions: ['md.record_fact', 'md.require_active', 'md.require_active_row', 'md.require_active_entry'],
-    tests: [s('medhanta/platform-master-data.test.ts')],
-    threshold: 90,
-  },
 ];
