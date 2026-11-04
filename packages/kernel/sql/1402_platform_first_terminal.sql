@@ -7,16 +7,19 @@
 --
 -- Handbook: modules/kernel.md
 --
---   iam.platform_register_terminal(code, fingerprint, site, device_class)
---                              the platform's operator only (superuser; nobody else may), on the platform build: a
---                              PERSONAL or SHARED browser terminal with that key fingerprint, registered by the
---                              platform's permission-register identity, so the audit trail shows it as an installation
---                              act. Site: the one given, else the installation's site, else the one site the device
---                              register already names; otherwise refused.
+--   iam.platform_register_terminal(code, fingerprint, by, reason, site, device_class)
+--                              the platform's operator only (superuser; nobody else may), on the platform build, and
+--                              only while no browser terminal is registered (EBMR-IAM-307 after that): a PERSONAL or
+--                              SHARED browser terminal with that key fingerprint (the "not an enrolled terminal"
+--                              screen shows it), registered by the platform's permission-register identity. The audit
+--                              trail records it as an installation act, with who ran it and why. Site: the one given,
+--                              else the installation's site, else the one site the device register already names;
+--                              otherwise refused.
 
 set local role ebmr_owner;
 
-create function iam.platform_register_terminal(p_code text, p_fingerprint text, p_site text default null, p_class text default 'PERSONAL')
+create function iam.platform_register_terminal(p_code text, p_fingerprint text, p_by text, p_reason text, p_site text default null,
+                                                p_class text default 'PERSONAL')
 returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 declare
@@ -30,6 +33,13 @@ begin
   if not found then
     raise exception using errcode = 'P0001',
       message = 'EBMR-IAM-300 this is not a platform build; register terminals on the device screens';
+  end if;
+  if coalesce(btrim(p_by), '') = '' or coalesce(btrim(p_reason), '') = '' then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-004 say who registers the terminal and why';
+  end if;
+  if exists (select 1 from iam.device where device_class in ('PERSONAL', 'SHARED', 'GRADE_A_B')) then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-307 a browser terminal is registered already; register further terminals on the device screens';
   end if;
   if p_class not in ('PERSONAL', 'SHARED') then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-306 a first terminal is a PERSONAL or SHARED browser terminal';
@@ -46,8 +56,8 @@ begin
   perform iam.set_internal_actor(jsonb_build_object(
     'person_id', v_mode.register_person, 'account_id', v_nil, 'role_code', 'PLATFORM_SIGN_ON', 'session_id', v_nil,
     'source', 'SYSTEM', 'site_zone', iam.policy_text('site.zone'), 'correlation_id', gen_random_uuid(),
-    'legal_name', 'Platform installation', 'reason_code', 'FIRST_TERMINAL',
-    'reason_text', 'browser terminal registered by the platform operator (installation step)', 'platform_ref', 'first-terminal'));
+    'legal_name', 'Platform installation (' || btrim(p_by) || ')', 'reason_code', 'FIRST_TERMINAL',
+    'reason_text', btrim(p_reason), 'platform_ref', 'first-terminal'));
   insert into iam.device (code, device_class, site_code, key_fingerprint, description, registered_by_person)
   values (p_code, p_class, v_site, iam.normalize_fingerprint(p_fingerprint), 'browser terminal (platform installation step)',
           v_mode.register_person)
@@ -57,6 +67,6 @@ begin
 end
 $$;
 
-revoke all on function iam.platform_register_terminal(text, text, text, text) from public;
+revoke all on function iam.platform_register_terminal(text, text, text, text, text, text) from public;
 
 reset role;

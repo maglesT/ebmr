@@ -40,8 +40,10 @@ implemented_by:
   db_constraints:
     - "GRADE_A_B devices have a room and INSTRUMENT devices a room or line; code, class, site and enrolled key never change"
 tests:
-  - "apps/tablets-server/test/medhanta/platform-first-terminal.test.ts > the first terminal of a platform installation (DI-20) > [DI-20] the operator registers the first browser terminal on the platform build; it is then a registered device, recorded as the platform's installation act"
-  - "apps/tablets-server/test/medhanta/platform-first-terminal.test.ts > the first terminal of a platform installation (DI-20) > [DI-20] refused on a standalone build, for a non-browser class, and to the application login"
+  - "apps/tablets-server/test/medhanta/platform-first-terminal.test.ts > the first terminal of a platform installation (DI-20) > [DI-20] the operator registers the first browser terminal on the platform build, recorded in the audit trail with who and why; a non-browser class or a second one is refused"
+  - "apps/tablets-server/test/medhanta/platform-first-terminal.test.ts > the first terminal of a platform installation (DI-20) > [DI-20] refused on a standalone build and to the application login"
+  - "apps/tablets-web/test/session/not-enrolled.test.tsx > the \"not an enrolled terminal\" screen (DI-20) > [DI-20] shows this browser's key fingerprint, the SHA-256 of its public key as the device register holds it"
+  - "apps/tablets-web/test/session/not-enrolled.test.tsx > the \"not an enrolled terminal\" screen (DI-20) > [DI-20] a browser without a key creates one there (the private key never leaves the browser)"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] a Grade A/B terminal is bound to its room"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] a stored weight carries the registry ID of its source balance, resolved by the server from the balance key"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] blocked and decommissioned devices are refused and their sessions end"

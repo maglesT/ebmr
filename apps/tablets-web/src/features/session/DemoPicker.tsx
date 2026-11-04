@@ -9,7 +9,8 @@ import { api } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
-import { importDemoKey } from '../../device/keystore.ts';
+import { generateDeviceKey, importDemoKey, saveDeviceKey } from '../../device/keystore.ts';
+import { terminalKeyOf } from '../../api/page-binding.ts';
 
 export function DemoPicker() {
   const boot = useBoot();
@@ -56,16 +57,49 @@ export function DemoPicker() {
   );
 }
 
+/**
+ * The browser is not an enrolled terminal. It shows this browser's key fingerprint (the SHA-256 of its public key, as the
+ * device register holds it), so the administrator can register it: on the device screens, or for the first terminal of a
+ * platform installation with `ebmr first-terminal`. A browser without a key creates one here; the private key never
+ * leaves the browser.
+ */
 export function NotEnrolled({ problem }: { problem: string | null }) {
   const boot = useBoot();
+  const [fingerprint, setFingerprint] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    if (boot.deviceKey) void terminalKeyOf(boot.deviceKey.publicKeySpki).then((fp) => live && setFingerprint(fp));
+    return () => {
+      live = false;
+    };
+  }, [boot.deviceKey]);
+  const createKey = async () => {
+    setBusy(true);
+    try {
+      await saveDeviceKey(await generateDeviceKey('browser terminal'));
+      window.location.reload();
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className={cls('center')}>
       <Banner tone="warning" title={t('device.notEnrolled')}>
         <p>{problem ?? t('device.notEnrolledHelp')}</p>
       </Banner>
+      {fingerprint ? (
+        <p data-testid="terminal-fingerprint">
+          This browser&apos;s key fingerprint: <code>{fingerprint}</code>
+        </p>
+      ) : null}
       {boot.deviceKey ? (
         <Button onPress={() => void boot.forgetTerminal()}>{t('device.forget')}</Button>
-      ) : null}
+      ) : (
+        <Button isDisabled={busy} onPress={() => void createKey()}>
+          Create this browser&apos;s terminal key
+        </Button>
+      )}
     </div>
   );
 }
