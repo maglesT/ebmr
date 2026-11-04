@@ -97,6 +97,11 @@ export interface Boot extends BootState {
 
 const BootContext = createContext<Boot | null>(null);
 
+/** Phase B: the platform build (core's sign-on is the terminal's only login method); false outside a BootProvider. */
+export function usePlatformBuild(): boolean {
+  return useContext(BootContext)?.device?.loginMethods.includes('PLATFORM') === true;
+}
+
 export function useBoot(): Boot {
   const b = useContext(BootContext);
   if (!b) throw new Error('useBoot outside BootProvider');

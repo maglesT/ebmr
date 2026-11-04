@@ -10,6 +10,7 @@ import type { ServerConfig } from '../config.ts';
 import type { CoreSignon } from './auth/core-signon.ts';
 import type { DeviceIdentityProvider } from './auth/device-proof.ts';
 import type { Pools } from './db/pools.ts';
+import type { MasterData } from './master-data.ts';
 import type { ReadDatabase } from './db/read.ts';
 import type { GuidanceCatalogue } from './http/guidance.ts';
 import type { OperationsRuntime } from './operations.ts';
@@ -59,5 +60,5 @@ export interface AppContext {
    * re-authenticates them through core (`signon`); local passwords, badges and PINs, and the people, account and grant
    * screens, are off. Read once at start-up: the flag is never switched off.
    */
-  platform: { build: boolean; signon: CoreSignon | null };
+  platform: { build: boolean; signon: CoreSignon | null; master: MasterData | null };
 }
