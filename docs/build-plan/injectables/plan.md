@@ -8,10 +8,10 @@
 - **v2 (same day, owner reminder through the lead):** every item now states *binding clause → smallest means → why
   nothing smaller*. v1's eight sterile modules and the new `DEVICE_RECORD` field type are gone: each was replaced by a
   block, a qualification record, an equipment due date or the existing release gate.
-- **Lead review (4 November):** answers to Q1-Q7 are recorded in section 9. The lead approved the architecture of v1
-  (shared host packages, `DEVICE_RECORD`, eight modules) before v2 replaced it with the data-only design below. **The
-  lead decides between v1 and v2** before I-0 starts. Either way, I-0 stays edition-neutral, so the Capsules and API
-  editions can use it too.
+- **Lead review (4 November):** **v2 chosen** (data only, edition setting plus own database). The lead's answers on v1's
+  host packages, `DEVICE_RECORD` and modules are void; the rest stands (section 9). I-0 makes the edition setting
+  neutral, adds the `ebmr_injectables` database and amends ADR 0001. The Tablets freeze window covers only the
+  edition-setting change. I-0 waits for the owner's answers to Q0, Q1 and Q6.
 - **Read with:** ADR 0001, decisions 0010, 0011, 0026, outline 2.3, `docs/handbook/modules/injectables.md`,
   `compliance/controls/ST-01..79` and `IN-40..51`, `compliance/rule-tables/sterile/sterile.v1.yaml`.
 
