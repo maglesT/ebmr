@@ -8,7 +8,8 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
-import { asAdmin, copyDatabase, dropDatabase, onServer } from '@ebmr/test-kit';
+import pg from 'pg';
+import { asAdmin, copyDatabase, dropDatabase, onServer, urlFor } from '@ebmr/test-kit';
 
 /** The columns of each published view on branch `standalone` (0bb289c), in order. */
 const STANDALONE: Record<string, string[]> = {
@@ -24,27 +25,46 @@ const STANDALONE: Record<string, string[]> = {
   step_use_v1: ['batch_id', 'batch_number', 'step', 'step_id', 'equipment_code', 'equipment_type', 'room_code', 'started_at', 'ended_at', 'person_ids', 'material_lots', 'read_at', 'data_as_of'],
 };
 const VIEWS = Object.keys(STANDALONE);
-/** The linked products' logins (databsee: Deviations and Operations). */
+/** The linked products' logins (the platform's Deviations and Operations), and a login granted only one view. */
 const READERS = ['deviations_app', 'ops_app'];
+const PROBE = `ebmr_probe_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+const PASSWORD = 'linked-login-test-password';
 
 const database = `ebmr_views_${randomUUID().replace(/-/g, '').slice(0, 10)}`;
 
 beforeAll(async () => {
   await copyDatabase(inject('serverTemplates').gmp.template, database);
   await onServer(async (s) => {
-    for (const r of READERS) await s.query(`do $$ begin create role ${r} nologin; exception when duplicate_object then null; end $$`);
-  });
-  // As the platform's apply grants a link: USAGE on the schema and SELECT on each published view, nothing more.
-  await asAdmin(database, async (c) => {
-    for (const r of READERS) {
-      await c.query(`grant usage on schema report to ${r}`);
-      await c.query(`grant select on ${VIEWS.map((v) => `report.${v}`).join(', ')} to ${r}`);
+    for (const r of [...READERS, PROBE]) {
+      await s.query(`do $$ begin create role ${r}; exception when duplicate_object then null; end $$`);
+      await s.query(`alter role ${r} login password '${PASSWORD}'`);
     }
+  });
+  // As the platform's apply grants a link: CONNECT, USAGE on the schema and SELECT on each published view, nothing more.
+  await asAdmin(database, async (c) => {
+    for (const r of [...READERS, PROBE]) {
+      await c.query(`grant connect on database ${database} to ${r}`);
+      await c.query(`grant usage on schema report to ${r}`);
+    }
+    for (const r of READERS) await c.query(`grant select on ${VIEWS.map((v) => `report.${v}`).join(', ')} to ${r}`);
+    await c.query(`grant select on report.batch_fact_v1 to ${PROBE}`);
   });
 }, 300_000);
 afterAll(async () => {
   await dropDatabase(database).catch(() => undefined);
+  await onServer((s) => s.query(`drop role if exists ${PROBE}`)).catch(() => undefined);
 });
+
+/** Runs `work` on a connection of the login `role` itself (session_user is that login). */
+async function asLogin<T>(role: string, work: (c: pg.Client) => Promise<T>): Promise<T> {
+  const c = new pg.Client({ connectionString: urlFor(database, { name: role, password: PASSWORD }) });
+  await c.connect();
+  try {
+    return await work(c);
+  } finally {
+    await c.end();
+  }
+}
 
 describe('the published report views (PL-08, PL-13)', () => {
   it('[PL-13] keep the standalone columns in order, each with read_at and data_as_of', async () => {
@@ -74,22 +94,31 @@ describe('the published report views (PL-08, PL-13)', () => {
     expect(revoked).toEqual([]);
   });
 
-  it('[PL-08] read as the linked logins deviations_app and ops_app, with only the link\'s grants', async () => {
-    await asAdmin(database, async (c) => {
-      for (const r of READERS) {
+  it('[PL-08] read as the linked logins deviations_app and ops_app, on their own connection, with only the link\'s grants', async () => {
+    for (const r of READERS) {
+      await asLogin(r, async (c) => {
         for (const v of VIEWS) {
-          await c.query('begin');
-          try {
-            await c.query(`set local role ${r}`);
-            const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from report.${v}`);
-            expect(Number(rows[0]?.n), `${r} ${v}`).toBeGreaterThanOrEqual(0);
-            // The link gives the views, not the tables behind them.
-            await expect(c.query('select 1 from recipe.batch_execution limit 1'), `${r} ${v}`).rejects.toMatchObject({ code: '42501' });
-          } finally {
-            await c.query('rollback');
-          }
+          const { rows } = await c.query<{ n: string }>(`select count(*)::text as n from report.${v}`);
+          expect(rows[0]?.n, `${r} ${v}`).toMatch(/^[0-9]+$/);
         }
+        // The link gives the views, not the tables or the row functions behind them.
+        await expect(c.query('select 1 from recipe.batch_execution limit 1')).rejects.toMatchObject({ code: '42501' });
+        await expect(c.query('select * from report.exception_rows_v1()')).rejects.toMatchObject({ code: '42501' });
+      });
+    }
+  });
+
+  it('[PL-08][DI-51][PR-60] a login reads only the views it was granted: the view\'s function refuses any other', async () => {
+    await asLogin(PROBE, async (c) => {
+      await c.query('select count(*) from report.batch_fact_v1');
+      await c.query('select count(*) from report.batch_fact_published_v1()');
+      for (const sql of ['select * from report.exception_v1', 'select * from report.exception_published_v1()', 'select * from report.exception_rows_v1()']) {
+        await expect(c.query(sql), sql).rejects.toMatchObject({ code: '42501' });
       }
     });
+    // The row functions stay revoked from PUBLIC (ebmr_app and ebmr_report keep theirs).
+    const open = await asAdmin(database, async (c) => (await c.query<{ f: string }>(
+      "select p.oid::regprocedure::text as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'report' and p.proname like '%\\_rows\\_v1' and has_function_privilege('public', p.oid, 'execute')")).rows);
+    expect(open).toEqual([]);
   });
 });
