@@ -443,13 +443,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // (4 November 2026), hard capsules and soft gels from the library.
           const master = rows[0];
           const dosageForm = master?.dosage ?? 'Tablet';
-          if (!master?.name || !/tablet|capsule|soft\s?gel/i.test(dosageForm)) {
+          if (!master?.name || !/tablet|capsule/i.test(dosageForm)) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
               whatHappened: 'The family was not created.',
               why: master?.name
-                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is neither a tablet nor a capsule form; this build makes tablets and capsules.`
+                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is neither a tablet nor a capsule form; this build makes tablets and capsules (a soft gel is named as a capsule form, for example Soft gelatin capsule).`
                 : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
               controls: ['PR-01'],
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],

@@ -236,7 +236,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(refusalOf(r).code).toBe('DESIGNER_PRODUCT_MASTER');
   });
 
-  it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a soft gel named Softgel is a capsule form (Capsules edition plan, slice C1)', async () => {
+  it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));
     const c = v.content as unknown as { header: { product: { name: string; dosageForm: string } }; calculations: { id: string; name: string }[]; goldenCases: { id: string; description: string }[] };
@@ -245,10 +245,12 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(c.goldenCases.find((g) => g.id === 'G-TARGETS')?.description).toBe('Dispensing quantities for 100000 capsules');
     const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
     expect(report.findings.filter((f) => f.severity !== 'INFO').map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
-    // A soft gel named "Softgel" on its product master is a capsule form too (C1 review).
+    // One rule everywhere (lead, 4 November): a product is a capsule only when its dosage form says "capsule". A soft gel
+    // whose master says just "Softgel" is refused, and the refusal says to name it as a capsule form.
     const softgelFormula = await approvedFormula('100000', undefined, LINES, SOFTGEL_PRODUCT);
-    const g = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JG-SK', product: { code: SOFTGEL_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: softgelFormula, start: 'SKELETON' } }));
-    expect((g.content as unknown as { header: { product: { dosageForm: string } } }).header.product.dosageForm).toBe('Softgel');
+    const g = refusalOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JG-SK', product: { code: SOFTGEL_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: softgelFormula, start: 'SKELETON' } }));
+    expect(g.code).toBe('DESIGNER_PRODUCT_MASTER');
+    expect(g.why).toContain('Soft gelatin capsule');
   });
 
   it('[INV-25][PR-01] with a salt factor and an overage on a potency-adjusted active the skeleton\'s quantities are the formula\'s computed ones, the database pins it and the validator passes (review P7J-3)', async () => {

@@ -135,7 +135,7 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   const mgText = (ls: formula.FormulaLine[]): string => sum(ls.map(unitMg));
   const refUnits = c.batchSizeUnits;
   // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026).
-  const unit = /capsule|soft\s?gel/i.test(src.product.dosageForm) ? 'capsule' : 'tablet';
+  const unit = /capsule/i.test(src.product.dosageForm) ? 'capsule' : 'tablet';
   const kg = (mg: string): string => Dec.parse(mg).times(Dec.parse(refUnits)).div(Dec.parse('1000000')).toString();
 
   const param = (id: string, name: string): flow.Parameter =>
