@@ -44,6 +44,11 @@ export interface UpgradeDrillOptions {
   /** Rows sampled per spot check (default 20). */
   spotChecks?: number;
   keepCopy?: boolean;
+  /**
+   * Phase B slice 6: a source with no record to render, and so no signature or unit row to sample, passes (the platform
+   * move of a site that has none yet). Every sampled row is still compared.
+   */
+  allowNoRecords?: boolean;
   /** Name of the copy (default <source>_upg_<hex>). */
   workDatabase?: string;
   /**
@@ -302,6 +307,8 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
     const samples = await takeSamples(c, spot, seed);
     // Each kind of spot check is evidence DI-48 asks for: a dry run without one has no evidence for it and fails.
     for (const kind of SPOT_CHECK_KINDS) {
+      // allowNoRecords: a site with no record yet has no signature or unit row to sample (its audit events it has).
+      if (o.allowNoRecords === true && kind !== 'AUDIT_EVENT') continue;
       if (!samples.some((x) => x.kind === kind)) failures.push(`no ${kind} spot check: the dry run sampled no ${kind === 'SIGNATURE' ? 'signature' : kind === 'AUDIT_EVENT' ? 'audit event' : 'row of a table holding a unit'} (spotChecks ${String(spot)}), so it has no evidence that they read the same after the upgrade`);
     }
     const keys = await recordsToRender(c, o.renderLimit ?? 16);
@@ -407,7 +414,7 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
       if (a && !same) failures.push(`${k}: the true copy's content differs after the upgrade`);
       for (const p of [...b.problems, ...(a?.problems ?? [])]) failures.push(`${k}: ${p}`);
     }
-    if (keys.length === 0) failures.push('the source holds no record to render');
+    if (keys.length === 0 && o.allowNoRecords !== true) failures.push('the source holds no record to render');
     await c.end();
 
     const report: UpgradeReport = {

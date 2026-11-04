@@ -2,10 +2,16 @@
 # commit pinned in databsee apps/ebmr/manifest.json (deploy/bundle.sh: ops/Dockerfile, context = repository root).
 # Two commands, one image:
 #   default   the server (apps/tablets-server/src/main.ts), as the standalone installer's compose file runs it;
-#   migrate   the one-shot migrator the platform's apply runs before it starts the server (src/cli/platform-migrate.ts).
+#   migrate   the one-shot migrator the platform's apply runs before it starts the server (src/cli/platform-migrate.ts);
+#   move      Phase B slice 6: the move of a standalone installation onto the platform (tools/platform/src/cli.ts), run
+#             once by hand at cutover (docs/build-plan/phase-b/cutover-runbook.md); it needs pg_dump and pg_restore 16.
 # Node pinned to an exact 22.x (.nvmrc says 22; some dev tools need 22.13 or later).
 FROM node:22.23.4-bookworm
 WORKDIR /app
+# PostgreSQL 16 client tools (pg_dump, pg_restore) for the move, matching the platform's server (PGDG repository).
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-common \
+ && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+ && apt-get install -y --no-install-recommends postgresql-client-16 && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@10.33.0
 COPY . .
 RUN pnpm install --frozen-lockfile && pnpm run build:web

@@ -3,5 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "description": "Phase B: the move of a standalone Batchwright onto the MEDHANTA platform (demo code map, move, PL-13 checks)",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@ebmr/api-contract": "workspace:0.1.0",
+    "@ebmr/kernel": "workspace:0.1.0",
+    "@ebmr/test-kit": "workspace:0.1.0",
+    "@types/pg": "8.23.1"
+  }
 }

@@ -10,36 +10,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { inject } from 'vitest';
-import { asAdmin, dropDatabase, onServer, uniqueSuffix, urlFor } from '@ebmr/test-kit';
+import { asAdmin, dropDatabase, uniqueSuffix, urlFor } from '@ebmr/test-kit';
 import { extraLoginStatements, platformMigrate, platformSources, EXTRA_LOGINS, writeKeysOnce } from '../../src/cli/platform-migrate.ts';
 import { parseConfig, platformEnv } from '../../src/config.ts';
+import { platformInitDatabase } from '../support/platform-db.ts';
 
 const database = `ebmr_platform_${uniqueSuffix()}`;
 const keysDir = mkdtempSync(join(tmpdir(), 'ebmr-platform-keys-'));
 
-/** What databsee db/server/cluster.sql and database.sql do for product ebmr (roles are cluster-wide and exist). */
-async function platformInit(): Promise<void> {
-  await onServer((s) => s.query(`create database ${database} owner ebmr_owner`));
-  await asAdmin(database, async (c) => {
-    await c.query(`
-      revoke all on schema public from public;
-      grant usage on schema public to ebmr_app;
-      alter default privileges for role ebmr_owner in schema public revoke update, delete, truncate on tables from ebmr_app;
-      alter default privileges for role ebmr_owner in schema public grant select, insert on tables to ebmr_app;
-      alter default privileges for role ebmr_owner in schema public grant usage, select on sequences to ebmr_app;
-      alter default privileges for role ebmr_owner revoke execute on routines from public;
-      alter default privileges for role ebmr_owner grant execute on routines to ebmr_app;
-      create schema if not exists report authorization ebmr_owner;
-      revoke all on schema report from public;
-      create schema if not exists platform authorization ebmr_owner;
-      revoke all on schema platform from public;
-      create table if not exists platform.home (app text not null, one boolean primary key default true check (one));
-      insert into platform.home (app) values ('ebmr_app') on conflict (one) do nothing;
-      create table if not exists platform.link_log (id bigint generated always as identity primary key, at timestamptz not null default now(),
-        consumer text not null, views text[] not null, switched_on boolean not null, change_ref text not null, reason text not null,
-        applied_by text not null default session_user);`);
-  });
-}
+const platformInit = (): Promise<void> => platformInitDatabase(database);
 
 const privileges = (db: string) => asAdmin(db, async (c) =>
   (await c.query<{ p: string }>(`select concat_ws(' ', object_kind, object_name, column_name, privilege) as p from sandbox.direct_privileges('ebmr_app') order by 1`)).rows.map((r) => r.p));

@@ -588,7 +588,24 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
-  tools/platform: {}
+  tools/platform:
+    dependencies:
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@ebmr/api-contract':
+        specifier: workspace:0.1.0
+        version: link:../../packages/api-contract
+      '@ebmr/kernel':
+        specifier: workspace:0.1.0
+        version: link:../../packages/kernel
+      '@ebmr/test-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/test-kit
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
 
   tools/register: {}
 

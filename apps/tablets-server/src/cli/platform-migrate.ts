@@ -79,9 +79,7 @@ export async function platformMigrate(opts: PlatformMigrateOptions): Promise<{ a
     await client.query(`select format('revoke temporary on database %I from public', current_database()) as ddl`)
       .then((r) => client.query((r.rows[0] as { ddl: string }).ddl));
     const applied = await migrate(client, platformSources());
-    await client.query('select sandbox.apply_connect_policy()');
-    // Phase B slice 2: the platform build (sign-on, codes and re-authentication through core); set once, never undone.
-    await client.query('select iam.enable_platform_build()');
+    await finishPlatformBuild(client);
     if (opts.setLogins !== false) await runAll(client, logins);
     writeKeysOnce(opts.keysDir);
     ok = true;
@@ -91,6 +89,18 @@ export async function platformMigrate(opts: PlatformMigrateOptions): Promise<{ a
     if (!ok && opts.setLogins !== false) await runAll(client, extraLoginStatements(opts.passwords, true)).catch(() => undefined);
     await client.end();
   }
+}
+
+/**
+ * Step 3: the connect policy, then the platform build (Phase B slice 2: sign-on, codes and re-authentication through
+ * core; set once, never undone). Phase B slice 6: the sign-in login can no longer obtain a stored password or PIN
+ * verifier (iam.authn_prepare and iam.authn_secret_history return them for the local sign-in, which the platform build
+ * has switched off); the verifiers of moved people stay in their insert-only table, which no login can read.
+ */
+export async function finishPlatformBuild(client: pg.Client): Promise<void> {
+  await client.query('select sandbox.apply_connect_policy()');
+  await client.query('select iam.enable_platform_build()');
+  await client.query('revoke execute on function iam.authn_prepare(text, text, text, text, uuid), iam.authn_secret_history(uuid, text) from ebmr_authn');
 }
 
 async function runAll(client: pg.Client, statements: { sql: string; params: string[] }[]): Promise<void> {

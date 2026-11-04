@@ -89,6 +89,10 @@ received lot, equipment and instrument use, entries naming a received lot, and t
 master link (`MASTER_DATA_DATABASE_URL`, verified TLS) and running the command again with the fact recorded first; a
 cut link answers 503 MASTER_DATA_OFF. On the platform build the define routes take core's name. Tests:
 `test/medhanta/platform-master-data.test.ts` (stand-in master DB, `test/support/fake-master.ts`).
+Slice 6 (the move, PL-13): `tools/platform` (move.ts and its CLI, after MMS) and kernel 1401
+(`iam.platform_map_existing`). The platform migrator now revokes the verifier functions from ebmr_authn. The drill's
+`allowNoRecords` option covers an empty site. The run on a copy of today's demo passed: 28 people, 110 master items
+(`move-record.md`).
 
 **3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
 `dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
