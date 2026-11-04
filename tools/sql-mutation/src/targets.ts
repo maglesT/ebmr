@@ -1544,7 +1544,8 @@ export const TARGETS: Target[] = [
   {
     group: 'batch-scope-remaining',
     functions: ['recipe.require_issue_permission'],
-    tests: [r('review/batch-scope.test.ts')],
+    // Phase B slice 3 (tablets 1900): the latest definition adds the product's master check on the platform build.
+    tests: [r('review/batch-scope.test.ts'), s('medhanta/platform-master-data.test.ts')],
     threshold: 90,
   },
   // Phase 7 slice 7b-2: the full export of the closed records (DI-08 clause 2; kernel 1335, recipe-core 1240).
@@ -1687,6 +1688,13 @@ export const TARGETS: Target[] = [
     functions: ['iam.enable_platform_build', 'iam.platform_build', 'iam.platform_code_to_permission', 'iam.platform_mirror_role',
                 'iam.platform_sync_grants', 'iam.platform_auth_event', 'platform.is_platform_register_write'],
     tests: [s('medhanta/platform-signon.test.ts')],
+    threshold: 90,
+  },
+  // Phase B slice 3: master data through the platform's views, the write-time active-item check (PL-08; tablets 1900).
+  {
+    group: 'platform-master-facts',
+    functions: ['md.record_fact', 'md.require_active', 'md.require_active_row', 'md.require_active_entry'],
+    tests: [s('medhanta/platform-master-data.test.ts')],
     threshold: 90,
   },
 ];

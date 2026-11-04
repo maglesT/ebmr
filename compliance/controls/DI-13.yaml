@@ -200,6 +200,7 @@ tests:
   - "apps/tablets-server/test/medhanta/platform-wiring.test.ts > MEDHANTA platform wiring (Phase B slice 1) > [DI-13] no migration default password stays usable: authn and analytics get their secrets, every other extra login is NOLOGIN"
   - "apps/tablets-server/test/medhanta/platform-wiring.test.ts > MEDHANTA platform wiring (Phase B slice 1) > [DI-13] on the platform every database URL is on verified TLS against the platform database's certificate"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > core's sign-on configuration > [DI-13] the platform's OIDC variables become core's sign-on with client id ebmr; production needs https and the client secret"
+  - "apps/tablets-server/test/medhanta/platform-master-data.test.ts > the master-data link (PL-08, DI-13) > [PL-08][DI-13] the platform's MASTER_DATA_DATABASE_URL becomes the master read on verified TLS against the platform database's certificate"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:

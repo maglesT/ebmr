@@ -11,7 +11,7 @@ export const PACKAGE = { name: '@ebmr/kernel', version: '0.1.0' } as const;
 
 // Foundation: migrations, commands with an actor context, audit-chain verification.
 export { KERNEL_MIGRATIONS, migrate, type AppliedMigration, type MigrationSource } from './db/migrate.ts';
-export { toDbContext, withCommand, type ActorContext, type CommandSource } from './db/command.ts';
+export { FACT_NEEDED, registerFactResolver, toDbContext, withCommand, type ActorContext, type CommandSource, type FactRecorder, type FactResolver } from './db/command.ts';
 export { runChainVerification, verifyAllChains, verifyAnchor, verifyChain, type ChainProblem, type VerificationRun } from './audit/verify.ts';
 
 export * as identity from './identity/index.ts';

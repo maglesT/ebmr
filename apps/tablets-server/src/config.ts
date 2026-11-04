@@ -136,6 +136,8 @@ export const EnvSchema = z.object({
   EBMR_OIDC_CLIENT_SECRET: z.string().min(1).optional(),
   EBMR_OIDC_REDIRECT_URI: z.url().optional(),
   EBMR_OIDC_CODES_CLAIM: z.string().min(1).default('permissions'),
+  /** Phase B slice 3: the platform's master_data database, read through its versioned views (MASTER_DATA_DATABASE_URL). */
+  EBMR_MASTER_DATA_URL: z.string().optional(),
 });
 
 /** What the environment configures (parseConfig). */
@@ -190,6 +192,8 @@ export interface EnvConfig {
   hardeningDbUrl: string | null;
   /** Phase B slice 2: core's sign-on (EBMR_OIDC_*), or null when not configured (a platform build then refuses to start). */
   oidc: { issuer: string; clientId: string; clientSecret: string | null; redirectUri: string; codesClaim: string } | null;
+  /** Phase B slice 3: the master_data database (EBMR_MASTER_DATA_URL), or null (a platform build then refuses to start). */
+  masterDataUrl: string | null;
 }
 
 /** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
@@ -234,25 +238,30 @@ function l3UrlOf(raw: string | undefined, production: boolean): string | null {
  * database URL on verified TLS (sslmode=verify-full against that certificate, DI-13 unchanged). A setting given
  * explicitly wins; without both EBMR_DATABASE_URL and EBMR_DB_CA_FILE the environment is returned unchanged (standalone).
  */
+function verifiedOf(url: string, ca: string, user?: string, password?: string): string {
+  const u = new URL(url);
+  if (user) u.username = user;
+  if (password !== undefined) u.password = encodeURIComponent(password);
+  u.searchParams.set('sslmode', 'verify-full');
+  u.searchParams.set('sslrootcert', ca);
+  return u.toString();
+}
+
 export function platformEnv(env: Readonly<Record<string, string | undefined>>): Record<string, string | undefined> {
   const own = env['EBMR_DATABASE_URL'];
   const ca = env['EBMR_DB_CA_FILE'];
   if (!own || !ca) return { ...env };
   if (!ca.startsWith('/')) throw new ConfigError('EBMR_DB_CA_FILE is an absolute file path');
-  const verified = (user?: string, password?: string): string => {
-    const u = new URL(own);
-    if (user) u.username = user;
-    if (password !== undefined) u.password = encodeURIComponent(password);
-    u.searchParams.set('sslmode', 'verify-full');
-    u.searchParams.set('sslrootcert', ca);
-    return u.toString();
-  };
+  const verified = (user?: string, password?: string): string => verifiedOf(own, ca, user, password);
   const database = decodeURIComponent(new URL(own).pathname.replace(/^\//, ''));
   const redirect = env['OIDC_REDIRECT_URI'];
   const authn = env['EBMR_AUTHN_PASSWORD'];
   const analytics = env['EBMR_ANALYTICS_PASSWORD'];
+  const master = env['MASTER_DATA_DATABASE_URL'];
   const derived: Record<string, string | undefined> = {
     EBMR_DATABASE: database,
+    // Phase B slice 3: the master_data database, as ebmr_app (the platform's link), on verified TLS like the own one.
+    EBMR_MASTER_DATA_URL: master ? verifiedOf(master, ca) : undefined,
     EBMR_DB_APP_URL: verified(),
     EBMR_DB_AUTHN_URL: authn ? verified('ebmr_authn', authn) : undefined,
     EBMR_DB_ANALYTICS_URL: analytics ? verified('ebmr_analytics', analytics) : undefined,
@@ -302,7 +311,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   // Slice 7d (P7D-6; DI-13, security-baseline.md a): a production database URL must authenticate the server over TLS
   // (sslmode=verify-full; verify-ca and require pass with a warning), as the kernel's baseline rules say.
   if (production) {
-    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL, EBMR_HARDENING_DB_URL: e.EBMR_HARDENING_DB_URL };
+    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL, EBMR_HARDENING_DB_URL: e.EBMR_HARDENING_DB_URL, EBMR_MASTER_DATA_URL: e.EBMR_MASTER_DATA_URL };
     const socket = { allowLocalSocket: e.EBMR_DB_ALLOW_LOCAL_SOCKET };
     const refused = Object.entries(urls).flatMap(([name, url]) => (url ? continuity.checkDatabaseUrl(url, name, socket).filter((f) => f.severity === 'ERROR') : []));
     if (refused.length > 0) throw new ConfigError(`EBMR_ENV=production refuses a database connection without verified TLS: ${refused.map((f) => `${f.code} ${f.path}: ${f.message}`).join('; ')} (DI-13)`);
@@ -371,6 +380,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     adminUrl: e.EBMR_PG_ADMIN_URL ?? null,
     hardeningDbUrl: e.EBMR_HARDENING_DB_URL ?? e.EBMR_PG_ADMIN_URL ?? null,
     oidc: oidcOf(e, production),
+    masterDataUrl: e.EBMR_MASTER_DATA_URL ?? null,
     keysDir: e.EBMR_KEYS_DIR ?? (e.EBMR_DEMO_KEYS_FILE ? dirname(e.EBMR_DEMO_KEYS_FILE) : null),
     backup: e.EBMR_BACKUP_DIR
       ? {
