@@ -1,7 +1,7 @@
 /**
  * Phase B slice 6: the move of a standalone Batchwright onto the platform (move.ts). A dry run unless --commit.
  *
- *   SOURCE_DATABASE_URL=postgres://postgres:...@host/ebmr_move_source PLATFORM_DATABASE_URL=postgres://<superuser>:...@db:5432 \
+ *   SOURCE_DATABASE_URL=<superuser URL of ebmr_move_source> PLATFORM_DATABASE_URL=<superuser URL of the platform's db> \
  *   node --import tsx tools/platform/src/cli.ts --by <core login> --verified-by <name> --verified-how <how> \
  *     [--link login,login] [--code-map tools/platform/demo-code-map.json] [--report-dir DIR] [--commit]
  *
