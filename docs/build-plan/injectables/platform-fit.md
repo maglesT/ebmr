@@ -2,7 +2,7 @@
 
 - **For:** the lead, before I-0 (4 November 2026). Answers (a) and (b) of the platform requirement (databsee
   `docs/05-add-a-product.md`, rules 1-5).
-- **Changes plan v2 section 2:** "own database `ebmr_injectables` + `EDITION=injectables` deployment" becomes "same
+- **Confirmed by the lead (4 November); ADR 0001 amended.** **Changes plan v2 section 2:** "own database `ebmr_injectables` + `EDITION=injectables` deployment" becomes "same
   database, edition as data". Everything else in the plan stands.
 
 ## Facts found

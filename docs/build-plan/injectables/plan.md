@@ -33,7 +33,7 @@ See Q0 before approving: what "binding" means for Annex 1 and Schedule M decides
 
 ## 2. Architecture: the edition is data plus configuration
 
-> **Platform fit (4 November, proposed to the lead):** on the MEDHANTA platform one product has one database, so `platform-fit.md` replaces the own-database and `EDITION` deployment rows below with "same `ebmr` database, edition as data on the MBR family and the library". Until the lead confirms, the table below is the earlier v2 text.
+> **Platform fit (4 November, confirmed by the lead; ADR 0001 amended):** on the MEDHANTA platform one product has one database, so `platform-fit.md` replaces the own-database and `EDITION` deployment rows below with "same `ebmr` database, edition as data on the MBR family and the library". The rows below on the database, the server and the library read accordingly. The recipe-core migration for the edition column is 1871; any `inj.*` tables take 3000-3999.
 
 With every item met by data, the edition has **no sterile code**. So:
 
@@ -176,7 +176,7 @@ the lead. Migration numbers: the injectables namespace has 3000–3999 (reserved
 
 | Slice | Content | Done when |
 |---|---|---|
-| I-0 | edition configuration (section 2); confirm or drop the section-3 changes; the per-control table for Q1 | Tablets suite unchanged; the injectables edition signs on with an empty library |
+| I-0 | edition as data (`platform-fit.md`: migration 1871, palette filter, badge); confirm or drop the section-3 changes; the per-control table for Q1 | Tablets suite unchanged; the injectables edition signs on with an empty library |
 | I-1 Terminally sterilised small-volume vials and ampoules | INJ-01, 02, 04, 05, 06, 12, 14, 15, 18, 19, 20, 21, 22 (manual), 23, 24, 25, 26; grade room classes, qualifications | a vial batch and an ampoule batch built on screen and run to release in the sandbox |
 | I-2 Aseptic fill, EM, media fill | INJ-03, 07, 08, 09, 10, 11, 13, 32; events repeat; media-fill and routine-EM formulations; isolator, RABS and open Grade A set-ups | an aseptic vial batch and a media fill run to the end; an action-level EM result blocks release |
 | I-3 Lyophilisation | INJ-17 | a lyophilised vial batch to release |
