@@ -52,7 +52,9 @@ export function toDbContext(ctx: ActorContext): Record<string, string> {
  * the writing transaction, with SQLSTATE EBM01 and the item as detail (md.require_active). The server registers, per
  * pool, how it reads such an item through the master view; the read returns the statement that records the fact
  * (md.record_fact), and the command runs again from the start with every fact read so far recorded first. Nothing of
- * the refused attempt stays (it rolled back). A pool without a resolver gets the refusal as it is.
+ * the refused attempt stays (it rolled back). A pool without a resolver gets the refusal as it is. `work` must therefore
+ * be repeatable: everything it does goes through `client` (a write that names a master item never has effects outside
+ * its transaction).
  */
 export type FactRecorder = (client: pg.PoolClient) => Promise<void>;
 export type FactResolver = (detail: string) => Promise<FactRecorder>;

@@ -21,6 +21,14 @@
 --   Write paths (before insert, platform build only): plant.product, plant.area (ROOM), plant.equipment (equipment or
 --   instrument), site.erp_material and received material lots, equipment and instrument use, a RECORD_ENTRY command
 --   naming a received material lot (its material), and the batch issue (recipe.require_issue_permission: the product).
+--   Every guarded table is insert-only (aa_insert_only_*), so the check at insert covers every write.
+--
+-- Accepted limits (review of slice 3):
+--   * the fact is the server's read on the master link just before the write commits, not the same snapshot (two
+--     databases); it keeps the read time (read_at), and core's change after that read applies to the next write;
+--   * md.record_fact trusts ebmr_app (the server), as the plan says; the browser never supplies a fact;
+--   * an entry is matched on any string that is a received lot's whole code (every block names its lots by code); a
+--     remark that is exactly such a code is checked too, which can only refuse when that material is inactive at core.
 
 create schema md authorization ebmr_owner;
 revoke all on schema md from public;
