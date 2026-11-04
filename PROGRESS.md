@@ -69,8 +69,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-**Injectables edition (owner decision, 4 November 2026).** Plan for approval: `docs/build-plan/injectables/plan.md`
-(slices I-0 to I-6; no code before the owner's and the lead's approval).
+**Injectables edition (owner decision, 4 November 2026).** Plan approved (v2): `docs/build-plan/injectables/plan.md`
+(slices I-0 to I-6; I-0 after Tablets #100 merges). Migrations 3000-3999.
 
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.

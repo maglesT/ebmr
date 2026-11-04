@@ -1,6 +1,6 @@
 # Batchwright Injectables: edition plan (v2)
 
-- **Status:** draft for the owner and the lead (4 November 2026). No code before approval.
+- **Status:** approved (v2) by the owner and the lead, 4 November 2026. I-0 starts once Tablets PR #100 has merged and the lead confirms the window.
 - **Owner decision (4 November 2026):** Injectables is the second edition of Batchwright, on the same kernel, dynamic
   library (decision 0026), e-signatures, audit trail, MBR approval, release, deviations, terminals and platform sign-on.
   Full scope, nothing left out; **each item built at the minimum**: only binding clauses, and no new code where a
@@ -11,7 +11,7 @@
 - **Lead review (4 November):** **v2 chosen** (data only, edition setting plus own database). The lead's answers on v1's
   host packages, `DEVICE_RECORD` and modules are void; the rest stands (section 9). I-0 makes the edition setting
   neutral, adds the `ebmr_injectables` database and amends ADR 0001. The Tablets freeze window covers only the
-  edition-setting change. I-0 waits for the owner's answers to Q0, Q1 and Q6.
+  edition-setting change. The owner answered Q0, Q1 and Q6 the same day.
 - **Read with:** ADR 0001, decisions 0010, 0011, 0026, outline 2.3, `docs/handbook/modules/injectables.md`,
   `compliance/controls/ST-01..79` and `IN-40..51`, `compliance/rule-tables/sterile/sterile.v1.yaml`.
 
@@ -236,8 +236,8 @@ supports the behaviour.
 
 | # | Question | Default if no answer |
 |---|---|---|
-| Q0 | **What counts as binding.** Annex 1 and Revised Schedule M are written almost entirely with "should", yet both are binding: Annex 1 is part of the EU GMP guide that EU law makes the standard for authorised manufacturers, and Schedule M is a schedule of the Drugs Rules that licences require. A "shall/must only" filter would remove nearly all of both. Proposal: every numbered requirement of these instruments counts; excluded are separate guidance documents, items the text itself calls examples or recommended values (e.g. Annex 1's 10 Pa step, "for information" tables), and anything only in FDA guidance. | the proposal; no slice starts before the owner confirms |
-| Q1 | **Lead: binding clauses only; guidance-only behaviours are not built (section 8a).** The controls ST-01..79 and IN-40..51 specify more than the minimum of section 4. The owner, as expert, records per clause FOLLOW, DONT_FOLLOW or MODIFY; I-0 gives the table (clause, binding source or none, what section 4 builds). | the build follows section 4; I-6 cannot pass until the owner decides |
+| Q0 | What counts as binding | **Owner: yes.** Every numbered requirement of the binding instruments counts, limit tables included: Annex 1, Revised Schedule M, EU GMP, 21 CFR. Excluded: separate guidance documents, and the examples or recommended values the text itself names. |
+| Q1 | The 91 ST/IN controls versus the minimum | **Owner: yes.** I-0 produces ONE table of the 91 controls (clause, binding source or none, what the plan builds). Default: no binding source means DONT_FOLLOW; a binding source means MODIFY to the plan's minimum. The lead takes it to the owner for a single approval, then it is recorded as the owner's `expert_decision`. |
 | Q2 | Unfreeze the site gateway for equipment data? | **Lead: no.** Machine values are typed in with the machine printout attached and checked by a second person. Unfreeze for sterile profiles only when a slice cannot meet a binding clause without it, and ask the lead then. I-5's device-filled NUMBER is parked. |
 | Q3 | Platform shape | **Lead:** same product `ebmr` is the working assumption. The lead settles multi-edition sites before I-6. New `ebmr.*` codes go to the lead per slice. |
 | Q4 | Prefilled syringes, cartridges and dual-chamber are combination products (US 21 CFR Part 4, EU MDR Article 117). The register's Part 4 row is unverified. The eBMR records the drug manufacture and the device function tests only. | **Lead: yes** |
