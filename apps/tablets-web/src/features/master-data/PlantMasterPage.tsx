@@ -10,7 +10,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { DefineForm, type FormField } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
-import { useBoot } from '../../app/boot.tsx';
+import { usePlatformBuild } from '../../app/boot.tsx';
 
 const CODE = 'Upper-case letters, digits, dashes';
 const INTERVAL = 'e.g. "72 hours"';
@@ -175,7 +175,7 @@ function platformFields(fields: readonly FormField[]): readonly FormField[] {
 function KindPanel({ kind }: { kind: Kind }) {
   const q = useApiQuery(kind.list);
   const steward = useOffered('PLANT_MASTER');
-  const platform = useBoot().device?.loginMethods.includes('PLATFORM') === true;
+  const platform = usePlatformBuild();
   const fields = platform && MASTER_KEYS.has(kind.key) ? platformFields(kind.fields) : kind.fields;
   const rows = ((q.data as Record<string, unknown> | undefined)?.[kind.key] ?? []) as Record<string, unknown>[];
   return (
