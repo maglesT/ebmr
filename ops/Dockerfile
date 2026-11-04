@@ -8,10 +8,11 @@
 # Node pinned to an exact 22.x (.nvmrc says 22; some dev tools need 22.13 or later).
 FROM node:22.23.4-bookworm
 WORKDIR /app
-# PostgreSQL 16 client tools (pg_dump, pg_restore) for the move, matching the platform's server (PGDG repository).
+# PostgreSQL 17 client tools (pg_dump, pg_restore) for the move, matching the platform's server postgres:17.11 (PGDG
+# repository). pg_dump refuses a newer server; 17 still dumps a 16 standalone. Found in the go-live rehearsal 2026-11-04.
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-common \
  && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
- && apt-get install -y --no-install-recommends postgresql-client-16 && rm -rf /var/lib/apt/lists/*
+ && apt-get install -y --no-install-recommends postgresql-client-17 && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@10.33.0
 COPY . .
 RUN pnpm install --frozen-lockfile && pnpm run build:web
