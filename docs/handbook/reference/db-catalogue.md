@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3465 objects.
+3466 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -756,6 +756,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`iam.platform_map_existing`](../../../packages/kernel/sql/1401_platform_move.sql#sym=iam.platform_map_existing) | function | [1401_platform_move.sql](../../../packages/kernel/sql/1401_platform_move.sql) |  | [kernel-iam](../code-map.md#kernel-iam) |
 | [`iam.platform_mirror_role`](../../../packages/kernel/sql/1400_platform_identity.sql#sym=iam.platform_mirror_role) | function | [1400_platform_identity.sql](../../../packages/kernel/sql/1400_platform_identity.sql) |  | [kernel-iam](../code-map.md#kernel-iam) |
 | [`iam.platform_permission_code`](../../../packages/kernel/sql/0710_authorization_scope_and_platform.sql#sym=iam.platform_permission_code) | function | [0710_authorization_scope_and_platform.sql](../../../packages/kernel/sql/0710_authorization_scope_and_platform.sql) |  | [kernel-authorization](../code-map.md#kernel-authorization) |
+| [`iam.platform_register_terminal`](../../../packages/kernel/sql/1402_platform_first_terminal.sql#sym=iam.platform_register_terminal) | function | [1402_platform_first_terminal.sql](../../../packages/kernel/sql/1402_platform_first_terminal.sql) |  | [kernel-iam](../code-map.md#kernel-iam) |
 | [`iam.platform_sync_grants`](../../../packages/kernel/sql/1400_platform_identity.sql#sym=iam.platform_sync_grants) | function | [1400_platform_identity.sql](../../../packages/kernel/sql/1400_platform_identity.sql) |  | [kernel-iam](../code-map.md#kernel-iam) |
 | [`iam.policy_bool`](../../../packages/kernel/sql/0100_iam_foundation.sql#sym=iam.policy_bool) | function | [0100_iam_foundation.sql](../../../packages/kernel/sql/0100_iam_foundation.sql) |  | [kernel-iam](../code-map.md#kernel-iam) |
 | [`iam.policy_int`](../../../packages/kernel/sql/0100_iam_foundation.sql#sym=iam.policy_int) | function | [0100_iam_foundation.sql](../../../packages/kernel/sql/0100_iam_foundation.sql) |  | [kernel-iam](../code-map.md#kernel-iam) |

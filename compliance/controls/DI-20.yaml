@@ -40,6 +40,8 @@ implemented_by:
   db_constraints:
     - "GRADE_A_B devices have a room and INSTRUMENT devices a room or line; code, class, site and enrolled key never change"
 tests:
+  - "apps/tablets-server/test/medhanta/platform-first-terminal.test.ts > the first terminal of a platform installation (DI-20) > [DI-20] the operator registers the first browser terminal on the platform build; it is then a registered device, recorded as the platform's installation act"
+  - "apps/tablets-server/test/medhanta/platform-first-terminal.test.ts > the first terminal of a platform installation (DI-20) > [DI-20] refused on a standalone build, for a non-browser class, and to the application login"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] a Grade A/B terminal is bound to its room"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] a stored weight carries the registry ID of its source balance, resolved by the server from the balance key"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] blocked and decommissioned devices are refused and their sessions end"
