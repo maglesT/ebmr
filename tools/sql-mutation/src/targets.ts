@@ -1687,7 +1687,7 @@ export const TARGETS: Target[] = [
     group: 'platform-identity',
     functions: ['iam.enable_platform_build', 'iam.platform_build', 'iam.platform_code_to_permission', 'iam.platform_mirror_role',
                 'iam.platform_sync_grants', 'iam.platform_auth_event', 'platform.is_platform_register_write', 'iam.platform_map_existing'],
-    tests: [s('medhanta/platform-signon.test.ts'), s('medhanta/platform-move.test.ts')],
+    tests: [s('medhanta/platform-signon.test.ts'), 'tools/platform/test/move.test.ts'],
     threshold: 90,
   },
   // Phase B slice 3: master data through the platform's views, the write-time active-item check (PL-08; tablets 1900).
