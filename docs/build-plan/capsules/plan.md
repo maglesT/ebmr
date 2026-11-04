@@ -1,6 +1,8 @@
-# Batchwright Capsules (hard capsules and soft gels): plan
+# Batchwright Capsules edition (hard capsules and soft gels): plan
 
-- **Status:** v2, for the lead's and the owner's approval. No code before approval.
+- **Status:** v3, for the lead's approval. Owner (4 November): "change it to capsules edition and go with lead's
+  answers": the name is the Capsules edition; the build follows the lead's answers (the catalogue in the shared oral-solid
+  build, the binding rule). No code before approval.
 - **Owner decisions (4 November 2026):** build Capsules on the same kernel, library, e-signatures, audit trail, MBR
   approval, release, deviations, terminals and platform sign-on, covering every method in current use. Hard capsules
   and soft gels are one scope, "Batchwright Capsules", with two process families that share packaging, inspection, tests
@@ -11,9 +13,9 @@
 - **Read with:** ADR 0001, ADR 0011, decision 0026 (library blocks are data, field types are vendor code), decision
   0008 (cadence), `packages/recipe-core/src/library/` (model, seed).
 - **Owner rules applied:** binding clauses only (section 4); no code where the library already does the job (sections 2,
-  3 and 6). For each item the plan gives the clause, the smallest way to meet it and why nothing smaller works.
+  3 and 6). The binding rule as confirmed by the owner on 4 November is in section 4. For each item the plan gives the clause, the smallest way to meet it and why nothing smaller works.
 
-## 1. Architecture: a catalogue in the Tablets edition
+## 1. Architecture: the Capsules edition as a catalogue in the shared oral-solid build
 
 Schedule M Part VIII covers "oral solid dosage forms (tablets and capsules)" as one part, and every capsule or soft-gel
 record falls *inside a batch step*. Shells, gel mass ingredients and fills are material lots. Fillers, encapsulators,
@@ -31,13 +33,17 @@ it stands:
 **Binding-clause check for the smaller option:** no binding clause forces a separate edition. 211.186(b)(1)'s dosage
 form description is the family's `dosage_form`. Schedule M Part VIII is one part for both forms. Batch numbering,
 lots, release, containment and records are the same machinery. The only thing that differs is the product name in the
-header, which stays "Batchwright Tablets". That is branding (decision 0020), not a clause (Q1).
+header. That is branding (decision 0020), not a clause. The owner named it: the **Capsules edition**. The smallest way to
+show it: a capsule product's screens (master, batch, floor, review, release) show the badge CAPSULES, chosen from the
+family's dosage form ("Hard capsule", "Soft capsule"); everything else keeps TABLETS. This adds `CAPSULES` to ui-kit's
+`brand.Edition` and one function picking the badge from the dosage form: a shared ui-kit change, so it goes through the
+lead (slice C2). No database, edition value or app is added.
 
 **Separation from tablet products:** capsule blocks never enter a tablet master unless QA puts them there (decision 0026
 point 3: the preparer and QA own the content). Existing masters keep their pinned block versions (S9), so loading the
 catalogue changes no running product.
 
-**Code: one change.** The catalogue load (`apps/tablets-server/src/features/library/index.ts`) uses the whole
+**Code: two changes.** The badge (above, C2), and the catalogue load (`apps/tablets-server/src/features/library/index.ts`) uses the whole
 `SEED_CATALOGUE`. Its test (`[PR-05][DI-35]` catalogue load) is updated for the added codes. Nothing else is coded.
 No migration is expected; if one turns out to be needed, I will ask the lead for a number first.
 
@@ -118,7 +124,7 @@ E = existing block, reused. N = new block, data only, QA-approved like any other
 
 Out of scope (agreed by the lead, Q5 of v1): capsules for dry-powder inhalers. The reciprocating-die and Accogel
 encapsulation processes are not covered as separate blocks. If a site still runs one, it records it with SG-ENCAP-ROTARY
-or PROC-CAPS-FILL and that machine's equipment class (Q3).
+or PROC-CAPS-FILL and that machine's equipment class (Q2).
 
 **New library blocks: 20, all data.** Hard: 11 (PROC-EXTRUDE-SPHERONISE, PROC-PELLET-LAYER, COAT-PELLET-FB,
 PROC-CAPS-FILL-PLATE, PROC-CAPS-FILL-MULTI, PROC-CAPS-FILL-LIQUID, PROC-CAPS-CHECKWEIGH, PROC-CAPS-BAND, PROC-CAPS-PRINT,
@@ -128,11 +134,11 @@ data-only version 2 (PROC-CAPS-FILL, IPC-CAPS-DT).
 
 ## 4. Binding clauses (cited, checked against `docs/regulatory/sources-extracted/`)
 
-Part A lists the clauses worded "shall" or "must". Part B lists the numbered EU GMP Part I requirements that count
-under the lead's proposed rule (every numbered requirement of a binding instrument, excluding separate guidance and the
-examples the text names) once the owner confirms it (Q2). Everything is met by reuse unless a new block is named.
-
-**Part A**
+Rule confirmed by the owner (4 November 2026): every numbered requirement of the binding instruments counts (21 CFR
+211, EU GMP Part I, Schedule M), including their limit tables. Separate guidance documents and the examples or
+recommended values the text itself names are excluded. Part 11 and Annex 11 apply to the records through the kernel.
+Each requirement is met by reuse unless a new block or field is named. None of the three instruments has a limit table
+for capsules or soft gels; the product limits come from the registered specification.
 
 | Clause | Requires (paraphrased) | How it is met |
 |---|---|---|
@@ -141,6 +147,10 @@ examples the text names) once the owner confirms it (Q2). Everything is met by r
 | 21 CFR 211.103 | actual and theoretical yield at each appropriate phase, independently verified | CTRL-YIELD after filling or encapsulation, drying, sorting, packing |
 | 21 CFR 211.105(a) | containers, lines and major equipment identified | EQUIPMENT and CONTAINER fields |
 | 21 CFR 211.110(a)(1), (2), (4) | in-process controls incl. capsule weight variation, disintegration, dissolution, where appropriate | IPC-CAPS-FILL-WEIGHT, IPC-SG-FILL-SHELL, IPC-CAPS-DT, dissolution |
+| 21 CFR 211.111 | time limits for each phase of production, where appropriate | TIMER and holding-time limits in SG-GEL-MASS, PROC-FILL-PREP, SG-DRY, PROC-CAPS-BAND; E: PROC-HOLD |
+| 21 CFR 211.113(a) | procedures preventing objectionable microorganisms in non-sterile products | holding-time limits on gel mass, fill and band solution (as above); the procedure itself is the site's |
+| 21 CFR 211.67, 211.182 | cleaning and use records of equipment | equipment logbooks and status (PR-24, CTRL-EQUIP-STATUS) |
+| 21 CFR 211.122-211.134 | labelling and packaging material control, issuance, operations, inspection | PACK-*, CTRL-PRINTED-RECON, labels |
 | 21 CFR 211.110(b) | in-process specifications consistent with final specifications | formulation limits; a limit looser than the registered specification is refused (O-5) |
 | 21 CFR 211.132(b)(2) | an OTC two-piece hard gelatin capsule must be sealed with a tamper-evident technology | N: PROC-CAPS-BAND, IPC-CAPS-SEAL-LEAK (PR-41) |
 | 21 CFR 211.84(b), (d) | samples of each lot of each shipment; at least an identity test per component | receipt and QC on shell, gelatin and fill lots |
@@ -158,6 +168,16 @@ examples the text names) once the owner confirms it (Q2). Everything is met by r
 | Schedule M Part VIII 6.1, 6.2 | printing segregated, edible inks; QC approval after printing before packaging | N: PROC-CAPS-PRINT + G-17 hold point (IN-37) |
 | Schedule M Part VIII 7.1, 7.3, 7.4 | rogue capsules removed with an independent recorded check; strips inspected; periodic leak test | CTRL-LINE-CLEAR-*, PACK-*, PACK-LEAK (IN-38) |
 | Schedule M (text at extract line 4304, numbered 4.8) | supply-chain risk to starting materials assessed, with emphasis on TSE agents | a supplier and material approval (QRM) duty, met before the lot is approved; the batch record only uses approved lots (SM-20). Nothing to build |
+| EU GMP Ch. 4, 4.17, 4.18 | manufacturing formula and processing instructions: form, strength, batch size, materials, yields, location and equipment, clearance, stepwise instructions with critical parameters, IPC with limits, bulk storage, precautions | formulation from library blocks; E: PROC-HOLD for bulk storage conditions |
+| EU GMP Ch. 4, 4.19, 4.21 | packaging instructions and the batch packaging record | PACK-*, CTRL-LINE-CLEAR-*, CTRL-PRINTED-RECON |
+| EU GMP Ch. 4, 4.20 | batch processing record: times, operators and checkers, lots and quantities, equipment, IPC results, yields, deviations, approval by the person responsible | batch generation; CTRL-STAGE-SIGNOFF, CTRL-DEVIATION-REF |
+| EU GMP Ch. 5, 5.9-5.13 | no simultaneous operations at risk of mix-up; protection from contamination; dust precautions; materials, containers, equipment and rooms identified by product, strength, batch and stage | room and equipment status, CONTAINER labels, plant rules |
+| EU GMP Ch. 5, 5.14 | checks that pipelines and transfer equipment are connected correctly | **one YES_NO field** "gel mass and fill lines connected to the right machine and hopper" in SG-ENCAP-ROTARY, SG-ENCAP-SEAMLESS and PROC-CAPS-FILL-LIQUID (heated transfer lines). Found in this re-check |
+| EU GMP Ch. 5, 5.15 | deviations approved in writing by a competent person | deviations |
+| EU GMP Ch. 5, 5.18-5.22 | cross-contamination prevention based on a risk assessment | plant rules (dedication, campaigns, hazard screens) |
+| EU GMP Ch. 5, 5.27-5.36 | supplier approval, delivery checks, identity, only QC-released materials | site receipt, approved source, lot status. Gelatin TSE is part of supplier and material approval here |
+| EU GMP Ch. 5, 5.37-5.44 | designated dispensers, independent check of each dispensed weight, materials kept together and labelled, clearance before processing, IPC, investigation of yield deviations | PROC-DISP (DISPENSER role, VERIFIED), CTRL-LINE-CLEAR-START, IPC blocks, CTRL-YIELD |
+| EU GMP Ch. 5, 5.50-5.62 | packaging clearance, line identity, printing checks, on-line control, reintroduction after unusual events, reconciliation, destruction of unused coded material | PACK-*, PACK-CODING, CTRL-LINE-CLEAR-*, CTRL-PRINTED-RECON, deviations |
 | EU GMP Ch. 4, 4.10, 4.11 | record integrity over retention; batch documentation retention periods | kernel retention |
 | EU GMP Ch. 5, Principle; 5.31; 5.45 | production per defined procedures and the authorisations; each batch in a delivery handled separately; packaging suppliers approved like starting-material suppliers | MBR; lot receipt |
 
@@ -166,14 +186,6 @@ are left out. In the EU, TSE compliance of gelatin is a marketing-authorisation 
 met by approved source and lot approval; the batch record does not repeat it. In India, it is the Schedule M
 risk-assessment duty above. No field is added. A site that wants the gelatin source on the record already has it in
 SG-GEL-MASS.
-
-**Part B (counted only if the owner confirms the lead's rule):** EU GMP Ch. 4, 4.17-4.21 (formula, processing and
-packaging instructions, batch processing and packaging records); Ch. 5, 5.9-5.12 (no simultaneous operations, dust
-precautions, labelling of materials and equipment), 5.15 (deviations), 5.18-5.22 (cross-contamination),
-5.37-5.44 (dispensing, independent check, work-area clearance, IPC, yield investigation), 5.50-5.62 (packaging
-clearance, line identity, printing checks, on-line control, reconciliation). Each one is the same requirement as a
-Part A row and is met by the same reused block or control. No addition expected; I will re-check once the owner
-answers.
 
 **Not binding, so not built:** Part VIII 3.8's 30-minute sampling interval is written for tablet compression (it
 applies to mini-tablet compression through the `tablets` rule key, and to nothing else here). Part VIII 7.2 (isolated
@@ -187,7 +199,7 @@ Each slice: tests named by control ID, CI green, one review, squash-merge, a few
 | Slice | Content | Done when |
 |---|---|---|
 | C1 Powder hard capsule (data) | catalogue load takes the capsule blocks; PROC-CAPS-FILL v2; recipe-core tests: a powder formulation from the catalogue validates and its batch runs on the generic simulator | `[PR-05][DI-35]` load test and `[PR-03][IN-37]` tests green |
-| C2 Powder hard capsule end to end | one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
+| C2 Powder hard capsule end to end | the CAPSULES badge from the dosage form; one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
 | C3 Post-fill and packing | checkweigher, inspection, printing with the QC hold point, banding (US OTC), blister, strip, bottle | `[IN-37][PR-41][IN-38]` tests green |
 | C4 Multiparticulates | extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet dosing, combinations, two-stage dissolution | a delayed-release pellet formulation runs |
 | C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling; a beta-lactam product refused outside dedicated rooms and equipment | tests green |
@@ -216,14 +228,12 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 **Risks**
 - The catalogue load changes for every Tablets site (more drafts offered). This is intended. Held codes and approved
   versions are untouched, and nothing reaches a product without QA approval.
-- The Tablets session also edits `apps/tablets-server` (the platform move). The one code change here is a few lines in
+- The Tablets session also edits `apps/tablets-server` (the platform move). The code changes here are a few lines in
   the library feature; it is rebased onto whatever is current before merging.
 - E2E time: each new end-to-end group costs about 45 minutes of CI. Only two are planned (C2, C6).
 
 **Open questions**
-- Q1 (owner): the header keeps "Batchwright Tablets" for capsule products. Renaming the badge (for example "Oral
-  solids") is a branding change under decision 0020. Default: unchanged.
-- Q2 (owner): what counts as binding (the lead's rule, section 4 Part B). Default: Part A until the owner answers.
-- Q3 (owner): reciprocating-die and Accogel encapsulation are covered by the generic blocks with their equipment class,
+- Q1 (lead): the CAPSULES badge on capsule products' screens needs `CAPSULES` in ui-kit's `brand.Edition` (shared).
+- Q2 (owner): reciprocating-die and Accogel encapsulation are covered by the generic blocks with their equipment class,
   not by blocks of their own. Default: as written.
-- Q4 (owner): metal detection and coating of filled capsules added to the list. Default: in.
+- Q3 (owner): metal detection and coating of filled capsules added to the list. Default: in.
