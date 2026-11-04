@@ -588,6 +588,8 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
+  tools/platform: {}
+
   tools/register: {}
 
   tools/security:

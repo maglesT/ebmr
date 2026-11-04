@@ -1,0 +1,52 @@
+{
+  "_comment": "Phase B slice 5 (lead decision of 4 Nov 2026, option d): today's Batchwright demo codes that have a counterpart in the platform's demo company (databsee docs/demo-company.md). The move (move-to-platform.ts, --code-map) links each local code to that master item; the local records keep their own codes (PL-07). Codes not listed here are created in master_data as moved items.",
+  "product": {
+    "RAB-GR-20": "FG-RAB20",
+    "PCM500": "FG-PCM500"
+  },
+  "room": {
+    "DISP-1": "RM-101",
+    "GRAN-1": "RM-103",
+    "BLEND-1": "RM-104",
+    "COMP-1": "RM-105",
+    "COMP-2": "RM-106",
+    "COAT-1": "RM-107"
+  },
+  "equipment": {
+    "RMG-01": "EQ-RMG-01",
+    "FBD-01": "EQ-FBD-01",
+    "MILL-01": "EQ-MLT-01",
+    "RC-01": "EQ-RC-01",
+    "BLD-01": "EQ-OBL-01",
+    "PRESS-01": "EQ-CMP-01",
+    "DD-01": "EQ-DDM-01",
+    "COATER-01": "EQ-CTG-01",
+    "BLISTER-02": "EQ-BLS-01",
+    "STRIP-01": "EQ-STP-01",
+    "CTN-02": "EQ-CRT-01"
+  },
+  "instrument": {
+    "BAL-DISP-01": "IN-BAL-03",
+    "BAL-COMP-01": "IN-BAL-05",
+    "HT-01": "IN-HT-01",
+    "FRB-01": "IN-FRI-01",
+    "DT-01": "IN-DT-01"
+  },
+  "material": {
+    "MAT-RAB-API": "API-RAB",
+    "MAT-PCM": "API-PCM",
+    "MAT-MCC-101": "EXC-MCC101",
+    "MAT-MCC-102": "EXC-MCC102",
+    "MAT-LAC-MH": "EXC-LAC",
+    "MAT-MAN-SD": "EXC-MAN",
+    "MAT-PVP-K30": "EXC-PVP",
+    "MAT-CCS": "EXC-CCS",
+    "MAT-MGST": "EXC-MGS",
+    "MAT-SIO2": "EXC-SIO",
+    "MAT-IPA": "SOL-IPA",
+    "MAT-ALU-CF": "PKG-ALU-CF",
+    "MAT-RAB-FOIL": "PKG-ALU-BL",
+    "MAT-PVC-250": "PKG-PVC",
+    "MAT-RAB-CTN": "PKG-CTN-RAB"
+  }
+}

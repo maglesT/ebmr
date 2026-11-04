@@ -1,0 +1,7 @@
+{
+  "name": "@ebmr/tool-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase B: the move of a standalone Batchwright onto the MEDHANTA platform (demo code map, move, PL-13 checks)",
+  "type": "module"
+}
