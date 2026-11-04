@@ -10,6 +10,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import pg from 'pg';
 import { APP_LOGIN, asAdmin, copyDatabase, dropDatabase, uniqueSuffix, urlFor } from '@ebmr/test-kit';
 import { registerFirstTerminal } from '../../src/cli/first-terminal.ts';
 import { platformMigrate } from '../../src/cli/platform-migrate.ts';
@@ -49,6 +50,28 @@ describe('the first terminal of a platform installation (DI-20)', () => {
     // Only the first: once a browser terminal is registered, the rest go through the device screens.
     await expect(registerFirstTerminal(urlFor(platform), { code: 'KIOSK-01', fingerprint: fp(), ...who, deviceClass: 'SHARED' })).rejects.toThrow(/EBMR-IAM-307/);
   });
+
+  it('[DI-20] two runs at once register one terminal: the second waits for the first and is refused', async () => {
+    const db = `ebmr_ftrace_${uniqueSuffix()}`;
+    await platformInitDatabase(db);
+    await platformMigrate({ url: urlFor(db), passwords: { authn: 'x'.repeat(16), analytics: 'y'.repeat(16) }, keysDir: mkdtempSync(join(tmpdir(), 'ebmr-ft-keys-')), setLogins: false });
+    const [a, b] = [new pg.Client({ connectionString: urlFor(db) }), new pg.Client({ connectionString: urlFor(db) })];
+    await Promise.all([a.connect(), b.connect()]);
+    try {
+      const call = (c: pg.Client, code: string) => c.query("select iam.platform_register_terminal($1, $2, 'operator', 'race', 'SITE-1', 'PERSONAL')", [code, fp()]);
+      await a.query('begin');
+      await call(a, 'PC-A');
+      await b.query('begin');
+      const second = call(b, 'PC-B').then(() => 'registered', (e: Error) => e.message);
+      await a.query('commit');
+      expect(await second).toMatch(/EBMR-IAM-307/);
+      await b.query('rollback');
+      expect((await a.query<{ n: string }>("select count(*)::text as n from iam.device where device_class = 'PERSONAL'")).rows[0]?.n).toBe('1');
+    } finally {
+      await Promise.all([a.end(), b.end()]);
+      await dropDatabase(db).catch(() => undefined);
+    }
+  }, 300_000);
 
   it('[DI-20] refused on a standalone build and to the application login', async () => {
     const who = { by: 'operator', reason: 'test' };

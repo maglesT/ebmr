@@ -19,6 +19,7 @@ vi.mock('../../src/device/keystore.ts', () => ({
   forgetDeviceKey: () => Promise.resolve(),
   importDemoKey: () => Promise.reject(new Error('not used in this test')),
   generateDeviceKey: async (label: string) => {
+    holder.saved += 1;
     const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
     return { privateKey: pair.privateKey, publicKeySpki: Buffer.from(await crypto.subtle.exportKey('spki', pair.publicKey)).toString('base64'), label };
   },

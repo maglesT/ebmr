@@ -9,7 +9,7 @@ import { api } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
-import { generateDeviceKey, importDemoKey, saveDeviceKey } from '../../device/keystore.ts';
+import { generateDeviceKey, importDemoKey } from '../../device/keystore.ts';
 import { terminalKeyOf } from '../../api/page-binding.ts';
 
 export function DemoPicker() {
@@ -67,6 +67,7 @@ export function NotEnrolled({ problem }: { problem: string | null }) {
   const boot = useBoot();
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     if (boot.deviceKey) void terminalKeyOf(boot.deviceKey.publicKeySpki).then((fp) => live && setFingerprint(fp));
@@ -76,9 +77,13 @@ export function NotEnrolled({ problem }: { problem: string | null }) {
   }, [boot.deviceKey]);
   const createKey = async () => {
     setBusy(true);
+    setKeyError(null);
     try {
-      await saveDeviceKey(await generateDeviceKey('browser terminal'));
+      // generateDeviceKey keeps the key in this browser (IndexedDB); the reload identifies with it.
+      await generateDeviceKey('browser terminal');
       window.location.reload();
+    } catch (error) {
+      setKeyError(`This browser could not keep a terminal key (${error instanceof Error ? error.message : String(error)}). A private window cannot; open the site in a normal window.`);
     } finally {
       setBusy(false);
     }
@@ -88,6 +93,7 @@ export function NotEnrolled({ problem }: { problem: string | null }) {
       <Banner tone="warning" title={t('device.notEnrolled')}>
         <p>{problem ?? t('device.notEnrolledHelp')}</p>
       </Banner>
+      {keyError ? <Banner tone="error" title={keyError} /> : null}
       {fingerprint ? (
         <p data-testid="terminal-fingerprint">
           This browser&apos;s key fingerprint: <code>{fingerprint}</code>

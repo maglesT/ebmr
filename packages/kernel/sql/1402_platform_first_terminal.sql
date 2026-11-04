@@ -37,11 +37,13 @@ begin
   if coalesce(btrim(p_by), '') = '' or coalesce(btrim(p_reason), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-004 say who registers the terminal and why';
   end if;
+  -- Two runs at once: the second waits for the first and then finds its terminal (only the first, review).
+  lock table iam.device in share row exclusive mode;
   if exists (select 1 from iam.device where device_class in ('PERSONAL', 'SHARED', 'GRADE_A_B')) then
     raise exception using errcode = 'P0001',
       message = 'EBMR-IAM-307 a browser terminal is registered already; register further terminals on the device screens';
   end if;
-  if p_class not in ('PERSONAL', 'SHARED') then
+  if p_class is null or p_class not in ('PERSONAL', 'SHARED') then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-306 a first terminal is a PERSONAL or SHARED browser terminal';
   end if;
   if v_site is null then
