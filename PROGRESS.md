@@ -69,6 +69,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**Capsules edition (owner, 4 November 2026):** hard capsules as their own edition on the same kernel and library. Plan for
+approval: `docs/build-plan/capsules/plan.md` (no new field types, 11 new library blocks as data, thin apps on the shared host
+of Injectables I-0; slices C1 to C7). No code before the lead's approval.
+
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.
 The product is `ebmr` at `https://ebmr.<domain>`. Slice 1 (platform wiring) is in progress: the one-shot migrator
