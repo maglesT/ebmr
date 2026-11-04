@@ -438,17 +438,18 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             [chosen.productCode, chosen.strength],
           );
           // Review P7J-2, D-7j-11: the name from the product master in effect; its dosage form, or 'Tablet' when the
-          // master carries none (the ERP feed has no dosage form; every product of this edition is a tablet). A master
-          // stating a dosage form that is not a tablet form is refused.
+          // master carries none (the ERP feed has no dosage form). A master stating a dosage form that is neither a tablet
+          // nor a capsule form is refused: the oral-solid build makes tablets and, since the Capsules edition plan
+          // (4 November 2026), hard capsules and soft gels from the library.
           const master = rows[0];
           const dosageForm = master?.dosage ?? 'Tablet';
-          if (!master?.name || !/tablet/i.test(dosageForm)) {
+          if (!master?.name || !/tablet|capsule/i.test(dosageForm)) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
               whatHappened: 'The family was not created.',
               why: master?.name
-                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is not a tablet form; the Tablets edition makes tablets.`
+                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is neither a tablet nor a capsule form; this build makes tablets and capsules.`
                 : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
               controls: ['PR-01'],
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],

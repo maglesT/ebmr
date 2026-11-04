@@ -134,6 +134,8 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   if (actives.length === 0) throw new FamilyInputError('DESIGNER_FORMULA', 'The formula has no active given per unit; a processing master dispenses its actives.', ['PR-01']);
   const mgText = (ls: formula.FormulaLine[]): string => sum(ls.map(unitMg));
   const refUnits = c.batchSizeUnits;
+  // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026).
+  const unit = /capsule/i.test(src.product.dosageForm) ? 'capsule' : 'tablet';
   const kg = (mg: string): string => Dec.parse(mg).times(Dec.parse(refUnits)).div(Dec.parse('1000000')).toString();
 
   const param = (id: string, name: string): flow.Parameter =>
@@ -150,7 +152,7 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   const calculations: flow.Calculation[] = groups.map((g) =>
     g.key === 'aid'
       ? calc('aidTarget', 'Processing aids to dispense (per batch, scaled to the batch size)', `${sum(g.lines.map((l) => l.quantity))} [kg] * tabletsPerBatch / ${refUnits}`)
-      : calc(`${g.key}Target`, `${g.name} to dispense (${mgText(g.lines)} mg per tablet)`, `${mgText(g.lines)} [mg] * tabletsPerBatch`),
+      : calc(`${g.key}Target`, `${g.name} to dispense (${mgText(g.lines)} mg per ${unit})`, `${mgText(g.lines)} [mg] * tabletsPerBatch`),
   );
   calculations.push(calc('dispTarget', 'Total to dispense', groups.map((g) => `${g.key}Target`).join(' + ')));
   calculations.push(calc('dispRecon', 'Dispensing reconciliation', `yield(${groups.map((g) => `${g.key}Dispensed`).join(' + ')}, dispTarget)`, '%', 'yield'));
@@ -189,7 +191,7 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   for (const g of groups) dispensed[`${g.key}Dispensed`] = { value: (targets[`${g.key}Target`] as { value: string }).value, unit: 'kg' };
   const chargedTotal = sum(charged.map((g) => (targets[`${g.key}Target`] as { value: string }).value));
   t.goldenCases = [
-    { id: 'G-TARGETS', description: `Dispensing quantities for ${refUnits} tablets`, inputs: { tabletsPerBatch: { value: refUnits } }, expected: { ...targets, dispTarget: { value: total, unit: 'kg' } } },
+    { id: 'G-TARGETS', description: `Dispensing quantities for ${refUnits} ${unit}s`, inputs: { tabletsPerBatch: { value: refUnits } }, expected: { ...targets, dispTarget: { value: total, unit: 'kg' } } },
     { id: 'G-DISP-RECON', description: 'Dispensing reconciliation at the targets', inputs: { ...dispensed, dispTarget: { value: total, unit: 'kg' } }, expected: { dispRecon: { value: '100.00', unit: '%' } } },
     {
       id: 'G-BLEND-YIELD',

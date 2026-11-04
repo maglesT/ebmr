@@ -69,9 +69,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-**Capsules edition (owner, 4 November 2026):** hard capsules and soft gels, built as library data inside the
-oral-solid build with a CAPSULES badge (lead review of v1, owner 4 November). Plan v3 for approval: `docs/build-plan/capsules/plan.md` (no new field types,
-20 new library blocks as data, two small code changes (catalogue load, badge); slices C1 to C8). No code before approval.
+**Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
+plan `docs/build-plan/capsules/plan.md` approved by the lead (v3, PR #102). The owner's binding rule: every numbered
+requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. Q1 (owner): the header reads "Batchwright Capsules" when
+the master or batch on screen has a capsule dosage form (C2; amends decision 0020). Slice C1 (branch `caps/c1`): the
+catalogue load takes the capsule blocks (R3-CAT-4 lifted), PROC-CAPS-FILL records the filling principle and size 5, and a
+master from a formula accepts a capsule dosage form (wording per capsule); other non-tablet forms stay refused.
 
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.

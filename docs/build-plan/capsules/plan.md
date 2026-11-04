@@ -34,17 +34,19 @@ it stands:
 form description is the family's `dosage_form`. Schedule M Part VIII is one part for both forms. Batch numbering,
 lots, release, containment and records are the same machinery. The only thing that differs is the product name in the
 header. That is branding (decision 0020), not a clause. The owner named it: the **Capsules edition**. The smallest way to
-show it: a capsule product's screens (master, batch, floor, review, release) show the badge CAPSULES, chosen from the
-family's dosage form ("Hard capsule", "Soft capsule"); everything else keeps TABLETS. This adds `CAPSULES` to ui-kit's
-`brand.Edition` and one function picking the badge from the dosage form: a shared ui-kit change, so it goes through the
-lead (slice C2). No database, edition value or app is added.
+show it (owner, 4 November, through the lead): the header reads "Batchwright Capsules" when the master or batch on
+screen has a capsule dosage form (hard capsules and soft gels), and "Batchwright Tablets" otherwise. `CAPSULES` is added
+to ui-kit's `brand.Edition` as a display value only (lead's approval; the Tablets session is told in the C2 PR).
+Recorded as an amendment of decision 0020 in slice C2. No database, edition value or app is added.
 
 **Separation from tablet products:** capsule blocks never enter a tablet master unless QA puts them there (decision 0026
 point 3: the preparer and QA own the content). Existing masters keep their pinned block versions (S9), so loading the
 catalogue changes no running product.
 
-**Code: two changes.** The badge (above, C2), and the catalogue load (`apps/tablets-server/src/features/library/index.ts`) uses the whole
-`SEED_CATALOGUE`. Its test (`[PR-05][DI-35]` catalogue load) is updated for the added codes. Nothing else is coded.
+**Code: three small changes.** The header name (above, C2); the catalogue load
+(`apps/tablets-server/src/features/library/index.ts`) uses the whole `SEED_CATALOGUE`, its `[PR-05][DI-35]` test updated
+for the added codes (C1); and a master from a formula accepts a capsule dosage form, worded per capsule, where it refused
+every non-tablet form (D-7j-11; found while building C1). Nothing else is coded.
 No migration is expected; if one turns out to be needed, I will ask the lead for a number first.
 
 ## 2. New field types: none
@@ -199,7 +201,7 @@ Each slice: tests named by control ID, CI green, one review, squash-merge, a few
 | Slice | Content | Done when |
 |---|---|---|
 | C1 Powder hard capsule (data) | catalogue load takes the capsule blocks; PROC-CAPS-FILL v2; recipe-core tests: a powder formulation from the catalogue validates and its batch runs on the generic simulator | `[PR-05][DI-35]` load test and `[PR-03][IN-37]` tests green |
-| C2 Powder hard capsule end to end | the CAPSULES badge from the dosage form; one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
+| C2 Powder hard capsule end to end | the header name from the dosage form (decision 0020 amended); one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
 | C3 Post-fill and packing | checkweigher, inspection, printing with the QC hold point, banding (US OTC), blister, strip, bottle | `[IN-37][PR-41][IN-38]` tests green |
 | C4 Multiparticulates | extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet dosing, combinations, two-stage dissolution | a delayed-release pellet formulation runs |
 | C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling; a beta-lactam product refused outside dedicated rooms and equipment | tests green |
@@ -233,7 +235,7 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - E2E time: each new end-to-end group costs about 45 minutes of CI. Only two are planned (C2, C6).
 
 **Open questions**
-- Q1 (lead): the CAPSULES badge on capsule products' screens needs `CAPSULES` in ui-kit's `brand.Edition` (shared).
+- Q1: answered by the owner (the header name follows the dosage form, section 1).
 - Q2 (owner): reciprocating-die and Accogel encapsulation are covered by the generic blocks with their equipment class,
   not by blocks of their own. Default: as written.
 - Q3 (owner): metal detection and coating of filled capsules added to the list. Default: in.
