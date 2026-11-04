@@ -33,6 +33,8 @@ See Q0 before approving: what "binding" means for Annex 1 and Schedule M decides
 
 ## 2. Architecture: the edition is data plus configuration
 
+> **Platform fit (4 November, proposed to the lead):** on the MEDHANTA platform one product has one database, so `platform-fit.md` replaces the own-database and `EDITION` deployment rows below with "same `ebmr` database, edition as data on the MBR family and the library". Until the lead confirms, the table below is the earlier v2 text.
+
 With every item met by data, the edition has **no sterile code**. So:
 
 | Part | How |
