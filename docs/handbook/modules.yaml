@@ -1352,6 +1352,13 @@ modules:
     src: [tools/drills/src, tools/drills/fixtures, tools/drills/build-release-db.sh]
     tests: ['tools/drills/test/**']
 
+  - id: tools-platform
+    title: The move of a standalone Batchwright onto the MEDHANTA platform, with its demo code map (Phase B slices 5 and 6)
+    page: modules/tools.md
+    package: tools/platform
+    src: [tools/platform/demo-code-map.json]
+    tests: ['tools/platform/test/**']
+
   - id: tools-security
     title: Security verification and installation hardening checks (slice 7d)
     page: modules/tools.md
