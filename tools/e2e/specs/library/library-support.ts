@@ -79,7 +79,10 @@ export async function approveBlocks(page: Page, base: string, codes: readonly st
     const block = page.getByTestId(`library-${code}-1`);
     await expect(block).toBeVisible();
     const approve = block.getByRole('button', { name: `Approve ${code} version 1 (signature)` });
-    if ((await approve.count()) === 0) {
+    // The section shows before the approver's right has loaded, and the button only after it: wait for either the button
+    // or the APPROVED chip, never decide on a count taken too early (seen once the catalogue grew by the capsule blocks).
+    await expect(approve.or(block.getByText('APPROVED', { exact: true }))).toBeVisible();
+    if (!(await approve.isVisible())) {
       await expect(block).toContainText('APPROVED');
       continue;
     }
