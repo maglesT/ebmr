@@ -120,9 +120,11 @@ describe('a typed net quantity is checked by a second person (recipe-core 0740)'
       [ref.containerId],
     );
     expect(rows).toEqual([{ basis: 'TYPED', person_id: verifier.personId }]);
-    // The signed content shows the net, its basis and the closer.
+    // The signed content shows the net, its basis and the closer. Who verified it is the verification's own record (the row
+    // above and its VERIFIED signature), not part of the content that signature stands over (issue #95, INV-09).
     const content = (await db.admin.query<{ c: { content: Record<string, unknown> } }>('select plant.output_container_content($1) as c', [ref.containerId])).rows[0]?.c.content;
-    expect(content).toMatchObject({ net_quantity: '9.750', close_basis: 'TYPED', closed_by: operator.personId, net_verified_by: verifier.personId });
+    expect(content).toMatchObject({ net_quantity: '9.750', close_basis: 'TYPED', closed_by: operator.personId });
+    expect(content).not.toHaveProperty('net_verified_by');
     await expectRefused(verifyNet(await seedActor(db, { roleCode: 'VERIFIER', legalName: 'Val Second' }), ref), 'EBMR-CNT-046');
     expect((await charge(b, ref.labelCode)).netQuantity).toBe('9.750');
   });

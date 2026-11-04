@@ -342,8 +342,9 @@ describe('the hold guard and the signed content of a container', () => {
       'select plant.output_container_content($1) as c',
       [mine.containerId],
     )).rows[0]?.c;
-    // Opened, closed, its net verified by the second person (recipe-core 0740), held once.
-    expect(content?.content_version).toBe(4);
+    // Opened, closed, held once. The second person's net verification (recipe-core 0740) is its own signed act and no
+    // longer a version of this content (issue #95, recipe-core 1870).
+    expect(content?.content_version).toBe(3);
     expect(content?.content.net_quantity).toBe('7.250');
     expect(content?.content.holds.map((h) => h.ipc_check_id)).toEqual([fail.ipcCheckId]);
     expect(JSON.stringify(content)).toContain(operator.personId);
