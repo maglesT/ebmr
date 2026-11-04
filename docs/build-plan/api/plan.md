@@ -1,6 +1,6 @@
 # Batchwright API (drug substance): edition plan
 
-- **Status:** draft for the lead's and the owner's approval. No code until approved.
+- **Status:** reviewed by the lead on 4 November (answers in section 10); waiting for the owner's binding rule and approval. No code until approved.
 - **Date:** 4 November 2026. **Owner decision:** 4 November 2026 (API manufacturing as its own edition on the same kernel).
 - **Builds on:** decisions 0010, 0011, 0020, 0026 (dynamic library); ADRs 0001 (separate edition databases), 0011
   (recipe-core shared), 0019 (generic guards in recipe-core). The binding text was checked against the official
@@ -240,15 +240,19 @@ Each slice is one PR: tests named by rule ID, green CI, one review, squash-merge
 5. **Library expressiveness at scale:** long cycle-based records (SPPS with 40 or more couplings, fermentations of
    several days) mean large repeat groups. Screen performance must be checked in A9 and A10.
 
-## 10. Open questions (each with the default taken if the lead agrees)
+## 10. Open questions: the lead's answers (review of PR #103, 4 November 2026)
 
-| # | Question | For | Default |
-|---|---|---|---|
-| Q1 | How does the API edition host the shared server features (now in `apps/tablets-server`)? | Lead | One shared approach for capsules, soft gels and API, set by the lead. Until then, A0 to A2 are built as the edition's own SQL namespace and library data with no new app, and the app question waits for the lead |
-| Q2 | Code name of the edition | Lead | Edition id `api`, but the folder, SQL schema and namespace are `substance` (`api` already means the HTTP API in `api-contract`). Users see "Batchwright API". |
-| Q3 | New control prefix and edition entries in `compliance/` (shared) | Lead / owner | Prefix `AS` (active substance), new files only; `api` added to the `editions` of the shared DI and PR controls |
-| Q4 | Migration number range | Lead | Reserved by the lead before A0 |
-| Q5 | Sterile APIs need injectables' sterile rules (frozen) | Owner via lead | Sequenced last (A11), after the owner unfreezes the sterile part |
-| Q6 | C1: a batch posts an INTERMEDIATE lot (shared change) | Lead | The lead's platform session makes the shared change, or approves this session making it with tablets unchanged |
-| Q7 | Binding QC and QMS clauses outside the batch record (stability, reserve samples, complaints, supplier approval) | Owner | Out of scope, consistent with the 0026 freeze; the batch record links to them |
-| Q8 | Methods added beyond the brief: lyophilisation, chromatography and UF/DF as blocks, SPPS and oligonucleotide synthesis, biocatalysis, sieving, API packaging | Owner | Included (flagged) |
+| # | Question | Answer |
+|---|---|---|
+| Q1 | How the edition hosts the shared server features | The injectables plan v2 pattern, with no new host: the existing apps run with `EDITION=<name>` and the edition's own database. Injectables slice I-0 makes the edition setting neutral. A0 is built on it, after I-0. |
+| Q2 | Code name | `substance` (folder, SQL schema, namespace). Users see "Batchwright API". |
+| Q3 | Controls | `AS` controls for binding clauses only, each added with the slice that meets it, through the lead. |
+| Q4 | Migration range | `substance` namespace 5000–5999. In a shared folder (recipe-core, site-services), take the next free number there, cleared with the lead first. |
+| Q5 | Sterile APIs | Stay last (A11) and reuse the injectables sterile blocks once they exist. |
+| Q6 | C1 (a batch posts an INTERMEDIATE lot) | Approved in principle as the single shared change. Scheduled after I-0; tell the lead before starting. |
+| Q7 | QC and QMS clauses outside the batch record | Agreed out of scope (they live in QMS and qualification). |
+| Q8 | Methods added beyond the brief | Included (flagged). |
+
+**Pending the owner:** the binding rule. Every numbered requirement of a binding instrument counts: Schedule M Part
+XII and EU Part II/ICH Q7 as adopted, including their limit tables. Separate guidance documents and the examples the
+text itself names are excluded. The clause table (section 6) is re-checked against this rule once the owner confirms it.
