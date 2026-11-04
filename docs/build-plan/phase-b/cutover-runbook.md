@@ -77,11 +77,28 @@ SU=<platform superuser>   # the db service's superuser
    done
    ```
    From here to sign-off: **no other move and no core administration.**
-6. **Copy the keys.** Copy the standalone seal key file into the ebmr keys volume, so moved signatures keep showing and
-   verifying. Copy the gateway's service keys file too, if the site gateway is used. Both go to `/var/lib/ebmr/keys`;
-   the volume belongs to the node user, mode 0600.
-   - The compose service must point `EBMR_SEAL_KEY_FILE` at that file.
-   - **To confirm with the lead:** the variable is in the ebmr compose service or `ebmr.env`.
+6. **Copy the keys.** The ebmr service reads its files from the volume `medhanta_ebmr` at `/var/lib/ebmr`, as set in
+   databsee `deploy/compose.yml`, `environment:`:
+
+   | File | Path |
+   |---|---|
+   | Seal key | `EBMR_SEAL_KEY_FILE=/var/lib/ebmr/keys/seal-key.json` |
+   | Service keys | `EBMR_SERVICE_KEYS_FILE=/var/lib/ebmr/keys/service-keys.json` |
+   | Number ledger | `EBMR_NUMBER_LEDGER_FILE=/var/lib/ebmr/numbers.ledger.jsonl` |
+
+   Copy in the standalone installation's seal key (without it, moved signatures cannot show or verify), its number
+   ledger (batch and record numbers are never issued twice), and the gateway's service keys if the site gateway is used:
+   ```sh
+   plat run --rm --no-deps -v /backups/standalone-keys:/in ebmr \
+     sh -c 'cp /in/seal-key.json /var/lib/ebmr/keys/seal-key.json && cp /in/numbers.ledger.jsonl /var/lib/ebmr/numbers.ledger.jsonl \
+            && chmod 600 /var/lib/ebmr/keys/seal-key.json'
+   ```
+   The files belong to the node user, as the image creates the volume: keys mode 0600, the keys folder 0700. Keep
+   `secrets.json`: the migrator generated it once.
+
+   Platform backups cover PostgreSQL only, not this volume. Keep the seal key, the service keys and the number ledger
+   off-server as well: encrypt them (for example with age, to the owner's key, next to the customer secrets) and record
+   their SHA-256 in the change record.
 7. **Dry run, then the move.** Both run with the pinned image and `--no-deps`:
    ```sh
    plat run --name ebmr-move --no-deps \
