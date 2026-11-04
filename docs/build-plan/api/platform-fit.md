@@ -36,10 +36,7 @@ Why this and not a product `ebmr_api` with its own database:
 - **One customer, one choice.** A site that makes only APIs approves only API blocks, so its screens show only them. A
   site that makes the API and the tablet shares people, QA and lots, which is what it needs.
 
-**Alignment with injectables.** The same reasoning applies there unless a sterile clause forces a separate database. I
-found none in Part XII; the injectables session should confirm for Annex 1. If the lead keeps injectables on a
-separate database for its own reasons, API still fits this note unchanged. If the lead wants one pattern for both,
-this is the smaller one.
+**Alignment with injectables.** It matches the injectables design note confirmed by the lead (PR #101): editions stay inside `ebmr`, and the edition is data.
 
 ## Each platform rule against this proposal
 
