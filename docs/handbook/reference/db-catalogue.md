@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3463 objects.
+3464 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -2309,6 +2309,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`records.update_retention_inputs`](../../../packages/kernel/sql/0420_records_retention.sql#sym=records.update_retention_inputs) | function | [0420_records_retention.sql](../../../packages/kernel/sql/0420_records_retention.sql) |  | [kernel-records](../code-map.md#kernel-records) |
 | [`records.verify_anchor`](../../../packages/kernel/sql/0440_records_blockers_and_purge.sql#sym=records.verify_anchor) | function | [0440_records_blockers_and_purge.sql](../../../packages/kernel/sql/0440_records_blockers_and_purge.sql) |  | [kernel-records](../code-map.md#kernel-records) |
 | [`records.verify_chain`](../../../packages/kernel/sql/0440_records_blockers_and_purge.sql#sym=records.verify_chain) | function | [0440_records_blockers_and_purge.sql](../../../packages/kernel/sql/0440_records_blockers_and_purge.sql) |  | [kernel-records](../code-map.md#kernel-records) |
+| [`report`](../../../apps/tablets-server/sql/1902_platform_published_views.sql#sym=report) | function | [1902_platform_published_views.sql](../../../apps/tablets-server/sql/1902_platform_published_views.sql) |  | [ts-report-views](../code-map.md#ts-report-views) |
 | [`report.alarm_rows_v1`](../../../packages/recipe-core/sql/1070_reporting_views.sql#sym=report.alarm_rows_v1) | function | [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql) |  | [rc-reporting](../code-map.md#rc-reporting) |
 | [`report.alarm_v1`](../../../packages/recipe-core/sql/1070_reporting_views.sql#sym=report.alarm_v1) | view | [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql) |  | [rc-reporting](../code-map.md#rc-reporting) |
 | [`report.analytics_reference_rows_v1`](../../../packages/recipe-core/sql/1170_analytics_series_inputs.sql#sym=report.analytics_reference_rows_v1) | function | [1170_analytics_series_inputs.sql](../../../packages/recipe-core/sql/1170_analytics_series_inputs.sql) |  | [analytics-profile](../code-map.md#analytics-profile) |
