@@ -439,6 +439,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [IN-33][PR-17][DI-17][IN-30] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 1: the printed foil and carton entered and confirmed; the specifications of the materials, the printed materials and the product approved by the head of QC; the licence endorsing the product; the manufacturer approved by QA @office"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-14][DI-17] no catalogue block has two of its signatures signed by the same role: the checker or verifier is never the performer's role (R3-CAT-5)"
   - "apps/tablets-server/test/medhanta/platform-wiring.test.ts > MEDHANTA platform wiring (Phase B slice 1) > [DI-17] [PL-08] a platform-initialised database migrates to exactly the standalone rights of the app login"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > people and their codes come from core > [DI-16][DI-17][PL-01] the token's codes become the Work role's permissions and grant; a code removed at core is removed at the next sign-on; no code left is refused and revokes the grant"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

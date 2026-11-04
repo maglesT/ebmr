@@ -54,7 +54,7 @@ export interface ConfigItemVersion {
   value: unknown;
   validFrom: string;
   versionId: string;
-  basis: 'CHANGE_RECORD' | 'RELEASE' | 'BEFORE_CONTROL';
+  basis: 'CHANGE_RECORD' | 'RELEASE' | 'BEFORE_CONTROL' | 'PLATFORM_REGISTER';
   changeRecord: string | null;
 }
 

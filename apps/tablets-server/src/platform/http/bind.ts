@@ -397,6 +397,47 @@ export async function admitSession(app: AppContext, routeId: string, session: Re
   return session;
 }
 
+/**
+ * Phase B slice 2 (owner note on access, section 2): the routes switched off on the platform build, because core does
+ * what they do. Reads (the directory, the grants and the alerts), qualifications and alert acknowledgement stay.
+ */
+export const PLATFORM_MANAGED_ROUTES: ReadonlySet<string> = new Set([
+  'people.createPerson', 'people.renamePerson', 'people.verifyIdentity', 'people.processLeaver', 'people.rehirePerson',
+  'people.createAccount', 'people.activateAccount', 'people.setAccountStatus', 'people.unlockAccount',
+  'people.issueCredential', 'people.issueBadge', 'people.recordBadgeTest', 'people.activateBadge', 'people.withdrawBadge',
+  'people.requestGrant', 'people.decideGrant', 'people.revokeGrant', 'people.recertify', 'people.createRole',
+  'people.requestBreakGlass', 'people.approveBreakGlass', 'people.reviewBreakGlass',
+  'accessGovernance.requestRolePermission', 'accessGovernance.decideRolePermission', 'accessGovernance.removeRolePermission',
+  'accessGovernance.requestDelegation', 'accessGovernance.decideDelegation', 'accessGovernance.revokeDelegation',
+  'access.unlock', 'access.switchUser',
+]);
+
+/**
+ * Phase B slice 2: the person a platform sign-on proof names, for the login's rate limit only (as the identifier of a
+ * password login, so people behind one address do not share one allowance). Only a proof this server made counts (its MAC
+ * is checked, which costs no database work); anything else shares the address's own allowance.
+ */
+function signonSubject(app: AppContext, proof: unknown): string {
+  if (typeof proof !== 'string' || !app.platform.signon) return '';
+  try {
+    return `platform:${app.platform.signon.open(proof, 'LOGIN').sub.slice(0, 128)}`;
+  } catch {
+    return '';
+  }
+}
+
+/** The answer of what is switched off on the platform build. */
+export function managedInPlatform(what: string): Error {
+  return refusal(410, {
+    code: 'MANAGED_IN_PLATFORM',
+    kind: 'NOT_ENABLED',
+    whatHappened: 'This is managed in the platform.',
+    why: `${what}: on the platform build, people, accounts, credentials, grants and sign-in are kept by the platform's core.`,
+    whatYouCanDo: ['Use the platform\'s own screens for this; to unlock a screen, sign on through the platform again.'],
+    whoCanHelp: ['The platform administrator'],
+  });
+}
+
 export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, app: AppContext, ns: NS, handlers: Handlers<NS>, opts: BindOptions = {}): string[] {
   const typed = scope.withTypeProvider<ZodTypeProvider>();
   const registered: string[] = [];
@@ -409,6 +450,11 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     const rl = opts.rateLimits?.[name];
     if (rl?.by === 'DEVICE') preHandlers.push(deviceRateGate(scope, app, route.id, rl));
 
+    // Phase B slice 2: on the platform build, what core keeps (people, accounts, credentials, grants, delegations,
+    // break-glass, recertification, local unlock and user switch) answers 410 MANAGED_IN_PLATFORM, before anything else.
+    if (app.platform.build && PLATFORM_MANAGED_ROUTES.has(route.id)) {
+      preHandlers.push(() => Promise.reject(managedInPlatform(route.summary)));
+    }
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       // Phase 7 slice 7g-4: while a demo load or reset recreates the database only the open routes of app.ts reach here
       // (all of them auth NONE), and the database is being dropped: no session is looked up, so following the job never
@@ -476,7 +522,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
                 keyGenerator: (request: FastifyRequest) => {
                   if (rl.by === 'SESSION') return `${route.id}|${requestTokenHash(request, app.config) ?? request.ip}`;
                   const body = (request.body ?? {}) as Record<string, unknown>;
-                  const who = typeof body['identifier'] === 'string' ? body['identifier'] : typeof body['badgeUid'] === 'string' ? body['badgeUid'] : '';
+                  const who = typeof body['identifier'] === 'string' ? body['identifier'] : typeof body['badgeUid'] === 'string' ? body['badgeUid'] : signonSubject(app, body['signonProof']);
                   return `${route.id}|${request.ip}|${who.toLowerCase()}`;
                 },
               },

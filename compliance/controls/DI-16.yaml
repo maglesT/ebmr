@@ -110,6 +110,7 @@ tests:
   - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-16][DI-18][DI-09] the administrator requests a permission for a role; the process owner approves it under the change record; the administrator removes it"
   - "apps/tablets-server/test/administration/access-governance-routes.test.ts > role-permission requests over HTTP > [DI-16][DI-18] P7G-1: an administrator cannot approve a permission for a role they hold (it would grant themselves), even with a change record"
   - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-16][DI-18] P7G-1: an administrator cannot approve a grant to their own account requested by another administrator; the process owner can"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > people and their codes come from core > [DI-16][DI-17][PL-01] the token's codes become the Work role's permissions and grant; a code removed at core is removed at the next sign-on; no code left is refused and revokes the grant"
 clauses:
   - clause: "Produce the role list as of a past date and reconcile it with the access-request records."
     tests:

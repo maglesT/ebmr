@@ -1680,4 +1680,13 @@ export const TARGETS: Target[] = [
     tests: [s('contract/report-views-deviations.test.ts'), s('contract/report-views-investigation.test.ts')],
     threshold: 90,
   },
+  {
+    // Phase B slice 2 (kernel 1400): sign-on, grants and re-authentication through the platform's core, and the DI-09 path
+    // of the mirror roles (decision 0028).
+    group: 'platform-identity',
+    functions: ['iam.enable_platform_build', 'iam.platform_build', 'iam.platform_code_to_permission', 'iam.platform_mirror_role',
+                'iam.platform_sync_grants', 'iam.platform_auth_event', 'platform.is_platform_register_write'],
+    tests: [s('medhanta/platform-signon.test.ts')],
+    threshold: 90,
+  },
 ];

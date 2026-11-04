@@ -29,6 +29,7 @@ import { installStrictJsonBodies } from './platform/http/json-body.ts';
 import { loggerOptions } from './platform/http/logging.ts';
 import { answerFrameworkError, installSecurity, isApiRequest } from './platform/http/security.ts';
 import { installSpa } from './platform/http/static.ts';
+import { CoreSignon, type FetchFn } from './platform/auth/core-signon.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
 import { MAINTENANCE_OPEN_PATHS, maintenanceRefusal, newOperationsRuntime } from './platform/operations.ts';
@@ -48,6 +49,8 @@ export interface AppDeps {
    * (analytics/implementation.ts), and its poll interval.
    */
   analytics?: { implementations?: readonly MethodImplementation[]; pollMs?: number };
+  /** Phase B slice 2 (tests): how core's sign-on reaches core (a fake core) instead of fetch. */
+  coreFetch?: FetchFn;
 }
 
 /** Request line plus headers a request may carry (see the http options below). */
@@ -64,6 +67,20 @@ export interface BuiltApp {
   analytics: AnalyticsRunnerApi | null;
   /** Closes the server and, when buildApp opened them, the pools. */
   close(): Promise<void>;
+}
+
+/**
+ * Phase B slice 2: is this the platform build, and core's sign-on for it. A platform build without core's sign-on
+ * configured refuses to start (nobody could sign in); a standalone database ignores the setting.
+ */
+async function platformState(pool: Pools['app'], config: ServerConfig, coreFetch?: FetchFn): Promise<AppContext['platform']> {
+  // A database at an earlier release (an upgrade or restore drill) has no platform build function: it is no platform build.
+  const { rows: fn } = await pool.query<{ present: boolean }>("select to_regprocedure('iam.platform_build()') is not null as present");
+  if (!fn[0]?.present) return { build: false, signon: null };
+  const { rows } = await pool.query<{ build: boolean }>('select iam.platform_build() as build');
+  if (!rows[0]?.build) return { build: false, signon: null };
+  if (!config.oidc) throw new Error('this is a platform build: core sign-on (EBMR_OIDC_ISSUER, EBMR_OIDC_CLIENT_ID, EBMR_OIDC_REDIRECT_URI) must be configured');
+  return { build: true, signon: new CoreSignon(config.oidc, config.secrets.nonceKey, coreFetch) };
 }
 
 export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<BuiltApp> {
@@ -88,6 +105,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // Every actor context this server builds declares this zone (EBMR-IAM-118): never a configured constant.
     const config: ServerConfig = { ...env, siteZone: await siteZoneFromPolicy(pools.app, env) };
     const demo = await demoState(pools.app, config);
+    const platform = await platformState(pools.app, config, deps.coreFetch);
     const guidance = new GuidanceCatalogue(config.installation);
     guidance.register('platform', PLATFORM_GUIDANCE);
     const app = Fastify({
@@ -132,6 +150,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
       formatInstant: (us) => formatInstant(us, siteZone.current()),
       boundRoutes: new Map(),
       operations: newOperationsRuntime(),
+      platform,
     };
     let port: DeviceReadingPort | undefined;
     for (const f of features) {

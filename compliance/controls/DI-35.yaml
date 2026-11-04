@@ -312,6 +312,8 @@ tests:
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > the library rows and their writers (recipe-core 1800) > [DI-35][PR-05] QA's approval is refused with a signature applied in another state of the block, or signed by another person than the approver (EBMR-LIB-007)"
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > the snapshots against the library (recipe-core 1810) > [PR-05][DI-35] at issue, a snapshot of a library version that is not approved is refused (EBMR-LIB-022); an approved or a retired version is not"
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > the snapshots against the library (recipe-core 1810) > [PR-05][DI-35] on the real approval path, a master using a retired library version passes its earlier steps and is refused at QA approval (EBMR-LIB-021)"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38][DI-35][PL-05] a signature with core's re-authentication is signed; the proof is bound to its challenge and used once; the performer cannot verify their own entry"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-35][PR-05] a library block is approved with core's re-authentication by another person than its author; its author is refused (EBMR-LIB-007)"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

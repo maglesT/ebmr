@@ -60,6 +60,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes, pathOf } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
+import { managedInPlatform, platformAuthEvent } from '../session/platform.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { ChallengeBadgeStore } from './badges.ts';
 import { kernelContent, meaningOfIntent, recordContentForSigning, type EsigSignableContext } from './content.ts';
@@ -67,7 +68,7 @@ import { ESIG_GUIDANCE } from './guidance.ts';
 import { addMeaningType, configureMeaningType, meaningTypes, retireSealKey, sealKeys } from './catalogue.ts';
 import { dscConfiguration, dscEnrolment, endDscEnrolment, enrolDsc, registerDscAnchor, setDscMeaning, setDscMode } from './dsc.ts';
 import { esigStubHandler } from './stub.ts';
-import { manifestationView, meaningInfo, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
+import { manifestationView, meaningInfo, meaningPermissions, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
 
 export const guidance = ESIG_GUIDANCE;
 
@@ -390,77 +391,97 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         if (device.deviceId !== s.deviceId) throw otherTerminal();
         const floor = isShopFloor(s.deviceClass);
         const c = body.credentials;
-        if ((c.kind === 'PIN') !== floor) {
-          throw refusal(422, {
-            code: 'LOGIN_METHOD',
-            kind: 'NOT_ALLOWED',
-            whatHappened: floor ? 'On a kiosk you sign with your badge and PIN.' : 'On an office PC you sign with your user ID and password.',
-            why: `${s.deviceCode} is a ${s.deviceClass} terminal.`,
-            controls: ['DI-38'],
-            whatYouCanDo: ['Sign with the components this terminal asks for.'],
-          });
+        // Phase B slice 2: on the platform build the signer re-authenticates at core (DI-38, PL-05; DI-19: no local
+        // password, badge or PIN); the standalone build takes no platform proof.
+        if (app.platform.build !== (c.kind === 'PLATFORM')) {
+          throw managedInPlatform(c.kind === 'PLATFORM' ? 'Signing through the platform' : 'Signing with a password, badge or PIN');
         }
-        if (ch2 && floor) {
-          throw refusal(422, {
-            code: 'LOGIN_METHOD',
-            kind: 'NOT_ALLOWED',
-            whatHappened: 'A signing in two rows is made on an office PC. Nothing was signed.',
-            why: `${s.deviceCode} is a ${s.deviceClass} terminal.`,
-            controls: ['DI-38'],
-            whatYouCanDo: ['Sign from an office PC.'],
-          });
-        }
-        let identifier: string;
-        let secret: string;
-        if (c.kind === 'PIN') {
-          const badge = badges.peek(ch.challengeId, s.tokenHash, s.personId);
-          if (!badge) {
-            // The badge is forgotten once the signing authenticated, so a resend of a signing that succeeded (an
-            // answer lost, a double submit) arrives here: it is told that the request was used, never that nothing
-            // was signed (Phase 2 exit review F40). The challenge is this session's own (checked above); nothing is
-            // replayed without credentials.
-            const used = await challengeUse(app.pools.app, s.tokenHash, ch.challengeId);
-            if (used.signatureId !== null) throw alreadySigned(used.signatureId);
-            if (used.authenticated) throw requestUsed();
-            throw refusal(409, { code: 'ESIG_TAP_AGAIN', kind: 'STALE', whatHappened: 'The badge tap of this signing is no longer known. Nothing was signed.', why: 'A signing on a kiosk uses the badge tapped for it within its time limit.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again and tap your badge.'] });
-          }
-          identifier = badge;
-          secret = c.pin;
-        } else {
-          identifier = c.loginName;
-          secret = c.password;
-        }
-        let ev: identity.AuthenticationEvent;
-        try {
-          ev = await identity.authenticate(app.pools.authn, { method: c.kind === 'PIN' ? 'BADGE_PIN' : 'PASSWORD', identifier, secret, deviceFingerprint: fingerprint, purpose: 'SIGNATURE', challengeId: ch.challengeId });
-        } catch (error) {
-          await logged(app, s.tokenHash, ch.challengeId, error);
-          if (error instanceof identity.AuthenticationFailedError && (error.locked || error.reason === 'ACCOUNT_LOCKED')) badges.forget(ch.challengeId);
-          throw signingAuthRefusal(error, c.kind);
-        }
-        badges.forget(ch.challengeId);
-        if (ev.personId !== ch.signerPerson || ev.accountId !== ch.signerAccount) {
-          const e = refusal(403, {
-            code: 'EBMR-IAM-093',
-            kind: 'INDEPENDENCE',
-            whatHappened: 'Only the signer can confirm their own signature; nobody signs for another person. Nothing was signed.',
-            why: 'The credentials entered belong to another person than the one named on the signature.',
-            controls: ['DI-38'],
-            whatYouCanDo: ['The person named on the signature enters their own credentials.'],
-          });
-          await logged(app, s.tokenHash, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
-          throw e;
-        }
-        // D-P4-5: the credentials are entered once; the second row gets an authentication event of its own, bound to its
-        // own challenge (the kernel uses one event for one signature, INV-10).
-        let ev2: identity.AuthenticationEvent | null = null;
-        if (ch2) {
+        let ev: { authEventId: string; personId: string; accountId: string };
+        let ev2: { authEventId: string } | null = null;
+        if (c.kind === 'PLATFORM') {
+          let failing = ch;
           try {
-            ev2 = await identity.authenticate(app.pools.authn, { method: 'PASSWORD', identifier, secret, deviceFingerprint: fingerprint, purpose: 'SIGNATURE', challengeId: ch2.challengeId });
+            ev = await platformAuthEvent(app, { proof: c.signonProof, purpose: 'SIGNATURE', fingerprint, challengeId: ch.challengeId, sessionTokenHash: s.tokenHash, meaningPermissions: await meaningPermissions(app.pools.app, ch.meaning) });
+            if (ch2) failing = ch2;
+            if (ch2) ev2 = await platformAuthEvent(app, { proof: c.signonProof, purpose: 'SIGNATURE', fingerprint, challengeId: ch2.challengeId, sessionTokenHash: s.tokenHash, meaningPermissions: await meaningPermissions(app.pools.app, ch2.meaning), nonceUse: 2 });
           } catch (error) {
-            await logged(app, s.tokenHash, ch2.challengeId, error);
+            await logged(app, s.tokenHash, failing.challengeId, error);
+            throw error;
+          }
+          if (ev.personId !== ch.signerPerson || ev.accountId !== ch.signerAccount) throw new Error('the platform signing event names another signer');
+        } else {
+          if ((c.kind === 'PIN') !== floor) {
+            throw refusal(422, {
+              code: 'LOGIN_METHOD',
+              kind: 'NOT_ALLOWED',
+              whatHappened: floor ? 'On a kiosk you sign with your badge and PIN.' : 'On an office PC you sign with your user ID and password.',
+              why: `${s.deviceCode} is a ${s.deviceClass} terminal.`,
+              controls: ['DI-38'],
+              whatYouCanDo: ['Sign with the components this terminal asks for.'],
+            });
+          }
+          if (ch2 && floor) {
+            throw refusal(422, {
+              code: 'LOGIN_METHOD',
+              kind: 'NOT_ALLOWED',
+              whatHappened: 'A signing in two rows is made on an office PC. Nothing was signed.',
+              why: `${s.deviceCode} is a ${s.deviceClass} terminal.`,
+              controls: ['DI-38'],
+              whatYouCanDo: ['Sign from an office PC.'],
+            });
+          }
+          let identifier: string;
+          let secret: string;
+          if (c.kind === 'PIN') {
+            const badge = badges.peek(ch.challengeId, s.tokenHash, s.personId);
+            if (!badge) {
+              // The badge is forgotten once the signing authenticated, so a resend of a signing that succeeded (an
+              // answer lost, a double submit) arrives here: it is told that the request was used, never that nothing
+              // was signed (Phase 2 exit review F40). The challenge is this session's own (checked above); nothing is
+              // replayed without credentials.
+              const used = await challengeUse(app.pools.app, s.tokenHash, ch.challengeId);
+              if (used.signatureId !== null) throw alreadySigned(used.signatureId);
+              if (used.authenticated) throw requestUsed();
+              throw refusal(409, { code: 'ESIG_TAP_AGAIN', kind: 'STALE', whatHappened: 'The badge tap of this signing is no longer known. Nothing was signed.', why: 'A signing on a kiosk uses the badge tapped for it within its time limit.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again and tap your badge.'] });
+            }
+            identifier = badge;
+            secret = c.pin;
+          } else {
+            identifier = c.loginName;
+            secret = c.password;
+          }
+          let ev1: identity.AuthenticationEvent;
+          try {
+            ev1 = await identity.authenticate(app.pools.authn, { method: c.kind === 'PIN' ? 'BADGE_PIN' : 'PASSWORD', identifier, secret, deviceFingerprint: fingerprint, purpose: 'SIGNATURE', challengeId: ch.challengeId });
+          } catch (error) {
+            await logged(app, s.tokenHash, ch.challengeId, error);
+            if (error instanceof identity.AuthenticationFailedError && (error.locked || error.reason === 'ACCOUNT_LOCKED')) badges.forget(ch.challengeId);
             throw signingAuthRefusal(error, c.kind);
           }
+          badges.forget(ch.challengeId);
+          if (ev1.personId !== ch.signerPerson || ev1.accountId !== ch.signerAccount) {
+            const e = refusal(403, {
+              code: 'EBMR-IAM-093',
+              kind: 'INDEPENDENCE',
+              whatHappened: 'Only the signer can confirm their own signature; nobody signs for another person. Nothing was signed.',
+              why: 'The credentials entered belong to another person than the one named on the signature.',
+              controls: ['DI-38'],
+              whatYouCanDo: ['The person named on the signature enters their own credentials.'],
+            });
+            await logged(app, s.tokenHash, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev1.authEventId);
+            throw e;
+          }
+          // D-P4-5: the credentials are entered once; the second row gets an authentication event of its own, bound to its
+          // own challenge (the kernel uses one event for one signature, INV-10).
+          if (ch2) {
+            try {
+              ev2 = await identity.authenticate(app.pools.authn, { method: 'PASSWORD', identifier, secret, deviceFingerprint: fingerprint, purpose: 'SIGNATURE', challengeId: ch2.challengeId });
+            } catch (error) {
+              await logged(app, s.tokenHash, ch2.challengeId, error);
+              throw signingAuthRefusal(error, c.kind);
+            }
+          }
+          ev = ev1;
         }
         const a = { ...actor(handler.reasonOf?.(body.action)), authEventId: ev.authEventId };
         const ctx = signableContext(s, a, ch.meaning);

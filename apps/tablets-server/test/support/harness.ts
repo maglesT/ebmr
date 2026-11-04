@@ -72,6 +72,8 @@ export interface ServerOptions {
   paceDeviceNonces?: boolean;
   /** Phase 6A slice 6A-1: the analytics runner's implementations and poll interval (with env EBMR_ANALYTICS: 'on'). */
   analytics?: AppDeps['analytics'];
+  /** Phase B slice 2: how core's sign-on reaches core (test/support/fake-core.ts). */
+  coreFetch?: AppDeps['coreFetch'];
 }
 
 /** Wall-clock pacing of device-nonce requests (ServerOptions.paceDeviceNonces): a rolling window under each limit. */
@@ -176,6 +178,7 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
       pools: { app: db.app, authn: db.authn, close: () => Promise.resolve() },
       ...(opts.logStream ? { logStream: opts.logStream } : {}),
       ...(opts.analytics ? { analytics: opts.analytics } : {}),
+      ...(opts.coreFetch ? { coreFetch: opts.coreFetch } : {}),
     });
   } catch (error) {
     await db.close();

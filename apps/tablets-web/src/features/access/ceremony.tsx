@@ -37,6 +37,7 @@ import type { SignOutcome, SignRequest } from '../../app/ports.tsx';
 import { buildAttribution, failureOf, frozenRequest, previewIntent } from './calls.ts';
 import type { AccessController } from './controller.tsx';
 import { dscBridge } from './dsc-bridge.ts';
+import { reauthenticateAtCore } from '../../app/platform-signon.ts';
 import { Latest, Vault } from './holders.ts';
 import type { Boot } from '../../app/boot.tsx';
 
@@ -64,6 +65,9 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
   const [tapStage, setTapStage] = useState<'badge' | 'pin'>('badge');
   const [switchError, setSwitchError] = useState<RefusalEnvelope | null>(null);
   const [switching, setSwitching] = useState(false);
+  // Phase B slice 2: on the platform build the signer confirms at core in a window of its own.
+  const platform = boot.device?.loginMethods.includes('PLATFORM') ?? false;
+  const [platformNote, setPlatformNote] = useState<string | null>(null);
   // One frozen copy of the request for the whole ceremony: preview, challenge and sign carry the same action.
   const [req] = useState(() => frozenRequest(job.request));
   // The companion's verified content and its open challenge (a two-row act only).
@@ -263,6 +267,23 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
         secret.put({ kind: 'PASSWORD', loginName, password });
         send({ type: 'SUBMIT' });
       }}
+      {...(platform && challenge
+        ? {
+            platformNote,
+            onPlatform: () => {
+              setPlatformNote(null);
+              const second = companionChallenge.get();
+              void reauthenticateAtCore([challenge.challengeId, ...(second ? [second] : [])], (secondsLeft ?? challenge.expiresInSeconds) * 1000).then((o) => {
+                if (o.proof) {
+                  secret.put({ kind: 'PLATFORM', signonProof: o.proof });
+                  send({ type: 'SUBMIT' });
+                } else {
+                  setPlatformNote(o.error === 'POPUP_BLOCKED' ? 'The platform window was blocked: allow pop-ups for this site and try again.' : 'The platform did not confirm your sign-in. Nothing was signed; try again.');
+                }
+              });
+            },
+          }
+        : {})}
       onSwitchPin={(pin) => {
         const uid = tapUid.peek();
         if (!uid || switching) return;

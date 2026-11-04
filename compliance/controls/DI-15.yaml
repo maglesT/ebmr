@@ -106,6 +106,7 @@ tests:
   - "tools/e2e/specs/administration/administration.spec.ts > administration: people and devices > [DI-14][DI-15][DI-16] the administrator creates a person and an account and requests a grant; the process owner approves it; the new person signs in, changes the password and works in the role"
   - "tools/e2e/specs/administration/governance.spec.ts > administration: access governance > [DI-15] the process owner records the US e-signature certification letter; the page says a legal entity without one is blocked"
   - "packages/recipe-core/test/lifecycle/us-esig-certification.test.ts > the US e-signature certification at GMP issue (DI-15, recipe-core 1260) > [DI-15] P7G-3: a US-market GMP batch whose licence holder cannot be determined is refused (fail closed), at the gate and at every writer of the batch row; a batch with no US market is not asked"
+  - "apps/tablets-server/test/medhanta/platform-signon.test.ts > people and their codes come from core > [DI-14][DI-15][PL-03] the first sign-on creates one person with one account, identity verified at core; the next reuses them; a proof is used once"
 clauses:
   - clause: "Create an account with a deactivated user's ID. Blocked."
     tests:

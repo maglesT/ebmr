@@ -85,6 +85,12 @@ export interface MeaningInfo {
 }
 
 /** The current, active catalogue entry of a meaning (DI-35: only catalogue types are signed). */
+/** Phase B slice 2: the permissions any one of which signs this meaning (its latest version; esig.sign evaluates them). */
+export async function meaningPermissions(db: pg.Pool | pg.PoolClient, code: string): Promise<string[]> {
+  const { rows } = await db.query<{ permissions: string[] }>('select permissions from esig.meaning_type where code = $1 order by version desc limit 1', [code]);
+  return rows[0]?.permissions ?? [];
+}
+
 export async function meaningInfo(db: pg.Pool | pg.PoolClient, code: string): Promise<MeaningInfo> {
   const { rows } = await db.query<{ code: string; title: string; meaning_text: string; status: string }>(
     'select code, title, meaning_text, status from esig.meaning_type where code = $1 order by version desc limit 1',

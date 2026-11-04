@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
 import { Banner, Button, t } from '@ebmr/ui-kit';
-import { KioskLogin, NotEnrolled, OfficeLogin, RoleChoice, DemoPicker } from '../features/session/index.tsx';
+import { KioskLogin, NotEnrolled, OfficeLogin, PlatformLogin, RoleChoice, DemoPicker } from '../features/session/index.tsx';
 import { SetupWizard } from '../features/operations/SetupWizard.tsx';
 import { BootProvider, useBoot } from './boot.tsx';
 import { FeaturesContext } from './feature-context.ts';
@@ -55,7 +55,7 @@ export function Gate() {
     case 'device-refused':
       return <Frame withBanner={false}>{boot.meta?.demo ? <><NotEnrolled problem={boot.problem} /><DemoPicker /></> : <NotEnrolled problem={boot.problem} />}</Frame>;
     case 'signed-out':
-      return <Frame withBanner={false}>{boot.device?.density === 'FLOOR' ? <KioskLogin /> : <OfficeLogin />}</Frame>;
+      return <Frame withBanner={false}>{boot.device?.loginMethods.includes('PLATFORM') ? <PlatformLogin /> : boot.device?.density === 'FLOOR' ? <KioskLogin /> : <OfficeLogin />}</Frame>;
     case 'signing-out':
       return (
         <Frame withBanner={false}>

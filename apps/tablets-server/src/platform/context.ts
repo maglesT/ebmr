@@ -7,6 +7,7 @@ import type { Kysely } from 'kysely';
 import type { esig } from '@ebmr/kernel';
 import type { DemoDeviceView, Instant } from '@ebmr/api-contract';
 import type { ServerConfig } from '../config.ts';
+import type { CoreSignon } from './auth/core-signon.ts';
 import type { DeviceIdentityProvider } from './auth/device-proof.ts';
 import type { Pools } from './db/pools.ts';
 import type { ReadDatabase } from './db/read.ts';
@@ -53,4 +54,10 @@ export interface AppContext {
    * a demo load, which is why they are read from here at the time of use.
    */
   operations: OperationsRuntime;
+  /**
+   * Phase B slice 2: the platform build (iam.platform_build(), set by the platform migrator) signs people on and
+   * re-authenticates them through core (`signon`); local passwords, badges and PINs, and the people, account and grant
+   * screens, are off. Read once at start-up: the flag is never switched off.
+   */
+  platform: { build: boolean; signon: CoreSignon | null };
 }

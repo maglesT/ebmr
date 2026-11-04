@@ -74,7 +74,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 The product is `ebmr` at `https://ebmr.<domain>`. Slice 1 (platform wiring) is in progress: the one-shot migrator
 (`src/cli/platform-migrate.ts`), the platform env with verified TLS to the platform database (decision 3 revised:
 TLS, not a socket), and `ops/Dockerfile`. The databsee side is on branch `b-ebmr-1`. Frozen baseline: branch
-`standalone` at 0bb289c.
+`standalone` at 0bb289c. Slice 1 merged (#88).
+Slice 2 (sign-on, permissions and e-signature through core; `slice-2-design.md`): kernel 1400 (platform build flag set by
+the migrator, `iam.platform_identity`, auth method PLATFORM, `iam.platform_sync_grants` mirroring the token's
+`permissions` into per-person Work/Administration roles, `iam.platform_auth_event`), `/signin`, `/sign`, `/cb` (core's
+`/auth`, `/token`, `/me`, client `ebmr`), login method PLATFORM, signing with a one-use proof bound to the challenge,
+410 MANAGED_IN_PLATFORM on the people and grant routes, the web sign-in and signing window. Decision 0028 (owner-approved):
+the mirror roles' DI-09 path; admin + GMP codes refused (INV-11). Open for later slices: platform first-run set-up,
+idle-lock unlock through core (a locked platform session signs in again).
 
 **3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
 `dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
