@@ -1,307 +1,221 @@
-# Batchwright Injectables: edition plan
+# Batchwright Injectables: edition plan (v2)
 
 - **Status:** draft for the owner and the lead (4 November 2026). No code before approval.
-- **Owner decision (4 November 2026):** build Injectables inside Batchwright as the second edition beside Tablets, on the
-  same kernel, dynamic library (decision 0026), e-signatures, audit trail, MBR approval, release, deviations, terminals
-  and platform sign-on. Cover every current injectable method ("no leaving anything"); the slice order decides only
-  what comes first.
-- **Read with:** ADR 0001 (two editions, separate databases), ADR 0011 (recipe-core shared), decisions 0010, 0011,
-  0026, the outline sections 2.3, 5.2.10, 5.2.11 and 6.6, `docs/handbook/modules/injectables.md` (extension points),
-  `compliance/controls/ST-01..79` and `IN-40..51` (91 injectables-only controls, all `target_phase: 5`, expert decision
-  PENDING), `compliance/rule-tables/sterile/sterile.v1.yaml` (78 keys).
+- **Owner decision (4 November 2026):** Injectables is the second edition of Batchwright, on the same kernel, dynamic
+  library (decision 0026), e-signatures, audit trail, MBR approval, release, deviations, terminals and platform sign-on.
+  Full scope, nothing left out; **each item built at the minimum**: only binding clauses, and no new code where a
+  library block made of existing field types does the job.
+- **v2 (same day, owner reminder through the lead):** every item now states *binding clause → smallest means → why
+  nothing smaller*. v1's eight sterile modules and the new `DEVICE_RECORD` field type are gone: each was replaced by a
+  block, a qualification record, an equipment due date or the existing release gate.
+- **Read with:** ADR 0001, decisions 0010, 0011, 0026, outline 2.3, `docs/handbook/modules/injectables.md`,
+  `compliance/controls/ST-01..79` and `IN-40..51`, `compliance/rule-tables/sterile/sterile.v1.yaml`.
 
-## 1. Architecture of the edition
+## 1. The rule applied to every item
 
-One product, two editions. What differs between them is data, one database schema and a small set of sterile modules.
+1. Find the binding clause (Revised Schedule M, 21 CFR 211 / Part 11, EU GMP Annex 1 / Annex 11 for EU-market
+   batches). Cited from the requirement register (`compliance/requirements/requirements.jsonl`, rows marked
+   `verified: primary`, i.e. checked against the official text); each slice re-checks its own clauses against the
+   official text before coding and lists them in its notes. Guidance (FDA 2004 aseptic guidance, PDA reports, ISO
+   standards, PIC/S aide-memoires, WHO texts not adopted by Schedule M) is never a reason to build.
+2. Meet it with the smallest means, in this order: **(a)** a library block (data) of existing field types; **(b)**
+   master data the kernel already has (qualification register, area authorisation, equipment calibration and
+   qualification due dates, room classes); **(c)** the existing release gate (every block complete, every exception
+   and deviation closed, every release-test result in); **(d)** only then a small shared change, sent to the lead,
+   naming the clause it serves.
+3. Say why the next smaller means fails.
 
-| Layer | Tablets today | Injectables |
-|---|---|---|
-| Database | `ebmr_tablets`: `kernel.*`, recipe schema, `tab.*` | `ebmr_injectables`: the same `kernel.*` and recipe migrations, plus `inj.*` (ADR 0001). Tablets never runs an `inj` migration. |
-| Site data | `ebmr_site` (persons, training, lots, batch numbers, devices) | the same database, shared: a lot rejected in one edition is unusable in the other, one person record, one batch-number register |
-| Server | `apps/tablets-server` | `apps/injectables-server`: the shared host plus the sterile modules (section 3) |
-| Web | `apps/tablets-web` | `apps/injectables-web`: the shared host screens plus the sterile screens |
-| Library | tablet library blocks (data) | sterile library blocks (data) in the injectables database; the designer palette shows only them |
-| Market rules | `kernel` + `tablets` tables | `kernel` + `sterile` tables (`EBMR-MKT-054` already keeps the two apart) |
-| Platform | product `ebmr`, permissions `ebmr.*` | the same product with the edition badge INJECTABLES (decision 0020); new `ebmr.*` codes for sterile acts go to the lead for databsee |
+See Q0 before approving: what "binding" means for Annex 1 and Schedule M decides how much of the table stays.
 
-**The one structural step: a shared host.** About 100k lines of edition-neutral server and web code (session, esig,
-audit, records, library, designer, formulation, execution, review, release, deviations, plant, master data, market,
-terminals, platform sign-on) live today in `apps/tablets-*`, and an app may not import another app (lint, ADR 0001).
-Slice I-0 moves the edition-neutral features, unchanged, into two packages, `@ebmr/server-host` and `@ebmr/web-host`
-(exact `workspace:` pins, ADR 0015). `apps/tablets-*` then compose the host with the tablet blocks and screens, with no
-behaviour change: the whole Tablets suite, golden batches and browser suite must pass unchanged. Rejected alternative:
-one app started with an edition flag. It is less work, but every sterile change would then sit inside the validated
-Tablets build, which ADR 0001 and the owner ("do not mix sterile rules into tablets") rule out.
+## 2. Architecture: the edition is data plus configuration
 
-## 2. Reused versus new
+With every item met by data, the edition has **no sterile code**. So:
 
-**Reused unchanged:** kernel (audit trail, e-signatures, time, identity, market engine, records, continuity, platform
-sign-on), recipe-core (library model, field types, sanity validator, formulation, scaling, batch generation, generic
-guards of ADR 0019, plant rules including the beta-lactam and hazardous-product screens of 0890, 0912, 0973, 1655),
-site-services, expr, ui-kit, integration-sdk, the site gateway drivers (OPC UA, process journal, device originals),
-review by exception, release gate, deviations, terminals, labelling and packaging library blocks, the sterile rule table.
+| Part | How |
+|---|---|
+| Database | `ebmr_injectables`: the same kernel and recipe migrations as Tablets, no extra schema (ADR 0001 separate databases kept) |
+| Site data | the shared `ebmr_site`: one person record, one lot status, one batch-number register across editions |
+| Server and web | the existing applications started with `EDITION=injectables`: they connect to `ebmr_injectables`, show the INJECTABLES badge (decision 0020), and scope the market engine to the `kernel` + `sterile` rule tables (`EBMR-MKT-054` already keeps them apart). I-0 finds the places that hard-code `tablets` and reads the edition instead. |
+| Library | the sterile blocks of section 4 are seed data stored in `ebmr_injectables` and approved there by QA; the palette shows only the edition's library because the database holds only it |
+| Platform | the same product `ebmr`; new `ebmr.*` permission codes only if a sterile act needs one (none foreseen; see Q3) |
 
-**New, edition code (`inj.*` and the injectables apps):** the sterile modules of section 3. They hold state that lives
-outside one batch step (a room, a line, a person, an EM sample, an APS) and that the outline already designs
-(5.2.10, 5.2.11). Everything that happens inside a batch step is a library block, i.e. data.
+**Why not smaller:** none is smaller; this is configuration. **Why not v1's shared-host extraction:** it moved about
+100k lines to keep sterile code out of the Tablets build, but there is no sterile code any more. It needs an ADR 0001
+amendment (point 1, "own server application") recorded by the lead, and the Tablets session told, since it touches
+their app's configuration.
 
-**New in shared packages (each one told to the lead first):**
-- one field type, `DEVICE_RECORD` (section 4);
-- the deferred expr functions F0 (lethality from a temperature series), fill volume from weight and density, filled
-  units (named as deferred in `packages/expr/src/library/index.ts`);
-- new plant machine versions with the states `DRIED`, `STERILISED`, `DEPYROGENATED`, a sterile-hold expiry, and the
-  room grade (the extension points kept open since decision 0010);
-- the trace tool's per-edition report (section 8).
+If a later slice finds an item that truly needs sterile code, it stops and comes back to the lead with the clause; the
+host extraction is the fallback then, not now.
 
-## 3. Sterile modules (code; the minimum Annex 1 forces outside a step)
+## 3. Shared changes (candidates; each confirmed or dropped in I-0)
 
-| Module | What it does | Controls |
-|---|---|---|
-| M1 Clean areas | room/zone hierarchy (A inside B, isolator and RABS mapping), grade, qualification and validity, cleaning and disinfection status, return to service, pressure and HEPA status from the BMS; a step-start gate | ST-14..17, ST-74, IN-40, IN-41, IN-43, IN-44, IN-51 |
-| M2 Environmental monitoring | sampling plan per batch window, viable air/surface/personnel samples and results, total particles including continuous Grade A from counters, alert and action limits from the sterile table, trend rules, excursions linked to every batch in the room and window, completeness as a release prerequisite | ST-18..24, IN-42 |
-| M3 People | gowning qualification, aseptic qualification per line (and per manual configuration), presence and headcount log, health declaration, disqualification and requalification; checked at every e-signature in A/B | ST-07..13, ST-30 |
-| M4 APS | APS status per process × line × shift × container format, envelope from successful APS, APS record life cycle with incubation and reading, failure look-back | ST-29..33, IN-45 |
-| M5 Interventions | catalogue per line, one-tap quick log with "unlisted intervention", stoppages, exceedance of APS-demonstrated counts | ST-34..36 |
-| M6 Utilities and alarms | WFI, clean steam and process-gas points of use with status, excursions linked to batches that drew from them; batch alarm register | ST-06, ST-25..28 |
-| M7 Sterile items and time limits | sterile state and hold expiry of items, carriers, parts and equipment; cross-step time limits (preparation to filtration, filtration to end of fill, sterilisation to use, and the rest of the ST-37 set) | ST-37, ST-38, ST-45, IN-46 |
-| M8 Sterile release | dossier sections, sterilisation-cycle roll-up, contamination-event impact, the sterile part of the release gate (a passing sterility test never overrides a process failure), conditional release of short-shelf-life products | ST-24, ST-65..72, IN-49 |
-
-Each module reuses the kernel's state machines, audit, e-signature and deviation plumbing; none has its own.
-
-## 4. Field types: one new, `DEVICE_RECORD`
-
-Every sterilising, depyrogenating, freeze-drying, integrity-testing and inspecting machine produces a **record of a
-run** (cycle number, recipe, phases, parameters over time, alarms, the machine's own verdict). Annex 1 (8.41-8.43,
-8.50-8.59) and 211.113(b) need that record bound to the batch, checked against the validated recipe and load pattern,
-and a non-conforming run quarantined. No existing field type can do this: NUMBER and TEST_RESULT are typed values,
-and the equipment-data feature shows series but does not judge them.
-
-`DEVICE_RECORD`: pick the run (from the gateway's device originals, or a manual entry with the printout attached and a
-second-person check when no interface exists), check equipment, recipe ID and load pattern against the formulation,
-take named parameters from the run (each judged as a NUMBER with limits), compute derived values with expr (F0 from
-the temperature series, lyo phase durations), and store the original record hash (DI-32, DI-49). It is useful to at
-least nine blocks (autoclave, tunnel, oven, SIP, VHP, lyophiliser, filter integrity tester, CCIT machine, automated
-inspection machine), which passes the decision-0026 rule (a new field type serves at least three blocks).
-
-Checked and **not** needed as new field types: inspection reject counts (repeat group of NUMBER + CALC); AQL (sample
-size and acceptance number are formulation values per approved batch size, decision 0026 O-8); EM results (module
-M2, not a step field); gates such as room grade or APS validity (the module's step-start guard through the generic
-guard hook of ADR 0019).
-
-## 5. Every method mapped to blocks
-
-Library blocks (data) are named INJ-nn. A formulation assembles them; the technology profile and sterility route are
-formulation values checked by the sterile validator (ST-02, ST-74). "M" names the module that supplies a gate or
-status.
-
-### 5.0 The block catalogue (data)
-
-| Block | Name | Block | Name |
+| Change | Clause it serves | Why nothing smaller | Status |
 |---|---|---|---|
-| INJ-01 | Line clearance and room readiness | INJ-17 | Lyophilisation (loading, cycle, unloading) |
-| INJ-02 | Component and RTU acceptance | INJ-18 | Fill weight/volume and device IPC |
-| INJ-03 | Supplier-sterilised component receipt | INJ-19 | Ampoule fusion sealing |
-| INJ-04 | Container and closure washing, siliconisation | INJ-20 | Capping and crimping |
-| INJ-05 | Depyrogenation (tunnel, oven) | INJ-21 | Terminal sterilisation (moist heat, radiation, post-aseptic heat) |
-| INJ-06 | Moist heat of parts and components | INJ-22 | 100 % visual inspection and AQL |
-| INJ-07 | Sterilisation in place | INJ-23 | Container closure integrity |
-| INJ-08 | Aseptic assembly, connections, transfer into A/B | INJ-24 | Unit accountability |
-| INJ-09 | Bio-decontamination (VHP) | INJ-25 | Sterility sampling |
-| INJ-10 | Glove and sleeve integrity | INJ-26 | Release tests: sterility, BET, particulates, RMM; APS incubation and reading |
-| INJ-11 | Single-use and closed systems | INJ-27 | RTU nest/tub entry (e-beam or wipe transfer) |
-| INJ-12 | Solution preparation and compounding | INJ-28 | Plunger and middle-stopper placement |
-| INJ-13 | Sterilising filtration and filter integrity | INJ-29 | FFS bag or bottle line, overwrap |
-| INJ-14 | Bulk hold and bioburden-reducing filtration | INJ-30 | Blow-fill-seal run |
-| INJ-15 | Filling and stoppering (format slot; APS mode) | INJ-31 | Sterile powder handling and filling |
-| INJ-16 | Homogenisation of non-filterable bulk | | |
+| Edition read from configuration instead of hard-coded `tablets` | none (product structure; owner decision) | cannot run a second edition otherwise | needed |
+| A repeat kind "add a row when it happens" (interventions, stoppages, glove changes) | 211.100(b) (deviations recorded and justified); Annex 1 8.16, 9.34 (EU) | the four repeat kinds (count, per container, per interval, until pass) all fix the rows in advance; an event log cannot | needed unless I-0 finds an existing exception/comment log on the step that records time, person and description |
+| A NUMBER field taking its value from a device original (filled, then confirmed by the operator) | none: 211.68(b) is met by typing from the printout with a second-person check | owner's scope item "equipment data via the existing gateway"; built last (I-5), smallest form | scope item, not clause-driven |
 
-### 5.1 Dosage forms and containers
+No new field type. expr already has `duration` (time limits), `table_lookup` (AQL tables as validated master data),
+`volume_from_mass` and `mass_from_volume` (fill volume), `accountability` and `yield`. F0 is taken from the steriliser's
+record as a NUMBER with its limit; recomputing it from the temperature series is not required by any binding clause.
 
-| Form | Blocks | Notes |
-|---|---|---|
-| Liquid vials | INJ-01..08, INJ-12..15, INJ-18, INJ-20..26 | aseptic or terminally sterilised |
-| Ampoules (glass) | as vials, with INJ-19 fusion sealing instead of stoppering and capping | 100 % CCI (Annex 1 8.22) |
-| Prefilled syringes | INJ-27 RTU nest/tub entry, INJ-15 filling (syringe format), INJ-28 plunger placement, device functional tests in INJ-18 | combination product: see Q4 |
-| Cartridges | as PFS (cartridge format, lined seal crimp in INJ-20) | |
-| Large-volume parenterals (bags, bottles) | INJ-29 FFS bag or bottle line, INJ-21 terminal sterilisation (sub-batch loads), overwrap in INJ-29 | non-rigid containers (ST-61) |
-| Lyophilised vials | INJ-15 with partial stoppering, INJ-17 lyo loading and cycle, INJ-20 | M4 lyo envelope items |
-| Dual-chamber (syringe or cartridge) | INJ-15 twice (diluent chamber and drug chamber), INJ-17 in-device lyo, INJ-28 middle and end stoppers, functional test in INJ-18 | combination product: Q4 |
-| Blow-fill-seal | INJ-30 BFS run (parison, extrusion, mould, fill, seal), INJ-23 CCI, INJ-22 inspection | ST-77 |
-| **Added (flag):** sterile powder fill | INJ-31 aseptic powder handling and filling (powder weight IPC) | was out of scope in outline 2.4; current method |
-| **Added (flag):** suspensions, emulsions, liposomes (non-filterable) | INJ-12 aseptic bulk compounding from sterile components, INJ-16 homogenisation step; M4 bulk-stage APS | outline V-7; ST-29 bulk APS |
-| **Added (flag):** closed RTU vials and nested vials | INJ-27 | ST-40 |
+## 4. Items: clause → smallest means → why nothing smaller
 
-### 5.2 Sterilisation routes
+Codes: SM = Revised Schedule M (G.S.R. 922(E), 28 Dec 2023), Part II unless marked; A1 = EU GMP Annex 1 (2022), EU-market
+batches only; 211 = 21 CFR 211, US-market batches. Field types: NUM, TXT, Y/N, CHOICE, DT, TIMER, WEIGH, LOT, EQUIP,
+CONT, SAMPLE, TEST, CALC, SIGN. "Gate" = the existing release gate. "Qualif." = a qualification type in the kernel
+register (`iam.qualification_type`), checked at signature by role or by area authorisation (`iam.area_authorisation_problem`, kernel 1190).
 
-| Route | Blocks | Controls |
-|---|---|---|
-| Terminal moist heat (F0) | INJ-21 (DEVICE_RECORD; F0 by expr; loads as replicate sub-batches; preparation-to-sterilisation timer from M7) | ST-60, ST-61, IN-47 |
-| Parametric release of terminally sterilised product | INJ-21 with the parametric acceptance set; release by M8 | ST-61; needs Annex 17 checked (Q5) |
-| Aseptic: sterile filtration | INJ-13 filter identity against the registered filter, pre-use test, PUPSIT where required, post-use test, redundant and serial logic, time and pressure, single use | ST-50..53, IN-48 |
-| Pre-filtration bioburden | INJ-12 sample field; result gate in M8 | ST-54 |
-| Dry-heat depyrogenation (tunnel, oven) | INJ-05 (DEVICE_RECORD) | ST-47 |
-| Moist heat of parts, components, garments | INJ-06 (DEVICE_RECORD, load pattern) | ST-43..45 |
-| Sterilisation in place | INJ-07 (DEVICE_RECORD, post-SIP integrity) | ST-48 |
-| VHP / isolator bio-decontamination | INJ-09 (DEVICE_RECORD, validity interval in M1) | ST-76 |
-| Gamma, e-beam or EtO sterilised components (supplier) | INJ-03 sterile component receipt (certificate, dose or cycle, lot, indicator) | ST-40, ST-49 |
-| **Added (flag):** terminal radiation of product | INJ-21 radiation variant (dose map, indicator, contract steriliser certificate) | ST-49 (Annex 1 8.72-8.78) |
-| **Added (flag):** post-aseptic heat treatment | INJ-21 adjunct mode after aseptic fill | outline V-9 |
-| **Added (flag):** e-beam tub surface decontamination at transfer | INJ-27 | ST-46 |
+### 4.1 Readiness (every route)
 
-### 5.3 Barrier technology
-
-| Technology | How | Controls |
-|---|---|---|
-| Isolator (open, closed) | technology profile on the line (M1); INJ-09 decontamination; INJ-10 glove and sleeve integrity; isolator pressure from the BMS | ST-74..76 |
-| RABS (open, closed) | as isolator, with background Grade B and RABS door-open events as interventions (M5) | ST-74, ST-75 |
-| Open Grade A in Grade B | profile with its contamination-control-strategy reference (ST-02) | ST-74 |
-| Single-use systems | INJ-11 SUS receipt, installation, integrity check, connections | ST-79 |
-| Closed systems | INJ-11 | ST-79 |
-
-### 5.4 Process steps
-
-| Step | Block | Controls |
-|---|---|---|
-| Line clearance and room readiness | INJ-01 (gates from M1, M3, M4) | ST-14..17, ST-35 |
-| Gowning and entry | M3 (presence log); INJ-01 confirms the roster | ST-08, ST-10..12 |
-| Component and RTU acceptance | INJ-02, INJ-03 | ST-39, ST-40 |
-| Container washing and siliconisation | INJ-04 | ST-41 |
-| Closure preparation | INJ-04 (stopper variant) then INJ-06 | ST-41 |
-| Aseptic assembly and connections | INJ-08 | ST-42 |
-| Transfer into A/B | INJ-08 transfer section | ST-46 |
-| Solution preparation and compounding | INJ-12 (weighing, WFI draw from a point of use in M6, mixing timer, pH, density, volume make-up, nitrogen overlay) | ST-26, ST-28, IN-46 |
-| Sterile filtration | INJ-13 | ST-50..53 |
-| Filling | INJ-15 (format slot: vial, ampoule, syringe, cartridge, bottle; interventions through M5; fill weight IPC every interval) | ST-55, ST-56 |
-| Stoppering | INJ-15 (stopper-height detection) | ST-57 |
-| Capping and crimping | INJ-20 | ST-57, IN-50 |
-| Lyophilisation | INJ-17 (lyo readiness, loading as aseptic operation, cycle as DEVICE_RECORD, unloading) | ST-58, ST-59 |
-| Fill weight and device IPC | INJ-18 | ST-56 |
-| Container closure integrity | INJ-23 (deterministic methods: vacuum decay, HVLD, laser headspace; probabilistic dye ingress; 100 % for fusion-sealed) | ST-64 |
-| 100 % visual inspection: manual, semi-automatic, automated | INJ-22 (inspector qualification from M3; rejects by defect category; AQL of accepted units; automated run as DEVICE_RECORD) | ST-62, ST-63, IN-50 |
-| Unit accountability | INJ-24 (filled = inspected + rejects + samples + losses, zero unexplained) | ST-32 pattern, IN-50 |
-| Sterility sampling | INJ-25 (start, middle, end, after interventions, per load and sub-batch) | ST-66 |
-| Labelling and packaging | existing generic library blocks | as Tablets |
-
-### 5.5 Contamination control and QC
-
-| Topic | Where | Controls |
-|---|---|---|
-| Grade A/B/C/D, classification, requalification | M1 | ST-14, IN-40, IN-43 |
-| Gowning qualification | M3 | ST-08..11 |
-| Total particles, continuous in Grade A | M2 with the EM counter adapter | ST-19 |
-| Viable air, surface, personnel | M2 | ST-18, ST-20..22 |
-| Alert and action limits linked to the batch | M2 (sterile table limits; linkage rule of outline 5.2.10) | ST-20, ST-21 |
-| Media fill (APS) and operator qualification | M4 with INJ-15 in APS mode, INJ-24 APS accountability, INJ-26 incubation and reading | ST-29..33, IN-45 |
-| WFI and clean steam results | M6 | ST-26, ST-27 |
-| Sterility, endotoxin (BET), particulate matter | INJ-26 release-test blocks (TEST_RESULT; QC roles); gate in M8 | ST-65..68 |
-| Rapid microbial methods | INJ-26 method choice with its validation reference; same limits and gate | ST-65 (Annex 1 10.5) |
-| Penicillin / beta-lactam and cytotoxic segregation | existing plant rules (0890, 0912, 0973, 1655) in the injectables database; no change | PR-27, IN-27 |
-
-### 5.6 Equipment data (existing gateway and adapter framework)
-
-Adapters, each an OPC UA or file-drop profile on the existing drivers feeding device originals and series: autoclave,
-depyrogenation tunnel and oven, lyophiliser, filling line (counts, speed, stoppages, rejects), EM particle counters
-(continuous Grade A), VHP generator, filter integrity tester, CCIT machine, automated inspection machine. Each has a
-simulator profile in the existing process simulator for tests. This unfreezes the site gateway for these adapters only
-(Q2).
-
-## 6. Binding clauses (cited; paraphrased)
-
-Only binding texts. The controls' `sources` already cite clause numbers; the requirement register
-(`compliance/requirements/requirements.jsonl`) holds the paraphrases, checked against the official texts (rows marked
-`verified: primary`). Each slice re-checks its own clauses against the official text before coding and lists them in
-its slice notes. FDA's 2004 aseptic-processing guidance, PDA and ISO standards are **not** in this table: where a
-control behaviour rests only on them, see Q1.
-
-| Text | Clauses this edition relies on | Topic | Slice |
+| Item | Binding clause | Smallest means | Why nothing smaller |
 |---|---|---|---|
-| Revised Schedule M (G.S.R. 922(E), 28 Dec 2023), Part II sterile products | 1.1-1.3, 4.1-4.11 and Tables 1-3 | grades, classification, EM, grade per operation | I-1, I-2 |
-| | 2.1-2.4, 4.8 | sterility testing, EM in release review | I-1 |
-| | 3.1-3.4, 5.9 | sanitation, disinfectants, water monitoring | I-2 |
-| | 5.3-5.7, 4.11 | media fills, hold times, fill duration | I-2 |
-| | 5.12-5.17 | time limits, bioburden, endotoxins | I-1 |
-| | 6.3-6.11 (6.11.1 heat, 6.11.2 filtration) | sterilisation, records, filtration | I-1, I-2 |
-| | 10.3-10.8 | capping, vacuum-sealed containers, inspection | I-1 |
-| Schedule M Part I | 11.5.1 | eyesight checks for inspectors | I-1 |
-| Schedule M Part XIII | item 11 (parenterals), FFS section | areas and equipment for parenterals and FFS | I-1, I-4 |
-| EU GMP Annex 1 (2022; in operation 25 Aug 2023, 8.123 from 25 Aug 2024) | 2.1-2.7 | contamination control strategy | I-1 |
-| | 3.1-3.2 | PQS: release review, investigations | I-1 |
-| | 4.1-4.36 | premises, grades, barrier technology (4.18-4.22), pressures, cleaning | I-1, I-2 |
-| | 5.1-5.9 | equipment | I-2 |
-| | 6.1-6.22 | utilities: WFI (6.7-6.15), steam (6.16-6.17), gases (6.18-6.19), alarms | I-2 |
-| | 7.1-7.18 | personnel, gowning, qualification | I-2 |
-| | 8.1-8.5 | terminally sterilised products | I-1 |
-| | 8.7-8.33 | aseptic preparation, finishing, CCI (8.22-8.25), inspection (8.30-8.33) | I-1, I-2 |
-| | 8.34-8.78 | sterilisation: moist heat, dry heat, radiation, EtO | I-1, I-2, I-4 |
-| | 8.79-8.95 | sterile filtration, PUPSIT (8.87), bioburden (8.93) | I-2 |
-| | 8.96-8.120 | FFS (8.96-8.104), BFS (8.105-8.120) | I-4 |
-| | 8.121-8.126 | lyophilisation | I-3 |
-| | 8.127-8.139 | closed and single-use systems | I-2 |
-| | 9.1-9.49 | EM (9.1-9.31), APS (9.32-9.49) | I-2 |
-| | 10.1-10.11 | QC: sterility (10.5-10.6), short shelf life (10.7, 10.10), media (10.8-10.9) | I-1 |
-| EU GMP Annex 11 | 4, 7, 9, 12, 14 (as already met by the kernel) | validation, data storage, audit trail, security, e-signature | reused |
-| 21 CFR Part 11 | 11.10, 11.50, 11.70, 11.100, 11.200, 11.300 (kernel) | records and signatures | reused |
-| 21 CFR 211 | 211.42(c)(10) | aseptic processing areas and their monitoring systems | I-2 |
-| | 211.63, 211.67, 211.68 | equipment, cleaning and sterilisation of equipment, automatic equipment | I-1 |
-| | 211.84(d), 211.94(c)-(d) | component testing, containers and closures (pyrogen removal, sterilisation) | I-1 |
-| | 211.100, 211.110(a), 211.111 | written procedures, in-process controls, time limits | I-1 |
-| | 211.113(b) | validated sterilisation of aseptic and sterile processes | I-1, I-2 |
-| | 211.160(b), 211.165, 211.167(a) | lab controls, release testing, sterility and pyrogen testing | I-1 |
-| | 211.186, 211.188, 211.192 | master and batch records, record review and investigations | reused + I-1 |
-| | 211.42(d), 211.46(d) | penicillin segregation (existing screens) | reused |
+| Operation in the right grade | SM 4.11, 4.11.1-4.11.2; SM Part XIII item 11; 211.42(c)(10); A1 4.2-4.4, 8.1-8.5 (terminally sterilised) | room classes per grade (master data); the block's EQUIP field for the room takes the class the formulation sets | a Y/N "room is Grade A" lets the wrong room pass unrecorded; the class filter costs nothing |
+| Room classified and requalified | SM 4.5, 4.6; A1 4.23-4.26, 4.32 | requalification as the room's qualification due date; EQUIP refuses a room past it | as above; the due date already exists for equipment |
+| Room cleaned and disinfected | SM 3.1-3.4; 211.56(b); A1 4.33-4.36 | INJ-01 line clearance: EQUIP (room clean status), LOT (disinfectant lot), TIMER (contact time), SIGN | the record must name agent, lot and contact time; nothing smaller records them |
+| Only authorised, qualified people in A/B (gowning, aseptic training, APS taken part in) | SM 5.3-5.7 (media fills by operators); 211.25(a), 211.28(c); A1 7.4-7.7 | Qualif. types GOWNING.<grade> and APS.<line>, each with valid-to; the area authorisation of the A/B rooms requires them | the kernel already blocks a signature in a controlled area without a valid authorisation; no new check |
+| Visual inspectors' eyesight | SM Part I 11.5.1 | Qualif. EYESIGHT with valid-to, required by the inspector role | as above |
+| Equipment calibrated, qualified, clean | 211.63, 211.67, 211.68; SM Part I; A1 5.1-5.9 | the existing EQUIP checks | existing |
 
-## 7. Slice order
+### 4.2 Preparation
 
-Each slice: tests named by control ID (`[ST-44]`, `[IN-47]`, plus `[INV-xx]`), CI green, one review, a Simplicity review
-of its screens, squash-merge, a few lines to the lead. At most 2-3 agents at once.
+| Item | Binding clause | Smallest means | Why nothing smaller |
+|---|---|---|---|
+| Components and RTU tubs accepted (incl. bioburden or endotoxin where specified) | 211.84(d), 211.94(c)-(d); A1 2.1(iv), 10.2 | INJ-02: LOT (status released, which already carries the QC result) | lot status already holds QC's decision |
+| Supplier-sterilised components (gamma, e-beam, EtO) | 211.94(c); A1 8.72-8.78 (radiation, EtO) | INJ-03: LOT + TXT (certificate, dose or cycle reference) + Y/N (indicator changed) | the certificate reference must be in the record |
+| Container washing, siliconisation | 211.94(c) ("cleaned and, where indicated, sterilized and processed to remove pyrogenic properties"); A1 8.18(i)-(ii) | INJ-04: EQUIP, NUM (WFI temperature, pressure), TIMER, SIGN | parameters with limits need NUM |
+| Depyrogenation (tunnel, oven) | 211.94(c); 211.113(b); A1 8.66-8.70 | INJ-05: EQUIP, TXT (cycle number), NUM (temperature, belt speed or time, from the printout), Y/N (cycle passed), SIGN performed + CHECKED | the cycle parameters must be recorded against their limits; second-person check meets 211.68(b) for a typed printout |
+| Moist heat of parts and components | 211.113(b); SM 6.3-6.11.1; A1 8.41-8.59 | INJ-06: as INJ-05 + CHOICE (load pattern from the formulation's validated list) + NUM (F0 or hold time) | as above |
+| Sterilisation in place | 211.113(b); A1 8.63 | INJ-07: as INJ-05 | as above |
+| Aseptic assembly, connections, transfer into A/B | 211.113(b); A1 8.12-8.14, 8.47-8.49 | INJ-08: Y/N (each connection made under Grade A), SIGN | the record needs who and that it was done |
+| Bio-decontamination (VHP) of isolator | 211.113(b); A1 4.22 | INJ-09: as INJ-05 + DT (validity end, CALC) | as above |
+| Glove and sleeve integrity | A1 4.21 | INJ-10: per glove port (COUNT repeat): Y/N result, TXT tester ID, SIGN | per-port result is what the clause asks |
+| Single-use and closed systems | A1 8.127-8.139 | INJ-11: LOT (assembly), Y/N (integrity check before use), SIGN | as above |
+
+### 4.3 Processing
+
+| Item | Binding clause | Smallest means | Why nothing smaller |
+|---|---|---|---|
+| Solution preparation and compounding | 211.101, 211.103, 211.111; SM 5.12-5.17 | INJ-12: WEIGH, EQUIP (vessel; WFI point of use as equipment), NUM (WFI volume, temperature), TIMER (mixing), TEST (pH, density), CALC (volume make-up), Y/N (nitrogen overlay where the product needs it) | existing tablet patterns; nothing new |
+| Time limits (preparation to filtration, filtration to fill end, sterilisation to use, fill duration) | 211.111; SM 5.12-5.17, 4.11; A1 8.18 | DT in the earlier block, read through STEP_VALUE; CALC `duration` with its maximum | a TIMER cannot span blocks; CALC over two times already can |
+| Pre-filtration bioburden | 211.110(a), 211.113(b); SM 5.12-5.17; A1 8.93 | INJ-12 SAMPLE + INJ-26 TEST (result before release) + gate | the result arrives after filling; the gate already waits for release tests |
+| Bulk hold, bioburden-reducing filtration (terminally sterilised products) | 211.111; A1 8.36 | INJ-14: EQUIP (filter), DT, CALC (hold time) | as above |
+| Sterilising filtration, filter integrity pre- and post-use, PUPSIT where required | 211.113(b); SM 6.11.2; A1 8.79-8.95 (8.87 PUPSIT) | INJ-13: LOT (filter, its type checked against the formulation's registered filter by CHOICE "not allowed" values), NUM (integrity results: bubble point or diffusion, with limits) in sections "pre-use", "post-sterilisation pre-use" (shown only when the formulation says PUPSIT), "post-use"; NUM (pressure, time), SIGN | conditional section covers PUPSIT; nothing smaller records three tests with limits |
+| Homogenisation of non-filterable bulk (suspensions, emulsions, liposomes) | 211.113(b); A1 8.7-8.9 (aseptic preparation) | INJ-16: EQUIP, NUM (speed), TIMER, TEST (particle size) | as INJ-12 |
+| Filling (vial, ampoule, syringe, cartridge, bottle; liquid or powder) | 211.100, 211.110(a); A1 8.20-8.21 | INJ-15: EQUIP (line, room), CHOICE (format from the formulation), NUM per interval (fill weight; CALC volume by `volume_from_mass`), CONT (output trays), events repeat (section 3) for interventions and stoppages | per-interval NUM covers IPC; events need the one shared change |
+| Fill weight or volume, device function tests (syringe glide, break-loose) | 211.110(a); A1 8.101, 8.115 | INJ-18: TEST per interval (n replicates, mean and individual limits) | existing TEST |
+| Interventions | 211.100(b); A1 8.16, 9.34 | events repeat in INJ-15: CHOICE (catalogue of the formulation, with "unlisted" raising an exception), TXT, DT, SIGN | an exception on "unlisted" reaches the gate as it is; no catalogue engine needed |
+| Stoppering, stopper height | A1 8.26-8.29 | INJ-15 Y/N (stopper-height check active) + NUM (rejects) | |
+| Ampoule fusion sealing | A1 8.22; SM 10.3-10.8 | INJ-19: EQUIP, NUM (flame settings), Y/N | |
+| Capping and crimping | SM 10.3-10.8; A1 8.26-8.29 | INJ-20: EQUIP, NUM (rejects), DT (stopper-to-crimp time; CALC with max where the formulation sets one) | |
+| Lyophilisation (loading, cycle, unloading) | 211.113(b); A1 8.121-8.126 | INJ-17: EQUIP (lyophiliser; its sterilisation and leak-test due dates as equipment due dates), DT loading start and end, TXT (cycle number), NUM (shelf temperatures, pressures, phase durations from the cycle printout), SIGN + CHECKED | as INJ-05 |
+| Terminal sterilisation, moist heat (F0), loads as sub-batches | 211.113(b), 211.167(a); SM 6.3-6.11.1; A1 8.1-8.5, 8.41-8.65 | INJ-21: PER_CONTAINER repeat over loads (each load a container of the batch): EQUIP (steriliser), CHOICE (load pattern), TXT (cycle), NUM (F0, temperature, time), Y/N (indicator), SIGN + CHECKED | loads as containers give per-load genealogy for free |
+| Terminal radiation of product | 211.113(b); A1 8.72-8.75 | INJ-21 variant: TXT (certificate), NUM (min and max dose), Y/N (dosimeters read) | |
+| Post-aseptic heat treatment | 211.113(b); A1 8.1 | INJ-21 used after INJ-15 | no extra block |
+| Parametric release | A1 8.54, 10.4 (refer to Annex 17) | not built until Annex 17 is checked (Q5); sterility test stays in the formulation | building it unchecked would be guidance dressed as law |
+| BFS run | A1 8.105-8.120; SM Part XIII (FFS section) | INJ-30: EQUIP, NUM (parison and mould temperatures, fill volume per interval), events repeat | |
+| FFS bags and bottles (LVP), overwrap | A1 8.96-8.104; SM Part XIII | INJ-29: as INJ-30 | |
+| RTU nested syringes, cartridges and vials: tub entry | A1 8.47-8.49 (transfers) | INJ-27: LOT (tub lot), CHOICE (transfer method: e-beam, wipe, VHP pass box), Y/N, SIGN | |
+| Plunger and middle stopper (PFS, cartridge, dual-chamber) | 211.100; A1 8.26 | INJ-28: EQUIP, TEST (position per interval) | |
+| Dual-chamber | as above | INJ-15 twice (diluent, drug), INJ-17 in-device lyo, INJ-28 | no extra block |
+| Sterile powder filling | 211.113(b); A1 8.7-8.21 | INJ-31: WEIGH (powder lots), INJ-15 in powder format, INJ-18 fill weight | |
+
+### 4.4 Contamination control
+
+| Item | Binding clause | Smallest means | Why nothing smaller |
+|---|---|---|---|
+| EM during the batch (viable air, surfaces, personnel; particles incl. Grade A) | SM 4.7-4.10 with Table 3, 4.8 (EM considered in batch release review); 211.42(c)(10)(iv); A1 9.1-9.31 | INJ-32 EM block: section per location (COUNT repeat from the formulation's sampling plan): SAMPLE, DT, TEST (CFU, entered by QC after incubation; alert and action limits from the formulation, which takes them from the sterile rule table), NUM (particle counts per size, from the counter report; continuous Grade A as the window's maximum) | the gate already waits for every block; a result over the action limit raises an exception and a deviation through the existing limit tiers |
+| Routine EM outside batch windows (Grade C/D, at rest) | SM 4.7; A1 9.4-9.8 | a non-product record: formulation "EM routine" built from INJ-32, run as a record with no product (as APS below) | same blocks, no batch link needed: a routine excursion is a site deviation, raised by the existing deviation screen |
+| Media fill (APS) | SM 5.3-5.7; 211.113(b); A1 9.32-9.49 | a media-fill formulation: INJ-12 (media), INJ-15 in APS mode, INJ-24 unit accountability, INJ-26 incubation and reading (TEST: contaminated units, limit 0); QA accepts. QA then extends Qualif. APS.<line> for the people and the line's qualification due date (equipment) with the existing screens | the line and people gates then work through existing due dates; no APS status engine |
+| WFI and clean steam results | SM 5.9; A1 6.7-6.17 | QC results on the point of use (equipment) feed its status; EQUIP refuses a point of use out of service | existing |
+| Disinfectants, sporicide rotation | SM 3.1-3.4 | INJ-01 LOT of the agent | |
+
+### 4.5 Inspection, testing and release
+
+| Item | Binding clause | Smallest means | Why nothing smaller |
+|---|---|---|---|
+| 100 % visual inspection: manual, semi-automatic, automated | SM 10.3-10.8, Part I 11.5.1; A1 8.30-8.33 | INJ-22: CHOICE (mode), SIGN (inspector; EYESIGHT and inspection qualif.), NUM per defect category (rejects), CALC (reject rate with alert limit), automated mode: TXT (machine run), NUM (counts from its report) | per-category counts are what the clause asks |
+| AQL of accepted units | A1 8.33 | INJ-22 section: SAMPLE (size by `table_lookup` on the AQL table as validated master data), NUM (defects found), CALC (accept or reject number) | existing `table_lookup` |
+| Container closure integrity (100 % for fusion-sealed; sampled otherwise; deterministic or dye methods) | SM 10.3-10.8 (vacuum-sealed containers); A1 8.22-8.25 | INJ-23: CHOICE (method), NUM (units tested, failures), Y/N | |
+| Unit accountability | 211.188(b), 211.192; SM 10.3-10.8; A1 9.41 (APS) | INJ-24: CALC `accountability` (filled = inspected + rejects + samples + losses), limit 0 unexplained | existing |
+| Sterility sampling (start, middle, end, after interventions, per load) | 211.165(a), 211.167(a); SM 2.1-2.3; A1 10.6 | INJ-25: SAMPLE per point; per-load samples in the INJ-21 repeat | |
+| Sterility, endotoxin (BET), particulate matter, other release tests; rapid microbial methods | 211.165, 211.167(a); SM 2.1-2.4; A1 10.1-10.11 | INJ-26: TEST (QC roles), CHOICE (method incl. a validated RMM); gate waits for them | existing release-test blocks pattern |
+| Sterility pass never overrides a process failure | A1 2.2, 2.7, 10.5; 211.192 | the gate refuses release while any exception or deviation of the batch is open | existing |
+| Short-shelf-life conditional release | A1 10.7, 10.10 | not built (Q8): neither Schedule M nor 211 allows release before results; EU-only and optional | |
+| Labelling and packaging | 211.122-211.137; SM Part I | the existing generic packaging library blocks | existing |
+| Penicillin / beta-lactam and cytotoxic segregation | 211.42(d), 211.46(d); SM Part I; EU GMP Part I 3.6 | the existing plant rules (recipe-core 0890, 0912, 0973, 1655) in the injectables database, unchanged | existing |
+
+### 4.6 Equipment data
+
+Owner scope item, not required by a binding clause (211.68(b) is met by typed values with a second-person check).
+Smallest form, slice I-5: the existing gateway drivers write device originals (DI-32); the NUMBER field of section 3
+fills its value from the original of the run the operator picks, and the operator confirms. Profiles for autoclave,
+tunnel, lyophiliser, filling line, EM particle counter, filter integrity tester, inspection and CCIT machines. Needs the
+site gateway unfrozen for these profiles only (Q2).
+
+## 5. Library blocks (data, 32)
+
+INJ-01 line clearance and room readiness; 02 component and RTU acceptance; 03 supplier-sterilised components; 04
+washing and siliconisation; 05 depyrogenation; 06 moist heat of parts; 07 SIP; 08 aseptic assembly and transfer; 09
+VHP; 10 glove integrity; 11 single-use systems; 12 compounding; 13 sterilising filtration and integrity; 14 bulk hold
+and bioburden filtration; 15 filling and stoppering (format slot; APS mode); 16 homogenisation; 17 lyophilisation; 18
+fill weight and device IPC; 19 ampoule sealing; 20 capping; 21 terminal sterilisation; 22 visual inspection and AQL; 23
+CCI; 24 accountability; 25 sterility sampling; 26 release and media-fill tests; 27 RTU tub entry; 28 plunger and
+middle stopper; 29 FFS/LVP; 30 BFS; 31 powder handling; 32 EM.
+
+## 6. Slices
+
+Each: tests named by control ID, CI green, one review, the Simplicity review of section 8, squash-merge, a few lines to
+the lead. Migration numbers (if any) from a range the lead reserves first.
 
 | Slice | Content | Done when |
 |---|---|---|
-| **I-0 Edition skeleton** | shared host packages (moved, not changed); `ebmr_injectables` migrations and `inj` schema; edition badge; per-edition trace report; sterile clause re-check list; the Q1 list for the owner | the Tablets suite, golden batches and browser suite pass unchanged; the injectables app signs on and shows an empty library |
-| **I-1 Terminally sterilised small-volume vials and ampoules** | `DEVICE_RECORD`, F0 in expr, plant states; M1 basic (grade and qualification gate), M7 time limits, M8 minimal; blocks INJ-01, 02, 04, 05, 06, 12, 14, 15 (vial and ampoule), 18, 19, 20, 21, 22 (manual), 23 (fusion seal 100 %), 24, 25, 26; autoclave and tunnel adapters | a sterile formulation is built on screen from the library and a sandbox batch of each (vials, ampoules) runs to release |
-| **I-2 Aseptic fill, EM and media fill** | M1 full, M2, M3, M4, M5, M6; blocks INJ-03, 07, 08, 09, 10, 11, 13, 16; barrier profiles (isolator, RABS, open A); EM counter, VHP, integrity-tester and filling-line adapters | an aseptic vial batch and an APS run end to end; an EM action excursion holds the linked batches |
-| **I-3 Lyophilisation** | INJ-17; lyo envelope items in M4; lyophiliser adapter | a lyophilised vial batch runs to release |
-| **I-4 Other containers and routes** | PFS and cartridges (INJ-27, 28), LVP bags and bottles and FFS (INJ-29), BFS (INJ-30), dual-chamber, sterile powder (INJ-31), suspensions and emulsions, terminal radiation, post-aseptic heat treatment | one sandbox batch per form |
-| **I-5 Automated inspection, CCIT and RMM** | INJ-22 semi-automatic and automated, INJ-23 deterministic methods, RMM in INJ-26; inspection and CCIT adapters | automated runs bind to the batch; RMM results gate release |
-| **I-6 Edition exit** | `injectables` added to `compliance/phase.yaml` editions; full trace of the 91 controls; golden batches (one per I-1..I-3 form); browser suite; one review pass | trace green with the edition in the gate |
+| I-0 | edition configuration (section 2); confirm or drop the section-3 changes; the per-control table for Q1 | Tablets suite unchanged; the injectables edition signs on with an empty library |
+| I-1 Terminally sterilised small-volume vials and ampoules | INJ-01, 02, 04, 05, 06, 12, 14, 15, 18, 19, 20, 21, 22 (manual), 23, 24, 25, 26; grade room classes, qualifications | a vial batch and an ampoule batch built on screen and run to release in the sandbox |
+| I-2 Aseptic fill, EM, media fill | INJ-03, 07, 08, 09, 10, 11, 13, 32; events repeat; media-fill and routine-EM formulations; isolator, RABS and open Grade A set-ups | an aseptic vial batch and a media fill run to the end; an action-level EM result blocks release |
+| I-3 Lyophilisation | INJ-17 | a lyophilised vial batch to release |
+| I-4 Other containers and routes | INJ-16, 27, 28, 29, 30, 31; dual-chamber; radiation | one sandbox batch per form |
+| I-5 Automated inspection, CCIT, RMM, equipment data | INJ-22 automated, INJ-23 deterministic, RMM in INJ-26; device-filled NUMBER and adapter profiles | runs from the simulator fill the fields |
+| I-6 Edition exit | `injectables` in `compliance/phase.yaml` editions; trace per Q1's outcome; golden batches; browser suite; one review | trace green with the edition in the gate |
 
-I-1 and later split into sub-slices of one PR each (about 4-6 per slice), planned at the start of the slice.
+The trace gate stays Tablets-only until I-6; meanwhile a per-edition trace report lists each slice's controls.
 
-## 8. Trace gate during the build
-
-Adding `injectables` to `compliance/phase.yaml` today would make all 91 controls due at once (target phase 5, current
-phase 7), so the gate stays as it is until I-6. Meanwhile a per-edition trace report (`pnpm trace --edition
-injectables`) lists each control's tests; a slice's own controls must be fully proven by that report before it merges
-(a `[meta]` test in tools/register holds the list per slice). No control file and no `expert_decision` changes.
-
-## 9. Screens and simplicity
-
-The floor uses the generic library renderer; no per-block screens. New screens only for the modules: the clean-area
-board (one tile per room: grade, status, validity, live pressure and particles), EM entry and results, the APS board
-per line, the intervention quick log (one tap, big targets, works with gloves on a terminal), inspection counts, and the
-sterile release dossier. Each slice ends with a Simplicity review: fewest clicks per act, plain words, one primary action
-per screen, every block readable on a terminal, no sterile jargon a trained operator would not use.
-
-## 10. Risks
+## 7. Risks
 
 | Risk | Mitigation |
 |---|---|
-| The host move collides with the Tablets session (PR #100 and later) | I-0 waits for an agreed window with the lead; a mechanical `git mv` with import rewrites only; Tablets suite unchanged as the acceptance |
-| The sterile modules grow into a second product | each module is limited to the controls listed in section 3; anything else is a block (data) |
-| `DEVICE_RECORD` grows into block programs again | one generic type; machine specifics are adapter profiles and formulation values, never field-type code |
-| Guidance-derived behaviours in the controls conflict with the owner's binding-only rule | Q1: the owner decides, through `expert_decision`; meanwhile the controls are built as written |
-| Edition-local data versus shared site data (persons, lots) | ADR 0001 mirrors and reservations already exist; I-0 proves one person and one lot across both editions |
-| Size: 91 controls, about 31 library blocks, 8 modules | slice order puts the simplest route first; each slice is usable on its own |
-| Equipment interfaces differ per site | manual entry with printout and second-person check is always available in `DEVICE_RECORD` |
+| The 91 controls ask for more than the binding minimum (an APS status engine, cross-batch EM linkage, an intervention catalogue engine, a numeric-floor table, …). At I-6 the trace would fail them | Q1: the owner, as expert, records DONT_FOLLOW or MODIFY per clause; I-0 supplies the table. No control file is edited by the build |
+| A block grows into code again | the rule of section 1; a slice that needs code stops and asks the lead with the clause |
+| One application for two editions blurs their validation | there is no sterile code; each edition's content lives in its own database and is approved there |
+| Typed printout values are slower than device data | the second-person check is the binding minimum; device fill comes in I-5 |
+| Sibling editions (Capsules, API) change the same shared parts | every shared change goes through the lead; API may reuse the sterile blocks and rule table for sterile APIs through the lead |
 
-## 11. Open questions
+## 8. Simplicity review
+
+**What v2 cut, and why it is safe:** the eight sterile modules (clean areas, EM, people, APS, interventions,
+utilities, time limits, sterile release), the `DEVICE_RECORD` field type, the F0 recomputation, the shared-host
+extraction, the conditional release and the parametric release (until Q5). Each binding clause behind them is met in
+section 4 by a block, a qualification, a due date or the gate.
+
+**Checks each slice's review applies (the reviewer signs the list in the PR):**
+1. Every new thing names its binding clause; anything without one is removed.
+2. No new code where a block of existing field types works; no new screen where the generic block screen works.
+3. An operator act takes one screen, one primary action, and at most one signature unless the clause asks for two.
+4. Words an operator uses on the floor; no internal codes on screen.
+5. Every block readable and usable on a terminal with gloves (large targets).
+6. Defaults filled from the formulation; the operator types only what was measured.
+7. Nothing asked twice (a value in an earlier block is read, not re-entered).
+
+## 9. Open questions
 
 | # | Question | Default if no answer |
 |---|---|---|
-| Q1 | Some control behaviours rest only on guidance (mainly FDA 2004 aseptic guidance: the enforced FDA APS incubation scheme, FDA APS reassessment triggers, FDA alert-level examples). Under the binding-only rule the owner, as expert, may mark those clauses DONT_FOLLOW or MODIFY. I-0 delivers the list. | built as written until the owner records an expert decision |
-| Q2 | Unfreeze the site gateway (decision 0026) for the sterile adapters only? | yes, adapters only |
-| Q3 | Platform: is Injectables the same platform product `ebmr` (edition chosen per deployment, own database), or a second product entry in databsee? New `ebmr.*` permission codes for sterile acts (EM, APS, interventions, inspection) go to the lead. | same product `ebmr`, codes sent to the lead per slice |
-| Q4 | Prefilled syringes, cartridges and dual-chamber are combination products (US 21 CFR Part 4; EU MDR Article 117). The register's Part 4 row is unverified. The eBMR covers the drug manufacturing record and device functional tests only; device design controls are out. | as stated |
-| Q5 | Parametric release needs EU Annex 17, which is not in the register yet. | INJ-21 builds the parametric acceptance set; release by it stays off until Annex 17 is checked |
-| Q6 | Outline 2.4 left out sterile powder filling, biologics (Annex 2), radiopharmaceuticals, advanced therapies and continuous manufacturing. The plan now includes sterile powder filling (a filling method). Biologics, radiopharmaceuticals, advanced therapies and continuous manufacturing are product classes or regimes with their own binding annexes. | in the plan only if the owner says so; flagged here, not dropped silently |
-| Q7 | I-0 moves shared code out of `apps/tablets-*`. It needs a window agreed with the Tablets session. | after PR #100 merges, in a quiet window the lead names |
+| Q0 | **What counts as binding.** Annex 1 and Revised Schedule M are written almost entirely with "should", yet both are binding: Annex 1 is part of the EU GMP guide that EU law makes the standard for authorised manufacturers, and Schedule M is a schedule of the Drugs Rules that licences require. A "shall/must only" filter would remove nearly all of both. Proposal: every numbered requirement of these instruments counts; excluded are separate guidance documents, items the text itself calls examples or recommended values (e.g. Annex 1's 10 Pa step, "for information" tables), and anything only in FDA guidance. | the proposal; no slice starts before the owner confirms |
+| Q1 | The controls ST-01..79 and IN-40..51 specify more than the minimum of section 4. The owner, as expert, records per clause FOLLOW, DONT_FOLLOW or MODIFY; I-0 gives the table (clause, binding source or none, what section 4 builds). | the build follows section 4; I-6 cannot pass until the owner decides |
+| Q2 | Unfreeze the site gateway (decision 0026) for the I-5 profiles only? | yes, profiles only |
+| Q3 | Same platform product `ebmr` with an edition setting (no new permission codes foreseen)? | yes |
+| Q4 | Prefilled syringes, cartridges and dual-chamber are combination products (US 21 CFR Part 4, EU MDR Article 117). The register's Part 4 row is unverified. The eBMR records the drug manufacture and the device function tests only. | as stated |
+| Q5 | Parametric release needs EU Annex 17 checked first. | not built until then |
+| Q6 | Biologics (Annex 2), radiopharmaceuticals (Annex 3), advanced therapies and continuous manufacturing are product classes or regimes with their own binding texts, outside the listed scope. | flagged, not built unless the owner adds them |
+| Q7 | ADR 0001 point 1 (own server application per edition) changes to "one application, one database per edition". | the lead records the amendment |
+| Q8 | Conditional release of short-shelf-life products (Annex 1 10.7, 10.10) is optional in the EU and has no basis in Schedule M or 211. | not built |
