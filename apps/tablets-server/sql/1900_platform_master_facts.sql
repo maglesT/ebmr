@@ -6,7 +6,7 @@
 --
 -- Handbook: modules/kernel.md (platform build)
 --
---   md.item_map        insert-only id map: Batchwright's local code of an item ↔ the master item's id. The first active
+--   md.item_map        insert-only id map: this installation's local code of an item ↔ the master item's id. The first active
 --                      fact links them (the master code then equals the local code); a later rename at core keeps the
 --                      link, so records keep their own code (PL-07).
 --   md.master_fact     insert-only evidence of each write-time read: the item as the master view gave it (id, code,
@@ -48,7 +48,7 @@ create table md.item_map (
 select iam.protect_log('md.item_map');
 
 create table md.master_fact (
-  id          bigint generated always as identity primary key,
+  id          uuid primary key default gen_random_uuid(),
   xact_id     xid8 not null default pg_current_xact_id(),
   kind        text not null check (kind in ('product', 'room', 'equipment', 'instrument', 'material')),
   local_code  text not null check (btrim(local_code) <> ''),
@@ -103,7 +103,7 @@ begin
   select master_id into v_mapped from md.item_map where kind = p_kind and local_code = p_local_code;
   select * into v_fact from md.master_fact
    where xact_id = pg_current_xact_id_if_assigned() and kind = p_kind and local_code = p_local_code
-   order by id desc limit 1;
+   order by read_at desc limit 1;
   if v_fact.id is null then
     raise exception using errcode = 'EBM01',
       message = format('The write needs the master data of %s %s. [EBMR-MD-000]', p_kind, p_local_code),

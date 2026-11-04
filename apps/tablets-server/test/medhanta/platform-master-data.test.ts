@@ -57,7 +57,7 @@ afterAll(async () => {
 const q = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => (await plat.db.admin.query(sql, params)).rows as T[];
 const factsOf = (kind: string, code: string) =>
   q<{ master_id: string | null; code: string | null; name: string | null; version: string | null; active: boolean }>(
-    'select master_id, code, name, version, active from md.master_fact where kind = $1 and local_code = $2 order by id', [kind, code]);
+    'select master_id, code, name, version, active from md.master_fact where kind = $1 and local_code = $2 order by read_at', [kind, code]);
 
 describe('the write-time active-item check (PL-08)', () => {
   it('[PL-08][PL-07] a product is defined only while core holds it active, with the name core holds; the read is recorded in the write and links the id map', async () => {
