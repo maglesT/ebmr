@@ -25,6 +25,7 @@ behaviour: |-
 catalog_test: In the AI feature inventory, no feature changes GMP data without a human e-signature.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/medhanta/platform-published-views.test.ts > the published report views (PL-08, PL-13) > [PL-08][DI-51][PR-60] a login reads only the views it was granted: the view's function refuses any other"
   - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51][PR-60] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
   - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [PR-60] the analytics catalogue lists every method and none changes GMP data"
   - "apps/tablets-web/test/analytics/analytics.test.tsx > analytics screens (GMP) > [PR-60] the overview lists every method with its intended use and \"changes GMP data: no\""
