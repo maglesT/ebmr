@@ -170,7 +170,7 @@ middle stopper; 29 FFS/LVP; 30 BFS; 31 powder handling; 32 EM.
 ## 6. Slices
 
 Each: tests named by control ID, CI green, one review, the Simplicity review of section 8, squash-merge, a few lines to
-the lead. Migration numbers (if any) from a range the lead reserves first.
+the lead. Migration numbers: the injectables namespace has 3000–3999 (reserved by the lead; API has 5000–5999). A migration in a shared directory takes the next free number, cleared with the lead first. The API edition builds on I-0, so the edition setting stays fully neutral.
 
 | Slice | Content | Done when |
 |---|---|---|
