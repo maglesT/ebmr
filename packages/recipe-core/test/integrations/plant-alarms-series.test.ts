@@ -48,6 +48,14 @@ async function pressInUse(label: string, step = 'p-compress@1'): Promise<{ press
   return { press, batchId: b.id, product };
 }
 
+/**
+ * The database's clock now, in epoch microseconds. A message that must fall inside a step bound a moment ago takes its
+ * source time from here: the client clock (nowUs, whole milliseconds) can read up to a millisecond before the binding.
+ */
+async function dbNowUs(): Promise<string> {
+  return (await db.app.query<{ us: string }>("select (extract(epoch from clock_timestamp()) * 1000000)::bigint::text as us")).rows[0]!.us;
+}
+
 async function defineCode(source: string, alarmCode: string, gmpCritical: boolean, deviationRequired = false): Promise<number> {
   return w.run(w.cast.steward, async (c) => (await c.query<{ v: number }>('select plant.define_alarm_code($1, $2, $3, $4, $5) as v', [source, alarmCode, gmpCritical, deviationRequired, `${alarmCode} test`])).rows[0]!.v);
 }
@@ -67,7 +75,7 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
     const { press, batchId } = await pressInUse('ALM-1');
     const alarmCode = code('FORCE_MAIN_HIGH');
     expect(await defineCode('OPCUA', alarmCode, true)).toBe(1);
-    const raised = alarmPayload(press.code, { alarmCode });
+    const raised = alarmPayload(press.code, { alarmCode, occurredAt: await dbNowUs() });
     const r = await sendAlarm(raised);
     expect(r).toMatchObject({ outcome: 'ACCEPTED', applied: 'RAISED' });
     const alarmId = r['alarmId'] as string;
@@ -77,7 +85,7 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
     expect(before).toEqual({ gmp_critical: true, code_version: 1, limit_value: '18.00', limit_kind: 'HIGH', value: '18.40', us: raised.occurredAt });
     // Unacknowledged, it blocks the step (builder B wires this into the step signature and review).
     expect((await db.app.query<{ p: string | null }>('select plant.alarm_problem($1, $2) as p', [batchId, 'p-compress@1'])).rows[0]!.p).toMatch(new RegExp(`EBMR-ALM-020 .*${alarmCode}`));
-    await sendAlarm({ ...raised, transition: 'CLEARED', occurredAt: nowUs() });
+    await sendAlarm({ ...raised, transition: 'CLEARED', occurredAt: await dbNowUs() });
     await acknowledge(alarmId, 'Reduced fill depth; force back in range', 'Excursion of 0.4 kN for 3 s; tablets from the window rejected');
     const log = (await db.app.query<Record<string, unknown>>('select * from plant.batch_alarms($1)', [batchId])).rows;
     expect(log).toHaveLength(1);
@@ -160,7 +168,7 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
       alarmPayload(room.code, { subjectKind: 'AREA', alarmCode: code('RH_HIGH'), tag: 'room.rh_pct', value: { value: '61.2', unit: '%RH' }, limit: { value: '60.0', unit: '%RH' } }),
       ems,
     );
-    const pressAlarm = await sendAlarm(alarmPayload(press.code, { alarmCode: code('REJECT_BURST'), tag: null, value: null, limit: null, limitKind: 'STATE' }));
+    const pressAlarm = await sendAlarm(alarmPayload(press.code, { alarmCode: code('REJECT_BURST'), tag: null, value: null, limit: null, limitKind: 'STATE', occurredAt: await dbNowUs() }));
     const ids = (await db.app.query<{ id: string; step: string | null }>('select id, step from plant.batch_alarms($1) order by step nulls first', [batchId])).rows;
     expect(ids).toEqual([{ id: roomAlarm['alarmId'], step: null }, { id: pressAlarm['alarmId'], step: 'p-compress@1' }]);
     // A unit not in use: the alarm is logged with no batch.
@@ -192,7 +200,7 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
 
   it('[DI-49] equipment events are recorded in the batch context; a repeated event id and an unknown unit are refused', async () => {
     const { press, batchId } = await pressInUse('EVT-1');
-    const ev = { equipmentCode: press.code, eventId: `e-${randomBytes(4).toString('hex')}`, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'Press running', occurredAt: nowUs() };
+    const ev = { equipmentCode: press.code, eventId: `e-${randomBytes(4).toString('hex')}`, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'Press running', occurredAt: await dbNowUs() };
     const send = (p: unknown) => receive(db, opcua, 'plant.receive_equipment_event', envelopeFor(opcua, 'opcua.equipment_event', p));
     expect(await send(ev)).toMatchObject({ outcome: 'ACCEPTED', batchId, step: 'p-compress@1' });
     await expectRefused(send(ev), 'EBMR-EQD-004');
@@ -222,7 +230,7 @@ describe('native series and original records (DI-32)', () => {
 
   it('[DI-32] trend data are kept in native form: raw values, source timestamps and status codes as received, the chunk hash recomputed, linked to the batch and step', async () => {
     const { press, batchId } = await pressInUse('SER-1');
-    const t0 = BigInt(nowUs());
+    const t0 = BigInt(await dbNowUs());
     const r = await sendChunk(chunk(press.code, '1', t0));
     expect(r).toMatchObject({ outcome: 'ACCEPTED', applied: 'RECORDED', samples: '3' });
     const row = (await db.app.query<{ samples: unknown[]; from_us: string; to_us: string }>('select samples, from_us::text, to_us::text, chunk_hash from plant.series where id = $1', [r['seriesId']])).rows[0]!;
@@ -242,7 +250,7 @@ describe('native series and original records (DI-32)', () => {
 
   it('[DI-32] a rounded shown value, a BAD sample with a value, a changed sample, a wrong tag or unit, a repeated or overlapping chunk is refused', async () => {
     const press = await servedPress();
-    const t0 = BigInt(nowUs());
+    const t0 = BigInt(await dbNowUs());
     const rounded = chunk(press.code, '1', t0, { samples: [{ sourceTime: t0.toString(), serverTime: null, raw: '12.499', value: '12.50', status: '0x00000000' }] });
     await expectRefused(sendChunk(rounded), 'EBMR-EQD-001', /DI-32: the shown value 12.50 is not the raw value 12.499/);
     const bad = chunk(press.code, '1', t0, { samples: [{ sourceTime: t0.toString(), serverTime: null, raw: '12.5', value: '12.5', status: '0x80000000' }] });
