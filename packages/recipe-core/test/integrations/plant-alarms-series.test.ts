@@ -165,7 +165,7 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
     await w.clear(room.code, 'PRODUCT_CHANGE', { batch: 'ALM-4', product });
     await w.startIn(room.code, { batch: 'ALM-4', product });
     const roomAlarm = await sendAlarm(
-      alarmPayload(room.code, { subjectKind: 'AREA', alarmCode: code('RH_HIGH'), tag: 'room.rh_pct', value: { value: '61.2', unit: '%RH' }, limit: { value: '60.0', unit: '%RH' } }),
+      alarmPayload(room.code, { subjectKind: 'AREA', alarmCode: code('RH_HIGH'), tag: 'room.rh_pct', value: { value: '61.2', unit: '%RH' }, limit: { value: '60.0', unit: '%RH' }, occurredAt: await dbNowUs() }),
       ems,
     );
     const pressAlarm = await sendAlarm(alarmPayload(press.code, { alarmCode: code('REJECT_BURST'), tag: null, value: null, limit: null, limitKind: 'STATE', occurredAt: await dbNowUs() }));
