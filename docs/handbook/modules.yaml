@@ -337,7 +337,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0732_', '^075[01]_', '^080[23]_', '^1530_']
+      packages/site-services/sql: ['^0732_', '^075[01]_', '^080[23]_', '^1530_', '^1730_']
     tests: ['packages/site-services/test/mutation/erp-interfaces.test.ts']
 
   - id: ss-shipping
@@ -516,7 +516,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^042\d_', '^0540_', '^074\d_']
+      packages/recipe-core/sql: ['^042\d_', '^0540_', '^074\d_', '^1870_']
     src: [packages/recipe-core/src/containers]
     tests:
       - 'packages/recipe-core/test/containers/**'

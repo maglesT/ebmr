@@ -39,7 +39,7 @@ of each database function.
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 83 | 41 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
-| [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 6 | 0 | 1 | 3 |
+| [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 1 | 3 |
 | [ss-shipping](#ss-shipping) | Manufacturer release guard, shipping interlock and after-release lot exits | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 6 |
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 18 | 0 | 9 | 27 |
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 16 | 0 | 6 | 15 |
@@ -60,7 +60,7 @@ of each database function.
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 5 | 0 | 0 | 0 |
 | [rc-reporting](#rc-reporting) | Reporting views and the change-impact query (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 0 |
-| [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
+| [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 17 | 0 | 3 | 8 |
 | [rc-blocks](#rc-blocks) | Generic block versions (G-06, G-21 and others) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 13 | 55 |
@@ -701,9 +701,9 @@ of each database function.
 
 **ERP masters and production orders.** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (6):
+**Migrations** (7):
 
-- `packages/site-services/sql`: [0732_erp_product_master.sql](../../packages/site-services/sql/0732_erp_product_master.sql), [0750_erp_material_master.sql](../../packages/site-services/sql/0750_erp_material_master.sql), [0751_erp_production_orders.sql](../../packages/site-services/sql/0751_erp_production_orders.sql), [0802_erp_master_confirmation.sql](../../packages/site-services/sql/0802_erp_master_confirmation.sql), [0803_erp_beta_lactam_confirmed.sql](../../packages/site-services/sql/0803_erp_beta_lactam_confirmed.sql), [1530_master_data_on_screen.sql](../../packages/site-services/sql/1530_master_data_on_screen.sql)
+- `packages/site-services/sql`: [0732_erp_product_master.sql](../../packages/site-services/sql/0732_erp_product_master.sql), [0750_erp_material_master.sql](../../packages/site-services/sql/0750_erp_material_master.sql), [0751_erp_production_orders.sql](../../packages/site-services/sql/0751_erp_production_orders.sql), [0802_erp_master_confirmation.sql](../../packages/site-services/sql/0802_erp_master_confirmation.sql), [0803_erp_beta_lactam_confirmed.sql](../../packages/site-services/sql/0803_erp_beta_lactam_confirmed.sql), [1530_master_data_on_screen.sql](../../packages/site-services/sql/1530_master_data_on_screen.sql), [1730_erp_master_content_as_signed.sql](../../packages/site-services/sql/1730_erp_master_content_as_signed.sql)
 
 **Database objects** created in these migrations:
 
@@ -1059,9 +1059,9 @@ of each database function.
 
 **Output containers.** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (6):
+**Migrations** (7):
 
-- `packages/recipe-core/sql`: [0420_output_containers.sql](../../packages/recipe-core/sql/0420_output_containers.sql), [0421_machine_output_container_v1.sql](../../packages/recipe-core/sql/0421_machine_output_container_v1.sql), [0422_output_container_commands.sql](../../packages/recipe-core/sql/0422_output_container_commands.sql), [0540_press_codes_and_hold_race.sql](../../packages/recipe-core/sql/0540_press_codes_and_hold_race.sql), [0740_container_close_net_check.sql](../../packages/recipe-core/sql/0740_container_close_net_check.sql), [0741_container_release_after_hold_closed.sql](../../packages/recipe-core/sql/0741_container_release_after_hold_closed.sql)
+- `packages/recipe-core/sql`: [0420_output_containers.sql](../../packages/recipe-core/sql/0420_output_containers.sql), [0421_machine_output_container_v1.sql](../../packages/recipe-core/sql/0421_machine_output_container_v1.sql), [0422_output_container_commands.sql](../../packages/recipe-core/sql/0422_output_container_commands.sql), [0540_press_codes_and_hold_race.sql](../../packages/recipe-core/sql/0540_press_codes_and_hold_race.sql), [0740_container_close_net_check.sql](../../packages/recipe-core/sql/0740_container_close_net_check.sql), [0741_container_release_after_hold_closed.sql](../../packages/recipe-core/sql/0741_container_release_after_hold_closed.sql), [1870_output_container_content_as_signed.sql](../../packages/recipe-core/sql/1870_output_container_content_as_signed.sql)
 
 **Database objects** created in these migrations:
 

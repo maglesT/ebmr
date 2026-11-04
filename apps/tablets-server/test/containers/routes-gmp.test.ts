@@ -57,7 +57,7 @@ async function closeTyped(c: ContainerView, net: string) {
 const listed = async (id: string) => (valueOf(await verifier.call(routes.containers.list, { query: { batchId } })).containers.find((c) => c.containerId === id));
 
 describe('container routes (GMP, Phase 4 slice 1b)', () => {
-  it('[DI-30][INV-03] a typed close is listed as unusable until a second person verifies it through the ceremony; the closer is refused', async () => {
+  it('[DI-30][INV-03][DI-22][INV-09] a typed close is listed as unusable until a second person verifies it through the ceremony, which keeps its signed content; the closer is refused', async () => {
     const c = await open();
     expect(c).toMatchObject({ state: 'OPEN', batchId, closeBasis: null });
     const closed = valueOf(await closeTyped(c, '18.250'));
@@ -68,6 +68,11 @@ describe('container routes (GMP, Phase 4 slice 1b)', () => {
     const ok = await signAction(verifier, 'verifier1', act);
     expect(ok.ok, ok.ok ? '' : JSON.stringify(ok.error)).toBe(true);
     expect(await listed(c.containerId)).toMatchObject({ netVerifiedBy: { personId: personaIn(w.gmp, 'verifier1').personId }, usableProblem: null });
+    // Issue #95 [DI-22][INV-09]: the verification keeps the content it signed (who verified and when are the signature's own).
+    const { rows: problems } = await w.gmp.db.admin.query(
+      `select v.problem from esig.verify_signatures() v join esig.signature s on s.id = v.signature_id
+        where s.aggregate_type = 'output_container' and s.aggregate_id = $1`, [c.containerId]);
+    expect(problems).toEqual([]);
     // A second verification is refused (once is enough; the ceremony rolls back whole).
     expect((await signAction(verifier, 'verifier1', act)).ok).toBe(false);
   }, 180_000);
