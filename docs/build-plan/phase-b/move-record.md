@@ -40,21 +40,23 @@ Tests: `tools/platform/test/move.test.ts`, tagged [PL-01], [PL-03], [PL-07], [PL
 
 ## Run on a copy of today's demo (4 November 2026)
 
-The source was today's full demo set-up (`setup.ts --gmp-review-batch --gmp-packaging --gmp-sr-profile
---gmp-p3-demo`), built on this tree in a scratch cluster. The live demo server was not touched. The platform side was
-a platform-initialised `ebmr`, with stand-ins for identity and master_data. master_data held the demo company's
-items named in `demo-code-map.json`.
+**Source.** Today's full demo set-up, built from branch `standalone` (0bb289c, the code the live demo runs):
+`setup.ts --gmp-review-batch --gmp-packaging --gmp-sr-profile --gmp-p3-demo`, in a scratch cluster. The live demo
+server was not touched.
+
+**Platform side.** A platform-initialised `ebmr`, migrated by this branch's platform migrator, with stand-ins for
+identity and master_data. master_data held the demo company's items named in `demo-code-map.json`.
 
 | | |
 |---|---|
-| Result | PASS, committed, in 107 s |
-| Source | 623 tables, 73,504 rows; restored copy identical (counts and hashes) |
-| Upgrade drill (platform migrations) | PASS |
-| Signatures | 62 problems after, all 62 already in the source (none added) |
+| Result | PASS, stage DONE (committed), in 102 s |
+| Source | 617 tables, 73,415 rows; restored copy identical (counts and hashes) |
+| Upgrade drill (standalone → this branch with the platform migrations) | PASS, full evidence (records rendered, signatures and units sampled) |
+| Signatures | 62 problems after, all 62 already in the source (none added; issue #95) |
 | People | 28 moved, all new in core; 0 refused |
 | Master items | 39 linked through the code map, 71 created as moved items |
 | Checks | every account mapped; no local grant left; every item linked; no login reads a verifier; platform build on |
 
-**Finding for the lead:** the demo source itself has 62 signatures that `esig.verify_signatures()` reports as
+**Finding for the lead (issue #95):** the demo source itself has 62 signatures that `esig.verify_signatures()` reports as
 `CONTENT_CHANGED_WITHOUT_INVALIDATION` (INV-09). This is the standalone build's demo data and is not caused by the
 move. It needs a look before go-live.
