@@ -60,8 +60,12 @@ SU=<platform superuser>   # the db service's superuser
    ```sh
    plat exec -T db createdb -U $SU ebmr_move_source
    plat exec -T db psql -U $SU -d ebmr_move_source -c 'revoke all on database ebmr_move_source from public'
-   plat exec -T db pg_restore -U $SU --no-owner --no-privileges -d ebmr_move_source < /backups/standalone-ebmr-<date>.dump
+   plat exec -T db pg_restore -U $SU -d ebmr_move_source < /backups/standalone-ebmr-<date>.dump
    ```
+   Keep the owners and grants (no `--no-owner --no-privileges`): the migrations of the move's upgrade drill run as
+   `ebmr_owner` and fail ("permission denied for schema iam") when the schemas belong to the superuser. The platform
+   has every ebmr role apply created; a standalone-only role (e.g. `ebmr_dev`) is reported by pg_restore and skipped.
+   (Go-live rehearsal 2026-11-04, MED-GOLIVE-001.)
 4. **Licence on.**
    - In `customers/<name>.yaml`, switch on the ebmr licence and its `links:` (master_data). Add a change_ref and a
      reason, commit, and let `apply.yml` apply the signed bundle. By hand on the server:
@@ -89,10 +93,14 @@ SU=<platform superuser>   # the db service's superuser
    Copy in the standalone installation's seal key (without it, moved signatures cannot show or verify), its number
    ledger (batch and record numbers are never issued twice), and the gateway's service keys if the site gateway is used:
    ```sh
-   plat run --rm --no-deps -v /backups/standalone-keys:/in ebmr \
-     sh -c 'cp /in/seal-key.json /var/lib/ebmr/keys/seal-key.json && cp /in/numbers.ledger.jsonl /var/lib/ebmr/numbers.ledger.jsonl \
-            && chmod 600 /var/lib/ebmr/keys/seal-key.json'
+   # --entrypoint sh: the image's entrypoint knows only "migrate" and "move" and starts the server for anything else.
+   # The files must be readable by the image's node user (uid 1000): chown 1000 a root-only copy of the folder first.
+   plat run --rm --no-deps --entrypoint sh -v /backups/standalone-keys:/in ebmr \
+     -c 'cp /in/seal-key.json /var/lib/ebmr/keys/seal-key.json && cp /in/numbers.ledger.jsonl /var/lib/ebmr/numbers.ledger.jsonl \
+         && cp /in/service-keys.json /var/lib/ebmr/keys/service-keys.json && chmod 600 /var/lib/ebmr/keys/*.json \
+         && cd /var/lib/ebmr && sha256sum keys/seal-key.json keys/service-keys.json numbers.ledger.jsonl'
    ```
+   Compare the sums with the standalone files' and record both.
    The files belong to the node user, as the image creates the volume: keys mode 0600, the keys folder 0700. Keep
    `secrets.json`: the migrator generated it once.
 
