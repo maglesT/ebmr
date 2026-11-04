@@ -443,7 +443,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // (4 November 2026), hard capsules and soft gels from the library.
           const master = rows[0];
           const dosageForm = master?.dosage ?? 'Tablet';
-          if (!master?.name || !/tablet|capsule/i.test(dosageForm)) {
+          if (!master?.name || !/tablet|capsule|soft\s?gel/i.test(dosageForm)) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',

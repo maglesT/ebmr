@@ -201,7 +201,7 @@ Each slice: tests named by control ID, CI green, one review, squash-merge, a few
 | Slice | Content | Done when |
 |---|---|---|
 | C1 Powder hard capsule (data) | catalogue load takes the capsule blocks; PROC-CAPS-FILL v2; recipe-core tests: a powder formulation from the catalogue validates and its batch runs on the generic simulator | `[PR-05][DI-35]` load test and `[PR-03][IN-37]` tests green |
-| C2 Powder hard capsule end to end | the header name from the dosage form (decision 0020 amended); one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
+| C2 Powder hard capsule end to end | the header name from the dosage form (decision 0020 amended); the remaining tablet wording a capsule master shows (the batch-size input name "tablets", the issue count) worded per unit or per capsule; one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
 | C3 Post-fill and packing | checkweigher, inspection, printing with the QC hold point, banding (US OTC), blister, strip, bottle | `[IN-37][PR-41][IN-38]` tests green |
 | C4 Multiparticulates | extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet dosing, combinations, two-stage dissolution | a delayed-release pellet formulation runs |
 | C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling; a beta-lactam product refused outside dedicated rooms and equipment | tests green |
