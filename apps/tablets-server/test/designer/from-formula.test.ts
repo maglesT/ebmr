@@ -235,6 +235,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
   it('[PR-01][INV-17] injectables plan I-0: the edition is data on the family; an injectables master starts blank from the formula of a product with an injectable dosage form, and the family list names each family\'s edition', async () => {
     const INJ = { code: 'DMT7JI', name: 'Demoject 400 mg', strength: PRODUCT.strength };
     valueOf(await steward.call(md.enterProduct, { body: { productCode: INJ.code, strength: INJ.strength, productName: INJ.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
     const injFormula = await approvedFormula('100000', undefined, LINES, INJ.code);
     const injCreate = (familyCode: string, extra: Record<string, unknown>) =>
       author.call(routes.designer.createFamily, { body: { familyCode, product: INJ, markets: ['IN'], formulaVersionId: injFormula, edition: 'injectables', ...extra } });
