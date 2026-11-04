@@ -17,7 +17,7 @@
 |---|---|
 | API library catalogue (`API-…` blocks) and API master records | Data in the `ebmr` database, approved there by QA like any library block |
 | The few API rules (C2 blend guard, C4 rework check, if needed) | Its own namespace and schema `substance` (migrations 5000–5999), applied after `tablets`. Each guard fires only on records of an API or intermediate master. Tablet records never reach it. |
-| The edition | A label on the master record's product (API or intermediate). It decides the badge and which seed catalogue is offered. There is no `EDITION=` process setting and no second deployment. |
+| The edition | The edition value `substance` on `recipe.mbr_family.edition`, and on library blocks and formulations: injectables I-0, migration 1871, the same pattern as injectables (PR #101). It decides the badge and which seed catalogue is offered. There is no `EDITION=` process setting and no second deployment. |
 
 Why this and not a product `ebmr_api` with its own database:
 
@@ -56,10 +56,10 @@ this is the smaller one.
 - Q1: the `EDITION=substance` deployment with its own database becomes "same product, same database, `substance`
   schema and catalogue". A0 then shrinks to:
   - the `substance` namespace and its migration-source entry;
-  - the product label on the master's product (API, intermediate), the badge and the catalogue load;
+  - the edition value `substance` (on I-0's edition columns), the badge and the catalogue load;
   - the AS control files as each slice meets them.
 
-  **A0 then no longer depends on injectables I-0.**
+  **A0 still waits for I-0**, because the edition columns come from I-0's migration 1871.
 - C1: the batch posts its lot with the **material kind of its product**, INTERMEDIATE or API, instead of always
   FINISHED. A tablet batch can then consume an on-site API lot as an API, and the tablet path stays FINISHED. It is
   still the single shared change, cleared with the lead first.
@@ -69,5 +69,4 @@ this is the smaller one.
 | # | Question | Default |
 |---|---|---|
 | Q-P1 | Do core's material master kinds include INTERMEDIATE and API, and its equipment classes the API ones (reactor, Nutsche, ANFD, centrifuge, dryers, mills)? | Yes for API; INTERMEDIATE added by the lead in databsee if missing |
-| Q-P2 | Same database for API (this note), or a separate database like injectables v2? | Same database |
-| Q-P3 | If the same database: does the lead want injectables aligned to it? | The lead's call with the injectables session |
+| Q-P2 | Same database, or a separate one? | **Lead, 4 November: the same database.** Injectables follows the same pattern (PR #101). |
