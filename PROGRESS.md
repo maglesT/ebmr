@@ -69,6 +69,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**Capsules edition (owner, 4 November 2026):** hard capsules and soft gels, built as library data inside the
+oral-solid build with a CAPSULES badge (lead review of v1, owner 4 November). Plan v3 for approval: `docs/build-plan/capsules/plan.md` (no new field types,
+20 new library blocks as data, two small code changes (catalogue load, badge); slices C1 to C8). No code before approval.
+
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.
 The product is `ebmr` at `https://ebmr.<domain>`. Slice 1 (platform wiring) is in progress: the one-shot migrator
