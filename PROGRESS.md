@@ -108,6 +108,12 @@ leaves the verifier out of an output container's content. On today's demo, the 5
 The 12 container VERIFIED signatures made before the fix stay reported: they signed the two members as null. They are for
 the owner, and the move carries them over and reports them.
 
+Platform rehearsal finding (lead decision): the platform build had no way to enrol the first browser terminal. Kernel 1402
+adds `iam.platform_register_terminal` and `ebmr first-terminal --code --fingerprint --by --reason` (cli/first-terminal.ts)
+for the platform's operator. It works only while no browser terminal is registered, and is recorded as an installation
+act with who ran it and why (DI-20). The "not an enrolled terminal" screen creates the browser's key and shows its
+fingerprint. The runbook step is in cutover-runbook.md, step 8.
+
 **3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
 `dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
 is stopped). R2 static part done: PR-08 and PR-29 list their boundary tests; PR-60 lists its database test (kernel's
