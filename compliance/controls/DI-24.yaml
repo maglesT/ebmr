@@ -40,6 +40,7 @@ implemented_by:
     - "VOID_ATTEMPT (path b): only an attempt without a result, with a reason and QA approval (S28; ENG-VOID-RESULT, ENG-VOID-APPROVAL); the voided attempt stays in the record"
     - "Dependents of a correction: derived values recalculated with the old record kept, signed steps sent back for re-verification, stage sign-off invalidated"
 tests:
+  - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [DI-22][DI-24][INV-09] an ERP master confirmation keeps its signed content after it takes effect: the values in effect and the changes are those before it (issue #95)"
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values"
   - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"

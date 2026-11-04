@@ -39,7 +39,7 @@ of each database function.
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 83 | 41 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
-| [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 6 | 0 | 1 | 3 |
+| [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 1 | 3 |
 | [ss-shipping](#ss-shipping) | Manufacturer release guard, shipping interlock and after-release lot exits | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 6 |
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 18 | 0 | 9 | 27 |
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 16 | 0 | 6 | 15 |
@@ -60,7 +60,7 @@ of each database function.
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 5 | 0 | 0 | 0 |
 | [rc-reporting](#rc-reporting) | Reporting views and the change-impact query (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 0 |
-| [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
+| [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 17 | 0 | 3 | 8 |
 | [rc-blocks](#rc-blocks) | Generic block versions (G-06, G-21 and others) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 13 | 55 |
@@ -88,9 +88,9 @@ of each database function.
 | [ts-market-config](#ts-market-config) | Master-record, market-policy, site-value and plant configuration acts (Phase 7 slice 7g WP3) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 32 | 4 | 23 |
 | [ts-devices](#ts-devices) | Devices and scale or process readings | [modules/tablets-server.md](modules/tablets-server.md) | 21 | 8 | 31 | 24 |
 | [ts-blocks](#ts-blocks) | Tablets block versions (TB-01 to TB-24) | [modules/tablets-server.md](modules/tablets-server.md) | 47 | 0 | 72 | 70 |
-| [ts-containers](#ts-containers) | Output container acts | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 6 | 2 | 3 |
+| [ts-containers](#ts-containers) | Output container acts | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 6 | 2 | 4 |
 | [ts-master-data](#ts-master-data) | Master data (formulas, ERP masters) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 6 | 5 | 5 |
-| [ts-quality](#ts-quality) | Quality (lots, deviations, LIMS-lite, specifications, samples) | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 61 | 14 | 24 |
+| [ts-quality](#ts-quality) | Quality (lots, deviations, LIMS-lite, specifications, samples) | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 61 | 14 | 25 |
 | [ts-planning](#ts-planning) | Planning | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 10 | 3 | 6 |
 | [ts-plant](#ts-plant) | Plant screens and routes | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 13 | 5 | 18 |
 | [ts-review](#ts-review) | Batch record review | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 6 | 10 |
@@ -702,9 +702,9 @@ of each database function.
 
 **ERP masters and production orders.** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (6):
+**Migrations** (7):
 
-- `packages/site-services/sql`: [0732_erp_product_master.sql](../../packages/site-services/sql/0732_erp_product_master.sql), [0750_erp_material_master.sql](../../packages/site-services/sql/0750_erp_material_master.sql), [0751_erp_production_orders.sql](../../packages/site-services/sql/0751_erp_production_orders.sql), [0802_erp_master_confirmation.sql](../../packages/site-services/sql/0802_erp_master_confirmation.sql), [0803_erp_beta_lactam_confirmed.sql](../../packages/site-services/sql/0803_erp_beta_lactam_confirmed.sql), [1530_master_data_on_screen.sql](../../packages/site-services/sql/1530_master_data_on_screen.sql)
+- `packages/site-services/sql`: [0732_erp_product_master.sql](../../packages/site-services/sql/0732_erp_product_master.sql), [0750_erp_material_master.sql](../../packages/site-services/sql/0750_erp_material_master.sql), [0751_erp_production_orders.sql](../../packages/site-services/sql/0751_erp_production_orders.sql), [0802_erp_master_confirmation.sql](../../packages/site-services/sql/0802_erp_master_confirmation.sql), [0803_erp_beta_lactam_confirmed.sql](../../packages/site-services/sql/0803_erp_beta_lactam_confirmed.sql), [1530_master_data_on_screen.sql](../../packages/site-services/sql/1530_master_data_on_screen.sql), [1730_erp_master_content_as_signed.sql](../../packages/site-services/sql/1730_erp_master_content_as_signed.sql)
 
 **Database objects** created in these migrations:
 
@@ -1060,9 +1060,9 @@ of each database function.
 
 **Output containers.** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (6):
+**Migrations** (7):
 
-- `packages/recipe-core/sql`: [0420_output_containers.sql](../../packages/recipe-core/sql/0420_output_containers.sql), [0421_machine_output_container_v1.sql](../../packages/recipe-core/sql/0421_machine_output_container_v1.sql), [0422_output_container_commands.sql](../../packages/recipe-core/sql/0422_output_container_commands.sql), [0540_press_codes_and_hold_race.sql](../../packages/recipe-core/sql/0540_press_codes_and_hold_race.sql), [0740_container_close_net_check.sql](../../packages/recipe-core/sql/0740_container_close_net_check.sql), [0741_container_release_after_hold_closed.sql](../../packages/recipe-core/sql/0741_container_release_after_hold_closed.sql)
+- `packages/recipe-core/sql`: [0420_output_containers.sql](../../packages/recipe-core/sql/0420_output_containers.sql), [0421_machine_output_container_v1.sql](../../packages/recipe-core/sql/0421_machine_output_container_v1.sql), [0422_output_container_commands.sql](../../packages/recipe-core/sql/0422_output_container_commands.sql), [0540_press_codes_and_hold_race.sql](../../packages/recipe-core/sql/0540_press_codes_and_hold_race.sql), [0740_container_close_net_check.sql](../../packages/recipe-core/sql/0740_container_close_net_check.sql), [0741_container_release_after_hold_closed.sql](../../packages/recipe-core/sql/0741_container_release_after_hold_closed.sql), [1870_output_container_content_as_signed.sql](../../packages/recipe-core/sql/1870_output_container_content_as_signed.sql)
 
 **Database objects** created in these migrations:
 
@@ -1729,7 +1729,7 @@ of each database function.
 
 **Tests** (2): [routes-gmp.test.ts](../../apps/tablets-server/test/containers/routes-gmp.test.ts), [weighed-close.test.ts](../../apps/tablets-server/test/containers/weighed-close.test.ts)
 
-**Controls** (3): [DI-30](../../compliance/controls/DI-30.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [IN-26](../../compliance/controls/IN-26.yaml)
+**Controls** (4): [DI-22](../../compliance/controls/DI-22.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [IN-26](../../compliance/controls/IN-26.yaml)
 
 ## ts-master-data
 
@@ -1852,7 +1852,7 @@ of each database function.
 
 **Tests** (14): [tablets-server/test/mutation/lots-and-lims-g07.test.ts](../../apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts), [tablets-server/test/mutation/lots-and-lims.test.ts](../../apps/tablets-server/test/mutation/lots-and-lims.test.ts), [tablets-server/test/quality/lims-routes.test.ts](../../apps/tablets-server/test/quality/lims-routes.test.ts), [tablets-server/test/quality/lot-handling-routes.test.ts](../../apps/tablets-server/test/quality/lot-handling-routes.test.ts), [tablets-server/test/quality/receipt-routes.test.ts](../../apps/tablets-server/test/quality/receipt-routes.test.ts), [tablets-server/test/quality/reprocessing-routes.test.ts](../../apps/tablets-server/test/quality/reprocessing-routes.test.ts), [tablets-server/test/quality/routes.test.ts](../../apps/tablets-server/test/quality/routes.test.ts), [tablets-server/test/quality/signables-ids.test.ts](../../apps/tablets-server/test/quality/signables-ids.test.ts), [tablets-web/test/office/quality-records.test.tsx](../../apps/tablets-web/test/office/quality-records.test.tsx), [tablets-web/test/office/quality.test.tsx](../../apps/tablets-web/test/office/quality.test.tsx), [tablets-web/test/receipt/lot-forms.test.ts](../../apps/tablets-web/test/receipt/lot-forms.test.ts), [tablets-web/test/receipt/lot-handling.test.tsx](../../apps/tablets-web/test/receipt/lot-handling.test.tsx), [tablets-web/test/receipt/potency.test.tsx](../../apps/tablets-web/test/receipt/potency.test.tsx), [tablets-web/test/receipt/receipt.test.tsx](../../apps/tablets-web/test/receipt/receipt.test.tsx)
 
-**Controls** (24): [DI-22](../../compliance/controls/DI-22.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-02](../../compliance/controls/IN-02.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-18](../../compliance/controls/IN-18.yaml), [IN-19](../../compliance/controls/IN-19.yaml), [IN-20](../../compliance/controls/IN-20.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [IN-32](../../compliance/controls/IN-32.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-44](../../compliance/controls/PR-44.yaml), [PR-45](../../compliance/controls/PR-45.yaml), [PR-46](../../compliance/controls/PR-46.yaml), [PR-47](../../compliance/controls/PR-47.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
+**Controls** (25): [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-02](../../compliance/controls/IN-02.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-18](../../compliance/controls/IN-18.yaml), [IN-19](../../compliance/controls/IN-19.yaml), [IN-20](../../compliance/controls/IN-20.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [IN-32](../../compliance/controls/IN-32.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-44](../../compliance/controls/PR-44.yaml), [PR-45](../../compliance/controls/PR-45.yaml), [PR-46](../../compliance/controls/PR-46.yaml), [PR-47](../../compliance/controls/PR-47.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
 ## ts-planning
 

@@ -54,6 +54,8 @@ implemented_by:
     - "kernel.command_marker: only contexts installed by kernel.begin_command are attributed (EBMR-AUDIT-009; ADR-0016)"
     - "iam.authn_attempt: protected log of every login and signing attempt"
 tests:
+  - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [DI-22][DI-24][INV-09] an ERP master confirmation keeps its signed content after it takes effect: the values in effect and the changes are those before it (issue #95)"
+  - "apps/tablets-server/test/containers/routes-gmp.test.ts > container routes (GMP, Phase 4 slice 1b) > [DI-30][INV-03][DI-22][INV-09] a typed close is listed as unusable until a second person verifies it through the ceremony, which keeps its signed content; the closer is refused"
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][INV-07] a GMP insert writes an audit event in the same transaction with who, what, when, how"
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values"

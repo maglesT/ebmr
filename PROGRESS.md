@@ -94,6 +94,12 @@ Slice 6 (the move, PL-13): `tools/platform` (move.ts and its CLI, after MMS) and
 `allowNoRecords` option covers an empty site. The run on a copy of today's demo passed: 28 people, 110 master items
 (`move-record.md`).
 
+Issue #95 (INV-09; DI-22, DI-24): two content providers changed the content their own signature stood over.
+site-services 1730 shows an ERP master's values in effect as they were before the confirmation, and recipe-core 1870
+leaves the verifier out of an output container's content. On today's demo, the 50 ERP master signatures verify again.
+The 12 container VERIFIED signatures made before the fix stay reported: they signed the two members as null. They are for
+the owner, and the move carries them over and reports them.
+
 **3 November 2026: the Tablets v1.0 plan is approved** (decision 0027, `docs/build-plan/release-1.0/plan.md`; branch
 `dyn/v1-plan` on top of `dyn/s11-findings`). R1 waits on PR #84's CI (GitHub-hosted runners, `CI_RUNNER=github`; the pod
 is stopped). R2 static part done: PR-08 and PR-29 list their boundary tests; PR-60 lists its database test (kernel's

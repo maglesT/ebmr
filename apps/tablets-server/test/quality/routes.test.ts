@@ -95,6 +95,17 @@ describe('quality routes (GMP)', () => {
     expect(valueOf(await qa.call(quality.erpMaterials)).materials.find((m) => m.materialCode === code)).toMatchObject({ materialKind: 'EXCIPIENT' });
   });
 
+  it('[DI-22][DI-24][INV-09] an ERP master confirmation keeps its signed content after it takes effect: the values in effect and the changes are those before it (issue #95)', async () => {
+    // The material of the test above, now with a pending change: confirm it, then nothing about either signature changed.
+    expect(await confirmErpPending(gmp)).toBeGreaterThanOrEqual(1);
+    const { rows } = await gmp.db.admin.query<{ id: string; problem: string }>(
+      `select v.signature_id::text as id, v.problem from esig.verify_signatures() v join esig.signature s on s.id = v.signature_id
+        where s.aggregate_type = 'erp_master'`);
+    expect(rows).toEqual([]);
+    const { rows: signed } = await gmp.db.admin.query<{ n: string }>("select count(*)::text as n from esig.signature where aggregate_type = 'erp_master'");
+    expect(Number(signed[0]?.n)).toBeGreaterThanOrEqual(2);
+  });
+
   it('the reprocessing registers are listed read-only (requests, authorisations, reservable residue), and the server describes what a signable action signs', async () => {
     const qa = await gmp.asPersona('qaInvestigator');
     expect(valueOf(await qa.call(quality.reprocessingRequests)).requests).toEqual(expect.any(Array));
