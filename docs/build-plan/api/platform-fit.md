@@ -65,5 +65,5 @@ Why this and not a product `ebmr_api` with its own database:
 
 | # | Question | Default |
 |---|---|---|
-| Q-P1 | Do core's material master kinds include INTERMEDIATE and API, and its equipment classes the API ones (reactor, Nutsche, ANFD, centrifuge, dryers, mills)? | Yes for API; INTERMEDIATE added by the lead in databsee if missing |
+| Q-P1 | Core master kinds for API items | **Lead, 4 November: no databsee change.** An API or intermediate made in-house is a core `product` item (dosageForm "API" or "Intermediate"). An API bought in or consumed is a `material` item (category 'starting'). Reactors, ANFDs, dryers and centrifuges are `equipment` with a free-text type. `md.item_map` links the local record to whichever applies. A distinct intermediate category is asked for only if a binding clause needs it. |
 | Q-P2 | Same database, or a separate one? | **Lead, 4 November: the same database.** Injectables follows the same pattern (PR #101). |
