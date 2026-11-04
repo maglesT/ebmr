@@ -96,7 +96,10 @@ beforeAll(async () => {
     const id = (await c.query<{ id: string }>('insert into employee (login) values ($1) returning id', [coreLoginOf(linked)])).rows[0]?.id;
     await c.query("insert into employee_version (employee_id, version, full_name, active, changed_by, changed_by_name, reason) values ($1, 1, 'Linked Person', true, $2, 'Platform Mover', 'core')", [id, me]);
     await c.query("insert into credential (employee_id, password_hash) values ($1, 'scrypt$core')", [id]);
-    await c.query("insert into permission_grant (employee_id, product, code, granted, by_id, by_name, reason) values ($1, 'ebmr', 'ebmr.record.read', true, $2, 'Platform Mover', 'core')", [id, me]);
+    await c.query("insert into permission_grant (employee_id, product, code, granted, by_id, by_name, reason) values ($1, 'ebmr', 'ebmr.record.read', true, $2, 'Platform Mover', 'core')", [id, me]);    const off = (await c.query<{ id: string }>('insert into employee (login) values ($1) returning id', [coreLoginOf(offLogin)])).rows[0]?.id;
+    await c.query("insert into employee_version (employee_id, version, full_name, active, changed_by, changed_by_name, reason) values ($1, 1, 'Off Person', true, $2, 'Platform Mover', 'core')", [off, me]);
+    await c.query("insert into credential (employee_id, password_hash) values ($1, 'scrypt$core')", [off]);
+    await c.query("insert into permission_grant (employee_id, product, code, granted, by_id, by_name, reason) values ($1, 'ebmr', 'ebmr.step.execute', true, $2, 'Platform Mover', 'core')", [off, me]);
   });
   item = (await q<{ kind: string; code: string }>(db.source, "select case when kind = 'INSTRUMENT' then 'instrument' else 'equipment' end as kind, code from plant.equipment order by code limit 1"))[0] ?? { kind: 'product', code: '' };
   if (item.code) await asAdmin(db.masterData, (c) => c.query('insert into item (kind, code) values ($1, $2)', [item.kind, item.code]));
@@ -113,23 +116,23 @@ describe('the move onto the platform (PL-13)', () => {
 
   let dry: MoveReport;
   it('[PL-13][PL-01] a dry run checks everything and writes nothing; a person core has, not named in --link, is refused', async () => {
-    const refused = await runMove(options());
+    const refused = await runMove(options({ link: [offLogin] }));
     expect(refused.result).toBe('FAIL');
     expect(refused.failures.join(' ')).toContain(`core already has login ${coreLoginOf(linked) ?? ''}`);
-    dry = await runMove(options({ link: [linked] }));
+    dry = await runMove(options({ link: [linked, offLogin] }));
     expect(dry.failures).toEqual([]);
     expect([dry.result, dry.committed, dry.drill.result, dry.restore.mismatched, dry.signatures.problems]).toEqual(['PASS', false, 'PASS', [], 0]);
     expect(dry.people.map((p) => p.login).sort()).toEqual(people.map((p) => p.login).sort());
-    expect((await q<{ n: string }>(db.identity, 'select count(*)::text as n from employee'))[0]?.n).toBe('2');
+    expect((await q<{ n: string }>(db.identity, 'select count(*)::text as n from employee'))[0]?.n).toBe('3');
     expect((await q<{ n: string }>(db.masterData, 'select count(*)::text as n from item_version'))[0]?.n).toBe('0');
     expect((await q<{ n: string }>(db.ebmr, "select count(*)::text as n from iam.account where kind = 'HUMAN'"))[0]?.n).toBe('0');
   }, 600_000);
 
   let done: MoveReport;
   it('[PL-13][PL-03][PL-01][INV-11] the move maps every person to core, gives codes only to people active in the source, and checks counts, chains and signatures', async () => {
-    done = await runMove(options({ link: [linked], commit: true }));
+    done = await runMove(options({ link: [linked, offLogin], commit: true }));
     expect(done.failures).toEqual([]);
-    expect([done.result, done.committed]).toEqual(['PASS', true]);
+    expect([done.result, done.committed, done.stage]).toEqual(['PASS', true, 'DONE']);
     expect(Object.values(done.checks).every(Boolean)).toBe(true);
     // The platform's ebmr database is now the moved one, a platform build; every human account maps to a core employee.
     const mapped = await q<{ login_name: string; employee_id: string }>(db.ebmr, 'select login_name, employee_id from iam.platform_identity order by 1');
@@ -140,18 +143,31 @@ describe('the move onto the platform (PL-13)', () => {
       `select e.login, c.password_hash as hash, c.must_change as must, v.reason from employee e join credential c on c.employee_id = e.id
          left join employee_version v on v.employee_id = e.id and v.reason = $1 where e.login <> 'mover' order by 1`, [MOVE_REASON]);
     for (const e of emp) {
-      if (e.login === coreLoginOf(linked)) expect([e.hash, e.reason]).toEqual(['scrypt$core', null]);
+      if (e.login === coreLoginOf(linked) || e.login === coreLoginOf(offLogin)) expect([e.hash, e.reason]).toEqual(['scrypt$core', null]);
       else expect([e.hash, e.must, e.reason]).toEqual([RESET_IN_CORE, true, MOVE_REASON]);
     }
     // The suspended person gets no code; the linked one only the codes they lacked; nobody holds administration and GMP codes together.
     const off = done.people.find((p) => p.login === offLogin);
     expect(off?.codes).toEqual([]);
+    // Linked and off in the source: the ebmr.* code core gave them is withdrawn.
+    expect(off?.withdraw).toEqual(['ebmr.step.execute']);
+    expect(await q(db.identity, `select g.granted from permission_grant g join employee e on e.id = g.employee_id
+                                  where e.login = $1 and g.code = 'ebmr.step.execute' order by g.at desc limit 1`, [coreLoginOf(offLogin)])).toEqual([{ granted: false }]);
+    // INV-11: whoever holds an administration role and a role with GMP codes in the source gets no codes.
+    const both = await q<{ login: string }>(db.source, `select a.login_name as login from iam.account a join iam.role_grant g on g.account_id = a.id
+        and iam.grant_is_live(g.status, g.valid_to, g.revoked_at) join iam.role_permission rp on rp.role_code = g.role_code and rp.removed_at is null
+        join iam.permission p on p.code = rp.permission_code where a.kind = 'HUMAN' group by 1
+       having bool_or(p.domain = 'ADMINISTRATION') and bool_or(p.domain = 'GMP' and not exists (
+         select 1 from iam.role_permission x join iam.permission y on y.code = x.permission_code
+          where x.role_code = g.role_code and x.removed_at is null and y.domain = 'ADMINISTRATION'))`);
+    for (const b of both) expect(done.people.find((p) => p.login === b.login)?.codes, b.login).toEqual([]);
     const link = done.people.find((p) => p.login === linked);
     expect(link?.action).toBe('LINK');
     expect(link?.codes).not.toContain('ebmr.record.read');
     expect(link?.codes.length).toBeGreaterThan(0);
     const grants = await q<{ login: string; codes: string[] }>(db.identity,
-      "select e.login, array_agg(g.code) as codes from permission_grant g join employee e on e.id = g.employee_id where g.granted group by 1");
+      `select e.login, array_agg(g.code) as codes from (select distinct on (employee_id, code) employee_id, code, granted from permission_grant
+        order by employee_id, code, at desc) g join employee e on e.id = g.employee_id where g.granted group by 1`);
     expect(grants.find((g) => g.login === coreLoginOf(offLogin))).toBeUndefined();
     for (const g of grants) {
       const admin = g.codes.some((c) => c === 'ebmr.platform.operate' || c === 'ebmr.system.configure');
@@ -174,7 +190,7 @@ describe('the move onto the platform (PL-13)', () => {
   });
 
   it('[PL-13] the move runs once: a second run finds the platform\'s ebmr database holding records and changes nothing', async () => {
-    const again = await runMove(options({ link: [linked], commit: true }));
+    const again = await runMove(options({ link: [linked, offLogin], commit: true }));
     expect([again.result, again.committed]).toEqual(['FAIL', false]);
     expect(again.failures.join(' ')).toContain('holds records already');
   }, 300_000);

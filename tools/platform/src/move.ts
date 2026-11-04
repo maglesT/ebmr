@@ -107,6 +107,8 @@ export interface MoveReport {
   items: ItemPlan[];
   roleCodes: Record<string, string[]>;
   checks: Record<string, boolean>;
+  /** How far a committing run got: a failure after EBMR_COMMITTED is a partial move the runbook rolls back. */
+  stage: 'NOT_COMMITTED' | 'EBMR_COMMITTED' | 'EBMR_REPLACED' | 'MASTER_DATA_COMMITTED' | 'DONE';
 }
 
 const quote = (s: string): string => `"${s.replace(/"/g, '""')}"`;
@@ -127,6 +129,18 @@ async function withClient<T>(url: string, work: (c: pg.Client) => Promise<T>): P
   } finally {
     await c.end();
   }
+}
+
+/** libpq's environment for a connection URL, so no password is on a command line (the process list). */
+function pgEnv(url: string): NodeJS.ProcessEnv {
+  const u = new URL(url);
+  const env: NodeJS.ProcessEnv = { ...process.env, PGHOST: u.hostname, PGPORT: u.port || '5432', PGUSER: decodeURIComponent(u.username),
+    PGPASSWORD: decodeURIComponent(u.password), PGDATABASE: decodeURIComponent(u.pathname.slice(1)) };
+  const mode = u.searchParams.get('sslmode');
+  const root = u.searchParams.get('sslrootcert');
+  if (mode) env['PGSSLMODE'] = mode;
+  if (root) env['PGSSLROOTCERT'] = root;
+  return env;
 }
 
 /** The core login of a Batchwright login: lower case, u + it when it starts with a digit; null when core cannot take it. */
@@ -165,23 +179,22 @@ async function emptyProblem(c: pg.Client): Promise<string | null> {
 }
 
 /** Each role's platform codes: today's live role → permission map, without the codes the manifest leaves out. */
-async function roleCodes(c: pg.Client): Promise<{ codes: Record<string, string[]>; admin: Set<string>; gmp: Set<string> }> {
+async function roleCodes(c: pg.Client): Promise<{ codes: Record<string, string[]>; adminRoles: Set<string>; domain: Map<string, string> }> {
   const { rows } = await c.query<{ role: string; code: string; domain: string }>(
     `select rp.role_code as role, p.code, p.domain from iam.role_permission rp join iam.permission p on p.code = rp.permission_code
-      where rp.removed_at is null and p.code not like 'IAM.%' and not (p.code = any ($1)) order by 1, 2`, [NOT_IN_MANIFEST]);
-  // An administration role (any ADMINISTRATION code) keeps its administration, governance and read-only codes only (INV-11).
+      where rp.removed_at is null order by 1, 2`);
+  const { rows: all } = await c.query<{ code: string; domain: string }>('select code, domain from iam.permission');
+  const domain = new Map(all.map((p) => [`${PRODUCT}.${p.code.toLowerCase()}`, p.domain]));
+  // An administration role (any ADMINISTRATION code, core's IAM.* ones included) keeps its administration, governance
+  // and read-only codes only, and makes its holder an administrator (INV-11).
   const adminRoles = new Set(rows.filter((r) => r.domain === 'ADMINISTRATION').map((r) => r.role));
   const codes: Record<string, string[]> = {};
-  const admin = new Set<string>();
-  const gmp = new Set<string>();
   for (const r of rows) {
+    if (r.code.startsWith('IAM.') || (NOT_IN_MANIFEST as readonly string[]).includes(r.code)) continue;
     if (adminRoles.has(r.role) && r.domain === 'GMP') continue;
-    const code = `${PRODUCT}.${r.code.toLowerCase()}`;
-    (codes[r.role] ??= []).push(code);
-    if (r.domain === 'ADMINISTRATION') admin.add(code);
-    if (r.domain === 'GMP') gmp.add(code);
+    (codes[r.role] ??= []).push(`${PRODUCT}.${r.code.toLowerCase()}`);
   }
-  return { codes, admin, gmp };
+  return { codes, adminRoles, domain };
 }
 
 async function planPeople(work: pg.Client, identity: pg.Client, link: ReadonlySet<string>): Promise<{ people: PersonPlan[]; roles: Record<string, string[]> }> {
@@ -206,7 +219,7 @@ async function planPeople(work: pg.Client, identity: pg.Client, link: ReadonlySe
     }
     const found = await identity.query<{ id: string }>('select id::text as id from employee where login = $1', [coreLogin]);
     const existing = found.rows[0]?.id;
-    if (existing && !link.has(r.login) && !link.has(coreLogin)) {
+    if (existing && !link.has(r.login.toLowerCase()) && !link.has(coreLogin)) {
       plan.action = 'REFUSED';
       plan.notes.push(`core already has login ${coreLogin}: name it in --link when it is the same person`);
       continue;
@@ -215,24 +228,30 @@ async function planPeople(work: pg.Client, identity: pg.Client, link: ReadonlySe
       plan.action = 'LINK';
       plan.employeeId = existing;
     }
+    const held = existing
+      ? (await identity.query<{ code: string }>(
+          `select code from (select distinct on (product, code) product, code, granted from permission_grant where employee_id = $1
+             order by product, code, at desc) g where granted`, [existing])).rows.map((x) => x.code)
+      : [];
+    const heldOwn = held.filter((c) => c.startsWith(`${PRODUCT}.`));
+    const admin = r.roles.some((role) => rc.adminRoles.has(role));
     let codes = [...new Set(r.roles.flatMap((role) => rc.codes[role] ?? []))].sort();
-    if (codes.some((c) => rc.admin.has(c)) && codes.some((c) => rc.gmp.has(c))) {
+    if (admin) codes = [...codes, ...ADMIN_EXTRA];
+    // INV-11 over what the person will hold: these codes and the ebmr.* codes core holds for them already.
+    const isGmp = (c: string) => rc.domain.get(c) === 'GMP';
+    const isAdmin = (c: string) => rc.domain.get(c) === 'ADMINISTRATION' || (ADMIN_EXTRA as readonly string[]).includes(c);
+    const together = [...codes, ...heldOwn];
+    if ((admin || together.some(isAdmin)) && together.some(isGmp)) {
       plan.notes.push('administration and GMP codes together: no codes (INV-11); core gives them to two people');
       codes = [];
-    } else if (codes.some((c) => rc.admin.has(c))) {
-      codes = [...codes, ...ADMIN_EXTRA];
     }
     if (!on) {
       plan.notes.push(`${r.person_status === 'ACTIVE' ? r.account_status : 'left'}${r.locked ? ', locked' : ''} in the source: no codes`);
       codes = [];
     }
-    const held = existing
-      ? (await identity.query<{ code: string }>(
-          `select code from (select distinct on (code) code, granted from permission_grant where employee_id = $1 and product = $2 order by code, at desc) g
-            where granted`, [existing, PRODUCT])).rows.map((x) => x.code)
-      : [];
     plan.codes = codes.filter((c) => !held.includes(c));
-    if (existing && !on) plan.withdraw = held.filter((c) => c.startsWith(`${PRODUCT}.`));
+    // A linked person: their ebmr.* codes become exactly the source's (none when off or refused under INV-11).
+    plan.withdraw = heldOwn.filter((c) => !codes.includes(c));
     if (plan.action === 'NEW') plan.notes.push('password: reset in core (must change at first sign-in)');
   }
   return { people, roles: rc.codes };
@@ -254,7 +273,8 @@ async function planItems(work: pg.Client, master: pg.Client, codeMap: CodeMap): 
   const items: ItemPlan[] = [];
   const taken = new Map<string, string>();
   for (const r of rows) {
-    const mapped = codeMap[r.kind]?.[r.code];
+    const kindMap = codeMap[r.kind];
+    const mapped = kindMap && Object.hasOwn(kindMap, r.code) ? kindMap[r.code] : undefined;
     const masterCode = mapped ?? r.code;
     const plan: ItemPlan = { kind: r.kind, localCode: r.code, masterCode, name: r.name, active: r.active, action: mapped ? 'MAPPED' : 'CREATED' };
     items.push(plan);
@@ -328,7 +348,7 @@ export async function runMove(o: MoveOptions): Promise<MoveReport> {
   const work = `ebmr_move_${hex}`;
   const report: MoveReport = {
     kind: 'ebmr.platform-move', result: 'FAIL', committed: false, failures: [], source: { database: new URL(o.sourceUrl).pathname.slice(1), tables: 0, rows: 0 },
-    restore: { mismatched: [] }, drill: { result: 'NOT_RUN', failures: [], report: '' }, signatures: { problems: 0, carriedOver: 0 }, people: [], items: [], roleCodes: {}, checks: {},
+    restore: { mismatched: [] }, drill: { result: 'NOT_RUN', failures: [], report: '' }, signatures: { problems: 0, carriedOver: 0 }, people: [], items: [], roleCodes: {}, checks: {}, stage: 'NOT_COMMITTED',
   };
   mkdirSync(o.reportDir, { recursive: true });
   const fail = (m: string) => report.failures.push(m);
@@ -347,9 +367,9 @@ export async function runMove(o: MoveOptions): Promise<MoveReport> {
 
     // 2. Dump and restore; every table counted and hashed on both sides (PL-13).
     const file = join(dumpDir, 'source.dump');
-    execFileSync('pg_dump', ['--format=custom', '--file', file, o.sourceUrl], { stdio: 'pipe' });
+    execFileSync('pg_dump', ['--format=custom', '--file', file], { stdio: 'pipe', env: pgEnv(o.sourceUrl) });
     await withClient(admin, (c) => c.query(`create database ${quote(restored)} owner ebmr_owner`));
-    execFileSync('pg_restore', ['--exit-on-error', '--dbname', urlOf(admin, restored), file], { stdio: 'pipe' });
+    execFileSync('pg_restore', ['--exit-on-error', '--dbname', restored, file], { stdio: 'pipe', env: pgEnv(urlOf(admin, restored)) });
     const [before, after] = await Promise.all([withClient(o.sourceUrl, tableHashes), withClient(urlOf(admin, restored), tableHashes)]);
     report.source.tables = before.size;
     report.source.rows = [...before.values()].reduce((s, t) => s + t.n, 0);
@@ -357,9 +377,11 @@ export async function runMove(o: MoveOptions): Promise<MoveReport> {
     if (report.restore.mismatched.length > 0) fail(`the restored copy differs from the source in ${report.restore.mismatched.join(', ')}`);
 
     // 3. The platform's migrations on a copy, compared as the upgrade drill compares (PL-13), then the platform build.
+    // A site without records yet (no signature) has nothing to render or sample; any other source keeps the full evidence.
+    const empty = await withClient(urlOf(admin, restored), async (c) => (await c.query<{ e: boolean }>('select not exists (select 1 from esig.signature) as e')).rows[0]?.e === true);
     const drill = await runUpgradeDrill({
       adminUrl: admin, sourceDatabase: restored, sources: platformSources(), fromRelease: 'standalone (platform move)', reportDir: o.reportDir,
-      renderLimit: o.renderLimit ?? 3, keepCopy: true, workDatabase: work, allowNoRecords: true,
+      renderLimit: o.renderLimit ?? 3, keepCopy: true, workDatabase: work, allowNoRecords: empty,
     });
     report.drill = { result: drill.report.result, failures: drill.report.failures, report: drill.markdownPath };
     if (drill.report.result !== 'PASS') fail(`the upgrade drill of the platform migrations did not pass: ${drill.report.failures.join('; ')}`);
@@ -379,7 +401,7 @@ export async function runMove(o: MoveOptions): Promise<MoveReport> {
     await identity.query('begin');
     await master.query('begin');
     await workClient.query('begin');
-    const planned = await planPeople(workClient, identity, new Set(o.link ?? []));
+    const planned = await planPeople(workClient, identity, new Set((o.link ?? []).map((l) => l.toLowerCase())));
     report.people = planned.people;
     report.roleCodes = planned.roles;
     report.items = await planItems(workClient, master, o.codeMap ?? {});
@@ -400,22 +422,40 @@ export async function runMove(o: MoveOptions): Promise<MoveReport> {
     await workClient.query('commit');
     await workClient.end();
     workClient = null;
+    // From here the moved copy is kept whatever happens; a failure leaves a partial state the runbook rolls back.
+    report.stage = 'EBMR_COMMITTED';
     await withClient(admin, async (c) => {
+      // Again just before the swap: the platform's ebmr database still holds no records (its server is stopped).
+      const late = await withClient(urlOf(admin, db.ebmr), emptyProblem);
+      if (late) throw new Error(late);
+      // The copy takes the old database's owner and its database-level grants (the platform's links: CONNECT).
+      const { rows } = await c.query<{ g: string }>(
+        `select format('grant %s on database %I to %s', a.privilege_type, $2::text,
+                       case when a.grantee = 0 then 'public' else quote_ident(pg_get_userbyid(a.grantee)) end) as g
+           from pg_database d, aclexplode(d.datacl) a where d.datname = $1 and a.grantee <> d.datdba`, [db.ebmr, work]);
+      await c.query(`alter database ${quote(work)} owner to ebmr_owner`);
+      await c.query(`revoke all on database ${quote(work)} from public`);
+      for (const { g } of rows) await c.query(g);
       await c.query(`drop database ${quote(db.ebmr)} with (force)`);
       await c.query(`alter database ${quote(work)} rename to ${quote(db.ebmr)}`);
     });
+    report.stage = 'EBMR_REPLACED';
     await master.query('commit');
+    report.stage = 'MASTER_DATA_COMMITTED';
     await identity.query('commit');
+    report.stage = 'DONE';
     report.committed = true;
     report.result = 'PASS';
   } catch (error) {
     if ((error as Error).message === 'dry run') report.result = report.failures.length === 0 ? 'PASS' : 'FAIL';
     else if (!report.failures.includes((error as Error).message)) fail((error as Error).message);
     for (const c of [workClient, master, identity]) await c?.query('rollback').catch(() => undefined);
+    if (report.stage !== 'NOT_COMMITTED') fail(`PARTIAL MOVE (stage ${report.stage}): roll back with the runbook (restore the snapshots of ebmr, identity and master_data)`);
   } finally {
     for (const c of [workClient, master, identity]) await c?.end().catch(() => undefined);
+    // The committed copy is never dropped: before the swap it is ebmr_move_<hex>, after it the platform's ebmr.
     await withClient(admin, async (c) => {
-      for (const d of report.committed ? [restored] : [restored, work]) await c.query(`drop database if exists ${quote(d)} with (force)`);
+      for (const d of report.stage === 'NOT_COMMITTED' ? [restored, work] : [restored]) await c.query(`drop database if exists ${quote(d)} with (force)`);
     }).catch(() => undefined);
     rmSync(dumpDir, { recursive: true, force: true });
     writeFileSync(join(o.reportDir, 'platform-move.json'), `${JSON.stringify(report, null, 2)}\n`);
