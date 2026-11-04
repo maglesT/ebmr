@@ -1677,7 +1677,7 @@ export const TARGETS: Target[] = [
     functions: ['report.reference_document_rows_v1', 'report.batch_reference_rows_v1', 'report.phase_of', 'report.equipment_use_v1_for',
                 'report.ipc_result_v1_for', 'report.process_actual_v1_for', 'report.exception_detail_v1_for', 'report.equipment_use_rows_v1',
                 'report.ipc_result_rows_v1', 'report.process_actual_rows_v1', 'report.exception_detail_rows_v1'],
-    tests: [s('contract/report-views-deviations.test.ts'), s('contract/report-views-investigation.test.ts')],
+    tests: [s('contract/report-views-deviations.test.ts'), s('contract/report-views-investigation.test.ts'), s('medhanta/platform-published-views.test.ts')],
     threshold: 90,
   },
   {
