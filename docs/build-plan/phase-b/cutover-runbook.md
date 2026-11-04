@@ -20,6 +20,8 @@ alias plat='docker compose -f /opt/medhanta/current/deploy/compose.yml -f /opt/m
 # A manual run needs the pinned image, else the image tag is "none" (MMS lesson).
 export EBMR_COMMIT=$(jq -r .source.commit /opt/medhanta/current/apps/ebmr/manifest.json)
 SU=<platform superuser>   # the db service's superuser
+# The move's two connections, as superuser on the db service (set them in the shell, never in a file):
+# SOURCE_URL=<URL of ebmr_move_source on db:5432>  PLATFORM_URL=<URL of database postgres on db:5432>
 ```
 
 ## Before the day
@@ -83,8 +85,7 @@ SU=<platform superuser>   # the db service's superuser
 7. **Dry run, then the move.** Both run with the pinned image and `--no-deps`:
    ```sh
    plat run --name ebmr-move --no-deps \
-     -e SOURCE_DATABASE_URL=postgres://$SU:<pw>@db:5432/ebmr_move_source \
-     -e PLATFORM_DATABASE_URL=postgres://$SU:<pw>@db:5432/postgres \
+     -e SOURCE_DATABASE_URL="$SOURCE_URL" -e PLATFORM_DATABASE_URL="$PLATFORM_URL" \
      ebmr move --by <core login> --verified-by "<name>" --verified-how "<how>" \
        --link <login,login> --code-map tools/platform/demo-code-map.json --report-dir /tmp/move
    docker cp ebmr-move:/tmp/move ./ebmr-move-dry && docker rm ebmr-move
