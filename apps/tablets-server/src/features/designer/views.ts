@@ -252,6 +252,7 @@ export async function familyViews(db: Db, app: AppContext): Promise<FamilyView[]
   const { rows } = await db.query<{
     family_id: string;
     code: string;
+    edition: string;
     product_code: string;
     product_name: string;
     strength: string;
@@ -263,21 +264,20 @@ export async function familyViews(db: Db, app: AppContext): Promise<FamilyView[]
     at_us: string | null;
     markets: string[] | null;
   }>(
-    `select f.id as family_id, f.code, f.product_code, f.product_name, f.strength,
+    `select f.id as family_id, f.code, f.edition, f.product_code, f.product_name, f.strength,
             v.id as version_id, v.version_number, recipe.version_state(v.id) as state,
             c.revision, c.content_hash, ${US('c.recorded_at')} as at_us,
             array(select jsonb_array_elements_text(c.content -> 'header' -> 'marketSet')) as markets
        from recipe.mbr_family f
        left join recipe.mbr_version v on v.family_id = f.id
        left join lateral (select * from recipe.mbr_content mc where mc.version_id = v.id order by mc.revision desc limit 1) c on true
-      where f.edition = 'tablets'
       order by f.code, v.version_number desc`,
   );
   const out = new Map<string, FamilyView>();
   for (const r of rows) {
     let f = out.get(r.family_id);
     if (!f) {
-      f = { familyId: r.family_id, familyCode: r.code, product: { code: r.product_code, name: r.product_name, strength: r.strength }, markets: r.markets ?? [], versions: [] };
+      f = { familyId: r.family_id, familyCode: r.code, edition: r.edition, product: { code: r.product_code, name: r.product_name, strength: r.strength }, markets: r.markets ?? [], versions: [] };
       out.set(r.family_id, f);
     }
     if (r.version_id && r.version_number !== null && r.revision !== null && r.content_hash && r.at_us) {

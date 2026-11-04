@@ -41,7 +41,7 @@ interface BlockRow {
   reason: string | null;
 }
 
-async function blocks(app: AppContext, db: Db, filter: { id?: string; code?: string | undefined; state?: string | undefined }): Promise<LibraryBlockView[]> {
+async function blocks(app: AppContext, db: Db, filter: { id?: string; code?: string | undefined; state?: string | undefined; edition?: string | undefined }): Promise<LibraryBlockView[]> {
   const { rows } = await db.query<BlockRow>(
     `select b.id, b.code, b.version, b.title, b.category, recipe.library_block_state(b.id) as state, b.content_hash, b.definition,
             b.drafted_by_person as drafted_by, ${usOf('b.drafted_at')} as drafted_us,
@@ -52,8 +52,9 @@ async function blocks(app: AppContext, db: Db, filter: { id?: string; code?: str
        left join recipe.library_block_retirement r on r.block_id = b.id
       where ($1::uuid is null or b.id = $1) and ($2::text is null or b.code = $2)
         and ($3::text is null or recipe.library_block_state(b.id) = $3)
+        and ($4::text is null or recipe.library_block_edition(b.definition) in ($4, 'generic'))
       order by b.code, b.version desc limit 1000`,
-    [filter.id ?? null, filter.code ?? null, filter.state ?? null],
+    [filter.id ?? null, filter.code ?? null, filter.state ?? null, filter.edition ?? null],
   );
   const people = await peopleOf(db, rows.flatMap((r) => [r.drafted_by, r.approved_by]));
   return rows.map((r) => ({
@@ -62,6 +63,7 @@ async function blocks(app: AppContext, db: Db, filter: { id?: string; code?: str
     version: r.version,
     title: r.title,
     category: r.category,
+    edition: library.blockEdition(r.definition),
     state: r.state,
     contentHash: r.content_hash,
     definition: r.definition,
@@ -100,7 +102,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   bindRoutes(scope, app, routes.library, {
     list: async ({ query, requireSession }) => {
       requireSession();
-      return { blocks: await blocks(app, pool, { code: query.code, state: query.state }) };
+      return { blocks: await blocks(app, pool, { code: query.code, state: query.state, edition: query.edition }) };
     },
     check: ({ body, requireSession }) => {
       requireSession();

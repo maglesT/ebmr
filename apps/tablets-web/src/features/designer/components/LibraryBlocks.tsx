@@ -38,7 +38,9 @@ function idsOf(content: Content): Set<string> {
 }
 
 export function AddLibraryBlock({ content, afterId, dispatch }: { content: Content; afterId: string; dispatch: (op: Op) => void }) {
-  const q = useApiQuery(routes.library.list, { query: { state: 'APPROVED' } });
+  // Injectables plan I-0: only the blocks of this master's edition and the generic ones (the database refuses any other
+  // at QA approval, EBMR-LIB-024).
+  const q = useApiQuery(routes.library.list, { query: { state: 'APPROVED', edition: content.header.edition } });
   const [chosen, setChosen] = useState('');
   // S11a finding (decision D-S11-R1): a release test is QC's laboratory record, kept on the lot against its
   // specification; no floor session carries its QC roles, so a master offers no place to sign it. The picker leaves the

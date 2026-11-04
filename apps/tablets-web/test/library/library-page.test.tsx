@@ -31,6 +31,7 @@ const block = (over: Partial<LibraryBlockView> = {}): LibraryBlockView => ({
   version: 1,
   title: 'Friability',
   category: 'TEST_IPC',
+  edition: 'tablets',
   state: 'DRAFT',
   contentHash: 'a'.repeat(64),
   definition,

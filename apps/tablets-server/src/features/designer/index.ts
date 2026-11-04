@@ -123,6 +123,8 @@ const acquireValidationSlot = slotPool();
 
 /** The transaction advisory lock that lets one test-package export at a time through the inbox gate (review P14). */
 const TEST_PACKAGE_INBOX_LOCK = 'tab.mbr_test_package_export:inbox';
+/** Injectables plan I-0: the dosage forms of an injectables family (pharmacopoeial names: injection, infusion, powder for injection). */
+const INJECTABLE_FORM = /inject|infusion|parenteral/i;
 
 /** What waited for a slot: a simulation, a validation of edited content, or a command that checks the saved content. */
 type BusyWork = 'simulation' | 'validation' | 'command';
@@ -421,6 +423,19 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       });
     }
     const formulaVersionId = body.formulaVersionId;
+    // Injectables plan I-0: the edition is data on the family. The skeleton and copies are Tablets procedures, so an
+    // injectables family starts BLANK and is built from the injectables library.
+    const edition = body.edition ?? 'tablets';
+    if (edition === 'injectables' && start !== 'BLANK') {
+      throw refusal(422, {
+        code: 'DESIGNER_EDITION_START',
+        kind: 'INVALID_INPUT',
+        whatHappened: 'The family was not created.',
+        why: 'An injectables master starts blank: the skeleton and copies are tablet procedures.',
+        controls: ['PR-01'],
+        whatYouCanDo: ['Choose "Blank" and add the steps from the injectables library.'],
+      });
+    }
     const copySource = start === 'COPY' ? await copySourceOf(body.copyOfVersionId) : undefined;
     const base = TEMPLATES.get('dc-mini');
     if (!base) throw new Error('the dc-mini skeleton source is missing');
@@ -440,16 +455,20 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // Review P7J-2, D-7j-11: the name from the product master in effect; its dosage form, or 'Tablet' when the
           // master carries none (the ERP feed has no dosage form; every product of this edition is a tablet). A master
           // stating a dosage form that is not a tablet form is refused.
+          // Injectables plan I-0: an injectables family needs a product master stating an injectable dosage form (no default).
           const master = rows[0];
-          const dosageForm = master?.dosage ?? 'Tablet';
-          if (!master?.name || !/tablet/i.test(dosageForm)) {
+          const dosageForm = master?.dosage ?? (edition === 'tablets' ? 'Tablet' : '');
+          const formFits = edition === 'tablets' ? /tablet/i.test(dosageForm) : INJECTABLE_FORM.test(dosageForm);
+          if (!master?.name || !formFits) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
               whatHappened: 'The family was not created.',
-              why: master?.name
-                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is not a tablet form; the Tablets edition makes tablets.`
-                : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
+              why: !master?.name
+                ? `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`
+                : edition === 'tablets'
+                  ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is not a tablet form; the Tablets edition makes tablets.`
+                  : `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm || 'none'}", which is not an injectable form (injection, infusion or powder for injection).`,
               controls: ['PR-01'],
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
             });
@@ -461,7 +480,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             content = contentFromFormula(
               base,
               { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments },
-              { familyCode: body.familyCode, markets: body.markets, start },
+              { familyCode: body.familyCode, markets: body.markets, start, edition },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
             );
@@ -576,6 +595,17 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     async createFamily(ctx) {
       const { body } = ctx;
       // Slice 7j (R4, D-7j-5): without a template, the master starts from the approved formula.
+      // Injectables plan I-0: templates and packaging copies are Tablets masters; an injectables family starts from a formula.
+      if (body.edition === 'injectables' && (body.templateId !== undefined || body.start === 'PACKAGING_COPY')) {
+        throw refusal(422, {
+          code: 'DESIGNER_EDITION_START',
+          kind: 'INVALID_INPUT',
+          whatHappened: 'The family was not created.',
+          why: 'An injectables master starts blank from its approved formula: the templates and packaging copies are tablet masters.',
+          controls: ['PR-01'],
+          whatYouCanDo: ['Choose the product\'s formula and "Blank".'],
+        });
+      }
       if (body.templateId === undefined && body.start === 'PACKAGING_COPY') return createPackagingCopy(ctx);
       if (body.templateId === undefined) return createFromFormula(ctx);
       const templateId = body.templateId;

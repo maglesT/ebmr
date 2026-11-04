@@ -10,6 +10,7 @@ import { compareDecimal, isDecimalLiteral } from '../flow/decimal.ts';
 import type { ExpressionService, ExprType } from '../flow/expression-port.ts';
 import {
   BLOCK_CATEGORIES,
+  LIBRARY_EDITIONS,
   EQUIPMENT_KINDS,
   FIELD_TYPES,
   LIBRARY_ROLES,
@@ -121,6 +122,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   if (!Number.isInteger(def.version) || def.version < 1) problems.push(err('LIB-VERSION', 'version', 'The version must be a whole number of 1 or more [PR-05]', ['PR-05']));
   if (typeof def.title !== 'string' || def.title.trim() === '') problems.push(err('LIB-TITLE', 'title', 'The block needs a title'));
   if (!(BLOCK_CATEGORIES as readonly string[]).includes(def.category)) problems.push(err('LIB-CATEGORY', 'category', `Unknown category ${JSON.stringify(def.category)}`));
+  if (def.edition !== undefined && !(LIBRARY_EDITIONS as readonly string[]).includes(def.edition)) problems.push(err('LIB-EDITION', 'edition', `The edition is one of ${LIBRARY_EDITIONS.join(', ')}`));
   if (def.roles !== undefined && (!Array.isArray(def.roles) || def.roles.length === 0 || def.roles.some((r) => !(LIBRARY_ROLES as readonly string[]).includes(r)))) {
     problems.push(err('LIB-ROLES', 'roles', `Roles are one or more of ${LIBRARY_ROLES.join(', ')}`));
   }
