@@ -11,7 +11,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { continuity } from '@ebmr/kernel';
+import { continuity, registerFactResolver } from '@ebmr/kernel';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { AnalyticsRunner } from './analytics/runner.ts';
 import { ThreadedAnalyticsRunner, type AnalyticsRunnerApi } from './analytics/threaded.ts';
@@ -30,6 +30,7 @@ import { loggerOptions } from './platform/http/logging.ts';
 import { answerFrameworkError, installSecurity, isApiRequest } from './platform/http/security.ts';
 import { installSpa } from './platform/http/static.ts';
 import { CoreSignon, type FetchFn } from './platform/auth/core-signon.ts';
+import { MasterData } from './platform/master-data.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
 import { MAINTENANCE_OPEN_PATHS, maintenanceRefusal, newOperationsRuntime } from './platform/operations.ts';
@@ -76,11 +77,15 @@ export interface BuiltApp {
 async function platformState(pool: Pools['app'], config: ServerConfig, coreFetch?: FetchFn): Promise<AppContext['platform']> {
   // A database at an earlier release (an upgrade or restore drill) has no platform build function: it is no platform build.
   const { rows: fn } = await pool.query<{ present: boolean }>("select to_regprocedure('iam.platform_build()') is not null as present");
-  if (!fn[0]?.present) return { build: false, signon: null };
+  if (!fn[0]?.present) return { build: false, signon: null, master: null };
   const { rows } = await pool.query<{ build: boolean }>('select iam.platform_build() as build');
-  if (!rows[0]?.build) return { build: false, signon: null };
+  if (!rows[0]?.build) return { build: false, signon: null, master: null };
   if (!config.oidc) throw new Error('this is a platform build: core sign-on (EBMR_OIDC_ISSUER, EBMR_OIDC_CLIENT_ID, EBMR_OIDC_REDIRECT_URI) must be configured');
-  return { build: true, signon: new CoreSignon(config.oidc, config.secrets.nonceKey, coreFetch) };
+  // Phase B slice 3 (PL-08): every write that names a master item reads it through the master views.
+  if (!config.masterDataUrl) throw new Error('this is a platform build: master data (MASTER_DATA_DATABASE_URL, EBMR_MASTER_DATA_URL) must be configured');
+  const master = MasterData.open(config.masterDataUrl);
+  registerFactResolver(pool, master.resolver());
+  return { build: true, signon: new CoreSignon(config.oidc, config.secrets.nonceKey, coreFetch), master };
 }
 
 export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<BuiltApp> {
@@ -223,6 +228,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
         await siteZoneWatch.stop();
         await app.close();
         await ctx.readDb.destroy().catch(() => undefined);
+        await ctx.platform.master?.close().catch(() => undefined);
         if (ownPools) await pools.close().catch(() => undefined);
       },
     };
