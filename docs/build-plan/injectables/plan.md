@@ -8,6 +8,10 @@
 - **v2 (same day, owner reminder through the lead):** every item now states *binding clause → smallest means → why
   nothing smaller*. v1's eight sterile modules and the new `DEVICE_RECORD` field type are gone: each was replaced by a
   block, a qualification record, an equipment due date or the existing release gate.
+- **Lead review (4 November):** answers to Q1-Q7 are recorded in section 9. The lead approved the architecture of v1
+  (shared host packages, `DEVICE_RECORD`, eight modules) before v2 replaced it with the data-only design below. **The
+  lead decides between v1 and v2** before I-0 starts. Either way, I-0 stays edition-neutral, so the Capsules and API
+  editions can use it too.
 - **Read with:** ADR 0001, decisions 0010, 0011, 0026, outline 2.3, `docs/handbook/modules/injectables.md`,
   `compliance/controls/ST-01..79` and `IN-40..51`, `compliance/rule-tables/sterile/sterile.v1.yaml`.
 
@@ -53,7 +57,7 @@ host extraction is the fallback then, not now.
 |---|---|---|---|
 | Edition read from configuration instead of hard-coded `tablets` | none (product structure; owner decision) | cannot run a second edition otherwise | needed |
 | A repeat kind "add a row when it happens" (interventions, stoppages, glove changes) | 211.100(b) (deviations recorded and justified); Annex 1 8.16, 9.34 (EU) | the four repeat kinds (count, per container, per interval, until pass) all fix the rows in advance; an event log cannot | needed unless I-0 finds an existing exception/comment log on the step that records time, person and description |
-| A NUMBER field taking its value from a device original (filled, then confirmed by the operator) | none: 211.68(b) is met by typing from the printout with a second-person check | owner's scope item "equipment data via the existing gateway"; built last (I-5), smallest form | scope item, not clause-driven |
+| A NUMBER field taking its value from a device original (filled, then confirmed by the operator) | none: 211.68(b) is met by typing from the printout with a second-person check | owner's scope item "equipment data via the existing gateway"; built last (I-5), smallest form | parked (lead, Q2): values typed from the attached printout, second-person check |
 
 No new field type. expr already has `duration` (time limits), `table_lookup` (AQL tables as validated master data),
 `volume_from_mass` and `mass_from_volume` (fill volume), `accountability` and `yield`. F0 is taken from the steriliser's
@@ -148,7 +152,7 @@ register (`iam.qualification_type`), checked at signature by role or by area aut
 ### 4.6 Equipment data
 
 Owner scope item, not required by a binding clause (211.68(b) is met by typed values with a second-person check).
-Smallest form, slice I-5: the existing gateway drivers write device originals (DI-32); the NUMBER field of section 3
+Parked by the lead (Q2): until a binding clause needs it, values are typed from the attached printout and checked by a second person. If unfrozen later, the smallest form is: the existing gateway drivers write device originals (DI-32); the NUMBER field of section 3
 fills its value from the original of the run the operator picks, and the operator confirms. Profiles for autoclave,
 tunnel, lyophiliser, filling line, EM particle counter, filter integrity tester, inspection and CCIT machines. Needs the
 site gateway unfrozen for these profiles only (Q2).
@@ -175,7 +179,7 @@ the lead. Migration numbers (if any) from a range the lead reserves first.
 | I-2 Aseptic fill, EM, media fill | INJ-03, 07, 08, 09, 10, 11, 13, 32; events repeat; media-fill and routine-EM formulations; isolator, RABS and open Grade A set-ups | an aseptic vial batch and a media fill run to the end; an action-level EM result blocks release |
 | I-3 Lyophilisation | INJ-17 | a lyophilised vial batch to release |
 | I-4 Other containers and routes | INJ-16, 27, 28, 29, 30, 31; dual-chamber; radiation | one sandbox batch per form |
-| I-5 Automated inspection, CCIT, RMM, equipment data | INJ-22 automated, INJ-23 deterministic, RMM in INJ-26; device-filled NUMBER and adapter profiles | runs from the simulator fill the fields |
+| I-5 Automated inspection, CCIT, RMM | INJ-22 automated, INJ-23 deterministic, RMM in INJ-26 (machine values typed from the attached report) | each method runs to release in the sandbox |
 | I-6 Edition exit | `injectables` in `compliance/phase.yaml` editions; trace per Q1's outcome; golden batches; browser suite; one review | trace green with the edition in the gate |
 
 The trace gate stays Tablets-only until I-6; meanwhile a per-edition trace report lists each slice's controls.
@@ -206,16 +210,38 @@ section 4 by a block, a qualification, a due date or the gate.
 6. Defaults filled from the formulation; the operator types only what was measured.
 7. Nothing asked twice (a value in an earlier block is read, not re-entered).
 
+## 8a. Not built: guidance only (lead, Q1)
+
+These control behaviours rest only on FDA's 2004 aseptic-processing guidance (FDA-AP). They are **not built**. Where a
+binding text covers the same point, the item is built from that text instead, as noted. No control file is edited; the
+owner records the matching expert decisions (Q1).
+
+| Control | Guidance-only behaviour | Built instead from |
+|---|---|---|
+| ST-32 | FDA default APS incubation scheme (20-35 °C, 14 days, 7 + 7 days, lower temperature first) enforced | Annex 1 9.44-9.45: the conditions the site validated, as formulation values |
+| ST-29 | FDA APS reassessment triggers (staffing change, EM anomaly, extended shutdown, finished-product positive) and the APS_ASSESSMENT_REQUIRED state | Annex 1 9.48-9.49, Schedule M 5.3-5.7: the revalidation triggers those texts list |
+| ST-20 | FDA example alert and action levels (FDA-AP Table 1) as limits | Schedule M Table 3 and Annex 1 Tables 5-6 through the sterile rule table |
+| ST-01 | FDA-AP's justified alternative microbial action levels as a site option | not needed: the stricter binding table applies |
+| ST-18 | EM sampling every shift as a fixed rule | Annex 1 9.4-9.8 and Schedule M 4.7: frequency from the site's risk assessment, as formulation values |
+| ST-22 | daily or per-lot glove sampling; no glove sanitising before sampling | Annex 1 9.25-9.27: personnel monitoring after critical interventions and at exit |
+| ST-17 | 10-15 Pa between classes as a limit | Annex 1 4.30 states 10 Pa as a guidance value only: a formulation value, not a refusal (as ST-01 already treats guidance values) |
+| ST-23 | growth-promotion test for every prepared media lot | Annex 1 10.8-10.11 where they apply |
+| ST-06 | every power interruption is a deviation | Annex 1 4.13, 6.20-6.22 and 211.192: alarms and failures recorded and assessed |
+| ST-08 | annual APS participation being enough only for automated, low-intervention lines | Annex 1 9.38: at least one successful APS a year per operator |
+
+I-0 checks every ST and IN control clause by clause and completes this list. A row is added only when no binding text
+supports the behaviour.
+
 ## 9. Open questions
 
 | # | Question | Default if no answer |
 |---|---|---|
 | Q0 | **What counts as binding.** Annex 1 and Revised Schedule M are written almost entirely with "should", yet both are binding: Annex 1 is part of the EU GMP guide that EU law makes the standard for authorised manufacturers, and Schedule M is a schedule of the Drugs Rules that licences require. A "shall/must only" filter would remove nearly all of both. Proposal: every numbered requirement of these instruments counts; excluded are separate guidance documents, items the text itself calls examples or recommended values (e.g. Annex 1's 10 Pa step, "for information" tables), and anything only in FDA guidance. | the proposal; no slice starts before the owner confirms |
-| Q1 | The controls ST-01..79 and IN-40..51 specify more than the minimum of section 4. The owner, as expert, records per clause FOLLOW, DONT_FOLLOW or MODIFY; I-0 gives the table (clause, binding source or none, what section 4 builds). | the build follows section 4; I-6 cannot pass until the owner decides |
-| Q2 | Unfreeze the site gateway (decision 0026) for the I-5 profiles only? | yes, profiles only |
-| Q3 | Same platform product `ebmr` with an edition setting (no new permission codes foreseen)? | yes |
-| Q4 | Prefilled syringes, cartridges and dual-chamber are combination products (US 21 CFR Part 4, EU MDR Article 117). The register's Part 4 row is unverified. The eBMR records the drug manufacture and the device function tests only. | as stated |
-| Q5 | Parametric release needs EU Annex 17 checked first. | not built until then |
-| Q6 | Biologics (Annex 2), radiopharmaceuticals (Annex 3), advanced therapies and continuous manufacturing are product classes or regimes with their own binding texts, outside the listed scope. | flagged, not built unless the owner adds them |
-| Q7 | ADR 0001 point 1 (own server application per edition) changes to "one application, one database per edition". | the lead records the amendment |
+| Q1 | **Lead: binding clauses only; guidance-only behaviours are not built (section 8a).** The controls ST-01..79 and IN-40..51 specify more than the minimum of section 4. The owner, as expert, records per clause FOLLOW, DONT_FOLLOW or MODIFY; I-0 gives the table (clause, binding source or none, what section 4 builds). | the build follows section 4; I-6 cannot pass until the owner decides |
+| Q2 | Unfreeze the site gateway for equipment data? | **Lead: no.** Machine values are typed in with the machine printout attached and checked by a second person. Unfreeze for sterile profiles only when a slice cannot meet a binding clause without it, and ask the lead then. I-5's device-filled NUMBER is parked. |
+| Q3 | Platform shape | **Lead:** same product `ebmr` is the working assumption. The lead settles multi-edition sites before I-6. New `ebmr.*` codes go to the lead per slice. |
+| Q4 | Prefilled syringes, cartridges and dual-chamber are combination products (US 21 CFR Part 4, EU MDR Article 117). The register's Part 4 row is unverified. The eBMR records the drug manufacture and the device function tests only. | **Lead: yes** |
+| Q5 | Parametric release needs EU Annex 17 checked first. | **Lead: yes**, it stays off |
+| Q6 | Biologics (Annex 2), radiopharmaceuticals (Annex 3), advanced therapies and continuous manufacturing are product classes or regimes with their own binding texts, outside the listed scope. | **Lead:** with the owner. Until the owner answers, the plan covers small-molecule and biologic drug-product fill-finish; the same blocks serve both. Radiopharmaceuticals, advanced therapies and continuous manufacturing stay open. |
+| Q7 | ADR 0001 point 1 (own server application per edition) changes to "one application, one database per edition". | **Lead:** the I-0 window opens after Tablets PR #100 merges. Moved-path checklist from the Tablets session: control `tests:` lists, sql-mutation targets and workflow groups, handbook `modules.yaml`, the commands-have-screens list, ops/Dockerfile and entrypoint, tools/platform, dependency-cruiser and pins; rerun flaky E2E groups once, never skip them |
 | Q8 | Conditional release of short-shelf-life products (Annex 1 10.7, 10.10) is optional in the EU and has no basis in Schedule M or 211. | not built |
