@@ -25,7 +25,9 @@ behaviour: |-
   - Design basis: a 20-unit test passes a lot with 0.1% contaminated units about 98% of the time (FDA-AP XI.B). That is why samples are tied to the riskiest moments.
 catalog_test: A terminally sterilised batch in 3 autoclave loads → 3 cold-spot sample sets required. A corrective intervention at 40% fill → an extra sample task is generated.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-61][ST-66] terminal sterilisation runs per load: every filled tray is consumed into its numbered load, and each load records its cycle once, takes its own sterility samples and registers the sterilised load; F0, temperature or time below the minimum is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-66] sterility sampling records each point of the formulation's plan (count of points, units per point, time)"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

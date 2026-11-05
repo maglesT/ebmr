@@ -9,7 +9,7 @@
 # so the store and the browsers are reused, and no two jobs ever write the same one.
 set -euo pipefail
 
-[ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] && exit 0
+{ [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; } && exit 0
 
 base="/workspace/runners/${RUNNER_NAME:-}"
 if [ -z "${RUNNER_NAME:-}" ] || [ ! -d "$base" ] || [ ! -w "$base" ]; then

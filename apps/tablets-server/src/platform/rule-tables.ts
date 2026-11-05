@@ -1,5 +1,5 @@
 /**
- * Publishing the tablets installation's rule tables (kernel and tablets, from compliance/rule-tables) for demo and
+ * Publishing the installation's rule tables (kernel, tablets and sterile, from compliance/rule-tables) for demo and
  * E2E installations. The set-up CLI runs it on both installations before the feature seeds (the designer's
  * MarketMinimaPort and the sandbox runs need the published tables; both fail closed without them, decision F12).
  * Written by C2, moved here by the lead.
@@ -15,8 +15,12 @@ import { market, withCommand, type ActorContext } from '@ebmr/kernel';
 /** compliance/rule-tables at the repository root (demo and E2E set-up run from the source tree). */
 export const RULE_TABLE_ROOT = fileURLToPath(new URL('../../../../compliance/rule-tables', import.meta.url));
 
-/** The rule tables a tablets installation needs (the sterile table belongs to the deferred injectables edition). */
-export const TABLETS_RULE_TABLES: readonly market.RuleTableCode[] = ['kernel', 'tablets'];
+/**
+ * The rule tables an installation publishes: kernel, tablets and, since injectables slice I-1, sterile. The market engine
+ * resolves a key only for a scope of its edition (EBMR-MKT-054), so the sterile table serves injectables masters and
+ * batches alone, and a Tablets scope never reads it.
+ */
+export const INSTALLATION_RULE_TABLES: readonly market.RuleTableCode[] = ['kernel', 'tablets', 'sterile'];
 
 /** The part of a feature seed context this needs (FeatureSeedContext satisfies it). */
 export interface RuleTableSeedContext {
@@ -33,7 +37,7 @@ export async function publishRuleTables(
   const pool = ctx.pools.app;
   const outcomes: market.SyncOutcome[] = [];
   const files = market.readRuleTableDirectory(root);
-  for (const table of options.tables ?? TABLETS_RULE_TABLES) {
+  for (const table of options.tables ?? INSTALLATION_RULE_TABLES) {
     for (const file of files.get(table) ?? []) {
       const { rows } = await pool.query<{ id: string; hash: string; file_hash: string }>(
         `select v.id, encode(v.content_hash, 'hex') as hash, encode(market.document_content_hash($3::jsonb), 'hex') as file_hash
