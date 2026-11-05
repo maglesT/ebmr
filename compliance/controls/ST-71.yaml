@@ -31,6 +31,7 @@ catalog_test: An open deviation plus a yield outside limits → release refused,
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] every unit filled is accounted for: one unit missing from the counts is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] unit accountability reads the units filled and rejected at the line from the filling step, and the units accepted and rejected at inspection from the inspection step, never typed again; one unit missing is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
