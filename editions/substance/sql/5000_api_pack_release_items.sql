@@ -39,10 +39,14 @@ revoke all on schema substance from public;
 
 set local role ebmr_owner;
 
--- The API-PACK step instances of batch p_batch that ran (status not NOT_APPLICABLE): {step_key, step}.
+-- The API-PACK step instances of batch p_batch that ran (status not NOT_APPLICABLE): {step_key, step}. PL/pgSQL, as every
+-- function here: a sandbox database is migrated without the tablets namespace, and only a SQL function's body is
+-- checked when it is created.
 create function substance.pack_steps(p_batch uuid) returns table (step_key text, step jsonb)
-language sql stable security definer set search_path = pg_catalog, substance, tab, pg_temp as $$
-  select g.step_key, g.step from tab.grel_steps(p_batch, 'LIB-API-PACK') g where g.step ->> 'status' is distinct from 'NOT_APPLICABLE'
+language plpgsql stable security definer set search_path = pg_catalog, substance, tab, pg_temp as $$
+begin
+  return query select g.step_key, g.step from tab.grel_steps(p_batch, 'LIB-API-PACK') g where g.step ->> 'status' is distinct from 'NOT_APPLICABLE';
+end
 $$;
 
 -- E.RECONCILIATION_LABELS (header).
