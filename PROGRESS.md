@@ -82,7 +82,31 @@ screens, DI-49), `integrations` and `transfers` (the operator's set-up page), `e
 - CI runs the tests in six shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
   lint now runs with an 8 GB heap.
 
+## API edition (Batchwright API, edition `substance`)
+
+Plan `docs/build-plan/api/plan.md` (approved 4 November), platform fit `platform-fit.md` (confirmed). A0 merged
+(#111, 5 November): one edition list `kernel.editions()` (kernel 1403, site-services 1731, recipe-core 1872), the
+`substance` edition value, `editions/substance/sql` (migrations 5000-5999). Next: A1a, then A1b; resume from
+`docs/build-plan/api/handover-a0.md`.
+
 ## Next
+
+**Declutter (owner, 5 November 2026). Plan approved:** `docs/build-plan/declutter/plan.md` (#113).
+- Only the working batch-record path stays on screen: library → formula → master and approval → batch → dispensing →
+  floor and IPC → exceptions → review → packaging and labels → release, plus the audit trail, batch numbers, records and
+  amendments, beta-lactam rules, devices, site values and operations.
+- Everything else is disconnected: off the home and menus, and its routes refused with 410. Tables and records are kept.
+- QP packages are disconnected for now.
+
+**Resume here: D1**, in a fresh session (lead, 5 November):
+1. Check on the demo that a new formulation can be built from library blocks and taken through master, approval and
+   batch.
+2. Add the shared `DISCONNECTED` list to `packages/api-contract`.
+3. `bind.ts` answers 410 DISCONNECTED (as `PLATFORM_MANAGED_ROUTES`).
+4. A generated 410 test per namespace.
+5. A request-logged run of gmp-batches, library-dc and route-w. Every read a kept screen calls must stay connected.
+6. The golden batches stay green.
+7. Then D2 (web lists), D3 (the new home), D4 (data references).
 
 **Injectables edition (owner decision, 4 November 2026).** Plan approved (v2): `docs/build-plan/injectables/plan.md`
 and `platform-fit.md` (one `ebmr` database, edition as data; ADR 0001 amended). **I-0 merged** (#107, 5 November):
