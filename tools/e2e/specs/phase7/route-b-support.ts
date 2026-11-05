@@ -32,7 +32,7 @@ export const packagingOrders = (page: Page): Promise<void> => tile(page, /^Packa
 
 /** A material lot's page: Quality, Material lots, the lot. */
 export async function lotPage(page: Page, lotCode: string): Promise<void> {
-  await tile(page, /^Quality Deviations/);
+  await tile(page, /^Quality$/);
   await page.getByRole('link', { name: 'Material lots', exact: true }).click();
   await page.getByTestId(`lot-${lotCode}`).getByRole('link').first().click();
 }

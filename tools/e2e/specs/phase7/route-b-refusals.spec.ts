@@ -63,7 +63,7 @@ async function issuedBatch(page: Page, e2e: E2eWorld, issuer: SeededPersona, p: 
 /** The operator records a clearance of `area` for the batch on the plant screen (PRODUCT_CHANGE, PASSED); the refusal's text. */
 async function refusedClearance(page: Page, base: string, batchNumber: string, area: string, op: SeededPersona): Promise<string> {
   await as(page, op);
-  await tile(page, /^Plant Cleaning/);
+  await tile(page, /^Plant$/);
   const box = page.getByTestId('clearance');
   await choose(box.getByRole('radio', { name: new RegExp(`^${batchNumber.replace('/', '\\/')} \\(`) }));
   await box.getByRole('textbox', { name: 'Area or line' }).fill(area);

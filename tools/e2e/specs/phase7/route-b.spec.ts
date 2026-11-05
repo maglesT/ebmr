@@ -839,7 +839,7 @@ test('[IN-05][PR-45][DI-35] route B 9: the finished lot posted in quarantine; QC
     await box.getByRole('textbox', { name: 'Finished quantity' }).fill('10');
     await box.getByRole('textbox', { name: 'Unit' }).fill('packs');
     await box.getByRole('button', { name: 'Post the finished lot in quarantine' }).click();
-    await tile(sp, /^Quality Deviations/);
+    await tile(sp, /^Quality$/);
     await sp.getByRole('link', { name: 'Material lots', exact: true }).click();
     const row = sp.getByTestId(`lot-${s.orderNumber ?? ''}`);
     await expect(row).toBeVisible();
