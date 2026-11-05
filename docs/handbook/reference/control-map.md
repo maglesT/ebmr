@@ -1400,7 +1400,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Market-profile rule resolution.** [IN-52.yaml](../../../compliance/controls/IN-52.yaml). Target phase 1; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-market](../code-map.md#kernel-market), [kernel-installation](../code-map.md#kernel-installation), [rc-execution](../code-map.md#rc-execution), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config)
+- Modules: [kernel-market](../code-map.md#kernel-market), [kernel-installation](../code-map.md#kernel-installation), [rc-execution](../code-map.md#rc-execution), [ts-designer](../code-map.md#ts-designer), [ts-market-config](../code-map.md#ts-market-config), [ts-core](../code-map.md#ts-core)
 - Code: [packages/kernel/src/market/resolve.ts](../../../packages/kernel/src/market/resolve.ts)
 - Code: [packages/kernel/src/market/validate.ts](../../../packages/kernel/src/market/validate.ts)
 - Code: [packages/kernel/src/market/loader.ts](../../../packages/kernel/src/market/loader.ts)
@@ -1420,7 +1420,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 - Guard: market.set_site_value: site values only tighten; looser than HARD or DESIGN refused; GUIDANCE or adopted EXAMPLE loosening needs a CCS reference and QA approval and is flagged (market.batch_flags)
 - Guard: market.evaluate_stub_scope and ResolutionContextProvider: scope market sets (batch, pack, site, union over line, room, equipment and person, per consuming batch for lots; PIC/S counts as EU for sterile line rules)
 - Guard: Issue: India is always in the batch market set; a market the MBR is not approved for is refused (ENG-ISSUE-MARKETS)
-- Tests: [apps/tablets-server/test/designer/market-set.test.ts](../../../apps/tablets-server/test/designer/market-set.test.ts), [apps/tablets-server/test/designer/routes.test.ts](../../../apps/tablets-server/test/designer/routes.test.ts), [apps/tablets-server/test/designer/template.test.ts](../../../apps/tablets-server/test/designer/template.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [packages/kernel/test/market/catalog-refs.test.ts](../../../packages/kernel/test/market/catalog-refs.test.ts), [packages/kernel/test/market/engine-guards.test.ts](../../../packages/kernel/test/market/engine-guards.test.ts), [packages/kernel/test/market/engine.test.ts](../../../packages/kernel/test/market/engine.test.ts), [packages/kernel/test/market/evaluations.test.ts](../../../packages/kernel/test/market/evaluations.test.ts), [packages/kernel/test/market/impact.test.ts](../../../packages/kernel/test/market/impact.test.ts), [packages/kernel/test/market/in52.test.ts](../../../packages/kernel/test/market/in52.test.ts), [packages/kernel/test/market/inv28.property.test.ts](../../../packages/kernel/test/market/inv28.property.test.ts), [packages/kernel/test/market/rule-tables.test.ts](../../../packages/kernel/test/market/rule-tables.test.ts), [packages/kernel/test/market/site-values.test.ts](../../../packages/kernel/test/market/site-values.test.ts), [packages/kernel/test/market/validate.test.ts](../../../packages/kernel/test/market/validate.test.ts), [packages/kernel/test/mutation/site-values-and-policies.test.ts](../../../packages/kernel/test/mutation/site-values-and-policies.test.ts), [packages/kernel/test/review/f20.test.ts](../../../packages/kernel/test/review/f20.test.ts), [packages/kernel/test/review/f21.test.ts](../../../packages/kernel/test/review/f21.test.ts), [packages/kernel/test/review/f22.test.ts](../../../packages/kernel/test/review/f22.test.ts), [packages/kernel/test/review/f23.test.ts](../../../packages/kernel/test/review/f23.test.ts), [packages/kernel/test/review/f24.test.ts](../../../packages/kernel/test/review/f24.test.ts), [packages/kernel/test/review/f25.test.ts](../../../packages/kernel/test/review/f25.test.ts), [packages/kernel/test/review/f27.test.ts](../../../packages/kernel/test/review/f27.test.ts), [packages/kernel/test/review/f76.test.ts](../../../packages/kernel/test/review/f76.test.ts), [packages/kernel/test/review/f80.test.ts](../../../packages/kernel/test/review/f80.test.ts), [packages/recipe-core/test/engine/stage.test.ts](../../../packages/recipe-core/test/engine/stage.test.ts)
+- Tests: [apps/tablets-server/test/designer/market-set.test.ts](../../../apps/tablets-server/test/designer/market-set.test.ts), [apps/tablets-server/test/designer/routes.test.ts](../../../apps/tablets-server/test/designer/routes.test.ts), [apps/tablets-server/test/designer/template.test.ts](../../../apps/tablets-server/test/designer/template.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/platform/rule-tables.test.ts](../../../apps/tablets-server/test/platform/rule-tables.test.ts), [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [packages/kernel/test/market/catalog-refs.test.ts](../../../packages/kernel/test/market/catalog-refs.test.ts), [packages/kernel/test/market/engine-guards.test.ts](../../../packages/kernel/test/market/engine-guards.test.ts), [packages/kernel/test/market/engine.test.ts](../../../packages/kernel/test/market/engine.test.ts), [packages/kernel/test/market/evaluations.test.ts](../../../packages/kernel/test/market/evaluations.test.ts), [packages/kernel/test/market/impact.test.ts](../../../packages/kernel/test/market/impact.test.ts), [packages/kernel/test/market/in52.test.ts](../../../packages/kernel/test/market/in52.test.ts), [packages/kernel/test/market/inv28.property.test.ts](../../../packages/kernel/test/market/inv28.property.test.ts), [packages/kernel/test/market/rule-tables.test.ts](../../../packages/kernel/test/market/rule-tables.test.ts), [packages/kernel/test/market/site-values.test.ts](../../../packages/kernel/test/market/site-values.test.ts), [packages/kernel/test/market/validate.test.ts](../../../packages/kernel/test/market/validate.test.ts), [packages/kernel/test/mutation/site-values-and-policies.test.ts](../../../packages/kernel/test/mutation/site-values-and-policies.test.ts), [packages/kernel/test/review/f20.test.ts](../../../packages/kernel/test/review/f20.test.ts), [packages/kernel/test/review/f21.test.ts](../../../packages/kernel/test/review/f21.test.ts), [packages/kernel/test/review/f22.test.ts](../../../packages/kernel/test/review/f22.test.ts), [packages/kernel/test/review/f23.test.ts](../../../packages/kernel/test/review/f23.test.ts), [packages/kernel/test/review/f24.test.ts](../../../packages/kernel/test/review/f24.test.ts), [packages/kernel/test/review/f25.test.ts](../../../packages/kernel/test/review/f25.test.ts), [packages/kernel/test/review/f27.test.ts](../../../packages/kernel/test/review/f27.test.ts), [packages/kernel/test/review/f76.test.ts](../../../packages/kernel/test/review/f76.test.ts), [packages/kernel/test/review/f80.test.ts](../../../packages/kernel/test/review/f80.test.ts), [packages/recipe-core/test/engine/stage.test.ts](../../../packages/recipe-core/test/engine/stage.test.ts)
 
 ## IN-53
 
@@ -1518,7 +1518,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 - Guard: mbr_version.review_due_set: every approved master carries a review due date after its effective date; recipe.overdue_reviews lists the overdue ones (the dashboard that shows them comes with Phase 6: open, see phase-2-open-questions F13.2)
 - Guard: mbr_version.no_open_authorisation and recipe.retire_version: retirement ends every open authorisation; retired versions are never selected, issued records stay readable (recipe.verify_control_recipe)
 - Guard: mbr_version.in_flight_dispositioned: issued and running batches of earlier versions get CONTINUE (default), HOLD_FOR_ASSESSMENT or CANCEL_UNSTARTED before a successor is approved
-- Tests: [apps/tablets-server/test/dashboards/dashboards-routes.test.ts](../../../apps/tablets-server/test/dashboards/dashboards-routes.test.ts), [apps/tablets-server/test/designer/master-records.test.ts](../../../apps/tablets-server/test/designer/master-records.test.ts), [apps/tablets-server/test/designer/palette-tablets.test.ts](../../../apps/tablets-server/test/designer/palette-tablets.test.ts), [apps/tablets-server/test/library/library-batch-gmp.test.ts](../../../apps/tablets-server/test/library/library-batch-gmp.test.ts), [apps/tablets-server/test/library/library-edition.test.ts](../../../apps/tablets-server/test/library/library-edition.test.ts), [apps/tablets-server/test/library/library-routes.test.ts](../../../apps/tablets-server/test/library/library-routes.test.ts), [apps/tablets-server/test/library/substance-edition.test.ts](../../../apps/tablets-server/test/library/substance-edition.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/market/mbr-new-master-routes.test.ts](../../../apps/tablets-server/test/market/mbr-new-master-routes.test.ts), [apps/tablets-server/test/medhanta/platform-signon.test.ts](../../../apps/tablets-server/test/medhanta/platform-signon.test.ts), [apps/tablets-server/test/mutation/library-blocks.test.ts](../../../apps/tablets-server/test/mutation/library-blocks.test.ts), [apps/tablets-web/test/dashboards/dashboards.test.tsx](../../../apps/tablets-web/test/dashboards/dashboards.test.tsx), [apps/tablets-web/test/designer/insert-dialog.test.tsx](../../../apps/tablets-web/test/designer/insert-dialog.test.tsx), [apps/tablets-web/test/designer/library-blocks.test.tsx](../../../apps/tablets-web/test/designer/library-blocks.test.tsx), [apps/tablets-web/test/library/library-page.test.tsx](../../../apps/tablets-web/test/library/library-page.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [apps/tablets-web/test/slice7g2/master-records.test.tsx](../../../apps/tablets-web/test/slice7g2/master-records.test.tsx), [packages/recipe-core/test/library/block-version.test.ts](../../../packages/recipe-core/test/library/block-version.test.ts), [packages/recipe-core/test/library/formulation.test.ts](../../../packages/recipe-core/test/library/formulation.test.ts), [packages/recipe-core/test/library/library.test.ts](../../../packages/recipe-core/test/library/library.test.ts), [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts), [packages/recipe-core/test/lifecycle/approval.test.ts](../../../packages/recipe-core/test/lifecycle/approval.test.ts), [packages/recipe-core/test/lifecycle/audit-reason.test.ts](../../../packages/recipe-core/test/lifecycle/audit-reason.test.ts), [packages/recipe-core/test/lifecycle/concurrency.test.ts](../../../packages/recipe-core/test/lifecycle/concurrency.test.ts), [packages/recipe-core/test/lifecycle/issue.test.ts](../../../packages/recipe-core/test/lifecycle/issue.test.ts), [packages/recipe-core/test/lifecycle/machine.test.ts](../../../packages/recipe-core/test/lifecycle/machine.test.ts), [packages/recipe-core/test/lifecycle/market.test.ts](../../../packages/recipe-core/test/lifecycle/market.test.ts), [packages/recipe-core/test/lifecycle/review-inventory.test.ts](../../../packages/recipe-core/test/lifecycle/review-inventory.test.ts), [packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts](../../../packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts), [packages/recipe-core/test/mutation/mbr-lifecycle.test.ts](../../../packages/recipe-core/test/mutation/mbr-lifecycle.test.ts), [packages/site-services/test/reporting/reporting-views.test.ts](../../../packages/site-services/test/reporting/reporting-views.test.ts), [tools/e2e/specs/library/acceptance.ts](../../../tools/e2e/specs/library/acceptance.ts)
+- Tests: [apps/tablets-server/test/dashboards/dashboards-routes.test.ts](../../../apps/tablets-server/test/dashboards/dashboards-routes.test.ts), [apps/tablets-server/test/designer/master-records.test.ts](../../../apps/tablets-server/test/designer/master-records.test.ts), [apps/tablets-server/test/designer/palette-tablets.test.ts](../../../apps/tablets-server/test/designer/palette-tablets.test.ts), [apps/tablets-server/test/library/library-batch-gmp.test.ts](../../../apps/tablets-server/test/library/library-batch-gmp.test.ts), [apps/tablets-server/test/library/library-edition.test.ts](../../../apps/tablets-server/test/library/library-edition.test.ts), [apps/tablets-server/test/library/library-routes.test.ts](../../../apps/tablets-server/test/library/library-routes.test.ts), [apps/tablets-server/test/library/substance-edition.test.ts](../../../apps/tablets-server/test/library/substance-edition.test.ts), [apps/tablets-server/test/market/market-config-routes.test.ts](../../../apps/tablets-server/test/market/market-config-routes.test.ts), [apps/tablets-server/test/market/mbr-new-master-routes.test.ts](../../../apps/tablets-server/test/market/mbr-new-master-routes.test.ts), [apps/tablets-server/test/medhanta/platform-signon.test.ts](../../../apps/tablets-server/test/medhanta/platform-signon.test.ts), [apps/tablets-server/test/mutation/library-blocks.test.ts](../../../apps/tablets-server/test/mutation/library-blocks.test.ts), [apps/tablets-web/test/dashboards/dashboards.test.tsx](../../../apps/tablets-web/test/dashboards/dashboards.test.tsx), [apps/tablets-web/test/designer/insert-dialog.test.tsx](../../../apps/tablets-web/test/designer/insert-dialog.test.tsx), [apps/tablets-web/test/designer/library-blocks.test.tsx](../../../apps/tablets-web/test/designer/library-blocks.test.tsx), [apps/tablets-web/test/library/library-page.test.tsx](../../../apps/tablets-web/test/library/library-page.test.tsx), [apps/tablets-web/test/market/market-screens.test.tsx](../../../apps/tablets-web/test/market/market-screens.test.tsx), [apps/tablets-web/test/slice7g2/master-records.test.tsx](../../../apps/tablets-web/test/slice7g2/master-records.test.tsx), [packages/recipe-core/test/library/block-version.test.ts](../../../packages/recipe-core/test/library/block-version.test.ts), [packages/recipe-core/test/library/formulation.test.ts](../../../packages/recipe-core/test/library/formulation.test.ts), [packages/recipe-core/test/library/library.test.ts](../../../packages/recipe-core/test/library/library.test.ts), [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts), [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts), [packages/recipe-core/test/lifecycle/approval.test.ts](../../../packages/recipe-core/test/lifecycle/approval.test.ts), [packages/recipe-core/test/lifecycle/audit-reason.test.ts](../../../packages/recipe-core/test/lifecycle/audit-reason.test.ts), [packages/recipe-core/test/lifecycle/concurrency.test.ts](../../../packages/recipe-core/test/lifecycle/concurrency.test.ts), [packages/recipe-core/test/lifecycle/issue.test.ts](../../../packages/recipe-core/test/lifecycle/issue.test.ts), [packages/recipe-core/test/lifecycle/machine.test.ts](../../../packages/recipe-core/test/lifecycle/machine.test.ts), [packages/recipe-core/test/lifecycle/market.test.ts](../../../packages/recipe-core/test/lifecycle/market.test.ts), [packages/recipe-core/test/lifecycle/review-inventory.test.ts](../../../packages/recipe-core/test/lifecycle/review-inventory.test.ts), [packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts](../../../packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts), [packages/recipe-core/test/mutation/mbr-lifecycle.test.ts](../../../packages/recipe-core/test/mutation/mbr-lifecycle.test.ts), [packages/site-services/test/reporting/reporting-views.test.ts](../../../packages/site-services/test/reporting/reporting-views.test.ts), [tools/e2e/specs/library/acceptance.ts](../../../tools/e2e/specs/library/acceptance.ts)
 
 ## PR-06
 
@@ -2113,13 +2113,15 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Room/zone grade, classification and qualification gate at step start.** [ST-14.yaml](../../../compliance/controls/ST-14.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-15
 
 **Room cleaning and disinfection status.** [ST-15.yaml](../../../compliance/controls/ST-15.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-16
 
@@ -2131,7 +2133,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Pressure differentials, airflow velocity/visualisation and HEPA status.** [ST-17.yaml](../../../compliance/controls/ST-17.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-18
 
@@ -2263,7 +2266,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Component release, including bioburden, endotoxin and microbial tests before use.** [ST-39.yaml](../../../compliance/controls/ST-39.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-40
 
@@ -2275,7 +2279,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Container and closure preparation: wash, rinse, siliconisation, sterilisation/depyrogenation, hold.** [ST-41.yaml](../../../compliance/controls/ST-41.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-42
 
@@ -2287,7 +2292,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Steriliser readiness, validated recipes and load patterns.** [ST-43.yaml](../../../compliance/controls/ST-43.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-44
 
@@ -2311,7 +2317,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Dry-heat sterilisation/depyrogenation: tunnels and ovens.** [ST-47.yaml](../../../compliance/controls/ST-47.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-48
 
@@ -2353,7 +2360,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Pre-sterilisation bioburden per batch.** [ST-54.yaml](../../../compliance/controls/ST-54.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-55
 
@@ -2365,13 +2373,15 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **In-process controls: fill weight/volume and device functional tests.** [ST-56.yaml](../../../compliance/controls/ST-56.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-57
 
 **Stoppering and capping: capping mode, Grade A air supply, stopper-height detection, stopper-to-crimp time.** [ST-57.yaml](../../../compliance/controls/ST-57.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-58
 
@@ -2395,37 +2405,43 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Terminal sterilisation loads (sub-batches), non-rigid containers, parametric release.** [ST-61.yaml](../../../compliance/controls/ST-61.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-62
 
 **100% inspection (manual, semi-automated, automated).** [ST-62.yaml](../../../compliance/controls/ST-62.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-63
 
 **AQL of accepted units, critical defects, OOS investigations and defect trending.** [ST-63.yaml](../../../compliance/controls/ST-63.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-64
 
 **Container-closure integrity.** [ST-64.yaml](../../../compliance/controls/ST-64.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-65
 
 **Sterility and endotoxin results required per batch; method suitability and test conditions.** [ST-65.yaml](../../../compliance/controls/ST-65.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-66
 
 **Sterility sampling plan (start/middle/end, post-intervention, per load and sub-batch).** [ST-66.yaml](../../../compliance/controls/ST-66.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-67
 
@@ -2437,7 +2453,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **A passing sterility test never overrides a process failure.** [ST-68.yaml](../../../compliance/controls/ST-68.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-69
 
@@ -2455,7 +2472,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Release gate: deviations and investigations with impact scope, yield, storage excursions.** [ST-71.yaml](../../../compliance/controls/ST-71.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [rc-library](../code-map.md#rc-library)
+- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
 
 ## ST-72
 

@@ -132,7 +132,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     loadCatalogue: async ({ actor, idempotencyKey, requestHash }) => {
       // S7: the catalogue goes into the library as drafts through the same command as any author's draft; codes the
       // library already holds are left alone (a site's own versions are never overwritten). The hard-capsule blocks load
-      // with the rest (Capsules edition plan, 4 November 2026, lifting R3-CAT-4).
+      // with the rest (Capsules edition plan, 4 November 2026, lifting R3-CAT-4), and the injectables blocks of slice I-1 as
+      // blocks of their edition, offered only to an injectables master (recipe-core 1871).
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
         await c.query('select recipe.require_library_author()');
         const { rows } = await c.query<{ code: string }>('select distinct code from recipe.library_block');
