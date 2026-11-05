@@ -70,23 +70,24 @@ describe('soft gels I (Capsules C6)', () => {
     expect(capsules).not.toContain('SG-WASH');
   });
 
-  it('[PR-08][PR-18][IN-36] gel mass: the gelatin lot is a formula line; mixing temperature and time, deaeration vacuum and time and the viscosity are critical values; no in-step holding timer (D-C3-6)', () => {
+  it('[PR-08][PR-18][IN-36] gel mass: the gelatin lot is a formula line; mixing temperature and time are critical values (Schedule M Part VIII 2.3); deaeration vacuum and time and the viscosity are recorded against limits, not critical; no in-step holding timer (D-C3-6)', () => {
     const gel = item('SG-GEL-MASS');
     expect(fieldOf(gel, 'gelatinLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'gelatinLine' });
-    for (const id of ['meltTemp', 'mixing', 'vacuum', 'deaeration', 'viscosity']) expect(fieldOf(gel, id), id).toMatchObject({ critical: true });
+    for (const id of ['meltTemp', 'mixing']) expect(fieldOf(gel, id), id).toMatchObject({ critical: true });
+    for (const id of ['vacuum', 'deaeration', 'viscosity']) expect(fieldOf(gel, id), id).not.toHaveProperty('critical');
     const timers = gel.definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'TIMER').map((f) => f.id);
     expect(timers).toEqual(['mixing', 'deaeration']);
     expect(nominalRun(gel)).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 
-  it('[PR-08][IN-37] rotary die encapsulation: the encapsulator, die rolls, gel mass and fill inputs, the lines-connected check (EU GMP 5.14) and, at each round, critical ribbon thickness, wedge temperature, fill and shell weight; signed by operator and verifier; a thin ribbon raises an exception', () => {
+  it('[PR-08][IN-37] rotary die encapsulation: the encapsulator, die rolls, gel mass and fill inputs, the lines-connected check (EU GMP 5.14) and, at each round, ribbon thickness and wedge temperature against their limits (not critical; fill and shell weight are IPC-SG-FILL-SHELL\'s); signed by operator and verifier; a thin ribbon raises an exception', () => {
     const enc = item('SG-ENCAP-ROTARY');
     expect(fieldOf(enc, 'encapsulator')).toMatchObject({ type: 'EQUIPMENT', classSlot: 'encapsulatorClass' });
     expect([fieldOf(enc, 'gelMassIn'), fieldOf(enc, 'fillIn')]).toEqual([expect.objectContaining({ type: 'CONTAINER', action: 'CONSUME' }), expect.objectContaining({ type: 'CONTAINER', action: 'CONSUME' })]);
     expect(fieldOf(enc, 'linesConnected')).toMatchObject({ type: 'YES_NO', expected: true });
     const round = enc.definition.sections.find((x) => x.id === 'round');
     expect(round?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
-    expect(round?.fields.map((f) => [f.id, (f as { critical?: boolean }).critical])).toEqual([['ribbonThickness', true], ['wedgeTemp', true]]);
+    expect(round?.fields.map((f) => [f.id, (f as { critical?: boolean }).critical])).toEqual([['ribbonThickness', undefined], ['wedgeTemp', undefined]]);
     expect(enc.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     // The only YES_NO of the soft gel blocks is the lines-connected check.
     const yesNo = SOFTGEL_CODES.flatMap((c) => item(c).definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'YES_NO').map((f) => `${c}.${f.id}`));
@@ -95,9 +96,10 @@ describe('soft gels I (Capsules C6)', () => {
     expect(judgedRun(enc, { round: { ribbonThickness: '0.70' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
   });
 
-  it('[PR-08][IN-36] drying: a timed tumble at a critical air temperature, then tray drying checked for room temperature, humidity and hardness until the end point, and the drying time recorded as a critical value', () => {
+  it('[PR-08][IN-36] drying: a timed tumble at a critical air temperature, then tray drying checked for room temperature, humidity (not critical) and hardness until the end point, and the drying time timed as a critical value', () => {
     const dry = item('SG-DRY');
-    for (const id of ['airTemp', 'tumbling', 'roomTemp', 'roomRh', 'hardness', 'dryingTime']) expect(fieldOf(dry, id), id).toMatchObject({ critical: true });
+    for (const id of ['airTemp', 'tumbling', 'roomTemp', 'hardness', 'dryingTime']) expect(fieldOf(dry, id), id).toMatchObject({ critical: true });
+    expect(fieldOf(dry, 'roomRh')).not.toHaveProperty('critical');
     expect(dry.definition.sections.find((x) => x.id === 'endPoint')?.repeat).toEqual({ kind: 'UNTIL_PASS', untilField: 'hardness', maxRepeatsSlot: 'maxEndPointChecks' });
     expect(fieldOf(dry, 'dryingTime')).toMatchObject({ type: 'TIMER', durationUnit: 'h', limitSlot: 'dryingTime' });
     expect(fieldOf(dry, 'tunnel')).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM' });

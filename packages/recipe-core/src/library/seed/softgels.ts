@@ -56,9 +56,9 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           id: 'deaerate',
           title: 'Deaeration',
           fields: [
-            // Schedule M Part VIII 2.3: the critical operating parameters of the mixing (the vacuum is applied in the mixing tank), with its time.
-            { id: 'vacuum', label: 'Vacuum during deaeration (absolute pressure)', type: 'NUMBER', unit: 'mbar', decimals: 0, limitSlot: 'vacuum', critical: true },
-            { id: 'deaeration', label: 'Deaeration time', type: 'TIMER', durationUnit: 'min', limitSlot: 'deaerationTime', critical: true },
+            // Schedule M Part VIII 2.3 (mixing); recorded against its limits, not a critical value (lead, 5 November).
+            { id: 'vacuum', label: 'Vacuum during deaeration (absolute pressure)', type: 'NUMBER', unit: 'mbar', decimals: 0, limitSlot: 'vacuum' },
+            { id: 'deaeration', label: 'Deaeration time', type: 'TIMER', durationUnit: 'min', limitSlot: 'deaerationTime' },
           ],
         },
         {
@@ -66,7 +66,7 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           title: 'Viscosity and discharge',
           fields: [
             // 21 CFR 211.110(a), (b); EU GMP 4.20(f): an in-process control of the gel mass with its limits.
-            { id: 'viscosity', label: 'Gel mass viscosity', type: 'NUMBER', unit: 'mPa.s', decimals: 0, limitSlot: 'viscosity', critical: true },
+            { id: 'viscosity', label: 'Gel mass viscosity', type: 'NUMBER', unit: 'mPa.s', decimals: 0, limitSlot: 'viscosity' },
             // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight of the intermediate (its yield).
             { id: 'container', label: 'Gel mass receiver', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
@@ -112,8 +112,8 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.110(a), (b); EU GMP 4.18(e), 4.20(f): in-process controls of the process steps that cause variability
             // (ribbon and seal formation), with their limits. Fill and shell weight per capsule are IPC-SG-FILL-SHELL's (211.110(a)(1)).
-            { id: 'ribbonThickness', label: 'Gel ribbon thickness', type: 'NUMBER', unit: 'mm', decimals: 2, limitSlot: 'ribbonThickness', critical: true },
-            { id: 'wedgeTemp', label: 'Wedge temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wedgeTemp', critical: true },
+            { id: 'ribbonThickness', label: 'Gel ribbon thickness', type: 'NUMBER', unit: 'mm', decimals: 2, limitSlot: 'ribbonThickness' },
+            { id: 'wedgeTemp', label: 'Wedge temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wedgeTemp' },
           ],
         },
         {
@@ -173,9 +173,9 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           title: 'Drying conditions and end-point check',
           repeat: { kind: 'UNTIL_PASS', untilField: 'hardness', maxRepeatsSlot: 'maxEndPointChecks' },
           fields: [
-            // Schedule M Part VIII 2.3: the critical operating parameters of the drying (temperature; the humidity drives it).
+            // Schedule M Part VIII 2.3: the drying room temperature (critical); the humidity is recorded against its limits, not critical.
             { id: 'roomTemp', label: 'Drying room temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'roomTemp', critical: true },
-            { id: 'roomRh', label: 'Drying room relative humidity', type: 'NUMBER', unit: '%', decimals: 0, limitSlot: 'roomRh', critical: true },
+            { id: 'roomRh', label: 'Drying room relative humidity', type: 'NUMBER', unit: '%', decimals: 0, limitSlot: 'roomRh' },
             // 21 CFR 211.110(a), (b): the in-process control that ends the drying.
             { id: 'hardness', label: 'Capsule hardness (mean of the capsules checked)', type: 'NUMBER', unit: 'N', decimals: 1, limitSlot: 'hardness', critical: true },
           ],
