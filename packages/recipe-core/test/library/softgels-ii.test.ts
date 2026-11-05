@@ -6,20 +6,14 @@
  * and enteric are data: the formula's lines and the existing blocks; no block of their own.
  */
 import { describe, expect, it } from 'vitest';
-import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
-import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
+import type { HoldPointNode, MbrContent } from '../../src/flow/model.ts';
+import { checkBlockUse } from '../../src/library/index.ts';
 import { CAPSULE_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
-import { expr, mbrWith, phase } from '../flow/support.ts';
-import { byCode as item, configOf, fieldOf, judgedRun, nominalRun, runNominalStep, useOf } from './seed-support.ts';
+import { define, QA1, Run, sig, T0 } from '../engine/support.ts';
+import { expr } from '../flow/support.ts';
+import { byCode as item, catalogueMaster, configOf, fieldOf, judgedRun, nominalRun, runNominalStep, useOf, type MasterStep } from './seed-support.ts';
 
-interface Step {
-  id: string;
-  code: string;
-  bomLines?: Record<string, string>;
-}
-
-const STEPS: readonly Step[] = [
+const STEPS: readonly MasterStep[] = [
   { id: 'p-gel', code: 'SG-GEL-MASS', bomLines: { gelatinLine: 'BOM-GELATIN' } },
   { id: 'p-gel-hold', code: 'PROC-HOLD' },
   { id: 'p-encap', code: 'SG-ENCAP-SEAMLESS' },
@@ -30,6 +24,7 @@ const STEPS: readonly Step[] = [
   { id: 'p-ent-coat', code: 'COAT-ENTERIC' },
   { id: 'p-inspect', code: 'PROC-CAPS-INSPECT' },
   { id: 'p-print', code: 'PROC-CAPS-PRINT' },
+  // The printed capsules wait for QC approval before going on (Schedule M Part VIII 6.2; the G-17 hold point, D-C3-2).
   { id: 'p-polish', code: 'PROC-CAPS-POLISH' },
   { id: 'p-dt', code: 'IPC-CAPS-DT' },
 ];
@@ -45,22 +40,27 @@ const BOM: MbrContent['bom'] = [
   { id: 'BOM-ENTERIC', material: 'MAT-METHACRYLIC-COPOLYMER', role: 'EXCIPIENT', quantity: { value: '6', unit: 'kg' } },
 ];
 
-function master(): { mbr: MbrContent; registry: ReturnType<typeof testRegistry> } {
-  const phases: PhaseNode[] = STEPS.map((s) => phase(s.id, { name: item(s.code).definition.title, block: { type: libraryBlockType(s.code), version: '1' }, config: configOf(useOf(s)) as never }));
-  const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [...phases, phase('after')] }, { bom: BOM });
-  const defs = [...new Set(STEPS.map((s) => s.code))].map((c) => libraryBlockVersion(item(c).definition, expr));
-  return { mbr: { ...mbr, header: { ...mbr.header, product: { ...mbr.header.product, dosageForm: 'Chewable soft gelatin capsule' } } }, registry: testRegistry().extend(...defs) };
-}
+/** The QA hold point after printing (G-17). */
+const PRINT_HOLD: HoldPointNode = { kind: 'holdPoint', id: 'h-print', name: 'Printed capsules approved by QC', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] };
+
+/** The master: the steps in order, with the hold point right after printing. */
+const NODES = STEPS.flatMap((s) => (s.id === 'p-print' ? [s, PRINT_HOLD] : [s]));
 
 describe('soft gels II (Capsules C7)', () => {
-  it('[PR-03][PR-18][IN-36][IN-37] a chewable, enteric-coated seamless soft gel from the catalogue (chewable gel mass, hold, seamless encapsulation, fill and shell weight, drying, hardness, enteric coat, inspection, printing, polishing, rupture) passes the formulation checks and runs to completion with no exception', () => {
-    const { mbr, registry } = master();
+  it('[PR-03][PR-18][IN-36][IN-37] a chewable, enteric-coated seamless soft gel from the catalogue (chewable gel mass, hold, seamless encapsulation, fill and shell weight, drying, hardness, enteric coat, inspection, printing held for QC (G-17), polishing, rupture) passes the formulation checks and runs to completion with no exception', () => {
+    const { mbr, registry } = catalogueMaster(NODES, BOM, 'Chewable soft gelatin capsule');
     for (const s of STEPS) expect(checkBlockUse(item(s.code).definition, useOf(s), expr, BOM), s.id).toEqual([]);
     const run = Run.issue(define(mbr, { registry }), {}, T0);
     for (const s of STEPS) {
+      if (s.id === 'p-polish') {
+        // Polishing cannot start while the printed capsules wait for QC; QA's release opens it.
+        expect(() => run.start('p-polish')).toThrow(/ENG-NOT-ENABLED/);
+        run.ok({ type: 'DISPOSITION_HOLD_POINT', actor: QA1, step: 'h-print', context: [], disposition: 'APPROVED', signature: sig('HOLD_POINT_RELEASED', QA1) });
+      }
       runNominalStep(run, s.id, item(s.code).definition, configOf(useOf(s)), mbr);
       expect(run.status(s.id), s.id).toBe('COMPLETED');
     }
+    expect(run.status('h-print')).toBe('COMPLETED');
     expect(run.exceptions().map((x) => x.type)).toEqual([]);
   });
 
@@ -92,5 +92,7 @@ describe('soft gels II (Capsules C7)', () => {
     expect(fieldOf(dt, 'time')).toMatchObject({ type: 'TEST_RESULT', statistics: [{ statistic: 'MAX', limitSlot: 'maxTime' }] });
     expect(Object.keys(dt.exampleUse.limits ?? {}).sort()).toEqual(['maxTime', 'mediumTemp']);
     expect(nominalRun(dt)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // The rupture path: the same step completes with the rupture test chosen.
+    expect(judgedRun(dt, { test: { testKind: 'Rupture' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 });

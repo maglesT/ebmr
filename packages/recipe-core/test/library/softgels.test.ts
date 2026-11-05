@@ -5,20 +5,14 @@
  * formulation checks and runs to completion on the engine. Fill preparation (PROC-FILL-PREP) is C5's and not on this base.
  */
 import { describe, expect, it } from 'vitest';
-import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
-import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
+import type { MbrContent } from '../../src/flow/model.ts';
+import { checkBlockUse } from '../../src/library/index.ts';
 import { CAPSULE_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
-import { expr, mbrWith, phase } from '../flow/support.ts';
-import { byCode as item, configOf, fieldOf, judgedRun, nominalRun, runNominalStep, useOf } from './seed-support.ts';
+import { define, Run, T0 } from '../engine/support.ts';
+import { expr } from '../flow/support.ts';
+import { byCode as item, catalogueMaster, configOf, fieldOf, judgedRun, nominalRun, runNominalStep, useOf, type MasterStep } from './seed-support.ts';
 
-interface Step {
-  id: string;
-  code: string;
-  bomLines?: Record<string, string>;
-}
-
-const STEPS: readonly Step[] = [
+const STEPS: readonly MasterStep[] = [
   { id: 'p-gel', code: 'SG-GEL-MASS', bomLines: { gelatinLine: 'BOM-GELATIN' } },
   { id: 'p-gel-hold', code: 'PROC-HOLD' },
   { id: 'p-encap', code: 'SG-ENCAP-ROTARY' },
@@ -40,12 +34,7 @@ const BOM: MbrContent['bom'] = [
   { id: 'BOM-GLYCERIN', material: 'MAT-GLYCERIN', role: 'EXCIPIENT', quantity: { value: '12', unit: 'kg' } },
 ];
 
-function master(): { mbr: MbrContent; registry: ReturnType<typeof testRegistry> } {
-  const phases: PhaseNode[] = STEPS.map((s) => phase(s.id, { name: item(s.code).definition.title, block: { type: libraryBlockType(s.code), version: '1' }, config: configOf(useOf(s)) as never }));
-  const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [...phases, phase('after')] }, { bom: BOM });
-  const defs = [...new Set(STEPS.map((s) => s.code))].map((c) => libraryBlockVersion(item(c).definition, expr));
-  return { mbr: { ...mbr, header: { ...mbr.header, product: { ...mbr.header.product, dosageForm: 'Soft gelatin capsule' } } }, registry: testRegistry().extend(...defs) };
-}
+const master = () => catalogueMaster(STEPS, BOM, 'Soft gelatin capsule');
 
 describe('soft gels I (Capsules C6)', () => {
   it('[PR-03][PR-18][IN-36][IN-37] a soft gelatin capsule from the catalogue (gel mass, its hold step, rotary die encapsulation, fill and shell weight, seal thickness, drying to the end point, hardness, inspection) passes the formulation checks and runs to completion with no exception', () => {

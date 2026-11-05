@@ -137,12 +137,14 @@ at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating
 `bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
 group `library-caps` (green to a released lot). Also on main: the E2E race fix (three container helpers wait for the stored
 typed net before the verifier opens the containers page; it ended the "Verify the net" timeouts).
-**C3 (branch `caps/c3`, 5 November):** five post-fill blocks, data only (PROC-CAPS-CHECKWEIGH, -INSPECT, -PRINT, -BAND,
-IPC-CAPS-SEAL-LEAK); OTC sealing and QC approval of print are met by data (the band and seal steps; printing before the
-H-PACK hold point), no capsule-specific code (lead audit). `library-caps` runs checkweigh, print and inspect before H-PACK
-and packs in the cold-form blister. Decisions D-C3-1 to 5 in the plan, section 8.
-**Resume here: C4** (multiparticulates: extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet
-dosing, combinations, two-stage dissolution; a delayed-release pellet formulation runs), branch `caps/c4` from main. Lead's rules:
+**C3 to C7 merged (5 November):** C3 post-fill and packing (#124); C4 multiparticulates, C5 liquid and plate filling, C6
+soft gels I (#137, combining #127, #129, #130, #132); C6b the soft-gel E2E to a released packed lot, recipe-core 1875
+(#138); C7 soft gels II (#139): SG-ENCAP-SEAMLESS, chewable and enteric as data, IPC-CAPS-DT's disintegration or rupture
+CHOICE. Decisions D-C3-1 to D-C7-3 in the plan, section 8; shared test helpers (incl. `catalogueMaster`) in
+`test/library/seed-support.ts`.
+**Resume here: C8, the exit** (full suites, the browser suite, golden batches unchanged, one review pass; the "units"
+data-only versions of TB-20, TB-23 and COAT-ENTERIC only if a capsule master uses them), branch `caps/c8` from main.
+Lead's rules:
 - Declutter: no new home tiles, menus or screens; build only on the kept core path (packaging, label issuance and
   reconciliation are kept). Never call the namespaces in `packages/api-contract/src/disconnected.ts` (D1, #116; 410 on
   the platform build). C3 checked the acceptance helpers (change control, equipment logbook): none is disconnected;
@@ -152,8 +154,6 @@ dosing, combinations, two-stage dissolution; a delayed-release pellet formulatio
   than add a group where the plan allows.
 - A coat on capsules (enteric, C3/C7) is a per-batch COATING line; never a second per-unit one (refused).
 - A library STEP_VALUE input is resolved at runtime (#117 is on main); no capsule block needs one (D-C6-6).
-- C6 (soft gels I, #132): gel mass, rotary die, drying to the hardness end point, fill/shell, seal thickness and hardness
-  tests; next C6b, the soft-gel E2E to a released lot (two dispensed streams), then C7.
 - Declutter D3 drops SignInBrand's edition prop (sign-in says just "Batchwright"); the header keeps naming the edition of
   the record on screen through C2's `useScreenDosageForm`. Never pass an edition to SignInBrand.
 - Container restarts leave the local PostgreSQL clusters stopped: `sudo pg_ctlcluster 16 main start` (and ci, ci2, ci3).
