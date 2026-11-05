@@ -25,7 +25,7 @@ export function readDosageForm(dosageForm: string | null | undefined): DosageFor
   return { ok: false, hint: `"${text}" is neither a tablet nor a capsule form; this build makes tablets and capsules (a soft gel is named as a capsule form, for example "Soft gelatin capsule").` };
 }
 
-/** True when the dosage form makes the product a capsule (the header then reads "Batchwright Capsules"). */
+/** True when the dosage form makes the product a capsule (the header then names the Capsules edition). */
 export function isCapsuleForm(dosageForm: string | null | undefined): boolean {
   const r = readDosageForm(dosageForm);
   return r.ok && r.form === 'CAPSULE';
