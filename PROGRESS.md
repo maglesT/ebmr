@@ -131,9 +131,9 @@ at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating
 group `library-caps` (green to a released lot). Also on main: the E2E race fix (three container helpers wait for the stored
 typed net before the verifier opens the containers page; it ended the "Verify the net" timeouts).
 **C3 (branch `caps/c3`, 5 November):** five post-fill blocks, data only (PROC-CAPS-CHECKWEIGH, -INSPECT, -PRINT, -BAND,
-IPC-CAPS-SEAL-LEAK); validator 1.3.0 adds GMP-CAPSULE-SEAL (US OTC two-piece hard capsule banded or sealed on every path,
-PR-41) and GMP-CAPSULE-PRINT-HELD (printing before a hold point every path passes, IN-37); `library-caps` runs checkweigh,
-print and inspect before H-PACK and packs in the cold-form blister. Decisions D-C3-1 to 5 in the plan, section 8.
+IPC-CAPS-SEAL-LEAK); OTC sealing and QC approval of print are met by data (the band and seal steps; printing before the
+H-PACK hold point), no capsule-specific code (lead audit). `library-caps` runs checkweigh, print and inspect before H-PACK
+and packs in the cold-form blister. Decisions D-C3-1 to 5 in the plan, section 8.
 **Resume here: C4** (multiparticulates: extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet
 dosing, combinations, two-stage dissolution; a delayed-release pellet formulation runs), branch `caps/c4` from main. Lead's rules:
 - Declutter: no new home tiles, menus or screens; build only on the kept core path (packaging, label issuance and

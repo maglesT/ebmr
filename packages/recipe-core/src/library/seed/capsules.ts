@@ -260,14 +260,13 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Capsule checkweighing (100 % weight sorting)',
       category: 'PROCESS',
-      instructions: 'Challenge the checkweigher with light and heavy test capsules, set its reject limits to the master\'s, and pass every capsule through it. Light and heavy capsules go to the reject bin.',
+      instructions: 'Set the checkweigher\'s reject limits to the master\'s and pass every capsule through it. Light and heavy capsules go to the reject bin.',
       sections: [
         {
           id: 'setup',
           title: 'Set-up',
           fields: [
             { id: 'checkweigher', label: 'Capsule checkweigher', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'checkweigherClass' },
-            { id: 'challenged', label: 'Challenge passed (light and heavy test capsules rejected)', type: 'YES_NO', expected: true },
             { id: 'rejectLow', label: 'Lower reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectLow', critical: true },
             { id: 'rejectHigh', label: 'Upper reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectHigh', critical: true },
             { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
@@ -305,7 +304,6 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'inspector', label: 'Inspection machine or belt', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'inspectorClass' },
             { id: 'method', label: 'Inspection method', type: 'CHOICE', options: ['Manual inspection belt', 'Automatic camera inspection'] },
-            { id: 'challenged', label: 'Defect challenge set found (or the inspectors qualified on it)', type: 'YES_NO', expected: true },
             { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
           ],
         },

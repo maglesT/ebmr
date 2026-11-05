@@ -246,13 +246,12 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - D-C3-1: five new blocks, data only: PROC-CAPS-CHECKWEIGH, PROC-CAPS-INSPECT, PROC-CAPS-PRINT, PROC-CAPS-BAND and
   IPC-CAPS-SEAL-LEAK (brought forward from C5: banding needs its seal check; C5 reuses it). A leaker is a critical value
   outside its registered limit of none, so the step raises an exception and the capsules wait for QA (PR-41 failures).
-- D-C3-2: 21 CFR 211.132(b)(2) as a validator rule, GMP-CAPSULE-SEAL (validator 1.3.0): a master whose header says US OTC
-  retail (`predicates.usOtcRetail`, as the packaging masters' PR-41 check reads it) for a hard capsule (a capsule form
-  without "soft") must band or seal on every completing path. No screen sets the predicate on a processing master yet;
-  the rule holds whenever one does.
-- D-C3-3: Schedule M Part VIII 6.2 as a validator rule, GMP-CAPSULE-PRINT-HELD: no path takes a PROC-CAPS-PRINT step to the
-  end of the record without a hold point after it (printing on one branch only, or a hold in each branch, passes). A library master's H-PACK (QA, before packing) is that hold point; the
-  block also records segregation, the approved edible ink and that the print is held for QC.
+- D-C3-2: 21 CFR 211.132(b)(2) and Schedule M Part VIII 6.2 are met by data, not by validator rules (lead audit,
+  5 November: no capsule-specific code). An OTC two-piece hard capsule's master carries PROC-CAPS-BAND and
+  IPC-CAPS-SEAL-LEAK; the printed capsules wait at the master's QA hold point before packing (H-PACK, after every
+  library step), and PROC-CAPS-PRINT records segregation, the approved edible ink and that the print is held for QC.
+- D-C3-3: the checkweigher and inspection steps record no per-batch challenge: 21 CFR 211.68(a) asks for routine checks
+  of automatic equipment under a written programme, which the equipment logbook holds, not the batch record (lead audit).
 - D-C3-4: the edible ink is named in a text field (name and lot), not a formula line: an ink is not weighed into the
   batch, and a line would force every printed master to dispense it.
 - D-C3-5: blister, strip and bottle packing of capsules reuse the packaging masters as they are (TB-21 to TB-24); the
