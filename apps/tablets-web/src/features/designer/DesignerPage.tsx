@@ -174,6 +174,13 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
       </nav>
       <h1>
         {present.header.title} <span className={dcls('small')}>MBR-{saved.familyCode}-v{saved.number}</span>
+        {/* Injectables plan I-0: the edition is data on the family; an injectables master says so (Tablets screens unchanged). */}
+        {present.header.edition === 'injectables' ? (
+          <>
+            {' '}
+            <StatusChip tone="neutral" label="Injectables" />
+          </>
+        ) : null}
       </h1>
 
       <div className={dcls('toolbar')} role="toolbar" aria-label="Designer">

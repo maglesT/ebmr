@@ -27,6 +27,8 @@ export type VersionSummary = z.infer<typeof VersionSummary>;
 export const FamilyView = z.strictObject({
   familyId: Uuid,
   familyCode: z.string(),
+  /** The family's edition (injectables plan I-0): the edition is data on the family. */
+  edition: z.string(),
   product: ProductRef,
   markets: z.array(z.string()),
   versions: z.array(VersionSummary),
@@ -242,6 +244,12 @@ export const designer = {
        * approved master `copyOfVersionId`). The header, the batch sizes and the bill of materials come from the formula.
        */
       start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY']).optional(),
+      /**
+       * Injectables plan I-0: the family's edition (default tablets). An injectables family starts from a formula with
+       * BLANK (the tablet skeleton, templates and copies are Tablets procedures) and its product's dosage form must be an
+       * injectable one.
+       */
+      edition: z.enum(['tablets', 'injectables']).optional(),
       /**
        * Slice 7o (R4, R8; D-7o-3): PACKAGING_COPY copies the approved packaging master `copyOfVersionId` for the product of
        * `product` (code and strength; its name from the product master), each printed item (G-21) replaced by the

@@ -14,6 +14,8 @@ export const LibraryBlockView = z.strictObject({
   version: z.number().int().min(1),
   title: z.string(),
   category: z.string(),
+  /** The block's edition (injectables plan I-0): generic, tablets or injectables; tablets when the definition names none. */
+  edition: z.string(),
   state: LibraryBlockState,
   contentHash: z.string(),
   /** The definition as stored (recipe-core library BlockDefinition). */
@@ -39,7 +41,12 @@ export const library = {
     auth: 'SESSION',
     mutating: false,
     summary: 'Library block versions, newest first, optionally of one code or state',
-    query: z.strictObject({ code: z.string().regex(/^[A-Z][A-Z0-9-]{1,39}$/).optional(), state: LibraryBlockState.optional() }),
+    query: z.strictObject({
+      code: z.string().regex(/^[A-Z][A-Z0-9-]{1,39}$/).optional(),
+      state: LibraryBlockState.optional(),
+      /** Only the blocks a master of this edition may use: that edition's and the generic ones. */
+      edition: z.string().regex(/^[a-z]{1,20}$/).optional(),
+    }),
     response: z.strictObject({ blocks: z.array(LibraryBlockView) }),
   }),
   check: defineRoute({

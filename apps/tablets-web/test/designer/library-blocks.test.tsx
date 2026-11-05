@@ -132,7 +132,7 @@ describe('library blocks in the designer', () => {
       'library.list': {
         blocks: [
           {
-            blockId: '3b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', code: 'IPC-FRIAB', version: 1, title: 'Friability', category: 'TEST_IPC', state: 'APPROVED', contentHash: library.definitionHash(FRIAB),
+            blockId: '3b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', code: 'IPC-FRIAB', version: 1, title: 'Friability', category: 'TEST_IPC', edition: 'tablets', state: 'APPROVED', contentHash: library.definitionHash(FRIAB),
             definition: FRIAB, draftedBy: { personId: '7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11', legalName: 'Asha Rao', loginName: 'asha.rao', role: 'AUTHOR' }, draftedAt: { us: '1', text: 'now' },
             approvedBy: null, approvedAt: null, retiredAt: null, retirementReason: null,
           },
@@ -151,7 +151,7 @@ describe('library blocks in the designer', () => {
 
   it('[PR-03][PR-45] S11a finding: a release test (QC\'s record on the lot, signed by QC roles no floor session carries) is not offered for a master; an IPC test is', async () => {
     const entry = (blockId: string, def: typeof FRIAB) => ({
-      blockId, code: def.code, version: 1, title: def.title, category: def.category, state: 'APPROVED', contentHash: library.definitionHash(def),
+      blockId, code: def.code, version: 1, title: def.title, category: def.category, edition: 'tablets', state: 'APPROVED', contentHash: library.definitionHash(def),
       definition: def, draftedBy: { personId: '7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11', legalName: 'Asha Rao', loginName: 'asha.rao', role: 'AUTHOR' }, draftedAt: { us: '1', text: 'now' },
       approvedBy: null, approvedAt: null, retiredAt: null, retirementReason: null,
     });

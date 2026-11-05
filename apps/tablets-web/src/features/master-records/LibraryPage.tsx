@@ -70,7 +70,7 @@ function BlockCard({ b, canApprove, onNewVersion }: { b: LibraryBlockView; canAp
   return (
     <Section title={`${name}: ${b.title}`} testId={`library-${b.code}-${String(b.version)}`}>
       <p>
-        <StatusChip tone={b.state === 'APPROVED' ? 'ok' : b.state === 'DRAFT' ? 'warning' : 'neutral'} label={b.state} /> {b.category.toLowerCase().replace('_', ' ')} · drafted by{' '}
+        <StatusChip tone={b.state === 'APPROVED' ? 'ok' : b.state === 'DRAFT' ? 'warning' : 'neutral'} label={b.state} /> {b.category.toLowerCase().replace('_', ' ')} · {b.edition === 'generic' ? 'every edition' : b.edition} · drafted by{' '}
         {b.draftedBy.legalName}, {b.draftedAt.text}
         {b.approvedBy ? ` · approved by ${b.approvedBy.legalName}, ${b.approvedAt?.text ?? ''}` : ''}
         {b.retiredAt ? ` · retired ${b.retiredAt.text}: ${b.retirementReason ?? ''}` : ''}
