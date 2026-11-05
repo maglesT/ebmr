@@ -40,6 +40,10 @@ describe('R3.1: the tablet count at issue against the master', () => {
     // The further size's count typed for the reference size (or the reverse) is refused without a reason.
     expect(unconfirmedCounts(fromFormula, 'BS-100000U', { tabletsPerBatch: { kind: 'COUNT', value: '50000' } }).map((p) => [p.expected.value, p.deviation])).toEqual([['100000', '50']]);
     expect(unconfirmedCounts(fromFormula, 'BS-50000U', { tabletsPerBatch: { kind: 'COUNT', value: '50000' } })).toEqual([]);
+    // Capsules edition C2: a capsule master counts capsules; its input may be named for capsules, and the problem says so.
+    expect(unconfirmedCounts(fromFormula, 'BS-100000U', { tabletsPerBatch: { kind: 'COUNT', value: '50000' } })[0]?.unit).toBe('tablet');
+    const capsules = { ...fromFormula, header: { ...fromFormula.header, product: { ...gbt01.header.product, dosageForm: 'Hard gelatin capsule' } }, inputs: [{ id: 'capsulesPerBatch', name: 'Batch size in capsules', source: 'BATCH_HEADER' as const, valueType: 'COUNT' as const }] };
+    expect(unconfirmedCounts(capsules, 'BS-100000U', { capsulesPerBatch: { kind: 'COUNT', value: '50000' } }).map((p) => [p.inputId, p.unit, p.deviation])).toEqual([['capsulesPerBatch', 'capsule', '50']]);
     const raw = JSON.parse(readFileSync(TEMPLATE, 'utf8')) as { header: Record<string, unknown> };
     const withMass = (v: string) => flow.parseMbr({ ...raw, header: { ...raw.header, unitMassMg: v } });
     const kept = withMass('556.25');

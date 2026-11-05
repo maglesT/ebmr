@@ -38,6 +38,11 @@ describe('brand (decision 0020)', () => {
 
   it('the product title is "Batchwright <edition>" and the maker is Medhanta', () => {
     expect([brand.productTitle('TABLETS'), brand.productTitle('INJECTABLES')]).toEqual(['Batchwright Tablets', 'Batchwright Injectables']);
+    // Decision 0020 amended (4 November 2026): Capsules is a header name only, shown by the Tablets build.
+    expect([brand.productTitle('CAPSULES'), brand.editionWord('CAPSULES')]).toEqual(['Batchwright Capsules', 'Capsules']);
+    const shown = render(<brand.HeaderBrand edition="CAPSULES" />);
+    expect(within(shown.container).getByTestId('header-brand').textContent).toContain('Batchwright Capsules');
+    shown.unmount();
     expect([brand.PRODUCT.name, brand.PRODUCT.maker]).toEqual(['Batchwright', 'Medhanta']);
   });
 

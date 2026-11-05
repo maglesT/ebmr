@@ -17,6 +17,7 @@ import { asAdmin, passwordActor } from '@ebmr/test-kit';
 import { platformEnv } from '../../src/config.ts';
 import { FakeCore, type CorePerson } from '../support/fake-core.ts';
 import { FakeMaster } from '../support/fake-master.ts';
+import { MasterData } from '../../src/platform/master-data.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 
@@ -68,6 +69,21 @@ describe('the write-time active-item check (PL-08)', () => {
     expect(p).toMatchObject({ code, name: 'Rabeprazole sodium gastro-resistant tablets 20 mg' });
     expect(await factsOf('product', code)).toEqual([{ master_id: id, code, name: 'Rabeprazole sodium gastro-resistant tablets 20 mg', version: '1', active: true }]);
     expect(await q('select master_id from md.item_map where kind = $1 and local_code = $2', ['product', code])).toEqual([{ master_id: id }]);
+  });
+
+  it('[PL-08][PR-01] the product read carries core\'s dosage form (Capsules edition C2): null when core holds none; other kinds have none', async () => {
+    const code = `FG-${tag()}`;
+    await master.put('product', code, 'Omeprazole gastro-resistant capsules 20 mg');
+    await master.put('room', `RM-${code}`, 'Encapsulation room');
+    const reader = MasterData.open(master.url);
+    try {
+      expect(await reader.read('product', { code })).toMatchObject({ code, dosageForm: null });
+      await master.dosageForm(code, 'Hard gelatin capsule');
+      expect(await reader.read('product', { code })).toMatchObject({ code, version: 2, dosageForm: 'Hard gelatin capsule' });
+      expect(await reader.read('room', { code: `RM-${code}` })).not.toHaveProperty('dosageForm');
+    } finally {
+      await reader.close();
+    }
   });
 
   it('[PL-08] refuses an inactive or unknown product, and nothing is saved', async () => {
