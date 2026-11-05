@@ -46,6 +46,7 @@ describe('CI runner labels', () => {
       tests: 8,
       golden: 8,
       report: 'github',
+      changes: 'github',
       'e2e-plan': 'github',
       e2e: 8,
       'e2e-report': 'github',

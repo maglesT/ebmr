@@ -3070,7 +3070,7 @@ of each database function.
 
 **CI runner scripts (per-job PostgreSQL, per-runner directories, Playwright install).** Package `tools/ci`. Handbook: [modules/tools.md](modules/tools.md).
 
-**Source** (3): [playwright-install.sh](../../tools/ci/playwright-install.sh), [runner-env.sh](../../tools/ci/runner-env.sh), [start-postgres.sh](../../tools/ci/start-postgres.sh)
+**Source** (4): [changes.sh](../../tools/ci/changes.sh), [playwright-install.sh](../../tools/ci/playwright-install.sh), [runner-env.sh](../../tools/ci/runner-env.sh), [start-postgres.sh](../../tools/ci/start-postgres.sh)
 
 ## tools-e2e
 

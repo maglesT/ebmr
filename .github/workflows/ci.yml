@@ -297,8 +297,30 @@ jobs:
 
   # The end-to-end groups of this run: all of them, or on a run by hand the ones its e2e_groups input names (an unknown
   # name fails here). The full list is the e2e job's matrix as it was; a new group is added here.
+  # Cost (owner): a pull request that changes only Markdown files outside test folders skips the end-to-end groups (most
+  # of the Ubicloud minutes). The static checks, every test shard, the golden batches and the Vitest trace still run:
+  # many tests and the handbook check read Markdown. A push to main and a run by hand always run everything.
+  changes:
+    name: Code or docs only
+    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: bash tools/ci/changes.sh
+
   e2e-plan:
     name: End-to-end groups to run
+    needs: [changes]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 5
     outputs:
@@ -381,8 +403,8 @@ jobs:
   # .reports/e2e-evidence.json for the validation pack. A missing group leaves its tests out, and the trace fails on them.
   e2e-report:
     name: End-to-end reports merged
-    needs: [e2e]
-    if: ${{ !cancelled() }}
+    needs: [e2e-plan, e2e]
+    if: ${{ !cancelled() && needs.e2e-plan.result == 'success' }}
     runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
