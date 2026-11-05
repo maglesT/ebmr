@@ -12,8 +12,8 @@ import { seedActor, type SeededActor } from '../../../kernel/test/identity/seed.
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { ensureFixtureChangeRecord } from '../../../kernel/test/support/change-record.ts';
 import * as plant from '../../src/plant/index.ts';
-import { PlantWorld, seedPlantCast, tag } from '../plant/support.ts';
-import { occupy } from './support.ts';
+import { dbIn, PlantWorld, seedPlantCast, tag } from '../plant/support.ts';
+import { batchWithPredicates, occupy, occupyBatch } from './support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -160,6 +160,25 @@ describe('beta-lactam work stays in its dedicated suite (PR-27, R7)', () => {
     expect(await messageOf(occupy(w, suite.code, 'LIVE-A', product))).toMatch(/EBMR-PLANT-178/);
     await w.run(w.cast.steward, (c) => c.query("select plant.classify_beta_lactam('PRODUCT', $1, true, 'Reclassified: a cephalosporin') as r", [product]));
     expect(await occupy(w, suite.code, 'LIVE-A', product)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[PR-27] a beta-lactam hard capsule (the master\'s dosage form "Hard gelatin capsule", its betaLactam predicate) is refused a room and a unit outside the dedicated suite, and runs in the suite (Capsules edition plan, C5)', async () => {
+    const product = await w.product();
+    const capsule = await batchWithPredicates(db, product, { betaLactam: true }, 'Hard gelatin capsule');
+    const form = await db.admin.query<{ r: string }>("select recipe.batch_mbr_content($1) -> 'header' -> 'product' ->> 'dosageForm' as r", [capsule]);
+    expect(form.rows[0]?.r).toBe('Hard gelatin capsule');
+    const plainRoom = await w.room();
+    expect(await messageOf(occupyBatch(w, plainRoom.code, capsule))).toMatch(new RegExp(`EBMR-PLANT-177 batch TEST-BL-\\w+ of ${product} is beta-lactam and ${plainRoom.code} is not a room or line dedicated to beta-lactam`));
+    const filler = `EQ-${tag()}`;
+    const classCode = (await w.press()).classCode;
+    await w.run(w.cast.steward, (c) => plant.defineEquipment(c, { code: filler, name: `Capsule filler ${filler}`, classCode, areaCode: plainRoom.code }));
+    await w.run(w.cast.steward, (c) => plant.recordEquipmentEvent(c, filler, 'QUALIFIED', 'IQ/OQ/PQ approved', `QUAL-${filler}`));
+    await w.clean('EQUIPMENT', filler, 'MAJOR');
+    const end = await dbIn(db, 8 * 3600);
+    expect(await messageOf(w.run(w.cast.operator, (c) => plant.startEquipmentUse(c, filler, capsule, end)))).toMatch(new RegExp(`EBMR-PLANT-177 .* ${plainRoom.code} is not a room or line dedicated to beta-lactam products.*\\(unit ${filler} stands there\\)`));
+    const suite = await w.room();
+    await dedicate(suite.code);
+    expect(await occupyBatch(w, suite.code, capsule)).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('[PR-27] a later dedication not yet approved leaves the earlier approved one in force', async () => {

@@ -8,13 +8,12 @@
  * - a GMP-critical alarm bound to the step blocks the step's signature even when the command names a room without
  *   alarms of its own (DI-49).
  */
-import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { asTimeTraveller } from '../../../kernel/test/esig/helpers.ts';
 import { envelopeFor, nowUs, receive, registerAdapter, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { PlantWorld, seedPlantCast, tag } from '../plant/support.ts';
-import { batchWithSteps, dedicateBetaLactam, occupy, occupyBatch, stepProblem } from '../plant-rules/support.ts';
+import { batchWithPredicates, batchWithSteps, dedicateBetaLactam, occupy, occupyBatch, stepProblem } from '../plant-rules/support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -33,35 +32,6 @@ const areaRule = (code: string, holdSeconds: number | null) =>
   w.run(w.cast.steward, (c) => c.query('select plant.set_area_rule($1, false, $2, $3)', [code, holdSeconds, 'site rule for the kill test']));
 const roomStart = async (areaId: string, batch: string, later: string) =>
   (await db.app.query<{ p: string | null }>('select plant.room_start_problem($1, $2, clock_timestamp() + $3::interval) as p', [areaId, batch, later])).rows[0]?.p ?? null;
-
-/** A sandbox batch of `product` whose MBR header carries the predicates given (step p-1). */
-async function batchWithPredicates(product: string, predicates: Record<string, unknown> | null): Promise<string> {
-  const id = randomUUID();
-  const hash = createHash('sha256').update(id).digest('hex');
-  const productRef = { code: product, name: `Product ${product}`, strength: '10 mg' };
-  const content = {
-    header: { product: productRef, ...(predicates ? { predicates } : {}) },
-    procedure: { kind: 'procedure', id: 'proc', body: { kind: 'stage', id: 'S-1', body: { kind: 'sequence', children: [{ kind: 'phase', id: 'p-1' }] } } },
-  };
-  await asTimeTraveller(
-    db,
-    `insert into recipe.test_package (package_hash, file_name, package, content, content_hash, family_id, family_code, product, version_id, version_number,
-                                      revision, version_state, exporter, exported_at_us, source, imported_by_person, imported_by_account, correlation_id)
-     values ($1, $1 || '.json', '{}', $3::jsonb, $1, gen_random_uuid(), 'FAM', $2::jsonb, gen_random_uuid(), '1', 1, 'APPROVED', '{}', 0, '{}',
-             gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
-    [hash, JSON.stringify(productRef), JSON.stringify(content)],
-  );
-  await asTimeTraveller(
-    db,
-    `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint, policy,
-                                         policy_hash, issue_request, market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person,
-                                         issued_by_account, correlation_id)
-     values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', '1', $3, '{}', $3, '{}', '{IN}', 'BS', 'SITE-1', 'Asia/Kolkata', 0, gen_random_uuid(),
-             gen_random_uuid(), gen_random_uuid())`,
-    [id, `TEST-BL-${tag()}`, hash],
-  );
-  return id;
-}
 
 describe('the clean hold of a room (PR-25)', () => {
   it('[PR-25] a room with a clean hold that was never cleaned is refused', async () => {
@@ -87,9 +57,9 @@ describe('the clean hold of a room (PR-25)', () => {
 describe('a beta-lactam product by its MBR predicate (PR-27)', () => {
   it('[PR-27] the MBR\'s betaLactam predicate alone makes the batch beta-lactam and its start in a non-penicillin site is refused; a predicate of false does not', async () => {
     const product = await w.product();
-    const beta = await batchWithPredicates(product, { betaLactam: true });
-    const notBeta = await batchWithPredicates(await w.product(), { betaLactam: false });
-    const none = await batchWithPredicates(await w.product(), null);
+    const beta = await batchWithPredicates(db, product, { betaLactam: true });
+    const notBeta = await batchWithPredicates(db, await w.product(), { betaLactam: false });
+    const none = await batchWithPredicates(db, await w.product(), null);
     const isBeta = async (b: string) => (await db.app.query<{ r: boolean }>('select plant.batch_beta_lactam($1) as r', [b])).rows[0]?.r;
     expect([await isBeta(beta), await isBeta(notBeta), await isBeta(none)]).toEqual([true, false, false]);
     // SITE-1 has no facility rule, so it is not a penicillin facility: the batch does not start in its room (a room

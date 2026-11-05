@@ -92,6 +92,7 @@ tests:
   - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] the classification is read live: a batch issued before its product is classified beta-lactam is refused the suite before, and accepted after"
   - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] a later dedication not yet approved leaves the earlier approved one in force"
   - "tools/e2e/specs/phase7/route-s.spec.ts > [PR-23][PR-27][PR-29][IN-35][DI-30][DI-32] route S 5: compression on KIOSK-COMP-1: tooling (TB-09), set-up (TB-10), the run (TB-11), the cores' weight (TB-12), thickness and breaking force (TB-13) and friability (TB-14), QA's approval for coating @office"
+  - "packages/recipe-core/test/plant-rules/beta-lactam-rooms.test.ts > beta-lactam work stays in its dedicated suite (PR-27, R7) > [PR-27] a beta-lactam hard capsule (the master's dosage form \"Hard gelatin capsule\", its betaLactam predicate) is refused a room and a unit outside the dedicated suite, and runs in the suite (Capsules edition plan, C5)"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:
