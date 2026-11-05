@@ -33,7 +33,13 @@ function firstRoute(ns: NamespaceName, kind: 'GMP' | 'SANDBOX'): AnyRoute | unde
   return (Object.values(routes[ns]) as AnyRoute[]).find((r) => r.installation === 'ANY' || r.installation === kind);
 }
 
-const KEPT: readonly NamespaceName[] = ['library', 'designer', 'planning', 'batches', 'execution', 'review', 'release', 'labels', 'records', 'plantRules', 'audit', 'quality'];
+/** Every namespace that stays connected: the kept batch-record path, the admin minimum and the reads kept screens need. */
+const CONNECTED: readonly string[] = [
+  'access', 'accessGovernance', 'alarms', 'archive', 'audit', 'batches', 'containers', 'designer', 'deviceRegistry', 'devices',
+  'erpShipping', 'esig', 'execution', 'india', 'integrations', 'labels', 'library', 'marketConfig', 'masterData', 'meta',
+  'operations', 'people', 'planning', 'plant', 'quality', 'records', 'release', 'review', 'samples', 'session',
+  'specifications', 'transfers',
+];
 
 describe('[DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1)', () => {
   it.each(DISCONNECTED_NAMESPACES.map((ns) => [ns, DISCONNECTED[ns]]))('[DI-17] %s (%s) is refused, signed in or not', async (ns) => {
@@ -49,9 +55,10 @@ describe('[DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter
     expect([signedIn.statusCode, signedIn.json<{ refusal: { code: string } }>().refusal.code]).toEqual([410, 'DISCONNECTED']);
   });
 
-  it('[DI-17] the kept path stays connected: no kept namespace is listed, and a standalone server without the switch serves the listed ones', async () => {
-    for (const ns of KEPT) expect(DISCONNECTED[ns], ns).toBeUndefined();
-    for (const r of KEPT.flatMap((ns) => Object.values(routes[ns]) as AnyRoute[])) expect(isDisconnectedRoute(r.id), r.id).toBe(false);
+  it('[DI-17] the kept path stays connected: exactly the expected namespaces are connected, and a standalone server without the switch serves the listed ones', async () => {
+    const connected = (Object.keys(routes) as NamespaceName[]).filter((ns) => DISCONNECTED[ns] === undefined);
+    expect([...connected].sort()).toEqual(CONNECTED);
+    for (const r of connected.flatMap((ns) => Object.values(routes[ns]) as AnyRoute[])) expect(isDisconnectedRoute(r.id), r.id).toBe(false);
     const b = await gmp.asPersona('qaInvestigator');
     const kept = await b.call(routes.library.list, {});
     expect(kept.ok).toBe(true);

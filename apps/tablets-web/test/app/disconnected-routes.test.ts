@@ -2,12 +2,12 @@
  * Declutter slice D1 (docs/build-plan/declutter/plan.md section 3, "how the keep list is checked"): the screens of the
  * kept batch-record path call no route of a disconnected namespace, so they keep working where the server answers 410
  * DISCONNECTED (the platform build, or EBMR_DISCONNECT=1). The few disconnected screens that still live inside a kept
- * feature are named here; slice D2 unhooks them (the release EU tab embeds the QP batch package section).
+ * feature are named here for slice D2 to unhook; the parts a kept screen embeds from other features are named too.
  *
  * Control: DI-17.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DISCONNECTED_NAMESPACES } from '@ebmr/api-contract';
 
@@ -17,7 +17,7 @@ const SRC = join(import.meta.dirname, '../../src');
 const KEPT_DIRS = [
   'app', 'device', 'api',
   ...['access', 'administration', 'audit', 'designer', 'devices', 'floor', 'india', 'labels', 'market', 'master-data', 'master-records',
-    'operations', 'planning', 'plant', 'plant-rules', 'quality', 'records', 'release', 'review', 'session'].map((f) => `features/${f}`),
+    'operations', 'planning', 'plant', 'quality', 'records', 'release', 'review', 'session'].map((f) => `features/${f}`),
 ];
 
 /** Disconnected screens inside kept features, for D2 to unhook (file → namespaces it calls). */
@@ -27,6 +27,20 @@ const D2_UNHOOK: Record<string, string[]> = {
   'features/release/QpPackage.tsx': ['qpPackage'],
   'features/release/QpReaderPage.tsx': ['qpPackage'],
   'features/release/reads.ts': ['notifications'],
+  'features/release/LotReleasePage.tsx': ['notifications'],
+};
+
+/**
+ * Kept files that embed a part of a feature outside the kept path (file → features), and why each is safe where the
+ * server refuses DISCONNECTED: the part renders nothing on DISCONNECTED (isDisconnected), hides itself on any error,
+ * makes no call, or reads a namespace that stays connected (alarms, DI-49).
+ */
+const EMBEDDED: Record<string, string[]> = {
+  'features/floor/pages/StepScreen.tsx': ['plant-status'], // BatchAlarmLog: alarms stay connected
+  'features/review/BatchReviewPage.tsx': ['plant-status'], // BatchAlarmLog: alarms stay connected
+  'features/release/LotReleasePage.tsx': ['genealogy', 'notifications'], // RecurrenceWarning hides on error; DecisionNotifications
+  'features/review/AuditTrailPanel.tsx': ['analytics-audit'], // useFlaggedEntries ignores errors
+  'features/review/ReviewQueuePage.tsx': ['analytics-review'], // PriorityNote and QueueOrderingBand make no call
 };
 
 function files(dir: string): string[] {
@@ -45,5 +59,19 @@ describe('[DI-17] the kept screens call no disconnected route (declutter D1)', (
       if (hits.length > 0) found[relative(SRC, file)] = [...new Set(hits)].sort();
     }
     expect(found).toEqual(D2_UNHOOK);
+  });
+
+  it('[DI-17] a kept screen embeds a part of another feature only where that part is safe on DISCONNECTED', () => {
+    const keptFeatures = new Set(KEPT_DIRS.filter((d) => d.startsWith('features/')).map((d) => d.slice('features/'.length)));
+    const found: Record<string, string[]> = {};
+    // app/features.ts registers every feature's routes and tiles: the home and the menus are slice D2.
+    for (const file of KEPT_DIRS.flatMap((d) => files(join(SRC, d))).filter((f) => relative(SRC, f) !== 'app/features.ts')) {
+      const outside = [...readFileSync(file, 'utf8').matchAll(/from '(\.[^']+)'/g)]
+        .map((m) => relative(SRC, join(dirname(file), m[1] ?? '')).split('/'))
+        .filter((parts) => parts[0] === 'features' && parts[1] !== undefined && !keptFeatures.has(parts[1]))
+        .map((parts) => parts[1] ?? '');
+      if (outside.length > 0) found[relative(SRC, file)] = [...new Set(outside)].sort();
+    }
+    expect(found).toEqual(EMBEDDED);
   });
 });
