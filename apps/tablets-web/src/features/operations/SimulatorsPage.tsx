@@ -13,6 +13,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { SIMULATOR_READS, words } from './reads.ts';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 function SimulatorCard({ s, reason }: { s: SimulatorView; reason: string }) {
   const control = useCommand(routes.operations.controlSimulator, SIMULATOR_READS);
@@ -93,6 +94,7 @@ function SendOrder({ templates, reason }: { templates: readonly DemoOrderTemplat
 }
 
 export function SimulatorsPage() {
+  const off = useScreensOff();
   const view = useApiQuery(routes.operations.simulators, {}, { refetchInterval: 5000 });
   const [reason, setReason] = useState('');
   const v = view.data;
@@ -101,7 +103,7 @@ export function SimulatorsPage() {
       <h1>Simulators</h1>
       <p>
         SIMULATOR, DEMO-ONLY. Each simulator stands in for an external system or a piece of equipment so every feature can be tried and every failure shown. What a fault
-        does is seen where the data arrives: the <Link to="/integrations">integration health page</Link> and the steps that read it.
+        does is seen where the data arrives: the {off('/integrations') ? 'integration health page' : <Link to="/integrations">integration health page</Link>} and the steps that read it.
       </p>
       {view.error ? <RefusalMessage error={view.error.error} /> : null}
       {v && !v.allowed ? (

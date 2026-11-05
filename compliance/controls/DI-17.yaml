@@ -473,6 +473,10 @@ tests:
   - "apps/tablets-web/test/release/disconnected-panels.test.tsx > [DI-17] disconnected panels on the release page (declutter D1) > [DI-17] the QP package section and the decision notifications render nothing on 410 DISCONNECTED; the release page stays"
   - "apps/tablets-web/test/release/disconnected-panels.test.tsx > [DI-17] disconnected panels on the release page (declutter D1) > [DI-17] with the functions connected both sections are shown as before"
   - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] plantRules (later) is refused, signed in or not"
+  - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] meta tells the SPA whether the disconnected functions are refused here (declutter D2)"
+  - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] the platform build offers exactly the kept tiles; a standalone server with the switch keeps the people screens"
+  - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] the home shows no disconnected tile, not even under \"Show all screens\""
+  - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] a deep link to a disconnected screen shows \"Not part of Batchwright\"; without the switch the screen opens"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

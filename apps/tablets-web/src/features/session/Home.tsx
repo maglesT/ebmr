@@ -10,6 +10,7 @@ import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { useFeatures } from '../../app/feature-context.ts';
 import { tileOffered } from '../../app/tile-access.ts';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 export function Home() {
   const boot = useBoot();
@@ -17,7 +18,9 @@ export function Home() {
   const role = boot.session?.role ?? null;
   const [showAll, setShowAll] = useState(false);
   const installation = boot.meta?.installation ?? 'GMP';
-  const all = features.flatMap(([, f]) => f.homeTiles ?? []).filter((tile) => tile.installations.includes(installation));
+  const off = useScreensOff();
+  // Declutter D2: a screen that is not part of Batchwright here is not offered, not even under "Show all screens".
+  const all = features.flatMap(([, f]) => f.homeTiles ?? []).filter((tile) => tile.installations.includes(installation) && !off(tile.to));
   const usable = all.filter((tile) => tileOffered(tile.id, installation, role));
   const hidden = all.length - usable.length;
   const tiles = showAll ? all : usable;

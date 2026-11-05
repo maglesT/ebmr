@@ -4,6 +4,7 @@
  */
 import { createElement, useEffect } from 'react';
 import { Outlet } from '@tanstack/react-router';
+import { ScreenGate } from './disconnected.tsx';
 import { Button, Layout, StatusChip, t, WatermarkBand, WatermarkOverlay } from '@ebmr/ui-kit';
 import { AppHeaderBrand, HomeLink, InRouter } from './brand.tsx';
 import { cls } from './classes.ts';
@@ -90,7 +91,9 @@ export function ShellOutlet() {
   return (
     <InRouter.Provider value>
       <Frame withBanner>
-        <Outlet />
+        <ScreenGate>
+          <Outlet />
+        </ScreenGate>
       </Frame>
     </InRouter.Provider>
   );
