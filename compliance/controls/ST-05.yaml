@@ -20,8 +20,11 @@ catalog_test: Record a fill-weight check on a balance whose calibration expired 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "existing EQUIP refusal; impact through the existing deviation screen"
 build_status: SPECIFIED
 jurisdiction: Aligned. The US rule is binding.
 scope: all

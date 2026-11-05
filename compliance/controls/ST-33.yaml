@@ -38,8 +38,11 @@ catalog_test: Enter one turbid unit in a 12,000-unit APS on a line with an EU pr
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "TEST limit 0 raises exception and deviation; QA does not extend APS.<line>, so EQUIP refuses the line (4.4)"
 build_status: SPECIFIED
 jurisdiction: "**EU is stricter:** any positive fails the APS, product made after the failure is quarantined, and at least 3 repeats are normally required. FDA tolerates one positive in runs of 5,000 or more as investigation-only."
 scope: aseptic

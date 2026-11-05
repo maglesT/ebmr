@@ -31,8 +31,11 @@ tests:
   - "apps/tablets-server/test/market/market-config-routes.test.ts > site values > [IN-52][ST-01][DI-09] the steward sets a tighter site value under an approved change record; a loosening of a guidance value needs a justification and QA's signature of exactly it; QA holds no MARKET.SITE_VALUE_SET"
   - "apps/tablets-web/test/market/market-screens.test.tsx > site values > [IN-52][ST-01][DI-09] previews a site value; a loosening with a justification offers QA's approval through the ceremony; the value is set under a change record"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "hard numbers from binding tables only; guidance values are plain formulation values"
 build_status: SPECIFIED
 jurisdiction: EU is stricter. It turns stated numbers into minimums, while FDA-AP allows justified alternative microbial action levels.
 scope: all

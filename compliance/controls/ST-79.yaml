@@ -34,8 +34,11 @@ catalog_test: A closed assembly with one connector lacking sterility evidence â†
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-11 LOT assembly, Y/N integrity, SIGN (4.2)"
 build_status: SPECIFIED
 jurisdiction: Only EU has specific requirements.
 scope: sus

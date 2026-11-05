@@ -27,8 +27,11 @@ catalog_test: A terminally sterilised batch in 3 autoclave loads → 3 cold-spot
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-25 SAMPLE per point; per-load samples in INJ-21 (4.5)"
 build_status: SPECIFIED
 jurisdiction: Use the union. EU adds per-load sub-batch sampling for terminal sterilisation and lyo, and risk-based post-intervention samples. FDA adds the middle-of-fill pull and pulls after excursions.
 scope: all

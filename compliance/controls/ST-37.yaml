@@ -40,8 +40,11 @@ catalog_test: Configure a 24 h preparation-to-fill-end limit and run 25 h → ne
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "DT read across blocks plus CALC `duration` with maximum (4.3 Time limits)"
 build_status: SPECIFIED
 jurisdiction: Use the union. EU lists decontaminated-enclosure hold, aseptic processing time and filling time. FDA-AP lists line exposure time and a maximum total filtration time.
 scope: aseptic (items 1–12); terminal (item 13, see ST-60)

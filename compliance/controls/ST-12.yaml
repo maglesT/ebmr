@@ -22,8 +22,11 @@ catalog_test: APS qualified 4 people and 5 are present during filling → deviat
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "existing signer roster only (see unsure list)"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU requires the maximum operator number to be documented and challenged in APS.
 scope: aseptic

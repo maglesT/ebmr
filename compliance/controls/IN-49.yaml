@@ -16,8 +16,11 @@ catalog_test: log a significant stoppage; a sterility pull after restart becomes
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-25 SAMPLE per point; gate (4.5)"
 build_status: SPECIFIED
 jurisdiction: "**same** as EU Annex 1 (2022) sterility sampling expectations [gk] and FDA 211.167(a) / 2004 guidance [gk]."
 notes: "Source check: P (2.1-2.3 re-read)."

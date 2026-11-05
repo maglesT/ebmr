@@ -24,8 +24,11 @@ catalog_test: A maintenance technician with expired cleanroom training signs an 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "qualification types on roles and A/B areas; no LMS link"
 build_status: SPECIFIED
 jurisdiction: Aligned. FDA-AP V.B explicitly extends this to lab and sampling staff.
 scope: all

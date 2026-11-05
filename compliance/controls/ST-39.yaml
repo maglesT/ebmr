@@ -22,8 +22,11 @@ catalog_test: Dispense an excipient with its endotoxin result pending → hard s
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-02 LOT released, which carries QC's result (4.2)"
 build_status: SPECIFIED
 jurisdiction: Aligned. The US rule is binding.
 scope: all

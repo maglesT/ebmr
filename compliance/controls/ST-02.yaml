@@ -27,8 +27,11 @@ catalog_test: Submit an aseptic product master with no route justification → a
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "route as a formulation choice; CCS reference as a TXT field where a block needs it"
 build_status: SPECIFIED
 jurisdiction: Aligned on preferring terminal sterilisation. The CCS is an EU concept; FDA has no CCS requirement, so the CCS fields are EU-driven.
 scope: all

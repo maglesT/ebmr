@@ -315,6 +315,7 @@ tests:
   - "packages/recipe-core/test/library/limits-kill.test.ts > every limited field kind raises its breach (PR-08) > [INV-25][DI-33] a calculated field hidden by its condition is neither computed nor judged"
   - "packages/recipe-core/test/library/limits-kill.test.ts > calculations read other sections and the batch > [DI-33] a calculation reads an earlier section's calculated value, a repeating section as a series of the values given, and a count the batch provides"
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > release review R3: the database judges library values as the engine does (recipe-core 1862) > [DI-33][PR-08][INV-25] R3-SQL-5: a calculated field the entry shows carries the server's figure with its evaluation record; one its condition hides carries none"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33][PR-03] a calculation cannot read a typed date and time or a timer: the definition is refused, so QA never approves a block whose calculation the runtime cannot evaluate (I-1 finding)"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

@@ -32,8 +32,11 @@ catalog_test: "Record an intervention: only entries qualified in a valid APS for
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "CHOICE catalogue from the formulation; \"unlisted\" raises an exception (4.3 Interventions)"
 build_status: SPECIFIED
 jurisdiction: EU formalises the authorised list and classification. FDA-AP stresses minimising interventions and simulating them. Aligned.
 scope: aseptic

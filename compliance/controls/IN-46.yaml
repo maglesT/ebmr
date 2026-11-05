@@ -16,8 +16,11 @@ catalog_test: let the preparation-to-filtration timer exceed its maximum; a devi
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "DT plus CALC duration maximum; INJ-12 SAMPLE; INJ-26 TEST; gate (4.3, 4.5)"
 build_status: SPECIFIED
 jurisdiction: "**same** core as EU Annex 1 (2022) 8.18 and 8.93 (bioburden immediately before final sterile filtration; before the first filter where redundant) [chk] and FDA 211.110(a)(6) and 211.113(b) [chk]; EU 8.18 is **stricter**: it limits more intervals, including preparation start through to the end of aseptic filling, and the filling time itself [chk]."
 notes: "Source check: P (5.12-5.16 and 2.4 re-read)."

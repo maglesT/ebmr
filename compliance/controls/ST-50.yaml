@@ -23,8 +23,11 @@ catalog_test: Scan a 0.45 µm or non-registered part for final filtration → re
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-13 LOT, type checked against the registered filter by CHOICE (4.3)"
 build_status: SPECIFIED
 jurisdiction: Numerically equivalent (0.2/0.22 µm). EU also requires the filter to match the marketing authorisation. The US adds the binding fibre-release and asbestos rule.
 scope: "aseptic (the 211.72 fibre rule: all injectable liquid filtration)"

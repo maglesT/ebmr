@@ -45,6 +45,9 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
   });
   await buildWeb(echo);
   const ports = { gmp: await freePort(), sandbox: await freePort(), gatewayListener: await freePort(), gateway: await freePort(), simulatorTcp: await freePort(), simulatorHttp: await freePort() };
+  // Declutter D1: the library-dc group runs the kept path, from the catalogue to the released lot, with the disconnected
+  // routes refused (410 DISCONNECTED, as on the platform build); the servers inherit this variable.
+  if (group === 'library-dc') process.env['EBMR_DISCONNECT'] = '1';
   const stack = await startStack({ databases, keysDir, exchangeDir, ports, webDist: WEB_DIST, host: 'localhost', echo, logLevel: 'warn' });
   const state: E2eState = { databases, keysDir, exchangeDir, urls: stack.urls, ports, workers };
   const stateFile = join(root, 'state.json');

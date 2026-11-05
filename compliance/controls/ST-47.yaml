@@ -25,8 +25,11 @@ catalog_test: Import a tunnel trace with a 5-min hot-zone dip → containers in 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-05 typed NUM against limits; HEPA test as equipment due date (4.2)"
 build_status: SPECIFIED
 jurisdiction: 'Aligned on 3-log. Tunnel HEPA testing: EU text says "at least biannually" (ambiguous); FDA-AP says twice a year, so 6 months is used (see Conflicts).'
 scope: "all (tunnel: aseptic)"

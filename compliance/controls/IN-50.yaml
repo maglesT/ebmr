@@ -17,8 +17,11 @@ catalog_test: assign an inspector with an expired eye check; sign-on refused.
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-20, INJ-22, INJ-23; Qualif. EYESIGHT (4.1, 4.5)"
 build_status: SPECIFIED
 jurisdiction: "**weaker** than EU Annex 1 (2022) 8.31-8.33 (inspector qualification at least yearly using defect libraries; automated systems challenged before start-up and at intervals; defect trending) [chk]; EU 8.22 (100% integrity testing of fusion-sealed containers of 100 ml or less) [chk] has no verified Indian counterpart. FDA: 21 CFR 211 has no inspector-qualification clause [chk]; FDA expects 100% visual inspection of injectables under USP chapters 790/1790 [gk]."
 type_detail: ENFORCED; CONFIGURABLE (break interval, challenge frequency).
