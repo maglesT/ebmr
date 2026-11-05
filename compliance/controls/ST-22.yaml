@@ -29,7 +29,8 @@ behaviour: |-
   - An alert or action PM result is linked to every batch the person worked that session. An action result opens an investigation and feeds the person's status (ST-09).
 catalog_test: Close a corrective critical intervention and attempt the next step without a glove-change entry → blocked. Four operators on the roster but only three glove samples → review flags the missing sample.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its sample, time and count after incubation, and limits the settle plate exposure"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

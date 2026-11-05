@@ -21,7 +21,8 @@ behaviour: |-
   - **211.72 attributes.** The filter master carries "non-fibre-releasing" and "asbestos-free". An MBR that specifies a fibre-releasing filter cannot be approved unless a downstream non-fibre-releasing filter of **≤0.2 µm** follows it. **0.45 µm** is allowed only where manufacturing conditions require it, with a recorded justification. Asbestos-containing filters are never allowed.
 catalog_test: Scan a 0.45 µm or non-registered part for final filtration → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its lot on the formula line and must be the registered type: another type is not allowed"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
