@@ -204,7 +204,7 @@ Each slice: tests named by control ID, CI green, one review, squash-merge, a few
 | C2 Powder hard capsule end to end | the platform reader takes `dosage_form` from core's report.product_v1 (a product is a capsule only when its dosage form contains "capsule"; none means tablet; lead, 4 November); the header name from the dosage form (decision 0020 amended); the remaining tablet wording a capsule master shows (the batch-size input name "tablets", the issue count) worded per unit or per capsule; one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
 | C3 Post-fill and packing | checkweigher, inspection, printing with the QC hold point, banding (US OTC), blister, strip, bottle | `[IN-37][PR-41][IN-38]` tests green |
 | C4 Multiparticulates | extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet dosing, combinations, two-stage dissolution | a delayed-release pellet formulation runs |
-| C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling; a beta-lactam product refused outside dedicated rooms and equipment | tests green |
+| C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling (beta-lactam capsules dropped: owner, 5 November, "no penicillin"; the existing check at issue stays as it is) | tests green |
 | C6 Soft gels I | gel mass, rotary die, drying to end point, washing, fill/shell weight, seal thickness, hardness | one soft-gel formulation runs; one E2E group to a released lot |
 | C7 Soft gels II | seamless, chewable, enteric (coating), rupture; shared post-process on soft gels | tests green |
 | C8 Exit | the full suite, the browser suite, the existing golden batches unchanged, one review pass | all green |
@@ -239,3 +239,22 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - Q2 (owner): reciprocating-die and Accogel encapsulation are covered by the generic blocks with their equipment class,
   not by blocks of their own. Default: as written.
 - Q3 (owner): metal detection and coating of filled capsules added to the list. Default: in.
+
+## 8. Slice decisions
+
+**C3 post-fill and packing (5 November 2026; defaults taken, decision 0004):**
+- D-C3-1: five new blocks, data only: PROC-CAPS-CHECKWEIGH, PROC-CAPS-INSPECT, PROC-CAPS-PRINT, PROC-CAPS-BAND and
+  IPC-CAPS-SEAL-LEAK (brought forward from C5: banding needs its seal check; C5 reuses it). A leaker is a critical value
+  outside its registered limit of none, so the step raises an exception and the capsules wait for QA (PR-41 failures).
+- D-C3-2: 21 CFR 211.132(b)(2) and Schedule M Part VIII 6.2 are met by data, not by validator rules (lead audit,
+  5 November: no capsule-specific code). An OTC two-piece hard capsule's master carries PROC-CAPS-BAND and
+  IPC-CAPS-SEAL-LEAK; the printed capsules wait at the master's QA hold point before packing (H-PACK, after every
+  library step), and PROC-CAPS-PRINT records segregation, the approved edible ink and that the print is held for QC.
+- D-C3-3: the checkweigher and inspection steps record no per-batch challenge: 21 CFR 211.68(a) asks for routine checks
+  of automatic equipment under a written programme, which the equipment logbook holds, not the batch record (lead audit).
+- D-C3-4: the edible ink is named in a text field (name and lot), not a formula line: an ink is not weighed into the
+  batch, and a line would force every printed master to dispense it.
+- D-C3-5: blister, strip and bottle packing of capsules reuse the packaging masters as they are (TB-21 to TB-24); the
+  `library-caps` E2E packs the capsules in the cold-form blister. Residual (wording only, no GMP value): TB-20 and TB-23
+  field descriptions say "tablets" (the bottle count, the sorter). Lead, 5 November: leave those versions untouched; in C8,
+  if capsule masters use them, issue a new data-only version of each worded "units" (never edit an approved version).

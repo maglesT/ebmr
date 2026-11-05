@@ -4,70 +4,11 @@
  * engine and generic handler as any library block. Codes are unique across the catalogue.
  */
 import { describe, expect, it } from 'vitest';
-import type { MbrContent } from '../../src/flow/model.ts';
 import type { LimitSpec } from '../../src/limits/model.ts';
-import type { FieldDef } from '../../src/library/model.ts';
-import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
-import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
-import { expr, mbrWith, phase } from '../flow/support.ts';
-
-function nominalRun(item: SeedItem): { exceptions: string[]; status: string | undefined } {
-  const def = item.definition;
-  const config = item.exampleUse as Record<string, unknown>;
-  const lines = Object.values(item.exampleUse.bomLines ?? {});
-  const inputs = Object.entries(item.exampleInputs ?? {});
-  // S10: formula-line and batch-size inputs come from the master (BOM at the reference size, the batch's size), so the
-  // example values are written there; the other inputs stay MBR inputs the phase reads.
-  const ex = item.exampleInputs ?? {};
-  const lineInputs = new Map((def.inputs ?? []).flatMap((i) => (i.kind === 'FORMULA_LINE' ? [[item.exampleUse.bomLines?.[i.slot], ex[i.id]] as const] : [])));
-  const sizeInput = (def.inputs ?? []).find((i) => i.kind === 'BATCH_SIZE');
-  const bom: MbrContent['bom'] = lines.map((id) => ({ id, material: `MAT-${id}`, role: 'ACTIVE', quantity: lineInputs.get(id) ?? { value: '10', unit: 'kg' } }));
-  const p = phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: config as never, reads: inputs.map(([k]) => k) });
-  const base = mbrWith({ kind: 'sequence', id: 'ops', children: [p, phase('after')] }, {
-    bom,
-    inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
-  });
-  const size = sizeInput ? ex[sizeInput.id] : undefined;
-  const mbr: MbrContent = size ? { ...base, header: { ...base.header, batchSizes: [{ id: 'BS', quantity: size }] } } : base;
-  const d = define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) });
-  const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
-  const run = Run.issue(d, { inputs: values }, T0);
-  run.start('p');
-  const entries = nominalEntries(def, config as never, mbr);
-  // A nominal run keeps its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
-  // step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
-  // every per-interval section (the catalogue's intervals are 15 minutes or more).
-  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
-  for (const e of entries) {
-    if (e.kind === TIMER_STOP) {
-      for (let i = 0; i < 6; i++) {
-        run.minutes(10 - rounds.length);
-        for (const r of rounds) {
-          run.entry('p', r);
-          run.minutes(1);
-        }
-      }
-    }
-    run.entry('p', e);
-    run.minutes(1);
-  }
-  run.perform('p');
-  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p');
-  return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
-}
-
-function byCode(code: string): SeedItem {
-  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
-  if (!item) throw new Error(`no catalogue item ${code}`);
-  return item;
-}
-
-function fieldOf(item: SeedItem, id: string): FieldDef {
-  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
-  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
-  return f;
-}
+import { checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
+import { SEED_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
+import { expr } from '../flow/support.ts';
+import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
 
 describe('the ready-made catalogue', () => {
   it('[PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)', () => {
@@ -141,16 +82,13 @@ describe('the ready-made catalogue', () => {
     expect(fill.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
   });
 
-  it('[PR-03][PR-18][IN-37][PR-29][PR-14] liquid fill preparation records the fill type, the critical mixing temperature and time, the deaeration vacuum, the critical viscosity and a holding time against a maximum; liquid and plate filling record the shell lot as its bill-of-materials line and the fill weight of each round as a critical value with limits, liquid filling the fill-line connection and the fill temperature; each signed by an operator and a verifier (Capsules edition plan, C5)', () => {
+  it('[PR-03][PR-18][IN-37][PR-29][PR-14] liquid fill preparation records the fill type, the critical mixing temperature and time, the deaeration vacuum, the critical viscosity (its hold is the master\'s PROC-HOLD step); liquid and plate filling record the shell lot as its bill-of-materials line and the fill weight of each round as a critical value with limits, liquid filling the fill-line connection and the fill temperature; each signed by an operator and a verifier (Capsules edition plan, C5)', () => {
     const prep = byCode('PROC-FILL-PREP');
     expect(fieldOf(prep, 'fillType')).toMatchObject({ type: 'CHOICE', options: ['Oil solution', 'Suspension', 'Emulsion', 'SMEDDS', 'Paste', 'Thermosoftening'] });
     expect(fieldOf(prep, 'mixTemp')).toMatchObject({ type: 'NUMBER', unit: 'Cel', limitSlot: 'mixTemp', critical: true });
     expect(fieldOf(prep, 'mixing')).toMatchObject({ type: 'TIMER', limitSlot: 'mixTime', critical: true });
     expect(fieldOf(prep, 'vacuum')).toMatchObject({ type: 'NUMBER', limitSlot: 'vacuum' });
     expect(fieldOf(prep, 'viscosity')).toMatchObject({ type: 'NUMBER', limitSlot: 'viscosity', critical: true });
-    expect(fieldOf(prep, 'holding')).toMatchObject({ type: 'TIMER', durationUnit: 'h', limitSlot: 'holdTime', critical: true });
-    expect(prep.exampleUse.limits?.['holdTime']?.ranges[0]).toMatchObject({ high: { value: '24' } });
-    expect(prep.exampleUse.limits?.['holdTime']?.ranges[0]?.low).toBeUndefined();
     expect(fieldOf(prep, 'container')).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
     const liquid = byCode('PROC-CAPS-FILL-LIQUID');
     expect(fieldOf(liquid, 'fillIn')).toMatchObject({ type: 'CONTAINER', action: 'CONSUME' });
@@ -169,9 +107,31 @@ describe('the ready-made catalogue', () => {
     }
     for (const item of [prep, liquid, plate]) {
       expect(item.definition.signatures.map((x) => [x.meaning, x.role])).toEqual([['PERFORMED', 'PRODUCTION_OPERATOR'], ['VERIFIED', 'PRODUCTION_VERIFIER']]);
-      expect(nominalRun(item)).toEqual({ exceptions: [], status: 'COMPLETED' });
     }
     expect(SEED_GROUPS['capsule fill']?.map((s) => s.definition.code)).toEqual(['PROC-FILL-PREP', 'PROC-CAPS-FILL-LIQUID', 'PROC-CAPS-FILL-PLATE']);
+  });
+
+  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and holding time and a band check each round; a leaker fails the seal check', () => {
+    const cw = byCode('PROC-CAPS-CHECKWEIGH');
+    expect([fieldOf(cw, 'rejectLow'), fieldOf(cw, 'rejectHigh')]).toEqual([expect.objectContaining({ limitSlot: 'rejectLow', critical: true }), expect.objectContaining({ limitSlot: 'rejectHigh', critical: true })]);
+    const inspect = byCode('PROC-CAPS-INSPECT');
+    expect(fieldOf(inspect, 'defectsRemoved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(inspect.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const print = byCode('PROC-CAPS-PRINT');
+    expect(fieldOf(print, 'segregated')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(print, 'inkApproved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(print.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'checkInterval' });
+    expect(fieldOf(print, 'heldForQc')).toMatchObject({ type: 'YES_NO', expected: true });
+    const band = byCode('PROC-CAPS-BAND');
+    expect(fieldOf(band, 'technology')).toMatchObject({ type: 'CHOICE', options: ['Gelatin band', 'HPMC band', 'Liquid fusion sealing'] });
+    expect(fieldOf(band, 'solutionTemp')).toMatchObject({ limitSlot: 'solutionTemp', critical: true });
+    expect(fieldOf(band, 'solutionHold')).toMatchObject({ type: 'TIMER', limitSlot: 'solutionHold', critical: true });
+    expect(band.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    const leak = byCode('IPC-CAPS-SEAL-LEAK');
+    expect(fieldOf(leak, 'leakers')).toMatchObject({ type: 'NUMBER', limitSlot: 'leakers', critical: true });
+    expect(nominalRun(leak)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // One leaker is outside the registered limit of none: the step raises an exception and cannot complete with it open.
+    expect(judgedRun(leak, { test: { leakers: '1' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
   });
 
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {

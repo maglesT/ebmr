@@ -3,9 +3,9 @@
  * `docs/build-plan/capsules/plan.md`, slice C5). Data only, built from the fixed field types (no new field type).
  * - PROC-FILL-PREP prepares a liquid or semi-solid fill (oil solution, suspension, emulsion, SMEDDS, paste,
  *   thermosoftening mass), shared by hard capsules and soft gels. It records the critical time and temperature of
- *   mixing, the deaeration vacuum, the viscosity and the holding time against a maximum (21 CFR 211.111 and 211.113;
- *   Schedule M Part VIII 2.3 to 2.5: critical times and temperatures recorded, solutions made, held and used so as to
- *   keep out contamination).
+ *   mixing, the deaeration vacuum and the viscosity (Schedule M Part VIII 2.3 to 2.5: critical times and temperatures
+ *   recorded). The fill's hold before filling (21 CFR 211.111 and 211.113) is the master's existing hold step, PROC-HOLD,
+ *   with its maximum (lead audit, 5 November 2026).
  * - PROC-CAPS-FILL-LIQUID fills that fill into hard capsules. EU GMP 5.14 asks that the connection of the lines that
  *   carry product be checked, so the step records that the fill lines go to the right machine and hopper. The seal or
  *   leak check is its own step, IPC-CAPS-SEAL-LEAK.
@@ -39,7 +39,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Liquid or semi-solid fill preparation',
       category: 'PROCESS',
-      instructions: 'Charge the dispensed materials into the vessel, mix or homogenise at the set temperature for the set time, deaerate under vacuum and check the viscosity. Start the holding time when the fill is ready and use the fill before the holding time ends.',
+      instructions: 'Charge the dispensed materials into the vessel, mix or homogenise at the set temperature for the set time, deaerate under vacuum and check the viscosity. The fill\'s hold before filling is the master\'s hold step (PROC-HOLD) with its maximum.',
       sections: [
         {
           id: 'prepare',
@@ -47,7 +47,6 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'fillType', label: 'Fill type', type: 'CHOICE', options: FILL_TYPES },
             { id: 'vessel', label: 'Preparation vessel with mixer or homogeniser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'vesselClass' },
-            { id: 'orderFollowed', label: 'Materials charged in the stated order', type: 'YES_NO', expected: true },
             { id: 'mixTemp', label: 'Mixing temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'mixTemp', critical: true },
             { id: 'mixing', label: 'Mixing or homogenisation time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixTime', critical: true },
           ],
@@ -57,25 +56,23 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           title: 'Deaeration and viscosity',
           fields: [
             { id: 'vacuum', label: 'Deaeration vacuum (absolute pressure)', type: 'NUMBER', unit: 'mbar', decimals: 0, limitSlot: 'vacuum' },
-            { id: 'airFree', label: 'Fill free of air bubbles after deaeration', type: 'YES_NO', expected: true },
             { id: 'viscometer', label: 'Viscometer', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'viscometerClass' },
             { id: 'viscosity', label: 'Viscosity', type: 'NUMBER', unit: 'mPa.s', decimals: 0, limitSlot: 'viscosity', critical: true },
           ],
         },
         {
           id: 'output',
-          title: 'Output and holding',
+          title: 'Output',
           fields: [
             { id: 'container', label: 'Fill container (closed)', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
-            { id: 'holding', label: 'Holding time before filling', type: 'TIMER', durationUnit: 'h', limitSlot: 'holdTime', critical: true },
           ],
         },
       ],
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      limits: { mixTemp: spec('Cel', '40.0', '50.0'), mixTime: spec('min', '30', '120'), vacuum: spec('mbar', undefined, '100'), viscosity: spec('mPa.s', '200', '800'), holdTime: spec('h', undefined, '24') },
+      limits: { mixTemp: spec('Cel', '40.0', '50.0'), mixTime: spec('min', '30', '120'), vacuum: spec('mbar', undefined, '100'), viscosity: spec('mPa.s', '200', '800') },
       targets: { mixTemp: '45.0', vacuum: '50', viscosity: '500' },
       equipmentClasses: { vesselClass: 'SS-VESSEL-HOMOGENISER', viscometerClass: 'VISCOMETER' },
     },
@@ -135,7 +132,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Capsule plate filling (manual or semi-automatic)',
       category: 'PROCESS',
-      instructions: 'Fit the plates of the capsule size, load and rectify the empty shells, spread the blend over the plate, then close and lock the capsules. Record the plates filled and the average fill weight at each round.',
+      instructions: 'Fit the plates of the capsule size, load and rectify the empty shells, spread the blend over the plate, then close and lock the capsules. Record the average fill weight at each round.',
       sections: [
         {
           id: 'setup',
@@ -152,7 +149,6 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'plates', label: 'Plates filled in this round', type: 'NUMBER', unit: '1', decimals: 0 },
             { id: 'fillWeight', label: 'Average fill weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'fillWeight', critical: true },
             { id: 'locked', label: 'Capsules closed and locked, none split', type: 'YES_NO', expected: true },
           ],
