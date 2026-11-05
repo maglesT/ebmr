@@ -94,9 +94,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           id: 'readings',
           title: 'Room readings',
           fields: [
-            { id: 'pressureDiff', label: 'Pressure difference to the adjacent lower grade', type: 'NUMBER', unit: 'Pa', decimals: 0, limitSlot: 'pressureDiff', critical: true },
-            { id: 'temperature', label: 'Room temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature' },
-            { id: 'humidity', label: 'Relative humidity', type: 'NUMBER', unit: '%', decimals: 0, limitSlot: 'humidity' },
+            { id: 'pressureDiff', label: 'Pressure difference to the adjacent lower grade', type: 'NUMBER', unit: 'Pa', decimals: 0, limitSlot: 'pressureDiff' },
           ],
         },
       ],
@@ -104,8 +102,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
     exampleUse: {
       equipmentClasses: { roomClass: 'ROOM-GRADE-C' },
-      limits: { contactTime: pv('min', '10'), pressureDiff: pv('Pa', '10', '20'), temperature: pv('Cel', '18.0', '25.0'), humidity: pv('%', '30', '60') },
-      targets: { pressureDiff: '15', temperature: '21.0', humidity: '45' },
+      limits: { contactTime: pv('min', '10'), pressureDiff: pv('Pa', '10', '20') },
+      targets: { pressureDiff: '15' },
     },
   },
   {
@@ -527,7 +525,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Load',
           repeat: { kind: 'PER_CONTAINER' },
           fields: [
-            { id: 'loadNumber', label: 'Load number', type: 'TEXT', maxLength: 20 },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
             { id: 'temperature', label: 'Lowest product temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
             { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
@@ -663,7 +660,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'rejected', label: 'Units rejected (line and inspection)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'rejected' },
             { id: 'sampled', label: 'Units sampled (QC, sterility, AQL, CCI destroyed)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'sampled' },
             { id: 'losses', label: 'Documented losses (broken, set-up)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'losses' },
-            { id: 'accountedPct', label: 'Accounted for', type: 'CALC', expression: 'accountability(filled, accepted, rejected, sampled, losses)', unit: '%' },
             { id: 'unaccounted', label: 'Units not accounted for', type: 'CALC', expression: 'unaccounted(filled, accepted, rejected, sampled, losses)', unit: UNITS, limitSlot: 'unaccounted', critical: true },
             { id: 'explanation', label: 'Explanation of any difference', type: 'TEXT', required: false },
           ],
@@ -702,7 +698,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'point', label: 'Sampling point', type: 'CHOICE', options: ['Start of filling', 'Middle of filling', 'End of filling', 'After an intervention'] },
             { id: 'units', label: 'Units taken', type: 'SAMPLE', unitsSlot: 'unitsPerPoint', purpose: 'Sterility and endotoxin tests' },
-            { id: 'takenAt', label: 'Taken at', type: 'DATE_TIME' },
             { id: 'labelled', label: 'Labelled with batch, point and time', type: 'YES_NO', expected: true },
           ],
         },
