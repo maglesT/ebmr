@@ -9,7 +9,8 @@
  *              per control, listed tests reported, every passing tagged test listed (review F15), each clause of a
  *              due control tested or deferred to a later phase
  *   sync-tests adds to each control's tests list the passing tests of the same reports tagged with it that the
- *              list does not name yet (review F15, round 2)
+ *              list does not name yet (review F15, round 2), and writes every list sorted
+ *   sort-tests sorts each control's tests list (validate refuses an unsorted one)
  *   status     --bundle <file>: sets each control's build_status by D-P7-2 from an evidence bundle (only that field;
  *              the only writer of VERIFIED; Phase 7 slice 7c). validate refuses a VERIFIED the rule does not allow
  *              (with --bundle <file>, the whole rule; without, the part the files show).
@@ -18,7 +19,7 @@ import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
 import { currentPhase, gateEditions, loadControls } from './register.ts';
 import { existsSync, readFileSync } from 'node:fs';
-import { appendListedTests, testsToAdd } from './sync.ts';
+import { appendListedTests, sortListedTests, testsToAdd } from './sync.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
 import { validateRegister } from './validate.ts';
 import { parseBundle } from '../../../packages/validation-kit/src/index.ts';
@@ -110,8 +111,15 @@ switch (command) {
     const added = appendListedTests(additions);
     for (const [id, entries] of additions) console.log(`${id}: ${entries.length} test(s) added to its list`);
     console.log(`added ${added} passing tagged test(s) to the controls' tests lists`);
+    const sorted = sortListedTests(loadControls());
+    if (sorted.length > 0) console.log(`sorted the tests lists of ${sorted.length} control(s)`);
+    break;
+  }
+  case 'sort-tests': {
+    const sorted = sortListedTests(loadControls());
+    console.log(`sorted the tests lists of ${sorted.length} control(s)`);
     break;
   }
   default:
-    fail('usage', ['register <import|validate|pins|trace --results file [--golden file] [--require-golden] [--playwright file] [--require-playwright]|sync-tests --results file [--golden file] [--playwright file]>']);
+    fail('usage', ['register <import|validate|pins|trace --results file [--golden file] [--require-golden] [--playwright file] [--require-playwright]|sync-tests --results file [--golden file] [--playwright file]|sort-tests>']);
 }
