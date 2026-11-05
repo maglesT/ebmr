@@ -181,9 +181,9 @@ export const TABLETS: readonly Tablet[] = [
     gmpPlant: [
       { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
       { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-CHECKWEIGH', classKind: 'PROCESS', classDescription: 'Capsule checkweigher', code: 'CHECKWEIGH-01', name: 'Capsule checkweigher', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-PRINTER', classKind: 'PROCESS', classDescription: 'Capsule printing machine', code: 'PRINTER-01', name: 'Capsule printer', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-INSPECT', classKind: 'PROCESS', classDescription: 'Capsule inspection machine', code: 'INSPECT-01', name: 'Capsule inspection belt', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-CHECKWEIGH', classKind: 'PROCESS', classDescription: 'Capsule checkweigher', code: 'CAPS-CHECKWEIGH-01', name: 'Capsule checkweigher', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-PRINTER', classKind: 'PROCESS', classDescription: 'Capsule printing machine', code: 'CAPS-PRINT-01', name: 'Capsule printer', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-INSPECT', classKind: 'PROCESS', classDescription: 'Capsule inspection machine', code: 'CAPS-INSPECT-01', name: 'Capsule inspection belt', area: 'BLEND-1' },
     ],
     afterDispensing: [],
     afterDischarge: [
@@ -216,9 +216,9 @@ const GMP_UNITS: Readonly<Record<string, string>> = {
   // Registered on screen by the capsule product's GMP 3 test.
   'EQC-CAPS-FILLER': 'CAPS-01',
   'EQC-CAPS-POLISH': 'POLISH-01',
-  'EQC-CAPS-CHECKWEIGH': 'CHECKWEIGH-01',
-  'EQC-CAPS-PRINTER': 'PRINTER-01',
-  'EQC-CAPS-INSPECT': 'INSPECT-01',
+  'EQC-CAPS-CHECKWEIGH': 'CAPS-CHECKWEIGH-01',
+  'EQC-CAPS-PRINTER': 'CAPS-PRINT-01',
+  'EQC-CAPS-INSPECT': 'CAPS-INSPECT-01',
 };
 
 /** The GMP batch's size: the master's reference size, the one the ERP order names and the IN authorisation covers. */
