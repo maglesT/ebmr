@@ -122,6 +122,14 @@ describe('the platform build switches the local credentials off (DI-19)', () => 
     expect([...PLATFORM_MANAGED_ROUTES].filter((r) => !all.has(r))).toEqual([]);
   });
 
+  it('[DI-17] declutter D1: on the platform build a disconnected route answers 410 DISCONNECTED without any switch; the standalone build serves it', async () => {
+    for (const path of ['/api/capa', '/api/pqr/extracts']) {
+      const r = await plat.browser('PC-DESIGN-01').inject({ method: 'GET', url: path });
+      expect([r.statusCode, r.json<{ refusal: { code: string } }>().refusal.code], path).toEqual([410, 'DISCONNECTED']);
+      expect((await solo.browser('PC-DESIGN-01').inject({ method: 'GET', url: path })).statusCode, path).not.toBe(410);
+    }
+  });
+
   it('[DI-19] the standalone build takes no platform proof and has no core routes', async () => {
     const b = solo.browser('PC-DESIGN-01');
     const body = { method: 'PLATFORM' as const, signonProof: 'x'.repeat(40) };
