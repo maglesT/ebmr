@@ -14,15 +14,31 @@ on:
         required: false
         default: ''
         type: string
+      runner:
+        description: 'Where this run goes, for this run only (github, ubicloud, pod); empty = the repository variable CI_RUNNER'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
+
+# The runner of this run: the run-by-hand input `runner`, else the repository variable CI_RUNNER (the scripts in tools/ci
+# read EBMR_CI_HOST: 'ubicloud' is a one-job VM of GitHub's image, like a GitHub-hosted runner).
+env:
+  EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud' || 'pod' }}
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Where the jobs run. Every job runs on the owner's self-hosted RunPod pod (runner label ebmr-pod: eight runners,
+# Where the jobs run: CI_RUNNER 'ubicloud' (or the run-by-hand input runner=ubicloud) puts them on Ubicloud's managed
+# runners (the Ubicloud GitHub app on this repository): ubicloud-standard-8-ubuntu-2404 for the static checks, the test
+# shards (4 Vitest workers on 8 vCPU), the golden batches and the end-to-end groups, ubicloud-standard-2-ubuntu-2404
+# for the light jobs (supply chain, the end-to-end plan, the reports, traceability). Their VMs serve one job each and
+# use GitHub's runner image (Ubuntu 24.04, like ubuntu-latest: PostgreSQL 16 present; tools/ci/start-postgres.sh
+# installs it from PGDG otherwise), so the scripts in tools/ci treat them as GitHub-hosted (EBMR_CI_HOST).
+# Otherwise every job runs on the owner's self-hosted RunPod pod (runner label ebmr-pod: eight runners,
 # pod-1 ... pod-8, on one 32-vCPU machine) unless the repository variable CI_RUNNER is 'github': then on GitHub-hosted
 # ubuntu-latest, exactly as before the pod. Set CI_RUNNER=github (Settings > Secrets and variables > Actions >
 # Variables) while the pod is stopped, and delete it (or set it to anything else) when the pod is back; a job queued
@@ -38,7 +54,7 @@ jobs:
   checks:
     name: Static checks (typecheck, lint, boundaries, pins, register, web build)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2404' || 'ebmr-pod' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +82,7 @@ jobs:
   supply-chain:
     name: Supply chain (dependency audit, licences, secrets, SBOM, signed manifest)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2404' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +120,7 @@ jobs:
   tests:
     name: Tests (shard ${{ matrix.shard }} of 8)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2404' || 'ebmr-pod' }}
     # The whole suite (about 2,700 tests, mostly against PostgreSQL) took 55 minutes on one 2-core runner at the end
     # of Phase 2 (run 37980059094), next to the job's 60-minute limit. Four shards, each with its own PostgreSQL,
     # run every test once; the report job merges their blob reports into the one Vitest report the trace reads.
@@ -135,7 +151,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm vitest run --shard=${{ matrix.shard }}/8 ${{ vars.CI_RUNNER != 'github' && '--maxWorkers=4' || '' }} --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
+      - run: pnpm vitest run --shard=${{ matrix.shard }}/8 ${{ env.EBMR_CI_HOST != 'github' && '--maxWorkers=4' || '' }} --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
       - name: Stop PostgreSQL
         if: always()
         run: bash tools/ci/start-postgres.sh stop
@@ -154,7 +170,7 @@ jobs:
   golden:
     name: Golden batches (golden clock cluster)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2404' || 'ebmr-pod' }}
     # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8.
     timeout-minutes: 60
     steps:
@@ -200,7 +216,7 @@ jobs:
     # Runs when a shard failed (to merge and summarise what did run) but not when the run was cancelled, for example by
     # a newer push to the same branch: there is nothing to report then; nor on a run of chosen end-to-end groups only.
     if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') }}
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2404' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -279,7 +295,7 @@ jobs:
   # name fails here). The full list is the e2e job's matrix as it was; a new group is added here.
   e2e-plan:
     name: End-to-end groups to run
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2404' || 'ebmr-pod' }}
     timeout-minutes: 5
     outputs:
       groups: ${{ steps.plan.outputs.groups }}
@@ -303,7 +319,7 @@ jobs:
   e2e:
     name: End-to-end (Playwright, chromium, ${{ matrix.group }})
     needs: [e2e-plan]
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2404' || 'ebmr-pod' }}
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
     # set-up on its own PostgreSQL and the spec files tools/e2e/playwright.config.ts (E2E_GROUPS) names; 'rest' runs
@@ -363,7 +379,7 @@ jobs:
     name: End-to-end reports merged
     needs: [e2e]
     if: ${{ !cancelled() }}
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2404' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -402,7 +418,7 @@ jobs:
   traceability:
     name: Traceability with the end-to-end results
     needs: [checks, report, e2e-report]
-    runs-on: ${{ vars.CI_RUNNER == 'github' && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2404' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

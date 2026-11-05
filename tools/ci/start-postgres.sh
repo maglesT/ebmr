@@ -36,10 +36,25 @@ put_path() {
   if [ -n "${GITHUB_PATH:-}" ]; then echo "$1" >> "$GITHUB_PATH"; else printf 'export PATH=%q:"$PATH"\n' "$1"; fi
 }
 
-github_hosted() { [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ]; }
+# A machine that serves one job and is discarded: GitHub-hosted, or a Ubicloud runner (EBMR_CI_HOST=ubicloud, set by the
+# workflow; Ubicloud's VMs use GitHub's runner image but may report RUNNER_ENVIRONMENT=self-hosted).
+github_hosted() { [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; }
+
+# PostgreSQL $PG_MAJOR from the PGDG apt repository when the runner image lacks it (an image of another Ubuntu release).
+ensure_pg() {
+  [ -x "/usr/lib/postgresql/$PG_MAJOR/bin/postgres" ] && return 0
+  echo "start-postgres: installing PostgreSQL $PG_MAJOR from apt.postgresql.org" >&2
+  sudo install -d /usr/share/postgresql-common/pgdg
+  sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+  echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" \
+    | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "postgresql-$PG_MAJOR" "postgresql-server-dev-$PG_MAJOR" > /dev/null
+}
 
 # --- GitHub-hosted: the runner image's Debian cluster, unchanged from the workflow before the pod -------------------
 hosted_start() {
+  ensure_pg
   if [ "$1" = golden ]; then
     local faketime=/var/lib/postgresql/faketime-golden/offset lib=/usr/local/lib/ebmr/golden-clock.so
     sudo install -d -m 0755 /usr/local/lib/ebmr
@@ -59,6 +74,11 @@ hosted_start() {
     port=5433
   else
     sudo systemctl start postgresql.service
+    # With more than one major installed, the image's cluster may not be $PG_MAJOR on 5432: make sure one is.
+    if ! pg_lsclusters -h | awk -v m="$PG_MAJOR" '$1 == m && $3 == 5432' | grep -q .; then
+      pg_lsclusters -h | awk '$3 == 5432 {print $1, $2}' | while read -r v c; do sudo pg_dropcluster --stop "$v" "$c"; done
+      sudo pg_createcluster "$PG_MAJOR" main --port 5432 --locale C.UTF-8 --start
+    fi
     until pg_isready -q -h localhost -p 5432; do sleep 1; done
     sudo -u postgres psql -q -v ON_ERROR_STOP=1 -c "$ROLE_SQL"
     port=5432
@@ -167,7 +187,7 @@ kind=test
 [ "${2:-}" = --golden ] && kind=golden
 case "$cmd" in
   start) if github_hosted; then hosted_start "$kind"; else private_start "$kind"; fi ;;
-  # A GitHub-hosted runner is discarded with its clusters after the job.
+  # A GitHub-hosted or Ubicloud runner is discarded with its clusters after the job.
   stop) if github_hosted; then :; else private_stop; fi ;;
   *) die "usage: start-postgres.sh start [--golden] | stop" ;;
 esac
