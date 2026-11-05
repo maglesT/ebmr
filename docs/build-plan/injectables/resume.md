@@ -61,4 +61,11 @@ section 9 of the plan (the owner's and the lead's answers) and the hard rules of
 - Run the whole web suite (`vitest --project dom`) and the register tests before pushing.
 - Merge main with a merge commit, never a rebase. Other sessions (Capsules, API, Tablets) merge often, and
   `PROGRESS.md` and `from-formula.test.ts` are the usual conflicts.
+- The edition list moves to one source with the API edition's A0 (lead-approved, 5 November):
+  - in SQL, `kernel.editions()` (kernel 1403), with the inline edition checks re-created against it (site-services
+    1731, recipe-core 1872); `recipe.library_editions()` delegates to it and adds 'generic';
+  - in TypeScript, the kernel's `EDITIONS`, which `LIBRARY_EDITIONS`, the `Edition` unions and the `createFamily` enum
+    derive from.
+
+  Take every edition literal from these; never write a new inline list.
 - Migration numbers: shared directories take the next free number, cleared with the lead. `inj.*` uses 3000-3999.
