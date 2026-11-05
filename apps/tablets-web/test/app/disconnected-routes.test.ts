@@ -52,7 +52,7 @@ const EMBEDDED: Record<string, string[]> = {
  */
 const DEVIATION_SCREENS: Record<string, string[]> = {
   'features/quality/DeviationDetail.tsx': ['deviationDetail', 'reclassifyDeviation', 'recordDeviationClosureBasis', 'recordDeviationImpact'],
-  'features/quality/DeviationPage.tsx': ['cancelDeviation', 'deviation', 'recordFinding', 'startInvestigation'],
+  'features/quality/DeviationPage.tsx': ['cancelDeviation', 'deviation'],
   'features/quality/DeviationsPage.tsx': ['deviation', 'deviationDetail'],
 };
 

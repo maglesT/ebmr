@@ -86,7 +86,7 @@ describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch p
     expect(Object.entries(DISCONNECTED_ROUTES).sort()).toEqual(
       [
         'quality.cancelDeviation', 'quality.deviation', 'quality.deviationDetail', 'quality.recordDeviationClosureBasis', 'quality.recordDeviationImpact',
-        'quality.recordFinding', 'quality.reclassifyDeviation', 'quality.startInvestigation',
+        'quality.reclassifyDeviation',
       ].sort().map((id) => [id, 'Deviations']),
     );
   });
@@ -112,5 +112,12 @@ describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch p
     expect(gone(await qa.call(routes.quality.linkDeviation, { params: { deviationId: raised.deviationId }, body: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
     expect(valueOf(await qa.call(routes.quality.deviations, { query: {} })).deviations.map((d) => d.ref)).toContain(raised.ref);
     expect(gone(await qa.call(routes.quality.deviationRelease, { query: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
+    // D4-R5 (lead, option A): the investigation and its finding stay for invalidation and reprocessing.
+    expect(isDisconnectedRoute(routes.quality.startInvestigation.id)).toBe(false);
+    expect(isDisconnectedRoute(routes.quality.recordFinding.id)).toBe(false);
+    for (const route of [routes.quality.startInvestigation, routes.quality.recordFinding] as AnyRoute[]) {
+      const res = await qa.inject({ method: route.method, url: urlOf(route) });
+      expect(res.statusCode, route.id).not.toBe(410);
+    }
   });
 });

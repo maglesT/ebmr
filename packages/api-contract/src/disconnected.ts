@@ -64,6 +64,9 @@ export const DISCONNECTED_NAMESPACES = Object.keys(DISCONNECTED) as readonly Nam
  * - quality.raiseDeviation and quality.linkDeviation: the lot page raises and links the OOS record of a failing result
  *   (IN-20), and a review disposition or exception link names a deviation reference that the database checks is a
  *   record of this installation linked to the batch (site.deviation_ref_problem, PR-49).
+ * - quality.startInvestigation and quality.recordFinding (lead decision D4-R5, option A): invalidating a result for a
+ *   laboratory error and reprocessing need a QA-concluded deviation record; they stay connected for that until the
+ *   Deviations product publishes its view (plan section 7, D4-R5).
  */
 export const DISCONNECTED_ROUTES: Readonly<Record<string, DisconnectedOwner>> = Object.fromEntries(
   [
@@ -72,8 +75,6 @@ export const DISCONNECTED_ROUTES: Readonly<Record<string, DisconnectedOwner>> = 
     deviationRoutes.recordDeviationImpact,
     deviationRoutes.recordDeviationClosureBasis,
     routes.quality.deviation,
-    routes.quality.startInvestigation,
-    routes.quality.recordFinding,
     routes.quality.cancelDeviation,
   ].map((r) => [r.id, 'Deviations' as const]),
 );
