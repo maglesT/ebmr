@@ -17,19 +17,23 @@ import { LotReceiptPage } from './LotReceiptPage.tsx';
 import { LotPage } from './LotPage.tsx';
 import { UpdatePotencyPage } from './UpdatePotencyPage.tsx';
 import { LotsPage } from './LotsPage.tsx';
+import { useScreensOff } from '../../app/disconnected.tsx';
 import { ReprocessingPage } from './ReprocessingPage.tsx';
 import { ReturnsPage } from './ReturnsPage.tsx';
 import { SpecificationsPage } from './SpecificationsPage.tsx';
 import { VendorRoutesPage } from './VendorRoutesPage.tsx';
 
 function QualityHome() {
+  const off = useScreensOff();
   return (
     <>
       <h1>Quality</h1>
       <ul>
-        <li>
-          <Link to="/quality/deviations">Deviations</Link>
-        </li>
+        {off('/quality/deviations') ? null : (
+          <li>
+            <Link to="/quality/deviations">Deviations</Link>
+          </li>
+        )}
         <li>
           <Link to="/quality/lots">Material lots</Link>
         </li>

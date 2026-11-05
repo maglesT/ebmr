@@ -20,6 +20,7 @@ import { routes, type LotReleaseView } from '@ebmr/api-contract';
 import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
+import { useScreensOff } from '../../app/disconnected.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useSessionRole } from '../../app/roles.ts';
 import { GateProblems } from '../review/parts.tsx';
@@ -100,6 +101,7 @@ function viaLink(via: { kind: 'LOT' | 'BATCH' | 'EQUIPMENT'; id: string }, lotId
 }
 
 function Causes({ view: v }: { view: LotAfterReleaseView }) {
+  const off = useScreensOff();
   return (
     <Section title="What suspended the lot" testId="suspension-causes">
       {v.causes.length === 0 ? <p>No cause has suspended this lot.</p> : null}
@@ -107,7 +109,7 @@ function Causes({ view: v }: { view: LotAfterReleaseView }) {
         {v.causes.map((c) => (
           <li key={c.suspensionId} data-testid={`suspension-cause-${c.suspensionId}`} data-covered={String(c.covered)}>
             <strong>{c.market}</strong> {words(c.causeKind)}:{' '}
-            {c.causeKind === 'DEVIATION' ? (
+            {c.causeKind === 'DEVIATION' && !off('/quality/deviations') ? (
               <Link to="/quality/deviations/$deviationId" params={{ deviationId: c.causeRef }}>
                 {c.label}
               </Link>

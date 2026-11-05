@@ -8,7 +8,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DISCONNECTED, DISCONNECTED_NAMESPACES, isDisconnectedRoute, routes, type AnyRoute, type NamespaceName } from '@ebmr/api-contract';
+import { DISCONNECTED, DISCONNECTED_NAMESPACES, DISCONNECTED_ROUTES, isDisconnectedRoute, routes, type AnyRoute, type NamespaceName } from '@ebmr/api-contract';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { valueOf } from '../esig/support.ts';
 
@@ -65,12 +65,59 @@ describe('[DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter
   it('[DI-17] the kept path stays connected: exactly the expected namespaces are connected, and a standalone server without the switch serves the listed ones', async () => {
     const connected = (Object.keys(routes) as NamespaceName[]).filter((ns) => DISCONNECTED[ns] === undefined);
     expect([...connected].sort()).toEqual(CONNECTED);
-    for (const r of connected.flatMap((ns) => Object.values(routes[ns]) as AnyRoute[])) expect(isDisconnectedRoute(r.id), r.id).toBe(false);
+    // Slice D4: inside a connected namespace only the single routes of DISCONNECTED_ROUTES are refused.
+    for (const r of connected.flatMap((ns) => Object.values(routes[ns]) as AnyRoute[])) expect(isDisconnectedRoute(r.id), r.id).toBe(DISCONNECTED_ROUTES[r.id] !== undefined);
     const b = await gmp.asPersona('qaInvestigator');
     const kept = await b.call(routes.library.list, {});
     expect(kept.ok).toBe(true);
     const route = routes.capa.register;
     const served = await (await solo.asPersona('qaInvestigator')).inject({ method: route.method, url: route.path });
     expect(served.statusCode).not.toBe(410);
+  });
+});
+
+/** Every route of the contract by its id. */
+const byId = new Map((Object.values(routes) as Record<string, AnyRoute>[]).flatMap((ns) => Object.values(ns)).map((r) => [r.id, r]));
+/** Did the server refuse the call as disconnected? */
+const gone = (r: { ok: boolean; error?: unknown }): boolean => !r.ok && JSON.stringify(r.error).includes('"DISCONNECTED"');
+
+describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch path keeps its deviation references (declutter D4)', () => {
+  it('[DI-17] the disconnected deviation routes are exactly the full-record ones, all owned by Deviations', () => {
+    expect(Object.entries(DISCONNECTED_ROUTES).sort()).toEqual(
+      [
+        'quality.cancelDeviation', 'quality.deviation', 'quality.deviationDetail', 'quality.recordDeviationClosureBasis', 'quality.recordDeviationImpact',
+        'quality.reclassifyDeviation',
+      ].sort().map((id) => [id, 'Deviations']),
+    );
+  });
+
+  it.each(Object.keys(DISCONNECTED_ROUTES).sort())('[DI-17] %s is refused with EBMR_DISCONNECT=1, signed in or not, and served on a standalone server without the switch', async (id) => {
+    const route = byId.get(id);
+    expect(route, id).toBeDefined();
+    if (!route) return;
+    const anonymous = await gmp.browser().inject({ method: route.method, url: urlOf(route) });
+    expect([anonymous.statusCode, anonymous.json<{ refusal: { code: string } }>().refusal.code]).toEqual([410, 'DISCONNECTED']);
+    const signedIn = await (await gmp.asPersona('qaInvestigator')).inject({ method: route.method, url: urlOf(route) });
+    expect([signedIn.statusCode, signedIn.json<{ refusal: { code: string } }>().refusal.code]).toEqual([410, 'DISCONNECTED']);
+    const served = await (await solo.asPersona('qaInvestigator')).inject({ method: route.method, url: urlOf(route) });
+    expect(served.statusCode).not.toBe(410);
+  });
+
+  it('[DI-17] the deviation routes the kept path needs stay served with EBMR_DISCONNECT=1: raise and link (exception and OOS references), the batch list, the release checklist', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    const raised = valueOf(
+      await qa.call(routes.quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Declutter D4: a reference for an exception', classification: 'MINOR', riskRationale: 'Raised to check the kept route' } }),
+    );
+    expect(raised.ref).toMatch(/\S/);
+    expect(gone(await qa.call(routes.quality.linkDeviation, { params: { deviationId: raised.deviationId }, body: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
+    expect(valueOf(await qa.call(routes.quality.deviations, { query: {} })).deviations.map((d) => d.ref)).toContain(raised.ref);
+    expect(gone(await qa.call(routes.quality.deviationRelease, { query: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
+    // D4-R5 (lead, option A): the investigation and its finding stay for invalidation and reprocessing.
+    expect(isDisconnectedRoute(routes.quality.startInvestigation.id)).toBe(false);
+    expect(isDisconnectedRoute(routes.quality.recordFinding.id)).toBe(false);
+    for (const route of [routes.quality.startInvestigation, routes.quality.recordFinding] as AnyRoute[]) {
+      const res = await qa.inject({ method: route.method, url: urlOf(route) });
+      expect(res.statusCode, route.id).not.toBe(410);
+    }
   });
 });

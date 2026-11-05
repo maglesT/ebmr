@@ -64,6 +64,7 @@ export const WEB_ONLY_OFF_PATHS: readonly string[] = [
   '/india/product-rules', // shelf-life bases and hazard classes: later (licences and the batch-number register stay)
   '/admin/qualifications', // Qual
   '/admin/us-esig-certification', // core
+  '/quality/deviations', // Deviations (slice D4): full deviation records; kept screens show the reference as text
 ];
 
 /** Screen paths off the platform (each covers its sub-paths): the contract's namespaces' screens and the web-only ones. */

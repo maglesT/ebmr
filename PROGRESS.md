@@ -65,7 +65,11 @@ product endorsed on the licence; the library-dc flow records and approves it); s
 names the edition. The home opens with four work cards (My batches, To sign, To review, To release), each a count from an
 existing read (work queue, review queue, release queue: READY lots only) and a list at `/work/*` whose rows open the
 record; a card shows only where the role may make its read (`readOffered`). The Functions links keep their titles
-without descriptions. The header's edition of the record on screen follows when capsules C2's mechanism is shared. Next: D4.
+without descriptions. The header's edition of the record on screen follows when capsules C2's mechanism is shared.
+**D4 (branch `declutter/d4`):** `DISCONNECTED_ROUTES` (route id → owner) refuses the eight full deviation-record routes
+inside `quality` (Deviations); raise, link, the batch's list and the release checklist stay (kept screens and the
+database's reference checks need them). `/quality/deviations` is off on the web; kept pages show the reference as text.
+Residuals D4-R1 to R5 (MMS, Logbook, Qual, QMS, Deviations) in plan.md section 7.
 
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation

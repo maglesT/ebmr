@@ -9,7 +9,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DISCONNECTED_NAMESPACES } from '@ebmr/api-contract';
+import { DISCONNECTED_NAMESPACES, DISCONNECTED_ROUTES } from '@ebmr/api-contract';
+import { screenOff } from '../../src/app/disconnected.tsx';
 
 const SRC = join(import.meta.dirname, '../../src');
 
@@ -43,6 +44,18 @@ const EMBEDDED: Record<string, string[]> = {
   'features/review/ReviewQueuePage.tsx': ['analytics-review'], // PriorityNote and QueueOrderingBand make no call
 };
 
+/**
+ * Slice D4: the files of kept features that name a single disconnected route (DISCONNECTED_ROUTES, the full deviation
+ * records), each a deviation screen switched off at /quality/deviations (DeviationsPage only names two ids among the
+ * reads it refreshes). The lot page embeds DeviationDetail's release checklist, which reads quality.deviationRelease
+ * (kept connected).
+ */
+const DEVIATION_SCREENS: Record<string, string[]> = {
+  'features/quality/DeviationDetail.tsx': ['deviationDetail', 'reclassifyDeviation', 'recordDeviationClosureBasis', 'recordDeviationImpact'],
+  'features/quality/DeviationPage.tsx': ['cancelDeviation', 'deviation'],
+  'features/quality/DeviationsPage.tsx': ['deviation', 'deviationDetail'],
+};
+
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const p = join(dir, name);
@@ -73,5 +86,23 @@ describe('[DI-17] the kept screens call no disconnected route (declutter D1)', (
       if (outside.length > 0) found[relative(SRC, file)] = [...new Set(outside)].sort();
     }
     expect(found).toEqual(EMBEDDED);
+  });
+});
+
+describe('[DI-17] the kept screens call no disconnected deviation route (declutter D4)', () => {
+  it('[DI-17] only the deviation screens, switched off where the functions are disconnected, name a disconnected deviation route', () => {
+    const names = Object.keys(DISCONNECTED_ROUTES).map((id) => id.split('.'));
+    const pattern = new RegExp(`\\broutes\\.(${names.map(([ns, name]) => `${ns ?? ''}\\.${name ?? ''}`).join('|')})\\b`, 'g');
+    const found: Record<string, string[]> = {};
+    for (const file of KEPT_DIRS.flatMap((d) => files(join(SRC, d)))) {
+      const hits = [...readFileSync(file, 'utf8').matchAll(pattern)].map((m) => (m[1] ?? '').split('.')[1] ?? '');
+      if (hits.length > 0) found[relative(SRC, file)] = [...new Set(hits)].sort();
+    }
+    expect(found).toEqual(DEVIATION_SCREENS);
+    for (const path of ['/quality/deviations', '/quality/deviations/123']) {
+      expect(screenOff(path, true, false), path).toBe(true);
+      expect(screenOff(path, false, false), path).toBe(false);
+    }
+    for (const path of ['/quality', '/quality/lots/123', '/records/123', '/release/123']) expect(screenOff(path, true, false), path).toBe(false);
   });
 });
