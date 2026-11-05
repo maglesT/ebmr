@@ -4,70 +4,11 @@
  * engine and generic handler as any library block. Codes are unique across the catalogue.
  */
 import { describe, expect, it } from 'vitest';
-import type { MbrContent } from '../../src/flow/model.ts';
 import type { LimitSpec } from '../../src/limits/model.ts';
-import type { FieldDef } from '../../src/library/model.ts';
-import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
-import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
-import { expr, mbrWith, phase } from '../flow/support.ts';
-
-function nominalRun(item: SeedItem, edit: (e: Record<string, unknown>) => Record<string, unknown> = (e) => e): { exceptions: string[]; status: string | undefined } {
-  const def = item.definition;
-  const config = item.exampleUse as Record<string, unknown>;
-  const lines = Object.values(item.exampleUse.bomLines ?? {});
-  const inputs = Object.entries(item.exampleInputs ?? {});
-  // S10: formula-line and batch-size inputs come from the master (BOM at the reference size, the batch's size), so the
-  // example values are written there; the other inputs stay MBR inputs the phase reads.
-  const ex = item.exampleInputs ?? {};
-  const lineInputs = new Map((def.inputs ?? []).flatMap((i) => (i.kind === 'FORMULA_LINE' ? [[item.exampleUse.bomLines?.[i.slot], ex[i.id]] as const] : [])));
-  const sizeInput = (def.inputs ?? []).find((i) => i.kind === 'BATCH_SIZE');
-  const bom: MbrContent['bom'] = lines.map((id) => ({ id, material: `MAT-${id}`, role: 'ACTIVE', quantity: lineInputs.get(id) ?? { value: '10', unit: 'kg' } }));
-  const p = phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: config as never, reads: inputs.map(([k]) => k) });
-  const base = mbrWith({ kind: 'sequence', id: 'ops', children: [p, phase('after')] }, {
-    bom,
-    inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
-  });
-  const size = sizeInput ? ex[sizeInput.id] : undefined;
-  const mbr: MbrContent = size ? { ...base, header: { ...base.header, batchSizes: [{ id: 'BS', quantity: size }] } } : base;
-  const d = define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) });
-  const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
-  const run = Run.issue(d, { inputs: values }, T0);
-  run.start('p');
-  const entries = nominalEntries(def, config as never, mbr).map((e) => edit(e as Record<string, unknown>) as typeof e);
-  // A nominal run keeps its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
-  // step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
-  // every per-interval section (the catalogue's intervals are 15 minutes or more).
-  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
-  for (const e of entries) {
-    if (e.kind === TIMER_STOP) {
-      for (let i = 0; i < 6; i++) {
-        run.minutes(10 - rounds.length);
-        for (const r of rounds) {
-          run.entry('p', r);
-          run.minutes(1);
-        }
-      }
-    }
-    run.entry('p', e);
-    run.minutes(1);
-  }
-  run.perform('p');
-  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p');
-  return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
-}
-
-function byCode(code: string): SeedItem {
-  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
-  if (!item) throw new Error(`no catalogue item ${code}`);
-  return item;
-}
-
-function fieldOf(item: SeedItem, id: string): FieldDef {
-  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
-  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
-  return f;
-}
+import { checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
+import { SEED_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
+import { expr } from '../flow/support.ts';
+import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
 
 describe('the ready-made catalogue', () => {
   it('[PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)', () => {
@@ -161,7 +102,7 @@ describe('the ready-made catalogue', () => {
     expect(fieldOf(leak, 'leakers')).toMatchObject({ type: 'NUMBER', limitSlot: 'leakers', critical: true });
     expect(nominalRun(leak)).toEqual({ exceptions: [], status: 'COMPLETED' });
     // One leaker is outside the registered limit of none: the step raises an exception and cannot complete with it open.
-    expect(() => nominalRun(leak, (e) => ('leakers' in e ? { ...e, leakers: '1' } : e))).toThrow(/outside its registered limit/);
+    expect(judgedRun(leak, { test: { leakers: '1' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
   });
 
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
