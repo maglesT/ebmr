@@ -337,6 +337,13 @@ function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionD
     } else inputs.set(id, t);
   }
   const c = expr.check(f.expression, inputs, { role: 'CALCULATION', output: { kind: 'DECIMAL', unit: f.unit } });
+  // A date and time is typed text that the runtime cannot hand to a calculation (it has no instant value), so a
+  // calculation over it would be refused at every entry. Refuse the definition instead, so that QA never approves a block
+  // that cannot run. A time limit between steps is the master's time constraint on trusted time (HOLD, PROCESS_WINDOW).
+  const dateTimes = c.reads
+    .filter((r) => earlier.get(r)?.field.type === 'DATE_TIME')
+    .map((r) => err('LIB-CALC-DATE-TIME', `${fp}.expression`, `Field ${f.id} reads the date and time ${r}; a calculation cannot use a typed date and time. Use a timer in the step, or a time constraint of the master between steps [DI-33]`, ['PR-03', 'DI-33']));
+  if (dateTimes.length > 0) return dateTimes;
   // A calculation may read a conditional field only under the same condition: otherwise its input may never exist.
   const conditional = c.reads
     .filter((r) => { const src = earlier.get(r)?.field; return src !== undefined && src.showWhen !== undefined && !sameCondition(src.showWhen, f.showWhen); })
