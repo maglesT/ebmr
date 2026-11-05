@@ -23,9 +23,10 @@
 --       E.POSTED_QUANTITY        the finished lot was posted in kg and its quantity equals the sum of the net masses of
 --                                the containers P filled (the container entries of its API-PACK steps). None is red.
 --     group 9:
---       E.PACK_EXAMINATION       each API-PACK step that ran is COMPLETED with its examination of the packed containers
---                                (exam); an examination that found a container wrong counts only when its
---                                LIB_UNEXPECTED_ANSWER exception is resolved. No step ran is red.
+--       E.PACK_EXAMINATION       each API-PACK step that ran is COMPLETED and its last examination of the packed
+--                                containers (exam) confirms them all correct and examined at least as many containers
+--                                as the step filled; a fault found is cleared only by a new examination after the
+--                                correction. No step ran is red.
 --     group 10, as tablets: E.HELD_CONTAINERS, E.CONTAINER_RELEASE (the bulk issued to P is released; none issued is
 --       red), E.RULE_SETS_VERIFIED, E.WHOLE_BATCH_PARENTS.
 --     since_review on every item as tablets (tab.grel_changed_since, tablets 1163).
@@ -108,7 +109,7 @@ declare
   v_probs jsonb := '[]'::jsonb;
   v_any   boolean := false;
   v_exam  jsonb;
-  v_unres jsonb;
+  v_n     integer;
   k       text;
   s       jsonb;
 begin
@@ -119,15 +120,13 @@ begin
       continue;
     end if;
     v_exam := tab.grel_entries(p_order, k, 'exam') -> -1;
+    v_n := jsonb_array_length(tab.grel_entries(p_order, k, 'container'));
     if v_exam is null then
       v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('step %s holds no examination of the packed containers', k), tab.grel_batch_ev(p_order)));
     elsif v_exam -> 'data' -> 'allCorrect' is distinct from 'true'::jsonb then
-      v_unres := tab.grel_unresolved(array[p_order], array['LIB_UNEXPECTED_ANSWER'], k);
-      if jsonb_array_length(v_unres) > 0 then
-        v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the examination of the packed containers at %s found a fault that is not resolved: %s', k, v_unres -> 0 ->> 'problem'), v_unres -> 0 -> 'evidence'));
-      elsif not exists (select 1 from recipe.exception_register r where r.batch_id = p_order and r.raising_step_key = k and r.exception_type = 'LIB_UNEXPECTED_ANSWER') then
-        v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the examination of the packed containers at %s does not confirm them correct', k), tab.grel_batch_ev(p_order)));
-      end if;
+      v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the last examination of the packed containers at %s does not confirm them correct: examine them again after the correction', k), tab.grel_batch_ev(p_order)));
+    elsif coalesce(v_exam -> 'data' ->> 'examined', '') !~ '^[0-9]+(\.0+)?$' or (v_exam -> 'data' ->> 'examined')::numeric < v_n then
+      v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the examination at %s covers %s of the %s containers filled', k, coalesce(v_exam -> 'data' ->> 'examined', 'none'), v_n), tab.grel_batch_ev(p_order)));
     end if;
   end loop;
   if not v_any then
