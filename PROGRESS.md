@@ -57,7 +57,12 @@ screen embeds from another feature; the release page's QP package section and de
 DISCONNECTED (review finding, fixed); E2E `library-dc` (catalogue → formulation → master → approval → GMP batch → floor →
 packaging and labels → review → release) runs with the switch on. Kept connected because kept screens read them (D-D1-2): `alarms` (the batch alarm log on the step and review
 screens, DI-49), `integrations` and `transfers` (the operator's set-up page), `erpShipping` (the lot's shipments),
-`archive`, `india` and `marketConfig` (off the home only); deviations are D4. Next: D2 (home and menus), D3 (new home), D4.
+`archive`, `india` and `marketConfig` (off the home only); deviations are D4. **D2 (branch `declutter/d2`, on D1):** `meta.disconnected` tells the SPA when the server refuses the
+list; then the home (even "Show all screens") and the links on kept pages skip the screens in
+`apps/tablets-web/src/app/disconnected.tsx`, and a deep link shows "Not part of Batchwright". On the platform build the
+people and grant screens are off too (core keeps them). D-D2-1: the India licences screen stays (a GMP batch needs the
+product endorsed on the licence; the library-dc flow records and approves it); shelf-life bases go. Next: D3 (new home,
+naming: "Batchwright" on sign-in and title, the edition in the header; amend decision 0020), D4.
 
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation
@@ -112,10 +117,12 @@ one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and
 7. Then D2 (web lists), D3 (the new home), D4 (data references).
 
 **Injectables edition (owner decision, 4 November 2026).** Plan approved (v2): `docs/build-plan/injectables/plan.md`
-and `platform-fit.md` (one `ebmr` database, edition as data; ADR 0001 amended). **I-0 merged** (#107, 5 November):
-recipe-core 1871 puts the edition in the library block definition (EBMR-LIB-023/024); families carry their edition.
-Next: I-1, terminally sterilised vials and ampoules. Resume notes: `docs/build-plan/injectables/resume.md`. The owner's
-approval of `control-decisions.md` (Q1, 91 controls) is pending. Migrations: `inj.*` 3000-3999.
+and `platform-fit.md` (one `ebmr` database, edition as data; ADR 0001 amended). **I-0 merged** (#107). **5 November:**
+the owner's control decisions recorded (#120: 89 MODIFY, ST-68 FOLLOW, ST-69 DONT_FOLLOW); the library checker refuses a
+calculation over a typed date/time or a timer (#115). **#117 merged** (shared fix: a library block reads an earlier
+step's value at runtime; ENG-DEF-STEP-VALUE at master check) and **#114 I-1a** (17 INJ blocks as data, the `sterile` rule
+table published). **Resume here: I-1c** (vial and ampoule batches to release, E2E)
+in a fresh session: `docs/build-plan/injectables/resume.md`. Migrations: `inj.*` 3000-3999.
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
 plan `docs/build-plan/capsules/plan.md` approved by the lead (v3, PR #102). The owner's binding rule: every numbered

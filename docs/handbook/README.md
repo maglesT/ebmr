@@ -32,7 +32,8 @@ Status (14 October 2026): Phases 1 to 4 are being documented. A page marked **Dr
 9. [Defects and lessons](08-defect-log.md) and [Removed and replaced](09-removed-and-replaced.md): the history.
 10. [Operations runbooks](10-runbooks.md).
 
-Generated reference (do not edit by hand; run `pnpm handbook`):
+Generated reference (not committed and not edited by hand: run `pnpm handbook`, or take the `handbook-generated`
+artifact of a CI run):
 
 - [Code map](code-map.md): every module with its migrations, database functions and triggers, server files, routes,
   contract file, screens, tests and controls.

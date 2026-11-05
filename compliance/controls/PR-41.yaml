@@ -25,8 +25,8 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-41] a tamper-evident pack's seal check also checks the labelling statement; others state none"
   - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 definition checks > [IN-17][INV-32][PR-37][PR-41] the label step and item, the interval, the torque ranges, and a tamper-evident check for US OTC retail"
   - "apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts > TB-24 checks and examinations > [PR-41][PR-42] the anti-tampering check is configured, counts at most what was examined, fails on a defect and is missed strictly after its interval"
-  - "apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts > TB-24 packs, shippers and the reconciliation > [PR-37][PR-41][IN-17] PERFORMED: the ATD stream, an in-run and a passing end-of-run examination, and the reconciliation"
   - "apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts > TB-24 definition checks > [IN-17][PR-41][PR-42][PR-37] the printed-material step, the ATD for the EU and for US OTC retail, whole-microsecond intervals"
+  - "apps/tablets-server/test/blocks/bottle/tb-24-edges.test.ts > TB-24 packs, shippers and the reconciliation > [PR-37][PR-41][IN-17] PERFORMED: the ATD stream, an in-run and a passing end-of-run examination, and the reconciliation"
   - "apps/tablets-server/test/execution/plain-words.test.ts > the anti-tampering check on an order whose markets do not need it (R10 #17) > [PR-41][PR-42] not offered where the master configures no anti-tampering check; offered with why where it does"
 clauses:
   - clause: "An OTC packaging master without a tamper-evident check fails approval."

@@ -18,6 +18,14 @@ on:
         type: boolean
         required: false
         default: false
+      runner:
+        description: 'Where this run goes (github, ubicloud); empty = the repository variable CI_RUNNER (ci.yml)'
+        required: false
+        default: ''
+        type: string
+
+# CI_RUNNER 'ubicloud' (or the input runner) puts both jobs on ubicloud-standard-8-ubuntu-2204 (as ci.yml); otherwise
+# GitHub-hosted ubuntu-latest, as before. The SQL jobs' PostgreSQL is a Docker service, which runs there unchanged.
 
 permissions:
   contents: read
@@ -27,7 +35,7 @@ jobs:
     name: StrykerJS (kernel TypeScript)
     # The weekly run always; a run started by hand only when asked for.
     if: github.event_name == 'schedule' || inputs.typescript
-    runs-on: ubuntu-latest
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-latest' }}
     timeout-minutes: 360
     services:
       postgres:
@@ -62,7 +70,7 @@ jobs:
 
   sql:
     name: SQL guards (${{ matrix.group }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-latest' }}
     timeout-minutes: 360
     # checks: write for the check run each group's report is published as (readable through the API, unlike the
     # artifact, whose download redirects to a blob host).

@@ -90,7 +90,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'ebmr#test': 'the test suite', 'ebmr#test:json': 'the test suite', 'ebmr#ci': 'everything CI runs',
   // R3-VAL-2: the stamp of a test report is written by the run that writes the report (CI, test:json, the OQ suites).
   'ebmr#validation:stamp': 'the test suite (stamps the report it just wrote with its commit)',
-  'ebmr#register:import': 'the control register (development of the validation evidence)', 'ebmr#register:validate': 'the control register', 'ebmr#register:sync-tests': 'the control register',
+  'ebmr#register:import': 'the control register (development of the validation evidence)', 'ebmr#register:validate': 'the control register', 'ebmr#register:sync-tests': 'the control register', 'ebmr#register:sort-tests': 'the control register',
   // D-P7R-2: register:status is a developer tool on the control register, not an operation of an installation.
   'ebmr#register:status': 'the control register',
   '@ebmr/record-viewer#build': 'the build of the stand-alone record viewer shipped with a full export',
@@ -108,6 +108,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'tools/ci/start-postgres.sh': 'CI only: starts and stops the job\'s own PostgreSQL (systemd on a GitHub-hosted runner, a private cluster on the self-hosted pod)',
   'tools/ci/runner-env.sh': 'CI only: gives each self-hosted runner its own home and browser directory',
   'tools/ci/playwright-install.sh': 'CI only: installs the end-to-end browser, one apt run at a time on the self-hosted pod',
+  'tools/ci/changes.sh': 'CI only: tells whether a pull request changes only Markdown (then the end-to-end groups are skipped)',
   'apps/tablets-server/src/cli/installation.ts': 'library of the set-up CLI and the demo data load (no entry point)',
   'apps/tablets-server/src/cli/review-batch.ts': 'library of the demo data load (the GMP review batch option); no route: each act it performs must have its own route and screen, which db-acts-have-routes checks without counting src/cli (slice 7h, D1)',
   'apps/tablets-server/src/cli/release-path.ts': 'library of the demo data load (the packaging-order option); no route: each act it performs must have its own route and screen, which db-acts-have-routes checks without counting src/cli (slice 7h, D1)',

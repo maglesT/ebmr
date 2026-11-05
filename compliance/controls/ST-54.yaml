@@ -24,7 +24,8 @@ behaviour: |-
   - For overkill terminal cycles, monitoring at scheduled intervals instead of every batch is allowed with justification. Parametric release: ST-61.
 catalog_test: Filtration start without a bioburden sample → blocked. Release with the result pending → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-54] compounding takes the pre-filtration bioburden sample and judges the final volume and density; the bioburden-reducing filtration judges its pressure"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

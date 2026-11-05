@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/register.ts';
-import { appendListedTests, testsToAdd } from '../src/sync.ts';
+import { appendListedTests, compareEntries, firstUnsorted, sortListedTests, testsToAdd } from '../src/sync.ts';
 import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
 import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
@@ -198,7 +198,7 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
     expect(errs([result(listed), ...readPlaywrightResults(join(dir, 'playwright.json'))])).toEqual([unlisted('tools/e2e/specs/x/x.spec.ts > outer > [DI-20] s')]);
   });
 
-  it('[meta] sync-tests adds every passing tagged test a list lacks after the entries already there, in file order, and nothing that did not pass', () => {
+  it('[meta] sync-tests adds every passing tagged test a list lacks, writes the list sorted, and adds nothing that did not pass', () => {
     const results = [
       result('packages/y/test/b.test.ts > [DI-20] second file'),
       result(`${C} > d > [DI-20] first`),
@@ -216,7 +216,7 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
       ['DI-20', [`${C} > d > [DI-20] first`, `${C} > d > [DI-20] then`, 'packages/y/test/b.test.ts > [DI-20] second file']],
       ['DI-41', [`${C} > d > [DI-41] other control`]],
     ]);
-    // Written into the YAML, after the listed entries and in their style; an empty list becomes a block list.
+    // Written into the YAML in the listed entries' style, the list sorted; an empty list becomes a block list.
     const dir = mkdtempSync(join(tmpdir(), 'ebmr-sync-'));
     // DI-20 as `base` (one listed test), DI-41 with an empty list.
     for (const [id, tests] of [['DI-20', `tests:\n  - "${listed}"\n`], ['DI-41', 'tests: []\n']] as const) {
@@ -226,7 +226,8 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
     const before = loadControls(dir);
     expect(appendListedTests(add, dir)).toBe(4);
     const after = loadControls(dir);
-    expect(after[0]?.tests).toEqual([...(before[0]?.tests ?? []), ...(add.get('DI-20') ?? [])]);
+    expect(after[0]?.tests).toEqual([...(before[0]?.tests ?? []), ...(add.get('DI-20') ?? [])].sort(compareEntries));
+    expect(firstUnsorted(after[0]?.tests ?? [])).toBe(-1);
     expect(after[1]?.tests).toEqual([`${C} > d > [DI-41] other control`]);
     expect(readFileSync(join(dir, 'DI-41.yaml'), 'utf8')).toContain(`tests:\n  - "${C} > d > [DI-41] other control"\n`);
     // Everything else in the file is as it was.
@@ -235,6 +236,27 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
     const synced = after.map((c) => ({ ...c, target_phase: 7 }));
     expect(buildTrace(synced, results.filter((r) => !r.name.includes('[DI-99]') && r.status !== 'failed'), 1).errors).toEqual([]);
     expect([...testsToAdd(after, results)]).toEqual([]);
+  });
+
+  it('[meta] register validate refuses an unsorted tests list, sort-tests sorts it and touches nothing else, and every committed list is sorted', () => {
+    expect(firstUnsorted(['a', 'b', 'b', 'c'])).toBe(-1);
+    expect(firstUnsorted(['a', 'c', 'b'])).toBe(2);
+    // Code-unit order, not locale order: upper case before lower case, '>' before letters.
+    expect(['b', 'B', 'a > x', 'a'].sort(compareEntries)).toEqual(['B', 'a', 'a > x', 'b']);
+    const real = loadControls().find((c) => c.id === 'DI-20');
+    if (!real || real.tests.length < 2) throw new Error('DI-20 needs two listed tests for this test');
+    const reversed = { ...real, tests: [...real.tests].reverse() };
+    const errors = validateRegister([...loadControls().filter((c) => c.id !== 'DI-20'), reversed]).filter((e) => e.includes('not sorted'));
+    expect(errors).toEqual([`DI-20: its tests list is not sorted at entry 2 ("${reversed.tests[1]}"); run pnpm register:sort-tests`]);
+    expect(validateRegister().filter((e) => e.includes('not sorted'))).toEqual([]);
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-sort-'));
+    const text = readFileSync(join(CONTROLS_DIR, 'DI-20.yaml'), 'utf8');
+    const shuffled = text.replace(/^tests:\n((?: {2}- .*\n)+)/m, (_m, list: string) => `tests:\n${list.trimEnd().split('\n').reverse().join('\n')}\n`);
+    writeFileSync(join(dir, 'DI-20.yaml'), shuffled);
+    expect(loadControls(dir)[0]?.tests).toEqual(reversed.tests);
+    expect(sortListedTests(loadControls(dir), dir)).toEqual(['DI-20']);
+    expect(readFileSync(join(dir, 'DI-20.yaml'), 'utf8')).toBe(text);
+    expect(sortListedTests(loadControls(dir), dir)).toEqual([]);
   });
 
   it('[meta] every control lists each test tagged with it that a test file declares in full and that may run (one that may skip itself at run time included); titles built from data are the trace\'s to check', () => {

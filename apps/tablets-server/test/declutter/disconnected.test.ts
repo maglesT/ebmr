@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DISCONNECTED, DISCONNECTED_NAMESPACES, isDisconnectedRoute, routes, type AnyRoute, type NamespaceName } from '@ebmr/api-contract';
 import { startServer, type TestServer } from '../support/harness.ts';
+import { valueOf } from '../esig/support.ts';
 
 let gmp: TestServer;
 let sandbox: TestServer;
@@ -53,6 +54,12 @@ describe('[DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter
     const b = await server.asPersona(kind === 'GMP' ? 'qaInvestigator' : 'issuer');
     const signedIn = await b.inject({ method: route.method, url: urlOf(route) });
     expect([signedIn.statusCode, signedIn.json<{ refusal: { code: string } }>().refusal.code]).toEqual([410, 'DISCONNECTED']);
+  });
+
+  it('[DI-17] meta tells the SPA whether the disconnected functions are refused here (declutter D2)', async () => {
+    expect(valueOf(await gmp.browser().call(routes.meta.get)).disconnected).toBe(true);
+    expect(valueOf(await sandbox.browser().call(routes.meta.get)).disconnected).toBe(true);
+    expect(valueOf(await solo.browser().call(routes.meta.get)).disconnected).toBe(false);
   });
 
   it('[DI-17] the kept path stays connected: exactly the expected namespaces are connected, and a standalone server without the switch serves the listed ones', async () => {

@@ -10,8 +10,10 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { installationLabel, isSandbox } from '../../app/installation.ts';
 import { Section } from '../../app/acts.tsx';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 export function OperationsPage() {
+  const off = useScreensOff();
   const meta = useApiQuery(routes.meta.get, {}, { staleTime: 60_000 }).data;
   const demoOrSandbox = isSandbox(meta?.installation) || meta?.demo === true;
   return (
@@ -42,9 +44,11 @@ export function OperationsPage() {
           <li>
             <Link to="/operations/installation">This installation&apos;s identity</Link>: the first-run set-up&apos;s next step, its code and key.
           </li>
-          <li>
-            <Link to="/developer/api">API reference</Link>: the routes of the API contract, for developers.
-          </li>
+          {off('/developer/api') ? null : (
+            <li>
+              <Link to="/developer/api">API reference</Link>: the routes of the API contract, for developers.
+            </li>
+          )}
         </ul>
       </Section>
       {meta?.demo === true ? <CredentialCard /> : null}

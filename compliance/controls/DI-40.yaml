@@ -32,14 +32,14 @@ behaviour: |-
 catalog_test: Export a batch and compare it field by field with the database. Correct a value, then print. The release printout flags the change and shows the original. A records package for 5 batches includes their audit trails.
 implemented_by: {}
 tests:
-  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-28] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
-  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
-  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read"
-  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][DI-18] an administrator does not read the inspection workspace (refused before the permission check)"
-  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
   - "apps/tablets-server/test/blocks/entry-summaries.test.ts > entry sentences of the Tablets blocks (owner report #20) > [DI-40] every entry kind of every block version has its own sentence, never the kind name, raw JSON, an id or a code, for the fixture entries and for an empty entry"
-  - "apps/tablets-server/test/blocks/entry-summaries.test.ts > entry sentences of the Tablets blocks (owner report #20) > [DI-40] the step screen shows the block's sentence from the stored entry: the recipe check and the end point of a granulation run"
   - "apps/tablets-server/test/blocks/entry-summaries.test.ts > entry sentences of the Tablets blocks (owner report #20) > [DI-40] sentences give the master's names and the stored values, never the keys"
+  - "apps/tablets-server/test/blocks/entry-summaries.test.ts > entry sentences of the Tablets blocks (owner report #20) > [DI-40] the step screen shows the block's sentence from the stored entry: the recipe check and the end point of a granulation run"
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read"
+  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][DI-18] an administrator does not read the inspection workspace (refused before the permission check)"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-28] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
 clauses:
   - clause: "Export a batch and compare it field by field with the database."
     tests:

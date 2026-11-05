@@ -17,6 +17,7 @@ import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
 import { LABEL_READS, words } from './reads.ts';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 type Step = PackagingCompletionView['steps'][number];
 const POSITIONS = ['START', 'MIDDLE', 'END'] as const;
@@ -29,6 +30,7 @@ const CHECKS = [
 type CheckKey = (typeof CHECKS)[number][0];
 
 export function PackagingCompletionPage() {
+  const off = useScreensOff();
   const batchId = useRouteParams()['batchId'] ?? '';
   const q = useApiQuery(routes.labels.packaging, { params: { batchId } });
   if (q.error) return <RefusalMessage error={q.error.error} />;
@@ -38,8 +40,13 @@ export function PackagingCompletionPage() {
     <>
       <h1>Packaging completion of {v.batchNumber}</h1>
       <p>
-        <Link to="/planning/packaging/$batchId" params={{ batchId: v.batchId }}>The packaging order and its bulk</Link> ·{' '}
-        <Link to="/serialisation/batches/$batchId" params={{ batchId: v.batchId }}>Serial pools of {v.batchNumber}</Link>
+        <Link to="/planning/packaging/$batchId" params={{ batchId: v.batchId }}>The packaging order and its bulk</Link>
+        {off('/serialisation') ? null : (
+          <>
+            {' '}
+            · <Link to="/serialisation/batches/$batchId" params={{ batchId: v.batchId }}>Serial pools of {v.batchNumber}</Link>
+          </>
+        )}
       </p>
       {v.completionProblem ? (
         <Banner tone="warning" title={`The order cannot complete yet: ${v.completionProblem}`} />
