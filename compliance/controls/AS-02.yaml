@@ -1,0 +1,24 @@
+id: AS-02
+title: "Master content of an API production instruction"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 6.4.2; ICH Q7 (EU GMP Part II) 6.41. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "The master names the materials with quantities or ratios (worked out per batch size), the location and major equipment, the sequence, parameter ranges, sampling and in-process criteria, time limits, expected yield ranges and storage."
+catalog_test: "A catalogue block with a critical value and no limit slot is refused by the library checker."
+implemented_by:
+  modules:
+    - "Library block slots (limits, equipment classes, bill-of-materials lines, intervals, counts) filled by the formulation; validator sanity checks."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the ten blocks of a one-step synthesis as substance blocks in the group `substance`; every critical value has a limit slot the example fills, and no calculation reads an earlier step"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

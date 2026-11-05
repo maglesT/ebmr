@@ -1,0 +1,24 @@
+id: AS-06
+title: "Yield against expected yield"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 8.1.5, 8.1.6; ICH Q7 (EU GMP Part II) 8.14, 8.15. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Actual yields are compared with expected yields at set steps; deviations are recorded and explained, and critical ones investigated."
+catalog_test: "Record a yield below its limit; an exception is raised and the step cannot complete."
+implemented_by:
+  modules:
+    - "API-YIELD: actual and molar yield as critical calculations with limits; a result outside raises an exception that blocks the step until resolved (deviation)."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-06][AS-04] API plan A1b: the yield step works out the actual yield against the batch size and the molar yield against the key starting material's formula line, both critical with limits; a low yield raises an exception (to be explained and investigated) and blocks completion"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

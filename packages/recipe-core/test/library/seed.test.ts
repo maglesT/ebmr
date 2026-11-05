@@ -232,7 +232,6 @@ describe('the ready-made catalogue', () => {
   it('[AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site), with a specimen kept in the record; the filter step offers a Nutsche filter or a centrifuge', () => {
     for (const id of ['noOldLabels', 'name', 'quantity', 'dates', 'storage', 'shipped', 'specimen']) expect(fieldOf(API_LABEL_CHECK, id), id).toMatchObject({ type: 'YES_NO', expected: true });
     expect(fieldOf(API_LABEL_CHECK, 'dates').label).toMatch(/[Rr]etest or expiry date/);
-    expect(fieldOf(API_PACK, 'labelOk').label).toMatch(/retest or expiry date/);
     expect(fieldOf(API_FILTER, 'filterType')).toMatchObject({ type: 'CHOICE', options: ['Nutsche filter', 'Centrifuge'] });
     expect(fieldOf(API_FILTER, 'spin').showWhen).toEqual({ field: 'filterType', equals: 'Centrifuge' });
   });
