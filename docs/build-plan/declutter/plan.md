@@ -215,4 +215,7 @@ Anything else goes to the lead first.
    material can be classified and no facility rule can be changed. A new beta-lactam product would then not be held to
    its dedicated rooms and lines by the system. The owner reconnects `plantRules` (one line in `disconnected.ts`)
    before such a product is introduced. Controls PR-27 and IN-27 are not changed.
+   The owner's words (5 November 2026): "new beta-lactam products cannot be classified while disconnected, so the
+   segregation check will not see them; the owner accepts this until the function is reconnected or moved (later)".
+   The routes' code and tables stay, so reconnecting is a one-line change in `DISCONNECTED`.
 4. QP batch packages: LATER, so disconnected now (EU exports only).

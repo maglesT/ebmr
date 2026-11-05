@@ -14,6 +14,7 @@ import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { isSandbox } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { IDENTITY_READS } from './reads.ts';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 const SITE = /^[A-Z0-9][A-Z0-9-]{0,15}$/;
 
@@ -31,6 +32,7 @@ export function InstallationIdentityPage() {
 }
 
 function Identity({ siteCode }: { siteCode: string }) {
+  const off = useScreensOff();
   const q = useApiQuery(routes.transfers.peers);
   const set = useCommand(routes.transfers.setInstallationIdentity, IDENTITY_READS);
   const [site, setSite] = useState(siteCode);
@@ -64,9 +66,11 @@ function Identity({ siteCode }: { siteCode: string }) {
         />
         <ActResult error={set.error} done={set.done} label="The identity is set." />
       </Section>
-      <p>
-        Trusted peer installations are proposed and approved on the <Link to="/transfers">transfers</Link> page.
-      </p>
+      {off('/transfers') ? null : (
+        <p>
+          Trusted peer installations are proposed and approved on the <Link to="/transfers">transfers</Link> page.
+        </p>
+      )}
     </>
   );
 }

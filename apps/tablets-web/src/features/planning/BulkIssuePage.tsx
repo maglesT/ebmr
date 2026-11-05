@@ -18,10 +18,12 @@ import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 const REFRESH = [routes.planning.packagingBulk.id, routes.planning.packagingOrders.id];
 
 export function BulkIssuePage() {
+  const off = useScreensOff();
   const batchId = useRouteParams()['batchId'] ?? '';
   const q = useApiQuery(routes.planning.packagingBulk, { params: { batchId } });
   const v = q.data;
@@ -31,8 +33,13 @@ export function BulkIssuePage() {
       <p>
         <Link to="/planning/packaging">Packaging orders</Link> ·{' '}
         {/* R2: the order's line completion and its serial pools, from the order. */}
-        <Link to="/labels/packaging/$batchId" params={{ batchId }} data-testid="packaging-completion-link">Line completion (coding, labels, inspection)</Link> ·{' '}
-        <Link to="/serialisation/batches/$batchId" params={{ batchId }} data-testid="serial-pools-link">Serial pools</Link>
+        <Link to="/labels/packaging/$batchId" params={{ batchId }} data-testid="packaging-completion-link">Line completion (coding, labels, inspection)</Link>
+        {off('/serialisation') ? null : (
+          <>
+            {' '}
+            · <Link to="/serialisation/batches/$batchId" params={{ batchId }} data-testid="serial-pools-link">Serial pools</Link>
+          </>
+        )}
       </p>
       {q.isPending ? <p>Loading the packaging order…</p> : null}
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
