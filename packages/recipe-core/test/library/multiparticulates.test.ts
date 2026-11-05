@@ -7,10 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
 import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
-import type { BlockUse } from '../../src/library/model.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
-import { byCode as item, runNominalStep } from './seed-support.ts';
+import { byCode as item, configOf, runNominalStep, useOf } from './seed-support.ts';
 
 /** A step of the master: the catalogue block with its example values, its formula lines and counts as given. */
 interface Step {
@@ -30,11 +29,6 @@ const STEPS: readonly Step[] = [
   { id: 'p-fill-weight', code: 'IPC-CAPS-FILL-WEIGHT' },
 ];
 
-const useOf = (s: Step): BlockUse => {
-  const ex = item(s.code).exampleUse;
-  return { block: { code: s.code, version: 1 }, ...ex, ...(s.bomLines ? { bomLines: s.bomLines } : {}), ...(s.counts ? { counts: { ...ex.counts, ...s.counts } } : {}) };
-};
-const configOf = (use: BlockUse): Record<string, unknown> => Object.fromEntries(Object.entries(use).filter(([k]) => k !== 'block'));
 
 /** The delayed-release pellet capsule: the BOM at the reference size; the coats' materials are per-batch excipient lines, the shells the line of role OTHER (C2). */
 const BOM: MbrContent['bom'] = [
