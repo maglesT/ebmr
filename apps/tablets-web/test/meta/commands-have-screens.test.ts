@@ -90,7 +90,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'ebmr#test': 'the test suite', 'ebmr#test:json': 'the test suite', 'ebmr#ci': 'everything CI runs',
   // R3-VAL-2: the stamp of a test report is written by the run that writes the report (CI, test:json, the OQ suites).
   'ebmr#validation:stamp': 'the test suite (stamps the report it just wrote with its commit)',
-  'ebmr#register:import': 'the control register (development of the validation evidence)', 'ebmr#register:validate': 'the control register', 'ebmr#register:sync-tests': 'the control register',
+  'ebmr#register:import': 'the control register (development of the validation evidence)', 'ebmr#register:validate': 'the control register', 'ebmr#register:sync-tests': 'the control register', 'ebmr#register:sort-tests': 'the control register',
   // D-P7R-2: register:status is a developer tool on the control register, not an operation of an installation.
   'ebmr#register:status': 'the control register',
   '@ebmr/record-viewer#build': 'the build of the stand-alone record viewer shipped with a full export',

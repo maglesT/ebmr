@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -44,22 +45,19 @@ function fixture(files: Record<string, string>): string {
   return dir;
 }
 
-/** The fixture's problems with its generated pages written first (so only the case under test fails). */
+/** The fixture's problems (the generated pages are checked as they would be written; nothing is on disk). */
 function problems(files: Record<string, string>): string[] {
-  const dir = fixture(files);
-  const first = runChecks(dir);
-  for (const [path, text] of first.generated) {
-    mkdirSync(dirname(join(dir, path)), { recursive: true });
-    writeFileSync(join(dir, path), text);
-  }
-  const second = runChecks(dir);
-  expect(second.stale).toEqual([]);
-  return second.problems;
+  return runChecks(fixture(files)).problems;
 }
 
 describe('handbook generated pages', () => {
-  it('[meta] the code map and the reference pages are current (run pnpm handbook)', () => {
-    expect(runChecks(ROOT).stale).toEqual([]);
+  it('[meta] the generator renders the code map and the three reference pages over the current code, none of them committed', () => {
+    const { generated } = runChecks(ROOT);
+    const pages = ['code-map.md', 'reference/db-catalogue.md', 'reference/control-map.md', 'reference/error-codes.md'].map((p) => `docs/handbook/${p}`);
+    expect([...generated.keys()].sort()).toEqual([...pages].sort());
+    for (const p of pages) expect(generated.get(p)?.length ?? 0).toBeGreaterThan(200);
+    const tracked = execFileSync('git', ['ls-files', '--', ...pages], { cwd: ROOT, encoding: 'utf8' });
+    expect(tracked).toBe('');
   });
 
   it('[meta] every migration, feature, contract file and screen folder belongs to a module, and every handbook link resolves', () => {
