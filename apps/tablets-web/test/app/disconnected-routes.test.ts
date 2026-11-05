@@ -103,6 +103,6 @@ describe('[DI-17] the kept screens call no disconnected deviation route (declutt
       expect(screenOff(path, true, false), path).toBe(true);
       expect(screenOff(path, false, false), path).toBe(false);
     }
-    for (const path of ['/quality', '/quality/lots/123', '/records/123', '/release/123']) expect(screenOff(path, true, false), path).toBe(false);
+    for (const path of ['/quality', '/quality/lots/123', '/quality/lots/123/oos/456', '/records/123', '/release/123']) expect(screenOff(path, true, false), path).toBe(false);
   });
 });

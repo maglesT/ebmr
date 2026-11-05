@@ -53,6 +53,22 @@ describe('[DI-17] a lot opens only its own OOS record, with the parts a laborato
     expect(off).toEqual([]);
   });
 
+  it('[DI-17][IN-20] each state offers its next step to the conclusion: OPEN the investigation, IMPACT_ASSESSED the conclusion with the closure basis, PENDING_CLOSURE no closure', async () => {
+    renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'quality.deviationDetail': { ...oos, state: 'OPEN' } } });
+    expect(await screen.findByTestId('investigation')).toBeTruthy();
+    expect(screen.queryByTestId('finding')).toBeNull();
+    cleanup();
+    renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'quality.deviationDetail': { ...oos, state: 'IMPACT_ASSESSED' } } });
+    expect(await within(await screen.findByTestId('qa-decision')).findByRole('button', { name: 'Conclude (QA signature)' })).toBeTruthy();
+    expect(screen.getByTestId('closure-form')).toBeTruthy();
+    expect(screen.queryByTestId('investigation')).toBeNull();
+    cleanup();
+    renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'quality.deviationDetail': { ...oos, state: 'PENDING_CLOSURE', closureBasis: example('deviation-closure-basis').closureBasis } } });
+    expect(await screen.findByTestId('closure-summary')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Close (QA signature)' })).toBeNull();
+    expect(screen.queryByTestId('closure-form')).toBeNull();
+  });
+
   it('[DI-17] a record that is not an OOS record linked to this lot is not shown', async () => {
     renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'quality.deviationDetail': { ...oos, kind: 'DEVIATION' } } });
     expect(await screen.findByTestId('lot-oos-not-this-lot')).toBeTruthy();

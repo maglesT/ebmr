@@ -53,6 +53,7 @@ tests:
   - "packages/site-services/test/quality/profiles.test.ts > a multi-point profile as one test of a specification (IN-33) > [IN-33][PR-45][IN-20] one time point out of its limits fails the profile and stops the release; a revision names the same point and its OOS record"
   - "tools/e2e/specs/phase7/sr-profile.spec.ts > [IN-33][PR-45][IN-05][IN-20] SR profile 3: lot 2, the 4 h point outside its limits: the profile line fails and the release is refused @office"
   - "apps/tablets-web/test/quality/lot-oos-record.test.tsx > [DI-17] a lot opens only its own OOS record, with the parts a laboratory-error conclusion needs (declutter D4b) > [DI-17][IN-20] the OOS record of the lot shows the finding, the impact, the closure basis and QA's signed acts; no reclassify, cancel or close, and no disconnected route is called"
+  - "apps/tablets-web/test/quality/lot-oos-record.test.tsx > [DI-17] a lot opens only its own OOS record, with the parts a laboratory-error conclusion needs (declutter D4b) > [DI-17][IN-20] each state offers its next step to the conclusion: OPEN the investigation, IMPACT_ASSESSED the conclusion with the closure basis, PENDING_CLOSURE no closure"
 clauses:
   - clause: "enter an out-of-specification IPC assay and then a passing re-test; both remain visible and the OOS stays open."
     tests:
