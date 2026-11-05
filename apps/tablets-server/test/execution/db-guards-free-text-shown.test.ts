@@ -233,7 +233,8 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     for (const [name, o] of Object.entries(outcomes)) {
       expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message` + AUDIT));
       expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot` + AUDIT));
-      for (const m of [o.message, o.details]) expect(m, name).not.toMatch(/2409|7100|0017/);
+      // The run's id (a UUID) is cut out first: its hex digits could hold 2409, 7100 or 0017 by chance (as the later tests do).
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, ''), name).not.toMatch(/2409|7100|0017/);
     }
     const honest = await businessEntry(d, chain, `Drum TEST-L26-0101 moved ${ch(0x2714)}${ch(0xfe0f)}`, { drum: { note: { text: `pharma${ch(0xad)}ceutical ingre${ch(0xad)}dients` } } });
     expect(honest).toBe('ok');
