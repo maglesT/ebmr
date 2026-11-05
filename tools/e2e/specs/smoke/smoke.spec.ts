@@ -39,13 +39,13 @@ test.describe('smoke', () => {
     await expect(page.getByRole('note', { name: 'TEST, NOT GMP' })).toBeVisible();
   });
 
-  test('Branding (decision 0020): title, icons and manifest; the sign-in lockup with "by Medhanta"; the header links to the about page with the version the server reports', { tag: '@office' }, async ({ officePage, persona, evidence }) => {
+  test('Branding (decision 0020): title, icons and manifest; the sign-in name with "by Medhanta"; the header links to the about page with the version the server reports', { tag: '@office' }, async ({ officePage, persona, evidence }) => {
     const page = await officePage('GMP', 'PC-DESIGN-01');
-    await evidence.step('Open the sign-in page', 'The title is "Sign in - Batchwright Tablets" (the page, then the product); the lockup and the maker\'s mark are shown', async () => {
-      await expect(page).toHaveTitle('Sign in - Batchwright Tablets');
+    await evidence.step('Open the sign-in page', 'The title is "Sign in - Batchwright" (the page, then the product); the product name and the maker\'s mark are shown', async () => {
+      await expect(page).toHaveTitle('Sign in - Batchwright');
       await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
       const brand = page.getByTestId('sign-in-brand');
-      await expect(brand.getByRole('img', { name: 'Batchwright Tablets' })).toBeVisible();
+      await expect(brand.getByRole('img', { name: 'Batchwright', exact: true })).toBeVisible();
       await expect(brand.getByRole('img', { name: 'Medhanta' })).toBeVisible();
       await expect(brand.getByTestId('maker-mark')).toContainText('by');
     }, page);
@@ -56,7 +56,7 @@ test.describe('smoke', () => {
       expect({ path, status: res.status(), type: (res.headers()['content-type'] ?? '').split(';')[0] }).toEqual({ path, status: 200, type });
     }
     const manifest = (await (await page.request.get(at('/manifest.webmanifest'))).json()) as { name: string };
-    expect(manifest.name).toBe('Batchwright Tablets');
+    expect(manifest.name).toBe('Batchwright');
     await axe.check(page);
     const meta = (await (await page.request.get(at('/api/meta'))).json()) as { version: string };
     await evidence.step('Sign in and open the about page from the header', 'The about page names the product, edition, version, maker and installation', async () => {

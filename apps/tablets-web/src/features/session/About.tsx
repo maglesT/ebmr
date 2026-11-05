@@ -24,7 +24,7 @@ export function About() {
   return (
     <>
       <h1>{t('about.title')}</h1>
-      <brand.SignInBrand edition={EDITION} />
+      <brand.SignInBrand />
       <dl className={cls('about')} data-testid="about-facts">
         {rows.map(([k, v]) => (
           <div key={k}>

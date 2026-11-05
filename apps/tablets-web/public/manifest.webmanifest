@@ -1,7 +1,7 @@
 {
-  "name": "Batchwright Tablets",
+  "name": "Batchwright",
   "short_name": "Batchwright",
-  "description": "Batchwright Tablets by Medhanta: electronic batch manufacturing records for tablets",
+  "description": "Batchwright by Medhanta: electronic batch manufacturing records",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

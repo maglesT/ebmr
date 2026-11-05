@@ -8,7 +8,7 @@
 import type { ReactNode } from 'react';
 import { t } from '../i18n/index.ts';
 import { bcls } from './classes.ts';
-import { productTitle, type Edition } from './brand.ts';
+import { PRODUCT, productTitle, type Edition } from './brand.ts';
 import icon from './assets/batchwright-icon.svg';
 import injectables from './assets/batchwright-injectables.svg';
 import medhanta from './assets/medhanta-logo-278x148.png';
@@ -39,11 +39,20 @@ export function ProductIcon() {
   return <img className={bcls('icon')} src={icon} alt="" aria-hidden="true" width={28} height={28} />;
 }
 
-/** The sign-in page's brand block: the edition lockup and the maker's mark. */
-export function SignInBrand({ edition }: { edition: Edition }) {
+/**
+ * The sign-in page's brand block: the Batchwright icon and name, and the maker's mark. Declutter D3 (decision 0020 as
+ * amended, 5 November 2026): the sign-in page, the browser title and the manifest say just "Batchwright"; the header
+ * names the edition.
+ */
+export function SignInBrand() {
   return (
     <div className={bcls('signIn')} data-testid="sign-in-brand">
-      <Lockup edition={edition} />
+      <span className={bcls('signInName')}>
+        <img className={bcls('signInIcon')} src={icon} alt="" aria-hidden="true" width={48} height={48} />
+        <span role="img" aria-label={PRODUCT.name}>
+          {PRODUCT.name}
+        </span>
+      </span>
       <MakerMark />
     </div>
   );
