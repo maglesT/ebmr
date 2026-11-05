@@ -314,6 +314,7 @@ tests:
   - "apps/tablets-server/test/mutation/library-blocks.test.ts > the snapshots against the library (recipe-core 1810) > [PR-05][DI-35] on the real approval path, a master using a retired library version passes its earlier steps and is refused at QA approval (EBMR-LIB-021)"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-38][DI-35][PL-05] a signature with core's re-authentication is signed; the proof is bound to its challenge and used once; the performer cannot verify their own entry"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-35][PR-05] a library block is approved with core's re-authentication by another person than its author; its author is refused (EBMR-LIB-007)"
+  - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Libcap 200 mg, hard capsules size 0 (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:
