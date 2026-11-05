@@ -6,7 +6,7 @@
  * database serves a composition only to a reader whose role holds FORMULA.READ (DI-13).
  */
 import { routes, type FormulaSummaryView, type FormulaTargetView, type FormulaVersionView, type SignableAction } from '@ebmr/api-contract';
-import { formula } from '@ebmr/recipe-core';
+import { flow, formula } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
@@ -135,8 +135,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     addFormulaVersion: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
       const s = requireSession();
+      // Capsules C6b (recipe-core 1875): the unit form from the product's dosage form, as the designer reads it (core's on
+      // the platform build, the product master's otherwise); a capsule may give its shell's excipients per batch.
+      const summary = (await one(s.tokenHash, params.formulaId)).summary;
+      const stated = app.platform.master ? ((await app.platform.master.read('product', { code: summary.productCode }))?.dosageForm ?? null) : (summary.dosageForm ?? null);
+      const unitForm = flow.isCapsuleForm(stated) ? ({ unitForm: 'CAPSULE' } as const) : {};
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        const id = await formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput) });
+        const id = await formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput), ...unitForm });
         // Slice 7j (recipe-core 1535): the target with the composition, in the same transaction.
         if (body.target) await formula.setFormulaTarget(c, id, body.target);
         return id;

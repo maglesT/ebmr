@@ -109,6 +109,29 @@ describe('formulation library (slice 6a)', () => {
     expect(await asApp(steward, 'steward', 'update formulary.formula_line set batch_quantity_kg = 1 where version_id = $1', [v.versionId])).toMatch(/permission denied/);
   }, 120_000);
 
+  it('[INV-25][PR-03] a line given per batch is a processing aid, or for a capsule (the server states the unit form from the product\'s dosage form) an excipient of its shell; a tablet\'s per-batch excipient and anyone\'s per-batch active stay refused (recipe-core 1875, Capsules C6b)', async () => {
+    let n = 0;
+    const add = async (lines: unknown[], unitForm?: string): Promise<string | null> => {
+      n += 1;
+      const f = await newFormula(String(70000 + n), prod('H'));
+      return asApp(steward, 'steward', 'select recipe.formula_add_version($1, $2::jsonb)::text', [f, JSON.stringify({ changeReason: 'per batch', lines, ...(unitForm ? { unitForm } : {}) })]);
+    };
+    const perBatch = { ...LINES[1], basis: 'PER_BATCH', quantity: '15' };
+    // A tablet (no unit form, or any other than CAPSULE): unchanged.
+    expect(await add([LINES[0], perBatch])).toMatch(/EBMR-FRM-009/);
+    expect(await add([LINES[0], perBatch], 'TABLET')).toMatch(/EBMR-FRM-009/);
+    // A capsule: its shell's excipient per batch is taken; an active per batch is still refused.
+    expect(await add([LINES[0], perBatch], 'CAPSULE')).toBeNull();
+    expect(await add([{ ...LINES[0], basis: 'PER_BATCH', quantity: '25' }], 'CAPSULE')).toMatch(/EBMR-FRM-009/);
+    // Through the route, a product whose master states no dosage form is a tablet: the client cannot claim a capsule.
+    const formulaId = await newFormula('79999', prod('H'));
+    const claimed = await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'x', lines: [LINES[0], { ...LINES[1], basis: 'PER_BATCH', quantity: '15' }], unitForm: 'CAPSULE' } as never });
+    expect(claimed.ok).toBe(false);
+    const plain = await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'x', lines: [LINES[0], { ...LINES[1], basis: 'PER_BATCH', quantity: '15' }] } });
+    expect(plain.ok).toBe(false);
+    expect(JSON.stringify(plain)).toMatch(/EBMR-FRM-009/);
+  }, 120_000);
+
   it('a formula version approved by its author is refused; a second person approves it through the ceremony, and changed content signs nothing', async () => {
     const formulaId = await newFormula('200000');
     const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'From the dossier', lines: LINES } }));

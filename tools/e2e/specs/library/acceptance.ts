@@ -95,7 +95,7 @@ interface Tablet {
     mgPerUnit: string;
     tare: string;
     gross: string;
-    /** A per-batch line (kg per reference batch, `mgPerUnit` unused): role PROCESSING_AID, dispensed in its own step and
+    /** A per-batch line (kg per reference batch, `mgPerUnit` unused): role EXCIPIENT on a capsule (recipe-core 1875), dispensed in its own step and
      *  not charged to the blender; a soft gel's gel-mass components (C6b, D-C6b-1). */
     perBatchKg?: string;
   }[];
@@ -475,9 +475,9 @@ export function defineAcceptance(tabletKey: string): void {
       await f.getByRole('button', { name: 'Record the formula' }).click();
       await s.getByTestId(`formula-${product.code}-${product.strength}`).getByRole('link').click();
       const v = s.getByTestId('new-formula-version');
-      // A per-batch line (a soft gel's gel mass, D-C6b-1) is a PROCESSING_AID in kg per batch: the formula's only per-batch role.
+      // A per-batch line (a soft gel's gel mass, D-C6b-1) is an EXCIPIENT in kg per batch: a capsule's shell components (1875).
       const lines = t.materials.map((m, i) => ({
-        id: m.id, mat: materials[i] as OwnMaterial, role: i === 0 ? 'ACTIVE' : m.perBatchKg ? 'PROCESSING_AID' : 'EXCIPIENT', basis: m.perBatchKg ? 'PER_BATCH' : 'PER_UNIT',
+        id: m.id, mat: materials[i] as OwnMaterial, role: i === 0 ? 'ACTIVE' : 'EXCIPIENT', basis: m.perBatchKg ? 'PER_BATCH' : 'PER_UNIT',
         qty: m.perBatchKg ?? m.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No',
       }));
       // A capsule's empty shells: the unit's outer part, a COATING line per unit (C2).

@@ -66,7 +66,7 @@ of each database function.
 | [rc-blocks](#rc-blocks) | Generic block versions (G-06, G-21 and others) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 13 | 55 |
 | [rc-library](#rc-library) | Library of block definitions (decision 0026; blocks as data, QA-approved) | [modules/recipe-core.md](modules/recipe-core.md) | 11 | 5 | 15 | 26 |
 | [rc-reprocessing](#rc-reprocessing) | Reprocessing and recovery | [modules/recipe-core.md](modules/recipe-core.md) | 8 | 0 | 0 | 4 |
-| [rc-formula](#rc-formula) | Formulation library and planning reads | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 1 | 2 |
+| [rc-formula](#rc-formula) | Formulation library and planning reads | [modules/recipe-core.md](modules/recipe-core.md) | 8 | 0 | 1 | 2 |
 | [rc-review](#rc-review) | Batch record review (production approval, QA review, audit-trail review, evidence epochs) | [modules/recipe-core.md](modules/recipe-core.md) | 15 | 0 | 3 | 12 |
 | [rc-release](#rc-release) | Release gate G-REL and manufacturer release | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 7 | 35 |
 | [rc-notifications](#rc-notifications) | Notification centre | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
@@ -1185,9 +1185,9 @@ of each database function.
 
 **Formulation library and planning reads.** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (7):
+**Migrations** (8):
 
-- `packages/recipe-core/sql`: [0640_formulation_library.sql](../../packages/recipe-core/sql/0640_formulation_library.sql), [0641_planning_orders.sql](../../packages/recipe-core/sql/0641_planning_orders.sql), [0642_formula_readers_by_flag.sql](../../packages/recipe-core/sql/0642_formula_readers_by_flag.sql), [0643_slice6_review.sql](../../packages/recipe-core/sql/0643_slice6_review.sql), [0690_formula_base_standard.sql](../../packages/recipe-core/sql/0690_formula_base_standard.sql), [1535_formula_unit_target.sql](../../packages/recipe-core/sql/1535_formula_unit_target.sql), [1740_formula_overage_reason.sql](../../packages/recipe-core/sql/1740_formula_overage_reason.sql)
+- `packages/recipe-core/sql`: [0640_formulation_library.sql](../../packages/recipe-core/sql/0640_formulation_library.sql), [0641_planning_orders.sql](../../packages/recipe-core/sql/0641_planning_orders.sql), [0642_formula_readers_by_flag.sql](../../packages/recipe-core/sql/0642_formula_readers_by_flag.sql), [0643_slice6_review.sql](../../packages/recipe-core/sql/0643_slice6_review.sql), [0690_formula_base_standard.sql](../../packages/recipe-core/sql/0690_formula_base_standard.sql), [1535_formula_unit_target.sql](../../packages/recipe-core/sql/1535_formula_unit_target.sql), [1740_formula_overage_reason.sql](../../packages/recipe-core/sql/1740_formula_overage_reason.sql), [1875_formula_capsule_batch_excipient.sql](../../packages/recipe-core/sql/1875_formula_capsule_batch_excipient.sql)
 
 **Database objects** created in these migrations:
 

@@ -163,13 +163,15 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   const groups = [
     { key: 'act', lines: actives, name: 'Actives', tol: '0.5' },
     { key: 'exc', lines: others, name: 'Other unit components', tol: '1.0' },
-    { key: 'aid', lines: aids, name: 'Processing aids', tol: '1.0' },
+    // C6b (lead): a capsule's per-batch excipients make its shell and stay in the product (a soft gel's gelatin and
+    // glycerin), so the master names them as such, not as processing aids (211.186(b)(1)).
+    { key: 'aid', lines: aids, name: unit === 'capsule' && aids.some((l) => l.role === 'EXCIPIENT') ? 'Gel mass components' : 'Processing aids', tol: '1.0' },
   ].filter((g) => g.lines.length > 0);
   const charged = groups.filter((g) => g.key !== 'aid');
 
   const calculations: flow.Calculation[] = groups.map((g) =>
     g.key === 'aid'
-      ? calc('aidTarget', 'Processing aids to dispense (per batch, scaled to the batch size)', `${sum(g.lines.map((l) => l.quantity))} [kg] * tabletsPerBatch / ${refUnits}`)
+      ? calc('aidTarget', `${g.name} to dispense (per batch, scaled to the batch size)`, `${sum(g.lines.map((l) => l.quantity))} [kg] * tabletsPerBatch / ${refUnits}`)
       : calc(`${g.key}Target`, `${g.name} to dispense (${mgText(g.lines)} mg per ${unit})`, `${mgText(g.lines)} [mg] * tabletsPerBatch`),
   );
   calculations.push(calc('dispTarget', 'Total to dispense', groups.map((g) => `${g.key}Target`).join(' + ')));
