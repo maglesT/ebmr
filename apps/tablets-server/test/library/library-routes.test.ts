@@ -104,7 +104,7 @@ describe('the library of block definitions', () => {
     expect(second.drafted).toEqual([]);
     expect(second.skipped).toEqual(expect.arrayContaining(first.drafted));
     // Capsules edition plan (4 November 2026): the hard-capsule blocks are drafted by the first load and held by the second.
-    const capsules = ['PROC-CAPS-FILL', 'PROC-CAPS-POLISH', 'IPC-CAPS-FILL-WEIGHT', 'IPC-CAPS-LOCK-LENGTH', 'IPC-CAPS-APPEARANCE', 'IPC-CAPS-DT', 'REL-CAPS-DISSO', 'PROC-CAPS-CHECKWEIGH', 'PROC-CAPS-INSPECT', 'PROC-CAPS-PRINT', 'PROC-CAPS-BAND', 'IPC-CAPS-SEAL-LEAK'];
+    const capsules = ['PROC-CAPS-FILL', 'PROC-CAPS-POLISH', 'IPC-CAPS-FILL-WEIGHT', 'IPC-CAPS-LOCK-LENGTH', 'IPC-CAPS-APPEARANCE', 'IPC-CAPS-DT', 'REL-CAPS-DISSO', 'PROC-CAPS-CHECKWEIGH', 'PROC-CAPS-INSPECT', 'PROC-CAPS-PRINT', 'PROC-CAPS-BAND', 'IPC-CAPS-SEAL-LEAK', 'PROC-FILL-PREP', 'PROC-CAPS-FILL-LIQUID', 'PROC-CAPS-FILL-PLATE'];
     expect(first.drafted).toEqual(expect.arrayContaining(capsules));
     expect(second.skipped).toEqual(expect.arrayContaining(capsules));
     // Injectables slice I-1: the edition's blocks load with the rest, as blocks of the injectables edition, and are
