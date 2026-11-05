@@ -1,4 +1,7 @@
-/** All handbook checks (decision 0014): claims, packages, pages, links, migration back-links, generated pages current. */
+/**
+ * All handbook checks (decision 0014): claims, packages, pages, links, migration back-links. The generated pages are not
+ * committed (they only caused merge conflicts): they are rendered here and their links checked as they would be written.
+ */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { HANDBOOK_DIR, loadManifest, type Manifest } from './manifest.ts';
@@ -113,8 +116,6 @@ export interface Result {
   readonly model: Model;
   readonly generated: Map<string, string>;
   readonly problems: string[];
-  /** Generated files whose content on disk differs. */
-  readonly stale: string[];
 }
 
 export function runChecks(root: string): Result {
@@ -122,9 +123,6 @@ export function runChecks(root: string): Result {
   const files = listFiles(root);
   const model = buildModel(root, manifest, files);
   const generated = renderAll(model);
-  const stale = [...generated.entries()]
-    .filter(([path, text]) => !existsSync(join(root, path)) || read(root, path) !== text)
-    .map(([path]) => path);
   const problems = [
     ...model.problems,
     ...claimProblems(model),
@@ -133,5 +131,5 @@ export function runChecks(root: string): Result {
     ...headerProblems(model),
     ...linkProblems(model, generated),
   ];
-  return { model, generated, problems, stale };
+  return { model, generated, problems };
 }

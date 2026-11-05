@@ -274,9 +274,9 @@ short version.
 - `pnpm handbook` ([cli.ts](../../../tools/handbook/src/cli.ts)) writes [code-map.md](../code-map.md) and
   `reference/` ([db-catalogue](../reference/db-catalogue.md), [control-map](../reference/control-map.md),
   [error-codes](../reference/error-codes.md)) from the migrations, the contract's namespace files, the control register
-  and [modules.yaml](../modules.yaml). The output is deterministic (sorted, no dates, git's file list).
-- `pnpm handbook:check` ([check.ts](../../../tools/handbook/src/check.ts)) fails when a generated page is out of date
-  or when:
+  and [modules.yaml](../modules.yaml). The output is deterministic (sorted, no dates, git's file list). These pages are
+  not committed: generate them locally, or take the `handbook-generated` artifact of a CI run.
+- `pnpm handbook:check` ([check.ts](../../../tools/handbook/src/check.ts)) fails when:
   - a migration, server feature folder, contract file or screens folder belongs to no module of `modules.yaml` (the
     first module whose pattern matches claims a file; [model.ts](../../../tools/handbook/src/model.ts));
   - a folder under `packages/`, `apps/` or `tools/` is no module's package;
@@ -289,7 +289,7 @@ short version.
   - a migration numbered above `migration_header_from` has no `-- Handbook: <page>` line in its first 10 lines.
 
 When you add a migration, a feature folder, a contract file or a screens folder: add it to a module in `modules.yaml`
-(or let a pattern claim it), run `pnpm handbook` and commit the regenerated pages. When you write a page, keep
+(or let a pattern claim it), keep `pnpm handbook:check` clean (nothing generated is committed). When you write a page, keep
 `pnpm handbook:check` clean for it, then take it off `pending:`. Writing rules: [STYLE.md](../STYLE.md).
 
 Test: [handbook.test.ts](../../../tools/handbook/test/handbook.test.ts) runs the same checks in the suite and proves

@@ -55,6 +55,19 @@ jobs:
       - run: pnpm deps:check
       - run: pnpm pins:check
       - run: pnpm register:validate
+      # The handbook's generated pages (code map, database catalogue, control map, error codes) are not committed: the
+      # run writes them (failing on any handbook problem) and keeps them as an artifact.
+      - run: pnpm handbook
+      - name: Keep the generated handbook pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: handbook-generated
+          path: |
+            docs/handbook/code-map.md
+            docs/handbook/reference/db-catalogue.md
+            docs/handbook/reference/control-map.md
+            docs/handbook/reference/error-codes.md
+          retention-days: 14
       # A node built-in in the browser bundle fails the build (plan section 3).
       - run: pnpm build:web
 

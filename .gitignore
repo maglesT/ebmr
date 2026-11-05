@@ -19,3 +19,10 @@ playwright-report/
 # graphify code map (built per session by the SessionStart hook in .claude/settings.json)
 graphify-out/
 .vitest-blobs/
+
+# The handbook's generated pages: `pnpm handbook` writes them; CI generates, checks and uploads them (not committed,
+# so parallel branches do not conflict on them).
+docs/handbook/code-map.md
+docs/handbook/reference/db-catalogue.md
+docs/handbook/reference/control-map.md
+docs/handbook/reference/error-codes.md
