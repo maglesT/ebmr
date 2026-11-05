@@ -14,5 +14,6 @@
   "demo": true,
   "publicOrigin": "http://localhost:3001",
   "otherInstallationUrl": "http://localhost:3011",
-  "setupRequired": false
+  "setupRequired": false,
+  "disconnected": false
 }

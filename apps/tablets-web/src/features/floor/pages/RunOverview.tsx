@@ -26,6 +26,7 @@ import { useFloorRead, useRunView } from '../queries.ts';
 import { useLeaveGuard } from '../unsettled.ts';
 import { useSignedAction } from '../useSignedAction.ts';
 import { actionLabel, st } from '../text.ts';
+import { useScreensOff } from '../../../app/disconnected.tsx';
 
 type Replay = Result<RouteResponse<typeof routes.execution.verifyReplay>>;
 type RunResultExport = Result<RouteResponse<typeof routes.execution.exportRunResult>>;
@@ -85,6 +86,7 @@ function ReplayResult({ replay }: { replay: Replay }) {
  * steps (the server's packaging view lists them).
  */
 function PackagingLinks({ batchId }: { batchId: string }) {
+  const off = useScreensOff();
   const q = useApiQuery(routes.labels.packaging, { params: { batchId } }, { retry: false });
   if (!q.data || q.data.steps.length === 0) return null;
   return (
@@ -93,11 +95,16 @@ function PackagingLinks({ batchId }: { batchId: string }) {
       <p>
         <Link to="/labels/packaging/$batchId" params={{ batchId }} className={wcls('link')}>
           Line completion (coding, labels, post-use inspection)
-        </Link>{' '}
-        ·{' '}
-        <Link to="/serialisation/batches/$batchId" params={{ batchId }} className={wcls('link')}>
-          Serial pools
         </Link>
+        {off('/serialisation') ? null : (
+          <>
+            {' '}
+            ·{' '}
+            <Link to="/serialisation/batches/$batchId" params={{ batchId }} className={wcls('link')}>
+              Serial pools
+            </Link>
+          </>
+        )}
       </p>
     </section>
   );

@@ -102,6 +102,11 @@ export function usePlatformBuild(): boolean {
   return useContext(BootContext)?.device?.loginMethods.includes('PLATFORM') === true;
 }
 
+/** Declutter D1/D2: the server refuses the disconnected functions (meta.disconnected); false outside a BootProvider. */
+export function useDisconnectedServer(): boolean {
+  return useContext(BootContext)?.meta?.disconnected === true;
+}
+
 export function useBoot(): Boot {
   const b = useContext(BootContext);
   if (!b) throw new Error('useBoot outside BootProvider');

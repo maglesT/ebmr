@@ -8,14 +8,16 @@ import { routes } from '@ebmr/api-contract';
 import { useApiQuery } from '../../api/hooks.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { Acknowledgement, Flags, reading } from './AlarmParts.tsx';
+import { useScreensOff } from '../../app/disconnected.tsx';
 
 export function BatchAlarmLog({ batchId, step }: { batchId: string; step?: string }) {
+  const off = useScreensOff();
   const q = useApiQuery(routes.alarms.batchLog, { params: { batchId }, query: step ? { step } : {} });
   const title = step ? 'Alarms at this step' : 'Alarm log of the batch';
   return (
     <section aria-label={title} data-testid="batch-alarm-log">
       <h2>{title}</h2>
-      {step ? null : (
+      {step || off('/trends') ? null : (
         <p>
           <Link to="/trends" search={{ batchId }} data-testid="batch-trends-link">
             Trends of the batch (native equipment and room data)
