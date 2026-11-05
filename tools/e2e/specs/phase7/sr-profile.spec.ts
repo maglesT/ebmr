@@ -45,6 +45,7 @@ const lots = (e2e: E2eWorld): SrSeed['lots'] => {
 async function open(officePage: (i: 'GMP', t?: string) => Promise<Page>, terminal: string, who: SeededPersona, tile: string, link?: string): Promise<Page> {
   const page = await officePage('GMP', terminal);
   await signIn.office(page, who);
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await page.getByRole('link', { name: new RegExp(`^${tile}`) }).first().click();
   if (link) await page.getByRole('link', { name: link, exact: true }).click();
   return page;

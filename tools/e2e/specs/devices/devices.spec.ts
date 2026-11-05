@@ -45,6 +45,7 @@ test.describe('devices', () => {
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     const operator = persona('SANDBOX', 'operator1');
     await signIn.kiosk(page, operator);
+    await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
     await page.getByRole('link', { name: /^Scales/ }).click();
     await expect(page.getByRole('heading', { name: 'Scales', level: 1 })).toBeVisible();
     const card = page.getByRole('region', { name: 'TEST-BAL-01', exact: true });
@@ -71,6 +72,7 @@ test.describe('devices', () => {
   test('[DI-20] a kiosk in another room lists no scale of DISP-1, and the server refuses it a capture from and the live view of TEST-BAL-01', { tag: '@kiosk' }, async ({ kioskPage, persona, api, e2e, evidence }) => withSimulator(e2e.state, async () => {
     const page = await kioskPage('TEST-KIOSK-BLEND-1');
     await signIn.kiosk(page, persona('SANDBOX', 'operator2'));
+    await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
     await page.getByRole('link', { name: /^Scales/ }).click();
     await expect(page.getByText('No scale is registered to this room.')).toBeVisible();
     const base = e2e.url('SANDBOX');
@@ -104,6 +106,7 @@ test.describe('devices', () => {
     const sim = e2e.state.urls.simulatorConsole;
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     await signIn.kiosk(page, persona('SANDBOX', 'operator1'));
+    await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
     await page.getByRole('link', { name: /^Scales/ }).click();
     const card = page.getByRole('region', { name: 'TEST-BAL-01', exact: true });
     await expect(card.getByText('Online', { exact: true })).toBeVisible({ timeout: 30_000 });

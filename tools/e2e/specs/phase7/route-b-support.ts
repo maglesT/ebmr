@@ -22,10 +22,10 @@ export async function tile(page: Page, title: string | RegExp): Promise<void> {
 }
 
 /** Planning (open production orders). */
-export const planning = (page: Page): Promise<void> => tile(page, /^Planning Open production orders/);
+export const planning = (page: Page): Promise<void> => tile(page, /^Planning$/);
 
 /** The batch list of the site. */
-export const batches = (page: Page): Promise<void> => tile(page, /^Batches GMP batches/);
+export const batches = (page: Page): Promise<void> => tile(page, /^Batches$/);
 
 /** The packaging order list. */
 export const packagingOrders = (page: Page): Promise<void> => tile(page, /^Packaging orders/);

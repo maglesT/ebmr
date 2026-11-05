@@ -12,7 +12,8 @@ test.describe('smoke', () => {
     await evidence.step('Sign in as the MBR author on the design PC', 'The home screen names the person, role and terminal', async () => {
       await signIn.office(page, author);
       await expect(page.getByTestId('identity')).toContainText(`${author.legalName} (${author.loginName}), MBR_AUTHOR`);
-      await expect(page.getByText('Master records')).toBeVisible();
+      await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
+      await expect(page.getByRole('link', { name: 'Master records', exact: true })).toBeVisible();
     }, page);
     await expect(page.getByRole('note', { name: 'TEST, NOT GMP' })).toHaveCount(0);
     await axe.check(page);
@@ -35,7 +36,8 @@ test.describe('smoke', () => {
     const page = await officePage('SANDBOX', 'TEST-PC-01');
     await expect(page.getByRole('note', { name: 'TEST, NOT GMP' })).toBeVisible();
     await signIn.office(page, persona('SANDBOX', 'issuer'));
-    await expect(page.getByText('Test-run packages')).toBeVisible();
+    await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
+    await expect(page.getByRole('link', { name: 'Test-run packages', exact: true })).toBeVisible();
     await expect(page.getByRole('note', { name: 'TEST, NOT GMP' })).toBeVisible();
   });
 
