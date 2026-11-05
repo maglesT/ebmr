@@ -25,7 +25,8 @@ behaviour: |-
   - Integrity-defect units are removed at final inspection (ST-62).
 catalog_test: Configure a 2 mL ampoule with sampled CCI → MBR rejected. Choose "visual inspection" as the CCI method → option unavailable.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-64] one unit failing the container closure integrity test is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

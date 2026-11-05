@@ -20,7 +20,8 @@ behaviour: |-
   - Component lot numbers and result references are written into the batch record.
 catalog_test: Dispense an excipient with its endotoxin result pending → hard stop.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-39] a primary component is accepted by its lot on the formula line (the lot register checks its material and QC release); an open pack is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

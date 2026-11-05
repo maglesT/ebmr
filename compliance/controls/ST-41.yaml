@@ -27,7 +27,8 @@ behaviour: |-
   - The preparation process's revalidation due date is checked at line clearance.
 catalog_test: Stoppers sterilised at T0 with a 72 h hold are used at T0+73 h → blocked. A stopper load with a wash record but no sterilisation cycle → refused at the filler.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
