@@ -2133,8 +2133,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Pressure differentials, airflow velocity/visualisation and HEPA status.** [ST-17.yaml](../../../compliance/controls/ST-17.yaml). Target phase 5; editions injectables; SPECIFIED.
 
-- Modules: [rc-library](../code-map.md#rc-library)
-- Tests: [packages/recipe-core/test/library/seed-injectables.test.ts](../../../packages/recipe-core/test/library/seed-injectables.test.ts)
+- Not implemented yet.
 
 ## ST-18
 
