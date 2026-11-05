@@ -69,7 +69,7 @@ The owner's rule: the full chain works end to end — formulation from library b
 
 **Release tests:** TEST-INJ-RELEASE is QC's, recorded on the lot. Release waits for it through the existing gate (D-S11-R1).
 
-**Header:** "Batchwright Injectables". Reuse capsules #109 (`RunHeaderView.dosageForm`, `brand.Edition`) once it is merged. The sign-in page and title are pending the owner.
+**Header:** "Batchwright Injectables" when an injectables record is on screen. Use capsules C2's mechanism (#109: `RunHeaderView.dosageForm`, `brand.Edition`). The sign-in page and the page title say just "Batchwright": declutter D3 drops the edition prop from `SignInBrand()`.
 
 **Declutter:** the lead's rule is no new tiles, menus or screens beyond what I-1 needs.
 - The namespaces in `packages/api-contract/src/disconnected.ts` answer 410 and are not called.
