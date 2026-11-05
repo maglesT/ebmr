@@ -82,7 +82,36 @@ describe('the ready-made catalogue', () => {
     expect(fill.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
   });
 
-  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and a band check each round; a leaker fails the seal check', () => {
+  it('[PR-03][PR-18][IN-37][PR-29][PR-14] liquid fill preparation records the fill type, the critical mixing temperature and time, the deaeration vacuum, the critical viscosity (its hold is the master\'s PROC-HOLD step); liquid and plate filling record the shell lot as its bill-of-materials line and the fill weight of each round as a critical value with limits, liquid filling the fill-line connection and the fill temperature; each signed by an operator and a verifier (Capsules edition plan, C5)', () => {
+    const prep = byCode('PROC-FILL-PREP');
+    expect(fieldOf(prep, 'fillType')).toMatchObject({ type: 'CHOICE', options: ['Oil solution', 'Suspension', 'Emulsion', 'SMEDDS', 'Paste', 'Thermosoftening'] });
+    expect(fieldOf(prep, 'mixTemp')).toMatchObject({ type: 'NUMBER', unit: 'Cel', limitSlot: 'mixTemp', critical: true });
+    expect(fieldOf(prep, 'mixing')).toMatchObject({ type: 'TIMER', limitSlot: 'mixTime', critical: true });
+    expect(fieldOf(prep, 'vacuum')).toMatchObject({ type: 'NUMBER', limitSlot: 'vacuum' });
+    expect(fieldOf(prep, 'viscosity')).toMatchObject({ type: 'NUMBER', limitSlot: 'viscosity', critical: true });
+    expect(fieldOf(prep, 'container')).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
+    const liquid = byCode('PROC-CAPS-FILL-LIQUID');
+    expect(fieldOf(liquid, 'fillIn')).toMatchObject({ type: 'CONTAINER', action: 'CONSUME' });
+    expect(fieldOf(liquid, 'linesConnected')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(liquid, 'fillTemp')).toMatchObject({ type: 'NUMBER', limitSlot: 'fillTemp', critical: true });
+    expect(fieldOf(liquid, 'noLeakers')).toMatchObject({ type: 'YES_NO', expected: true });
+    const plate = byCode('PROC-CAPS-FILL-PLATE');
+    expect(fieldOf(plate, 'blendIn')).toMatchObject({ type: 'CONTAINER', action: 'CONSUME' });
+    expect(fieldOf(plate, 'locked')).toMatchObject({ type: 'YES_NO', expected: true });
+    for (const filler of [liquid, plate]) {
+      expect(fieldOf(filler, 'capsuleSize')).toMatchObject({ type: 'CHOICE', options: ['000', '00', '0', '1', '2', '3', '4', '5'] });
+      expect(fieldOf(filler, 'shellLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' });
+      expect(filler.exampleUse.bomLines).toEqual({ shellLine: 'L1' });
+      expect(fieldOf(filler, 'fillWeight')).toMatchObject({ type: 'NUMBER', unit: 'mg', limitSlot: 'fillWeight', critical: true });
+      expect(filler.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    }
+    for (const item of [prep, liquid, plate]) {
+      expect(item.definition.signatures.map((x) => [x.meaning, x.role])).toEqual([['PERFORMED', 'PRODUCTION_OPERATOR'], ['VERIFIED', 'PRODUCTION_VERIFIER']]);
+    }
+    expect(SEED_GROUPS['capsule fill']?.map((s) => s.definition.code)).toEqual(['PROC-FILL-PREP', 'PROC-CAPS-FILL-LIQUID', 'PROC-CAPS-FILL-PLATE']);
+  });
+
+  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and holding time and a band check each round; a leaker fails the seal check', () => {
     const cw = byCode('PROC-CAPS-CHECKWEIGH');
     expect([fieldOf(cw, 'rejectLow'), fieldOf(cw, 'rejectHigh')]).toEqual([expect.objectContaining({ limitSlot: 'rejectLow', critical: true }), expect.objectContaining({ limitSlot: 'rejectHigh', critical: true })]);
     const inspect = byCode('PROC-CAPS-INSPECT');
