@@ -125,6 +125,26 @@ const acquireValidationSlot = slotPool();
 const TEST_PACKAGE_INBOX_LOCK = 'tab.mbr_test_package_export:inbox';
 /** Injectables plan I-0: the dosage forms of an injectables family (pharmacopoeial names: injection, infusion, powder for injection). */
 const INJECTABLE_FORM = /inject|infusion|parenteral/i;
+/**
+ * API edition plan A0 (platform-fit Q-P1): an API or intermediate made on site is a core product whose dosage form is
+ * "API" or "Intermediate".
+ */
+const SUBSTANCE_FORM = /^\s*(api|intermediate)\s*$/i;
+
+/** Whether a product's dosage form fits a family of the edition. */
+function dosageFormFits(edition: flow.Edition, dosageForm: string): boolean {
+  // Capsules edition C2: one rule (flow.readDosageForm): a capsule when it says "capsule"; a bare soft-gel name is refused.
+  if (edition === 'tablets') return flow.readDosageForm(dosageForm).ok;
+  if (edition === 'injectables') return INJECTABLE_FORM.test(dosageForm);
+  return SUBSTANCE_FORM.test(dosageForm);
+}
+
+/** The forms an edition's family takes, for the refusal. */
+const EDITION_FORMS: Readonly<Record<flow.Edition, string>> = {
+  tablets: 'neither a tablet nor a capsule form; this build makes tablets and capsules (a soft gel is named as a capsule form, for example Soft gelatin capsule)',
+  injectables: 'not an injectable form (injection, infusion or powder for injection)',
+  substance: 'neither API nor Intermediate, the dosage forms of an active substance or an intermediate made on site',
+};
 
 /** What waited for a slot: a simulation, a validation of edited content, or a command that checks the saved content. */
 type BusyWork = 'simulation' | 'validation' | 'command';
@@ -437,14 +457,15 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     // Injectables plan I-0: the edition is data on the family. The skeleton and copies are Tablets procedures, so an
     // injectables family starts BLANK and is built from the injectables library.
     const edition = body.edition ?? 'tablets';
-    if (edition === 'injectables' && start !== 'BLANK') {
+    // API edition plan A0: the same holds for an API (substance) family.
+    if (edition !== 'tablets' && start !== 'BLANK') {
       throw refusal(422, {
         code: 'DESIGNER_EDITION_START',
         kind: 'INVALID_INPUT',
         whatHappened: 'The family was not created.',
-        why: 'An injectables master starts blank: the skeleton and copies are tablet procedures.',
+        why: `An ${edition === 'injectables' ? 'injectables' : 'API'} master starts blank: the skeleton and copies are tablet procedures.`,
         controls: ['PR-01'],
-        whatYouCanDo: ['Choose "Blank" and add the steps from the injectables library.'],
+        whatYouCanDo: [`Choose "Blank" and add the steps from the ${edition === 'injectables' ? 'injectables' : 'API'} library.`],
       });
     }
     const copySource = start === 'COPY' ? await copySourceOf(body.copyOfVersionId) : undefined;
@@ -472,9 +493,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // dosage form (no default).
           const master = rows[0];
           const stated = master?.name ? await dosageFormOf(chosen.productCode, master.dosage) : undefined;
-          const reading = flow.readDosageForm(stated);
           const dosageForm = stated?.trim() || (edition === 'tablets' ? 'Tablet' : '');
-          const formFits = edition === 'tablets' ? reading.ok : INJECTABLE_FORM.test(dosageForm);
+          // API edition plan A0: an API (substance) family needs a product master whose dosage form is API or Intermediate.
+          const formFits = dosageFormFits(edition, dosageForm);
           if (!master?.name || stated === undefined || !formFits) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
@@ -483,8 +504,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               why: !master?.name || stated === undefined
                 ? `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`
                 : edition === 'tablets'
-                  ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}". ${reading.ok ? '' : reading.hint}`
-                  : `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm || 'none'}", which is not an injectable form (injection, infusion or powder for injection).`,
+                  ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}". ${(() => { const r = flow.readDosageForm(dosageForm); return r.ok ? '' : r.hint; })()}`
+                  : `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm || 'none'}", which is ${EDITION_FORMS[edition]}.`,
               controls: ['PR-01'],
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
             });
@@ -616,12 +637,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const { body } = ctx;
       // Slice 7j (R4, D-7j-5): without a template, the master starts from the approved formula.
       // Injectables plan I-0: templates and packaging copies are Tablets masters; an injectables family starts from a formula.
-      if (body.edition === 'injectables' && (body.templateId !== undefined || body.start === 'PACKAGING_COPY')) {
+      // API edition plan A0: the same holds for an API (substance) family.
+      if (body.edition !== undefined && body.edition !== 'tablets' && (body.templateId !== undefined || body.start === 'PACKAGING_COPY')) {
         throw refusal(422, {
           code: 'DESIGNER_EDITION_START',
           kind: 'INVALID_INPUT',
           whatHappened: 'The family was not created.',
-          why: 'An injectables master starts blank from its approved formula: the templates and packaging copies are tablet masters.',
+          why: `An ${body.edition === 'injectables' ? 'injectables' : 'API'} master starts blank from its approved formula: the templates and packaging copies are tablet masters.`,
           controls: ['PR-01'],
           whatYouCanDo: ['Choose the product\'s formula and "Blank".'],
         });

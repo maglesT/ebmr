@@ -67,6 +67,13 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - CI runs the tests in six shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
   lint now runs with an 8 GB heap.
 
+## API edition (Batchwright API, edition `substance`)
+
+Plan `docs/build-plan/api/plan.md` (approved 4 November), platform fit `platform-fit.md` (confirmed). A0 merged
+(#111, 5 November): one edition list `kernel.editions()` (kernel 1403, site-services 1731, recipe-core 1872), the
+`substance` edition value, `editions/substance/sql` (migrations 5000-5999). Next: A1a, then A1b; resume from
+`docs/build-plan/api/handover-a0.md`.
+
 ## Next
 
 **Injectables edition (owner decision, 4 November 2026).** Plan approved (v2): `docs/build-plan/injectables/plan.md`
