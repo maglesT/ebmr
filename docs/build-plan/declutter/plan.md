@@ -73,8 +73,8 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Archive and retention, Inspection workspace | DISCONNECT from the home | later. Retention runs in the server unchanged; inspection reads move to the audit trail screen |
 | Incident register (/incidents) | DISCONNECT | QMS |
 | CAPA register (/capa) | DISCONNECT | QMS |
-| Penicillin and beta-lactam rules (/plant-rules) | KEEP | binding segregation: QA marks beta-lactam materials and products here (owner, 5 November) |
-| Plant alarms, Status board, Area authorisations, Trends, Rooms and lines, Reagent lots, Equipment records | DISCONNECT | Logbook (equipment), MMS (reagent lots), later (alarms, trends) |
+| Penicillin and beta-lactam rules (/plant-rules) | DISCONNECT (owner, with risk acceptance) | the whole `plantRules` namespace, its classification and facility-rule routes included. See the risk acceptance below |
+| Plant alarms, Status board, Area authorisations, Trends, Rooms and lines, Reagent lots, Equipment records | DISCONNECT | Logbook (equipment), MMS (reagent lots), later (alarms, trends). The `alarms` routes stay connected: the step screen and the batch review show the batch's alarm log (DI-49); only the tile goes (D1 review) |
 | Operations (/operations) | KEEP for the operator role only | set-up and backups |
 | API reference (/developer/api) | DISCONNECT from the home | still served for integrators |
 | Validation and records (/validation) | DISCONNECT | Qual or later |
@@ -86,7 +86,7 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Label store (/labels/store) | KEEP | label issuance and reconciliation (211.125, 211.130) |
 | Label templates (/labels/templates) | KEEP read-only | the packaging batch prints from the approved template; editing goes later with artwork |
 | Serial lookup (/serialisation/serials) | DISCONNECT | later (serialisation) |
-| Licences, Shelf-life bases, Batch-number register (India) | KEEP the register only | the Schedule M register of batch numbers |
+| Licences, Shelf-life bases, Batch-number register (India) | KEEP licences and the register; shelf-life bases DISCONNECT | the Schedule M register of batch numbers; a GMP batch needs the product endorsed on the manufacturing licence (D-D2-1, lead, 5 November) |
 | Dashboards, Change impact, Analytics, SPC, MSPC, Audit-trail flags | DISCONNECT | later (analytics product) |
 | Integration health, Inter-site transfers, Controlled substances (draft) | DISCONNECT | later |
 | Training (SANDBOX), Scales | KEEP Scales under Terminals and devices; Training DISCONNECT | Qual |
@@ -208,5 +208,11 @@ Anything else goes to the lead first.
 **Owner decisions (5 November 2026, through the lead; plan approved):**
 1. Records and amendments: KEEP.
 2. Formulary: Batchwright's.
-3. Penicillin and beta-lactam rules screen: KEEP (binding segregation).
+3. Penicillin and beta-lactam rules: DISCONNECTED, the whole `plantRules` namespace (owner, 5 November, overriding the
+   earlier KEEP and the lead's route-by-route proposal). **Risk accepted by the owner:** the beta-lactam classifications
+   and penicillin-facility rules already recorded stay in force, and the segregation check at batch issue (recipe-core
+   1655, PR-27, IN-27) still runs in the database on them. While the namespace is disconnected, no new product or
+   material can be classified and no facility rule can be changed. A new beta-lactam product would then not be held to
+   its dedicated rooms and lines by the system. The owner reconnects `plantRules` (one line in `disconnected.ts`)
+   before such a product is introduced. Controls PR-27 and IN-27 are not changed.
 4. QP batch packages: LATER, so disconnected now (EU exports only).

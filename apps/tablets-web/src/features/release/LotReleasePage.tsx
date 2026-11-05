@@ -22,7 +22,7 @@ import { routes, type LotReleaseView } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
-import { RefusalMessage } from '../../app/refusal.tsx';
+import { isDisconnected, RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams, useRouteSearch } from '../floor/params.ts';
 import { GateProblems } from '../review/parts.tsx';
@@ -108,10 +108,19 @@ function ManufacturerTab({ view: v }: { view: LotReleaseView }) {
       {!v.decision && v.validationBatches.length > 0 ? <PpqOutcome view={v} offered={qa} /> : null}
       {!v.decision && v.openInvestigationPath ? <Justifications view={v} offered={qa} /> : null}
       {v.decision ? null : <ReleaseDecision view={v} offered={qa} />}
-      <Section title="Notifications of the decision" testId="lot-notifications">
-        <NotificationList subjectId={v.lotId} empty="No notification yet: production and QA are notified when the decision is signed." />
-      </Section>
+      <DecisionNotifications lotId={v.lotId} />
     </>
+  );
+}
+
+/** The notifications of the decision; nothing where notifications are disconnected (declutter D1). */
+function DecisionNotifications({ lotId }: { lotId: string }) {
+  const q = useApiQuery(routes.notifications.list, { query: { subjectId: lotId } });
+  if (isDisconnected(q.error?.error)) return null;
+  return (
+    <Section title="Notifications of the decision" testId="lot-notifications">
+      <NotificationList subjectId={lotId} empty="No notification yet: production and QA are notified when the decision is signed." />
+    </Section>
   );
 }
 

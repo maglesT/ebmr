@@ -92,6 +92,9 @@ the `p3-demo` browser test):
 
 ## Operating it
 
+Declutter D1 (5 November 2026): add `Environment=EBMR_DISCONNECT=1` to the demo's unit so the servers refuse the
+disconnected functions (410 DISCONNECTED) as the platform build does; the list is `packages/api-contract/src/disconnected.ts`.
+
 - Status and logs: `systemctl status batchwright-demo`, `journalctl -u batchwright-demo -f`.
 - Reset the demo to its first state: `systemctl stop batchwright-demo`, then as `batchwright` `pnpm demo:setup
   --with-gmp-samples` (it recreates both databases; 15 to 25 minutes with the samples), then `systemctl start

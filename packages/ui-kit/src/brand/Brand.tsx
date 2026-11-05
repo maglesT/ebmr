@@ -8,19 +8,19 @@
 import type { ReactNode } from 'react';
 import { t } from '../i18n/index.ts';
 import { bcls } from './classes.ts';
-import { productTitle, type Edition } from './brand.ts';
+import { productTitle, type Edition, type LockupEdition } from './brand.ts';
 import icon from './assets/batchwright-icon.svg';
 import injectables from './assets/batchwright-injectables.svg';
 import medhanta from './assets/medhanta-logo-278x148.png';
 import tablets from './assets/batchwright-tablets.svg';
 
-const LOCKUP: Readonly<Record<Edition, string>> = { TABLETS: tablets, INJECTABLES: injectables };
+const LOCKUP: Readonly<Record<LockupEdition, string>> = { TABLETS: tablets, INJECTABLES: injectables };
 
 /** The asset URLs (the web app's tests and the about page read them). */
 export const BRAND_ASSETS = { icon, lockup: LOCKUP, medhantaLogo: medhanta } as const;
 
 /** The edition lockup, named "Batchwright <Edition>". */
-export function Lockup({ edition }: { edition: Edition }) {
+export function Lockup({ edition }: { edition: LockupEdition }) {
   return <img className={bcls('lockup')} src={LOCKUP[edition]} alt={productTitle(edition)} width={560} height={160} />;
 }
 
@@ -40,7 +40,7 @@ export function ProductIcon() {
 }
 
 /** The sign-in page's brand block: the edition lockup and the maker's mark. */
-export function SignInBrand({ edition }: { edition: Edition }) {
+export function SignInBrand({ edition }: { edition: LockupEdition }) {
   return (
     <div className={bcls('signIn')} data-testid="sign-in-brand">
       <Lockup edition={edition} />

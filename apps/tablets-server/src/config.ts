@@ -40,6 +40,8 @@ export const EnvSchema = z.object({
   EBMR_PORT: z.coerce.number().int().positive().optional(),
   /** Demo switches (device picker) need EBMR_DEMO=1 AND the tab.demo_installation marker (decision D6). */
   EBMR_DEMO: bool.default(false),
+  /** Declutter D1: refuse the disconnected routes (410 DISCONNECTED) on a standalone server too; the platform build always does. */
+  EBMR_DISCONNECT: bool.default(false),
   /** DEMO-ONLY terminal keys for the device picker (written by `pnpm demo:setup` or the E2E set-up). */
   EBMR_DEMO_KEYS_FILE: z.string().optional(),
   /** DEMO-ONLY seal key for e-signatures ({keyId, algorithm, secret}); production uses a KMS or HSM. */
@@ -154,6 +156,8 @@ export interface EnvConfig {
   host: string;
   port: number;
   demoRequested: boolean;
+  /** Declutter D1: EBMR_DISCONNECT. */
+  disconnect: boolean;
   demoKeysFile: string | null;
   sealKeyFile: string | null;
   secrets: { csrfHmacKey: string; nonceKey: string };
@@ -353,6 +357,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     host: e.EBMR_HOST,
     port,
     demoRequested: e.EBMR_DEMO,
+    disconnect: e.EBMR_DISCONNECT,
     demoKeysFile: e.EBMR_DEMO_KEYS_FILE ?? null,
     sealKeyFile: e.EBMR_SEAL_KEY_FILE ?? null,
     secrets,

@@ -44,6 +44,21 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Declutter (owner, 5 November 2026; plan `docs/build-plan/declutter/plan.md`, PR #113).** Only the working batch-record
+path stays on screen. Owner decisions: records and amendments KEEP, the formulary is Batchwright's, the penicillin and
+beta-lactam rules (all of plantRules, owner with risk acceptance in plan.md: recorded classifications and the check
+at issue stay; no new classification until reconnected) and QP batch packages LATER (disconnected). **D1 (branch `declutter/d1`):** one list,
+`DISCONNECTED` in `packages/api-contract/src/disconnected.ts` (27 namespaces, each with the product it belongs to);
+`bind.ts` answers `410 DISCONNECTED` at onRequest on the platform build, and on a standalone server with
+`EBMR_DISCONNECT=1` (D-D1-1: the standalone tests of the disconnected functions stay as they are; the hosted demo sets
+the switch). Plugins, tables and records unchanged. Proof: a generated 410 test per namespace and the platform-build case
+([DI-17]); the web check that kept screens call no disconnected route, naming the files D2 unhooks and every part a kept
+screen embeds from another feature; the release page's QP package section and decision notifications render nothing on
+DISCONNECTED (review finding, fixed); E2E `library-dc` (catalogue → formulation → master → approval → GMP batch → floor →
+packaging and labels → review → release) runs with the switch on. Kept connected because kept screens read them (D-D1-2): `alarms` (the batch alarm log on the step and review
+screens, DI-49), `integrations` and `transfers` (the operator's set-up page), `erpShipping` (the lot's shipments),
+`archive`, `india` and `marketConfig` (off the home only); deviations are D4. Next: D2 (home and menus), D3 (new home), D4.
+
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation
   runs; residuals in `docs/build-plan/phase-3/review-backlog.md`).
@@ -105,18 +120,15 @@ requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. **C1 merged (#10
 load takes the capsule blocks (R3-CAT-4 lifted); PROC-CAPS-FILL records the filling principle and size 5; a master from a
 formula accepts a dosage form that says "capsule" (worded per capsule); any other non-tablet form, a bare "Softgel"
 included, is refused with a hint (one rule everywhere, lead). The E2E approval helper waits for the button or APPROVED.
-**Resume here: C2** (lead, 4-5 November), in a fresh session:
-- Platform: read `dosage_form` from core's `report.product_v1` (it exists there; ebmr's reader
-  `apps/tablets-server/src/platform/master-data.ts` and `test/support/fake-master.ts` do not select it yet). A product is a
-  capsule only when its dosage form contains "capsule" (case-insensitive); none means tablet. Tests by rule ID.
-- Header: "Batchwright Capsules" when the master or batch on screen has a capsule dosage form, else "Batchwright Tablets";
-  `CAPSULES` added to ui-kit `brand.Edition` as a display value (lead OK; tell the Tablets session in the PR). Record it
-  as an amendment of decision 0020.
-- The remaining tablet wording of a capsule master (C1 review): the batch-size input name, the issue count.
-- One E2E group: a powder hard capsule from the catalogue to a released lot (as S11b). The capsule product removed from
-  the acceptance spec by commit e099374 (added in 4e43f0d) is the starting point; `acceptance.ts` keeps the shell support.
-- Platform fit (owner via lead): masters only from core report views, rights only `ebmr.*` (none new expected), no new
-  views or migrations expected; send any new code or view to the lead first.
+**C2 (branch `caps/c2`, PR #109):** one rule for the unit form (`flow.readDosageForm`); the platform master reader takes
+`dosage_form` from core's report.product_v1 (fake master has the column; a product core does not hold is refused as no
+product master); the header reads "Batchwright Capsules" on a capsule master or batch (decision 0020 amended; ui-kit
+`brand.Edition` gains `CAPSULES`, display only; `RunHeaderView.dosageForm`, lead OK); per-unit wording (formula screens,
+"Batch size in capsules", the issue count). Shells (lead OK, 5 November, with a condition): the formula's COATING line
+per unit on a capsule is the empty shells, a BOM line of role OTHER, not dispensed into the blend, lot-named and consumed
+at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating (`flow.formulaRoleLabel`,
+`bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
+group `library-caps`. Next: C3 (post-fill and packing).
 
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.

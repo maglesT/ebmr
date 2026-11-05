@@ -52,7 +52,7 @@ export function FormulasPage() {
           fields={[
             { name: 'productCode', label: 'Product code', kind: 'text', description: 'From the ERP product master' },
             { name: 'strength', label: 'Strength', kind: 'text' },
-            { name: 'batchSizeUnits', label: 'Batch size (tablets)', kind: 'text', description: 'A whole number of units' },
+            { name: 'batchSizeUnits', label: 'Batch size (units)', kind: 'text', description: 'A whole number of units' },
           ]}
         />
       ) : null}
