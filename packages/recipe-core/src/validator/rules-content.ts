@@ -629,28 +629,27 @@ const capsuleSealing = defineRule('GMP-CAPSULE-SEAL', 'An OTC two-piece hard cap
   // 21 CFR 211.132(b)(2): a two-piece hard capsule for US OTC retail sale is sealed with a tamper-evident technology. A soft
   // gel is one piece and needs no band.
   const form = a.mbr.header.product.dosageForm;
-  if (a.mbr.header.predicates['usOtcRetail'] !== true || !isCapsuleForm(form) || /soft/i.test(form)) return [];
+  if (a.mbr.header.predicates['usOtcRetail'] !== true || !isCapsuleForm(form) || /soft[\s-]*gel/i.test(form)) return [];
   const facts = a.mustBefore([], (n) => (isType(a.phaseOf(n), CAPS_BAND) ? [CAPS_BAND] : []));
   if (facts?.get(a.graph.end)?.has(CAPS_BAND)) return [];
-  return [error('$', `The master is for US OTC retail packs of a two-piece hard capsule (${form}) and does not band or seal the capsules (Capsule banding and sealing, ${CAPS_BAND.slice(4)}) on every path`)];
+  return [error('$', `The master is for US OTC retail packs of a two-piece hard capsule (${form}) and does not band or seal the capsules (a ${CAPS_BAND.slice(4)} step) on every path`)];
 });
 
 const printingHeld = defineRule('GMP-CAPSULE-PRINT-HELD', 'Printed capsules wait at a hold point before the record ends (QC approval before packaging)', ['IN-37'], (a) => {
-  // Schedule M Part VIII 6: printed capsules are approved by QC after printing and before packaging. A printing step
-  // must run before a hold point that every completing path passes.
-  const out: RuleFinding[] = [];
-  const holdOf = (n: GraphNode): string[] => (a.nodes.get(n.source)?.node.kind === 'holdPoint' ? [`HOLD:${n.id}`] : []);
-  const facts = a.mustBefore([], (n) => [...holdOf(n), ...(isType(a.phaseOf(n), CAPS_PRINT) ? [`PRINT:${n.id}`] : [])]);
-  if (!facts) return out;
-  const atEnd = facts.get(a.graph.end) ?? new Set<string>();
-  const holds = [...atEnd].filter((f) => f.startsWith('HOLD:')).map((f) => f.slice(5));
-  for (const n of a.graph.nodes) {
+  // Schedule M Part VIII 6: printed capsules are approved by QC after printing and before packaging. A forward pass over
+  // the graph carries the prints not yet held on SOME path (joins unite); a hold point clears them. A print that can reach
+  // the end of the record unheld is refused. Printing on one branch only, or a hold in each branch, passes.
+  if (!a.topo) return [];
+  const unheld = new Map<string, Set<string>>();
+  for (const id of a.topo) {
+    const n = a.gi.node.get(id) as GraphNode;
+    const facts = new Set((a.gi.in.get(id) ?? []).filter((e) => e.kind !== 'LOOP_BACK').flatMap((e) => [...(unheld.get(e.from) ?? [])]));
+    if (a.nodes.get(n.source)?.node.kind === 'holdPoint') facts.clear();
     const p = a.phaseOf(n);
-    if (!isType(p, CAPS_PRINT) || !p) continue;
-    if (holds.some((h) => facts.get(h)?.has(`PRINT:${n.id}`))) continue;
-    out.push(error(p.id, `${label(a, p.id)} prints the capsules, and no hold point after it holds them for QC approval before packaging on every path`));
+    if (p && isType(p, CAPS_PRINT)) facts.add(p.id);
+    unheld.set(id, facts);
   }
-  return out;
+  return [...(unheld.get(a.graph.end) ?? [])].sort().map((id) => error(id, `${label(a, id)} prints the capsules, and on some path no hold point after it holds them for QC approval before packaging`));
 });
 
 export const CONTENT_RULES: readonly Rule[] = [

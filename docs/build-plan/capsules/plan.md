@@ -250,8 +250,8 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
   retail (`predicates.usOtcRetail`, as the packaging masters' PR-41 check reads it) for a hard capsule (a capsule form
   without "soft") must band or seal on every completing path. No screen sets the predicate on a processing master yet;
   the rule holds whenever one does.
-- D-C3-3: Schedule M Part VIII 6.2 as a validator rule, GMP-CAPSULE-PRINT-HELD: every PROC-CAPS-PRINT step runs before a
-  hold point that every completing path passes. A library master's H-PACK (QA, before packing) is that hold point; the
+- D-C3-3: Schedule M Part VIII 6.2 as a validator rule, GMP-CAPSULE-PRINT-HELD: no path takes a PROC-CAPS-PRINT step to the
+  end of the record without a hold point after it (printing on one branch only, or a hold in each branch, passes). A library master's H-PACK (QA, before packing) is that hold point; the
   block also records segregation, the approved edible ink and that the print is held for QC.
 - D-C3-4: the edible ink is named in a text field (name and lot), not a formula line: an ink is not weighed into the
   batch, and a line would force every printed master to dispense it.

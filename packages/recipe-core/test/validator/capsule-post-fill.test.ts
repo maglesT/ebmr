@@ -27,6 +27,7 @@ describe('capsule post-fill duties in the validator (Capsules C3)', () => {
     expect(found(master(unbanded, 'Soft gelatin capsule', otc), 'GMP-CAPSULE-SEAL')).toEqual([]);
     expect(found(master(unbanded, 'Film-coated tablet', otc), 'GMP-CAPSULE-SEAL')).toEqual([]);
     expect(found(master(unbanded, 'Hard gelatin capsule'), 'GMP-CAPSULE-SEAL')).toEqual([]);
+    expect(found(master(unbanded, 'Softgel capsule', otc), 'GMP-CAPSULE-SEAL')).toEqual([]);
     // A band on one branch of an alternative only is not on every path.
     const oneBranch = seq(lib('p-fill', 'PROC-CAPS-FILL'), { kind: 'alternative', id: 'alt', decision: { mode: 'DATA' }, branches: [{ id: 'b1', name: 'Banded', guard: 'true', body: lib('p-band', 'PROC-CAPS-BAND') }, { id: 'b2', name: 'Not banded', otherwise: true, body: lib('p-polish', 'PROC-CAPS-POLISH') }] } as never);
     expect(found(master(oneBranch, 'Hard gelatin capsule', otc), 'GMP-CAPSULE-SEAL')).toHaveLength(1);
@@ -35,8 +36,15 @@ describe('capsule post-fill duties in the validator (Capsules C3)', () => {
   it('[IN-37] a capsule printing step must be followed by a hold point every completing path passes (QC approval before packaging); printing after the last hold point, or with none, is refused', () => {
     expect(found(master(seq(lib('p-print', 'PROC-CAPS-PRINT'), hold('H-PACK')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toEqual([]);
     expect(found(master(seq(lib('p-print', 'PROC-CAPS-PRINT'), lib('p-inspect', 'PROC-CAPS-INSPECT'), hold('H-PACK')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toEqual([]);
-    expect(found(master(seq(lib('p-print', 'PROC-CAPS-PRINT')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD').join(' ')).toMatch(/"PROC-CAPS-PRINT" \(p-print\) prints the capsules, and no hold point after it holds them for QC approval/);
+    expect(found(master(seq(lib('p-print', 'PROC-CAPS-PRINT')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD').join(' ')).toMatch(/"PROC-CAPS-PRINT" \(p-print\) prints the capsules, and on some path no hold point after it holds them for QC approval/);
     expect(found(master(seq(hold('H-BLEND'), lib('p-print', 'PROC-CAPS-PRINT')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toHaveLength(1);
+    // Branches: printing on one branch only, held after the join, passes; so does a hold inside each branch. A branch that
+    // prints after its own hold while the other holds is refused.
+    const alt = (b1: FlowNode, b2: FlowNode): FlowNode => ({ kind: 'alternative', id: 'alt', decision: { mode: 'DATA' }, branches: [{ id: 'b1', name: 'Printed', guard: 'true', body: b1 }, { id: 'b2', name: 'Plain', otherwise: true, body: b2 }] }) as never;
+    expect(found(master(seq(alt(lib('p-print', 'PROC-CAPS-PRINT'), lib('p-inspect', 'PROC-CAPS-INSPECT')), hold('H-PACK')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toEqual([]);
+    expect(found(master(seq(lib('p-print', 'PROC-CAPS-PRINT'), alt(hold('H-A'), hold('H-B'))), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toEqual([]);
+    expect(found(master(seq(lib('p-print', 'PROC-CAPS-PRINT'), alt(hold('H-A'), lib('p-inspect', 'PROC-CAPS-INSPECT'))), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toHaveLength(1);
+    expect(found(master(seq(alt(seq(hold('H-A'), lib('p-print', 'PROC-CAPS-PRINT')), hold('H-B'))), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toHaveLength(1);
     // A master without printing has nothing to hold.
     expect(found(master(seq(lib('p-fill', 'PROC-CAPS-FILL')), 'Hard gelatin capsule'), 'GMP-CAPSULE-PRINT-HELD')).toEqual([]);
   });
