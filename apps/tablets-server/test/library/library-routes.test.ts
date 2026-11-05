@@ -106,6 +106,10 @@ describe('the library of block definitions', () => {
     const capsules = ['PROC-CAPS-FILL', 'PROC-CAPS-POLISH', 'IPC-CAPS-FILL-WEIGHT', 'IPC-CAPS-LOCK-LENGTH', 'IPC-CAPS-APPEARANCE', 'IPC-CAPS-DT', 'REL-CAPS-DISSO', 'PROC-CAPS-CHECKWEIGH', 'PROC-CAPS-INSPECT', 'PROC-CAPS-PRINT', 'PROC-CAPS-BAND', 'IPC-CAPS-SEAL-LEAK'];
     expect(first.drafted).toEqual(expect.arrayContaining(capsules));
     expect(second.skipped).toEqual(expect.arrayContaining(capsules));
+    // Capsules C6: the soft gel blocks load the same way.
+    const softgels = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
+    expect(first.drafted).toEqual(expect.arrayContaining(softgels));
+    expect(second.skipped).toEqual(expect.arrayContaining(softgels));
   });
 
   it('[DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them', async () => {
