@@ -44,6 +44,19 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Declutter (owner, 5 November 2026; plan `docs/build-plan/declutter/plan.md`, PR #113).** Only the working batch-record
+path stays on screen. Owner decisions: records and amendments KEEP, the formulary is Batchwright's, the penicillin and
+beta-lactam rules screen KEEP, QP batch packages LATER (disconnected). **D1 (branch `declutter/d1`):** one list,
+`DISCONNECTED` in `packages/api-contract/src/disconnected.ts` (27 namespaces, each with the product it belongs to);
+`bind.ts` answers `410 DISCONNECTED` at onRequest on the platform build, and on a standalone server with
+`EBMR_DISCONNECT=1` (D-D1-1: the standalone tests of the disconnected functions stay as they are; the hosted demo sets
+the switch). Plugins, tables and records unchanged. Proof: a generated 410 test per namespace and the platform-build case
+([DI-17]); the web check that kept screens call no disconnected route, naming the five files D2 unhooks (the release EU
+tab embeds the QP package section); E2E `library-dc` (catalogue → formulation → master → approval → GMP batch → floor →
+packaging and labels → review → release) runs with the switch on. Kept but not listed whole (D-D1-2): `integrations`
+and `transfers` (the operator's set-up page reads them), `erpShipping` (the lot's shipments on the release page),
+`archive`, `india` and `marketConfig` (off the home only); deviations are D4. Next: D2 (home and menus), D3 (new home), D4.
+
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation
   runs; residuals in `docs/build-plan/phase-3/review-backlog.md`).

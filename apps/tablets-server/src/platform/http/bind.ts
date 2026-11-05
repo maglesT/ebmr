@@ -18,7 +18,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest, preHandlerAsyncHook
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import type { ActorContext } from '@ebmr/kernel';
-import { RefusalEnvelope, type AnyRoute, type Attribution, type RouteBody, type RouteNamespace, type RouteParams, type RouteQuery, type RouteResponse } from '@ebmr/api-contract';
+import { isDisconnectedRoute, RefusalEnvelope, type AnyRoute, type Attribution, type RouteBody, type RouteNamespace, type RouteParams, type RouteQuery, type RouteResponse } from '@ebmr/api-contract';
 import { actorFrom } from '../auth/actor.ts';
 import { resolveAttribution } from '../auth/attribution.ts';
 import { spkiFingerprint } from '../auth/device-proof.ts';
@@ -426,6 +426,21 @@ function signonSubject(app: AppContext, proof: unknown): string {
   }
 }
 
+/**
+ * Declutter D1: the answer for a route of a disconnected namespace (DISCONNECTED in the contract). The plugin stays
+ * registered, so the kept path's database checks still run; only the route is refused.
+ */
+export function disconnected(what: string): Error {
+  return refusal(410, {
+    code: 'DISCONNECTED',
+    kind: 'NOT_ENABLED',
+    whatHappened: 'This is not part of Batchwright.',
+    why: `${what}: this function is not connected in Batchwright for now; its records are kept.`,
+    whatYouCanDo: ['Use the batch record screens on the home page.'],
+    whoCanHelp: ['The platform administrator'],
+  });
+}
+
 /** The answer of what is switched off on the platform build. */
 export function managedInPlatform(what: string): Error {
   return refusal(410, {
@@ -455,6 +470,9 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     if (app.platform.build && PLATFORM_MANAGED_ROUTES.has(route.id)) {
       preHandlers.push(() => Promise.reject(managedInPlatform(route.summary)));
     }
+    // Declutter D1: a route of a disconnected namespace answers 410 DISCONNECTED on the platform build, and on a standalone
+    // server started with EBMR_DISCONNECT=1; at onRequest, so nothing of the request is read or validated first.
+    const isDisconnected = (app.platform.build || app.config.disconnect) && isDisconnectedRoute(route.id);
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       // Phase 7 slice 7g-4: while a demo load or reset recreates the database only the open routes of app.ts reach here
       // (all of them auth NONE), and the database is being dropped: no session is looked up, so following the job never
@@ -529,6 +547,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
             },
           }
         : {}),
+      ...(isDisconnected ? { onRequest: () => Promise.reject(disconnected(route.summary)) } : {}),
       preHandler: preHandlers,
       handler: async (request, reply) => {
         const session = request.ebmrSession ?? null;
