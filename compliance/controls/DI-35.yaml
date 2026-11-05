@@ -76,6 +76,7 @@ implemented_by:
   policies:
     - "esig.witness_window_seconds"
 tests:
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once"
   - "apps/tablets-server/test/administration/access-governance-routes.test.ts > delegations of signing authority over HTTP > [IN-05][DI-35][DI-18] the authorised person delegates manufacturer release; the delegate, the delegator and the administrator cannot approve; the process owner approves; the delegate cannot pass it on; the delegator revokes it"
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [INV-25][DI-35][PR-04] overages (slice 7q, C1): an excess per line in percent or as a quantity, always with its reason; the label claim stays; the batch quantity, the batch mass and the master's bill of materials include it; the approver signs it"
   - "apps/tablets-server/test/designer/master-records.test.ts > labelling specimens (tablets 1479, DI-35) > [DI-35] a specimen the steward recorded waits for approval; the steward is refused, QA approves it once"

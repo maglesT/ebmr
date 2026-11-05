@@ -458,6 +458,66 @@ export const SuspendedLotSummaryView = z.strictObject({
 });
 export type SuspendedLotSummaryView = z.infer<typeof SuspendedLotSummaryView>;
 
+/**
+ * API plan A3 (C3, AS-17): the certificate of analysis of a released finished lot of the API edition (substance 5002),
+ * built only from records that exist. Values are text as stored (GMP numbers never pass through a JS number).
+ */
+export const CoaTestView = z.strictObject({
+  testCode: z.string(),
+  methodReference: z.string(),
+  pharmacopoeia: z.string(),
+  edition: z.string(),
+  unit: z.string(),
+  lowerLimit: z.string().nullable(),
+  upperLimit: z.string().nullable(),
+  result: z.string(),
+  resultId: Uuid,
+  purpose: z.string(),
+});
+export type CoaTestView = z.infer<typeof CoaTestView>;
+
+export const CoaDocumentView = z.strictObject({
+  kind: z.literal('CERTIFICATE_OF_ANALYSIS'),
+  manufacturer: z.strictObject({ name: z.string().nullable(), address: z.string().nullable(), telephone: z.string().nullable(), licenceNumber: z.string().nullable(), siteCode: z.string() }),
+  product: z.strictObject({ code: z.string(), name: z.string(), strength: z.string(), grade: z.string().nullable() }),
+  lot: z.strictObject({ lotId: Uuid, lotCode: z.string(), batchNumber: z.string(), quantity: z.string(), unit: z.string() }),
+  /** UTC instants as the database writes them (recipe.utc_text). */
+  releasedAt: z.string().nullable(),
+  retestAt: z.string().nullable(),
+  expiresAt: z.string(),
+  specification: z.strictObject({ specificationId: Uuid, version: z.number().int(), title: z.string(), monographReference: z.string() }).nullable(),
+  tests: z.array(CoaTestView),
+});
+export type CoaDocumentView = z.infer<typeof CoaDocumentView>;
+
+/** A prepared CoA: the stored document (the true copy), its SHA-256, whether it still hashes to it, and the QU's signature. */
+export const CoaRecordView = z.strictObject({
+  coaId: Uuid,
+  state: z.enum(['PREPARED', 'SIGNED']),
+  document: CoaDocumentView,
+  documentSha256: z.string(),
+  intact: z.boolean(),
+  preparedBy: PersonRef,
+  preparedAt: Instant,
+  signedBy: PersonRef.nullable(),
+  signedAt: Instant.nullable(),
+  signatureId: Uuid.nullable(),
+});
+export type CoaRecordView = z.infer<typeof CoaRecordView>;
+
+export const LotCoaView = z.strictObject({
+  lotId: Uuid,
+  /** What a CoA of the lot says now; null when the lot is no API finished lot. */
+  current: CoaDocumentView.nullable(),
+  /** Each refuses a CoA now. */
+  problems: z.array(z.string()),
+  /** Content the clause asks for that no record holds (shown, never invented). */
+  gaps: z.array(z.string()),
+  /** The prepared CoAs of the lot, latest first. */
+  coas: z.array(CoaRecordView),
+});
+export type LotCoaView = z.infer<typeof LotCoaView>;
+
 const lotParams = z.strictObject({ lotId: Uuid });
 const batchParams = z.strictObject({ batchId: Uuid });
 
@@ -590,5 +650,29 @@ export const release = {
     summary: 'One finished lot after release: market states, suspension causes, decisions, tasks, ERP stock blocks, forward trace and disposal',
     params: lotParams,
     response: LotAfterReleaseView,
+  }),
+  // API plan A3 (C3, AS-17): the CoA of a released API lot; signed with the signable action COA_ACT (COA_APPROVED).
+  coa: defineRoute({
+    id: 'release.coa',
+    method: 'GET',
+    path: '/api/release/lots/:lotId/coa',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The certificate of analysis of a released API lot: what it says now, its problems and gaps, and the prepared and signed CoAs',
+    params: lotParams,
+    response: LotCoaView,
+  }),
+  prepareCoa: defineRoute({
+    id: 'release.prepareCoa',
+    method: 'POST',
+    path: '/api/release/lots/:lotId/coa',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Prepare the CoA of a released API lot from its records (refused while a problem stands); the quality unit then signs it COA_APPROVED',
+    params: lotParams,
+    body: z.strictObject({}),
+    response: LotCoaView,
   }),
 } as const;
