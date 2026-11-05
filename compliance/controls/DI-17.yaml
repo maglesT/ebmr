@@ -468,11 +468,11 @@ tests:
   - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] analyticsProfile (analytics) is refused, signed in or not"
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > the platform build switches the local credentials off (DI-19) > [DI-17] declutter D1: on the platform build a disconnected route answers 410 DISCONNECTED without any switch; the standalone build serves it"
   - "apps/tablets-web/test/app/disconnected-routes.test.ts > [DI-17] the kept screens call no disconnected route (declutter D1) > [DI-17] only the named disconnected screens inside kept features reach a disconnected namespace"
-  - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] plantRules (later) is refused, signed in or not"
   - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] the kept path stays connected: exactly the expected namespaces are connected, and a standalone server without the switch serves the listed ones"
   - "apps/tablets-web/test/app/disconnected-routes.test.ts > [DI-17] the kept screens call no disconnected route (declutter D1) > [DI-17] a kept screen embeds a part of another feature only where that part is safe on DISCONNECTED"
   - "apps/tablets-web/test/release/disconnected-panels.test.tsx > [DI-17] disconnected panels on the release page (declutter D1) > [DI-17] the QP package section and the decision notifications render nothing on 410 DISCONNECTED; the release page stays"
   - "apps/tablets-web/test/release/disconnected-panels.test.tsx > [DI-17] disconnected panels on the release page (declutter D1) > [DI-17] with the functions connected both sections are shown as before"
+  - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] the single disconnected routes of plantRules answer 410; the beta-lactam classification and the facility rule stay for the segregation check (PR-27)"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:
