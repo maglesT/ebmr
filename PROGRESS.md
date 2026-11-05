@@ -149,8 +149,9 @@ dosing, combinations, two-stage dissolution; a delayed-release pellet formulatio
 - Full chain to a released, packed lot in every E2E (EBMR-REL-010); `library-caps` already does it; extend it rather
   than add a group where the plan allows.
 - A coat on capsules (enteric, C3/C7) is a per-batch COATING line; never a second per-unit one (refused).
-- A library STEP_VALUE input is resolved at runtime only after the injectables fix (#117) is on main; no capsule block
-  uses one yet (soft-gel fill and shell weights in C6 will).
+- A library STEP_VALUE input is resolved at runtime (#117 is on main); no capsule block needs one (D-C6-6).
+- C6 (soft gels I, #132): gel mass, rotary die, drying to the hardness end point, fill/shell, seal thickness and hardness
+  tests; next C6b, the soft-gel E2E to a released lot (two dispensed streams), then C7.
 - Declutter D3 drops SignInBrand's edition prop (sign-in says just "Batchwright"); the header keeps naming the edition of
   the record on screen through C2's `useScreenDosageForm`. Never pass an edition to SignInBrand.
 - Container restarts leave the local PostgreSQL clusters stopped: `sudo pg_ctlcluster 16 main start` (and ci, ci2, ci3).

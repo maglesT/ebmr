@@ -164,6 +164,8 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): where the drying runs.
             { id: 'tunnel', label: 'Drying tunnel or room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'tunnelClass' },
+            // Schedule M Part VIII 2.3: the critical drying time, timed (started when the trays go in, stopped at the passing end-point check).
+            { id: 'dryingTime', label: 'Tray drying time (to the passing end-point check)', type: 'TIMER', durationUnit: 'h', limitSlot: 'dryingTime', critical: true },
           ],
         },
         {
@@ -182,8 +184,6 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           id: 'output',
           title: 'Output',
           fields: [
-            // Schedule M Part VIII 2.3: the drying time recorded (days on trays: a recorded value, not a running timer).
-            { id: 'dryingTime', label: 'Total tray drying time', type: 'NUMBER', unit: 'h', decimals: 1, limitSlot: 'dryingTime', critical: true },
             // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight (the yield's input).
             { id: 'container', label: 'Dried capsules container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
@@ -200,9 +200,9 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
         roomTemp: reg('Cel', '20.0', '25.0'),
         roomRh: reg('%', '20', '35'),
         hardness: reg('N', '8.0', '12.0'),
-        dryingTime: reg('h', '24.0', '96.0'),
+        dryingTime: reg('h', undefined, '96'),
       },
-      targets: { airTemp: '25.0', roomTemp: '22.0', roomRh: '28', hardness: '10.0', dryingTime: '48.0' },
+      targets: { airTemp: '25.0', roomTemp: '22.0', roomRh: '28', hardness: '10.0' },
       equipmentClasses: { tumbleDryerClass: 'SOFTGEL-TUMBLE-DRYER', tunnelClass: 'SOFTGEL-DRYING-TUNNEL' },
       counts: { maxEndPointChecks: '10' },
     },

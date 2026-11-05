@@ -7,11 +7,10 @@
 import { describe, expect, it } from 'vitest';
 import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
 import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
-import type { BlockUse } from '../../src/library/model.ts';
 import { CAPSULE_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
-import { byCode as item, fieldOf, judgedRun, nominalRun, runNominalStep } from './seed-support.ts';
+import { byCode as item, configOf, fieldOf, judgedRun, nominalRun, runNominalStep, useOf } from './seed-support.ts';
 
 interface Step {
   id: string;
@@ -32,8 +31,6 @@ const STEPS: readonly Step[] = [
 
 const SOFTGEL_CODES = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
 
-const useOf = (s: Step): BlockUse => ({ block: { code: s.code, version: 1 }, ...item(s.code).exampleUse, ...(s.bomLines ? { bomLines: s.bomLines } : {}) });
-const configOf = (use: BlockUse): Record<string, unknown> => Object.fromEntries(Object.entries(use).filter(([k]) => k !== 'block'));
 
 /** The soft gel: the BOM at the reference size (the gelatin is the gel mass's per-batch excipient line). */
 const BOM: MbrContent['bom'] = [
@@ -102,7 +99,7 @@ describe('soft gels I (Capsules C6)', () => {
     const dry = item('SG-DRY');
     for (const id of ['airTemp', 'tumbling', 'roomTemp', 'roomRh', 'hardness', 'dryingTime']) expect(fieldOf(dry, id), id).toMatchObject({ critical: true });
     expect(dry.definition.sections.find((x) => x.id === 'endPoint')?.repeat).toEqual({ kind: 'UNTIL_PASS', untilField: 'hardness', maxRepeatsSlot: 'maxEndPointChecks' });
-    expect(fieldOf(dry, 'dryingTime')).toMatchObject({ type: 'NUMBER', unit: 'h' });
+    expect(fieldOf(dry, 'dryingTime')).toMatchObject({ type: 'TIMER', durationUnit: 'h', limitSlot: 'dryingTime' });
     expect(fieldOf(dry, 'tunnel')).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM' });
     expect(nominalRun(dry)).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
