@@ -115,6 +115,10 @@ describe('the library of block definitions', () => {
     expect(injectables).toEqual(expect.arrayContaining(sterile));
     const tablets = valueOf(await author.call(L.list, { query: { edition: 'tablets' } })).blocks.map((b) => b.code);
     expect(tablets.filter((c) => sterile.includes(c))).toEqual([]);
+    // Capsules C4: the multiparticulate blocks load the same way.
+    const multi = ['PROC-EXTRUDE-SPHERONISE', 'PROC-PELLET-LAYER', 'COAT-PELLET-FB', 'PROC-CAPS-FILL-MULTI'];
+    expect(first.drafted).toEqual(expect.arrayContaining(multi));
+    expect(second.skipped).toEqual(expect.arrayContaining(multi));
   });
 
   it('[DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them', async () => {

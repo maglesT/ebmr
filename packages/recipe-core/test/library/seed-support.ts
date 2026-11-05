@@ -4,7 +4,7 @@
  */
 import type { MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
-import type { BlockDefinition, FieldDef } from '../../src/library/model.ts';
+import type { BlockDefinition, BlockUse, FieldDef } from '../../src/library/model.ts';
 import { SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
@@ -110,4 +110,22 @@ export function runNominalStep(batch: Run, stepId: string, def: BlockDefinition,
   }
   batch.perform(stepId);
   if (batch.status(stepId) === 'AWAITING_VERIFICATION') batch.verify(stepId);
+}
+
+/** A master step from the catalogue: the item's example values, with the step's own formula lines and counts. */
+export interface CatalogueStep {
+  code: string;
+  bomLines?: Record<string, string>;
+  counts?: Record<string, string>;
+}
+
+/** The block use of a catalogue step (its example values, the step's formula lines and counts over them). */
+export function useOf(s: CatalogueStep): BlockUse {
+  const ex = byCode(s.code).exampleUse;
+  return { block: { code: s.code, version: 1 }, ...ex, ...(s.bomLines ? { bomLines: s.bomLines } : {}), ...(s.counts ? { counts: { ...ex.counts, ...s.counts } } : {}) };
+}
+
+/** A use's configuration as a phase carries it (the block reference left out). */
+export function configOf(use: BlockUse): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(use).filter(([k]) => k !== 'block'));
 }

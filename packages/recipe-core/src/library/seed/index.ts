@@ -7,6 +7,7 @@ import { CONTROL_SEEDS } from './controls.ts';
 import { INJECTABLE_RELEASE_SEEDS, INJECTABLE_SEEDS } from './injectables.ts';
 import { PACKAGING_SEEDS } from './packaging.ts';
 import { PROCESS_SEEDS } from './process.ts';
+import { MULTIPARTICULATE_SEEDS } from './multiparticulates.ts';
 import { IPC_TEST_SEEDS } from './tests-ipc.ts';
 import { RELEASE_TEST_SEEDS } from './tests-release.ts';
 import type { SeedItem } from './types.ts';
@@ -25,14 +26,16 @@ export const SEED_GROUPS: Readonly<Record<string, readonly SeedItem[]>> = {
   // Injectables edition, slice I-1 (plan v2, approved 4 November 2026): blocks of the `injectables` edition, offered
   // only to a master of that edition (recipe-core 1871).
   injectables: INJECTABLE_SEEDS,
+  // Capsules C4: multiparticulates (pellets, layering, pellet coating, multi-station filling).
+  multiparticulates: MULTIPARTICULATE_SEEDS,
   'release tests': [...RELEASE_TEST_SEEDS, ...CAPSULE_RELEASE_SEEDS, ...INJECTABLE_RELEASE_SEEDS],
 };
 
 /** Every item of the catalogue. */
 export const SEED_CATALOGUE: readonly SeedItem[] = Object.values(SEED_GROUPS).flat();
 
-/** The hard-capsule blocks (filling, polishing, their IPC tests and release dissolution). */
-export const CAPSULE_CATALOGUE: readonly SeedItem[] = [...CAPSULE_SEEDS, ...CAPSULE_RELEASE_SEEDS];
+/** The hard-capsule blocks (filling, polishing, multiparticulates, their IPC tests and release dissolution). */
+export const CAPSULE_CATALOGUE: readonly SeedItem[] = [...CAPSULE_SEEDS, ...MULTIPARTICULATE_SEEDS, ...CAPSULE_RELEASE_SEEDS];
 
 /** The Injectables edition's blocks of slice I-1 (terminally sterilised vials and ampoules) and its release tests. */
 export const INJECTABLE_CATALOGUE: readonly SeedItem[] = [...INJECTABLE_SEEDS, ...INJECTABLE_RELEASE_SEEDS];
