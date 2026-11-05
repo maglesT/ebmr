@@ -180,6 +180,8 @@ export const RunHeaderView = z.strictObject({
   /** The record the master makes (processing, packaging or reprocessing), for the screens' links to its containers, line completion and bulk (R10 #13). */
   recordKind: z.enum(['PROCESSING', 'PACKAGING', 'REPROCESSING']).optional(),
   product: ProductRef,
+  /** The master's dosage form (free text): the header reads "Batchwright Capsules" for a capsule (Capsules edition C2). */
+  dosageForm: z.string().optional(),
   markets: z.array(z.string()),
   status: BatchStatus,
   statusText: z.string(),

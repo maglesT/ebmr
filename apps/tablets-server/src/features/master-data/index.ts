@@ -51,11 +51,14 @@ export function registerSignableActions(registry: SignableActionRegistry, app: A
   if (app.installation === 'GMP') registry.register(formulaApproveHandler(app));
 }
 
-async function productNames(db: Pick<pg.Pool, 'query'>): Promise<Map<string, string>> {
-  const { rows } = await db.query<{ k: string; name: string }>(
-    "select distinct on (p.product_code, p.strength) p.product_code || '|' || p.strength as k, p.product_name as name from site.erp_product p order by p.product_code, p.strength, p.received_at desc, p.id desc",
+/** Each product's latest name and, when its master states one, its dosage form (C2), by "code|strength". */
+export async function productNames(db: Pick<pg.Pool, 'query'>): Promise<Map<string, { name: string; dosageForm: string | null }>> {
+  const { rows } = await db.query<{ k: string; name: string; dosage: string | null }>(
+    `select distinct on (p.product_code, p.strength) p.product_code || '|' || p.strength as k, p.product_name as name,
+            (select e.attributes ->> 'dosageForm' from site.master_entry e where e.version_id = p.id) as dosage
+       from site.erp_product p order by p.product_code, p.strength, p.received_at desc, p.id desc`,
   );
-  return new Map(rows.map((r) => [r.k, r.name]));
+  return new Map(rows.map((r) => [r.k, { name: r.name, dosageForm: r.dosage }]));
 }
 
 /** The targets of formula versions (recipe-core 1535), by version id. */
@@ -78,7 +81,8 @@ export async function formulaViews(app: AppContext, db: Pick<pg.Pool, 'query'>, 
         formulaId: f.formulaId,
         productCode: f.productCode,
         strength: f.strength,
-        productName: names.get(`${f.productCode}|${f.strength}`) ?? null,
+        productName: names.get(`${f.productCode}|${f.strength}`)?.name ?? null,
+        ...(names.get(`${f.productCode}|${f.strength}`)?.dosageForm ? { dosageForm: names.get(`${f.productCode}|${f.strength}`)?.dosageForm ?? '' } : {}),
         batchSizeUnits: f.batchSizeUnits,
         latestVersion: f.versions.length === 0 ? 0 : Math.max(...f.versions.map((v) => v.versionNumber)),
         approvedVersion: approved?.versionNumber ?? null,

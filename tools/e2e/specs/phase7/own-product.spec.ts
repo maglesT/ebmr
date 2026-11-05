@@ -96,7 +96,7 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
     const f = s.getByRole('form', { name: 'Record a formula' });
     await f.getByRole('textbox', { name: 'Product code' }).fill(product.code);
     await f.getByRole('textbox', { name: 'Strength' }).fill(product.strength);
-    await f.getByRole('textbox', { name: 'Batch size (tablets)' }).fill('100000');
+    await f.getByRole('textbox', { name: 'Batch size (units)' }).fill('100000');
     await f.getByRole('button', { name: 'Record the formula' }).click();
     await s.getByTestId(`formula-${product.code}-${product.strength}`).getByRole('link').click();
     const v = s.getByTestId('new-formula-version');
@@ -116,8 +116,8 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
       await choose(g.getByRole('radiogroup', { name: /^Potency adjusted/ }).getByRole('radio', { name: l.potency, exact: true }));
       await choose(g.getByRole('radiogroup', { name: /^Compensating excipient/ }).getByRole('radio', { name: l.comp, exact: true }));
     }
-    await v.getByRole('textbox', { name: 'Target tablet weight (mg)' }).fill('556');
-    await v.getByRole('textbox', { name: 'Further batch sizes (tablets)' }).fill('50000');
+    await v.getByRole('textbox', { name: 'Target unit weight (mg)' }).fill('556');
+    await v.getByRole('textbox', { name: 'Further batch sizes (units)' }).fill('50000');
     await v.getByRole('textbox', { name: 'Reason for the new version' }).fill('First version: the development formula');
     await v.getByRole('button', { name: 'Write the draft version' }).click();
     await expect(v.getByText('Draft version written.')).toBeVisible();
@@ -146,7 +146,7 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
     const c = a.getByTestId('choose-product');
     await c.getByRole('textbox', { name: 'Formula product' }).fill(product.code);
     await c.getByRole('textbox', { name: 'Formula strength' }).fill(product.strength);
-    await c.getByRole('textbox', { name: 'Formula batch size (tablets)' }).fill('100000');
+    await c.getByRole('textbox', { name: 'Formula batch size (units)' }).fill('100000');
     await c.getByRole('button', { name: 'Choose this product' }).click();
     await expect(c.getByTestId('formula-bom')).toContainText('556 mg');
     await a.getByRole('textbox', { name: 'Family code' }).fill(`FAM-${tag}`);
