@@ -20,7 +20,8 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
 import { routes, type ContainerView, type SignableAction, type SignatureCredentials } from '@ebmr/api-contract';
-import { flow, library } from '@ebmr/recipe-core/pure';
+import type { flow } from '@ebmr/recipe-core/pure';
+import { library } from '@ebmr/recipe-core/pure';
 import { openServiceSession } from '@ebmr/test-kit';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
@@ -86,7 +87,7 @@ function apiMaster(recordKind: 'PROCESSING' | 'PACKAGING', stages: (like: Json) 
     const like = (body['children'] as Json[])[0] as Json;
     body['children'] = stages(like);
     for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
-    m['blockDefinitions'] = defs as unknown as Json[];
+    m['blockDefinitions'] = defs;
   });
 }
 
@@ -95,7 +96,7 @@ const processing = apiMaster('PROCESSING', (like) => [
   // As the designer's blank API start writes it (from-formula.ts): H-PACK in a last stage of its own.
   stage(like, 'S-RELEASE', 'Release for packing', [{ kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] }]),
 ], [REACT]);
-const packaging = apiMaster('PACKAGING', (like) => [stage(like, 'S-PACK', 'Packing', [phaseOf(API_PACK.definition, 'p-pack', PACK_USE as unknown as Json)])], [API_PACK.definition]);
+const packaging = apiMaster('PACKAGING', (like) => [stage(like, 'S-PACK', 'Packing', [phaseOf(API_PACK.definition, 'p-pack', PACK_USE)])], [API_PACK.definition]);
 
 let gmp: ExecServer;
 let world: World;
@@ -287,9 +288,9 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
   it('[IN-17][PR-37][INV-05] the API edition\'s items fail closed: a record with no pack step reconciles no label, posts no checkable quantity and examines nothing (RED), and a lot that is no API finished lot answers one RED item', async () => {
     const q = async (sql: string, params: unknown[]): Promise<{ id: string; status: string; problem: string | null }> => (await gmp.db.admin.query<{ r: { id: string; status: string; problem: string | null } }>(sql, params)).rows[0]!.r;
     // The processing batch ran no API-PACK step.
-    expect(await q('select substance.grel_recon_labels($1) as r', [batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/ran no pack step/) });
-    expect(await q('select substance.grel_pack_examination($1) as r', [batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/ran no pack step/) });
-    expect(await q('select substance.grel_posted_quantity($1, $2) as r', [lotId, batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/filled no drum or bag/) });
+    expect(await q('select substance.grel_recon_labels($1) as r', [batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/ran no pack step/) as unknown });
+    expect(await q('select substance.grel_pack_examination($1) as r', [batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/ran no pack step/) as unknown });
+    expect(await q('select substance.grel_posted_quantity($1, $2) as r', [lotId, batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/filled no drum or bag/) as unknown });
     const other = (await gmp.db.admin.query<{ r: { id: string; status: string }[] }>('select substance.grel_edition_items($1, $2) as r', [randomUUID(), 'IN'])).rows[0]!.r;
     expect(other.map((i) => [i.id, i.status])).toEqual([['E.EDITION', 'RED']]);
     // The hook is registered for the API edition, beside the tablets one.

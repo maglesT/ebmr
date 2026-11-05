@@ -71,8 +71,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 Plan `docs/build-plan/api/plan.md` (approved 4 November), platform fit `platform-fit.md` (confirmed). A0 merged
 (#111, 5 November): one edition list `kernel.editions()` (kernel 1403, site-services 1731, recipe-core 1872), the
-`substance` edition value, `editions/substance/sql` (migrations 5000-5999). Next: A1a, then A1b; resume from
-`docs/build-plan/api/handover-a0.md`.
+`substance` edition value, `editions/substance/sql` (migrations 5000-5999). A1a (5 November): the shared enablement
+(recipe-core 1873 lets a library block complete a packaging record; kernel 1404 market guard fails closed for an API
+scope; substance 5000 the API-PACK completion row and the API G-REL items; designer PACKAGING_BLANK and H-PACK in the
+blank API master; lot reservations take the batch's edition; SUBSTANCE in the edition enums) and a route-level test of
+one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and the E2E acceptance); resume from
+`docs/build-plan/api/handover-a0.md` (section "A1a done").
 
 ## Next
 

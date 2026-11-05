@@ -59,5 +59,6 @@ The module list behind the generated pages is [modules.yaml](modules.yaml). Writ
 | [shared-kits](modules/shared-kits.md) | `packages/ui-kit`, `packages/test-kit`, `packages/validation-kit` |
 | [validation-kit](modules/validation-kit.md) | `packages/validation-kit`: the evidence bundle and the validation pack generators (Phase 7) |
 | [injectables](modules/injectables.md) | `apps/injectables-*`: placeholders for Phase 5 |
+| [substance](modules/substance.md) | `editions/substance`: the API edition's migrations, its pack block and its release items |
 | [tools](modules/tools.md) | `tools/*`: register, boundaries, SQL mutation, demo, end-to-end suite, handbook |
 | [tools-validation](modules/tools-validation.md) | `tools/validation`: the evidence bundle, the pack, the IQ and OQ scripts, the build statuses |

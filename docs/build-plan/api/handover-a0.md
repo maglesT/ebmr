@@ -113,3 +113,32 @@
 - **AS controls:** add AS-01 to AS-10, AS-14 to AS-16, AS-18 and AS-24 as files, with the slice's tests listed, sent
   through the lead. Then `tools/register` gets 'substance' in its editions.
 - **Codes:** none new expected in A1. `ebmr.coa.sign` and `report.coa_v1` come in A3, sent to the lead.
+
+## A1a done (5 November 2026)
+
+What A1a changed, against the list above:
+
+1. **Packaging master:** the designer's new start `PACKAGING_BLANK` (API families only; `packType` required) writes
+   the header (record kind PACKAGING, the formula's batch sizes), no bill of materials, one packing stage with its room
+   clearance (G-10@2), and no formula pin. The author adds the packing materials: an ERP order needs a BOM
+   (EBMR-SITE-175), so the API packaging master needs at least its drum or bag line.
+2. **Completion block:** recipe-core 1873 widens the `block_type` check to `LIB-<code>`; substance 5000 inserts
+   `('substance', 'LIB-API-PACK')`.
+3. **H-PACK:** the blank API processing master ends with a stage `S-RELEASE` holding H-PACK; the author adds the
+   synthesis stages before it.
+4. **reserve_lot:** the edition comes from the batch's register allocation (receipt route and the two demo CLIs).
+5. **Enums:** SUBSTANCE added in planning.ts, register.ts, lots/commands.ts and BatchNumbersPage.
+6. **Market guard:** kernel 1404 refuses any non-kernel key on a substance scope (EBMR-MKT-054).
+7. **G-REL:** `substance.grel_edition_items` (5000): E.RECONCILIATION_LABELS, E.RECONCILIATION_YIELD,
+   E.POSTED_QUANTITY (kg, the sum of the `container` entries' `netMass`), E.PACK_EXAMINATION, and the generic tablets
+   items for containers, rule sets and reprocessing parents.
+8. **ERP orders:** a GMP issue needs an ERP order; it comes through the ERP import (any edition). The DEMO-ONLY "Send a
+   production order" still offers tablets masters only (frozen ERP simulator), so the A1b E2E posts its orders through
+   the ERP import.
+
+**API-PACK** is defined in `packages/recipe-core/src/library/seed/substance.ts` (sections `container`, `recon`,
+`exam`). It is not in `SEED_GROUPS` yet: A1b adds the rest of catalogue v1 and registers the group. The release items
+read its section and field ids; change both together.
+
+**The chain test** `apps/tablets-server/test/substance/api-chain.test.ts` drives the masters (built as content, without
+the G-10/G-09 plant steps) to a RELEASED lot through the routes. A1b's E2E builds them on screen with the plant steps.

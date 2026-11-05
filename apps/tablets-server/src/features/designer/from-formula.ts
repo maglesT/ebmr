@@ -308,7 +308,7 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
 /** API plan A1a: the last stage of an API processing master, QA's release for packing (H-PACK). */
 function releaseForPacking(like: flow.StageNode): flow.StageNode {
   const hold = { kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] } as flow.FlowNode;
-  return { ...like, id: 'S-RELEASE', name: 'Release for packing', body: { kind: 'sequence', id: 'seq-release', children: [hold] } as flow.SequenceNode };
+  return { ...like, id: 'S-RELEASE', name: 'Release for packing', body: { kind: 'sequence', id: 'seq-release', children: [hold] } };
 }
 
 /** PACKAGING_BLANK (header comment): the API's packaging master, its header, no bill of materials and a packing stage. */
@@ -326,10 +326,11 @@ function packagingBlank(base: MbrTemplate, src: FormulaSource, req: FormulaFamil
     ...disp,
     id: 'S-PACK',
     name: 'Packing',
-    body: { kind: 'sequence', id: 'seq-pack', children: [{ ...clear, id: 'p-pk-clear', name: 'Packing room clearance' } as flow.FlowNode] } as flow.SequenceNode,
+    body: { kind: 'sequence', id: 'seq-pack', children: [{ ...clear, id: 'p-pk-clear', name: 'Packing room clearance' } as flow.FlowNode] },
   };
   (t.procedure.body as flow.SequenceNode).children = [stage];
-  const { unitMassMg: _unitMass, ...head } = t.header;
+  const head = { ...t.header };
+  delete head.unitMassMg;
   t.header = { ...head, title: `${src.product.name} ${src.chosen.strength}: packing into ${req.packType}`, recordKind: 'PACKAGING', packType: req.packType };
   t.bom = [];
   t.references = t.references.filter((r) => r.kind !== 'MATERIAL');
