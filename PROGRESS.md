@@ -63,6 +63,10 @@ list; then the home (even "Show all screens") and the links on kept pages skip t
 people and grant screens are off too (core keeps them). D-D2-1: the India licences screen stays (a GMP batch needs the
 product endorsed on the licence; the library-dc flow records and approves it); shelf-life bases go. Next: D3 (new home,
 naming: "Batchwright" on sign-in and title, the edition in the header; amend decision 0020), D4.
+**D4 (branch `declutter/d4`):** `DISCONNECTED_ROUTES` (route id → owner) refuses the eight full deviation-record routes
+inside `quality` (Deviations); raise, link, the batch's list and the release checklist stay (kept screens and the
+database's reference checks need them). `/quality/deviations` is off on the web; kept pages show the reference as text.
+Residuals D4-R1 to R5 (MMS, Logbook, Qual, QMS, Deviations) in plan.md section 7.
 
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation

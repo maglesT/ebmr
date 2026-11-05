@@ -219,3 +219,16 @@ Anything else goes to the lead first.
    segregation check will not see them; the owner accepts this until the function is reconnected or moved (later)".
    The routes' code and tables stay, so reconnecting is a one-line change in `DISCONNECTED`.
 4. QP batch packages: LATER, so disconnected now (EU exports only).
+
+## 7. Residuals (slice D4)
+
+Data that another product owns and that Batchwright still answers from its own tables until that product publishes a
+view (section 2). Each is a residual for when the view exists; no code changes now, and no control changes.
+
+| ID | Owner | What Batchwright does now | When the owner's view is published |
+|---|---|---|---|
+| D4-R1 | MMS | Material lot identity and status (`site.material_lot*`, locations, finished, returned and reagent lots) are answered by Batchwright's own tables; about 40 foreign keys point at `material_lot`. The batch's reservation and consumption stay Batchwright's (they are part of the record). | Read lot identity and status from MMS's view; a reference-only change in its own slice. |
+| D4-R2 | Logbook | Equipment clean status (`plant.*`, recipe-core 0400, 0460, 0950) is answered by the current tables; `equipment_use` and `step_equipment` stay (batch context). | Read clean status from Logbook's view. |
+| D4-R3 | Qual | Person qualification (`iam.person_qualification*`, kernel 0130) is a mirror with a heartbeat; the signing check reads it. | Read Qual's view; the signing check stays. |
+| D4-R4 | QMS | Release's check "no open CAPA on this batch" reads Batchwright's own CAPA tables (site-services 0925); the CAPA routes are disconnected (D1). | Read QMS's published CAPA view in the release check. |
+| D4-R5 | Deviations | The full deviation routes are disconnected (D4: detail, reclassify, impact, closure basis, record, investigation, finding, cancel). Kept connected: raise and link (an exception's or OOS result's reference is checked by the database against a record linked to the batch, PR-49, IN-20), the batch's list and the release checklist. Invalidating a result for a laboratory error and reprocessing still need a QA-concluded deviation-lite record, which cannot be investigated or concluded in Batchwright while disconnected. | Check references against Deviations' view; take the conclusion for invalidation and reprocessing from it. |

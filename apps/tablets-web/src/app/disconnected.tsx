@@ -47,6 +47,7 @@ export const DISCONNECTED_PATHS: readonly string[] = [
   '/india/product-rules', // shelf-life bases and hazard classes: later (licences and the batch-number register stay)
   '/admin/qualifications', // Qual
   '/admin/us-esig-certification', // core
+  '/quality/deviations', // Deviations (slice D4): full deviation records; kept screens show the reference as text
 ];
 
 /** People, accounts and grants: kept by the platform's core (they answer 410 MANAGED_IN_PLATFORM there). */

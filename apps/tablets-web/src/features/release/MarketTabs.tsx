@@ -18,6 +18,7 @@ import { routes, type LotReleaseView, type ReleaseMarket } from '@ebmr/api-contr
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
+import { useScreensOff } from '../../app/disconnected.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered, useSessionRole, useSessionRoles } from '../../app/roles.ts';
 import { GateProblems } from '../review/parts.tsx';
@@ -101,6 +102,7 @@ function UsParts({ lot, d, inSet }: { lot: LotReleaseView; d: MarketDispositionV
 }
 
 function UsDecision({ d }: { d: MarketDispositionView }) {
+  const off = useScreensOff();
   const x = d.decision;
   if (!x) return null;
   return (
@@ -116,9 +118,13 @@ function UsDecision({ d }: { d: MarketDispositionView }) {
       {x.deviationId ? (
         <p>
           Investigation:{' '}
-          <Link to="/quality/deviations/$deviationId" params={{ deviationId: x.deviationId }}>
-            {x.deviationId}
-          </Link>
+          {off('/quality/deviations') ? (
+            x.deviationId
+          ) : (
+            <Link to="/quality/deviations/$deviationId" params={{ deviationId: x.deviationId }}>
+              {x.deviationId}
+            </Link>
+          )}
         </p>
       ) : null}
     </Section>
