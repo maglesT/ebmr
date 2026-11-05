@@ -18,6 +18,10 @@ create and load a new formulation on the demo after the declutter.
 - Master record: family, versions, preparer → checker → QA approval, and the change records a new version needs
   (`/mbr`, `/mbr/change-records`).
 - Batch generation from the approved master (`/planning`, `/planning/batches`).
+- Packaging (lead review): release is of a finished lot of a packaging batch. `recipe.release_scope` refuses any other
+  lot (EBMR-REL-010, recipe-core 0781). A finished-product batch record also includes packaging and labelling (US
+  211.188(b), 211.125 and 211.130; the Schedule M batch packaging record). So the minimum is kept: the packaging order
+  with its batch, bulk issue, label issuance and label reconciliation.
 
 **Keep** is the batch-record path that works end to end on the platform:
 - master record (library, designer, approval and its change record);
@@ -48,17 +52,17 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Master records (/mbr) | KEEP | the designer and its approval |
 | Block library (/mbr/library) | KEEP | the dynamic library the designer builds from |
 | MBR change records (/mbr/change-records) | KEEP | the master record's change control (approval path) |
-| Labelling specimens (/mbr/specimens) | DISCONNECT | later (packaging artwork) |
+| Labelling specimens (/mbr/specimens) | DISCONNECT | later (packaging artwork; the approved template is what prints) |
 | Shop floor (/runs, GMP) | KEEP | execution, signatures, IPC, exceptions |
 | Test-run packages, Test runs, Test lots, What you can do now (SANDBOX) | KEEP | the sandbox's test run of a master before approval |
 | Planning (/planning) | KEEP | the batch order that issues the batch |
 | Batches (/planning/batches) | KEEP | issued batches |
 | Batch numbers (/planning/batch-numbers) | KEEP | batch-number register |
-| Packaging orders (/planning/packaging) | DISCONNECT | later (packaging edition slice) |
+| Packaging orders (/planning/packaging) | KEEP | release needs a finished lot of a packaging batch (EBMR-REL-010) |
 | Master data (/master-data): Formulas (/master-data/formulas, /master-data/formulas/$formulaId) | KEEP | the new formulation from library blocks (core path) |
 | Master data: products, materials (/master-data/erp), rooms and equipment (/master-data/plant), Plant definitions (SANDBOX) | READ-ONLY on the platform | core owns them. Batchwright shows the mapping (`md.item_map`) at most; no create or edit |
-| Plant (/plant) | KEEP, reduced | equipment in use and its clean status for the batch only; the logbook belongs to Logbook (section 2) |
-| Quality (/quality) | KEEP, reduced | material lot status that dispensing needs; lot management belongs to MMS (section 2) |
+| Plant (/plant) | KEEP, reduced | equipment in use, its clean status and the equipment-use checks for the batch; the logbook belongs to Logbook (section 2). D1's request-logged E2E run proves the equipment-use checks still work |
+| Quality (/quality) | KEEP, reduced | material lot receipt and status that dispensing needs; lot management belongs to MMS (section 2). D1's request-logged E2E run proves dispensing still works |
 | Batch record review (/review) | KEEP | 211.192 |
 | Release cockpit (/release) | KEEP | release |
 | QP batch packages (/qp) | KEEP | EU QP certification (Annex 16) |
@@ -79,7 +83,9 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Configuration change records, history, review-by-exception rules | DISCONNECT | QMS (change control) or later |
 | Vendor support, Digital signature certificates, Contract givers, Batches made for you | DISCONNECT | later |
 | Genealogy explorer, Complaint lookup, Mock recalls | DISCONNECT | QMS (complaints, recall) |
-| Label templates, Label store, Serial lookup | DISCONNECT | later (packaging) |
+| Label store (/labels/store) | KEEP | label issuance and reconciliation (211.125, 211.130) |
+| Label templates (/labels/templates) | KEEP read-only | the packaging batch prints from the approved template; editing goes later with artwork |
+| Serial lookup (/serialisation/serials) | DISCONNECT | later (serialisation) |
 | Licences, Shelf-life bases, Batch-number register (India) | KEEP the register only | the Schedule M register of batch numbers |
 | Dashboards, Change impact, Analytics, SPC, MSPC, Audit-trail flags | DISCONNECT | later (analytics product) |
 | Integration health, Inter-site transfers, Controlled substances (draft) | DISCONNECT | later |
@@ -131,7 +137,9 @@ namespaces, one PR per area. Tables stay until their retention ends.
 **Tests.**
 - Tagged with the access-control ID chosen in D1: every disconnected namespace answers 410, for one route each, generated from the list.
 - The kept path is unchanged: the golden batches GB-T-01, -02 and -03, and the E2E groups gmp-batches, library-dc and
-  route-w.
+  route-w. Together they cover dispensing, the equipment-use checks, packaging, label reconciliation and release.
+- A kept E2E step, new in D1: a new formulation from library blocks → master → approval → batch. The owner must be able
+  to do this on the demo.
 - `home-tiles.test.tsx` checks that the home offers exactly the kept list per role.
 
 ## 4. New look
