@@ -22,7 +22,6 @@ import { Banner, brand, Button, Field, identity, t, takeSecret, wasFilled } from
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
-import { EDITION } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { sessionEndNotice, setSessionEndNotice } from '../../app/session-end-notice.ts';
