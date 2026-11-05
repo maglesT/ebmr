@@ -15,6 +15,7 @@ import { DeliveryReceiptPage } from './DeliveryReceiptPage.tsx';
 import { ErpStatusPage } from './ErpStatusPage.tsx';
 import { LotReceiptPage } from './LotReceiptPage.tsx';
 import { LotPage } from './LotPage.tsx';
+import { LotOosRecordPage } from './LotOosRecord.tsx';
 import { UpdatePotencyPage } from './UpdatePotencyPage.tsx';
 import { LotsPage } from './LotsPage.tsx';
 import { useScreensOff } from '../../app/disconnected.tsx';
@@ -74,6 +75,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/quality/lots', component: LotsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId', component: LotPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId/potency', component: UpdatePotencyPage }),
+    // Slice D4b: one lot's OOS record, opened from its lot page only (the deviation screens stay off).
+    createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId/oos/$deviationId', component: LotOosRecordPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/specifications', component: SpecificationsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/returns', component: ReturnsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/extra-testing', component: BatchQualityPage }),

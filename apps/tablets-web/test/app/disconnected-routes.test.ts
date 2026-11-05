@@ -48,12 +48,12 @@ const EMBEDDED: Record<string, string[]> = {
  * Slice D4: the files of kept features that name a single disconnected route (DISCONNECTED_ROUTES, the full deviation
  * records), each a deviation screen switched off at /quality/deviations (DeviationsPage only names two ids among the
  * reads it refreshes). The lot page embeds DeviationDetail's release checklist, which reads quality.deviationRelease
- * (kept connected).
+ * (kept connected). Slice D4b: the lot's OOS record (LotOosRecord.tsx) names none, so it is not listed here.
  */
 const DEVIATION_SCREENS: Record<string, string[]> = {
-  'features/quality/DeviationDetail.tsx': ['deviationDetail', 'reclassifyDeviation', 'recordDeviationClosureBasis', 'recordDeviationImpact'],
+  'features/quality/DeviationDetail.tsx': ['reclassifyDeviation'],
   'features/quality/DeviationPage.tsx': ['cancelDeviation', 'deviation'],
-  'features/quality/DeviationsPage.tsx': ['deviation', 'deviationDetail'],
+  'features/quality/DeviationsPage.tsx': ['deviation'],
 };
 
 function files(dir: string): string[] {
@@ -103,6 +103,6 @@ describe('[DI-17] the kept screens call no disconnected deviation route (declutt
       expect(screenOff(path, true, false), path).toBe(true);
       expect(screenOff(path, false, false), path).toBe(false);
     }
-    for (const path of ['/quality', '/quality/lots/123', '/records/123', '/release/123']) expect(screenOff(path, true, false), path).toBe(false);
+    for (const path of ['/quality', '/quality/lots/123', '/quality/lots/123/oos/456', '/records/123', '/release/123']) expect(screenOff(path, true, false), path).toBe(false);
   });
 });

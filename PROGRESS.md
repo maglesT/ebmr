@@ -70,6 +70,13 @@ without descriptions. The header's edition of the record on screen follows when 
 inside `quality` (Deviations); raise, link, the batch's list and the release checklist stay (kept screens and the
 database's reference checks need them). `/quality/deviations` is off on the web; kept pages show the reference as text.
 Residuals D4-R1 to R5 (MMS, Logbook, Qual, QMS, Deviations) in plan.md section 7.
+**D4b (branch `declutter/d4b`):** a lot opens only its own OOS record (`/quality/lots/$lotId/oos/$deviationId`, from the
+result row and the lot's release checklist): investigation, finding, impact, closure basis, QA's signed impact assessment and
+conclusion, which a laboratory-error invalidation needs. Detail, impact and closure basis reconnected; reclassify, cancel,
+the lite record and the list stay off.
+Later CI slice: gate the E2E set-up's seeds per group (`gmpReviewBatch`, `gmpPackaging`, in `tools/e2e/global-setup.ts`;
+about 13.5 min in every group). Not small: `--gmp-packaging` also makes the sandbox plant and carries the SR-profile and
+P3-demo seeds, so a per-group map needs a full E2E proof run.
 
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation

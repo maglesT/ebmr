@@ -7,6 +7,7 @@
  * blocks release) is the database's, and its words are shown.
  */
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { DeviationClosureBasisInput, routes, type DeviationDetailView } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
@@ -91,7 +92,7 @@ function Reclassify({ d }: { d: DeviationDetailView }) {
   );
 }
 
-function ImpactForm({ d }: { d: DeviationDetailView }) {
+export function ImpactForm({ d }: { d: DeviationDetailView }) {
   const [linkId, setLinkId] = useState<string | null>(d.links.length === 1 ? (d.links[0]?.linkId ?? null) : null);
   const [market, setMarket] = useState<(typeof MARKETS)[number] | null>(null);
   const [impact, setImpact] = useState<(typeof IMPACTS)[number] | null>(null);
@@ -117,7 +118,7 @@ function ImpactForm({ d }: { d: DeviationDetailView }) {
   );
 }
 
-function ClosureSummary({ c }: { c: NonNullable<DeviationDetailView['closureBasis']> }) {
+export function ClosureSummary({ c }: { c: NonNullable<DeviationDetailView['closureBasis']> }) {
   return (
     <ul data-testid="closure-summary">
       <li>Root-cause method: {c.rootCauseMethod ?? 'none named'}</li>
@@ -146,7 +147,7 @@ interface OtherRow {
 const EMPTY_ROW: OtherRow = { subjectKind: null, ref: '', included: null, reason: '' };
 
 /** The closure basis (DeviationClosureBasisInput): the body is checked against the contract before it is sent. */
-function ClosureBasisForm({ deviationId }: { deviationId: string }) {
+export function ClosureBasisForm({ deviationId }: { deviationId: string }) {
   const [method, setMethod] = useState('');
   const [factors, setFactors] = useState({ process: '', procedure: '', system: '' });
   const [capa, setCapa] = useState('');
@@ -228,6 +229,8 @@ function ClosureBasisForm({ deviationId }: { deviationId: string }) {
 
 /** The deviations linked to a subject as the release checklist lists them, and why release is blocked (the server's words). */
 export function DeviationReleaseChecklist({ subjectKind, subjectId }: { subjectKind: 'BATCH' | 'LOT' | 'CONTAINER'; subjectId: string }) {
+  // Slice D4b: on a lot, its OOS record opens at the lot (LotOosRecord.tsx); no other record opens from here.
+  const lotOos = (i: { kind: string; deviationId: string }) => subjectKind === 'LOT' && i.kind === 'OOS';
   const q = useApiQuery(routes.quality.deviationRelease, { query: { subjectKind, subjectId } });
   return (
     <Section title="Deviations and release" testId="deviation-release">
@@ -236,7 +239,14 @@ export function DeviationReleaseChecklist({ subjectKind, subjectId }: { subjectK
       <ul>
         {q.data?.items.map((i) => (
           <li key={i.deviationId} data-testid={`release-item-${i.ref}`}>
-            {i.ref} {i.kind} <StatusChip tone={i.blocking ? 'error' : 'ok'} label={i.blocking ? 'blocks release' : 'does not block'} /> {i.state} · {i.classification}
+            {lotOos(i) ? (
+              <Link to="/quality/lots/$lotId/oos/$deviationId" params={{ lotId: subjectId, deviationId: i.deviationId }}>
+                {i.ref}
+              </Link>
+            ) : (
+              i.ref
+            )}{' '}
+            {i.kind} <StatusChip tone={i.blocking ? 'error' : 'ok'} label={i.blocking ? 'blocks release' : 'does not block'} /> {i.state} · {i.classification}
             {i.reason ? ` · ${i.reason}` : ''}
           </li>
         ))}
