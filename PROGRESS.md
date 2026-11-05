@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 1 November 2026 (decision 0026: dynamic library; slices S0 and S1).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 5 November 2026 (Capsules C3).
 
 ## What this is
 
@@ -130,11 +130,16 @@ at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating
 `bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
 group `library-caps` (green to a released lot). Also on main: the E2E race fix (three container helpers wait for the stored
 typed net before the verifier opens the containers page; it ended the "Verify the net" timeouts).
-**Resume here: C3** (post-fill and packing: checkweigher, inspection, printing with the QC hold point, banding for US
-OTC, blister, strip, bottle; `[IN-37][PR-41][IN-38]`), in a fresh session, branch `caps/c3` from main. Lead's rules:
+**C3 (branch `caps/c3`, 5 November):** five post-fill blocks, data only (PROC-CAPS-CHECKWEIGH, -INSPECT, -PRINT, -BAND,
+IPC-CAPS-SEAL-LEAK); validator 1.3.0 adds GMP-CAPSULE-SEAL (US OTC two-piece hard capsule banded or sealed on every path,
+PR-41) and GMP-CAPSULE-PRINT-HELD (printing before a hold point every path passes, IN-37); `library-caps` runs checkweigh,
+print and inspect before H-PACK and packs in the cold-form blister. Decisions D-C3-1 to 5 in the plan, section 8.
+**Resume here: C4** (multiparticulates: extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet
+dosing, combinations, two-stage dissolution; a delayed-release pellet formulation runs), branch `caps/c4` from main. Lead's rules:
 - Declutter: no new home tiles, menus or screens; build only on the kept core path (packaging, label issuance and
   reconciliation are kept). Never call the namespaces in `packages/api-contract/src/disconnected.ts` (D1, #116; 410 on
-  the platform build). First step: check the acceptance helpers C3 reuses (change control, equipment logbook) against
+  the platform build). C3 checked the acceptance helpers (change control, equipment logbook): none is disconnected;
+  check any new helper C4 adds against
   that list.
 - Full chain to a released, packed lot in every E2E (EBMR-REL-010); `library-caps` already does it; extend it rather
   than add a group where the plan allows.

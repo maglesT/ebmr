@@ -251,6 +251,198 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
       counts: { capsules: '6' },
     },
   },
+  // C3, post-fill (Capsules edition plan, section 3.1): 100 % checkweighing, visual inspection and sorting, printing
+  // (held for QC approval at the master's hold point before packaging, Schedule M Part VIII 6), banding or sealing (an OTC
+  // two-piece hard capsule, 21 CFR 211.132) and the seal integrity check. Each is shared by hard capsules and soft gels.
+  {
+    definition: {
+      code: 'PROC-CAPS-CHECKWEIGH',
+      version: 1,
+      title: 'Capsule checkweighing (100 % weight sorting)',
+      category: 'PROCESS',
+      instructions: 'Challenge the checkweigher with light and heavy test capsules, set its reject limits to the master\'s, and pass every capsule through it. Light and heavy capsules go to the reject bin.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'checkweigher', label: 'Capsule checkweigher', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'checkweigherClass' },
+            { id: 'challenged', label: 'Challenge passed (light and heavy test capsules rejected)', type: 'YES_NO', expected: true },
+            { id: 'rejectLow', label: 'Lower reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectLow', critical: true },
+            { id: 'rejectHigh', label: 'Upper reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectHigh', critical: true },
+            { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
+          ],
+        },
+        {
+          id: 'output',
+          title: 'Output',
+          fields: [
+            { id: 'container', label: 'Accepted capsules container', type: 'CONTAINER', action: 'REGISTER' },
+            { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
+            { id: 'rejects', label: 'Weight-rejected capsules', type: 'WEIGHING', unit: 'kg' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { rejectLow: spec('mg', '370.0', '376.0'), rejectHigh: spec('mg', '416.0', '422.0') },
+      targets: { rejectLow: '373.0', rejectHigh: '419.0' },
+      equipmentClasses: { checkweigherClass: 'CAPSULE-CHECKWEIGHER' },
+    },
+  },
+  {
+    definition: {
+      code: 'PROC-CAPS-INSPECT',
+      version: 1,
+      title: 'Visual inspection and sorting (capsules)',
+      category: 'PROCESS',
+      instructions: 'Inspect every capsule on the inspection belt or camera inspector and remove the defective ones: dents, splits, leakers, misshapen, double-capped and empty capsules and foreign capsules. A second person checks the removal independently.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'inspector', label: 'Inspection machine or belt', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'inspectorClass' },
+            { id: 'method', label: 'Inspection method', type: 'CHOICE', options: ['Manual inspection belt', 'Automatic camera inspection'] },
+            { id: 'challenged', label: 'Defect challenge set found (or the inspectors qualified on it)', type: 'YES_NO', expected: true },
+            { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
+          ],
+        },
+        {
+          id: 'output',
+          title: 'Output',
+          fields: [
+            { id: 'defectsRemoved', label: 'Defective and foreign capsules removed', type: 'YES_NO', expected: true },
+            { id: 'container', label: 'Inspected capsules container', type: 'CONTAINER', action: 'REGISTER' },
+            { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
+            { id: 'rejects', label: 'Rejected capsules', type: 'WEIGHING', unit: 'kg' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { inspectorClass: 'CAPSULE-INSPECTOR' },
+    },
+  },
+  {
+    definition: {
+      code: 'PROC-CAPS-PRINT',
+      version: 1,
+      title: 'Capsule printing',
+      category: 'PROCESS',
+      instructions: 'Print in a segregated area with an approved edible ink. Check the print at each round against the master\'s text. The printed capsules are held until QC approves them at the hold point before packaging.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'printer', label: 'Capsule printing machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'printerClass' },
+            { id: 'segregated', label: 'Printing area segregated and cleared of other print', type: 'YES_NO', expected: true },
+            { id: 'ink', label: 'Edible ink (name and lot)', type: 'TEXT' },
+            { id: 'inkApproved', label: 'Ink is the master\'s approved edible ink', type: 'YES_NO', expected: true },
+            { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
+          ],
+        },
+        {
+          id: 'round',
+          title: 'Print check',
+          repeat: { kind: 'PER_INTERVAL', intervalSlot: 'checkInterval' },
+          fields: [
+            { id: 'legible', label: 'Print legible, complete and as the master\'s text', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'output',
+          title: 'Output',
+          fields: [
+            { id: 'container', label: 'Printed capsules container', type: 'CONTAINER', action: 'REGISTER' },
+            { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
+            { id: 'rejects', label: 'Misprinted capsules', type: 'WEIGHING', unit: 'kg' },
+            { id: 'heldForQc', label: 'Printed capsules labelled as held for QC approval', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { printerClass: 'CAPSULE-PRINTER' },
+      intervals: { checkInterval: { value: '30', unit: 'min' } },
+    },
+  },
+  {
+    definition: {
+      code: 'PROC-CAPS-BAND',
+      version: 1,
+      title: 'Capsule banding and sealing',
+      category: 'PROCESS',
+      instructions: 'Prepare the band or sealing solution and use it within its holding time. Band or seal every capsule and check the bands at each round. An OTC two-piece hard capsule must be sealed (tamper evident); the seal integrity test is its own step.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'bander', label: 'Banding or sealing machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'banderClass' },
+            { id: 'technology', label: 'Sealing technology', type: 'CHOICE', options: ['Gelatin band', 'HPMC band', 'Liquid fusion sealing'] },
+            { id: 'solutionTemp', label: 'Band solution temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'solutionTemp', critical: true },
+            { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
+          ],
+        },
+        {
+          id: 'round',
+          title: 'Banding round',
+          repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
+          fields: [
+            { id: 'bandIntact', label: 'Bands complete, even and closed on the capsules examined', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'output',
+          title: 'Output',
+          fields: [
+            { id: 'solutionHold', label: 'Band solution in use (from preparation to the last capsule)', type: 'TIMER', durationUnit: 'min', limitSlot: 'solutionHold', critical: true },
+            { id: 'container', label: 'Banded capsules container', type: 'CONTAINER', action: 'REGISTER' },
+            { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
+            { id: 'rejects', label: 'Rejected capsules', type: 'WEIGHING', unit: 'kg' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { solutionTemp: spec('Cel', '45.0', '55.0'), solutionHold: spec('min', undefined, '480') },
+      targets: { solutionTemp: '50.0' },
+      equipmentClasses: { banderClass: 'CAPSULE-BANDER' },
+      intervals: { roundInterval: { value: '30', unit: 'min' } },
+    },
+  },
+  {
+    definition: {
+      code: 'IPC-CAPS-SEAL-LEAK',
+      version: 1,
+      title: 'Seal integrity and leakers (capsules)',
+      category: 'TEST_IPC',
+      instructions: 'Test the sample the formulation names for leaks (banded or sealed hard capsules, soft gels). Any leaker fails the check: the capsules are held and a deviation is raised.',
+      sections: [
+        {
+          id: 'test',
+          title: 'Test',
+          fields: [
+            { id: 'tester', label: 'Leak tester', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'testerClass' },
+            { id: 'tested', label: 'Capsules tested', type: 'SAMPLE', unitsSlot: 'capsules', purpose: 'Seal integrity' },
+            { id: 'leakers', label: 'Leaking or unsealed capsules', type: 'NUMBER', unit: '1', decimals: 0, limitSlot: 'leakers', critical: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR],
+    },
+    exampleUse: {
+      limits: { leakers: spec('1', '0', '0') },
+      equipmentClasses: { testerClass: 'LEAK-TESTER' },
+      counts: { capsules: '50' },
+    },
+  },
 ];
 
 /** QC's release test of a capsule product (QC roles: not on the floor; see the role gap in decision 0026). */

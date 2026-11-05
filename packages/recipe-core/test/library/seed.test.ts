@@ -12,7 +12,7 @@ import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/se
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 
-function nominalRun(item: SeedItem): { exceptions: string[]; status: string | undefined } {
+function nominalRun(item: SeedItem, edit: (e: Record<string, unknown>) => Record<string, unknown> = (e) => e): { exceptions: string[]; status: string | undefined } {
   const def = item.definition;
   const config = item.exampleUse as Record<string, unknown>;
   const lines = Object.values(item.exampleUse.bomLines ?? {});
@@ -34,7 +34,7 @@ function nominalRun(item: SeedItem): { exceptions: string[]; status: string | un
   const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
   const run = Run.issue(d, { inputs: values }, T0);
   run.start('p');
-  const entries = nominalEntries(def, config as never, mbr);
+  const entries = nominalEntries(def, config as never, mbr).map((e) => edit(e as Record<string, unknown>) as typeof e);
   // A nominal run keeps its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
   // step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
   // every per-interval section (the catalogue's intervals are 15 minutes or more).
@@ -139,6 +139,30 @@ describe('the ready-made catalogue', () => {
     expect(fieldOf(fill, 'fillWeight')).toMatchObject({ type: 'NUMBER', unit: 'mg', limitSlot: 'fillWeight', critical: true });
     expect(fill.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
     expect(fill.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+  });
+
+  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher is challenged and its reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and holding time and a band check each round; a leaker fails the seal check', () => {
+    const cw = byCode('PROC-CAPS-CHECKWEIGH');
+    expect(fieldOf(cw, 'challenged')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect([fieldOf(cw, 'rejectLow'), fieldOf(cw, 'rejectHigh')]).toEqual([expect.objectContaining({ limitSlot: 'rejectLow', critical: true }), expect.objectContaining({ limitSlot: 'rejectHigh', critical: true })]);
+    const inspect = byCode('PROC-CAPS-INSPECT');
+    expect(fieldOf(inspect, 'defectsRemoved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(inspect.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const print = byCode('PROC-CAPS-PRINT');
+    expect(fieldOf(print, 'segregated')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(print, 'inkApproved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(print.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'checkInterval' });
+    expect(fieldOf(print, 'heldForQc')).toMatchObject({ type: 'YES_NO', expected: true });
+    const band = byCode('PROC-CAPS-BAND');
+    expect(fieldOf(band, 'technology')).toMatchObject({ type: 'CHOICE', options: ['Gelatin band', 'HPMC band', 'Liquid fusion sealing'] });
+    expect(fieldOf(band, 'solutionTemp')).toMatchObject({ limitSlot: 'solutionTemp', critical: true });
+    expect(fieldOf(band, 'solutionHold')).toMatchObject({ type: 'TIMER', limitSlot: 'solutionHold', critical: true });
+    expect(band.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    const leak = byCode('IPC-CAPS-SEAL-LEAK');
+    expect(fieldOf(leak, 'leakers')).toMatchObject({ type: 'NUMBER', limitSlot: 'leakers', critical: true });
+    expect(nominalRun(leak)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // One leaker is outside the registered limit of none: the step raises an exception and cannot complete with it open.
+    expect(() => nominalRun(leak, (e) => ('leakers' in e ? { ...e, leakers: '1' } : e))).toThrow(/outside its registered limit/);
   });
 
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {

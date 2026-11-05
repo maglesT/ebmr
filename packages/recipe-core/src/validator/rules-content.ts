@@ -7,6 +7,7 @@ import { computedItemsOf } from '../blocks/generic/material.ts';
 import { DEFAULT_POLICY } from '../engine/types.ts';
 import { CAPTURE_WORDS, CHECK_PERMISSIONS, capturedOtherwise, checkersInRun, checkRunsAsWitness, type CheckersInRun } from '../flow/check-in-release.ts';
 import { compareDecimal } from '../flow/decimal.ts';
+import { isCapsuleForm } from '../flow/dosage-form.ts';
 import type { GraphNode } from '../flow/graph.ts';
 import { childrenOf, isNodeEvent, type FlowNode, type PhaseNode, type ReferenceKind, type StageNode } from '../flow/model.ts';
 import { samplingShortfalls } from '../limits/all-apply.ts';
@@ -618,6 +619,40 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
   return out;
 });
 
+// Capsules edition C3 (docs/build-plan/capsules/plan.md, section 4): two post-fill duties the library blocks carry. The
+// library step types are written out (LIB-<code>, library/block-version.ts) so the validator does not depend on the library.
+const CAPS_BAND = 'LIB-PROC-CAPS-BAND';
+const CAPS_PRINT = 'LIB-PROC-CAPS-PRINT';
+const isType = (p: PhaseNode | undefined, type: string): boolean => p?.block.type === type;
+
+const capsuleSealing = defineRule('GMP-CAPSULE-SEAL', 'An OTC two-piece hard capsule is banded or sealed on every completing path', ['PR-41'], (a) => {
+  // 21 CFR 211.132(b)(2): a two-piece hard capsule for US OTC retail sale is sealed with a tamper-evident technology. A soft
+  // gel is one piece and needs no band.
+  const form = a.mbr.header.product.dosageForm;
+  if (a.mbr.header.predicates['usOtcRetail'] !== true || !isCapsuleForm(form) || /soft/i.test(form)) return [];
+  const facts = a.mustBefore([], (n) => (isType(a.phaseOf(n), CAPS_BAND) ? [CAPS_BAND] : []));
+  if (facts?.get(a.graph.end)?.has(CAPS_BAND)) return [];
+  return [error('$', `The master is for US OTC retail packs of a two-piece hard capsule (${form}) and does not band or seal the capsules (Capsule banding and sealing, ${CAPS_BAND.slice(4)}) on every path`)];
+});
+
+const printingHeld = defineRule('GMP-CAPSULE-PRINT-HELD', 'Printed capsules wait at a hold point before the record ends (QC approval before packaging)', ['IN-37'], (a) => {
+  // Schedule M Part VIII 6: printed capsules are approved by QC after printing and before packaging. A printing step
+  // must run before a hold point that every completing path passes.
+  const out: RuleFinding[] = [];
+  const holdOf = (n: GraphNode): string[] => (a.nodes.get(n.source)?.node.kind === 'holdPoint' ? [`HOLD:${n.id}`] : []);
+  const facts = a.mustBefore([], (n) => [...holdOf(n), ...(isType(a.phaseOf(n), CAPS_PRINT) ? [`PRINT:${n.id}`] : [])]);
+  if (!facts) return out;
+  const atEnd = facts.get(a.graph.end) ?? new Set<string>();
+  const holds = [...atEnd].filter((f) => f.startsWith('HOLD:')).map((f) => f.slice(5));
+  for (const n of a.graph.nodes) {
+    const p = a.phaseOf(n);
+    if (!isType(p, CAPS_PRINT) || !p) continue;
+    if (holds.some((h) => facts.get(h)?.has(`PRINT:${n.id}`))) continue;
+    out.push(error(p.id, `${label(a, p.id)} prints the capsules, and no hold point after it holds them for QC approval before packaging on every path`));
+  }
+  return out;
+});
+
 export const CONTENT_RULES: readonly Rule[] = [
   header,
   typedFields,
@@ -642,6 +677,8 @@ export const CONTENT_RULES: readonly Rule[] = [
   pat,
   reprocessing,
   acceptance,
+  capsuleSealing,
+  printingHeld,
 ];
 
 /** Content-minimum items the generic rules always enforce (India always applies, outline 3.3.6). */
