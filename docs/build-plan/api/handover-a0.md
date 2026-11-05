@@ -140,3 +140,18 @@ the label specimen in the record (SM 9.3.7, AS-14) comes with A1b. It is not in 
 
 **The chain test** `apps/tablets-server/test/substance/api-chain.test.ts` drives the masters (built as content, without
 the G-10/G-09 plant steps or a G-21 step) to a RELEASED lot through the routes.
+
+## A2 part 1 (5 November 2026, paused by the owner)
+
+- **site-services 1732:** `site.intermediate_lot`, a sibling register of `site.finished_lot` (edition SUBSTANCE only), and
+  `site.create_intermediate_lot(jsonb)` (no grant to the app; a complete PROCESSING batch whose family edition is
+  `substance` only, read from the batch record at run time and failing closed). Release, G-REL and every finished-lot read
+  are unchanged.
+- **substance 5001:** `substance.post_intermediate_lot(batch, quantity, unit)` (MATERIAL.HANDLE; expiry from
+  `recipe.batch_expiry`), route `specifications.postIntermediateLot`.
+- **Release (lead, 6 November):** the existing QC/QA lot RELEASE; no new LOT_DECISION value.
+- **Test:** `apps/tablets-server/test/substance/intermediate-lots.test.ts` (A posted, released, refused while in quarantine,
+  reserved by B; B posted).
+- **Next:** B consumes A through a G-07 weighing (needs a qualified balance and the plant steps; a bare
+  `recipe.consume_lot` is refused, EBMR-RCP-433); the `site.lot_consumption` chain over three steps; batch C to a released
+  API lot (without the 5000 pieces being removed on api-a1a).

@@ -9,3 +9,4 @@ edition and never changes how tablets or injectables behave. The edition list it
 | Migration | What |
 |---|---|
 | 5000 | The schema `substance`; the row that lets the library pack block API-PACK complete an API packaging record; the API edition's G-REL hook (`substance.grel_edition_items`: the existing tablets items that fit any packaging order, plus the drums or bags examined) |
+| 5001 | `substance.post_intermediate_lot`: a processing batch of the API edition posts its output as an INTERMEDIATE lot (site-services 1732) |
