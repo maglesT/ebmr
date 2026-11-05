@@ -35,7 +35,8 @@ behaviour: |-
   - **Performance trending.** Come-up/equilibration time is trended per steriliser. Out-of-range values or drift are flagged before the load is used.
 catalog_test: Last leak test 8 days ago → autoclave not selectable. Add 2 tubing sets beyond the pattern maximum → load refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

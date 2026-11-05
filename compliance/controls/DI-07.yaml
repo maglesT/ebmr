@@ -30,8 +30,8 @@ implemented_by: {}
 tests:
   - "apps/tablets-server/test/mutation/exceptions-and-dispositions.test.ts > recipe.correction_needs_approval: a correction without an approval only for a value the batch's MBR declares non-critical (S25, DI-24, DI-07) > [S25][DI-24][DI-07] the blend time declared NON_CRITICAL by the batch's own MBR is corrected without an approval; with the blend time critical, another parameter declared NON_CRITICAL waives nothing"
   - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker's step view, in the exception register with both values and the reason, and in the audit-trail review list"
-  - "packages/recipe-core/test/lifecycle/approval.test.ts > verification before submission (DI-04, PR-02) > [DI-07][IN-02] downgrading a critical field to non-critical without a risk-based reduction is refused on the stored content; with one, the downgrade still takes effect only with QA's approval signature"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > master records, quality and release > [DI-07] the master records library lists the reference documents with version, status and content hash"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > verification before submission (DI-04, PR-02) > [DI-07][IN-02] downgrading a critical field to non-critical without a risk-based reduction is refused on the stored content; with one, the downgrade still takes effect only with QA's approval signature"
 clauses:
   - clause: "Try to downgrade a field without QA approval. It is blocked."
     tests:

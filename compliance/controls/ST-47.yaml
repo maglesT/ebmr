@@ -23,7 +23,8 @@ behaviour: |-
   - **Validation.** Must show **≥3 log₁₀ endotoxin reduction**; once shown, no separate sterilisation demonstration or BI study is needed. Endotoxin-spiked validation containers are fully reconciled, and a run with an unreconciled spiked unit keeps the tunnel unreleased.
 catalog_test: Import a tunnel trace with a 5-min hot-zone dip → containers in that window quarantined.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
