@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3480 objects.
+3477 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -2759,9 +2759,6 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`site.wms_location_question`](../../../packages/site-services/sql/0916_erp_wms_entry_authority.sql#sym=site.wms_location_question) | function | [0915_wms_location_question.sql](../../../packages/site-services/sql/0915_wms_location_question.sql) | [0916_erp_wms_entry_authority.sql](../../../packages/site-services/sql/0916_erp_wms_entry_authority.sql) | [ss-receipt-erp-wms](../code-map.md#ss-receipt-erp-wms) |
 | [`substance.grel_edition_items`](../../../editions/substance/sql/5000_api_pack_release_items.sql#sym=substance.grel_edition_items) | function | [5000_api_pack_release_items.sql](../../../editions/substance/sql/5000_api_pack_release_items.sql) |  | [substance-edition](../code-map.md#substance-edition) |
 | [`substance.grel_pack_examination`](../../../editions/substance/sql/5000_api_pack_release_items.sql#sym=substance.grel_pack_examination) | function | [5000_api_pack_release_items.sql](../../../editions/substance/sql/5000_api_pack_release_items.sql) |  | [substance-edition](../code-map.md#substance-edition) |
-| [`substance.grel_posted_quantity`](../../../editions/substance/sql/5000_api_pack_release_items.sql#sym=substance.grel_posted_quantity) | function | [5000_api_pack_release_items.sql](../../../editions/substance/sql/5000_api_pack_release_items.sql) |  | [substance-edition](../code-map.md#substance-edition) |
-| [`substance.grel_recon_labels`](../../../editions/substance/sql/5000_api_pack_release_items.sql#sym=substance.grel_recon_labels) | function | [5000_api_pack_release_items.sql](../../../editions/substance/sql/5000_api_pack_release_items.sql) |  | [substance-edition](../code-map.md#substance-edition) |
-| [`substance.pack_steps`](../../../editions/substance/sql/5000_api_pack_release_items.sql#sym=substance.pack_steps) | function | [5000_api_pack_release_items.sql](../../../editions/substance/sql/5000_api_pack_release_items.sql) |  | [substance-edition](../code-map.md#substance-edition) |
 | [`tab.accept_gateway_envelope`](../../../apps/tablets-server/sql/1432_gateway_feed_series_gap.sql#sym=tab.accept_gateway_envelope) | function | [1405_gateway_feed_signature.sql](../../../apps/tablets-server/sql/1405_gateway_feed_signature.sql) | [1432_gateway_feed_series_gap.sql](../../../apps/tablets-server/sql/1432_gateway_feed_series_gap.sql) | [ts-integrations](../code-map.md#ts-integrations) |
 | [`tab.ack_print_job`](../../../apps/tablets-server/sql/0951_print_jobs.sql#sym=tab.ack_print_job) | function | [0951_print_jobs.sql](../../../apps/tablets-server/sql/0951_print_jobs.sql) |  | [ts-blocks](../code-map.md#ts-blocks) |
 | [`tab.ack_setpoint_download`](../../../apps/tablets-server/sql/0820_process_readings.sql#sym=tab.ack_setpoint_download) | function | [0820_process_readings.sql](../../../apps/tablets-server/sql/0820_process_readings.sql) |  | [ts-devices](../code-map.md#ts-devices) |

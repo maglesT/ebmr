@@ -243,14 +243,7 @@ export const designer = {
        * header, the bill of materials and a dispensing stage's clearance and balance status) or COPY (the procedure of the
        * approved master `copyOfVersionId`). The header, the batch sizes and the bill of materials come from the formula.
        */
-      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY', 'PACKAGING_BLANK']).optional(),
-      /**
-       * API plan A1a: PACKAGING_BLANK, for an API (substance) family only, starts its packaging master (packing the API
-       * into drums or bags) from the formula's product: the header (record kind PACKAGING, `packType`, the formula's
-       * batch sizes in kg) and one packing stage with its room clearance. The author adds the packing materials and the
-       * pack step from the API library. The formula is not pinned: a packaging master carries none of its composition.
-       */
-      packType: z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,31}$/, '1-32 capitals, digits or dashes, e.g. DRUM-25KG').optional(),
+      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY']).optional(),
       /**
        * Injectables plan I-0: the family's edition (default tablets). An injectables family starts from a formula with
        * BLANK (the tablet skeleton, templates and copies are Tablets procedures) and its product's dosage form must be an

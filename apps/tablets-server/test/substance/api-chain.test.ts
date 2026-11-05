@@ -216,7 +216,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect((entry?.['data'] as Json | undefined)?.['temp']).toBe('61.5');
   });
 
-  it('[INV-27][IN-18][PR-37][PR-45] the packaging order takes the released bulk, packs it into two labelled drums with the pack block (labels reconciled, containers examined) and the stores post the finished lot in quarantine, in kg, for the API edition', async () => {
+  it('[INV-27][IN-18][PR-37][PR-45] the packaging order takes the released bulk, packs it into two labelled drums with the pack block (each drum a registered container with its net mass) and the stores post the finished lot in quarantine, in kg, for the API edition', async () => {
     const issuer = await gmp.asPersona('issuer');
     const orderNo = await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), packaging, SIZE);
     const planned = valueOf(await issuer.call(routes.planning.planPackagingOrder, { body: { familyId: pack.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE, erpOrder: orderNo, parentBatchId: batch.batchId } }));
@@ -229,9 +229,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     vi.advanceTimersByTime(7_000);
     valueOf(await operator.call(routes.batches.issueBulk, { params: { batchId: order.batchId }, body: bulkBody, attribution: await tapFor(operator, personaIn(gmp, 'operator1'), 'POST', `/api/batches/${order.batchId}/bulk`, bulkBody) }));
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-pack@' });
-    for (const no of ['D-01', 'D-02']) await d.ok('operator1', libraryEntry('p-pack@', 'container', { containerType: 'Drum', containerNo: no, netMass: '30.000', sealed: true, labelOk: true }));
-    await d.ok('operator1', libraryEntry('p-pack@', 'recon', { issued: '4', used: '4', destroyed: '0', returned: '0' }));
-    await d.ok('operator1', libraryEntry('p-pack@', 'exam', { examined: '2', allCorrect: true }));
+    for (const no of ['D-01', 'D-02']) await d.ok('operator1', libraryEntry('p-pack@', 'container', { container: `${order.batchNumber}-${no}`, netMass: '30.000', sealed: true, labelOk: true }));
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-pack@' });
     await d.signed('verifier1', { type: 'VERIFY', stepKey: 'p-pack@', meaning: 'VERIFIED' });
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-PACK@' });
@@ -244,7 +242,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(rows).toEqual([{ edition: 'SUBSTANCE', status: 'QUARANTINE', q: '60', unit: 'kg' }]);
   });
 
-  it('[IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (labels reconciled, posted quantity, pack examination), and the authorised person releases the lot', async () => {
+  it('[IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (the tablets items that apply to any packaging order), and the authorised person releases the lot', async () => {
     // QC: the API's specification, the lot's results approved by the head of QC, and the reserve samples.
     const [qc, head] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover')]);
     const tests = [{ testCode: 'ASSAY', methodReference: 'STP-A1A-AS-01', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }];
@@ -278,19 +276,17 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(view.grel.items.filter((i) => i.status === 'RED').map((i) => `${i.id}: ${i.problem ?? ''}`)).toEqual([]);
     const edition = Object.fromEntries(view.grel.items.filter((i) => i.id.startsWith('E.')).map((i) => [i.id, `${i.group} ${i.status}`]));
     expect(edition).toEqual({
-      'E.RECONCILIATION_LABELS': '4 GREEN', 'E.RECONCILIATION_YIELD': '4 GREEN', 'E.POSTED_QUANTITY': '4 GREEN', 'E.PACK_EXAMINATION': '9 GREEN',
+      'E.RECONCILIATION_PRINTED': '4 NA', 'E.RECONCILIATION_YIELD': '4 GREEN', 'E.PACK_EXAMINATION': '9 GREEN',
       'E.HELD_CONTAINERS': '10 GREEN', 'E.CONTAINER_RELEASE': '10 GREEN', 'E.RULE_SETS_VERIFIED': '10 NA', 'E.WHOLE_BATCH_PARENTS': '10 NA',
     });
     expect(view.state).toBe('READY');
     await sign(ap, 'qcuAuthoriser', { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { expectedEpoch: view.grel.epoch } });
     expect(valueOf(await ap.call(routes.release.lot, { params: { lotId } }))).toMatchObject({ state: 'RELEASED', lotStatus: 'RELEASED' });
   });
-  it('[IN-17][PR-37][INV-05] the API edition\'s items fail closed: a record with no pack step reconciles no label, posts no checkable quantity and examines nothing (RED), and a lot that is no API finished lot answers one RED item', async () => {
-    const q = async (sql: string, params: unknown[]): Promise<{ id: string; status: string; problem: string | null }> => (await gmp.db.admin.query<{ r: { id: string; status: string; problem: string | null } }>(sql, params)).rows[0]!.r;
-    // The processing batch ran no API-PACK step.
-    expect(await q('select substance.grel_recon_labels($1) as r', [batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/ran no pack step/) as unknown });
-    expect(await q('select substance.grel_pack_examination($1) as r', [batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/ran no pack step/) as unknown });
-    expect(await q('select substance.grel_posted_quantity($1, $2) as r', [lotId, batch.batchId])).toMatchObject({ status: 'RED', problem: expect.stringMatching(/filled no drum or bag/) as unknown });
+  it('[IN-17][PR-37][INV-05] the API edition\'s items fail closed: a record with no pack step examined no drum (RED), and a lot that is no API finished lot answers one RED item; the hook is registered for the API edition', async () => {
+    const exam = (await gmp.db.admin.query<{ r: { status: string; problem: string | null } }>('select substance.grel_pack_examination($1) as r', [batch.batchId])).rows[0]?.r;
+    expect(exam?.status).toBe('RED');
+    expect(exam?.problem).toMatch(/ran no pack step/);
     const other = (await gmp.db.admin.query<{ r: { id: string; status: string }[] }>('select substance.grel_edition_items($1, $2) as r', [randomUUID(), 'IN'])).rows[0]!.r;
     expect(other.map((i) => [i.id, i.status])).toEqual([['E.EDITION', 'RED']]);
     // The hook is registered for the API edition, beside the tablets one.

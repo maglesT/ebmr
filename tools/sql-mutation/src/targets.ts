@@ -987,8 +987,7 @@ export const TARGETS: Target[] = [
   // ---- API plan A1a: the API edition's release items (editions/substance/sql 5000) and the market guard of kernel 1404 --
   {
     group: 'api-release-items',
-    functions: ['substance.grel_edition_items', 'substance.pack_steps', 'substance.grel_recon_labels', 'substance.grel_posted_quantity',
-                'substance.grel_pack_examination', 'market.evaluate_stub_scope'],
+    functions: ['substance.grel_edition_items', 'substance.grel_pack_examination', 'market.evaluate_stub_scope'],
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },

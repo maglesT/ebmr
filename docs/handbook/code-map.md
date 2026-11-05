@@ -3047,7 +3047,7 @@ of each database function.
 
 **Database objects** created in these migrations:
 
-- Functions (5): `substance.grel_edition_items`, `substance.grel_pack_examination`, `substance.grel_posted_quantity`, `substance.grel_recon_labels`, `substance.pack_steps`
+- Functions (2): `substance.grel_edition_items`, `substance.grel_pack_examination`
 
 ## tools-boundaries
 

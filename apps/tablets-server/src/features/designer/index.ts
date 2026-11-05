@@ -458,7 +458,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     // injectables family starts BLANK and is built from the injectables library.
     const edition = body.edition ?? 'tablets';
     // API edition plan A0: the same holds for an API (substance) family.
-    if (edition !== 'tablets' && start !== 'BLANK' && !(edition === 'substance' && start === 'PACKAGING_BLANK')) {
+    if (edition !== 'tablets' && start !== 'BLANK') {
       throw refusal(422, {
         code: 'DESIGNER_EDITION_START',
         kind: 'INVALID_INPUT',
@@ -517,7 +517,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             content = contentFromFormula(
               base,
               { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments },
-              { familyCode: body.familyCode, markets: body.markets, start, edition, ...(body.packType ? { packType: body.packType } : {}) },
+              { familyCode: body.familyCode, markets: body.markets, start, edition },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
             );
@@ -541,10 +541,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             });
           }
           const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(contained));
-          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : start === 'PACKAGING_BLANK' ? 'a blank packaging master' : 'the required skeleton';
+          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : 'the required skeleton';
           const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template`);
-          // API plan A1a: a packaging master carries none of the formula's composition, so it is not pinned to it.
-          if (start !== 'PACKAGING_BLANK') await formula.pinFormula(c, v.versionId, chosen.versionId);
+          await formula.pinFormula(c, v.versionId, chosen.versionId);
           return { versionId: v.versionId };
         }),
       `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,

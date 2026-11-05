@@ -8,4 +8,4 @@ edition and never changes how tablets or injectables behave. The edition list it
 
 | Migration | What |
 |---|---|
-| 5000 | The schema `substance`; the row that lets the library pack block API-PACK complete an API packaging record; the API edition's items of the release gate G-REL (`substance.grel_edition_items`, registered for SUBSTANCE) |
+| 5000 | The schema `substance`; the row that lets the library pack block API-PACK complete an API packaging record; the API edition's G-REL hook (`substance.grel_edition_items`: the existing tablets items that fit any packaging order, plus the drums or bags examined) |
