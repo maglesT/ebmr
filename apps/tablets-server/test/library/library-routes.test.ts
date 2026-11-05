@@ -106,6 +106,10 @@ describe('the library of block definitions', () => {
     const capsules = ['PROC-CAPS-FILL', 'PROC-CAPS-POLISH', 'IPC-CAPS-FILL-WEIGHT', 'IPC-CAPS-LOCK-LENGTH', 'IPC-CAPS-APPEARANCE', 'IPC-CAPS-DT', 'REL-CAPS-DISSO'];
     expect(first.drafted).toEqual(expect.arrayContaining(capsules));
     expect(second.skipped).toEqual(expect.arrayContaining(capsules));
+    // Capsules C4: the multiparticulate blocks load the same way.
+    const multi = ['PROC-EXTRUDE-SPHERONISE', 'PROC-PELLET-LAYER', 'COAT-PELLET-FB', 'PROC-CAPS-FILL-MULTI'];
+    expect(first.drafted).toEqual(expect.arrayContaining(multi));
+    expect(second.skipped).toEqual(expect.arrayContaining(multi));
   });
 
   it('[DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them', async () => {
