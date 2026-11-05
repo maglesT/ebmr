@@ -9,6 +9,7 @@
  * Every GMP value is a decimal STRING (never a JavaScript `number`); units are UCUM codes checked by the expression
  * language. Version numbers, counts of options and similar structure are plain integers (they are not GMP values).
  */
+import { EDITIONS } from '../flow/model.ts';
 import type { LimitSpec } from '../limits/model.ts';
 
 /** The fixed field types (decision 0026 point 1). Adding one is a code change and an owner decision. */
@@ -34,7 +35,7 @@ export type FieldType = (typeof FIELD_TYPES)[number];
  * one database holds every edition, and the edition is data). A block of an edition may be used only in a master of that
  * edition; a `generic` block in any. A definition that names no edition is a Tablets block, as every block was before.
  */
-export const LIBRARY_EDITIONS = ['generic', 'tablets', 'injectables'] as const;
+export const LIBRARY_EDITIONS = ['generic', ...EDITIONS] as const;
 export type LibraryEdition = (typeof LIBRARY_EDITIONS)[number];
 
 /** The edition of a definition: its own, or `tablets` when it names none. */

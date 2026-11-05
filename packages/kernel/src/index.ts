@@ -14,6 +14,7 @@ export { KERNEL_MIGRATIONS, migrate, type AppliedMigration, type MigrationSource
 export { FACT_NEEDED, registerFactResolver, toDbContext, withCommand, type ActorContext, type CommandSource, type FactRecorder, type FactResolver } from './db/command.ts';
 export { runChainVerification, verifyAllChains, verifyAnchor, verifyChain, type ChainProblem, type VerificationRun } from './audit/verify.ts';
 
+export { EDITIONS, type Edition } from './editions.ts';
 export * as identity from './identity/index.ts';
 export * as market from './market/index.ts';
 export * as records from './records/index.ts';

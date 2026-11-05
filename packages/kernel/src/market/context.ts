@@ -16,6 +16,7 @@
  *  - MATERIAL_LOT: the consuming batch's market set, resolved at each consumption;
  *  - India is always in the set (INV-28).
  */
+import type { Edition } from '../editions.ts';
 import { MarketRuleError } from './errors.ts';
 import type { Queryable, ScopeRef } from './repository.ts';
 import { resolve } from './resolve.ts';
@@ -34,7 +35,7 @@ export interface ScopeContext {
   derivation: MarketDerivation[];
   predicates: Predicates;
   siteId: string | null;
-  edition: 'tablets' | 'injectables' | null;
+  edition: Edition | null;
   /** PACK scope: the pack's destination (used by PER_DESTINATION keys). */
   destination: Market | null;
 }
