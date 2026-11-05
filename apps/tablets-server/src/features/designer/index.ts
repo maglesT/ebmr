@@ -453,12 +453,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             [chosen.productCode, chosen.strength],
           );
           // Review P7J-2, D-7j-11: the name from the product master in effect; its dosage form, or 'Tablet' when the
-          // master carries none (the ERP feed has no dosage form; every product of this edition is a tablet). A master
-          // stating a dosage form that is not a tablet form is refused.
+          // master carries none (the ERP feed has no dosage form). A master stating a dosage form that is neither a tablet
+          // nor a capsule form is refused: the oral-solid build makes tablets and, since the Capsules edition plan
+          // (4 November 2026), hard capsules and soft gels from the library.
           // Injectables plan I-0: an injectables family needs a product master stating an injectable dosage form (no default).
           const master = rows[0];
           const dosageForm = master?.dosage ?? (edition === 'tablets' ? 'Tablet' : '');
-          const formFits = edition === 'tablets' ? /tablet/i.test(dosageForm) : INJECTABLE_FORM.test(dosageForm);
+          const formFits = edition === 'tablets' ? /tablet|capsule/i.test(dosageForm) : INJECTABLE_FORM.test(dosageForm);
           if (!master?.name || !formFits) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
@@ -467,7 +468,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               why: !master?.name
                 ? `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`
                 : edition === 'tablets'
-                  ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is not a tablet form; the Tablets edition makes tablets.`
+                  ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is neither a tablet nor a capsule form; this build makes tablets and capsules (a soft gel is named as a capsule form, for example Soft gelatin capsule).`
                   : `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm || 'none'}", which is not an injectable form (injection, infusion or powder for injection).`,
               controls: ['PR-01'],
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],

@@ -76,6 +76,7 @@ tests:
   - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the edited master with the seal, enteric and top coats defines without an error and parses as content"
   - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the edits carry the product's values (salt form, compensation, binder, 125 mg core, R20 tooling, enteric gain 8 to 10 %, batch gain 13 to 16.5 %); the source is not changed"
   - "apps/tablets-server/test/seed/p3-demo.test.ts > the P3 demo seed's processing master (slice 7s) > [IN-37][PR-29] the master cites the product's own registration and validation report, never route W's, and holds no other active's declared form (R10 #9, #11)"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-03][PR-18][IN-37] automatic capsule filling records the filling principle (dosator, tamping disc, vacuum or auger), the capsule size, the empty-shell lot as its bill-of-materials line, and the fill weight of each round as a critical value with limits (Capsules edition plan, C1)"
 clauses:
   - clause: "open a packaging order for printed tablets without the QC approval; refused."
     tests:

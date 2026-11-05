@@ -131,15 +131,15 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     loadCatalogue: async ({ actor, idempotencyKey, requestHash }) => {
       // S7: the catalogue goes into the library as drafts through the same command as any author's draft; codes the
-      // library already holds are left alone (a site's own versions are never overwritten). The deferred hard-capsule
-      // blocks are not loaded (owner, 3 November 2026; R3-CAT-4).
+      // library already holds are left alone (a site's own versions are never overwritten). The hard-capsule blocks load
+      // with the rest (Capsules edition plan, 4 November 2026, lifting R3-CAT-4).
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
         await c.query('select recipe.require_library_author()');
         const { rows } = await c.query<{ code: string }>('select distinct code from recipe.library_block');
         const held = new Set(rows.map((r) => r.code));
         const drafted: string[] = [];
         const skipped: string[] = [];
-        for (const item of librarySeed.TABLETS_CATALOGUE) {
+        for (const item of librarySeed.SEED_CATALOGUE) {
           const def = item.definition;
           if (held.has(def.code) || checkDefinition(def as unknown as Record<string, unknown>).some((p) => p.severity === 'ERROR')) {
             skipped.push(def.code);
