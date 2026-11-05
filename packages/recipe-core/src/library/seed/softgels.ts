@@ -38,7 +38,7 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment used.
             { id: 'vessel', label: 'Gel mass melting tank', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'vesselClass' },
-            // 21 CFR 211.101(b)-(d), 211.188(b); EU GMP 4.20(d); Schedule M 14.16-14.17: the lot of each component added, checked against the lot register.
+            // 21 CFR 211.101(b)-(d), 211.188(b); EU GMP 4.20(d); Schedule M 14.16-14.17: the gelatin lot checked against the lot register; the other components' lots are named where they are dispensed (PROC-DISP).
             { id: 'gelatinLot', label: 'Gelatin (gelling agent) lot', type: 'MATERIAL_LOT', bomLineSlot: 'gelatinLine' },
             { id: 'componentsIn', label: 'Dispensed plasticiser, water and colourants container', type: 'CONTAINER', action: 'CONSUME' },
           ],
@@ -111,11 +111,9 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
             // 21 CFR 211.110(a), (b); EU GMP 4.18(e), 4.20(f): in-process controls of the process steps that cause variability
-            // (ribbon and seal formation, dosing), with their limits; (a)(1) capsule weight variation.
+            // (ribbon and seal formation), with their limits. Fill and shell weight per capsule are IPC-SG-FILL-SHELL's (211.110(a)(1)).
             { id: 'ribbonThickness', label: 'Gel ribbon thickness', type: 'NUMBER', unit: 'mm', decimals: 2, limitSlot: 'ribbonThickness', critical: true },
             { id: 'wedgeTemp', label: 'Wedge temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wedgeTemp', critical: true },
-            { id: 'fillWeight', label: 'Fill weight per capsule (mean of the capsules weighed)', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'fillWeight', critical: true },
-            { id: 'shellWeight', label: 'Shell weight per capsule (mean of the capsules weighed)', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'shellWeight', critical: true },
           ],
         },
         {
@@ -133,8 +131,8 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      limits: { ribbonThickness: reg('mm', '0.76', '0.84'), wedgeTemp: reg('Cel', '36.0', '40.0'), fillWeight: reg('mg', '485.0', '515.0'), shellWeight: reg('mg', '290.0', '330.0') },
-      targets: { ribbonThickness: '0.80', wedgeTemp: '38.0', fillWeight: '500.0', shellWeight: '310.0' },
+      limits: { ribbonThickness: reg('mm', '0.76', '0.84'), wedgeTemp: reg('Cel', '36.0', '40.0') },
+      targets: { ribbonThickness: '0.80', wedgeTemp: '38.0' },
       equipmentClasses: { encapsulatorClass: 'SOFTGEL-ENCAPSULATOR-ROTARY' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
     },
@@ -185,7 +183,7 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
           title: 'Output',
           fields: [
             // Schedule M Part VIII 2.3: the drying time recorded (days on trays: a recorded value, not a running timer).
-            { id: 'dryingTime', label: 'Total tray drying time', type: 'NUMBER', unit: 'h', decimals: 0, limitSlot: 'dryingTime', critical: true },
+            { id: 'dryingTime', label: 'Total tray drying time', type: 'NUMBER', unit: 'h', decimals: 1, limitSlot: 'dryingTime', critical: true },
             // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight (the yield's input).
             { id: 'container', label: 'Dried capsules container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
@@ -202,9 +200,9 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
         roomTemp: reg('Cel', '20.0', '25.0'),
         roomRh: reg('%', '20', '35'),
         hardness: reg('N', '8.0', '12.0'),
-        dryingTime: reg('h', '24', '96'),
+        dryingTime: reg('h', '24.0', '96.0'),
       },
-      targets: { airTemp: '25.0', roomTemp: '22.0', roomRh: '28', hardness: '10.0', dryingTime: '48' },
+      targets: { airTemp: '25.0', roomTemp: '22.0', roomRh: '28', hardness: '10.0', dryingTime: '48.0' },
       equipmentClasses: { tumbleDryerClass: 'SOFTGEL-TUMBLE-DRYER', tunnelClass: 'SOFTGEL-DRYING-TUNNEL' },
       counts: { maxEndPointChecks: '10' },
     },

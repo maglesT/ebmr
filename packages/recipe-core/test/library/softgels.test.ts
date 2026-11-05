@@ -89,7 +89,7 @@ describe('soft gels I (Capsules C6)', () => {
     expect(fieldOf(enc, 'linesConnected')).toMatchObject({ type: 'YES_NO', expected: true });
     const round = enc.definition.sections.find((x) => x.id === 'round');
     expect(round?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
-    expect(round?.fields.map((f) => [f.id, (f as { critical?: boolean }).critical])).toEqual([['ribbonThickness', true], ['wedgeTemp', true], ['fillWeight', true], ['shellWeight', true]]);
+    expect(round?.fields.map((f) => [f.id, (f as { critical?: boolean }).critical])).toEqual([['ribbonThickness', true], ['wedgeTemp', true]]);
     expect(enc.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     // The only YES_NO of the soft gel blocks is the lines-connected check.
     const yesNo = SOFTGEL_CODES.flatMap((c) => item(c).definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'YES_NO').map((f) => `${c}.${f.id}`));
@@ -107,13 +107,15 @@ describe('soft gels I (Capsules C6)', () => {
     expect(nominalRun(dry)).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 
-  it('[PR-03][IN-37] in-process tests: fill weight per capsule is gross less shell with the mean judged after; seal thickness has a minimum; hardness has mean and individual limits', () => {
+  it('[PR-03][IN-37] in-process tests: fill weight per capsule is gross less shell with the mean judged after, a light capsule breaching it; seal thickness has a minimum; hardness has mean and individual limits', () => {
     const fs = item('IPC-SG-FILL-SHELL');
     expect(fs.definition.sections.find((x) => x.id === 'capsule')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'capsules' });
     expect(fieldOf(fs, 'fill')).toMatchObject({ type: 'CALC', expression: 'gross - shell', limitSlot: 'individualFill', critical: true });
     expect(fieldOf(fs, 'shell')).toMatchObject({ limitSlot: 'shellWeight', critical: true });
     expect(fieldOf(fs, 'meanFill')).toMatchObject({ type: 'CALC', expression: 'mean(fill)', limitSlot: 'meanFill', critical: true });
     expect(nominalRun(fs)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // A capsule 60 mg light (gross 750 mg, shell 310 mg: fill 440 mg, below 475 mg) breaches the individual fill limit.
+    expect(judgedRun(fs, { capsule: { gross: '750.0' } }).exceptions).toContain('LIB_LIMIT_BREACH');
     expect(fieldOf(item('IPC-SG-SEAL-THICKNESS'), 'seal')).toMatchObject({ type: 'TEST_RESULT', unit: 'mm', statistics: [{ statistic: 'MIN', limitSlot: 'minSeal' }] });
     expect(fieldOf(item('IPC-SG-HARDNESS'), 'hardness')).toMatchObject({ type: 'TEST_RESULT', unit: 'N', statistics: [{ statistic: 'MEAN', limitSlot: 'meanHardness' }, { statistic: 'INDIVIDUAL', limitSlot: 'individualHardness' }] });
     for (const c of ['IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS']) expect(nominalRun(item(c)), c).toEqual({ exceptions: [], status: 'COMPLETED' });
