@@ -475,8 +475,12 @@ export const TARGETS: Target[] = [
                 // Decision 0026 slice S7 (recipe-core 1820): the catalogue load's author check.
                 'recipe.require_library_author',
                 // Release review R3 (recipe-core 1862): the exceptions' facts, test results, timers, calculated fields, loops.
-                'recipe.library_breach_record', 'recipe.library_statistic', 'recipe.library_timer_duration', 'recipe.library_loop_pass'],
-    tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts'), s('mutation/library-blocks.test.ts')],
+                'recipe.library_breach_record', 'recipe.library_statistic', 'recipe.library_timer_duration', 'recipe.library_loop_pass',
+                // Injectables plan I-0 (recipe-core 1871): the edition of a block and its check at draft and at QA approval.
+                'recipe.library_editions', 'recipe.library_block_edition', 'recipe.library_block_edition_check',
+                'recipe.library_edition_problem', 'recipe.library_edition_at_approval_check'],
+    tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts'), s('mutation/library-blocks.test.ts'),
+            s('library/library-edition.test.ts')],
     threshold: 90,
   },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------
