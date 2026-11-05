@@ -89,7 +89,7 @@ function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
           {recorded(view, 'AREA_OCCUPANCY', 'occupancyId', o.occupancyId) ? (
             <p className={wcls('muted')}>{`Recorded in this step.`}</p>
           ) : o.mine ? (
-            <Button variant="primary" isDisabled={busy} onPress={() => record(o.areaCode, o.occupancyId)}>
+            <Button variant="secondary" isDisabled={busy} onPress={() => record(o.areaCode, o.occupancyId)}>
               {`Record ${o.areaCode} in this step`}
             </Button>
           ) : (
@@ -112,7 +112,7 @@ function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
                 <div key={a.code}>
                   {a.kind === 'LINE' && !line ? <p className={wcls('muted')}>{`Line ${a.code} has no verified clearance for an order of this batch yet.`}</p> : null}
                   <Button
-                    variant="primary"
+                    variant="secondary"
                     isDisabled={busy || (a.kind === 'LINE' && !line)}
                     onPress={() =>
                       void start.run({
@@ -176,7 +176,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
           {recorded(view, 'EQUIPMENT_USE', 'useId', u.useId) ? (
             <p className={wcls('muted')}>{`Recorded in this step for ${e.ref}.`}</p>
           ) : u.mine ? (
-            <Button variant="primary" isDisabled={busy} onPress={() => record(u.equipmentCode, u.useId)}>
+            <Button variant="secondary" isDisabled={busy} onPress={() => record(u.equipmentCode, u.useId)}>
               {`Record ${u.equipmentCode} for ${e.ref} in this step`}
             </Button>
           ) : (
@@ -217,7 +217,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
             <>
               <floor.ChoiceGroup label="Planned use" options={HOURS} value={hours} onChange={setHours} isDisabled={busy} />
               <Button
-                variant="primary"
+                variant="secondary"
                 isDisabled={busy || hours === null}
                 onPress={() =>
                   void book.run({
@@ -275,7 +275,7 @@ function ToolingInspection({ v, set, issueId, when }: { v: StepPlantView; set: s
       <Checklist items={items} value={findings} onChange={setFindings} disabled={inspect.busy} />
       {failed ? <floor.ChoiceGroup label="Disposition of the set" options={DISPOSITIONS} value={disposition} onChange={setDisposition} isDisabled={inspect.busy} /> : null}
       <Button
-        variant="primary"
+        variant="secondary"
         isDisabled={inspect.busy || !complete || (failed && disposition === null)}
         onPress={() => void (async () => {
           const body = {
@@ -334,7 +334,7 @@ function ToolingPanel({ v }: { v: StepPlantView }) {
             <Field key={k} name={`count-${k}`} label={`${title(k)} ${k === 'dies' ? '' : 'punches '}issued`} value={n(k)} onChange={(x) => setCounts((c) => ({ ...c, [k]: x }))} inputMode="numeric" />
           ))}
           <Button
-            variant="primary"
+            variant="secondary"
             isDisabled={issue.busy || pressCode === null}
             onPress={() => void (async () => {
               if (!pressCode) return;
@@ -396,7 +396,7 @@ function ToolingIssue({ v, x }: { v: StepPlantView; x: StepPlantView['tooling'][
           ))}
           <Field name="manualStrokes" label="Strokes read from the press (only when the press counter did not see the whole use)" value={strokes} onChange={setStrokes} inputMode="numeric" />
           <Button
-            variant="primary"
+            variant="secondary"
             isDisabled={ret.busy}
             onPress={() => void (async () => {
               const out = await ret.run({ params: { issueId: x.issueId }, body: { counts: { upper: n('upper'), lower: n('lower'), dies: n('dies') }, ...(strokes.trim() !== '' ? { manualStrokes: strokes.trim() } : {}) } });
@@ -442,7 +442,7 @@ function PressSetupPanel({ v }: { v: StepPlantView }) {
           open
             .filter((x) => x.press === u.equipmentCode)
             .map((x) => (
-              <Button key={`${u.useId}:${x.issueId}`} variant="primary" onPress={() => choices?.choose('PRESS_SETUP', { press: u.equipmentCode, useId: u.useId, issueId: x.issueId })}>
+              <Button key={`${u.useId}:${x.issueId}`} variant="secondary" onPress={() => choices?.choose('PRESS_SETUP', { press: u.equipmentCode, useId: u.useId, issueId: x.issueId })}>
                 {`Set up ${u.equipmentCode} with set ${x.set}`}
               </Button>
             )),
@@ -552,7 +552,7 @@ function PrintedLotPanel({ view }: { view: StepScreenView }) {
       <h2 className={wcls('sectionTitle')}>Printed packaging lot</h2>
       <p className={wcls('muted')}>Scan the lot label: the issue entry takes the lot as the register holds it. Type the artwork you read on the label in the entry yourself.</p>
       <Field name="printedLot" label="Scan the printed packaging lot" value={scan} onChange={setScan} autoComplete="off" />
-      <Button variant="primary" isDisabled={scan.trim() === ''} onPress={() => {
+      <Button variant="secondary" isDisabled={scan.trim() === ''} onPress={() => {
           setAsked(scan.trim());
           setTaken((n) => n + 1);
         }}>

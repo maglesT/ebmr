@@ -212,7 +212,7 @@ function SectionForm({ view, section, config }: { view: StepScreenView; section:
       ))}
       {calcs.length > 0 ? <p className={wcls('muted')}>Calculated when saved: {calcs.map((c) => c.label).join(', ')}.</p> : null}
       {problems.length > 0 ? <p role="alert">{problems.join('; ')}</p> : pending.length > 0 ? <p className={wcls('muted')}>Still to enter: {pending.join(', ')}.</p> : null}
-      <Button variant="primary" onPress={save} isDisabled={locked || pending.length > 0 || problems.length > 0}>
+      <Button variant="secondary" onPress={save} isDisabled={locked || pending.length > 0 || problems.length > 0}>
         Save {section.title}
       </Button>
       <EntryStatus call={cmd} />
@@ -229,7 +229,7 @@ function TimerControl({ view, f }: { view: StepScreenView; f: FieldDef & { type:
   return (
     <section className={wcls('formCard')} aria-label={f.label} data-testid={`lib-timer-${f.id}`}>
       <h3 className={wcls('formTitle')}>{f.label}</h3>
-      <Button variant="primary" onPress={() => send(started ? 'TIMER_STOP' : 'TIMER_START')} isDisabled={cmd.busy}>
+      <Button variant="secondary" onPress={() => send(started ? 'TIMER_STOP' : 'TIMER_START')} isDisabled={cmd.busy}>
         {started ? `Stop ${f.label}` : `Start ${f.label}`}
       </Button>
       <EntryStatus call={cmd} />

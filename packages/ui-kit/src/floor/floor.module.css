@@ -39,6 +39,44 @@
   flex: 1 1 280px;
   min-width: 240px;
 }
+/* On the form page (declutter D3) the value is one row of the form: no box, the limits beside the input, the
+   glove keypad under the input column. */
+[data-form-page] .numeric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 17em);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  gap: 4px 24px;
+}
+[data-form-page] .numericInput,
+[data-form-page] .numericSide {
+  min-width: 0;
+}
+[data-form-page] .numericSide {
+  padding-top: 8px;
+  font-size: 0.9em;
+}
+[data-form-page] .numericSide .sectionTitle {
+  margin: 0 0 4px 0;
+}
+[data-form-page] .limitSource {
+  font-size: 0.8em;
+}
+@media (max-width: 900px) {
+  [data-form-page] .numeric {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+[data-form-page] .numericInput > .keypad {
+  margin-left: calc(var(--ebmr-form-label) + 16px);
+}
+@media (max-width: 640px) {
+  [data-form-page] .numericInput > .keypad {
+    margin-left: 0;
+  }
+}
 .target {
   font-weight: 600;
   margin: 0 0 8px 0;

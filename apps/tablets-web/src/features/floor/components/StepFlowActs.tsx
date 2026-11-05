@@ -51,7 +51,7 @@ function AlternativeChoice({ view, alternative }: { view: StepScreenView; altern
           <p className={wcls('muted')}>This step belongs to a branch of the process that is chosen by {alternative.roles.join(' or ').toLowerCase().replace(/_/g, ' ')}, with the reason.</p>
           <floor.ChoiceGroup label="Branch" options={alternative.branches.map((b) => ({ value: b.id, label: b.name }))} value={branch} onChange={setBranch} isDisabled={locked} />
           <Field name="branch-reason" label="Reason for the choice" value={reason} onChange={setReason} isDisabled={locked} autoComplete="off" />
-          <Button variant="primary" onPress={choose} isDisabled={locked || branch === null || reason.trim() === ''}>
+          <Button variant="secondary" onPress={choose} isDisabled={locked || branch === null || reason.trim() === ''}>
             Choose the branch
           </Button>
         </>
@@ -74,7 +74,7 @@ function LoopIteration({ view, loop }: { view: StepScreenView; loop: Loop }) {
       ) : (
         <>
           <p className={wcls('muted')}>{ready ? 'The step of this iteration is completed: end the iteration; the exit condition decides whether another follows.' : 'Complete the step first; then end the iteration.'}</p>
-          <Button variant="primary" onPress={() => cmd.send({ type: 'COMPLETE_LOOP_ITERATION', stepKey: view.step.stepKey }, view.run.version, view)} isDisabled={!ready || cmd.busy || cmd.state === 'notSaved'}>
+          <Button variant="secondary" onPress={() => cmd.send({ type: 'COMPLETE_LOOP_ITERATION', stepKey: view.step.stepKey }, view.run.version, view)} isDisabled={!ready || cmd.busy || cmd.state === 'notSaved'}>
             End iteration {loop.iteration}
           </Button>
         </>
