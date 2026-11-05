@@ -992,6 +992,14 @@ export const TARGETS: Target[] = [
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },
+  // ---- API plan A2 (C1): an intermediate lot posted from a complete processing batch of the API edition only
+  // (site-services 1732, substance 5001) ---------------------------------------------------------------------------------
+  {
+    group: 'api-intermediate-lots',
+    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'substance.post_intermediate_lot'],
+    tests: [s('substance/intermediate-lots.test.ts')],
+    threshold: 90,
+  },
   {
     group: 'us-disposition',
     functions: ['recipe.disposition_state', 'recipe.check_us_disposition', 'recipe.us_disposition_gate_problems',

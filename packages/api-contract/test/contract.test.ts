@@ -249,7 +249,7 @@ describe('route table', () => {
       'quality.proposeReprocessingRequest', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotDestruction', 'quality.recordLotReceipt',
       'quality.registerEvidenceDocument', 'quality.reserveLot', 'quality.resolveLotLocationException', 'quality.withdrawManufacturerApproval', 'recall.refreshFederation',
       'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
-      'samples.recoverReturn', 'serialisation.rejectPool', 'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot',
+      'samples.recoverReturn', 'serialisation.rejectPool', 'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.postIntermediateLot',
       'specifications.proposeLotDecision', 'support.requestGrant', 'support.revokeGrant', 'training.completeStep', 'training.start', 'transfers.acknowledgeAlarm',
       'transfers.import', 'transfers.prepare',
     ]);
