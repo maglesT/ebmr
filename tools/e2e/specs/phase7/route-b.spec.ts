@@ -485,6 +485,9 @@ async function container(page: Page, base: string, batchId: string, stage: strin
   await choose(c.getByRole('radio', { name: 'Net typed (a second person verifies it)' }));
   await c.getByRole('textbox', { name: /^Net quantity/ }).fill(net);
   await act(page, c.getByRole('button', { name: `Close ${label}` }), who);
+  // The close is stored before the verifier's page loads: else the containers page can show the container still open,
+  // with no verify button, and never refresh (the intermittent timeouts of 5 November 2026).
+  await expect(c.getByTestId('container-net')).toContainText('(typed)');
   await as(page, verifier);
   await page.goto(`${base}/review/${batchId}/containers`);
   await ready(page, verifier);

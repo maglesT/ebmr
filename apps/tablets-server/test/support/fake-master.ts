@@ -23,6 +23,8 @@ export class FakeMaster {
                          version int not null default 1, active boolean not null default true, read_at timestamptz not null default now(),
                          data_as_of timestamptz not null default now())`);
       }
+      // Capsules edition C2: core's product view carries the product's dosage form (free text, may be null).
+      await c.query('alter table report.product_v1 add column dosage_form text');
       await c.query(`grant connect on database ${this.name} to ebmr_app`);
       await c.query('grant usage on schema report to ebmr_app');
       await c.query('grant select on all tables in schema report to ebmr_app');
@@ -41,6 +43,11 @@ export class FakeMaster {
       );
       return rows[0]?.id ?? '';
     });
+  }
+
+  /** Sets a product's dosage form at core (a new version); null: core holds none. */
+  async dosageForm(code: string, dosageForm: string | null): Promise<void> {
+    await asAdmin(this.name, (c) => c.query('update report.product_v1 set dosage_form = $2, version = version + 1 where code = $1', [code, dosageForm]));
   }
 
   async rename(kind: MasterTable, id: string, code: string, name: string): Promise<void> {

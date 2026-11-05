@@ -79,10 +79,14 @@ interface Tablet {
   discharge: { tare: string; gross: string };
   afterDispensing: readonly ProductBlock[];
   afterDischarge: readonly ProductBlock[];
-  /** Empty capsule shells: a material of its own, not in the formula; its lot is named in the filling step. */
+  /** Empty capsule shells: a material of its own, the formula's COATING line per unit (`shellMg`, line id `shell`), in
+   *  the bill of materials but not dispensed into the blend; the filling step names its lot (Capsules edition C2). */
   shells?: string;
+  shellMg?: string;
   /** Units the plant does not have yet, registered on the sandbox's screens before the batch. */
   plant?: readonly PlantUnit[];
+  /** The same for the GMP plant, registered on its screens before the GMP batch. */
+  gmpPlant?: readonly PlantUnit[];
   /** S11b: the GMP batch, at the authorised (reference) size of 1,00,000 tablets: the discharge's tare and gross and the
    *  net of the bulk for packing (kg). Each material's container there holds twice the sandbox's net, on the same tare. */
   gmpDischarge: { tare: string; gross: string };
@@ -144,6 +148,44 @@ export const TABLETS: readonly Tablet[] = [
     afterDispensing: [],
     afterDischarge: [productBlock('PROC-COMPRESS', 'EQC-PRESS-GBT'), productBlock('COAT-SEAL', 'EQC-COATER'), productBlock('COAT-ENTERIC', 'EQC-COATER'), productBlock('COAT-TOP', 'EQC-COATER'), productBlock('IPC-DT-ENTERIC', 'EQC-DT')],
   },
+  {
+    // Capsules edition C2 (plan v3): a powder hard capsule on the automatic dosator filler, from the catalogue to its
+    // released lot, with no code change; the header reads "Batchwright Capsules" on its master and batch screens.
+    key: 'caps',
+    prefix: 'LCP200',
+    name: 'Libcap 200 mg, hard capsules size 0 (library)',
+    strength: '200 mg',
+    dosageForm: 'Hard gelatin capsule',
+    targetMg: '300',
+    materials: [
+      { id: 'api', name: 'Libcap active', mgPerUnit: '200', tare: '1.000', gross: '11.000' },
+      { id: 'lac', name: 'Lactose monohydrate (capsule grade)', mgPerUnit: '95', tare: '1.000', gross: '5.750' },
+      { id: 'mgs', name: 'Magnesium stearate (lubricant)', mgPerUnit: '5', tare: '0.200', gross: '0.450' },
+    ],
+    discharge: { tare: '1.000', gross: '16.000' },
+    gmpDischarge: { tare: '1.000', gross: '31.000' },
+    // The filled capsules: the fill less the in-process samples, and the shells (about 96 mg each, size 0).
+    gmpBulkNet: '39.400',
+    shells: 'Empty hard gelatin capsule shells, size 0',
+    shellMg: '96',
+    plant: [
+      { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'TEST-CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'TEST-POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
+    ],
+    gmpPlant: [
+      { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
+    ],
+    afterDispensing: [],
+    afterDischarge: [
+      productBlock('PROC-CAPS-FILL', 'EQC-CAPS-FILLER', { shellLine: 'BOM-SHELL' }),
+      productBlock('IPC-CAPS-FILL-WEIGHT', 'EQC-BAL'),
+      productBlock('IPC-CAPS-LOCK-LENGTH', 'EQC-HT'),
+      productBlock('IPC-CAPS-APPEARANCE', {}),
+      productBlock('IPC-CAPS-DT', 'EQC-DT'),
+      productBlock('PROC-CAPS-POLISH', 'EQC-CAPS-POLISH'),
+    ],
+  },
 ];
 
 
@@ -158,6 +200,9 @@ const GMP_UNITS: Readonly<Record<string, string>> = {
   'EQC-RMG': 'RMG-01',
   'EQC-FBD': 'FBD-01',
   'EQC-COATER': 'COATER-01',
+  // Registered on screen by the capsule product's GMP 3 test.
+  'EQC-CAPS-FILLER': 'CAPS-01',
+  'EQC-CAPS-POLISH': 'POLISH-01',
 };
 
 /** The GMP batch's size: the master's reference size, the one the ERP order names and the IN authorisation covers. */
@@ -185,6 +230,15 @@ interface GmpMaterial {
   /** What stores reserve for the batch and the quantity of the first delivery (kg). */
   reserve: string;
   delivery: string;
+}
+
+/**
+ * The empty capsule shells of a capsule product at GMP (the code the S11a test entered): specified, received, tested,
+ * released and reserved like the weighed materials, but not dispensed; the filling step names its lot.
+ */
+function gmpShells(t: Tablet, tag: string): GmpMaterial[] {
+  if (!t.shells) return [];
+  return [{ id: 'shell', code: `${t.prefix}-SHELL-${tag}`, name: t.shells, active: false, tare: '0', gross: '0', net: '0', reserve: '10.000', delivery: '20.000' }];
 }
 
 /** The tablet's materials as the GMP batch weighs them (the codes the S11a test entered with this run's tag). */
@@ -290,11 +344,13 @@ export function defineAcceptance(tabletKey: string): void {
       const f = s.getByRole('form', { name: 'Record a formula' });
       await f.getByRole('textbox', { name: 'Product code' }).fill(product.code);
       await f.getByRole('textbox', { name: 'Strength' }).fill(product.strength);
-      await f.getByRole('textbox', { name: 'Batch size (tablets)' }).fill('100000');
+      await f.getByRole('textbox', { name: 'Batch size (units)' }).fill('100000');
       await f.getByRole('button', { name: 'Record the formula' }).click();
       await s.getByTestId(`formula-${product.code}-${product.strength}`).getByRole('link').click();
       const v = s.getByTestId('new-formula-version');
       const lines = t.materials.map((m, i) => ({ id: m.id, mat: materials[i] as OwnMaterial, role: i === 0 ? 'ACTIVE' : 'EXCIPIENT', qty: m.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No' }));
+      // A capsule's empty shells: the unit's outer part, a COATING line per unit (C2).
+      if (t.shells) lines.push({ id: 'shell', mat: materials[t.materials.length] as OwnMaterial, role: 'COATING', qty: t.shellMg ?? '96', potency: 'No', comp: 'No' });
       for (const [i, l] of lines.entries()) {
         if (i > 0) await v.getByRole('button', { name: 'Add a line' }).click();
         const g = v.getByRole('group', { name: `Line ${i + 1}` });
@@ -306,8 +362,8 @@ export function defineAcceptance(tabletKey: string): void {
         await choose(g.getByRole('radiogroup', { name: /^Potency adjusted/ }).getByRole('radio', { name: l.potency, exact: true }));
         await choose(g.getByRole('radiogroup', { name: /^Compensating excipient/ }).getByRole('radio', { name: l.comp, exact: true }));
       }
-      await v.getByRole('textbox', { name: 'Target tablet weight (mg)' }).fill(t.targetMg);
-      await v.getByRole('textbox', { name: 'Further batch sizes (tablets)' }).fill('50000');
+      await v.getByRole('textbox', { name: 'Target unit weight (mg)' }).fill(t.targetMg);
+      await v.getByRole('textbox', { name: 'Further batch sizes (units)' }).fill('50000');
       await v.getByRole('textbox', { name: 'Reason for the new version' }).fill('First version: the development formula');
       await v.getByRole('button', { name: 'Write the draft version' }).click();
       await expect(v.getByText('Draft version written.')).toBeVisible();
@@ -336,12 +392,25 @@ export function defineAcceptance(tabletKey: string): void {
       const c = a.getByTestId('choose-product');
       await c.getByRole('textbox', { name: 'Formula product' }).fill(product.code);
       await c.getByRole('textbox', { name: 'Formula strength' }).fill(product.strength);
-      await c.getByRole('textbox', { name: 'Formula batch size (tablets)' }).fill('100000');
+      await c.getByRole('textbox', { name: 'Formula batch size (units)' }).fill('100000');
       await c.getByRole('button', { name: 'Choose this product' }).click();
       await expect(c.getByTestId('formula-bom')).toContainText(`${t.targetMg} mg`);
+      // The lead's condition (C2): a capsule's shells line reads as the empty capsule shells, never as a coating.
+      if (t.shells) {
+        await expect(c.getByTestId('formula-bom')).toContainText('Empty capsule shells');
+        await expect(c.getByTestId('formula-bom')).not.toContainText(/coat/i);
+      }
       await a.getByRole('textbox', { name: 'Family code' }).fill(`FAM-${tag}`);
       await a.getByRole('button', { name: 'Create the family and its draft' }).click();
-      await expect(a.getByRole('toolbar', { name: 'Designer' }).getByText('Passed: no errors, no warnings')).toBeVisible();
+      // A capsule's shells line waits for the filling step that consumes it (added next); a tablet's skeleton passes.
+      await expect(a.getByRole('toolbar', { name: 'Designer' }).getByText(t.shells ? /^1 errors, / : 'Passed: no errors, no warnings')).toBeVisible();
+      // Capsules edition C2 (decision 0020 amended): the header names the edition by the master's dosage form.
+      await expect(a.getByTestId('header-brand')).toContainText(t.shells ? 'Batchwright Capsules' : 'Batchwright Tablets');
+      if (t.shells) {
+        const bom = a.getByRole('table', { name: 'Bill of materials' });
+        await expect(bom.locator('tr', { hasText: 'BOM-SHELL' })).toContainText('Empty capsule shells');
+        await expect(bom).not.toContainText(/coat/i);
+      }
       versionId = /\/mbr\/versions\/([0-9a-f-]{36})/.exec(a.url())?.[1] ?? '';
       expect(versionId).not.toBe('');
       // S11b: the GMP half of the acceptance takes the product from here (its own tests, in order).
@@ -515,6 +584,8 @@ export function defineAcceptance(tabletKey: string): void {
   const PC_QA2 = 'PC-QA-09';
   const key = stateKey(t);
   const mats = (s: ProductState): GmpMaterial[] => gmpMaterials(t, s.tag);
+  /** Every material the GMP site specifies, receives and releases: the weighed ones and a capsule's empty shells. */
+  const allMats = (s: ProductState): GmpMaterial[] => [...mats(s), ...gmpShells(t, s.tag)];
   const printedOf = (s: ProductState) => ({
     // No product prefix (LWG400 and the like) in what a sandbox entry names: the sandbox refuses a word shaped like a real
     // batch or lot number (DI-05); the run's tag keeps each unique.
@@ -543,7 +614,7 @@ export function defineAcceptance(tabletKey: string): void {
     const qc = await officePage('GMP', PC_QC);
     await signIn.office(qc, persona('GMP', 'qcAnalyst'));
     await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), the printed foil and carton (text check) and the product (assay, dissolution)', 'A DRAFT specification of each', async () => {
-      for (const m of mats(s)) {
+      for (const m of allMats(s)) {
         await draftSpecification(qc, {
           material: m.code, title: m.name, monograph: `In-house specification STP-${m.code}, version 1`,
           tests: m.active
@@ -562,7 +633,7 @@ export function defineAcceptance(tabletKey: string): void {
     const hq = await officePage('GMP', PC_QC);
     await signIn.office(hq, persona('GMP', 'qcApprover'));
     await evidence.step('The head of QC approves the specifications', 'Each APPROVED and in effect', async () => {
-      await approveSpecifications(hq, [...mats(s).map((m) => m.code), pr.foil.material, pr.carton.material, s.product.code], persona('GMP', 'qcApprover'));
+      await approveSpecifications(hq, [...allMats(s).map((m) => m.code), pr.foil.material, pr.carton.material, s.product.code], persona('GMP', 'qcApprover'));
     }, hq);
     const rg = await officePage('GMP', PC_QA);
     await signIn.office(rg, persona('GMP', 'regulatory'));
@@ -572,7 +643,7 @@ export function defineAcceptance(tabletKey: string): void {
     const qa = await officePage('GMP', PC_QA2);
     await signIn.office(qa, persona('GMP', 'qaInvestigator'));
     await evidence.step('QA proposes and approves the manufacturer of each material and of the printed materials', 'APPROVED entries of the register (PR-17)', async () => {
-      await approveManufacturers(qa, [...mats(s).map((m) => m.code), pr.foil.material, pr.carton.material], manufacturer(s), persona('GMP', 'qaInvestigator'));
+      await approveManufacturers(qa, [...allMats(s).map((m) => m.code), pr.foil.material, pr.carton.material], manufacturer(s), persona('GMP', 'qaInvestigator'));
     }, qa);
   });
 
@@ -583,7 +654,7 @@ export function defineAcceptance(tabletKey: string): void {
     const sp = await officePage('GMP', PC_PLAN);
     await signIn.office(sp, persona('GMP', 'stores'));
     const deliveries: (readonly [string, string, string, string])[] = [
-      ...mats(s).map((m) => [m.id, m.code, 'kg', m.delivery] as const),
+      ...allMats(s).map((m) => [m.id, m.code, 'kg', m.delivery] as const),
       ['foil', pr.foil.material, '1', '20000'], ['carton', pr.carton.material, '1', '5000'],
     ];
     await evidence.step('Stores receive a delivery of each material and examine its container', 'Each lot in quarantine with its receipt record and examination', async () => {
@@ -600,7 +671,7 @@ export function defineAcceptance(tabletKey: string): void {
     const qc = await officePage('GMP', PC_QC);
     await signIn.office(qc, persona('GMP', 'qcAnalyst'));
     await evidence.step('QC records each lot\'s results and its identity', 'Every result PASS against the approved specification; identity PASS', async () => {
-      for (const m of mats(s)) {
+      for (const m of allMats(s)) {
         await openLot(qc, lots[m.id] ?? '');
         await recordResults(qc, m.active ? [['ASSAY', '99.20'], ['WATER', '0.80']] : [['WATER', '2.10']]);
         await recordIdentity(qc, lots[m.id] ?? '', `IR-${t.prefix}-${m.id.toUpperCase()}`);
@@ -614,7 +685,7 @@ export function defineAcceptance(tabletKey: string): void {
     const hq = await officePage('GMP', PC_QC);
     await signIn.office(hq, persona('GMP', 'qcApprover'));
     await evidence.step('The head of QC approves the results', 'Each result APPROVED by a second person', async () => {
-      for (const m of mats(s)) {
+      for (const m of allMats(s)) {
         await openLot(hq, lots[m.id] ?? '');
         await approveResults(hq, m.active ? ['ASSAY', 'WATER'] : ['WATER'], persona('GMP', 'qcApprover'));
       }
@@ -653,6 +724,13 @@ export function defineAcceptance(tabletKey: string): void {
     await evidence.step('The steward lists the product in the GMP plant\'s product list (a room\'s clearance names it)', 'The product is listed on Plant definitions', async () => {
       await definePlantProduct(st, base, s.product);
     }, st);
+    const gmpPlant = t.gmpPlant;
+    if (gmpPlant) {
+      await evidence.step('The steward registers the units the GMP plant lacks for the product (their classes, the units, their qualification)', 'Each unit defined and QUALIFIED in its logbook', async () => {
+        await registerPlantUnits(st, base, gmpPlant);
+        return { units: gmpPlant.map((u) => u.code).join(', ') };
+      }, st);
+    }
     await st.context().close();
     const op = await officePage('GMP', PC_PLAN);
     await signIn.office(op, e2e.seeds.GMP.bootstrap.admin as unknown as Parameters<typeof signIn.office>[1]);
@@ -676,7 +754,7 @@ export function defineAcceptance(tabletKey: string): void {
     const sp = await officePage('GMP', PC_PLAN);
     await signIn.office(sp, persona('GMP', 'stores'));
     await evidence.step('Stores reserve each lot for the batch', 'Each lot lists the open reservation', async () => {
-      await reserveLots(sp, s.batchNumber ?? '', mats(s).map((m) => [s.lots?.[m.id] ?? '', m.reserve] as const));
+      await reserveLots(sp, s.batchNumber ?? '', allMats(s).map((m) => [s.lots?.[m.id] ?? '', m.reserve] as const));
     }, sp);
   });
 
@@ -691,7 +769,7 @@ export function defineAcceptance(tabletKey: string): void {
       const ms = mats(s);
       const lots = ms.map((m) => ({ lotCode: s.lots?.[m.id] ?? '', material: { code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: m.active ? 'act' as const : 'exc' as const } }));
       const step = (blocks: readonly ProductBlock[]) => async (page: Page, ctx: StageCtx): Promise<void> => {
-        for (const b of blocks) await runLibraryStep(page, ctx, b, GMP_UNITS, {}, 1, 'GMP-');
+        for (const b of blocks) await runLibraryStep(page, ctx, b, GMP_UNITS, t.shells ? { shellLot: s.lots?.['shell'] ?? '' } : {}, 1, 'GMP-');
       };
       try {
         const run = await skeletonRun(floor, {

@@ -212,6 +212,7 @@ tests:
   - "packages/recipe-core/test/library/step-value.test.ts > earlier-step values of library blocks > [DI-33][PR-19] the value is converted exactly to the input's unit (an LOD recorded as a fraction, 0.02, reads as 2 %)"
   - "packages/recipe-core/test/library/step-value.test.ts > earlier-step values of library blocks > [DI-33][PR-19] the catalogue's potency-adjusted dispensing (PROC-DISP-POTENCY) runs after the catalogue's LOD test (IPC-LOD) with no master input for the LOD: it reads the LOD the test recorded"
   - "apps/tablets-server/test/library/library-step-value-gmp.test.ts > an earlier-step value in a GMP batch > [DI-33][PR-19] the later library step computes from the value the completed earlier step recorded: 9.8 kg dried at 2 % LOD is 10 kg as is"
+  - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libcap 200 mg, hard capsules size 0 (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
 clauses:
   - clause: "An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail."
     tests:
