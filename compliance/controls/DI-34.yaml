@@ -415,6 +415,7 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [DI-34][PR-03] golden: a dissolution profile runs its nominal entries to COMPLETED with no exception"
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [DI-34][PR-03] a batch is defined from the master's own snapshot; a snapshot that is not well made, or one carried twice, refuses the batch"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-03][DI-34] every catalogue item is well made, its example values pass the formulation checks, and a nominal batch completes it (each item also has its own test below)"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 7: a row records the engine command of its type with exactly its members, each of its JSON type, and the evidence the server records (DI-05, DI-30) > [DI-05][DI-30][DI-34] a refused library step entry is recorded with the library's own refusal (LIB-..., sql 1874): an entry a library block refuses on a GMP batch keeps its reason, and every code and control the library's sources name meets the rule (Capsules C3 finding: before, the writer answered EBMR-EXE-126)"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:

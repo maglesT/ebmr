@@ -1,0 +1,760 @@
+/**
+ * Ready-made library blocks of the Injectables edition, slice I-1: terminally sterilised small-volume vials and
+ * ampoules (injectables plan v2, approved 4 November 2026, sections 4 and 5; `docs/build-plan/injectables/plan.md`).
+ * Every block is data built from the existing field types (plan section 1: no sterile code) and belongs to the
+ * `injectables` edition, so it is offered only to a master of that edition (recipe-core 1871, EBMR-LIB-024).
+ *
+ * The plan's block numbers (INJ-xx) are named in each block's description. The clauses each block serves are the
+ * plan's (section 4); they are cited by number and paraphrased, never quoted.
+ *
+ * Choices kept to the binding minimum (plan section 8a):
+ *  - Parameters from a device (autoclave, depyrogenation tunnel) are typed from the attached printout and checked by a
+ *    second person (21 CFR 211.68(b); lead, Q2), so those blocks carry a CHECKED signature.
+ *  - A grade is a room or line class (the formulation names the class of the right grade; slice I-1b adds the classes):
+ *    the room field refuses a room of another class, one past its requalification date, or one not clean.
+ *  - The disinfectant is a site consumable, not a line of the product's formula, so its name and lot are typed; its
+ *    contact time is a timer with the validated minimum.
+ *  - Time limits between steps (compounding to filtration, filling to capping, the fill duration, sterilisation to use)
+ *    are the master's time constraints (HOLD, PROCESS_WINDOW, USE_BY: a maximum with its validation source, on trusted
+ *    time from the steps' own events), not typed times in a block.
+ *  - Sterilisation loads are containers: the filled trays registered by filling are consumed by a load, and each load
+ *    registers its own container, so every unit's load is in the genealogy, and per-load sterility samples are taken
+ *    in the load's own entry.
+ *  - The AQL sample size and accept number come from the formulation's validated sampling plan (the count and the
+ *    defects limit).
+ *  - The release tests (INJ-26) are QC's: QC records them on the lot, and the release gate waits for them (as for every
+ *    release test, D-S11-R1).
+ *
+ * Invented example values. The example room and line classes are the grade classes of slice I-1b.
+ */
+import type { LimitSpec } from '../../limits/model.ts';
+import type { SeedItem } from './types.ts';
+
+const EDITION = 'injectables' as const;
+const OPERATOR = { meaning: 'PERFORMED' as const, role: 'PRODUCTION_OPERATOR' };
+const CHECKER = { meaning: 'CHECKED' as const, role: 'PRODUCTION_VERIFIER' };
+const VERIFIER = { meaning: 'VERIFIED' as const, role: 'PRODUCTION_VERIFIER' };
+const QC = [
+  { meaning: 'PERFORMED' as const, role: 'QC_ANALYST' },
+  { meaning: 'VERIFIED' as const, role: 'QC_REVIEWER' },
+];
+
+/** A limit range (inclusive bounds) from a source: the validation report for a process value, the registration for a
+ *  product value. */
+const limit = (kind: 'VALIDATION_REPORT' | 'REGISTRATION', unit: string, low?: string, high?: string): LimitSpec => ({
+  unit,
+  ranges: [{ tier: kind === 'REGISTRATION' ? 'REGISTERED' : 'VALIDATED', ...(low ? { low: { value: low, inclusive: true } } : {}), ...(high ? { high: { value: high, inclusive: true } } : {}), rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind, ref: kind === 'REGISTRATION' ? 'SPEC-REF' : 'PV-REF' } }],
+});
+const pv = (unit: string, low?: string, high?: string): LimitSpec => limit('VALIDATION_REPORT', unit, low, high);
+const spec = (unit: string, low?: string, high?: string): LimitSpec => limit('REGISTRATION', unit, low, high);
+
+/** Load patterns of a steriliser: the validated loads (the formulation's load is one of them). */
+const PART_LOADS = ['Stoppers', 'Filling machine parts', 'Filters and tubing', 'Garments and wipes'];
+const PRODUCT_LOADS = ['Full load (validated maximum)', 'Partial load (validated minimum)'];
+
+/** Units counted (containers): a plain count. */
+const UNITS = '{unit}';
+
+export const INJECTABLE_SEEDS: readonly SeedItem[] = [
+  {
+    // INJ-01: SM 3.1-3.4, 4.5-4.6, 4.11; 211.42(c)(10), 211.56(b); A1 4.33-4.36.
+    definition: {
+      code: 'INJ-ROOM-READY',
+      version: 1,
+      title: 'Line clearance and room readiness (sterile area)',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['CLEARANCE'],
+      description: 'INJ-01. The room of the right grade, cleared of the previous batch, disinfected with the named agent for its contact time, and its pressure difference in limit.',
+      instructions: 'Clear the room of everything of the previous batch. Disinfect with the agent of the rotation in force and leave it for its contact time. Read the pressure difference to the adjacent lower grade before starting.',
+      sections: [
+        {
+          id: 'clearance',
+          title: 'Clearance',
+          fields: [
+            { id: 'room', label: 'Room (of the grade the formulation names)', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
+            { id: 'previousProduct', label: 'Previous product', type: 'TEXT' },
+            { id: 'previousBatch', label: 'Previous batch', type: 'TEXT' },
+            { id: 'noMaterials', label: 'No materials, containers or units of the previous batch remain', type: 'YES_NO', expected: true },
+            { id: 'noDocuments', label: 'No documents or labels of the previous batch remain', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'disinfection',
+          title: 'Cleaning and disinfection',
+          fields: [
+            { id: 'agent', label: 'Disinfectant or sporicide (of the rotation in force)', type: 'TEXT', maxLength: 80 },
+            { id: 'agentLot', label: 'Disinfectant lot or preparation number', type: 'TEXT', maxLength: 40 },
+            { id: 'agentInDate', label: 'Disinfectant within its use-by time', type: 'YES_NO', expected: true },
+            { id: 'contact', label: 'Contact time', type: 'TIMER', durationUnit: 'min', limitSlot: 'contactTime', critical: true },
+            { id: 'surfacesDone', label: 'Floors, walls, surfaces and equipment exteriors disinfected', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'readings',
+          title: 'Room readings',
+          fields: [
+            { id: 'pressureDiff', label: 'Pressure difference to the adjacent lower grade', type: 'NUMBER', unit: 'Pa', decimals: 0, limitSlot: 'pressureDiff', critical: true },
+            { id: 'temperature', label: 'Room temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature' },
+            { id: 'humidity', label: 'Relative humidity', type: 'NUMBER', unit: '%', decimals: 0, limitSlot: 'humidity' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, CHECKER],
+    },
+    exampleUse: {
+      equipmentClasses: { roomClass: 'ROOM-GRADE-C' },
+      limits: { contactTime: pv('min', '10'), pressureDiff: pv('Pa', '10', '20'), temperature: pv('Cel', '18.0', '25.0'), humidity: pv('%', '30', '60') },
+      targets: { pressureDiff: '15', temperature: '21.0', humidity: '45' },
+    },
+  },
+  {
+    // INJ-02: 211.84(d), 211.94(c)-(d); A1 2.1(iv), 10.2.
+    definition: {
+      code: 'INJ-COMPONENT-ACCEPT',
+      version: 1,
+      title: 'Primary component acceptance (vials, ampoules, stoppers, seals)',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['VERIFICATION'],
+      description: 'INJ-02. One primary component of the batch: its lot (released by QC, which already holds its tests), its packs intact, the quantity issued. Used once per component.',
+      instructions: 'Check the component lot against the formula line, its released label and the packs. Do not use a pack that is open or damaged.',
+      sections: [
+        {
+          id: 'component',
+          title: 'Component',
+          fields: [
+            { id: 'component', label: 'Component', type: 'CHOICE', options: ['Glass vial', 'Glass ampoule', 'Rubber stopper', 'Aluminium seal', 'Other primary component'] },
+            { id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' },
+            { id: 'labelReleased', label: 'Released label on every pack', type: 'YES_NO', expected: true },
+            { id: 'packsIntact', label: 'Packs closed and undamaged', type: 'YES_NO', expected: true },
+            { id: 'issued', label: 'Quantity issued', type: 'NUMBER', unit: UNITS, decimals: 0 },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, CHECKER],
+    },
+    exampleUse: { bomLines: { componentLine: 'L2' } },
+  },
+  {
+    // INJ-04: 211.94(c); A1 8.18.
+    definition: {
+      code: 'INJ-WASH',
+      version: 1,
+      title: 'Container washing and siliconisation',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-04. The washer, its water for injection temperature and pressure, the washing time, siliconisation where the product needs it, and the washed containers free of visible particles.',
+      instructions: 'Run the washer with the validated programme. Record the final rinse water readings from the washer display. Siliconise only where the formulation says so.',
+      sections: [
+        {
+          id: 'run',
+          title: 'Washing',
+          fields: [
+            { id: 'washer', label: 'Container washer', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'washerClass' },
+            { id: 'programme', label: 'Washing programme', type: 'TEXT', maxLength: 40 },
+            { id: 'wfiTemp', label: 'Final rinse WFI temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp', critical: true },
+            { id: 'wfiPressure', label: 'Final rinse WFI pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'wfiPressure', critical: true },
+            { id: 'washing', label: 'Washing time', type: 'TIMER', durationUnit: 'min' },
+            { id: 'siliconisation', label: 'Siliconisation', type: 'CHOICE', options: ['Not required by the product', 'Applied'] },
+            { id: 'siliconeRef', label: 'Silicone emulsion lot or preparation', type: 'TEXT', maxLength: 40, showWhen: { field: 'siliconisation', equals: 'Applied' } },
+            { id: 'washed', label: 'Containers washed', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'noParticles', label: 'Washed containers checked: no visible particles or water drops', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, CHECKER],
+    },
+    exampleUse: {
+      equipmentClasses: { washerClass: 'VIAL-WASHER' },
+      limits: { wfiTemp: pv('Cel', '70.0', '90.0'), wfiPressure: pv('bar', '1.50', '2.50') },
+      targets: { wfiTemp: '80.0', wfiPressure: '2.00' },
+    },
+  },
+  {
+    // INJ-05: 211.94(c), 211.113(b); A1 8.66-8.70.
+    definition: {
+      code: 'INJ-DEPYRO',
+      version: 1,
+      title: 'Depyrogenation tunnel',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-05. The depyrogenation of the washed containers in the tunnel: its cycle number, the sterilising-zone temperature and the belt speed typed from the printout, checked by a second person. (A dry-heat oven, which records a hold time, is a later block.)',
+      instructions: 'Read the values from the cycle printout and attach it to the record. A second person checks the typed values against the printout.',
+      sections: [
+        {
+          id: 'cycle',
+          title: 'Cycle',
+          fields: [
+            { id: 'tunnel', label: 'Depyrogenation tunnel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'tunnelClass' },
+            { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
+            { id: 'zoneTemp', label: 'Lowest sterilising-zone temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'zoneTemp', critical: true },
+            { id: 'beltSpeed', label: 'Belt speed', type: 'NUMBER', unit: 'mm/min', decimals: 0, limitSlot: 'beltSpeed', critical: true },
+            { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
+            { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, CHECKER],
+    },
+    exampleUse: {
+      equipmentClasses: { tunnelClass: 'DEPYRO-TUNNEL' },
+      limits: { zoneTemp: pv('Cel', '300.0', '350.0'), beltSpeed: pv('mm/min', '80', '120') },
+      targets: { zoneTemp: '320.0', beltSpeed: '100' },
+    },
+  },
+  {
+    // INJ-06: 211.113(b); SM 6.3-6.11.1; A1 8.41-8.59.
+    definition: {
+      code: 'INJ-PARTS-AUTOCLAVE',
+      version: 1,
+      title: 'Moist-heat sterilisation of parts and components',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-06. A validated load of parts or components (stoppers, filling parts, filters, garments): the autoclave, the load, the cycle values typed from the printout, and the indicator. Its time to use is a time constraint of the master from this step.',
+      instructions: 'Load to the validated pattern. Read the values from the cycle printout and attach it. A second person checks the typed values against the printout.',
+      sections: [
+        {
+          id: 'cycle',
+          title: 'Cycle',
+          fields: [
+            { id: 'autoclave', label: 'Steam steriliser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'autoclaveClass' },
+            { id: 'loadPattern', label: 'Load (validated pattern)', type: 'CHOICE', options: PART_LOADS },
+            { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
+            { id: 'temperature', label: 'Lowest temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
+            { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
+            { id: 'f0', label: 'Lowest F0 of the load', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'f0', critical: true },
+            { id: 'indicator', label: 'Process indicator changed', type: 'YES_NO', expected: true },
+            { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
+            { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, CHECKER],
+    },
+    exampleUse: {
+      equipmentClasses: { autoclaveClass: 'STEAM-STERILISER' },
+      limits: { temperature: pv('Cel', '121.0', '124.0'), holdTime: pv('min', '20.0', '30.0'), f0: pv('min', '15.0') },
+      targets: { temperature: '122.0', holdTime: '25.0', f0: '20.0' },
+    },
+  },
+  {
+    // INJ-12: 211.101, 211.103, 211.111; SM 5.12-5.17.
+    definition: {
+      code: 'INJ-COMPOUND',
+      version: 1,
+      title: 'Solution preparation (compounding)',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-12. The vessel, water for injection from its point of use, mixing time, nitrogen overlay where the product needs it, volume make-up, pH and density of the bulk, and the pre-filtration bioburden sample.',
+      instructions: 'Charge the water for injection, add the dispensed materials in the order of the formulation and mix. Make up to the final volume. Take the pH, the density and the bioburden sample before filtration.',
+      sections: [
+        {
+          id: 'preparation',
+          title: 'Preparation',
+          fields: [
+            { id: 'vessel', label: 'Compounding vessel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'vesselClass' },
+            { id: 'wfiPoint', label: 'WFI point of use', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'wfiPointClass' },
+            { id: 'wfiVolume', label: 'WFI charged first', type: 'NUMBER', unit: 'L', decimals: 1, limitSlot: 'wfiVolume' },
+            { id: 'wfiTemp', label: 'WFI temperature at charging', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp', critical: true },
+            { id: 'additionOrder', label: 'Materials added in the order of the formulation', type: 'YES_NO', expected: true },
+            { id: 'mixing', label: 'Mixing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixingTime', critical: true },
+            { id: 'nitrogen', label: 'Nitrogen overlay', type: 'CHOICE', options: ['Not required by the product', 'Applied'] },
+          ],
+        },
+        {
+          id: 'makeUp',
+          title: 'Make-up and checks',
+          fields: [
+            { id: 'finalVolume', label: 'Final volume after make-up', type: 'NUMBER', unit: 'L', decimals: 1, limitSlot: 'finalVolume', critical: true },
+            { id: 'ph', label: 'pH of the bulk', type: 'TEST_RESULT', unit: '1', replicatesSlot: 'phReadings', statistics: [{ statistic: 'MEAN', limitSlot: 'ph' }] },
+            { id: 'density', label: 'Density of the bulk', type: 'NUMBER', unit: 'g/mL', decimals: 4, limitSlot: 'density', critical: true },
+            { id: 'bioburdenSample', label: 'Pre-filtration bioburden sample', type: 'SAMPLE', unitsSlot: 'bioburdenSamples', purpose: 'Pre-filtration bioburden' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' },
+      limits: {
+        wfiVolume: pv('L', '140.0', '160.0'),
+        wfiTemp: pv('Cel', '20.0', '30.0'),
+        mixingTime: pv('min', '30'),
+        finalVolume: spec('L', '199.0', '201.0'),
+        ph: spec('1', '6.5', '7.5'),
+        density: spec('g/mL', '1.0000', '1.0100'),
+      },
+      targets: { wfiVolume: '150.0', wfiTemp: '25.0', finalVolume: '200.0', ph: '7.0', density: '1.0050' },
+      counts: { phReadings: '2', bioburdenSamples: '1' },
+    },
+  },
+  {
+    // INJ-14: 211.111; A1 8.36.
+    definition: {
+      code: 'INJ-BULK-FILTER',
+      version: 1,
+      title: 'Bulk hold and bioburden-reducing filtration (terminally sterilised products)',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-14. The bioburden-reducing filter assembly and the filtration pressure, into the receiving vessel. The bulk hold before filtration is a hold-time constraint of the master.',
+      instructions: 'Filter the bulk into the receiving vessel. Do not exceed the filtration pressure.',
+      sections: [
+        {
+          id: 'filtration',
+          title: 'Filtration',
+          fields: [
+            { id: 'filter', label: 'Filter assembly', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'filterClass' },
+            { id: 'receiver', label: 'Receiving vessel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'receiverClass' },
+            { id: 'pressure', label: 'Highest filtration pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'pressure', critical: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { filterClass: 'FILTER-0_45UM', receiverClass: 'SS-VESSEL-200L' },
+      limits: { pressure: pv('bar', '0.00', '2.00') },
+      targets: { pressure: '1.20' },
+    },
+  },
+  {
+    // INJ-15: 211.100, 211.110(a); A1 8.20-8.21, 8.26-8.29. Interventions and stoppages (events repeat) arrive in I-2.
+    definition: {
+      code: 'INJ-FILL',
+      version: 1,
+      title: 'Filling and stoppering (vials and ampoules)',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-15. The filling line in its room, the format, the fill weight and volume at each round against limits, the stopper-height check for vials, and the filled trays registered as containers (each later one sterilisation load or part of one).',
+      instructions: 'Set the line for the format. Weigh filled units at each round; the volume follows from the bulk density. Register each filled tray as a container.',
+      inputs: [{ id: 'density', label: 'Density of the bulk (from compounding)', kind: 'STEP_VALUE', unit: 'g/mL', slot: 'densitySource' }],
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'line', label: 'Filling line', type: 'EQUIPMENT', kind: 'LINE', classSlot: 'lineClass' },
+            { id: 'room', label: 'Filling room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
+            { id: 'format', label: 'Container format', type: 'CHOICE', options: ['Vial', 'Ampoule'] },
+            { id: 'weighBalance', label: 'Balance for the fill weights', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            { id: 'stopperCheck', label: 'Stopper-height check active', type: 'YES_NO', expected: true, showWhen: { field: 'format', equals: 'Vial' } },
+          ],
+        },
+        {
+          id: 'round',
+          title: 'Filling round',
+          repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
+          fields: [
+            { id: 'fillWeight', label: 'Mean fill weight of the units weighed', type: 'NUMBER', unit: 'g', decimals: 3, limitSlot: 'fillWeight', critical: true },
+            { id: 'fillVolume', label: 'Mean fill volume', type: 'CALC', expression: 'convert(volume_from_mass(fillWeight, density), [mL])', unit: 'mL', limitSlot: 'fillVolume', critical: true },
+            { id: 'closures', label: 'Units closed correctly (stoppers seated, ampoules sealed)', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'tray',
+          title: 'Filled tray',
+          repeat: { kind: 'PER_CONTAINER' },
+          fields: [
+            { id: 'trayOut', label: 'Filled tray', type: 'CONTAINER', action: 'REGISTER' },
+            { id: 'units', label: 'Units on the tray', type: 'NUMBER', unit: UNITS, decimals: 0 },
+          ],
+        },
+        {
+          id: 'end',
+          title: 'End of filling',
+          fields: [
+            { id: 'filled', label: 'Units filled', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'rejects', label: 'Units rejected at the line (incl. stopper height)', type: 'NUMBER', unit: UNITS, decimals: 0 },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C', balanceClass: 'ANALYTICAL-BALANCE' },
+      limits: { fillWeight: spec('g', '2.050', '2.150'), fillVolume: spec('mL', '2.030', '2.140') },
+      targets: { fillWeight: '2.100' },
+      intervals: { roundInterval: { value: '30', unit: 'min' } },
+      stepValues: { densitySource: { step: 'compounding', field: 'density' } },
+    },
+    exampleInputs: { density: { value: '1.0050', unit: 'g/mL' } },
+  },
+  {
+    // INJ-18: 211.110(a); A1 8.101.
+    definition: {
+      code: 'IPC-INJ-FILL-WEIGHT',
+      version: 1,
+      title: 'Fill weight check (individual units)',
+      category: 'TEST_IPC',
+      edition: EDITION,
+      description: 'INJ-18. At each check, the net fill weight of each unit the formulation names, judged on the mean and on every unit.',
+      instructions: 'Take the units from every filling head. Weigh each filled unit and subtract its empty (tare) weight.',
+      sections: [
+        {
+          id: 'check',
+          title: 'Fill weight check',
+          repeat: { kind: 'PER_INTERVAL', intervalSlot: 'checkInterval' },
+          fields: [
+            { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
+            {
+              id: 'weights',
+              label: 'Net fill weight of each unit',
+              type: 'TEST_RESULT',
+              unit: 'g',
+              replicatesSlot: 'units',
+              statistics: [
+                { statistic: 'MEAN', limitSlot: 'meanWeight' },
+                { statistic: 'INDIVIDUAL', limitSlot: 'individualWeight' },
+              ],
+            },
+          ],
+        },
+      ],
+      signatures: [OPERATOR],
+    },
+    exampleUse: {
+      equipmentClasses: { balanceClass: 'ANALYTICAL-BALANCE' },
+      limits: { meanWeight: spec('g', '2.070', '2.130'), individualWeight: spec('g', '2.050', '2.150') },
+      counts: { units: '10' },
+      intervals: { checkInterval: { value: '60', unit: 'min' } },
+    },
+  },
+  {
+    // INJ-19: A1 8.22; SM 10.3-10.8.
+    definition: {
+      code: 'INJ-AMPOULE-SEAL',
+      version: 1,
+      title: 'Ampoule sealing (fusion)',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-19. The sealing station, its gas and oxygen flows against the validated settings, and the seal of the ampoules at each round.',
+      instructions: 'Set the flame to the validated settings. At each round examine the sealed tips: round, closed, no capillary, not burnt.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'sealer', label: 'Ampoule sealing station', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'sealerClass' },
+            { id: 'gasFlow', label: 'Fuel gas flow', type: 'NUMBER', unit: 'L/min', decimals: 2, limitSlot: 'gasFlow', critical: true },
+            { id: 'oxygenFlow', label: 'Oxygen flow', type: 'NUMBER', unit: 'L/min', decimals: 2, limitSlot: 'oxygenFlow', critical: true },
+          ],
+        },
+        {
+          id: 'round',
+          title: 'Sealing round',
+          repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
+          fields: [
+            { id: 'sealsIntact', label: 'Tips sealed round and closed, no capillary or burnt tip', type: 'YES_NO', expected: true },
+            { id: 'rejects', label: 'Ampoules rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { sealerClass: 'AMPOULE-SEALER' },
+      limits: { gasFlow: pv('L/min', '1.00', '1.50'), oxygenFlow: pv('L/min', '2.00', '3.00') },
+      targets: { gasFlow: '1.20', oxygenFlow: '2.50' },
+      intervals: { roundInterval: { value: '30', unit: 'min' } },
+    },
+  },
+  {
+    // INJ-20: SM 10.3-10.8; A1 8.26-8.29.
+    definition: {
+      code: 'INJ-CAPPING',
+      version: 1,
+      title: 'Capping and crimping (vials)',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-20. The capping machine, the crimp at each round and the rejects. A maximum time from stoppering to capping is a hold-time constraint of the master.',
+      instructions: 'Cap the stoppered vials. At each round check the crimp: the seal tight, not turning, the stopper not displaced.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'capper', label: 'Capping machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'capperClass' },
+          ],
+        },
+        {
+          id: 'round',
+          title: 'Capping round',
+          repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
+          fields: [
+            { id: 'crimpOk', label: 'Crimp tight, seal does not turn, stopper not displaced', type: 'YES_NO', expected: true },
+            { id: 'rejects', label: 'Vials rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { capperClass: 'VIAL-CAPPER' },
+      intervals: { roundInterval: { value: '30', unit: 'min' } },
+    },
+  },
+  {
+    // INJ-21: 211.113(b), 211.167(a); SM 6.3-6.11.1; A1 8.1-8.5, 8.41-8.65.
+    definition: {
+      code: 'INJ-TERMINAL-STERILISE',
+      version: 1,
+      title: 'Terminal sterilisation by moist heat (per load)',
+      category: 'PROCESS',
+      edition: EDITION,
+      description: 'INJ-21. Each load is a container of the batch: every filled tray is consumed into its numbered load; each load records its cycle values typed from the printout once (checked by a second person), the indicator and the load\'s sterility samples, and registers the sterilised load.',
+      instructions: 'Load to the validated pattern. For each load, read the values from its cycle printout and attach it, take the load\'s sterility samples from the coldest positions, and register the sterilised load.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Steriliser',
+          fields: [
+            { id: 'steriliser', label: 'Steam steriliser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'steriliserClass' },
+            { id: 'loadPattern', label: 'Load (validated pattern)', type: 'CHOICE', options: PRODUCT_LOADS },
+          ],
+        },
+        {
+          id: 'tray',
+          title: 'Tray loaded',
+          repeat: { kind: 'PER_CONTAINER' },
+          fields: [
+            { id: 'trayIn', label: 'Filled tray', type: 'CONTAINER', action: 'CONSUME' },
+            { id: 'trayLoad', label: 'Load it is placed in (load number)', type: 'TEXT', maxLength: 20 },
+          ],
+        },
+        {
+          id: 'load',
+          title: 'Load',
+          repeat: { kind: 'PER_CONTAINER' },
+          fields: [
+            { id: 'loadNumber', label: 'Load number', type: 'TEXT', maxLength: 20 },
+            { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
+            { id: 'temperature', label: 'Lowest product temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
+            { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
+            { id: 'f0', label: 'Lowest F0 of the load', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'f0', critical: true },
+            { id: 'indicator', label: 'Process indicator changed', type: 'YES_NO', expected: true },
+            { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
+            { id: 'sterilitySample', label: 'Sterility samples of the load', type: 'SAMPLE', unitsSlot: 'loadSterilitySamples', purpose: 'Sterility test, per load' },
+            { id: 'loadOut', label: 'Sterilised load', type: 'CONTAINER', action: 'REGISTER' },
+            { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, CHECKER],
+    },
+    exampleUse: {
+      equipmentClasses: { steriliserClass: 'STEAM-STERILISER' },
+      limits: { temperature: pv('Cel', '121.0', '124.0'), holdTime: pv('min', '15.0', '20.0'), f0: pv('min', '12.0') },
+      targets: { temperature: '122.0', holdTime: '17.0', f0: '15.0' },
+      counts: { loadSterilitySamples: '20' },
+    },
+  },
+  {
+    // INJ-22 (manual and semi-automatic; automated in I-5): SM 10.3-10.8, Part I 11.5.1; A1 8.30-8.33.
+    definition: {
+      code: 'INJ-VISUAL-INSPECT',
+      version: 1,
+      title: '100 % visual inspection and AQL (manual)',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['OBSERVATION'],
+      description: 'INJ-22. Every unit inspected at the booth by a qualified inspector (the eyesight and inspection qualifications are checked at the signature): the rejects by defect category, the reject rate against its limit, the inspection time, and the AQL check of the accepted units on the formulation\'s sampling plan.',
+      instructions: 'Inspect every unit against the black and the white background at the booth\'s checked illumination, within the inspector\'s validated time. Then take the AQL sample from the accepted units and inspect it again.',
+      sections: [
+        {
+          id: 'setup',
+          title: 'Set-up',
+          fields: [
+            { id: 'mode', label: 'Inspection mode', type: 'CHOICE', options: ['Manual (static booth)', 'Semi-automatic (rollers, inspector)'] },
+            { id: 'booth', label: 'Inspection booth', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'boothClass' },
+            { id: 'illuminationOk', label: 'Booth illumination checked in range today', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'counts',
+          title: 'Inspection',
+          fields: [
+            { id: 'inspected', label: 'Units inspected', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'inspected' },
+            { id: 'particles', label: 'Rejected: visible particles', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'particles' },
+            { id: 'container', label: 'Rejected: container defects (cracks, glass, cosmetic)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'containerDefects' },
+            { id: 'fill', label: 'Rejected: fill level', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'fillDefects' },
+            { id: 'closure', label: 'Rejected: closure or seal', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'closureDefects' },
+            { id: 'rejected', label: 'Units rejected', type: 'CALC', expression: 'particles + container + fill + closure', unit: UNITS },
+            { id: 'rejectRate', label: 'Reject rate', type: 'CALC', expression: 'rejected / inspected * 100 [%]', unit: '%', limitSlot: 'rejectRate', critical: true },
+            { id: 'accepted', label: 'Units accepted', type: 'CALC', expression: 'inspected - rejected', unit: UNITS },
+            { id: 'inspecting', label: 'Inspection time (for the inspector\'s validated rate)', type: 'TIMER', durationUnit: 'min' },
+          ],
+        },
+        {
+          id: 'aql',
+          title: 'AQL of the accepted units',
+          fields: [
+            { id: 'aqlSample', label: 'AQL sample (size from the sampling plan)', type: 'SAMPLE', unitsSlot: 'aqlSampleUnits', purpose: 'AQL inspection' },
+            { id: 'aqlCritical', label: 'Critical defects found', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'aqlCritical', critical: true },
+            { id: 'aqlMajor', label: 'Major defects found', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'aqlMajor', critical: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { boothClass: 'INSPECTION-BOOTH' },
+      limits: {
+        inspected: pv(UNITS, '1', '100000'),
+        particles: pv(UNITS, '0', '100000'),
+        containerDefects: pv(UNITS, '0', '100000'),
+        fillDefects: pv(UNITS, '0', '100000'),
+        closureDefects: pv(UNITS, '0', '100000'),
+        rejectRate: pv('%', '0', '2.0'),
+        aqlCritical: spec(UNITS, '0', '0'),
+        aqlMajor: spec(UNITS, '0', '1'),
+      },
+      targets: { inspected: '10000', particles: '20', containerDefects: '30', fillDefects: '25', closureDefects: '5', aqlCritical: '0', aqlMajor: '0' },
+      counts: { aqlSampleUnits: '200' },
+    },
+  },
+  {
+    // INJ-23 (dye and other methods; deterministic machines in I-5): SM 10.3-10.8; A1 8.22-8.25.
+    definition: {
+      code: 'INJ-CCI',
+      version: 1,
+      title: 'Container closure integrity',
+      category: 'TEST_IPC',
+      edition: EDITION,
+      description: 'INJ-23. The method, the units tested (every unit for fusion-sealed ampoules; a sample otherwise, as the formulation says) and the failures, which reject the batch\'s units for investigation.',
+      instructions: 'Test the units the formulation names with the validated method. Any failure is reported at once.',
+      sections: [
+        {
+          id: 'test',
+          title: 'Integrity test',
+          fields: [
+            { id: 'method', label: 'Method', type: 'CHOICE', options: ['Dye ingress (vacuum)', 'Vacuum decay', 'High-voltage leak detection', 'Helium leak'] },
+            { id: 'units', label: 'Units tested', type: 'SAMPLE', unitsSlot: 'cciUnits', purpose: 'Container closure integrity' },
+            { id: 'failures', label: 'Units that failed', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'failures', critical: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { failures: spec(UNITS, '0', '0') },
+      targets: { failures: '0' },
+      counts: { cciUnits: '100' },
+    },
+  },
+  {
+    // INJ-24: 211.188(b), 211.192; SM 10.3-10.8.
+    definition: {
+      code: 'INJ-UNIT-ACCOUNT',
+      version: 1,
+      title: 'Unit accountability',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['YIELD_RECONCILIATION'],
+      description: 'INJ-24. Every unit filled is accounted for: accepted, rejected at the line and at inspection, sampled and documented losses. A unit not accounted for is an exception.',
+      instructions: 'Take the counts from the filling, inspection and sampling steps. Explain any unit not accounted for before signing.',
+      sections: [
+        {
+          id: 'account',
+          title: 'Accountability',
+          fields: [
+            { id: 'filled', label: 'Units filled', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'filled' },
+            { id: 'accepted', label: 'Units accepted after inspection', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'accepted' },
+            { id: 'rejected', label: 'Units rejected (line and inspection)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'rejected' },
+            { id: 'sampled', label: 'Units sampled (QC, sterility, AQL, CCI destroyed)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'sampled' },
+            { id: 'losses', label: 'Documented losses (broken, set-up)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'losses' },
+            { id: 'accountedPct', label: 'Accounted for', type: 'CALC', expression: 'accountability(filled, accepted, rejected, sampled, losses)', unit: '%' },
+            { id: 'unaccounted', label: 'Units not accounted for', type: 'CALC', expression: 'unaccounted(filled, accepted, rejected, sampled, losses)', unit: UNITS, limitSlot: 'unaccounted', critical: true },
+            { id: 'explanation', label: 'Explanation of any difference', type: 'TEXT', required: false },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: {
+        filled: pv(UNITS, '1', '100000'),
+        accepted: pv(UNITS, '0', '100000'),
+        rejected: pv(UNITS, '0', '100000'),
+        sampled: pv(UNITS, '0', '100000'),
+        losses: pv(UNITS, '0', '100000'),
+        unaccounted: spec(UNITS, '0', '0'),
+      },
+      targets: { filled: '10000', accepted: '9700', rejected: '160', sampled: '120', losses: '20' },
+    },
+  },
+  {
+    // INJ-25: 211.165(a), 211.167(a); SM 2.1-2.3; A1 10.6.
+    definition: {
+      code: 'INJ-STERILITY-SAMPLE',
+      version: 1,
+      title: 'Sterility and endotoxin sampling',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['SAMPLING'],
+      description: 'INJ-25. The samples of the batch at each point of the formulation\'s sampling plan (start, middle and end of filling, after an intervention); per-load sterility samples are taken in the sterilisation step.',
+      instructions: 'Take the units of each sampling point, label them with the batch, the point and the time, and send them to QC.',
+      sections: [
+        {
+          id: 'point',
+          title: 'Sampling point',
+          repeat: { kind: 'COUNT', countSlot: 'samplingPoints' },
+          fields: [
+            { id: 'point', label: 'Sampling point', type: 'CHOICE', options: ['Start of filling', 'Middle of filling', 'End of filling', 'After an intervention'] },
+            { id: 'units', label: 'Units taken', type: 'SAMPLE', unitsSlot: 'unitsPerPoint', purpose: 'Sterility and endotoxin tests' },
+            { id: 'takenAt', label: 'Taken at', type: 'DATE_TIME' },
+            { id: 'labelled', label: 'Labelled with batch, point and time', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: { counts: { samplingPoints: '3', unitsPerPoint: '20' } },
+  },
+];
+
+/** INJ-26: QC's release tests of an injectable (211.165, 211.167(a); SM 2.1-2.4; A1 10.1-10.11). */
+export const INJECTABLE_RELEASE_SEEDS: readonly SeedItem[] = [
+  {
+    definition: {
+      code: 'TEST-INJ-RELEASE',
+      version: 1,
+      title: 'Sterility, bacterial endotoxins and particulate matter (injectables)',
+      category: 'TEST_RELEASE',
+      edition: EDITION,
+      description: 'INJ-26. QC\'s release tests of a sterile product: sterility by the validated method (no growth), bacterial endotoxins against the product limit, and sub-visible particulate matter per container.',
+      instructions: 'Test the samples of the batch (every point and every load) by the methods of the specification.',
+      sections: [
+        {
+          id: 'sterility',
+          title: 'Sterility',
+          fields: [
+            { id: 'sterilityMethod', label: 'Method', type: 'CHOICE', options: ['Membrane filtration', 'Direct inoculation', 'Validated rapid microbial method'] },
+            { id: 'unitsTested', label: 'Units tested', type: 'SAMPLE', unitsSlot: 'sterilityUnits', purpose: 'Sterility' },
+            { id: 'noGrowth', label: 'No growth in any medium at the end of incubation', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'endotoxin',
+          title: 'Bacterial endotoxins',
+          fields: [
+            { id: 'endotoxin', label: 'Endotoxin content', type: 'TEST_RESULT', unit: '{EU}/mL', replicatesSlot: 'endotoxinReplicates', statistics: [{ statistic: 'MAX', limitSlot: 'endotoxin' }] },
+          ],
+        },
+        {
+          id: 'particulates',
+          title: 'Sub-visible particulate matter',
+          fields: [
+            { id: 'particles10', label: 'Particles of 10 micrometre or more, per container', type: 'TEST_RESULT', unit: '1', replicatesSlot: 'particleContainers', statistics: [{ statistic: 'MEAN', limitSlot: 'particles10' }] },
+            { id: 'particles25', label: 'Particles of 25 micrometre or more, per container', type: 'TEST_RESULT', unit: '1', replicatesSlot: 'particleContainers25', statistics: [{ statistic: 'MEAN', limitSlot: 'particles25' }] },
+          ],
+        },
+      ],
+      signatures: QC,
+    },
+    exampleUse: {
+      limits: { endotoxin: spec('{EU}/mL', undefined, '0.50'), particles10: spec('1', '0', '6000'), particles25: spec('1', '0', '600') },
+      counts: { sterilityUnits: '40', endotoxinReplicates: '2', particleContainers: '10', particleContainers25: '10' },
+    },
+  },
+];

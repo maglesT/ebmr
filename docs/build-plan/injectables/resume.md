@@ -1,71 +1,96 @@
-# Injectables: resume notes (after I-0, 5 November 2026)
+# Injectables: resume notes (I-1 under way, 5 November 2026)
 
-Read these instead of the session history. The rules in force are in `plan.md` (approved v2), `platform-fit.md`,
-section 9 of the plan (the owner's and the lead's answers) and the hard rules of `CLAUDE.md`.
+Read these instead of the session history. The rules in force are:
+- `plan.md` (approved v2);
+- `platform-fit.md`;
+- section 9 of the plan (the owner's and the lead's answers);
+- the hard rules of `CLAUDE.md`.
 
 ## Where it stands
 
-- **Plan:** `plan.md` v2, approved by the owner and the lead on 4 November (PR #101).
-  - There is no sterile code. Every item is met by one of: a library block of existing field types, a qualification
-    record, an equipment or room due date, or the existing release gate.
-  - Binding clauses only (Q0): every numbered requirement of Annex 1, Schedule M, EU GMP and 21 CFR, limit tables
-    included. Guidance-only behaviours are not built (section 8a).
-- **Platform** (`platform-fit.md`, ADR 0001 amendment): injectables is not a separate product or database. It lives
-  inside product `ebmr` and its one database, and the edition is data.
-- **I-0 merged** (PR #107, f38e23e):
-  - Migration recipe-core 1871 puts the edition inside a library block's definition, so the approval hash covers it
-    (`tablets` when the definition names none).
-    - `recipe.library_editions()` and the constraint `library_block_edition` are the single list. The API edition
-      replaces them to add `substance`.
-    - EBMR-LIB-023 refuses an unknown edition. EBMR-LIB-024 refuses QA's approval of a master that holds a block of
-      another edition.
-  - The library list has an `edition` filter, and the designer's picker uses it.
-  - `createFamily` takes an `edition`. An injectables family starts BLANK, from the formula of a product whose dosage
-    form is injectable.
-  - The family list shows every edition.
-- **Q1 table:** `control-decisions.md` lists the proposed decisions on the 91 ST and IN controls (89 MODIFY,
-  1 FOLLOW, 1 DONT_FOLLOW). It waits for the owner's single approval through the lead. Until then, build to the plan
-  and edit no control file. After approval, the lead or the owner records each `expert_decision`.
+- **I-0** is merged (#107): the edition is data, in recipe-core 1871.
+  - The edition list now has one source, from the API edition's A0 (#111):
+    - SQL: `kernel.editions()` and `recipe.library_editions()`;
+    - TypeScript: `EDITIONS` in `@ebmr/kernel` and `flow.EDITIONS`.
+  - Take every edition name from these.
+- **Control decisions** are merged (#120). The owner, via the lead, approved `control-decisions.md`:
+  - 89 MODIFY, ST-68 FOLLOW, ST-69 DONT_FOLLOW;
+  - recorded as each control's `expert_decision`;
+  - the trace gate stays Tablets-only until I-6.
+- **Checker fix** is merged (#115). The library checker refuses a calculation that reads a DATE_TIME (LIB-CALC-DATE-TIME) or a TIMER (LIB-CALC-TIMER), because the runtime evaluates neither.
+- **I-1a, #114** (merged):
+  - `packages/recipe-core/src/library/seed/injectables.ts` holds 17 blocks of the `injectables` edition:
+    - INJ-ROOM-READY, INJ-COMPONENT-ACCEPT, INJ-WASH, INJ-DEPYRO (tunnel), INJ-PARTS-AUTOCLAVE, INJ-COMPOUND;
+    - INJ-BULK-FILTER, INJ-FILL, IPC-INJ-FILL-WEIGHT, INJ-AMPOULE-SEAL, INJ-CAPPING, INJ-TERMINAL-STERILISE;
+    - INJ-VISUAL-INSPECT, INJ-CCI, INJ-UNIT-ACCOUNT, INJ-STERILITY-SAMPLE, and TEST-INJ-RELEASE (QC's).
+  - They load with the existing catalogue load.
+  - The installation publishes the `sterile` rule table (`INSTALLATION_RULE_TABLES`).
+  - Tests: `seed-injectables.test.ts`, tagged by ST control ID.
+- **#117** (merged), a shared fix the lead cleared: a library block's STEP_VALUE input is read at runtime.
+  - The value comes from the one COMPLETED instance of the named step (`HandlerView.stepValue`, library `readValue`).
+  - It is converted exactly to the input's unit.
+  - It is recorded with its origin in `computed.<field>.stepValues`.
+  - `defineBatch` refuses (ENG-DEF-STEP-VALUE) a step value naming:
+    - no step;
+    - a step that is not earlier;
+    - a step inside a loop, a replicate or an alternative branch;
+    - a field not recorded once;
+    - a unit that does not convert.
+  - Before this fix, PROC-DISP-POTENCY (tablets) and INJ-FILL (fill volume from the bulk density) failed on the floor.
 
-## Next: I-1, terminally sterilised small-volume vials and ampoules
+## Design choices made in I-1 (lead-approved)
 
-- **Blocks (data):** INJ-01, 02, 04, 05, 06, 12, 14, 15 (vial and ampoule formats), 18, 19, 20, 21, 22 (manual), 23,
-  24, 25 and 26. The rows of plan section 4 give each block's fields and clauses.
-  - The seed goes in the edition's own catalogue, with `edition: 'injectables'`.
-  - The catalogue-load route today loads `TABLETS_CATALOGUE`. Add an injectables catalogue load the same way that
-    Capsules C1 extended it.
-- **Master data:**
-  - room classes per grade;
-  - qualification types GOWNING.<grade>, APS.<line> and EYESIGHT, with valid-to dates;
-  - area authorisation on the A/B rooms (kernel 1190);
-  - requalification as a due date on the rooms.
-- **Header:** show "Batchwright Injectables" when an injectables master or batch is on screen. Reuse the Capsules C2
-  mechanism (PR #109: optional `RunHeaderView.dosageForm` and a `brand.Edition` display value). The sign-in page and
-  the page title stay as they are until the owner decides.
-- **Sterile rule table:** the market engine must load `sterile` for injectables scopes. Today
-  `apps/tablets-server/src/platform/rule-tables.ts` loads only kernel and tablets. Add it, and check `EBMR-MKT-054`
-  both ways.
-- **Done when:** a vial batch and an ampoule batch are built on screen and run to release in the sandbox.
-- **Possible shared change** (plan section 3): a repeat that adds rows as events happen, for interventions. Needed
-  only from I-2. Check first whether a step-level event or exception log already covers it.
+- **Time limits between steps** (compounding to filtration, filling to capping, fill duration, sterilisation to use) are the master's time constraints (HOLD, PROCESS_WINDOW, USE_BY) on trusted time. They are not typed times in a block. Plan 4.3 is updated.
+- **Printout values** (washer, tunnel, autoclave, terminal sterilisation) carry a CHECKED signature by a second person, per 211.68(b). There is no device gateway.
+- **Terminal sterilisation:**
+  - every filled tray (registered by INJ-FILL) is consumed into its numbered load;
+  - each load records its cycle once, takes its own sterility samples and registers the sterilised load.
+- **Visual inspection:** rejects and accepted units are calculated, and the inspection time is a timer. The inspector's eyesight and inspection qualifications are checked at signature; set them up in I-1c.
+- **The disinfectant** (INJ-01) is a typed agent and lot, not a formula line.
+- **Not done yet:** INJ-UNIT-ACCOUNT still types its counts. Reading them from INJ-FILL and INJ-VISUAL-INSPECT through STEP_VALUE is now possible (#117) and would remove the retyping. Consider it in I-1c (a version-2 block, or before I-1a's first approval).
 
-## Rules learnt in I-0 (they cost CI rounds)
+## Next: I-1c, the vial and ampoule batches to release (E2E), in a fresh session
 
-- A new SQL function goes into a group in `tools/sql-mutation/src/targets.ts`, or is left out with its reason
-  (decision 0019).
-- A new test tagged with a control ID is listed in that control's `tests:` (tests lists only; no other control text).
-  Then run `pnpm -s handbook`, because the control map is generated.
-- A new required field in an API view needs the fixtures to follow it:
-  - `packages/api-contract/fixtures/*.json`;
-  - the web test fixtures (`library-page`, `designer/library-blocks`).
-- Run the whole web suite (`vitest --project dom`) and the register tests before pushing.
-- Merge main with a merge commit, never a rebase. Other sessions (Capsules, API, Tablets) merge often, and
-  `PROGRESS.md` and `from-formula.test.ts` are the usual conflicts.
-- The edition list moves to one source with the API edition's A0 (lead-approved, 5 November):
-  - in SQL, `kernel.editions()` (kernel 1403), with the inline edition checks re-created against it (site-services
-    1731, recipe-core 1872); `recipe.library_editions()` delegates to it and adds 'generic';
-  - in TypeScript, the kernel's `EDITIONS`, which `LIBRARY_EDITIONS`, the `Edition` unions and the `createFamily` enum
-    derive from.
+The owner's rule: the full chain works end to end — formulation from library blocks, master approval, batch, execution, packaging and labels, review, release.
 
-  Take every edition literal from these; never write a new inline list.
-- Migration numbers: shared directories take the next free number, cleared with the lead. `inj.*` uses 3000-3999.
+**Model:** the tablets acceptance in `tools/e2e/specs/library/acceptance.ts` (S11a sandbox, S11b GMP) with `library-support.ts` (`loadCatalogue`, `approveBlocks`, `registerPlantUnits`, `addLibraryBlocks`, `runLibraryStep`). Write `tools/e2e/specs/library/injectables-acceptance.ts` and one spec file per product (vial, ampoule).
+
+**Plant data, entered on screen as the tablets acceptance does:**
+- room classes per grade (`ROOM-GRADE-C` and so on, the classes the seed examples name);
+- the vial washer, tunnel, autoclave, vessel, WFI point of use, filling line, ampoule sealer, capper, inspection booth and balance as equipment, each qualified in the logbook;
+- qualification types GOWNING.<grade>, APS.<line> and EYESIGHT, with valid-to dates;
+- requalification as a room due date.
+
+**Expect tablets-only wording or checks on these screens.** Each one becomes a small shared fix, tested by rule ID, sent through the lead first:
+- the formula screen: "Batch size (tablets)" and "Target tablet weight";
+- `createFamily`: an injectables family starts BLANK, with a dispensing stage only;
+- the packaging master is a copy of a cold-form master;
+- the kiosk skeleton stages.
+
+**Release tests:** TEST-INJ-RELEASE is QC's, recorded on the lot. Release waits for it through the existing gate (D-S11-R1).
+
+**Header:** "Batchwright Injectables" when an injectables record is on screen. Use capsules C2's mechanism (#109: `RunHeaderView.dosageForm`, `brand.Edition`). The sign-in page and the page title say just "Batchwright": declutter D3 drops the edition prop from `SignInBrand()`.
+
+**Declutter:** the lead's rule is no new tiles, menus or screens beyond what I-1 needs.
+- The namespaces in `packages/api-contract/src/disconnected.ts` answer 410 and are not called.
+- Alarms and equipmentData are among them, so device and EM values stay typed into blocks.
+
+**Done when:** a vial batch and an ampoule batch are built on screen and run to release in the sandbox.
+
+## Rules learnt (they cost CI rounds)
+
+- A new SQL function goes into a group in `tools/sql-mutation/src/targets.ts`, or is left out with its reason (decision 0019).
+- A test tagged with a control ID is listed in that control's `tests:`. Change only the tests list, then run `pnpm -s handbook`.
+- A new required field in an API view needs the fixtures to follow (`packages/api-contract/fixtures/*.json`, and the web test fixtures).
+- Merging main:
+  - use a merge commit, never a rebase;
+  - in control YAML conflicts, keep both sides;
+  - take the handbook pages from main, then regenerate them.
+- The "Verify the net of OC-… (second person)" E2E race is fixed by capsules #109 (merged). A remaining UI-click flake is
+  re-run once; a second failure is real.
+- Calculations:
+  - The library checker accepts only what the runtime evaluates. A DATE_TIME or TIMER inside a CALC is refused (#115).
+  - A calculation that reads another step's value needs STEP_VALUE (#117).
+- Migration numbers:
+  - shared directories take the next free number, cleared with the lead;
+  - `inj.*` uses 3000-3999.

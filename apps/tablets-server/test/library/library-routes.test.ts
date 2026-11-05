@@ -7,6 +7,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type SignableAction } from '@ebmr/api-contract';
+import { librarySeed } from '@ebmr/recipe-core';
 import { library } from '@ebmr/recipe-core/pure';
 import type { TestServer } from '../support/harness.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
@@ -91,7 +92,7 @@ describe('the library of block definitions', () => {
     expect(refusalOf(await approver.call(L.retire, { body: { blockId: draftOnly.blockId, reason: 'not approved' } })).code).toBe('EBMR-LIB-008');
   });
 
-  it('[PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone; the hard-capsule blocks load with the rest (Capsules edition plan, lifting R3-CAT-4)', async () => {
+  it('[PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone; the hard-capsule blocks load with the rest (Capsules edition plan, lifting R3-CAT-4), and the injectables blocks as blocks of their edition (slice I-1)', async () => {
     const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
     expect(refusalOf(await approver.call(L.loadCatalogue, { body: {} })).status).toBeGreaterThanOrEqual(400);
     const first = valueOf(await author.call(L.loadCatalogue, { body: {} }));
@@ -106,6 +107,18 @@ describe('the library of block definitions', () => {
     const capsules = ['PROC-CAPS-FILL', 'PROC-CAPS-POLISH', 'IPC-CAPS-FILL-WEIGHT', 'IPC-CAPS-LOCK-LENGTH', 'IPC-CAPS-APPEARANCE', 'IPC-CAPS-DT', 'REL-CAPS-DISSO', 'PROC-CAPS-CHECKWEIGH', 'PROC-CAPS-INSPECT', 'PROC-CAPS-PRINT', 'PROC-CAPS-BAND', 'IPC-CAPS-SEAL-LEAK', 'PROC-FILL-PREP', 'PROC-CAPS-FILL-LIQUID', 'PROC-CAPS-FILL-PLATE'];
     expect(first.drafted).toEqual(expect.arrayContaining(capsules));
     expect(second.skipped).toEqual(expect.arrayContaining(capsules));
+    // Injectables slice I-1: the edition's blocks load with the rest, as blocks of the injectables edition, and are
+    // listed under that edition only.
+    const sterile = librarySeed.INJECTABLE_CATALOGUE.map((s) => s.definition.code);
+    expect(first.drafted).toEqual(expect.arrayContaining(sterile));
+    const injectables = valueOf(await author.call(L.list, { query: { edition: 'injectables' } })).blocks.map((b) => b.code);
+    expect(injectables).toEqual(expect.arrayContaining(sterile));
+    const tablets = valueOf(await author.call(L.list, { query: { edition: 'tablets' } })).blocks.map((b) => b.code);
+    expect(tablets.filter((c) => sterile.includes(c))).toEqual([]);
+    // Capsules C4: the multiparticulate blocks load the same way.
+    const multi = ['PROC-EXTRUDE-SPHERONISE', 'PROC-PELLET-LAYER', 'COAT-PELLET-FB', 'PROC-CAPS-FILL-MULTI'];
+    expect(first.drafted).toEqual(expect.arrayContaining(multi));
+    expect(second.skipped).toEqual(expect.arrayContaining(multi));
     // Capsules C6: the soft gel blocks load the same way.
     const softgels = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
     expect(first.drafted).toEqual(expect.arrayContaining(softgels));

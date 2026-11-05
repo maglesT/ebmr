@@ -22,7 +22,8 @@ behaviour: |-
   - The 21 CFR Part 4 cross-references for combination products are **not verified** (see Open questions).
 catalog_test: Miss a 15-min fill-weight check → flagged. Record a manual weight check in ISO 5 → also logged as an intervention.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] filling judges the fill weight at each round and the volume from the bulk density; the stopper-height check is asked for vials only; each unit's fill weight is judged on the mean and on every unit"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

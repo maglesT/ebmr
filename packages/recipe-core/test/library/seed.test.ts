@@ -111,7 +111,7 @@ describe('the ready-made catalogue', () => {
     expect(SEED_GROUPS['capsule fill']?.map((s) => s.definition.code)).toEqual(['PROC-FILL-PREP', 'PROC-CAPS-FILL-LIQUID', 'PROC-CAPS-FILL-PLATE']);
   });
 
-  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and holding time and a band check each round; a leaker fails the seal check', () => {
+  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and a band check each round; a leaker fails the seal check', () => {
     const cw = byCode('PROC-CAPS-CHECKWEIGH');
     expect([fieldOf(cw, 'rejectLow'), fieldOf(cw, 'rejectHigh')]).toEqual([expect.objectContaining({ limitSlot: 'rejectLow', critical: true }), expect.objectContaining({ limitSlot: 'rejectHigh', critical: true })]);
     const inspect = byCode('PROC-CAPS-INSPECT');
