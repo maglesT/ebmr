@@ -106,6 +106,16 @@ describe('library block definitions', () => {
     expect(codes(checkBlockDefinition(wrongUnit, expr))).toEqual(['LIB-CALC-EXPRESSION']);
   });
 
+  it('[DI-33][PR-03] a calculation cannot read a typed date and time or a timer: the definition is refused, so QA never approves a block whose calculation the runtime cannot evaluate (I-1 finding)', () => {
+    const def = withField(withField(friability(), { id: 'started', label: 'Started at', type: 'DATE_TIME' }), { id: 'ended', label: 'Ended at', type: 'DATE_TIME' });
+    const timed = withField(def, { id: 'held', label: 'Held for', type: 'CALC', expression: 'convert(duration(started, ended), [h])', unit: 'h' });
+    expect(codes(checkBlockDefinition(timed, expr))).toEqual(['LIB-CALC-DATE-TIME', 'LIB-CALC-DATE-TIME']);
+    expect(checkBlockDefinition(def, expr)).toEqual([]);
+    // A timer is judged by its own limit; a calculation over it cannot run either.
+    const timer = withField(friability(), { id: 'spin', label: 'Spin time', type: 'TIMER', durationUnit: 'min' });
+    expect(codes(checkBlockDefinition(withField(timer, { id: 'perMinute', label: 'Per minute', type: 'CALC', expression: 'w0 / spin', unit: 'g/min' }), expr))).toEqual(['LIB-CALC-TIMER']);
+  });
+
   it('[DI-33] a calculation outside a repeating section reads its fields as a series', () => {
     // fluidBedDrying's lastLod = max(lod) reads the LOD loop's values; the example checks clean (first test).
     const scalar = fluidBedDrying();
