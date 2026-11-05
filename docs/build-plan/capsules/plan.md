@@ -274,3 +274,20 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - D-C6-5: no spreader temperature, lubrication or die-roll change fields; die-roll changes are the equipment logbook's
   (21 CFR 211.182).
 - D-C6-6: no STEP_VALUE input: no calculation needs an earlier step's value.
+
+**C6b soft-gel E2E (5 November 2026):**
+- D-C6b-1: the two streams on the formula's skeleton with no product change: the fill (active, oil, wetting agent) is
+  the per-unit lines, dispensed and blended with TB-07 as the skeleton's blend; the gel mass (gelatin, glycerin) is
+  per-batch lines, which the skeleton dispenses in their own step (`p-disp-aid`) and never charges to the blender.
+  The formula takes a per-batch line only as PROCESSING_AID (EBMR-FRM, 1740), so the gel-mass lines carry that role
+  and the screens group them as "Processing aids". Residual for the lead (wording and BOM role, no GMP value; the
+  quantities, lots, dispensing and consumption are right): gelatin and glycerin are part of the unit, not processing
+  aids. Proposed minimal change: let a capsule formula's per-batch line be EXCIPIENT (formula save, 1740) and name the
+  per-batch group in from-formula.ts (skeleton(), groups at :163-166) "Gel mass components" on a capsule master.
+- D-C6b-2: no per-unit shells line on a soft gel (the shell is made from the gel mass); a capsule formula without one
+  is accepted (from-formula.ts checkShells refuses only two), and the master shows the Capsules header.
+- D-C6b-3: the fill's TB-07 "lubricant added" quantity is the wetting agent, the late addition (the skeleton requires
+  TB-07); the purified water of the gel mass is the plant's, not a lot of the formula.
+- D-C6b-4: the soft-gel plant's new units (fill vessel, melter, holding tank, encapsulator, dryers, gauges, hardness
+  tester, inspection) are registered on screen as PROCESS units with their qualification, as C2/C3 did for the
+  checkweigher; the fill and shell weights use the existing balance. No block field added in this slice.

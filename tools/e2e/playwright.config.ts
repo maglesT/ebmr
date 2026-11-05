@@ -26,6 +26,8 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'library-rabe-ec': ['library/tablet-rabe-ec.spec.ts'],
   // Capsules edition C2: a powder hard capsule from the catalogue to its released lot (long; a group of its own).
   'library-caps': ['library/capsule-powder.spec.ts'],
+  // Capsules edition C6b: a soft gelatin capsule from the catalogue to its released, packed lot (long; a group of its own).
+  'library-softgel': ['library/softgel.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

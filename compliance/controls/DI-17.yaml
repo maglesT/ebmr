@@ -481,6 +481,8 @@ tests:
   - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] a deep link to a disconnected screen shows \"Not part of Batchwright\"; without the switch the screen opens"
   - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] on the platform build a deep link to a people screen shows the page too (core keeps people); a standalone server with the switch keeps it"
   - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] a kept page leaves out its link to a disconnected screen (packaging completion: serial pools)"
+  - "tools/e2e/specs/library/acceptance.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libgel 100 mg, soft gelatin capsules (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/acceptance.ts > [IN-33][PR-17][DI-17][IN-30] Libgel 100 mg, soft gelatin capsules (library), GMP 1: the printed foil and carton entered and confirmed; the specifications of the materials, the printed materials and the product approved by the head of QC; the licence endorsing the product; the manufacturer approved by QA @office"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

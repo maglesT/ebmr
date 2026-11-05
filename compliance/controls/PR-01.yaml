@@ -88,6 +88,8 @@ tests:
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-01] one list of editions: the database (kernel.editions(), upper-case codes, the library list) and the code (kernel EDITIONS, recipe-core flow.EDITIONS, library LIBRARY_EDITIONS) agree, and every edition check names the list instead of literals (the installation keys keep theirs)"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-01] the rule tables a master binds: tablets the tablets table, injectables the sterile table (as before), an API master the kernel table only"
   - "packages/api-contract/test/editions.test.ts > the editions the contract accepts (API plan A0) > [PR-01] createFamily takes exactly the editions of recipe-core flow.EDITIONS, the substance edition among them"
+  - "tools/e2e/specs/library/acceptance.ts > [DI-17][PR-01][PR-03][IN-13][DI-04][DI-05][INV-25] Libgel 100 mg, soft gelatin capsules (library): set up from the library on screen with no code change; its sandbox batch at the further size runs every library step to Execution complete; approved and authorised @office"
+  - "tools/e2e/specs/library/acceptance.ts > [PR-01][PR-03][DI-04] Libgel 100 mg, soft gelatin capsules (library), GMP 5: the packaging master as a copy of the approved cold-form master with the product's own printed foil and carton; the checks pass; change control; the test package in the sandbox inbox @office"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:
