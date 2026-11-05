@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 /** The whole application at `path`, signed in as QA on an office PC, with meta.disconnected as given. */
-function open(path: string, disconnected: boolean) {
+function open(path: string, disconnected: boolean, platform = false) {
   setTransport(
     createFixtureFetch(
       {
@@ -48,7 +48,7 @@ function open(path: string, disconnected: boolean) {
         'meta.get': { ...(EXAMPLES['meta-gmp'].data as object), disconnected },
         'session.demoDevices': { devices: [] },
         'session.deviceNonce': { nonce: 'fixture-nonce-0123456789', expiresInSeconds: 60 },
-        'session.identify': office.device,
+        'session.identify': platform ? { ...office.device, loginMethods: ['PLATFORM'] } : office.device,
         'session.get': office,
       },
       { installation: 'GMP' },
@@ -106,5 +106,24 @@ describe('[DI-17] only the kept screens are offered where the functions are disc
     open('/capa', false);
     expect(await screen.findByRole('heading', { level: 1, name: /CAPA/i })).toBeTruthy();
     expect(screen.queryByTestId('not-part-of-batchwright')).toBeNull();
+  });
+
+  it('[DI-17] on the platform build a deep link to a people screen shows the page too (core keeps people); a standalone server with the switch keeps it', async () => {
+    open('/admin/people', true, true);
+    expect(await screen.findByTestId('not-part-of-batchwright')).toBeTruthy();
+    cleanup();
+    open('/admin/people', true, false);
+    expect(await screen.findByRole('heading', { level: 1 })).toBeTruthy();
+    expect(screen.queryByTestId('not-part-of-batchwright')).toBeNull();
+  });
+
+  it('[DI-17] a kept page leaves out its link to a disconnected screen (packaging completion: serial pools)', async () => {
+    const BATCH = '0d6f7a52-3e1b-4c8d-9a2f-5b6c7d8e9f01';
+    open(`/labels/packaging/${BATCH}`, true);
+    expect(await screen.findByRole('link', { name: 'The packaging order and its bulk' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /^Serial pools/ })).toBeNull();
+    cleanup();
+    open(`/labels/packaging/${BATCH}`, false);
+    expect(await screen.findByRole('link', { name: /^Serial pools/ })).toBeTruthy();
   });
 });
