@@ -27,11 +27,11 @@ behaviour: |-
 catalog_test: An extended-release tablet lot missing one active's release-rate result cannot be released.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-54][INV-39][DI-39] the QCU releases a lot for the US only once the manufacturer release is RELEASED; QA, the AP and an administrator cannot; the checklist is stored with the signature"
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-54] an extended-release lot missing one active's release-rate result cannot be released for the US; with it approved it can"
-  - "packages/recipe-core/test/release/dispositions.test.ts > two signature rows in one ceremony (D-P4-5) > [INV-39][PR-54] the AP who also holds the QCU permission releases for the manufacturer and the US in one command: two rows, each its own meaning and content; a stale US evaluation records neither"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-54][INV-39][DI-39] the QCU releases a lot for the US only once the manufacturer release is RELEASED; QA, the AP and an administrator cannot; the checklist is stored with the signature"
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [PR-54][INV-05] a US release needs the signer's own acknowledgement of each since-review item for this lot, the US and this epoch; near misses do not count (EBMR-DSP-038)"
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [PR-54][INV-42] a US act on a lot not made for the US is refused (EBMR-DSP-031); the EU importer of a lot is the one registered for its own product, and no lot has none"
+  - "packages/recipe-core/test/release/dispositions.test.ts > two signature rows in one ceremony (D-P4-5) > [INV-39][PR-54] the AP who also holds the QCU permission releases for the manufacturer and the US in one command: two rows, each its own meaning and content; a stale US evaluation records neither"
 clauses:
   - clause: "An extended-release tablet lot missing one active's release-rate result cannot be released."
     tests:
