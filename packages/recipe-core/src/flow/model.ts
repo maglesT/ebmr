@@ -24,7 +24,12 @@ export interface Quantity {
   unit: string;
 }
 
-export type Edition = 'tablets' | 'injectables';
+/**
+ * The editions (API edition plan A0): the same list as the kernel's `EDITIONS` and the database's kernel.editions()
+ * (this pure code may not import the kernel; a test ties the three together).
+ */
+export const EDITIONS = ['tablets', 'injectables', 'substance'] as const;
+export type Edition = (typeof EDITIONS)[number];
 /** REPROCESSING: a whole-batch reprocessing master (outline 5.2.9 case 1; D-S5-6), issued as a processing batch linked to its parents. */
 export type RecordKind = 'PROCESSING' | 'PACKAGING' | 'REPROCESSING';
 

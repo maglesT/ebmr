@@ -7,6 +7,8 @@
  * significant step, and whether it may appear as a phase at all. Editions register their own blocks
  * (TB-xx, IB-xx) by extending the generic catalogue below.
  */
+import type { Edition } from './model.ts';
+
 export const BLOCK_ROLES = [
   'INSTRUCTION',
   'PARAMETER_RECORD',
@@ -37,7 +39,7 @@ export interface BlockDescriptor {
   type: string;
   /** Registered, non-retired versions. */
   versions: readonly string[];
-  edition: 'generic' | 'tablets' | 'injectables';
+  edition: 'generic' | Edition;
   title: string;
   roles: readonly BlockRole[];
   /** Significant by nature (PR-14): performer plus a different checker unless a declared reduction applies. */

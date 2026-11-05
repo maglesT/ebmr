@@ -63,7 +63,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^03\d\d_', '^1010_']
+      packages/kernel/sql: ['^03\d\d_', '^1010_', '^1403_']
     src: [packages/kernel/src/market]
     tests: ['packages/kernel/test/market/**']
 
@@ -318,7 +318,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0600_', '^0690_', '^0700_']
+      packages/site-services/sql: ['^0600_', '^0690_', '^0700_', '^1731_']
       packages/recipe-core/sql: ['^1790_']
     src: [packages/site-services/src/batch-numbers]
     tests: ['packages/site-services/test/batch-number-register.test.ts']
@@ -556,7 +556,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_', '^1840_', '^1862_', '^1871_']
+      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_', '^1840_', '^1862_', '^1871_', '^1872_']
       apps/tablets-server/sql: ['^1802_', '^1803_', '^1806_']
     src: [packages/recipe-core/src/library]
     server: [apps/tablets-server/src/features/library]
