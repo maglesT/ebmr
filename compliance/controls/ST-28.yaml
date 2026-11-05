@@ -24,8 +24,11 @@ catalog_test: Complete a batch without the overlay filter's post-use test → ce
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Gas as LOT; INJ-12 Y/N nitrogen overlay; vent filter as equipment with due date"
 build_status: SPECIFIED
 jurisdiction: "EU is stricter per batch: batch-basis filter integrity is reviewed at certification. FDA-AP adds sterile filters on autoclave air lines and lyophiliser vacuum breaks, and back-flow safeguards."
 scope: "aseptic (gas quality: all)"

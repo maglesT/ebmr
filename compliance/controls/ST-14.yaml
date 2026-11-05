@@ -38,8 +38,11 @@ catalog_test: A Grade B room last requalified 6 months + 1 day ago → step star
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Room classes per grade; requalification due date; EQUIP refuses (4.1 rows 1-2)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter. It sets fixed maximum requalification intervals (6 and 12 months) and at-rest plus in-operation limits. FDA-AP has no fixed room requalification interval; only HEPA leak testing is about twice a year (ST-17).
 scope: all

@@ -28,8 +28,11 @@ catalog_test: Set a component's method to UV → option unavailable. Issue an EO
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-03 certificate; INJ-21 radiation variant (dose min and max); UV not a CHOICE value (4.2, 4.3)"
 build_status: SPECIFIED
 jurisdiction: "EU is stricter: EO only as a last resort, and an explicit UV ban."
 scope: all

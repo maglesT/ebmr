@@ -16,8 +16,11 @@ catalog_test: map an aseptic filling step to a Grade C room; MBR validation fail
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Room class per block from the formulation; EQUIP refuses (4.1 row 1)"
 build_status: SPECIFIED
 jurisdiction: "**same** in structure as EU Annex 1 (2022) Tables 3 and 4 [chk] and FDA 2004 (ISO 5 critical area with ISO 7 supporting area) [chk]; EU 2022 adds a contamination control strategy overlay [chk]."
 notes: "Source check: P (4.11.1 and 4.11.2 fragments re-read)."

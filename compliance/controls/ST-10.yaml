@@ -25,8 +25,11 @@ tests:
   - "apps/tablets-server/test/market/market-config-routes.test.ts > the EU qualified-person register (QP_REGISTER) > [ST-10][DI-37] QA registers the EU QP on a registered importer's authorisation with QP_REGISTERED; a QA MBR approver may not sign it; nobody registers themselves; the same registration twice is refused"
   - "apps/tablets-web/test/market/market-screens.test.tsx > the QP register and the compendial rule sets > [ST-10] QA signs a QP register entry for a person of the EU QP role on an importer's authorisation (QP_REGISTER)"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "area authorisation only; health and exceptional entry via site procedure and deviation screen"
 build_status: SPECIFIED
 jurisdiction: Aligned. The US health-exclusion rule is binding.
 scope: all

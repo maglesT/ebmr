@@ -37,8 +37,11 @@ catalog_test: Replay three consecutive samples with 1–2 counts at 5 µm in Gra
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-32 NUM counts from the counter report, Grade A as window maximum, limits from the rule table (4.4)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter. It adds 5 µm limits, a 28 L/min continuous requirement and alarm-at-alert. FDA-AP covers only ≥0.5 µm and says continuous systems are *preferred*.
 scope: aseptic

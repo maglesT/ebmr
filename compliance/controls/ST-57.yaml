@@ -27,8 +27,11 @@ catalog_test: Run clean-process capping without the stopper-height challenge →
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-15 Y/N stopper-height check, NUM rejects; INJ-20 crimp DT and CALC (4.3)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter. It makes automated stopper-height detection an expectation and defines Grade A air supply. FDA-AP says local protection until crimping, and that on-line detection *adds* assurance.
 scope: aseptic

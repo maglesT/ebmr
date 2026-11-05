@@ -2,6 +2,15 @@
 import { describeCallError, type CallError } from '@ebmr/api-contract';
 import { Banner, floor, t } from '@ebmr/ui-kit';
 
+/**
+ * Declutter D1: the server refused the route because its function is not part of Batchwright (410 DISCONNECTED, on the
+ * platform build or a server started with EBMR_DISCONNECT=1). A panel of a disconnected function embedded in a kept
+ * screen renders nothing then, instead of an error.
+ */
+export function isDisconnected(error: CallError | undefined | null): boolean {
+  return error?.kind === 'REFUSAL' && error.status === 410 && error.envelope.refusal.code === 'DISCONNECTED';
+}
+
 export function RefusalMessage({ error }: { error: CallError }) {
   if (error.kind !== 'REFUSAL') return <Banner tone="error" title={describeCallError(error)} />;
   const r = error.envelope.refusal;

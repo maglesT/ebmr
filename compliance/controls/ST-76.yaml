@@ -36,8 +36,11 @@ catalog_test: A VHP cycle with no prior cleaning record → invalid for batch us
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-09 as INJ-05 plus DT validity end (4.2)"
 build_status: SPECIFIED
 jurisdiction: Complementary. EU makes cleaning first essential and requires a sporicide in vapour form. FDA gives the log-reduction expectations and the reject-by-default for compromised units.
 scope: isolator, rabs

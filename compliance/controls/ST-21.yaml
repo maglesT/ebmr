@@ -25,8 +25,11 @@ catalog_test: Enter an action result on day 5 for a sample taken on day 1 → al
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "other batches named in the deviation by QA"
 build_status: SPECIFIED
 jurisdiction: 'EU is stricter on identification: species level for A/B, where FDA-AP accepts genus "where appropriate". Both expect investigation of any ISO 5 / Grade A growth.'
 scope: "all (Grade A rules: aseptic)"

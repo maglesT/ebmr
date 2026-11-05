@@ -13,6 +13,7 @@ export * from './client.ts';
 export * from './intents.ts';
 export * from './signable.ts';
 export * from './routes.ts';
+export * from './disconnected.ts';
 export * from './analytics-namespaces.ts';
 export * from './ns/analytics.ts';
 export * from './ns/analytics-config.ts';

@@ -20,8 +20,11 @@ catalog_test: Open a change control on filling line 2 with "requalification requ
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "QA resets the due date after a change; no change-control engine"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU adds the CCS-impact element.
 scope: all

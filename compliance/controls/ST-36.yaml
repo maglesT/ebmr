@@ -22,8 +22,11 @@ catalog_test: Record an "other" intervention → QA sign-off required before con
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "\"Unlisted\" raises an exception, then deviation; gate refuses (4.3)"
 build_status: SPECIFIED
 jurisdiction: EU is explicit that unqualified interventions are exceptional and are considered at disposition. FDA treats them through the deviation path. Aligned.
 scope: aseptic

@@ -23,8 +23,11 @@ catalog_test: Scan a settle-plate lot without GPT release at the Grade A station
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Media as a released LOT; incubation conditions as formulation values (4.4)"
 build_status: SPECIFIED
 jurisdiction: Complementary. EU expects GPT with local isolates, normally by the user. FDA-AP gives incubation examples and requires GPT for every prepared lot.
 scope: all

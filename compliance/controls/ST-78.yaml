@@ -33,8 +33,11 @@ catalog_test: Omit the batch seal-strength test → batch cannot close. Change a
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-29 as INJ-30 (4.3); CCI in INJ-23"
 build_status: SPECIFIED
 jurisdiction: Only EU has FFS-specific requirements.
 scope: ffs
