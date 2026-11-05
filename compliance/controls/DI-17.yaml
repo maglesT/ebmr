@@ -479,6 +479,12 @@ tests:
   - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] a deep link to a disconnected screen shows \"Not part of Batchwright\"; without the switch the screen opens"
   - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] on the platform build a deep link to a people screen shows the page too (core keeps people); a standalone server with the switch keeps it"
   - "apps/tablets-web/test/session/home-declutter.test.tsx > [DI-17] only the kept screens are offered where the functions are disconnected (declutter D2) > [DI-17] a kept page leaves out its link to a disconnected screen (packaging completion: serial pools)"
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] readOffered follows READ_REFUSED like tileOffered; no role is offered every read"
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] the counts come from the reads: 3 work items in 2 runs (2 available), 2 open reviews, 1 undecided lot"
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] a role refused review.queue and release.queue (EU_QP_READER) gets none of those cards"
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] a card opens its list, whose rows link to the record"
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] an empty list says \"Nothing here.\""
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] the Functions list still offers the tiles by title, without their descriptions"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

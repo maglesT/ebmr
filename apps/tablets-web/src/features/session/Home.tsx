@@ -2,6 +2,7 @@
  * Home: the tiles of this installation (plan section 12): master records and audit on GMP; packages, runs, cockpit and audit
  * on the sandbox. Decision D-P7R-18 (gap F1): the tiles whose screen the session's role cannot use are hidden
  * (app/tile-access.ts; display only, the server stays the authority); "Show all screens" lists them again.
+ * Declutter D3: the four work cards (work.tsx) come first; the tiles show their titles only, no descriptions.
  */
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
@@ -11,6 +12,7 @@ import { useBoot } from '../../app/boot.tsx';
 import { useFeatures } from '../../app/feature-context.ts';
 import { tileOffered } from '../../app/tile-access.ts';
 import { useScreensOff } from '../../app/disconnected.tsx';
+import { WorkCards } from './work.tsx';
 
 export function Home() {
   const boot = useBoot();
@@ -27,17 +29,16 @@ export function Home() {
   return (
     <>
       <h1>{t('home.title')}</h1>
+      <WorkCards />
       <nav aria-label="Functions" className={cls('tiles')}>
         {tiles.map((tile) =>
           tile.available ? (
             <Link key={tile.id} to={tile.to} className={cls('tile')} data-available="true">
               <p className={cls('tileTitle')}>{tile.title}</p>
-              <span>{tile.description}</span>
             </Link>
           ) : (
             <div key={tile.id} className={cls('tile')} data-available="false" aria-disabled="true">
               <p className={cls('tileTitle')}>{tile.title}</p>
-              <span>{tile.description}</span>
               <p>
                 <em>{t('home.notAvailable')}</em>
               </p>

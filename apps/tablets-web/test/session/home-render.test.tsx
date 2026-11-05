@@ -6,6 +6,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { SessionView } from '@ebmr/api-contract';
 
@@ -46,11 +47,14 @@ function signedInAs(role: string) {
     ),
   );
   render(
-    <FeaturesContext.Provider value={WEB_FEATURES}>
-      <BootProvider>
-        <Gate />
-      </BootProvider>
-    </FeaturesContext.Provider>,
+    // Declutter D3: the home's work cards read through TanStack Query.
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <FeaturesContext.Provider value={WEB_FEATURES}>
+        <BootProvider>
+          <Gate />
+        </BootProvider>
+      </FeaturesContext.Provider>
+    </QueryClientProvider>,
   );
 }
 

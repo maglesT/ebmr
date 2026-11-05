@@ -879,8 +879,20 @@ export function tileOffered(
   installation: "GMP" | "SANDBOX",
   role: string | null,
 ): boolean {
-  if (role === null) return true;
   const read = TILE_READS[tileId];
   if (read === undefined || read === null) return true;
-  return !(READ_REFUSED[installation][read] ?? []).includes(role);
+  return readOffered(read, installation, role);
+}
+
+/**
+ * Whether a session of `role` on `installation` may make the read `readId` (a route id), by the same table: the home's
+ * work cards use it (declutter D3). Display only; the server stays the authority (DI-17). No role: offered.
+ */
+export function readOffered(
+  readId: string,
+  installation: "GMP" | "SANDBOX",
+  role: string | null,
+): boolean {
+  if (role === null) return true;
+  return !(READ_REFUSED[installation][readId] ?? []).includes(role);
 }

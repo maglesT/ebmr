@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { SessionView } from '@ebmr/api-contract';
 
@@ -51,9 +52,12 @@ function serve(device: SessionView['device'], session: unknown) {
     ),
   );
   render(
-    <BootProvider>
-      <Gate />
-    </BootProvider>,
+    // Declutter D3: the home's work cards read through TanStack Query.
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <BootProvider>
+        <Gate />
+      </BootProvider>
+    </QueryClientProvider>,
   );
 }
 
