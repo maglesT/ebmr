@@ -31,6 +31,7 @@ export { diffMbr, structureHash, type Change, type ChangeClass, type MbrDiff } f
 export { numberMbr, numberFlow, instanceNumber, NumberingError, type InstanceNumber, type MbrNumbering, type NumberedKind, type NumberedNode } from './numbering.ts';
 export { CAPTURE_WORDS, CHECK_PERMISSIONS, capturedOtherwise, checkersInRun, checkRunsAsWitness, handEntriesNamingAttachment, type CheckerRoles, type CheckersInRun } from './check-in-release.ts';
 export { databaseMassClass, type DatabaseMassClass } from './weighed-units.ts';
+export { readDosageForm, isCapsuleForm, type DosageFormReading, type UnitForm } from './dosage-form.ts';
 export type {
   BoundaryVector,
   BoundComparison,

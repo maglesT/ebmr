@@ -56,7 +56,7 @@ function VersionCard({ version, readable }: { version: FormulaVersionView; reada
       </p>
       {version.target ? (
         <p data-testid="formula-target">
-          Target tablet weight {version.target.targetUnitMassMg} mg; batch sizes {version.target.batchSizesUnits.join(', ')} tablets.
+          Target unit weight {version.target.targetUnitMassMg} mg; batch sizes {version.target.batchSizesUnits.join(', ')} units.
         </p>
       ) : null}
       {readable && version.lines ? (
@@ -113,7 +113,7 @@ const LINE_FIELDS: readonly FormField[] = [
   { name: 'lineId', label: 'Line id', kind: 'text' },
   { name: 'materialCode', label: 'Material code', kind: 'text', description: 'A material of Products and materials, in effect' },
   { name: 'role', label: 'Role', kind: 'choice', options: FormulaLineInput.shape.role.options },
-  { name: 'basis', label: 'Basis', kind: 'choice', options: ['PER_UNIT', 'PER_BATCH'], description: 'PER_UNIT: mg in one tablet; PER_BATCH: kg for the batch' },
+  { name: 'basis', label: 'Basis', kind: 'choice', options: ['PER_UNIT', 'PER_BATCH'], description: 'PER_UNIT: mg in one unit (tablet or capsule); PER_BATCH: kg for the batch' },
   { name: 'quantity', label: 'Quantity', kind: 'decimal' },
   { name: 'overagePercent', label: 'Overage %', kind: 'decimal', optional: true, description: 'a deliberate excess over the label claim; the label claim stays the quantity' },
   { name: 'overageQuantity', label: 'Overage amount', kind: 'decimal', optional: true, description: 'or the excess in the line\'s unit (mg per tablet, kg per batch); not with a percent' },
@@ -185,8 +185,8 @@ function NewVersionForm({ formulaId }: { formulaId: string }) {
         </fieldset>
       ))}
       <Button onPress={() => setRows((all) => [...all, {}])}>Add a line</Button>
-      <Field name="targetUnitMassMg" label="Target tablet weight (mg)" description="optional · the compression target of one tablet" value={weight} onChange={setWeight} inputMode="decimal" />
-      <Field name="otherBatchSizes" label="Further batch sizes (tablets)" description="optional · besides the formula's own, separated by commas" value={sizes} onChange={setSizes} />
+      <Field name="targetUnitMassMg" label="Target unit weight (mg)" description="optional · the target mass of one unit (a tablet's compression target, a capsule's fill)" value={weight} onChange={setWeight} inputMode="decimal" />
+      <Field name="otherBatchSizes" label="Further batch sizes (units)" description="optional · besides the formula's own, separated by commas" value={sizes} onChange={setSizes} />
       <Field name="changeReason" label="Reason for the new version" value={reason} onChange={setReason} />
       {problem ? <p>Not complete yet: {problem}</p> : null}
       <ActButton label="Write the draft version" onPress={send} disabled={!ready || cmd.busy} />

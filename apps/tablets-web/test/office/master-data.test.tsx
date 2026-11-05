@@ -147,7 +147,7 @@ describe('"Choose a product" in the designer\'s create flow', () => {
     const panel = await screen.findByTestId('choose-product');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '500 mg');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (tablets)' }), '200000');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (units)' }), '200000');
     await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
     const bom = await within(panel).findByTestId('formula-bom');
     const choice = example('designer-formula-choice');
@@ -162,7 +162,7 @@ describe('"Choose a product" in the designer\'s create flow', () => {
     const panel = await screen.findByTestId('choose-product');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '250 mg');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (tablets)' }), '100000');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (units)' }), '100000');
     await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
     expect(await within(panel).findByText('No approved formula for GBT01 250 mg.')).toBeTruthy();
     expect(within(panel).queryByTestId('formula-bom')).toBeNull();

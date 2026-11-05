@@ -45,7 +45,7 @@ export function ChooseProduct({ onChosen }: { onChosen: (choice: FormulaChoiceVi
       </p>
       <Field label="Formula product" name="choiceProduct" value={product} onChange={setProduct} />
       <Field label="Formula strength" name="choiceStrength" value={strength} onChange={setStrength} />
-      <Field label="Formula batch size (tablets)" name="choiceBatchSize" value={batchSize} onChange={setBatchSize} inputMode="numeric" />
+      <Field label="Formula batch size (units)" name="choiceBatchSize" value={batchSize} onChange={setBatchSize} inputMode="numeric" />
       <Button onPress={() => void choose()} isDisabled={!ready || busy}>
         Choose this product
       </Button>
@@ -53,8 +53,8 @@ export function ChooseProduct({ onChosen }: { onChosen: (choice: FormulaChoiceVi
       {choice ? (
         <table aria-label="Bill of materials from the formula" data-testid="formula-bom">
           <caption>
-            Formula version {choice.versionNumber} of {choice.productCode} {choice.strength}, {choice.batchSizeUnits} tablets
-            {choice.target ? `; target tablet weight ${choice.target.targetUnitMassMg} mg; batch sizes ${choice.target.batchSizesUnits.join(', ')} tablets` : ''} (
+            Formula version {choice.versionNumber} of {choice.productCode} {choice.strength}, {choice.batchSizeUnits} units
+            {choice.target ? `; target unit weight ${choice.target.targetUnitMassMg} mg; batch sizes ${choice.target.batchSizesUnits.join(', ')} units` : ''} (
             <Link to="/master-data/formulas/$formulaId" params={{ formulaId: choice.formulaId }}>
               open the formula
             </Link>

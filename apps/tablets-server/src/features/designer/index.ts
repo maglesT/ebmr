@@ -372,6 +372,16 @@ function requireKey(ctx: { idempotencyKey: string | null }): string {
 
 export async function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
+  /**
+   * Capsules edition C2 (lead, 4 November 2026): the product's dosage form. On the platform build it is core's
+   * (report.product_v1 `dosage_form`, read through the master link); otherwise the product master's in effect. Null:
+   * none stated, which means a tablet (flow.readDosageForm).
+   */
+  const dosageFormOf = async (productCode: string, local: string | null): Promise<string | null> => {
+    if (!app.platform.master) return local;
+    const item = await app.platform.master.read('product', { code: productCode });
+    return item?.dosageForm ?? null;
+  };
   const palette = paletteBlocks();
 
   /** Logs what a publish of the staged packages of recorded exports did. */
@@ -441,15 +451,18 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // master carries none (the ERP feed has no dosage form). A master stating a dosage form that is neither a tablet
           // nor a capsule form is refused: the oral-solid build makes tablets and, since the Capsules edition plan
           // (4 November 2026), hard capsules and soft gels from the library.
+          // C2: a capsule only when the dosage form contains "capsule"; a bare soft-gel name is refused with a hint.
           const master = rows[0];
-          const dosageForm = master?.dosage ?? 'Tablet';
-          if (!master?.name || !/tablet|capsule/i.test(dosageForm)) {
+          const stated = master?.name ? await dosageFormOf(chosen.productCode, master.dosage) : null;
+          const reading = flow.readDosageForm(stated);
+          const dosageForm = stated?.trim() || 'Tablet';
+          if (!master?.name || !reading.ok) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
               whatHappened: 'The family was not created.',
-              why: master?.name
-                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}", which is neither a tablet nor a capsule form; this build makes tablets and capsules (a soft gel is named as a capsule form, for example Soft gelatin capsule).`
+              why: master?.name && !reading.ok
+                ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}". ${reading.hint}`
                 : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
               controls: ['PR-01'],
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
@@ -528,7 +541,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           const materials = await materialMasters(c, printed.map((p) => p.material));
           let content: flow.MbrContent;
           try {
-            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: master.dosage ?? 'Tablet', shelfLifeMonths: master.months }, printed }, materials);
+            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: (await dosageFormOf(body.product.code, master.dosage))?.trim() || 'Tablet', shelfLifeMonths: master.months }, printed }, materials);
           } catch (error) {
             if (error instanceof FamilyInputError) throw familyRefusal(error);
             throw error;

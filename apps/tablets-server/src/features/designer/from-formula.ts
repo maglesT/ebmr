@@ -104,10 +104,18 @@ function materialRefs(src: FormulaSource): flow.Reference[] {
   });
 }
 
+/**
+ * Capsules edition C2: a capsule's empty shells are the formula's COATING line given per unit (the unit's outer part,
+ * as a tablet's coat). They are in the bill of materials (role OTHER) and in the unit and batch mass, but not dispensed
+ * into the blend: the filling step names their lot (PROC-CAPS-FILL, its shell line). A tablet's lines are unchanged.
+ */
+export const isShellLine = (src: Pick<FormulaSource, 'product'>, l: formula.FormulaLine): boolean =>
+  l.role === 'COATING' && l.basis === 'PER_UNIT' && flowNs.isCapsuleForm(src.product.dosageForm);
+
 const bomOf = (src: FormulaSource): flow.BomLine[] =>
   src.chosen.lines.map((l) => {
     const overage = bomOverage(l);
-    return { id: bomId(l), material: l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' }, ...(overage ? { overage } : {}) };
+    return { id: bomId(l), material: l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' }, ...(overage ? { overage } : {}) };
   });
 
 function parsed(content: flow.MbrContent): flow.MbrContent {
@@ -129,13 +137,13 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   const t = structuredClone(base.content);
   const c = src.chosen;
   const actives = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role === 'ACTIVE');
-  const others = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role !== 'ACTIVE');
+  const others = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role !== 'ACTIVE' && !isShellLine(src, l));
   const aids = c.lines.filter((l) => l.basis === 'PER_BATCH');
   if (actives.length === 0) throw new FamilyInputError('DESIGNER_FORMULA', 'The formula has no active given per unit; a processing master dispenses its actives.', ['PR-01']);
   const mgText = (ls: formula.FormulaLine[]): string => sum(ls.map(unitMg));
   const refUnits = c.batchSizeUnits;
   // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026).
-  const unit = /capsule/i.test(src.product.dosageForm) ? 'capsule' : 'tablet';
+  const unit = flowNs.isCapsuleForm(src.product.dosageForm) ? 'capsule' : 'tablet';
   const kg = (mg: string): string => Dec.parse(mg).times(Dec.parse(refUnits)).div(Dec.parse('1000000')).toString();
 
   const param = (id: string, name: string): flow.Parameter =>
@@ -267,6 +275,9 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
     }
   });
   t.header = header(src, req, markets);
+  // Capsules edition C2: the batch-size input is named in the master's unit ("Batch size in capsules"); its identifier
+  // stays tabletsPerBatch, which the expressions and the issue's count check name.
+  t.inputs = t.inputs.map((i) => (i.id === 'tabletsPerBatch' ? { ...i, name: `Batch size in ${unit}s` } : i));
   t.references = [...base.content.references.filter((r) => SKELETON_REFS.includes(r.id)), ...(timeSystem ? [timeSystem] : []), ...materialRefs(src)];
   t.bom = bomOf(src);
   return t;
