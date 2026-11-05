@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord } from './register.ts';
 import { missingListedTests, type DeclaredTest } from './test-index.ts';
-import { firstUnsorted } from './sync.ts';
+import { firstDuplicate, firstUnsorted } from './sync.ts';
 
 export const EXPECTED_COUNTS = { DI: 53, PR: 61, ST: 79, IN: 53 } as const;
 
@@ -67,6 +67,8 @@ export function validateRegister(controls: ControlRecord[] = loadControls(), row
     if (c.expert_decision.status === 'MODIFY' && !c.expert_decision.comment) errors.push(`${c.id}: MODIFY decision needs a comment`);
     const unsorted = Array.isArray(c.tests) ? firstUnsorted(c.tests) : -1;
     if (unsorted >= 0) errors.push(`${c.id}: its tests list is not sorted at entry ${unsorted + 1} ("${c.tests[unsorted]}"); run pnpm register:sort-tests`);
+    const duplicate = Array.isArray(c.tests) ? firstDuplicate(c.tests) : -1;
+    if (duplicate >= 0) errors.push(`${c.id}: its tests list names a test twice, at entry ${duplicate + 1} ("${c.tests[duplicate]}"); remove the repeat`);
     for (const m of missingListedTests(c.tests, root, declared)) errors.push(`${c.id}: lists a test that does not exist (${m.reason}): "${m.entry}"`);
     errors.push(...clauseErrors(c));
   }

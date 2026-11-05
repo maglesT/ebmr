@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/register.ts';
-import { appendListedTests, compareEntries, firstUnsorted, sortListedTests, testsToAdd } from '../src/sync.ts';
+import { appendListedTests, compareEntries, firstDuplicate, firstUnsorted, sortListedTests, testsToAdd } from '../src/sync.ts';
 import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
 import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
@@ -257,6 +257,18 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
     expect(sortListedTests(loadControls(dir), dir)).toEqual(['DI-20']);
     expect(readFileSync(join(dir, 'DI-20.yaml'), 'utf8')).toBe(text);
     expect(sortListedTests(loadControls(dir), dir)).toEqual([]);
+  });
+
+  it('[meta] register validate refuses a tests list that names a test twice, and no committed list does', () => {
+    expect(firstDuplicate(['a', 'b', 'c'])).toBe(-1);
+    expect(firstDuplicate(['a', 'b', 'b', 'c'])).toBe(2);
+    const real = loadControls().find((c) => c.id === 'DI-20');
+    if (!real || real.tests.length < 1) throw new Error('DI-20 needs a listed test for this test');
+    const first = real.tests[0] ?? '';
+    const doubled = { ...real, tests: [first, ...real.tests] };
+    const errors = validateRegister([...loadControls().filter((c) => c.id !== 'DI-20'), doubled]).filter((e) => e.includes('twice'));
+    expect(errors).toEqual([`DI-20: its tests list names a test twice, at entry 2 ("${first}"); remove the repeat`]);
+    expect(validateRegister().filter((e) => e.includes('twice'))).toEqual([]);
   });
 
   it('[meta] every control lists each test tagged with it that a test file declares in full and that may run (one that may skip itself at run time included); titles built from data are the trace\'s to check', () => {
