@@ -12,7 +12,12 @@
  *    packing H-PACK), with their
  *    parameters, calculations (from the formula's per-unit quantities), yield checkpoints, hold time and golden cases,
  *    shaped as the dc-mini demo master's two stages; the author adds, removes and reorders stages and steps in the designer;
- *  - BLANK: the header, the bill of materials and one dispensing stage with its clearance and balance status only;
+ *  - BLANK: the header, the bill of materials and one dispensing stage with its clearance and balance status only; for an
+ *    API (substance) family also a last stage with QA's release for packing (H-PACK), the gate the packaging order of
+ *    the batch needs (recipe-core 0701), before which the author adds the synthesis stages (API plan A1a);
+ *  - PACKAGING_BLANK (API families only, API plan A1a): the packaging master of the API: the header (record kind
+ *    PACKAGING, its pack type, the formula's batch sizes in kg), no bill of materials and one packing stage with its
+ *    room clearance; the author adds the packing materials and the pack step (API-PACK) from the library;
  *  - COPY: the procedure of an approved master with this header and bill of materials: a BOM line of the same material
  *    keeps its id, the steps lose the lines that are no longer in the bill, and the validator shows what is left to do.
  * No JavaScript number holds a quantity: every value is decimal text (Dec, exact).
@@ -25,7 +30,7 @@ import { bomOverage, withOverageQuantity } from './formula-choice.ts';
 import { materialReference, type MaterialMaster } from './material-refs.ts';
 import type { MbrTemplate } from './templates/index.ts';
 
-export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY';
+export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_BLANK';
 
 export interface FormulaFamilyRequest {
   familyCode: string;
@@ -33,6 +38,8 @@ export interface FormulaFamilyRequest {
   start: FormulaStart;
   /** Injectables plan I-0: the family's edition (default tablets). */
   edition?: flow.Edition;
+  /** API plan A1a: the pack type of a PACKAGING_BLANK master (e.g. DRUM-25KG). */
+  packType?: string;
 }
 
 export interface FormulaSource {
@@ -284,6 +291,9 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
     }
   });
   (t.procedure.body as flow.SequenceNode).children = [disp];
+  // API plan A1a: an API master ends with QA's release for packing (H-PACK) in a stage of its own, so the synthesis
+  // stages the author adds go before it and the packaging order of the batch can take its bulk (recipe-core 0701).
+  if (req.edition === 'substance') (t.procedure.body as flow.SequenceNode).children.push(releaseForPacking(disp));
   t.parameters = [];
   t.calculations = [];
   t.yieldCheckpoints = [];
@@ -292,6 +302,37 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
   t.intermediates = [];
   t.riskReductions = [];
   t.references = t.references.filter((r) => r.kind === 'MATERIAL' || ['SOP-CLEAN-003', 'QRM-SCALE', 'EQC-BAL'].includes(r.id));
+  return t;
+}
+
+/** API plan A1a: the last stage of an API processing master, QA's release for packing (H-PACK). */
+function releaseForPacking(like: flow.StageNode): flow.StageNode {
+  const hold = { kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] } as flow.FlowNode;
+  return { ...like, id: 'S-RELEASE', name: 'Release for packing', body: { kind: 'sequence', id: 'seq-release', children: [hold] } as flow.SequenceNode };
+}
+
+/** PACKAGING_BLANK (header comment): the API's packaging master, its header, no bill of materials and a packing stage. */
+function packagingBlank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
+  if (req.edition !== 'substance') throw new FamilyInputError('DESIGNER_EDITION_START', 'A blank packaging master is started for an API family only.', ['PR-01']);
+  if (!req.packType) throw new FamilyInputError('DESIGNER_PACK_TYPE', 'Name the pack type of the packaging master, e.g. DRUM-25KG.', ['PR-01']);
+  const t = blank(base, src, req, markets);
+  const disp = (t.procedure.body as flow.SequenceNode).children.find((n) => n.id === 'S-DISP') as flow.StageNode;
+  let clear: Record<string, unknown> | undefined;
+  walk(disp, (o) => {
+    if (o['kind'] === 'phase' && o['id'] === 'p-disp-clear') clear = o;
+  });
+  if (!clear) throw new Error('the dc-mini skeleton source has no room clearance');
+  const stage: flow.StageNode = {
+    ...disp,
+    id: 'S-PACK',
+    name: 'Packing',
+    body: { kind: 'sequence', id: 'seq-pack', children: [{ ...clear, id: 'p-pk-clear', name: 'Packing room clearance' } as flow.FlowNode] } as flow.SequenceNode,
+  };
+  (t.procedure.body as flow.SequenceNode).children = [stage];
+  const { unitMassMg: _unitMass, ...head } = t.header;
+  t.header = { ...head, title: `${src.product.name} ${src.chosen.strength}: packing into ${req.packType}`, recordKind: 'PACKAGING', packType: req.packType };
+  t.bom = [];
+  t.references = t.references.filter((r) => r.kind !== 'MATERIAL');
   return t;
 }
 
@@ -405,5 +446,6 @@ export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: F
     if (!copySource) throw new FamilyInputError('DESIGNER_COPY', 'Name the approved master to copy.', ['PR-01']);
     return parsed(copy(copySource, src, req, markets));
   }
+  if (req.start === 'PACKAGING_BLANK') return parsed(packagingBlank(base, src, req, markets));
   return parsed(req.start === 'BLANK' ? blank(base, src, req, markets) : skeleton(base, src, req, markets, timeSystem));
 }

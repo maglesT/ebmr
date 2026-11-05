@@ -282,6 +282,36 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(rows[0]?.edition).toBe('substance');
   });
 
+  it('[PR-01][PR-37][INV-27] API plan A1a: an API processing master starts blank with QA\'s release for packing (H-PACK) in a last stage of its own; its packaging master starts blank (PACKAGING_BLANK) with the pack type, the formula\'s batch sizes, no bill of materials, a packing stage with its room clearance and no formula pin; a tablets family or a missing pack type is refused', async () => {
+    const API = { code: 'DMT7JB', name: 'Demosubstance B', strength: PRODUCT.strength };
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: API.code, strength: API.strength, productName: API.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    const apiFormula = await approvedFormula('100000', undefined, LINES, API.code);
+    const apiCreate = (familyCode: string, extra: Record<string, unknown>) =>
+      author.call(routes.designer.createFamily, { body: { familyCode, product: API, markets: ['IN'], formulaVersionId: apiFormula, edition: 'substance', ...extra } });
+    type Node = { kind: string; id: string; name?: string; block?: { type: string; version: string }; body?: { children: Node[] } };
+    type Shape = { header: { recordKind: string; packType?: string; title: string; batchSizes: unknown; unitMassMg?: string }; bom: unknown[]; procedure: { body: { children: Node[] } }; references: { kind: string }[] };
+    const proc = valueOf(await apiCreate('DMT7JB-BL', { start: 'BLANK' }));
+    const pc = proc.content as unknown as Shape;
+    expect(pc.procedure.body.children.map((n) => n.id)).toEqual(['S-DISP', 'S-RELEASE']);
+    expect(pc.procedure.body.children[1]?.body?.children.map((n) => [n.kind, n.id])).toEqual([['holdPoint', 'H-PACK']]);
+    const pin = async (versionId: string) => (await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [versionId])).rowCount;
+    expect(await pin(proc.versionId)).toBe(1);
+    const pack = valueOf(await apiCreate('DMT7JB-PK', { start: 'PACKAGING_BLANK', packType: 'DRUM-25KG' }));
+    const k = pack.content as unknown as Shape;
+    expect(k.header).toMatchObject({ recordKind: 'PACKAGING', packType: 'DRUM-25KG', title: 'Demosubstance B 400 mg: packing into DRUM-25KG', batchSizes: pc.header.batchSizes });
+    expect(k.header.unitMassMg).toBeUndefined();
+    expect(k.bom).toEqual([]);
+    expect(k.references.filter((r) => r.kind === 'MATERIAL')).toEqual([]);
+    expect(k.procedure.body.children.map((n) => [n.id, n.body?.children.map((c) => [c.id, `${c.block?.type ?? ''}@${c.block?.version ?? ''}`])])).toEqual([['S-PACK', [['p-pk-clear', 'G-10@2']]]]);
+    expect(await pin(pack.versionId)).toBe(0);
+    const { rows } = await gmp.db.admin.query<{ edition: string; record_kind: string }>("select edition, record_kind from recipe.mbr_family where code = 'DMT7JB-PK'");
+    expect(rows[0]).toEqual({ edition: 'substance', record_kind: 'PACKAGING' });
+    expect(refusalOf(await apiCreate('DMT7JB-PK2', { start: 'PACKAGING_BLANK' })).code).toBe('DESIGNER_PACK_TYPE');
+    const tablet = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-PB', product: PRODUCT, markets: ['IN'], formulaVersionId: otherVersionId, start: 'PACKAGING_BLANK', packType: 'DRUM-25KG' } });
+    expect(refusalOf(tablet).code).toBe('DESIGNER_EDITION_START');
+  });
+
   it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));

@@ -19,7 +19,7 @@ const READS = [routes.planning.batchNumbers.id];
 const IDENTITY: readonly FormField[] = [
   { name: 'productCode', label: 'Product code', kind: 'text' },
   { name: 'productName', label: 'Product name', kind: 'text' },
-  { name: 'edition', label: 'Edition', kind: 'choice', options: ['TABLETS', 'INJECTABLES'] },
+  { name: 'edition', label: 'Edition', kind: 'choice', options: ['TABLETS', 'INJECTABLES', 'SUBSTANCE'] },
   { name: 'batchSize', label: 'Batch size', kind: 'decimal' },
   { name: 'batchSizeUnit', label: 'Batch size unit (e.g. {tbl}, kg)', kind: 'text' },
   { name: 'parentBatchNumber', label: 'Processing batch number (a packaging number only)', kind: 'text', optional: true },

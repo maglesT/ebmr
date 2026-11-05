@@ -9,6 +9,7 @@ import type { LimitSpec } from '../../src/limits/model.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
+import { API_PACK, SUBSTANCE_SEEDS } from '../../src/library/seed/substance.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 
@@ -168,6 +169,24 @@ describe('the ready-made catalogue', () => {
         }
       }
     }
+  });
+
+  it('[PR-03][DI-34][PR-37] API plan A1a: the API pack block (drums or bags, labels) is a substance block, well made, its example values pass, a nominal batch completes it, its signatures are engine roles, and it holds the sections and fields the edition\'s release items read', () => {
+    for (const item of SUBSTANCE_SEEDS) {
+      const code = item.definition.code;
+      expect(item.definition.edition, code).toBe('substance');
+      expect(SEED_CATALOGUE.map((s) => s.definition.code), code).not.toContain(code);
+      expect(checkBlockDefinition(item.definition, expr).filter((p) => p.code !== 'LIB-REPEAT-NO-MAX'), code).toEqual([]);
+      expect(checkBlockUse(item.definition, { block: { code, version: item.definition.version }, ...item.exampleUse }, expr), code).toEqual([]);
+      expect(nominalRun(item), code).toEqual({ exceptions: [], status: 'COMPLETED' });
+      for (const sig of item.definition.signatures) expect(['PRODUCTION_OPERATOR', 'PRODUCTION_VERIFIER'], code).toContain(sig.role);
+    }
+    // editions/substance/sql 5000 (substance.grel_edition_items) reads these ids.
+    const fields = Object.fromEntries(API_PACK.definition.sections.map((s) => [s.id, s.fields.map((f) => f.id)]));
+    expect(fields['container']).toEqual(expect.arrayContaining(['netMass', 'labelOk', 'sealed']));
+    expect(fields['recon']).toContain('labelRecon');
+    expect(fields['exam']).toContain('allCorrect');
+    expect(fieldOf(API_PACK, 'netMass')).toMatchObject({ type: 'NUMBER', unit: 'kg' });
   });
 
   for (const [group, items] of Object.entries(SEED_GROUPS)) {

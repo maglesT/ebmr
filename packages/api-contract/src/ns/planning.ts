@@ -48,7 +48,8 @@ const BatchNumber = z.string().regex(/^[A-Z0-9][A-Z0-9/.-]{0,31}$/, '1-32 charac
 const numberIdentity = {
   productCode: z.string().trim().min(1).max(40),
   productName: z.string().trim().min(1).max(200),
-  edition: z.enum(['TABLETS', 'INJECTABLES']),
+  // API plan A1a: the API edition's code (kernel.edition_codes()); written out, the contract imports no kernel.
+  edition: z.enum(['TABLETS', 'INJECTABLES', 'SUBSTANCE']),
   batchSize: DecimalString,
   batchSizeUnit: z.string().trim().min(1).max(20),
   parentBatchNumber: BatchNumber.optional(),
