@@ -79,6 +79,7 @@ tests:
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01][INV-17] API edition plan A0: an API (substance) family starts blank from the formula of a product whose dosage form is API or Intermediate; a tablet product cannot become one, nor an API product a tablets family, and the family list and the database name the edition"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-01] one list of editions: the database (kernel.editions(), upper-case codes, the library list) and the code (kernel EDITIONS, recipe-core flow.EDITIONS, library LIBRARY_EDITIONS) agree, and every edition check names the list instead of literals (the installation keys keep theirs)"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-01] the rule tables a master binds: tablets the tablets table, injectables the sterile table (as before), an API master the kernel table only"
+  - "packages/api-contract/test/editions.test.ts > the editions the contract accepts (API plan A0) > [PR-01] createFamily takes exactly the editions of recipe-core flow.EDITIONS, the substance edition among them"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:
