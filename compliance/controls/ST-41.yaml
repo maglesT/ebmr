@@ -30,8 +30,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-04 washing, INJ-05 depyrogenation, INJ-06 moist heat; holds by CALC (4.2, 4.3)"
 build_status: SPECIFIED
 jurisdiction: FDA-AP is more specific on stopper washing, siliconisation and water quality. Apply it as written.
 scope: all (sterilisation/depyrogenation where the product requires it)

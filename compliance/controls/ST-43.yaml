@@ -38,8 +38,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Leak test, air-removal test, revalidation as equipment due dates; CHOICE validated load pattern (INJ-06, INJ-21)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter numerically (annual worst-case revalidation, weekly leak test, daily air-removal test). FDA-AP says "periodic" and adds manual-valve documentation and SAL 10⁻⁶.
 scope: all

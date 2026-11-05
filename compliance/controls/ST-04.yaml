@@ -19,8 +19,11 @@ catalog_test: Sign a step 3 h after the activity → flagged "late" and a reason
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "existing kernel only; no late-entry timer"
 build_status: SPECIFIED
 jurisdiction: Aligned. The US wording is binding.
 scope: all

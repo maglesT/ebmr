@@ -21,8 +21,11 @@ catalog_test: Attempt certification while two filling-window plates are still in
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Gate waits for INJ-32 complete and all results in (4.4, SM 4.8)"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU states explicitly that this applies to terminally sterilised products too.
 scope: all (aseptic **and** terminally sterilised)

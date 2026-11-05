@@ -33,8 +33,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-22 mode, SIGN, NUM per defect, CALC rate; Qualif. EYESIGHT and inspection (4.1, 4.5)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter on inspector qualification (annual) and AVI challenges. The FDA draft adds a lifecycle programme with AQL; it is not final.
 scope: all

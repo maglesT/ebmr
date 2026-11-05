@@ -25,8 +25,11 @@ catalog_test: Certify a short-shelf-life batch before its sterility result, then
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: DONT_FOLLOW
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Not built (Q8); release always waits for results"
 build_status: SPECIFIED
 jurisdiction: Aligned in approach.
 scope: all (the cell-therapy module is optional and outside core scope)

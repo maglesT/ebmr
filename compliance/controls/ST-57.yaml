@@ -29,8 +29,11 @@ tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] filling judges the fill weight at each round and the volume from the bulk density; the stopper-height check is asked for vials only; each unit's fill weight is judged on the mean and on every unit"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-57] an ampoule seal or a vial crimp that fails at a round is an exception"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-15 Y/N stopper-height check, NUM rejects; INJ-20 crimp DT and CALC (4.3)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter. It makes automated stopper-height detection an expectation and defines Grade A air supply. FDA-AP says local protection until crimping, and that on-line detection *adds* assurance.
 scope: aseptic

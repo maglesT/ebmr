@@ -29,8 +29,11 @@ tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-61][ST-66] terminal sterilisation runs per load: every filled tray is consumed into its numbered load, and each load records its cycle once, takes its own sterility samples and registers the sterilised load; F0, temperature or time below the minimum is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-66] sterility sampling records each point of the formulation's plan (count of points, units per point, time)"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-25 SAMPLE per point; per-load samples in INJ-21 (4.5)"
 build_status: SPECIFIED
 jurisdiction: Use the union. EU adds per-load sub-batch sampling for terminal sterilisation and lyo, and risk-based post-intervention samples. FDA adds the middle-of-fill pull and pulls after excursions.
 scope: all

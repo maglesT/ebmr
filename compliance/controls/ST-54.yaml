@@ -27,8 +27,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-54] compounding takes the pre-filtration bioburden sample and judges the final volume and density; the bioburden-reducing filtration judges its pressure"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-12 SAMPLE, INJ-26 TEST, gate (4.3)"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU is explicit about per-batch sampling and the sampling point.
 scope: all (aseptic and terminal)

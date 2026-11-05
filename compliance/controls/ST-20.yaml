@@ -55,8 +55,11 @@ catalog_test: Configure a Grade B air action limit of 15 → rejected. The Grade
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "no FDA-AP profile; trends in QA review"
 build_status: SPECIFIED
 jurisdiction: Grade A is stricter under EU (no growth) than ISO 5 (action 1, normally none). Grade B equals ISO 7 for air and settle plates, and EU adds contact and glove limits. **ISO 8 (FDA 100/50) is stricter than EU Grade D (200/100)**, so it applies for US-market products.
 scope: all

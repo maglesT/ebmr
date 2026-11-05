@@ -24,8 +24,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-22 AQL section via `table_lookup`; failures raise exceptions (4.5)"
 build_status: SPECIFIED
 jurisdiction: Aligned. Neither final text fixes AQL values.
 scope: all

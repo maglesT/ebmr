@@ -32,8 +32,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] every unit filled is accounted for: one unit missing from the counts is an exception"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Existing gate and deviations; INJ-24 accountability (4.5)"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU adds a documented inclusion/exclusion rationale for each batch.
 scope: all

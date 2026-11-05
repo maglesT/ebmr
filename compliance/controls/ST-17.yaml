@@ -34,8 +34,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-14][ST-15][ST-17] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Room requalification due date (4.1); DP excursions as events; 10 Pa as a formulation value (8a)"
 build_status: SPECIFIED
 jurisdiction: |-
   - DP: EU gives a minimum 10 Pa *guidance value*. FDA-AP gives at least 10–15 Pa between classes and at least 12.5 Pa toward an unclassified room at all times, so the 12.5 Pa rule comes from FDA.

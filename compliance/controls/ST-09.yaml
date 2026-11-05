@@ -25,8 +25,11 @@ catalog_test: Mark an APS failed → all implicated operators become restricted 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "QA withdraws after the investigation; no automatic engine"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU is explicit that requalification should consider a successful APS.
 scope: aseptic

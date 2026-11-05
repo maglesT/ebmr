@@ -17,8 +17,11 @@ catalog_test: "India+EU profile with one contaminated unit in 12,000: recorded a
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Media-fill formulation, TEST limit 0, APS qualification and line due date (4.4)"
 build_status: SPECIFIED
 jurisdiction: 'acceptance **same** as FDA 2004 (plus FDA: under 5,000 units, one contaminated unit is cause for revalidation after investigation) [chk]; **weaker** than EU Annex 1 (2022) 9.46 (any contaminated unit is a failed APS, normally three successful repeats) [chk]. Frequency: India only "defined intervals"; FDA 2004 semi-annual per line and each authorised person at least yearly [chk]; EU 9.38 twice a year per process, line and shift, and each operator at least one successful APS per year [chk] (both **stricter**).'
 type_detail: ENFORCED (envelope checks; resolved acceptance); CONFIGURABLE (requalification interval where the resolved rule allows).

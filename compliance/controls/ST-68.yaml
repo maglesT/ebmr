@@ -21,8 +21,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-65][ST-68] the release tests are QC's: growth in the sterility test, or endotoxin above the product limit, is an exception"
 expert_decision:
-  status: PENDING
+  status: FOLLOW
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Gate refuses release while any exception or deviation is open (4.5, existing)"
 build_status: SPECIFIED
 jurisdiction: Aligned. EU states it categorically.
 scope: all

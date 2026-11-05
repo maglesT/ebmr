@@ -23,8 +23,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-39] a primary component is accepted by its lot on the formula line (the lot register checks its material and QC release); an open pack is an exception"
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-02 LOT released, which carries QC's result (4.2)"
 build_status: SPECIFIED
 jurisdiction: Aligned. The US rule is binding.
 scope: all
