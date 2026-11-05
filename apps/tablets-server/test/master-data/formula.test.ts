@@ -127,7 +127,7 @@ describe('formulation library (slice 6a)', () => {
     const formulaId = await newFormula('79999', prod('H'));
     const claimed = await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'x', lines: [LINES[0], { ...LINES[1], basis: 'PER_BATCH', quantity: '15' }], unitForm: 'CAPSULE' } as never });
     expect(claimed.ok).toBe(false);
-    const plain = await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'x', lines: [LINES[0], { ...LINES[1], basis: 'PER_BATCH', quantity: '15' }] } });
+    const plain = await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'x', lines: [LINES[0] as FormulaLineInput, { ...(LINES[1] as FormulaLineInput), basis: 'PER_BATCH', quantity: '15' }] } });
     expect(plain.ok).toBe(false);
     expect(JSON.stringify(plain)).toMatch(/EBMR-FRM-009/);
   }, 120_000);
