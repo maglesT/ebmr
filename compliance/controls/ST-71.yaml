@@ -29,7 +29,8 @@ behaviour: |-
   - **Post-fill handling.** Storage and transport record location and conditions. An excursion from registered storage conditions is linked to the batch and blocks release until assessed.
 catalog_test: An open deviation plus a yield outside limits → release refused, listing both. Close an investigation with the "other batches" field empty → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] every unit filled is accounted for: one unit missing from the counts is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

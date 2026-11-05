@@ -25,7 +25,9 @@ behaviour: |-
   - **Manual capping** happens only in Grade A (isolator, or Grade A with Grade B background). Interventions at the capper must avoid direct vial contact. The crimper sits at a separate station with extraction; this is a facility item.
 catalog_test: Run clean-process capping without the stopper-height challenge → capping cannot start. Record a 3 h stopper-to-crimp gap against a 2 h limit → deviation.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] filling judges the fill weight at each round and the volume from the bulk density; the stopper-height check is asked for vials only; each unit's fill weight is judged on the mean and on every unit"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-57] an ampoule seal or a vial crimp that fails at a round is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

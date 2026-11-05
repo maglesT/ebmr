@@ -21,7 +21,8 @@ behaviour: |-
   - **Trending.** Defect counts are stored per code per batch, so SPC trending works across batches. An adverse trend opens an investigation with a **mandatory market-impact assessment**.
 catalog_test: One cracked vial in the AQL sample → automatic investigation and release block. Ten batches with rising glass rejects → trend rule fires.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

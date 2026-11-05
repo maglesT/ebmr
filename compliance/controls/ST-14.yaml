@@ -36,7 +36,8 @@ behaviour: |-
   - DESIGN-CHOICE: the scheduler warns if classification sampling is planned inside a commercial batch window, and allows an APS to be tagged as the reclassification run.
 catalog_test: A Grade B room last requalified 6 months + 1 day ago → step start blocked. Set a "final filter changed" flag → blocked until requalification is recorded. An aseptic connection step mapped to a Grade C room → MBR validation rejects it.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-14][ST-15][ST-17] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

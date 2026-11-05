@@ -18,7 +18,8 @@ behaviour: |-
   - Certification with only a sterility result attached, while process, EM, utility or sterilisation review items are open, is blocked.
 catalog_test: A passing sterility result with an open sterilisation-cycle deviation → status stays "not releasable".
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-65][ST-68] the release tests are QC's: growth in the sterility test, or endotoxin above the product limit, is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

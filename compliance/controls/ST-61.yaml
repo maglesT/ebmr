@@ -26,7 +26,9 @@ behaviour: |-
     Any failure makes parametric release impossible. Falling back to a sterility test is allowed only if the authorisation permits it. Without authorisation, the sterility test under 211.167(a) is required (ST-65).
 catalog_test: One probe below the F0 minimum on a parametric-release batch → parametric release blocked. A cycle start without the nozzle/drain check → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-61][ST-66] terminal sterilisation runs per load: each load consumes the filled trays it takes, registers the sterilised load as a container, and takes its own sterility samples; an F0 below the minimum is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

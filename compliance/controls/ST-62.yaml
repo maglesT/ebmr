@@ -30,7 +30,8 @@ behaviour: |-
   - **Reject rates.** A per-defect reject rate above its alert or action limit opens an investigation and blocks release.
 catalog_test: An inspector with VI qualification 13 months old → sign-on refused. A failed mid-batch AVI challenge → units since the last pass held.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

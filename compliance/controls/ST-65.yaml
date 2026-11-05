@@ -27,7 +27,8 @@ behaviour: |-
   - Sample exterior decontamination (VHP/UV) must be a validated process that does not affect the test.
 catalog_test: Release with sterility present and endotoxin pending → refused. A sterility result whose method suitability used the old formulation → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-65][ST-68] the release tests are QC's: growth in the sterility test, or endotoxin above the product limit, is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

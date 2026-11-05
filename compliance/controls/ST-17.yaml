@@ -31,7 +31,8 @@ behaviour: |-
   - Media-fill and sterility-failure investigation templates generate a HEPA retest task.
 catalog_test: Replay an 8 Pa dip for 5 min during filling → the batch shows the excursion, the next aseptic step needs a restoration record, and release is blocked until assessed. Set the tunnel HEPA test as expired → the depyrogenation step is blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-14][ST-15][ST-17] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
