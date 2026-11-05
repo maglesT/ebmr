@@ -29,10 +29,9 @@ is merged, and CI is paused for these branches.
   shared non-tablets path if there is one. Otherwise key the condition on the edition's data, not on a string spread
   across files. Tablets output stays unchanged (golden test).
 - **S2:** approved. The edition comes from the product master's dosage form (single source, no new field, no web change).
-- **#114 audit item 3 (open):** the lead asked to remove the 0–100000 limit slots on the count fields
-  (INJ-VISUAL-INSPECT, INJ-UNIT-ACCOUNT). Not done: `nominalEntries` (block-version.ts) takes a NUMBER's nominal value
-  only from its limit slot's target, so without a slot each count is 1. The visual inspection's reject rate is then
-  400 % and the nominal runs fail. Settle it with the lead: keep the slots, or a shared change to the nominal values.
+- **#114 audit item 3 (settled, lead 5 November 2026):** the 0–100000 limit slots on the count fields stay, the same as
+  the capsules ruling. `nominalEntries` takes a count's nominal value from its limit slot's target, and a shared change
+  to the nominal values is not worth it now.
 - **Library checker, `showWhen`:** do this first on resume. The checker accepts a `showWhen` that names a field outside
   its own entry, but the runtime never reads it, so the field is never asked. Fix: a LIB- refusal with a test (lead
   approved).
