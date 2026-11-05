@@ -6,7 +6,115 @@ Each control of the register ([compliance/controls/](../../../compliance/control
 and the test files that prove it, as the register records them. The tests carry the control ID in their names, for
 example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose files the control names.
 
-246 controls: 13 IMPLEMENTED, 122 SPECIFIED, 111 VERIFIED.
+261 controls: 22 IMPLEMENTED, 128 SPECIFIED, 111 VERIFIED.
+
+## AS-01
+
+**Master production instruction for each intermediate and API.** [AS-01.yaml](../../../compliance/controls/AS-01.yaml). Target phase 7; editions substance; SPECIFIED.
+
+- Code: Master life cycle (prepared, checked, QA approved by different people); one master per isolated step.
+
+## AS-02
+
+**Master content of an API production instruction.** [AS-02.yaml](../../../compliance/controls/AS-02.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: Library block slots (limits, equipment classes, bill-of-materials lines, intervals, counts) filled by the formulation; validator sanity checks.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-03
+
+**A batch record for each intermediate and API, checked at issue.** [AS-03.yaml](../../../compliance/controls/AS-03.yaml). Target phase 7; editions substance; SPECIFIED.
+
+- Code: Batch issue from the approved master (existing); intermediates in A2 (C1).
+
+## AS-04
+
+**Batch record content of each significant step.** [AS-04.yaml](../../../compliance/controls/AS-04.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: Catalogue v1 blocks (equipment, lot and weighing fields, critical values with limits, signatures), G blocks and lot results.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-05
+
+**Critical weighing and dispensing witnessed.** [AS-05.yaml](../../../compliance/controls/AS-05.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: API-DISP and API-CHARGE: each container against its bill-of-materials line, signed by the performer and verified by a second person of another role.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-06
+
+**Yield against expected yield.** [AS-06.yaml](../../../compliance/controls/AS-06.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: API-YIELD: actual and molar yield as critical calculations with limits; a result outside raises an exception that blocks the step until resolved (deviation).
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-07
+
+**Status of major equipment shown.** [AS-07.yaml](../../../compliance/controls/AS-07.yaml). Target phase 7; editions substance; SPECIFIED.
+
+- Code: Plant status (existing); API-CHARGE confirms the reactor clean and labelled for the batch.
+
+## AS-08
+
+**Reprocessed or failing material controlled.** [AS-08.yaml](../../../compliance/controls/AS-08.yaml). Target phase 7; editions substance; SPECIFIED.
+
+- Code: Lot status, G-24; the material lot fields accept only a released lot of the line (S6).
+
+## AS-09
+
+**Time limits met.** [AS-09.yaml](../../../compliance/controls/AS-09.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: TIMER fields with limits (reaction time, ageing, drying); lot dates.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-10
+
+**In-process controls defined and approved.** [AS-10.yaml](../../../compliance/controls/AS-10.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: Approved master with limit slots; API-IPC-COMPLETE repeats until the result is within its limit; out-of-limit exception.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-14
+
+**Label reconciliation, examination and specimen.** [AS-14.yaml](../../../compliance/controls/AS-14.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: G printed materials; API-LABEL-CHECK records that a specimen label is attached to the record (a confirmation, not an image of the label).
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-15
+
+**Label content and line inspection.** [AS-15.yaml](../../../compliance/controls/AS-15.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: API-LABEL-CHECK (line clearance, label content against the master), API-PACK, clearance.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-16
+
+**Quality unit review and release.** [AS-16.yaml](../../../compliance/controls/AS-16.yaml). Target phase 7; editions substance; SPECIFIED.
+
+- Code: Review and release (existing), G-REL with the API items; C1 guard for intermediates (A2).
+
+## AS-18
+
+**Retest or expiry date on label and CoA.** [AS-18.yaml](../../../compliance/controls/AS-18.yaml). Target phase 7; editions substance; IMPLEMENTED.
+
+- Modules: [rc-library](../code-map.md#rc-library)
+- Code: Lot dates; API-LABEL-CHECK and API-PACK check the date on the label; CoA in A3.
+- Tests: [packages/recipe-core/test/library/seed.test.ts](../../../packages/recipe-core/test/library/seed.test.ts)
+
+## AS-24
+
+**Record retention for APIs.** [AS-24.yaml](../../../compliance/controls/AS-24.yaml). Target phase 7; editions substance; SPECIFIED.
+
+- Code: C5: the kernel retention rule set to 3 years after the last distribution, or one retention basis added (open).
 
 ## DI-01
 
