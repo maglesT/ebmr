@@ -31,3 +31,19 @@ describe('the unit form from the dosage form (Capsules edition, C2)', () => {
     expect(r.ok ? '' : r.hint).toContain('neither a tablet nor a capsule');
   });
 });
+
+describe('a capsule\'s empty shells (C2; lead, 5 November 2026)', () => {
+  it('[PR-03] the per-unit COATING line of a capsule is its shells, named "Empty capsule shells"; a per-batch coat and every tablet line keep their role', async () => {
+    const { bomShellsLabel, formulaRoleLabel, isShellLine, SHELLS_LABEL } = await import('../../src/flow/dosage-form.ts');
+    expect(SHELLS_LABEL).toBe('Empty capsule shells');
+    expect(isShellLine('COATING', 'PER_UNIT', 'Hard gelatin capsule')).toBe(true);
+    expect(formulaRoleLabel('COATING', 'PER_UNIT', 'Hard gelatin capsule')).toBe('Empty capsule shells');
+    expect(isShellLine('COATING', 'PER_BATCH', 'Enteric-coated capsule')).toBe(false);
+    expect(formulaRoleLabel('COATING', 'PER_BATCH', 'Enteric-coated capsule')).toBe('COATING');
+    expect(isShellLine('COATING', 'PER_UNIT', 'Film-coated tablet')).toBe(false);
+    expect(formulaRoleLabel('EXCIPIENT', 'PER_UNIT', 'Hard gelatin capsule')).toBe('EXCIPIENT');
+    expect(bomShellsLabel('OTHER', 'Hard gelatin capsule')).toBe('Empty capsule shells');
+    expect(bomShellsLabel('OTHER', 'Tablet')).toBeNull();
+    expect(bomShellsLabel('EXCIPIENT', 'Hard gelatin capsule')).toBeNull();
+  });
+});

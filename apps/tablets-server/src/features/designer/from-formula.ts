@@ -109,8 +109,15 @@ function materialRefs(src: FormulaSource): flow.Reference[] {
  * as a tablet's coat). They are in the bill of materials (role OTHER) and in the unit and batch mass, but not dispensed
  * into the blend: the filling step names their lot (PROC-CAPS-FILL, its shell line). A tablet's lines are unchanged.
  */
-export const isShellLine = (src: Pick<FormulaSource, 'product'>, l: formula.FormulaLine): boolean =>
-  l.role === 'COATING' && l.basis === 'PER_UNIT' && flowNs.isCapsuleForm(src.product.dosageForm);
+export const isShellLine = (src: Pick<FormulaSource, 'product'>, l: formula.FormulaLine): boolean => flowNs.isShellLine(l.role, l.basis, src.product.dosageForm);
+
+/** A capsule formula has at most one shells line (a real coat on a capsule is given per batch, C3). */
+function checkShells(src: FormulaSource): void {
+  const shells = src.chosen.lines.filter((l) => isShellLine(src, l));
+  if (shells.length > 1) {
+    throw new FamilyInputError('DESIGNER_FORMULA', `The capsule formula has ${shells.length} COATING lines given per unit (${shells.map((l) => l.lineId).join(', ')}); one per-unit COATING line is the empty capsule shells, and a coat on the capsules is given per batch.`, ['PR-01', 'PR-03']);
+  }
+}
 
 const bomOf = (src: FormulaSource): flow.BomLine[] =>
   src.chosen.lines.map((l) => {
@@ -136,6 +143,7 @@ const walk = (n: unknown, visit: (o: Record<string, unknown>) => void): void => 
 function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[], timeSystem?: flow.Reference): flow.MbrContent {
   const t = structuredClone(base.content);
   const c = src.chosen;
+  checkShells(src);
   const actives = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role === 'ACTIVE');
   const others = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role !== 'ACTIVE' && !isShellLine(src, l));
   const aids = c.lines.filter((l) => l.basis === 'PER_BATCH');
@@ -308,9 +316,10 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
 function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
   const t = structuredClone(source);
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
+  checkShells(src);
   const bom: flow.BomLine[] = src.chosen.lines.map((l) => {
     const same = t.bom.find((b) => codeOf(b) === l.materialCode);
-    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
+    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
   });
   const kept = new Set(bom.map((b) => b.id));
   // Slice 7o (found by the R4 browser run): a material the approved source already names keeps the source's reference

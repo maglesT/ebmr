@@ -71,19 +71,19 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
 plan `docs/build-plan/capsules/plan.md` approved by the lead (v3, PR #102). The owner's binding rule: every numbered
-requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. Q1 (owner): the header reads "Batchwright Capsules" when
-the master or batch on screen has a capsule dosage form (C2; amends decision 0020). Slice C1 (branch `caps/c1`): the
-catalogue load takes the capsule blocks (R3-CAT-4 lifted), PROC-CAPS-FILL records the filling principle and size 5, and a
-master from a formula accepts a capsule dosage form (wording per capsule); other non-tablet forms stay refused (#105).
-Slice C2 (branch `caps/c2`): one rule for the unit form (`flow.readDosageForm`: "capsule" in the dosage form, none means
-a tablet, a bare Softgel refused with a hint); the platform master reader takes `dosage_form` from core's
-report.product_v1 (the fake master has the column) and a master from a formula uses it on the platform build; the header
-reads "Batchwright Capsules" on a capsule master or batch (decision 0020 amended; ui-kit `brand.Edition` gains
-`CAPSULES`, display only; the run header view carries the master's dosage form); per-unit wording (the formula screens,
-the master's batch-size input "Batch size in capsules", the issue count refusals). The empty shells are the formula's
-COATING line per unit: in a capsule master from a formula a BOM line of role OTHER, not dispensed into the blend; the
-filling step names its lot and consumes the line. New E2E group `library-caps` (`library/capsule-powder.spec.ts`): the
-powder capsule on the automatic dosator, catalogue to released lot. Next: C3 (post-fill and packing).
+requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. **C1 merged (#105, 51f06cb, 5 November):** the catalogue
+load takes the capsule blocks (R3-CAT-4 lifted); PROC-CAPS-FILL records the filling principle and size 5; a master from a
+formula accepts a dosage form that says "capsule" (worded per capsule); any other non-tablet form, a bare "Softgel"
+included, is refused with a hint (one rule everywhere, lead). The E2E approval helper waits for the button or APPROVED.
+**C2 (branch `caps/c2`, PR #109):** one rule for the unit form (`flow.readDosageForm`); the platform master reader takes
+`dosage_form` from core's report.product_v1 (fake master has the column; a product core does not hold is refused as no
+product master); the header reads "Batchwright Capsules" on a capsule master or batch (decision 0020 amended; ui-kit
+`brand.Edition` gains `CAPSULES`, display only; `RunHeaderView.dosageForm`, lead OK); per-unit wording (formula screens,
+"Batch size in capsules", the issue count). Shells (lead OK, 5 November, with a condition): the formula's COATING line
+per unit on a capsule is the empty shells, a BOM line of role OTHER, not dispensed into the blend, lot-named and consumed
+at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating (`flow.formulaRoleLabel`,
+`bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
+group `library-caps`. Next: C3 (post-fill and packing).
 
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.

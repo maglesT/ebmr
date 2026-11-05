@@ -395,12 +395,22 @@ export function defineAcceptance(tabletKey: string): void {
       await c.getByRole('textbox', { name: 'Formula batch size (units)' }).fill('100000');
       await c.getByRole('button', { name: 'Choose this product' }).click();
       await expect(c.getByTestId('formula-bom')).toContainText(`${t.targetMg} mg`);
+      // The lead's condition (C2): a capsule's shells line reads as the empty capsule shells, never as a coating.
+      if (t.shells) {
+        await expect(c.getByTestId('formula-bom')).toContainText('Empty capsule shells');
+        await expect(c.getByTestId('formula-bom')).not.toContainText(/coat/i);
+      }
       await a.getByRole('textbox', { name: 'Family code' }).fill(`FAM-${tag}`);
       await a.getByRole('button', { name: 'Create the family and its draft' }).click();
       // A capsule's shells line waits for the filling step that consumes it (added next); a tablet's skeleton passes.
       await expect(a.getByRole('toolbar', { name: 'Designer' }).getByText(t.shells ? /^1 errors, / : 'Passed: no errors, no warnings')).toBeVisible();
       // Capsules edition C2 (decision 0020 amended): the header names the edition by the master's dosage form.
       await expect(a.getByTestId('header-brand')).toContainText(t.shells ? 'Batchwright Capsules' : 'Batchwright Tablets');
+      if (t.shells) {
+        const bom = a.getByRole('table', { name: 'Bill of materials' });
+        await expect(bom.locator('tr', { hasText: 'BOM-SHELL' })).toContainText('Empty capsule shells');
+        await expect(bom).not.toContainText(/coat/i);
+      }
       versionId = /\/mbr\/versions\/([0-9a-f-]{36})/.exec(a.url())?.[1] ?? '';
       expect(versionId).not.toBe('');
       // S11b: the GMP half of the acceptance takes the product from here (its own tests, in order).

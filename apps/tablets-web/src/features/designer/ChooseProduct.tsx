@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { routes, type CallError, type FormulaChoiceView } from '@ebmr/api-contract';
+import { flow } from '@ebmr/recipe-core/pure';
 import { Button, Field } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -74,7 +75,7 @@ export function ChooseProduct({ onChosen }: { onChosen: (choice: FormulaChoiceVi
                 <td>
                   {l.materialName ?? ''} ({l.materialCode})
                 </td>
-                <td>{l.role}</td>
+                <td>{flow.formulaRoleLabel(l.role, l.basis, choice.dosageForm)}</td>
                 <td>
                   {l.quantity} {l.quantityUnit}
                 </td>

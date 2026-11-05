@@ -59,7 +59,7 @@ import {
   type StagedPackage,
 } from './package-export.ts';
 import { paletteBlocks } from './palette.ts';
-import { targetsOf } from '../master-data/index.ts';
+import { productNames, targetsOf } from '../master-data/index.ts';
 import { contentFromFormula } from './from-formula.ts';
 import { materialMasters } from './material-refs.ts';
 import { packagingCopy } from './packaging-copy.ts';
@@ -374,13 +374,14 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
   const pool = app.pools.app;
   /**
    * Capsules edition C2 (lead, 4 November 2026): the product's dosage form. On the platform build it is core's
-   * (report.product_v1 `dosage_form`, read through the master link); otherwise the product master's in effect. Null:
-   * none stated, which means a tablet (flow.readDosageForm).
+   * (report.product_v1 `dosage_form`, read through the master link; nothing from a local copy, PL-08); otherwise the
+   * product master's in effect. Null: none stated, which means a tablet (flow.readDosageForm). Undefined: core does not
+   * hold the product, refused as no product master.
    */
-  const dosageFormOf = async (productCode: string, local: string | null): Promise<string | null> => {
+  const dosageFormOf = async (productCode: string, local: string | null): Promise<string | null | undefined> => {
     if (!app.platform.master) return local;
     const item = await app.platform.master.read('product', { code: productCode });
-    return item?.dosageForm ?? null;
+    return item ? (item.dosageForm ?? null) : undefined;
   };
   const palette = paletteBlocks();
 
@@ -453,15 +454,15 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // (4 November 2026), hard capsules and soft gels from the library.
           // C2: a capsule only when the dosage form contains "capsule"; a bare soft-gel name is refused with a hint.
           const master = rows[0];
-          const stated = master?.name ? await dosageFormOf(chosen.productCode, master.dosage) : null;
+          const stated = master?.name ? await dosageFormOf(chosen.productCode, master.dosage) : undefined;
           const reading = flow.readDosageForm(stated);
           const dosageForm = stated?.trim() || 'Tablet';
-          if (!master?.name || !reading.ok) {
+          if (!master?.name || stated === undefined || !reading.ok) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
               whatHappened: 'The family was not created.',
-              why: master?.name && !reading.ok
+              why: master?.name && stated !== undefined && !reading.ok
                 ? `The product master in effect for ${chosen.productCode} ${chosen.strength} states the dosage form "${dosageForm}". ${reading.hint}`
                 : `There is no product master in effect for ${chosen.productCode} ${chosen.strength}.`,
               controls: ['PR-01'],
@@ -527,7 +528,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             [body.product.code, body.product.strength],
           );
           const master = rows[0];
-          if (!master?.name) {
+          const packStated = master?.name ? await dosageFormOf(body.product.code, master.dosage) : undefined;
+          if (!master?.name || packStated === undefined) {
             throw refusal(422, {
               code: 'DESIGNER_PRODUCT_MASTER',
               kind: 'INVALID_INPUT',
@@ -541,7 +543,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           const materials = await materialMasters(c, printed.map((p) => p.material));
           let content: flow.MbrContent;
           try {
-            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: (await dosageFormOf(body.product.code, master.dosage))?.trim() || 'Tablet', shelfLifeMonths: master.months }, printed }, materials);
+            content = packagingCopy(source, { familyCode: body.familyCode, markets: body.markets, product: { code: body.product.code, strength: body.product.strength, name: master.name, dosageForm: packStated?.trim() || 'Tablet', shelfLifeMonths: master.months }, printed }, materials);
           } catch (error) {
             if (error instanceof FamilyInputError) throw familyRefusal(error);
             throw error;
@@ -581,7 +583,10 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const c = rows[0]?.r;
       if (!c) throw new Error('no formula choice was read');
       const target = (await targetsOf(pool, [c.versionId])).get(c.versionId) ?? null;
-      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines, target };
+      // C2: the dosage form names a capsule's shells line on screen (core's on the platform build).
+      const local = (await productNames(pool)).get(`${c.productCode}|${c.strength}`)?.dosageForm ?? null;
+      const dosageForm = await dosageFormOf(c.productCode, local);
+      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines, target, ...(dosageForm ? { dosageForm } : {}) };
     },
     templates: () => Promise.resolve({ templates: templateViews }),
 

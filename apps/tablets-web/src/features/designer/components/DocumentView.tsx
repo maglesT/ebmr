@@ -485,7 +485,7 @@ export function DocumentView(props: DocumentProps) {
               <tr key={b.id} id={`mbr-item-${b.id}`} tabIndex={-1}>
                 <td className={dcls('mono')}>{b.id}</td>
                 <td>{referenceLabel(c, b.material)}</td>
-                <td>{humanize(b.role)}</td>
+                <td>{flow.bomShellsLabel(b.role, h.product.dosageForm) ?? humanize(b.role)}</td>
                 <td>
                   {quantityWords(b.quantity)}
                   {b.overage ? (

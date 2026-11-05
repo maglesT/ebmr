@@ -66,9 +66,9 @@ function firstTargetWeightMg(node: unknown): string | null {
   return null;
 }
 
-/** Whether an issue input is the batch's unit count (a COUNT named for tablets or, Capsules edition C2, capsules). */
-export function isTabletCount(i: DeclaredInput): boolean {
-  return i.valueType === 'COUNT' && (i.id === 'tabletsPerBatch' || /tablet|capsule/i.test(i.name));
+/** Whether an issue input is the batch's unit count: a COUNT named for the master's unit (Capsules edition C2: capsules on a capsule master). */
+export function isTabletCount(i: DeclaredInput, unit: 'tablet' | 'capsule' = 'tablet'): boolean {
+  return i.valueType === 'COUNT' && (i.id === 'tabletsPerBatch' || new RegExp(unit, 'i').test(i.name));
 }
 
 /** The tablet count the master implies for its batch size `batchSizeId`, with how it is computed, or null. */
@@ -92,7 +92,9 @@ export function inputExpectations(mbr: MasterLike, batchSizeId: string): Map<str
   const out = new Map<string, InputExpectation>();
   const expected = expectedTabletCount(mbr, batchSizeId);
   if (!expected) return out;
-  for (const i of mbr.inputs) if (isTabletCount(i)) out.set(i.id, expected);
+  const reading = flow.readDosageForm(mbr.header.product?.dosageForm);
+  const unit = reading.ok ? reading.unit : 'tablet';
+  for (const i of mbr.inputs) if (isTabletCount(i, unit)) out.set(i.id, expected);
   return out;
 }
 

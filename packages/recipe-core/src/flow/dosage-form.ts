@@ -30,3 +30,26 @@ export function isCapsuleForm(dosageForm: string | null | undefined): boolean {
   const r = readDosageForm(dosageForm);
   return r.ok && r.form === 'CAPSULE';
 }
+
+/**
+ * C2 (lead, 5 November 2026): a capsule's empty shells are its formula's COATING line given per unit (the unit's outer
+ * part); in a capsule master from a formula that line is a bill-of-materials line of role OTHER, not dispensed into the
+ * blend. Every screen names it "Empty capsule shells", never a coating. A real coat on a capsule (C3, enteric) is given
+ * per batch, so it never takes this place; a capsule formula with two per-unit COATING lines is refused.
+ */
+export const SHELLS_LABEL = 'Empty capsule shells';
+
+/** Whether a formula line is a capsule's empty shells. */
+export function isShellLine(role: string, basis: string, dosageForm: string | null | undefined): boolean {
+  return role === 'COATING' && basis === 'PER_UNIT' && isCapsuleForm(dosageForm);
+}
+
+/** A formula line's role as the screens show it: the shells by their name, every other role as its code. */
+export function formulaRoleLabel(role: string, basis: string, dosageForm: string | null | undefined): string {
+  return isShellLine(role, basis, dosageForm) ? SHELLS_LABEL : role;
+}
+
+/** A master's bill-of-materials role as the screens show it on a capsule master (OTHER is the shells), else null. */
+export function bomShellsLabel(role: string, dosageForm: string | null | undefined): string | null {
+  return role === 'OTHER' && isCapsuleForm(dosageForm) ? SHELLS_LABEL : null;
+}
