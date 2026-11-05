@@ -33,8 +33,11 @@ catalog_test: Replay an 8 Pa dip for 5 min during filling → the batch shows th
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Room requalification due date (4.1); DP excursions as events; 10 Pa as a formulation value (8a)"
 build_status: SPECIFIED
 jurisdiction: |-
   - DP: EU gives a minimum 10 Pa *guidance value*. FDA-AP gives at least 10–15 Pa between classes and at least 12.5 Pa toward an unclassified room at all times, so the 12.5 Pa rule comes from FDA.

@@ -29,8 +29,11 @@ catalog_test: Import a DP above the validated maximum → automatic deviation. R
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-13 NUM pressure and time; CALC duration maximum (4.3)"
 build_status: SPECIFIED
 jurisdiction: Aligned. Both require a maximum filtration time. EU lists the minimum batch-record content.
 scope: aseptic

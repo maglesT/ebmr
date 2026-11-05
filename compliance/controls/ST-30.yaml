@@ -19,8 +19,11 @@ catalog_test: An operator qualified on 10 mL vials is assigned a manual 50 mL fi
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "one qualification type per manual process"
 build_status: SPECIFIED
 jurisdiction: "EU is stricter: 6-monthly per operator, against FDA's annual participation."
 scope: aseptic (manual compounding or filling)

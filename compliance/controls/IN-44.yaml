@@ -17,8 +17,11 @@ catalog_test: record use of a dilution past its storage period; refused.
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-01 LOT agent, TIMER; water via point-of-use status (4.1, 4.4)"
 build_status: SPECIFIED
 jurisdiction: "**same** as EU Annex 1 (2022) 4.33 (more than one agent type; periodic sporicidal use) [chk] and FDA 211.67/211.113(b) expectations [gk]."
 type_detail: ENFORCED; CONFIGURABLE (agents, rotation).

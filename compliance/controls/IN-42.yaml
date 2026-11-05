@@ -17,8 +17,11 @@ catalog_test: record a Grade A settle plate of 1 CFU during a fill; an excursion
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-32 plus gate (4.4)"
 build_status: SPECIFIED
 jurisdiction: 'Grades B-D numbers **same** as EU Annex 1 (2022) Table 6 [chk]; EU is **stricter** because its values are maximum action limits and Grade A is "no growth", with any Grade A growth investigated [chk]. FDA 2004: ISO 5 action level 1 CFU/m3 active air and 1 CFU settle plate (settle plates optional); ISO 5 samples should normally yield no contaminants; averaging can mask localized excursions [chk]; broadly **same** as India at Grade A.'
 type_detail: ENFORCED (release gate, limit check); CONFIGURABLE (alert limits, locations).

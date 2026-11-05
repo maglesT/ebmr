@@ -30,8 +30,11 @@ catalog_test: Leave one pump head without an autoclave link → fill start block
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-06 and INJ-07 cycles; INJ-08 Y/N per connection under Grade A (4.2)"
 build_status: SPECIFIED
 jurisdiction: Aligned. The 6-log figure for decontaminating product-contact surfaces is from FDA-AP.
 scope: aseptic

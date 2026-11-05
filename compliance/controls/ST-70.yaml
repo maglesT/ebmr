@@ -36,8 +36,11 @@ catalog_test: Leave the WFI section unsigned → release refused. Remove the lin
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Existing release review and gate; every block complete"
 build_status: SPECIFIED
 jurisdiction: Aligned. FDA-AP XII lists the essential release-review elements. (Row n75 was unverified; see Conflicts.)
 scope: all

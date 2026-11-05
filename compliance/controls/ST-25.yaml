@@ -19,8 +19,11 @@ catalog_test: Put an adverse-trend flag on nitrogen drop N-3 → every batch tha
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Point of use as EQUIP; EQUIP refuses one out of service (4.4 WFI row)"
 build_status: SPECIFIED
 jurisdiction: Aligned in intent. EU requires critical parameters of high-risk utilities to be trended.
 scope: all

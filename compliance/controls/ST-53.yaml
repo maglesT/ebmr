@@ -28,8 +28,11 @@ catalog_test: Scan a filter serial used yesterday → refused. Run a tank vent f
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-13 LOT; vent filter as equipment with due date"
 build_status: SPECIFIED
 jurisdiction: "**EU is stricter.** It caps use at one working day unless validated. FDA-AP normally discards after one lot and allows justified multi-lot reuse."
 scope: "aseptic (vent/gas filter rules: all)"

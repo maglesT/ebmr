@@ -32,8 +32,11 @@ catalog_test: Assign a RABS line to a Grade C room → rejected. Replay exit-por
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Background room class via EQUIP; formulation adds INJ-09 and INJ-10"
 build_status: SPECIFIED
 jurisdiction: For open isolators EU is stricter (Grade C, which is ISO 7 at rest) than FDA's "commonly ISO 8". The 17.5–50 Pa figure is FDA's.
 scope: isolator, rabs (and conventional lines)

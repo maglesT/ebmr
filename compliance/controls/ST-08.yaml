@@ -27,8 +27,11 @@ catalog_test: Gowning requalified 12 months + 1 day ago → Grade B signature bl
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "yearly APS per operator (9.38) as valid-to; no per-role APS"
 build_status: SPECIFIED
 jurisdiction: "Operator APS participation is annual in both. Gowning: EU says at least annually for everyone. FDA says annual is usually adequate for automated operations and implies more frequent requalification for manual work or after adverse findings. Stricter result = ≤12 months for everyone, shortened for manual processes."
 scope: aseptic

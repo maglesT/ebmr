@@ -33,8 +33,11 @@ catalog_test: Load with an unqualified transfer cart → blocked. Exceed the par
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-17 DT loading start and end, TXT, NUM; CALC duration (4.3)"
 build_status: SPECIFIED
 jurisdiction: Aligned on ISO 5 transfer. EU adds the explicit "extension of aseptic processing" [EU hard] and the closed-tray option.
 scope: lyo

@@ -32,8 +32,11 @@ catalog_test: Post a positive, then link a passing retest without an approved in
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Failing TEST raises exception and deviation; existing deviation screen and gate"
 build_status: SPECIFIED
 jurisdiction: FDA-AP is more detailed. EU requires investigation before certification with batch-scope rationale (ST-71). Apply both.
 scope: all

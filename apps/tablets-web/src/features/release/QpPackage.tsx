@@ -12,7 +12,7 @@ import { routes, type LotReleaseView, type QpAccessView, type QpPackageView } fr
 import { Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
-import { RefusalMessage } from '../../app/refusal.tsx';
+import { isDisconnected, RefusalMessage } from '../../app/refusal.tsx';
 import { GateProblems } from '../review/parts.tsx';
 import { RELEASE_READS, words } from './reads.ts';
 
@@ -35,6 +35,7 @@ export function QpPackageSection({ lot, offered }: { lot: LotReleaseView; offere
   const q = useApiQuery(routes.qpPackage.lot, { params: { lotId: lot.lotId } });
   const assemble = useCommand(routes.qpPackage.assemble, QP_READS, 'assembling the QP package');
   const v = q.data;
+  if (isDisconnected(q.error?.error)) return null;
   return (
     <Section title="EU QP batch package" testId="qp-package">
       {q.error ? <RefusalMessage error={q.error.error} /> : null}

@@ -27,8 +27,11 @@ catalog_test: Start filtration without PUPSIT on a product with no waiver → bl
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-13 sections pre-use, PUPSIT (formulation flag), post-use, with limits (4.3)"
 build_status: SPECIFIED
 jurisdiction: "**EU is stricter.** EU expects PUPSIT, with a documented risk-based alternative only where it is not feasible. FDA-AP says pre-use testing *can* be done and post-use testing should be routine."
 scope: aseptic

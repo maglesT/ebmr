@@ -27,8 +27,11 @@ catalog_test: Draw water after chemical release but before microbial release →
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Point of use as equipment, status from QC results; INJ-12 NUM WFI volume and temperature (4.3, 4.4)"
 build_status: SPECIFIED
 jurisdiction: EU is far more prescriptive (daily sample, continuous TOC/conductivity, post-sanitisation certification hold), so EU governs.
 scope: all

@@ -28,8 +28,11 @@ catalog_test: Issue RTU syringe tubs after the CoA-reliability confirmation has 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-03 LOT, TXT certificate, Y/N indicator (4.2)"
 build_status: SPECIFIED
 jurisdiction: Aligned. FDA-AP is explicit that the product maker must itself evaluate the contractor's validation.
 scope: "aseptic (supplier checks: all)"

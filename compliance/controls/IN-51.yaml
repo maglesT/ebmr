@@ -16,8 +16,11 @@ catalog_test: build an SVI MBR using only shipped classes; every needed area typ
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "(see unsure list)"
 build_status: SPECIFIED
 jurisdiction: "**different**: no FDA or EU counterpart to prescriptive minimum areas and equipment lists [chk: not in 211 or Annex 1]."
 type_detail: CONFIGURABLE (master data shipped as defaults).

@@ -31,8 +31,11 @@ catalog_test: Close a corrective critical intervention and attempt the next step
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-32 personnel locations after critical interventions and at exit (4.4, 8a)"
 build_status: SPECIFIED
 jurisdiction: Apply both. EU adds sampling on every Grade B exit and after critical interventions, followed by a glove change. FDA-AP adds daily or per-lot glove sampling and forbids sanitising gloves just before sampling.
 scope: aseptic

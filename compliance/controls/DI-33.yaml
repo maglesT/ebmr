@@ -321,6 +321,7 @@ tests:
   - "packages/recipe-core/test/library/step-value.test.ts > earlier-step values of library blocks > [DI-33] a value the earlier step has not recorded is never a silent zero: the calculation is refused"
   - "packages/recipe-core/test/library/step-value.test.ts > earlier-step values of library blocks > [DI-33][PR-19] the catalogue's potency-adjusted dispensing (PROC-DISP-POTENCY) runs after the catalogue's LOD test (IPC-LOD) with no master input for the LOD: it reads the LOD the test recorded"
   - "apps/tablets-server/test/library/library-step-value-gmp.test.ts > an earlier-step value in a GMP batch > [DI-33][PR-19] the later library step computes from the value the completed earlier step recorded: 9.8 kg dried at 2 % LOD is 10 kg as is"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33][PR-03] a calculation cannot read a typed date and time or a timer: the definition is refused, so QA never approves a block whose calculation the runtime cannot evaluate (I-1 finding)"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

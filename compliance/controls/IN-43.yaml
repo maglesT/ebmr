@@ -17,8 +17,11 @@ catalog_test: "India-only profile, Grade B room tested 13 months ago: batch star
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "one due date, no warning"
 build_status: SPECIFIED
 jurisdiction: "**weaker** for Grade A/B than EU Annex 1 (2022) 4.32 (requalification including integrity test of final filters at most every 6 months for A/B; 12 months for C/D) [chk] and FDA 2004 (leak tests twice yearly in the aseptic processing room) [chk]; **same** as EU for C/D (12 months)."
 type_detail: ENFORCED (block when overdue); CONFIGURABLE (warning threshold).

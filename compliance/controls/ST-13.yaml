@@ -23,8 +23,11 @@ catalog_test: A user without the expert role creates an observation → refused.
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "existing terminals only (see unsure list)"
 build_status: SPECIFIED
 jurisdiction: Aligned on regular observation. Neither text sets a frequency, so the 1/month default is a design choice.
 scope: aseptic
