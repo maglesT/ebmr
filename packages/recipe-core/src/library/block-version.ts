@@ -269,6 +269,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   const sections = new Map(def.sections.map((s) => [s.id, s]));
   const fieldsById = new Map(def.sections.flatMap((s) => s.fields.map((f) => [f.id, { field: f, section: s }] as const)));
   const timers = def.sections.flatMap((s) => s.fields).filter((f) => f.type === 'TIMER');
+  // The values a later step may read: numbers, weighings and calculations of a section recorded once.
+  const readable = new Map<string, { section: string; unit: string; calc: boolean }>();
+  for (const s of def.sections) {
+    if (isRepeating(s)) continue;
+    for (const f of s.fields) if (f.type === 'NUMBER' || f.type === 'WEIGHING' || f.type === 'CALC') readable.set(f.id, { section: s.id, unit: f.unit, calc: f.type === 'CALC' });
+  }
+  const readableValues: Record<string, string> = Object.fromEntries([...readable].map(([id, r]) => [id, r.unit]));
   const entries: Record<string, ObjectSchema> = {};
   for (const s of def.sections) entries[s.id] = sectionSchema(s);
   if (timers.length > 0) {
@@ -318,6 +325,14 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       const t = view.target(i.id);
       if (t?.kind === 'DECIMAL') values.set(i.id, { kind: 'DECIMAL', value: t.value, unit: t.unit });
       else if (t?.kind === 'COUNT') values.set(i.id, { kind: 'DECIMAL', value: t.value, unit: '1' });
+      else if (i.kind === 'STEP_VALUE') {
+        // The earlier step and field the formulation names (decision 0026; injectables I-1 finding): read from that
+        // step's completed record, in this input's unit. Missing stays missing (the calculation is refused, DI-33).
+        const sv = configOf(view).stepValues?.[i.slot];
+        const v = sv ? view.stepValue?.(sv.step, sv.field) : undefined;
+        const value = v ? (v.unit === i.unit ? v.value : expr.convert(v.value, v.unit, i.unit)) : undefined;
+        if (value !== undefined) values.set(i.id, { kind: 'DECIMAL', value, unit: i.unit });
+      }
     }
     for (const s of def.sections) {
       if (s === section) continue;
@@ -554,6 +569,22 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     dataSchema: { entries },
     // S5: the plain sentence of each entry, for the step screens, the review and the printed record.
     entrySummaries: entrySummariesOf(def),
+    readableValues,
+    readValue: (recorded, field) => {
+      const at = readable.get(field);
+      if (!at) return undefined;
+      const last = recorded.filter((e) => e.kind === at.section).at(-1);
+      if (!last) return undefined;
+      const raw = at.calc ? (last.data['computed'] as Record<string, { value?: unknown }> | undefined)?.[field]?.value : last.data[field];
+      const v = typeof raw === 'object' && raw !== null && 'value' in raw ? raw.value : raw;
+      return typeof v === 'string' && v !== '' ? { value: v, unit: at.unit } : undefined;
+    },
+    stepReads: (config) =>
+      (def.inputs ?? []).flatMap((i) => {
+        if (i.kind !== 'STEP_VALUE') return [];
+        const sv = (config as unknown as Config).stepValues?.[i.slot];
+        return sv ? [{ input: i.id, step: sv.step, field: sv.field, unit: i.unit }] : [];
+      }),
     checkConfig: (_phase, config, mbr) =>
       checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr, mbr.bom).map((p) => ({
         code: p.code,

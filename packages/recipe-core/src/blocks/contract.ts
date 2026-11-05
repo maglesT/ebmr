@@ -111,6 +111,12 @@ export interface HandlerView {
   effective(item: string): DataValue | undefined;
   /** Target values the phase reads, snapshotted when the step started. */
   target(item: string): DataValue | undefined;
+  /**
+   * A readable value of an earlier step (decision 0026 STEP_VALUE): the field's value in the one COMPLETED instance of
+   * phase `step`; undefined while that step has not completed, when it completed more than once (a loop), or when the
+   * field is not recorded. Never a silent zero.
+   */
+  stepValue?(step: string, field: string): { value: string; unit: string } | undefined;
   /** Containers registered in the batch. */
   containers(): readonly ContainerRecord[];
   parameter(id: string): Parameter | undefined;
@@ -269,6 +275,15 @@ export interface BlockVersion {
   entrySummaries?: Readonly<Record<string, EntrySummary>>;
   /** Cross-field configuration checks (beyond the schema). */
   checkConfig?(phase: PhaseNode, config: Readonly<Record<string, JsonValue>>, mbr: MbrContent): ConfigProblem[];
+  /**
+   * Values of this step that a later step may read (decision 0026, a library block's STEP_VALUE input): field id -> its
+   * unit. Only fields recorded once per step instance, so the value read is never ambiguous.
+   */
+  readableValues?: Readonly<Record<string, string>>;
+  /** The recorded value of a readable field in one step instance's entries; undefined when it is not recorded. */
+  readValue?(entries: readonly EntryRecord[], field: string): { value: string; unit: string } | undefined;
+  /** The earlier-step values a use of this block reads (defineBatch checks each names an earlier step's readable value). */
+  stepReads?(config: Readonly<Record<string, JsonValue>>): { input: string; step: string; field: string; unit: string }[];
   handler?: PhaseHandler;
   /** For non-PHASE blocks: the engine functions that implement the block's execution. */
   engineImplementation?: string[];

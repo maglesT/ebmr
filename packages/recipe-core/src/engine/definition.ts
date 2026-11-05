@@ -430,6 +430,25 @@ export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefin
   }
   for (const sch of mbr.acceptanceSchemes) for (const c of sch.criteria) readItems.add(c.statistic);
 
+  // Earlier-step values (decision 0026 STEP_VALUE; injectables I-1 finding, lead 5 November 2026): each names a step that
+  // always comes before the reader in the flow (forward edges, never a loop's way back) and a value that step records
+  // once, in a unit the reader's input converts to exactly; otherwise QA could approve a master that fails on the floor.
+  for (const s of steps.values()) {
+    for (const r of s.block?.stepReads?.(s.config) ?? []) {
+      // A phase that reads the input from the master (an MBR input or data item of that id) takes it from there.
+      if (s.node.kind === 'phase' && s.node.reads.includes(r.input)) continue;
+      const source = steps.get(r.step);
+      const unit = source?.block?.readableValues?.[r.field];
+      const why =
+        !source || source.kind !== 'PHASE' ? `there is no step ${r.step}`
+        : unit === undefined ? `step ${r.step} records no single value ${r.field}`
+        : expr.convert('1', unit, r.unit) === undefined ? `${r.step}.${r.field} is in ${unit}, which does not convert to ${r.unit}`
+        : !forwardReach(gi, source.graphNode).has(s.graphNode) ? `step ${r.step} does not come before ${s.id} in the flow`
+        : undefined;
+      if (why !== undefined) problems.push(problem('ENG-DEF-STEP-VALUE', 'ERROR', s.id, `Step ${s.id} reads ${r.input} from ${r.step}.${r.field}, but ${why}`, ['DI-33', 'PR-03']));
+    }
+  }
+
   if (problems.length > 0) throw new EngineDefinitionError(problems);
   return {
     mbr,
@@ -457,6 +476,19 @@ export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefin
     readItems,
     reach: new Map(),
   };
+}
+
+/** Graph nodes reachable from `from` along forward edges only (never a loop's way back), excluding `from`. */
+function forwardReach(gi: GraphIndex, from: string): Set<string> {
+  const seen = new Set<string>();
+  const queue = (gi.out.get(from) ?? []).filter((e) => e.kind !== 'LOOP_BACK').map((e) => e.to);
+  while (queue.length > 0) {
+    const n = queue.shift() as string;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    for (const e of gi.out.get(n) ?? []) if (e.kind !== 'LOOP_BACK') queue.push(e.to);
+  }
+  return seen;
 }
 
 /** Graph nodes reachable from `from` (forward and loop-back edges), excluding `from` unless on a cycle. */

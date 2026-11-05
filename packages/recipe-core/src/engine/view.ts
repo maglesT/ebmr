@@ -36,6 +36,15 @@ export function makeView(tx: Tx, step: StepDef, inst: StepInstance): HandlerView
       return r.ok ? r.resolved.value : undefined;
     },
     target: (item) => inst.targets[item]?.value,
+    stepValue: (stepId, field) => {
+      const block = def.steps.get(stepId)?.block;
+      if (!block?.readValue || block.readableValues?.[field] === undefined) return undefined;
+      const done = Object.values(s.steps).filter((x) => x.step === stepId && x.status === 'COMPLETED');
+      const only = done.length === 1 ? done[0] : undefined;
+      if (!only) return undefined;
+      const entries = Object.values(s.entries).filter((e) => e.stepKey === only.key).sort((a, b) => a.recordedSeq - b.recordedSeq);
+      return block.readValue(entries, field);
+    },
     containers: () => Object.values(s.containers),
     parameter: (id) => def.analysis.parameters.get(id),
   };
