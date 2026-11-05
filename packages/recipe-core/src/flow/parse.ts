@@ -12,6 +12,7 @@ import { LIMIT_SOURCE_KINDS, LIMIT_TIERS, ROUNDING_RULES } from '../limits/model
 import type { AcceptanceCriterion, AcceptanceScheme, LimitBound, LimitRange, LimitSource, LimitSpec, SamplingNeed } from '../limits/model.ts';
 import { isDecimalLiteral } from './decimal.ts';
 import {
+  EDITIONS,
   MBR_FORMAT,
   MBR_FORMAT_VERSION,
   REDUCTION_KINDS,
@@ -252,7 +253,7 @@ function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
   if (!o) return undefined;
   const family = r.id(o, 'family', path);
   const title = r.string(o, 'title', path);
-  const edition = r.literal(o, 'edition', path, ['tablets', 'injectables'] as const);
+  const edition = r.literal(o, 'edition', path, EDITIONS);
   const recordKind = r.literal(o, 'recordKind', path, ['PROCESSING', 'PACKAGING', 'REPROCESSING'] as const);
   let product: MbrHeader['product'] | undefined;
   const p = r.object(o['product'], `${path}.product`, ['code', 'name', 'strength', 'dosageForm']);

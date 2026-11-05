@@ -24,7 +24,9 @@ import { marketMinimaPortFrom, unresolved } from './minima-port.ts';
 
 type Db = pg.Pool | pg.PoolClient;
 
-const EDITION_TABLE: Readonly<Record<flow.Edition, market.RuleTableCode>> = { tablets: 'tablets', injectables: 'sterile' };
+// API edition plan A0: the API edition (substance) has no rule table of its own; its masters bind kernel keys only
+// (recipe-core 1872 recipe.rule_table_versions agrees).
+const EDITION_TABLE: Readonly<Record<flow.Edition, market.RuleTableCode | null>> = { tablets: 'tablets', injectables: 'sterile', substance: null };
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -71,7 +73,7 @@ export async function resolveMinima(db: Db, request: validator.MinimaRequest): P
     return info;
   };
 
-  if (!(await loadTable(editionTable))) out.push(unresolved(`${editionTable}.*`, tableProblem.get(editionTable) ?? `the ${editionTable} rule table is not available`));
+  if (editionTable && !(await loadTable(editionTable))) out.push(unresolved(`${editionTable}.*`, tableProblem.get(editionTable) ?? `the ${editionTable} rule table is not available`));
   if (!request.marketSet.includes('IN')) out.push(unresolved('market-set', 'India (IN) must be in every market set: every batch is made under an Indian licence (INV-28)'));
   else {
     const problem = await marketSetProblem(db, request.marketSet);
@@ -81,7 +83,7 @@ export async function resolveMinima(db: Db, request: validator.MinimaRequest): P
   for (const key of [...new Set(request.ruleKeys)].sort()) {
     const prefix = key.split('.')[0] ?? '';
     if (prefix !== 'kernel' && prefix !== editionTable) {
-      out.push(unresolved(key, `${key} is not a key of the kernel or ${editionTable} rule table, so it cannot bind a ${request.edition} MBR`));
+      out.push(unresolved(key, `${key} is not a key of the kernel${editionTable ? ` or ${editionTable}` : ''} rule table, so it cannot bind a ${request.edition} MBR`));
       continue;
     }
     const table = await loadTable(prefix);

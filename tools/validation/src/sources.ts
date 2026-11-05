@@ -23,6 +23,8 @@ export const TABLETS_SOURCES: readonly ReleaseSource[] = [
   { namespace: 'site-services', directory: join(ROOT, 'packages/site-services/sql') },
   { namespace: 'recipe-core', directory: join(ROOT, 'packages/recipe-core/sql') },
   { namespace: 'tablets', directory: join(ROOT, 'apps/tablets-server/sql') },
+  // API edition plan A0: the substance namespace runs last in the same database (no files yet).
+  { namespace: 'substance', directory: join(ROOT, 'editions/substance/sql') },
 ];
 
 export const sha256 = (s: string | Buffer): string => createHash('sha256').update(s).digest('hex');
