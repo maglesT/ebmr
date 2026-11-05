@@ -114,6 +114,7 @@ tests:
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-03][PR-05] a substance block is drafted, approved and offered only to API masters (and the generic ones to all); the edition check refuses it in a tablets or injectables master and a tablets block in an API master"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-05][DI-35] on the real approval path, a tablets master holding an approved substance block is refused at QA approval (EBMR-LIB-024)"
   - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the ten blocks of a one-step synthesis as substance blocks in the group `substance`; every critical value has a limit slot the example fills, and no calculation reads an earlier step"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

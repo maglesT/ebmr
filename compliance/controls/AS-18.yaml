@@ -1,0 +1,24 @@
+id: AS-18
+title: "Retest or expiry date on label and CoA"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 11.5.2, 9.4.4; ICH Q7 (EU GMP Part II) 11.61, 9.43. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "A retest or expiry date is assigned and shown on the label and the certificate of analysis."
+catalog_test: "A label without the lot's retest date fails the label check."
+implemented_by:
+  modules:
+    - "Lot dates; API-LABEL-CHECK and API-PACK check the date on the label; CoA in A3."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site), with a specimen kept in the record; the filter step offers a Nutsche filter or a centrifuge"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

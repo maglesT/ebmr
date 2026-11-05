@@ -90,8 +90,10 @@ Plan `docs/build-plan/api/plan.md` (approved 4 November), platform fit `platform
 (recipe-core 1873 lets a library block complete a packaging record; kernel 1404 market guard fails closed for an API
 scope; substance 5000 the API-PACK completion row and the API G-REL items; designer PACKAGING_BLANK and H-PACK in the
 blank API master; lot reservations take the batch's edition; SUBSTANCE in the edition enums) and a route-level test of
-one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and the E2E acceptance); resume from
-`docs/build-plan/api/handover-a0.md` (section "A1a done").
+one API batch from library blocks to a released lot. A1b (branch `api-a1b`, 5 November, paused by the owner): catalogue v1
+as the seed group `substance` and the AS controls (AS-01 to AS-10, AS-14 to AS-16, AS-18, AS-24; `substance` in the
+register's editions, not gated). The E2E acceptance is not built; resume from `docs/build-plan/api/handover-a0.md`
+(section "A1b paused").
 
 ## Next
 

@@ -1,0 +1,24 @@
+id: AS-14
+title: "Label reconciliation, examination and specimen"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 9.3.2, 9.3.6, 9.3.7; ICH Q7 (EU GMP Part II) 9.31, 9.35, 9.36. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Issued labels are reconciled, examined and the result recorded, and a representative label is kept in the batch record."
+catalog_test: "Complete the label check without the specimen attached; an exception is raised."
+implemented_by:
+  modules:
+    - "G printed materials; API-LABEL-CHECK records that a specimen label is attached to the record (a confirmation, not an image of the label)."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site), with a specimen kept in the record; the filter step offers a Nutsche filter or a centrifuge"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

@@ -1,0 +1,24 @@
+id: AS-09
+title: "Time limits met"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 8.2.1, 8.2.2; ICH Q7 (EU GMP Part II) 8.20, 8.21. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Time limits in the master are met, deviations are evaluated, and held intermediates are stored suitably."
+catalog_test: "Stop a reaction before its minimum time; an exception is raised."
+implemented_by:
+  modules:
+    - "TIMER fields with limits (reaction time, ageing, drying); lot dates."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature and time as critical parameters with limits, at each round; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

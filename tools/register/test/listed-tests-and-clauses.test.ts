@@ -390,7 +390,7 @@ describe('a listed test that skips itself at run time (review F15, round 3)', ()
     expect(listed.length).toBeGreaterThanOrEqual(13);
     for (const c of controls.filter((k) => k.tests.some(conditional))) {
       // Only this control is in the register here, so the results carry no other control's tag.
-      const other = new RegExp(`\\[(?!${c.id}\\])(?:DI|PR|ST|IN)-\\d{2}\\]`, 'g');
+      const other = new RegExp(`\\[(?!${c.id}\\])(?:DI|PR|ST|IN|AS)-\\d{2}\\]`, 'g');
       const results = c.tests.map((t) => {
         const r = result(t, conditional(t) ? 'skipped' : 'passed');
         return { ...r, name: r.name.replace(other, '') };
