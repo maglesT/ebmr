@@ -64,8 +64,8 @@ const SANDBOX_UNITS: Readonly<Record<string, string>> = {
   // Registered on screen by the capsule product's test (its plant data, not the demo plant's).
   'EQC-CAPS-FILLER': 'TEST-CAPS-01',
   'EQC-CAPS-POLISH': 'TEST-POLISH-01',
-  'EQC-CAPS-CHECKWEIGH': 'TEST-CW-01',
-  'EQC-CAPS-PRINTER': 'TEST-PRINT-01',
+  'EQC-CAPS-CHECKWEIGH': 'TEST-CHECKWEIGH-01',
+  'EQC-CAPS-PRINTER': 'TEST-PRINTER-01',
   'EQC-CAPS-INSPECT': 'TEST-INSPECT-01',
 };
 
@@ -174,15 +174,15 @@ export const TABLETS: readonly Tablet[] = [
     plant: [
       { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'TEST-CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
       { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'TEST-POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-CHECKWEIGH', classKind: 'PROCESS', classDescription: 'Capsule checkweigher', code: 'TEST-CW-01', name: 'Capsule checkweigher', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-PRINTER', classKind: 'PROCESS', classDescription: 'Capsule printing machine', code: 'TEST-PRINT-01', name: 'Capsule printer', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-CHECKWEIGH', classKind: 'PROCESS', classDescription: 'Capsule checkweigher', code: 'TEST-CHECKWEIGH-01', name: 'Capsule checkweigher', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-PRINTER', classKind: 'PROCESS', classDescription: 'Capsule printing machine', code: 'TEST-PRINTER-01', name: 'Capsule printer', area: 'BLEND-1' },
       { classCode: 'EQC-CAPS-INSPECT', classKind: 'PROCESS', classDescription: 'Capsule inspection machine', code: 'TEST-INSPECT-01', name: 'Capsule inspection belt', area: 'BLEND-1' },
     ],
     gmpPlant: [
       { classCode: 'EQC-CAPS-FILLER', classKind: 'PROCESS', classDescription: 'Automatic capsule filling machine', code: 'CAPS-01', name: 'Capsule filler', area: 'BLEND-1' },
       { classCode: 'EQC-CAPS-POLISH', classKind: 'PROCESS', classDescription: 'Capsule polishing and sorting machine', code: 'POLISH-01', name: 'Capsule polisher and sorter', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-CHECKWEIGH', classKind: 'PROCESS', classDescription: 'Capsule checkweigher', code: 'CW-01', name: 'Capsule checkweigher', area: 'BLEND-1' },
-      { classCode: 'EQC-CAPS-PRINTER', classKind: 'PROCESS', classDescription: 'Capsule printing machine', code: 'PRINT-01', name: 'Capsule printer', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-CHECKWEIGH', classKind: 'PROCESS', classDescription: 'Capsule checkweigher', code: 'CHECKWEIGH-01', name: 'Capsule checkweigher', area: 'BLEND-1' },
+      { classCode: 'EQC-CAPS-PRINTER', classKind: 'PROCESS', classDescription: 'Capsule printing machine', code: 'PRINTER-01', name: 'Capsule printer', area: 'BLEND-1' },
       { classCode: 'EQC-CAPS-INSPECT', classKind: 'PROCESS', classDescription: 'Capsule inspection machine', code: 'INSPECT-01', name: 'Capsule inspection belt', area: 'BLEND-1' },
     ],
     afterDispensing: [],
@@ -216,8 +216,8 @@ const GMP_UNITS: Readonly<Record<string, string>> = {
   // Registered on screen by the capsule product's GMP 3 test.
   'EQC-CAPS-FILLER': 'CAPS-01',
   'EQC-CAPS-POLISH': 'POLISH-01',
-  'EQC-CAPS-CHECKWEIGH': 'CW-01',
-  'EQC-CAPS-PRINTER': 'PRINT-01',
+  'EQC-CAPS-CHECKWEIGH': 'CHECKWEIGH-01',
+  'EQC-CAPS-PRINTER': 'PRINTER-01',
   'EQC-CAPS-INSPECT': 'INSPECT-01',
 };
 
