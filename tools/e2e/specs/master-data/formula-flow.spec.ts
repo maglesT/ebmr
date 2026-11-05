@@ -25,7 +25,7 @@ test('master data: a formula is written, approved by a second person, and chosen
     const form = page.getByTestId('form-Record a formula');
     await form.getByRole('textbox', { name: 'Product code' }).fill(erp.productCode);
     await form.getByRole('textbox', { name: 'Strength' }).fill(erp.strength);
-    await form.getByRole('textbox', { name: 'Batch size (tablets)' }).fill('100000');
+    await form.getByRole('textbox', { name: 'Batch size (units)' }).fill('100000');
     await form.getByRole('button', { name: 'Record the formula' }).click();
     await expect(page.getByTestId(`formula-${erp.productCode}-${erp.strength}`)).toContainText('none');
   }, page);
@@ -63,7 +63,7 @@ test('master data: a formula is written, approved by a second person, and chosen
     const panel = designer.getByTestId('choose-product');
     await panel.getByRole('textbox', { name: 'Formula product' }).fill(erp.productCode);
     await panel.getByRole('textbox', { name: 'Formula strength' }).fill(erp.strength);
-    await panel.getByRole('textbox', { name: 'Formula batch size (tablets)' }).fill('100000');
+    await panel.getByRole('textbox', { name: 'Formula batch size (units)' }).fill('100000');
     await panel.getByRole('button', { name: 'Choose this product' }).click();
     const bom = panel.getByTestId('formula-bom');
     await expect(bom).toContainText(erp.materials.api);

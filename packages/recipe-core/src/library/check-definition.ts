@@ -337,6 +337,17 @@ function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionD
     } else inputs.set(id, t);
   }
   const c = expr.check(f.expression, inputs, { role: 'CALCULATION', output: { kind: 'DECIMAL', unit: f.unit } });
+  // A typed date and time, and a timer, are values the runtime does not hand to a calculation (it has no instant value,
+  // and a timer's duration is judged by the timer itself), so a calculation over one would be refused at every entry.
+  // Refuse the definition instead, so that QA never approves a block that cannot run. A time limit is the timer's own
+  // limit within a step, or the master's time constraint between steps (HOLD, PROCESS_WINDOW).
+  const unreadable = c.reads
+    .map((r) => ({ r, type: earlier.get(r)?.field.type }))
+    .filter((x) => x.type === 'DATE_TIME' || x.type === 'TIMER')
+    .map((x) => err(x.type === 'TIMER' ? 'LIB-CALC-TIMER' : 'LIB-CALC-DATE-TIME', `${fp}.expression`, x.type === 'TIMER'
+      ? `Field ${f.id} reads the timer ${x.r}; a calculation cannot use a timer. Give the timer its own limit instead [DI-33]`
+      : `Field ${f.id} reads the date and time ${x.r}; a calculation cannot use a typed date and time. Use a timer in the step, or a time constraint of the master between steps [DI-33]`, ['PR-03', 'DI-33']));
+  if (unreadable.length > 0) return unreadable;
   // A calculation may read a conditional field only under the same condition: otherwise its input may never exist.
   const conditional = c.reads
     .filter((r) => { const src = earlier.get(r)?.field; return src !== undefined && src.showWhen !== undefined && !sameCondition(src.showWhen, f.showWhen); })

@@ -441,8 +441,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         throw refusal(422, {
           code: 'EBMR-EXE-700',
           kind: 'NOT_ALLOWED',
-          whatHappened: p.malformed ? `${p.name} "${p.entered}" is not a whole number of tablets. Nothing was issued.` : `${p.name} ${p.entered} is ${p.deviation} % away from the ${p.expected.value} the master gives for batch size ${body.batchSize}. Nothing was issued.`,
-          why: `The master gives ${p.expected.value} tablets for this size (${p.expected.basis}); a test batch is issued with the count of the size it is issued at.`,
+          whatHappened: p.malformed ? `${p.name} "${p.entered}" is not a whole number of ${p.unit}s. Nothing was issued.` : `${p.name} ${p.entered} is ${p.deviation} % away from the ${p.expected.value} the master gives for batch size ${body.batchSize}. Nothing was issued.`,
+          why: `The master gives ${p.expected.value} ${p.unit}s for this size (${p.expected.basis}); a test batch is issued with the count of the size it is issued at.`,
           controls: ['PR-01', 'PR-04', 'DI-24'],
           whatYouCanDo: [`Enter ${p.expected.value}, or choose the batch size whose count you meant.`],
         });

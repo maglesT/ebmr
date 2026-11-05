@@ -965,6 +965,7 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
     batchNumber: ctx.state.header.batchNumber,
     recordKind: ctx.run.def.mbr.header.recordKind,
     product: productOf(ctx),
+    dosageForm: ctx.run.def.mbr.header.product.dosageForm,
     markets: [...ctx.state.header.marketSet],
     status: ctx.state.status,
     statusText: BATCH_STATUS_TEXT[ctx.state.status],

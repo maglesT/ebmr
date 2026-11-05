@@ -22,6 +22,7 @@ import { boundWords, Check, CommitDecimal, CommitText, comparisonWords, roleTitl
 import { ProcedureTable } from './ProcedureTable.tsx';
 import { AddStage, StageEditor } from './StageEditor.tsx';
 import { actionBreachWords, eventWords, goldenValueText, humanize, itemLabel, marketRuleWords, quantityWords, referenceLabel, roundingWords, samplingWords, sourceWords, yesNo } from './words.ts';
+import { useScreenDosageForm } from '../../../app/brand.tsx';
 
 export interface DocumentProps {
   content: Content;
@@ -254,6 +255,8 @@ export function DocumentView(props: DocumentProps) {
   const { content: c, version: v, dispatch, readOnly } = props;
   const { numbering, problem: numberingProblem } = documentNumbering(c);
   const h = c.header;
+  // Capsules edition C2: a capsule master on screen turns the header to Batchwright Capsules.
+  useScreenDosageForm(h.product.dosageForm);
   const stages: flow.StageNode[] = [];
   flow.walk(c.procedure.body, (n) => {
     if (n.kind === 'stage') stages.push(n);
@@ -482,7 +485,7 @@ export function DocumentView(props: DocumentProps) {
               <tr key={b.id} id={`mbr-item-${b.id}`} tabIndex={-1}>
                 <td className={dcls('mono')}>{b.id}</td>
                 <td>{referenceLabel(c, b.material)}</td>
-                <td>{humanize(b.role)}</td>
+                <td>{flow.bomShellsLabel(b.role, h.product.dosageForm) ?? humanize(b.role)}</td>
                 <td>
                   {quantityWords(b.quantity)}
                   {b.overage ? (

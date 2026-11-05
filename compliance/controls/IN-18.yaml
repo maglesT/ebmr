@@ -110,6 +110,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libtab 400 mg, wet granulation, film coated (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
   - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libtab 250 mg, direct compression, uncoated (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
   - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-01][PR-04][PR-18][IN-18] Libcap 200 mg, hard capsules size 0 (library), GMP 3: the numbering rules; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office"
 clauses:
   - clause: "cancel a batch; its number is never offered again."
     tests:

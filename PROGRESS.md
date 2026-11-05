@@ -128,18 +128,15 @@ requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. **C1 merged (#10
 load takes the capsule blocks (R3-CAT-4 lifted); PROC-CAPS-FILL records the filling principle and size 5; a master from a
 formula accepts a dosage form that says "capsule" (worded per capsule); any other non-tablet form, a bare "Softgel"
 included, is refused with a hint (one rule everywhere, lead). The E2E approval helper waits for the button or APPROVED.
-**Resume here: C2** (lead, 4-5 November), in a fresh session:
-- Platform: read `dosage_form` from core's `report.product_v1` (it exists there; ebmr's reader
-  `apps/tablets-server/src/platform/master-data.ts` and `test/support/fake-master.ts` do not select it yet). A product is a
-  capsule only when its dosage form contains "capsule" (case-insensitive); none means tablet. Tests by rule ID.
-- Header: "Batchwright Capsules" when the master or batch on screen has a capsule dosage form, else "Batchwright Tablets";
-  `CAPSULES` added to ui-kit `brand.Edition` as a display value (lead OK; tell the Tablets session in the PR). Record it
-  as an amendment of decision 0020.
-- The remaining tablet wording of a capsule master (C1 review): the batch-size input name, the issue count.
-- One E2E group: a powder hard capsule from the catalogue to a released lot (as S11b). The capsule product removed from
-  the acceptance spec by commit e099374 (added in 4e43f0d) is the starting point; `acceptance.ts` keeps the shell support.
-- Platform fit (owner via lead): masters only from core report views, rights only `ebmr.*` (none new expected), no new
-  views or migrations expected; send any new code or view to the lead first.
+**C2 (branch `caps/c2`, PR #109):** one rule for the unit form (`flow.readDosageForm`); the platform master reader takes
+`dosage_form` from core's report.product_v1 (fake master has the column; a product core does not hold is refused as no
+product master); the header reads "Batchwright Capsules" on a capsule master or batch (decision 0020 amended; ui-kit
+`brand.Edition` gains `CAPSULES`, display only; `RunHeaderView.dosageForm`, lead OK); per-unit wording (formula screens,
+"Batch size in capsules", the issue count). Shells (lead OK, 5 November, with a condition): the formula's COATING line
+per unit on a capsule is the empty shells, a BOM line of role OTHER, not dispensed into the blend, lot-named and consumed
+at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating (`flow.formulaRoleLabel`,
+`bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
+group `library-caps`. Next: C3 (post-fill and packing).
 
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.

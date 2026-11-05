@@ -70,6 +70,17 @@ print or launch:
 - A designer converts the wordmark text to outlines and polishes the shapes.
 - The logo goes into the trademark search with the name.
 
+## Amendment, 4 November 2026: Batchwright Capsules (owner, through the lead)
+
+Hard capsules and soft gels are library data inside the Tablets build (`docs/build-plan/capsules/plan.md`), not an
+edition of their own. The header reads "Batchwright Capsules" while a master or batch with a capsule dosage form is on
+screen, and "Batchwright Tablets" otherwise. A dosage form is a capsule form only when it contains "capsule" (any case);
+no dosage form means a tablet; a bare soft-gel name ("Softgel") is refused with the hint to name it as a capsule form
+(`flow.readDosageForm` in recipe-core). On the platform build the dosage form is core's (report.product_v1
+`dosage_form`). `CAPSULES` is a display value of ui-kit's `brand.Edition` only: it has no lockup (the sign-in page and
+the about page keep the Tablets lockup), no database, no edition value and no app. As before, the name never goes on a
+GMP record.
+
 ## Before launch (owner)
 
 - Search "Batchwright" in the trademark registers of India (IP India), the United States (USPTO) and the European

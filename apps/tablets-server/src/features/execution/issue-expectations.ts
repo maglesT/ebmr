@@ -11,6 +11,7 @@
  * engine's, pinned in the record at issue (D-7k-1). Decimal arithmetic only (expr Dec), never a JavaScript number.
  */
 import { Dec } from '@ebmr/expr';
+import { flow } from '@ebmr/recipe-core/pure';
 
 /** How far (in per cent of the master's count) an entered count may be from it without a confirmation. */
 export const TOLERANCE_PERCENT = '10';
@@ -31,7 +32,7 @@ interface DeclaredInput {
 }
 
 interface MasterLike {
-  header: { batchSizes: readonly { id: string; quantity: { value: string; unit: string } }[]; unitMassMg?: string };
+  header: { batchSizes: readonly { id: string; quantity: { value: string; unit: string } }[]; unitMassMg?: string; product?: { dosageForm?: string } };
   inputs: readonly DeclaredInput[];
   procedure: unknown;
 }
@@ -65,9 +66,9 @@ function firstTargetWeightMg(node: unknown): string | null {
   return null;
 }
 
-/** Whether an issue input is the batch's tablet count (a COUNT named for tablets). */
-export function isTabletCount(i: DeclaredInput): boolean {
-  return i.valueType === 'COUNT' && (i.id === 'tabletsPerBatch' || /tablet/i.test(i.name));
+/** Whether an issue input is the batch's unit count: a COUNT named for the master's unit (Capsules edition C2: capsules on a capsule master). */
+export function isTabletCount(i: DeclaredInput, unit: 'tablet' | 'capsule' = 'tablet'): boolean {
+  return i.valueType === 'COUNT' && (i.id === 'tabletsPerBatch' || new RegExp(unit, 'i').test(i.name));
 }
 
 /** The tablet count the master implies for its batch size `batchSizeId`, with how it is computed, or null. */
@@ -91,7 +92,9 @@ export function inputExpectations(mbr: MasterLike, batchSizeId: string): Map<str
   const out = new Map<string, InputExpectation>();
   const expected = expectedTabletCount(mbr, batchSizeId);
   if (!expected) return out;
-  for (const i of mbr.inputs) if (isTabletCount(i)) out.set(i.id, expected);
+  const reading = flow.readDosageForm(mbr.header.product?.dosageForm);
+  const unit = reading.ok ? reading.unit : 'tablet';
+  for (const i of mbr.inputs) if (isTabletCount(i, unit)) out.set(i.id, expected);
   return out;
 }
 
@@ -111,6 +114,8 @@ export interface CountProblem {
   deviation: string;
   /** P7K-3: the entered count is no whole number (`1e5`, `12.5`, text), so it is refused and no reason can confirm it. */
   malformed?: true;
+  /** The unit counted, from the master's dosage form (Capsules edition C2): the refusal says tablets or capsules. */
+  unit: 'tablet' | 'capsule';
 }
 
 const WHOLE_NUMBER = /^(0|[1-9][0-9]*)$/;
@@ -122,17 +127,19 @@ const WHOLE_NUMBER = /^(0|[1-9][0-9]*)$/;
  */
 export function unconfirmedCounts(mbr: MasterLike, batchSizeId: string, inputs: Readonly<Record<string, { kind: string; value?: unknown }>>, confirmations: Readonly<Record<string, string>> = {}): CountProblem[] {
   const out: CountProblem[] = [];
+  const reading = flow.readDosageForm(mbr.header.product?.dosageForm);
+  const unit = reading.ok ? reading.unit : 'tablet';
   for (const [id, expected] of inputExpectations(mbr, batchSizeId)) {
     const v = inputs[id];
     if (!v) continue;
     if (typeof v.value !== 'string' || !WHOLE_NUMBER.test(v.value)) {
-      out.push({ inputId: id, name: mbr.inputs.find((i) => i.id === id)?.name ?? id, entered: String(v.value), expected, deviation: '', malformed: true });
+      out.push({ inputId: id, name: mbr.inputs.find((i) => i.id === id)?.name ?? id, entered: String(v.value), expected, deviation: '', malformed: true, unit });
       continue;
     }
     const deviation = deviationPercent(v.value, expected.value);
     if (deviation === null || Dec.parse(deviation).lte(Dec.parse(expected.tolerancePercent))) continue;
     if ((confirmations[id] ?? '').trim() !== '') continue;
-    out.push({ inputId: id, name: mbr.inputs.find((i) => i.id === id)?.name ?? id, entered: v.value, expected, deviation });
+    out.push({ inputId: id, name: mbr.inputs.find((i) => i.id === id)?.name ?? id, entered: v.value, expected, deviation, unit });
   }
   return out;
 }

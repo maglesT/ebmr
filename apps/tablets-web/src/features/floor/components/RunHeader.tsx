@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import type { RunHeaderView } from '@ebmr/api-contract';
 import { StatusChip, floor } from '@ebmr/ui-kit';
+import { useScreenDosageForm } from '../../../app/brand.tsx';
 import { secondsUntil } from '../../../app/clock.ts';
 import { wcls } from '../classes.ts';
 import { st } from '../text.ts';
@@ -40,6 +41,7 @@ export function useOnline(): boolean {
 export function RunHeader({ run, connected }: { run: RunHeaderView; connected: boolean }) {
   const running = run.timers.some((t) => t.status === 'RUNNING' || t.status === 'WARNING');
   useSecondTick(running);
+  useScreenDosageForm(run.dosageForm);
   const online = useOnline() && connected;
   return (
     <section className={wcls('runHeader')} aria-label={`Batch ${run.batchNumber}`} data-testid="run-header">

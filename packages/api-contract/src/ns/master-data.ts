@@ -94,7 +94,9 @@ export const FormulaSummaryView = z.strictObject({
   productCode: z.string(),
   strength: z.string(),
   productName: z.string().nullable(),
-  /** Units (tablets) per batch, as text. */
+  /** The product master's dosage form in effect, when one is stated (C2: a capsule's shells line is named as such). */
+  dosageForm: z.string().optional(),
+  /** Units (tablets or capsules) per batch, as text. */
   batchSizeUnits: IntegerString,
   latestVersion: z.number().int().nonnegative(),
   approvedVersion: z.number().int().positive().nullable(),
@@ -120,6 +122,8 @@ export const FormulaChoiceView = z.strictObject({
   bom: z.array(FormulaLineView),
   /** Slice 7j: the version's target and batch sizes, null when none was written. */
   target: FormulaTargetView.nullable(),
+  /** The product's dosage form, when one is stated (C2: a capsule's shells line is named as such). */
+  dosageForm: z.string().optional(),
 });
 export type FormulaChoiceView = z.infer<typeof FormulaChoiceView>;
 
