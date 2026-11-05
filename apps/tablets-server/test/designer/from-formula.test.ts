@@ -242,6 +242,29 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(refusalOf(r).code).toBe('DESIGNER_PRODUCT_MASTER');
   });
 
+  it('[PR-01][INV-17] injectables plan I-0: the edition is data on the family; an injectables master starts blank from the formula of a product with an injectable dosage form, and the family list names each family\'s edition', async () => {
+    const INJ = { code: 'DMT7JI', name: 'Demoject 400 mg', strength: PRODUCT.strength };
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: INJ.code, strength: INJ.strength, productName: INJ.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    const injFormula = await approvedFormula('100000', undefined, LINES, INJ.code);
+    const injCreate = (familyCode: string, extra: Record<string, unknown>) =>
+      author.call(routes.designer.createFamily, { body: { familyCode, product: INJ, markets: ['IN'], formulaVersionId: injFormula, edition: 'injectables', ...extra } });
+    const v = valueOf(await injCreate('DMT7JI-BL', { start: 'BLANK' }));
+    expect((v.content as unknown as { header: { edition: string; product: { dosageForm: string } } }).header).toMatchObject({ edition: 'injectables', product: { dosageForm: 'Injection' } });
+    // The tablet skeleton and the templates are tablet procedures: refused for an injectables family.
+    expect(refusalOf(await injCreate('DMT7JI-SK', { start: 'SKELETON' })).code).toBe('DESIGNER_EDITION_START');
+    expect(refusalOf(await injCreate('DMT7JI-T', { templateId: 'dc-mini', batchSizes: [{ quantity: '1', unit: 'kg' }] })).code).toBe('DESIGNER_EDITION_START');
+    // A tablet product cannot become an injectables family, and an injectable product not a tablets one.
+    const tablet = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-INJ', product: PRODUCT, markets: ['IN'], formulaVersionId: otherVersionId, start: 'BLANK', edition: 'injectables' } });
+    expect(refusalOf(tablet).code).toBe('DESIGNER_PRODUCT_MASTER');
+    expect(refusalOf(await injCreate('DMT7JI-TAB', { start: 'BLANK', edition: 'tablets' })).code).toBe('DESIGNER_PRODUCT_MASTER');
+    const families = valueOf(await author.call(routes.designer.families)).families;
+    expect(families.find((f) => f.familyCode === 'DMT7JI-BL')?.edition).toBe('injectables');
+    expect(families.find((f) => f.familyCode === 'DMT7JF-BL')?.edition).toBe('tablets');
+    const { rows } = await gmp.db.admin.query<{ edition: string }>("select edition from recipe.mbr_family where code = 'DMT7JI-BL'");
+    expect(rows[0]?.edition).toBe('injectables');
+  });
+
   it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));

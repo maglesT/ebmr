@@ -31,6 +31,8 @@ export interface FormulaFamilyRequest {
   familyCode: string;
   markets: string[];
   start: FormulaStart;
+  /** Injectables plan I-0: the family's edition (default tablets). */
+  edition?: flow.Edition;
 }
 
 export interface FormulaSource {
@@ -80,7 +82,7 @@ function header(src: FormulaSource, req: FormulaFamilyRequest, markets: string[]
   return {
     family: req.familyCode,
     title: `${src.product.name} ${c.strength}: processing`,
-    edition: 'tablets',
+    edition: req.edition ?? 'tablets',
     recordKind: 'PROCESSING',
     product: { code: c.productCode, name: src.product.name, strength: c.strength, dosageForm: src.product.dosageForm },
     batchSizes: formulaBatchSizes(src),

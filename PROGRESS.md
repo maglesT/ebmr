@@ -69,6 +69,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
+**Injectables edition (owner decision, 4 November 2026).** Plan approved (v2): `docs/build-plan/injectables/plan.md`
+and `platform-fit.md` (one `ebmr` database, edition as data; ADR 0001 amended). **I-0 merged** (#107, 5 November):
+recipe-core 1871 puts the edition in the library block definition (EBMR-LIB-023/024); families carry their edition.
+Next: I-1, terminally sterilised vials and ampoules. Resume notes: `docs/build-plan/injectables/resume.md`. The owner's
+approval of `control-decisions.md` (Q1, 91 controls) is pending. Migrations: `inj.*` 3000-3999.
+
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
 plan `docs/build-plan/capsules/plan.md` approved by the lead (v3, PR #102). The owner's binding rule: every numbered
 requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. **C1 merged (#105, 51f06cb, 5 November):** the catalogue

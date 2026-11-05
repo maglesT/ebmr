@@ -29,6 +29,24 @@ export const FIELD_TYPES = [
 ] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
+/**
+ * The edition a library block belongs to (injectables plan I-0; ADR 0001 amendment of 4 November 2026: on the platform
+ * one database holds every edition, and the edition is data). A block of an edition may be used only in a master of that
+ * edition; a `generic` block in any. A definition that names no edition is a Tablets block, as every block was before.
+ */
+export const LIBRARY_EDITIONS = ['generic', 'tablets', 'injectables'] as const;
+export type LibraryEdition = (typeof LIBRARY_EDITIONS)[number];
+
+/** The edition of a definition: its own, or `tablets` when it names none. */
+export function blockEdition(def: { edition?: unknown }): string {
+  return typeof def.edition === 'string' ? def.edition : 'tablets';
+}
+
+/** Whether a block of edition `block` may be used in a master of edition `master`. */
+export function editionFits(block: string, master: string): boolean {
+  return block === 'generic' || block === master;
+}
+
 export const BLOCK_CATEGORIES = ['PROCESS', 'COATING', 'TEST_IPC', 'TEST_RELEASE', 'CONTROL', 'PACKAGING'] as const;
 export type BlockCategory = (typeof BLOCK_CATEGORIES)[number];
 
@@ -233,6 +251,8 @@ export interface BlockDefinition {
   version: number;
   title: string;
   category: BlockCategory;
+  /** The edition the block belongs to (default `tablets`); `generic` blocks fit every edition. */
+  edition?: LibraryEdition;
   /** Validator roles (default: IPC for tests, PARAMETER_RECORD otherwise). */
   roles?: LibraryRole[];
   description?: string;
