@@ -22,6 +22,15 @@ function fieldOf(item: SeedItem, id: string): FieldDef {
   return f;
 }
 
+/** The item with some example product values changed (limits, inputs), to see the block judge a value against them. */
+function withUse(item: SeedItem, change: { limits?: SeedItem['exampleUse']['limits']; inputs?: SeedItem['exampleInputs'] }): SeedItem {
+  return {
+    ...item,
+    exampleUse: { ...item.exampleUse, limits: { ...item.exampleUse.limits, ...change.limits } },
+    ...(change.inputs ? { exampleInputs: { ...item.exampleInputs, ...change.inputs } } : {}),
+  };
+}
+
 const I1_CODES = [
   'INJ-ROOM-READY', 'INJ-COMPONENT-ACCEPT', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
   'INJ-AMPOULE-SEAL', 'INJ-CAPPING', 'INJ-TERMINAL-STERILISE', 'INJ-VISUAL-INSPECT', 'INJ-CCI', 'INJ-UNIT-ACCOUNT', 'INJ-STERILITY-SAMPLE', 'TEST-INJ-RELEASE',
@@ -51,6 +60,9 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(low.exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(low.status).not.toBe('COMPLETED');
     expect(judgedRun(item, { disinfection: { agentInDate: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    // A contact time shorter than the validated minimum (the run holds the agent 60 minutes; a 90-minute minimum).
+    const short = withUse(item, { limits: { contactTime: { ...item.exampleUse.limits?.['contactTime'], ranges: (item.exampleUse.limits?.['contactTime']?.ranges ?? []).map((r) => ({ ...r, low: { value: '90', inclusive: true } })) } as never } });
+    expect(judgedRun(short, {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
   it('[ST-39] a primary component is accepted by its lot on the formula line (the lot register checks its material and QC release); an open pack is an exception', () => {
@@ -62,7 +74,7 @@ describe('the Injectables catalogue (slice I-1)', () => {
   it('[ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout', () => {
     const critical: Record<string, string[]> = {
       'INJ-WASH': ['wfiTemp', 'wfiPressure'],
-      'INJ-DEPYRO': ['zoneTemp', 'exposure'],
+      'INJ-DEPYRO': ['zoneTemp', 'beltSpeed'],
       'INJ-PARTS-AUTOCLAVE': ['temperature', 'holdTime', 'f0'],
       'INJ-TERMINAL-STERILISE': ['temperature', 'holdTime', 'f0'],
     };
@@ -74,17 +86,25 @@ describe('the Injectables catalogue (slice I-1)', () => {
       expect(checked?.role, code).not.toBe(performed?.role);
     }
     expect(judgedRun(byCode('INJ-DEPYRO'), { cycle: { zoneTemp: '280.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(byCode('INJ-DEPYRO'), { cycle: { beltSpeed: '130' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(byCode('INJ-WASH'), { run: { wfiTemp: '65.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(byCode('INJ-WASH'), { run: { wfiPressure: '1.00' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(byCode('INJ-PARTS-AUTOCLAVE'), { cycle: { temperature: '120.5' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(byCode('INJ-PARTS-AUTOCLAVE'), { cycle: { holdTime: '18.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(byCode('INJ-PARTS-AUTOCLAVE'), { cycle: { f0: '10.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(byCode('INJ-PARTS-AUTOCLAVE'), { cycle: { cyclePassed: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
-  it('[ST-61][ST-66] terminal sterilisation runs per load: each load consumes the filled trays it takes, registers the sterilised load as a container, and takes its own sterility samples; an F0 below the minimum is an exception', () => {
+  it('[ST-61][ST-66] terminal sterilisation runs per load: every filled tray is consumed into its numbered load, and each load records its cycle once, takes its own sterility samples and registers the sterilised load; F0, temperature or time below the minimum is an exception', () => {
     const item = byCode('INJ-TERMINAL-STERILISE');
-    const load = item.definition.sections.find((s) => s.id === 'load');
-    expect(load?.repeat).toEqual({ kind: 'PER_CONTAINER' });
-    expect(load?.fields.filter((f) => f.type === 'CONTAINER').map((f) => (f.type === 'CONTAINER' ? f.action : ''))).toEqual(['CONSUME', 'REGISTER']);
+    const actions = (id: string): string[] => (item.definition.sections.find((s) => s.id === id)?.fields ?? []).flatMap((f) => (f.type === 'CONTAINER' ? [f.action] : []));
+    for (const id of ['tray', 'load']) expect(item.definition.sections.find((s) => s.id === id)?.repeat, id).toEqual({ kind: 'PER_CONTAINER' });
+    expect(actions('tray')).toEqual(['CONSUME']);
+    expect(actions('load')).toEqual(['REGISTER']);
     expect(fieldOf(item, 'sterilitySample')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'loadSterilitySamples' });
     expect(judgedRun(item, { load: { f0: '8.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(item, { load: { temperature: '120.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(item, { load: { holdTime: '14.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
   it('[ST-54] compounding takes the pre-filtration bioburden sample and judges the final volume and density; the bioburden-reducing filtration judges its pressure', () => {
@@ -101,7 +121,11 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(fieldOf(fill, 'stopperCheck').showWhen).toEqual({ field: 'format', equals: 'Vial' });
     // 2.040 g is below the fill-weight limit, and its volume (2.030 mL at 1.0050 g/mL) is just inside.
     expect(judgedRun(fill, { round: { fillWeight: '2.040' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
-    // An ampoule line records no stopper-height check.
+    // The volume is judged on its own: a denser bulk (1.0400 g/mL) puts 2.100 g inside its weight limit and its volume
+    // (2.019 mL) below the volume limit.
+    expect(judgedRun(withUse(fill, { inputs: { density: { value: '1.0400', unit: 'g/mL' } } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    // A vial line without the stopper-height check is an exception; an ampoule line records no such check.
+    expect(judgedRun(fill, { setup: { stopperCheck: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     expect(judgedRun(fill, { setup: { format: 'Ampoule', stopperCheck: undefined } })).toEqual({ exceptions: [], status: 'COMPLETED' });
     const weights = Array.from({ length: 10 }, (_, i) => (i === 0 ? '2.160' : '2.100'));
     expect(judgedRun(byCode('IPC-INJ-FILL-WEIGHT'), { check: { weights } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
@@ -116,6 +140,8 @@ describe('the Injectables catalogue (slice I-1)', () => {
   it('[ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception', () => {
     const item = byCode('INJ-VISUAL-INSPECT');
     for (const id of ['particles', 'container', 'fill', 'closure']) expect(fieldOf(item, id).type, id).toBe('NUMBER');
+    // Accepted units are calculated, never typed: inspected less every reject.
+    expect(fieldOf(item, 'accepted')).toMatchObject({ type: 'CALC', expression: 'inspected - rejected' });
     // 300 rejects of 10,000 inspected: 3 %, above the 2 % limit.
     expect(judgedRun(item, { counts: { particles: '240' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(item, { aql: { aqlCritical: '1' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
@@ -129,6 +155,8 @@ describe('the Injectables catalogue (slice I-1)', () => {
     const item = byCode('INJ-UNIT-ACCOUNT');
     expect(fieldOf(item, 'unaccounted')).toMatchObject({ type: 'CALC', critical: true });
     expect(judgedRun(item, { account: { accepted: '9699' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    // Counted twice (more units accounted for than filled) is as much an exception as one missing.
+    expect(judgedRun(item, { account: { accepted: '9701' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
   it('[ST-66] sterility sampling records each point of the formulation\'s plan (count of points, units per point, time)', () => {
@@ -142,5 +170,6 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(item.definition.signatures.map((s) => s.role)).toEqual(['QC_ANALYST', 'QC_REVIEWER']);
     expect(judgedRun(item, { sterility: { noGrowth: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     expect(judgedRun(item, { endotoxin: { endotoxin: ['0.20', '0.60'] } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(item, { particulates: { particles10: Array.from({ length: 10 }, () => '6500') } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 });

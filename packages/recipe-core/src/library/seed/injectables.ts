@@ -176,20 +176,20 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'INJ-DEPYRO',
       version: 1,
-      title: 'Depyrogenation (tunnel or oven)',
+      title: 'Depyrogenation tunnel',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-05. The depyrogenation cycle of the washed containers: the tunnel or oven, its cycle number and the sterilising-zone temperature and belt speed (or hold time) typed from the printout, checked by a second person.',
+      description: 'INJ-05. The depyrogenation of the washed containers in the tunnel: its cycle number, the sterilising-zone temperature and the belt speed typed from the printout, checked by a second person. (A dry-heat oven, which records a hold time, is a later block.)',
       instructions: 'Read the values from the cycle printout and attach it to the record. A second person checks the typed values against the printout.',
       sections: [
         {
           id: 'cycle',
           title: 'Cycle',
           fields: [
-            { id: 'tunnel', label: 'Depyrogenation tunnel or oven', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'tunnelClass' },
+            { id: 'tunnel', label: 'Depyrogenation tunnel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'tunnelClass' },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
             { id: 'zoneTemp', label: 'Lowest sterilising-zone temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'zoneTemp', critical: true },
-            { id: 'exposure', label: 'Belt speed (tunnel) or hold time (oven)', type: 'NUMBER', unit: 'mm/min', decimals: 0, limitSlot: 'exposure', critical: true },
+            { id: 'beltSpeed', label: 'Belt speed', type: 'NUMBER', unit: 'mm/min', decimals: 0, limitSlot: 'beltSpeed', critical: true },
             { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
             { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
           ],
@@ -199,8 +199,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
     exampleUse: {
       equipmentClasses: { tunnelClass: 'DEPYRO-TUNNEL' },
-      limits: { zoneTemp: pv('Cel', '300.0', '350.0'), exposure: pv('mm/min', '80', '120') },
-      targets: { zoneTemp: '320.0', exposure: '100' },
+      limits: { zoneTemp: pv('Cel', '300.0', '350.0'), beltSpeed: pv('mm/min', '80', '120') },
+      targets: { zoneTemp: '320.0', beltSpeed: '100' },
     },
   },
   {
@@ -211,7 +211,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Moist-heat sterilisation of parts and components',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-06. A validated load of parts or components (stoppers, filling parts, filters, garments): the autoclave, the load, the cycle values typed from the printout, the indicator, and when the load was sterilised (for its time to use).',
+      description: 'INJ-06. A validated load of parts or components (stoppers, filling parts, filters, garments): the autoclave, the load, the cycle values typed from the printout, and the indicator. Its time to use is a time constraint of the master from this step.',
       instructions: 'Load to the validated pattern. Read the values from the cycle printout and attach it. A second person checks the typed values against the printout.',
       sections: [
         {
@@ -226,7 +226,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'f0', label: 'Lowest F0 of the load', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'f0', critical: true },
             { id: 'indicator', label: 'Process indicator changed', type: 'YES_NO', expected: true },
             { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
-            { id: 'sterilisedAt', label: 'Load sterilised at (end of cycle)', type: 'DATE_TIME' },
             { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
           ],
         },
@@ -338,6 +337,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'line', label: 'Filling line', type: 'EQUIPMENT', kind: 'LINE', classSlot: 'lineClass' },
             { id: 'room', label: 'Filling room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
             { id: 'format', label: 'Container format', type: 'CHOICE', options: ['Vial', 'Ampoule'] },
+            { id: 'weighBalance', label: 'Balance for the fill weights', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'stopperCheck', label: 'Stopper-height check active', type: 'YES_NO', expected: true, showWhen: { field: 'format', equals: 'Vial' } },
           ],
         },
@@ -372,7 +372,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      equipmentClasses: { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C' },
+      equipmentClasses: { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C', balanceClass: 'ANALYTICAL-BALANCE' },
       limits: { fillWeight: spec('g', '2.050', '2.150'), fillVolume: spec('mL', '2.030', '2.140') },
       targets: { fillWeight: '2.100' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
@@ -502,7 +502,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Terminal sterilisation by moist heat (per load)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-21. Each load is a container of the batch: the filled trays it takes, the cycle values typed from the printout and checked by a second person, the indicator, the load\'s sterility samples, and the sterilised load registered.',
+      description: 'INJ-21. Each load is a container of the batch: every filled tray is consumed into its numbered load; each load records its cycle values typed from the printout once (checked by a second person), the indicator and the load\'s sterility samples, and registers the sterilised load.',
       instructions: 'Load to the validated pattern. For each load, read the values from its cycle printout and attach it, take the load\'s sterility samples from the coldest positions, and register the sterilised load.',
       sections: [
         {
@@ -514,11 +514,20 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           ],
         },
         {
+          id: 'tray',
+          title: 'Tray loaded',
+          repeat: { kind: 'PER_CONTAINER' },
+          fields: [
+            { id: 'trayIn', label: 'Filled tray', type: 'CONTAINER', action: 'CONSUME' },
+            { id: 'trayLoad', label: 'Load it is placed in (load number)', type: 'TEXT', maxLength: 20 },
+          ],
+        },
+        {
           id: 'load',
           title: 'Load',
           repeat: { kind: 'PER_CONTAINER' },
           fields: [
-            { id: 'trayIn', label: 'Filled tray loaded', type: 'CONTAINER', action: 'CONSUME' },
+            { id: 'loadNumber', label: 'Load number', type: 'TEXT', maxLength: 20 },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
             { id: 'temperature', label: 'Lowest product temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
             { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
@@ -549,7 +558,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['OBSERVATION'],
-      description: 'INJ-22. Every unit inspected at the booth: the rejects by defect category, the reject rate against its alert limit, and the AQL check of the accepted units on the formulation\'s sampling plan.',
+      description: 'INJ-22. Every unit inspected at the booth by a qualified inspector (the eyesight and inspection qualifications are checked at the signature): the rejects by defect category, the reject rate against its limit, the inspection time, and the AQL check of the accepted units on the formulation\'s sampling plan.',
       instructions: 'Inspect every unit against the black and the white background at the booth\'s checked illumination, within the inspector\'s validated time. Then take the AQL sample from the accepted units and inspect it again.',
       sections: [
         {
@@ -570,8 +579,10 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'container', label: 'Rejected: container defects (cracks, glass, cosmetic)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'containerDefects' },
             { id: 'fill', label: 'Rejected: fill level', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'fillDefects' },
             { id: 'closure', label: 'Rejected: closure or seal', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'closureDefects' },
-            { id: 'rejectRate', label: 'Reject rate', type: 'CALC', expression: '(particles + container + fill + closure) / inspected * 100 [%]', unit: '%', limitSlot: 'rejectRate', critical: true },
-            { id: 'accepted', label: 'Units accepted', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'accepted' },
+            { id: 'rejected', label: 'Units rejected', type: 'CALC', expression: 'particles + container + fill + closure', unit: UNITS },
+            { id: 'rejectRate', label: 'Reject rate', type: 'CALC', expression: 'rejected / inspected * 100 [%]', unit: '%', limitSlot: 'rejectRate', critical: true },
+            { id: 'accepted', label: 'Units accepted', type: 'CALC', expression: 'inspected - rejected', unit: UNITS },
+            { id: 'inspecting', label: 'Inspection time (for the inspector\'s validated rate)', type: 'TIMER', durationUnit: 'min' },
           ],
         },
         {
@@ -595,11 +606,10 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
         fillDefects: pv(UNITS, '0', '100000'),
         closureDefects: pv(UNITS, '0', '100000'),
         rejectRate: pv('%', '0', '2.0'),
-        accepted: pv(UNITS, '0', '100000'),
         aqlCritical: spec(UNITS, '0', '0'),
         aqlMajor: spec(UNITS, '0', '1'),
       },
-      targets: { inspected: '10000', particles: '20', containerDefects: '30', fillDefects: '25', closureDefects: '5', accepted: '9920', aqlCritical: '0', aqlMajor: '0' },
+      targets: { inspected: '10000', particles: '20', containerDefects: '30', fillDefects: '25', closureDefects: '5', aqlCritical: '0', aqlMajor: '0' },
       counts: { aqlSampleUnits: '200' },
     },
   },
