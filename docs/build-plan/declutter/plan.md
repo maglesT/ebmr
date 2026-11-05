@@ -9,6 +9,16 @@ Plan only. No code until the lead and owner agree. Slices are in section 6.
 
 ## 1. Keep or disconnect
 
+**Keep, by name (owner check of 5 November): the front of the core path, the dynamic method.** The owner must be able to
+create and load a new formulation on the demo after the declutter.
+- Library: block draft, check, QA approval and retirement, and catalogue load (`/mbr/library`, the `library` routes).
+- A new formulation from library blocks with the product's own values: limits, equipment classes and batch sizes. This
+  is the formula and designer screens: `/master-data/formulas` and `/master-data/formulas/$formulaId`, plus the
+  designer at `/mbr`.
+- Master record: family, versions, preparer → checker → QA approval, and the change records a new version needs
+  (`/mbr`, `/mbr/change-records`).
+- Batch generation from the approved master (`/planning`, `/planning/batches`).
+
 **Keep** is the batch-record path that works end to end on the platform:
 - master record (library, designer, approval and its change record);
 - batch issue;
@@ -45,7 +55,8 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Batches (/planning/batches) | KEEP | issued batches |
 | Batch numbers (/planning/batch-numbers) | KEEP | batch-number register |
 | Packaging orders (/planning/packaging) | DISCONNECT | later (packaging edition slice) |
-| Master data (/master-data), Plant definitions | DISCONNECT on the platform | core (master data comes from core since slice 3) |
+| Master data (/master-data): Formulas (/master-data/formulas, /master-data/formulas/$formulaId) | KEEP | the new formulation from library blocks (core path) |
+| Master data: products, materials (/master-data/erp), rooms and equipment (/master-data/plant), Plant definitions (SANDBOX) | READ-ONLY on the platform | core owns them. Batchwright shows the mapping (`md.item_map`) at most; no create or edit |
 | Plant (/plant) | KEEP, reduced | equipment in use and its clean status for the batch only; the logbook belongs to Logbook (section 2) |
 | Quality (/quality) | KEEP, reduced | material lot status that dispensing needs; lot management belongs to MMS (section 2) |
 | Batch record review (/review) | KEEP | 211.192 |
@@ -95,7 +106,8 @@ goes.
 | Material lots and stock `site.material_lot*`, locations, finished and returned lots, reagent lots (site-services 0710, 0911, 0842, 0940) | MMS | Keep the batch's reservation and consumption, which are part of the record. Lot identity and status are read from MMS's published view once it exists. About 40 foreign keys point at `material_lot`, so this is a reference-only change in its own slice, later. |
 | Training and qualification `iam.person_qualification*` (kernel 0130) | Qual | Already a mirror with a heartbeat. Read Qual's view when Qual publishes it; the signing check stays. |
 | People, accounts, grants, delegations (kernel 0110, 0120, 0170) | core | Done in Phase B (platform identity; 410 on the platform). |
-| Master data `md.*`, formulary, `plant.product` | core | Items done (slice 3). The formulation library remains the master record's own content: decision for the owner whether it moves to core. |
+| Master data `md.*`, `plant.product`, materials, rooms, equipment | core | Items done (slice 3). Read-only mapping in Batchwright; the create and edit routes for these refuse on the platform. |
+| Formulary `formulary.*` (recipe-core 0640) | Batchwright (owner, 5 November) | Keep: the formulation is the master record's own content. |
 
 No migration is edited and no GMP record is deleted. Every fix is a new migration or only a route change.
 
@@ -179,7 +191,7 @@ Anything else goes to the lead first.
 
 | Slice | Content | Proof |
 |---|---|---|
-| D1 | `DISCONNECTED` list; server 410 in bind.ts; a route-usage check of the kept screens | a generated 410 test per namespace; golden batches; gmp-batches and library-dc E2E |
+| D1 | the kept path's front end checked on the demo: a new formulation from library blocks, then its master, approval and batch; `DISCONNECTED` list; server 410 in bind.ts; a route-usage check of the kept screens | a generated 410 test per namespace; golden batches; gmp-batches and library-dc E2E |
 | D2 | web: home and menus from the kept list; "not part of Batchwright" page | home-tiles test per role; E2E |
 | D3 | new home: four work cards with counts, the to-sign list, the admin card | web tests; E2E updated selectors; screenshot strip for the owner |
 | D4 | data references: deviation routes refused on the platform (exception keeps `deviation_ref`); the notes for MMS, Logbook, Qual and QMS views recorded as residuals for when those views exist | server tests by control ID |
@@ -187,6 +199,6 @@ Anything else goes to the lead first.
 
 **Decisions for the owner:**
 1. Records and amendments: keep on screen (recommended).
-2. Formulation library: Batchwright's or core's.
+2. Formulation library: settled. It stays in Batchwright (owner, 5 November).
 3. Penicillin rules screen: keep or later.
 4. Does QP batch packages count as part of release (recommended: yes)?
