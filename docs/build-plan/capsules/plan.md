@@ -1,6 +1,7 @@
 # Batchwright Capsules edition (hard capsules and soft gels): plan
 
-- **Status:** v3, for the lead's approval. Owner (4 November): "change it to capsules edition and go with lead's
+- **Status:** done (C1 to C8 merged, 5 November 2026; C8 exit residuals in section 8). Approved as v3 (PR #102).
+- **History:** v3, for the lead's approval. Owner (4 November): "change it to capsules edition and go with lead's
   answers": the name is the Capsules edition; the build follows the lead's answers (the catalogue in the shared oral-solid
   build, the binding rule). No code before approval.
 - **Owner decisions (4 November 2026):** build Capsules on the same kernel, library, e-signatures, audit trail, MBR
@@ -300,3 +301,9 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - D-C7-3: IPC-CAPS-DT carries a CHOICE "Disintegration / Rupture" (211.110(a)(2), (b): the test the registered
   specification names), edited into the v1 seed as C1 did (no site holds it; the demo resets from seed). No new limit
   slot: the time limit is the specification's in either case.
+
+**C8 exit (5 November 2026; lead):**
+- D-C8-1: no "units" wording versions of TB-20, TB-23 or COAT-ENTERIC. No capsule master uses them: both capsule E2E
+  masters pack in the cold-form blister (TB-21, TB-22, TB-24), and COAT-ENTERIC is used by the tablet acceptance master
+  and the C7 unit test only. The first capsule master that needs one gets a data-only version worded per unit (never
+  an edit of an approved version, D-C3-5).

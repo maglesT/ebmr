@@ -40,10 +40,14 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'extrude',
           title: 'Extrusion',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment and its screen identified.
             { id: 'extruder', label: 'Extruder', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'extruderClass' },
             { id: 'screen', label: 'Extruder screen opening (as the formulation names it)', type: 'TEXT' },
+            // EU GMP 5.10; 21 CFR 211.113: precautions against contamination (a broken screen sheds metal into the product).
             { id: 'screenIntact', label: 'Screen intact before and after use', type: 'YES_NO', expected: true },
+            // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediate added.
             { id: 'wetMassIn', label: 'Wet mass container', type: 'CONTAINER', action: 'CONSUME' },
+            // 21 CFR 211.110(a), (b); EU GMP 4.18(e), 4.20(f): process parameters that cause variability, with their limits; Schedule M Part VIII 2.3 and 21 CFR 211.111 for the spheronisation time.
             { id: 'extruderSpeed', label: 'Extruder speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'extruderSpeed', critical: true },
           ],
         },
@@ -51,14 +55,17 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'spheronise',
           title: 'Spheronisation',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment used.
             { id: 'spheroniser', label: 'Spheroniser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'spheroniserClass' },
             { id: 'plateSpeed', label: 'Friction plate speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'plateSpeed', critical: true },
             { id: 'spheronising', label: 'Spheronisation time (all charges)', type: 'TIMER', durationUnit: 'min', limitSlot: 'spheronisingTime', critical: true },
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight of the intermediate (its yield).
             { id: 'container', label: 'Wet pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c).
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
@@ -79,11 +86,16 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment used.
             { id: 'processor', label: 'Fluid bed processor (bottom spray)', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'processorClass' },
+            // Schedule M Part VIII 2.4: product-specific fluid-bed bags.
             { id: 'filterBags', label: 'Filter bags dedicated to this product and intact', type: 'YES_NO', expected: true },
+            // 21 CFR 211.186(b)(9); EU GMP 4.18: the layering method the processing instructions name.
             { id: 'method', label: 'Layering method', type: 'CHOICE', options: ['Solution', 'Suspension', 'Powder'] },
+            // 21 CFR 211.101(b)-(d), 211.188(b); Schedule M 14.16-14.17: the cores' lot checked against the formula line, and the quantity charged.
             { id: 'coresLot', label: 'Inert cores lot', type: 'MATERIAL_LOT', bomLineSlot: 'coresLine' },
             { id: 'coresQty', label: 'Inert cores loaded', type: 'WEIGHING', unit: 'kg', limitSlot: 'coresQty' },
+            // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediate added.
             { id: 'layeringIn', label: 'Drug layering liquid or powder container', type: 'CONTAINER', action: 'CONSUME' },
           ],
         },
@@ -92,6 +104,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Layering parameters',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
+            // Schedule M Part VIII 2.3; 21 CFR 211.110(a), (b); EU GMP 4.20(f): temperatures and spray parameters at each round, with their limits.
             { id: 'inletTemp', label: 'Inlet air temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'inletTemp', critical: true },
             { id: 'productTemp', label: 'Product temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'productTemp', critical: true },
             { id: 'sprayRate', label: 'Spray rate', type: 'NUMBER', unit: 'g/min', decimals: 0, limitSlot: 'sprayRate', critical: true },
@@ -102,13 +115,16 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'finish',
           title: 'Drying and discharge',
           fields: [
+            // Schedule M Part VIII 2.3; 21 CFR 211.111: the critical time and temperature of drying.
             { id: 'dryingTemp', label: 'Product temperature at the end of drying', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'dryingTemp', critical: true },
             { id: 'drying', label: 'Drying time in the processor', type: 'TIMER', durationUnit: 'min', limitSlot: 'dryingTime', critical: true },
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight of the intermediate (its yield).
             { id: 'container', label: 'Drug-layered pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c).
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
@@ -140,11 +156,16 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment used.
             { id: 'processor', label: 'Fluid bed processor (bottom spray)', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'processorClass' },
+            // Schedule M Part VIII 2.4: product-specific fluid-bed bags.
             { id: 'filterBags', label: 'Filter bags dedicated to this product and intact', type: 'YES_NO', expected: true },
+            // 21 CFR 211.186(b)(9); EU GMP 4.18: the coat the processing instructions name.
             { id: 'layer', label: 'Coat applied', type: 'CHOICE', options: ['Seal coat', 'Delayed-release (enteric) coat', 'Sustained-release coat', 'Top coat'] },
+            // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediates added.
             { id: 'pelletsIn', label: 'Pellets container', type: 'CONTAINER', action: 'CONSUME' },
             { id: 'suspensionIn', label: 'Coating suspension container', type: 'CONTAINER', action: 'CONSUME' },
+            // 21 CFR 211.110(a), (b): the reading the weight-gain check is computed from.
             { id: 'coreMass', label: 'Mass of 100 pellets before coating', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'coreMass' },
           ],
         },
@@ -153,6 +174,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Spray parameters',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
+            // Schedule M Part VIII 2.3; 21 CFR 211.110(a), (b); EU GMP 4.20(f): temperatures and spray parameters at each round, with their limits.
             { id: 'inletTemp', label: 'Inlet air temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'inletTemp', critical: true },
             { id: 'productTemp', label: 'Product temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'productTemp', critical: true },
             { id: 'sprayRate', label: 'Spray rate', type: 'NUMBER', unit: 'g/min', decimals: 0, limitSlot: 'sprayRate', critical: true },
@@ -164,6 +186,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Weight-gain check',
           repeat: { kind: 'UNTIL_PASS', untilField: 'weightGain', maxRepeatsSlot: 'maxGainChecks' },
           fields: [
+            // 21 CFR 211.110(a), (b); EU GMP 4.20(f): the weight-gain in-process control, until it reaches its limits.
             { id: 'coatedMass', label: 'Mass of 100 coated pellets', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'coatedMass', help: 'The limits guard the reading itself; the weight gain decides whether spraying stops.' },
             { id: 'weightGain', label: 'Weight gain', type: 'CALC', expression: '(coatedMass - coreMass) / coreMass * 100 [%]', unit: '%', limitSlot: 'weightGain', critical: true },
           ],
@@ -172,13 +195,16 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'finish',
           title: 'Curing and discharge',
           fields: [
+            // Schedule M Part VIII 2.3; 21 CFR 211.111: the critical time and temperature of curing (drying).
             { id: 'curingTemp', label: 'Curing product temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'curingTemp', critical: true },
             { id: 'curing', label: 'Curing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'curingTime', critical: true },
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight of the intermediate (its yield).
             { id: 'container', label: 'Coated pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c).
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
@@ -211,8 +237,10 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment and its change parts identified.
             { id: 'filler', label: 'Capsule filling machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'fillerClass' },
             { id: 'capsuleSize', label: 'Capsule size (change parts fitted)', type: 'CHOICE', options: SIZES },
+            // 21 CFR 211.101(b)-(d), 211.188(b); Schedule M 14.16-14.17 and Part VIII 5: the shells' lot checked against the formula line, and the shells checked as the right ones.
             { id: 'shellLot', label: 'Empty capsule shells lot', type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' },
             { id: 'shellsInspected', label: 'Shells of the right colour and print, free of dents and splits', type: 'YES_NO', expected: true },
           ],
@@ -222,6 +250,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Dosing station',
           repeat: { kind: 'COUNT', countSlot: 'stations' },
           fields: [
+            // 21 CFR 211.101(d), 211.186(b)(9), 211.188(b); EU GMP 4.20(d): what each station doses and the intermediate it takes.
             { id: 'content', label: 'Station doses', type: 'CHOICE', options: STATION_CONTENTS },
             { id: 'stationIn', label: 'Station input container', type: 'CONTAINER', action: 'CONSUME' },
           ],
@@ -231,6 +260,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
+            // 21 CFR 211.110(a), (b); Schedule M Part VIII 7.1: in-process check at each round; split or unlocked capsules removed.
             { id: 'locked', label: 'Capsules closed and locked, none split', type: 'YES_NO', expected: true },
           ],
         },
@@ -238,12 +268,14 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           id: 'output',
           title: 'Output',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container, the weights and the rejects (the yield's inputs).
             { id: 'container', label: 'Filled capsules container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
             { id: 'rejects', label: 'Rejected capsules', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c).
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {

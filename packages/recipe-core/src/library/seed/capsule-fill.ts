@@ -45,8 +45,11 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'prepare',
           title: 'Mixing and homogenisation',
           fields: [
+            // 21 CFR 211.186(b)(9), 211.188(b); EU GMP 4.18: the kind of fill the processing instructions name.
             { id: 'fillType', label: 'Fill type', type: 'CHOICE', options: FILL_TYPES },
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment used.
             { id: 'vessel', label: 'Preparation vessel with mixer or homogeniser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'vesselClass' },
+            // Schedule M Part VIII 2.3; 21 CFR 211.111: the critical time and temperature of mixing, recorded.
             { id: 'mixTemp', label: 'Mixing temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'mixTemp', critical: true },
             { id: 'mixing', label: 'Mixing or homogenisation time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixTime', critical: true },
           ],
@@ -55,6 +58,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'check',
           title: 'Deaeration and viscosity',
           fields: [
+            // 21 CFR 211.110(a), (b); EU GMP 4.18(e), 4.20(f): in-process controls of the fill with their limits.
             { id: 'vacuum', label: 'Deaeration vacuum (absolute pressure)', type: 'NUMBER', unit: 'mbar', decimals: 0, limitSlot: 'vacuum' },
             { id: 'viscometer', label: 'Viscometer', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'viscometerClass' },
             { id: 'viscosity', label: 'Viscosity', type: 'NUMBER', unit: 'mPa.s', decimals: 0, limitSlot: 'viscosity', critical: true },
@@ -64,11 +68,13 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'output',
           title: 'Output',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight of the intermediate (its yield).
             { id: 'container', label: 'Fill container (closed)', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c): the person who performed and the person who checked.
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
@@ -89,10 +95,14 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment and its change parts identified.
             { id: 'filler', label: 'Liquid capsule filling machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'fillerClass' },
             { id: 'capsuleSize', label: 'Capsule size (change parts fitted)', type: 'CHOICE', options: SIZES },
+            // 21 CFR 211.101(b)-(d), 211.188(b); Schedule M 14.16-14.17: the shells' lot checked against the formula line.
             { id: 'shellLot', label: 'Empty capsule shells lot', type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' },
+            // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediate added.
             { id: 'fillIn', label: 'Fill container', type: 'CONTAINER', action: 'CONSUME' },
+            // EU GMP 5.14: transfer lines checked as connected correctly.
             { id: 'linesConnected', label: 'Fill lines connected to the right machine and hopper', type: 'YES_NO', expected: true },
           ],
         },
@@ -101,6 +111,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
+            // 21 CFR 211.110(a)(1), (b); EU GMP 4.20(f): in-process controls at each round (fill weight is capsule weight variation).
             { id: 'fillTemp', label: 'Fill temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'fillTemp', critical: true },
             { id: 'fillWeight', label: 'Average fill weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'fillWeight', critical: true },
             { id: 'noLeakers', label: 'No leaking capsules', type: 'YES_NO', expected: true },
@@ -110,12 +121,14 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'output',
           title: 'Output',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container, the weights and the rejects (the yield's inputs).
             { id: 'container', label: 'Filled capsules container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
             { id: 'rejects', label: 'Rejected capsules', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c).
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
@@ -138,9 +151,12 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'setup',
           title: 'Set-up',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the equipment and its plates identified.
             { id: 'filler', label: 'Capsule plate filler', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'fillerClass' },
             { id: 'capsuleSize', label: 'Capsule size (plates fitted)', type: 'CHOICE', options: SIZES },
+            // 21 CFR 211.101(b)-(d), 211.188(b); Schedule M 14.16-14.17: the shells' lot checked against the formula line.
             { id: 'shellLot', label: 'Empty capsule shells lot', type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' },
+            // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediate added.
             { id: 'blendIn', label: 'Blend container', type: 'CONTAINER', action: 'CONSUME' },
           ],
         },
@@ -149,6 +165,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
+            // 21 CFR 211.110(a)(1), (b); Schedule M Part VIII 7.1: capsule weight variation; split or unlocked capsules removed.
             { id: 'fillWeight', label: 'Average fill weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'fillWeight', critical: true },
             { id: 'locked', label: 'Capsules closed and locked, none split', type: 'YES_NO', expected: true },
           ],
@@ -157,12 +174,14 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           id: 'output',
           title: 'Output',
           fields: [
+            // 21 CFR 211.105(a), 211.188(b), 211.103: the container, the weights and the rejects (the yield's inputs).
             { id: 'container', label: 'Filled capsules container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
             { id: 'rejects', label: 'Rejected capsules', type: 'WEIGHING', unit: 'kg' },
           ],
         },
       ],
+      // 21 CFR 211.101(d), 211.188(b)(11); EU GMP 4.20(c).
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
