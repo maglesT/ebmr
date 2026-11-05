@@ -85,10 +85,10 @@ describe('soft gels I (Capsules C6)', () => {
     expect(judgedRun(enc, { round: { ribbonThickness: '0.70' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
   });
 
-  it('[PR-08][IN-36] drying: a timed tumble at a critical air temperature, then tray drying checked for room temperature, humidity (not critical) and hardness until the end point, and the drying time timed as a critical value', () => {
+  it('[PR-08][IN-36] drying: a timed tumble at a critical air temperature, then tray drying checked for room temperature, humidity and hardness (both against limits, not critical) until the end point, and the drying time timed as a critical value', () => {
     const dry = item('SG-DRY');
-    for (const id of ['airTemp', 'tumbling', 'roomTemp', 'hardness', 'dryingTime']) expect(fieldOf(dry, id), id).toMatchObject({ critical: true });
-    expect(fieldOf(dry, 'roomRh')).not.toHaveProperty('critical');
+    for (const id of ['airTemp', 'tumbling', 'roomTemp', 'dryingTime']) expect(fieldOf(dry, id), id).toMatchObject({ critical: true });
+    for (const id of ['roomRh', 'hardness']) expect(fieldOf(dry, id), id).not.toHaveProperty('critical');
     expect(dry.definition.sections.find((x) => x.id === 'endPoint')?.repeat).toEqual({ kind: 'UNTIL_PASS', untilField: 'hardness', maxRepeatsSlot: 'maxEndPointChecks' });
     expect(fieldOf(dry, 'dryingTime')).toMatchObject({ type: 'TIMER', durationUnit: 'h', limitSlot: 'dryingTime' });
     expect(fieldOf(dry, 'tunnel')).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM' });
@@ -99,7 +99,8 @@ describe('soft gels I (Capsules C6)', () => {
     const fs = item('IPC-SG-FILL-SHELL');
     expect(fs.definition.sections.find((x) => x.id === 'capsule')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'capsules' });
     expect(fieldOf(fs, 'fill')).toMatchObject({ type: 'CALC', expression: 'gross - shell', limitSlot: 'individualFill', critical: true });
-    expect(fieldOf(fs, 'shell')).toMatchObject({ limitSlot: 'shellWeight', critical: true });
+    expect(fieldOf(fs, 'shell')).toMatchObject({ limitSlot: 'shellWeight' });
+    expect(fieldOf(fs, 'shell')).not.toHaveProperty('critical');
     expect(fieldOf(fs, 'meanFill')).toMatchObject({ type: 'CALC', expression: 'mean(fill)', limitSlot: 'meanFill', critical: true });
     expect(nominalRun(fs)).toEqual({ exceptions: [], status: 'COMPLETED' });
     // A capsule 60 mg light (gross 750 mg, shell 310 mg: fill 440 mg, below 475 mg) breaches the individual fill limit.

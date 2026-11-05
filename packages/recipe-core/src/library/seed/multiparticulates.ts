@@ -48,7 +48,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
             // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediate added.
             { id: 'wetMassIn', label: 'Wet mass container', type: 'CONTAINER', action: 'CONSUME' },
             // 21 CFR 211.110(a), (b); EU GMP 4.18(e), 4.20(f): process parameters that cause variability, with their limits; Schedule M Part VIII 2.3 and 21 CFR 211.111 for the spheronisation time.
-            { id: 'extruderSpeed', label: 'Extruder speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'extruderSpeed', critical: true },
+            { id: 'extruderSpeed', label: 'Extruder speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'extruderSpeed' },
           ],
         },
         {
@@ -57,8 +57,8 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the major equipment used.
             { id: 'spheroniser', label: 'Spheroniser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'spheroniserClass' },
-            { id: 'plateSpeed', label: 'Friction plate speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'plateSpeed', critical: true },
-            { id: 'spheronising', label: 'Spheronisation time (all charges)', type: 'TIMER', durationUnit: 'min', limitSlot: 'spheronisingTime', critical: true },
+            { id: 'plateSpeed', label: 'Friction plate speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'plateSpeed' },
+            { id: 'spheronising', label: 'Spheronisation time (all charges)', type: 'TIMER', durationUnit: 'min', limitSlot: 'spheronisingTime' },
             // 21 CFR 211.105(a), 211.188(b), 211.103: the container and the weight of the intermediate (its yield).
             { id: 'container', label: 'Wet pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
@@ -107,8 +107,8 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
             // Schedule M Part VIII 2.3; 21 CFR 211.110(a), (b); EU GMP 4.20(f): temperatures and spray parameters at each round, with their limits.
             { id: 'inletTemp', label: 'Inlet air temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'inletTemp', critical: true },
             { id: 'productTemp', label: 'Product temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'productTemp', critical: true },
-            { id: 'sprayRate', label: 'Spray rate', type: 'NUMBER', unit: 'g/min', decimals: 0, limitSlot: 'sprayRate', critical: true },
-            { id: 'atomisingAir', label: 'Atomising air pressure', type: 'NUMBER', unit: 'bar', decimals: 1, limitSlot: 'atomisingAir', critical: true },
+            { id: 'sprayRate', label: 'Spray rate', type: 'NUMBER', unit: 'g/min', decimals: 0, limitSlot: 'sprayRate' },
+            { id: 'atomisingAir', label: 'Atomising air pressure', type: 'NUMBER', unit: 'bar', decimals: 1, limitSlot: 'atomisingAir' },
           ],
         },
         {
@@ -161,7 +161,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
             // Schedule M Part VIII 2.4: product-specific fluid-bed bags.
             { id: 'filterBags', label: 'Filter bags dedicated to this product and intact', type: 'YES_NO', expected: true },
             // 21 CFR 211.186(b)(9); EU GMP 4.18: the coat the processing instructions name.
-            { id: 'layer', label: 'Coat applied', type: 'CHOICE', options: ['Seal coat', 'Delayed-release (enteric) coat', 'Sustained-release coat', 'Top coat'] },
+            { id: 'layer', label: 'Coat applied', type: 'CHOICE', options: ['Seal coat', 'Delayed-release (enteric) coat', 'Sustained-release coat'] },
             // 21 CFR 211.101(d), 211.188(b); EU GMP 4.20(d): the intermediates added.
             { id: 'pelletsIn', label: 'Pellets container', type: 'CONTAINER', action: 'CONSUME' },
             { id: 'suspensionIn', label: 'Coating suspension container', type: 'CONTAINER', action: 'CONSUME' },
@@ -177,8 +177,8 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
             // Schedule M Part VIII 2.3; 21 CFR 211.110(a), (b); EU GMP 4.20(f): temperatures and spray parameters at each round, with their limits.
             { id: 'inletTemp', label: 'Inlet air temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'inletTemp', critical: true },
             { id: 'productTemp', label: 'Product temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'productTemp', critical: true },
-            { id: 'sprayRate', label: 'Spray rate', type: 'NUMBER', unit: 'g/min', decimals: 0, limitSlot: 'sprayRate', critical: true },
-            { id: 'atomisingAir', label: 'Atomising air pressure', type: 'NUMBER', unit: 'bar', decimals: 1, limitSlot: 'atomisingAir', critical: true },
+            { id: 'sprayRate', label: 'Spray rate', type: 'NUMBER', unit: 'g/min', decimals: 0, limitSlot: 'sprayRate' },
+            { id: 'atomisingAir', label: 'Atomising air pressure', type: 'NUMBER', unit: 'bar', decimals: 1, limitSlot: 'atomisingAir' },
           ],
         },
         {
@@ -188,7 +188,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.110(a), (b); EU GMP 4.20(f): the weight-gain in-process control, until it reaches its limits.
             { id: 'coatedMass', label: 'Mass of 100 coated pellets', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'coatedMass', help: 'The limits guard the reading itself; the weight gain decides whether spraying stops.' },
-            { id: 'weightGain', label: 'Weight gain', type: 'CALC', expression: '(coatedMass - coreMass) / coreMass * 100 [%]', unit: '%', limitSlot: 'weightGain', critical: true },
+            { id: 'weightGain', label: 'Weight gain', type: 'CALC', expression: '(coatedMass - coreMass) / coreMass * 100 [%]', unit: '%', limitSlot: 'weightGain' },
           ],
         },
         {

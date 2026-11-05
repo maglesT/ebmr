@@ -233,7 +233,7 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
             { id: 'roomTemp', label: 'Drying room temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'roomTemp', critical: true },
             { id: 'roomRh', label: 'Drying room relative humidity', type: 'NUMBER', unit: '%', decimals: 0, limitSlot: 'roomRh' },
             // 21 CFR 211.110(a), (b): the in-process control that ends the drying.
-            { id: 'hardness', label: 'Capsule hardness (mean of the capsules checked)', type: 'NUMBER', unit: 'N', decimals: 1, limitSlot: 'hardness', critical: true },
+            { id: 'hardness', label: 'Capsule hardness (mean of the capsules checked)', type: 'NUMBER', unit: 'N', decimals: 1, limitSlot: 'hardness' },
           ],
         },
         {
@@ -287,7 +287,7 @@ export const SOFTGEL_SEEDS: readonly SeedItem[] = [
             // 21 CFR 211.110(a)(1), (b): capsule weight variation. The gross weight is the CALC's input (its limits guard
             // the reading); the shell weight and the fill weight per capsule are judged against the product limits.
             { id: 'gross', label: 'Gross weight of the capsule', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'gross', help: 'The limits guard the reading itself; the fill weight is judged below.' },
-            { id: 'shell', label: 'Shell weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'shellWeight', critical: true },
+            { id: 'shell', label: 'Shell weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'shellWeight' },
             { id: 'fill', label: 'Fill weight', type: 'CALC', expression: 'gross - shell', unit: 'mg', limitSlot: 'individualFill', critical: true },
           ],
         },

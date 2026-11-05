@@ -276,8 +276,8 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.105(a), 211.68(a), 211.188(b); EU GMP 4.20(e): the automatic equipment and the reject limits it was set to.
             { id: 'checkweigher', label: 'Capsule checkweigher', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'checkweigherClass' },
-            { id: 'rejectLow', label: 'Lower reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectLow', critical: true },
-            { id: 'rejectHigh', label: 'Upper reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectHigh', critical: true },
+            { id: 'rejectLow', label: 'Lower reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectLow' },
+            { id: 'rejectHigh', label: 'Upper reject limit set', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'rejectHigh' },
             // 21 CFR 211.188(b); EU GMP 4.20(d): the intermediate taken in.
             { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
           ],
@@ -316,7 +316,6 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
           fields: [
             // 21 CFR 211.105(a), 211.188(b); EU GMP 4.20(e): the equipment used.
             { id: 'inspector', label: 'Inspection machine or belt', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'inspectorClass' },
-            { id: 'method', label: 'Inspection method', type: 'CHOICE', options: ['Manual inspection belt', 'Automatic camera inspection'] },
             // 21 CFR 211.188(b); EU GMP 4.20(d): the intermediate taken in.
             { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
           ],
@@ -409,7 +408,7 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
             // 21 CFR 211.132(b)(2): an OTC two-piece hard capsule sealed with a tamper-evident technology, named here.
             { id: 'technology', label: 'Sealing technology', type: 'CHOICE', options: ['Gelatin band', 'HPMC band', 'Liquid fusion sealing'] },
             // 21 CFR 211.110(a), (b); Schedule M Part VIII 2.5: the band solution used under its limits.
-            { id: 'solutionTemp', label: 'Band solution temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'solutionTemp', critical: true },
+            { id: 'solutionTemp', label: 'Band solution temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'solutionTemp' },
             // 21 CFR 211.188(b); EU GMP 4.20(d): the intermediate taken in.
             { id: 'capsulesIn', label: 'Capsules container in', type: 'CONTAINER', action: 'CONSUME' },
           ],

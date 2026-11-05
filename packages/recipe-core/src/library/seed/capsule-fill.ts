@@ -61,7 +61,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
             // 21 CFR 211.110(a), (b); EU GMP 4.18(e), 4.20(f): in-process controls of the fill with their limits.
             { id: 'vacuum', label: 'Deaeration vacuum (absolute pressure)', type: 'NUMBER', unit: 'mbar', decimals: 0, limitSlot: 'vacuum' },
             { id: 'viscometer', label: 'Viscometer', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'viscometerClass' },
-            { id: 'viscosity', label: 'Viscosity', type: 'NUMBER', unit: 'mPa.s', decimals: 0, limitSlot: 'viscosity', critical: true },
+            { id: 'viscosity', label: 'Viscosity', type: 'NUMBER', unit: 'mPa.s', decimals: 0, limitSlot: 'viscosity' },
           ],
         },
         {
@@ -112,7 +112,7 @@ export const CAPSULE_FILL_SEEDS: readonly SeedItem[] = [
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
             // 21 CFR 211.110(a)(1), (b); EU GMP 4.20(f): in-process controls at each round (fill weight is capsule weight variation).
-            { id: 'fillTemp', label: 'Fill temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'fillTemp', critical: true },
+            { id: 'fillTemp', label: 'Fill temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'fillTemp' },
             { id: 'fillWeight', label: 'Average fill weight', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'fillWeight', critical: true },
             { id: 'noLeakers', label: 'No leaking capsules', type: 'YES_NO', expected: true },
           ],

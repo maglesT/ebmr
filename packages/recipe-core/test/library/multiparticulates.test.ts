@@ -61,18 +61,21 @@ describe('multiparticulates in hard capsules (Capsules C4)', () => {
     expect(lots('p-fill')).toContain('shellLot');
   });
 
-  it('[PR-08][IN-36] fluid-bed pellet work records product-dedicated filter bags, critical spray parameters at each round, a weight gain checked until it passes (with a maximum of checks) and a timed cure; extrusion-spheronisation records critical speeds and time', () => {
+  it('[PR-08][IN-36] fluid-bed pellet work records product-dedicated filter bags, temperatures (critical) and spray rate and atomising air (against limits, not critical) at each round, a weight gain checked until it passes (with a maximum of checks) and a timed cure; extrusion-spheronisation records speeds and time against limits (not critical; no clause names them)', () => {
     const coat = item('COAT-PELLET-FB').definition;
     const fields = new Map(coat.sections.flatMap((x) => x.fields.map((f) => [f.id, f] as const)));
     expect(fields.get('filterBags')).toMatchObject({ type: 'YES_NO', expected: true });
-    expect(fields.get('layer')).toMatchObject({ type: 'CHOICE', options: ['Seal coat', 'Delayed-release (enteric) coat', 'Sustained-release coat', 'Top coat'] });
+    expect(fields.get('layer')).toMatchObject({ type: 'CHOICE', options: ['Seal coat', 'Delayed-release (enteric) coat', 'Sustained-release coat'] });
     expect(coat.sections.find((x) => x.id === 'gainCheck')?.repeat).toEqual({ kind: 'UNTIL_PASS', untilField: 'weightGain', maxRepeatsSlot: 'maxGainChecks' });
-    expect(fields.get('weightGain')).toMatchObject({ type: 'CALC', critical: true, limitSlot: 'weightGain' });
+    expect(fields.get('weightGain')).toMatchObject({ type: 'CALC', limitSlot: 'weightGain' });
+    expect(fields.get('weightGain')).not.toHaveProperty('critical');
     expect(fields.get('curing')).toMatchObject({ type: 'TIMER', critical: true });
-    for (const id of ['inletTemp', 'productTemp', 'sprayRate', 'atomisingAir']) expect(fields.get(id), id).toMatchObject({ critical: true });
+    for (const id of ['inletTemp', 'productTemp']) expect(fields.get(id), id).toMatchObject({ critical: true });
+    for (const id of ['sprayRate', 'atomisingAir']) expect(fields.get(id), id).toMatchObject({ limitSlot: id });
+    for (const id of ['sprayRate', 'atomisingAir']) expect(fields.get(id), id).not.toHaveProperty('critical');
     expect(item('PROC-PELLET-LAYER').definition.sections[0]?.fields.find((f) => f.id === 'coresLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'coresLine' });
     const ext = new Map(item('PROC-EXTRUDE-SPHERONISE').definition.sections.flatMap((x) => x.fields.map((f) => [f.id, f] as const)));
-    for (const id of ['extruderSpeed', 'plateSpeed', 'spheronising']) expect(ext.get(id), id).toMatchObject({ critical: true });
+    for (const id of ['extruderSpeed', 'plateSpeed', 'spheronising']) expect(ext.get(id), id).not.toHaveProperty('critical');
   });
 
   it('[PR-03][PR-18] multi-station filling: one to four stations, each recording what it doses and its input; the shells are the per-unit formula line; the capsule\'s fill weight is the fill weight test\'s', () => {

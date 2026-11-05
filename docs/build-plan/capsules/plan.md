@@ -307,3 +307,15 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
   masters pack in the cold-form blister (TB-21, TB-22, TB-24), and COAT-ENTERIC is used by the tablet acceptance master
   and the C7 unit test only. The first capsule master that needs one gets a data-only version worded per unit (never
   an edit of an approved version, D-C3-5).
+- D-C8-2 (review pass, lead): every capsule block field carries its clause as a comment (field or group). `critical`
+  stays only where a clause names the parameter: times and temperatures of mixing, blending, drying and curing
+  (Schedule M Part VIII 2.3), fill weights (21 CFR 211.110(a)(1)) and leakers (D-C3-1). Dropped from the reject
+  set-points, band solution and liquid fill temperatures, fill viscosity, extruder and plate speeds, spheronising time,
+  spray rate and atomising air, weight gain, soft-gel hardness and shell weight; each keeps its limit, so a breach still
+  goes through the out-of-limit exception and deviation path (21 CFR 211.192). PROC-CAPS-INSPECT's method CHOICE and the
+  pellet coat's "Top coat" option dropped (no clause); the band's sealing technology (211.132(b)(2)) and the capsule
+  sizes (211.105(a)) kept.
+- Residuals (lead accepted): the pre-C1 capsule blocks (IPC-CAPS-APPEARANCE, IPC-CAPS-LOCK-LENGTH, IPC-CAPS-DT's medium
+  temperature, REL-CAPS-DISSO) keep their critical flags and carry no clause comments; IPC-CAPS-DT's reference maximum of
+  30 min is a reference note, not a limit; the guard limit slots (PROC-CAPS-FILL speed, IPC-SG-FILL-SHELL gross per
+  D-C6-3, COAT-PELLET-FB core and coated mass, PROC-PELLET-LAYER cores quantity) stay.
