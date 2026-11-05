@@ -23,26 +23,33 @@ function ubicloudSize(text: string): number | undefined {
 }
 
 describe('CI runner labels', () => {
-  it('[meta] every ci.yml job runs on GitHub-hosted, a Ubicloud size of 2, 4 or 8 written out, or the pod, with the decided sizes', () => {
+  it('[meta] in Ubicloud mode the heavy ci.yml jobs name a size of 4 or 8 written out and only the light jobs run on GitHub-hosted (owner)', () => {
     const jobs = runsOn('ci.yml');
-    const sizes: Record<string, number | undefined> = {};
+    const sizes: Record<string, number | 'github'> = {};
     for (const [id, text] of jobs) {
       expect(text, id).not.toMatch(/github\.job|format\(|fromJSON\(/);
       expect(text, id).toContain("'ubuntu-latest'");
       expect(text, id).toContain("'ebmr-pod'");
-      sizes[id] = ubicloudSize(text);
+      const size = ubicloudSize(text);
+      if (size !== undefined) sizes[id] = size;
+      else {
+        // A light job: GitHub-hosted for both github and ubicloud, the pod otherwise. No Ubicloud label at all.
+        expect(text, id).not.toContain('ubicloud-standard');
+        expect(text, id).toContain("== 'ubicloud') && 'ubuntu-latest'");
+        sizes[id] = 'github';
+      }
     }
-    // Owner: heavy work on 8 (test shards, golden batches, end-to-end groups), the static checks on 4, small jobs on 2.
+    // Owner: test shards, golden batches and end-to-end groups on 8, the static checks on 4; the light jobs on GitHub-hosted.
     expect(sizes).toEqual({
       checks: 4,
-      'supply-chain': 2,
+      'supply-chain': 'github',
       tests: 8,
       golden: 8,
-      report: 2,
-      'e2e-plan': 2,
+      report: 'github',
+      'e2e-plan': 'github',
       e2e: 8,
-      'e2e-report': 2,
-      traceability: 2,
+      'e2e-report': 'github',
+      traceability: 'github',
     });
   });
 

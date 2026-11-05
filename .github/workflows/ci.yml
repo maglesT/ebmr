@@ -36,8 +36,9 @@ concurrency:
 # managed runners (the Ubicloud GitHub app on this repository), each sized by its need in its own `runs-on` (a literal
 # size per job: `runs-on` cannot read the job's id, github.job is empty there, and a label with no size never starts;
 # tools/register/test/ci-runners.test.ts checks every job's label): ubicloud-standard-<N>-ubuntu-2204 with N = 8 for the test shards (4 Vitest workers), the golden batches and the end-to-end groups (the long pole;
-# owner), 4 for the static checks (lint's 8 GB heap fits 16 GB), 2 for the small jobs (supply chain, the end-to-end plan, the reports,
-# traceability). Owner: heavy work on good machines, small tasks on small ones. Their VMs use GitHub's Ubuntu 22.04
+# owner) and 4 for the static checks (lint's 8 GB heap fits 16 GB). The light jobs (supply chain, the end-to-end plan,
+# the reports, traceability) run on GitHub-hosted ubuntu-latest in that mode too (owner: free, fast, and they take
+# nothing from the Ubicloud limit). Their VMs use GitHub's Ubuntu 22.04
 # image (its PostgreSQL is 14, so tools/ci/start-postgres.sh installs 16 from PGDG) and serve one job each, so the
 # scripts in tools/ci treat them as GitHub-hosted (EBMR_CI_HOST). mutation.yml follows the same switch (standard-8,
 # on its schedule or by hand only).
@@ -85,7 +86,7 @@ jobs:
   supply-chain:
     name: Supply chain (dependency audit, licences, secrets, SBOM, signed manifest)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -219,7 +220,7 @@ jobs:
     # Runs when a shard failed (to merge and summarise what did run) but not when the run was cancelled, for example by
     # a newer push to the same branch: there is nothing to report then; nor on a run of chosen end-to-end groups only.
     if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -298,7 +299,7 @@ jobs:
   # name fails here). The full list is the e2e job's matrix as it was; a new group is added here.
   e2e-plan:
     name: End-to-end groups to run
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 5
     outputs:
       groups: ${{ steps.plan.outputs.groups }}
@@ -382,7 +383,7 @@ jobs:
     name: End-to-end reports merged
     needs: [e2e]
     if: ${{ !cancelled() }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -421,7 +422,7 @@ jobs:
   traceability:
     name: Traceability with the end-to-end results
     needs: [checks, report, e2e-report]
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
