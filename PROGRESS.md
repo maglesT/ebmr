@@ -61,8 +61,11 @@ screens, DI-49), `integrations` and `transfers` (the operator's set-up page), `e
 list; then the home (even "Show all screens") and the links on kept pages skip the screens in
 `apps/tablets-web/src/app/disconnected.tsx`, and a deep link shows "Not part of Batchwright". On the platform build the
 people and grant screens are off too (core keeps them). D-D2-1: the India licences screen stays (a GMP batch needs the
-product endorsed on the licence; the library-dc flow records and approves it); shelf-life bases go. Next: D3 (new home,
-naming: "Batchwright" on sign-in and title, the edition in the header; amend decision 0020), D4.
+product endorsed on the licence; the library-dc flow records and approves it); shelf-life bases go. **D3 (branch `declutter/d3`, on D2):** decision 0020 amended: sign-in, title and manifest say "Batchwright", the header
+names the edition. The home opens with four work cards (My batches, To sign, To review, To release), each a count from an
+existing read (work queue, review queue, release queue: READY lots only) and a list at `/work/*` whose rows open the
+record; a card shows only where the role may make its read (`readOffered`). The Functions links keep their titles
+without descriptions. The header's edition of the record on screen follows when capsules C2's mechanism is shared. Next: D4.
 
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation
