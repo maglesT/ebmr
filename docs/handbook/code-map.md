@@ -140,7 +140,7 @@ of each database function.
 | [tools-e2e](#tools-e2e) | End-to-end browser suite | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 84 |
 | [tools-handbook](#tools-handbook) | Handbook generator and link checker | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
 | [tools-guides](#tools-guides) | User and administrator guide builder (Markdown to self-contained HTML and PDF; built in slice 7e) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
-| [tools-register](#tools-register) | Control register tooling | [modules/tools.md](modules/tools.md) | 0 | 0 | 5 | 0 |
+| [tools-register](#tools-register) | Control register tooling | [modules/tools.md](modules/tools.md) | 0 | 0 | 6 | 0 |
 | [tools-load](#tools-load) | Load and soak driver against the SLOs (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-drills](#tools-drills) | Restore, upgrade and migration drills with their records (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 5 |
 | [tools-platform](#tools-platform) | The move of a standalone Batchwright onto the MEDHANTA platform, with its demo code map (Phase B slices 5 and 6) | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 0 |
@@ -3104,7 +3104,7 @@ of each database function.
 
 **Source** (13): [build-status.ts](../../tools/register/src/build-status.ts), [catalog-parser.ts](../../tools/register/src/catalog-parser.ts), [cli.ts](../../tools/register/src/cli.ts), [import.ts](../../tools/register/src/import.ts), [migration-order.ts](../../tools/register/src/migration-order.ts), [phases.ts](../../tools/register/src/phases.ts), [pins.ts](../../tools/register/src/pins.ts), [register.ts](../../tools/register/src/register.ts), [sync.ts](../../tools/register/src/sync.ts), [test-index.ts](../../tools/register/src/test-index.ts), [trace.ts](../../tools/register/src/trace.ts), [validate.ts](../../tools/register/src/validate.ts), [validation-files.ts](../../tools/register/src/validation-files.ts)
 
-**Tests** (5): [build-status.test.ts](../../tools/register/test/build-status.test.ts), [listed-tests-and-clauses.test.ts](../../tools/register/test/listed-tests-and-clauses.test.ts), [migration-order.test.ts](../../tools/register/test/migration-order.test.ts), [register.test.ts](../../tools/register/test/register.test.ts), [validation-files.test.ts](../../tools/register/test/validation-files.test.ts)
+**Tests** (6): [build-status.test.ts](../../tools/register/test/build-status.test.ts), [ci-runners.test.ts](../../tools/register/test/ci-runners.test.ts), [listed-tests-and-clauses.test.ts](../../tools/register/test/listed-tests-and-clauses.test.ts), [migration-order.test.ts](../../tools/register/test/migration-order.test.ts), [register.test.ts](../../tools/register/test/register.test.ts), [validation-files.test.ts](../../tools/register/test/validation-files.test.ts)
 
 ## tools-load
 
