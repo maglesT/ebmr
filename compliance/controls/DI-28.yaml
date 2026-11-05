@@ -173,6 +173,7 @@ tests:
   - "apps/site-gateway/test/journal-large.test.ts > sealed segments of the process journal > [DI-28][DI-31] a journal of one large file from before is sealed on its first start once delivered; nothing is lost and its lines are unchanged"
   - "apps/site-gateway/test/journal-large.test.ts > the scale and print journals stream too > [DI-28] a print journal starts from a stream (each line checked, sequences go on)"
   - "apps/site-gateway/test/journal-large.test.ts > the scale and print journals stream too > [DI-28] a scale journal starts from a stream and verifies its chain as before"
+  - "apps/tablets-web/test/floor/step-screen.test.tsx > what the step card shows > [DI-28][DI-34] the step is one form page: each value is a row with its unit and limits, the page has one primary button (the step action at the bottom, after the signatures) and a refusal shows inside the row of its field"
 clauses:
   - clause: "Enter a value, then kill the browser. The value persists with its timestamp."
     tests:
