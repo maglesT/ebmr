@@ -35,8 +35,8 @@ concurrency:
 # Where the jobs run: CI_RUNNER 'ubicloud' (or the run-by-hand input runner=ubicloud) puts every job on Ubicloud's
 # managed runners (the Ubicloud GitHub app on this repository), each sized by its need in ONE map: the `runs-on` of the
 # first job (anchor &runner; every other job uses *runner), keyed by the job's id: ubicloud-standard-<N>-ubuntu-2204
-# with N = 8 for the test shards (4 Vitest workers) and the golden batches, 4 for the static checks (lint's 8 GB heap
-# fits 16 GB) and the end-to-end groups, 2 for the small jobs (supply chain, the end-to-end plan, the reports,
+# with N = 8 for the test shards (4 Vitest workers), the golden batches and the end-to-end groups (the long pole;
+# owner), 4 for the static checks (lint's 8 GB heap fits 16 GB), 2 for the small jobs (supply chain, the end-to-end plan, the reports,
 # traceability). Owner: heavy work on good machines, small tasks on small ones. Their VMs use GitHub's Ubuntu 22.04
 # image (its PostgreSQL is 14, so tools/ci/start-postgres.sh installs 16 from PGDG) and serve one job each, so the
 # scripts in tools/ci treat them as GitHub-hosted (EBMR_CI_HOST). mutation.yml follows the same switch (standard-8,
@@ -57,7 +57,7 @@ jobs:
   checks:
     name: Static checks (typecheck, lint, boundaries, pins, register, web build)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: &runner ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && format('ubicloud-standard-{0}-ubuntu-2204', fromJSON('{"checks":4,"supply-chain":2,"tests":8,"golden":8,"report":2,"e2e-plan":2,"e2e":4,"e2e-report":2,"traceability":2}')[github.job]) || 'ebmr-pod' }}
+    runs-on: &runner ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && format('ubicloud-standard-{0}-ubuntu-2204', fromJSON('{"checks":4,"supply-chain":2,"tests":8,"golden":8,"report":2,"e2e-plan":2,"e2e":8,"e2e-report":2,"traceability":2}')[github.job]) || 'ebmr-pod' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
