@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { LimitSpec } from '../../src/limits/model.ts';
 import { checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
-import { API_PACK, SUBSTANCE_SEEDS } from '../../src/library/seed/substance.ts';
+import { API_CHARGE, API_CRYST, API_DISP, API_DRY, API_FILTER, API_IPC_COMPLETE, API_LABEL_CHECK, API_PACK, API_REACT, API_YIELD, SUBSTANCE_SEEDS } from '../../src/library/seed/substance.ts';
 import { expr } from '../flow/support.ts';
 import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
 
@@ -173,7 +173,8 @@ describe('the ready-made catalogue', () => {
     for (const item of SUBSTANCE_SEEDS) {
       const code = item.definition.code;
       expect(item.definition.edition, code).toBe('substance');
-      expect(SEED_CATALOGUE.map((s) => s.definition.code), code).not.toContain(code);
+      // A1b registers the group: the catalogue load drafts the API blocks with the rest.
+      expect(SEED_GROUPS['substance']?.map((s) => s.definition.code), code).toContain(code);
       expect(checkBlockDefinition(item.definition, expr).filter((p) => p.code !== 'LIB-REPEAT-NO-MAX'), code).toEqual([]);
       expect(checkBlockUse(item.definition, { block: { code, version: item.definition.version }, ...item.exampleUse }, expr), code).toEqual([]);
       expect(nominalRun(item), code).toEqual({ exceptions: [], status: 'COMPLETED' });
@@ -181,6 +182,59 @@ describe('the ready-made catalogue', () => {
     }
     expect(fieldOf(API_PACK, 'container')).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
     expect(fieldOf(API_PACK, 'netMass')).toMatchObject({ type: 'NUMBER', unit: 'kg' });
+  });
+
+  it('[AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the ten blocks of a one-step synthesis as substance blocks in the group `substance`; every critical value has a limit slot the example fills, and no calculation reads an earlier step', () => {
+    expect(SUBSTANCE_SEEDS.map((s) => s.definition.code)).toEqual(['API-DISP', 'API-CHARGE', 'API-REACT', 'API-IPC-COMPLETE', 'API-CRYST', 'API-FILTER', 'API-DRY', 'API-YIELD', 'API-LABEL-CHECK', 'API-PACK']);
+    expect(SEED_GROUPS['substance']).toBe(SUBSTANCE_SEEDS);
+    for (const item of SUBSTANCE_SEEDS) {
+      const code = item.definition.code;
+      expect(item.definition.edition, code).toBe('substance');
+      expect((item.definition.inputs ?? []).map((i) => i.kind), code).not.toContain('STEP_VALUE');
+      for (const f of item.definition.sections.flatMap((s) => s.fields)) {
+        if (!('critical' in f) || f.critical !== true) continue;
+        expect(f.limitSlot !== undefined && item.exampleUse.limits?.[f.limitSlot] !== undefined, `${code} ${f.id}`).toBe(true);
+      }
+    }
+  });
+
+  it('[AS-05][AS-04][PR-18] API plan A1b: API dispensing weighs each container against its bill-of-materials line, records the lot as that line\'s material, checks the sub-divided container\'s label (material, control number, quantity, retest date), and a second person of another role verifies it', () => {
+    expect(fieldOf(API_DISP, 'lot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'materialLine' });
+    expect(fieldOf(API_DISP, 'net')).toMatchObject({ type: 'WEIGHING', bomLine: true, limitSlot: 'net' });
+    expect(fieldOf(API_DISP, 'labelled').label).toMatch(/material, control number, quantity, retest date/);
+    expect(API_DISP.definition.sections.find((s) => s.id === 'weigh')?.repeat).toEqual({ kind: 'PER_CONTAINER' });
+    expect(API_DISP.definition.signatures).toEqual([{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }, { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' }]);
+    // Charging checks each lot as its line too, and the reactor's clean status before anything goes in (AS-07).
+    expect(fieldOf(API_CHARGE, 'lot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'materialLine' });
+    expect(fieldOf(API_CHARGE, 'clean')).toMatchObject({ type: 'YES_NO', expected: true });
+  });
+
+  it('[AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature and time as critical parameters with limits, at each round; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time', () => {
+    expect(fieldOf(API_REACT, 'reactionTemp')).toMatchObject({ critical: true, limitSlot: 'reactionTemp' });
+    expect(fieldOf(API_REACT, 'reactionTime')).toMatchObject({ type: 'TIMER', critical: true, limitSlot: 'reactionTime' });
+    expect(API_REACT.definition.sections.find((s) => s.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    expect(fieldOf(API_CRYST, 'ageing')).toMatchObject({ type: 'TIMER', critical: true, limitSlot: 'ageing' });
+    expect(API_IPC_COMPLETE.definition.sections[0]?.repeat).toEqual({ kind: 'UNTIL_PASS', untilField: 'remaining', maxRepeatsSlot: 'maxChecks' });
+    expect(fieldOf(API_IPC_COMPLETE, 'remaining')).toMatchObject({ critical: true, limitSlot: 'remaining' });
+  });
+
+  it('[AS-06][AS-04] API plan A1b: the yield step works out the actual yield against the batch size and the molar yield against the key starting material\'s formula line, both critical with limits; a low yield raises an exception (to be explained and investigated) and blocks completion', () => {
+    expect(fieldOf(API_YIELD, 'actualYield')).toMatchObject({ type: 'CALC', expression: 'output / batchSize * 100 [%]', critical: true });
+    expect(fieldOf(API_YIELD, 'molarYield')).toMatchObject({ type: 'CALC', critical: true, limitSlot: 'molarYield' });
+    expect((API_YIELD.definition.inputs ?? []).map((i) => i.kind)).toEqual(['BATCH_SIZE', 'FORMULA_LINE']);
+    expect(API_YIELD.definition.roles).toContain('YIELD_RECONCILIATION');
+    expect(() => nominalRun({ ...API_YIELD, exampleUse: { ...API_YIELD.exampleUse, targets: { ...API_YIELD.exampleUse.targets, output: '40.000' } } })).toThrow(/outside its registered limit/);
+    // Drying's loss is worked out from the step's own weights, and drying repeats until the LOD passes.
+    expect(fieldOf(API_DRY, 'massLost')).toMatchObject({ type: 'CALC', expression: '(wetMass - dryMass) / wetMass * 100 [%]' });
+    expect(API_DRY.definition.sections.find((s) => s.id === 'lodLoop')?.repeat).toMatchObject({ kind: 'UNTIL_PASS', untilField: 'lod' });
+  });
+
+  it('[AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site), with a specimen kept in the record; the filter step offers a Nutsche filter or a centrifuge', () => {
+    for (const id of ['noOldLabels', 'name', 'quantity', 'dates', 'storage', 'shipped', 'specimen']) expect(fieldOf(API_LABEL_CHECK, id), id).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(API_LABEL_CHECK, 'dates').label).toMatch(/[Rr]etest or expiry date/);
+    expect(fieldOf(API_PACK, 'labelOk').label).toMatch(/retest or expiry date/);
+    expect(fieldOf(API_FILTER, 'filterType')).toMatchObject({ type: 'CHOICE', options: ['Nutsche filter', 'Centrifuge'] });
+    expect(fieldOf(API_FILTER, 'spin').showWhen).toEqual({ field: 'filterType', equals: 'Centrifuge' });
   });
 
   for (const [group, items] of Object.entries(SEED_GROUPS)) {
