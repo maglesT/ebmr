@@ -257,5 +257,5 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
   batch, and a line would force every printed master to dispense it.
 - D-C3-5: blister, strip and bottle packing of capsules reuse the packaging masters as they are (TB-21 to TB-24); the
   `library-caps` E2E packs the capsules in the cold-form blister. Residual (wording only, no GMP value): TB-20 and TB-23
-  field descriptions say "tablets" (the bottle count, the sorter); left for the lead, since changing them changes those
-  block versions' content.
+  field descriptions say "tablets" (the bottle count, the sorter). Lead, 5 November: leave those versions untouched; in C8,
+  if capsule masters use them, issue a new data-only version of each worded "units" (never edit an approved version).
