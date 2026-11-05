@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 const lot = example('release-lot');
-const gone = { ...refusal('DISCONNECTED', 'This is not part of Batchwright.'), status: 410 };
+const gone = { ...refusal('DISCONNECTED', 'This function is not connected.'), status: 410 };
 
 describe('[DI-17] disconnected panels on the release page (declutter D1)', () => {
   it('[DI-17] the QP package section and the decision notifications render nothing on 410 DISCONNECTED; the release page stays', async () => {
@@ -27,7 +27,7 @@ describe('[DI-17] disconnected panels on the release page (declutter D1)', () =>
     await userEvent.click(await screen.findByRole('tab', { name: /^EU$/ }));
     await screen.findByTestId('eu-certifications');
     await waitFor(() => expect(screen.queryByTestId('qp-package')).toBeNull());
-    expect(screen.queryByText('This is not part of Batchwright.')).toBeNull();
+    expect(screen.queryByText('This function is not connected.')).toBeNull();
   });
 
   it('[DI-17] with the functions connected both sections are shown as before', async () => {

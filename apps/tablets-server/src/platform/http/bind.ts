@@ -434,8 +434,8 @@ export function disconnected(what: string): Error {
   return refusal(410, {
     code: 'DISCONNECTED',
     kind: 'NOT_ENABLED',
-    whatHappened: 'This is not part of Batchwright.',
-    why: `${what}: this function is not connected in Batchwright for now; its records are kept.`,
+    whatHappened: 'This function is not connected.',
+    why: `${what}: this function is not connected in this installation for now; its records are kept.`,
     whatYouCanDo: ['Use the batch record screens on the home page.'],
     whoCanHelp: ['The platform administrator'],
   });
