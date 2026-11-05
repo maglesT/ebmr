@@ -18,7 +18,7 @@ Read these instead of the session history. The rules in force are:
   - recorded as each control's `expert_decision`;
   - the trace gate stays Tablets-only until I-6.
 - **Checker fix** is merged (#115). The library checker refuses a calculation that reads a DATE_TIME (LIB-CALC-DATE-TIME) or a TIMER (LIB-CALC-TIMER), because the runtime evaluates neither.
-- **I-1a, #114** (in CI; merge after capsules #109, under the lead's merge freeze):
+- **I-1a, #114** (merged):
   - `packages/recipe-core/src/library/seed/injectables.ts` holds 17 blocks of the `injectables` edition:
     - INJ-ROOM-READY, INJ-COMPONENT-ACCEPT, INJ-WASH, INJ-DEPYRO (tunnel), INJ-PARTS-AUTOCLAVE, INJ-COMPOUND;
     - INJ-BULK-FILTER, INJ-FILL, IPC-INJ-FILL-WEIGHT, INJ-AMPOULE-SEAL, INJ-CAPPING, INJ-TERMINAL-STERILISE;
@@ -26,7 +26,7 @@ Read these instead of the session history. The rules in force are:
   - They load with the existing catalogue load.
   - The installation publishes the `sterile` rule table (`INSTALLATION_RULE_TABLES`).
   - Tests: `seed-injectables.test.ts`, tagged by ST control ID.
-- **#117** (in CI; merge after #109), a shared fix the lead cleared: a library block's STEP_VALUE input is read at runtime.
+- **#117** (merged), a shared fix the lead cleared: a library block's STEP_VALUE input is read at runtime.
   - The value comes from the one COMPLETED instance of the named step (`HandlerView.stepValue`, library `readValue`).
   - It is converted exactly to the input's unit.
   - It is recorded with its origin in `computed.<field>.stepValues`.
@@ -86,9 +86,8 @@ The owner's rule: the full chain works end to end — formulation from library b
   - use a merge commit, never a rebase;
   - in control YAML conflicts, keep both sides;
   - take the handbook pages from main, then regenerate them.
-- Known E2E flakes until capsules #109 merges:
-  - "Verify the net of OC-… (second person)" times out (own-demotab, own-p3, route-d/s/w);
-  - re-run that job once.
+- The "Verify the net of OC-… (second person)" E2E race is fixed by capsules #109 (merged). A remaining UI-click flake is
+  re-run once; a second failure is real.
 - Calculations:
   - The library checker accepts only what the runtime evaluates. A DATE_TIME or TIMER inside a CALC is refused (#115).
   - A calculation that reads another step's value needs STEP_VALUE (#117).
