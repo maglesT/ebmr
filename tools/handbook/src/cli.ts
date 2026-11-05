@@ -1,6 +1,6 @@
 /**
- * `pnpm handbook` (generate) writes the generated handbook pages; `pnpm handbook:check` (check) exits non-zero when one
- * is out of date or any handbook check fails (decision 0014).
+ * `pnpm handbook` (generate) writes the generated handbook pages (not committed; CI keeps them as an artifact);
+ * `pnpm handbook:check` (check) exits non-zero when any handbook check fails (decision 0014). Both fail on a problem.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -22,13 +22,10 @@ if (command === 'generate') {
     writeFileSync(join(root, path), text);
   }
   console.log(`handbook: wrote ${result.generated.size} pages (${result.model.modules.length} modules, ${result.model.migrations.length} migrations)`);
-} else if (result.stale.length > 0) {
-  for (const p of result.stale) console.error(`out of date: ${p} (run pnpm handbook)`);
 }
 for (const p of result.problems) console.error(p);
-const failed = result.problems.length > 0 || (command === 'check' && result.stale.length > 0);
-if (failed) {
-  console.error(`handbook: ${result.problems.length} problem(s)${command === 'check' ? `, ${result.stale.length} stale page(s)` : ''}`);
+if (result.problems.length > 0) {
+  console.error(`handbook: ${result.problems.length} problem(s)`);
   process.exit(1);
 }
 if (command === 'check') console.log(`handbook: all checks pass (${result.model.modules.length} modules)`);

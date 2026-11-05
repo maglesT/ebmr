@@ -21,11 +21,11 @@ behaviour: |-
 catalog_test: Repackaging returned units without a QC assessment is blocked. After a "doubt" assessment, only destroy or chemical recovery is offered.
 implemented_by: {}
 tests:
-  - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [PR-48] returned goods are booked in quarantine linked to their finished lot; they leave it only by rejection after QC's signed assessment, and with any doubt only destruction or chemical recovery is chosen"
-  - "apps/tablets-server/test/quality/lims-routes.test.ts > finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year"
   - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused"
+  - "apps/tablets-server/test/quality/lims-routes.test.ts > finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year"
   - "apps/tablets-web/test/genealogy/genealogy.test.tsx > chemical recovery of returned goods (IN-29, PR-48) > [IN-29][PR-48] the stores record the chemical recovery of returns whose signed assessment chose it; the body is what they typed"
   - "packages/site-services/test/genealogy/recovery-distribution.test.ts > chemical recovery (site services 0960; IN-29, PR-48; D-P6d-0-4, D-P6d-0-5) > [IN-29][PR-48] returned goods become recovered material only after QC signed a chemical-recovery assessment, once, with the genealogy link in the same transaction"
+  - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [PR-48] returned goods are booked in quarantine linked to their finished lot; they leave it only by rejection after QC's signed assessment, and with any doubt only destruction or chemical recovery is chosen"
 clauses:
   - clause: "Repackaging returned units without a QC assessment is blocked."
     tests:
