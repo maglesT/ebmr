@@ -3,7 +3,6 @@
  * Validation runs on the server in A1 (decision D10); simulation is stamped SIMULATION (DI-04, DI-05).
  */
 import { z } from 'zod';
-import { flow } from '@ebmr/recipe-core/pure';
 import { DecimalString, Empty, Instant, PersonRef, Uuid, Watermark, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { FormulaChoiceView } from './master-data.ts';
@@ -250,7 +249,9 @@ export const designer = {
        * BLANK (the tablet skeleton, templates and copies are Tablets procedures) and its product's dosage form must be an
        * injectable one.
        */
-      edition: z.enum(flow.EDITIONS).optional(),
+      // API edition plan A0: recipe-core's flow.EDITIONS, written out (the contract imports no recipe-core code at run
+      // time; test/editions.test.ts checks the two lists agree).
+      edition: z.enum(['tablets', 'injectables', 'substance']).optional(),
       /**
        * Slice 7o (R4, R8; D-7o-3): PACKAGING_COPY copies the approved packaging master `copyOfVersionId` for the product of
        * `product` (code and strength; its name from the product master), each printed item (G-21) replaced by the
