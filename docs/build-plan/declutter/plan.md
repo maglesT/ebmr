@@ -65,7 +65,7 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Quality (/quality) | KEEP, reduced | material lot receipt and status that dispensing needs; lot management belongs to MMS (section 2). D1's request-logged E2E run proves dispensing still works |
 | Batch record review (/review) | KEEP | 211.192 |
 | Release cockpit (/release) | KEEP | release |
-| QP batch packages (/qp) | KEEP | EU QP certification (Annex 16) |
+| QP batch packages (/qp) | DISCONNECT | later: EU exports only (owner, 5 November) |
 | Suspension and recall (/release/suspended) | DISCONNECT | QMS (recall) |
 | Notification centre (/notifications) | DISCONNECT | later (platform notifications) |
 | Record locks and amendments (/records) | KEEP | correcting a recorded entry with its reason is a binding data-integrity need |
@@ -73,7 +73,7 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Archive and retention, Inspection workspace | DISCONNECT from the home | later. Retention runs in the server unchanged; inspection reads move to the audit trail screen |
 | Incident register (/incidents) | DISCONNECT | QMS |
 | CAPA register (/capa) | DISCONNECT | QMS |
-| Penicillin and beta-lactam rules (/plant-rules) | DISCONNECT | later (the owner decides; the server check at issue stays) |
+| Penicillin and beta-lactam rules (/plant-rules) | KEEP | binding segregation: QA marks beta-lactam materials and products here (owner, 5 November) |
 | Plant alarms, Status board, Area authorisations, Trends, Rooms and lines, Reagent lots, Equipment records | DISCONNECT | Logbook (equipment), MMS (reagent lots), later (alarms, trends) |
 | Operations (/operations) | KEEP for the operator role only | set-up and backups |
 | API reference (/developer/api) | DISCONNECT from the home | still served for integrators |
@@ -205,8 +205,8 @@ Anything else goes to the lead first.
 | D4 | data references: deviation routes refused on the platform (exception keeps `deviation_ref`); the notes for MMS, Logbook, Qual and QMS views recorded as residuals for when those views exist | server tests by control ID |
 | later | delete the dead code per area, after the owner's keep decision | CI green per area |
 
-**Decisions for the owner:**
-1. Records and amendments: keep on screen (recommended).
-2. Formulation library: settled. It stays in Batchwright (owner, 5 November).
-3. Penicillin rules screen: keep or later.
-4. Does QP batch packages count as part of release (recommended: yes)?
+**Owner decisions (5 November 2026, through the lead; plan approved):**
+1. Records and amendments: KEEP.
+2. Formulary: Batchwright's.
+3. Penicillin and beta-lactam rules screen: KEEP (binding segregation).
+4. QP batch packages: LATER, so disconnected now (EU exports only).
