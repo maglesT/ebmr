@@ -1,10 +1,11 @@
 /**
  * The step screen (module C4; plan sections 9 and 12, screen 15): the run header, the stage outline, and the
- * step card with the instruction as issued, the block renderer, exceptions, signatures and one primary action.
+ * step card with the instruction as issued, the block renderer, exceptions, signatures and one primary action, laid
+ * out as one form page (declutter D3: FormPage, one row per field, signatures and the action at the bottom).
  * Everything shown is the server's view; what can be done is the server's answer.
  */
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Banner, Button, floor } from '@ebmr/ui-kit';
+import { Banner, Button, floor, FormPage } from '@ebmr/ui-kit';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { BatchAlarmLog } from '../../plant-status/BatchAlarmLog.tsx';
 import { isGmpFloor } from '../family.ts';
@@ -56,39 +57,47 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
         </Link>
       </aside>
       <article className={wcls('card')} aria-label={`Step ${view.step.number} ${view.step.title}`} data-testid="step-card" data-step={view.step.stepKey}>
-        <floor.StepHeader step={view.step} />
-        <SignedResult result={signed.result} />
-        {/* Phase 7 slice 7h (WP-A): the plant acts of the step (room, units, tooling, hopper charge) fill its entry forms. */}
-        <StepChoicesProvider key={view.step.stepKey}>
-          <StepPlantActs view={view} />
-          <Renderer view={view} />
-          {/* Phase 7 slice 7g (WP4): the step's device and equipment, the packaging batch data and print jobs, the detector
-              challenge (slice 7m: inside the choices, so a challenge recorded opens the CHALLENGE entry naming it). */}
-          <StepFloorActs view={view} />
-        </StepChoicesProvider>
-        {/* Phase 7 slice 7l (R1): the branch of an alternative chosen and a loop iteration ended on the step screen. */}
-        <StepFlowActs view={view} />
-        <StepExceptions view={view} perform={perform} busy={busy} />
-        {view.signatures.length > 0 ? (
-          <section className={wcls('section')} aria-label={st('signatures.title')}>
-            <h2 className={wcls('sectionTitle')}>{st('signatures.title')}</h2>
-            <floor.SignatureList label={st('signatures.title')} signatures={view.signatures} />
-          </section>
-        ) : null}
-        {voidOffered ? (
-          <Button onPress={openVoid} isDisabled={busy}>
-            {st('void.open')}
-          </Button>
-        ) : null}
-        {correctOffered ? (
-          <Button onPress={openCorrect} isDisabled={busy}>
-            {st('correct.open')}
-          </Button>
-        ) : null}
-        <StepActionBar view={view} perform={perform} busy={busy} />
-        {/* Phase 6 slice 6b (DI-49): the alarms bound to this step of a GMP batch, acknowledged here. */}
-        {isGmpFloor() ? <BatchAlarmLog batchId={view.run.runId} step={view.step.stepKey} /> : null}
-        {/* end slice 6b */}
+        {/* Declutter D3: the step is one form page read top to bottom like the paper record (heading, one row per
+            field, the signatures and the one primary action at the bottom), the same layout in every edition. */}
+        <FormPage>
+          <floor.StepHeader step={view.step} />
+          <SignedResult result={signed.result} />
+          {/* Phase 7 slice 7h (WP-A): the plant acts of the step (room, units, tooling, hopper charge) fill its entry forms. */}
+          <StepChoicesProvider key={view.step.stepKey}>
+            <StepPlantActs view={view} />
+            <Renderer view={view} />
+            {/* Phase 7 slice 7g (WP4): the step's device and equipment, the packaging batch data and print jobs, the detector
+                challenge (slice 7m: inside the choices, so a challenge recorded opens the CHALLENGE entry naming it). */}
+            <StepFloorActs view={view} />
+          </StepChoicesProvider>
+          {/* Phase 7 slice 7l (R1): the branch of an alternative chosen and a loop iteration ended on the step screen. */}
+          <StepFlowActs view={view} />
+          <StepExceptions view={view} perform={perform} busy={busy} />
+          {/* Phase 6 slice 6b (DI-49): the alarms bound to this step of a GMP batch, acknowledged here. */}
+          {isGmpFloor() ? <BatchAlarmLog batchId={view.run.runId} step={view.step.stepKey} /> : null}
+          {/* end slice 6b */}
+          {voidOffered || correctOffered ? (
+            <div className={wcls('row')}>
+              {voidOffered ? (
+                <Button onPress={openVoid} isDisabled={busy}>
+                  {st('void.open')}
+                </Button>
+              ) : null}
+              {correctOffered ? (
+                <Button onPress={openCorrect} isDisabled={busy}>
+                  {st('correct.open')}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          {view.signatures.length > 0 ? (
+            <section className={wcls('signBlock')} aria-label={st('signatures.title')}>
+              <h2 className={wcls('sectionTitle')}>{st('signatures.title')}</h2>
+              <floor.SignatureList label={st('signatures.title')} signatures={view.signatures} />
+            </section>
+          ) : null}
+          <StepActionBar view={view} perform={perform} busy={busy} />
+        </FormPage>
         {dialogs}
       </article>
     </div>

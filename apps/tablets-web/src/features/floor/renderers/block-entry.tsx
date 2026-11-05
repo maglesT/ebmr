@@ -485,7 +485,7 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
               {st('form.warning', { warning: def.warning })}
             </p>
           ) : null}
-          <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={entry === null || locked}>
+          <Button variant="secondary" className={wcls('saveButton')} onPress={save} isDisabled={entry === null || locked}>
             {confirming ? st('form.confirmWarning', { title: def.title }) : st('save.form', { title: def.title })}
           </Button>
         </>

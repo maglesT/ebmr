@@ -295,7 +295,7 @@ export function PotencyCalculation({ view }: RendererProps) {
       <Button onPress={() => setLots((ls) => [...ls, { lotCode: '', baseEquivalent: '' }])} isDisabled={locked || lots.length >= 3}>
         Add a lot
       </Button>
-      <Button variant="primary" onPress={calculate} isDisabled={locked || !ready}>
+      <Button variant="secondary" onPress={calculate} isDisabled={locked || !ready}>
         Calculate from the lots
       </Button>
       <EntryStatus call={cmd} />

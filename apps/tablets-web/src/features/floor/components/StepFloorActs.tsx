@@ -78,7 +78,7 @@ function StepDevicePanel({ view }: { view: StepScreenView }) {
                 onChange={setDevice}
               />
               <Button
-                variant="primary"
+                variant="secondary"
                 isDisabled={!device || busy}
                 onPress={() => {
                   if (device) void bindDevice.run({ body: { ...target, deviceCode: device } }).then((r) => r && setDevice(null));
@@ -195,7 +195,7 @@ function PackagingBatchDataPanel({ view }: { view: StepScreenView }) {
       )}
       <Field name="mrp" label="MRP in rupees (only where the pack shows it)" value={mrp} onChange={setMrp} inputMode="decimal" />
       {needsReason ? <Field name="batchDataReason" label="Reason for the change (the jobs on the earlier data are voided)" value={reason} onChange={setReason} isRequired /> : null}
-      <Button variant="primary" isDisabled={busy || (needsReason && reason.trim() === '')} onPress={() => void send()}>
+      <Button variant="secondary" isDisabled={busy || (needsReason && reason.trim() === '')} onPress={() => void send()}>
         {c ? 'Record a new version of the batch data' : 'Record the batch data'}
       </Button>
       <ActResult error={record.error} done={record.done} label="Batch data recorded." />
@@ -322,7 +322,7 @@ function DetectorChallengePanel({ view }: { view: StepScreenView }) {
       {pieces.map((p) => (
         <floor.ChoiceGroup key={p} label={`Test piece ${p}`} options={PIECE_OPTIONS} value={results[p] ?? null} onChange={(v) => setResults({ ...results, [p]: v as PieceResult })} />
       ))}
-      <Button variant="primary" isDisabled={!complete || challenge.busy} onPress={() => void send()}>
+      <Button variant="secondary" isDisabled={!complete || challenge.busy} onPress={() => void send()}>
         Record the challenge
       </Button>
       {done ? (
@@ -352,7 +352,7 @@ export function MergeContainers() {
       <Field name="mergeSource" label="Scan the container poured out (source label)" value={source} onChange={setSource} autoComplete="off" />
       <Field name="mergeTarget" label="Scan the open container poured into (target label)" value={target} onChange={setTarget} autoComplete="off" />
       <Button
-        variant="primary"
+        variant="secondary"
         isDisabled={source.trim() === '' || target.trim() === '' || merge.busy}
         onPress={() =>
           void merge.run({ body: { sourceLabel: source.trim(), targetLabel: target.trim() } }).then((r) => {
