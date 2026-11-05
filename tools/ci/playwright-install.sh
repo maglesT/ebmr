@@ -10,7 +10,7 @@ set -euo pipefail
 
 pw_install() { pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium; }
 
-if [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ]; then pw_install; exit 0; fi
+if [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; then pw_install; exit 0; fi
 
 [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] || { echo "playwright-install: PLAYWRIGHT_BROWSERS_PATH is not set (run tools/ci/runner-env.sh first)" >&2; exit 1; }
 lock="${EBMR_CI_APT_LOCK:-/tmp/ebmr-ci-apt.lock}"
