@@ -43,24 +43,7 @@ function runItem(item: SeedItem, overrides: Readonly<Record<string, Readonly<Rec
   const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
   const batch = Run.issue(d, { inputs: values }, T0);
   batch.start('p');
-  const entries = nominalEntries(def, config as never, mbr).map((e) => (overrides[e.kind] ? { ...e, ...overrides[e.kind] } : e));
-  // A nominal run keeps its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
-  // step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
-  // every per-interval section (the catalogue's intervals are 15 minutes or more).
-  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
-  for (const e of entries) {
-    if (e.kind === TIMER_STOP) {
-      for (let i = 0; i < 6; i++) {
-        batch.minutes(10 - rounds.length);
-        for (const r of rounds) {
-          batch.entry('p', r);
-          batch.minutes(1);
-        }
-      }
-    }
-    batch.entry('p', e);
-    batch.minutes(1);
-  }
+  recordNominal(batch, 'p', item, mbr, overrides);
   try {
     batch.perform('p');
   } catch (e) {
@@ -69,4 +52,29 @@ function runItem(item: SeedItem, overrides: Readonly<Record<string, Readonly<Rec
   }
   if (batch.status('p') === 'AWAITING_VERIFICATION') batch.verify('p');
   return { exceptions: batch.exceptions().map((x) => x.type), status: batch.status('p') };
+}
+
+/**
+ * Records a started step's nominal entries (some values of a section's entries changed), keeping its in-process checks
+ * on time while a timer runs (R3-ENG-4: the gap from the last round to the step's end is held too): the hour before a
+ * timer stops is spent in 10-minute stretches, each closed by a round of every per-interval section (the catalogue's
+ * intervals are 15 minutes or more).
+ */
+export function recordNominal(batch: Run, stepId: string, item: SeedItem, mbr: MbrContent, overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {}): void {
+  const def = item.definition;
+  const entries = nominalEntries(def, item.exampleUse as never, mbr).map((e) => (overrides[e.kind] ? { ...e, ...overrides[e.kind] } : e));
+  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
+  for (const e of entries) {
+    if (e.kind === TIMER_STOP) {
+      for (let i = 0; i < 6; i++) {
+        batch.minutes(10 - rounds.length);
+        for (const r of rounds) {
+          batch.entry(stepId, r);
+          batch.minutes(1);
+        }
+      }
+    }
+    batch.entry(stepId, e);
+    batch.minutes(1);
+  }
 }
