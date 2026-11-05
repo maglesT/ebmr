@@ -67,6 +67,10 @@ naming: "Batchwright" on sign-in and title, the edition in the header; amend dec
 inside `quality` (Deviations); raise, link, the batch's list and the release checklist stay (kept screens and the
 database's reference checks need them). `/quality/deviations` is off on the web; kept pages show the reference as text.
 Residuals D4-R1 to R5 (MMS, Logbook, Qual, QMS, Deviations) in plan.md section 7.
+**D4b (branch `declutter/d4b`):** a lot opens only its own OOS record (`/quality/lots/$lotId/oos/$deviationId`, from the
+result row and the lot's release checklist): investigation, finding, impact, closure basis, QA's signed impact assessment and
+conclusion, which a laboratory-error invalidation needs. Detail, impact and closure basis reconnected; reclassify, cancel,
+the lite record and the list stay off.
 
 - Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation

@@ -51,22 +51,7 @@ function DeviationRecord({ d }: { d: DeviationView }) {
       </Section>
       {d.state === 'OPEN' ? <StartInvestigation deviationId={d.deviationId} /> : null}
       <DeviationDetail deviationId={d.deviationId} />
-      {investigating ? (
-        <Section title="Finding" testId="finding">
-          <DefineForm
-            title="Record the finding"
-            route={routes.quality.recordFinding}
-            params={{ deviationId: d.deviationId }}
-            refresh={DEVIATION_READS}
-            submitLabel="Record the finding"
-            fields={[
-              { name: 'assignableCause', label: 'Assignable cause found', kind: 'yesno' },
-              { name: 'cause', label: 'Cause', kind: 'text', description: 'At least 10 characters' },
-              { name: 'rootCauseCategory', label: 'Root cause category', kind: 'choice', options: ['HUMAN_ERROR', 'EQUIPMENT', 'MATERIAL', 'METHOD', 'ENVIRONMENT', 'PROCESS', 'LABORATORY_ERROR', 'NOT_DETERMINED'] },
-            ]}
-          />
-        </Section>
-      ) : null}
+      {investigating ? <FindingForm deviationId={d.deviationId} /> : null}
       {qa && (investigating || d.state === 'PENDING_CLOSURE') ? <SignedActs d={d} /> : null}
       {qa && d.state === 'OPEN' ? <CancelForm deviationId={d.deviationId} /> : null}
     </>
@@ -108,7 +93,26 @@ function LinkForm({ deviationId }: { deviationId: string }) {
   );
 }
 
-function StartInvestigation({ deviationId }: { deviationId: string }) {
+export function FindingForm({ deviationId }: { deviationId: string }) {
+  return (
+    <Section title="Finding" testId="finding">
+      <DefineForm
+        title="Record the finding"
+        route={routes.quality.recordFinding}
+        params={{ deviationId }}
+        refresh={DEVIATION_READS}
+        submitLabel="Record the finding"
+        fields={[
+          { name: 'assignableCause', label: 'Assignable cause found', kind: 'yesno' },
+          { name: 'cause', label: 'Cause', kind: 'text', description: 'At least 10 characters' },
+          { name: 'rootCauseCategory', label: 'Root cause category', kind: 'choice', options: ['HUMAN_ERROR', 'EQUIPMENT', 'MATERIAL', 'METHOD', 'ENVIRONMENT', 'PROCESS', 'LABORATORY_ERROR', 'NOT_DETERMINED'] },
+        ]}
+      />
+    </Section>
+  );
+}
+
+export function StartInvestigation({ deviationId }: { deviationId: string }) {
   return (
     <Section title="Investigation" testId="investigation">
       <DefineForm
@@ -128,7 +132,8 @@ function StartInvestigation({ deviationId }: { deviationId: string }) {
   );
 }
 
-function SignedActs({ d }: { d: DeviationView }) {
+/** QA's signed acts by state; `close` false leaves out the closure (slice D4b: the OOS record ends at QA's conclusion). */
+export function SignedActs({ d, close = true }: { d: Pick<DeviationView, 'deviationId' | 'ref' | 'title' | 'state'>; close?: boolean }) {
   const signed = useSignedAct(DEVIATION_READS);
   return (
     <Section title="QA decision" testId="qa-decision">
@@ -142,7 +147,7 @@ function SignedActs({ d }: { d: DeviationView }) {
       {d.state === 'IMPACT_ASSESSED' ? (
         <ActButton label="Conclude (QA signature)" onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: d.deviationId, input: {} }, `Conclude ${d.ref}: ${d.title}`)} disabled={signed.busy} />
       ) : null}
-      {d.state === 'PENDING_CLOSURE' ? (
+      {close && d.state === 'PENDING_CLOSURE' ? (
         <ActButton label="Close (QA signature)" onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'DEVIATION_CLOSE', subjectId: d.deviationId, input: {} }, `Close ${d.ref}: ${d.title}`)} disabled={signed.busy} />
       ) : null}
       <ActResult error={signed.error} outcome={signed.outcome} />

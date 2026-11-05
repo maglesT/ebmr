@@ -48,12 +48,12 @@ const EMBEDDED: Record<string, string[]> = {
  * Slice D4: the files of kept features that name a single disconnected route (DISCONNECTED_ROUTES, the full deviation
  * records), each a deviation screen switched off at /quality/deviations (DeviationsPage only names two ids among the
  * reads it refreshes). The lot page embeds DeviationDetail's release checklist, which reads quality.deviationRelease
- * (kept connected).
+ * (kept connected). Slice D4b: the lot's OOS record (LotOosRecord.tsx) names none, so it is not listed here.
  */
 const DEVIATION_SCREENS: Record<string, string[]> = {
-  'features/quality/DeviationDetail.tsx': ['deviationDetail', 'reclassifyDeviation', 'recordDeviationClosureBasis', 'recordDeviationImpact'],
+  'features/quality/DeviationDetail.tsx': ['reclassifyDeviation'],
   'features/quality/DeviationPage.tsx': ['cancelDeviation', 'deviation'],
-  'features/quality/DeviationsPage.tsx': ['deviation', 'deviationDetail'],
+  'features/quality/DeviationsPage.tsx': ['deviation'],
 };
 
 function files(dir: string): string[] {
