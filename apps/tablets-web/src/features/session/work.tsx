@@ -34,10 +34,10 @@ export const WORK_CARDS: readonly WorkCard[] = [
 const REVIEW_OPEN: readonly ReviewState[] = ['EXECUTION_COMPLETE', 'PRODUCTION_APPROVED'];
 
 /**
- * The manufacturer release states with no decision yet: NOT_READY (G-REL not met; the lot may still be rejected) and
- * READY. RELEASED, REJECTED and the after-release states (suspended, recalled, rejected after release) are decided.
+ * The lots the releasing person can act on now: READY (G-REL met, no decision yet). NOT_READY lots wait for others
+ * (plan section 4: no count nobody acts on); RELEASED, REJECTED and the after-release states are decided.
  */
-const RELEASE_OPEN: readonly ManufacturerReleaseState[] = ['NOT_READY', 'READY'];
+const RELEASE_OPEN: readonly ManufacturerReleaseState[] = ['READY'];
 
 export interface WorkRow {
   readonly key: string;
