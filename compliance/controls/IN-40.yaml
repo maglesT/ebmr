@@ -18,8 +18,11 @@ catalog_test: "import a Grade B in-operation 5.0 micrometre count of 2,910/m3: i
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Room classes; SM Table 1 in the rule table; INJ-32 NUM counts; requalification due date (4.1, 4.4)"
 build_status: SPECIFIED
 jurisdiction: "0.5 micrometre values **same** as EU Annex 1 (2022) Tables 1 and 5 [chk] and FDA 2004 Table 1 (ISO 5: 3,520; ISO 7: 352,000; ISO 8: 3,520,000, measured during activity) [chk]. 5.0 micrometre values **stricter (lower)** than EU 2022 (Table 5 monitoring: Grade A 29; B 29 at rest / 2,930 in operation; C 2,930 / 29,300; D 29,300; Table 1 classification: Grade A not specified) [chk]; FDA sets no 5.0 micrometre limit [chk]. EU 2022 is **stricter on monitoring method**: Grade A monitored continuously for both sizes at no less than 28 L/min (9.17) and consecutive low-level 5 micrometre counts investigated (Table 5 note 2) [chk]; EU Grade D in-operation limits must be set by the site from risk assessment [chk]. Airflow: EU 0.36-0.54 m/s at the working position (guidance) [chk]; India adds the hard 0.36 m/s minimum at working level (**stricter**). Clean-up: EU under 20 minutes guidance [chk] (**same**)."
 type_detail: ENFORCED (market-resolved limit table); CONFIGURABLE (alert limits, locations).

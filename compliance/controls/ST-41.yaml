@@ -29,8 +29,11 @@ catalog_test: Stoppers sterilised at T0 with a 72 h hold are used at T0+73 h →
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-04 washing, INJ-05 depyrogenation, INJ-06 moist heat; holds by CALC (4.2, 4.3)"
 build_status: SPECIFIED
 jurisdiction: FDA-AP is more specific on stopper washing, siliconisation and water quality. Apply it as written.
 scope: all (sterilisation/depyrogenation where the product requires it)

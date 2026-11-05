@@ -39,8 +39,11 @@ catalog_test: APS included 3 needle changes and the routine batch records 5 → 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Media-fill formulation from production blocks; limits as formulation maxima via CALC (4.4)"
 build_status: SPECIFIED
 jurisdiction: Aligned on unit numbers and worst-case design. EU adds explicit lyo worst-case items and campaign start/end. FDA adds the common/rare intervention frequency idea.
 scope: "aseptic (lyo parameters: lyo)"

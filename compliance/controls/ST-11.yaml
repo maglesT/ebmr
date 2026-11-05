@@ -26,8 +26,11 @@ catalog_test: Scan a gown pack past its sterile hold → rejected. Log a torn gl
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "no per-entry gowning record in the eBMR"
 build_status: SPECIFIED
 jurisdiction: "EU is more prescriptive: per-grade garment list, fresh sterile garments on every A/B entry, qualified maximum wear time and maximum laundry cycles. Apply EU."
 scope: "all (Grade A/B rules: aseptic)"

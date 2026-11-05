@@ -28,8 +28,11 @@ catalog_test: Replay a 7-min PLC stop with no entry → review flag. Log a needl
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Events repeat in INJ-15: CHOICE, TXT, DT, SIGN (4.3)"
 build_status: SPECIFIED
 jurisdiction: Aligned. FDA-AP adds line-clearance rules for major interventions.
 scope: aseptic

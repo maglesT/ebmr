@@ -19,8 +19,11 @@ catalog_test: Route open vials through a zone not classified Grade A in the line
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Room class on the INJ-15 EQUIP room field (4.1, 4.3)"
 build_status: SPECIFIED
 jurisdiction: Aligned (ISO 5 critical area).
 scope: aseptic

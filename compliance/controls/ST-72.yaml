@@ -19,8 +19,11 @@ catalog_test: Consume stoppers from an unreviewed cycle → certification blocke
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Cycle blocks complete with SIGN + CHECKED; gate"
 build_status: SPECIFIED
 jurisdiction: Aligned.
 scope: all

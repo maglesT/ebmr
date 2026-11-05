@@ -16,8 +16,11 @@ catalog_test: select a steriliser whose annual revalidation lapsed; blocked. Imp
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-05, -06, -21 typed NUM, SIGN + CHECKED; revalidation and leak test as due dates (4.2, 4.3)"
 build_status: SPECIFIED
 jurisdiction: yearly revalidation of every process is **stricter** than EU Annex 1 (2022) 8.39 (at least yearly for worst-case load patterns; others per CCS) [chk] and FDA (periodic) [gk]; chamber leak testing **weaker** than EU 8.60 (normally weekly when a vacuum phase is used) [chk], where India only says "regular".
 notes: "Source check: P (6.3-6.11.1.4 re-read)."

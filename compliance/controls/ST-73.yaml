@@ -19,8 +19,11 @@ catalog_test: A 12-month extract of interventions per line matches the source ba
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "(see unsure list)"
 build_status: SPECIFIED
 jurisdiction: Aligned.
 scope: all

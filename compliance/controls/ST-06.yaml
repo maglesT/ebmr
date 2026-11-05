@@ -26,8 +26,11 @@ catalog_test: Inject a 2 s power dip on the filler feed → deviation auto-creat
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "alarms typed as events and assessed"
 build_status: SPECIFIED
 jurisdiction: FDA-AP is more explicit that every power interruption is a deviation. EU adds a requirement for immediate review of critical alarms. Apply both.
 scope: all

@@ -39,8 +39,11 @@ catalog_test: Leave a 15-min gap between Grade A plates → coverage exception. 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-32 section per location from the formulation's plan; plate exposure as NUM with its limit (4.4)"
 build_status: SPECIFIED
 jurisdiction: EU is stricter. It requires continuous Grade A viable monitoring including set-up, and a maximum 4 h plate exposure. FDA-AP requires sampling each shift, calls settle plates optional, and puts critical-surface sampling at end of operation (same as EU).
 scope: "all (continuous Grade A viable coverage: aseptic)"

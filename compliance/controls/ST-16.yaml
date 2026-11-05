@@ -27,8 +27,11 @@ catalog_test: Log an HVAC shutdown without a return-to-service record → line c
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Existing EQUIP status and due dates; INJ-01 line clearance; extra EM via INJ-32"
 build_status: SPECIFIED
 jurisdiction: Complementary. EU adds the clean-up period and the pre-maintenance sterility assessment. FDA-AP stresses written return-to-operation procedures after shutdowns and construction.
 scope: all
