@@ -76,7 +76,8 @@ export async function asAdmin<T>(database: string, work: (c: pg.Client) => Promi
 
 /**
  * The migrations of a tablets edition database, in order: kernel, site services, recipe-core, then any
- * edition sources (the tablets server passes its own `sql` directory; test-kit never imports an app).
+ * edition sources (the tablets server passes its own `sql` directory; test-kit never imports an app), then the API
+ * edition's `substance` namespace (editions/substance/sql; API plan A0), which runs after them in the same database.
  */
 export function editionMigrationSources(extra: MigrationSource[] = []): MigrationSource[] {
   const sources: MigrationSource[] = [KERNEL_MIGRATIONS];
@@ -84,7 +85,9 @@ export function editionMigrationSources(extra: MigrationSource[] = []): Migratio
   if (existsSync(siteServices)) sources.push({ namespace: 'site-services', directory: siteServices });
   const recipeCore = new URL('../../recipe-core/sql', import.meta.url).pathname;
   if (existsSync(recipeCore)) sources.push({ namespace: 'recipe-core', directory: recipeCore });
-  return [...sources, ...extra];
+  const substance = new URL('../../../editions/substance/sql', import.meta.url).pathname;
+  const tail = existsSync(substance) && !extra.some((s) => s.namespace === 'substance') ? [{ namespace: 'substance', directory: substance }] : [];
+  return [...sources, ...extra, ...tail];
 }
 
 /**

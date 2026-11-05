@@ -175,10 +175,11 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
       <h1>
         {present.header.title} <span className={dcls('small')}>MBR-{saved.familyCode}-v{saved.number}</span>
         {/* Injectables plan I-0: the edition is data on the family; an injectables master says so (Tablets screens unchanged). */}
-        {present.header.edition === 'injectables' ? (
+        {/* API edition plan A0: an API (substance) master says API. */}
+        {present.header.edition !== 'tablets' ? (
           <>
             {' '}
-            <StatusChip tone="neutral" label="Injectables" />
+            <StatusChip tone="neutral" label={present.header.edition === 'injectables' ? 'Injectables' : 'API'} />
           </>
         ) : null}
       </h1>

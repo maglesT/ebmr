@@ -259,6 +259,29 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(rows[0]?.edition).toBe('injectables');
   });
 
+  it('[PR-01][INV-17] API edition plan A0: an API (substance) family starts blank from the formula of a product whose dosage form is API or Intermediate; a tablet product cannot become one, nor an API product a tablets family, and the family list and the database name the edition', async () => {
+    const API = { code: 'DMT7JA', name: 'Demosubstance', strength: PRODUCT.strength };
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: API.code, strength: API.strength, productName: API.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    const apiFormula = await approvedFormula('100000', undefined, LINES, API.code);
+    const apiCreate = (familyCode: string, extra: Record<string, unknown>) =>
+      author.call(routes.designer.createFamily, { body: { familyCode, product: API, markets: ['IN'], formulaVersionId: apiFormula, edition: 'substance', ...extra } });
+    const v = valueOf(await apiCreate('DMT7JA-BL', { start: 'BLANK' }));
+    expect((v.content as unknown as { header: { edition: string; product: { dosageForm: string } } }).header).toMatchObject({ edition: 'substance', product: { dosageForm: 'API' } });
+    // The tablet skeleton, the templates and packaging copies are tablet procedures: refused for an API family.
+    expect(refusalOf(await apiCreate('DMT7JA-SK', { start: 'SKELETON' })).code).toBe('DESIGNER_EDITION_START');
+    expect(refusalOf(await apiCreate('DMT7JA-T', { templateId: 'dc-mini', batchSizes: [{ quantity: '1', unit: 'kg' }] })).code).toBe('DESIGNER_EDITION_START');
+    // A tablet product is not an API, and an API product is not a tablet.
+    const tablet = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-API', product: PRODUCT, markets: ['IN'], formulaVersionId: otherVersionId, start: 'BLANK', edition: 'substance' } });
+    expect(refusalOf(tablet).code).toBe('DESIGNER_PRODUCT_MASTER');
+    expect(refusalOf(tablet).why).toMatch(/neither API nor Intermediate/);
+    expect(refusalOf(await apiCreate('DMT7JA-TAB', { start: 'BLANK', edition: 'tablets' })).code).toBe('DESIGNER_PRODUCT_MASTER');
+    const families = valueOf(await author.call(routes.designer.families)).families;
+    expect(families.find((f) => f.familyCode === 'DMT7JA-BL')?.edition).toBe('substance');
+    const { rows } = await gmp.db.admin.query<{ edition: string }>("select edition from recipe.mbr_family where code = 'DMT7JA-BL'");
+    expect(rows[0]?.edition).toBe('substance');
+  });
+
   it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));
