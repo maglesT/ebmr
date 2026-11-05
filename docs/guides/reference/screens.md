@@ -7,7 +7,7 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 148 screens, 83 home tiles.
+In all: 149 screens, 83 home tiles.
 
 ## access
 
@@ -319,6 +319,7 @@ In all: 148 screens, 83 home tiles.
 | `/release` | ReleaseQueuePage | Release cockpit (GMP) | Finished lots, the release checklist with its evidence, and the manufacturer release. |
 | `/release/suspended` | SuspendedPage | Suspension and recall (GMP) | Lots suspended after release, what suspended them, the lots affected downstream, re-confirmation, recall, rejection and disposal. |
 | `/release/$lotId` | LotReleasePage |  |  |
+| `/release/$lotId/coa` | CoaPage |  |  |
 | `/release/batches/$batchId` | BatchMarketsPage |  |  |
 | `/qp` | QpReaderPage | QP batch packages (GMP) | The EU QP's read-only view of the issued packages of one lot, while the access lasts. |
 

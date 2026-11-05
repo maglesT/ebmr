@@ -73,6 +73,8 @@ tests:
   - "packages/kernel/test/records/evidence-export-offline.test.ts > the PDF/A-3 true copy verified offline (kernel src/records/pdf-true-copy.ts, pdfa.ts) > [DI-41] the reader names an embedded file without its own file name by its place in the list"
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [DI-41][INV-42] the QP package of a finished lot names the chains it may copy and is served only while the manufacturer release is RELEASED and the EU market is in the set and not removed, ineligible or suspended"
   - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [DI-41][DI-47][DI-17] a batch whose retention is stored still opens in the archive and is exported with its stored retention, read without the investigation-revealing kernel reader"
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once"
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it"
 clauses:
   - clause: "Scan a thermal printout. The copy carries a checksum, a verifier signature and a link to its step."
     tests:

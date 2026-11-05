@@ -316,6 +316,7 @@ tests:
   - "apps/tablets-server/test/medhanta/platform-signon.test.ts > e-signatures re-authenticate at core (DI-38, PL-05) > [DI-35][PR-05] a library block is approved with core's re-authentication by another person than its author; its author is refused (EBMR-LIB-007)"
   - "apps/tablets-server/test/library/library-edition.test.ts > library block editions (injectables plan I-0; recipe-core 1871) > [PR-05][DI-35] on the real approval path, a tablets master holding an approved injectables block passes its earlier steps and is refused at QA approval (EBMR-LIB-024)"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-05][DI-35] on the real approval path, a tablets master holding an approved substance block is refused at QA approval (EBMR-LIB-024)"
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

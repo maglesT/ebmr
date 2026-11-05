@@ -30,3 +30,17 @@ after the tablets namespace), and it never changes how tablets or injectables be
    container, rule-set and reprocessing items of the tablets hook. Anything that cannot be shown is RED.
 5. The market guard (kernel 1404) refuses a tablets or sterile rule key on an API scope: an API master binds the kernel
    rule table only.
+
+## The certificate of analysis (plan C3, AS-17)
+
+Migration 5002. The CoA of a released finished lot of the API edition is read only from existing records
+(`substance.coa_document`): the product's name and grade (the monograph reference of the specification in effect), the
+lot and batch numbers, the release date (the manufacturer release decision), the retest and expiry dates, each test of the
+specification with its limits and the latest approved result, and the manufacturer's name and address from the
+manufacturing licence. No record holds the manufacturer's telephone; the CoA shows it as not on record.
+
+1. The authorised person prepares it (`substance.prepare_coa`, right RELEASE.MANUFACTURER): refused while a problem
+   stands; the document and its SHA-256 are stored insert-only (`substance.coa`), the true copy.
+2. The quality unit signs it through the usual ceremony (signable action COA_ACT, aggregate `substance_coa`, meaning
+   COA_APPROVED, state PREPARED); `substance.sign_coa` refuses a CoA whose lot's records changed since it was prepared.
+3. The screen is `/release/$lotId/coa`, linked from the release page of a released lot.
