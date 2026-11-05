@@ -29,7 +29,7 @@ const SOLUTION_PRODUCT = 'DMT7JS';
 const SOFTGEL_PRODUCT = 'DMT7JG';
 /** C2: a hard capsule whose formula holds its empty shells (a COATING line per unit). */
 const SHELLED_PRODUCT = 'DMT7JH';
-const TWO_COAT_PRODUCT = 'DMT7JI';
+const TWO_COAT_PRODUCT = 'DMT7JK';
 const REASON = 'In-house development product';
 const PRODUCT = { code: 'DMT7JF', name: 'Demotab 400 mg', strength: '400 mg' };
 const LINES: FormulaLineInput[] = [
@@ -313,7 +313,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
     // The lead's condition: the shells never collide with a coat. A second per-unit COATING line on a capsule is refused
     // (a coat on capsules is given per batch, C3).
     const twice = await approvedFormula('100000', undefined, [...lines, { lineId: 'coat', materialCode: 'RM-7JF-WAT', role: 'COATING', basis: 'PER_UNIT', quantity: '20', potencyAdjusted: false, compensating: false }], TWO_COAT_PRODUCT);
-    const r = refusalOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JI-SK', product: { code: TWO_COAT_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: twice, start: 'SKELETON' } }));
+    const r = refusalOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JK-SK', product: { code: TWO_COAT_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: twice, start: 'SKELETON' } }));
     expect(r.code).toBe('DESIGNER_FORMULA');
     expect(r.whatHappened + r.why).toContain('2 COATING lines given per unit (shl, coat)');
   });
