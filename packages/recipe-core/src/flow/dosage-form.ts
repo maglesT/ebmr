@@ -32,6 +32,18 @@ export function isCapsuleForm(dosageForm: string | null | undefined): boolean {
 }
 
 /**
+ * Injectables plan I-0 and I-1c: the dosage forms of an injectables product (pharmacopoeial names: injection, infusion,
+ * powder for injection, parenteral). One rule for the designer's edition check and the header's edition. Display and
+ * edition only: no GMP value depends on it.
+ */
+const INJECTABLE_FORM = /inject|infusion|parenteral/i;
+
+/** True when the dosage form makes the product an injectable (the header then names the Injectables edition). */
+export function isInjectableForm(dosageForm: string | null | undefined): boolean {
+  return INJECTABLE_FORM.test((dosageForm ?? '').trim());
+}
+
+/**
  * C2 (lead, 5 November 2026): a capsule's empty shells are its formula's COATING line given per unit (the unit's outer
  * part); in a capsule master from a formula that line is a bill-of-materials line of role OTHER, not dispensed into the
  * blend. Every screen names it "Empty capsule shells", never a coating. A real coat on a capsule (C3, enteric) is given

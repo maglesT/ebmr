@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCapsuleForm, readDosageForm } from '../../src/flow/dosage-form.ts';
+import { isCapsuleForm, isInjectableForm, readDosageForm } from '../../src/flow/dosage-form.ts';
 
 describe('the unit form from the dosage form (Capsules edition, C2)', () => {
   it('[PR-01] a dosage form containing "capsule" in any case is a capsule; hard and soft alike', () => {
@@ -45,5 +45,12 @@ describe('a capsule\'s empty shells (C2; lead, 5 November 2026)', () => {
     expect(bomShellsLabel('OTHER', 'Hard gelatin capsule')).toBe('Empty capsule shells');
     expect(bomShellsLabel('OTHER', 'Tablet')).toBeNull();
     expect(bomShellsLabel('EXCIPIENT', 'Hard gelatin capsule')).toBeNull();
+  });
+});
+
+describe('an injectable dosage form (injectables plan I-0, I-1c)', () => {
+  it('[PR-01] injection, infusion, powder for injection and parenteral forms are injectable in any case; tablets, capsules and none are not', () => {
+    for (const f of ['Solution for injection', 'POWDER FOR INJECTION', 'Concentrate for solution for infusion', 'Parenteral emulsion']) expect(isInjectableForm(f)).toBe(true);
+    for (const f of ['Tablet', 'Hard gelatin capsule', '', null, undefined]) expect(isInjectableForm(f)).toBe(false);
   });
 });
