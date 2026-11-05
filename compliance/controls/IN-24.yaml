@@ -82,6 +82,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Libtab 400 mg, wet granulation, film coated (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Libtab 250 mg, direct compression, uncoated (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
+  - "tools/e2e/specs/library/acceptance.ts > [PR-17][IN-24][IN-33][PR-32] Libcap 200 mg, hard capsules size 0 (library), GMP 2: the first lots of the materials and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office"
 clauses:
   - clause: "release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists."
     tests:

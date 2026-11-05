@@ -113,10 +113,25 @@ function materialRefs(src: FormulaSource): flow.Reference[] {
   });
 }
 
+/**
+ * Capsules edition C2: a capsule's empty shells are the formula's COATING line given per unit (the unit's outer part,
+ * as a tablet's coat). They are in the bill of materials (role OTHER) and in the unit and batch mass, but not dispensed
+ * into the blend: the filling step names their lot (PROC-CAPS-FILL, its shell line). A tablet's lines are unchanged.
+ */
+export const isShellLine = (src: Pick<FormulaSource, 'product'>, l: formula.FormulaLine): boolean => flowNs.isShellLine(l.role, l.basis, src.product.dosageForm);
+
+/** A capsule formula has at most one shells line (a real coat on a capsule is given per batch, C3). */
+function checkShells(src: FormulaSource): void {
+  const shells = src.chosen.lines.filter((l) => isShellLine(src, l));
+  if (shells.length > 1) {
+    throw new FamilyInputError('DESIGNER_FORMULA', `The capsule formula has ${shells.length} COATING lines given per unit (${shells.map((l) => l.lineId).join(', ')}); one per-unit COATING line is the empty capsule shells, and a coat on the capsules is given per batch.`, ['PR-01', 'PR-03']);
+  }
+}
+
 const bomOf = (src: FormulaSource): flow.BomLine[] =>
   src.chosen.lines.map((l) => {
     const overage = bomOverage(l);
-    return { id: bomId(l), material: l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' }, ...(overage ? { overage } : {}) };
+    return { id: bomId(l), material: l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' }, ...(overage ? { overage } : {}) };
   });
 
 function parsed(content: flow.MbrContent): flow.MbrContent {
@@ -137,14 +152,15 @@ const walk = (n: unknown, visit: (o: Record<string, unknown>) => void): void => 
 function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[], timeSystem?: flow.Reference): flow.MbrContent {
   const t = structuredClone(base.content);
   const c = src.chosen;
+  checkShells(src);
   const actives = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role === 'ACTIVE');
-  const others = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role !== 'ACTIVE');
+  const others = c.lines.filter((l) => l.basis === 'PER_UNIT' && l.role !== 'ACTIVE' && !isShellLine(src, l));
   const aids = c.lines.filter((l) => l.basis === 'PER_BATCH');
   if (actives.length === 0) throw new FamilyInputError('DESIGNER_FORMULA', 'The formula has no active given per unit; a processing master dispenses its actives.', ['PR-01']);
   const mgText = (ls: formula.FormulaLine[]): string => sum(ls.map(unitMg));
   const refUnits = c.batchSizeUnits;
   // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026).
-  const unit = /capsule/i.test(src.product.dosageForm) ? 'capsule' : 'tablet';
+  const unit = flowNs.isCapsuleForm(src.product.dosageForm) ? 'capsule' : 'tablet';
   const kg = (mg: string): string => Dec.parse(mg).times(Dec.parse(refUnits)).div(Dec.parse('1000000')).toString();
 
   const param = (id: string, name: string): flow.Parameter =>
@@ -276,6 +292,9 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
     }
   });
   t.header = header(src, req, markets);
+  // Capsules edition C2: the batch-size input is named in the master's unit ("Batch size in capsules"); its identifier
+  // stays tabletsPerBatch, which the expressions and the issue's count check name.
+  t.inputs = t.inputs.map((i) => (i.id === 'tabletsPerBatch' ? { ...i, name: `Batch size in ${unit}s` } : i));
   t.references = [...base.content.references.filter((r) => SKELETON_REFS.includes(r.id)), ...(timeSystem ? [timeSystem] : []), ...materialRefs(src)];
   t.bom = bomOf(src);
   return t;
@@ -341,9 +360,10 @@ function packagingBlank(base: MbrTemplate, src: FormulaSource, req: FormulaFamil
 function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
   const t = structuredClone(source);
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
+  checkShells(src);
   const bom: flow.BomLine[] = src.chosen.lines.map((l) => {
     const same = t.bom.find((b) => codeOf(b) === l.materialCode);
-    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
+    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
   });
   const kept = new Set(bom.map((b) => b.id));
   // Slice 7o (found by the R4 browser run): a material the approved source already names keeps the source's reference

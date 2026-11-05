@@ -30,7 +30,7 @@ export interface ProductBlock {
  * The catalogue item `code` with its example values, its equipment slots set to the plant's class `classes` (one class
  * for every slot, or by slot name).
  */
-export function productBlock(code: string, classes: string | Readonly<Record<string, string>>): ProductBlock {
+export function productBlock(code: string, classes: string | Readonly<Record<string, string>>, bomLines?: Readonly<Record<string, string>>): ProductBlock {
   const item = librarySeed.SEED_CATALOGUE.find((s) => s.definition.code === code);
   if (!item) throw new Error(`${code} is not in the ready-made catalogue`);
   const def = item.definition;
@@ -47,7 +47,8 @@ export function productBlock(code: string, classes: string | Readonly<Record<str
   const limits = Object.fromEntries(
     Object.entries(item.exampleUse.limits ?? {}).map(([slot, spec]) => [slot, timed.has(slot) ? { ...spec, ranges: spec.ranges.map((r) => withoutLow(r)) } : spec]),
   );
-  return { def, use: { ...item.exampleUse, equipmentClasses, limits } };
+  // The formula lines a step reads or names a lot of are the product's own master's lines (BOM-<line id>).
+  return { def, use: { ...item.exampleUse, equipmentClasses, limits, ...(bomLines ? { bomLines: { ...bomLines } } : {}) } };
 }
 
 /** A range without its lower bound. */
@@ -221,6 +222,13 @@ async function fillValues(page: Page, b: ProductBlock): Promise<void> {
       case 'INTERVAL':
         await commit(form, `Interval for ${label} (minutes)`, use.intervals?.[s.name]?.value ?? '');
         break;
+      case 'BOM_LINE': {
+        // A field naming a material's lot reads its formula line; the step consumes that line (its lot is named here).
+        const line = use.bomLines?.[s.name] ?? '';
+        await form.getByRole('combobox', { name: `Formula line for ${s.owner}`, exact: true }).selectOption(line);
+        await page.getByRole('group', { name: 'Consumes (BOM lines)' }).getByRole('checkbox', { name: new RegExp(`^${line}:`) }).check();
+        break;
+      }
       default:
         throw new Error(`${b.def.code}: the acceptance blocks carry no ${s.kind} slot (${s.name})`);
     }
