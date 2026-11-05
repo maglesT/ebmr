@@ -13,7 +13,7 @@ import { ROOT } from '../src/register.ts';
 /** Each job's `runs-on` text, by job id. */
 function runsOn(workflow: string): Map<string, string> {
   const doc = YAML.parse(readFileSync(join(ROOT, '.github/workflows', workflow), 'utf8')) as { jobs: Record<string, { 'runs-on'?: unknown }> };
-  return new Map(Object.entries(doc.jobs).map(([id, job]) => [id, String(job['runs-on'] ?? '')]));
+  return new Map(Object.entries(doc.jobs).map(([id, job]) => [id, typeof job['runs-on'] === 'string' ? job['runs-on'] : '']));
 }
 
 /** The Ubicloud size (vCPUs) a `runs-on` names, or undefined when it names none or more than one. */
