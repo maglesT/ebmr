@@ -13,7 +13,7 @@
  */
 import type { Frame } from '../flow/tokens.ts';
 import type { ExpressionService } from '../flow/expression-port.ts';
-import type { JsonValue, MbrContent, Parameter, PhaseNode } from '../flow/model.ts';
+import type { Edition, JsonValue, MbrContent, Parameter, PhaseNode } from '../flow/model.ts';
 import type {
   Actor,
   ContainerRecord,
@@ -258,7 +258,7 @@ export interface BlockVersion {
   type: string;
   version: string;
   title: string;
-  edition: 'generic' | 'tablets' | 'injectables';
+  edition: 'generic' | Edition;
   aliases: { tablets?: string; injectables?: string };
   level: BlockLevel;
   /** Default 'ALL'. SANDBOX_ONLY versions are refused by `defineBatch` for a GMP installation. */

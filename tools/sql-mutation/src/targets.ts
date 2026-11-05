@@ -478,9 +478,12 @@ export const TARGETS: Target[] = [
                 'recipe.library_breach_record', 'recipe.library_statistic', 'recipe.library_timer_duration', 'recipe.library_loop_pass',
                 // Injectables plan I-0 (recipe-core 1871): the edition of a block and its check at draft and at QA approval.
                 'recipe.library_editions', 'recipe.library_block_edition', 'recipe.library_block_edition_check',
-                'recipe.library_edition_problem', 'recipe.library_edition_at_approval_check'],
+                'recipe.library_edition_problem', 'recipe.library_edition_at_approval_check',
+                // API edition plan A0 (kernel 1403, recipe-core 1872): the one list of editions, and the rule tables an
+                // edition's master binds (the API edition the kernel table only).
+                'kernel.editions', 'kernel.edition_codes', 'recipe.rule_table_versions'],
     tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts'), s('mutation/library-blocks.test.ts'),
-            s('library/library-edition.test.ts')],
+            s('library/library-edition.test.ts'), s('library/substance-edition.test.ts')],
     threshold: 90,
   },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------

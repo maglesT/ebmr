@@ -43,6 +43,7 @@ export function Library() {
                 <td>
                   {f.product.name} {f.product.strength} <span className={dcls('small')}>({f.product.code})</span>
                   {f.edition === 'injectables' ? <span className={dcls('small')}> · Injectables</span> : null}
+                  {f.edition === 'substance' ? <span className={dcls('small')}> · API</span> : null}
                 </td>
                 <td>{f.markets.join(', ')}</td>
                 <td>
