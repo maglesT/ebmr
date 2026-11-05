@@ -73,7 +73,7 @@ Home tiles (all live in `apps/tablets-web/src/features/*/index.tsx` `homeTiles`)
 | Archive and retention, Inspection workspace | DISCONNECT from the home | later. Retention runs in the server unchanged; inspection reads move to the audit trail screen |
 | Incident register (/incidents) | DISCONNECT | QMS |
 | CAPA register (/capa) | DISCONNECT | QMS |
-| Penicillin and beta-lactam rules (/plant-rules) | OFF THE HOME; classification KEEP | owner: no penicillin screen on the home. The beta-lactam classification of a product or material and the facility rule stay connected for the segregation check at issue (PR-27, IN-27), as one admin entry "Beta-lactam classification" (D2). The rest of `plantRules` (room conditions, spills, room and adjacency rules, area authorisations, reagent lots) is disconnected route by route (lead, 5 November) |
+| Penicillin and beta-lactam rules (/plant-rules) | DISCONNECT (owner, with risk acceptance) | the whole `plantRules` namespace, its classification and facility-rule routes included. See the risk acceptance below |
 | Plant alarms, Status board, Area authorisations, Trends, Rooms and lines, Reagent lots, Equipment records | DISCONNECT | Logbook (equipment), MMS (reagent lots), later (alarms, trends). The `alarms` routes stay connected: the step screen and the batch review show the batch's alarm log (DI-49); only the tile goes (D1 review) |
 | Operations (/operations) | KEEP for the operator role only | set-up and backups |
 | API reference (/developer/api) | DISCONNECT from the home | still served for integrators |
@@ -208,5 +208,11 @@ Anything else goes to the lead first.
 **Owner decisions (5 November 2026, through the lead; plan approved):**
 1. Records and amendments: KEEP.
 2. Formulary: Batchwright's.
-3. Penicillin and beta-lactam rules screen: off the home (owner); the classification and the facility rule stay connected for the binding segregation check (lead, 5 November).
+3. Penicillin and beta-lactam rules: DISCONNECTED, the whole `plantRules` namespace (owner, 5 November, overriding the
+   earlier KEEP and the lead's route-by-route proposal). **Risk accepted by the owner:** the beta-lactam classifications
+   and penicillin-facility rules already recorded stay in force, and the segregation check at batch issue (recipe-core
+   1655, PR-27, IN-27) still runs in the database on them. While the namespace is disconnected, no new product or
+   material can be classified and no facility rule can be changed. A new beta-lactam product would then not be held to
+   its dedicated rooms and lines by the system. The owner reconnects `plantRules` (one line in `disconnected.ts`)
+   before such a product is introduced. Controls PR-27 and IN-27 are not changed.
 4. QP batch packages: LATER, so disconnected now (EU exports only).

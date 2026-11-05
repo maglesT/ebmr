@@ -46,9 +46,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 **Declutter (owner, 5 November 2026; plan `docs/build-plan/declutter/plan.md`, PR #113).** Only the working batch-record
 path stays on screen. Owner decisions: records and amendments KEEP, the formulary is Batchwright's, the penicillin and
-beta-lactam rules screen off the home (its classification and facility rule stay connected for the segregation check,
-PR-27, IN-27; lead), QP batch packages LATER (disconnected). **D1 (branch `declutter/d1`):** one list,
-`DISCONNECTED` in `packages/api-contract/src/disconnected.ts` (26 namespaces and 12 single `plantRules` routes, each with the product it belongs to);
+beta-lactam rules (all of plantRules, owner with risk acceptance in plan.md: recorded classifications and the check
+at issue stay; no new classification until reconnected) and QP batch packages LATER (disconnected). **D1 (branch `declutter/d1`):** one list,
+`DISCONNECTED` in `packages/api-contract/src/disconnected.ts` (27 namespaces, each with the product it belongs to);
 `bind.ts` answers `410 DISCONNECTED` at onRequest on the platform build, and on a standalone server with
 `EBMR_DISCONNECT=1` (D-D1-1: the standalone tests of the disconnected functions stay as they are; the hosted demo sets
 the switch). Plugins, tables and records unchanged. Proof: a generated 410 test per namespace and the platform-build case

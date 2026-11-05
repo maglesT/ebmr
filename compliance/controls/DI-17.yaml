@@ -472,7 +472,7 @@ tests:
   - "apps/tablets-web/test/app/disconnected-routes.test.ts > [DI-17] the kept screens call no disconnected route (declutter D1) > [DI-17] a kept screen embeds a part of another feature only where that part is safe on DISCONNECTED"
   - "apps/tablets-web/test/release/disconnected-panels.test.tsx > [DI-17] disconnected panels on the release page (declutter D1) > [DI-17] the QP package section and the decision notifications render nothing on 410 DISCONNECTED; the release page stays"
   - "apps/tablets-web/test/release/disconnected-panels.test.tsx > [DI-17] disconnected panels on the release page (declutter D1) > [DI-17] with the functions connected both sections are shown as before"
-  - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] the single disconnected routes of plantRules answer 410; the beta-lactam classification and the facility rule stay for the segregation check (PR-27)"
+  - "apps/tablets-server/test/declutter/disconnected.test.ts > [DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter D1) > [DI-17] plantRules (later) is refused, signed in or not"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

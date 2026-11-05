@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DISCONNECTED_NAMESPACES, DISCONNECTED_ROUTES } from '@ebmr/api-contract';
+import { DISCONNECTED_NAMESPACES } from '@ebmr/api-contract';
 
 const SRC = join(import.meta.dirname, '../../src');
 
@@ -52,8 +52,7 @@ function files(dir: string): string[] {
 
 describe('[DI-17] the kept screens call no disconnected route (declutter D1)', () => {
   it('[DI-17] only the named disconnected screens inside kept features reach a disconnected namespace', () => {
-    const single = Object.keys(DISCONNECTED_ROUTES).map((id) => `${id.replace('.', '\\.')}\\b`);
-    const pattern = new RegExp(`\\broutes\\.(${[...DISCONNECTED_NAMESPACES.map((ns) => `${ns}(?=\\.)`), ...single].join('|')})`, 'g');
+    const pattern = new RegExp(`\\broutes\\.(${DISCONNECTED_NAMESPACES.join('|')})\\.`, 'g');
     const found: Record<string, string[]> = {};
     for (const file of KEPT_DIRS.flatMap((d) => files(join(SRC, d)))) {
       const hits = [...readFileSync(file, 'utf8').matchAll(pattern)].map((m) => m[1] ?? '');

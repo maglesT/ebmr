@@ -8,7 +8,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { allRoutes, DISCONNECTED, DISCONNECTED_NAMESPACES, DISCONNECTED_ROUTES, isDisconnectedRoute, routes, type AnyRoute, type NamespaceName } from '@ebmr/api-contract';
+import { DISCONNECTED, DISCONNECTED_NAMESPACES, isDisconnectedRoute, routes, type AnyRoute, type NamespaceName } from '@ebmr/api-contract';
 import { startServer, type TestServer } from '../support/harness.ts';
 
 let gmp: TestServer;
@@ -37,7 +37,7 @@ function firstRoute(ns: NamespaceName, kind: 'GMP' | 'SANDBOX'): AnyRoute | unde
 const CONNECTED: readonly string[] = [
   'access', 'accessGovernance', 'alarms', 'archive', 'audit', 'batches', 'containers', 'designer', 'deviceRegistry', 'devices',
   'erpShipping', 'esig', 'execution', 'india', 'integrations', 'labels', 'library', 'marketConfig', 'masterData', 'meta',
-  'operations', 'people', 'planning', 'plant', 'plantRules', 'quality', 'records', 'release', 'review', 'samples', 'session',
+  'operations', 'people', 'planning', 'plant', 'quality', 'records', 'release', 'review', 'samples', 'session',
   'specifications', 'transfers',
 ];
 
@@ -55,28 +55,10 @@ describe('[DI-17] the disconnected namespaces answer 410 DISCONNECTED (declutter
     expect([signedIn.statusCode, signedIn.json<{ refusal: { code: string } }>().refusal.code]).toEqual([410, 'DISCONNECTED']);
   });
 
-  it('[DI-17] the single disconnected routes of plantRules answer 410; the beta-lactam classification and the facility rule stay for the segregation check (PR-27)', async () => {
-    const all = new Map(allRoutes(routes).map((r) => [r.id, r]));
-    const b = await gmp.asPersona('qaInvestigator');
-    for (const id of Object.keys(DISCONNECTED_ROUTES)) {
-      const route = all.get(id);
-      expect(route, id).toBeDefined();
-      if (!route) continue;
-      const r = await b.inject({ method: route.method, url: urlOf(route) });
-      expect([r.statusCode, r.json<{ refusal: { code: string } }>().refusal.code], id).toEqual([410, 'DISCONNECTED']);
-    }
-    for (const r of [routes.plantRules.classifyBetaLactam, routes.plantRules.setFacilityRule, routes.plantRules.proposals, routes.plantRules.rooms, routes.plantRules.adjacencies]) {
-      expect(isDisconnectedRoute(r.id), r.id).toBe(false);
-    }
-    expect((await b.call(routes.plantRules.proposals, {})).ok).toBe(true);
-  });
-
   it('[DI-17] the kept path stays connected: exactly the expected namespaces are connected, and a standalone server without the switch serves the listed ones', async () => {
     const connected = (Object.keys(routes) as NamespaceName[]).filter((ns) => DISCONNECTED[ns] === undefined);
     expect([...connected].sort()).toEqual(CONNECTED);
-    for (const r of connected.flatMap((ns) => Object.values(routes[ns]) as AnyRoute[])) {
-      expect(isDisconnectedRoute(r.id), r.id).toBe(r.id in DISCONNECTED_ROUTES);
-    }
+    for (const r of connected.flatMap((ns) => Object.values(routes[ns]) as AnyRoute[])) expect(isDisconnectedRoute(r.id), r.id).toBe(false);
     const b = await gmp.asPersona('qaInvestigator');
     const kept = await b.call(routes.library.list, {});
     expect(kept.ok).toBe(true);
