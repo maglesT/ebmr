@@ -34,8 +34,10 @@ concurrency:
 
 # Where the jobs run: CI_RUNNER 'ubicloud' (or the run-by-hand input runner=ubicloud) puts only the long jobs on
 # Ubicloud's managed runners (the Ubicloud GitHub app on this repository; owner): the end-to-end groups on
-# ubicloud-standard-4-ubuntu-2204 and the golden batches on ubicloud-standard-8-ubuntu-2204. Everything else (the static
-# checks, the eight test shards, supply chain, the end-to-end plan, the reports, traceability) runs on GitHub-hosted
+# ubicloud-standard-4-ubuntu-2204 and the golden batches on ubicloud-standard-8-ubuntu-2204, with the two short jobs the
+# end-to-end groups wait on (code or docs only, the end-to-end plan) on ubicloud-standard-2-ubuntu-2204 so they never wait
+# in GitHub's queue. Everything else (the static checks, the eight test shards, supply chain, the reports, traceability)
+# runs on GitHub-hosted
 # ubuntu-latest, whose minutes cost nothing here; the shards finish within the end-to-end wall time. Each job names its
 # label in its own `runs-on` (a literal size: `runs-on` cannot read the job's id, github.job is empty there, and a label
 # with no size never starts; tools/register/test/ci-runners.test.ts checks every job's label). Ubicloud's VMs use
@@ -302,7 +304,7 @@ jobs:
   # many tests and the handbook check read Markdown. A push to main and a run by hand always run everything.
   changes:
     name: Code or docs only
-    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
     timeout-minutes: 5
     outputs:
       code: ${{ steps.diff.outputs.code }}
@@ -321,7 +323,7 @@ jobs:
     name: End-to-end groups to run
     needs: [changes]
     if: ${{ needs.changes.outputs.code == 'true' }}
-    runs-on: ${{ ((inputs.runner || vars.CI_RUNNER) == 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud') && 'ubuntu-latest' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ebmr-pod' }}
     timeout-minutes: 5
     outputs:
       groups: ${{ steps.plan.outputs.groups }}

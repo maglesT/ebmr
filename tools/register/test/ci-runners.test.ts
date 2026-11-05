@@ -23,7 +23,7 @@ function ubicloudSize(text: string): number | undefined {
 }
 
 describe('CI runner labels', () => {
-  it('[meta] in Ubicloud mode only the end-to-end groups (4) and the golden batches (8) name a Ubicloud size, written out; every other ci.yml job runs on GitHub-hosted (owner)', () => {
+  it('[meta] in Ubicloud mode only the end-to-end groups (4), the golden batches (8) and the two jobs the end-to-end groups wait on (2) name a Ubicloud size, written out; every other ci.yml job runs on GitHub-hosted (owner)', () => {
     const jobs = runsOn('ci.yml');
     const sizes: Record<string, number | 'github'> = {};
     for (const [id, text] of jobs) {
@@ -39,15 +39,16 @@ describe('CI runner labels', () => {
         sizes[id] = 'github';
       }
     }
-    // Owner: Ubicloud only for the long jobs: end-to-end groups on 4, golden batches on 8; everything else on GitHub-hosted.
+    // Owner: Ubicloud only for the long jobs (end-to-end groups on 4, golden batches on 8) and the end-to-end gate jobs (2,
+    // so the groups never wait in GitHub's queue); everything else on GitHub-hosted.
     expect(sizes).toEqual({
       checks: 'github',
       'supply-chain': 'github',
       tests: 'github',
       golden: 8,
       report: 'github',
-      changes: 'github',
-      'e2e-plan': 'github',
+      changes: 2,
+      'e2e-plan': 2,
       e2e: 4,
       'e2e-report': 'github',
       traceability: 'github',
