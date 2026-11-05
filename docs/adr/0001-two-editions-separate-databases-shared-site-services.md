@@ -1,6 +1,6 @@
 # ADR-0001: Two editions, separate edition databases, shared site services
 
-- **Status:** Accepted (2026-09-27)
+- **Status:** Accepted (2026-09-27); amended 2026-11-04 for the MEDHANTA platform (see Amendment)
 - **Deciders:** project owner (maglesT), accepting build outline v0.2 Decisions 12 and 13, option A (decision record 0001)
 - **Supersedes:** none
 
@@ -49,6 +49,19 @@
 
 - Controls: IN-18 (batch numbering and allocation register), IN-24(a) (material usage status owned by the eBMR), PR-10 (issuance and numbering), DI-05 (segregation of sandbox and training), DI-14 and DI-15 (unique persons and accounts), DI-20 (device checks).
 - Invariants: INV-11, INV-13, INV-14, INV-18, INV-26, INV-27, INV-38.
+
+## Amendment (4 November 2026): editions on the MEDHANTA platform
+
+- **Decided by:** the portfolio lead, confirming `docs/build-plan/injectables/platform-fit.md` under the owner's platform
+  requirement (one platform product, one database).
+- **On the platform, one database holds every edition, and the edition is data.** Product `ebmr` has the single `ebmr`
+  database. The edition (`tablets`, `injectables`) is a property of the MBR family (recipe-core 0110), of library blocks
+  and formulations (recipe-core 1871) and of the rule tables it may use (`EBMR-MKT-054`). It is not a deployment, and it
+  has no separate edition database. Site data (lots, lot status, batch-number register, devices) is one set in that
+  database. Persons and rights come from core.
+- **Validation separation** now rests on the data: sterile content is QA-approved data that only affects families of
+  its edition, with a `[meta]` test in each direction. Edition code stays edition-neutral.
+- Points 1-4 of the decision keep applying to the standalone build (branch `standalone`).
 
 ## References
 
