@@ -375,7 +375,7 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Capsule banding and sealing',
       category: 'PROCESS',
-      instructions: 'Prepare the band or sealing solution and use it within its holding time. Band or seal every capsule and check the bands at each round. An OTC two-piece hard capsule must be sealed (tamper evident); the seal integrity test is its own step.',
+      instructions: 'Use the band or sealing solution within the hold the master sets (its hold step). Band or seal every capsule and check the bands at each round. An OTC two-piece hard capsule must be sealed (tamper evident); the seal integrity test is its own step.',
       sections: [
         {
           id: 'setup',
@@ -399,7 +399,6 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
           id: 'output',
           title: 'Output',
           fields: [
-            { id: 'solutionHold', label: 'Band solution in use (from preparation to the last capsule)', type: 'TIMER', durationUnit: 'min', limitSlot: 'solutionHold', critical: true },
             { id: 'container', label: 'Banded capsules container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
             { id: 'rejects', label: 'Rejected capsules', type: 'WEIGHING', unit: 'kg' },
@@ -409,7 +408,7 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      limits: { solutionTemp: spec('Cel', '45.0', '55.0'), solutionHold: spec('min', undefined, '480') },
+      limits: { solutionTemp: spec('Cel', '45.0', '55.0') },
       targets: { solutionTemp: '50.0' },
       equipmentClasses: { banderClass: 'CAPSULE-BANDER' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },

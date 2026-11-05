@@ -258,3 +258,6 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
   `library-caps` E2E packs the capsules in the cold-form blister. Residual (wording only, no GMP value): TB-20 and TB-23
   field descriptions say "tablets" (the bottle count, the sorter). Lead, 5 November: leave those versions untouched; in C8,
   if capsule masters use them, issue a new data-only version of each worded "units" (never edit an approved version).
+- D-C3-6 (lead, 5 November): a hold that ends in a later step (band or sealing solution, a liquid fill, wet pellets) is
+  not timed inside one step: 21 CFR 211.111 is met by the master's HOLD time constraint between the two steps, or its
+  PROC-HOLD step. No library block carries an in-step holding timer.
