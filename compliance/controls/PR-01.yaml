@@ -75,6 +75,12 @@ tests:
   - "apps/tablets-server/test/execution/issue-expectations.test.ts > R3.1: the tablet count at issue against the master > [PR-01][PR-04] decision 0026 S11b: a master from a formula records its unit mass, so each batch size gives its own count exactly (it wins over a compression target that includes a coat); the parser keeps it and refuses a zero"
   - "apps/tablets-server/test/execution/issue-expectations.test.ts > R3.1: the tablet count at issue against the master > [PR-01][PR-04] only a COUNT named for tablets is checked; a size that is no mass, a master with no positive unit mass or target, or a malformed procedure give no expectation, never a wrong one"
   - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master's, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)"
+  - "apps/tablets-server/test/medhanta/platform-master-data.test.ts > the write-time active-item check (PL-08) > [PL-08][PR-01] the product read carries core's dosage form (Capsules edition C2): null when core holds none; other kinds have none"
+  - "apps/tablets-web/test/app/header-edition.test.tsx > the header name follows the dosage form on screen (Capsules edition C2) > [PR-01] Capsules while a capsule master or batch is on screen; Tablets for a tablet, no dosage form, a bare Softgel, or nothing on screen"
+  - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] a dosage form containing \"capsule\" in any case is a capsule; hard and soft alike"
+  - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] no dosage form, or a tablet form, is a tablet"
+  - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] a bare soft-gel name is refused with the hint to name it as a capsule form"
+  - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] any other stated form is refused"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:
