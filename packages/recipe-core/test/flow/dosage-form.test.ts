@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCapsuleForm, readDosageForm } from '../../src/flow/dosage-form.ts';
+import { editionOfDosageForm, isCapsuleForm, productLineOf, readDosageForm } from '../../src/flow/dosage-form.ts';
 
 describe('the unit form from the dosage form (Capsules edition, C2)', () => {
   it('[PR-01] a dosage form containing "capsule" in any case is a capsule; hard and soft alike', () => {
@@ -45,5 +45,23 @@ describe('a capsule\'s empty shells (C2; lead, 5 November 2026)', () => {
     expect(bomShellsLabel('OTHER', 'Hard gelatin capsule')).toBe('Empty capsule shells');
     expect(bomShellsLabel('OTHER', 'Tablet')).toBeNull();
     expect(bomShellsLabel('EXCIPIENT', 'Hard gelatin capsule')).toBeNull();
+  });
+});
+
+describe('one dosage form → edition map (injectables plan I-1c, lead S3)', () => {
+  it('[PR-01] the product line of a dosage form: injection, infusion, powder for injection and parenteral forms are injectables in any case; capsules, tablets (or none) and API or intermediate keep their lines; anything else has none', () => {
+    for (const f of ['Solution for injection', 'POWDER FOR INJECTION', 'Concentrate for solution for infusion', 'Parenteral emulsion']) expect(productLineOf(f)).toBe('injectables');
+    for (const f of ['Hard gelatin capsule', 'Soft gelatin capsule']) expect(productLineOf(f)).toBe('capsules');
+    for (const f of ['Tablet', 'Film-coated tablet', '', '  ', null, undefined]) expect(productLineOf(f)).toBe('tablets');
+    for (const f of ['API', ' intermediate ']) expect(productLineOf(f)).toBe('substance');
+    for (const f of ['Syrup', 'Softgel', 'Oral solution']) expect(productLineOf(f)).toBeNull();
+  });
+  it('[PR-01] the family edition follows the line: capsules are made in the tablets edition; the oral-solid reading refuses injectables and API forms with the same hint as before', () => {
+    expect(editionOfDosageForm('Hard gelatin capsule')).toBe('tablets');
+    expect(editionOfDosageForm('Tablet')).toBe('tablets');
+    expect(editionOfDosageForm('Solution for injection')).toBe('injectables');
+    expect(editionOfDosageForm('API')).toBe('substance');
+    expect(editionOfDosageForm('Syrup')).toBeNull();
+    for (const f of ['Solution for injection', 'API']) expect(readDosageForm(f).ok).toBe(false);
   });
 });

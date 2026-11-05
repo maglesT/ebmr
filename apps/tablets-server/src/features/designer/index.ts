@@ -60,7 +60,7 @@ import {
 } from './package-export.ts';
 import { paletteBlocks } from './palette.ts';
 import { productNames, targetsOf } from '../master-data/index.ts';
-import { contentFromFormula } from './from-formula.ts';
+import { contentFromFormula, EDITION_START } from './from-formula.ts';
 import { materialMasters } from './material-refs.ts';
 import { packagingCopy } from './packaging-copy.ts';
 import { acquireSimulationSlot, DEFAULT_MAX_CONCURRENT_SIMULATIONS, DEFAULT_SIMULATION_TIMEOUT_MS, simulateInWorker, simulationReportView } from './simulation.ts';
@@ -123,21 +123,21 @@ const acquireValidationSlot = slotPool();
 
 /** The transaction advisory lock that lets one test-package export at a time through the inbox gate (review P14). */
 const TEST_PACKAGE_INBOX_LOCK = 'tab.mbr_test_package_export:inbox';
-/** Injectables plan I-0: the dosage forms of an injectables family (pharmacopoeial names: injection, infusion, powder for injection). */
-const INJECTABLE_FORM = /inject|infusion|parenteral/i;
 /**
- * API edition plan A0 (platform-fit Q-P1): an API or intermediate made on site is a core product whose dosage form is
- * "API" or "Intermediate".
+ * Whether a product's dosage form fits a family of the edition: the one dosage form → edition map (flow.productLineOf,
+ * injectables plan I-1c, lead S3). Tablets take tablet and capsule forms (Capsules edition C2; a bare soft-gel name is
+ * refused); injectables an injectable form; an API family "API" or "Intermediate" (API edition plan A0).
  */
-const SUBSTANCE_FORM = /^\s*(api|intermediate)\s*$/i;
-
-/** Whether a product's dosage form fits a family of the edition. */
 function dosageFormFits(edition: flow.Edition, dosageForm: string): boolean {
-  // Capsules edition C2: one rule (flow.readDosageForm): a capsule when it says "capsule"; a bare soft-gel name is refused.
-  if (edition === 'tablets') return flow.readDosageForm(dosageForm).ok;
-  if (edition === 'injectables') return INJECTABLE_FORM.test(dosageForm);
-  return SUBSTANCE_FORM.test(dosageForm);
+  return flow.editionOfDosageForm(dosageForm) === edition;
 }
+
+/** Why an edition's family cannot start this way (EDITION_START), and the library to build it from. */
+const START_REFUSAL: Readonly<Record<flow.Edition, { readonly why: string; readonly library: string }>> = {
+  tablets: { why: 'A tablets master starts from the skeleton, blank or a copy.', library: 'tablets' },
+  injectables: { why: 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.', library: 'injectables' },
+  substance: { why: 'An API master starts blank: the skeleton and copies are tablet procedures.', library: 'API' },
+};
 
 /** The forms an edition's family takes, for the refusal. */
 const EDITION_FORMS: Readonly<Record<flow.Edition, string>> = {
@@ -454,20 +454,23 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       });
     }
     const formulaVersionId = body.formulaVersionId;
-    // Injectables plan I-0: the edition is data on the family. The skeleton and copies are Tablets procedures, so an
-    // injectables family starts BLANK and is built from the injectables library.
-    const edition = body.edition ?? 'tablets';
-    // API edition plan A0: the same holds for an API (substance) family.
-    if (edition !== 'tablets' && start !== 'BLANK') {
+    // Injectables plan I-0: the edition is data on the family. The tablet skeleton and copies are Tablets procedures, so an
+    // injectables family starts BLANK or (I-1c) from the skeleton's dispensing stage alone (from-formula.ts), and is
+    // built from the injectables library. API edition plan A0: an API (substance) family starts BLANK.
+    // I-1c (lead S2): when the request names no edition, the family takes it from the product master's dosage form (the
+    // one dosage form → edition map), so the new-master screen needs no edition choice; checked once it is known.
+    const startFits = (edition: flow.Edition): void => {
+      if (EDITION_START[edition].starts.includes(start)) return;
       throw refusal(422, {
         code: 'DESIGNER_EDITION_START',
         kind: 'INVALID_INPUT',
         whatHappened: 'The family was not created.',
-        why: `An ${edition === 'injectables' ? 'injectables' : 'API'} master starts blank: the skeleton and copies are tablet procedures.`,
+        why: START_REFUSAL[edition].why,
         controls: ['PR-01'],
-        whatYouCanDo: [`Choose "Blank" and add the steps from the ${edition === 'injectables' ? 'injectables' : 'API'} library.`],
+        whatYouCanDo: [`Choose "Blank" and add the steps from the ${START_REFUSAL[edition].library} library.`],
       });
-    }
+    };
+    if (body.edition !== undefined) startFits(body.edition);
     const copySource = start === 'COPY' ? await copySourceOf(body.copyOfVersionId) : undefined;
     const base = TEMPLATES.get('dc-mini');
     if (!base) throw new Error('the dc-mini skeleton source is missing');
@@ -493,6 +496,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // dosage form (no default).
           const master = rows[0];
           const stated = master?.name ? await dosageFormOf(chosen.productCode, master.dosage) : undefined;
+          const edition: flow.Edition = body.edition ?? flow.editionOfDosageForm(stated) ?? 'tablets';
+          if (body.edition === undefined) startFits(edition);
           const dosageForm = stated?.trim() || (edition === 'tablets' ? 'Tablet' : '');
           // API edition plan A0: an API (substance) family needs a product master whose dosage form is API or Intermediate.
           const formFits = dosageFormFits(edition, dosageForm);
