@@ -9,7 +9,7 @@ import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
 import { checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
 import type { BlockUse } from '../../src/library/model.ts';
 import { SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
+import { define, OP1, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 
 const item = (code: string): SeedItem => {
@@ -32,7 +32,7 @@ const STEPS: readonly Step[] = [
   { id: 'p-seal', code: 'COAT-PELLET-FB' },
   { id: 'p-ent-susp', code: 'COAT-SUSPENSION-PREP', bomLines: { coatingLine: 'BOM-ENTERIC' } },
   { id: 'p-enteric', code: 'COAT-PELLET-FB' },
-  { id: 'p-fill', code: 'PROC-CAPS-FILL-MULTI', bomLines: { shellLine: 'BOM-SHELL' }, counts: { stations: '1' } },
+  { id: 'p-fill', code: 'PROC-CAPS-FILL-MULTI', bomLines: { shellLine: 'BOM-SHELL' }, counts: { stations: '2' } },
   { id: 'p-fill-weight', code: 'IPC-CAPS-FILL-WEIGHT' },
 ];
 
@@ -82,7 +82,7 @@ function runStep(run: Run, mbr: MbrContent, s: Step): void {
 }
 
 describe('multiparticulates in hard capsules (Capsules C4)', () => {
-  it('[PR-03][PR-18][IN-36][IN-37] a delayed-release pellet capsule from the catalogue (drug layering on inert cores, seal and enteric coats in the fluid bed from their own suspensions, multi-station filling, the fill weight test) passes the formulation checks and runs to completion with no exception', () => {
+  it('[PR-03][PR-18][IN-36][IN-37] a delayed-release pellet capsule from the catalogue (drug layering on inert cores, seal and enteric coats in the fluid bed from their own suspensions, two-station filling, the fill weight test) passes the formulation checks and runs to completion with no exception', () => {
     const { mbr, registry } = master();
     for (const s of STEPS) expect(checkBlockUse(item(s.code).definition, useOf(s), expr, BOM), s.id).toEqual([]);
     const run = Run.issue(define(mbr, { registry }), {}, T0);
@@ -111,7 +111,7 @@ describe('multiparticulates in hard capsules (Capsules C4)', () => {
     for (const id of ['extruderSpeed', 'plateSpeed', 'spheronising']) expect(ext.get(id), id).toMatchObject({ critical: true });
   });
 
-  it('[PR-08][PR-03] multi-station filling: one to four stations, each with its input and set fill; a station filling outside its set fill raises an exception and the step cannot complete', () => {
+  it('[PR-08][PR-03] multi-station filling: one to four stations, each with its input and set fill; a station filling outside its set fill raises an exception and the step cannot complete; a set fill of zero is refused', () => {
     const fill = item('PROC-CAPS-FILL-MULTI');
     expect(fill.definition.sections.find((x) => x.id === 'station')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'stations' });
     const round = fill.definition.sections.find((x) => x.id === 'round');
@@ -127,5 +127,9 @@ describe('multiparticulates in hard capsules (Capsules C4)', () => {
     }
     expect(run.exceptions().map((x) => x.type)).toContain('LIB_LIMIT_BREACH');
     expect(() => run.perform('p-fill')).toThrow(/outside its registered limit/);
+    // A set fill of zero is refused, never turned into a percentage.
+    const zero = run.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'p-fill', context: [], entry: { kind: 'round', stationNo: '1', stationSet: '0.0', stationFill: '135.0', counted: true, locked: true } });
+    expect(zero.accepted).toBe(false);
+    expect(zero.refusal?.code).toBe('LIB-CALC-FAILED');
   });
 });
