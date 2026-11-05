@@ -50,6 +50,9 @@ ensure_pg() {
     | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
   sudo apt-get update -qq
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "postgresql-$PG_MAJOR" "postgresql-server-dev-$PG_MAJOR" > /dev/null
+  # The package makes a cluster $PG_MAJOR/main on the next free port (5433, where the golden cluster goes): drop it; the
+  # clusters this job needs are made below.
+  pg_lsclusters -h | awk -v m="$PG_MAJOR" '$1 == m {print $2}' | while read -r c; do sudo pg_dropcluster --stop "$PG_MAJOR" "$c"; done
 }
 
 # --- GitHub-hosted: the runner image's Debian cluster, unchanged from the workflow before the pod -------------------
@@ -74,7 +77,8 @@ hosted_start() {
     port=5433
   else
     sudo systemctl start postgresql.service
-    # With more than one major installed, the image's cluster may not be $PG_MAJOR on 5432: make sure one is.
+    # On an image whose own PostgreSQL is another major (Ubuntu 22.04: 14), its cluster holds 5432: replace it by a
+    # $PG_MAJOR cluster there.
     if ! pg_lsclusters -h | awk -v m="$PG_MAJOR" '$1 == m && $3 == 5432' | grep -q .; then
       pg_lsclusters -h | awk '$3 == 5432 {print $1, $2}' | while read -r v c; do sudo pg_dropcluster --stop "$v" "$c"; done
       sudo pg_createcluster "$PG_MAJOR" main --port 5432 --locale C.UTF-8 --start
