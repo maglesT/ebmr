@@ -5,7 +5,14 @@
  * (decision 0020 point 3; D-P7-11: no "Batchwright" version line in v1.0). Code names (packages, schemas, the `ebmr`
  * prefix) do not change.
  */
-export type Edition = 'TABLETS' | 'INJECTABLES';
+export type Edition = 'TABLETS' | 'INJECTABLES' | 'CAPSULES';
+
+/**
+ * The editions with a lockup of their own (the sign-in page). CAPSULES is a display value only (decision 0020,
+ * amended 4 November 2026): the Tablets build's header reads "Batchwright Capsules" while a master or batch with a
+ * capsule dosage form is on screen. It has no lockup, database or app.
+ */
+export type LockupEdition = Exclude<Edition, 'CAPSULES'>;
 
 export const PRODUCT = {
   name: 'Batchwright',
@@ -14,9 +21,9 @@ export const PRODUCT = {
   tagline: 'Every batch, proven',
 } as const;
 
-const EDITION_WORD: Readonly<Record<Edition, string>> = { TABLETS: 'Tablets', INJECTABLES: 'Injectables' };
+const EDITION_WORD: Readonly<Record<Edition, string>> = { TABLETS: 'Tablets', INJECTABLES: 'Injectables', CAPSULES: 'Capsules' };
 
-/** "Batchwright Tablets" or "Batchwright Injectables". */
+/** "Batchwright Tablets", "Batchwright Injectables" or "Batchwright Capsules". */
 export function productTitle(edition: Edition): string {
   return `${PRODUCT.name} ${EDITION_WORD[edition]}`;
 }

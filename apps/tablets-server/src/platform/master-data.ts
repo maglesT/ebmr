@@ -31,6 +31,11 @@ export interface MasterItem {
   name: string;
   version: number;
   active: boolean;
+  /**
+   * Capsules edition C2 (lead, 4 November 2026): a product's dosage form as core holds it (report.product_v1
+   * `dosage_form`, free text; null when core has none, which means a tablet). Products only.
+   */
+  dosageForm?: string | null;
 }
 
 /** A refused or unreachable master read: the link is cut (42501, 28000) or the database is not there. */
@@ -67,7 +72,8 @@ export class MasterData {
     const view = MASTER_VIEWS[kind];
     const [where, value] = key.masterId ? ['id = $1::uuid', key.masterId] : ['code = $1', key.code];
     try {
-      const { rows } = await this.pool.query<MasterItem>(`select id::text as id, code, name, version, active from ${view} where ${where}`, [value]);
+      const extra = kind === 'product' ? ', dosage_form as "dosageForm"' : '';
+      const { rows } = await this.pool.query<MasterItem>(`select id::text as id, code, name, version, active${extra} from ${view} where ${where}`, [value]);
       return rows[0] ?? null;
     } catch (error) {
       if (isOff(error)) throw masterDataOff();

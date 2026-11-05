@@ -91,6 +91,8 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
   - "tools/e2e/specs/library/acceptance.ts > [INV-05][IN-05][DI-25][INV-48] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 9: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
   - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition's items (labels reconciled, posted quantity, pack examination), and the authorised person releases the lot"
+  - "tools/e2e/specs/library/acceptance.ts > [IN-05][PR-45][DI-35][IN-33] Libcap 200 mg, hard capsules size 0 (library), GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification and pulls the reserve sample; the head of QC approves them @office"
+  - "tools/e2e/specs/library/acceptance.ts > [INV-05][IN-05][DI-25][INV-48] Libcap 200 mg, hard capsules size 0 (library), GMP 9: both records reviewed and the lot released by the authorised person on a checklist with no red item @office"
 clauses:
   - clause: "attempt release with an open deviation, without head-of-QC approval, with an unsigned step, and as a user without the AP/delegate role; all four are blocked."
     tests:

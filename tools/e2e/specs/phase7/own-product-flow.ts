@@ -195,7 +195,7 @@ export async function recordFormula(page: Page, f: { product: string; strength: 
   const r = page.getByRole('form', { name: 'Record a formula' });
   await r.getByRole('textbox', { name: 'Product code' }).fill(f.product);
   await r.getByRole('textbox', { name: 'Strength' }).fill(f.strength);
-  await r.getByRole('textbox', { name: 'Batch size (tablets)' }).fill(f.batchUnits);
+  await r.getByRole('textbox', { name: 'Batch size (units)' }).fill(f.batchUnits);
   await r.getByRole('button', { name: 'Record the formula' }).click();
   await page.getByTestId(`formula-${f.product}-${f.strength}`).getByRole('link').click();
   const v = page.getByTestId('new-formula-version');
@@ -211,7 +211,7 @@ export async function recordFormula(page: Page, f: { product: string; strength: 
     await choose(g.getByRole('radiogroup', { name: /^Potency adjusted/ }).getByRole('radio', { name: l.potency ? 'Yes' : 'No', exact: true }));
     await choose(g.getByRole('radiogroup', { name: /^Compensating excipient/ }).getByRole('radio', { name: l.compensating ? 'Yes' : 'No', exact: true }));
   }
-  await v.getByRole('textbox', { name: 'Target tablet weight (mg)' }).fill(f.targetMg);
+  await v.getByRole('textbox', { name: 'Target unit weight (mg)' }).fill(f.targetMg);
   await v.getByRole('textbox', { name: 'Reason for the new version' }).fill(f.reason);
   await v.getByRole('button', { name: 'Write the draft version' }).click();
   await expect(v.getByText('Draft version written.')).toBeVisible();
@@ -243,7 +243,7 @@ export async function masterFromFormula(page: Page, f: { product: string; streng
   const c = page.getByTestId('choose-product');
   await c.getByRole('textbox', { name: 'Formula product' }).fill(f.product);
   await c.getByRole('textbox', { name: 'Formula strength' }).fill(f.strength);
-  await c.getByRole('textbox', { name: 'Formula batch size (tablets)' }).fill(f.batchUnits);
+  await c.getByRole('textbox', { name: 'Formula batch size (units)' }).fill(f.batchUnits);
   await c.getByRole('button', { name: 'Choose this product' }).click();
   await expect(c.getByTestId('formula-bom')).toBeVisible();
   await page.getByRole('textbox', { name: 'Family code' }).fill(f.familyCode);

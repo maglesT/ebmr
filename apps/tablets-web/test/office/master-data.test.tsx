@@ -70,6 +70,19 @@ describe('formulas', () => {
     expect(await screen.findByText('Only one compensating excipient per formula.')).toBeTruthy();
   });
 
+  it('[PR-03] Capsules C2: on a capsule product the per-unit COATING line is shown as the empty capsule shells, never as a coating; a tablet keeps the role code', async () => {
+    const lines = formula.versions[0]?.lines ?? [];
+    const shell = { ...(lines[0] as (typeof lines)[number]), lineId: 'shl', materialCode: 'RM-SHL', materialName: 'Empty hard gelatin capsules, size 0', role: 'COATING' as const, basis: 'PER_UNIT' as const, potencyAdjusted: false, compensating: false };
+    const withShell = (dosageForm: string | undefined) => ({ ...formula, formula: { ...formula.formula, ...(dosageForm ? { dosageForm } : {}) }, versions: [{ ...(formula.versions[0] as (typeof formula.versions)[number]), lines: [...lines, shell] }] });
+    renderOffice(formulaPath, { role: 'QA_REVIEWER', fixtures: { 'masterData.formula': withShell('Hard gelatin capsule') } });
+    const row = within(await screen.findByTestId('composition')).getByText(/RM-SHL/).closest('tr');
+    expect(row?.textContent).toContain('Empty capsule shells');
+    expect(row?.textContent ?? '').not.toMatch(/coat/i);
+    cleanup();
+    renderOffice(formulaPath, { role: 'QA_REVIEWER', fixtures: { 'masterData.formula': withShell('Film-coated tablet') } });
+    expect(within(await screen.findByTestId('composition')).getByText(/RM-SHL/).closest('tr')?.textContent).toContain('COATING');
+  });
+
   it('[INV-25] slice 7q (C1): an overage is written with its reason and shown with it beside the label claim', async () => {
     const lines = formula.versions[0]?.lines ?? [];
     const withOverage = { ...formula, versions: [{ ...(formula.versions[0] as (typeof formula.versions)[number]), lines: lines.map((l, i) => (i === 0 ? { ...l, overagePercent: null, overageQuantity: '0.3', overageReason: 'Loss on the blender walls' } : l)) }] };
@@ -147,7 +160,7 @@ describe('"Choose a product" in the designer\'s create flow', () => {
     const panel = await screen.findByTestId('choose-product');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '500 mg');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (tablets)' }), '200000');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (units)' }), '200000');
     await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
     const bom = await within(panel).findByTestId('formula-bom');
     const choice = example('designer-formula-choice');
@@ -162,7 +175,7 @@ describe('"Choose a product" in the designer\'s create flow', () => {
     const panel = await screen.findByTestId('choose-product');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
     await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '250 mg');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (tablets)' }), '100000');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (units)' }), '100000');
     await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
     expect(await within(panel).findByText('No approved formula for GBT01 250 mg.')).toBeTruthy();
     expect(within(panel).queryByTestId('formula-bom')).toBeNull();

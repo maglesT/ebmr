@@ -224,11 +224,11 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(Object.keys(required?.inputs ?? {}).sort()).toEqual(['assay', 'labelQty', 'lodLot']);
   });
 
-  it('[DI-33] a calculation whose external input the batch does not provide refuses the entry', () => {
+  it('[DI-33] a calculation whose earlier-step input names no step of the master is refused when the batch is defined, not at the entry', () => {
     const def = potencyDispensing();
+    const bom = { bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE' as const, quantity: { value: '10', unit: 'kg' } }] };
     const use: BlockUse = { block: { code: def.code, version: 1 }, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: { step: 'lod', field: 'lod' } } };
-    const run = runFor(def, use, { extra: { bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }] } });
-    run.refused(entryCmd(run, { kind: 'weigh', lot: 'L1', lots: { lot: { id: 'L1', material: 'API', status: 'RELEASED', identityTested: true } }, net: '10.4', rework: false }), 'LIB-CALC-FAILED');
+    expect(() => runFor(def, use, { extra: bom })).toThrow('ENG-DEF-STEP-VALUE');
   });
 
   it('[PR-29][PR-30] IPC rounds at an interval: a round later than the interval raises an exception', () => {

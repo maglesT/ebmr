@@ -15,6 +15,7 @@
         "name": "Paracetamol tablets",
         "strength": "500 mg"
       },
+      "dosageForm": "Uncoated tablet (final blend for compression)",
       "markets": [
         "IN"
       ],
