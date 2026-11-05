@@ -123,8 +123,6 @@ const acquireValidationSlot = slotPool();
 
 /** The transaction advisory lock that lets one test-package export at a time through the inbox gate (review P14). */
 const TEST_PACKAGE_INBOX_LOCK = 'tab.mbr_test_package_export:inbox';
-/** Injectables plan I-0: the dosage forms of an injectables family (pharmacopoeial names: injection, infusion, powder for injection). */
-const INJECTABLE_FORM = /inject|infusion|parenteral/i;
 /**
  * API edition plan A0 (platform-fit Q-P1): an API or intermediate made on site is a core product whose dosage form is
  * "API" or "Intermediate".
@@ -135,7 +133,7 @@ const SUBSTANCE_FORM = /^\s*(api|intermediate)\s*$/i;
 function dosageFormFits(edition: flow.Edition, dosageForm: string): boolean {
   // Capsules edition C2: one rule (flow.readDosageForm): a capsule when it says "capsule"; a bare soft-gel name is refused.
   if (edition === 'tablets') return flow.readDosageForm(dosageForm).ok;
-  if (edition === 'injectables') return INJECTABLE_FORM.test(dosageForm);
+  if (edition === 'injectables') return flow.isInjectableForm(dosageForm);
   return SUBSTANCE_FORM.test(dosageForm);
 }
 
@@ -454,20 +452,25 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       });
     }
     const formulaVersionId = body.formulaVersionId;
-    // Injectables plan I-0: the edition is data on the family. The skeleton and copies are Tablets procedures, so an
-    // injectables family starts BLANK and is built from the injectables library.
-    const edition = body.edition ?? 'tablets';
-    // API edition plan A0: the same holds for an API (substance) family.
-    if (edition !== 'tablets' && start !== 'BLANK') {
+    // Injectables plan I-0: the edition is data on the family. The tablet skeleton and copies are Tablets procedures, so an
+    // injectables family starts BLANK or (I-1c) from the skeleton's dispensing stage alone (from-formula.ts), and is
+    // built from the injectables library. API edition plan A0: an API (substance) family starts BLANK.
+    // I-1c: when the request names no edition, the family takes it from the product master's dosage form (an injectable
+    // form makes an injectables family), so the new-master screen needs no edition choice; checked once it is known.
+    const startFits = (edition: flow.Edition): void => {
+      if (edition === 'tablets' || start === 'BLANK' || (edition === 'injectables' && start === 'SKELETON')) return;
       throw refusal(422, {
         code: 'DESIGNER_EDITION_START',
         kind: 'INVALID_INPUT',
         whatHappened: 'The family was not created.',
-        why: `An ${edition === 'injectables' ? 'injectables' : 'API'} master starts blank: the skeleton and copies are tablet procedures.`,
+        why: edition === 'injectables'
+          ? 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.'
+          : 'An API master starts blank: the skeleton and copies are tablet procedures.',
         controls: ['PR-01'],
         whatYouCanDo: [`Choose "Blank" and add the steps from the ${edition === 'injectables' ? 'injectables' : 'API'} library.`],
       });
-    }
+    };
+    if (body.edition !== undefined) startFits(body.edition);
     const copySource = start === 'COPY' ? await copySourceOf(body.copyOfVersionId) : undefined;
     const base = TEMPLATES.get('dc-mini');
     if (!base) throw new Error('the dc-mini skeleton source is missing');
@@ -493,6 +496,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // dosage form (no default).
           const master = rows[0];
           const stated = master?.name ? await dosageFormOf(chosen.productCode, master.dosage) : undefined;
+          const edition: flow.Edition = body.edition ?? (flow.isInjectableForm(stated) ? 'injectables' : 'tablets');
+          if (body.edition === undefined) startFits(edition);
           const dosageForm = stated?.trim() || (edition === 'tablets' ? 'Tablet' : '');
           // API edition plan A0: an API (substance) family needs a product master whose dosage form is API or Intermediate.
           const formFits = dosageFormFits(edition, dosageForm);

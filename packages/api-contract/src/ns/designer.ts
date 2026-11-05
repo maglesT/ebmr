@@ -245,9 +245,10 @@ export const designer = {
        */
       start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY']).optional(),
       /**
-       * Injectables plan I-0: the family's edition (default tablets). An injectables family starts from a formula with
-       * BLANK (the tablet skeleton, templates and copies are Tablets procedures) and its product's dosage form must be an
-       * injectable one.
+       * Injectables plan I-0: the family's edition. An injectables family starts from a formula with BLANK or SKELETON
+       * (I-1c: the dispensing stage alone; templates and copies are Tablets procedures) and its product's dosage form must
+       * be an injectable one. Absent (I-1c): taken from the product master's dosage form, an injectable form making an
+       * injectables family, otherwise tablets.
        */
       // API edition plan A0: recipe-core's flow.EDITIONS, written out (the contract imports no recipe-core code at run
       // time; test/editions.test.ts checks the two lists agree).

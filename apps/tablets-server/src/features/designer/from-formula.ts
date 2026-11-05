@@ -152,8 +152,9 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   if (actives.length === 0) throw new FamilyInputError('DESIGNER_FORMULA', 'The formula has no active given per unit; a processing master dispenses its actives.', ['PR-01']);
   const mgText = (ls: formula.FormulaLine[]): string => sum(ls.map(unitMg));
   const refUnits = c.batchSizeUnits;
-  // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026).
-  const unit = flowNs.isCapsuleForm(src.product.dosageForm) ? 'capsule' : 'tablet';
+  // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026);
+  // an injectables product says unit (a vial, an ampoule: injectables plan I-1c).
+  const unit = req.edition === 'injectables' ? 'unit' : flowNs.isCapsuleForm(src.product.dosageForm) ? 'capsule' : 'tablet';
   const kg = (mg: string): string => Dec.parse(mg).times(Dec.parse(refUnits)).div(Dec.parse('1000000')).toString();
 
   const param = (id: string, name: string): flow.Parameter =>
@@ -314,6 +315,35 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
   return t;
 }
 
+/**
+ * Injectables plan I-1c: the skeleton of an injectables master is the dispensing stage alone (clearance, balance status,
+ * dispensing quantities, the weighings that consume the bill of materials, reconciliation), ending with QA's release
+ * for packing (H-PACK). There is no blending stage: the author adds the injectables library steps (compounding,
+ * filtration, filling and so on) after the reconciliation, before H-PACK.
+ */
+function dispensingOnly(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[], timeSystem?: flow.Reference): flow.MbrContent {
+  // The trusted-time system stays pinned: the library's timed steps (mixing, inspection) rely on it (DI-04).
+  const t = skeleton(base, src, req, markets, timeSystem);
+  const disp = (t.procedure.body as flow.SequenceNode).children.find((n) => n.id === 'S-DISP') as flow.StageNode;
+  walk(disp, (o) => {
+    if (o['kind'] === 'sequence' && Array.isArray(o['children'])) {
+      const children = o['children'] as flow.FlowNode[];
+      if (children.some((n) => n.id === 'p-disp-recon')) children.push({ kind: 'holdPoint', id: 'H-PACK', name: 'Bulk released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] });
+    }
+  });
+  (t.procedure.body as flow.SequenceNode).children = [disp];
+  t.procedure = { ...t.procedure, name: `${src.product.name} ${src.chosen.strength}: dispensing` };
+  const blending = new Set(['blendTime', 'lubeTime', 'blendNet', 'blendInput', 'blendYield']);
+  t.parameters = t.parameters.filter((p) => !blending.has(p.id));
+  t.calculations = t.calculations.filter((x) => !blending.has(x.id));
+  t.goldenCases = t.goldenCases.filter((g) => g.id !== 'G-BLEND-YIELD');
+  t.yieldCheckpoints = t.yieldCheckpoints.filter((y) => !blending.has(y.result));
+  t.timeConstraints = [];
+  t.intermediates = [];
+  t.references = t.references.filter((r) => !['SOP-BLEND-002', 'VR-BLEND-01', 'EQC-BLENDER', 'HS-PCM-01'].includes(r.id));
+  return t;
+}
+
 /** COPY (header comment): the approved master's procedure with this header and bill of materials. */
 function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
   const t = structuredClone(source);
@@ -425,5 +455,6 @@ export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: F
     if (!copySource) throw new FamilyInputError('DESIGNER_COPY', 'Name the approved master to copy.', ['PR-01']);
     return parsed(copy(copySource, src, req, markets));
   }
-  return parsed(req.start === 'BLANK' ? blank(base, src, req, markets) : skeleton(base, src, req, markets, timeSystem));
+  if (req.start === 'BLANK') return parsed(blank(base, src, req, markets));
+  return parsed(req.edition === 'injectables' ? dispensingOnly(base, src, req, markets, timeSystem) : skeleton(base, src, req, markets, timeSystem));
 }

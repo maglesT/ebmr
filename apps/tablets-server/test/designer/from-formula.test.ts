@@ -251,8 +251,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
       author.call(routes.designer.createFamily, { body: { familyCode, product: INJ, markets: ['IN'], formulaVersionId: injFormula, edition: 'injectables', ...extra } });
     const v = valueOf(await injCreate('DMT7JI-BL', { start: 'BLANK' }));
     expect((v.content as unknown as { header: { edition: string; product: { dosageForm: string } } }).header).toMatchObject({ edition: 'injectables', product: { dosageForm: 'Injection' } });
-    // The tablet skeleton and the templates are tablet procedures: refused for an injectables family.
-    expect(refusalOf(await injCreate('DMT7JI-SK', { start: 'SKELETON' })).code).toBe('DESIGNER_EDITION_START');
+    // The templates are tablet procedures: refused for an injectables family (its skeleton is the dispensing stage, below).
     expect(refusalOf(await injCreate('DMT7JI-T', { templateId: 'dc-mini', batchSizes: [{ quantity: '1', unit: 'kg' }] })).code).toBe('DESIGNER_EDITION_START');
     // A tablet product cannot become an injectables family, and an injectable product not a tablets one.
     const tablet = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-INJ', product: PRODUCT, markets: ['IN'], formulaVersionId: otherVersionId, start: 'BLANK', edition: 'injectables' } });
@@ -262,6 +261,40 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(families.find((f) => f.familyCode === 'DMT7JI-BL')?.edition).toBe('injectables');
     expect(families.find((f) => f.familyCode === 'DMT7JF-BL')?.edition).toBe('tablets');
     const { rows } = await gmp.db.admin.query<{ edition: string }>("select edition from recipe.mbr_family where code = 'DMT7JI-BL'");
+    expect(rows[0]?.edition).toBe('injectables');
+  });
+
+  it('[PR-01][INV-25][INV-17] injectables plan I-1c: an injectables master from the formula\'s skeleton is the dispensing stage alone, worded per unit, whose weighings consume every bill-of-materials line, ending with QA\'s release for packing (H-PACK); no blending stage, no tablet block; the validator finds no problem in the procedure; the request names no edition: the family takes it from the injectable dosage form', async () => {
+    const INJ = { code: 'DMT7JV', name: 'Demoject 400 mg', strength: PRODUCT.strength };
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: INJ.code, strength: INJ.strength, productName: INJ.name, dosageForm: 'Solution for injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    const injFormula = await approvedFormula('100000', undefined, LINES, INJ.code);
+    const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JV-SK', product: INJ, markets: ['IN'], formulaVersionId: injFormula, start: 'SKELETON' } }));
+    const c = v.content as unknown as { header: { edition: string }; bom: { id: string }[]; inputs: { id: string; name: string }[]; calculations: { name: string }[]; procedure: unknown };
+    expect(c.header.edition).toBe('injectables');
+    const steps: { id: string; consumes?: string[]; block?: { type: string } }[] = [];
+    const stages: string[] = [];
+    const visit = (n: unknown): void => {
+      if (Array.isArray(n)) n.forEach(visit);
+      else if (n && typeof n === 'object') {
+        const o = n as { id?: string; kind?: string; consumes?: string[]; block?: { type: string } };
+        if (o.kind === 'stage') stages.push(o.id ?? '');
+        if (o.kind === 'phase' || o.kind === 'holdPoint') steps.push({ id: o.id ?? '', ...(o.consumes ? { consumes: o.consumes } : {}), ...(o.block ? { block: o.block } : {}) });
+        Object.values(o).forEach(visit);
+      }
+    };
+    visit(c.procedure);
+    expect(stages).toEqual(['S-DISP']);
+    expect(steps.at(-1)?.id).toBe('H-PACK');
+    expect(steps.some((x) => x.block?.type === 'TB-07' || x.id.startsWith('p-blend'))).toBe(false);
+    expect(new Set(steps.flatMap((x) => x.consumes ?? []))).toEqual(new Set(c.bom.map((b) => b.id)));
+    expect(c.inputs.find((i) => i.id === 'tabletsPerBatch')?.name).toBe('Batch size in units');
+    expect(c.calculations.map((x) => x.name).join(' ')).not.toMatch(/tablet|blend/i);
+    const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+    // The procedure's own findings. The market minima (MKT-*) depend on whether the installation publishes the sterile rule
+    // table, which other files on this database change; they have their own tests (market-set.test.ts).
+    expect(report.findings.filter((f) => f.severity !== 'INFO' && !f.rule.startsWith('MKT-')).map((f) => `${f.severity} ${f.rule}: ${f.message}`)).toEqual([]);
+    const { rows } = await gmp.db.admin.query<{ edition: string }>("select edition from recipe.mbr_family where code = 'DMT7JV-SK'");
     expect(rows[0]?.edition).toBe('injectables');
   });
 
