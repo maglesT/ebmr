@@ -165,6 +165,7 @@ test('[DI-18][DI-20] the first-run set-up of a new installation in the browser: 
 test('[DI-05] the demo data is loaded from the operations screen after the database name is typed to confirm; the browser starts again on the demo terminals @office', async ({ evidence }) => {
   test.setTimeout(600_000);
   await evidence.step('Open Operations, then Demo and test data', 'The page says what is lost and offers the load and the reset', async () => {
+    await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
     await page.getByRole('link', { name: /^Operations/ }).click();
     await page.getByRole('link', { name: 'Demo and test data' }).click();
     await expect(page.getByTestId('demo-contents')).toContainText('2 persons');

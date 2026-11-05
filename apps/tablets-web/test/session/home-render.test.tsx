@@ -46,6 +46,8 @@ function signedInAs(role: string) {
       { installation: 'GMP' },
     ),
   );
+  // Each test starts on the home (an earlier one may have opened All screens).
+  window.history.replaceState(null, '', '/');
   render(
     // Declutter D3: the home's work cards read through TanStack Query.
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -58,12 +60,18 @@ function signedInAs(role: string) {
   );
 }
 
-const tileNames = (nav: HTMLElement): string[] => within(nav).queryAllByRole('link').map((l) => l.querySelector('p')?.textContent ?? '');
+const tileNames = (nav: HTMLElement): string[] => within(nav).queryAllByRole('link').map((l) => l.textContent ?? '');
+
+/** Declutter D3: the screens are listed under the home's one "All screens" link. */
+async function allScreens(): Promise<HTMLElement> {
+  await userEvent.click(await screen.findByRole('link', { name: 'All screens' }));
+  return screen.findByRole('navigation', { name: 'Functions' });
+}
 
 describe('the home screen by role (D-P7R-18)', () => {
   it('[DI-17] a QA reviewer sees record review but not the administration of people; "Show all screens" lists the hidden ones', async () => {
     signedInAs('QA_REVIEWER');
-    const nav = await screen.findByRole('navigation', { name: 'Functions' });
+    const nav = await allScreens();
     await waitFor(() => expect(tileNames(nav)).toContain('Batch record review'));
     expect(tileNames(nav)).not.toContain('People and accounts');
     await userEvent.click(screen.getByTestId('home-show-all'));
@@ -72,7 +80,7 @@ describe('the home screen by role (D-P7R-18)', () => {
 
   it('[DI-17] the system administrator sees the administration of people', async () => {
     signedInAs('SYSTEM_ADMINISTRATOR');
-    const nav = await screen.findByRole('navigation', { name: 'Functions' });
+    const nav = await allScreens();
     await waitFor(() => expect(tileNames(nav)).toContain('People and accounts'));
   });
 });

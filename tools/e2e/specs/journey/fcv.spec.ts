@@ -57,6 +57,7 @@ test.describe('first clickable version (journey)', () => {
       await signIn.office(designer, author);
       let versionId = '';
       await evidence.step('GMP: the author creates the product family from the dc-mini template', 'A DRAFT, revision 1; the server finds no errors and no warnings', async () => {
+        await designer.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
         await designer.getByRole('link', { name: /Master records/ }).click();
         await expect(designer.getByRole('heading', { name: 'Master records' })).toBeVisible();
         await designer.getByRole('link', { name: 'New master record (from a template or a formula)' }).click();
@@ -136,6 +137,7 @@ test.describe('first clickable version (journey)', () => {
       const disp = await kioskPage('TEST-KIOSK-DISP-1');
       await signIn.kiosk(disp, operator1);
       await evidence.step('DISP-1 kiosk: the operator signs in with badge and PIN and opens the work of the room', 'The cockpit lists step 1.1.1 of the new TEST- batch', async () => {
+        await disp.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
         await disp.getByRole('link', { name: /What you can do now/ }).click();
         await expect(disp.getByRole('heading', { name: 'What you can do now' })).toBeVisible();
         const item = disp.getByRole('listitem').filter({ hasText: batchNumber }).filter({ hasText: 'Dispensing booth clearance' });
@@ -470,6 +472,7 @@ test.describe('first clickable version (journey)', () => {
       const review = await officePage('SANDBOX', 'TEST-PC-01');
       await signIn.office(review, issuer);
       await evidence.step('Run overview: "Verify record" replays the stored rows', 'Replay identical: the stored state matches', async () => {
+        await review.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
         await review.getByRole('link', { name: /^Test runs/ }).click();
         await review.getByRole('link', { name: `Open run ${batchNumber}` }).click();
         await expect(review.getByRole('heading', { name: `Run ${batchNumber}` })).toBeVisible();
@@ -491,6 +494,7 @@ test.describe('first clickable version (journey)', () => {
       const audit = await officePage('GMP', 'PC-DESIGN-01');
       await signIn.office(audit, author);
       await evidence.step('GMP audit trail of the MBR version: the creation and the export; the chain verifies', 'Chain intact', async () => {
+        await audit.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
         await audit.getByRole('link', { name: /Master records/ }).click();
         await audit.getByRole('link', { name: `Open FAM-${tag} version 1` }).click();
         await expect(audit.getByRole('heading', { level: 1 })).toContainText('Paracetamol tablets 500 mg');

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
 import { About } from './About.tsx';
 import { DemoPicker } from './DemoPicker.tsx';
-import { Home } from './Home.tsx';
+import { Home, ScreensPage } from './Home.tsx';
 import { MyBatchesPage, ToReleasePage, ToReviewPage, ToSignPage } from './work.tsx';
 
 export { DemoPicker, NotEnrolled } from './DemoPicker.tsx';
@@ -17,6 +17,7 @@ export { About } from './About.tsx';
 export function routes(root: AnyRootRoute): AnyRoute[] {
   return [
     createRoute({ getParentRoute: () => root, path: '/', component: Home }),
+    createRoute({ getParentRoute: () => root, path: '/screens', component: ScreensPage }),
     createRoute({ getParentRoute: () => root, path: '/about', component: About }),
     createRoute({ getParentRoute: () => root, path: '/demo/devices', component: DemoPicker }),
     // Declutter D3: the lists the home's work cards open.

@@ -11,6 +11,7 @@ import { expect } from '../../fixtures/index.ts';
 export async function tile(page: Page, title: string | RegExp): Promise<void> {
   await page.getByTestId('home-link').first().click();
   await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   const name = typeof title === 'string' ? new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) : title;
   const link = page.getByRole('main').getByRole('link', { name }).first();
   if ((await link.count()) === 0) {

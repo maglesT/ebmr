@@ -1,8 +1,9 @@
 /**
- * Home: the tiles of this installation (plan section 12): master records and audit on GMP; packages, runs, cockpit and audit
- * on the sandbox. Decision D-P7R-18 (gap F1): the tiles whose screen the session's role cannot use are hidden
- * (app/tile-access.ts; display only, the server stays the authority); "Show all screens" lists them again.
- * Declutter D3: the four work cards (work.tsx) come first; the tiles show their titles only, no descriptions.
+ * Home (declutter D3): the four work cards (work.tsx) and one plain link, "All screens", to the list of this
+ * installation's screens (plan section 12: master records and audit on GMP; packages, runs, cockpit and audit on the
+ * sandbox). Decision D-P7R-18 (gap F1): the screens the session's role cannot use are left out of the list
+ * (app/tile-access.ts; display only, the server stays the authority); "Show all screens" lists them again. Declutter D2:
+ * a screen that is not part of Batchwright here (meta.disconnected) is never offered, not even under "Show all screens".
  */
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
@@ -15,36 +16,48 @@ import { useScreensOff } from '../../app/disconnected.tsx';
 import { WorkCards } from './work.tsx';
 
 export function Home() {
+  return (
+    <>
+      <h1>{t('home.title')}</h1>
+      <WorkCards />
+      <p>
+        <Link to="/screens" className={cls('allScreens')} data-testid="home-all-screens">
+          All screens
+        </Link>
+      </p>
+    </>
+  );
+}
+
+/** "All screens": a plain list of the screens offered here, by title. */
+export function ScreensPage() {
   const boot = useBoot();
   const features = useFeatures();
   const role = boot.session?.role ?? null;
   const [showAll, setShowAll] = useState(false);
   const installation = boot.meta?.installation ?? 'GMP';
   const off = useScreensOff();
-  // Declutter D2: a screen that is not part of Batchwright here is not offered, not even under "Show all screens".
   const all = features.flatMap(([, f]) => f.homeTiles ?? []).filter((tile) => tile.installations.includes(installation) && !off(tile.to));
   const usable = all.filter((tile) => tileOffered(tile.id, installation, role));
   const hidden = all.length - usable.length;
   const tiles = showAll ? all : usable;
   return (
     <>
-      <h1>{t('home.title')}</h1>
-      <WorkCards />
-      <nav aria-label="Functions" className={cls('tiles')}>
-        {tiles.map((tile) =>
-          tile.available ? (
-            <Link key={tile.id} to={tile.to} className={cls('tile')} data-available="true">
-              <p className={cls('tileTitle')}>{tile.title}</p>
-            </Link>
-          ) : (
-            <div key={tile.id} className={cls('tile')} data-available="false" aria-disabled="true">
-              <p className={cls('tileTitle')}>{tile.title}</p>
-              <p>
-                <em>{t('home.notAvailable')}</em>
-              </p>
-            </div>
-          ),
-        )}
+      <h1>All screens</h1>
+      <nav aria-label="Functions">
+        <ul className={cls('screenList')}>
+          {tiles.map((tile) => (
+            <li key={tile.id} data-available={tile.available ? 'true' : 'false'}>
+              {tile.available ? (
+                <Link to={tile.to}>{tile.title}</Link>
+              ) : (
+                <span aria-disabled="true">
+                  {tile.title} <em>{t('home.notAvailable')}</em>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       </nav>
       {hidden > 0 ? (
         <p>

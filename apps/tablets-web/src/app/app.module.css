@@ -116,7 +116,28 @@
 .about dd {
   margin: 0;
 }
-/* The home screen's "Show all screens" switch: a full-size target on a kiosk (slice 7h, F1). */
+/* Declutter D3: the home's one text link to the screen list, and that list (plain links, a full-size target each). */
+.allScreens {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ebmr-target-min);
+  font-weight: 600;
+}
+.screenList {
+  list-style: none;
+  margin: 0 0 var(--ebmr-gap) 0;
+  padding: 0;
+}
+.screenList li {
+  border-bottom: 1px solid var(--ebmr-border);
+}
+.screenList a,
+.screenList span {
+  display: flex;
+  align-items: center;
+  min-height: var(--ebmr-target-min);
+}
+/* The screen list's "Show all screens" switch: a full-size target on a kiosk (slice 7h, F1). */
 .showAll {
   min-height: var(--ebmr-target-min);
   min-width: var(--ebmr-target-min);

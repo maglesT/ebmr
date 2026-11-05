@@ -175,9 +175,13 @@ describe('[DI-17] the home work cards (declutter D3)', () => {
 
   it('[DI-17] the Functions list still offers the tiles by title, without their descriptions', async () => {
     open('/', 'QA_REVIEWER');
+    // Declutter D3 round 2: the home is the cards and one "All screens" link; the list is a page of its own.
+    const link = await screen.findByRole('link', { name: 'All screens' });
+    expect(screen.queryByRole('navigation', { name: 'Functions' })).toBeNull();
+    await userEvent.click(link);
     const nav = await screen.findByRole('navigation', { name: 'Functions' });
     const review = await within(nav).findByRole('link', { name: /^Batch record review/ });
     expect(review.textContent).toBe('Batch record review');
-    expect(review.getAttribute('data-available')).toBe('true');
+    expect(review.closest('li')?.getAttribute('data-available')).toBe('true');
   });
 });

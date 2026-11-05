@@ -4,10 +4,11 @@
  * JavaScript number) and is never pre-filled: the target is shown as information only. No verdict is shown
  * here; the server's limit evaluation appears with the recorded value after commit (DI-28).
  */
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { DecimalField } from '../primitives/DecimalField.tsx';
 import { fcls } from './classes.ts';
 import { Keypad } from './Keypad.tsx';
+import { focusKeypad, useKeypadShown } from './keypadFocus.ts';
 import { LimitDisplay, type LimitViewData } from './LimitDisplay.tsx';
 import { ft } from './messages.ts';
 
@@ -31,7 +32,8 @@ export interface NumericEntryProps {
   /** A problem from the server for this value (e.g. a refusal), shown under the field. */
   errorMessage?: string;
   isDisabled?: boolean;
-  /** Show the on-screen keypad (default true; kiosks are used with gloves). */
+  /** Show the on-screen keypad (default true; kiosks are used with gloves). One keypad shows at a time: the one of the
+   *  numeric entry last focused, or the first on screen (keypadFocus.ts). */
   keypad?: boolean;
   /** Extra content under the input (e.g. the save button). */
   children?: ReactNode;
@@ -40,8 +42,10 @@ export interface NumericEntryProps {
 
 export function NumericEntry({ label, unit, value, onChange, maxDecimals, allowNegative, target, limits, description, errorMessage, isDisabled, keypad = true, children, name }: NumericEntryProps) {
   const rules = { ...(maxDecimals !== undefined ? { maxDecimals } : {}), ...(allowNegative !== undefined ? { allowNegative } : {}) };
+  const id = useId();
+  const padShown = useKeypadShown(id, keypad);
   return (
-    <div className={fcls('numeric')} data-testid={`numeric-${name ?? label}`}>
+    <div className={fcls('numeric')} data-testid={`numeric-${name ?? label}`} onFocus={keypad ? () => focusKeypad(id) : undefined}>
       <div className={fcls('numericInput')}>
         <DecimalField
           label={label}
@@ -54,7 +58,7 @@ export function NumericEntry({ label, unit, value, onChange, maxDecimals, allowN
           {...(errorMessage ? { errorMessage } : {})}
           {...(isDisabled !== undefined ? { isDisabled } : {})}
         />
-        {keypad ? <Keypad label={label} value={value} onChange={onChange} {...rules} {...(isDisabled !== undefined ? { isDisabled } : {})} /> : null}
+        {keypad && padShown ? <Keypad label={label} value={value} onChange={onChange} {...rules} {...(isDisabled !== undefined ? { isDisabled } : {})} /> : null}
         {children}
       </div>
       <div className={fcls('numericSide')}>

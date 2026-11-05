@@ -114,6 +114,38 @@
 .limitTier {
   font-weight: 700;
 }
+/* Declutter D3: the limits on one line, the sources under "Details". */
+.limitBlock {
+  margin: 0;
+}
+.limitLine {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.limitItem {
+  white-space: nowrap;
+}
+.limitItem[data-tier='REGISTERED'] .limitTier,
+.limitItem[data-tier='VALIDATED'] .limitTier {
+  color: var(--ebmr-error-fg);
+}
+.limitItem[data-tier='INTERNAL_ACTION'] .limitTier {
+  color: var(--ebmr-warning-fg);
+}
+.limitDetails {
+  margin-top: 2px;
+}
+.limitDetails > summary {
+  cursor: pointer;
+  color: var(--ebmr-info-fg);
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.limitDetails .limitSource {
+  padding: 2px 0;
+}
 .limitBounds {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -266,6 +298,16 @@
 .more {
   min-height: calc(var(--ebmr-primary-bar) - 16px);
   min-width: 9em;
+}
+/* Declutter D3: "More …" reads as a plain text link beside the one primary button (still a full-size target). */
+.actionBar .more {
+  min-width: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ebmr-info-fg);
+  text-decoration: underline;
+  font-weight: 600;
+  padding: 0 0.5em;
 }
 .menuPopover {
   background: var(--ebmr-background);

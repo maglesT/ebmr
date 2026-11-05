@@ -46,6 +46,7 @@ import { skeletonRun } from './skeleton-floor.ts';
 /** The start page (the application's address; the shell has no home link) and a tile of it. */
 const home = async (page: Page, tile: RegExp): Promise<void> => {
   await page.goto(new URL(page.url()).origin + '/');
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: tile }).click();
 };
 
