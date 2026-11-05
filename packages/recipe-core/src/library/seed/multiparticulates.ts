@@ -41,7 +41,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Extrusion',
           fields: [
             { id: 'extruder', label: 'Extruder', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'extruderClass' },
-            { id: 'screen', label: 'Extruder screen opening', type: 'CHOICE', options: ['0.6 mm', '0.8 mm', '1.0 mm', '1.2 mm', '1.5 mm'] },
+            { id: 'screen', label: 'Extruder screen opening (as the formulation names it)', type: 'TEXT' },
             { id: 'screenIntact', label: 'Screen intact before and after use', type: 'YES_NO', expected: true },
             { id: 'wetMassIn', label: 'Wet mass container', type: 'CONTAINER', action: 'CONSUME' },
             { id: 'extruderSpeed', label: 'Extruder speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'extruderSpeed', critical: true },
@@ -54,7 +54,6 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
             { id: 'spheroniser', label: 'Spheroniser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'spheroniserClass' },
             { id: 'plateSpeed', label: 'Friction plate speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'plateSpeed', critical: true },
             { id: 'spheronising', label: 'Spheronisation time (all charges)', type: 'TIMER', durationUnit: 'min', limitSlot: 'spheronisingTime', critical: true },
-            { id: 'spherical', label: 'Pellets round, no dumbbells or fines', type: 'YES_NO', expected: true },
             { id: 'container', label: 'Wet pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
@@ -105,7 +104,6 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'dryingTemp', label: 'Product temperature at the end of drying', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'dryingTemp', critical: true },
             { id: 'drying', label: 'Drying time in the processor', type: 'TIMER', durationUnit: 'min', limitSlot: 'dryingTime', critical: true },
-            { id: 'free', label: 'Pellets free-flowing, no agglomerates', type: 'YES_NO', expected: true },
             { id: 'container', label: 'Drug-layered pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
@@ -176,7 +174,6 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'curingTemp', label: 'Curing product temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'curingTemp', critical: true },
             { id: 'curing', label: 'Curing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'curingTime', critical: true },
-            { id: 'free', label: 'Coated pellets free-flowing, no twins or agglomerates', type: 'YES_NO', expected: true },
             { id: 'container', label: 'Coated pellets container', type: 'CONTAINER', action: 'REGISTER' },
             { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg' },
           ],
@@ -208,7 +205,7 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Capsule filling, multi-station (pellets, mini-tablets, combinations)',
       category: 'PROCESS',
-      instructions: 'Fit the change parts of the capsule size and set each dosing station to its set fill (pellets or powder by mass, mini-tablets, a tablet or a capsule by count). At each round, record each station\'s fill against its set fill; the verifier checks each station\'s set fill against the formulation. The capsule\'s total fill weight is checked in its own step.',
+      instructions: 'Fit the change parts of the capsule size and set each dosing station to the fill the formulation gives (pellets or powder by mass, mini-tablets, a tablet or a capsule by count). Record what each station doses and its input. The capsule\'s fill weight is checked in its own step (IPC-CAPS-FILL-WEIGHT).',
       sections: [
         {
           id: 'setup',
@@ -227,7 +224,6 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'content', label: 'Station doses', type: 'CHOICE', options: STATION_CONTENTS },
             { id: 'stationIn', label: 'Station input container', type: 'CONTAINER', action: 'CONSUME' },
-            { id: 'setFill', label: 'Set fill per capsule (as the formulation gives it)', type: 'NUMBER', unit: 'mg', decimals: 1 },
           ],
         },
         {
@@ -235,11 +231,6 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'stationNo', label: 'Station checked', type: 'CHOICE', options: ['1', '2', '3', '4'] },
-            { id: 'stationSet', label: 'That station\'s set fill', type: 'NUMBER', unit: 'mg', decimals: 1 },
-            { id: 'stationFill', label: 'Average fill from that station', type: 'NUMBER', unit: 'mg', decimals: 1 },
-            { id: 'fillRatio', label: 'Station fill, % of its set fill', type: 'CALC', expression: 'stationFill / stationSet * 100 [%]', unit: '%', limitSlot: 'fillRatio', critical: true },
-            { id: 'counted', label: 'Counted stations: each capsule holds the set number of units', type: 'YES_NO', expected: true },
             { id: 'locked', label: 'Capsules closed and locked, none split', type: 'YES_NO', expected: true },
           ],
         },
@@ -256,7 +247,6 @@ export const MULTIPARTICULATE_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      limits: { fillRatio: val('%', '95.0', '105.0') },
       equipmentClasses: { fillerClass: 'CAPSULE-FILLER-MULTI' },
       bomLines: { shellLine: 'L1' },
       counts: { stations: '2' },

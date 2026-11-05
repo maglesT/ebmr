@@ -6,17 +6,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
-import { checkBlockUse, libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
+import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
 import type { BlockUse } from '../../src/library/model.ts';
-import { SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
-import { define, OP1, Run, T0, testRegistry } from '../engine/support.ts';
+import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
-
-const item = (code: string): SeedItem => {
-  const s = SEED_CATALOGUE.find((x) => x.definition.code === code);
-  if (!s) throw new Error(`${code} is not in the catalogue`);
-  return s;
-};
+import { byCode as item, runNominalStep } from './seed-support.ts';
 
 /** A step of the master: the catalogue block with its example values, its formula lines and counts as given. */
 interface Step {
@@ -57,37 +51,13 @@ function master(): { mbr: MbrContent; registry: ReturnType<typeof testRegistry> 
   return { mbr: { ...mbr, header: { ...mbr.header, product: { ...mbr.header.product, dosageForm: 'Delayed-release hard capsule (pellets)' } } }, registry: testRegistry().extend(...defs) };
 }
 
-/** Runs one library step with its nominal entries (as the catalogue's own nominal run, seed.test.ts). */
-function runStep(run: Run, mbr: MbrContent, s: Step): void {
-  const def = item(s.code).definition;
-  const use = useOf(s);
-  run.start(s.id);
-  const entries = nominalEntries(def, configOf(use) as never, mbr);
-  const rounds = entries.filter((e) => def.sections.some((x) => x.id === e.kind && x.repeat?.kind === 'PER_INTERVAL'));
-  for (const e of entries) {
-    if (e.kind === TIMER_STOP) {
-      for (let i = 0; i < 6; i++) {
-        run.minutes(10 - rounds.length);
-        for (const r of rounds) {
-          run.entry(s.id, r);
-          run.minutes(1);
-        }
-      }
-    }
-    run.entry(s.id, e);
-    run.minutes(1);
-  }
-  run.perform(s.id);
-  if (run.status(s.id) === 'AWAITING_VERIFICATION') run.verify(s.id);
-}
-
 describe('multiparticulates in hard capsules (Capsules C4)', () => {
   it('[PR-03][PR-18][IN-36][IN-37] a delayed-release pellet capsule from the catalogue (drug layering on inert cores, seal and enteric coats in the fluid bed from their own suspensions, two-station filling, the fill weight test) passes the formulation checks and runs to completion with no exception', () => {
     const { mbr, registry } = master();
     for (const s of STEPS) expect(checkBlockUse(item(s.code).definition, useOf(s), expr, BOM), s.id).toEqual([]);
     const run = Run.issue(define(mbr, { registry }), {}, T0);
     for (const s of STEPS) {
-      runStep(run, mbr, s);
+      runNominalStep(run, s.id, item(s.code).definition, configOf(useOf(s)), mbr);
       expect(run.status(s.id), s.id).toBe('COMPLETED');
     }
     expect(run.exceptions().map((x) => x.type)).toEqual([]);
@@ -97,7 +67,7 @@ describe('multiparticulates in hard capsules (Capsules C4)', () => {
     expect(lots('p-fill')).toContain('shellLot');
   });
 
-  it('[PR-08][IN-36] fluid-bed pellet work records product-dedicated filter bags, critical spray parameters at each round, a weight gain checked until it passes (with a maximum of checks) and a timed cure; extrusion-spheronisation records the screen and critical speeds and time', () => {
+  it('[PR-08][IN-36] fluid-bed pellet work records product-dedicated filter bags, critical spray parameters at each round, a weight gain checked until it passes (with a maximum of checks) and a timed cure; extrusion-spheronisation records critical speeds and time', () => {
     const coat = item('COAT-PELLET-FB').definition;
     const fields = new Map(coat.sections.flatMap((x) => x.fields.map((f) => [f.id, f] as const)));
     expect(fields.get('filterBags')).toMatchObject({ type: 'YES_NO', expected: true });
@@ -111,25 +81,14 @@ describe('multiparticulates in hard capsules (Capsules C4)', () => {
     for (const id of ['extruderSpeed', 'plateSpeed', 'spheronising']) expect(ext.get(id), id).toMatchObject({ critical: true });
   });
 
-  it('[PR-08][PR-03] multi-station filling: one to four stations, each with its input and set fill; a station filling outside its set fill raises an exception and the step cannot complete; a set fill of zero is refused', () => {
-    const fill = item('PROC-CAPS-FILL-MULTI');
-    expect(fill.definition.sections.find((x) => x.id === 'station')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'stations' });
-    const round = fill.definition.sections.find((x) => x.id === 'round');
-    expect(round?.fields.find((f) => f.id === 'fillRatio')).toMatchObject({ type: 'CALC', critical: true, limitSlot: 'fillRatio' });
-    const s: Step = { id: 'p-fill', code: 'PROC-CAPS-FILL-MULTI', bomLines: { shellLine: 'BOM-SHELL' }, counts: { stations: '1' } };
-    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p-fill', { block: { type: libraryBlockType(s.code), version: '1' }, config: configOf(useOf(s)) as never }), phase('after')] }, { bom: BOM });
-    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(fill.definition, expr)) }), {}, T0);
-    run.start('p-fill');
-    for (const e of nominalEntries(fill.definition, configOf(useOf(s)) as never, mbr)) {
-      // A station 10 % light: 90 % of its set fill, outside 95-105 %.
-      run.entry('p-fill', e.kind === 'round' ? { ...e, stationSet: '150.0', stationFill: '135.0' } : e);
-      run.minutes(1);
-    }
-    expect(run.exceptions().map((x) => x.type)).toContain('LIB_LIMIT_BREACH');
-    expect(() => run.perform('p-fill')).toThrow(/outside its registered limit/);
-    // A set fill of zero is refused, never turned into a percentage.
-    const zero = run.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'p-fill', context: [], entry: { kind: 'round', stationNo: '1', stationSet: '0.0', stationFill: '135.0', counted: true, locked: true } });
-    expect(zero.accepted).toBe(false);
-    expect(zero.refusal?.code).toBe('LIB-CALC-FAILED');
+  it('[PR-03][PR-18] multi-station filling: one to four stations, each recording what it doses and its input; the shells are the per-unit formula line; the capsule\'s fill weight is the fill weight test\'s', () => {
+    const fill = item('PROC-CAPS-FILL-MULTI').definition;
+    const station = fill.sections.find((x) => x.id === 'station');
+    expect(station?.repeat).toEqual({ kind: 'COUNT', countSlot: 'stations' });
+    expect(station?.fields.map((f) => f.id)).toEqual(['content', 'stationIn']);
+    expect(fill.sections.flatMap((x) => x.fields).find((f) => f.id === 'shellLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' });
+    expect(STEPS.map((s) => s.code)).toContain('IPC-CAPS-FILL-WEIGHT');
+    // Four stations at most: a fifth is not a count the station section takes in this block's example.
+    expect(Number(item('PROC-CAPS-FILL-MULTI').exampleUse.counts?.['stations'])).toBeLessThanOrEqual(4);
   });
 });
