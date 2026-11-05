@@ -9,3 +9,4 @@ edition and never changes how tablets or injectables behave. The edition list it
 | Migration | What |
 |---|---|
 | 5000 | The schema `substance`; the row that lets the library pack block API-PACK complete an API packaging record; the API edition's G-REL hook (`substance.grel_edition_items`: the existing tablets items that fit any packaging order, plus the drums or bags examined) |
+| 5003 | The AS controls of slice A1 (AS-01 to AS-10, AS-14 to AS-16, AS-18, AS-24) in the names a test run may cite (`recipe.engine_name`), kept equal to the control register |

@@ -52,7 +52,9 @@ describe('the names a test run may hold beside TEST- identifiers (recipe-core 03
     const src = sources();
     expect(await names('RULE_CODE')).toEqual(sorted([...src.matchAll(/['"`](G\d{2}(?:-[A-Z0-9]+)+)['"`]/g)].map((m) => m[1] ?? '')));
     expect(await names('BLOCK_TYPE')).toEqual(sorted(GENERIC_BLOCK_VERSIONS.map((b) => b.type)));
-    const register = readdirSync(join(ROOT, 'compliance/controls')).filter((f) => f.endsWith('.yaml')).map((f) => f.slice(0, -5));
+    // The API edition's AS controls enter recipe.engine_name with the substance namespace (editions/substance/sql 5003),
+    // which this template (kernel, site services, recipe-core) does not apply.
+    const register = readdirSync(join(ROOT, 'compliance/controls')).filter((f) => f.endsWith('.yaml') && !f.startsWith('AS-')).map((f) => f.slice(0, -5));
     const invariants = sorted([...readFileSync(join(ROOT, 'docs/outline/build-outline.md'), 'utf8').matchAll(/\bINV-\d{2}\b/g)].map((m) => m[0]));
     expect(invariants).toEqual(Array.from({ length: 48 }, (_, i) => `INV-${String(i + 1).padStart(2, '0')}`));
     const controls = await names('CONTROL');
