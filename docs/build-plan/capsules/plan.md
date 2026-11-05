@@ -289,3 +289,14 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - D-C6b-4: the soft-gel plant's new units (fill vessel, melter, holding tank, encapsulator, dryers, gauges, hardness
   tester, inspection) are registered on screen as PROCESS units with their qualification, as C2/C3 did for the
   checkweigher; the fill and shell weights use the existing balance. No block field added in this slice.
+
+**C7 soft gels II (5 November 2026; lead audit):**
+- D-C7-1: SG-ENCAP-SEAMLESS mirrors SG-ENCAP-ROTARY clause for clause: encapsulator and nozzle (211.105(a)), gel mass
+  and fill inputs (211.101(d)), lines connected (EU GMP 5.14), nozzle and cooling-liquid temperatures at each round
+  against limits, not critical (211.110(a), (b)), output, rejects, operator and verifier. No cooling-oil lot or washing.
+- D-C7-2: chewable and enteric soft gels are data: a chewable gel mass is the formula's lines on SG-GEL-MASS; the enteric
+  coat reuses COAT-SUSPENSION-PREP and COAT-ENTERIC. COAT-ENTERIC's "tablet" wording is the D-C3-5 residual: a
+  data-only "units" version in C8, only if a capsule master uses it.
+- D-C7-3: IPC-CAPS-DT carries a CHOICE "Disintegration / Rupture" (211.110(a)(2), (b): the test the registered
+  specification names), edited into the v1 seed as C1 did (no site holds it; the demo resets from seed). No new limit
+  slot: the time limit is the specification's in either case.

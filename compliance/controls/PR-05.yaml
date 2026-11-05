@@ -116,6 +116,7 @@ tests:
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-05][DI-35] on the real approval path, a tablets master holding an approved substance block is refused at QA approval (EBMR-LIB-024)"
   - "packages/recipe-core/test/library/softgels.test.ts > soft gels I (Capsules C6) > [PR-05] the soft gel blocks are their own catalogue group and part of the capsule catalogue; no washing block (no binding clause maps to it, D-C6-1)"
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libgel 100 mg, soft gelatin capsules (library) uses through the signature ceremony @office"
+  - "packages/recipe-core/test/library/softgels-ii.test.ts > soft gels II (Capsules C7) > [PR-05] seamless encapsulation is a soft gel block in the capsule catalogue; chewable and enteric add no block of their own"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

@@ -120,7 +120,7 @@ describe('the library of block definitions', () => {
     expect(first.drafted).toEqual(expect.arrayContaining(multi));
     expect(second.skipped).toEqual(expect.arrayContaining(multi));
     // Capsules C6: the soft gel blocks load the same way.
-    const softgels = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
+    const softgels = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-ENCAP-SEAMLESS', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
     expect(first.drafted).toEqual(expect.arrayContaining(softgels));
     expect(second.skipped).toEqual(expect.arrayContaining(softgels));
   });

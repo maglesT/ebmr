@@ -29,7 +29,7 @@ const STEPS: readonly Step[] = [
   { id: 'p-inspect', code: 'PROC-CAPS-INSPECT' },
 ];
 
-const SOFTGEL_CODES = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
+const SOFTGEL_CODES = ['SG-GEL-MASS', 'SG-ENCAP-ROTARY', 'SG-ENCAP-SEAMLESS', 'SG-DRY', 'IPC-SG-FILL-SHELL', 'IPC-SG-SEAL-THICKNESS', 'IPC-SG-HARDNESS'];
 
 
 /** The soft gel: the BOM at the reference size (the gelatin is the gel mass's per-batch excipient line). */
@@ -89,9 +89,9 @@ describe('soft gels I (Capsules C6)', () => {
     expect(round?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
     expect(round?.fields.map((f) => [f.id, (f as { critical?: boolean }).critical])).toEqual([['ribbonThickness', undefined], ['wedgeTemp', undefined]]);
     expect(enc.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
-    // The only YES_NO of the soft gel blocks is the lines-connected check.
+    // The only YES_NO of the soft gel blocks is the lines-connected check (rotary and seamless, C7).
     const yesNo = SOFTGEL_CODES.flatMap((c) => item(c).definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'YES_NO').map((f) => `${c}.${f.id}`));
-    expect(yesNo).toEqual(['SG-ENCAP-ROTARY.linesConnected']);
+    expect(yesNo).toEqual(['SG-ENCAP-ROTARY.linesConnected', 'SG-ENCAP-SEAMLESS.linesConnected']);
     // Breach: a ribbon thinner than its registered limit raises an exception and the step cannot complete with it open.
     expect(judgedRun(enc, { round: { ribbonThickness: '0.70' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
   });

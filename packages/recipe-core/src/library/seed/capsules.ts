@@ -219,20 +219,23 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'IPC-CAPS-DT',
       version: 1,
-      title: 'Disintegration time (capsules)',
+      title: 'Disintegration or rupture time (capsules)',
       category: 'TEST_IPC',
-      instructions: 'Run the capsules with discs if the method says so; a capsule whose shell fragments remain is disintegrated.',
+      instructions: 'Run the test the specification names. Disintegration: with discs if the method says so; a capsule whose shell fragments remain is disintegrated. Rupture (soft gels): the time at which the shell ruptures.',
       sections: [
         {
           id: 'test',
           title: 'Test',
           fields: [
+            // 21 CFR 211.110(a)(2), (b) (C7): disintegration time, or the rupture test where the registered specification of a
+            // soft gel names it; the limits are the specification's in either case.
+            { id: 'testKind', label: 'Test', type: 'CHOICE', options: ['Disintegration', 'Rupture'] },
             { id: 'apparatus', label: 'Disintegration apparatus', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'apparatusClass' },
             { id: 'discs', label: 'Discs used as the method says', type: 'YES_NO', expected: true },
             { id: 'mediumTemp', label: 'Medium temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'mediumTemp', critical: true },
             {
               id: 'time',
-              label: 'Time for each capsule to disintegrate',
+              label: 'Time for each capsule to disintegrate or rupture',
               type: 'TEST_RESULT',
               unit: 'min',
               replicatesSlot: 'capsules',
