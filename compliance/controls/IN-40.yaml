@@ -16,7 +16,8 @@ sources: Schedule M Part II 4.1-4.6 and Table 1; 4.6.2-4.6.3 (sampling volumes, 
 behaviour: "(a) Room/zone master data carry grade A-D and a market-keyed limit table. India table (maximum particles per m3, 0.5 / 5.0 micrometre): Grade A 3,520 / 20 at rest and in operation; Grade B 3,520 / 29 at rest, 352,000 / 2,900 in operation; Grade C 352,000 / 2,900 at rest, 3,520,000 / 29,000 in operation; Grade D 3,520,000 / 29,000 at rest, in operation not defined. (b) Imported EM counts for the batch's processing window are checked against the resolved limits (section B row B-13). (c) Grade A unidirectional airflow records: velocity at 15-30 cm below the terminal filter within 0.36-0.54 m/s (guidance) and a hard minimum of 0.36 m/s at working level; readings below 0.36 m/s at working level are flagged. (d) Clean-up (recovery) time after operations: about 15-20 minutes (guidance) with a 100-fold reduction demonstrated; stored per room from qualification. (e) Classification sampling data: at least 1 m3 per location in Grade A; for the lower grades (C while operating, D while at rest) at least 2 litres sampled for no less than 1 minute per location. Classification results are kept separate from routine monitoring."
 catalog_test: "import a Grade B in-operation 5.0 micrometre count of 2,910/m3: it exceeds the India limit (2,900) and therefore fails for every profile, although it would pass the EU-only value (2,930)."
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

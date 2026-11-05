@@ -15,7 +15,9 @@ sources: Schedule M Part II 4.7-4.10 and Table 3 (values stated to be averages a
 behaviour: "(a) The batch record links the EM data for its processing window: continuous Grade A particle counts for the full critical processing including equipment assembly (capturing interventions and transients, alarming at alert limits), Grade B monitoring, and viable results (settle plates, active air, contact plates, glove prints, swabs) per location and session. (b) Release is blocked until all EM results for the filling window are complete (no plate still incubating) and reviewed, and every excursion is investigated. (c) Each viable result is evaluated individually against the resolved action limit (design choice: the Indian table gives averages, but averaging must not hide a single Grade A recovery). India values (CFU; air per m3 / settle plate 90 mm per 4 h / contact 55 mm / 5-finger glove): Grade A under 1 for all four; Grade B 10 / 5 / 5 / 5; Grade C 100 / 50 / 25 / not set; Grade D 200 / 100 / 50 / not set. (d) Alert and action limits must be configured for every location; exceeding an action limit or an adverse alert trend opens an investigation with CAPA."
 catalog_test: record a Grade A settle plate of 1 CFU during a fill; an excursion is raised for every profile and release is blocked until the investigation closes.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its sample, time and count after incubation, and limits the settle plate exposure"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

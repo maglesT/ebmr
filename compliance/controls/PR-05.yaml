@@ -114,6 +114,7 @@ tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [PR-05] the catalogue holds the 17 blocks of I-1 (INJ-01, 02, 04, 05, 06, 12, 14, 15, 18 to 26), each of the injectables edition, loaded with the rest of the catalogue"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-03][PR-05] a substance block is drafted, approved and offered only to API masters (and the generic ones to all); the edition check refuses it in a tablets or injectables master and a tablets block in an API master"
   - "apps/tablets-server/test/library/substance-edition.test.ts > the API edition as data (API plan A0) > [PR-05][DI-35] on the real approval path, a tablets master holding an approved substance block is refused at QA approval (EBMR-LIB-024)"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [PR-05][PR-03] the catalogue holds the 8 blocks of I-2 (INJ-03, 07, 08, 09, 10, 11, 13, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:

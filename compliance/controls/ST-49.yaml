@@ -26,7 +26,8 @@ behaviour: |-
     - residual EO and reaction-product results within limits.
 catalog_test: Set a component's method to UV → option unavailable. Issue an EO lot with residuals pending → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-40][ST-49] a supplier-sterilised component is accepted by its lot on the formula line, with its sterilisation method (no UV), certificate and dose or cycle reference; an indicator that has not changed is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

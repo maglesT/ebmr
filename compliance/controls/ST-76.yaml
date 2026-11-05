@@ -34,7 +34,8 @@ behaviour: |-
   - **RABS.** Routine sporicidal disinfection of every interior surface (agent, lot, expiry, SOP version, operator) at the defined frequency. Overdue blocks line start.
 catalog_test: A VHP cycle with no prior cleaning record → invalid for batch use. Settle-plate exposure logged before aeration end → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-76] isolator bio-decontamination records the cycle values from the printout as critical values with limits, checked by a second person; its validity is a time constraint of the master, not a typed date"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
