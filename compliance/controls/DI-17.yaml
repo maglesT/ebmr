@@ -486,6 +486,10 @@ tests:
   - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] a role refused review.queue and release.queue (EU_QP_READER) gets none of those cards"
   - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] a card opens its list, whose rows link to the record"
   - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] an empty list says \"Nothing here.\""
+  - "apps/tablets-web/test/app/disconnected-paths.test.ts > [DI-17] the switched-off screens follow the contract's list (declutter D3) > [DI-17] every namespace the contract disconnects is mapped to its screens, and nothing else is"
+  - "apps/tablets-web/test/app/disconnected-paths.test.ts > [DI-17] the switched-off screens follow the contract's list (declutter D3) > [DI-17] the switched-off paths are the mapped screens and the web-only ones, each once"
+  - "apps/tablets-web/test/app/disconnected-paths.test.ts > [DI-17] the switched-off screens follow the contract's list (declutter D3) > [DI-17] the home's work cards and the records their lists open are never switched off, on the platform or with the switch"
+  - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] a list that cannot be loaded says so, and its card says the count could not be loaded"
   - "apps/tablets-web/test/session/home-cards.test.tsx > [DI-17] the home work cards (declutter D3) > [DI-17] the Functions list still offers the tiles by title, without their descriptions"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."

@@ -75,7 +75,7 @@ afterEach(() => {
 });
 
 /** The whole application at `path`, signed in as `role` on an office PC (GMP), with the three queues as given. */
-function open(path: string, role: string, release: { lots: LotReleaseSummaryView[] } = RELEASE) {
+function open(path: string, role: string, release: { lots: LotReleaseSummaryView[] } | { status: number; body: unknown } = RELEASE) {
   const session = { ...baseSession, role, roles: [role] };
   setTransport(
     createFixtureFetch(
@@ -116,7 +116,7 @@ describe('[DI-17] the home work cards (declutter D3)', () => {
     expect((await card(/^To sign/)).textContent).toBe('To sign 2');
     await waitFor(async () => expect((await card(/^To review/)).textContent).toBe('To review 2'));
     await waitFor(async () => expect((await card(/^To release/)).textContent).toBe('To release 1'));
-    expect(screen.getByRole('link', { name: 'To sign 2' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'To sign: 2' })).toBeTruthy();
   });
 
   it('[DI-17] a role refused review.queue and release.queue (EU_QP_READER) gets none of those cards', async () => {
@@ -160,6 +160,17 @@ describe('[DI-17] the home work cards (declutter D3)', () => {
     open('/work/to-release', 'QA_REVIEWER', { lots: RELEASE.lots.filter((l) => l.state !== 'READY') });
     expect(await screen.findByRole('heading', { level: 1, name: 'To release (0)' })).toBeTruthy();
     expect(screen.getByText('Nothing here.')).toBeTruthy();
+  });
+
+  it('[DI-17] a list that cannot be loaded says so, and its card says the count could not be loaded', async () => {
+    const refusal = { refusal: { code: 'INTERNAL', kind: 'SERVER', whatHappened: 'x', why: '', controls: [], whatYouCanDo: [], whoCanHelp: [] }, correlationId: 'c', retryable: false };
+    open('/work/to-release', 'QA_REVIEWER', { status: 500, body: refusal });
+    expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toBeTruthy();
+    expect(screen.getByText('This list could not be loaded. Reload the page to try again.')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'To release (–)' })).toBeTruthy();
+    cleanup();
+    open('/', 'QA_REVIEWER', { status: 500, body: refusal });
+    await waitFor(async () => expect(await card(/^To release: could not be loaded$/)).toBeTruthy(), { timeout: 5000 });
   });
 
   it('[DI-17] the Functions list still offers the tiles by title, without their descriptions', async () => {

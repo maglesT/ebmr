@@ -99,10 +99,13 @@ export function useWork(kind: WorkKind, enabled: boolean): WorkState {
 
 const countText = (w: WorkState): string => (w.status === 'pending' ? '…' : w.status === 'error' ? '–' : String(w.count));
 
+/** What a screen reader hears for a card's count. */
+const countSpoken = (w: WorkState): string => (w.status === 'pending' ? 'loading' : w.status === 'error' ? 'could not be loaded' : String(w.count));
+
 function Card({ card }: { card: WorkCard }) {
   const w = useWork(card.kind, true);
   return (
-    <Link to={`/work/${card.kind}`} className={cls('workCard')} data-testid={`work-card-${card.kind}`}>
+    <Link to={`/work/${card.kind}`} className={cls('workCard')} data-testid={`work-card-${card.kind}`} aria-label={`${card.title}: ${countSpoken(w)}`}>
       <span className={cls('workTitle')}>{card.title}</span> <span className={cls('workCount')}>{countText(w)}</span>
     </Link>
   );
@@ -145,6 +148,9 @@ export function WorkList({ kind }: { kind: WorkKind }) {
       <h1>
         {title} ({offered ? countText(w) : '–'})
       </h1>
+      {!offered ? <p>This list is not open to your role.</p> : null}
+      {offered && w.status === 'pending' ? <p>Loading…</p> : null}
+      {offered && w.status === 'error' ? <p role="alert">This list could not be loaded. Reload the page to try again.</p> : null}
       {offered && w.status === 'success' && w.rows.length === 0 ? <p>Nothing here.</p> : null}
       {w.rows.length > 0 ? (
         <ul className={cls('workList')} aria-label={title}>
