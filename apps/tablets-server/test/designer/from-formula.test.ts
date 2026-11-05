@@ -25,6 +25,8 @@ let otherVersionId = '';
 const md = routes.masterData;
 const ERP_PRODUCT = 'DMT7JE';
 const CAPSULE_PRODUCT = 'DMT7JC';
+const SOLUTION_PRODUCT = 'DMT7JS';
+const SOFTGEL_PRODUCT = 'DMT7JG';
 const REASON = 'In-house development product';
 const PRODUCT = { code: 'DMT7JF', name: 'Demotab 400 mg', strength: '400 mg' };
 const LINES: FormulaLineInput[] = [
@@ -63,6 +65,8 @@ beforeAll(async () => {
   }
   valueOf(await steward.call(md.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'Film-coated tablet', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   valueOf(await steward.call(md.enterProduct, { body: { productCode: CAPSULE_PRODUCT, strength: PRODUCT.strength, productName: 'A capsule', dosageForm: 'Hard capsule', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  valueOf(await steward.call(md.enterProduct, { body: { productCode: SOFTGEL_PRODUCT, strength: PRODUCT.strength, productName: 'A soft gel', dosageForm: 'Softgel', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  valueOf(await steward.call(md.enterProduct, { body: { productCode: SOLUTION_PRODUCT, strength: PRODUCT.strength, productName: 'An oral solution', dosageForm: 'Oral solution', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   // An ERP product (no dosage form: the ERP stub does not carry one) for review P7J-2.
   const erp = gmp.seed.services.find((x) => x.key === 'erpInterface');
   if (!erp) throw new Error('no ERP interface in the GMP seed');
@@ -223,13 +227,30 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(refusalOf(await create('DMT7JF-CP', 'COPY', { copyOfVersionId: draft, formulaVersionId: otherVersionId })).code).toBe('DESIGNER_COPY_NOT_APPROVED');
   });
 
-  it('[PR-01] a master from a formula takes the product name from the product master in effect and its dosage form, Tablet when the master has none; a non-tablet dosage form is refused (review P7J-2, D-7j-11)', async () => {
+  it('[PR-01] a master from a formula takes the product name from the product master in effect and its dosage form, Tablet when the master has none; a form that is neither a tablet nor a capsule is refused (review P7J-2, D-7j-11; Capsules edition plan)', async () => {
     const erpFormula = await approvedFormula('100000', undefined, LINES, ERP_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JE-SK', product: { code: ERP_PRODUCT, name: 'typed name', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: erpFormula, start: 'SKELETON' } }));
     expect((v.content as unknown as { header: { product: { name: string; dosageForm: string } } }).header.product).toMatchObject({ name: 'ERP-only product', dosageForm: 'Tablet' });
-    const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
-    const r = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } });
+    const solutionFormula = await approvedFormula('100000', undefined, LINES, SOLUTION_PRODUCT);
+    const r = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JS-SK', product: { code: SOLUTION_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: solutionFormula, start: 'SKELETON' } });
     expect(refusalOf(r).code).toBe('DESIGNER_PRODUCT_MASTER');
+  });
+
+  it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
+    const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
+    const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));
+    const c = v.content as unknown as { header: { product: { name: string; dosageForm: string } }; calculations: { id: string; name: string }[]; goldenCases: { id: string; description: string }[] };
+    expect(c.header.product).toMatchObject({ name: 'A capsule', dosageForm: 'Hard capsule' });
+    expect(c.calculations.find((x) => x.id === 'actTarget')?.name).toMatch(/mg per capsule\)$/);
+    expect(c.goldenCases.find((g) => g.id === 'G-TARGETS')?.description).toBe('Dispensing quantities for 100000 capsules');
+    const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+    expect(report.findings.filter((f) => f.severity !== 'INFO').map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
+    // One rule everywhere (lead, 4 November): a product is a capsule only when its dosage form says "capsule". A soft gel
+    // whose master says just "Softgel" is refused, and the refusal says to name it as a capsule form.
+    const softgelFormula = await approvedFormula('100000', undefined, LINES, SOFTGEL_PRODUCT);
+    const g = refusalOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JG-SK', product: { code: SOFTGEL_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: softgelFormula, start: 'SKELETON' } }));
+    expect(g.code).toBe('DESIGNER_PRODUCT_MASTER');
+    expect(g.why).toContain('Soft gelatin capsule');
   });
 
   it('[INV-25][PR-01] with a salt factor and an overage on a potency-adjusted active the skeleton\'s quantities are the formula\'s computed ones, the database pins it and the validator passes (review P7J-3)', async () => {

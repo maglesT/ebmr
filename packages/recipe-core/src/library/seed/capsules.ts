@@ -1,9 +1,12 @@
 /**
- * Ready-made library blocks: hard capsules (decision 0026). The owner deferred hard capsules on 3 November 2026 (R3-CAT-4): the blocks stay here, but the Tablets library load leaves them out (index.ts, TABLETS_CATALOGUE).
- * Filling (the filler, the capsule size, the empty shells' lot, the fill weight and machine speed at each round),
- * polishing and sorting, and the capsule's own in-process tests (fill weight variation, locked length, appearance,
- * disintegration), and a capsule dissolution test (QC's, with sinkers). The empty capsule shells are a material like any
- * other: their lot is named in the filling step and checked against the lot register (S6). See types.ts.
+ * Ready-made library blocks: hard capsules (decision 0026; Capsules edition plan `docs/build-plan/capsules/plan.md`,
+ * approved 4 November 2026). Capsule products are library data in the oral-solid build: these blocks load with the rest
+ * of the catalogue (the 3 November deferral, R3-CAT-4, is lifted).
+ * Filling (the filler and its filling principle, the capsule size, the empty shells' lot, the fill weight and machine
+ * speed at each round), polishing and sorting, and the capsule's own in-process tests (fill weight variation, locked
+ * length, appearance, disintegration), and a capsule dissolution test (QC's, with sinkers). The empty capsule shells are
+ * a material like any other: their lot is named in the filling step and checked against the lot register (S6). See
+ * types.ts.
  *
  * Invented example values (a size 0 capsule, 300 mg fill). A reference limit paraphrases a common compendial value in
  * its note and quotes no text.
@@ -25,7 +28,10 @@ const spec = (unit: string, low?: string, high?: string): LimitSpec => ({
 });
 
 /** The capsule sizes a filler takes (change parts per size). */
-const SIZES = ['000', '00', '0', '1', '2', '3', '4'];
+const SIZES = ['000', '00', '0', '1', '2', '3', '4', '5'];
+
+/** How an automatic filler doses powder or granules (the equipment class names the machine). */
+const FILLING_PRINCIPLES = ['Dosator', 'Tamping / dosing disc', 'Vacuum', 'Auger'];
 
 export const CAPSULE_SEEDS: readonly SeedItem[] = [
   {
@@ -34,13 +40,14 @@ export const CAPSULE_SEEDS: readonly SeedItem[] = [
       version: 1,
       title: 'Capsule filling (hard capsules)',
       category: 'PROCESS',
-      instructions: 'Fit the change parts of the capsule size, load the empty shells and the blend, and run at the set speed. Record the fill weight and speed at each round; the weight tests are their own steps.',
+      instructions: 'Fit the change parts of the capsule size, record the filler\'s filling principle (dosator, tamping disc, vacuum or auger), load the empty shells and the blend, and run at the set speed. Record the fill weight and speed at each round; the weight tests are their own steps.',
       sections: [
         {
           id: 'setup',
           title: 'Set-up',
           fields: [
             { id: 'filler', label: 'Capsule filling machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'fillerClass' },
+            { id: 'fillingPrinciple', label: 'Filling principle', type: 'CHOICE', options: FILLING_PRINCIPLES },
             { id: 'capsuleSize', label: 'Capsule size (change parts fitted)', type: 'CHOICE', options: SIZES },
             { id: 'shellLot', label: 'Empty capsule shells lot', type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' },
             { id: 'shellsInspected', label: 'Shells of the right colour and print, free of dents and splits', type: 'YES_NO', expected: true },

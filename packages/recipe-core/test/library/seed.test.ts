@@ -131,6 +131,16 @@ describe('the ready-made catalogue', () => {
     expect(() => nominalRun({ ...item, exampleUse: { ...item.exampleUse, counts: { units: '30' } } })).toThrow(/First stage: 10 units tested.*outside its registered limit/);
   });
 
+  it('[PR-03][PR-18][IN-37] automatic capsule filling records the filling principle (dosator, tamping disc, vacuum or auger), the capsule size, the empty-shell lot as its bill-of-materials line, and the fill weight of each round as a critical value with limits (Capsules edition plan, C1)', () => {
+    const fill = byCode('PROC-CAPS-FILL');
+    expect(fieldOf(fill, 'fillingPrinciple')).toMatchObject({ type: 'CHOICE', options: ['Dosator', 'Tamping / dosing disc', 'Vacuum', 'Auger'] });
+    expect(fieldOf(fill, 'capsuleSize')).toMatchObject({ type: 'CHOICE', options: ['000', '00', '0', '1', '2', '3', '4', '5'] });
+    expect(fieldOf(fill, 'shellLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' });
+    expect(fieldOf(fill, 'fillWeight')).toMatchObject({ type: 'NUMBER', unit: 'mg', limitSlot: 'fillWeight', critical: true });
+    expect(fill.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    expect(fill.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);

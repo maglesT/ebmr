@@ -91,7 +91,7 @@ describe('the library of block definitions', () => {
     expect(refusalOf(await approver.call(L.retire, { body: { blockId: draftOnly.blockId, reason: 'not approved' } })).code).toBe('EBMR-LIB-008');
   });
 
-  it('[PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone; the deferred hard-capsule blocks are not in the Tablets load (R3-CAT-4)', async () => {
+  it('[PR-05][DI-35] the ready-made catalogue loads as drafts only, by an author; a second load leaves the held codes alone; the hard-capsule blocks load with the rest (Capsules edition plan, lifting R3-CAT-4)', async () => {
     const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
     expect(refusalOf(await approver.call(L.loadCatalogue, { body: {} })).status).toBeGreaterThanOrEqual(400);
     const first = valueOf(await author.call(L.loadCatalogue, { body: {} }));
@@ -102,9 +102,10 @@ describe('the library of block definitions', () => {
     const second = valueOf(await author.call(L.loadCatalogue, { body: {} }));
     expect(second.drafted).toEqual([]);
     expect(second.skipped).toEqual(expect.arrayContaining(first.drafted));
-    // Owner decision of 3 November 2026: hard capsules are deferred, so the Tablets load leaves their 7 blocks out.
+    // Capsules edition plan (4 November 2026): the hard-capsule blocks are drafted by the first load and held by the second.
     const capsules = ['PROC-CAPS-FILL', 'PROC-CAPS-POLISH', 'IPC-CAPS-FILL-WEIGHT', 'IPC-CAPS-LOCK-LENGTH', 'IPC-CAPS-APPEARANCE', 'IPC-CAPS-DT', 'REL-CAPS-DISSO'];
-    for (const load of [first, second]) expect([...load.drafted, ...load.skipped].filter((c) => capsules.includes(c))).toEqual([]);
+    expect(first.drafted).toEqual(expect.arrayContaining(capsules));
+    expect(second.skipped).toEqual(expect.arrayContaining(capsules));
   });
 
   it('[DI-22][PR-05] library rows are insert-only and audited: the application credentials cannot change or delete them', async () => {
