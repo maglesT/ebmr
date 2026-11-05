@@ -40,13 +40,18 @@ const MASTER_INPUTS: Record<string, DataValue> = {
 };
 
 /** A master: the LOD test and the dispensing in the given order, the dispensing reading lodTest.<field>. */
-function master(order: 'LOD_FIRST' | 'DISPENSE_FIRST', source: { step: string; field: string }, lodUnit = '%'): { mbr: MbrContent; registry: ReturnType<typeof testRegistry> } {
+function master(order: 'LOD_FIRST' | 'DISPENSE_FIRST' | 'LOD_IN_REPLICATE' | 'DISPENSE_IN_REPLICATE', source: { step: string; field: string }, lodUnit = '%'): { mbr: MbrContent; registry: ReturnType<typeof testRegistry> } {
   const disp = potencyDispensing();
   const use: BlockUse = { block: { code: disp.code, version: 1 }, bomLines: { activeLine: 'BOM-API' }, stepValues: { lodSource: source } };
   const lodUse: BlockUse = { block: { code: 'IPC-LOD', version: 1 }, counts: { n: '1' } };
   const lodStep = phase('lodTest', { block: { type: libraryBlockType('IPC-LOD'), version: '1' }, config: configOf(lodUse) as never });
   const p = phase('p', { block: { type: libraryBlockType(disp.code), version: '1' }, config: configOf(use) as never, reads: Object.keys(MASTER_INPUTS) });
-  const children: FlowNode[] = order === 'LOD_FIRST' ? [lodStep, p, phase('after')] : [p, lodStep, phase('after')];
+  const rep = (body: FlowNode): FlowNode => ({ kind: 'replicate', id: 'R', name: 'Sub-lots', count: { mode: 'RUNTIME', min: 1, max: 3, reasonRequired: true }, instances: 'SEQUENTIAL', subLotPrefix: 'SL', body });
+  const children: FlowNode[] =
+    order === 'LOD_FIRST' ? [lodStep, p, phase('after')]
+    : order === 'DISPENSE_FIRST' ? [p, lodStep, phase('after')]
+    : order === 'LOD_IN_REPLICATE' ? [rep(lodStep), p, phase('after')]
+    : [lodStep, rep(p), phase('after')];
   const mbr = mbrWith({ kind: 'sequence', id: 'ops', children }, {
     bom: [{ id: 'BOM-API', material: 'API', role: 'ACTIVE', quantity: { value: '10', unit: 'kg' } }],
     inputs: Object.entries(MASTER_INPUTS).map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: (v as { unit: string }).unit })),
@@ -82,6 +87,9 @@ describe('earlier-step values of library blocks', () => {
     const r = required(run);
     expect(r?.value.startsWith('10.412')).toBe(true);
     expect(r?.inputs['lodLot']).toMatchObject({ value: '2', unit: '%' });
+    // Where the value came from is in the calculation's record: the step instance, its entry, the figure as recorded.
+    const lodEntry = Object.values(run.state.entries).find((x) => x.kind === 'test');
+    expect((r as unknown as { stepValues: Record<string, unknown> }).stepValues['lodLot']).toEqual({ step: 'lodTest', field: 'lod', stepKey: lodEntry?.stepKey, entryId: lodEntry?.id, recorded: { value: '2', unit: '%' } });
   });
 
   it('[DI-33][PR-19] the value is converted exactly to the input\'s unit (an LOD recorded as a fraction, 0.02, reads as 2 %)', () => {
@@ -92,7 +100,7 @@ describe('earlier-step values of library blocks', () => {
     expect(required(run)?.value.startsWith('10.412')).toBe(true);
   });
 
-  it('[DI-33][PR-03] the master check refuses a step value that names no step, a step that comes later, or a value the step does not record once', () => {
+  it('[DI-33][PR-03] the master check refuses a step value that names no step, a step that comes later or may not run exactly once, a value the step does not record once, or a unit that does not convert', () => {
     const refusal = (m: ReturnType<typeof master>): string => {
       try {
         define(m.mbr, { registry: m.registry });
@@ -108,6 +116,10 @@ describe('earlier-step values of library blocks', () => {
     expect(refusal(master('LOD_FIRST', { step: 'lodTest', field: 'again' }))).toContain('step lodTest records no single value again (ENG-DEF-STEP-VALUE');
     // A unit that does not convert to the input's (a mass for a percentage).
     expect(refusal(master('LOD_FIRST', { step: 'lodTest', field: 'lod' }, 'kg'))).toContain('which does not convert to % (ENG-DEF-STEP-VALUE');
+    // A step that may run more than once (a loop, a replicate) or not at all (an alternative branch) has no one value.
+    expect(refusal(master('LOD_IN_REPLICATE', { step: 'lodTest', field: 'lod' }))).toContain('runs inside a loop, a replicate or an alternative branch (ENG-DEF-STEP-VALUE'.replace(' (ENG', ', so it does not run exactly once in every batch (ENG'));
+    // A reader inside a replicate reads the one value of a step before it.
+    expect(refusal(master('DISPENSE_IN_REPLICATE', { step: 'lodTest', field: 'lod' }))).toBe('defined');
   });
 
   it('[DI-33] a value the earlier step has not recorded is never a silent zero: the calculation is refused', () => {

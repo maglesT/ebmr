@@ -431,16 +431,18 @@ export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefin
   for (const sch of mbr.acceptanceSchemes) for (const c of sch.criteria) readItems.add(c.statistic);
 
   // Earlier-step values (decision 0026 STEP_VALUE; injectables I-1 finding, lead 5 November 2026): each names a step that
-  // always comes before the reader in the flow (forward edges, never a loop's way back) and a value that step records
-  // once, in a unit the reader's input converts to exactly; otherwise QA could approve a master that fails on the floor.
+  // runs exactly once in every batch (outside every loop, replicate and alternative branch) and comes before the reader
+  // in the flow (forward edges), and a value that step records once, in a unit the reader's input converts to exactly.
+  // The runtime reads the one completed instance; anything else would let QA approve a master that fails on the floor.
   for (const s of steps.values()) {
     for (const r of s.block?.stepReads?.(s.config) ?? []) {
-      // A phase that reads the input from the master (an MBR input or data item of that id) takes it from there.
-      if (s.node.kind === 'phase' && s.node.reads.includes(r.input)) continue;
+      // A phase that reads the input from the master (an MBR input of that id, given at issue) takes it from there.
+      if (s.node.kind === 'phase' && s.node.reads.includes(r.input) && analysis.inputs.has(r.input)) continue;
       const source = steps.get(r.step);
       const unit = source?.block?.readableValues?.[r.field];
       const why =
         !source || source.kind !== 'PHASE' ? `there is no step ${r.step}`
+        : source.constructs.length > 0 || source.branches.length > 0 ? `step ${r.step} runs inside a loop, a replicate or an alternative branch, so it does not run exactly once in every batch`
         : unit === undefined ? `step ${r.step} records no single value ${r.field}`
         : expr.convert('1', unit, r.unit) === undefined ? `${r.step}.${r.field} is in ${unit}, which does not convert to ${r.unit}`
         : !forwardReach(gi, source.graphNode).has(s.graphNode) ? `step ${r.step} does not come before ${s.id} in the flow`

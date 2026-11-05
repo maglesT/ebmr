@@ -114,9 +114,9 @@ export interface HandlerView {
   /**
    * A readable value of an earlier step (decision 0026 STEP_VALUE): the field's value in the one COMPLETED instance of
    * phase `step`; undefined while that step has not completed, when it completed more than once (a loop), or when the
-   * field is not recorded. Never a silent zero.
+   * field is not recorded. Never a silent zero. Names the instance and entry read, for the calculation's record.
    */
-  stepValue?(step: string, field: string): { value: string; unit: string } | undefined;
+  stepValue?(step: string, field: string): { value: string; unit: string; stepKey: string; entryId: string } | undefined;
   /** Containers registered in the batch. */
   containers(): readonly ContainerRecord[];
   parameter(id: string): Parameter | undefined;
@@ -281,7 +281,7 @@ export interface BlockVersion {
    */
   readableValues?: Readonly<Record<string, string>>;
   /** The recorded value of a readable field in one step instance's entries; undefined when it is not recorded. */
-  readValue?(entries: readonly EntryRecord[], field: string): { value: string; unit: string } | undefined;
+  readValue?(entries: readonly EntryRecord[], field: string): { value: string; unit: string; entryId: string } | undefined;
   /** The earlier-step values a use of this block reads (defineBatch checks each names an earlier step's readable value). */
   stepReads?(config: Readonly<Record<string, JsonValue>>): { input: string; step: string; field: string; unit: string }[];
   handler?: PhaseHandler;

@@ -263,6 +263,16 @@ export function statistic(stat: TestStatistic, readings: readonly string[]): str
   }
 }
 
+/** Where an earlier-step value a calculation read came from (decision 0026 STEP_VALUE). */
+interface StepValueRead {
+  step: string;
+  field: string;
+  stepKey: string;
+  entryId: string;
+  /** The figure as the earlier step recorded it, before conversion to the input's unit. */
+  recorded: { value: string; unit: string };
+}
+
 /** Builds the registry block version of a library definition. */
 export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionService): BlockVersion {
   const type = libraryBlockType(def.code);
@@ -310,9 +320,10 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   };
 
   /** Values the calculations of an entry can read: external inputs, other sections' entries, then this entry. */
-  const calcInputs = (view: HandlerView, section: SectionDef, data: Readonly<Record<string, unknown>>): { types: Map<string, ExprType>; values: Map<string, ExprValue>; missingInput?: string } => {
+  const calcInputs = (view: HandlerView, section: SectionDef, data: Readonly<Record<string, unknown>>): { types: Map<string, ExprType>; values: Map<string, ExprValue>; read: Map<string, StepValueRead>; missingInput?: string } => {
     const types = new Map<string, ExprType>();
     const values = new Map<string, ExprValue>();
+    const read = new Map<string, StepValueRead>();
     // S10: formula-line and batch-size inputs come from the master's BOM scaled to the batch's issued size.
     const scaled = scaledInputs(def, configOf(view), view.mbr, view.batch.batchSize, expr);
     for (const i of def.inputs ?? []) {
@@ -331,7 +342,10 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         const sv = configOf(view).stepValues?.[i.slot];
         const v = sv ? view.stepValue?.(sv.step, sv.field) : undefined;
         const value = v ? (v.unit === i.unit ? v.value : expr.convert(v.value, v.unit, i.unit)) : undefined;
-        if (value !== undefined) values.set(i.id, { kind: 'DECIMAL', value, unit: i.unit });
+        if (v && sv && value !== undefined) {
+          values.set(i.id, { kind: 'DECIMAL', value, unit: i.unit });
+          read.set(i.id, { step: sv.step, field: sv.field, stepKey: v.stepKey, entryId: v.entryId, recorded: { value: v.value, unit: v.unit } });
+        }
       }
     }
     for (const s of def.sections) {
@@ -361,7 +375,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       const v = exprValue(f, data[f.id]);
       if (v) values.set(f.id, v);
     }
-    return { types, values };
+    return { types, values, read };
   };
 
   /**
@@ -452,16 +466,19 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
     if (problems.length > 0) return { ok: false, problems };
 
     // O-9 (b): the server computes each calculated field and stores it with its evaluation record.
-    const computed: Record<string, { value: string; unit: string; expression: string; languageVersion: string; inputs: Record<string, ExprValue> }> = {};
+    const computed: Record<string, { value: string; unit: string; expression: string; languageVersion: string; inputs: Record<string, ExprValue>; stepValues?: Record<string, StepValueRead> }> = {};
     for (const f of section.fields) {
       if (f.type !== 'CALC' || !shown(f, entry)) continue;
-      const { types, values } = calcInputs(view, section, { ...data, ...Object.fromEntries(Object.entries(computed).map(([k, c]) => [k, c.value])) });
+      const { types, values, read: fromSteps } = calcInputs(view, section, { ...data, ...Object.fromEntries(Object.entries(computed).map(([k, c]) => [k, c.value])) });
       for (const [k, c] of Object.entries(computed)) values.set(k, { kind: 'DECIMAL', value: c.value, unit: c.unit });
       const outcome = expr.evaluate(f.expression, types, values, { role: 'CALCULATION', output: { kind: 'DECIMAL', unit: f.unit } });
       if (!outcome.ok) return { ok: false, problems: [problem('LIB-CALC-FAILED', `${f.label} cannot be calculated: ${outcome.message}`, ['DI-33'])] };
       if (outcome.value.kind !== 'DECIMAL') return { ok: false, problems: [problem('LIB-CALC-FAILED', `${f.label} did not give a number`, ['DI-33'])] };
       const read = expr.check(f.expression, types, { role: 'CALCULATION' }).reads;
-      computed[f.id] = { value: outcome.value.value, unit: f.unit, expression: f.expression, languageVersion: expr.languageVersion, inputs: Object.fromEntries(read.flatMap((k) => { const v = values.get(k); return v ? [[k, v]] : []; })) };
+      // An earlier-step value is stored with where it came from (the step instance, the entry, the figure as recorded
+      // before conversion), so the figure can be re-verified from the record alone.
+      const sources = Object.fromEntries(read.flatMap((k) => { const s = fromSteps.get(k); return s ? [[k, s]] : []; }));
+      computed[f.id] = { value: outcome.value.value, unit: f.unit, expression: f.expression, languageVersion: expr.languageVersion, inputs: Object.fromEntries(read.flatMap((k) => { const v = values.get(k); return v ? [[k, v]] : []; })), ...(Object.keys(sources).length > 0 ? { stepValues: sources } : {}) };
     }
 
     const stored = { ...data, ...(Object.keys(computed).length > 0 ? { computed } : {}) };
@@ -577,7 +594,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       if (!last) return undefined;
       const raw = at.calc ? (last.data['computed'] as Record<string, { value?: unknown }> | undefined)?.[field]?.value : last.data[field];
       const v = typeof raw === 'object' && raw !== null && 'value' in raw ? raw.value : raw;
-      return typeof v === 'string' && v !== '' ? { value: v, unit: at.unit } : undefined;
+      return typeof v === 'string' && v !== '' ? { value: v, unit: at.unit, entryId: last.id } : undefined;
     },
     stepReads: (config) =>
       (def.inputs ?? []).flatMap((i) => {
