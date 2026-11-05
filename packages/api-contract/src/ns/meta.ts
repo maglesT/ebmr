@@ -20,6 +20,11 @@ export const MetaView = z.strictObject({
   otherInstallationUrl: z.string().nullable(),
   /** Phase 7 slice 7g-4: the installation awaits its first-run set-up (no administrator yet); the SPA shows the wizard. */
   setupRequired: z.boolean(),
+  /**
+   * Declutter D1/D2: the server refuses the disconnected functions (410 DISCONNECTED; the platform build, or a server
+   * started with EBMR_DISCONNECT=1), so the SPA leaves their screens off.
+   */
+  disconnected: z.boolean(),
 });
 export type MetaView = z.infer<typeof MetaView>;
 

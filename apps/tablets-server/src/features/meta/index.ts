@@ -38,6 +38,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       otherInstallationUrl: app.config.otherInstallationUrl,
       // Phase 7 slice 7g-4: no administrator yet (kernel 1375): the SPA shows the first-run set-up.
       setupRequired: !(await isBootstrapped(app)),
+      // Declutter D1/D2: bind.ts refuses the disconnected functions here (410 DISCONNECTED).
+      disconnected: app.platform.build || app.config.disconnect,
     }),
     // Phase 7 slice 7g-4 (decision 0025): the developers' API reference page.
     openapi: async ({ requireSession }) => {
