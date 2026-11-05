@@ -27,8 +27,11 @@ catalog_test: Use a disinfectant past its in-use expiry → line clearance fails
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-01: EQUIP clean status, LOT agent, TIMER contact time, SIGN (4.1, 4.4)"
 build_status: SPECIFIED
 jurisdiction: EU requires cleaning before disinfection and more than one disinfectant type. FDA-AP requires a sporicide on a written schedule and when spore-formers appear. Apply both.
 scope: all

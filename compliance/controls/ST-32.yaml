@@ -46,8 +46,11 @@ catalog_test: Record 12 units removed for an intervention whose catalogue value 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-24 accountability; INJ-26 reading, limit 0; incubation as validated formulation values (4.4, 8a)"
 build_status: SPECIFIED
 jurisdiction: "**EU gives no incubation numbers**; it requires scientifically justified, validated conditions. FDA-AP's 20–35 °C / ±2.5 °C / ≥14 d / ≥7 d per temperature is used as the enforced default. Unit-removal rules are identical in substance."
 scope: aseptic

@@ -23,8 +23,11 @@ catalog_test: Assign a vessel past its clean-hold → blocked. With a validated 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Existing EQUIP clean status; holds by CALC duration (4.1, 4.3)"
 build_status: SPECIFIED
 jurisdiction: Aligned. FDA-AP is explicit that equipment is re-sterilised between batches unless a validated interval exists.
 scope: "all (re-sterilisation rule: aseptic)"

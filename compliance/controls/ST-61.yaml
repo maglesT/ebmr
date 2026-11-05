@@ -28,8 +28,11 @@ catalog_test: One probe below the F0 minimum on a parametric-release batch → p
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-21 per-load repeat as containers (4.3); parametric release not built"
 build_status: SPECIFIED
 jurisdiction: Both require prior authorisation. Detailed criteria come from EU Annex 17 and the FDA 2010 guidance, neither of which is in the inputs (see Open questions).
 scope: terminal

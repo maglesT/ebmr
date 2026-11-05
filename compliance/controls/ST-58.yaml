@@ -32,8 +32,11 @@ catalog_test: On a manual-open lyophiliser, attempt a second load without a new 
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-17 EQUIP with sterilisation and leak-test due dates (4.3)"
 build_status: SPECIFIED
 jurisdiction: FDA-AP is silent on lyophiliser sterilisation frequency and leak rate, so EU governs.
 scope: lyo

@@ -47,8 +47,11 @@ catalog_test: A 10-min mould-temperature excursion → units from that window se
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-30 EQUIP, NUM, events (4.3)"
 build_status: SPECIFIED
 jurisdiction: EU is more prescriptive on zones, the Grade A/B garment rule and 100% CCI. FDA-AP adds extrusion endotoxin/spore challenge validation and polymer supplier control.
 scope: bfs

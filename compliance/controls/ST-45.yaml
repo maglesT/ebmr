@@ -22,8 +22,11 @@ catalog_test: Scan a tray whose cycle is unreviewed at Grade A entry → refused
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "Cycle blocks with SIGN + CHECKED; holds by CALC (4.2)"
 build_status: SPECIFIED
 jurisdiction: EU is explicit. FDA-AP has equivalent expectations in IX.C.
 scope: all

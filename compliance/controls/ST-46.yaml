@@ -26,8 +26,11 @@ catalog_test: Use a tool in the filling zone with only a disinfection record →
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-08 transfer; INJ-27 CHOICE transfer method (4.2, 4.3)"
 build_status: SPECIFIED
 jurisdiction: EU adds the approved-list and exception mechanism. Aligned otherwise.
 scope: "aseptic (lower-to-higher grade disinfection: all)"

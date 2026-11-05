@@ -27,8 +27,11 @@ catalog_test: Configure a 2 mL ampoule with sampled CCI → MBR rejected. Choose
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "INJ-23 CHOICE method (no visual), NUM tested and failures (4.5)"
 build_status: SPECIFIED
 jurisdiction: "**EU is stricter:** 100% CCI for fusion-sealed containers ≤100 mL, and VI not accepted as CCI. FDA-AP only requires removal of defective units and safeguards against shipping units lacking integrity."
 scope: all

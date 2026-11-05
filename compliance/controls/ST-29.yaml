@@ -39,8 +39,11 @@ catalog_test: Last successful night-shift APS 6 months + 3 weeks ago → night-s
 implemented_by: {}
 tests: []
 expert_decision:
-  status: PENDING
+  status: MODIFY
   pack_version: "0.9"
+  reviewer: owner (approved via the lead)
+  date: "2026-11-05"
+  comment: "A1 9.48-9.49 and SM 5.3-5.7 triggers only"
 build_status: SPECIFIED
 jurisdiction: Both require 3 initial runs and a semi-annual cycle. **EU is stricter:** twice a year for *each process, each line and each shift*. FDA-AP requires semi-annual runs *per line*, with each shift's activities and changeovers represented in the programme. (Row n73 overstates FDA as "per line and shift"; see Conflicts.)
 scope: aseptic
