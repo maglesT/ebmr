@@ -10,6 +10,7 @@ import { genericBlockCatalog } from '../../src/flow/blocks.ts';
 import type { MinimaRequest, ResolvedMinimum } from '../../src/validator/types.ts';
 import { errors, mbrWith, phase, validate } from '../flow/support.ts';
 import { fluidBedDrying, friability, range } from './examples.ts';
+import { INJECTABLE_CATALOGUE } from '../../src/library/seed/index.ts';
 
 describe('assembling a formulation from library blocks', () => {
   it('[PR-05][DI-35] a library step pins the hash and takes its roles from the block; a block with a verifier is significant', () => {
@@ -19,6 +20,10 @@ describe('assembling a formulation from library blocks', () => {
     expect(p.signatures).toEqual({ perform: { role: 'OPERATOR' }, check: { meaning: 'VERIFIED', role: 'SUPERVISOR' } });
     expect(p.significant).toBe(true);
     expect(libraryPhase(friability(), 'p-f', 'LOW').significant).toBe(false);
+    // An earlier step's value (STEP_VALUE) is read from that step at run time, not from the master's data: the step does
+    // not list it among its reads (I-1c: the validator refused INJ-FILL's density as an undeclared value).
+    const fill = INJECTABLE_CATALOGUE.find((s) => s.definition.code === 'INJ-FILL')?.definition;
+    expect(fill && libraryPhase(fill, 'p-inj-fill', 'HIGH').reads).toEqual([]);
   });
 
   it('[PR-05] a master carries one snapshot per version; another content under the same version is refused', () => {

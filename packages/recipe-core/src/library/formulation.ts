@@ -21,7 +21,7 @@ export function libraryPhase(def: BlockDefinition, id: string, riskClass: string
     config: { hash: definitionHash(def) },
     records: [],
     computes: [],
-    reads: (def.inputs ?? []).map((i) => i.id),
+    reads: (def.inputs ?? []).filter((i) => i.kind !== 'STEP_VALUE').map((i) => i.id),
     consumes: [],
     produces: [],
     uses: [],
