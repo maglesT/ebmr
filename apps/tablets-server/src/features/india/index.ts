@@ -71,7 +71,7 @@ interface LicenceRow {
 
 async function licences(app: AppContext, db: Db, id?: string): Promise<LicenceView[]> {
   const { rows } = await db.query<LicenceRow>(
-    `select l.id, l.site_code, l.licence_kind, l.form, l.licence_number, l.holder_name, l.holder_address, (select t.telephone from site.licence_holder_telephone t where t.licence_id = l.id) as holder_telephone, l.host_licence_id, h.licence_number as host_number,
+    `select l.id, l.site_code, l.licence_kind, l.form, l.licence_number, l.holder_name, l.holder_address, site.licence_telephone(l.id) as holder_telephone, l.host_licence_id, h.licence_number as host_number,
             l.technical_agreement_ref, ${usOf('l.valid_from')} as from_us, case when l.valid_until is null then null else ${usOf('l.valid_until')} end as until_us,
             (select coalesce(jsonb_agg(jsonb_build_object('productCode', p.product_code, 'strength', p.strength) order by p.product_code, p.strength), '[]'::jsonb)
                from site.licence_product p where p.licence_id = l.id) as products,

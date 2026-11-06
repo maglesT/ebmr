@@ -5,25 +5,68 @@
 --
 -- Handbook: modules/site-services.md
 --
---   site.licence_holder_telephone   insert-only, one row per licence that names a telephone (free text: digits, spaces and
---                                 + ( ) -, up to 40 characters); audited under the licence's aggregate, immutable.
+--   site.licence_holder_telephone   insert-only telephone entries of a licence (free text: digits, spaces and + ( ) -, up
+--                                 to 40 characters), each with who recorded it and when (from the trusted session); the
+--                                 latest entry is the licence's telephone, earlier ones stay as its history (lead, 6 Nov).
+--                                 Audited under the licence's aggregate, immutable.
+--   site.licence_telephone(id)    the licence's current telephone (latest entry), or null.
+--   site.record_licence_holder_telephone(licence, telephone)   records a new telephone for a licence of the actor's site
+--                                 (LICENCE.RECORD); it supersedes the earlier one.
 --   site.record_manufacturing_licence(p)   CREATE OR REPLACE from 0885: takes the optional holderTelephone.
---   site.manufacturing_licence_content(id)   CREATE OR REPLACE from 0885: the signed content names the telephone only
---                                 when one is recorded, so the content of every licence recorded before stays as signed.
---   site.licence_basis(...)   CREATE OR REPLACE from 0885: also returns holderTelephone (null when none is recorded).
+--   site.manufacturing_licence_content(id)   CREATE OR REPLACE from 0885: the signed content names the telephone recorded
+--                                 with the licence, and only when there is one, so the content of every licence recorded
+--                                 before stays as signed and a later telephone never changes what was signed.
+--   site.licence_basis(...)   CREATE OR REPLACE from 0885: also returns holderTelephone (the current one; null if none).
 -- A later migration that re-creates any of these starts from this definition.
 
 set local role ebmr_owner;
 
 create table site.licence_holder_telephone (
-  licence_id  uuid primary key references site.manufacturing_licence (id),
-  telephone   text not null check (btrim(telephone) <> '' and telephone ~ '^[0-9+() -]{3,40}$')
+  id                   uuid primary key default gen_random_uuid(),
+  licence_id           uuid not null references site.manufacturing_licence (id),
+  telephone            text not null check (btrim(telephone) <> '' and telephone ~ '^[0-9+() -]{3,40}$'),
+  recorded_by_person   uuid not null,
+  recorded_by_account  uuid not null,
+  recorded_at          timestamptz not null default clock_timestamp(),
+  correlation_id       uuid not null
 );
+create index licence_holder_telephone_latest on site.licence_holder_telephone (licence_id, recorded_at desc, id);
 revoke all on site.licence_holder_telephone from public;
 revoke all on site.licence_holder_telephone from ebmr_app;
 grant select on site.licence_holder_telephone to ebmr_app;
 select kernel.register_audited_table('site.licence_holder_telephone', 'manufacturing_licence', 'licence_id', true);
 create trigger zz_immutable before update or delete on site.licence_holder_telephone for each row execute function site.india_record_immutable();
+
+create function site.licence_telephone(p_licence uuid) returns text
+language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
+  select t.telephone from site.licence_holder_telephone t where t.licence_id = p_licence order by t.recorded_at desc, t.id desc limit 1
+$$;
+
+create function site.record_licence_holder_telephone(p_licence uuid, p_telephone text) returns uuid
+language plpgsql volatile security definer set search_path = pg_catalog, site, iam, pg_temp as $$
+declare
+  v_ctx jsonb := site.require_actor();
+  l     site.manufacturing_licence;
+  v_id  uuid;
+begin
+  perform iam.assert_not_administrator();
+  select * into l from site.manufacturing_licence where id = p_licence;
+  if l.id is null or l.site_code <> site.actor_site() then
+    raise exception using errcode = 'P0001', message = format('EBMR-IND-008 unknown licence %s', coalesce(p_licence::text, 'NULL'));
+  end if;
+  perform iam.require_permission('LICENCE.RECORD', jsonb_build_object('site', l.site_code));
+  if coalesce(btrim(p_telephone), '') !~ '^[0-9+() -]{3,40}$' then
+    raise exception using errcode = 'P0001', message = 'EBMR-IND-003 a telephone is given in digits, spaces and + ( ) -, up to 40 characters (IN-30)';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('site.manufacturing_licence'), hashtext(l.id::text));
+  insert into site.licence_holder_telephone (licence_id, telephone, recorded_by_person, recorded_by_account, correlation_id)
+  values (l.id, btrim(p_telephone), (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid, (v_ctx ->> 'correlation_id')::uuid)
+  returning id into v_id;
+  return v_id;
+end
+$$;
+revoke all on function site.licence_telephone(uuid), site.record_licence_holder_telephone(uuid, text) from public;
+grant execute on function site.licence_telephone(uuid), site.record_licence_holder_telephone(uuid, text) to ebmr_app;
 
 create or replace function site.record_manufacturing_licence(p jsonb) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, site, iam, pg_temp as $$
@@ -78,7 +121,8 @@ begin
             (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid, (v_ctx ->> 'correlation_id')::uuid)
     returning id into v_id;
     if nullif(btrim(p ->> 'holderTelephone'), '') is not null then
-      insert into site.licence_holder_telephone (licence_id, telephone) values (v_id, btrim(p ->> 'holderTelephone'));
+      insert into site.licence_holder_telephone (licence_id, telephone, recorded_by_person, recorded_by_account, correlation_id)
+      values (v_id, btrim(p ->> 'holderTelephone'), (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid, (v_ctx ->> 'correlation_id')::uuid);
     end if;
   exception
     when unique_violation then
@@ -119,7 +163,9 @@ begin
       'products', (select coalesce(jsonb_agg(jsonb_build_object('product_code', p.product_code, 'strength', p.strength)
                                              order by p.product_code collate "C", p.strength collate "C"), '[]'::jsonb)
                      from site.licence_product p where p.licence_id = l.id))
-               || coalesce((select jsonb_build_object('holder_telephone', t.telephone) from site.licence_holder_telephone t where t.licence_id = l.id), '{}'::jsonb),
+               || coalesce((select jsonb_build_object('holder_telephone', t.telephone) from site.licence_holder_telephone t
+                          where t.licence_id = l.id and t.correlation_id = l.correlation_id
+                          order by t.recorded_at, t.id limit 1), '{}'::jsonb),
     'state', site.licence_state(l.id),
     'scope', jsonb_build_object('site', l.site_code),
     'entered_by', jsonb_build_array(l.recorded_by_person));
@@ -143,7 +189,7 @@ begin
    order by l.valid_from desc, l.recorded_at desc, l.id limit 1;
   if ln.id is not null then
     select * into h from site.manufacturing_licence where id = ln.host_licence_id;
-    return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', (select t.telephone from site.licence_holder_telephone t where t.licence_id = h.id),
+    return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', site.licence_telephone(h.id),
                               'loanLicenceId', ln.id, 'loanLicenceNumber', ln.licence_number, 'loanForm', ln.form, 'loanHolderName', ln.holder_name,
                               'loanHolderAddress', ln.holder_address, 'technicalAgreement', ln.technical_agreement_ref);
   end if;
@@ -154,7 +200,7 @@ begin
   if h.id is null then
     return null;
   end if;
-  return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', (select t.telephone from site.licence_holder_telephone t where t.licence_id = h.id));
+  return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', site.licence_telephone(h.id));
 end
 $$;
 

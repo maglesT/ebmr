@@ -135,6 +135,30 @@ describe('manufacturing and loan licences (site services 0885)', () => {
     expect(await refusal(w.run(w.cast.admin, (c) => recordManufacturingLicence(c, licence(unique('P')))))).toMatch(/administrator|EBMR-IAM/i);
     expect(await problem(p)).toMatch(/not approved/);
   });
+  it('[IN-30] the licence holder\'s telephone is kept as history: a new entry supersedes the earlier one for the CoA and the basis, the earlier one stays, and the signed licence content keeps the telephone recorded with the licence', async () => {
+    const p = unique('P');
+    const id = await record(licence(p, { holderTelephone: '+91 20 1111 2222' }));
+    await approve(id);
+    const tel = (by: SeededActor, licenceId: string, t: string) =>
+      w.run(by, (c) => c.query('select site.record_licence_holder_telephone($1, $2) as id', [licenceId, t]));
+    // A telephone with other characters, and an unknown licence, are refused; QA without LICENCE.RECORD is refused.
+    expect(await refusal(tel(reg, id, '020 1111; x'))).toMatch(/EBMR-IND-003/);
+    expect(await refusal(tel(reg, randomUUID(), '+91 20 3333 4444'))).toMatch(/EBMR-IND-008/);
+    expect(await refusal(tel(qa, id, '+91 20 3333 4444'))).toMatch(/LICENCE\.RECORD|EBMR-IAM/);
+    const content = async () => (await db.admin.query<{ c: { content: Record<string, unknown> } }>('select site.manufacturing_licence_content($1) as c', [id])).rows[0]!.c.content;
+    const signed = await content();
+    await tel(reg, id, '+91 20 3333 4444');
+    expect(await licenceBasis(db.app, SITE, p, '500 mg')).toMatchObject({ licenceId: id, holderTelephone: '+91 20 3333 4444' });
+    expect(await content()).toEqual(signed);
+    expect(signed).toMatchObject({ holder_telephone: '+91 20 1111 2222' });
+    const rows = (await db.admin.query<{ telephone: string; by: string }>(
+      'select telephone, recorded_by_person::text as by from site.licence_holder_telephone where licence_id = $1 order by recorded_at, id', [id])).rows;
+    expect(rows.map((r) => r.telephone)).toEqual(['+91 20 1111 2222', '+91 20 3333 4444']);
+    expect(new Set(rows.map((r) => r.by))).toEqual(new Set([reg.personId]));
+    // The entries are insert-only.
+    expect(await refusal(db.admin.query("update site.licence_holder_telephone set telephone = '+91 20 0000 0000' where licence_id = $1", [id]))).toMatch(/EBMR-AUDIT-004|EBMR-IND-001/);
+    expect(await refusal(db.admin.query('delete from site.licence_holder_telephone where licence_id = $1', [id]))).toMatch(/EBMR-AUDIT-004|EBMR-IND-001/);
+  });
 });
 
 describe('export permissions (site services 0885; D-6-2)', () => {
