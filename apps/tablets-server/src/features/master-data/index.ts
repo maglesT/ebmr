@@ -61,6 +61,27 @@ export async function productNames(db: Pick<pg.Pool, 'query'>): Promise<Map<stri
   return new Map(rows.map((r) => [r.k, { name: r.name, dosageForm: r.dosage }]));
 }
 
+/**
+ * The dosage form a formula's product states (Capsules C6b, recipe-core 1875): core's product master on the platform
+ * build, the site's product master otherwise. Read through the caller's own formula read; when the database refuses
+ * that read (a role without the right), null, and the command that follows keeps its own access check, so the caller is
+ * refused as before (the reviewed route matrix, DI-17). Any other error is thrown.
+ */
+async function statedDosageForm(app: AppContext, db: Pick<pg.Pool, 'query'>, tokenHash: string, formulaId: string): Promise<string | null> {
+  let read: formula.FormulaRead[];
+  try {
+    read = await readFor(db as pg.Pool, tokenHash, formulaId);
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    if (err.code === 'P0001' && /EBMR-[A-Z]+-[0-9]+/.test(err.message ?? '')) return null;
+    throw e;
+  }
+  const f = read[0];
+  if (!f) return null;
+  if (app.platform.master) return (await app.platform.master.read('product', { code: f.productCode }))?.dosageForm ?? null;
+  return (await productNames(db)).get(`${f.productCode}|${f.strength}`)?.dosageForm ?? null;
+}
+
 /** The targets of formula versions (recipe-core 1535), by version id. */
 export async function targetsOf(db: Pick<pg.Pool, 'query'>, versionIds: readonly string[]): Promise<Map<string, FormulaTargetView>> {
   if (versionIds.length === 0) return new Map();
@@ -137,8 +158,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const s = requireSession();
       // Capsules C6b (recipe-core 1875): the unit form from the product's dosage form, as the designer reads it (core's on
       // the platform build, the product master's otherwise); a capsule may give its shell's excipients per batch.
-      const summary = (await one(s.tokenHash, params.formulaId)).summary;
-      const stated = app.platform.master ? ((await app.platform.master.read('product', { code: summary.productCode }))?.dosageForm ?? null) : (summary.dosageForm ?? null);
+      const stated = await statedDosageForm(app, pool, s.tokenHash, params.formulaId);
       const unitForm = flow.isCapsuleForm(stated) ? ({ unitForm: 'CAPSULE' } as const) : {};
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
         const id = await formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput), ...unitForm });
