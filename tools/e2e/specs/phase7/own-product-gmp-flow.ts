@@ -403,6 +403,8 @@ export async function postFinishedLot(page: Page, base: string, orderId: string,
   await box.getByRole('textbox', { name: 'Finished quantity' }).fill(packs);
   await box.getByRole('textbox', { name: 'Unit' }).fill('packs');
   await box.getByRole('button', { name: 'Post the finished lot in quarantine' }).click();
+  // Wait for the server's answer before leaving the page, or the post may be cut off (CI flake, rabe-ec GMP 8).
+  await expect(page.getByTestId('finished-lot-posted')).toBeVisible();
   await home(page, /^Quality/);
   await page.getByRole('link', { name: 'Material lots', exact: true }).click();
   const row = page.getByTestId(`lot-${orderNumber}`);
