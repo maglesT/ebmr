@@ -126,7 +126,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Washing',
           fields: [
             { id: 'washer', label: 'Container washer', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'washerClass' },
-            // The component lot named where it is used (211.188(b)); its QC release is checked at use, no formula line.
+            // 21 CFR 211.188(b); SM Part I 17.3.8: the component lot named where it is used; its QC release is checked at
+            // use, no formula line.
             { id: 'containerLot', label: 'Vial or ampoule lot', type: 'MATERIAL_LOT' },
             { id: 'programme', label: 'Washing programme', type: 'TEXT', maxLength: 40 },
             { id: 'wfiTemp', label: 'Final rinse WFI temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp', critical: true },
@@ -198,7 +199,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'autoclave', label: 'Steam steriliser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'autoclaveClass' },
             { id: 'loadPattern', label: 'Load (validated pattern)', type: 'CHOICE', options: PART_LOADS },
-            // A stopper load names the stopper lot it sterilises (vials only: an ampoule has no stopper).
+            // 21 CFR 211.188(b); SM Part I 17.3.8: a stopper load names the stopper lot it sterilises (vials only: an
+            // ampoule has no stopper).
             { id: 'stopperLot', label: 'Stopper lot', type: 'MATERIAL_LOT', showWhen: { field: 'loadPattern', equals: 'Stoppers' } },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
             { id: 'temperature', label: 'Lowest temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
@@ -463,6 +465,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Set-up',
           fields: [
             { id: 'capper', label: 'Capping machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'capperClass' },
+            // 21 CFR 211.188(b); SM Part I 17.3.8: the seal lot named where it is used.
             { id: 'sealLot', label: 'Seal lot', type: 'MATERIAL_LOT' },
           ],
         },

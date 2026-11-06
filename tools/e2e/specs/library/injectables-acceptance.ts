@@ -14,21 +14,13 @@
  * The GMP batch to release (I-1c2) is not in this file yet. DEMO-ONLY data; every code is unique per run.
  */
 import { randomBytes } from 'node:crypto';
-import type { Page } from '@playwright/test';
-import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
-import { checksPass, saveProduct, saveRevision } from '../phase7/own-product-flow.ts';
+import { authoriseIn, changeControl, checksPass, fourSignatures, home, importEvidence, saveProduct, saveRevision, sendToSandbox } from '../phase7/own-product-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
 import { addLibraryBlocks, approveBlocks, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
 
-/** The start page and a tile of it (as library/acceptance.ts). */
-const home = async (page: Page, tile: RegExp): Promise<void> => {
-  await page.goto(new URL(page.url()).origin + '/');
-  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
-  await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: tile }).click();
-};
 
 interface Injectable {
   key: string;
@@ -285,46 +277,13 @@ export function defineInjectablesAcceptance(productKey: string): void {
     const changeRecord = `CC-${tag}`;
     const risk = `RA-${tag}`;
     await evidence.step('QA raises the change record and records the risk assessment; the author links them and sets the draft attributes', 'Change record and assessment recorded and linked', async () => {
-      await q.goto(`${e2e.url('GMP')}/mbr/change-records`);
-      const raise = q.getByTestId('raise-change-record');
-      await raise.getByRole('textbox', { name: 'Change record number' }).fill(changeRecord);
-      await raise.getByRole('textbox', { name: 'Title of the change' }).fill(`New product ${product.code}`);
-      await choose(raise.getByRole('radio', { name: 'Major' }));
-      await choose(raise.getByRole('radio', { name: 'Yes, process-impacting' }));
-      await raise.getByRole('textbox', { name: 'Validation reference (optional)' }).fill(`PV-${tag}`);
-      await raise.getByRole('button', { name: 'Raise the change record' }).click();
-      await expect(raise.getByText(`Change record ${changeRecord} is raised.`)).toBeVisible();
-      await q.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/review`);
-      const r = q.getByTestId('risk-links');
-      await r.getByRole('textbox', { name: 'Assessment code' }).fill(risk);
-      await r.getByRole('textbox', { name: 'Title' }).fill('Process risk assessment of the new product');
-      await r.getByRole('textbox', { name: 'Risk class' }).fill('MEDIUM');
-      await r.getByRole('textbox', { name: 'Rationale reference (the QRM report)' }).fill(`QRM-${tag}`);
-      await r.getByRole('button', { name: 'Record the risk assessment' }).click();
-      await expect(r.getByText(`Risk assessment ${risk} version 1 is recorded.`)).toBeVisible();
-
-      await a.getByRole('link', { name: 'Change control and evidence' }).click();
-      const rl = a.getByTestId('risk-links');
-      await rl.getByRole('button', { name: `Link ${risk} version 1` }).click();
-      await expect(a.getByTestId(`risk-${risk}`)).toContainText('for the whole master');
-      const d = a.getByTestId('draft-attributes');
-      await d.getByRole('textbox', { name: 'Change record number' }).fill(changeRecord);
-      await d.getByRole('textbox', { name: /^Effective from/ }).fill('2026-01-01T00:00:00+05:30');
-      await d.getByRole('textbox', { name: 'Periodic review due (YYYY-MM-DD)' }).fill('2028-12-31');
-      await d.getByRole('textbox', { name: 'Reason' }).fill('New product: its change record, effective date and review date');
-      await d.getByRole('button', { name: 'Set the draft attributes' }).click();
-      await expect(d.getByTestId('draft-change-record')).toContainText(changeRecord);
+      await changeControl(q, a, e2e.url('GMP'), versionId, { changeRecord, risk, title: `New product ${product.code}`, tag });
       return { changeRecord, risk };
     }, a);
 
     let packageHash = '';
     await evidence.step('The author sends the version to a sandbox test run', 'A test package with the GMP stamp in the sandbox inbox', async () => {
-      await a.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}`);
-      await a.getByRole('button', { name: 'Send to sandbox…' }).click();
-      await a.getByRole('dialog', { name: 'Send to a sandbox test run' }).getByRole('button', { name: 'Write the test package' }).click();
-      await expect(a.getByText('The test package is in the sandbox inbox.')).toBeVisible();
-      packageHash = /package=([0-9a-f]{64})/.exec((await a.getByRole('link', { name: 'Open the sandbox test packages' }).getAttribute('href')) ?? '')?.[1] ?? '';
-      expect(packageHash).toMatch(/^[0-9a-f]{64}$/);
+      packageHash = await sendToSandbox(a, e2e.url('GMP'), versionId);
       return { packageHash };
     }, a);
 
@@ -367,65 +326,25 @@ export function defineInjectablesAcceptance(productKey: string): void {
     a = await officePage('GMP', 'PC-DESIGN-01');
     await signIn.office(a, author);
     await evidence.step('The author starts the verification and imports the sandbox run\'s result', 'IN VERIFICATION; the evidence is complete for this content', async () => {
-      await home(a, /^Master records/);
-      await a.getByRole('link', { name: new RegExp(`^Open FAM-${tag} version`) }).click();
-      await a.getByRole('button', { name: 'Start verification…' }).click();
-      await a.getByRole('dialog', { name: 'Start verification' }).getByRole('button', { name: 'Start verification' }).click();
-      await a.getByRole('link', { name: 'Change control and evidence' }).click();
-      const e = a.getByTestId('verification-evidence');
-      for (const kind of ['VALIDATOR', 'VERIFICATION', 'TEST_VECTORS']) await expect(e.getByTestId(`evidence-${kind}`)).toHaveAttribute('data-result', 'PASS');
-      await e.getByRole('button', { name: `Import the result of run ${batchNumber}` }).click();
-      await expect(e.getByTestId('evidence-SANDBOX_RUN')).toHaveAttribute('data-result', 'PASS');
-      await expect(e.getByTestId('evidence-complete')).toHaveText('The evidence is complete for this content.');
+      await importEvidence(a, e2e.url('GMP'), versionId, batchNumber);
       return { evidence: 'complete' };
     }, a);
 
-    const signAs = async (page: Page, label: string, who: SeededPersona): Promise<void> => {
-      await page.getByTestId('mbr-lifecycle').getByRole('button', { name: label }).click();
-      await officeSign(page, new RegExp(`^${label}`), who);
-    };
     q = await officePage('GMP', 'PC-QA-02');
     await signIn.office(q, qa);
     await evidence.step('Prepared by the author, Checked by the checker, the registration references confirmed, Approved by QA', 'Four people; the version is APPROVED', async () => {
-      await a.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
-      await signAs(a, 'Sign as prepared', author);
-      await expect(a.getByTestId('mbr-signing-state')).toContainText('Submitted');
       const c = await officePage('GMP', 'PC-DESIGN-01');
       await signIn.office(c, checker);
-      await c.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
-      await signAs(c, 'Sign as independently checked', checker);
-      await expect(c.getByTestId('mbr-signing-state')).toContainText('Checked');
       const r = await officePage('GMP', 'PC-QA-02');
       await signIn.office(r, regulatory);
-      await r.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
-      await signAs(r, 'Confirm the registration references', regulatory);
-      await expect(r.getByTestId('mbr-sign-REGULATORY_CONFIRM')).toHaveAttribute('data-signed', 'yes');
-      await q.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
-      await signAs(q, 'Approve for the quality unit', qa);
-      await expect(q.getByTestId('mbr-signing-state')).toContainText('Approved');
+      await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author, checker, regulatory, qa }, e2e.url('GMP'), versionId);
       return { state: 'APPROVED' };
     }, q);
 
     await evidence.step('QA proposes the IN market authorisation, the regulatory signer confirms it and QA authorises it', 'The authorisation is ACTIVE', async () => {
-      const form = q.getByTestId('mbr-propose-market');
-      await form.getByRole('textbox', { name: 'Site' }).fill('SITE-1');
-      await form.getByRole('textbox', { name: 'Line' }).fill('L1');
-      await form.getByRole('textbox', { name: 'Batch size (its id in the master)' }).fill('BS-100000U');
-      await form.getByRole('textbox', { name: /^Regulatory basis/ }).fill(`IN: registration on file (${tag})`);
-      await form.getByRole('button', { name: 'Propose the authorisation' }).click();
-      await expect(q.getByTestId('market-IN')).toHaveAttribute('data-state', 'PROPOSED');
       const r = await officePage('GMP', 'PC-QA-02');
       await signIn.office(r, regulatory);
-      await r.goto(`${e2e.url('GMP')}/mbr/versions/${versionId}/signing`);
-      const item = r.getByTestId('market-IN');
-      await item.getByRole('button', { name: 'Confirm the registration for IN' }).click();
-      await officeSign(r, /^Confirm the registration for IN/, regulatory);
-      await q.reload();
-      const qi = q.getByTestId('market-IN');
-      await qi.getByRole('textbox', { name: 'Reason (authorisation)' }).fill('IN registration confirmed; SITE-1 L1');
-      await qi.getByRole('button', { name: 'Authorise for IN' }).click();
-      await officeSign(q, /^Authorise for IN/, qa);
-      await expect(qi).toHaveAttribute('data-state', 'ACTIVE');
+      await authoriseIn(q, r, e2e.url('GMP'), versionId, { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, qa, regulatory, `IN: registration on file (${tag})`);
       return { state: 'ACTIVE' };
     }, q);
   });

@@ -418,19 +418,20 @@ const yields = defineRule('GMP-YIELDS', 'Yield checkpoints have a basis, minimum
 });
 
 /**
- * Injectables I-1c (lead ruling, 6 November 2026): a library step computes and judges its own yield or accounting when its
- * block's snapshot in the master has a critical calculated field with a limit (INJ-UNIT-ACCOUNT's units not accounted
- * for) and the step's values give that limit. Such a step needs no master yield checkpoint; every other yield or
- * reconciliation step still names one.
+ * Injectables I-1c (lead ruling, 6 November 2026; narrowed after the #155 audit): a library step judges its own unit
+ * accountability when its block's snapshot in the master has a critical calculated field that calls `unaccounted(` with a
+ * limit, and the step's values give that limit (INJ-UNIT-ACCOUNT). Only such a step needs no master yield checkpoint; a
+ * yield or reconciliation block with any other critical calculation (CTRL-YIELD, CTRL-MATERIAL-RECON, CTRL-PRINTED-RECON,
+ * PACK-LABEL-RECON) still names one.
  */
 function judgesOwnYield(a: Analysis, p: PhaseNode): boolean {
   if (!p.block.type.startsWith('LIB-')) return false;
-  type Field = { type?: unknown; critical?: unknown; limitSlot?: unknown };
+  type Field = { type?: unknown; critical?: unknown; limitSlot?: unknown; expression?: unknown };
   const def = (a.mbr.blockDefinitions ?? []).find((d) => typeof d['code'] === 'string' && `LIB-${d['code']}` === p.block.type && typeof d['version'] === 'number' && d['version'].toString() === p.block.version) as
     | { sections?: { fields?: Field[] }[] }
     | undefined;
   const limits = (p.config as { limits?: Record<string, unknown> }).limits ?? {};
-  return (def?.sections ?? []).some((s) => (s.fields ?? []).some((f) => f.type === 'CALC' && f.critical === true && typeof f.limitSlot === 'string' && limits[f.limitSlot] !== undefined));
+  return (def?.sections ?? []).some((s) => (s.fields ?? []).some((f) => f.type === 'CALC' && f.critical === true && typeof f.expression === 'string' && /\bunaccounted\(/.test(f.expression) && typeof f.limitSlot === 'string' && limits[f.limitSlot] !== undefined));
 }
 
 const intermediates = defineRule('GMP-INTERMEDIATES', 'Every intermediate has a hold time and is produced before use', ['PR-03', 'INV-34', 'IN-13'], (a) => {

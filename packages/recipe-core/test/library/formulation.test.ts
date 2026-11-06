@@ -11,7 +11,7 @@ import { genericBlockCatalog } from '../../src/flow/blocks.ts';
 import type { MinimaRequest, ResolvedMinimum } from '../../src/validator/types.ts';
 import { errors, mbrWith, phase, validate } from '../flow/support.ts';
 import { fluidBedDrying, friability, range } from './examples.ts';
-import { INJECTABLE_CATALOGUE } from '../../src/library/seed/index.ts';
+import { INJECTABLE_CATALOGUE, SEED_CATALOGUE } from '../../src/library/seed/index.ts';
 
 describe('assembling a formulation from library blocks', () => {
   it('[PR-05][DI-35] a library step pins the hash and takes its roles from the block; a block with a verifier is significant', () => {
@@ -46,27 +46,44 @@ describe('assembling a formulation from library blocks', () => {
     expect(errors(validate(tight, { blocks: catalogWithLibrary(genericBlockCatalog, tight), market: { minima: () => minima } })).filter((f) => f.rule === 'MKT-MINIMA')).toEqual([]);
   });
 
-  /** A master whose one step is the unit accountability block with `def` as its snapshot and `config` as its values. */
-  const accounting = (def: BlockDefinition, config: Record<string, unknown>): MbrContent => {
-    const p = phase('p-inj-unit-account', { block: { type: 'LIB-INJ-UNIT-ACCOUNT', version: '1' }, config: config as never });
+  /** A master whose one step is library block `def` (its snapshot carried) with `config` as its values. */
+  const stepOf = (def: BlockDefinition, config: Record<string, unknown>): MbrContent => {
+    const p = phase(`p-${def.code.toLowerCase()}`, { block: { type: `LIB-${def.code}`, version: String(def.version) }, config: config as never });
     return { ...mbrWith({ kind: 'sequence', id: 'ops', children: [p] }), blockDefinitions: [def] as never };
   };
   const noCheckpoint = (m: MbrContent): string[] =>
     errors(validate(m, { blocks: catalogWithLibrary(genericBlockCatalog, m) })).filter((f) => f.rule === 'GMP-YIELDS' && /names no yield checkpoint/.test(f.message)).map((f) => f.message);
-  const unitAccount = INJECTABLE_CATALOGUE.find((s) => s.definition.code === 'INJ-UNIT-ACCOUNT');
-  if (!unitAccount) throw new Error('INJ-UNIT-ACCOUNT is not in the catalogue');
+  const item = (code: string) => {
+    const found = SEED_CATALOGUE.find((s) => s.definition.code === code);
+    if (!found) throw new Error(`${code} is not in the catalogue`);
+    return found;
+  };
+  const unitAccount = item('INJ-UNIT-ACCOUNT');
 
   it('[PR-03][INV-34][PR-31][PR-39] a library yield or reconciliation step whose block judges a critical calculated limit of its own (units not accounted for) needs no master yield checkpoint', () => {
-    expect(noCheckpoint(accounting(unitAccount.definition, unitAccount.exampleUse as never))).toEqual([]);
+    expect(noCheckpoint(stepOf(unitAccount.definition, unitAccount.exampleUse as never))).toEqual([]);
   });
 
-  it('[PR-03][INV-34][PR-31][PR-39] every other library yield or reconciliation step still names a master yield checkpoint: its calculated limit not critical, or the limit not given', () => {
+  it('[PR-03][INV-34][PR-31][PR-39] every library yield or reconciliation block of the catalogue but unit accountability still names a master yield checkpoint, and unit accountability too when its calculation is not critical or its limit is not given', () => {
+    const reconciling = SEED_CATALOGUE.filter((s) => (s.definition.roles ?? []).includes('YIELD_RECONCILIATION'));
+    expect(reconciling.length).toBeGreaterThan(1);
+    for (const s of reconciling) {
+      const found = noCheckpoint(stepOf(s.definition, s.exampleUse));
+      expect(found, s.definition.code).toHaveLength(s.definition.code === 'INJ-UNIT-ACCOUNT' ? 0 : 1);
+    }
     const notCritical: BlockDefinition = {
       ...unitAccount.definition,
       sections: unitAccount.definition.sections.map((sec) => ({ ...sec, fields: sec.fields.map((f) => (f.type === 'CALC' ? { ...f, critical: false } : f)) })),
     };
-    expect(noCheckpoint(accounting(notCritical, unitAccount.exampleUse as never))).toHaveLength(1);
+    expect(noCheckpoint(stepOf(notCritical, unitAccount.exampleUse as never))).toHaveLength(1);
     const otherLimits = Object.fromEntries(Object.entries(unitAccount.exampleUse.limits ?? {}).filter(([slot]) => slot !== 'unaccounted'));
-    expect(noCheckpoint(accounting(unitAccount.definition, { ...unitAccount.exampleUse, limits: otherLimits }))).toHaveLength(1);
+    expect(noCheckpoint(stepOf(unitAccount.definition, { ...unitAccount.exampleUse, limits: otherLimits }))).toHaveLength(1);
+  });
+
+  it('[PR-03][INV-34][PR-31][PR-39] CTRL-YIELD, CTRL-MATERIAL-RECON, CTRL-PRINTED-RECON and PACK-LABEL-RECON, each a step with its example limits, still raise names no yield checkpoint (a critical calculation that is not unit accountability exempts nothing)', () => {
+    for (const code of ['CTRL-YIELD', 'CTRL-MATERIAL-RECON', 'CTRL-PRINTED-RECON', 'PACK-LABEL-RECON']) {
+      const s = item(code);
+      expect(noCheckpoint(stepOf(s.definition, s.exampleUse as never)), code).toHaveLength(1);
+    }
   });
 });
