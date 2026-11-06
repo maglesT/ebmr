@@ -191,13 +191,13 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
   it('[IN-05][PR-45][INV-27] step A runs to completion and the stores post its output as an INTERMEDIATE lot in quarantine, dated from the product master\'s shelf life; an incomplete batch, a second post and a non-stores person are refused', async () => {
     batch.A = await plannedAndIssued('A', masterA);
     const stores = await gmp.asPersona('stores');
-    const post = { batchId: batch.A.batchId, quantity: '52', unit: 'kg' };
+    const post = { batchId: batch.A.batchId, quantity: '50', unit: 'kg' };
     expect(refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: post }))?.why).toMatch(/EBMR-SITE-994|execution is complete/);
     await runToComplete(batch.A.batchId);
     expect(refusalOf(await (await gmp.asPersona('qcAnalyst')).call(routes.specifications.postIntermediateLot, { body: post })).code).toMatch(/^EBMR-IAM/);
     const posted = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: post }));
     lot.A = posted.lotId;
-    expect(posted).toMatchObject({ lotCode: batch.A.batchNumber, batchId: batch.A.batchId, materialCode: INT_A.code, status: 'QUARANTINE', quantity: '52', unit: 'kg' });
+    expect(posted).toMatchObject({ lotCode: batch.A.batchNumber, batchId: batch.A.batchId, materialCode: INT_A.code, status: 'QUARANTINE', quantity: '50', unit: 'kg' });
     const { rows } = await gmp.db.admin.query<{ kind: string; edition: string; exp: string; want: string }>(
       `select l.material_kind as kind, i.edition, (l.expires_at at time zone 'Asia/Kolkata')::date::text as exp, recipe.batch_expiry($2) ->> 'expiryDate' as want
          from site.intermediate_lot i join site.material_lot l on l.id = i.lot_id where i.lot_id = $1`, [lot.A, batch.A.batchId]);
@@ -236,14 +236,14 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     const d = await driverOf(gmp, batch.B.batchId);
     await d.ok('dispenser1', { type: 'START_STEP', stepKey: 'p-disp@' });
     await d.ok('dispenser1', weighing(batch.A.batchNumber, IN_A, '51.000'));
-    expect(await consumptions(batch.B.batchId)).toEqual([[batch.A.batchNumber, batch.B.batchNumber, '50', 'kg', '52', '2']]);
+    expect(await consumptions(batch.B.batchId)).toEqual([[batch.A.batchNumber, batch.B.batchNumber, '50', 'kg', '50', '0']]);
     expect(await dispensed(batch.B.batchId)).toEqual([[batch.A.batchNumber, 'BOM-IN', '50.000', 'kg']]);
     await closeDispensing(d);
     await runReaction(d);
     expect(await statusOf(gmp, batch.B.batchId)).toBe('EXECUTION_COMPLETE');
-    const posted = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '44', unit: 'kg' } }));
+    const posted = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '42.5', unit: 'kg' } }));
     lot.B = posted.lotId;
-    expect(posted).toMatchObject({ lotCode: batch.B.batchNumber, materialCode: INT_B.code, status: 'QUARANTINE', quantity: '44' });
+    expect(posted).toMatchObject({ lotCode: batch.B.batchNumber, materialCode: INT_B.code, status: 'QUARANTINE', quantity: '42.5' });
   });
 
   it('[AS-16][PR-18][INV-13][INV-14] the final step C refuses intermediate B in quarantine at the reservation and at its G-07 weighing, consuming nothing; once QA releases B for further processing, C reserves it and its weighing consumes it', async () => {
@@ -259,7 +259,7 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     await releaseForFurtherProcessing(lot.B, INT_B.code);
     valueOf(await stores.call(routes.quality.reserveLot, { params: { lotId: lot.B }, body: reserve }));
     await d.ok('dispenser1', weighing(batch.B.batchNumber, IN_B, '43.500'));
-    expect(await consumptions(batch.C.batchId)).toEqual([[batch.B.batchNumber, batch.C.batchNumber, '42.5', 'kg', '44', '1.5']]);
+    expect(await consumptions(batch.C.batchId)).toEqual([[batch.B.batchNumber, batch.C.batchNumber, '42.5', 'kg', '42.5', '0']]);
     expect(await dispensed(batch.C.batchId)).toEqual([[batch.B.batchNumber, 'BOM-IN', '42.500', 'kg']]);
     await closeDispensing(d);
   });
