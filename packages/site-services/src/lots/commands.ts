@@ -16,7 +16,8 @@ import type { MaterialLotState } from './machine.ts';
 export type MaterialKind = 'API' | 'EXCIPIENT' | 'PRIMARY_PACKAGING' | 'PRINTED_PACKAGING' | 'INTERMEDIATE' | 'FINISHED';
 export type ReleaseRoute = 'IDENTITY_TESTED' | 'VENDOR_HISTORY';
 export type LotStatusEvent = 'RELEASE' | 'RELEASE_FOR_FURTHER_PROCESSING' | 'REJECT' | 'HOLD' | 'UNHOLD' | 'RETURN' | 'RECALL';
-export type LotEdition = 'TABLETS' | 'INJECTABLES';
+/** The register's edition codes (kernel.edition_codes(); API plan A1a added SUBSTANCE). */
+export type LotEdition = 'TABLETS' | 'INJECTABLES' | 'SUBSTANCE';
 
 export interface LotReceipt {
   lotCode: string;

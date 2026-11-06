@@ -130,6 +130,19 @@ describe('IN-52 catalog test: {IN} and {IN, US, EU} batches of a tablet and an i
     await expect(evaluate('sterile.aps.acceptance', batchScope(world.batch.tabletAll))).rejects.toThrow('EBMR-MKT-054');
   });
 
+  it('[IN-52] API plan A1a (kernel 1404): a substance (API) scope fails closed: a tablets or sterile key is refused, a kernel key resolves', async () => {
+    const tag = world.batch.tabletAll.slice(0, 8);
+    const api = await asApp(db, async (c) => {
+      const site = (await c.query<{ id: string }>('select site_id as id from market.stub_batch where id = $1', [world.batch.tabletAll])).rows[0]?.id;
+      const product = (await c.query<{ id: string }>("insert into market.stub_product (code, edition, markets, pics_destination, predicates) values ($1, 'substance', $2, false, '{}') returning id", [`API-${tag}`, ['IN']])).rows[0]?.id;
+      return (await c.query<{ id: string }>('insert into market.stub_batch (batch_number, product_id, site_id, markets) values ($1, $2, $3, $4) returning id', [`A-IN-${tag}`, product, site, ['IN']])).rows[0]?.id ?? '';
+    }, { roleCode: MARKET_ROLES.stubs });
+    await expect(evaluate('tablets.compression.ipcSampleMaxInterval', batchScope(api))).rejects.toThrow('EBMR-MKT-054');
+    await expect(evaluate('sterile.aps.acceptance', batchScope(api))).rejects.toThrow('EBMR-MKT-054');
+    const kernel = await evaluate('kernel.retention.batchRecord.monthsAfterManufacture', batchScope(api));
+    expect(kernel.marketSet).toEqual(['IN']);
+  });
+
   it('[IN-52] a scope cannot override a predicate its product fixes', async () => {
     await expect(
       evaluate('kernel.retention.testRecord.monthsAfterExpiry', batchScope(world.batch.injectableIn), { predicates: { licenceForm: 'FORM_25' } }),
