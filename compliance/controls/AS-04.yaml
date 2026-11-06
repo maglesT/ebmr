@@ -16,8 +16,8 @@ implemented_by:
   modules:
     - "Catalogue v1 blocks (equipment, lot and weighing fields, critical values with limits, signatures), G blocks and lot results."
 tests:
-  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-05][AS-04][PR-18] API plan A1b: API dispensing weighs each container against its bill-of-materials line, records the lot as that line's material, checks the sub-divided container's label (material, control number, quantity, retest date), and a second person of another role verifies it"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature and time as critical parameters with limits, at each round; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-05][AS-04][PR-18] API plan A1b: API dispensing weighs each container against its bill-of-materials line, records the lot as that line's material, checks the sub-divided container's label (material, control number, quantity, retest date), and a second person of another role verifies it"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-06][AS-04] API plan A1b: the yield step works out the actual yield against the batch size and the molar yield against the key starting material's formula line, both critical with limits; a low yield raises an exception (to be explained and investigated) and blocks completion"
 expert_decision:
   status: PENDING

@@ -40,7 +40,6 @@ implemented_by:
     - "authorisation_cell_one_current (unique partial index) and authorisation_cell_current_no_overlap (exclusion constraint)"
     - "batch_mbr_pin.batch_id unique; control_recipe insert-only"
 tests:
-  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the ten blocks of a one-step synthesis as substance blocks in the group `substance`; every critical value has a limit slot the example fills, and no calculation reads an earlier step"
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard"
   - "apps/tablets-server/test/designer/master-records.test.ts > market authorisations (ADR 0014) > [PR-04][PR-05] QA proposes, the regulatory signer confirms, QA authorises (ACTIVE) and withdraws it with its own reason; the wrong person is refused at each step"
   - "apps/tablets-server/test/designer/palette-tablets.test.ts > the tablets palette (slice 7j) > [PR-05][PR-03] decision 0026 O-6: after the library acceptance the tablet blocks are no longer offered for a new step; they stay described for existing masters; every generic step block is still offered"
@@ -83,6 +82,7 @@ tests:
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [PR-05] a version is a whole number of 1 or more"
   - "packages/recipe-core/test/library/library.test.ts > review additions: inputs from outside the step, conditional fields, pinning > [PR-05] the content hash pinned at formulation approval must match the library version used"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [PR-05] the catalogue holds the 17 blocks of I-1 (INJ-01, 02, 04, 05, 06, 12, 14, 15, 18 to 26), each of the injectables edition, loaded with the rest of the catalogue"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the ten blocks of a one-step synthesis as substance blocks in the group `substance`; every critical value has a limit slot the example fills, and no calculation reads an earlier step"
   - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [PR-05] every code is unique across the catalogue, and every item is version 1"
   - "packages/recipe-core/test/library/softgels-ii.test.ts > soft gels II (Capsules C7) > [PR-05] seamless encapsulation is a soft gel block in the capsule catalogue; chewable and enteric add no block of their own"
   - "packages/recipe-core/test/library/softgels.test.ts > soft gels I (Capsules C6) > [PR-05] the soft gel blocks are their own catalogue group and part of the capsule catalogue; no washing block (no binding clause maps to it, D-C6-1)"

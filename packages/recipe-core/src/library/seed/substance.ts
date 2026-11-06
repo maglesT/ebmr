@@ -31,9 +31,9 @@ import type { SeedItem } from './types.ts';
 const OPERATOR = { meaning: 'PERFORMED' as const, role: 'PRODUCTION_OPERATOR' };
 const VERIFIER = { meaning: 'VERIFIED' as const, role: 'PRODUCTION_VERIFIER' };
 
-const reg = (unit: string, low: string, high: string): LimitSpec => ({
+const reg = (unit: string, low?: string, high?: string): LimitSpec => ({
   unit,
-  ranges: [{ tier: 'REGISTERED', low: { value: low, inclusive: true }, high: { value: high, inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: 'SPEC-REF' } }],
+  ranges: [{ tier: 'REGISTERED', ...(low ? { low: { value: low, inclusive: true } } : {}), ...(high ? { high: { value: high, inclusive: true } } : {}), rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: 'SPEC-REF' } }],
 });
 
 export const API_PACK: SeedItem = {
