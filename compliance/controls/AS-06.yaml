@@ -16,7 +16,7 @@ implemented_by:
   modules:
     - "API-YIELD: actual and molar yield as critical calculations with limits; a result outside raises an exception that blocks the step until resolved (deviation)."
 tests:
-  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-06][AS-04] API plan A1b: the yield step works out the actual yield against the batch size and the molar yield against the key starting material's formula line, both critical with limits; a low yield raises an exception (to be explained and investigated) and blocks completion"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-06][AS-04] API plan A1b: the yield step works out the actual yield against the expected yield (the batch size), critical with limits; a low yield raises an exception (to be explained and investigated) and blocks completion"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"

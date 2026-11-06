@@ -16,7 +16,7 @@ implemented_by:
   modules:
     - "Library block slots (limits, equipment classes, bill-of-materials lines, intervals, counts) filled by the formulation; validator sanity checks."
 tests:
-  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the ten blocks of a one-step synthesis as substance blocks in the group `substance`; every critical value has a limit slot the example fills, and no calculation reads an earlier step"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-02][PR-03][PR-05] API plan A1b: catalogue v1 holds the eleven blocks of a one-step synthesis as substance blocks in the group `substance`; critical only on the time limits, the in-process results and the yield, each with a limit slot the example fills; no calculation reads an earlier step"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"
