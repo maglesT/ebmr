@@ -86,6 +86,9 @@ export const ADDED_ONLY_ALLOWED: Readonly<Record<string, string>> = {
   '"platform"."setting_definition"': 'catalogue of setting definitions: a release defines its new settings (earlier definitions must be unchanged)',
   '"recipe"."block_data_schema"': 'catalogue of block data schemas',
   '"recipe"."block_signature_meaning"': 'catalogue of the signature meanings each block type uses',
+  // API plan A1a (editions/substance/sql 5000): an edition's packaging completion block and its G-REL hook.
+  '"recipe"."grel_edition_hook"': 'registry of the G-REL item function of each edition (owner only, insert-only): a release registers a new edition\'s hook',
+  '"recipe"."packaging_completion_block"': 'catalogue of the block types that complete a packaging record, per edition (insert-only): a release adds a new edition\'s',
   '"recipe"."engine_name"': "the names the engine's registers give (rule codes, block types, controls, schema tags): a release registers its new ones",
   '"report"."view_registry"': 'registry of the report views (insert-only; a release adds its new views)',
 };

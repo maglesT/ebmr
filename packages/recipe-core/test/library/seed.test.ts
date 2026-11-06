@@ -8,6 +8,7 @@ import type { LimitSpec } from '../../src/limits/model.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
 import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
+import { API_PACK, SUBSTANCE_SEEDS } from '../../src/library/seed/substance.ts';
 import { expr } from '../flow/support.ts';
 import { nominalRun } from './seed-support.ts';
 
@@ -122,6 +123,20 @@ describe('the ready-made catalogue', () => {
         }
       }
     }
+  });
+
+  it('[PR-03][DI-34][PR-37] API plan A1a: the API pack block (drums or bags) is a substance block, well made, its example values pass, a nominal batch completes it, its signatures are engine roles, and each drum or bag is a registered container with its net mass', () => {
+    for (const item of SUBSTANCE_SEEDS) {
+      const code = item.definition.code;
+      expect(item.definition.edition, code).toBe('substance');
+      expect(SEED_CATALOGUE.map((s) => s.definition.code), code).not.toContain(code);
+      expect(checkBlockDefinition(item.definition, expr).filter((p) => p.code !== 'LIB-REPEAT-NO-MAX'), code).toEqual([]);
+      expect(checkBlockUse(item.definition, { block: { code, version: item.definition.version }, ...item.exampleUse }, expr), code).toEqual([]);
+      expect(nominalRun(item), code).toEqual({ exceptions: [], status: 'COMPLETED' });
+      for (const sig of item.definition.signatures) expect(['PRODUCTION_OPERATOR', 'PRODUCTION_VERIFIER'], code).toContain(sig.role);
+    }
+    expect(fieldOf(API_PACK, 'container')).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
+    expect(fieldOf(API_PACK, 'netMass')).toMatchObject({ type: 'NUMBER', unit: 'kg' });
   });
 
   for (const [group, items] of Object.entries(SEED_GROUPS)) {
