@@ -24,8 +24,10 @@
  *    are the formulation's values from the binding tables.
  *  - An item only Annex 1 asks for is a block of its own tagged for the EU market (`markets: ['EU']`, metadata the
  *    engine does not read; owner Q0, lead 6 November 2026): a master for other markets leaves the block out, and the
- *    base blocks keep their 21 CFR 211 and Schedule M content. So PUPSIT (A1 8.87) is INJ-PUPSIT, and the glove test
- *    (A1 4.21 alone) is tagged as a whole.
+ *    base blocks keep their 21 CFR 211 and Schedule M content. So PUPSIT (A1 8.87) is INJ-PUPSIT, the single-use
+ *    integrity check (A1 8.127-8.138) INJ-SUS-INTEGRITY, the transfer into Grade A/B (A1 8.12-8.14)
+ *    INJ-ASEPTIC-TRANSFER, and the glove test (A1 4.21) and isolator bio-decontamination (A1 4.22) are tagged as a
+ *    whole. A value is `critical` only where a binding clause names it.
  *  - The integrity test method is answered in each test's own section as the formulation's instructions state, and only
  *    the matching test value is asked: a field's condition is read from its own section's entry.
  *
@@ -66,11 +68,11 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'INJ-SUPPLIER-STERILE',
       version: 1,
-      title: 'Supplier-sterilised components (gamma, e-beam, ethylene oxide)',
+      title: 'Supplier-sterilised components (gamma, e-beam, ethylene oxide, moist heat)',
       category: 'CONTROL',
       edition: EDITION,
       roles: ['VERIFICATION'],
-      description: 'INJ-03. One component sterilised by its supplier or a contract steriliser: its lot (released by QC), the sterilisation method, the certificate and the dose or cycle reference, and the indicator on the pack. Used once per component.',
+      description: 'INJ-03. One component sterilised by its supplier or a contract steriliser (irradiation, ethylene oxide or moist heat): its lot (released by QC), the sterilisation method, the certificate and the dose or cycle reference, and the indicator on the pack. Used once per component.',
       instructions: 'Check the lot against the formula line and its released label. Record the sterilisation certificate of the lot and its dose or cycle reference. Do not use a pack whose indicator has not changed or whose wrap is damaged.',
       sections: [
         {
@@ -91,7 +93,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     exampleUse: { bomLines: { componentLine: 'L3' } },
   },
   {
-    // INJ-07: 211.113(b); A1 8.63.
+    // INJ-07: 211.113(b); SM Part II 6.3-6.11.1 (sterilisation by moist heat, as INJ-PARTS-AUTOCLAVE); A1 8.63.
     definition: {
       code: 'INJ-SIP',
       version: 1,
@@ -123,15 +125,15 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-08: 211.113(b); A1 8.12-8.14, 8.47, 8.49.
+    // INJ-08: 211.113(b); A1 8.47, 8.49. The transfer into Grade A/B (A1 8.12-8.14) is INJ-ASEPTIC-TRANSFER.
     definition: {
       code: 'INJ-ASEPTIC-ASSEMBLY',
       version: 1,
-      title: 'Aseptic assembly, connections and transfer into Grade A/B',
+      title: 'Aseptic assembly and connections',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-08. Each aseptic connection of the formulation\'s list, made under Grade A, and the sterilised items transferred into the Grade A/B area by the validated transfer method.',
-      instructions: 'Make each connection of the list under Grade A air. Transfer sterilised items into the area only by the validated method, with their wraps intact.',
+      description: 'INJ-08. Each aseptic connection of the formulation\'s list, made under Grade A.',
+      instructions: 'Make each connection of the list under Grade A air.',
       sections: [
         {
           id: 'connection',
@@ -142,6 +144,23 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
             { id: 'underGradeA', label: 'Connection made under Grade A', type: 'YES_NO', expected: true },
           ],
         },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: { counts: { connections: '3' } },
+  },
+  {
+    // INJ-08 (transfer): A1 8.12-8.14 (EU market only).
+    definition: {
+      code: 'INJ-ASEPTIC-TRANSFER',
+      version: 1,
+      title: 'Transfer of sterilised items into Grade A/B, EU market',
+      category: 'PROCESS',
+      edition: EDITION,
+      markets: ['EU'],
+      description: 'INJ-08, EU market. The sterilised items transferred into the Grade A/B area by the validated transfer method, their wraps intact.',
+      instructions: 'Transfer sterilised items into the area only by the validated method, with their wraps intact.',
+      sections: [
         {
           id: 'transfer',
           title: 'Transfer',
@@ -152,16 +171,17 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       ],
       signatures: [OPERATOR, VERIFIER],
     },
-    exampleUse: { counts: { connections: '3' } },
+    exampleUse: {},
   },
   {
-    // INJ-09: 211.113(b); A1 4.22.
+    // INJ-09: A1 4.22 (EU market only).
     definition: {
       code: 'INJ-VHP',
       version: 1,
-      title: 'Bio-decontamination of an isolator (vaporised hydrogen peroxide)',
+      title: 'Bio-decontamination of an isolator (vaporised hydrogen peroxide), EU market',
       category: 'PROCESS',
       edition: EDITION,
+      markets: ['EU'],
       description: 'INJ-09. The bio-decontamination cycle of the isolator: its cycle number, the hydrogen peroxide injected and the exposure time typed from the printout, checked by a second person. The validity of the cycle is a use-by time constraint of the master from this step, not a typed date.',
       instructions: 'Read the values from the cycle printout and attach it to the record. A second person checks the typed values against the printout.',
       sections: [
@@ -171,8 +191,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'isolator', label: 'Isolator', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'isolatorClass' },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
-            { id: 'peroxide', label: 'Hydrogen peroxide injected', type: 'NUMBER', unit: 'g', decimals: 1, limitSlot: 'peroxide', critical: true },
-            { id: 'exposureTime', label: 'Exposure (dwell) time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'exposureTime', critical: true },
+            { id: 'peroxide', label: 'Hydrogen peroxide injected', type: 'NUMBER', unit: 'g', decimals: 1, limitSlot: 'peroxide' },
+            { id: 'exposureTime', label: 'Exposure (dwell) time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'exposureTime' },
             { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
             { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
           ],
@@ -215,7 +235,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     exampleUse: { counts: { glovePorts: '4' } },
   },
   {
-    // INJ-11: 211.113(b); A1 8.127-8.138.
+    // INJ-11: 211.80, 211.84. The integrity check before use (A1 8.127-8.138) is INJ-SUS-INTEGRITY.
     definition: {
       code: 'INJ-SUS',
       version: 1,
@@ -223,21 +243,45 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['VERIFICATION'],
-      description: 'INJ-11. One single-use assembly: its lot (released by QC) on the formula line, and its integrity checked before use. Used once per assembly.',
-      instructions: 'Check the assembly lot against the formula line and its released label. Check its integrity before use as the formulation\'s instructions state.',
+      description: 'INJ-11. One single-use assembly: its lot (released by QC) on the formula line. Used once per assembly.',
+      instructions: 'Check the assembly lot against the formula line and its released label.',
       sections: [
         {
           id: 'assembly',
           title: 'Assembly',
           fields: [
             { id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT', bomLineSlot: 'assemblyLine' },
-            { id: 'integrity', label: 'Integrity checked before use, and passed', type: 'YES_NO', expected: true },
           ],
         },
       ],
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: { bomLines: { assemblyLine: 'L4' } },
+  },
+  {
+    // INJ-11 (integrity): A1 8.127-8.138 (EU market only).
+    definition: {
+      code: 'INJ-SUS-INTEGRITY',
+      version: 1,
+      title: 'Single-use assembly integrity before use, EU market',
+      category: 'CONTROL',
+      edition: EDITION,
+      markets: ['EU'],
+      roles: ['VERIFICATION'],
+      description: 'INJ-11, EU market. The integrity of a single-use assembly checked before use, as the formulation\'s instructions state.',
+      instructions: 'Check the integrity of the assembly before use as the formulation\'s instructions state.',
+      sections: [
+        {
+          id: 'integrity',
+          title: 'Integrity',
+          fields: [
+            { id: 'integrity', label: 'Integrity checked before use, and passed', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {},
   },
   {
     // INJ-13: 211.113(b); SM Part II 6.11.2. PUPSIT (A1 8.87, EU market) is the block INJ-PUPSIT.
@@ -271,8 +315,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           id: 'filtration',
           title: 'Filtration',
           fields: [
-            { id: 'pressure', label: 'Highest filtration pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'pressure', critical: true },
-            { id: 'filtrationTime', label: 'Filtration time', type: 'TIMER', durationUnit: 'min', limitSlot: 'filtrationTime', critical: true },
+            { id: 'pressure', label: 'Highest filtration pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'pressure' },
+            { id: 'filtrationTime', label: 'Filtration time', type: 'TIMER', durationUnit: 'min', limitSlot: 'filtrationTime' },
           ],
         },
         {
@@ -340,7 +384,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       edition: EDITION,
       roles: ['ENVIRONMENT_CHECK'],
       description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with its sample and its count after incubation, and each particle location with its counts per size typed from the counter report and checked by a second person. Counts above the action limit stop the step until a deviation is opened; the release gate waits for the step.',
-      instructions: 'Sample each location of the plan during the operation. Settle plates are exposed no longer than their limit. Enter the counts after incubation. Type the particle counts from the counter report (for continuous Grade A monitoring, the highest count of the window) and attach the report.',
+      instructions: 'Sample each location of the plan during the operation. Settle plates are exposed no longer than their limit. Enter the counts after incubation. Type the particle counts from the counter report and attach it.',
       sections: [
         {
           id: 'area',
@@ -359,7 +403,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
             { id: 'method', label: 'Method', type: 'CHOICE', options: ['Active air sample', 'Settle plate', 'Contact plate', 'Glove print'] },
             { id: 'sample', label: 'Plates taken', type: 'SAMPLE', unitsSlot: 'platesPerLocation', purpose: 'Environmental monitoring' },
             { id: 'sampledAt', label: 'Sampled at', type: 'DATE_TIME' },
-            { id: 'exposure', label: 'Settle plate exposure', type: 'NUMBER', unit: 'min', decimals: 0, limitSlot: 'exposure', critical: true, showWhen: { field: 'method', equals: 'Settle plate' } },
+            { id: 'exposure', label: 'Settle plate exposure', type: 'NUMBER', unit: 'min', decimals: 0, limitSlot: 'exposure', showWhen: { field: 'method', equals: 'Settle plate' } },
             { id: 'cfuAir', label: 'Count after incubation, air', type: 'NUMBER', unit: `${CFU}/m3`, decimals: 0, limitSlot: 'cfuAir', critical: true, showWhen: { field: 'method', equals: 'Active air sample' } },
             { id: 'cfuSettle', label: 'Count after incubation, settle plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuSettle', critical: true, showWhen: { field: 'method', equals: 'Settle plate' } },
             { id: 'cfuContact', label: 'Count after incubation, contact plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuContact', critical: true, showWhen: { field: 'method', equals: 'Contact plate' } },
@@ -392,7 +436,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
         particles05: em(PARTICLES, '352000', '300000'),
         particles50: em(PARTICLES, '2900', '2000'),
       },
-      targets: { exposure: '240', cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0', particles05: '50000', particles50: '200' },
+      targets: { exposure: '180', cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0', particles05: '50000', particles50: '200' },
       marketRules: {
         particles05: { key: 'sterile.particles.gradeB.inOperation.max0_5um', bound: 'HIGH' },
         particles50: { key: 'sterile.particles.gradeB.inOperation.max5_0um', bound: 'HIGH' },

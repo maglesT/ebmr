@@ -35,10 +35,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-SUPPLIER-STERILE', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
+const I2_CODES = ['INJ-SUPPLIER-STERILE', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 9 blocks of I-2 (INJ-03, 07, 08, 09, 10, 11, 13 and its PUPSIT block, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items (PUPSIT, the glove test) are tagged for the EU market', () => {
+  it('[PR-05][PR-03] the catalogue holds the 11 blocks of I-2 (INJ-03, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -58,8 +58,13 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     // Owner Q0 (lead, 6 November 2026): an item only Annex 1 asks for is its own block tagged for the EU market; the base
     // blocks carry no tag (every market) and no PUPSIT field.
     const tagged = INJECTABLE_ASEPTIC_CATALOGUE.filter((s) => s.definition.markets !== undefined);
-    expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({ 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'] });
+    expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({
+      'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
+    });
     expect(byCode('INJ-STERILE-FILTER').definition.sections.map((x) => x.id)).toEqual(['filter', 'preUse', 'filtration', 'postUse']);
+    expect(byCode('INJ-STERILE-FILTER').definition.sections.flatMap((x) => x.fields).filter((f) => /pupsit/i.test(f.id))).toEqual([]);
+    expect(byCode('INJ-SUS').definition.sections.flatMap((x) => x.fields).map((f) => f.id)).toEqual(['assemblyLot']);
+    expect(byCode('INJ-ASEPTIC-ASSEMBLY').definition.sections.map((x) => x.id)).toEqual(['connection']);
   });
 
   it('[ST-40][ST-49] a supplier-sterilised component is accepted by its lot on the formula line, with its sterilisation method (no UV), certificate and dose or cycle reference; an indicator that has not changed is an exception', () => {
@@ -81,18 +86,21 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(item, { cycle: { cyclePassed: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
-  it('[ST-42][ST-46] aseptic assembly records each connection of the formulation\'s list as made under Grade A, and the transfer into Grade A/B by the validated method; either answered no is an exception', () => {
+  it('[ST-42][ST-46] aseptic assembly records each connection of the formulation\'s list as made under Grade A and, for the EU market in its own block, the transfer into Grade A/B by the validated method; either answered no is an exception', () => {
     const item = byCode('INJ-ASEPTIC-ASSEMBLY');
     expect(item.definition.sections.find((s) => s.id === 'connection')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'connections' });
     const one = judgedRun(item, { connection: { underGradeA: false } });
     expect(one.exceptions.every((e) => e === 'LIB_UNEXPECTED_ANSWER') && one.exceptions.length > 0).toBe(true);
     expect(one.status).not.toBe('COMPLETED');
-    expect(judgedRun(item, { transfer: { transferred: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(judgedRun(byCode('INJ-ASEPTIC-TRANSFER'), { transfer: { transferred: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
-  it('[ST-76] isolator bio-decontamination records the cycle values from the printout as critical values with limits, checked by a second person; its validity is a time constraint of the master, not a typed date', () => {
+  it('[ST-76] isolator bio-decontamination (EU market) records the cycle values from the printout with their limits, checked by a second person; its validity is a time constraint of the master, not a typed date', () => {
     const item = byCode('INJ-VHP');
-    for (const id of ['peroxide', 'exposureTime']) expect(fieldOf(item, id), id).toMatchObject({ type: 'NUMBER', critical: true });
+    expect(item.definition.markets).toEqual(['EU']);
+    // No binding clause names these values, so they are not critical (lead, 6 November 2026); they are judged all the same.
+    for (const id of ['peroxide', 'exposureTime']) expect(fieldOf(item, id), id).toMatchObject({ type: 'NUMBER', limitSlot: id });
+    for (const id of ['peroxide', 'exposureTime']) expect((fieldOf(item, id) as { critical?: boolean }).critical, id).toBeUndefined();
     checkedBySecondPerson(item);
     expect(item.definition.sections.flatMap((s) => s.fields).filter((f) => f.type === 'DATE_TIME' || f.type === 'CALC')).toEqual([]);
     expect(judgedRun(item, { cycle: { peroxide: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
@@ -109,10 +117,10 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(new Set(failed.exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
   });
 
-  it('[ST-79] a single-use assembly is accepted by its lot on the formula line; its integrity not checked before use is an exception', () => {
+  it('[ST-79] a single-use assembly is accepted by its lot on the formula line; for the EU market, in its own block, its integrity not checked before use is an exception', () => {
     const item = byCode('INJ-SUS');
     expect(fieldOf(item, 'assemblyLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'assemblyLine' });
-    expect(judgedRun(item, { assembly: { integrity: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(judgedRun(byCode('INJ-SUS-INTEGRITY'), { integrity: { integrity: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
   it('[ST-50][IN-48] the sterilising filter is its lot on the formula line and must be the registered type: another type is not allowed', () => {
@@ -143,7 +151,9 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
 
   it('[ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum', () => {
     const item = byCode('INJ-STERILE-FILTER');
-    expect(fieldOf(item, 'filtrationTime')).toMatchObject({ type: 'TIMER', limitSlot: 'filtrationTime', critical: true });
+    expect(fieldOf(item, 'filtrationTime')).toMatchObject({ type: 'TIMER', limitSlot: 'filtrationTime' });
+    // No binding clause names the filtration pressure or time: judged against their limits, not critical (lead).
+    for (const id of ['pressure', 'filtrationTime']) expect((fieldOf(item, id) as { critical?: boolean }).critical, id).toBeUndefined();
     expect(judgedRun(item, { filtration: { pressure: '2.50' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     // The nominal run holds the timer about an hour: a 30-minute maximum is breached.
     expect(judgedRun(withLimits(item, { filtrationTime: { unit: 'min', ranges: [{ tier: 'VALIDATED', high: { value: '30', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'PV-REF' } }] } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
@@ -156,6 +166,8 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(method.type === 'CHOICE' ? method.options : []).toEqual(['Active air sample', 'Settle plate', 'Contact plate', 'Glove print']);
     expect(fieldOf(item, 'sample')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'platesPerLocation' });
     expect(fieldOf(item, 'sampledAt').type).toBe('DATE_TIME');
+    // The exposure limit is the formulation's value, not a critical one (lead): judged all the same.
+    expect((fieldOf(item, 'exposure') as { critical?: boolean }).critical).toBeUndefined();
     const settle = { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0', exposure: '240' };
     expect(judgedRun(item, { viable: settle })).toEqual({ exceptions: [], status: 'COMPLETED' });
     expect(new Set(judgedRun(item, { viable: { ...settle, exposure: '300' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));

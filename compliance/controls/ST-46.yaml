@@ -25,7 +25,7 @@ behaviour: |-
 catalog_test: Use a tool in the filling zone with only a disinfection record → blocked. Scan an unlisted tool at the Grade B hatch → blocked.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-42][ST-46] aseptic assembly records each connection of the formulation's list as made under Grade A, and the transfer into Grade A/B by the validated method; either answered no is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-42][ST-46] aseptic assembly records each connection of the formulation's list as made under Grade A and, for the EU market in its own block, the transfer into Grade A/B by the validated method; either answered no is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
