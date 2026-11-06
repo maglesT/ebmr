@@ -609,6 +609,11 @@ export const EXAMPLES = {
     data: { ...ind.licence, state: 'SUSPENDED', current: false, suspension: { reason: 'Suspended by order of the licensing authority', suspendedBy: ind.licence.approvedBy, suspendedAt: ind.licence.approvedAt } },
     routeId: r.india.suspendLicence.id,
   },
+  'india-record-licence-telephone': {
+    schema: r.india.recordLicenceTelephone.response,
+    data: { ...ind.licence, holderTelephone: '+91 20 3333 4444' },
+    routeId: r.india.recordLicenceTelephone.id,
+  },
   'india-export-permissions': { schema: r.india.exportPermissions.response, data: { permissions: [ind.permission] }, routeId: r.india.exportPermissions.id },
   'india-record-export-permission': {
     schema: r.india.recordExportPermission.response,
