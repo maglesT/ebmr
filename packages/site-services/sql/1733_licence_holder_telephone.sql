@@ -1,10 +1,12 @@
 -- API plan A3 (lead, 6 November 2026): the manufacturing licence holder's telephone, for the certificate of analysis of an
--- API (ICH Q7 11.43 (EU GMP Part II): the CoA names the original manufacturer with its address and telephone). Kept on the
--- licence record that already gives the CoA the holder's name and address (one source).
+-- API (ICH Q7 11.43 (EU GMP Part II): the CoA names the original manufacturer with its address and telephone). Recorded with
+-- the licence that already gives the CoA the holder's name and address (one source), in its own insert-only row: the licence
+-- table keeps its columns, so the audit hash of every licence row recorded before this migration still verifies.
 --
 -- Handbook: modules/site-services.md
 --
---   site.manufacturing_licence.holder_telephone   nullable free text (digits, spaces and + ( ) -, up to 40 characters).
+--   site.licence_holder_telephone   insert-only, one row per licence that names a telephone (free text: digits, spaces and
+--                                 + ( ) -, up to 40 characters); audited under the licence's aggregate, immutable.
 --   site.record_manufacturing_licence(p)   CREATE OR REPLACE from 0885: takes the optional holderTelephone.
 --   site.manufacturing_licence_content(id)   CREATE OR REPLACE from 0885: the signed content names the telephone only
 --                                 when one is recorded, so the content of every licence recorded before stays as signed.
@@ -13,8 +15,15 @@
 
 set local role ebmr_owner;
 
-alter table site.manufacturing_licence add column holder_telephone text
-  check (holder_telephone is null or (btrim(holder_telephone) <> '' and holder_telephone ~ '^[0-9+() -]{3,40}$'));
+create table site.licence_holder_telephone (
+  licence_id  uuid primary key references site.manufacturing_licence (id),
+  telephone   text not null check (btrim(telephone) <> '' and telephone ~ '^[0-9+() -]{3,40}$')
+);
+revoke all on site.licence_holder_telephone from public;
+revoke all on site.licence_holder_telephone from ebmr_app;
+grant select on site.licence_holder_telephone to ebmr_app;
+select kernel.register_audited_table('site.licence_holder_telephone', 'manufacturing_licence', 'licence_id', true);
+create trigger zz_immutable before update or delete on site.licence_holder_telephone for each row execute function site.india_record_immutable();
 
 create or replace function site.record_manufacturing_licence(p jsonb) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, site, iam, pg_temp as $$
@@ -61,13 +70,16 @@ begin
     end if;
   end loop;
   begin
-    insert into site.manufacturing_licence (site_code, licence_kind, form, licence_number, holder_name, holder_address, holder_telephone, host_licence_id,
+    insert into site.manufacturing_licence (site_code, licence_kind, form, licence_number, holder_name, holder_address, host_licence_id,
                                             technical_agreement_ref, valid_from, valid_until, recorded_by_person, recorded_by_account, correlation_id)
     values (v_site, v_kind, p ->> 'form', btrim(p ->> 'licenceNumber'), btrim(p ->> 'holderName'), btrim(p ->> 'holderAddress'),
-            nullif(btrim(p ->> 'holderTelephone'), ''), v_host.id,
+            v_host.id,
             nullif(btrim(p ->> 'technicalAgreement'), ''), site.india_instant(p, 'validFrom', true), site.india_instant(p, 'validUntil', false),
             (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid, (v_ctx ->> 'correlation_id')::uuid)
     returning id into v_id;
+    if nullif(btrim(p ->> 'holderTelephone'), '') is not null then
+      insert into site.licence_holder_telephone (licence_id, telephone) values (v_id, btrim(p ->> 'holderTelephone'));
+    end if;
   exception
     when unique_violation then
       raise exception using errcode = 'P0001', message = format('EBMR-IND-007 licence number %s is recorded already', btrim(p ->> 'licenceNumber'));
@@ -107,7 +119,7 @@ begin
       'products', (select coalesce(jsonb_agg(jsonb_build_object('product_code', p.product_code, 'strength', p.strength)
                                              order by p.product_code collate "C", p.strength collate "C"), '[]'::jsonb)
                      from site.licence_product p where p.licence_id = l.id))
-               || case when l.holder_telephone is null then '{}'::jsonb else jsonb_build_object('holder_telephone', l.holder_telephone) end,
+               || coalesce((select jsonb_build_object('holder_telephone', t.telephone) from site.licence_holder_telephone t where t.licence_id = l.id), '{}'::jsonb),
     'state', site.licence_state(l.id),
     'scope', jsonb_build_object('site', l.site_code),
     'entered_by', jsonb_build_array(l.recorded_by_person));
@@ -131,7 +143,7 @@ begin
    order by l.valid_from desc, l.recorded_at desc, l.id limit 1;
   if ln.id is not null then
     select * into h from site.manufacturing_licence where id = ln.host_licence_id;
-    return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', h.holder_telephone,
+    return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', (select t.telephone from site.licence_holder_telephone t where t.licence_id = h.id),
                               'loanLicenceId', ln.id, 'loanLicenceNumber', ln.licence_number, 'loanForm', ln.form, 'loanHolderName', ln.holder_name,
                               'loanHolderAddress', ln.holder_address, 'technicalAgreement', ln.technical_agreement_ref);
   end if;
@@ -142,7 +154,7 @@ begin
   if h.id is null then
     return null;
   end if;
-  return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', h.holder_telephone);
+  return jsonb_build_object('licenceId', h.id, 'licenceNumber', h.licence_number, 'form', h.form, 'holderName', h.holder_name, 'holderAddress', h.holder_address, 'holderTelephone', (select t.telephone from site.licence_holder_telephone t where t.licence_id = h.id));
 end
 $$;
 

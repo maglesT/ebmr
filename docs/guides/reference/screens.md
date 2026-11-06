@@ -7,7 +7,7 @@ home-screen tile that opens it (and the installations that show the tile: GMP, t
 An address part written `$name` stands for a value, such as a batch or a run. A screen shows what the signed-in role
 may see; the server refuses anything else and says why.
 
-In all: 154 screens, 83 home tiles.
+In all: 155 screens, 83 home tiles.
 
 ## access
 
