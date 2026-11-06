@@ -111,6 +111,7 @@ const LATER_READ_ROUTES = [
   'features/records/index.ts#closeBulk',
   'features/records/index.ts#setBrightStockHold',
   'features/release/index.ts#acknowledge',
+  'features/release/index.ts#prepareCoa',
   'features/release/index.ts#qpMessage',
   'features/review/index.ts#openItem',
   'features/review/index.ts#recordAbortChecklist',

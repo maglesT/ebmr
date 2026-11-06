@@ -2,7 +2,8 @@
 --
 -- Handbook: modules/tablets-server.md
 --
---   * tab.aggregate_read_class: CREATE OR REPLACE from its latest definition (1802) with substance_coa (RECORD), so a
+--   * tab.aggregate_read_class: CREATE OR REPLACE from its latest definition (1802) with substance_coa and the licence
+--     holder's telephone history (site-services 1733; RECORD, as the licence itself), so a
 --     reader holding RECORD.READ previews the CoA and the authorised person who signs it (RELEASE.MANUFACTURER and
 --     RECORD.READ) reads its content (editions/substance/sql 5002). Nothing else changes; a later migration that
 --     re-creates the function starts from this definition.
@@ -57,7 +58,7 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
                                         -- block definition (QA signs it, so QA reads it)
                                         'library_block',
                                         -- API plan A3 (substance 5002; AS-17): the quality unit's certificate of analysis of a released API lot
-                                        'substance_coa')
+                                        'substance_coa', 'licence_holder_telephone')
               then 'RECORD' else 'GOVERNANCE' end
 $$;
 

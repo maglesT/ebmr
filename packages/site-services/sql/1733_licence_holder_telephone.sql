@@ -8,7 +8,7 @@
 --   site.licence_holder_telephone   insert-only telephone entries of a licence (free text: digits, spaces and + ( ) -, up
 --                                 to 40 characters), each with who recorded it and when (from the trusted session); the
 --                                 latest entry is the licence's telephone, earlier ones stay as its history (lead, 6 Nov).
---                                 Audited under the licence's aggregate, immutable.
+--                                 Audited in its own chain per licence (aggregate licence_holder_telephone), immutable.
 --   site.licence_telephone(id)    the licence's current telephone (latest entry), or null.
 --   site.record_licence_holder_telephone(licence, telephone)   records a new telephone for a licence of the actor's site
 --                                 (LICENCE.RECORD); it supersedes the earlier one.
@@ -34,7 +34,9 @@ create index licence_holder_telephone_latest on site.licence_holder_telephone (l
 revoke all on site.licence_holder_telephone from public;
 revoke all on site.licence_holder_telephone from ebmr_app;
 grant select on site.licence_holder_telephone to ebmr_app;
-select kernel.register_audited_table('site.licence_holder_telephone', 'manufacturing_licence', 'licence_id', true);
+-- Its own aggregate type (chain licence_holder_telephone:<licence id>), not the licence's: a true copy lists every table of
+-- its aggregate, so a table added to manufacturing_licence would change the true copy of every licence recorded before.
+select kernel.register_audited_table('site.licence_holder_telephone', 'licence_holder_telephone', 'licence_id', true);
 create trigger zz_immutable before update or delete on site.licence_holder_telephone for each row execute function site.india_record_immutable();
 
 create function site.licence_telephone(p_licence uuid) returns text
