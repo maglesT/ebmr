@@ -15,7 +15,8 @@ export interface Queryable {
   query(text: string, values?: unknown[]): Promise<{ rows: unknown[] }>;
 }
 
-export type Edition = 'TABLETS' | 'INJECTABLES';
+/** The register's edition codes (kernel.edition_codes(); API plan A1a added SUBSTANCE). */
+export type Edition = 'TABLETS' | 'INJECTABLES' | 'SUBSTANCE';
 export type BatchKind = 'PROCESSING' | 'PACKAGING';
 
 export interface BatchNumberRuleInput {
