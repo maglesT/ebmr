@@ -178,14 +178,13 @@ const PLANT_PRODUCT_EXAMPLE = { code: 'PCM-500', name: 'Paracetamol tablets 500 
 /** API plan A3 (AS-17): the CoA of a released API lot (substance 5002). */
 const COA_DOCUMENT_EXAMPLE = {
   kind: 'CERTIFICATE_OF_ANALYSIS' as const,
-  manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789', licenceNumber: 'MFG/25/0042', siteCode: 'SITE-1' },
-  product: { code: 'API-DEMO', name: 'Demosubstance', strength: '500 mg', grade: 'In-house monograph' },
-  lot: { lotId: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70', lotCode: 'A2600001-P01', batchNumber: 'A2600001/P01', quantity: '60', unit: 'kg' },
+  manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789' },
+  product: { name: 'Demosubstance', grade: 'In-house monograph' },
+  lot: { lotId: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70', lotCode: 'A2600001-P01', batchNumber: 'A2600001/P01' },
   releasedAt: '2026-11-05T09:30:00.000000Z',
   retestAt: null,
   expiresAt: '2029-10-31T18:30:00.000000Z',
-  specification: { specificationId: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81', version: 1, title: 'API specification', monographReference: 'In-house monograph' },
-  tests: [{ testCode: 'ASSAY', methodReference: 'STP-AS-01', pharmacopoeia: 'IN_HOUSE', edition: 'STP-2026-1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6', resultId: 'f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b92', purpose: 'RELEASE' }],
+  tests: [{ testCode: 'ASSAY', methodReference: 'STP-AS-01', pharmacopoeia: 'IN_HOUSE', edition: 'STP-2026-1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6', resultId: 'f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b92' }],
 };
 const COA_EXAMPLE = { lotId: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70', current: COA_DOCUMENT_EXAMPLE, problems: [], gaps: [], coas: [] };
 const COA_PREPARED_EXAMPLE = {

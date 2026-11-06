@@ -472,20 +472,21 @@ export const CoaTestView = z.strictObject({
   upperLimit: z.string().nullable(),
   result: z.string(),
   resultId: Uuid,
-  purpose: z.string(),
 });
 export type CoaTestView = z.infer<typeof CoaTestView>;
 
 export const CoaDocumentView = z.strictObject({
   kind: z.literal('CERTIFICATE_OF_ANALYSIS'),
-  manufacturer: z.strictObject({ name: z.string().nullable(), address: z.string().nullable(), telephone: z.string().nullable(), licenceNumber: z.string().nullable(), siteCode: z.string() }),
-  product: z.strictObject({ code: z.string(), name: z.string(), strength: z.string(), grade: z.string().nullable() }),
-  lot: z.strictObject({ lotId: Uuid, lotCode: z.string(), batchNumber: z.string(), quantity: z.string(), unit: z.string() }),
+  /** SM Part XII 11.3.4; ICH Q7 11.43. */
+  manufacturer: z.strictObject({ name: z.string().nullable(), address: z.string().nullable(), telephone: z.string().nullable() }),
+  /** SM Part XII 11.3.2; ICH Q7 11.41: the name with its grade. */
+  product: z.strictObject({ name: z.string(), grade: z.string().nullable() }),
+  /** SM Part XII 11.3.2; ICH Q7 11.41: the batch (lot) number. */
+  lot: z.strictObject({ lotId: Uuid, lotCode: z.string(), batchNumber: z.string() }),
   /** UTC instants as the database writes them (recipe.utc_text). */
   releasedAt: z.string().nullable(),
   retestAt: z.string().nullable(),
   expiresAt: z.string(),
-  specification: z.strictObject({ specificationId: Uuid, version: z.number().int(), title: z.string(), monographReference: z.string() }).nullable(),
   tests: z.array(CoaTestView),
 });
 export type CoaDocumentView = z.infer<typeof CoaDocumentView>;

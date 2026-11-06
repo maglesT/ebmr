@@ -310,11 +310,14 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(view.gaps).toEqual([]);
     expect(view.current).toMatchObject({
       kind: 'CERTIFICATE_OF_ANALYSIS',
-      manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789', licenceNumber: `MFG/A3/${TAG}`, siteCode: SITE },
-      product: { code: PRODUCT.code, strength: PRODUCT.strength, grade: 'In-house monograph' },
-      lot: { lotId, batchNumber: order.batchNumber, quantity: '60', unit: 'kg' },
-      tests: [{ testCode: 'ASSAY', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6', purpose: 'RELEASE' }],
+      manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789' },
+      product: { name: expect.any(String), grade: 'In-house monograph' },
+      lot: { lotId, batchNumber: order.batchNumber },
+      tests: [{ testCode: 'ASSAY', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }],
     });
+    // Only what SM Part XII 11.3 (ICH Q7 11.41 to 11.43) names (lead audit of #145).
+    expect(Object.keys(view.current ?? {}).sort()).toEqual(['expiresAt', 'kind', 'lot', 'manufacturer', 'product', 'releasedAt', 'retestAt', 'tests']);
+    expect(Object.keys(view.current?.manufacturer ?? {}).sort()).toEqual(['address', 'name', 'telephone']);
     expect(view.current?.releasedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(view.current?.expiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(view.coas).toEqual([]);

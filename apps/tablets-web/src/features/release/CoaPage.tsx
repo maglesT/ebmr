@@ -31,11 +31,10 @@ function CoaDocument({ d }: { d: CoaDocumentView }) {
         <Row label="Manufacturer" value={d.manufacturer.name ?? 'not on record'} />
         <Row label="Address" value={d.manufacturer.address ?? 'not on record'} />
         <Row label="Telephone" value={d.manufacturer.telephone ?? 'not on record'} />
-        <Row label="Product" value={`${d.product.name} (${d.product.code})`} />
+        <Row label="Product" value={d.product.name} />
         <Row label="Grade" value={d.product.grade ?? 'none'} />
         <Row label="Lot" value={d.lot.lotCode} />
         <Row label="Batch" value={d.lot.batchNumber} />
-        <Row label="Quantity" value={`${d.lot.quantity} ${d.lot.unit}`} />
         <Row label="Release date" value={dateOf(d.releasedAt)} />
         <Row label="Retest date" value={dateOf(d.retestAt)} />
         <Row label="Expiry date" value={dateOf(d.expiresAt)} />

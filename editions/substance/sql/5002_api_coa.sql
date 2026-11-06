@@ -123,7 +123,7 @@ begin
       v_tests := v_tests || jsonb_build_array(jsonb_build_object(
         'testCode', t.test_code, 'methodReference', t.method_reference, 'pharmacopoeia', t.pharmacopoeia, 'edition', t.edition,
         'unit', t.unit, 'lowerLimit', t.lower_limit::text, 'upperLimit', t.upper_limit::text,
-        'result', r.result_value::text, 'resultId', r.id, 'purpose', r.purpose));
+        'result', r.result_value::text, 'resultId', r.id));
     end loop;
     if jsonb_array_length(v_tests) = 0 then
       v_probs := v_probs || format('lot %s has no approved result of a test of its specification', l.lot_code);
@@ -144,18 +144,21 @@ begin
     'gaps', case when v_lic ->> 'holderTelephone' is null
                  then jsonb_build_array('the manufacturer''s telephone (the manufacturing licence names none)')
                  else '[]'::jsonb end,
+    -- Each member is what SM Part XII 11.3 (ICH Q7 11.41 to 11.43) names, nothing more (lead audit of #145):
     'document', jsonb_build_object(
       'kind', 'CERTIFICATE_OF_ANALYSIS',
-      'manufacturer', jsonb_build_object('name', v_lic ->> 'holderName', 'address', v_lic ->> 'holderAddress', 'telephone', v_lic ->> 'holderTelephone',
-                                         'licenceNumber', v_lic ->> 'licenceNumber', 'siteCode', l.site_code),
-      'product', jsonb_build_object('code', f.product_code, 'name', l.material_name, 'strength', f.strength, 'grade', s.monograph_reference),
-      'lot', jsonb_build_object('lotId', l.id, 'lotCode', l.lot_code, 'batchNumber', f.batch_number,
-                                'quantity', trim_scale(l.received_quantity)::text, 'unit', l.unit),
+      -- SM Part XII 11.3.4; Q7 11.43: the original manufacturer's name, address and telephone.
+      'manufacturer', jsonb_build_object('name', v_lic ->> 'holderName', 'address', v_lic ->> 'holderAddress', 'telephone', v_lic ->> 'holderTelephone'),
+      -- SM Part XII 11.3.2; Q7 11.41: the name of the API, with its grade.
+      'product', jsonb_build_object('name', l.material_name, 'grade', s.monograph_reference),
+      -- SM Part XII 11.3.2; Q7 11.41: the batch (lot) number.
+      'lot', jsonb_build_object('lotId', l.id, 'lotCode', l.lot_code, 'batchNumber', f.batch_number),
+      -- SM Part XII 11.3.2; Q7 11.41: the date of release.
       'releasedAt', case when d.decision = 'RELEASED' then recipe.utc_text(d.recorded_at) end,
+      -- SM Part XII 11.3.2, 11.5.2; Q7 11.41, 11.61: the retest or expiry date.
       'retestAt', case when l.retest_at is not null then recipe.utc_text(l.retest_at) end,
       'expiresAt', recipe.utc_text(l.expires_at),
-      'specification', case when s.id is null then null else jsonb_build_object('specificationId', s.id, 'version', s.version, 'title', s.title,
-                                                                                 'monographReference', s.monograph_reference) end,
+      -- SM Part XII 11.3.3; Q7 11.42: each test performed (its method), its acceptance limits and numerical result.
       'tests', v_tests));
 end
 $$;
