@@ -50,7 +50,7 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(SEED_CATALOGUE.filter((s) => blockEdition(s.definition) === 'injectables')).toHaveLength(I1_CODES.length);
   });
 
-  it('[ST-14][ST-15][ST-17] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference', () => {
+  it('[ST-14][ST-15] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference', () => {
     const item = byCode('INJ-ROOM-READY');
     expect(fieldOf(item, 'room')).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' });
     expect(fieldOf(item, 'contact')).toMatchObject({ type: 'TIMER', limitSlot: 'contactTime', critical: true });
