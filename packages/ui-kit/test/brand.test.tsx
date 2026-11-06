@@ -46,10 +46,10 @@ describe('brand (decision 0020)', () => {
     expect([brand.PRODUCT.name, brand.PRODUCT.maker]).toEqual(['Batchwright', 'Medhanta']);
   });
 
-  it('the sign-in brand reads as the edition lockup and "by Medhanta"', () => {
-    render(<brand.SignInBrand edition="TABLETS" />);
+  it('the sign-in brand reads as "Batchwright" (no edition, decision 0020 as amended) and "by Medhanta"', () => {
+    render(<brand.SignInBrand />);
     const block = screen.getByTestId('sign-in-brand');
-    expect(within(block).getByRole('img', { name: 'Batchwright Tablets' })).toBeTruthy();
+    expect(within(block).getByRole('img', { name: 'Batchwright' })).toBeTruthy();
     expect(within(block).getByRole('img', { name: 'Medhanta' })).toBeTruthy();
     expect(within(block).getByTestId('maker-mark').textContent).toBe('by');
   });

@@ -20,6 +20,7 @@ test.describe('designer', () => {
     await signIn.office(page, author);
 
     await evidence.step('Create a family and its draft from the dc-mini template', 'The designer opens the new DRAFT, revision 1, and the server finds no errors and no warnings', async () => {
+      await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
       await page.getByRole('link', { name: /Master records/ }).click();
       await expect(page.getByRole('heading', { name: 'Master records' })).toBeVisible();
       await page.getByRole('link', { name: 'New master record (from a template or a formula)' }).click();

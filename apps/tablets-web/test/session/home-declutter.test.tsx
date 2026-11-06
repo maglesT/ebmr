@@ -7,6 +7,7 @@
  * Control: DI-17.
  */
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SessionView } from '@ebmr/api-contract';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
@@ -91,6 +92,7 @@ describe('[DI-17] only the kept screens are offered where the functions are disc
 
   it('[DI-17] the home shows no disconnected tile, not even under "Show all screens"', async () => {
     open('/', true);
+    await userEvent.click(await screen.findByRole('link', { name: 'All screens' }));
     expect(await screen.findByRole('link', { name: /Batch record review/i })).toBeTruthy();
     const all = screen.queryByTestId('home-show-all');
     if (all) all.click();

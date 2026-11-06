@@ -5,41 +5,58 @@
  * On a standalone server without the switch every screen stays as it was. Tables and records are unchanged.
  */
 import { Link, useRouterState } from '@tanstack/react-router';
+import { DISCONNECTED_NAMESPACES } from '@ebmr/api-contract';
 import { useDisconnectedServer, usePlatformBuild } from './boot.tsx';
 
-/** Screen paths off the platform (each covers its sub-paths), by the plan's tile table and the owner's decisions. */
-export const DISCONNECTED_PATHS: readonly string[] = [
+/**
+ * The screens of each namespace the contract disconnects (packages/api-contract/src/disconnected.ts, plan section 3's one
+ * list): the paths whose screens read that namespace. The keys must be exactly the contract's (a [DI-17] test checks), so
+ * a namespace disconnected there is mapped here or the test fails. A namespace with no screen maps to none.
+ */
+export const NAMESPACE_SCREENS: Readonly<Record<string, readonly string[]>> = {
+  capa: ['/capa'],
+  incidents: ['/incidents'],
+  pqr: ['/pqr'],
+  recall: ['/recall'],
+  genealogy: ['/genealogy'],
+  config: ['/config'], // change records, history, review-by-exception rules
+  notifications: ['/notifications'],
+  qpPackage: ['/qp'], // QP batch packages (owner)
+  serialisation: ['/serialisation'],
+  controlled: ['/controlled'],
+  federation: [],
+  support: ['/governance'], // vendor support, digital signature certificates, contract givers
+  contractGiver: ['/contract-giver'],
+  plantRules: ['/plant-rules', '/rooms', '/reagent-lots'], // the penicillin and beta-lactam check at issue stays
+  equipmentData: ['/equipment-records', '/trends'],
+  equipmentDisplays: ['/status-board'],
+  validation: ['/validation'],
+  training: ['/training'],
+  dashboards: ['/dashboards'],
+  changeImpact: ['/change-impact'],
+  analytics: ['/analytics'],
+  analyticsConfig: [],
+  analyticsAudit: [],
+  analyticsReview: [],
+  analyticsSpc: [],
+  analyticsMspc: [],
+  analyticsProfile: [],
+};
+
+/**
+ * Screens off the platform that only leave the home: their functions stay connected for the screens that keep them (the
+ * batch's alarm log on the step and review screens, the values in force), or they are later work with no namespace of
+ * their own in the contract's list.
+ */
+export const WEB_ONLY_OFF_PATHS: readonly string[] = [
   '/mbr/specimens', // labelling specimens: later
-  '/qp', // QP batch packages: later (owner)
   '/release/suspended', // suspension and recall: QMS
-  '/notifications', // later
-  '/pqr', // QMS
   '/archive', // archive and the inspection workspace: later
-  '/capa', // QMS
-  '/incidents', // QMS
-  '/serialisation', // later
-  '/config', // change records, history, review-by-exception rules: QMS or later
-  '/governance', // vendor support, digital signature certificates, contract givers: later
-  '/contract-giver', // later
-  '/integrations', // later
-  '/controlled', // later
   '/alarms', // plant alarms (the batch's alarm log stays on the step and review screens): later
-  '/status-board', // Logbook
   '/area-authorisations', // later
-  '/trends', // analytics
-  '/rooms', // Logbook
-  '/reagent-lots', // MMS
-  '/equipment-records', // Logbook
-  '/genealogy', // QMS (complaints)
-  '/recall', // QMS
+  '/integrations', // later (integration health)
   '/transfers', // later
-  '/dashboards', // analytics
-  '/change-impact', // analytics
-  '/training', // Qual
-  '/analytics', // analytics
-  '/plant-rules', // penicillin and beta-lactam rules screen: later (owner); the check at issue stays
   '/developer/api', // later (still served for integrators)
-  '/validation', // Qual or later
   '/market/policies', // later; the values stay in force
   '/qp-register', // later
   '/compendial-rule-sets', // later
@@ -47,6 +64,13 @@ export const DISCONNECTED_PATHS: readonly string[] = [
   '/india/product-rules', // shelf-life bases and hazard classes: later (licences and the batch-number register stay)
   '/admin/qualifications', // Qual
   '/admin/us-esig-certification', // core
+  '/quality/deviations', // Deviations (slice D4): full deviation records; kept screens show the reference as text
+];
+
+/** Screen paths off the platform (each covers its sub-paths): the contract's namespaces' screens and the web-only ones. */
+export const DISCONNECTED_PATHS: readonly string[] = [
+  ...DISCONNECTED_NAMESPACES.flatMap((ns) => NAMESPACE_SCREENS[ns] ?? []),
+  ...WEB_ONLY_OFF_PATHS,
 ];
 
 /** People, accounts and grants: kept by the platform's core (they answer 410 MANAGED_IN_PLATFORM there). */

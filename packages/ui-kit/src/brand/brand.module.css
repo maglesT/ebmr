@@ -43,3 +43,14 @@
   margin-bottom: 16px;
   border-bottom: 3px solid var(--ebmr-brand-red-orange);
 }
+.signInName {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.signInIcon {
+  display: block;
+}

@@ -296,6 +296,33 @@ describe('value entry (G-04) and the pendingEntry path', () => {
 });
 
 describe('what the step card shows', () => {
+  it('[DI-28][DI-34] the step is one form page: each value is a row with its unit and limits, the page has one primary button (the step action at the bottom, after the signatures) and a refusal shows inside the row of its field', async () => {
+    const intercept = (r: Recorded): Answer | undefined =>
+      r.path === commandPath ? { status: 422, body: envelope('NOT_ALLOWED', 'ENG-VALUE-REFUSED', { whatHappened: 'The value was refused.', why: 'Late entry needs a reason.' }) } : undefined;
+    // Values still open and the performer's signature offered: Save buttons and the Sign action on the same page.
+    const signable = stepVariant('step-g04-parameters', (v) => {
+      Object.assign(v, structuredClone(g04Recording));
+      v.actions = v.actions.map((a) => (a.action === 'SIGN_PERFORMED' ? { ...a, available: true, primary: true, reason: null } : { ...a, primary: false }));
+    });
+    renderFloor(stepPath('p-blend@'), { fixtures: stepFixtures(signable), intercept });
+    const card = await screen.findByTestId('step-card');
+    const form = card.querySelector('[data-form-page]');
+    expect(form).not.toBeNull();
+    const field = await within(card).findByTestId('field-blendTime');
+    expect(form?.contains(field)).toBe(true);
+    expect(within(field).getByRole('textbox', { name: 'Blend time' })).toBeTruthy();
+    expect(within(field).getAllByText('min').length).toBeGreaterThan(0);
+    expect(within(field).getByRole('region', { name: 'Limits' })).toBeTruthy();
+    const primaries = Array.from(card.querySelectorAll('[data-variant="primary"]'));
+    expect(primaries).toHaveLength(1);
+    expect(primaries[0]?.getAttribute('data-testid')).toBe('primary-action');
+    expect(within(field).getByRole('button', { name: 'Save Blend time' }).getAttribute('data-variant')).toBe('secondary');
+    const bar = within(card).getByTestId('action-bar');
+    expect(form?.lastElementChild).toBe(bar);
+    await typeAndSave('15');
+    expect(await within(field).findByText('The value was refused.')).toBeTruthy();
+  });
+
   it('[INV-25] computed items have no input: yield (G-20), dispensed total (G-07) and blend output (G-22) are shown, never typed', async () => {
     for (const [key, item] of [
       ['p-disp-recon@', 'dispRecon'],

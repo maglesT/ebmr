@@ -116,8 +116,90 @@
 .about dd {
   margin: 0;
 }
-/* The home screen's "Show all screens" switch: a full-size target on a kiosk (slice 7h, F1). */
+/* Declutter D3: the home's one text link to the screen list, and that list (plain links, a full-size target each). */
+.allScreens {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ebmr-target-min);
+  font-weight: 600;
+}
+.screenList {
+  list-style: none;
+  margin: 0 0 var(--ebmr-gap) 0;
+  padding: 0;
+}
+.screenList li {
+  border-bottom: 1px solid var(--ebmr-border);
+}
+.screenList a,
+.screenList span {
+  display: flex;
+  align-items: center;
+  min-height: var(--ebmr-target-min);
+}
+/* The screen list's "Show all screens" switch: a full-size target on a kiosk (slice 7h, F1). */
 .showAll {
   min-height: var(--ebmr-target-min);
   min-width: var(--ebmr-target-min);
+}
+/* Declutter D3: the home's work cards, a title and a large count, 4 across on wide screens and 2 on narrow ones. */
+.workCards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ebmr-gap);
+  margin: 0 0 24px 0;
+}
+@media (max-width: 760px) {
+  .workCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.workCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 2px solid var(--ebmr-border);
+  border-radius: var(--ebmr-radius);
+  color: inherit;
+  text-decoration: none;
+  min-height: var(--ebmr-target-min);
+}
+.workCard:hover {
+  border-color: var(--ebmr-info-border);
+}
+.workTitle {
+  font-weight: 700;
+}
+.workCount {
+  font-family: var(--ebmr-value-font);
+  font-size: 2.4em;
+  font-weight: 800;
+  line-height: 1;
+}
+/* The list a work card opens: one linked row a line, each at least the kiosk target size. */
+.workList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.workRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  align-items: center;
+  min-height: var(--ebmr-target-min);
+  padding: 8px 12px;
+  border: 1px solid var(--ebmr-border);
+  border-radius: var(--ebmr-radius);
+  color: inherit;
+  text-decoration: none;
+}
+.workRow:hover {
+  border-color: var(--ebmr-info-border);
+}
+.workRow > span:last-child {
+  margin-left: auto;
 }

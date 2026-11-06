@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { SessionView } from '@ebmr/api-contract';
 
@@ -51,28 +52,33 @@ function serve(device: SessionView['device'], session: unknown) {
     ),
   );
   render(
-    <BootProvider>
-      <Gate />
-    </BootProvider>,
+    // Declutter D3: the home's work cards read through TanStack Query.
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <BootProvider>
+        <Gate />
+      </BootProvider>
+    </QueryClientProvider>,
   );
 }
 
 function expectSignInBrand() {
   const block = screen.getByTestId('sign-in-brand');
-  expect(within(block).getByRole('img', { name: 'Batchwright Tablets' })).toBeTruthy();
+  // Declutter D3 (decision 0020 as amended): the sign-in page says just "Batchwright"; the header names the edition.
+  expect(within(block).getByRole('img', { name: 'Batchwright' })).toBeTruthy();
+  expect(within(block).queryByRole('img', { name: 'Batchwright Tablets' })).toBeNull();
   const maker = within(block).getByTestId('maker-mark');
   expect(within(maker).getByRole('img', { name: 'Medhanta' }).getAttribute('src')).toMatch(/medhanta-logo-278x148/);
   expect(maker.textContent).toBe('by');
 }
 
 describe('branding (decision 0020)', () => {
-  it('the office sign-in shows the Batchwright Tablets lockup and "by Medhanta" with the Medhanta logo', async () => {
+  it('the office sign-in shows the Batchwright name and "by Medhanta" with the Medhanta logo', async () => {
     serve(office.device, noSession);
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
     expectSignInBrand();
   });
 
-  it('the kiosk sign-in shows the same lockup and maker above the badge prompt', async () => {
+  it('the kiosk sign-in shows the same name and maker above the badge prompt', async () => {
     serve(kiosk.device, noSession);
     expect(await screen.findByLabelText('Badge')).toBeTruthy();
     expectSignInBrand();
@@ -103,18 +109,18 @@ describe('the page title, icons and web app manifest', () => {
     return [b.readUInt32BE(16), b.readUInt32BE(20)];
   };
 
-  it('the title is "Batchwright Tablets" and the tab icon is the Batchwright icon (decision 0020)', () => {
-    expect(/<title>([^<]*)<\/title>/.exec(html)?.[1]).toBe('Batchwright Tablets');
+  it('the title is "Batchwright" and the tab icon is the Batchwright icon (decision 0020 as amended)', () => {
+    expect(/<title>([^<]*)<\/title>/.exec(html)?.[1]).toBe('Batchwright');
     expect(html).toContain('<link rel="icon" href="/favicon.svg" type="image/svg+xml" />');
     expect(readFileSync(`${root}/public/favicon.svg`, 'utf8')).toBe(readFileSync(`${root}/../../docs/brand/batchwright-icon.svg`, 'utf8'));
     expect(png('/icon-32.png')).toEqual([32, 32]);
     expect(png('/apple-touch-icon.png')).toEqual([180, 180]);
   });
 
-  it('the manifest names Batchwright Tablets and lists icons of the sizes an installed app needs, each file of its stated size', () => {
+  it('the manifest names Batchwright and lists icons of the sizes an installed app needs, each file of its stated size', () => {
     expect(html).toContain('<link rel="manifest" href="/manifest.webmanifest" />');
     const manifest = JSON.parse(readFileSync(`${root}/public/manifest.webmanifest`, 'utf8')) as { name: string; short_name: string; icons: { src: string; sizes: string; type: string }[] };
-    expect([manifest.name, manifest.short_name]).toEqual(['Batchwright Tablets', 'Batchwright']);
+    expect([manifest.name, manifest.short_name]).toEqual(['Batchwright', 'Batchwright']);
     const sizes = manifest.icons.filter((i) => i.type === 'image/png').map((i) => [i.sizes, png(i.src).join('x')]);
     expect(sizes).toEqual([
       ['192x192', '192x192'],

@@ -190,36 +190,41 @@ function ManualFieldEntry({ field, view, fallback = false }: { field: FieldView;
   const stillNeeded = offered && value === null ? (unfinished ? st('form.stillNeededUnfinished', { name: field.name }) : st('form.stillNeeded', { names: field.name })) : null;
 
   return (
+    // Declutter D3: one row of the form page. With an input, the input's own label is the row's label (the heading stays
+    // for screen readers); the notes, the Save of the value (not the page's primary action), its status and the values
+    // recorded follow under the input, so a refusal shows next to its field.
     <section className={wcls('formCard')} aria-label={field.name} data-testid={`field-${field.item}`}>
-      <h3 className={wcls('formTitle')}>{field.name}</h3>
-      {record.available && fallback ? (
-        <p className={wcls('muted')} data-testid={`manual-fallback-${field.item}`}>
-          {st(field.capture === 'AUTOMATION' ? 'field.automationFallback' : 'field.manualFallback')}
-        </p>
-      ) : null}
-      {record.available && field.capture === 'SCAN' ? (
-        <p className={wcls('muted')} data-testid={`scan-as-hand-entry-${field.item}`}>
-          {st('field.scanIsHandEntry')}
-        </p>
-      ) : null}
+      <h3 className={offered ? wcls('fieldName') : wcls('formTitle')}>{field.name}</h3>
       {input}
-      {stillNeeded ? (
-        <p className={wcls('muted')} data-testid="still-needed">
-          {stillNeeded}
-        </p>
-      ) : null}
-      {record.available && field.valueType !== 'INSTANT' ? (
-        <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!value || locked}>
-          {st('save.field', { name: field.name })}
-        </Button>
-      ) : !record.available ? (
-        <p className={wcls('muted')}>
-          {st('field.cannotRecord')}
-          {record.reason ? ` ${record.reason}` : ''}
-        </p>
-      ) : null}
-      <EntryStatus call={cmd} />
-      <floor.AttemptList label={`${st('field.recorded')}: ${field.name}`} attempts={field.attempts} />
+      <div className={wcls('fieldAfter')}>
+        {record.available && fallback ? (
+          <p className={wcls('muted')} data-testid={`manual-fallback-${field.item}`}>
+            {st(field.capture === 'AUTOMATION' ? 'field.automationFallback' : 'field.manualFallback')}
+          </p>
+        ) : null}
+        {record.available && field.capture === 'SCAN' ? (
+          <p className={wcls('muted')} data-testid={`scan-as-hand-entry-${field.item}`}>
+            {st('field.scanIsHandEntry')}
+          </p>
+        ) : null}
+        {stillNeeded ? (
+          <p className={wcls('muted')} data-testid="still-needed">
+            {stillNeeded}
+          </p>
+        ) : null}
+        {record.available && field.valueType !== 'INSTANT' ? (
+          <Button className={wcls('saveButton')} onPress={save} isDisabled={!value || locked}>
+            {st('save.field', { name: field.name })}
+          </Button>
+        ) : !record.available ? (
+          <p className={wcls('muted')}>
+            {st('field.cannotRecord')}
+            {record.reason ? ` ${record.reason}` : ''}
+          </p>
+        ) : null}
+        <EntryStatus call={cmd} />
+        <floor.AttemptList label={`${st('field.recorded')}: ${field.name}`} attempts={field.attempts} />
+      </div>
     </section>
   );
 }
@@ -675,18 +680,22 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
               <floor.NumericEntry label={st('manual.gross')} name="manual-gross" unit={manual.unit} value={state.texts['__manual.gross'] ?? ''} onChange={(v) => set('texts', '__manual.gross', v)} isDisabled={locked} />
             </>
           ) : null}
-          {problem ? <p role="alert">{problem}</p> : null}
-          {!problem && pending.length > 0 ? (
-            <p className={wcls('muted')} data-testid="still-needed">
-              {st('form.stillNeeded', { names: pending.join(', ') })}
-            </p>
-          ) : null}
-          <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || netProblem !== null || pairProblem !== null || locked}>
-            {st('save.form', { title: form.title })}
-          </Button>
+          <div className={wcls('fieldAfter')}>
+            {problem ? <p role="alert">{problem}</p> : null}
+            {!problem && pending.length > 0 ? (
+              <p className={wcls('muted')} data-testid="still-needed">
+                {st('form.stillNeeded', { names: pending.join(', ') })}
+              </p>
+            ) : null}
+            <Button className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || netProblem !== null || pairProblem !== null || locked}>
+              {st('save.form', { title: form.title })}
+            </Button>
+          </div>
         </>
       )}
-      <EntryStatus call={cmd} />
+      <div className={wcls('fieldAfter')}>
+        <EntryStatus call={cmd} />
+      </div>
     </section>
   );
 }

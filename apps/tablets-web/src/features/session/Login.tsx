@@ -22,7 +22,6 @@ import { Banner, brand, Button, Field, identity, t, takeSecret, wasFilled } from
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
-import { EDITION } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { sessionEndNotice, setSessionEndNotice } from '../../app/session-end-notice.ts';
@@ -331,7 +330,7 @@ export function OfficeLogin() {
 
   return (
     <div className={cls('center')}>
-      <brand.SignInBrand edition={EDITION} />
+      <brand.SignInBrand />
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
         {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode}
@@ -403,7 +402,7 @@ export function PlatformLogin() {
   }, [back, boot]);
   return (
     <div className={cls('center')}>
-      <brand.SignInBrand edition={EDITION} />
+      <brand.SignInBrand />
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
         {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode}
@@ -462,7 +461,7 @@ export function KioskLogin() {
 
   return (
     <div className={cls('center')}>
-      <brand.SignInBrand edition={EDITION} />
+      <brand.SignInBrand />
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
         {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode} · room {boot.device?.roomCode ?? '?'}

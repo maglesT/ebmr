@@ -21,6 +21,7 @@ export async function registerTestLots(pages: SandboxPages, lots: readonly { lot
   const steward = pages.persona('SANDBOX', 'steward');
   const page = await pages.officePage('SANDBOX', 'TEST-PC-01');
   await signIn.office(page, steward);
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await page.getByRole('link', { name: /^Test lots/ }).click();
   await expect(page.getByRole('heading', { name: 'Test lots', level: 1 })).toBeVisible();
   const form = page.getByRole('form', { name: 'Register a test lot' });
@@ -64,6 +65,7 @@ export async function runSkeletonTestBatch(
 
   const office = await pages.officePage('SANDBOX', 'TEST-PC-01');
   await signIn.office(office, issuer);
+  await office.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await office.getByRole('link', { name: /^Test-run packages/ }).click();
   const item = office.getByTestId(`package-${packageHash}`);
   await expect(item).toContainText('Exported from GMP');

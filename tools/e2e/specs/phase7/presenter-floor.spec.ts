@@ -43,6 +43,7 @@ const flow: { orderNo?: string; batchNumber?: string } = {};
 async function tile(page: Page, title: string): Promise<void> {
   await page.getByTestId('home-link').click();
   await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await page.getByRole('link', { name: new RegExp(`^${title}`) }).first().click();
 }
 

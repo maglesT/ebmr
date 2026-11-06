@@ -8,3 +8,4 @@ export { Banner, type BannerProps } from './Banner.tsx';
 export { Cell, Column, Row, Table, TableBody, TableHeader } from './Table.tsx';
 export { WatermarkBand, WatermarkOverlay, type WatermarkProps } from './Watermark.tsx';
 export { Layout, type LayoutProps } from './Layout.tsx';
+export { FormPage, type FormPageProps } from './FormPage.tsx';

@@ -191,3 +191,42 @@
   width: 100%;
   margin: 0 auto;
 }
+
+/* Form page (declutter D3): one row per field, label | input and unit | description, limits and error inline. */
+.formPage {
+  --ebmr-form-label: 10em;
+}
+.formPage .unitRow > .input {
+  flex: 0 1 9em;
+  width: 9em;
+  min-width: 0;
+}
+.formPage .field {
+  display: grid;
+  grid-template-columns: var(--ebmr-form-label) minmax(0, 1fr);
+  column-gap: 16px;
+  row-gap: 4px;
+  align-items: center;
+  margin: 0;
+  padding: 8px 0;
+}
+.formPage .field > .label {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  align-self: start;
+  padding-top: 0.55em;
+}
+.formPage .field > :not(.label) {
+  grid-column: 2;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .formPage .field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .formPage .field > .label,
+  .formPage .field > :not(.label) {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}

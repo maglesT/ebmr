@@ -16,6 +16,7 @@ test.describe('audit trail viewer', () => {
     await signIn.office(page, author);
 
     await evidence.step('Open the audit trail from the home screen', 'The chain list shows the entry\'s chain', async () => {
+      await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
       await page.getByRole('link', { name: /Audit trail/ }).click();
       await expect(page.getByRole('heading', { name: 'Audit trail' })).toBeVisible();
       await page.getByLabel('Chain key begins with').fill('esig_stub:');

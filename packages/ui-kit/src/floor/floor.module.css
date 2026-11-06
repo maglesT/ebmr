@@ -39,6 +39,44 @@
   flex: 1 1 280px;
   min-width: 240px;
 }
+/* On the form page (declutter D3) the value is one row of the form: no box, the limits beside the input, the
+   glove keypad under the input column. */
+[data-form-page] .numeric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 17em);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  gap: 4px 24px;
+}
+[data-form-page] .numericInput,
+[data-form-page] .numericSide {
+  min-width: 0;
+}
+[data-form-page] .numericSide {
+  padding-top: 8px;
+  font-size: 0.9em;
+}
+[data-form-page] .numericSide .sectionTitle {
+  margin: 0 0 4px 0;
+}
+[data-form-page] .limitSource {
+  font-size: 0.8em;
+}
+@media (max-width: 900px) {
+  [data-form-page] .numeric {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+[data-form-page] .numericInput > .keypad {
+  margin-left: calc(var(--ebmr-form-label) + 16px);
+}
+@media (max-width: 640px) {
+  [data-form-page] .numericInput > .keypad {
+    margin-left: 0;
+  }
+}
 .target {
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -75,6 +113,38 @@
 }
 .limitTier {
   font-weight: 700;
+}
+/* Declutter D3: the limits on one line, the sources under "Details". */
+.limitBlock {
+  margin: 0;
+}
+.limitLine {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.limitItem {
+  white-space: nowrap;
+}
+.limitItem[data-tier='REGISTERED'] .limitTier,
+.limitItem[data-tier='VALIDATED'] .limitTier {
+  color: var(--ebmr-error-fg);
+}
+.limitItem[data-tier='INTERNAL_ACTION'] .limitTier {
+  color: var(--ebmr-warning-fg);
+}
+.limitDetails {
+  margin-top: 2px;
+}
+.limitDetails > summary {
+  cursor: pointer;
+  color: var(--ebmr-info-fg);
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.limitDetails .limitSource {
+  padding: 2px 0;
 }
 .limitBounds {
   font-variant-numeric: tabular-nums;
@@ -228,6 +298,16 @@
 .more {
   min-height: calc(var(--ebmr-primary-bar) - 16px);
   min-width: 9em;
+}
+/* Declutter D3: "More …" reads as a plain text link beside the one primary button (still a full-size target). */
+.actionBar .more {
+  min-width: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ebmr-info-fg);
+  text-decoration: underline;
+  font-weight: 600;
+  padding: 0 0.5em;
 }
 .menuPopover {
   background: var(--ebmr-background);

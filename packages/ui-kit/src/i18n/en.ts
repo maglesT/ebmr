@@ -3,7 +3,7 @@
  * keys become i18next resources. Plain words, as the outline's message style asks.
  */
 export const EN = {
-  'app.name': 'Batchwright Tablets',
+  'app.name': 'Batchwright',
   'app.product': 'Batchwright',
   'app.edition': 'Tablets',
   'app.maker': 'Medhanta',

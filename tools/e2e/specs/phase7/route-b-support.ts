@@ -11,6 +11,7 @@ import { expect } from '../../fixtures/index.ts';
 export async function tile(page: Page, title: string | RegExp): Promise<void> {
   await page.getByTestId('home-link').first().click();
   await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   const name = typeof title === 'string' ? new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) : title;
   const link = page.getByRole('main').getByRole('link', { name }).first();
   if ((await link.count()) === 0) {
@@ -21,17 +22,17 @@ export async function tile(page: Page, title: string | RegExp): Promise<void> {
 }
 
 /** Planning (open production orders). */
-export const planning = (page: Page): Promise<void> => tile(page, /^Planning Open production orders/);
+export const planning = (page: Page): Promise<void> => tile(page, /^Planning$/);
 
 /** The batch list of the site. */
-export const batches = (page: Page): Promise<void> => tile(page, /^Batches GMP batches/);
+export const batches = (page: Page): Promise<void> => tile(page, /^Batches$/);
 
 /** The packaging order list. */
 export const packagingOrders = (page: Page): Promise<void> => tile(page, /^Packaging orders/);
 
 /** A material lot's page: Quality, Material lots, the lot. */
 export async function lotPage(page: Page, lotCode: string): Promise<void> {
-  await tile(page, /^Quality Deviations/);
+  await tile(page, /^Quality$/);
   await page.getByRole('link', { name: 'Material lots', exact: true }).click();
   await page.getByTestId(`lot-${lotCode}`).getByRole('link').first().click();
 }

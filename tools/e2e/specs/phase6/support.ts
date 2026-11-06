@@ -290,6 +290,7 @@ export async function lotState(c: pg.PoolClient, lotId: string): Promise<void> {
  * every browser of the E2E stack): the flows load a page once per terminal and navigate inside the app after.
  */
 export async function openTile(page: Page, title: string): Promise<void> {
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) }).click();
   await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('What do you want to do?');
 }

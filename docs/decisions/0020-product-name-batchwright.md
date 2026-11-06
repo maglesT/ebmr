@@ -93,3 +93,10 @@ GMP record.
 Learnova, Medhanta's learning platform, can be offered as the training system that the eBMR's learning-system
 adapter (slice 6a) reads before a step signature. A dedicated Learnova adapter is a possible later item, once its
 interface is known.
+
+## Amendment, 5 November 2026 (owner, through the lead; declutter slice D3)
+
+The sign-in page, the browser title, the product list and the manifest's name say just "Batchwright". The screen header
+names the edition of the record on screen: "Batchwright Tablets" in the Tablets web app (and Capsules, Injectables or API
+in theirs, by the edition mechanism of the capsules slice C2 once it is shared). The edition lockups stay available in the
+kit. Point 3 is unchanged: GMP records, true copies, labels, reports and certificates never carry the vendor's name.

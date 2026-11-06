@@ -60,14 +60,28 @@ describe('NumericEntry and Keypad', () => {
   it('[DI-28] shows the limit tiers with their sources but no verdict: the check appears only after the value is saved', async () => {
     render(<NumericHarness onValue={() => undefined} />);
     await userEvent.type(screen.getByRole('textbox', { name: 'Blend time' }), '21');
-    expect(screen.getByText('Registered limit')).toBeTruthy();
-    expect(screen.getByText('10 to 20 min')).toBeTruthy();
+    // Declutter D3: one line per limit kind ("Registered 10–20 min · Action …"); the sources under "Details".
+    expect(screen.getByText('Registered')).toBeTruthy();
+    expect(screen.getByText('10–20 min')).toBeTruthy();
+    expect(screen.getByText('Details')).toBeTruthy();
     // Each tier names its source document as the server does (dc-mini: the registration and the blending SOP).
     expect(screen.getAllByText(/REG-PCM500 v1/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/SOP-BLEND-002 v1/).length).toBeGreaterThan(0);
     expect(screen.getByText('The limit check appears after the value is saved.')).toBeTruthy();
     expect(screen.queryByText(/Limit check:/)).toBeNull();
     expect(screen.queryByText(/outside|above|below/i)).toBeNull();
+  });
+
+  it('one keypad at a time: the first numeric entry shows it until another takes the focus (declutter D3)', async () => {
+    render(
+      <>
+        <floor.NumericEntry label="Tare" unit="kg" value="" onChange={() => undefined} />
+        <floor.NumericEntry label="Gross" unit="kg" value="" onChange={() => undefined} />
+      </>,
+    );
+    expect(screen.getAllByRole('group', { name: /^Number keypad for/ }).map((g) => g.getAttribute('aria-label'))).toEqual(['Number keypad for Tare']);
+    await userEvent.click(screen.getByRole('textbox', { name: 'Gross' }));
+    expect(screen.getAllByRole('group', { name: /^Number keypad for/ }).map((g) => g.getAttribute('aria-label'))).toEqual(['Number keypad for Gross']);
   });
 
   it('a whole-number entry has no decimal point key, and the keypad cannot type an exponent', async () => {

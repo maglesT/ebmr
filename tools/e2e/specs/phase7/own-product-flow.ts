@@ -111,6 +111,7 @@ export async function home(page: Page, tile: RegExp): Promise<void> {
   const homeLink = page.getByRole('banner').getByRole('link', { name: 'Home', exact: true });
   if ((await homeLink.count()) > 0) await homeLink.click();
   else await load(page, new URL(page.url()).origin + '/');
+  await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
   await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: tile }).click();
 }
 

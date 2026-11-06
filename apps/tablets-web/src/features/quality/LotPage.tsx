@@ -131,7 +131,7 @@ export function LotPage() {
 function ResultRow({ lotId, lotCode, result: r, qc }: { lotId: string; lotCode: string; result: LotResultView; qc: boolean }) {
   const signed = useSignedAct(LOT_READS);
   const reread = useRefresh(DEVIATION_READS);
-  const [oos, setOos] = useState<{ ref: string } | CallErr | null>(null);
+  const [oos, setOos] = useState<{ ref: string; deviationId: string } | CallErr | null>(null);
   const raiseOos = async () => {
     const raised = await api.call(routes.quality.raiseDeviation, {
       body: { kind: 'OOS', title: `OOS ${r.testCode} on lot ${lotCode}`, classification: 'MAJOR', riskRationale: `Result ${r.value} ${r.unit} of ${r.testCode} is outside its limits.` },
@@ -141,7 +141,7 @@ function ResultRow({ lotId, lotCode, result: r, qc }: { lotId: string; lotCode: 
     // Phase 7 slice 7g (WP4; IN-20): an approved failing result names its OOS record (the database checks both).
     const named = linked.ok && r.state === 'APPROVED' ? await api.call(routes.quality.linkLotTestOos, { params: { resultId: r.resultId }, body: { deviationId: raised.value.deviationId } }) : null;
     await reread();
-    setOos(!linked.ok ? linked.error : named && !named.ok ? named.error : { ref: raised.value.ref });
+    setOos(!linked.ok ? linked.error : named && !named.ok ? named.error : { ref: raised.value.ref, deviationId: raised.value.deviationId });
   };
   const limits = [r.lowerLimit ? `from ${r.lowerLimit}` : '', r.upperLimit ? `to ${r.upperLimit}` : ''].filter(Boolean).join(' ');
   // Slice 7p: a profile's result is named with its time point.
@@ -155,7 +155,15 @@ function ResultRow({ lotId, lotCode, result: r, qc }: { lotId: string; lotCode: 
         <ActButton label={`Approve ${name}`} onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'LOT_RESULT_APPROVE', subjectId: r.resultId, input: {} }, `Approve result ${name} ${r.value} ${r.unit} (${r.verdict}) of lot ${lotCode}`)} disabled={signed.busy} />
       ) : null}
       {qc && r.verdict === 'FAIL' ? <ActButton primary={false} label={`Raise an OOS record for ${name}`} onPress={raiseOos} disabled={oos !== null && 'ref' in oos} /> : null}
-      {oos && 'ref' in oos ? <p>OOS record {oos.ref} raised and linked to the lot.</p> : oos ? <RefusalMessage error={oos} /> : null}
+      {oos && 'ref' in oos ? (
+        <p>
+          OOS record{' '}
+          <Link to="/quality/lots/$lotId/oos/$deviationId" params={{ lotId, deviationId: oos.deviationId }}>
+            {oos.ref}
+          </Link>{' '}
+          raised and linked to the lot.
+        </p>
+      ) : oos ? <RefusalMessage error={oos} /> : null}
       <ActResult error={signed.error} outcome={signed.outcome} />
     </>
   );

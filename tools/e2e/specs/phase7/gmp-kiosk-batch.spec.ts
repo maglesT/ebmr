@@ -710,6 +710,7 @@ async function packagingRun(page: Page, e2e: E2eWorld, s: FlowState, op: SeededP
     // not by an address; the button is found by its role and name (the aria-hidden report of the trials) and the screen
     // passes the accessibility check.
     await page.getByTestId('home-link').click();
+    await page.getByTestId('home-all-screens').click(); // declutter D3: the screens are listed under the home's "All screens"
     await page.getByRole('link', { name: /^Shop floor/ }).first().click();
     await page.getByRole('link', { name: `Open run ${s.orderNumber ?? ''}`, exact: true }).click();
     await page.getByTestId('packaging-links').getByRole('link', { name: 'Line completion (coding, labels, post-use inspection)' }).click();
