@@ -121,6 +121,7 @@ tests:
   - "packages/kernel/test/market/evaluations.test.ts > [INV-29][IN-52] value, governing market, predicate branch, rule-table version, inputs and their hash are stored"
   - "packages/kernel/test/market/impact.test.ts > [IN-52] a tightened IPC interval lists every MBR whose pinned interval is looser, due by the effective date"
   - "packages/kernel/test/market/impact.test.ts > [IN-52] impact items are insert-only records of the version and the application role cannot write them"
+  - "packages/kernel/test/market/in52.test.ts > IN-52 catalog test: {IN} and {IN, US, EU} batches of a tablet and an injectable > [IN-52] API plan A1a (kernel 1404): a substance (API) scope fails closed: a tablets or sterile key is refused, a kernel key resolves"
   - "packages/kernel/test/market/in52.test.ts > [IN-52] EQUIPMENT and ROOM scopes do the same"
   - "packages/kernel/test/market/in52.test.ts > [IN-52] a LINE takes the union of the markets of every product qualified on it"
   - "packages/kernel/test/market/in52.test.ts > [IN-52] a MATERIAL_LOT is resolved per consuming batch, and not without one"
