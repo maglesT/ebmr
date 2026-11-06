@@ -44,7 +44,10 @@ import type { Frame } from '../../src/flow/tokens.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { fixtureMbr } from '../blocks/support.ts';
 import { mbrWith, phase, type FixtureName } from '../flow/support.ts';
-import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, OP2, PACKAGING_SCENARIO, Run, sig, SUP1, T0 } from '../engine/support.ts';
+import { libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
+import { SEED_CATALOGUE } from '../../src/library/seed/index.ts';
+import { expr } from '../flow/support.ts';
+import { autopilot, define, done, testRegistry, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, OP2, PACKAGING_SCENARIO, Run, sig, SUP1, T0 } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -1907,6 +1910,42 @@ describe('F12 round 7: a row records the engine command of its type with exactly
       'an accepted row records no refusal',
       null,
     ]);
+  }, 120_000);
+
+  it('[DI-05][DI-30][DI-34] a refused library step entry is recorded with the library\'s own refusal (LIB-..., sql 1874): an entry a library block refuses on a GMP batch keeps its reason, and every code and control the library\'s sources name meets the rule (Capsules C3 finding: before, the writer answered EBMR-EXE-126)', async () => {
+    const problems = async (cases: readonly unknown[]): Promise<(string | null)[]> => {
+      const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+        'select coalesce(array_agg(recipe.refusal_problem(false, x.c) order by x.i), \'{}\') as p from jsonb_array_elements($1::jsonb) with ordinality x (c, i)',
+        [JSON.stringify(cases)],
+      );
+      return rows[0]?.p ?? [];
+    };
+    // A library step refuses an entry that leaves a required field empty; the engine's refusal keeps the block's code.
+    const item = SEED_CATALOGUE.find((x) => x.definition.code === 'PROC-DRY-MIX');
+    if (!item) throw new Error('SETUP: no PROC-DRY-MIX in the catalogue');
+    const def = item.definition;
+    const p = phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: item.exampleUse as never });
+    const run = Run.issue(define(mbrWith({ kind: 'sequence', id: 'ops', children: [p, phase('after')] }), { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }));
+    run.start('p');
+    const r = run.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'p', context: [], entry: { kind: 'mix' } });
+    if (r.accepted || !r.refusal) throw new Error('SETUP: the empty library entry was not refused');
+    const refusal = JSON.parse(JSON.stringify(r.refusal)) as Json;
+    expect(String(refusal['code'])).toMatch(/^LIB-/);
+    expect(await problems([refusal])).toEqual([null]);
+    // Every code and control the library's sources name.
+    const dir = new URL('../../src/library/', import.meta.url).pathname;
+    const codes = new Set<string>();
+    const controls = new Set<string>();
+    for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts'))) {
+      const text = readFileSync(join(dir, f), 'utf8');
+      for (const m of text.matchAll(/problem\(\s*'(LIB-[A-Z0-9-]+)'/g)) if (m[1]) codes.add(m[1]);
+      for (const m of text.matchAll(/problem\(\s*'LIB-[A-Z0-9-]+'[^;]*?,\s*\[([^\]]*)\]\s*\)/g)) for (const q of (m[1] ?? '').matchAll(/'([^']+)'/g)) if (q[1]) controls.add(q[1]);
+    }
+    expect(codes.size).toBeGreaterThan(10);
+    const got = await problems([...[...codes].map((code) => ({ code, message: 'm', controls: ['DI-34'] })), ...[...controls].map((c) => ({ code: 'LIB-X', message: 'm', controls: [c] }))]);
+    expect([...[...codes].map((c) => `code ${c}`), ...[...controls].map((c) => `control ${c}`)].filter((_, i) => got[i] !== null)).toEqual([]);
+    // A code of another prefix is still refused.
+    expect(await problems([{ ...refusal, code: 'LIBX-1' }, { ...refusal, code: 'L2409-0017' }])).toEqual(['refusal.code has an invalid format', 'refusal.code has an invalid format']);
   }, 120_000);
 
   it('[DI-05][DI-10][DI-34] a batch is issued only with a request its MBR accepts, as the engine checks it at issue: the requests of both golden fixtures pass; a batch size, market, variant, variant choice or input the MBR does not hold, an input left out, given without its source or as another type, are refused', async () => {

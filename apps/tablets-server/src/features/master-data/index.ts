@@ -6,7 +6,7 @@
  * database serves a composition only to a reader whose role holds FORMULA.READ (DI-13).
  */
 import { routes, type FormulaSummaryView, type FormulaTargetView, type FormulaVersionView, type SignableAction } from '@ebmr/api-contract';
-import { formula } from '@ebmr/recipe-core';
+import { flow, formula } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
@@ -59,6 +59,27 @@ export async function productNames(db: Pick<pg.Pool, 'query'>): Promise<Map<stri
        from site.erp_product p order by p.product_code, p.strength, p.received_at desc, p.id desc`,
   );
   return new Map(rows.map((r) => [r.k, { name: r.name, dosageForm: r.dosage }]));
+}
+
+/**
+ * The dosage form a formula's product states (Capsules C6b, recipe-core 1875): core's product master on the platform
+ * build, the site's product master otherwise. Read through the caller's own formula read; when the database refuses
+ * that read (a role without the right), null, and the command that follows keeps its own access check, so the caller is
+ * refused as before (the reviewed route matrix, DI-17). Any other error is thrown.
+ */
+async function statedDosageForm(app: AppContext, db: Pick<pg.Pool, 'query'>, tokenHash: string, formulaId: string): Promise<string | null> {
+  let read: formula.FormulaRead[];
+  try {
+    read = await readFor(db as pg.Pool, tokenHash, formulaId);
+  } catch (e) {
+    const err = e as { code?: string; message?: string };
+    if (err.code === 'P0001' && /EBMR-[A-Z]+-[0-9]+/.test(err.message ?? '')) return null;
+    throw e;
+  }
+  const f = read[0];
+  if (!f) return null;
+  if (app.platform.master) return (await app.platform.master.read('product', { code: f.productCode }))?.dosageForm ?? null;
+  return (await productNames(db)).get(`${f.productCode}|${f.strength}`)?.dosageForm ?? null;
 }
 
 /** The targets of formula versions (recipe-core 1535), by version id. */
@@ -135,8 +156,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     addFormulaVersion: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
       const s = requireSession();
+      // Capsules C6b (recipe-core 1875): the unit form from the product's dosage form, as the designer reads it (core's on
+      // the platform build, the product master's otherwise); a capsule may give its shell's excipients per batch.
+      const stated = await statedDosageForm(app, pool, s.tokenHash, params.formulaId);
+      const unitForm = flow.isCapsuleForm(stated) ? ({ unitForm: 'CAPSULE' } as const) : {};
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        const id = await formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput) });
+        const id = await formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput), ...unitForm });
         // Slice 7j (recipe-core 1535): the target with the composition, in the same transaction.
         if (body.target) await formula.setFormulaTarget(c, id, body.target);
         return id;

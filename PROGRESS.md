@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 1 November 2026 (decision 0026: dynamic library; slices S0 and S1).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 5 November 2026 (Capsules C3).
 
 ## What this is
 
@@ -105,8 +105,11 @@ P3-demo seeds, so a per-group map needs a full E2E proof run.
 
 Plan `docs/build-plan/api/plan.md` (approved 4 November), platform fit `platform-fit.md` (confirmed). A0 merged
 (#111, 5 November): one edition list `kernel.editions()` (kernel 1403, site-services 1731, recipe-core 1872), the
-`substance` edition value, `editions/substance/sql` (migrations 5000-5999). Next: A1a, then A1b; resume from
-`docs/build-plan/api/handover-a0.md`.
+`substance` edition value, `editions/substance/sql` (migrations 5000-5999). A1a (5 November): the shared enablement
+(recipe-core 1873 lets a library block complete a packaging record; kernel 1404 market guard fails closed for an API
+scope; substance 5000 the API-PACK completion row and the API G-REL hook; H-PACK in the blank API master; lot reservations take the batch's edition; SUBSTANCE in the edition enums) and a route-level test of
+one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and the E2E acceptance); resume from
+`docs/build-plan/api/handover-a0.md` (section "A1a done").
 
 ## Next
 
@@ -141,7 +144,7 @@ requirement of 21 CFR 211, EU GMP Part I and Schedule M counts. **C1 merged (#10
 load takes the capsule blocks (R3-CAT-4 lifted); PROC-CAPS-FILL records the filling principle and size 5; a master from a
 formula accepts a dosage form that says "capsule" (worded per capsule); any other non-tablet form, a bare "Softgel"
 included, is refused with a hint (one rule everywhere, lead). The E2E approval helper waits for the button or APPROVED.
-**C2 (branch `caps/c2`, PR #109):** one rule for the unit form (`flow.readDosageForm`); the platform master reader takes
+**C2 merged (#109, 5bdcab3, 5 November):** one rule for the unit form (`flow.readDosageForm`); the platform master reader takes
 `dosage_form` from core's report.product_v1 (fake master has the column; a product core does not hold is refused as no
 product master); the header reads "Batchwright Capsules" on a capsule master or batch (decision 0020 amended; ui-kit
 `brand.Edition` gains `CAPSULES`, display only; `RunHeaderView.dosageForm`, lead OK); per-unit wording (formula screens,
@@ -149,7 +152,28 @@ product master); the header reads "Batchwright Capsules" on a capsule master or 
 per unit on a capsule is the empty shells, a BOM line of role OTHER, not dispensed into the blend, lot-named and consumed
 at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating (`flow.formulaRoleLabel`,
 `bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
-group `library-caps`. Next: C3 (post-fill and packing).
+group `library-caps` (green to a released lot). Also on main: the E2E race fix (three container helpers wait for the stored
+typed net before the verifier opens the containers page; it ended the "Verify the net" timeouts).
+**C3 to C7 merged (5 November):** C3 post-fill and packing (#124); C4 multiparticulates, C5 liquid and plate filling, C6
+soft gels I (#137, combining #127, #129, #130, #132); C6b the soft-gel E2E to a released packed lot, recipe-core 1875
+(#138); C7 soft gels II (#139): SG-ENCAP-SEAMLESS, chewable and enteric as data, IPC-CAPS-DT's disintegration or rupture
+CHOICE. Decisions D-C3-1 to D-C7-3 in the plan, section 8; shared test helpers (incl. `catalogueMaster`) in
+`test/library/seed-support.ts`.
+**Resume here: C8, the exit** (full suites, the browser suite, golden batches unchanged, one review pass; the "units"
+data-only versions of TB-20, TB-23 and COAT-ENTERIC only if a capsule master uses them), branch `caps/c8` from main.
+Lead's rules:
+- Declutter: no new home tiles, menus or screens; build only on the kept core path (packaging, label issuance and
+  reconciliation are kept). Never call the namespaces in `packages/api-contract/src/disconnected.ts` (D1, #116; 410 on
+  the platform build). C3 checked the acceptance helpers (change control, equipment logbook): none is disconnected;
+  check any new helper C4 adds against
+  that list.
+- Full chain to a released, packed lot in every E2E (EBMR-REL-010); `library-caps` already does it; extend it rather
+  than add a group where the plan allows.
+- A coat on capsules (enteric, C3/C7) is a per-batch COATING line; never a second per-unit one (refused).
+- A library STEP_VALUE input is resolved at runtime (#117 is on main); no capsule block needs one (D-C6-6).
+- Declutter D3 drops SignInBrand's edition prop (sign-in says just "Batchwright"); the header keeps naming the edition of
+  the record on screen through C2's `useScreenDosageForm`. Never pass an edition to SignInBrand.
+- Container restarts leave the local PostgreSQL clusters stopped: `sudo pg_ctlcluster 16 main start` (and ci, ci2, ci3).
 
 **Phase B (MEDHANTA platform move), started 3 November 2026.** Plan approved by the lead (decisions 1-6):
 `docs/build-plan/phase-b/platform-move-plan.md`, with `permission-list.md` and the owner note `owner-note-access.md`.

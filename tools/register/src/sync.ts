@@ -22,6 +22,17 @@ export function compareEntries(a: string, b: string): number {
 }
 
 /** The index of the first entry of a tests list that sorts before the one above it, or -1 when the list is sorted. */
+/** The index of the first entry a tests list already holds earlier, or -1 (a test is listed once). */
+export function firstDuplicate(tests: readonly string[]): number {
+  const seen = new Set<string>();
+  for (let i = 0; i < tests.length; i++) {
+    const t = tests[i] ?? '';
+    if (seen.has(t)) return i;
+    seen.add(t);
+  }
+  return -1;
+}
+
 export function firstUnsorted(tests: readonly string[]): number {
   for (let i = 1; i < tests.length; i++) if (compareEntries(tests[i - 1] ?? '', tests[i] ?? '') > 0) return i;
   return -1;

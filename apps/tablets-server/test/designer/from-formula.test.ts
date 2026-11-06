@@ -29,6 +29,7 @@ const SOLUTION_PRODUCT = 'DMT7JS';
 const SOFTGEL_PRODUCT = 'DMT7JG';
 /** C2: a hard capsule whose formula holds its empty shells (a COATING line per unit). */
 const SHELLED_PRODUCT = 'DMT7JH';
+const GEL_MASS_PRODUCT = 'DMT7JM';
 const TWO_COAT_PRODUCT = 'DMT7JK';
 const REASON = 'In-house development product';
 const PRODUCT = { code: 'DMT7JF', name: 'Demotab 400 mg', strength: '400 mg' };
@@ -71,6 +72,7 @@ beforeAll(async () => {
   valueOf(await steward.call(md.enterProduct, { body: { productCode: CAPSULE_PRODUCT, strength: PRODUCT.strength, productName: 'A capsule', dosageForm: 'Hard capsule', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   valueOf(await steward.call(md.enterProduct, { body: { productCode: TWO_COAT_PRODUCT, strength: PRODUCT.strength, productName: 'A capsule with two per-unit coats', dosageForm: 'Hard gelatin capsule', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   valueOf(await steward.call(md.enterProduct, { body: { productCode: SHELLED_PRODUCT, strength: PRODUCT.strength, productName: 'A shelled capsule', dosageForm: 'Hard gelatin capsule', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  valueOf(await steward.call(md.enterProduct, { body: { productCode: GEL_MASS_PRODUCT, strength: PRODUCT.strength, productName: 'A soft gel', dosageForm: 'Soft gelatin capsule', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   valueOf(await steward.call(md.enterProduct, { body: { productCode: SOFTGEL_PRODUCT, strength: PRODUCT.strength, productName: 'A soft gel', dosageForm: 'Softgel', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   valueOf(await steward.call(md.enterProduct, { body: { productCode: SOLUTION_PRODUCT, strength: PRODUCT.strength, productName: 'An oral solution', dosageForm: 'Oral solution', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
   // An ERP product (no dosage form: the ERP stub does not carry one) for review P7J-2.
@@ -288,6 +290,19 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(rows[0]?.edition).toBe('substance');
   });
 
+  it('[PR-01][PR-37][INV-27] API plan A1a: an API processing master starts blank with QA\'s release for packing (H-PACK) in a last stage of its own, after which the author adds the synthesis stages; it is pinned to its formula', async () => {
+    const API = { code: 'DMT7JB', name: 'Demosubstance B', strength: PRODUCT.strength };
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: API.code, strength: API.strength, productName: API.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    const apiFormula = await approvedFormula('100000', undefined, LINES, API.code);
+    type Node = { kind: string; id: string; body?: { children: Node[] } };
+    const proc = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JB-BL', product: API, markets: ['IN'], formulaVersionId: apiFormula, edition: 'substance', start: 'BLANK' } }));
+    const children = (proc.content as unknown as { procedure: { body: { children: Node[] } } }).procedure.body.children;
+    expect(children.map((n) => n.id)).toEqual(['S-DISP', 'S-RELEASE']);
+    expect(children[1]?.body?.children.map((n) => [n.kind, n.id])).toEqual([['holdPoint', 'H-PACK']]);
+    expect((await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [proc.versionId])).rowCount).toBe(1);
+  });
+
   it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));
@@ -306,6 +321,22 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(g.code).toBe('DESIGNER_PRODUCT_MASTER');
     expect(g.why).toContain('Soft gelatin capsule');
   });
+
+  it('[PR-03][INV-25] Capsules C6b: a soft gel\'s per-batch excipients (its gel mass: gelatin, glycerin) are taken from the formula as excipients and dispensed as "Gel mass components"; a tablet\'s per-batch processing aids keep their name (recipe-core 1875)', async () => {
+    const gel: FormulaLineInput = { lineId: 'gel', materialCode: 'RM-7JF-IPA', role: 'EXCIPIENT', basis: 'PER_BATCH', quantity: '15', potencyAdjusted: false, compensating: false };
+    const lines = [...LINES.filter((l) => l.basis === 'PER_UNIT'), gel];
+    const f = await approvedFormula('120001', undefined, lines, GEL_MASS_PRODUCT);
+    const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JM-SK', product: { code: GEL_MASS_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: f, start: 'SKELETON' } }));
+    const c = v.content as unknown as { bom: { id: string; role: string }[]; calculations: { id: string; name: string }[] };
+    expect(c.bom.find((b) => b.id === 'BOM-GEL')?.role).toBe('EXCIPIENT');
+    expect(c.calculations.find((x) => x.id === 'aidTarget')?.name).toBe('Gel mass components to dispense (per batch, scaled to the batch size)');
+    // A tablet's per-batch line is still a processing aid, by name and role.
+    const t = await approvedFormula('120002');
+    const tv = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JM-TB', product: { code: PRODUCT.code, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: t, start: 'SKELETON' } }));
+    const tc = tv.content as unknown as { bom: { id: string; role: string }[]; calculations: { id: string; name: string }[] };
+    expect(tc.calculations.find((x) => x.id === 'aidTarget')?.name).toBe('Processing aids to dispense (per batch, scaled to the batch size)');
+    expect(tc.bom.find((b) => b.id === 'BOM-IPA')?.role).toBe('PROCESSING_AID');
+  }, 180_000);
 
   it('[PR-03][INV-25][PR-18] Capsules edition C2: a capsule\'s empty shells (its formula\'s COATING line per unit) are a bill-of-materials line of role OTHER in the unit and batch mass, not dispensed into the blend; the input reads in capsules; until a step consumes the shells line the validator names it', async () => {
     const lines: FormulaLineInput[] = [...LINES, { lineId: 'shl', materialCode: 'RM-7JF-SHL', role: 'COATING', basis: 'PER_UNIT', quantity: '96', potencyAdjusted: false, compensating: false }];

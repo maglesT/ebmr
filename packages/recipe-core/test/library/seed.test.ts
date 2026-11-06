@@ -5,23 +5,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { LimitSpec } from '../../src/limits/model.ts';
-import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
-import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
+import { SEED_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
+import { API_PACK, SUBSTANCE_SEEDS } from '../../src/library/seed/substance.ts';
 import { expr } from '../flow/support.ts';
-import { nominalRun } from './seed-support.ts';
-
-function byCode(code: string): SeedItem {
-  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
-  if (!item) throw new Error(`no catalogue item ${code}`);
-  return item;
-}
-
-function fieldOf(item: SeedItem, id: string): FieldDef {
-  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
-  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
-  return f;
-}
+import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
 
 describe('the ready-made catalogue', () => {
   it('[PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)', () => {
@@ -95,6 +83,63 @@ describe('the ready-made catalogue', () => {
     expect(fill.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
   });
 
+  it('[PR-03][PR-18][IN-37][PR-29][PR-14] liquid fill preparation records the fill type, the critical mixing temperature and time, the deaeration vacuum, the viscosity against limits, not critical (its hold is the master\'s PROC-HOLD step); liquid and plate filling record the shell lot as its bill-of-materials line and the fill weight of each round as a critical value with limits, liquid filling the fill-line connection and the fill temperature; each signed by an operator and a verifier (Capsules edition plan, C5)', () => {
+    const prep = byCode('PROC-FILL-PREP');
+    expect(fieldOf(prep, 'fillType')).toMatchObject({ type: 'CHOICE', options: ['Oil solution', 'Suspension', 'Emulsion', 'SMEDDS', 'Paste', 'Thermosoftening'] });
+    expect(fieldOf(prep, 'mixTemp')).toMatchObject({ type: 'NUMBER', unit: 'Cel', limitSlot: 'mixTemp', critical: true });
+    expect(fieldOf(prep, 'mixing')).toMatchObject({ type: 'TIMER', limitSlot: 'mixTime', critical: true });
+    expect(fieldOf(prep, 'vacuum')).toMatchObject({ type: 'NUMBER', limitSlot: 'vacuum' });
+    expect(fieldOf(prep, 'viscosity')).toMatchObject({ type: 'NUMBER', limitSlot: 'viscosity' });
+    expect(fieldOf(prep, 'viscosity')).not.toHaveProperty('critical');
+    expect(fieldOf(prep, 'container')).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
+    const liquid = byCode('PROC-CAPS-FILL-LIQUID');
+    expect(fieldOf(liquid, 'fillIn')).toMatchObject({ type: 'CONTAINER', action: 'CONSUME' });
+    expect(fieldOf(liquid, 'linesConnected')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(liquid, 'fillTemp')).toMatchObject({ type: 'NUMBER', limitSlot: 'fillTemp' });
+    expect(fieldOf(liquid, 'fillTemp')).not.toHaveProperty('critical');
+    expect(fieldOf(liquid, 'noLeakers')).toMatchObject({ type: 'YES_NO', expected: true });
+    const plate = byCode('PROC-CAPS-FILL-PLATE');
+    expect(fieldOf(plate, 'blendIn')).toMatchObject({ type: 'CONTAINER', action: 'CONSUME' });
+    expect(fieldOf(plate, 'locked')).toMatchObject({ type: 'YES_NO', expected: true });
+    for (const filler of [liquid, plate]) {
+      expect(fieldOf(filler, 'capsuleSize')).toMatchObject({ type: 'CHOICE', options: ['000', '00', '0', '1', '2', '3', '4', '5'] });
+      expect(fieldOf(filler, 'shellLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'shellLine' });
+      expect(filler.exampleUse.bomLines).toEqual({ shellLine: 'L1' });
+      expect(fieldOf(filler, 'fillWeight')).toMatchObject({ type: 'NUMBER', unit: 'mg', limitSlot: 'fillWeight', critical: true });
+      expect(filler.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    }
+    for (const item of [prep, liquid, plate]) {
+      expect(item.definition.signatures.map((x) => [x.meaning, x.role])).toEqual([['PERFORMED', 'PRODUCTION_OPERATOR'], ['VERIFIED', 'PRODUCTION_VERIFIER']]);
+    }
+    expect(SEED_GROUPS['capsule fill']?.map((s) => s.definition.code)).toEqual(['PROC-FILL-PREP', 'PROC-CAPS-FILL-LIQUID', 'PROC-CAPS-FILL-PLATE']);
+  });
+
+  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are recorded against limits (not critical); inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a band-solution temperature against limits (not critical; a breach still raises an exception) and a band check each round; a leaker fails the seal check', () => {
+    const cw = byCode('PROC-CAPS-CHECKWEIGH');
+    expect([fieldOf(cw, 'rejectLow'), fieldOf(cw, 'rejectHigh')]).toEqual([expect.objectContaining({ limitSlot: 'rejectLow' }), expect.objectContaining({ limitSlot: 'rejectHigh' })]);
+    for (const id of ['rejectLow', 'rejectHigh']) expect(fieldOf(cw, id), id).not.toHaveProperty('critical');
+    const inspect = byCode('PROC-CAPS-INSPECT');
+    expect(fieldOf(inspect, 'defectsRemoved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(inspect.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const print = byCode('PROC-CAPS-PRINT');
+    expect(fieldOf(print, 'segregated')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(print, 'inkApproved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(print.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'checkInterval' });
+    expect(fieldOf(print, 'heldForQc')).toMatchObject({ type: 'YES_NO', expected: true });
+    const band = byCode('PROC-CAPS-BAND');
+    expect(fieldOf(band, 'technology')).toMatchObject({ type: 'CHOICE', options: ['Gelatin band', 'HPMC band', 'Liquid fusion sealing'] });
+    expect(fieldOf(band, 'solutionTemp')).toMatchObject({ limitSlot: 'solutionTemp' });
+    expect(fieldOf(band, 'solutionTemp')).not.toHaveProperty('critical');
+    // Not critical, still judged: a band solution outside its limits raises the out-of-limit exception (21 CFR 211.192).
+    expect(judgedRun(band, { setup: { solutionTemp: '90.0' } }).exceptions).toContain('LIB_LIMIT_BREACH');
+    expect(band.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    const leak = byCode('IPC-CAPS-SEAL-LEAK');
+    expect(fieldOf(leak, 'leakers')).toMatchObject({ type: 'NUMBER', limitSlot: 'leakers', critical: true });
+    expect(nominalRun(leak)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // One leaker is outside the registered limit of none: the step raises an exception and cannot complete with it open.
+    expect(judgedRun(leak, { test: { leakers: '1' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
+  });
+
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {
     const codes = SEED_CATALOGUE.map((s) => s.definition.code);
     expect(new Set(codes).size).toBe(codes.length);
@@ -122,6 +167,20 @@ describe('the ready-made catalogue', () => {
         }
       }
     }
+  });
+
+  it('[PR-03][DI-34][PR-37] API plan A1a: the API pack block (drums or bags) is a substance block, well made, its example values pass, a nominal batch completes it, its signatures are engine roles, and each drum or bag is a registered container with its net mass', () => {
+    for (const item of SUBSTANCE_SEEDS) {
+      const code = item.definition.code;
+      expect(item.definition.edition, code).toBe('substance');
+      expect(SEED_CATALOGUE.map((s) => s.definition.code), code).not.toContain(code);
+      expect(checkBlockDefinition(item.definition, expr).filter((p) => p.code !== 'LIB-REPEAT-NO-MAX'), code).toEqual([]);
+      expect(checkBlockUse(item.definition, { block: { code, version: item.definition.version }, ...item.exampleUse }, expr), code).toEqual([]);
+      expect(nominalRun(item), code).toEqual({ exceptions: [], status: 'COMPLETED' });
+      for (const sig of item.definition.signatures) expect(['PRODUCTION_OPERATOR', 'PRODUCTION_VERIFIER'], code).toContain(sig.role);
+    }
+    expect(fieldOf(API_PACK, 'container')).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
+    expect(fieldOf(API_PACK, 'netMass')).toMatchObject({ type: 'NUMBER', unit: 'kg' });
   });
 
   for (const [group, items] of Object.entries(SEED_GROUPS)) {

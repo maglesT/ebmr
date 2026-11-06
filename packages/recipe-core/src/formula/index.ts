@@ -90,7 +90,11 @@ async function one<T>(db: Db, sql: string, params: unknown[]): Promise<T> {
 export const createFormula = (db: Db, def: { productCode: string; strength: string; batchSizeUnits: string }): Promise<string> =>
   one(db, 'select recipe.formula_create($1::jsonb)::text as r', [JSON.stringify(def)]);
 
-export const addFormulaVersion = (db: Db, formulaId: string, v: { changeReason: string; lines: readonly FormulaLineInput[] }): Promise<string> =>
+/**
+ * Adds a formula version. `unitForm` is the server's reading of the product's dosage form (flow.readDosageForm), never
+ * the client's: a CAPSULE may give an excipient per batch (a soft gel's gel mass components; recipe-core 1875).
+ */
+export const addFormulaVersion = (db: Db, formulaId: string, v: { changeReason: string; lines: readonly FormulaLineInput[]; unitForm?: 'CAPSULE' }): Promise<string> =>
   one(db, 'select recipe.formula_add_version($1, $2::jsonb)::text as r', [formulaId, JSON.stringify(v)]);
 
 /** A formula version's target unit mass and further batch sizes (recipe-core 1535, slice 7j). */

@@ -12,7 +12,9 @@
  *    packing H-PACK), with their
  *    parameters, calculations (from the formula's per-unit quantities), yield checkpoints, hold time and golden cases,
  *    shaped as the dc-mini demo master's two stages; the author adds, removes and reorders stages and steps in the designer;
- *  - BLANK: the header, the bill of materials and one dispensing stage with its clearance and balance status only;
+ *  - BLANK: the header, the bill of materials and one dispensing stage with its clearance and balance status only; for an
+ *    API (substance) family also a last stage with QA's release for packing (H-PACK), the gate the packaging order of
+ *    the batch needs (recipe-core 0701), before which the author adds the synthesis stages (API plan A1a);
  *  - COPY: the procedure of an approved master with this header and bill of materials: a BOM line of the same material
  *    keeps its id, the steps lose the lines that are no longer in the bill, and the validator shows what is left to do.
  * No JavaScript number holds a quantity: every value is decimal text (Dec, exact).
@@ -163,13 +165,15 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   const groups = [
     { key: 'act', lines: actives, name: 'Actives', tol: '0.5' },
     { key: 'exc', lines: others, name: 'Other unit components', tol: '1.0' },
-    { key: 'aid', lines: aids, name: 'Processing aids', tol: '1.0' },
+    // C6b (lead): a capsule's per-batch excipients make its shell and stay in the product (a soft gel's gelatin and
+    // glycerin), so the master names them as such, not as processing aids (211.186(b)(1)).
+    { key: 'aid', lines: aids, name: unit === 'capsule' && aids.some((l) => l.role === 'EXCIPIENT') ? 'Gel mass components' : 'Processing aids', tol: '1.0' },
   ].filter((g) => g.lines.length > 0);
   const charged = groups.filter((g) => g.key !== 'aid');
 
   const calculations: flow.Calculation[] = groups.map((g) =>
     g.key === 'aid'
-      ? calc('aidTarget', 'Processing aids to dispense (per batch, scaled to the batch size)', `${sum(g.lines.map((l) => l.quantity))} [kg] * tabletsPerBatch / ${refUnits}`)
+      ? calc('aidTarget', `${g.name} to dispense (per batch, scaled to the batch size)`, `${sum(g.lines.map((l) => l.quantity))} [kg] * tabletsPerBatch / ${refUnits}`)
       : calc(`${g.key}Target`, `${g.name} to dispense (${mgText(g.lines)} mg per ${unit})`, `${mgText(g.lines)} [mg] * tabletsPerBatch`),
   );
   calculations.push(calc('dispTarget', 'Total to dispense', groups.map((g) => `${g.key}Target`).join(' + ')));
@@ -303,6 +307,9 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
     }
   });
   (t.procedure.body as flow.SequenceNode).children = [disp];
+  // API plan A1a: an API master ends with QA's release for packing (H-PACK) in a stage of its own, so the synthesis
+  // stages the author adds go before it and the packaging order of the batch can take its bulk (recipe-core 0701).
+  if (req.edition === 'substance') (t.procedure.body as flow.SequenceNode).children.push(releaseForPacking(disp));
   t.parameters = [];
   t.calculations = [];
   t.yieldCheckpoints = [];
@@ -312,6 +319,12 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
   t.riskReductions = [];
   t.references = t.references.filter((r) => r.kind === 'MATERIAL' || ['SOP-CLEAN-003', 'QRM-SCALE', 'EQC-BAL'].includes(r.id));
   return t;
+}
+
+/** API plan A1a: the last stage of an API processing master, QA's release for packing (H-PACK). */
+function releaseForPacking(like: flow.StageNode): flow.StageNode {
+  const hold = { kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] } as flow.FlowNode;
+  return { ...like, id: 'S-RELEASE', name: 'Release for packing', body: { kind: 'sequence', id: 'seq-release', children: [hold] } };
 }
 
 /** COPY (header comment): the approved master's procedure with this header and bill of materials. */

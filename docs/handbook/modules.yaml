@@ -14,6 +14,7 @@ migration_sources:
   - packages/site-services/sql
   - packages/recipe-core/sql
   - apps/tablets-server/sql
+  - editions/substance/sql
 
 # The highest migration number per source when the code map was built (14 October 2026). Migrations are immutable
 # once merged, so the older ones are linked from the code map instead. A migration numbered above this mark must name
@@ -23,6 +24,7 @@ migration_header_from:
   packages/site-services/sql: 903
   packages/recipe-core/sql: 932
   apps/tablets-server/sql: 1209
+  editions/substance/sql: 4999
 
 # Handbook pages linked from the README that are still being written. A link to one of these may point at a file that
 # does not exist yet; remove a page from this list as soon as it lands.
@@ -63,7 +65,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^03\d\d_', '^1010_', '^1403_']
+      packages/kernel/sql: ['^03\d\d_', '^1010_', '^1403_', '^1404_']
     src: [packages/kernel/src/market]
     tests: ['packages/kernel/test/market/**']
 
@@ -534,7 +536,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_', '^1750_']
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_', '^1750_', '^1873_']
     tests:
       - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
       - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'
@@ -556,7 +558,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_', '^1840_', '^1862_', '^1871_', '^1872_']
+      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_', '^1840_', '^1862_', '^1871_', '^1872_', '^1874_']
       apps/tablets-server/sql: ['^1802_', '^1803_', '^1806_']
     src: [packages/recipe-core/src/library]
     server: [apps/tablets-server/src/features/library]
@@ -579,7 +581,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'
@@ -1278,6 +1280,14 @@ modules:
     package: apps/injectables-web
     src: [apps/injectables-web/src]
     tests: ['apps/injectables-web/test/**']
+
+  - id: substance-edition
+    title: API edition (substance), its migrations, pack block completion and release items
+    page: modules/substance.md
+    package: editions/substance
+    migrations:
+      editions/substance/sql: ['^5\d\d\d_']
+    tests: ['apps/tablets-server/test/substance/**']
 
   # ---------------------------------------------------------------- tools
   - id: tools-boundaries
