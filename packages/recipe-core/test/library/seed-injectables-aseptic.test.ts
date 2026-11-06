@@ -35,10 +35,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-SUPPLIER-STERILE', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-STERILE-FILTER', 'INJ-EM'];
+const I2_CODES = ['INJ-SUPPLIER-STERILE', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 8 blocks of I-2 (INJ-03, 07, 08, 09, 10, 11, 13, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch', () => {
+  it('[PR-05][PR-03] the catalogue holds the 9 blocks of I-2 (INJ-03, 07, 08, 09, 10, 11, 13 and its PUPSIT block, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items (PUPSIT, the glove test) are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -55,6 +55,11 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
       // Time limits are the master's time constraints: no block types a date and time into a calculation.
       expect(s.definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'CALC'), code).toEqual([]);
     }
+    // Owner Q0 (lead, 6 November 2026): an item only Annex 1 asks for is its own block tagged for the EU market; the base
+    // blocks carry no tag (every market) and no PUPSIT field.
+    const tagged = INJECTABLE_ASEPTIC_CATALOGUE.filter((s) => s.definition.markets !== undefined);
+    expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({ 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'] });
+    expect(byCode('INJ-STERILE-FILTER').definition.sections.map((x) => x.id)).toEqual(['filter', 'preUse', 'filtration', 'postUse']);
   });
 
   it('[ST-40][ST-49] a supplier-sterilised component is accepted by its lot on the formula line, with its sterilisation method (no UV), certificate and dose or cycle reference; an indicator that has not changed is an exception', () => {
@@ -116,22 +121,24 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(item, { filter: { filterType: 'Different from the registered filter' } }).exceptions).toEqual(['LIB_NOT_ALLOWED_CHOICE']);
   });
 
-  it('[ST-52][IN-48] filter integrity is judged before use, after sterilisation when the formulation requires PUPSIT, and after use, by the formulation\'s method; a result outside its limit is an exception', () => {
+  it('[ST-52][IN-48] filter integrity is judged before use and after use by the formulation\'s method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception', () => {
     const item = byCode('INJ-STERILE-FILTER');
     expect(judgedRun(item, { preUse: { preBubblePoint: '3.00' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
-    expect(judgedRun(item, { pupsitTest: { pupsitBubblePoint: '3.00' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(item, { postUse: { postBubblePoint: '3.10' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     // By diffusion: the bubble-point fields are not asked, the diffusion fields are judged.
     const diffusion = {
       preUse: { preMethod: 'Diffusion', preBubblePoint: undefined, preDiffusion: '10.0' },
-      pupsitTest: { pupsit: 'Required by the formulation, diffusion', pupsitBubblePoint: undefined, pupsitDiffusion: '10.0' },
       postUse: { postMethod: 'Diffusion', postBubblePoint: undefined, postDiffusion: '12.0' },
     };
     expect(judgedRun(item, diffusion)).toEqual({ exceptions: [], status: 'COMPLETED' });
     expect(judgedRun(item, { ...diffusion, postUse: { ...diffusion.postUse, postDiffusion: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
-    // PUPSIT not required by the formulation: its section records nothing.
-    expect(fieldOf(item, 'pupsitBubblePoint').showWhen).toEqual({ field: 'pupsit', equals: 'Required by the formulation, bubble point' });
-    expect(judgedRun(item, { pupsitTest: { pupsit: 'Not required by the formulation', pupsitBubblePoint: undefined } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // PUPSIT (EU market): its own block, judged by the formulation's method in the same way.
+    const pupsit = byCode('INJ-PUPSIT');
+    expect(fieldOf(pupsit, 'pupsitBubblePoint').showWhen).toEqual({ field: 'pupsitMethod', equals: 'Bubble point' });
+    expect(judgedRun(pupsit, { pupsitTest: { pupsitBubblePoint: '3.00' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    const byDiffusion = { pupsitTest: { pupsitMethod: 'Diffusion', pupsitBubblePoint: undefined, pupsitDiffusion: '10.0' } };
+    expect(judgedRun(pupsit, byDiffusion)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(judgedRun(pupsit, { pupsitTest: { ...byDiffusion.pupsitTest, pupsitDiffusion: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
   it('[ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum', () => {

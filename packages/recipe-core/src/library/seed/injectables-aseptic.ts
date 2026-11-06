@@ -22,9 +22,12 @@
  *    site's alert level inside it. Particle limits are bound to the keys of the sterile rule table, so the master
  *    validator refuses a limit looser than the market's value; the table has no keys for microbial counts, so those
  *    are the formulation's values from the binding tables.
- *  - PUPSIT (Annex 1 8.87, EU batches) and the integrity test method are answered in each test's own section as the
- *    formulation's instructions state, and only the matching test value is asked: a formulation slot cannot switch a
- *    section on or off, and a field's condition is read from its own section's entry.
+ *  - An item only Annex 1 asks for is a block of its own tagged for the EU market (`markets: ['EU']`, metadata the
+ *    engine does not read; owner Q0, lead 6 November 2026): a master for other markets leaves the block out, and the
+ *    base blocks keep their 21 CFR 211 and Schedule M content. So PUPSIT (A1 8.87) is INJ-PUPSIT, and the glove test
+ *    (A1 4.21 alone) is tagged as a whole.
+ *  - The integrity test method is answered in each test's own section as the formulation's instructions state, and only
+ *    the matching test value is asked: a field's condition is read from its own section's entry.
  *
  * Invented example values. The example room and line classes are the grade classes of slice I-1b.
  */
@@ -184,13 +187,14 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-10: A1 4.21.
+    // INJ-10: A1 4.21 (EU market only).
     definition: {
       code: 'INJ-GLOVE-TEST',
       version: 1,
-      title: 'Glove and sleeve integrity (isolator or RABS)',
+      title: 'Glove and sleeve integrity (isolator or RABS), EU market',
       category: 'CONTROL',
       edition: EDITION,
+      markets: ['EU'],
       roles: ['EQUIPMENT_STATUS_CHECK'],
       description: 'INJ-10. The integrity test of the glove and sleeve at each port of the formulation\'s count: the port, the tester and the result.',
       instructions: 'Test the glove and sleeve of each port with the glove tester. Do not use a port whose glove or sleeve fails.',
@@ -236,15 +240,15 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     exampleUse: { bomLines: { assemblyLine: 'L4' } },
   },
   {
-    // INJ-13: 211.113(b); SM Part II 6.11.2; A1 8.79-8.95 (8.87 PUPSIT).
+    // INJ-13: 211.113(b); SM Part II 6.11.2. PUPSIT (A1 8.87, EU market) is the block INJ-PUPSIT.
     definition: {
       code: 'INJ-STERILE-FILTER',
       version: 1,
       title: 'Sterilising filtration and filter integrity',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-13. The sterilising filter (its lot on the formula line, the type registered for the product), its integrity tested before use, after sterilisation before use where the formulation requires it (PUPSIT), and after use, each against its limit; the filtration pressure and the filtration time.',
-      instructions: 'Use only the filter registered for the product. Test its integrity by the method of the formulation before use and, where the formulation requires it, after its sterilisation; filter; then test it again after use before removing it.',
+      description: 'INJ-13. The sterilising filter (its lot on the formula line, the type registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
+      instructions: 'Use only the filter registered for the product. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [
         {
           id: 'filter',
@@ -261,15 +265,6 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
             { id: 'preMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
             { id: 'preBubblePoint', label: 'Bubble point before use', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPre', critical: true, showWhen: { field: 'preMethod', equals: 'Bubble point' } },
             { id: 'preDiffusion', label: 'Diffusion before use', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPre', critical: true, showWhen: { field: 'preMethod', equals: 'Diffusion' } },
-          ],
-        },
-        {
-          id: 'pupsitTest',
-          title: 'Integrity after sterilisation, before use (PUPSIT)',
-          fields: [
-            { id: 'pupsit', label: 'Test after sterilisation, before use (PUPSIT)', type: 'CHOICE', options: ['Required by the formulation, bubble point', 'Required by the formulation, diffusion', 'Not required by the formulation'] },
-            { id: 'pupsitBubblePoint', label: 'Bubble point after sterilisation', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPupsit', critical: true, showWhen: { field: 'pupsit', equals: 'Required by the formulation, bubble point' } },
-            { id: 'pupsitDiffusion', label: 'Diffusion after sterilisation', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPupsit', critical: true, showWhen: { field: 'pupsit', equals: 'Required by the formulation, diffusion' } },
           ],
         },
         {
@@ -297,14 +292,42 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       limits: {
         bubblePointPre: pv('bar', '3.20'),
         diffusionPre: pv('mL/min', undefined, '20.0'),
-        bubblePointPupsit: pv('bar', '3.20'),
-        diffusionPupsit: pv('mL/min', undefined, '20.0'),
         bubblePointPost: pv('bar', '3.20'),
         diffusionPost: pv('mL/min', undefined, '20.0'),
         pressure: pv('bar', '0.00', '2.00'),
         filtrationTime: pv('min', undefined, '120'),
       },
-      targets: { bubblePointPre: '3.60', bubblePointPupsit: '3.60', bubblePointPost: '3.50', diffusionPre: '10.0', diffusionPupsit: '10.0', diffusionPost: '12.0', pressure: '1.20' },
+      targets: { bubblePointPre: '3.60', bubblePointPost: '3.50', diffusionPre: '10.0', diffusionPost: '12.0', pressure: '1.20' },
+    },
+  },
+  {
+    // INJ-13 (PUPSIT): A1 8.87 (EU market only). Added by a formulation for the EU market after the filter's
+    // sterilisation and before filtration.
+    definition: {
+      code: 'INJ-PUPSIT',
+      version: 1,
+      title: 'Filter integrity after sterilisation, before use (PUPSIT), EU market',
+      category: 'PROCESS',
+      edition: EDITION,
+      markets: ['EU'],
+      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit.',
+      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation.',
+      sections: [
+        {
+          id: 'pupsitTest',
+          title: 'Integrity after sterilisation, before use',
+          fields: [
+            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
+            { id: 'pupsitBubblePoint', label: 'Bubble point after sterilisation', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Bubble point' } },
+            { id: 'pupsitDiffusion', label: 'Diffusion after sterilisation', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Diffusion' } },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { bubblePointPupsit: pv('bar', '3.20'), diffusionPupsit: pv('mL/min', undefined, '20.0') },
+      targets: { bubblePointPupsit: '3.60', diffusionPupsit: '10.0' },
     },
   },
   {

@@ -17,7 +17,7 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its lot on the formula line and must be the registered type: another type is not allowed"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum"
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use, after sterilisation when the formulation requires PUPSIT, and after use, by the formulation's method; a result outside its limit is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use and after use by the formulation's method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

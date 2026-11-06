@@ -26,7 +26,7 @@ behaviour: |-
 catalog_test: Start filtration without PUPSIT on a product with no waiver → blocked. A redundant train with the primary failing post-use → the backup test step appears, an investigation is created, and the batch is blocked until both are complete.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use, after sterilisation when the formulation requires PUPSIT, and after use, by the formulation's method; a result outside its limit is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use and after use by the formulation's method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
