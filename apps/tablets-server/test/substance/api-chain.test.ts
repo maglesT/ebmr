@@ -341,7 +341,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     // The true copy never changes: the tables are insert-only, and the application role cannot write them at all.
     await expect(gmp.db.admin.query("update substance.coa set document = document || '{\"x\": 1}'::jsonb where id = $1", [coa.coaId])).rejects.toThrow();
     await expect(gmp.db.app.query('delete from substance.coa_signature where coa_id = $1', [coa.coaId])).rejects.toThrow();
-    // The tablets read class lists the CoA as a RECORD-class record (tablets 1807).
+    // The tablets read class lists the CoA as a RECORD-class record (tablets 1904).
     expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
   });
 

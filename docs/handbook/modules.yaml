@@ -330,7 +330,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0885_', '^0903_']
+      packages/site-services/sql: ['^0885_', '^0903_', '^1733_']
     src: [packages/site-services/src/india]
     tests: ['packages/site-services/test/india/**', 'packages/site-services/test/mutation/india-licences.test.ts']
 
@@ -1287,6 +1287,7 @@ modules:
     package: editions/substance
     migrations:
       editions/substance/sql: ['^5\d\d\d_']
+      apps/tablets-server/sql: ['^1904_']
     tests: ['apps/tablets-server/test/substance/**']
 
   # ---------------------------------------------------------------- tools

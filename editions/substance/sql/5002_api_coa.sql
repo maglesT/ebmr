@@ -33,7 +33,7 @@
 -- Signing catalogue: QA_APPROVED (recipe-core 1210) is a minimum type whose fixed meaning text approves a plant rule and
 -- whose right is PLANT_RULE.APPROVE, so it cannot mean a CoA. This migration adds the vendor type COA_APPROVED (category
 -- RELEASE, right RELEASE.MANUFACTURER). Content provider: substance_coa (substance.coa_content).
--- The tablets read class (tab.aggregate_read_class) lists substance_coa as a RECORD-class record (tablets 1807, the
+-- The tablets read class (tab.aggregate_read_class) lists substance_coa as a RECORD-class record (tablets 1904, the
 -- function's owner), so a reader with RECORD.READ previews it and the signing command reads its content.
 -- Messages: EBMR-COA-001 to EBMR-COA-009.
 --
