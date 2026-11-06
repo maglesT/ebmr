@@ -38,8 +38,9 @@ describe('G-REL interfaces (slice 3-0)', () => {
   });
 
   it('[meta] the Tablets hook is registered and answers an array; the application role cannot register or replace a hook', async () => {
-    const hooks = await gmp.db.app.query<{ edition: string; function_name: string }>('select edition, function_name from recipe.grel_edition_hook');
-    expect(hooks.rows).toEqual([{ edition: 'TABLETS', function_name: 'tab.grel_edition_items(uuid,text)' }]);
+    const hooks = await gmp.db.app.query<{ edition: string; function_name: string }>('select edition, function_name from recipe.grel_edition_hook order by edition');
+    // API plan A1a: the API edition registers its own hook (editions/substance/sql 5000).
+    expect(hooks.rows).toEqual([{ edition: 'SUBSTANCE', function_name: 'substance.grel_edition_items(uuid,text)' }, { edition: 'TABLETS', function_name: 'tab.grel_edition_items(uuid,text)' }]);
     const { rows } = await gmp.db.app.query<{ r: unknown }>("select tab.grel_edition_items($1, 'IN') as r", [randomUUID()]);
     expect(Array.isArray(rows[0]!.r)).toBe(true);
     expect(await codeOf(gmp.db.app.query("select recipe.register_grel_edition_hook('INJECTABLES', 'tab.grel_edition_items(uuid, text)')"))).toMatch(/permission denied/);

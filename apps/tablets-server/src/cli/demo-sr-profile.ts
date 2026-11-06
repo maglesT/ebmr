@@ -201,7 +201,7 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
   for (const [materialCode, q] of GBT02_BOM) {
     const lot = (await db.app.query<{ id: string }>('select id from site.material_lot where lot_code = $1', [lotOf(materialCode)])).rows[0]?.id;
     if (!lot) throw new Error(`no lot of ${materialCode}`);
-    await app.dbAs(stores, "select site.reserve_lot($1, $2, $3, 'TABLETS', $4::numeric, 'kg', clock_timestamp() + interval '30 days') as r", [lot, batch.batchId, batch.batchNumber, q]);
+    await app.dbAs(stores, "select site.reserve_lot($1, $2, $3, (select a.edition from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $2), $4::numeric, 'kg', clock_timestamp() + interval '30 days') as r", [lot, batch.batchId, batch.batchNumber, q]);
   }
   const e = (stepKey: string, kind: string, data: Json): ClientIntent => batch.entry(stepKey, kind, data);
   const data = (stepKey: string, item: string, v: string, unit: string): ClientIntent => ({ type: 'RECORD_DATA', stepKey, item, value: { kind: 'DECIMAL', value: v, unit }, source: { mode: 'MANUAL' } });

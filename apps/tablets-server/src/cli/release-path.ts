@@ -202,7 +202,7 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
   for (const [lotCode, materialCode, q] of [['GBT2-EXF-001', 'MAT-EXF', '10.000'], ['GBT2-MCC-001', 'MAT-MCC-102', '8.400'], ['GBT2-CCS-001', 'MAT-CCS', '1.000'], ['GBT2-SIO-001', 'MAT-SIO2', '0.200'], ['GBT2-MGS-001', 'MAT-MGST', '0.400']] as const) {
     const lot = (await db.app.query<{ id: string }>('select id from site.material_lot where lot_code = $1', [lotCode])).rows[0]?.id;
     if (!lot) throw new Error(`no lot ${lotCode} of ${materialCode}`);
-    await app.dbAs(stores, "select site.reserve_lot($1, $2, $3, 'TABLETS', $4::numeric, 'kg', clock_timestamp() + interval '30 days') as r", [lot, batch.batchId, batch.batchNumber, q]);
+    await app.dbAs(stores, "select site.reserve_lot($1, $2, $3, (select a.edition from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $2), $4::numeric, 'kg', clock_timestamp() + interval '30 days') as r", [lot, batch.batchId, batch.batchNumber, q]);
   }
   const floor = async (room: string) => ({
     op1: await app.browser('operator1', KIOSKS[room], false, room === 'DISP-1' || room === BOTTLE_LINE ? 'DISPENSER' : undefined),
@@ -493,7 +493,7 @@ export async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: str
   const o = new DemoBatch(app, planned.batchId, planned.batchNumber);
   const stores = await app.browser('stores');
   const lot = (await app.db.app.query<{ id: string }>("select id from site.material_lot where lot_code = 'GBT2-HDP-001'")).rows[0]?.id;
-  await app.dbAs(stores, "select site.reserve_lot($1, $2, $3, 'TABLETS', $4::numeric, 'kg', clock_timestamp() + interval '30 days') as r", [lot, o.batchId, o.batchNumber, bottlesKg(DEMO_BOTTLES)]);
+  await app.dbAs(stores, "select site.reserve_lot($1, $2, $3, (select a.edition from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $2), $4::numeric, 'kg', clock_timestamp() + interval '30 days') as r", [lot, o.batchId, o.batchNumber, bottlesKg(DEMO_BOTTLES)]);
   const f = await k.floor(BOTTLE_LINE);
   const bulkBody = { labels: [label] };
   value(await f.op2.api.call(routes.batches.issueBulk, { params: { batchId: o.batchId }, body: bulkBody, attribution: await app.tap(f.op2, `/api/batches/${o.batchId}/bulk`, bulkBody) }), 'the bulk issue');
