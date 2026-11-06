@@ -132,12 +132,12 @@ function dosageFormFits(edition: flow.Edition, dosageForm: string): boolean {
   return flow.editionOfDosageForm(dosageForm) === edition;
 }
 
-/** Why an edition's family cannot start this way (EDITION_START), and the library to build it from. */
-const START_REFUSAL: Readonly<Record<flow.Edition, { readonly why: string; readonly library: string }>> = {
-  tablets: { why: 'A tablets master starts from the skeleton, blank or a copy.', library: 'tablets' },
-  injectables: { why: 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.', library: 'injectables' },
-  substance: { why: 'An API master starts blank: the skeleton and copies are tablet procedures.', library: 'API' },
-};
+/** The refusal wording of an edition that does not list a start (EDITION_START). */
+function refusalOf(edition: flow.Edition): { readonly why: string; readonly library: string } {
+  const r = EDITION_START[edition].refusal;
+  if (!r) throw new Error(`EDITION_START: the ${edition} edition refuses a start but names no refusal`);
+  return r;
+}
 
 /** The forms an edition's family takes, for the refusal. */
 const EDITION_FORMS: Readonly<Record<flow.Edition, string>> = {
@@ -461,13 +461,14 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     // one dosage form → edition map), so the new-master screen needs no edition choice; checked once it is known.
     const startFits = (edition: flow.Edition): void => {
       if (EDITION_START[edition].starts.includes(start)) return;
+      const why = refusalOf(edition);
       throw refusal(422, {
         code: 'DESIGNER_EDITION_START',
         kind: 'INVALID_INPUT',
         whatHappened: 'The family was not created.',
-        why: START_REFUSAL[edition].why,
+        why: why.why,
         controls: ['PR-01'],
-        whatYouCanDo: [`Choose "Blank" and add the steps from the ${START_REFUSAL[edition].library} library.`],
+        whatYouCanDo: [`Choose "Blank" and add the steps from the ${why.library} library.`],
       });
     };
     if (body.edition !== undefined) startFits(body.edition);
@@ -643,12 +644,12 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       // Slice 7j (R4, D-7j-5): without a template, the master starts from the approved formula.
       // Injectables plan I-0: templates and packaging copies are Tablets masters; an injectables family starts from a formula.
       // API edition plan A0: the same holds for an API (substance) family.
-      if (body.edition !== undefined && body.edition !== 'tablets' && (body.templateId !== undefined || body.start === 'PACKAGING_COPY')) {
+      if (body.edition !== undefined && !EDITION_START[body.edition].starts.includes('COPY') && (body.templateId !== undefined || body.start === 'PACKAGING_COPY')) {
         throw refusal(422, {
           code: 'DESIGNER_EDITION_START',
           kind: 'INVALID_INPUT',
           whatHappened: 'The family was not created.',
-          why: `An ${body.edition === 'injectables' ? 'injectables' : 'API'} master starts blank from its approved formula: the templates and packaging copies are tablet masters.`,
+          why: refusalOf(body.edition).why,
           controls: ['PR-01'],
           whatYouCanDo: ['Choose the product\'s formula and "Blank".'],
         });

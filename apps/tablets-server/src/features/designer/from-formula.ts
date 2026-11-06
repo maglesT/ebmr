@@ -305,10 +305,23 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
  * master of an edition with `releaseForPacking` ends with QA's release for packing (API plan A1a), the gate the packaging
  * order of the batch needs (recipe-core 0701). `unit` is the master's unit word where the dosage form does not give it.
  */
-export const EDITION_START: Readonly<Record<flow.Edition, { readonly starts: readonly FormulaStart[]; readonly skeleton: 'FULL' | 'DISPENSING' | null; readonly releaseForPacking: boolean; readonly unit?: string }>> = {
-  tablets: { starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false },
-  injectables: { starts: ['SKELETON', 'BLANK'], skeleton: 'DISPENSING', releaseForPacking: true, unit: 'unit' },
-  substance: { starts: ['BLANK'], skeleton: null, releaseForPacking: true },
+export const EDITION_START: Readonly<Record<flow.Edition, {
+  readonly starts: readonly FormulaStart[];
+  readonly skeleton: 'FULL' | 'DISPENSING' | null;
+  readonly releaseForPacking: boolean;
+  readonly unit?: string;
+  /** Why the edition refuses a start it does not list, and the library its steps come from; null where every start is listed. */
+  readonly refusal: { readonly why: string; readonly library: string } | null;
+}>> = {
+  tablets: { starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false, refusal: null },
+  injectables: {
+    starts: ['SKELETON', 'BLANK'], skeleton: 'DISPENSING', releaseForPacking: true, unit: 'unit',
+    refusal: { why: 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.', library: 'injectables' },
+  },
+  substance: {
+    starts: ['BLANK'], skeleton: null, releaseForPacking: true,
+    refusal: { why: 'An API master starts blank: the skeleton, templates and copies are tablet procedures.', library: 'API' },
+  },
 };
 
 /** BLANK (header comment): the header, the bill of materials and a dispensing stage with its clearance and balance status. */
