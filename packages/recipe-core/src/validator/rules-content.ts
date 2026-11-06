@@ -412,10 +412,26 @@ const yields = defineRule('GMP-YIELDS', 'Yield checkpoints have a basis, minimum
     }
   }
   for (const p of a.phases) {
-    if (a.hasRole(p, 'YIELD_RECONCILIATION') && p.yieldCheckpoint === undefined) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
+    if (a.hasRole(p, 'YIELD_RECONCILIATION') && p.yieldCheckpoint === undefined && !judgesOwnYield(a, p)) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
   }
   return out;
 });
+
+/**
+ * Injectables I-1c (lead ruling, 6 November 2026): a library step computes and judges its own yield or accounting when its
+ * block's snapshot in the master has a critical calculated field with a limit (INJ-UNIT-ACCOUNT's units not accounted
+ * for) and the step's values give that limit. Such a step needs no master yield checkpoint; every other yield or
+ * reconciliation step still names one.
+ */
+function judgesOwnYield(a: Analysis, p: PhaseNode): boolean {
+  if (!p.block.type.startsWith('LIB-')) return false;
+  type Field = { type?: unknown; critical?: unknown; limitSlot?: unknown };
+  const def = (a.mbr.blockDefinitions ?? []).find((d) => typeof d['code'] === 'string' && `LIB-${d['code']}` === p.block.type && typeof d['version'] === 'number' && d['version'].toString() === p.block.version) as
+    | { sections?: { fields?: Field[] }[] }
+    | undefined;
+  const limits = (p.config as { limits?: Record<string, unknown> }).limits ?? {};
+  return (def?.sections ?? []).some((s) => (s.fields ?? []).some((f) => f.type === 'CALC' && f.critical === true && typeof f.limitSlot === 'string' && limits[f.limitSlot] !== undefined));
+}
 
 const intermediates = defineRule('GMP-INTERMEDIATES', 'Every intermediate has a hold time and is produced before use', ['PR-03', 'INV-34', 'IN-13'], (a) => {
   const out: RuleFinding[] = [];

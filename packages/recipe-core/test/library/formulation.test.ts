@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
 import { catalogWithLibrary, definitionHash, libraryPhase, withSnapshot } from '../../src/library/index.ts';
+import type { BlockDefinition } from '../../src/library/model.ts';
 import { genericBlockCatalog } from '../../src/flow/blocks.ts';
 import type { MinimaRequest, ResolvedMinimum } from '../../src/validator/types.ts';
 import { errors, mbrWith, phase, validate } from '../flow/support.ts';
@@ -43,5 +44,29 @@ describe('assembling a formulation from library blocks', () => {
     expect(found.join(' ')).toMatch(/looser than the maximum of 1\.0 %/);
     const tight = { ...mbr, procedure: { ...mbr.procedure, body: { kind: 'sequence' as const, id: 'ops', children: [{ ...p, config: { ...p.config, limits: { loss: range('%', undefined, '0.8') } } } as never] } } };
     expect(errors(validate(tight, { blocks: catalogWithLibrary(genericBlockCatalog, tight), market: { minima: () => minima } })).filter((f) => f.rule === 'MKT-MINIMA')).toEqual([]);
+  });
+
+  /** A master whose one step is the unit accountability block with `def` as its snapshot and `config` as its values. */
+  const accounting = (def: BlockDefinition, config: Record<string, unknown>): MbrContent => {
+    const p = phase('p-inj-unit-account', { block: { type: 'LIB-INJ-UNIT-ACCOUNT', version: '1' }, config: config as never });
+    return { ...mbrWith({ kind: 'sequence', id: 'ops', children: [p] }), blockDefinitions: [def] as never };
+  };
+  const noCheckpoint = (m: MbrContent): string[] =>
+    errors(validate(m, { blocks: catalogWithLibrary(genericBlockCatalog, m) })).filter((f) => f.rule === 'GMP-YIELDS' && /names no yield checkpoint/.test(f.message)).map((f) => f.message);
+  const unitAccount = INJECTABLE_CATALOGUE.find((s) => s.definition.code === 'INJ-UNIT-ACCOUNT');
+  if (!unitAccount) throw new Error('INJ-UNIT-ACCOUNT is not in the catalogue');
+
+  it('[PR-03][INV-34][PR-31][PR-39] a library yield or reconciliation step whose block judges a critical calculated limit of its own (units not accounted for) needs no master yield checkpoint', () => {
+    expect(noCheckpoint(accounting(unitAccount.definition, unitAccount.exampleUse as never))).toEqual([]);
+  });
+
+  it('[PR-03][INV-34][PR-31][PR-39] every other library yield or reconciliation step still names a master yield checkpoint: its calculated limit not critical, or the limit not given', () => {
+    const notCritical: BlockDefinition = {
+      ...unitAccount.definition,
+      sections: unitAccount.definition.sections.map((sec) => ({ ...sec, fields: sec.fields.map((f) => (f.type === 'CALC' ? { ...f, critical: false } : f)) })),
+    };
+    expect(noCheckpoint(accounting(notCritical, unitAccount.exampleUse as never))).toHaveLength(1);
+    const otherLimits = Object.fromEntries(Object.entries(unitAccount.exampleUse.limits ?? {}).filter(([slot]) => slot !== 'unaccounted'));
+    expect(noCheckpoint(accounting(unitAccount.definition, { ...unitAccount.exampleUse, limits: otherLimits }))).toHaveLength(1);
   });
 });
