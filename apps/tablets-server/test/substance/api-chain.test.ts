@@ -152,11 +152,11 @@ beforeAll(async () => {
   valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 36, changeReason: REASON } }));
   await confirmErpPending(gmp);
   // API plan A3: the site's manufacturing licence endorsing the API (regulatory records it, QA approves it); its holder
-  // name and address are the manufacturer's on the CoA.
+  // name, address and telephone are the manufacturer's on the CoA (site-services 1733; ICH Q7 11.43).
   const regulatory = await gmp.asPersona('regulatory');
   const licence = valueOf(await regulatory.call(routes.india.recordLicence, { body: {
     licenceKind: 'MANUFACTURING', form: '25', licenceNumber: `MFG/A3/${TAG}`, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
-    validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: PRODUCT.code, strength: PRODUCT.strength }],
+    holderTelephone: '+91 40 2345 6789', validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: PRODUCT.code, strength: PRODUCT.strength }],
   } }));
   await sign(await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   // QA approves the two library blocks (drafted by the author).
@@ -307,10 +307,10 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     const ap = await gmp.asPersona('qcuAuthoriser');
     const view = valueOf(await ap.call(routes.release.coa, { params: { lotId } }));
     expect(view.problems).toEqual([]);
-    expect(view.gaps).toEqual([expect.stringMatching(/telephone/)]);
+    expect(view.gaps).toEqual([]);
     expect(view.current).toMatchObject({
       kind: 'CERTIFICATE_OF_ANALYSIS',
-      manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: null, licenceNumber: `MFG/A3/${TAG}`, siteCode: SITE },
+      manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789', licenceNumber: `MFG/A3/${TAG}`, siteCode: SITE },
       product: { code: PRODUCT.code, strength: PRODUCT.strength, grade: 'In-house monograph' },
       lot: { lotId, batchNumber: order.batchNumber, quantity: '60', unit: 'kg' },
       tests: [{ testCode: 'ASSAY', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6', purpose: 'RELEASE' }],
@@ -338,8 +338,23 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     // The true copy never changes: the tables are insert-only, and the application role cannot write them at all.
     await expect(gmp.db.admin.query("update substance.coa set document = document || '{\"x\": 1}'::jsonb where id = $1", [coa.coaId])).rejects.toThrow();
     await expect(gmp.db.app.query('delete from substance.coa_signature where coa_id = $1', [coa.coaId])).rejects.toThrow();
-    // The tablets read class lists the CoA as a RECORD-class record (substance 5002).
+    // The tablets read class lists the CoA as a RECORD-class record (tablets 1807).
     expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
+  });
+
+  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with other characters is refused (site-services 1733)', async () => {
+    const regulatory = await gmp.asPersona('regulatory');
+    const body = { licenceKind: 'MANUFACTURING' as const, form: '25' as const, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
+      validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: `${PRODUCT.code}-T`, strength: PRODUCT.strength }] };
+    const bare = valueOf(await regulatory.call(routes.india.recordLicence, { body: { ...body, licenceNumber: `MFG/A3T/${TAG}` } }));
+    const content = (await gmp.db.admin.query<{ c: { content: Json } }>('select site.manufacturing_licence_content($1) as c', [bare.licenceId])).rows[0]!.c.content;
+    expect(content).not.toHaveProperty('holder_telephone');
+    expect(Object.keys(content).sort()).toEqual(['form', 'holder_address', 'holder_name', 'host_licence_number', 'licence_kind', 'licence_number', 'products', 'recorded_at', 'recorded_by', 'site_code', 'technical_agreement', 'valid_from', 'valid_until']);
+    const bad = await regulatory.call(routes.india.recordLicence, { body: { ...body, licenceNumber: `MFG/A3U/${TAG}`, holderTelephone: '040 2345; x' } });
+    expect(bad.ok).toBe(false);
+    const withPhone = (await gmp.db.admin.query<{ c: { content: Json } }>(
+      'select site.manufacturing_licence_content(id::text) as c from site.manufacturing_licence where licence_number = $1', [`MFG/A3/${TAG}`])).rows[0]!.c.content;
+    expect(withPhone).toMatchObject({ holder_telephone: '+91 40 2345 6789' });
   });
 
   it('[IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it', async () => {

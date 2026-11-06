@@ -119,6 +119,7 @@ function RecordLicence() {
   const [number, setNumber] = useState('');
   const [holder, setHolder] = useState('');
   const [address, setAddress] = useState('');
+  const [telephone, setTelephone] = useState('');
   const [host, setHost] = useState('');
   const [agreement, setAgreement] = useState('');
   const [from, setFrom] = useState('');
@@ -156,6 +157,7 @@ function RecordLicence() {
       <Field name="licenceNumber" label="Licence number" value={number} onChange={setNumber} />
       <Field name="holderName" label="Holder name" value={holder} onChange={setHolder} />
       <Field name="holderAddress" label="Holder address" value={address} onChange={setAddress} />
+      <Field name="holderTelephone" label="Holder telephone (optional)" value={telephone} onChange={setTelephone} />
       {kind === 'LOAN' ? (
         <>
           <Field name="hostLicenceId" label="Host manufacturing licence (id)" value={host} onChange={setHost} />
@@ -172,7 +174,7 @@ function RecordLicence() {
           validFrom &&
           record.run({
             body: {
-              licenceKind: kind, form: form as '25' | '28' | '25A' | '28A', licenceNumber: number.trim(), holderName: holder.trim(), holderAddress: address.trim(),
+              licenceKind: kind, form: form as '25' | '28' | '25A' | '28A', licenceNumber: number.trim(), holderName: holder.trim(), holderAddress: address.trim(), ...(telephone.trim() ? { holderTelephone: telephone.trim() } : {}),
               ...(kind === 'LOAN' ? { hostLicenceId: host.trim(), technicalAgreement: agreement.trim() } : {}), validFrom, ...(validUntil ? { validUntil } : {}), products: list,
             },
           })

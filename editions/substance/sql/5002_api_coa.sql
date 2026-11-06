@@ -17,8 +17,8 @@
 --       the product is made under (site.licence_basis at the release), else of the site's current manufacturing licence.
 --       problems (each refuses a CoA): the lot is no finished lot of the SUBSTANCE edition, it is not RELEASED, no approved
 --       specification is in effect, a required test has no approved result, a result is outside its limits, no
---       manufacturer address is on record. gaps (shown, never invented): the manufacturer's telephone (no master data
---       holds one; the lead decides where it is kept).
+--       manufacturer address is on record. gaps (shown, never invented): the manufacturer's telephone when the licence
+--       records none (site-services 1733 keeps it on the licence, beside the holder's name and address).
 --   substance.coa                 insert-only: one prepared CoA (the document as it was, its SHA-256 over the canonical
 --                                 text). The stored document is the true copy: it never changes, and its hash is checked
 --                                 on every read (substance.coa_intact).
@@ -33,9 +33,8 @@
 -- Signing catalogue: QA_APPROVED (recipe-core 1210) is a minimum type whose fixed meaning text approves a plant rule and
 -- whose right is PLANT_RULE.APPROVE, so it cannot mean a CoA. This migration adds the vendor type COA_APPROVED (category
 -- RELEASE, right RELEASE.MANUFACTURER). Content provider: substance_coa (substance.coa_content).
--- The tablets read class (tab.aggregate_read_class) lists substance_coa as a RECORD-class record, so a reader with
--- RECORD.READ previews it and the signing command reads its content; that re-creation runs only where the tablets
--- namespace exists (a sandbox migrates without it), from the latest definition (tablets 1802).
+-- The tablets read class (tab.aggregate_read_class) lists substance_coa as a RECORD-class record (tablets 1807, the
+-- function's owner), so a reader with RECORD.READ previews it and the signing command reads its content.
 -- Messages: EBMR-COA-001 to EBMR-COA-009.
 --
 -- Owned by ebmr_owner, SECURITY DEFINER, search_path pinned with pg_temp last (ADR 0016). PL/pgSQL throughout: a sandbox
@@ -132,7 +131,7 @@ begin
   end if;
   v_lic := site.licence_basis(l.site_code, f.product_code, f.strength, coalesce(d.recorded_at, clock_timestamp()));
   if v_lic is null then
-    select jsonb_build_object('licenceId', m.id, 'licenceNumber', m.licence_number, 'form', m.form, 'holderName', m.holder_name, 'holderAddress', m.holder_address)
+    select jsonb_build_object('licenceId', m.id, 'licenceNumber', m.licence_number, 'form', m.form, 'holderName', m.holder_name, 'holderAddress', m.holder_address, 'holderTelephone', m.holder_telephone)
       into v_lic from site.manufacturing_licence m
      where m.site_code = l.site_code and m.licence_kind = 'MANUFACTURING' and site.licence_current(m.id, coalesce(d.recorded_at, clock_timestamp()))
      order by m.valid_from desc, m.recorded_at desc, m.id limit 1;
@@ -142,10 +141,12 @@ begin
   end if;
   return jsonb_build_object(
     'problems', to_jsonb(v_probs),
-    'gaps', jsonb_build_array('the manufacturer''s telephone: no master data holds one'),
+    'gaps', case when v_lic ->> 'holderTelephone' is null
+                 then jsonb_build_array('the manufacturer''s telephone (the manufacturing licence names none)')
+                 else '[]'::jsonb end,
     'document', jsonb_build_object(
       'kind', 'CERTIFICATE_OF_ANALYSIS',
-      'manufacturer', jsonb_build_object('name', v_lic ->> 'holderName', 'address', v_lic ->> 'holderAddress', 'telephone', null,
+      'manufacturer', jsonb_build_object('name', v_lic ->> 'holderName', 'address', v_lic ->> 'holderAddress', 'telephone', v_lic ->> 'holderTelephone',
                                          'licenceNumber', v_lic ->> 'licenceNumber', 'siteCode', l.site_code),
       'product', jsonb_build_object('code', f.product_code, 'name', l.material_name, 'strength', f.strength, 'grade', s.monograph_reference),
       'lot', jsonb_build_object('lotId', l.id, 'lotCode', l.lot_code, 'batchNumber', f.batch_number,
@@ -310,46 +311,5 @@ values
    'Revised Schedule M and ICH Q7 on certificates of analysis (API plan C3); AS-17; DI-35');
 
 select kernel.set_actor_context(null);
-
--- The tablets read class (from its latest definition, tablets 1802) with substance_coa as a RECORD-class record. Only where
--- the tablets namespace exists: a sandbox migrates kernel, site-services, recipe-core and substance only.
-do $do$
-begin
-  if to_regnamespace('tab') is null then
-    return;
-  end if;
-  execute $f$
-create or replace function tab.aggregate_read_class(p_aggregate_type text) returns text
-language sql immutable set search_path = pg_catalog, pg_temp as $$
-  select case when p_aggregate_type in ('batch_step', 'batch_stage', 'batch_exception', 'batch_point', 'batch_issue', 'mbr_version', 'mbr_market_authorisation',
-                                        'market_rule_correction', 'market_site_loosening', 'market_policy_version', 'record_type_version',
-                                        'esig_stub', 'sample_record',
-                                        'batch_act', 'batch_review', 'batch_audit_review', 'batch_review_reopen', 'review_items', 'deviation', 'lot_test_result', 'qc_extra_testing', 'material_lot', 'output_container',
-                                        'reprocessing_authorisation', 'reprocessing_request', 'formula_version',
-                                        'plant_cleaning', 'plant_clearance', 'plant_equipment_repair',
-                                        'lot_retest',
-                                        'specification', 'returned_goods',
-                                        'erp_master',
-                                        'manufacturer_release', 'post_change_evaluation', 'ppq_outcome', 'investigation_justification',
-                                        'us_disposition', 'market_change', 'qp_transcription', 'qp_transcription_check', 'qp_certification',
-                                        'qp_package',
-                                        'release_suspension', 'disposal', 'record_lock',
-                                        'manufacturing_licence', 'export_permission', 'evidence_export', 'form_reconciliation', 'pqr_extract',
-                                        'hazard_classification', 'area_dedication',
-                                        'capa',
-                                        'approved_manufacturer',
-                                        'config_change_record',
-                                        'mock_recall',
-                                        'transfer_receipt', 'peer_installation',
-                                        'facility_rule', 'beta_lactam_class',
-                                        'labelling_specimen',
-                                        'library_block',
-                                        -- API plan A3 (substance 5002; AS-17): the quality unit's CoA of a released API lot
-                                        'substance_coa')
-              then 'RECORD' else 'GOVERNANCE' end
-$$
-$f$;
-end
-$do$;
 
 reset role;
