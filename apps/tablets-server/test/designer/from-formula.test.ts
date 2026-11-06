@@ -288,6 +288,19 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(rows[0]?.edition).toBe('substance');
   });
 
+  it('[PR-01][PR-37][INV-27] API plan A1a: an API processing master starts blank with QA\'s release for packing (H-PACK) in a last stage of its own, after which the author adds the synthesis stages; it is pinned to its formula', async () => {
+    const API = { code: 'DMT7JB', name: 'Demosubstance B', strength: PRODUCT.strength };
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: API.code, strength: API.strength, productName: API.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    const apiFormula = await approvedFormula('100000', undefined, LINES, API.code);
+    type Node = { kind: string; id: string; body?: { children: Node[] } };
+    const proc = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JB-BL', product: API, markets: ['IN'], formulaVersionId: apiFormula, edition: 'substance', start: 'BLANK' } }));
+    const children = (proc.content as unknown as { procedure: { body: { children: Node[] } } }).procedure.body.children;
+    expect(children.map((n) => n.id)).toEqual(['S-DISP', 'S-RELEASE']);
+    expect(children[1]?.body?.children.map((n) => [n.kind, n.id])).toEqual([['holdPoint', 'H-PACK']]);
+    expect((await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [proc.versionId])).rowCount).toBe(1);
+  });
+
   it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));

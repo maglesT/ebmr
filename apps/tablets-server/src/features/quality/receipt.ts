@@ -169,7 +169,7 @@ export function receiptHandlers(app: AppContext, pool: pg.Pool): Handlers<Receip
       return lotHandling(app, pool, params.lotId);
     },
     // Phase 7 slice 7h (WP-A, A1): the batch is named by its number and read from the batch record; the lot's own unit
-    // and the edition are the database's; the expiry defaults to 30 days, or the lot's retest or expiry when sooner. The
+    // and the edition (the batch's register allocation since API plan A1a, no longer a literal) are the database's; the expiry defaults to 30 days, or the lot's retest or expiry when sooner. The
     // database decides the rest (a released lot, its dates, the quantity available; INV-13, PR-18).
     reserveLot: async ({ params, body, actor, idempotencyKey, requestHash }) => {
       const batch = (await pool.query<{ id: string; n: string }>('select id, batch_number as n from recipe.batch_execution where batch_number = $1', [body.batchNumber])).rows[0];
@@ -180,7 +180,7 @@ export function receiptHandlers(app: AppContext, pool: pg.Pool): Handlers<Receip
         actor(),
         idempotencyKey,
         requestHash,
-        `select site.reserve_lot(l.id, $2, $3, 'TABLETS', $4::numeric, l.unit,
+        `select site.reserve_lot(l.id, $2, $3, (select a.edition from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $2), $4::numeric, l.unit,
                 case when $5::date is null then least(clock_timestamp() + interval '30 days', l.expires_at, coalesce(site.lot_retest_at(l.id), l.expires_at))
                      else (($5::date + 1)::timestamp at time zone $6) end) as r
            from site.material_lot l where l.id = $1`,
