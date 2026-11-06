@@ -167,24 +167,29 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(judgedRun(item, { account: { losses: '19' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-71] unit accountability reads the units filled and rejected at the line from the filling step, and the units accepted and rejected at inspection from the inspection step, never typed again; one unit missing is an exception', () => {
+  it('[ST-71] unit accountability reads the units filled and rejected at the line from the filling step, the units rejected at closing from the capping or sealing total, and the units accepted and rejected at inspection from the inspection step, never typed again; one unit missing is an exception', () => {
     const fill = byCode('INJ-FILL');
     const inspect = byCode('INJ-VISUAL-INSPECT');
+    const cap = byCode('INJ-CAPPING');
     const account = byCode('INJ-UNIT-ACCOUNT');
+    // Capping and sealing add their rounds' rejects up once at the end of the step, for the account to read.
+    for (const code of ['INJ-CAPPING', 'INJ-AMPOULE-SEAL']) expect(fieldOf(byCode(code), 'totalRejects')).toMatchObject({ type: 'CALC', expression: 'sum(rejects)' });
     // Only the samples and the documented losses are typed; the other counts are earlier-step values.
     expect(account.definition.sections.flatMap((s) => s.fields).filter((f) => f.type === 'NUMBER').map((f) => f.id)).toEqual(['sampled', 'losses']);
     expect(account.exampleUse.stepValues).toEqual({
       filledSource: { step: 'filling', field: 'filled' },
       lineRejectsSource: { step: 'filling', field: 'rejects' },
+      closingRejectsSource: { step: 'capping', field: 'totalRejects' },
       acceptedSource: { step: 'inspection', field: 'accepted' },
       inspectionRejectsSource: { step: 'inspection', field: 'rejected' },
     });
-    const registry = testRegistry().extend(...[fill, inspect, account].map((i) => libraryBlockVersion(i.definition, expr)));
+    const registry = testRegistry().extend(...[fill, cap, byCode('INJ-AMPOULE-SEAL'), inspect, account].map((i) => libraryBlockVersion(i.definition, expr)));
     const step = (id: string, item: SeedItem, reads: string[] = []): FlowNode => phase(id, { block: { type: libraryBlockType(item.definition.code), version: '1' }, config: item.exampleUse as never, reads });
     const density = fill.exampleInputs?.['density'] ?? { value: '1.0050', unit: 'g/mL' };
     const master = (children: FlowNode[]): MbrContent =>
       mbrWith({ kind: 'sequence', id: 'ops', children: [...children, phase('after')] }, { inputs: [{ id: 'density', name: 'density', source: 'MASTER_DATA', valueType: 'DECIMAL', unit: density.unit }] });
     const filling = step('filling', fill, ['density']);
+    const capping = step('capping', cap);
     const inspection = step('inspection', inspect);
     const refusal = (mbr: MbrContent): string => {
       try {
@@ -195,14 +200,17 @@ describe('the Injectables catalogue (slice I-1)', () => {
       }
     };
     // The master check refuses the wiring if inspection comes after the account, or if the count named is a tray's (repeated).
-    expect(refusal(master([filling, step('account', account), inspection]))).toContain('step inspection does not come before account in the flow (ENG-DEF-STEP-VALUE');
+    expect(refusal(master([filling, capping, step('account', account), inspection]))).toContain('step inspection does not come before account in the flow (ENG-DEF-STEP-VALUE');
     const trayUnits: SeedItem = { ...account, exampleUse: { ...account.exampleUse, stepValues: { ...account.exampleUse.stepValues, filledSource: { step: 'filling', field: 'units' } } } };
-    expect(refusal(master([filling, inspection, step('account', trayUnits)]))).toContain('step filling records no single value units (ENG-DEF-STEP-VALUE');
+    // An ampoule master points the closing count at its sealing step's total instead.
+    const viaSealing: SeedItem = { ...account, exampleUse: { ...account.exampleUse, stepValues: { ...account.exampleUse.stepValues, closingRejectsSource: { step: 'sealing', field: 'totalRejects' } } } };
+    expect(refusal(master([filling, step('sealing', byCode('INJ-AMPOULE-SEAL')), inspection, step('account', viaSealing)]))).toBe('defined');
+    expect(refusal(master([filling, capping, inspection, step('account', trayUnits)]))).toContain('step filling records no single value units (ENG-DEF-STEP-VALUE');
 
     const run = (filled: string): { exceptions: string[]; status: string | undefined; unaccounted: Record<string, unknown> | undefined } => {
-      const mbr = master([filling, inspection, step('account', account)]);
+      const mbr = master([filling, capping, inspection, step('account', account)]);
       const batch = Run.issue(define(mbr, { registry }), { inputs: { density: { value: { kind: 'DECIMAL', value: density.value, unit: density.unit }, source: 'seed example' } } }, T0);
-      const steps: [string, SeedItem, Record<string, Record<string, unknown>>][] = [['filling', fill, { end: { filled, rejects: '80' } }], ['inspection', inspect, {}], ['account', account, {}]];
+      const steps: [string, SeedItem, Record<string, Record<string, unknown>>][] = [['filling', fill, { end: { filled, rejects: '80' } }], ['capping', cap, { round: { rejects: '30' } }], ['inspection', inspect, {}], ['account', account, {}]];
       for (const [id, item, overrides] of steps) {
         batch.start(id);
         recordNominal(batch, id, item.definition, item.exampleUse, mbr, overrides);
@@ -217,15 +225,16 @@ describe('the Injectables catalogue (slice I-1)', () => {
       const entry = Object.values(batch.state.entries).find((x) => x.stepKey.startsWith('account') && x.kind === 'account');
       return { exceptions: batch.exceptions().map((x) => x.type), status: batch.status('account'), unaccounted: (entry?.data['computed'] as Record<string, Record<string, unknown>> | undefined)?.['unaccounted'] };
     };
-    // 10,220 filled = 9,920 accepted (10,000 inspected less 80 rejects) + 80 rejected at the line + 80 at inspection
-    // + 120 sampled + 20 lost.
-    const ok = run('10220');
+    // 10,250 filled = 9,920 accepted (10,000 inspected less 80 rejects) + 80 rejected at the line + 30 at capping
+    // + 80 at inspection + 120 sampled + 20 lost.
+    const ok = run('10250');
     expect(ok).toMatchObject({ exceptions: [], status: 'COMPLETED' });
     expect(ok.unaccounted?.['value']).toMatch(/^0(\.0*)?$/);
-    expect(ok.unaccounted?.['inputs']).toMatchObject({ filled: { value: '10220' }, accepted: { value: '9920' } });
+    expect(ok.unaccounted?.['inputs']).toMatchObject({ filled: { value: '10250' }, accepted: { value: '9920' } });
     // Where each count came from is in the calculation's record.
     expect(ok.unaccounted?.['stepValues']).toMatchObject({ filled: { step: 'filling', field: 'filled' }, accepted: { step: 'inspection', field: 'accepted' } });
-    expect(run('10221').exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(ok.unaccounted?.['inputs']).toMatchObject({ rejected: { value: '190' } });
+    expect(run('10251').exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
   it('[ST-66] sterility sampling records each point of the formulation\'s plan (count of points, units per point, time)', () => {
