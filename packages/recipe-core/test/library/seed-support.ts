@@ -4,7 +4,8 @@
  */
 import type { MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
-import type { SeedItem } from '../../src/library/seed/index.ts';
+import type { BlockDefinition, FieldDef } from '../../src/library/model.ts';
+import { SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 
@@ -69,4 +70,44 @@ function runItem(item: SeedItem, overrides: Readonly<Record<string, Readonly<Rec
   }
   if (batch.status('p') === 'AWAITING_VERIFICATION') batch.verify('p');
   return { exceptions: batch.exceptions().map((x) => x.type), status: batch.status('p') };
+}
+
+/** The catalogue item `code`. */
+export function byCode(code: string): SeedItem {
+  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
+  if (!item) throw new Error(`no catalogue item ${code}`);
+  return item;
+}
+
+/** The field `id` of a catalogue item. */
+export function fieldOf(item: SeedItem, id: string): FieldDef {
+  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
+  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
+  return f;
+}
+
+/**
+ * Runs step `stepId` of an issued batch with the nominal entries of `def` under `config` (as the nominal run above):
+ * started, every section recorded, signed as performed and, when it has a check, verified. For masters of several
+ * library steps (Capsules C4).
+ */
+export function runNominalStep(batch: Run, stepId: string, def: BlockDefinition, config: Record<string, unknown>, mbr: MbrContent): void {
+  batch.start(stepId);
+  const entries = nominalEntries(def, config as never, mbr);
+  const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
+  for (const e of entries) {
+    if (e.kind === TIMER_STOP) {
+      for (let i = 0; i < 6; i++) {
+        batch.minutes(10 - rounds.length);
+        for (const r of rounds) {
+          batch.entry(stepId, r);
+          batch.minutes(1);
+        }
+      }
+    }
+    batch.entry(stepId, e);
+    batch.minutes(1);
+  }
+  batch.perform(stepId);
+  if (batch.status(stepId) === 'AWAITING_VERIFICATION') batch.verify(stepId);
 }

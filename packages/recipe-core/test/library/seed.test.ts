@@ -5,24 +5,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { LimitSpec } from '../../src/limits/model.ts';
-import type { FieldDef } from '../../src/library/model.ts';
 import { checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
-import { SEED_CATALOGUE, SEED_GROUPS, type SeedItem } from '../../src/library/seed/index.ts';
+import { SEED_CATALOGUE, SEED_GROUPS } from '../../src/library/seed/index.ts';
 import { API_PACK, SUBSTANCE_SEEDS } from '../../src/library/seed/substance.ts';
 import { expr } from '../flow/support.ts';
-import { nominalRun } from './seed-support.ts';
-
-function byCode(code: string): SeedItem {
-  const item = SEED_CATALOGUE.find((s) => s.definition.code === code);
-  if (!item) throw new Error(`no catalogue item ${code}`);
-  return item;
-}
-
-function fieldOf(item: SeedItem, id: string): FieldDef {
-  const f = item.definition.sections.flatMap((s) => s.fields).find((x) => x.id === id);
-  if (!f) throw new Error(`no field ${id} in ${item.definition.code}`);
-  return f;
-}
+import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
 
 describe('the ready-made catalogue', () => {
   it('[PR-19][PR-03] potency-adjusted dispensing works on one basis: the assay is the dried-basis figure the LOD term converts, stated in the help, and the example target corrects for water once (R3-CAT-1)', () => {
@@ -94,6 +81,28 @@ describe('the ready-made catalogue', () => {
     expect(fieldOf(fill, 'fillWeight')).toMatchObject({ type: 'NUMBER', unit: 'mg', limitSlot: 'fillWeight', critical: true });
     expect(fill.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
     expect(fill.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+  });
+
+  it('[IN-37][PR-41][IN-38][PR-03] post-fill capsule steps (Capsules C3): the checkweigher\'s reject limits are critical values; inspection removes defective and foreign capsules with an independent check; printing records segregation, the edible ink and a print check each round and holds the print for QC; banding records the sealing technology, a critical band-solution temperature and a band check each round; a leaker fails the seal check', () => {
+    const cw = byCode('PROC-CAPS-CHECKWEIGH');
+    expect([fieldOf(cw, 'rejectLow'), fieldOf(cw, 'rejectHigh')]).toEqual([expect.objectContaining({ limitSlot: 'rejectLow', critical: true }), expect.objectContaining({ limitSlot: 'rejectHigh', critical: true })]);
+    const inspect = byCode('PROC-CAPS-INSPECT');
+    expect(fieldOf(inspect, 'defectsRemoved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(inspect.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const print = byCode('PROC-CAPS-PRINT');
+    expect(fieldOf(print, 'segregated')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(fieldOf(print, 'inkApproved')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(print.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'checkInterval' });
+    expect(fieldOf(print, 'heldForQc')).toMatchObject({ type: 'YES_NO', expected: true });
+    const band = byCode('PROC-CAPS-BAND');
+    expect(fieldOf(band, 'technology')).toMatchObject({ type: 'CHOICE', options: ['Gelatin band', 'HPMC band', 'Liquid fusion sealing'] });
+    expect(fieldOf(band, 'solutionTemp')).toMatchObject({ limitSlot: 'solutionTemp', critical: true });
+    expect(band.definition.sections.find((x) => x.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
+    const leak = byCode('IPC-CAPS-SEAL-LEAK');
+    expect(fieldOf(leak, 'leakers')).toMatchObject({ type: 'NUMBER', limitSlot: 'leakers', critical: true });
+    expect(nominalRun(leak)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // One leaker is outside the registered limit of none: the step raises an exception and cannot complete with it open.
+    expect(judgedRun(leak, { test: { leakers: '1' } })).toEqual({ exceptions: ['LIB_LIMIT_BREACH'], status: 'IN_PROGRESS' });
   });
 
   it('[PR-05] every code is unique across the catalogue, and every item is version 1', () => {

@@ -306,7 +306,10 @@ export async function runLibraryStep(
         }
         case 'CONTAINER':
           container += 1;
-          await form.getByRole('textbox', { name: f.label, exact: true }).fill(`${idPrefix}${b.def.code}-${String(n)}-${String(container)}`);
+          // The block code without its category (PROC-, COAT-, IPC-): a sandbox name stays within the 32 characters of a
+          // lot number even read with a second TEST- (kernel 1030); a longer one is split and a part like CHECKWEIGH-1
+          // reads as a real lot number (EBMR-EXE-147, seen with PROC-CAPS-CHECKWEIGH).
+          await form.getByRole('textbox', { name: f.label, exact: true }).fill(`${idPrefix}${b.def.code.replace(/^[A-Z]+-/, '')}-${String(n)}-${String(container)}`);
           break;
         case 'CALC':
         case 'TIMER':
