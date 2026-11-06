@@ -151,6 +151,33 @@ const LOTS: { code: string; material: string; days: number; state: string; assay
 ];
 const lotIds = new Map<string, string>();
 
+/** Registers site lot `l` (received `quantity` kg, 100 when not given) with its state, identity result, receipt and assay (test arrangement). */
+async function registerLot(c: pg.PoolClient, l: { code: string; material: string; days: number; state: string; assay?: string; quantity?: string }): Promise<void> {
+  const id = randomUUID();
+  lotIds.set(l.code, id);
+  await c.query(
+    `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, retest_at, expires_at, received_by_person, received_by_account, correlation_id)
+     values ($1, $2, $3, $4, $4, $5, $7::numeric, 'kg', clock_timestamp() + make_interval(days => $6 - 300), clock_timestamp() + make_interval(days => $6), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+    [id, SITE, l.code, l.material, l.material === 'MAT-PCM' ? 'API' : 'EXCIPIENT', l.days, l.quantity ?? '100'],
+  );
+  await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, $2, 1)", [id, l.state]);
+  await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'IR-01', 'T-01', gen_random_uuid(), gen_random_uuid())", [id]);
+  await arrangeCompleteReceipt(c, { id, site: SITE, material: l.material, ...(l.quantity ? { quantity: l.quantity } : {}) });
+  if (l.assay) {
+    // On GMP the assay is copied from an approved LIMS-lite result and names it (slice 5a; tablets 1001).
+    const { rows: lims } = await c.query<{ id: string }>(
+      "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'ASSAY', 'STP-AS-01', 'RELEASE', $2::numeric, '%', 98.0, 102.0, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
+      [id, l.assay],
+    );
+    await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [lims[0]?.id]);
+    const { rows: assay } = await c.query<{ id: string }>(
+      "insert into tab.lot_assay_result (material_lot_id, basis, assay, certificate_ref, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'AS_IS', $2::numeric, $3, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
+      [id, l.assay, `COA-${l.code}`],
+    );
+    await c.query("insert into tab.lot_assay_source (assay_result_id, value_kind, lims_result_id) values ($1, 'assay', $2)", [assay[0]?.id, lims[0]?.id]);
+  }
+}
+
 async function owner(): Promise<ActorContext> {
   return passwordActor(gmp.db, gmp.seed.bootstrap.owner, gmp.seed.bootstrap.owner.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'dispenser designation', correlationId: randomUUID() });
 }
@@ -243,31 +270,7 @@ beforeAll(async () => {
     c.query("select iam.register_device($1, 'INSTRUMENT', $2, 'DISP-1', null, $3, 'Balance 60 kg in DISP-1 (not interfaced)')", [BALANCE, SITE, createHash('sha256').update(`${BALANCE}:${randomUUID()}`).digest('hex')]),
   );
   await arrange(async (c) => {
-    for (const l of LOTS) {
-      const id = randomUUID();
-      lotIds.set(l.code, id);
-      await c.query(
-        `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, retest_at, expires_at, received_by_person, received_by_account, correlation_id)
-         values ($1, $2, $3, $4, $4, $5, 100, 'kg', clock_timestamp() + make_interval(days => $6 - 300), clock_timestamp() + make_interval(days => $6), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
-        [id, SITE, l.code, l.material, l.material === 'MAT-PCM' ? 'API' : 'EXCIPIENT', l.days],
-      );
-      await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, $2, 1)", [id, l.state]);
-      await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'IR-01', 'T-01', gen_random_uuid(), gen_random_uuid())", [id]);
-      await arrangeCompleteReceipt(c, { id, site: SITE, material: l.material });
-      if (l.assay) {
-        // On GMP the assay is copied from an approved LIMS-lite result and names it (slice 5a; tablets 1001).
-        const { rows: lims } = await c.query<{ id: string }>(
-          "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'ASSAY', 'STP-AS-01', 'RELEASE', $2::numeric, '%', 98.0, 102.0, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
-          [id, l.assay],
-        );
-        await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [lims[0]?.id]);
-        const { rows: assay } = await c.query<{ id: string }>(
-          "insert into tab.lot_assay_result (material_lot_id, basis, assay, certificate_ref, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'AS_IS', $2::numeric, $3, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
-          [id, l.assay, `COA-${l.code}`],
-        );
-        await c.query("insert into tab.lot_assay_source (assay_result_id, value_kind, lims_result_id) values ($1, 'assay', $2)", [assay[0]?.id, lims[0]?.id]);
-      }
-    }
+    for (const l of LOTS) await registerLot(c, l);
     await c.query('insert into plant.product (code, name, highly_potent, recorded_by) values ($1, $1, false, gen_random_uuid())', [product]);
     await c.query("insert into plant.equipment_class (code, kind, description, calibration_required, check_regime, recorded_by) values ('EQC-BAL-07', 'INSTRUMENT', 'Balance 60 kg', true, 'PER_USE', gen_random_uuid())");
     const { rows } = await c.query<{ id: string }>("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ($1, 'Balance 60 kg', 'EQC-BAL-07', 'INSTRUMENT', gen_random_uuid()) returning id", [BALANCE]);
@@ -515,6 +518,103 @@ describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consume
     expect(await attempt(1, null)).toMatch(/consumed no such quantity of that lot.*G07-CONSUMPTION.*EBMR-TAB-391/s);
     expect(await attempt(2, '0.020')).toMatch(/G07-CONSUMPTION.*EBMR-TAB-391/s);
     expect(await attempt(3, '0.010')).toBe('ok');
+  });
+});
+
+describe('a weighing that uses up a whole lot on GMP: the entry guard judges the lot as it stood before the command (EBMR-EXE-078; tablets 1808)', () => {
+  let b: { batchId: string; batchNumber: string };
+  const WHOLE: { code: string; material: string; days: number; state: string; quantity: string; reserve: boolean }[] = [
+    // First to expire of their materials, so stock rotation picks them without a reason (PR-18).
+    { code: 'L26-0302', material: 'MAT-MCC', days: 600, state: 'RELEASED', quantity: '8.639', reserve: true },
+    { code: 'L26-0402', material: 'MAT-MGS', days: 600, state: 'RELEASED', quantity: '0.600', reserve: true },
+    { code: 'L26-0403', material: 'MAT-MGS', days: 600, state: 'REJECTED', quantity: '5', reserve: false },
+    { code: 'L26-0404', material: 'MAT-MGS', days: 650, state: 'RELEASED', quantity: '0.010', reserve: true },
+  ];
+  beforeAll(async () => {
+    b = await issued();
+    await prepareBatch(b);
+    await arrange(async (c) => {
+      for (const l of WHOLE) {
+        await registerLot(c, l);
+        // The lot's creation in its state history, so its CONSUME transition continues it.
+        await c.query(
+          `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, to_state, to_version, person_id, account_id, role_code, correlation_id)
+           values ('material_lot', $1, 'material_lot', 1, $2, 1, 'TEST_SETUP', 'TEST_SETUP', 'TEST_SETUP', gen_random_uuid())`,
+          [lotIds.get(l.code), l.state],
+        );
+        if (!l.reserve) continue;
+        await c.query(
+          `insert into site.lot_reservation (lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account)
+           values ($1, $2, $3, 'TABLETS', 60, 'kg', clock_timestamp() + interval '2 days', 1, gen_random_uuid(), gen_random_uuid())`,
+          [lotIds.get(l.code), b.batchId, b.batchNumber],
+        );
+      }
+    });
+  }, 300_000);
+
+  /** The lot's state, what is left of it, and its consumptions into the batch. */
+  const lotEnd = async (code: string) => {
+    const id = lotIds.get(code);
+    const { rows } = await gmp.db.admin.query<{ state: string; left: string }>('select site.lot_state($1) as state, site.lot_quantity($1)::text as left', [id]);
+    const { rows: used } = await gmp.db.admin.query<{ id: string; quantity: string; unit: string }>(
+      'select c.id::text, c.quantity::text, c.unit from site.lot_consumption c where c.lot_id = $1 and c.batch_id = $2 order by c.consumed_at',
+      [id, b.batchId],
+    );
+    return { state: rows[0]?.state, left: Number(rows[0]?.left), consumed: used.map((u) => [u.id, u.quantity, u.unit]) };
+  };
+
+  it('[INV-13][INV-14][PR-18][DI-05] TB-01 dispensing the whole of a released lot is accepted: the lot is consumed in full in the same command and ends CONSUMED', async () => {
+    const d = await dispenser(b.batchId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    await d.ok('operator1', calc([{ lotCode: 'L26-0201' }]));
+    await d.ok('operator1', weigh('tbMcc', 'BOM-MCC', 'L26-0302', '9.639'));
+    const [mcc] = await entries(b.batchId, 'CONTAINER_WEIGHING');
+    expect(mcc?.['lot']).toMatchObject({ id: 'L26-0302', status: 'RELEASED' });
+    expect(await lotEnd('L26-0302')).toEqual({ state: 'CONSUMED', left: 0, consumed: [[mcc?.['consumption'], '8.639', 'kg']] });
+  });
+
+  it('[INV-13][INV-14][PR-57][PR-18][DI-05] G-07 dispensing the whole of a released lot is accepted: the lot is consumed in full in the same command and ends CONSUMED', async () => {
+    const d = await dispenser(b.batchId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: G07_KEY });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: G07_KEY, entry: { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', lotCode: 'L26-0402', manual: { gross: '1.600', tare: '1.000', unit: 'kg', deviceCode: BALANCE } } });
+    const end = await lotEnd('L26-0402');
+    expect({ ...end, consumed: end.consumed.map(([, q, u]) => [q, u]) }).toEqual({ state: 'CONSUMED', left: 0, consumed: [['0.600', 'kg']] });
+  });
+
+  it('[INV-13][INV-14][PR-18][DI-05] past the server, a lot already consumed or rejected before the command is still refused (EBMR-EXE-078); a lot this command uses up passes only with the facts it had before the command', async () => {
+    const run = await runContext(gmp.db.admin, b.batchId);
+    const factsOf = async (code: string) => (await gmp.db.admin.query<{ f: Json }>('select tab.lot_facts($1, $2::uuid) as f', [code, b.batchId])).rows[0]?.f ?? {};
+    const attempt = async (n: number, code: string, lotFacts: Json, consume: string | null) => {
+      const browser = (await dispenser(b.batchId)).browser('operator1');
+      vi.advanceTimersByTime(7_000);
+      return messageOf(
+        withCommand(gmp.db.app, await actorOfBrowser(gmp, browser, 'operator1'), async (c) => {
+          if (consume) {
+            const res = (await c.query<{ r: Json }>('select tab.tb01_reservation_for($1::uuid, $2, $3::numeric, $4) as r', [b.batchId, code, consume, 'kg'])).rows[0]?.r ?? {};
+            await c.query('select recipe.consume_lot($1::uuid, $2::uuid, $3, $4::numeric, $5) as r', [b.batchId, res['reservationId'], 'MAT-MGS', consume, 'kg']);
+          }
+          const tx = await execution.ExecutionTx.open(c, run.def, b.batchId);
+          const roles = await engineRoles(c);
+          const actor = engineActor(personaIn(gmp, 'operator1').personId, roles);
+          const entry = { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', container: `${b.batchNumber}/C7${n}`, lot: lotFacts, gross: '1.010', tare: '1.000', unit: 'kg', balance: BALANCE, source: 'MANUAL' };
+          const command: engine.Command = { type: 'RECORD_ENTRY', commandId: randomUUID(), actor, step: G07_STEP, context: [], entry };
+          return appendAs(tx, command, engineResult(tx, command), roles);
+        }),
+      );
+    };
+    const released = (code: string, f: Json) => ({ id: code, material: 'MAT-MGS', status: 'RELEASED', expiresAtUs: f['expiresAtUs'], retestAtUs: f['retestAtUs'], identityTested: true });
+    // Consumed by an earlier command (the G-07 test above): the register reads it as REJECTED, and it stays refused.
+    const consumed = await factsOf('L26-0402');
+    expect(consumed['status']).toBe('REJECTED');
+    expect(await attempt(1, 'L26-0402', released('L26-0402', consumed), null)).toMatch(/lot L26-0402 states other facts than the lot register holds.*EBMR-EXE-078/s);
+    // Rejected before the command.
+    expect(await attempt(2, 'L26-0403', released('L26-0403', await factsOf('L26-0403')), null)).toMatch(/lot L26-0403 states other facts than the lot register holds.*EBMR-EXE-078/s);
+    // Used up by this command, but the entry states another expiry (a day later) than the lot had: refused.
+    const whole = await factsOf('L26-0404');
+    expect(await attempt(3, 'L26-0404', { ...released('L26-0404', whole), expiresAtUs: String(BigInt(String(whole['expiresAtUs'])) + 86_400_000_000n) }, '0.010')).toMatch(/lot L26-0404 states other facts than the lot register holds.*EBMR-EXE-078/s);
+    // Used up by this command, with the facts it had before the command: accepted, and the lot ends CONSUMED.
+    expect(await attempt(4, 'L26-0404', released('L26-0404', whole), '0.010')).toBe('ok');
+    expect((await lotEnd('L26-0404')).state).toBe('CONSUMED');
   });
 });
 

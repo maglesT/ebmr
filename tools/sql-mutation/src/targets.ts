@@ -238,7 +238,9 @@ export const TARGETS: Target[] = [
                 'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check',
                 // Slice 7o (tablets 1700): a test run's disposal or sample names the batch's own output container; (recipe-core
                 // 1745) a test run's own container labels are bound words of its record.
-                'tab.own_output_container', 'recipe.run_bound_words'],
+                'tab.own_output_container', 'recipe.run_bound_words',
+                // Tablets 1808: a lot this command used up is judged by its status before the command.
+                'tab.lot_used_up_by_this_command'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
             s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts'), s('execution/sandbox-own-containers.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
