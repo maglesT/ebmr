@@ -98,6 +98,8 @@ register (`iam.qualification_type`), checked at signature by role or by area aut
 | Glove and sleeve integrity | A1 4.21 | INJ-10: per glove port (COUNT repeat): Y/N result, TXT tester ID, SIGN | per-port result is what the clause asks |
 | Single-use and closed systems | A1 8.127-8.139 | INJ-11: LOT (assembly), Y/N (integrity check before use), SIGN | as above |
 
+Component acceptance (211.84) is incoming QC's lot release, enforced at use by the lot's released status; each component lot is named where it is used (washing, the stopper load, capping) for 211.188(b) traceability, and INJ-COMPONENT-ACCEPT was dropped (lead, 6 November 2026). Known gap: those lot fields do not check that the lot is the right component (the material match needs a formula line), so the second person's VERIFIED signature on each of those steps covers it.
+
 ### 4.3 Processing
 
 | Item | Binding clause | Smallest means | Why nothing smaller |

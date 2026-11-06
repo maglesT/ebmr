@@ -83,8 +83,8 @@ The table below is the state at the pause.
   - the trace gate stays Tablets-only until I-6.
 - **Checker fix** is merged (#115). The library checker refuses a calculation that reads a DATE_TIME (LIB-CALC-DATE-TIME) or a TIMER (LIB-CALC-TIMER), because the runtime evaluates neither.
 - **I-1a, #114** (still open at the pause; the earlier session finishes it with #122):
-  - `packages/recipe-core/src/library/seed/injectables.ts` holds 17 blocks of the `injectables` edition:
-    - INJ-ROOM-READY, INJ-COMPONENT-ACCEPT, INJ-WASH, INJ-DEPYRO (tunnel), INJ-PARTS-AUTOCLAVE, INJ-COMPOUND;
+  - `packages/recipe-core/src/library/seed/injectables.ts` holds 16 blocks of the `injectables` edition (INJ-COMPONENT-ACCEPT dropped in I-1c: component lots are named at washing, the stopper load and capping):
+    - INJ-ROOM-READY, INJ-WASH, INJ-DEPYRO (tunnel), INJ-PARTS-AUTOCLAVE, INJ-COMPOUND;
     - INJ-BULK-FILTER, INJ-FILL, IPC-INJ-FILL-WEIGHT, INJ-AMPOULE-SEAL, INJ-CAPPING, INJ-TERMINAL-STERILISE;
     - INJ-VISUAL-INSPECT, INJ-CCI, INJ-UNIT-ACCOUNT, INJ-STERILITY-SAMPLE, and TEST-INJ-RELEASE (QC's).
   - They load with the existing catalogue load.

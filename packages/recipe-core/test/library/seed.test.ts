@@ -25,11 +25,21 @@ describe('the ready-made catalogue', () => {
     expect(item.exampleUse.targets?.['net']).toBe('10.412');
   });
 
-  it('[PR-18][PR-03] every material lot a catalogue block records names the bill-of-materials line whose material it must be, and the example fills that line, so the lot is checked as the right material and not only as released (R3-CAT-2)', () => {
+  /** The material lots that name no formula line: an injectable's primary components (block code and field id). */
+  const COMPONENT_LOTS = ['INJ-WASH containerLot', 'INJ-PARTS-AUTOCLAVE stopperLot', 'INJ-CAPPING sealLot'];
+
+  it('[PR-18][PR-03] every material lot a catalogue block records names the bill-of-materials line whose material it must be, and the example fills that line, so the lot is checked as the right material and not only as released (R3-CAT-2); the only exceptions, the primary component lots of an injectable, are verified by a second person', () => {
     for (const item of SEED_CATALOGUE) {
       for (const f of item.definition.sections.flatMap((s) => s.fields)) {
         if (f.type !== 'MATERIAL_LOT') continue;
         const where = `${item.definition.code} ${f.id}`;
+        // An injectable's primary component (vial or ampoule, stopper, seal) is no formula line (lead, 6 November 2026):
+        // its lot is checked as released at use, and a second person verifies it is the right component.
+        if (COMPONENT_LOTS.includes(where)) {
+          expect(f.bomLineSlot, where).toBeUndefined();
+          expect(item.definition.signatures.some((sg) => sg.meaning === 'VERIFIED'), where).toBe(true);
+          continue;
+        }
         expect(f.bomLineSlot, where).toBeDefined();
         expect(item.exampleUse.bomLines?.[f.bomLineSlot ?? ''], where).toBeDefined();
       }
