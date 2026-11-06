@@ -94,9 +94,9 @@ export const INJECTABLES: readonly Injectable[] = [
       unit('VIAL-CAPPER', 'Vial capping machine', 'TEST-CAPPER-01', 'Vial capper'),
       unit('INSPECTION-BOOTH', 'Visual inspection booth', 'TEST-BOOTH-01', 'Inspection booth'),
     ],
-    // The primary components (vials, stoppers, seals) are not here: a component line of the formula is dispensed by weight
-    // on the dispensing skeleton today, so INJ-COMPONENT-ACCEPT waits for a formula role the skeleton leaves undispensed
-    // (reported to the lead; as the capsule shells, Capsules C2).
+    // The primary components (vials, stoppers, seals) are not here: every formula line is dispensed by weight except a
+    // capsule's shells, and a formula line has no count unit to say "counted, not weighed" (mg or kg only), so
+    // INJ-COMPONENT-ACCEPT waits for the lead's decision on that model change.
     steps: [
       productBlock('INJ-ROOM-READY', 'ROOM-GRADE-C'),
       productBlock('INJ-WASH', 'VIAL-WASHER'),
@@ -111,9 +111,9 @@ export const INJECTABLES: readonly Injectable[] = [
       productBlock('INJ-TERMINAL-STERILISE', 'STEAM-STERILISER'),
       { ...productBlock('INJ-VISUAL-INSPECT', 'INSPECTION-BOOTH'), values: VIAL_COUNTS.inspect },
       productBlock('INJ-CCI', {}),
-      // INJ-UNIT-ACCOUNT waits for a shared change: a library YIELD_RECONCILIATION step must name a yield checkpoint of
-      // the master (validator GMP-YIELDS), which the designer cannot set for a library step (reported to the lead). Its
-      // counts are ready (VIAL_COUNTS.account): add `{ ...productBlock('INJ-UNIT-ACCOUNT', {}), values: VIAL_COUNTS.account }`.
+      // Unit accountability judges its own critical "not accounted for" limit, so it needs no master yield checkpoint
+      // (GMP-YIELDS, lead ruling I-1c).
+      { ...productBlock('INJ-UNIT-ACCOUNT', {}), values: VIAL_COUNTS.account },
     ],
   },
 ];
