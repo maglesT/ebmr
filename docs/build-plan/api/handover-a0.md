@@ -149,7 +149,9 @@ the G-10/G-09 plant steps or a G-21 step) to a RELEASED lot through the routes.
   are unchanged.
 - **substance 5001:** `substance.post_intermediate_lot(batch, quantity, unit)` (MATERIAL.HANDLE; expiry from
   `recipe.batch_expiry`), route `specifications.postIntermediateLot`.
-- **Release (lead, 6 November):** the existing QC/QA lot RELEASE; no new LOT_DECISION value.
+- **Release:** QA's existing release for further processing (lot machine `RELEASE_FOR_FURTHER_PROCESSING`,
+  MATERIAL_LOT_STATUS_DECIDED); the contract now lets `proposeLotDecision` and `LOT_DECISION` name that existing event
+  (lead, 6 November: kept; no database change).
 - **Test:** `apps/tablets-server/test/substance/intermediate-lots.test.ts` (A posted, released, refused while in quarantine,
   reserved by B; B posted).
 - **Next:** B consumes A through a G-07 weighing (needs a qualified balance and the plant steps; a bare
