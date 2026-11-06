@@ -188,6 +188,8 @@ the lead. Migration numbers: the injectables namespace has 3000–3999 (reserved
 
 The trace gate stays Tablets-only until I-6; meanwhile a per-edition trace report lists each slice's controls.
 
+Block versions (lead, 6 November 2026): until the first customer install, a catalogue block is edited in its version 1 (no customer database holds the catalogue; demo, CI and pod databases are rebuilt from seed). After the first customer install, a changed block is a new version.
+
 ## 7. Risks
 
 | Risk | Mitigation |

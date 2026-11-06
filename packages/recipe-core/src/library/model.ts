@@ -38,6 +38,10 @@ export type FieldType = (typeof FIELD_TYPES)[number];
 export const LIBRARY_EDITIONS = ['generic', ...EDITIONS] as const;
 export type LibraryEdition = (typeof LIBRARY_EDITIONS)[number];
 
+/** The markets a block may be tagged for (India, the US, the EU). */
+export const BLOCK_MARKETS = ['IN', 'US', 'EU'] as const;
+export type BlockMarket = (typeof BLOCK_MARKETS)[number];
+
 /** The edition of a definition: its own, or `tablets` when it names none. */
 export function blockEdition(def: { edition?: unknown }): string {
   return typeof def.edition === 'string' ? def.edition : 'tablets';
@@ -254,6 +258,12 @@ export interface BlockDefinition {
   category: BlockCategory;
   /** The edition the block belongs to (default `tablets`); `generic` blocks fit every edition. */
   edition?: LibraryEdition;
+  /**
+   * Metadata only: the markets whose binding clause alone asks for this block (an Annex 1 item is `['EU']`), so a master
+   * for other markets leaves it out (injectables plan, owner Q0; lead, 6 November 2026). Absent: every market. The engine
+   * does not read it.
+   */
+  markets?: readonly BlockMarket[];
   /** Validator roles (default: IPC for tests, PARAMETER_RECORD otherwise). */
   roles?: LibraryRole[];
   description?: string;
