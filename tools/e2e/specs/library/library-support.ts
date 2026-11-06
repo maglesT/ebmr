@@ -15,6 +15,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { library, librarySeed } from '@ebmr/recipe-core';
 import { expect } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
+import { explained } from '../phase7/own-product-floor.ts';
 import { card, choose, openStep, paceTaps, primary, signPrimary, startStep, switchUser, tap } from '../journey/support.ts';
 
 type Def = library.BlockDefinition;
@@ -404,7 +405,8 @@ async function withTap(page: Page, who: SeededPersona, button: Locator): Promise
   await paceTaps(page, who);
   await button.click();
   await tap(page, who);
-  await expect(async () => expect(await entries.count()).toBeGreaterThan(before)).toPass({ timeout: 20_000 });
+  // A refusal says why on the screen: the failure carries its words.
+  await explained(expect(async () => expect(await entries.count()).toBeGreaterThan(before)).toPass({ timeout: 20_000 }), page.locator('main'));
 }
 
 export { primary };

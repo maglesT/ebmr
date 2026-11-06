@@ -44,6 +44,11 @@ interface Injectable {
   materials: readonly { id: string; name: string; mgPerUnit: string; tare: string; gross: string }[];
   /** The sandbox plant's units the product needs (its own data, registered on screen before the batch). */
   plant: readonly PlantUnit[];
+  /**
+   * The primary components: no formula line and nothing dispensed (lead, 6 November 2026). Each has a released TEST- lot
+   * named by the library step that uses it (`field`: its lot field's id).
+   */
+  components: readonly { id: string; name: string; field: string }[];
   /** The product's library steps, in order, after the dispensing of the other components (before the reconciliation). */
   steps: readonly ProductBlock[];
 }
@@ -94,9 +99,11 @@ export const INJECTABLES: readonly Injectable[] = [
       unit('VIAL-CAPPER', 'Vial capping machine', 'TEST-CAPPER-01', 'Vial capper'),
       unit('INSPECTION-BOOTH', 'Visual inspection booth', 'TEST-BOOTH-01', 'Inspection booth'),
     ],
-    // The primary components (vials, stoppers, seals) are not here: every formula line is dispensed by weight except a
-    // capsule's shells, and a formula line has no count unit to say "counted, not weighed" (mg or kg only), so
-    // INJ-COMPONENT-ACCEPT waits for the lead's decision on that model change.
+    components: [
+      { id: 'vial', name: 'Glass vial, 2 mL, type I', field: 'containerLot' },
+      { id: 'stopper', name: 'Bromobutyl rubber stopper, 13 mm', field: 'stopperLot' },
+      { id: 'seal', name: 'Aluminium flip-off seal, 13 mm', field: 'sealLot' },
+    ],
     steps: [
       productBlock('INJ-ROOM-READY', 'ROOM-GRADE-C'),
       productBlock('INJ-WASH', 'VIAL-WASHER'),
@@ -325,9 +332,17 @@ export function defineInjectablesAcceptance(productKey: string): void {
     await q.context().close();
     await s.context().close();
     const lots = materials.map((m, i) => ({ lotCode: `TEST-L26-${tag}-${String(i + 1)}`, material: m }));
+    // The components' lots: registered and released as the formula's are, never dispensed (no tare or gross is used). Their
+    // material is no line of the master, so a sandbox entry may name it only by a TEST- code (DI-05, EBMR-EXE-147).
+    const componentLots = t.components.map((c, i) => ({
+      field: c.field,
+      lotCode: `TEST-L26-${tag}-${String(materials.length + i + 1)}`,
+      material: { code: `TEST-${c.id.toUpperCase()}-${tag}`, name: c.name, tare: '0', gross: '0', group: 'exc' } satisfies OwnMaterial,
+    }));
+    const stepLots = Object.fromEntries(componentLots.map((c) => [c.field, c.lotCode]));
     let batchNumber = '';
     await evidence.step('Sandbox: the steward registers TEST- lots of the new materials and the product\'s units; the test batch, issued at the further size, runs the dispensing, every library step and the release for packing on the kiosk to Execution complete; its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
-      await registerTestLots({ officePage, kioskPage, persona }, lots);
+      await registerTestLots({ officePage, kioskPage, persona }, [...lots, ...componentLots]);
       const sp = await officePage('SANDBOX', 'TEST-PC-01');
       await signIn.office(sp, persona('SANDBOX', 'steward'));
       await definePlantProduct(sp, e2e.url('SANDBOX'), product);
@@ -342,7 +357,7 @@ export function defineInjectablesAcceptance(productKey: string): void {
         sizeUnits: '50000',
         dispensingOnly: true,
         afterDispensing: async (page, ctx) => {
-          for (const b of t.steps) await runLibraryStep(page, ctx, b, units, {}, 1, 'TEST-', pool);
+          for (const b of t.steps) await runLibraryStep(page, ctx, b, units, stepLots, 1, 'TEST-', pool);
         },
       });
       batchNumber = run.batchNumber;
