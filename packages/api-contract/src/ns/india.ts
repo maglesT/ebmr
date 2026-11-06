@@ -224,6 +224,18 @@ export const india = {
     body: z.strictObject({ reason: Text(2000) }),
     response: LicenceView,
   }),
+  recordLicenceTelephone: defineRoute({
+    id: 'india.recordLicenceTelephone',
+    method: 'POST',
+    path: '/api/india/licences/:licenceId/telephone',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Record a new telephone for the holder of a licence of this site (regulatory affairs); it supersedes the earlier one on the CoA, which stays in the history (ICH Q7 11.43)',
+    params: z.strictObject({ licenceId: Uuid }),
+    body: z.strictObject({ telephone: z.string().regex(/^[0-9+() -]{3,40}$/) }),
+    response: LicenceView,
+  }),
   exportPermissions: defineRoute({
     id: 'india.exportPermissions',
     method: 'GET',

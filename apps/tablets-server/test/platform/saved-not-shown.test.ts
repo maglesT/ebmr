@@ -52,6 +52,7 @@ const LATER_READ_ROUTES = [
   'features/india/index.ts#recordExportPermission',
   'features/india/index.ts#recordHazard',
   'features/india/index.ts#recordLicence',
+  'features/india/index.ts#recordLicenceTelephone',
   'features/india/index.ts#recordShelfLifeBasis',
   'features/india/index.ts#suspendExportPermission',
   'features/india/index.ts#suspendLicence',

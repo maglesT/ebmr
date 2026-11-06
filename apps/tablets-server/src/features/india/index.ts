@@ -287,6 +287,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       });
       return one(licences(app, pool, params.licenceId), 'licence');
     },
+    recordLicenceTelephone: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select site.record_licence_holder_telephone($1, $2)', [params.licenceId, body.telephone]);
+        return null;
+      });
+      return one(licences(app, pool, params.licenceId), 'licence');
+    },
     exportPermissions: async ({ requireSession }) => {
       requireSession();
       return { permissions: await permissions(app, pool) };
