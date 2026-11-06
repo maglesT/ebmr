@@ -497,7 +497,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^101\d_']
+      packages/recipe-core/sql: ['^101\d_', '^1876_']
 
   - id: rc-transfer
     title: Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i)

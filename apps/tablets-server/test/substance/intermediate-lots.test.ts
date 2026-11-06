@@ -298,4 +298,22 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
       ['BATCH', batch.P.batchNumber, 'FINISHED'], ['BATCH', batch.C.batchNumber, 'PACKAGING_ORDER'], ['LOT', batch.B.batchNumber, 'CONSUMED'],
     ]));
   });
+
+  it('[AS-04][PR-57][IN-07] the trace crosses the intermediate lots both ways (recipe-core 1876): the API lot back through step C, lot B and step B to lot A and step A; lot A forward through step B, lot B and step C to the API lot', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    const trace = async (kind: 'LOT' | 'BATCH', id: string, direction: 'FORWARD' | 'BACKWARD'): Promise<(string | null)[][]> => {
+      const t = valueOf(await qa.call(routes.genealogy.trace, { query: { kind, id, direction } }));
+      const label = (r: { kind: string; id: string } | null): string | null => (r ? t.nodes.find((n) => n.kind === r.kind && n.id === r.id)?.label ?? null : null);
+      return t.edges.map((e) => [e.parent?.kind ?? null, label(e.parent), e.edgeKind, e.node.kind, label(e.node)]);
+    };
+    const [A, B, C, P] = [batch.A.batchNumber, batch.B.batchNumber, batch.C.batchNumber, batch.P.batchNumber];
+    expect(await trace('LOT', lot.P, 'BACKWARD')).toEqual(expect.arrayContaining([
+      ['LOT', P, 'FINISHED', 'BATCH', P], ['BATCH', P, 'PACKAGING_ORDER', 'BATCH', C], ['BATCH', C, 'CONSUMED', 'LOT', B],
+      ['LOT', B, 'FINISHED', 'BATCH', B], ['BATCH', B, 'CONSUMED', 'LOT', A], ['LOT', A, 'FINISHED', 'BATCH', A],
+    ]));
+    expect(await trace('LOT', lot.A, 'FORWARD')).toEqual(expect.arrayContaining([
+      ['LOT', A, 'CONSUMED', 'BATCH', B], ['BATCH', B, 'FINISHED', 'LOT', B], ['LOT', B, 'CONSUMED', 'BATCH', C],
+      ['BATCH', C, 'PACKAGING_ORDER', 'BATCH', P], ['BATCH', P, 'FINISHED', 'LOT', P],
+    ]));
+  });
 });
