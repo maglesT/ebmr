@@ -945,7 +945,8 @@ function currentStage(ctx: ViewContext): string | undefined {
 
 /**
  * Whether the batch posts an intermediate lot (API plan A2, C1): the master is of the API edition and makes a processing
- * record, the execution is complete, and the batch's register allocation is of the SUBSTANCE edition. The rule is the
+ * record, the execution is complete, the batch's register allocation is of the SUBSTANCE edition and no intermediate lot
+ * is posted for it yet (one per batch). The rule is the
  * database's (site.create_intermediate_lot refuses anything else); this only tells the overview whether to offer the post.
  */
 export function intermediatePostOffered(p: { familyEdition: string | undefined; recordKind: string | undefined; status: string; registerEdition: string | null }): boolean {
@@ -956,10 +957,12 @@ async function postsIntermediateLot(ctx: ViewContext): Promise<boolean> {
   const h = ctx.run.def.mbr.header;
   const facts = { familyEdition: h.edition as string | undefined, recordKind: h.recordKind as string | undefined, status: ctx.state.status as string };
   if (!intermediatePostOffered({ ...facts, registerEdition: 'SUBSTANCE' })) return false;
-  const { rows } = await ctx.db.query<{ edition: string }>(
-    'select a.edition from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $1',
+  const { rows } = await ctx.db.query<{ edition: string; posted: boolean }>(
+    `select a.edition, exists (select 1 from site.intermediate_lot i where i.batch_id = k.batch_id) as posted
+       from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $1`,
     [ctx.run.batch.id],
   );
+  if (rows[0]?.posted === true) return false;
   return intermediatePostOffered({ ...facts, registerEdition: rows[0]?.edition ?? null });
 }
 

@@ -225,10 +225,10 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     await expect(consume(batch.B.batchId, INT_A.code, '50')).rejects.toThrow(/EBMR-RCP-433/);
   });
 
-  it('[IN-05][PR-45][INV-27] the batch overview offers the intermediate post only for a complete processing batch of the API edition (header.postsIntermediateLot, the server\'s answer): step A complete, yes; step B issued and not complete, no; a tablets processing batch, never', async () => {
+  it('[IN-05][PR-45][INV-27] the batch overview offers the intermediate post only for a complete processing batch of the API edition with none posted yet (header.postsIntermediateLot, the server\'s answer): step A posted, no; step B issued and not complete, no; a tablets batch, no', async () => {
     const offered = async (batchId: string): Promise<boolean | undefined> =>
       (await new RunDriver(gmp, batchId, { stores: await gmp.asPersona('stores') }).runView('stores')).header.postsIntermediateLot;
-    expect([await offered(batch.A.batchId), await offered(batch.B.batchId)]).toEqual([true, false]);
+    expect([await offered(batch.A.batchId), await offered(batch.B.batchId)]).toEqual([false, false]);
     // A tablets processing batch at the same state, whatever its register says: the master's edition decides first.
     const tablets = { familyEdition: 'tablets', recordKind: 'PROCESSING', status: 'EXECUTION_COMPLETE' };
     expect([intermediatePostOffered({ ...tablets, registerEdition: 'TABLETS' }), intermediatePostOffered({ ...tablets, registerEdition: 'SUBSTANCE' }),
@@ -236,9 +236,13 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
       intermediatePostOffered({ ...tablets, familyEdition: 'substance', registerEdition: 'SUBSTANCE' })]).toEqual([false, false, false, false, true]);
   });
 
-  it('[IN-05][PR-45] step B completes and posts intermediate B in quarantine, a lot of its own product', async () => {
+  it('[IN-05][PR-45] step B completes and posts intermediate B in quarantine, a lot of its own product; the overview offers the post until it is made', async () => {
     await runToComplete(batch.B.batchId);
+    const offered = async (): Promise<boolean | undefined> =>
+      (await new RunDriver(gmp, batch.B.batchId, { stores: await gmp.asPersona('stores') }).runView('stores')).header.postsIntermediateLot;
+    expect(await offered()).toBe(true);
     const lotB = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '42.5', unit: 'kg' } }));
     expect(lotB).toMatchObject({ lotCode: batch.B.batchNumber, materialCode: INT_B.code, status: 'QUARANTINE', quantity: '42.5' });
+    expect(await offered()).toBe(false);
   });
 });
