@@ -14,11 +14,8 @@ import type { BlockDefinition, BlockUse } from '../../src/library/model.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 import { potencyDispensing } from './examples.ts';
+import { configOf } from './seed-support.ts';
 
-/** A use's configuration as a phase carries it (the block reference left out). */
-function configOf(use: BlockUse): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(use).filter(([k]) => k !== 'block'));
-}
 
 /** An LOD test recorded once, in % (or in another unit, to see the conversion). */
 const lodTest = (unit = '%'): BlockDefinition => ({

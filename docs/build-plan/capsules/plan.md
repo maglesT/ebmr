@@ -1,6 +1,7 @@
 # Batchwright Capsules edition (hard capsules and soft gels): plan
 
-- **Status:** v3, for the lead's approval. Owner (4 November): "change it to capsules edition and go with lead's
+- **Status:** done (C1 to C8 merged, 5 November 2026; C8 exit residuals in section 8). Approved as v3 (PR #102).
+- **History:** v3, for the lead's approval. Owner (4 November): "change it to capsules edition and go with lead's
   answers": the name is the Capsules edition; the build follows the lead's answers (the catalogue in the shared oral-solid
   build, the binding rule). No code before approval.
 - **Owner decisions (4 November 2026):** build Capsules on the same kernel, library, e-signatures, audit trail, MBR
@@ -56,7 +57,7 @@ Every record maps to an existing field type:
 | Record | Field types |
 |---|---|
 | Filler, encapsulator, dryer, sorter, checkweigher, printer, band sealer, homogeniser | EQUIPMENT (class slot; the class carries the method) |
-| Capsule size, filling principle, die set, gelatin source (bovine, porcine, fish, non-animal), defect class | CHOICE or TEXT |
+| Capsule size, filling principle, die set, defect class | CHOICE or TEXT (gelatin source: none, D-C6-2) |
 | Shell, gelatin, plasticiser, colour, opacifier, lubricant oil, solvent, ink lots; pellets, mini-tablets, fill, gel mass | MATERIAL_LOT, CONTAINER (consume, register) |
 | Fill weight, speed, temperatures, vacuum, viscosity, ribbon and seal thickness, RH | NUMBER with limit slot, `critical` |
 | Rounds every N minutes; one row per capsule; drying until the end point | section repeat PER_INTERVAL, COUNT, UNTIL_PASS |
@@ -112,13 +113,13 @@ E = existing block, reused. N = new block, data only, QA-approved like any other
 
 | Method or step | Block(s) |
 |---|---|
-| Gel mass: melting, plasticiser, colour/opacifier, deaeration, viscosity, holding time; gelatin (bovine, porcine, fish) or non-animal (starch, carrageenan) | N: SG-GEL-MASS (gelatin source is a CHOICE; materials are the formula's) |
+| Gel mass: melting, plasticiser, colour/opacifier, deaeration, viscosity, holding time; gelatin (bovine, porcine, fish) or non-animal (starch, carrageenan) | N: SG-GEL-MASS (no gelatin-source field, D-C6-2: the gelatin is a lot of an approved material; materials are the formula's; the hold is the master's PROC-HOLD, D-C3-6) |
 | Fill preparation | N: PROC-FILL-PREP (section 3.1) |
 | Rotary die encapsulation: ribbon thickness, seal thickness, wedge and spreader temperatures, lubrication, die-roll changes, fill and shell weight per round; other rotary-die machines (equipment class) | N: SG-ENCAP-ROTARY |
 | Seamless (concentric nozzle, drop method) | N: SG-ENCAP-SEAMLESS |
 | Chewable soft gels | data: a chewable gel mass formula in SG-GEL-MASS; tests as the product's specification |
 | Tumble drying, then tray drying in low-humidity tunnels; end point on hardness and/or moisture; holding times | N: SG-DRY (tumble section, then an UNTIL_PASS tunnel section with RH and temperature at intervals) |
-| Washing and solvent removal | N: SG-WASH |
+| Washing and solvent removal | dropped (D-C6-1: no binding clause asks for it) |
 | Fill weight and shell weight (per capsule, gross − shell) | N: IPC-SG-FILL-SHELL |
 | Seal thickness | N: IPC-SG-SEAL-THICKNESS |
 | Hardness | N: IPC-SG-HARDNESS |
@@ -131,7 +132,7 @@ or PROC-CAPS-FILL and that machine's equipment class (Q2).
 **New library blocks: 20, all data.** Hard: 11 (PROC-EXTRUDE-SPHERONISE, PROC-PELLET-LAYER, COAT-PELLET-FB,
 PROC-CAPS-FILL-PLATE, PROC-CAPS-FILL-MULTI, PROC-CAPS-FILL-LIQUID, PROC-CAPS-CHECKWEIGH, PROC-CAPS-BAND, PROC-CAPS-PRINT,
 PROC-CAPS-INSPECT, IPC-CAPS-SEAL-LEAK) and PROC-FILL-PREP, shared with soft. Soft: 8 (SG-GEL-MASS, SG-ENCAP-ROTARY,
-SG-ENCAP-SEAMLESS, SG-DRY, SG-WASH, IPC-SG-FILL-SHELL, IPC-SG-SEAL-THICKNESS, IPC-SG-HARDNESS). Two existing blocks get a
+SG-ENCAP-SEAMLESS, SG-DRY, IPC-SG-FILL-SHELL, IPC-SG-SEAL-THICKNESS, IPC-SG-HARDNESS). Two existing blocks get a
 data-only version 2 (PROC-CAPS-FILL, IPC-CAPS-DT).
 
 ## 4. Binding clauses (cited, checked against `docs/regulatory/sources-extracted/`)
@@ -186,8 +187,8 @@ for capsules or soft gels; the product limits come from the registered specifica
 **Gelatin TSE/BSE, binding status:** 21 CFR 210/211 have no TSE clause; FDA's gelatin recommendations are guidance and
 are left out. In the EU, TSE compliance of gelatin is a marketing-authorisation requirement (by reference), so it is
 met by approved source and lot approval; the batch record does not repeat it. In India, it is the Schedule M
-risk-assessment duty above. No field is added. A site that wants the gelatin source on the record already has it in
-SG-GEL-MASS.
+risk-assessment duty above. No field is added: the gelatin source is a property of the approved material its lot
+belongs to, not a batch-record field (D-C6-2).
 
 **Not binding, so not built:** Part VIII 3.8's 30-minute sampling interval is written for tablet compression (it
 applies to mini-tablet compression through the `tablets` rule key, and to nothing else here). Part VIII 7.2 (isolated
@@ -204,8 +205,9 @@ Each slice: tests named by control ID, CI green, one review, squash-merge, a few
 | C2 Powder hard capsule end to end | the platform reader takes `dosage_form` from core's report.product_v1 (a product is a capsule only when its dosage form contains "capsule"; none means tablet; lead, 4 November); the header name from the dosage form (decision 0020 amended); the remaining tablet wording a capsule master shows (the batch-size input name "tablets", the issue count) worded per unit or per capsule; one E2E group: catalogue to released lot through the screens (as S11b), automatic dosator | the E2E group green |
 | C3 Post-fill and packing | checkweigher, inspection, printing with the QC hold point, banding (US OTC), blister, strip, bottle | `[IN-37][PR-41][IN-38]` tests green |
 | C4 Multiparticulates | extrusion-spheronisation, layering, pellet coating, pellet and mini-tablet dosing, combinations, two-stage dissolution | a delayed-release pellet formulation runs |
-| C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling; a beta-lactam product refused outside dedicated rooms and equipment | tests green |
-| C6 Soft gels I | gel mass, rotary die, drying to end point, washing, fill/shell weight, seal thickness, hardness | one soft-gel formulation runs; one E2E group to a released lot |
+| C5 Liquid fill and plate filling | PROC-FILL-PREP, liquid fill, seal leak; plate filling (beta-lactam capsules dropped: owner, 5 November, "no penicillin"; the existing check at issue stays as it is) | tests green |
+| C6 Soft gels I | gel mass, rotary die, drying to end point, fill/shell weight, seal thickness, hardness (washing dropped, D-C6-1) | one soft-gel formulation runs |
+| C6b Soft-gel E2E | the acceptance scenario with two dispensed streams (gel mass and fill) and the soft-gel plant, to a released packed lot; next after C6, before C7 | the E2E group green |
 | C7 Soft gels II | seamless, chewable, enteric (coating), rupture; shared post-process on soft gels | tests green |
 | C8 Exit | the full suite, the browser suite, the existing golden batches unchanged, one review pass | all green |
 
@@ -261,3 +263,59 @@ C1 starts on approval. C3-C5 can overlap in their own worktrees (at most 2-3 age
 - D-C3-6 (lead, 5 November): a hold that ends in a later step (band or sealing solution, a liquid fill, wet pellets) is
   not timed inside one step: 21 CFR 211.111 is met by the master's HOLD time constraint between the two steps, or its
   PROC-HOLD step. No library block carries an in-step holding timer.
+
+**C6 soft gels I (5 November 2026; lead audit):**
+- D-C6-1: no SG-WASH: no binding clause asks for a washing step.
+- D-C6-2: no gelatin-source field: the gelatin lot names an approved material; TSE is met at supplier and material
+  approval (section 4).
+- D-C6-3: fill weight per capsule is a calculation per capsule (gross less shell) in IPC-SG-FILL-SHELL, with an
+  individual and a mean limit; the encapsulation round records no typed mean weights.
+- D-C6-4: the drying end point is hardness (until it passes); the tray drying time is a timer (hours) to the passing
+  check, with a maximum; moisture stays with IPC-LOD.
+- D-C6-5: no spreader temperature, lubrication or die-roll change fields; die-roll changes are the equipment logbook's
+  (21 CFR 211.182).
+- D-C6-6: no STEP_VALUE input: no calculation needs an earlier step's value.
+
+**C6b soft-gel E2E (5 November 2026):**
+- D-C6b-1: the two streams on the formula's skeleton with no product change: the fill (active, oil, wetting agent) is
+  the per-unit lines, dispensed and blended with TB-07 as the skeleton's blend; the gel mass (gelatin, glycerin) is
+  per-batch lines, which the skeleton dispenses in their own step (`p-disp-aid`) and never charges to the blender.
+  Lead, 5 November (211.186(b)(1), Schedule M: the component list names what goes into the product): a capsule's
+  per-batch lines may be EXCIPIENT (recipe-core 1875; the server states the unit form from the product's dosage form,
+  a tablet is refused as before), and the master names the group "Gel mass components" on a capsule master.
+- D-C6b-2: no per-unit shells line on a soft gel (the shell is made from the gel mass); a capsule formula without one
+  is accepted (from-formula.ts checkShells refuses only two), and the master shows the Capsules header.
+- D-C6b-3: the fill's TB-07 "lubricant added" quantity is the wetting agent, the late addition (the skeleton requires
+  TB-07); the purified water of the gel mass is the plant's, not a lot of the formula.
+- D-C6b-4: the soft-gel plant's new units (fill vessel, melter, holding tank, encapsulator, dryers, gauges, hardness
+  tester, inspection) are registered on screen as PROCESS units with their qualification, as C2/C3 did for the
+  checkweigher; the fill and shell weights use the existing balance. No block field added in this slice.
+
+**C7 soft gels II (5 November 2026; lead audit):**
+- D-C7-1: SG-ENCAP-SEAMLESS mirrors SG-ENCAP-ROTARY clause for clause: encapsulator and nozzle (211.105(a)), gel mass
+  and fill inputs (211.101(d)), lines connected (EU GMP 5.14), nozzle and cooling-liquid temperatures at each round
+  against limits, not critical (211.110(a), (b)), output, rejects, operator and verifier. No cooling-oil lot or washing.
+- D-C7-2: chewable and enteric soft gels are data: a chewable gel mass is the formula's lines on SG-GEL-MASS; the enteric
+  coat reuses COAT-SUSPENSION-PREP and COAT-ENTERIC. COAT-ENTERIC's "tablet" wording is the D-C3-5 residual: a
+  data-only "units" version in C8, only if a capsule master uses it.
+- D-C7-3: IPC-CAPS-DT carries a CHOICE "Disintegration / Rupture" (211.110(a)(2), (b): the test the registered
+  specification names), edited into the v1 seed as C1 did (no site holds it; the demo resets from seed). No new limit
+  slot: the time limit is the specification's in either case.
+
+**C8 exit (5 November 2026; lead):**
+- D-C8-1: no "units" wording versions of TB-20, TB-23 or COAT-ENTERIC. No capsule master uses them: both capsule E2E
+  masters pack in the cold-form blister (TB-21, TB-22, TB-24), and COAT-ENTERIC is used by the tablet acceptance master
+  and the C7 unit test only. The first capsule master that needs one gets a data-only version worded per unit (never
+  an edit of an approved version, D-C3-5).
+- D-C8-2 (review pass, lead): every capsule block field carries its clause as a comment (field or group). `critical`
+  stays only where a clause names the parameter: times and temperatures of mixing, blending, drying and curing
+  (Schedule M Part VIII 2.3), fill weights (21 CFR 211.110(a)(1)) and leakers (D-C3-1). Dropped from the reject
+  set-points, band solution and liquid fill temperatures, fill viscosity, extruder and plate speeds, spheronising time,
+  spray rate and atomising air, weight gain, soft-gel hardness and shell weight; each keeps its limit, so a breach still
+  goes through the out-of-limit exception and deviation path (21 CFR 211.192). PROC-CAPS-INSPECT's method CHOICE and the
+  pellet coat's "Top coat" option dropped (no clause); the band's sealing technology (211.132(b)(2)) and the capsule
+  sizes (211.105(a)) kept.
+- Residuals (lead accepted): the pre-C1 capsule blocks (IPC-CAPS-APPEARANCE, IPC-CAPS-LOCK-LENGTH, IPC-CAPS-DT's medium
+  temperature, REL-CAPS-DISSO) keep their critical flags and carry no clause comments; IPC-CAPS-DT's reference maximum of
+  30 min is a reference note, not a limit; the guard limit slots (PROC-CAPS-FILL speed, IPC-SG-FILL-SHELL gross per
+  D-C6-3, COAT-PELLET-FB core and coated mass, PROC-PELLET-LAYER cores quantity) stay.

@@ -2,9 +2,9 @@
  * The nominal run of a catalogue item (decision 0026, S7 and S8): its example values in a one-step master, every
  * section recorded with values inside their limits, through the same engine and generic handler as any library block.
  */
-import type { MbrContent } from '../../src/flow/model.ts';
+import type { FlowNode, HoldPointNode, MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockType, libraryBlockVersion, nominalEntries, TIMER_STOP } from '../../src/library/index.ts';
-import type { BlockDefinition, FieldDef } from '../../src/library/model.ts';
+import type { BlockDefinition, BlockUse, FieldDef } from '../../src/library/model.ts';
 import { SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
@@ -110,4 +110,39 @@ export function runNominalStep(batch: Run, stepId: string, def: BlockDefinition,
   }
   batch.perform(stepId);
   if (batch.status(stepId) === 'AWAITING_VERIFICATION') batch.verify(stepId);
+}
+
+/** A master step from the catalogue: the item's example values, with the step's own formula lines and counts. */
+export interface CatalogueStep {
+  code: string;
+  bomLines?: Record<string, string>;
+  counts?: Record<string, string>;
+}
+
+/** The block use of a catalogue step (its example values, the step's formula lines and counts over them). */
+export function useOf(s: CatalogueStep): BlockUse {
+  const ex = byCode(s.code).exampleUse;
+  return { block: { code: s.code, version: 1 }, ...ex, ...(s.bomLines ? { bomLines: s.bomLines } : {}), ...(s.counts ? { counts: { ...ex.counts, ...s.counts } } : {}) };
+}
+
+/** A use's configuration as a phase carries it (the block reference left out). */
+export function configOf(use: BlockUse): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(use).filter(([k]) => k !== 'block'));
+}
+
+/** A catalogue step placed in a master under its own step id. */
+export interface MasterStep extends CatalogueStep {
+  id: string;
+}
+
+/**
+ * A master built from catalogue steps (each a phase with the item's example values and the step's formula lines) and any
+ * hold points between them, with its BOM and dosage form, and the registry that knows the steps' library blocks.
+ */
+export function catalogueMaster(nodes: readonly (MasterStep | HoldPointNode)[], bom: MbrContent['bom'], dosageForm: string): { mbr: MbrContent; registry: ReturnType<typeof testRegistry> } {
+  const steps = nodes.filter((n): n is MasterStep => !('kind' in n));
+  const children: FlowNode[] = nodes.map((n) => ('kind' in n ? n : phase(n.id, { name: byCode(n.code).definition.title, block: { type: libraryBlockType(n.code), version: '1' }, config: configOf(useOf(n)) as never })));
+  const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [...children, phase('after')] }, { bom });
+  const defs = [...new Set(steps.map((s) => s.code))].map((c) => libraryBlockVersion(byCode(c).definition, expr));
+  return { mbr: { ...mbr, header: { ...mbr.header, product: { ...mbr.header.product, dosageForm } } }, registry: testRegistry().extend(...defs) };
 }

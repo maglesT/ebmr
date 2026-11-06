@@ -558,7 +558,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_', '^1840_', '^1862_', '^1871_', '^1872_']
+      packages/recipe-core/sql: ['^1800_', '^1810_', '^1820_', '^1830_', '^1840_', '^1862_', '^1871_', '^1872_', '^1874_']
       apps/tablets-server/sql: ['^1802_', '^1803_', '^1806_']
     src: [packages/recipe-core/src/library]
     server: [apps/tablets-server/src/features/library]
@@ -581,7 +581,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'

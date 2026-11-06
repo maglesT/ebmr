@@ -67,6 +67,17 @@ const SANDBOX_UNITS: Readonly<Record<string, string>> = {
   'EQC-CAPS-CHECKWEIGH': 'TEST-CHECKWEIGH-01',
   'EQC-CAPS-PRINTER': 'TEST-PRINTER-01',
   'EQC-CAPS-INSPECT': 'TEST-INSPECT-01',
+  // Registered on screen by the soft-gel product's test (C6b).
+  'EQC-SG-FILLMIX': 'TEST-SG-FILLMIX-01',
+  'EQC-SG-VISCO': 'TEST-SG-VISCO-01',
+  'EQC-SG-MELTER': 'TEST-SG-MELTER-01',
+  'EQC-SG-HOLD': 'TEST-SG-HOLD-01',
+  'EQC-SG-ENCAP': 'TEST-SG-ENCAP-01',
+  'EQC-SG-SEALGAUGE': 'TEST-SG-SEALGAUGE-01',
+  'EQC-SG-TUMBLER': 'TEST-SG-TUMBLER-01',
+  'EQC-SG-TUNNEL': 'TEST-SG-TUNNEL-01',
+  'EQC-SG-HARDNESS': 'TEST-SG-HARDNESS-01',
+  'EQC-SG-INSPECT': 'TEST-SG-INSPECT-01',
 };
 
 interface Tablet {
@@ -78,7 +89,16 @@ interface Tablet {
   targetMg: string;
   /** The active first (potency-adjusted), the compensating excipient second, then the lubricant; per unit (mg). Tare and
    *  gross (kg) of the one container weighed for a batch at the further size, 50,000 tablets. */
-  materials: readonly { id: string; name: string; mgPerUnit: string; tare: string; gross: string }[];
+  materials: readonly {
+    id: string;
+    name: string;
+    mgPerUnit: string;
+    tare: string;
+    gross: string;
+    /** A per-batch line (kg per reference batch, `mgPerUnit` unused): role EXCIPIENT on a capsule (recipe-core 1875), dispensed in its own step and
+     *  not charged to the blender; a soft gel's gel-mass components (C6b, D-C6b-1). */
+    perBatchKg?: string;
+  }[];
   discharge: { tare: string; gross: string };
   afterDispensing: readonly ProductBlock[];
   afterDischarge: readonly ProductBlock[];
@@ -86,6 +106,8 @@ interface Tablet {
    *  the bill of materials but not dispensed into the blend; the filling step names its lot (Capsules edition C2). */
   shells?: string;
   shellMg?: string;
+  /** A library step's MATERIAL_LOT field (its id) naming the lot of the material `id` of `materials` (C6b: the gelatin). */
+  stepLots?: Readonly<Record<string, string>>;
   /** Units the plant does not have yet, registered on the sandbox's screens before the batch. */
   plant?: readonly PlantUnit[];
   /** The same for the GMP plant, registered on its screens before the GMP batch. */
@@ -199,6 +221,73 @@ export const TABLETS: readonly Tablet[] = [
       productBlock('PROC-CAPS-INSPECT', 'EQC-CAPS-INSPECT'),
     ],
   },
+  {
+    // Capsules edition C6b: a soft gelatin capsule (oil suspension fill) on the rotary die encapsulator, from the
+    // catalogue to its released, packed lot, with no code change. Two dispensed streams on the formula's skeleton
+    // (D-C6b-1): the fill (the active, the oil, the wetting agent) is the per-unit lines, blended with TB-07 as the
+    // skeleton's blend; the gel mass (gelatin, glycerin) is per-batch lines, dispensed in their own step and not charged
+    // to the blender. No per-unit shells line: the shell is made from the gel mass on the machine.
+    key: 'softgel',
+    prefix: 'LSG100',
+    name: 'Libgel 100 mg, soft gelatin capsules (library)',
+    strength: '100 mg',
+    dosageForm: 'Soft gelatin capsule',
+    // The fill weight per capsule; the shell's is the in-process test's (IPC-SG-FILL-SHELL).
+    targetMg: '500',
+    materials: [
+      { id: 'api', name: 'Libgel active', mgPerUnit: '100', tare: '1.000', gross: '6.000' },
+      { id: 'mct', name: 'Medium-chain triglycerides (fill vehicle)', mgPerUnit: '390', tare: '1.000', gross: '20.500' },
+      { id: 'lec', name: 'Soya lecithin (wetting agent)', mgPerUnit: '10', tare: '0.200', gross: '0.700' },
+      // The gel mass per reference batch of 1,00,000 capsules (the purified water is the plant's, not a lot).
+      { id: 'gel', name: 'Gelatin (soft gel grade)', mgPerUnit: '0', perBatchKg: '15', tare: '1.000', gross: '8.500' },
+      { id: 'gly', name: 'Glycerin (plasticiser)', mgPerUnit: '0', perBatchKg: '8', tare: '1.000', gross: '5.000' },
+    ],
+    // The fill: everything charged is discharged.
+    discharge: { tare: '1.000', gross: '26.000' },
+    gmpDischarge: { tare: '1.000', gross: '51.000' },
+    // The dried capsules: the fill and the shell (about 230 mg each), less the in-process samples and the rejects.
+    gmpBulkNet: '72.800',
+    stepLots: { gelatinLot: 'gel' },
+    plant: [
+      { classCode: 'EQC-SG-FILLMIX', classKind: 'PROCESS', classDescription: 'Fill preparation vessel (jacketed, under vacuum)', code: 'TEST-SG-FILLMIX-01', name: 'Fill preparation vessel', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-VISCO', classKind: 'PROCESS', classDescription: 'Viscometer for fills and gel mass', code: 'TEST-SG-VISCO-01', name: 'Viscometer', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-MELTER', classKind: 'PROCESS', classDescription: 'Gel mass melter (jacketed, under vacuum)', code: 'TEST-SG-MELTER-01', name: 'Gel mass melter', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-HOLD', classKind: 'PROCESS', classDescription: 'Gel mass holding tank (heated)', code: 'TEST-SG-HOLD-01', name: 'Gel mass holding tank', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-ENCAP', classKind: 'PROCESS', classDescription: 'Rotary die soft gel encapsulation machine', code: 'TEST-SG-ENCAP-01', name: 'Rotary die encapsulator', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-SEALGAUGE', classKind: 'PROCESS', classDescription: 'Soft gel seal thickness gauge', code: 'TEST-SG-SEALGAUGE-01', name: 'Seal thickness gauge', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-TUMBLER', classKind: 'PROCESS', classDescription: 'Soft gel tumble dryer', code: 'TEST-SG-TUMBLER-01', name: 'Tumble dryer', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-TUNNEL', classKind: 'PROCESS', classDescription: 'Soft gel drying tunnel (trays)', code: 'TEST-SG-TUNNEL-01', name: 'Drying tunnel', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-HARDNESS', classKind: 'PROCESS', classDescription: 'Soft gel hardness tester', code: 'TEST-SG-HARDNESS-01', name: 'Soft gel hardness tester', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-INSPECT', classKind: 'PROCESS', classDescription: 'Soft gel inspection machine', code: 'TEST-SG-INSPECT-01', name: 'Soft gel inspection belt', area: 'BLEND-1' },
+    ],
+    gmpPlant: [
+      { classCode: 'EQC-SG-FILLMIX', classKind: 'PROCESS', classDescription: 'Fill preparation vessel (jacketed, under vacuum)', code: 'SG-FILLMIX-01', name: 'Fill preparation vessel', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-VISCO', classKind: 'PROCESS', classDescription: 'Viscometer for fills and gel mass', code: 'SG-VISCO-01', name: 'Viscometer', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-MELTER', classKind: 'PROCESS', classDescription: 'Gel mass melter (jacketed, under vacuum)', code: 'SG-MELTER-01', name: 'Gel mass melter', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-HOLD', classKind: 'PROCESS', classDescription: 'Gel mass holding tank (heated)', code: 'SG-HOLD-01', name: 'Gel mass holding tank', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-ENCAP', classKind: 'PROCESS', classDescription: 'Rotary die soft gel encapsulation machine', code: 'SG-ENCAP-01', name: 'Rotary die encapsulator', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-SEALGAUGE', classKind: 'PROCESS', classDescription: 'Soft gel seal thickness gauge', code: 'SG-SEALGAUGE-01', name: 'Seal thickness gauge', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-TUMBLER', classKind: 'PROCESS', classDescription: 'Soft gel tumble dryer', code: 'SG-TUMBLER-01', name: 'Tumble dryer', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-TUNNEL', classKind: 'PROCESS', classDescription: 'Soft gel drying tunnel (trays)', code: 'SG-TUNNEL-01', name: 'Drying tunnel', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-HARDNESS', classKind: 'PROCESS', classDescription: 'Soft gel hardness tester', code: 'SG-HARDNESS-01', name: 'Soft gel hardness tester', area: 'BLEND-1' },
+      { classCode: 'EQC-SG-INSPECT', classKind: 'PROCESS', classDescription: 'Soft gel inspection machine', code: 'SG-INSPECT-01', name: 'Soft gel inspection belt', area: 'BLEND-1' },
+    ],
+    afterDispensing: [],
+    afterDischarge: [
+      // C5: the fill prepared (mixed at temperature, deaerated, its viscosity) from the blended fill.
+      productBlock('PROC-FILL-PREP', { vesselClass: 'EQC-SG-FILLMIX', viscometerClass: 'EQC-SG-VISCO' }),
+      // C6: the gel mass from the dispensed gel-mass components, the gelatin named by its formula line.
+      productBlock('SG-GEL-MASS', 'EQC-SG-MELTER', { gelatinLine: 'BOM-GEL' }),
+      // D-C3-6: the gel mass's hold until encapsulation is the master's PROC-HOLD step.
+      productBlock('PROC-HOLD', 'EQC-SG-HOLD'),
+      productBlock('SG-ENCAP-ROTARY', 'EQC-SG-ENCAP'),
+      productBlock('IPC-SG-FILL-SHELL', 'EQC-BAL'),
+      productBlock('IPC-SG-SEAL-THICKNESS', 'EQC-SG-SEALGAUGE'),
+      productBlock('SG-DRY', { tumbleDryerClass: 'EQC-SG-TUMBLER', tunnelClass: 'EQC-SG-TUNNEL' }),
+      productBlock('IPC-SG-HARDNESS', 'EQC-SG-HARDNESS'),
+      productBlock('PROC-CAPS-INSPECT', 'EQC-SG-INSPECT'),
+    ],
+  },
 ];
 
 
@@ -219,7 +308,29 @@ const GMP_UNITS: Readonly<Record<string, string>> = {
   'EQC-CAPS-CHECKWEIGH': 'CAPS-CHECKWEIGH-01',
   'EQC-CAPS-PRINTER': 'CAPS-PRINT-01',
   'EQC-CAPS-INSPECT': 'CAPS-INSPECT-01',
+  // Registered on screen by the soft-gel product's GMP 3 test (C6b).
+  'EQC-SG-FILLMIX': 'SG-FILLMIX-01',
+  'EQC-SG-VISCO': 'SG-VISCO-01',
+  'EQC-SG-MELTER': 'SG-MELTER-01',
+  'EQC-SG-HOLD': 'SG-HOLD-01',
+  'EQC-SG-ENCAP': 'SG-ENCAP-01',
+  'EQC-SG-SEALGAUGE': 'SG-SEALGAUGE-01',
+  'EQC-SG-TUMBLER': 'SG-TUMBLER-01',
+  'EQC-SG-TUNNEL': 'SG-TUNNEL-01',
+  'EQC-SG-HARDNESS': 'SG-HARDNESS-01',
+  'EQC-SG-INSPECT': 'SG-INSPECT-01',
 };
+
+/**
+ * The lots a product's library steps name by their MATERIAL_LOT field (field id: lot): a capsule's empty shells
+ * (`shellLot`) and the product's own (`stepLots`, C6b); `lotOf` gives the lot of a material id.
+ */
+function stepLotsOf(t: Tablet, lotOf: (materialId: string) => string): Record<string, string> {
+  return {
+    ...(t.shells ? { shellLot: lotOf('shell') } : {}),
+    ...Object.fromEntries(Object.entries(t.stepLots ?? {}).map(([field, id]) => [field, lotOf(id)])),
+  };
+}
 
 /** The GMP batch's size: the master's reference size, the one the ERP order names and the IN authorisation covers. */
 const GMP_UNITS_PER_BATCH = '100000';
@@ -303,7 +414,7 @@ export function defineAcceptance(tabletKey: string): void {
     const regulatory = persona('GMP', 'regulatory');
     const tag = `R${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
     const product = { code: `${t.prefix}-${tag}`, strength: t.strength, name: t.name };
-    const materials: OwnMaterial[] = t.materials.map((m, i) => ({ code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, tare: m.tare, gross: m.gross, group: i === 0 ? 'act' : 'exc' }));
+    const materials: OwnMaterial[] = t.materials.map((m, i) => ({ code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, tare: m.tare, gross: m.gross, group: i === 0 ? 'act' : m.perBatchKg ? 'aid' : 'exc' }));
     // The empty shells are entered and confirmed like any material; the formula does not hold them.
     if (t.shells) materials.push({ code: `${t.prefix}-SHELL-${tag}`, name: t.shells, tare: '0', gross: '0', group: 'exc' });
 
@@ -364,16 +475,20 @@ export function defineAcceptance(tabletKey: string): void {
       await f.getByRole('button', { name: 'Record the formula' }).click();
       await s.getByTestId(`formula-${product.code}-${product.strength}`).getByRole('link').click();
       const v = s.getByTestId('new-formula-version');
-      const lines = t.materials.map((m, i) => ({ id: m.id, mat: materials[i] as OwnMaterial, role: i === 0 ? 'ACTIVE' : 'EXCIPIENT', qty: m.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No' }));
+      // A per-batch line (a soft gel's gel mass, D-C6b-1) is an EXCIPIENT in kg per batch: a capsule's shell components (1875).
+      const lines = t.materials.map((m, i) => ({
+        id: m.id, mat: materials[i] as OwnMaterial, role: i === 0 ? 'ACTIVE' : 'EXCIPIENT', basis: m.perBatchKg ? 'PER_BATCH' : 'PER_UNIT',
+        qty: m.perBatchKg ?? m.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No',
+      }));
       // A capsule's empty shells: the unit's outer part, a COATING line per unit (C2).
-      if (t.shells) lines.push({ id: 'shell', mat: materials[t.materials.length] as OwnMaterial, role: 'COATING', qty: t.shellMg ?? '96', potency: 'No', comp: 'No' });
+      if (t.shells) lines.push({ id: 'shell', mat: materials[t.materials.length] as OwnMaterial, role: 'COATING', basis: 'PER_UNIT', qty: t.shellMg ?? '96', potency: 'No', comp: 'No' });
       for (const [i, l] of lines.entries()) {
         if (i > 0) await v.getByRole('button', { name: 'Add a line' }).click();
         const g = v.getByRole('group', { name: `Line ${i + 1}` });
         await g.getByRole('textbox', { name: 'Line id' }).fill(l.id);
         await g.getByRole('textbox', { name: 'Material code' }).fill(l.mat.code);
         await choose(g.getByRole('radio', { name: l.role, exact: true }));
-        await choose(g.getByRole('radio', { name: 'PER_UNIT', exact: true }));
+        await choose(g.getByRole('radio', { name: l.basis, exact: true }));
         await g.getByRole('textbox', { name: 'Quantity' }).fill(l.qty);
         await choose(g.getByRole('radiogroup', { name: /^Potency adjusted/ }).getByRole('radio', { name: l.potency, exact: true }));
         await choose(g.getByRole('radiogroup', { name: /^Compensating excipient/ }).getByRole('radio', { name: l.comp, exact: true }));
@@ -421,7 +536,7 @@ export function defineAcceptance(tabletKey: string): void {
       // A capsule's shells line waits for the filling step that consumes it (added next); a tablet's skeleton passes.
       await expect(a.getByRole('toolbar', { name: 'Designer' }).getByText(t.shells ? /^1 errors, / : 'Passed: no errors, no warnings')).toBeVisible();
       // Capsules edition C2 (decision 0020 amended): the header names the edition by the master's dosage form.
-      await expect(a.getByTestId('header-brand')).toContainText(t.shells ? 'Batchwright Capsules' : 'Batchwright Tablets');
+      await expect(a.getByTestId('header-brand')).toContainText(/capsule/i.test(t.dosageForm) ? 'Batchwright Capsules' : 'Batchwright Tablets');
       if (t.shells) {
         const bom = a.getByRole('table', { name: 'Bill of materials' });
         await expect(bom.locator('tr', { hasText: 'BOM-SHELL' })).toContainText('Empty capsule shells');
@@ -505,7 +620,7 @@ export function defineAcceptance(tabletKey: string): void {
       await definePlantProduct(sp, e2e.url('SANDBOX'), product);
       if (t.plant) await registerPlantUnits(sp, e2e.url('SANDBOX'), t.plant);
       await sp.context().close();
-      const shellLot = t.shells ? { shellLot: lots[t.materials.length]?.lotCode ?? '' } : {};
+      const shellLot = stepLotsOf(t, (id) => lots[id === 'shell' ? t.materials.length : t.materials.findIndex((m) => m.id === id)]?.lotCode ?? '');
       const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona, browser }, packageHash, lots.slice(0, t.materials.length), t.discharge, {
         // S10: the batch is issued at the further size (not the reference size); every quantity is scaled to it.
         sizeIndex: 1,
@@ -783,13 +898,15 @@ export function defineAcceptance(tabletKey: string): void {
     };
     await evidence.step('GMP floor: the plant cleaned for the batch; dispensing, the product\'s library steps, blending, the bulk for packing; each person by the Tap button of the demo reader', 'Both stages signed off; H-BLEND and H-PACK approved by QA; the run is Execution complete', async () => {
       const ms = mats(s);
-      const lots = ms.map((m) => ({ lotCode: s.lots?.[m.id] ?? '', material: { code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: m.active ? 'act' as const : 'exc' as const } }));
+      const group = (m: GmpMaterial): OwnMaterial['group'] => (m.active ? 'act' : t.materials.find((x) => x.id === m.id)?.perBatchKg ? 'aid' : 'exc');
+      const lots = ms.map((m) => ({ lotCode: s.lots?.[m.id] ?? '', material: { code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: group(m) } }));
       const step = (blocks: readonly ProductBlock[]) => async (page: Page, ctx: StageCtx): Promise<void> => {
-        for (const b of blocks) await runLibraryStep(page, ctx, b, GMP_UNITS, t.shells ? { shellLot: s.lots?.['shell'] ?? '' } : {}, 1, 'GMP-');
+        for (const b of blocks) await runLibraryStep(page, ctx, b, GMP_UNITS, stepLotsOf(t, (id) => s.lots?.[id] ?? ''), 1, 'GMP-');
       };
       try {
         const run = await skeletonRun(floor, {
-          lots, discharge: t.gmpDischarge, lubricantKg: ms[ms.length - 1]?.net ?? '0.600',
+          // TB-07's late addition: the last unit component (a per-batch line is not charged to the blender).
+          lots, discharge: t.gmpDischarge, lubricantKg: ms.filter((m) => !t.materials.find((x) => x.id === m.id)?.perBatchKg).at(-1)?.net ?? '0.600',
           afterDispensing: step(t.afterDispensing), afterDischarge: step(t.afterDischarge), bulkNet: t.gmpBulkNet,
         });
         floor.containers['bulk'] = run.bulk ?? '';

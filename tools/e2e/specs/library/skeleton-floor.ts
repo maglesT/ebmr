@@ -21,8 +21,11 @@ export interface OwnMaterial {
   /** Tare and gross (kg) of its one container at dispensing. */
   tare: string;
   gross: string;
-  /** The skeleton's weighing step: 'act' (actives) or 'exc' (the other unit components). */
-  group: 'act' | 'exc';
+  /**
+   * The skeleton's weighing step: 'act' (actives), 'exc' (the other unit components) or 'aid' (the formula's per-batch
+   * lines: dispensed in their own step and not charged to the blender; a soft gel's gel-mass components, C6b).
+   */
+  group: 'act' | 'exc' | 'aid';
 }
 
 /** Where a master built on the skeleton runs its own further steps (decision 0026 S11: library blocks added on screen). */
@@ -91,6 +94,7 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const verifier = f.persona('verifier1');
   const qa = f.persona('qa1');
   const sim = f.e2e.state.urls.simulatorConsole;
+  const hasAid = p.lots.some((l) => l.material.group === 'aid');
   await cleanForBatch(f);
 
   // Stage 1: dispensing.
@@ -138,7 +142,9 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await withSimulator(f.e2e.state, async () => {
     await simulator(sim, 'clear-faults');
     await simulator(sim, 'remove');
-    for (const [key, group] of [['p-disp-act@', 'act'], ['p-disp-exc@', 'exc']] as const) {
+    // The per-batch lines' step only when the formula has them (a tablet's and a hard capsule's has none).
+    const groups = [['p-disp-act@', 'act'], ['p-disp-exc@', 'exc'], ...(hasAid ? [['p-disp-aid@', 'aid'] as const] : [])] as const;
+    for (const [key, group] of groups) {
       await as(disp, dispenser);
       await step(f, disp, key);
       await startStep(disp, dispenser);
@@ -155,8 +161,10 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await completed(disp);
   await closeStage(f, disp, 'p-disp-recon@', op1);
   await releasePlant(f, disp, { status: 'p-disp-bal@', units: [], clear: 'p-disp-clear@', area: 'DISP-1' }, op1);
+  // The blender takes the unit components only; the per-batch lines' containers go to the product's own steps.
   const containers = await dispensedContainers(f, disp, ['p-disp-act@', 'p-disp-exc@']);
-  expect(containers).toHaveLength(p.lots.length);
+  expect(containers).toHaveLength(p.lots.filter((l) => l.material.group !== 'aid').length);
+  const aidContainers = hasAid ? await dispensedContainers(f, disp, ['p-disp-aid@']) : [];
   await disp.context().close();
 
   // Stage 2: blending and lubrication (TB-07) on the trusted clock, the QA hold point, the hand-typed discharge.
@@ -222,5 +230,5 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await load(blend, `${base}/runs/${f.batchId}`);
   await expect(blend.getByText('Execution complete').first()).toBeVisible();
   await blend.context().close();
-  return { containers: [...containers, blendContainer], ...(bulk ? { bulk } : {}) };
+  return { containers: [...containers, ...aidContainers, blendContainer], ...(bulk ? { bulk } : {}) };
 }
