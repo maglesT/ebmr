@@ -11,7 +11,7 @@
 -- section 6.5).
 --
 -- What changed: recipe.genealogy_step (CREATE OR REPLACE, the body of 1090 otherwise unchanged) adds the same BATCH-LOT
--- edge for an intermediate lot as for a finished lot, both ways, with the edge kind FINISHED (the batch's output lot; the
+-- edge for an intermediate lot as for a finished lot, both ways, with the edge kind OUTPUT (the batch's output, not a finished lot; the
 -- API contract's edge kinds are unchanged), as of the lot's posted_at. A tablets or injectables trace is unchanged: those
 -- editions post no intermediate lot (site.intermediate_lot.edition is SUBSTANCE only). recipe.genealogy_node_exists,
 -- recipe.genealogy and the node views are unchanged.
@@ -61,7 +61,7 @@ begin
     select 'BATCH', fl.batch_id, 'LOT', fl.lot_id, 'FINISHED'
       from f join site.finished_lot fl on f.k = 'BATCH' and fl.batch_id = f.i where fl.posted_at <= p_as_of
     union all
-    select 'BATCH', il.batch_id, 'LOT', il.lot_id, 'FINISHED'
+    select 'BATCH', il.batch_id, 'LOT', il.lot_id, 'OUTPUT'
       from f join site.intermediate_lot il on f.k = 'BATCH' and il.batch_id = f.i where il.posted_at <= p_as_of
     union all
     select 'CONTAINER', m.source_id, 'CONTAINER', m.target_id, 'MERGED'
@@ -113,7 +113,7 @@ begin
     select 'LOT', fl.lot_id, 'BATCH', fl.batch_id, 'FINISHED'
       from f join site.finished_lot fl on f.k = 'LOT' and fl.lot_id = f.i where fl.posted_at <= p_as_of
     union all
-    select 'LOT', il.lot_id, 'BATCH', il.batch_id, 'FINISHED'
+    select 'LOT', il.lot_id, 'BATCH', il.batch_id, 'OUTPUT'
       from f join site.intermediate_lot il on f.k = 'LOT' and il.lot_id = f.i where il.posted_at <= p_as_of
     union all
     select 'CONTAINER', m.target_id, 'CONTAINER', m.source_id, 'MERGED'

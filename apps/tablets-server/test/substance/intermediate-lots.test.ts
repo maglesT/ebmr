@@ -309,10 +309,10 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     const [A, B, C, P] = [batch.A.batchNumber, batch.B.batchNumber, batch.C.batchNumber, batch.P.batchNumber];
     expect(await trace('LOT', lot.P, 'BACKWARD')).toEqual(expect.arrayContaining([
       ['LOT', P, 'FINISHED', 'BATCH', P], ['BATCH', P, 'PACKAGING_ORDER', 'BATCH', C], ['BATCH', C, 'CONSUMED', 'LOT', B],
-      ['LOT', B, 'FINISHED', 'BATCH', B], ['BATCH', B, 'CONSUMED', 'LOT', A], ['LOT', A, 'FINISHED', 'BATCH', A],
+      ['LOT', B, 'OUTPUT', 'BATCH', B], ['BATCH', B, 'CONSUMED', 'LOT', A], ['LOT', A, 'OUTPUT', 'BATCH', A],
     ]));
     expect(await trace('LOT', lot.A, 'FORWARD')).toEqual(expect.arrayContaining([
-      ['LOT', A, 'CONSUMED', 'BATCH', B], ['BATCH', B, 'FINISHED', 'LOT', B], ['LOT', B, 'CONSUMED', 'BATCH', C],
+      ['LOT', A, 'CONSUMED', 'BATCH', B], ['BATCH', B, 'OUTPUT', 'LOT', B], ['LOT', B, 'CONSUMED', 'BATCH', C],
       ['BATCH', C, 'PACKAGING_ORDER', 'BATCH', P], ['BATCH', P, 'FINISHED', 'LOT', P],
     ]));
   });
