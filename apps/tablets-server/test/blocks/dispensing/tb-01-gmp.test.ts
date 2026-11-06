@@ -521,7 +521,7 @@ describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consume
   });
 });
 
-describe('a weighing that uses up a whole lot on GMP: the entry guard judges the lot as it stood before the command (EBMR-EXE-078; tablets 1808)', () => {
+describe('a weighing that uses up a whole lot on GMP: the entry guard judges the lot as it stood before the command (EBMR-EXE-078; tablets 1903)', () => {
   let b: { batchId: string; batchNumber: string };
   const WHOLE: { code: string; material: string; days: number; state: string; quantity: string; reserve: boolean }[] = [
     // First to expire of their materials, so stock rotation picks them without a reason (PR-18).
