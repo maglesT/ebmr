@@ -944,6 +944,26 @@ function currentStage(ctx: ViewContext): string | undefined {
 }
 
 /**
+ * Whether the batch posts an intermediate lot (API plan A2, C1): the master is of the API edition and makes a processing
+ * record, the execution is complete, and the batch's register allocation is of the SUBSTANCE edition. The rule is the
+ * database's (site.create_intermediate_lot refuses anything else); this only tells the overview whether to offer the post.
+ */
+export function intermediatePostOffered(p: { familyEdition: string | undefined; recordKind: string | undefined; status: string; registerEdition: string | null }): boolean {
+  return p.familyEdition === 'substance' && p.recordKind === 'PROCESSING' && p.status === 'EXECUTION_COMPLETE' && p.registerEdition === 'SUBSTANCE';
+}
+
+async function postsIntermediateLot(ctx: ViewContext): Promise<boolean> {
+  const h = ctx.run.def.mbr.header;
+  const facts = { familyEdition: h.edition as string | undefined, recordKind: h.recordKind as string | undefined, status: ctx.state.status as string };
+  if (!intermediatePostOffered({ ...facts, registerEdition: 'SUBSTANCE' })) return false;
+  const { rows } = await ctx.db.query<{ edition: string }>(
+    'select a.edition from recipe.batch_allocation_link k join site.batch_number_allocation a on a.id = k.allocation_id where k.batch_id = $1',
+    [ctx.run.batch.id],
+  );
+  return intermediatePostOffered({ ...facts, registerEdition: rows[0]?.edition ?? null });
+}
+
+/**
  * The run header. The room is the step's: the viewer's terminal room when it is one the stage names, else the stage's
  * first (the batch's room when the stage names none). The scale, for a step that weighs, is one of that room (a stage
  * that names no room: the terminal's own room, whose scales its readings are claimed from), never a scale of the
@@ -969,6 +989,7 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
     markets: [...ctx.state.header.marketSet],
     status: ctx.state.status,
     statusText: BATCH_STATUS_TEXT[ctx.state.status],
+    postsIntermediateLot: await postsIntermediateLot(ctx),
     watermark: watermark(ctx.app.installation),
     version: ctx.state.version,
     mbr: { familyCode: ctx.run.def.mbr.header.family, versionNumber: ctx.run.mbr.versionNumber, revision: ctx.run.mbr.revision, contentHash: ctx.run.def.contentHash },

@@ -26,6 +26,7 @@ import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-s
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { actorOfBrowser, personaIn, refusalOf, startSigningServer, tapFor, valueOf } from '../esig/support.ts';
 import { RunDriver, type ExecServer } from '../execution/support.ts';
+import { intermediatePostOffered } from '../../src/features/execution/views.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
 import { confirmErpPending, credentialsOf } from '../support/signed-acts.ts';
@@ -222,6 +223,17 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     expect((await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_reservation where lot_id = $1 and batch_id = $2', [lotA, batch.B.batchId])).rows[0]?.n).toBe('1');
     // On GMP a consumption is the batch record's own entry (the G-07 weighing, in the same command): a bare call is refused.
     await expect(consume(batch.B.batchId, INT_A.code, '50')).rejects.toThrow(/EBMR-RCP-433/);
+  });
+
+  it('[IN-05][PR-45][INV-27] the batch overview offers the intermediate post only for a complete processing batch of the API edition (header.postsIntermediateLot, the server\'s answer): step A complete, yes; step B issued and not complete, no; a tablets processing batch, never', async () => {
+    const offered = async (batchId: string): Promise<boolean | undefined> =>
+      (await new RunDriver(gmp, batchId, { stores: await gmp.asPersona('stores') }).runView('stores')).header.postsIntermediateLot;
+    expect([await offered(batch.A.batchId), await offered(batch.B.batchId)]).toEqual([true, false]);
+    // A tablets processing batch at the same state, whatever its register says: the master's edition decides first.
+    const tablets = { familyEdition: 'tablets', recordKind: 'PROCESSING', status: 'EXECUTION_COMPLETE' };
+    expect([intermediatePostOffered({ ...tablets, registerEdition: 'TABLETS' }), intermediatePostOffered({ ...tablets, registerEdition: 'SUBSTANCE' }),
+      intermediatePostOffered({ ...tablets, familyEdition: 'substance', registerEdition: 'TABLETS' }), intermediatePostOffered({ ...tablets, familyEdition: 'substance', recordKind: 'PACKAGING', registerEdition: 'SUBSTANCE' }),
+      intermediatePostOffered({ ...tablets, familyEdition: 'substance', registerEdition: 'SUBSTANCE' })]).toEqual([false, false, false, false, true]);
   });
 
   it('[IN-05][PR-45] step B completes and posts intermediate B in quarantine, a lot of its own product', async () => {
