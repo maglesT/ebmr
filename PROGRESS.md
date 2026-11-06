@@ -154,14 +154,17 @@ at PROC-CAPS-FILL; every screen names it "Empty capsule shells", never a coating
 `bomShellsLabel`); a second per-unit COATING line on a capsule is refused (a coat on capsules is per batch, C3). New E2E
 group `library-caps` (green to a released lot). Also on main: the E2E race fix (three container helpers wait for the stored
 typed net before the verifier opens the containers page; it ended the "Verify the net" timeouts).
-**C3 to C7 merged (5 November):** C3 post-fill and packing (#124); C4 multiparticulates, C5 liquid and plate filling, C6
-soft gels I (#137, combining #127, #129, #130, #132); C6b the soft-gel E2E to a released packed lot, recipe-core 1875
-(#138); C7 soft gels II (#139): SG-ENCAP-SEAMLESS, chewable and enteric as data, IPC-CAPS-DT's disintegration or rupture
-CHOICE. Decisions D-C3-1 to D-C7-3 in the plan, section 8; shared test helpers (incl. `catalogueMaster`) in
-`test/library/seed-support.ts`.
-**Resume here: C8, the exit** (full suites, the browser suite, golden batches unchanged, one review pass; the "units"
-data-only versions of TB-20, TB-23 and COAT-ENTERIC only if a capsule master uses them), branch `caps/c8` from main.
-Lead's rules:
+**Capsules edition complete (6 November):** C3 (#124, 9424f8f) and C4 to C8 in one squash (#141, 2d5d9af; it carries
+#127, #129, #130, #132, #137, #138, #139). C4 multiparticulates, C5 liquid and plate filling, C6 soft gels I, C6b the
+soft-gel E2E to a released packed lot (recipe-core 1875), C7 soft gels II (seamless, chewable and enteric as data,
+disintegration or rupture), C8 exit: one review pass, a binding clause on every capsule field, `critical` only where a
+clause names the parameter, `register:validate` refuses a repeated tests-list entry. Decisions D-C3-1 to D-C8-2 and the
+accepted residuals are in `docs/build-plan/capsules/plan.md`, section 8. No capsule slice is open.
+Rules learnt on the stack (for any later slice):
+- Stacked squash merges conflict on the next PR; when the merge-resolved tree equals the CI-tested tree, merge on that
+  green (lead, 6 November). A tests-list conflict is a union without repeats (validate now refuses repeats).
+- A server read before a command must not change who is refused: the reviewed route matrix (DI-17) catches it.
+Lead's rules (still in force):
 - Declutter: no new home tiles, menus or screens; build only on the kept core path (packaging, label issuance and
   reconciliation are kept). Never call the namespaces in `packages/api-contract/src/disconnected.ts` (D1, #116; 410 on
   the platform build). C3 checked the acceptance helpers (change control, equipment logbook): none is disconnected;
