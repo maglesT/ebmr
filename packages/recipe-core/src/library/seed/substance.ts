@@ -13,8 +13,8 @@
  *   - API-DRY: tray drying with the loss-on-drying loop (until the LOD passes), the mass lost worked out in the step;
  *   - API-YIELD: the actual yield against the batch size and the molar yield against the key starting material's
  *     formula line; a result outside its limits raises an exception, explained and investigated as a deviation;
- *   - API-LABEL-CHECK: line clearance of earlier labels, the label content checked against the master before use and
- *     a specimen label kept with the record;
+ *   - API-LABEL-CHECK: line clearance of earlier labels and the label content checked against the master before use
+ *     (the specimen label in the record is the G-21 step's, which does not close without it: EBMR-LBL-060);
  *   - API-PACK: packing into drums or bags (below).
  * A calculation reads only values of its own step, the batch size, formula lines or the lot assay (no earlier-step
  * value: the lead's rule for A1b).
@@ -427,7 +427,7 @@ export const API_LABEL_CHECK: SeedItem = {
     edition: 'substance',
     roles: ['CLEARANCE', 'VERIFICATION'],
     instructions:
-      'Before packing, clear the area of every label of an earlier batch, then check one issued label against the master: product name, batch number, net quantity, retest or expiry date and storage conditions, and for a container leaving the site the manufacturer and the transport conditions. Attach a specimen label to the record.',
+      'Before packing, clear the area of every label of an earlier batch, then check one issued label against the master: product name, batch number, net quantity, retest or expiry date and storage conditions, and for a container leaving the site the manufacturer and the transport conditions. The labels are issued, reconciled and kept as a specimen in the record by the printed-materials step (G-21).',
     sections: [
       {
         id: 'clearance',
@@ -441,22 +441,18 @@ export const API_LABEL_CHECK: SeedItem = {
         id: 'label',
         title: 'Label checked against the master',
         fields: [
-          { id: 'labelsIssued', label: 'Labels issued for the batch', type: 'NUMBER', unit: '1', decimals: 0, limitSlot: 'labelsIssued' },
           { id: 'batchOnLabel', label: 'Batch number printed on the label', type: 'TEXT', pattern: '[A-Z0-9/-]{1,30}' },
           { id: 'name', label: 'Product name as the master', type: 'YES_NO', expected: true },
           { id: 'quantity', label: 'Net quantity field present', type: 'YES_NO', expected: true },
           { id: 'dates', label: 'Retest or expiry date as the lot\'s', type: 'YES_NO', expected: true },
           { id: 'storage', label: 'Storage conditions as the master', type: 'YES_NO', expected: true },
           { id: 'shipped', label: 'Manufacturer name and address and transport conditions present (containers leaving the site)', type: 'YES_NO', expected: true },
-          { id: 'specimen', label: 'Specimen label attached to the record', type: 'YES_NO', expected: true },
         ],
       },
     ],
     signatures: SIGNED,
   },
   exampleUse: {
-    limits: { labelsIssued: reg('1', '1', '20') },
-    targets: { labelsIssued: '4' },
     equipmentClasses: { areaClass: 'PACKING-ROOM' },
   },
 };

@@ -15,9 +15,10 @@ catalog_test: "Approve an API master with the same person preparing and checking
 implemented_by:
   modules:
     - "Master life cycle (prepared, checked, QA approved by different people); one master per isolated step."
-tests: []
+tests:
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-01][PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 scope: "API edition (substance) only; slice A1 of the API plan."

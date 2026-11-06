@@ -15,9 +15,10 @@ catalog_test: "Issue a batch from a superseded API master; refused."
 implemented_by:
   modules:
     - "Batch issue from the approved master (existing); intermediates in A2 (C1)."
-tests: []
+tests:
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-03][INV-27][PR-37][IN-18] the processing batch is planned from its ERP order, issued, run from the master's library snapshot, its output closed into a verified bulk container and released for packing by QA (H-PACK)"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 scope: "API edition (substance) only; slice A1 of the API plan."

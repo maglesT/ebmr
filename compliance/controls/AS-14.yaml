@@ -16,7 +16,7 @@ implemented_by:
   modules:
     - "G printed materials; API-LABEL-CHECK records that a specimen label is attached to the record (a confirmation, not an image of the label)."
 tests:
-  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site), with a specimen kept in the record; the filter step offers a Nutsche filter or a centrifuge"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site; the specimen label is the G-21 step's); the filter step offers a Nutsche filter or a centrifuge"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"
