@@ -311,7 +311,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(view.current).toMatchObject({
       kind: 'CERTIFICATE_OF_ANALYSIS',
       manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789' },
-      product: { name: expect.any(String), grade: 'In-house monograph' },
+      product: { name: expect.any(String) as unknown, grade: 'In-house monograph' },
       lot: { lotId, batchNumber: order.batchNumber },
       tests: [{ testCode: 'ASSAY', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }],
     });
