@@ -5,19 +5,22 @@
  * order a synthesis uses them:
  *   - API-DISP: dispensing a starting material, reagent or solvent by weight, each container against its bill-of-
  *     materials line and labelled as a sub-divided container (material, control number, quantity, retest date);
- *   - API-CHARGE: charging the dispensed containers into the cleaned, inerted reactor, each lot checked as its line;
- *   - API-REACT: the reaction, its temperature and time as critical process parameters, checked at each round;
+ *   - API-CHARGE: charging the dispensed containers into the clean reactor, each lot checked as its line;
+ *   - API-REACT: the reaction: its temperature against limits at each round, its time a critical time limit;
  *   - API-IPC-COMPLETE: the completion check, repeated until the remaining starting material is within its limit;
- *   - API-CRYST: crystallisation (seeding, cooling to the final temperature, ageing);
- *   - API-FILTER: isolation on a Nutsche filter or a centrifuge (chosen in the step), washing, the wet cake;
- *   - API-DRY: tray drying with the loss-on-drying loop (until the LOD passes), the mass lost worked out in the step;
- *   - API-YIELD: the actual yield against the batch size and the molar yield against the key starting material's
- *     formula line; a result outside its limits raises an exception, explained and investigated as a deviation;
+ *   - API-CRYST: crystallisation (the seed lot of the formula, cooling to the final temperature, ageing);
+ *   - API-FILTER and API-CENTRIFUGE: isolation, one block per type (the master names the equipment class), washing,
+ *     the wet cake and the mother liquor as registered containers;
+ *   - API-DRY: tray drying with the loss-on-drying loop (until the LOD passes);
+ *   - API-YIELD: the actual yield against the expected yield (the batch size); a result outside its limits raises an
+ *     exception, explained and investigated as a deviation;
  *   - API-LABEL-CHECK: line clearance of earlier labels and the label content checked against the master before use
  *     (the specimen label in the record is the G-21 step's, which does not close without it: EBMR-LBL-060);
  *   - API-PACK: packing into drums or bags (below).
  * A calculation reads only values of its own step, the batch size, formula lines or the lot assay (no earlier-step
- * value: the lead's rule for A1b).
+ * value: the lead's rule for A1b). Each field names the binding clause it records (SM Part XII; ICH Q7, which is EU GMP
+ * Part II); `critical` only where a clause names the parameter: the time limits (Q7 8.20), the in-process results
+ * (8.30) and the yield (8.14) (lead audit of #143).
  *
  * API-PACK: the finished API into drums or bags, one container entry each (a container registered, its net mass, its
  * closure and its label checked). The labels themselves are issued and reconciled by the existing printed-materials
@@ -50,9 +53,13 @@ export const API_PACK: SeedItem = {
         title: 'Container filled and labelled',
         repeat: { kind: 'COUNT', countSlot: 'containers' },
         fields: [
+          // SM Part XII 6.5.3; Q7 (EU GMP II) 6.52: the package of the batch.
           { id: 'container', label: 'Drum or bag', type: 'CONTAINER', action: 'REGISTER' },
-          { id: 'netMass', label: 'Net mass', type: 'NUMBER', unit: 'kg', decimals: 3, limitSlot: 'netMass', critical: true },
+          // SM Part XII 9.4.4; Q7 9.43: the quantity of contents the label states.
+          { id: 'netMass', label: 'Net mass', type: 'NUMBER', unit: 'kg', decimals: 3, limitSlot: 'netMass' },
+          // SM Part XII 9.4.7; Q7 9.46: a container leaving the manufacturer's control is sealed so a breach shows.
           { id: 'sealed', label: 'Liners tied and container sealed', type: 'YES_NO', expected: true },
+          // SM Part XII 9.4.6; Q7 9.45: each packed and labelled container examined for the correct label.
           { id: 'labelOk', label: 'Label correct (product, batch, net quantity, retest or expiry date, storage)', type: 'YES_NO', expected: true },
         ],
       },
@@ -76,15 +83,14 @@ export const API_DISP: SeedItem = {
     category: 'PROCESS',
     edition: 'substance',
     instructions:
-      'Check the balance, then weigh each container of the material named by its bill-of-materials line. Label each dispensed container with the material, its control number, the quantity and the retest date, and keep it closed until charging. A second person witnesses the weighing.',
+      'Weigh each container of the material named by its bill-of-materials line on the balance. Label each dispensed container with the material, its control number, the quantity and the retest date, and keep it closed until charging. A second person witnesses the weighing.',
     sections: [
       {
         id: 'setup',
         title: 'Set-up',
         fields: [
+          // SM Part XII 8.1.1, 5.3.1; Q7 8.10, 5.30: a weighing device of suitable accuracy, calibrated.
           { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
-          { id: 'dailyCheck', label: 'Balance daily check done and within limits', type: 'YES_NO', expected: true },
-          { id: 'booth', label: 'Dispensing booth extraction on', type: 'YES_NO', expected: true },
         ],
       },
       {
@@ -92,9 +98,13 @@ export const API_DISP: SeedItem = {
         title: 'Weigh per container',
         repeat: { kind: 'PER_CONTAINER' },
         fields: [
+          // SM Part XII 6.5.3, 7.5; Q7 6.52, 7.50: each input lot identified, used only within its retest date.
           { id: 'lot', label: 'Material lot (released, within its retest date)', type: 'MATERIAL_LOT', bomLineSlot: 'materialLine' },
+          // SM Part XII 8.1.2; Q7 8.11: the sub-divided container identified.
           { id: 'container', label: 'Dispensed container', type: 'CONTAINER', action: 'REGISTER' },
+          // SM Part XII 8.1.3, 6.5.3; Q7 8.12, 6.52: the critical weighing, witnessed, and its quantity.
           { id: 'net', label: 'Net weight', type: 'WEIGHING', unit: 'kg', bomLine: true, limitSlot: 'net' },
+          // SM Part XII 8.1.2; Q7 8.11: the sub-divided container shows the material, control number, quantity and retest date.
           { id: 'labelled', label: 'Container labelled (material, control number, quantity, retest date) and closed', type: 'YES_NO', expected: true },
         ],
       },
@@ -117,16 +127,18 @@ export const API_CHARGE: SeedItem = {
     category: 'PROCESS',
     edition: 'substance',
     instructions:
-      'Confirm the reactor is clean and labelled for this batch, inert it with nitrogen, then charge each dispensed container in the order of the master. Check each lot against its bill-of-materials line before it goes in.',
+      'Confirm the reactor is clean and labelled for this batch and its head space within the oxygen limit, then charge each dispensed container in the order of the master. Check each lot against its bill-of-materials line before it goes in.',
     sections: [
       {
         id: 'setup',
         title: 'Reactor ready',
         fields: [
+          // SM Part XII 6.5.3; Q7 6.52: the major equipment used.
           { id: 'reactor', label: 'Reactor', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'reactorClass' },
+          // SM Part XII 5.2.7, 8.1.7; Q7 5.26, 8.16: the equipment's cleanliness and processing status shown.
           { id: 'clean', label: 'Reactor clean, its status label shows this product and batch', type: 'YES_NO', expected: true },
-          { id: 'inerted', label: 'Reactor inerted with nitrogen', type: 'YES_NO', expected: true },
-          { id: 'oxygen', label: 'Oxygen in the head space', type: 'NUMBER', unit: '%', decimals: 1, limitSlot: 'oxygen', critical: true },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'oxygen', label: 'Oxygen in the head space', type: 'NUMBER', unit: '%', decimals: 1, limitSlot: 'oxygen' },
         ],
       },
       {
@@ -134,10 +146,12 @@ export const API_CHARGE: SeedItem = {
         title: 'Charge per container',
         repeat: { kind: 'PER_CONTAINER' },
         fields: [
+          // SM Part XII 8.1.4, 6.5.3; Q7 8.13, 6.52: the material checked as the batch record names it before use.
           { id: 'lot', label: 'Material lot', type: 'MATERIAL_LOT', bomLineSlot: 'materialLine' },
+          // SM Part XII 6.5.3; Q7 6.52: the input charged.
           { id: 'container', label: 'Dispensed container charged', type: 'CONTAINER', action: 'CONSUME' },
-          { id: 'massTemp', label: 'Reactor content temperature at charging', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'chargeTemp', critical: true },
-          { id: 'emptied', label: 'Container emptied completely', type: 'YES_NO', expected: true },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'massTemp', label: 'Reactor content temperature at charging', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'chargeTemp' },
         ],
       },
     ],
@@ -159,14 +173,17 @@ export const API_REACT: SeedItem = {
     category: 'PROCESS',
     edition: 'substance',
     instructions:
-      'Bring the reaction mass to the reaction temperature, start the reaction time and hold the temperature and agitation within their limits; record them at each round. The completion check is its own step.',
+      'Bring the reaction mass to the reaction temperature, start the reaction time and hold the temperature within its limits; record it at each round. The completion check is its own step.',
     sections: [
       {
         id: 'start',
         title: 'Start of reaction',
         fields: [
+          // SM Part XII 6.5.3; Q7 6.52: the major equipment used.
           { id: 'reactor', label: 'Reactor', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'reactorClass' },
-          { id: 'reactionTemp', label: 'Reaction temperature reached', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'reactionTemp', critical: true },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'reactionTemp', label: 'Reaction temperature reached', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'reactionTemp' },
+          // SM Part XII 8.2.1; Q7 8.20: a time limit of the master, met or the deviation evaluated.
           { id: 'reactionTime', label: 'Reaction time', type: 'TIMER', durationUnit: 'min', limitSlot: 'reactionTime', critical: true },
         ],
       },
@@ -175,21 +192,24 @@ export const API_REACT: SeedItem = {
         title: 'Reaction round',
         repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
         fields: [
-          { id: 'roundTemp', label: 'Reaction mass temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'roundTemp', critical: true },
-          { id: 'agitation', label: 'Agitator speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'agitation' },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: the process parameter at each round.
+          { id: 'roundTemp', label: 'Reaction mass temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'roundTemp' },
         ],
       },
       {
         id: 'end',
         title: 'End of reaction',
-        fields: [{ id: 'endTemp', label: 'Reaction mass temperature at the end', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'endTemp', critical: true }],
+        fields: [
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: the process parameter at the end.
+          { id: 'endTemp', label: 'Reaction mass temperature at the end', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'endTemp' },
+        ],
       },
     ],
     signatures: SIGNED,
   },
   exampleUse: {
-    limits: { reactionTemp: reg('Cel', '60.0', '65.0'), reactionTime: reg('min', '45', '360'), roundTemp: reg('Cel', '60.0', '65.0'), endTemp: reg('Cel', '60.0', '65.0'), agitation: reg('/min', '80', '120') },
-    targets: { reactionTemp: '62.5', roundTemp: '62.5', endTemp: '62.5', agitation: '100' },
+    limits: { reactionTemp: reg('Cel', '60.0', '65.0'), reactionTime: reg('min', '45', '360'), roundTemp: reg('Cel', '60.0', '65.0'), endTemp: reg('Cel', '60.0', '65.0') },
+    targets: { reactionTemp: '62.5', roundTemp: '62.5', endTemp: '62.5' },
     equipmentClasses: { reactorClass: 'GLR-2000L' },
     intervals: { roundInterval: { value: '30', unit: 'min' } },
   },
@@ -210,8 +230,11 @@ export const API_IPC_COMPLETE: SeedItem = {
         title: 'Completion sample',
         repeat: { kind: 'UNTIL_PASS', untilField: 'remaining', maxRepeatsSlot: 'maxChecks' },
         fields: [
+          // SM Part XII 6.5.3, 8.3.1; Q7 6.52, 8.30: the in-process sample taken.
           { id: 'sample', label: 'Reaction mass sample', type: 'SAMPLE', unitsSlot: 'sampleUnits', purpose: 'Reaction completion' },
+          // SM Part XII 5.3.1; Q7 5.30: the instrument used, calibrated.
           { id: 'instrument', label: 'Instrument (HPLC or GC)', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'instrumentClass' },
+          // SM Part XII 8.3.1, 8.3.3; Q7 8.30, 8.32: the in-process control result against its QU-approved criterion.
           { id: 'remaining', label: 'Starting material remaining (area %)', type: 'NUMBER', unit: '%', decimals: 2, limitSlot: 'remaining', critical: true },
         ],
       },
@@ -234,83 +257,131 @@ export const API_CRYST: SeedItem = {
     category: 'PROCESS',
     edition: 'substance',
     instructions:
-      'At the seeding temperature add the seed, cool to the final temperature at the rate of the master, then age the slurry for the ageing time before isolation.',
+      'At the seeding temperature add the seed of the bill of materials, cool to the final temperature, then age the slurry for the ageing time before isolation.',
     sections: [
       {
         id: 'seed',
         title: 'Seeding',
         fields: [
+          // SM Part XII 6.5.3; Q7 6.52: the major equipment used.
           { id: 'crystalliser', label: 'Crystalliser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'crystalliserClass' },
-          { id: 'seedTemp', label: 'Temperature at seeding', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'seedTemp', critical: true },
-          { id: 'seedQty', label: 'Seed added', type: 'WEIGHING', unit: 'kg', limitSlot: 'seedQty' },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'seedTemp', label: 'Temperature at seeding', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'seedTemp' },
+          // SM Part XII 6.5.3; Q7 6.52: the lot of each input.
+          { id: 'seedLot', label: 'Seed lot', type: 'MATERIAL_LOT', bomLineSlot: 'seedLine' },
+          // SM Part XII 6.5.3; Q7 6.52: the quantity of each input.
+          { id: 'seedQty', label: 'Seed added', type: 'WEIGHING', unit: 'kg' },
         ],
       },
       {
         id: 'cool',
         title: 'Cooling and ageing',
         fields: [
-          { id: 'coolTime', label: 'Cooling time', type: 'NUMBER', unit: 'h', decimals: 1, limitSlot: 'coolTime', critical: true },
-          { id: 'finalTemp', label: 'Final temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'finalTemp', critical: true },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'finalTemp', label: 'Final temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'finalTemp' },
+          // SM Part XII 8.2.1; Q7 8.20: a time limit of the master, met or the deviation evaluated.
           { id: 'ageing', label: 'Ageing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'ageing', critical: true },
-          { id: 'slurry', label: 'Crystals formed, slurry stirrable', type: 'YES_NO', expected: true },
         ],
       },
     ],
     signatures: SIGNED,
   },
   exampleUse: {
-    limits: { seedTemp: reg('Cel', '45.0', '50.0'), seedQty: reg('kg', '0.040', '0.060'), coolTime: reg('h', '3.0', '5.0'), finalTemp: reg('Cel', '0.0', '5.0'), ageing: reg('min', '60', '240') },
-    targets: { seedTemp: '47.5', seedQty: '0.050', coolTime: '4.0', finalTemp: '2.5' },
+    limits: { seedTemp: reg('Cel', '45.0', '50.0'), finalTemp: reg('Cel', '0.0', '5.0'), ageing: reg('min', '60', '240') },
+    targets: { seedTemp: '47.5', finalTemp: '2.5' },
     equipmentClasses: { crystalliserClass: 'GLR-2000L' },
+    bomLines: { seedLine: 'L3' },
   },
+};
+
+/** The isolation blocks share their wash and output sections; each block is one isolation type (the master's filterClass). */
+const washSection = {
+  id: 'wash',
+  title: 'Cake wash',
+  repeat: { kind: 'COUNT' as const, countSlot: 'washes' },
+  fields: [
+    // SM Part XII 6.5.3; Q7 6.52: the lot of each input.
+    { id: 'washLot', label: 'Wash solvent lot', type: 'MATERIAL_LOT' as const, bomLineSlot: 'washLine' },
+    // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: the quantity of each input, against the master.
+    { id: 'washVolume', label: 'Wash volume', type: 'NUMBER' as const, unit: 'L', decimals: 1, limitSlot: 'washVolume' },
+  ],
+};
+const isolatedSection = {
+  id: 'output',
+  title: 'Wet cake and mother liquor',
+  fields: [
+    // SM Part XII 14.4.1; Q7 14.40: the mother liquor kept, identified, for any recovery under an approved procedure.
+    { id: 'motherLiquor', label: 'Mother liquor container', type: 'CONTAINER' as const, action: 'REGISTER' as const },
+    // SM Part XII 6.5.3; Q7 6.52: the output of the step.
+    { id: 'container', label: 'Wet cake container', type: 'CONTAINER' as const, action: 'REGISTER' as const },
+    // SM Part XII 6.5.3; Q7 6.52: the quantity of the output.
+    { id: 'wetMass', label: 'Wet cake net weight', type: 'WEIGHING' as const, unit: 'kg' },
+  ],
 };
 
 export const API_FILTER: SeedItem = {
   definition: {
     code: 'API-FILTER',
     version: 1,
-    title: 'Isolation: Nutsche filter or centrifuge, washing',
+    title: 'Isolation on a Nutsche filter, washing',
     category: 'PROCESS',
     edition: 'substance',
     instructions:
-      'Record which isolation equipment is used. Check the filter cloth, filter or spin the slurry, wash the cake with the solvent of the master the number of times it gives, then unload the wet cake into labelled containers. Collect the mother liquor in a labelled container.',
+      'Filter the slurry under vacuum, wash the cake with the solvent of the master the number of times it gives, then unload the wet cake into a labelled container. Collect the mother liquor in a labelled container.',
     sections: [
       {
         id: 'setup',
         title: 'Set-up',
         fields: [
-          { id: 'filterType', label: 'Isolation equipment', type: 'CHOICE', options: ['Nutsche filter', 'Centrifuge'] },
-          { id: 'filter', label: 'Filter or centrifuge', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'filterClass' },
-          { id: 'cloth', label: 'Filter cloth intact and of the grade the master names', type: 'YES_NO', expected: true },
-          { id: 'vacuum', label: 'Vacuum under the cloth', type: 'NUMBER', unit: 'kPa', decimals: 0, limitSlot: 'vacuum', critical: true, showWhen: { field: 'filterType', equals: 'Nutsche filter' } },
-          { id: 'spin', label: 'Centrifuge speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'spin', critical: true, showWhen: { field: 'filterType', equals: 'Centrifuge' } },
+          // SM Part XII 6.5.3; Q7 6.52: the major equipment used.
+          { id: 'filter', label: 'Nutsche filter', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'filterClass' },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'vacuum', label: 'Vacuum under the cloth', type: 'NUMBER', unit: 'kPa', decimals: 0, limitSlot: 'vacuum' },
         ],
       },
-      {
-        id: 'wash',
-        title: 'Cake wash',
-        repeat: { kind: 'COUNT', countSlot: 'washes' },
-        fields: [
-          { id: 'washLot', label: 'Wash solvent lot', type: 'MATERIAL_LOT', bomLineSlot: 'washLine' },
-          { id: 'washVolume', label: 'Wash volume', type: 'NUMBER', unit: 'L', decimals: 1, limitSlot: 'washVolume', critical: true },
-        ],
-      },
-      {
-        id: 'output',
-        title: 'Wet cake',
-        fields: [
-          { id: 'motherLiquor', label: 'Mother liquor collected in a labelled container', type: 'YES_NO', expected: true },
-          { id: 'container', label: 'Wet cake container', type: 'CONTAINER', action: 'REGISTER' },
-          { id: 'wetMass', label: 'Wet cake net weight', type: 'WEIGHING', unit: 'kg', limitSlot: 'wetMass' },
-        ],
-      },
+      washSection,
+      isolatedSection,
     ],
     signatures: SIGNED,
   },
   exampleUse: {
-    limits: { vacuum: reg('kPa', '-90', '-60'), spin: reg('/min', '800', '1200'), washVolume: reg('L', '45.0', '55.0'), wetMass: reg('kg', '50.000', '70.000') },
-    targets: { vacuum: '-75', spin: '1000', washVolume: '50.0', wetMass: '60.000' },
+    limits: { vacuum: reg('kPa', '-90', '-60'), washVolume: reg('L', '45.0', '55.0') },
+    targets: { vacuum: '-75', washVolume: '50.0' },
     equipmentClasses: { filterClass: 'NUTSCHE-1M2' },
+    bomLines: { washLine: 'L2' },
+    counts: { washes: '2' },
+  },
+};
+
+export const API_CENTRIFUGE: SeedItem = {
+  definition: {
+    code: 'API-CENTRIFUGE',
+    version: 1,
+    title: 'Isolation in a centrifuge, washing',
+    category: 'PROCESS',
+    edition: 'substance',
+    instructions:
+      'Spin the slurry at the speed of the master, wash the cake with the solvent of the master the number of times it gives, then unload the wet cake into a labelled container. Collect the mother liquor in a labelled container.',
+    sections: [
+      {
+        id: 'setup',
+        title: 'Set-up',
+        fields: [
+          // SM Part XII 6.5.3; Q7 6.52: the major equipment used.
+          { id: 'centrifuge', label: 'Centrifuge', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'centrifugeClass' },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'spin', label: 'Centrifuge speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'spin' },
+        ],
+      },
+      washSection,
+      isolatedSection,
+    ],
+    signatures: SIGNED,
+  },
+  exampleUse: {
+    limits: { spin: reg('/min', '800', '1200'), washVolume: reg('L', '45.0', '55.0') },
+    targets: { spin: '1000', washVolume: '50.0' },
+    equipmentClasses: { centrifugeClass: 'CENTRIFUGE-48IN' },
     bomLines: { washLine: 'L2' },
     counts: { washes: '2' },
   },
@@ -324,27 +395,32 @@ export const API_DRY: SeedItem = {
     category: 'PROCESS',
     edition: 'substance',
     instructions:
-      'Weigh the wet cake onto the trays, dry at the set temperature and rake at the stated times. Test the loss on drying and dry on until it is within its limit, up to the number of checks the master allows. Unload and weigh the dry material.',
+      'Load the wet cake onto the trays and dry at the set temperature. Test the loss on drying and dry on until it is within its limit, up to the number of checks the master allows. Unload and weigh the dry material.',
     sections: [
       {
         id: 'setup',
         title: 'Loading',
         fields: [
+          // SM Part XII 6.5.3; Q7 6.52: the major equipment used.
           { id: 'dryer', label: 'Tray dryer', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'dryerClass' },
+          // SM Part XII 6.5.3; Q7 6.52: the input of the step.
           { id: 'wetIn', label: 'Wet cake container', type: 'CONTAINER', action: 'CONSUME' },
-          { id: 'wetMass', label: 'Wet cake loaded', type: 'WEIGHING', unit: 'kg', limitSlot: 'wetMass' },
-          { id: 'trays', label: 'Number of trays loaded', type: 'NUMBER', unit: '1', decimals: 0, limitSlot: 'trays' },
-          { id: 'dryerTemp', label: 'Dryer temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'dryerTemp', critical: true },
+          // SM Part XII 6.5.3; Q7 6.52: the quantity of the input.
+          { id: 'wetMass', label: 'Wet cake loaded', type: 'WEIGHING', unit: 'kg' },
+          // SM Part XII 6.4.2, 6.5.3; Q7 6.41, 6.52: a process parameter of the master, its actual result recorded.
+          { id: 'dryerTemp', label: 'Dryer temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'dryerTemp' },
+          // SM Part XII 8.2.1; Q7 8.20: a time limit of the master, met or the deviation evaluated.
           { id: 'drying', label: 'Drying time', type: 'TIMER', durationUnit: 'min', limitSlot: 'dryingTime', critical: true },
         ],
       },
       {
         id: 'lodLoop',
-        title: 'Raking and LOD check',
+        title: 'LOD check',
         repeat: { kind: 'UNTIL_PASS', untilField: 'lod', maxRepeatsSlot: 'maxLodChecks' },
         fields: [
-          { id: 'raked', label: 'Material raked', type: 'YES_NO', expected: true },
+          // SM Part XII 6.5.3, 8.3.1; Q7 6.52, 8.30: the in-process sample taken.
           { id: 'sample', label: 'LOD sample', type: 'SAMPLE', unitsSlot: 'lodSampleUnits', purpose: 'Loss on drying' },
+          // SM Part XII 8.3.1, 8.3.3; Q7 8.30, 8.32: the in-process control result against its QU-approved criterion.
           { id: 'lod', label: 'Loss on drying', type: 'NUMBER', unit: '%', decimals: 2, limitSlot: 'lod', critical: true },
         ],
       },
@@ -352,20 +428,18 @@ export const API_DRY: SeedItem = {
         id: 'output',
         title: 'Dry material',
         fields: [
+          // SM Part XII 6.5.3; Q7 6.52: the output of the step.
           { id: 'container', label: 'Dry material container', type: 'CONTAINER', action: 'REGISTER' },
-          { id: 'dryMass', label: 'Dry material net weight', type: 'WEIGHING', unit: 'kg', limitSlot: 'dryMass' },
-          { id: 'massLost', label: 'Mass lost on drying', type: 'CALC', expression: '(wetMass - dryMass) / wetMass * 100 [%]', unit: '%', limitSlot: 'massLost' },
+          // SM Part XII 6.5.3; Q7 6.52: the quantity of the output.
+          { id: 'dryMass', label: 'Dry material net weight', type: 'WEIGHING', unit: 'kg' },
         ],
       },
     ],
     signatures: SIGNED,
   },
   exampleUse: {
-    limits: {
-      wetMass: reg('kg', '50.000', '70.000'), trays: reg('1', '8', '16'), dryerTemp: reg('Cel', '55.0', '65.0'), dryingTime: reg('min', '60', '900'),
-      lod: reg('%', '0.00', '0.50'), dryMass: reg('kg', '40.000', '52.000'), massLost: reg('%', '10.0', '30.0'),
-    },
-    targets: { wetMass: '60.000', trays: '12', dryerTemp: '60.0', lod: '0.30', dryMass: '48.000' },
+    limits: { dryerTemp: reg('Cel', '55.0', '65.0'), dryingTime: reg('min', '60', '900'), lod: reg('%', '0.00', '0.50') },
+    targets: { dryerTemp: '60.0', lod: '0.30' },
     equipmentClasses: { dryerClass: 'TRAY-DRYER' },
     counts: { maxLodChecks: '8', lodSampleUnits: '1' },
   },
@@ -380,42 +454,33 @@ export const API_YIELD: SeedItem = {
     edition: 'substance',
     roles: ['YIELD_RECONCILIATION'],
     instructions:
-      'Weigh the dry API, the samples taken and the recoverable losses. The actual yield is worked out against the batch size and the molar yield against the key starting material of the formula; a yield outside its limits is explained and investigated as a deviation.',
+      'Weigh the dry API. The actual yield is worked out against the expected yield (the batch size); a yield outside its limits is explained and investigated as a deviation.',
     inputs: [
+      // SM Part XII 8.1.5; Q7 8.14: the expected yield the actual one is compared with.
       { id: 'batchSize', label: 'Batch size (expected output)', kind: 'BATCH_SIZE', unit: 'kg' },
-      { id: 'ksmQty', label: 'Key starting material charged (formula line)', kind: 'FORMULA_LINE', unit: 'kg', slot: 'ksmLine' },
     ],
     sections: [
       {
         id: 'yield',
         title: 'Yield',
         fields: [
+          // SM Part XII 8.1.1, 5.3.1; Q7 8.10, 5.30: a weighing device of suitable accuracy, calibrated.
           { id: 'weighBalance', label: 'Balance', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
-          { id: 'output', label: 'Dry API weight', type: 'WEIGHING', unit: 'kg', limitSlot: 'output' },
-          { id: 'samples', label: 'Samples taken', type: 'WEIGHING', unit: 'kg', limitSlot: 'samples' },
-          { id: 'losses', label: 'Recoverable losses (sweepings, filter residue)', type: 'WEIGHING', unit: 'kg', limitSlot: 'losses' },
-          { id: 'mwKsm', label: 'Molar mass of the key starting material', type: 'NUMBER', unit: 'g/mol', decimals: 2, limitSlot: 'mwKsm' },
-          { id: 'mwApi', label: 'Molar mass of the API', type: 'NUMBER', unit: 'g/mol', decimals: 2, limitSlot: 'mwApi' },
+          // SM Part XII 6.5.3; Q7 6.52: the actual output.
+          { id: 'output', label: 'Dry API weight', type: 'WEIGHING', unit: 'kg' },
+          // SM Part XII 8.1.5, 8.1.6; Q7 8.14, 8.15: the actual against the expected yield; outside its range, a deviation.
           { id: 'actualYield', label: 'Actual yield against the batch size', type: 'CALC', expression: 'output / batchSize * 100 [%]', unit: '%', limitSlot: 'actualYield', critical: true },
-          { id: 'molarYield', label: 'Molar yield against the key starting material', type: 'CALC', expression: 'output * mwKsm / (ksmQty * mwApi) * 100 [%]', unit: '%', limitSlot: 'molarYield', critical: true },
-          { id: 'accounted', label: 'Accounted for (output, samples, losses)', type: 'CALC', expression: '(output + samples + losses) / batchSize * 100 [%]', unit: '%', limitSlot: 'accounted' },
         ],
       },
     ],
     signatures: SIGNED,
   },
   exampleUse: {
-    limits: {
-      output: reg('kg', '0', '55.000'), samples: reg('kg', '0', '0.500'), losses: reg('kg', '0', '2.000'),
-      mwKsm: reg('g/mol', '200.00', '200.00'), mwApi: reg('g/mol', '250.00', '250.00'),
-      actualYield: reg('%', '85.0', '102.0'), molarYield: reg('%', '85.0', '102.0'), accounted: reg('%', '90.0', '103.0'),
-    },
-    // 40 kg of the key starting material (MW 200) gives at most 50 kg of the API (MW 250): 48 kg is 96 %.
-    targets: { output: '48.000', samples: '0.200', losses: '0.800', mwKsm: '200.00', mwApi: '250.00' },
+    limits: { actualYield: reg('%', '85.0', '102.0') },
     equipmentClasses: { balanceClass: 'FLOOR-BALANCE-150KG' },
-    bomLines: { ksmLine: 'L1' },
   },
-  exampleInputs: { batchSize: { value: '50', unit: 'kg' }, ksmQty: { value: '40', unit: 'kg' } },
+  // A weighing with no limit slot runs nominally at 1 kg, so the example batch is 1 kg (100 %); 0.80 kg would be 80 %.
+  exampleInputs: { batchSize: { value: '1', unit: 'kg' } },
 };
 
 export const API_LABEL_CHECK: SeedItem = {
@@ -433,7 +498,9 @@ export const API_LABEL_CHECK: SeedItem = {
         id: 'clearance',
         title: 'Line clearance',
         fields: [
+          // SM Part XII 9.4.5; Q7 9.44: the packaging and labelling area inspected immediately before use.
           { id: 'area', label: 'Packing area', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'areaClass' },
+          // SM Part XII 9.4.5; Q7 9.44: no material not needed for this operation left in the area.
           { id: 'noOldLabels', label: 'No label, container or material of an earlier batch left in the area', type: 'YES_NO', expected: true },
         ],
       },
@@ -441,11 +508,17 @@ export const API_LABEL_CHECK: SeedItem = {
         id: 'label',
         title: 'Label checked against the master',
         fields: [
-          { id: 'batchOnLabel', label: 'Batch number printed on the label', type: 'TEXT', pattern: '[A-Z0-9/-]{1,30}' },
+          // SM Part XII 9.4.3; Q7 9.42: the label shows the batch number.
+          { id: 'batchOnLabel', label: 'Batch number as the batch\'s', type: 'YES_NO', expected: true },
+          // SM Part XII 9.4.3; Q7 9.42: the label shows the name of the material.
           { id: 'name', label: 'Product name as the master', type: 'YES_NO', expected: true },
+          // SM Part XII 9.4.4; Q7 9.43: the quantity of contents.
           { id: 'quantity', label: 'Net quantity field present', type: 'YES_NO', expected: true },
+          // SM Part XII 9.4.4, 11.5.2; Q7 9.43, 11.61: the retest or expiry date.
           { id: 'dates', label: 'Retest or expiry date as the lot\'s', type: 'YES_NO', expected: true },
+          // SM Part XII 9.4.3; Q7 9.42: the storage conditions.
           { id: 'storage', label: 'Storage conditions as the master', type: 'YES_NO', expected: true },
+          // SM Part XII 9.4.4; Q7 9.43: outside the manufacturer's control, the manufacturer's name and address and transport conditions.
           { id: 'shipped', label: 'Manufacturer name and address and transport conditions present (containers leaving the site)', type: 'YES_NO', expected: true },
         ],
       },
@@ -457,5 +530,5 @@ export const API_LABEL_CHECK: SeedItem = {
   },
 };
 
-/** Catalogue v1 of the API edition (A1b), in the order a one-step synthesis uses them. */
-export const SUBSTANCE_SEEDS: readonly SeedItem[] = [API_DISP, API_CHARGE, API_REACT, API_IPC_COMPLETE, API_CRYST, API_FILTER, API_DRY, API_YIELD, API_LABEL_CHECK, API_PACK];
+/** Catalogue v1 of the API edition (A1b), in the order a one-step synthesis uses them; the isolation is one block per type. */
+export const SUBSTANCE_SEEDS: readonly SeedItem[] = [API_DISP, API_CHARGE, API_REACT, API_IPC_COMPLETE, API_CRYST, API_FILTER, API_CENTRIFUGE, API_DRY, API_YIELD, API_LABEL_CHECK, API_PACK];

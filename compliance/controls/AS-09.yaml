@@ -16,7 +16,7 @@ implemented_by:
   modules:
     - "TIMER fields with limits (reaction time, ageing, drying); lot dates."
 tests:
-  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature and time as critical parameters with limits, at each round; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature against limits at each round and its time as a critical time limit; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"

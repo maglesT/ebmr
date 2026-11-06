@@ -8,6 +8,7 @@
  * Controls: PR-01 (a master family per product and edition), PR-03 and PR-05 (the library definition check and the
  * approval that refuses a block of another edition), DI-35 (QA's approval signature).
  */
+import { readdirSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { EDITIONS } from '@ebmr/kernel';
@@ -128,5 +129,12 @@ describe('the API edition as data (API plan A0)', () => {
     // An unknown edition is still refused (the list grew; nothing else changed).
     const author = await gmp.asPersona('author');
     expect(refusalOf(await author.call(routes.library.draft, { body: { definition: defOf(`SB-${tag()}`, 'ointments') } })).code).toBe('LIB-EDITION');
+  });
+
+  it('[DI-05][DI-30] substance 5003: the AS control names a test run may cite in the database are exactly the AS control files of the register (compliance/controls/AS-*.yaml)', async () => {
+    const files = readdirSync(new URL('../../../../compliance/controls/', import.meta.url)).filter((f) => /^AS-\d+\.yaml$/.test(f)).map((f) => f.replace(/\.yaml$/, '')).sort();
+    const { rows } = await gmp.db.admin.query<{ name: string }>("select name from recipe.engine_name where kind = 'CONTROL' and name like 'AS-%' order by name collate \"C\"");
+    expect(files.length).toBeGreaterThan(0);
+    expect(rows.map((r) => r.name)).toEqual(files);
   });
 });
