@@ -16,9 +16,11 @@
 -- next lot as the first-expiring one and refused the entry for want of a rotation reason.
 --
 -- What changed:
---   * tab.lot_used_up_by_this_command(p_code, p_batch) (new): whether a consumption made in this transaction into
+--   * tab.lot_used_up_by_this_command(p_code, p_batch, p_consumption) (new): whether a consumption made in this transaction into
 --     batch p_batch emptied lot p_code of the batch's site (quantity after it 0, xact_id of this transaction) and the
---     lot is now CONSUMED. site.consume_reservation consumes only a lot in a usable state, so such a lot stood usable,
+--     lot is now CONSUMED; when the entry names its consumption (a TB-01 weighing does), that consumption itself (lead audit
+--     of #153). A G-07 entry names none (tablets 1093 pairs it with its consumption), so it is held to the transaction,
+--     the batch and the emptied lot. site.consume_reservation consumes only a lot in a usable state, so such a lot stood usable,
 --     and read as RELEASED, before this command.
 --   * tab.entry_identifier_problem(p_batch, p_entry) (CREATE OR REPLACE, the body of 1700 otherwise unchanged): on GMP,
 --     for such a lot only, the status compared with the entry is the RELEASED it had before the command. Every other
@@ -36,7 +38,7 @@
 set local role ebmr_owner;
 
 -- INV-13, PR-18: whether this transaction used up lot p_code (of batch p_batch's site) by a consumption into p_batch.
-create function tab.lot_used_up_by_this_command(p_code text, p_batch uuid) returns boolean
+create function tab.lot_used_up_by_this_command(p_code text, p_batch uuid, p_consumption uuid default null) returns boolean
 language sql stable security definer set search_path = pg_catalog, site, recipe, pg_temp as $$
   select p_code is not null and p_batch is not null
      and exists (select 1
@@ -44,6 +46,7 @@ language sql stable security definer set search_path = pg_catalog, site, recipe,
                    join site.material_lot m on m.id = c.lot_id
                    join recipe.stub_batch b on b.id = p_batch and b.site = m.site_code
                   where m.lot_code = p_code and c.batch_id = p_batch and c.xact_id = txid_current() and c.quantity_after = 0
+                    and (p_consumption is null or c.id = p_consumption)
                     and site.lot_state(m.id) = 'CONSUMED')
 $$;
 
@@ -88,7 +91,8 @@ begin
     end if;
     -- This migration: a lot this command used up is judged by the status it had before the command (RELEASED: only a
     -- usable lot is consumed). Nothing else of the register's facts changes, nor any lot unusable before the command.
-    if kernel.installation_kind() <> 'SANDBOX' and v_facts ->> 'status' = 'REJECTED' and tab.lot_used_up_by_this_command(v_lot ->> 'id', p_batch) then
+    if kernel.installation_kind() <> 'SANDBOX' and v_facts ->> 'status' = 'REJECTED' and tab.lot_used_up_by_this_command(v_lot ->> 'id', p_batch,
+         case when p_entry ->> 'consumption' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (p_entry ->> 'consumption')::uuid end) then
       v_facts := v_facts || jsonb_build_object('status', 'RELEASED');
     end if;
     v_reg := jsonb_strip_nulls(jsonb_build_object(
@@ -137,6 +141,6 @@ begin
 end
 $$;
 
-revoke all on function tab.lot_used_up_by_this_command(text, uuid) from public;
+revoke all on function tab.lot_used_up_by_this_command(text, uuid, uuid) from public;
 
 reset role;

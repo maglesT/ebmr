@@ -529,6 +529,8 @@ describe('a weighing that uses up a whole lot on GMP: the entry guard judges the
     { code: 'L26-0402', material: 'MAT-MGS', days: 600, state: 'RELEASED', quantity: '0.600', reserve: true },
     { code: 'L26-0403', material: 'MAT-MGS', days: 600, state: 'REJECTED', quantity: '5', reserve: false },
     { code: 'L26-0404', material: 'MAT-MGS', days: 650, state: 'RELEASED', quantity: '0.010', reserve: true },
+    { code: 'L26-0405', material: 'MAT-MGS', days: 660, state: 'QUARANTINE', quantity: '5', reserve: false },
+    { code: 'L26-0406', material: 'MAT-MGS', days: 670, state: 'RELEASED', quantity: '0.020', reserve: true },
   ];
   beforeAll(async () => {
     b = await issued();
@@ -581,7 +583,17 @@ describe('a weighing that uses up a whole lot on GMP: the entry guard judges the
     expect({ ...end, consumed: end.consumed.map(([, q, u]) => [q, u]) }).toEqual({ state: 'CONSUMED', left: 0, consumed: [['0.600', 'kg']] });
   });
 
-  it('[INV-13][INV-14][PR-18][DI-05] past the server, a lot already consumed or rejected before the command is still refused (EBMR-EXE-078); a lot this command uses up passes only with the facts it had before the command', async () => {
+  it('[INV-13][INV-14][PR-57][PR-18][DI-05] G-07 weighing part of a lot in one entry and the rest in a second: both are accepted, each consumed in its own command, and the lot ends CONSUMED', async () => {
+    const d = await dispenser(b.batchId);
+    const part = (gross: string) => d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: G07_KEY, entry: { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', lotCode: 'L26-0406', manual: { gross, tare: '1.000', unit: 'kg', deviceCode: BALANCE } } });
+    await part('1.012');
+    expect(await lotEnd('L26-0406')).toMatchObject({ state: 'RELEASED', left: 0.008 });
+    await part('1.008');
+    const end = await lotEnd('L26-0406');
+    expect({ ...end, consumed: end.consumed.map(([, q, u]) => [q, u]) }).toEqual({ state: 'CONSUMED', left: 0, consumed: [['0.012', 'kg'], ['0.008', 'kg']] });
+  });
+
+  it('[INV-13][INV-14][PR-18][DI-05] past the server, a lot already consumed, rejected or in quarantine before the command is still refused (EBMR-EXE-078); a lot this command uses up passes only with the facts it had before the command', async () => {
     const run = await runContext(gmp.db.admin, b.batchId);
     const factsOf = async (code: string) => (await gmp.db.admin.query<{ f: Json }>('select tab.lot_facts($1, $2::uuid) as f', [code, b.batchId])).rows[0]?.f ?? {};
     const attempt = async (n: number, code: string, lotFacts: Json, consume: string | null) => {
@@ -609,6 +621,8 @@ describe('a weighing that uses up a whole lot on GMP: the entry guard judges the
     expect(await attempt(1, 'L26-0402', released('L26-0402', consumed), null)).toMatch(/lot L26-0402 states other facts than the lot register holds.*EBMR-EXE-078/s);
     // Rejected before the command.
     expect(await attempt(2, 'L26-0403', released('L26-0403', await factsOf('L26-0403')), null)).toMatch(/lot L26-0403 states other facts than the lot register holds.*EBMR-EXE-078/s);
+    // In quarantine before the command (lead audit of #153): refused.
+    expect(await attempt(5, 'L26-0405', released('L26-0405', await factsOf('L26-0405')), null)).toMatch(/lot L26-0405 states other facts than the lot register holds.*EBMR-EXE-078/s);
     // Used up by this command, but the entry states another expiry (a day later) than the lot had: refused.
     const whole = await factsOf('L26-0404');
     expect(await attempt(3, 'L26-0404', { ...released('L26-0404', whole), expiresAtUs: String(BigInt(String(whole['expiresAtUs'])) + 86_400_000_000n) }, '0.010')).toMatch(/lot L26-0404 states other facts than the lot register holds.*EBMR-EXE-078/s);
