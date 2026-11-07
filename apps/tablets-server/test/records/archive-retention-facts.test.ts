@@ -6,6 +6,7 @@
  * (a market dropped loses that market's rules, DI-47). Proved on batchFacts with a stand-in for the database client.
  */
 import { describe, expect, it } from 'vitest';
+import { records } from '@ebmr/kernel';
 import { batchFacts, licenceFormOf } from '../../src/features/archive/facts.ts';
 
 const BATCH = '0b6b8f8e-6a43-4f3b-9d8c-6d1f5f6f0a01';
@@ -22,11 +23,14 @@ interface Row {
   licence_form: string | null;
   packed_from: string[] | null;
   packed_into: string[] | null;
+  retest_labelled: boolean | null;
+  distribution_date: string | null;
 }
 
 const base: Row = {
   batch_number: 'B-0001', status: 'EXECUTION_COMPLETE', manufacture_date: '2026-03-02', markets: ['IN'], expiry_date: '2028-02-29', abort_date: null,
   eu_certified: null, eu_rejected: null, licence_form: '25', packed_from: null, packed_into: null,
+  retest_labelled: false, distribution_date: null,
 };
 
 const factsOf = async (over: Partial<Row>) => {
@@ -78,5 +82,15 @@ describe('the retention facts of a batch (archive/facts.ts; T13)', () => {
     expect([f.supports, f.dependsOn]).toEqual([['pack-1'], ['proc-1']]);
     const none = await factsOf({});
     expect([none.supports, none.dependsOn]).toEqual([[], []]);
+  });
+
+  it('[AS-24] a batch whose lot carries a retest date is retest-labelled and carries the date of its latest shipment; one without carries neither flag nor date in its inputs', async () => {
+    const api = await factsOf({ retest_labelled: true, distribution_date: '2026-07-01' });
+    expect([api.retention.retestLabelled, api.retention.distributionDate]).toEqual([true, '2026-07-01']);
+    const unshipped = await factsOf({ retest_labelled: true });
+    expect([unshipped.retention.retestLabelled, unshipped.retention.distributionDate]).toEqual([true, undefined]);
+    const tablet = await factsOf({ retest_labelled: false, distribution_date: '2026-07-01' });
+    expect(tablet.retention.retestLabelled).toBeUndefined();
+    expect(Object.keys(records.batchRetentionInputs(tablet.retention))).not.toContain('distributionDate');
   });
 });

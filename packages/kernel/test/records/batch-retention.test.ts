@@ -112,4 +112,37 @@ describe('batch retention keys (D-6-5)', () => {
     expect(batchRetentionInputs({ ...base, outcome: 'CANCELLED', abortCancelDate: '2026-01-20' }).abortCancelDate).toBe('2026-01-20');
     expect(batchRetentionInputs(base).abortCancelDate).toBeUndefined();
   });
+
+  it('[AS-24] only a retest-dated batch carries the retest flag and, once shipped, its distribution date; any other batch\'s inputs are as before', () => {
+    expect(batchRetentionInputs({ ...base, retestLabelled: true })).toMatchObject({ retestLabelled: true });
+    expect(batchRetentionInputs({ ...base, retestLabelled: true }).distributionDate).toBeUndefined();
+    expect(batchRetentionInputs({ ...base, retestLabelled: true, distributionDate: '2026-05-04' })).toMatchObject({ retestLabelled: true, distributionDate: '2026-05-04' });
+    expect(batchRetentionInputs({ ...base, retestLabelled: false, distributionDate: '2026-05-04' })).toEqual(batchRetentionInputs(base));
+    expect(Object.keys(batchRetentionInputs({ ...base, distributionDate: '2026-05-04' })).sort()).toEqual(['expiryDate', 'licenceForm', 'manufactureDate', 'markets']);
+  });
+
+  it('[AS-24][DI-47] a retest-dated India API batch stays OPEN until it ships, then is kept to the later of expiry + 1 year and shipment + 3 years; re-sending the same facts adds no input version', async () => {
+    const api: BatchRetentionFacts = { ...base, licenceForm: null, expiryDate: '2028-01-31', retestLabelled: true };
+    const batch = await scheduled(api);
+    expect(await effective(batch)).toMatchObject({ status: 'OPEN', openBecause: [{ recordKey: `batch:${batch}`, reasons: ['MISSING_INPUT:DISTRIBUTION'] }] });
+    await withCommand(db.app, again(qa), (c) => updateRetentionInputs(c, `batch:${batch}`, batchRetentionInputs({ ...api, distributionDate: '2027-06-30' }), 'batch shipped'));
+    expect(await effective(batch)).toMatchObject({ status: 'DATED', retainUntil: '2030-06-30' });
+    expect(await rules(batch)).toEqual(['IN_SCHEDULE_M_RETEST_DISTRIBUTION']);
+    const versions = async () => (await db.admin.query<{ n: number }>('select max(input_version)::int as n from records.retention_input where record_key = $1', [`batch:${batch}`])).rows[0]?.n;
+    expect(await versions()).toBe(2);
+    await withCommand(db.app, again(qa), (c) => updateRetentionInputs(c, `batch:${batch}`, batchRetentionInputs({ ...api, distributionDate: '2027-06-30' }), 'sync again'));
+    expect(await versions()).toBe(2);
+  });
+
+  it('[AS-24][DI-47] a batch without a retest date keeps its stored inputs and its date: no new input version, the same retain-until as under RET-2026.1', async () => {
+    const batch = await scheduled(base);
+    const stored = (await db.admin.query<{ i: Record<string, unknown> }>('select inputs as i from records.retention_input where record_key = $1', [`batch:${batch}`])).rows[0]?.i;
+    expect(stored).not.toHaveProperty('retestLabelled');
+    await withCommand(db.app, again(qa), (c) => updateRetentionInputs(c, `batch:${batch}`, batchRetentionInputs({ ...base, distributionDate: '2026-05-04' }), 'sync after shipment'));
+    expect((await db.admin.query<{ n: number }>('select count(*)::int as n from records.retention_input where record_key = $1', [`batch:${batch}`])).rows[0]?.n).toBe(1);
+    const old = (await db.admin.query<{ r: { retainUntil: string } }>(
+      "select records.evaluate_retention(inputs || '{\"retentionKey\": \"BATCH_RECORD\"}', 'RET-2026.1') as r from records.retention_input where record_key = $1", [`batch:${batch}`])).rows[0]?.r;
+    expect((await effective(batch)).retainUntil).toBe(old?.retainUntil);
+    expect(old?.retainUntil).toBe('2031-01-15');
+  });
 });

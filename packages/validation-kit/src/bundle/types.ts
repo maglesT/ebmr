@@ -6,7 +6,7 @@
  * tooling, not GMP domain code: durations, counts and sizes are plain numbers; GMP values in records travel as text.
  */
 
-export type Edition = 'tablets' | 'injectables';
+export type Edition = 'tablets' | 'injectables' | 'substance';
 export type Severity = 'critical' | 'high' | 'medium' | 'low';
 export type ControlType = 'ENFORCED' | 'CONFIGURABLE' | 'DESIGN_CHOICE';
 export type RunKind = 'vitest' | 'golden' | 'playwright' | 'load' | 'drill' | 'security' | 'accessibility' | 'mutation';

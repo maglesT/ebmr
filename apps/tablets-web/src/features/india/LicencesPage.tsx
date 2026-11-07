@@ -81,10 +81,12 @@ function LicenceItem({ l }: { l: LicenceView }) {
   const qa = useOffered('QA');
   const signed = useSignedAct(INDIA_READS);
   const suspend = useCommand(routes.india.suspendLicence, INDIA_READS);
+  const telephone = useCommand(routes.india.recordLicenceTelephone, INDIA_READS);
   const [reason, setReason] = useState('');
+  const [phone, setPhone] = useState('');
   return (
     <li data-testid={`licence-${l.licenceNumber}`} data-state={l.state}>
-      <strong>{l.licenceNumber}</strong> Form {l.form} ({words(l.licenceKind)}) {l.holderName}, {l.holderAddress} <StatusChip tone={licenceTone(l.state, l.current)} label={l.current ? 'Current' : words(l.state)} />
+      <strong>{l.licenceNumber}</strong> Form {l.form} ({words(l.licenceKind)}) {l.holderName}, {l.holderAddress}{l.holderTelephone ? `, telephone ${l.holderTelephone}` : ''} <StatusChip tone={licenceTone(l.state, l.current)} label={l.current ? 'Current' : words(l.state)} />
       <br />
       Endorses {l.products.map((p) => `${p.productCode} ${p.strength}`).join(', ')}; valid from {l.validFrom.text}
       {l.validUntil ? ` until ${l.validUntil.text}` : ' (no end date)'}
@@ -108,6 +110,9 @@ function LicenceItem({ l }: { l: LicenceView }) {
           <ActResult error={suspend.error} done={suspend.done} label="The suspension is recorded." />
         </>
       ) : null}
+      <Field name={`licenceTelephone-${l.licenceId}`} label="New holder telephone (supersedes the current one on the CoA)" value={phone} onChange={setPhone} />
+      <ActButton primary={false} label="Record the telephone" onPress={() => phone.trim() && telephone.run({ params: { licenceId: l.licenceId }, body: { telephone: phone.trim() } })} disabled={!phone.trim() || telephone.busy} />
+      <ActResult error={telephone.error} done={telephone.done} label="The telephone is recorded." />
     </li>
   );
 }
@@ -119,6 +124,7 @@ function RecordLicence() {
   const [number, setNumber] = useState('');
   const [holder, setHolder] = useState('');
   const [address, setAddress] = useState('');
+  const [telephone, setTelephone] = useState('');
   const [host, setHost] = useState('');
   const [agreement, setAgreement] = useState('');
   const [from, setFrom] = useState('');
@@ -156,6 +162,7 @@ function RecordLicence() {
       <Field name="licenceNumber" label="Licence number" value={number} onChange={setNumber} />
       <Field name="holderName" label="Holder name" value={holder} onChange={setHolder} />
       <Field name="holderAddress" label="Holder address" value={address} onChange={setAddress} />
+      <Field name="holderTelephone" label="Holder telephone (optional)" value={telephone} onChange={setTelephone} />
       {kind === 'LOAN' ? (
         <>
           <Field name="hostLicenceId" label="Host manufacturing licence (id)" value={host} onChange={setHost} />
@@ -172,7 +179,7 @@ function RecordLicence() {
           validFrom &&
           record.run({
             body: {
-              licenceKind: kind, form: form as '25' | '28' | '25A' | '28A', licenceNumber: number.trim(), holderName: holder.trim(), holderAddress: address.trim(),
+              licenceKind: kind, form: form as '25' | '28' | '25A' | '28A', licenceNumber: number.trim(), holderName: holder.trim(), holderAddress: address.trim(), ...(telephone.trim() ? { holderTelephone: telephone.trim() } : {}),
               ...(kind === 'LOAN' ? { hostLicenceId: host.trim(), technicalAgreement: agreement.trim() } : {}), validFrom, ...(validUntil ? { validUntil } : {}), products: list,
             },
           })

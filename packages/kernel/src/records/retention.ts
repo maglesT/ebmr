@@ -34,7 +34,12 @@ export interface RetentionInputs {
    */
   noLabelledExpiry?: boolean;
   otcExpiryExempt?: boolean;
-  /** Date distribution of the batch was completed (US OTC products exempt from expiry dating). */
+  /**
+   * The batch's lot carries a retest date (an API, AS-24): its records are kept three years after the batch is
+   * completely distributed (India and EU rules), besides the expiry rules.
+   */
+  retestLabelled?: boolean;
+  /** Date distribution of the batch was completed (US OTC products exempt from expiry dating; retest-dated APIs). */
   distributionDate?: CalendarDate | null;
   /** QP certification date received from the EU importer; absent = pending (retention OPEN). */
   euCertificationDate?: CalendarDate | null;
@@ -48,7 +53,10 @@ export interface RetentionInputs {
   maEndDate?: CalendarDate | null;
 }
 
-/** Inputs with every key present, dates validated and markets sorted (as stored by the database). */
+/**
+ * Inputs with every key present, dates validated and markets sorted (as stored by the database). retestLabelled is
+ * present only when true (kernel 1405), so the inputs stored before it are already in this form.
+ */
 export interface NormalizedRetentionInputs {
   markets: Market[];
   licenceForm: 'FORM_25' | 'FORM_28' | null;
@@ -56,6 +64,7 @@ export interface NormalizedRetentionInputs {
   expiryDate: CalendarDate | null;
   noLabelledExpiry: boolean;
   otcExpiryExempt: boolean;
+  retestLabelled?: true;
   distributionDate: CalendarDate | null;
   euCertificationDate: CalendarDate | null;
   euNeverCertified: boolean;
@@ -129,7 +138,7 @@ const byCodeUnit = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 /** Mirror of records.normalize_retention_inputs; throws EBMR-REC-020 on invalid inputs. */
 export function normalizeRetentionInputs(inputs: RetentionInputs): NormalizedRetentionInputs {
   const raw = inputs as unknown as Record<string, unknown>;
-  const allowed = new Set<string>(['markets', 'licenceForm', ...DATE_KEYS, ...BOOL_KEYS]);
+  const allowed = new Set<string>(['markets', 'licenceForm', 'retestLabelled', ...DATE_KEYS, ...BOOL_KEYS]);
   for (const key of Object.keys(raw)) {
     if (!allowed.has(key)) throw new Error(`EBMR-REC-020 unknown retention input ${key}`);
   }
@@ -141,7 +150,7 @@ export function normalizeRetentionInputs(inputs: RetentionInputs): NormalizedRet
   if (licenceForm !== null && licenceForm !== 'FORM_25' && licenceForm !== 'FORM_28') {
     throw new Error('EBMR-REC-020 licenceForm must be FORM_25, FORM_28 or null');
   }
-  const bool = (key: (typeof BOOL_KEYS)[number]): boolean => {
+  const bool = (key: (typeof BOOL_KEYS)[number] | 'retestLabelled'): boolean => {
     const v = raw[key];
     if (v === undefined || v === null) return false;
     if (typeof v !== 'boolean') throw new Error(`EBMR-REC-020 ${key} must be true or false`);
@@ -168,6 +177,8 @@ export function normalizeRetentionInputs(inputs: RetentionInputs): NormalizedRet
     lastTransactionDate: date('lastTransactionDate'),
     maEndDate: date('maEndDate'),
   };
+  // Written only when true, as the database does (kernel 1405).
+  if (bool('retestLabelled')) out.retestLabelled = true;
   if (out.euCertificationDate !== null && out.euNeverCertified) {
     throw new Error('EBMR-REC-020 a batch cannot be both certified and never certified for the EU');
   }
@@ -186,6 +197,7 @@ function facts(inputs: NormalizedRetentionInputs): Record<string, string | boole
     // An unknown expiry date is not an unlabelled product: only the explicit fact says so (F31).
     expiryLabelled: !inputs.noLabelledExpiry,
     otcExpiryExempt: inputs.otcExpiryExempt,
+    retestLabelled: inputs.retestLabelled === true,
     euCertification: inputs.euCertificationDate !== null ? 'CERTIFIED' : inputs.euNeverCertified ? 'NEVER_CERTIFIED' : 'PENDING',
     aborted: inputs.abortCancelDate !== null,
     maInForce: inputs.maEndDate === null,

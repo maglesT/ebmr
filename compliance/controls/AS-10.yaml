@@ -1,0 +1,24 @@
+id: AS-10
+title: "In-process controls defined and approved"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 8.3.1, 8.3.3, 8.3.4; ICH Q7 (EU GMP Part II) 8.30, 8.32, 8.33. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "In-process controls and their criteria are defined, critical ones approved by the quality unit, and production adjusts only within approved limits."
+catalog_test: "Record a completion result outside its limit; the step repeats or raises an exception."
+implemented_by:
+  modules:
+    - "Approved master with limit slots; API-IPC-COMPLETE repeats until the result is within its limit; out-of-limit exception."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature against limits at each round and its time as a critical time limit; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

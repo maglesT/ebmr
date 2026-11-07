@@ -1,0 +1,36 @@
+id: AS-24
+title: "Record retention for APIs"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 6.1.4; ICH Q7 (EU GMP Part II) 6.13. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Records are kept at least 1 year after expiry, and for retest-dated APIs at least 3 years after the batch is completely distributed."
+catalog_test: "Delete an API record within 3 years of its last distribution; refused."
+implemented_by:
+  modules:
+    - "C5: kernel 1405, rule set RET-2026.2: India (SM Part XII 6.1.4) and EU (EU GMP Part II 6.13) rows keep a retest-dated batch record 3 years after its latest shipment; the expiry rules stay the floor."
+tests:
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [AS-24] a batch whose lot carries a retest date is retest-labelled and carries the date of its latest shipment; one without carries neither flag nor date in its inputs"
+  - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [AS-24][DI-47] a lot with a retest date makes its batch retest-labelled: OPEN until it ships, then the latest shipment date of its lots reaches the stored retention inputs"
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [AS-24] only a retest-dated batch carries the retest flag and, once shipped, its distribution date; any other batch's inputs are as before"
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [AS-24][DI-47] a batch without a retest date keeps its stored inputs and its date: no new input version, the same retain-until as under RET-2026.1"
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [AS-24][DI-47] a retest-dated India API batch stays OPEN until it ships, then is kept to the later of expiry + 1 year and shipment + 3 years; re-sending the same facts adds no input version"
+  - "packages/kernel/test/records/retention-rules.test.ts > TypeScript and SQL retention agree > [AS-24][DI-47] for random inputs the SQL evaluation under RET-2026.1 still equals the TypeScript RET-2026.1 evaluation"
+  - "packages/kernel/test/records/retention-rules.test.ts > TypeScript and SQL retention agree > [AS-24][DI-47] inputs stored before RET-2026.2 normalise to themselves: retestLabelled is written only when true, and only true or false is accepted"
+  - "packages/kernel/test/records/retention-rules.test.ts > TypeScript and SQL retention agree > [AS-24][DI-47] rule set RET-2026.1 is kept as published, and RET-2026.2 (current) is it plus the India and EU retest-distribution rows"
+  - "packages/kernel/test/records/retention-rules.test.ts > retention of APIs with a retest date (AS-24) > [AS-24] a US API batch gets no US retest-distribution rule (ICH Q7 is guidance there), only India's"
+  - "packages/kernel/test/records/retention-rules.test.ts > retention of APIs with a retest date (AS-24) > [AS-24] an India and EU API batch gets both the India and the EU retest-distribution rules"
+  - "packages/kernel/test/records/retention-rules.test.ts > retention of APIs with a retest date (AS-24) > [AS-24] an India-only API batch gets only the India retest-distribution rule"
+  - "packages/kernel/test/records/retention-rules.test.ts > retention of APIs with a retest date (AS-24) > [AS-24][DI-47] a batch without a retest date is unchanged: for random inputs RET-2026.2 gives what RET-2026.1 gave"
+  - "packages/kernel/test/records/retention-rules.test.ts > retention of APIs with a retest date (AS-24) > [AS-24][DI-47] an India API batch with a retest date shipped on D is kept to the later of expiry plus one year and D plus three years; not shipped it stays OPEN"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

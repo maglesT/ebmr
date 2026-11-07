@@ -372,6 +372,19 @@ describe('review additions: inputs from outside the step, conditional fields, pi
     const choice = withField(withField(friability(), { id: 'pack', label: 'Pack', type: 'CHOICE', options: ['THERMOFORM', 'PEEL_OFF'] }), { id: 'peel', label: 'Peel test passed', type: 'YES_NO', expected: true, showWhen: { field: 'pack', equals: 'PEEL_OFF' } });
     expect(checkBlockDefinition(choice, expr)).toEqual([]);
   });
+  it('[PR-03] a conditional field depends on a field of its own section: the runtime reads the condition from the entry being recorded, so a field of another section would never be asked (LIB-SHOW-WHEN)', () => {
+    const two = potencyDispensing();
+    const first = two.sections[0]!;
+    const flag = { id: 'reworked', label: 'Rework added', type: 'YES_NO' } as const;
+    const asked = { id: 'reworkNote', label: 'Rework note', type: 'TEXT', showWhen: { field: 'reworked', equals: true } } as const;
+    two.sections = [{ ...first, fields: [...first.fields, flag] }, { id: 'later', title: 'Later', fields: [asked] }, ...two.sections.slice(1)];
+    const problems = checkBlockDefinition(two, expr);
+    expect(codes(problems)).toEqual(['LIB-SHOW-WHEN']);
+    expect(problems[0]?.message).toMatch(/in section/);
+    two.sections = [{ ...first, fields: [...first.fields, flag, asked] }, ...two.sections.slice(2)];
+    expect(checkBlockDefinition(two, expr)).toEqual([]);
+  });
+
 
   it('[DI-33] a calculation may read a conditional field only under the same condition', () => {
     const bad = withField(potencyDispensing(), { id: 'total', label: 'Total', type: 'CALC', expression: 'net + reworkQty', unit: 'kg' });

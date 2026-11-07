@@ -8,7 +8,7 @@ import {
   type OwnRetention,
   type RetentionInputs,
 } from '../../src/records/retention.ts';
-import { RETENTION_RULE_SET, type RetentionKey } from '../../src/records/retention-rules.ts';
+import { RETENTION_RULE_SET, RETENTION_RULE_SET_2026_1, type RetentionKey, type RetentionRuleSet } from '../../src/records/retention-rules.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
@@ -129,6 +129,53 @@ describe('retention rules (outline 3.3.6)', () => {
   });
 });
 
+describe('retention of APIs with a retest date (AS-24)', () => {
+  const RETEST = ['EU_GMP_II_RETEST_DISTRIBUTION', 'IN_SCHEDULE_M_RETEST_DISTRIBUTION'];
+  const api = { licenceForm: null, manufactureDate: '2026-01-15', expiryDate: '2028-01-31', retestLabelled: true } as const;
+  const retestRules = (r: OwnRetention) => r.evaluated.map((e) => e.ruleId).filter((id) => RETEST.includes(id));
+
+  it('[AS-24][DI-47] an India API batch with a retest date shipped on D is kept to the later of expiry plus one year and D plus three years; not shipped it stays OPEN', () => {
+    const unshipped = batch({ markets: ['IN'], ...api });
+    expect(unshipped).toMatchObject({ status: 'OPEN', retainUntil: null, openReasons: ['MISSING_INPUT:DISTRIBUTION'], latestDated: '2029-01-31' });
+    expect(unshipped.governingRules).toEqual(['IN_SCHEDULE_M_RETEST_DISTRIBUTION']);
+    // Shipped late: distribution + 3 years governs.
+    const late = batch({ markets: ['IN'], ...api, distributionDate: '2027-06-30' });
+    expect(late).toMatchObject({ status: 'DATED', retainUntil: '2030-06-30', governingRules: ['IN_SCHEDULE_M_RETEST_DISTRIBUTION'] });
+    expect(late.evaluated.find((e) => e.ruleId === 'IN_SCHEDULE_M_EXPIRY')?.date).toBe('2029-01-31');
+    // Shipped early: the expiry + 1 year floor still governs.
+    const early = batch({ markets: ['IN'], ...api, expiryDate: '2031-01-31', distributionDate: '2026-03-01' });
+    expect(early).toMatchObject({ status: 'DATED', retainUntil: '2032-01-31', governingRules: ['IN_SCHEDULE_M_EXPIRY'] });
+    expect(early.evaluated.find((e) => e.ruleId === 'IN_SCHEDULE_M_RETEST_DISTRIBUTION')?.date).toBe('2029-03-01');
+  });
+
+  it('[AS-24] an India-only API batch gets only the India retest-distribution rule', () => {
+    expect(retestRules(batch({ markets: ['IN'], ...api, distributionDate: '2027-06-30' }))).toEqual(['IN_SCHEDULE_M_RETEST_DISTRIBUTION']);
+  });
+
+  it('[AS-24] an India and EU API batch gets both the India and the EU retest-distribution rules', () => {
+    const r = batch({ markets: ['IN', 'EU'], ...api, euCertificationDate: '2026-02-10', distributionDate: '2028-06-30' });
+    expect(retestRules(r)).toEqual(['EU_GMP_II_RETEST_DISTRIBUTION', 'IN_SCHEDULE_M_RETEST_DISTRIBUTION']);
+    expect(r).toMatchObject({ status: 'DATED', retainUntil: '2031-06-30', governingRules: ['EU_GMP_II_RETEST_DISTRIBUTION', 'IN_SCHEDULE_M_RETEST_DISTRIBUTION'] });
+  });
+
+  it('[AS-24] a US API batch gets no US retest-distribution rule (ICH Q7 is guidance there), only India\'s', () => {
+    const r = batch({ markets: ['IN', 'US'], ...api, distributionDate: '2027-06-30' });
+    expect(retestRules(r)).toEqual(['IN_SCHEDULE_M_RETEST_DISTRIBUTION']);
+    expect(RETENTION_RULE_SET.rules.filter((x) => RETEST.includes(x.ruleId)).map((x) => x.market).sort()).toEqual(['EU', 'IN']);
+  });
+
+  it('[AS-24][DI-47] a batch without a retest date is unchanged: for random inputs RET-2026.2 gives what RET-2026.1 gave', () => {
+    const without = (r: OwnRetention) => ({ ...r, ruleSetVersion: '' });
+    fc.assert(
+      fc.property(keyArb, inputsArb, (key, inputs) => {
+        const plain = { ...inputs, retestLabelled: false };
+        expect(without(evaluateOwnRetention(key, plain))).toEqual(without(evaluateOwnRetention(key, plain, RETENTION_RULE_SET_2026_1)));
+      }),
+      { numRuns: 400 },
+    );
+  });
+});
+
 describe('retention dependency (pure)', () => {
   const own = (status: OwnRetention['status'], retainUntil: string | null, openReasons: string[] = []): OwnRetention => ({
     ruleSetVersion: 'T',
@@ -193,6 +240,7 @@ const inputsArb: fc.Arbitrary<RetentionInputs> = fc
     expiryDate: maybe(dateArb),
     noLabelledExpiry: fc.boolean(),
     otcExpiryExempt: fc.boolean(),
+    retestLabelled: fc.boolean(),
     distributionDate: maybe(dateArb),
     euCertificationDate: maybe(dateArb),
     euNeverCertified: fc.boolean(),
@@ -209,15 +257,63 @@ const inputsArb: fc.Arbitrary<RetentionInputs> = fc
   }));
 const keyArb = fc.constantFrom<RetentionKey>('BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD', 'VALIDATION_RAW_DATA', 'PERMANENT');
 
-async function sqlEvaluate(key: RetentionKey, inputs: RetentionInputs): Promise<OwnRetention> {
+async function sqlEvaluate(key: RetentionKey, inputs: RetentionInputs, version: string | null = null): Promise<OwnRetention> {
   const { rows } = await db.app.query<{ r: OwnRetention }>(
-    `select records.evaluate_retention(records.normalize_retention_inputs($1::jsonb) || jsonb_build_object('retentionKey', $2::text)) as r`,
-    [JSON.stringify(inputs), key],
+    `select records.evaluate_retention(records.normalize_retention_inputs($1::jsonb) || jsonb_build_object('retentionKey', $2::text), $3) as r`,
+    [JSON.stringify(inputs), key, version],
   );
   return rows[0]?.r as OwnRetention;
 }
 
+const sortedRules = (set: RetentionRuleSet) => [...set.rules].sort((a, b) => (a.ruleId < b.ruleId ? -1 : 1));
+async function dbRules(version: string) {
+  const { rows } = await db.app.query<{
+    rule_id: string; proposed_rule_key: string; retention_keys: string[]; market: string | null; predicate: Record<string, unknown>; anchor: string;
+    period_years: number; period_months: number; open_reason: string | null; source: string; verification: string;
+  }>('select * from records.retention_rule where rule_set_version = $1 order by rule_id collate "C"', [version]);
+  return rows.map((r) => ({
+    ruleId: r.rule_id, proposedRuleKey: r.proposed_rule_key, retentionKeys: r.retention_keys, market: r.market, predicate: r.predicate, anchor: r.anchor,
+    period: { years: r.period_years, months: r.period_months }, openReason: r.open_reason, source: r.source, verification: r.verification,
+  }));
+}
+
 describe('TypeScript and SQL retention agree', () => {
+  it('[AS-24][DI-47] rule set RET-2026.1 is kept as published, and RET-2026.2 (current) is it plus the India and EU retest-distribution rows', async () => {
+    expect(await dbRules(RETENTION_RULE_SET_2026_1.version)).toEqual(sortedRules(RETENTION_RULE_SET_2026_1));
+    expect(await dbRules(RETENTION_RULE_SET.version)).toEqual(sortedRules(RETENTION_RULE_SET));
+    const added = RETENTION_RULE_SET.rules.filter((r) => !RETENTION_RULE_SET_2026_1.rules.some((o) => o.ruleId === r.ruleId)).map((r) => r.ruleId);
+    expect(added.sort()).toEqual(['EU_GMP_II_RETEST_DISTRIBUTION', 'IN_SCHEDULE_M_RETEST_DISTRIBUTION']);
+    expect(RETENTION_RULE_SET.rules.slice(0, RETENTION_RULE_SET_2026_1.rules.length)).toEqual(RETENTION_RULE_SET_2026_1.rules);
+    // Both rows came in under configuration change control as release versions (kernel 1196).
+    const { rows } = await db.admin.query<{ item_key: string; basis: string }>(
+      "select item_key, basis from platform.config_version where area = 'RETENTION_RULE' and source_row ->> 'rule_set_version' = 'RET-2026.2' and source_row ->> 'rule_id' like '%RETEST%' order by item_key",
+    );
+    expect(rows.map((r) => r.basis)).toEqual(['RELEASE', 'RELEASE']);
+  });
+
+  it('[AS-24][DI-47] for random inputs the SQL evaluation under RET-2026.1 still equals the TypeScript RET-2026.1 evaluation', async () => {
+    await fc.assert(
+      fc.asyncProperty(keyArb, inputsArb, async (key, inputs) => {
+        expect(await sqlEvaluate(key, inputs, RETENTION_RULE_SET_2026_1.version)).toEqual(evaluateOwnRetention(key, inputs, RETENTION_RULE_SET_2026_1));
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it('[AS-24][DI-47] inputs stored before RET-2026.2 normalise to themselves: retestLabelled is written only when true, and only true or false is accepted', async () => {
+    const norm = async (p: unknown) => (await db.app.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(p)])).rows[0]?.n;
+    const stored = await norm({ markets: ['IN', 'EU'], licenceForm: 'FORM_25', manufactureDate: '2026-01-15', expiryDate: '2028-01-31' });
+    expect(stored).not.toHaveProperty('retestLabelled');
+    expect(await norm(stored)).toEqual(stored);
+    expect(await norm({ ...stored, retestLabelled: false })).toEqual(stored);
+    expect(await norm({ ...stored, retestLabelled: true })).toEqual({ ...stored, retestLabelled: true });
+    expect(normalizeRetentionInputs({ markets: ['IN'], retestLabelled: false })).not.toHaveProperty('retestLabelled');
+    expect(normalizeRetentionInputs({ markets: ['IN'], retestLabelled: true })).toMatchObject({ retestLabelled: true });
+    const bad = { markets: ['IN'], retestLabelled: 'yes' } as unknown as RetentionInputs;
+    expect(() => normalizeRetentionInputs(bad)).toThrow('EBMR-REC-020 retestLabelled must be true or false');
+    await expect(norm(bad)).rejects.toThrow('EBMR-REC-020 retestLabelled must be true or false');
+  });
+
   it('[DI-47] the rule parameters in TypeScript and in records.retention_rule are identical', async () => {
     const { rows } = await db.app.query<{
       rule_id: string;

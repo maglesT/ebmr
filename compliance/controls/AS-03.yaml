@@ -1,0 +1,26 @@
+id: AS-03
+title: "A batch record for each intermediate and API, checked at issue"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 6.5.1, 6.5.2; ICH Q7 (EU GMP Part II) 6.50, 6.51. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Each batch of an intermediate or API has a record checked at issue against the current master, uniquely numbered, dated and signed at issue."
+catalog_test: "Issue a batch from a superseded API master; refused."
+implemented_by:
+  modules:
+    - "Batch issue from the approved master (existing); intermediates in A2 (C1)."
+tests:
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-03][INV-27][PR-37][IN-18] the processing batch is planned from its ERP order, issued, run from the master's library snapshot, its output closed into a verified bulk container and released for packing by QA (H-PACK)"
+  - "apps/tablets-server/test/substance/intermediate-lots.test.ts > API plan A2: intermediate lots between synthesis steps (C1) > [AS-03][AS-04][INV-13][INV-14][PR-57][IN-05][PR-45] step B dispenses intermediate A at its G-07 step on the booked balance: the weighing is consumed from B's reservation in the same command, so B's record names lot A and its quantity; B completes and posts intermediate B in quarantine, a lot of its own product; the overview still offers the post after it is made"
+  - "apps/tablets-server/test/substance/intermediate-lots.test.ts > API plan A2: intermediate lots between synthesis steps (C1) > [AS-03][INV-27][PR-37][IN-17] step C runs to its isolated API, is released for packing, packed into two drums and posted as the API lot; QC, QA and the authorised person release it with no RED item of G-REL"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

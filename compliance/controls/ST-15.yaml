@@ -26,7 +26,7 @@ behaviour: |-
 catalog_test: Use a disinfectant past its in-use expiry → line clearance fails. Record a *Bacillus* recovery → a sporicidal-clean task is required before the next aseptic batch.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-14][ST-15][ST-17] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-14][ST-15] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
