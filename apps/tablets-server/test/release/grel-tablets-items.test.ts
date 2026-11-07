@@ -333,7 +333,7 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
     expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'GREEN', problem: null });
   });
 
-  it('[IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved', async () => {
+  it('[IN-17][PR-39][INV-32][AS-14] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved', async () => {
     expect((await item('E.RECONCILIATION_PRINTED')).status).toBe('GREEN');
     await setStep(orderId, 'p-g21@', { step: 'p-g21', status: 'IN_PROGRESS', frames: [] });
     expect(await item('E.RECONCILIATION_PRINTED')).toMatchObject({ status: 'RED', problem: like(/p-g21@ is IN_PROGRESS: its reconciliation is not closed/) });

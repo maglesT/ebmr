@@ -1,0 +1,23 @@
+id: AS-07
+title: "Status of major equipment shown"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 8.1.7, 5.2.7; ICH Q7 (EU GMP Part II) 8.16, 5.26. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "The processing and cleanliness status of major equipment is shown."
+catalog_test: "Charge a reactor whose status is not clean; refused."
+implemented_by:
+  modules:
+    - "Plant status (existing); API-CHARGE confirms the reactor clean and labelled for the batch."
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: SPECIFIED
+scope: "API edition (substance) only; slice A1 of the API plan."
