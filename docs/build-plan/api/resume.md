@@ -1,21 +1,24 @@
-# API edition (substance): resume notes (7 November 2026, 15:20 UTC)
+# API edition (substance): resume notes (7 November 2026, 16:40 UTC)
 
 Read with: `plan.md`, `handover-a0.md` (sections "A1a done", "A1b paused", "A2 part 1", "A2 part 2"), CLAUDE.md and
 `docs/build-plan/capsules/plan.md` section 8 (rules learnt). Lead: session_01PybpFuUgimTwCNtTsK7cf1. Report each merge
 in 2 lines; lead audit before each merge; squash-merge on green.
 
-## State at 7 November 2026, 15:20 UTC (handover from session_01PybpFtk8NDMMd6ZHTNovoe)
+## State at 7 November 2026, 16:40 UTC (session_01PybpFuSsa3ub9XoAUuXKzv)
 
-MERGED this round (squash, by the lead): #154 (pod E2E chromium), #143 (A1b catalogue), #153 (whole-lot guard, tablets
-1903), #144 (A2 part 1: intermediate lot, substance 5004, `RunHeaderView.postsIntermediateLot` + "Post the intermediate
-lot" on RunOverview), #158 (site-services 1734: several intermediate lots per batch, codes `<batch>`, `-2`, `-3`, next
-free, never reused), #150 (kernel 1405 retention RET-2026.2), #145 (A3 CoA, substance 5005, tablets 1904; licence holder
-telephone history site-services 1735 in its own aggregate `licence_holder_telephone`, route `india.recordLicenceTelephone`).
-
-OPEN: **#163** (`e2e-wait-real-signals`, lead CLEARED): route-w 10 waits for `finished-lot-posted` before navigating;
-`useCommand.run` gets optional `onCommitted` (called on an OK answer before the reread) and `DefineForm` empties its
-fields there; registerTestLots waits for the emptied Lot code box; web test [DI-28] in
-`apps/tablets-web/test/app/define-form.test.tsx`. Send the lead "#163 green" when dispatch run 42377574705 passes.
+OPEN, in merge order (all lead-audited unless said):
+- **#163** (`e2e-wait-real-signals`, lead's own): dispatch 42377574705, E2E own-p3 ran over an hour; send "#163 green"
+  when it passes. After it merges: the stale-comment nit in `tools/e2e/specs/phase7/own-product-flow.ts` (~line 545, "only
+  after the lists are read again"; reword: it waits for the emptied form as a check) goes into the next PR.
+- **#164** (`api-a2b`, A2 part 2, CLEARED): dispatch 42386401699; send "#164 green".
+- **#165** (`api-genealogy-intermediate`, base api-a2b, recipe-core 1879, CLEARED): after #164 merges, retarget it to main
+  (MCP `update_pull_request`), dispatch, send "#165 green". Mutation: recipe.genealogy_step 138 of 139 killed + 1
+  equivalent (#139, re-keyed from #131 in `tools/sql-mutation/equivalent.json`); the mutation world in
+  `packages/site-services/test/mutation/genealogy-and-recall.test.ts` holds an intermediate lot. Last dispatch 42389615163.
+- **#166** (`api-as17`, AS-17 + substance 5006, CLEARED): AS-17 cites ICH Q7 11.40-11.43 (official ICH PDF); dispatch
+  42387727005; send "#166 green".
+- **#167** (`api-a4`, base api-a2b; plan section 11 + A4a tests, AS-19/AS-20, substance 5007): sent for audit; dispatch
+  42389996600. Retarget to main after #164. Register count: #166 makes 262, #167 263; the second to merge takes 264.
 
 ## How CI runs now (pod is dead; owner: go on without it)
 
@@ -31,21 +34,21 @@ fields there; registerTestLots waits for the emptied Lot code box; web test [DI-
 
 ## Next (in order)
 
-1. **#163** green → lead merges. Then the stale-comment nit the lead found goes into the NEXT PR (not #163):
-   `tools/e2e/specs/phase7/own-product-flow.ts` ~line 545 says DefineForm empties "only after the lists are read again",
-   no longer true after #163; reword (it waits for the emptied form as a belt-and-braces check).
-2. **A2 part 2** (`api-a2b`): branch is stacked on the OLD api-a2-r; merge origin/main in (A2 part 1 is now squashed on
-   main; expect conflicts in intermediate-lots.test.ts, IN-05/PR-45 lists, README rows), keep its own delta only, then
-   open the PR. Its whole-lot test (A 50 kg, B 42.5 kg) needs #153 (merged). Note #158: several lots per batch, codes
-   `<batch>-N`; `site.intermediate_lot_of` returns the LATEST lot, `site.intermediate_lots_of` all.
-3. **Genealogy** (`api-genealogy-intermediate`, stacked on api-a2b): recipe-core migration currently 1876; main has 1875
-   and #160/#161 take 1877/1878: the lead assigned **recipe-core 1879** (15:14); renumber 1876 → 1879, merge, PR.
-4. **AS-17 / AS test lists**: add `compliance/controls/AS-17.yaml` (SM XII 11.3.1-11.3.4; Q7 11.40-11.43) and AS-17 to
-   `recipe.engine_name` (substance 5003 holds the engine names, kept equal to the AS files; check the DI-05/DI-30 test in
-   substance-edition.test.ts), tag the CoA tests [AS-17]; add the AS test names A2 part 2 and genealogy carry (AS-03,
-   AS-04, AS-16) to their AS files.
-5. A1b E2E on #147 (own Playwright group; generic library-step form; AS-14 via G-21 label specimen), then A4
-   (recovery/rework) and the plan's next slices, small, one PR each.
+1. Send the "#N green" messages above as runs pass; retarget #165 and #167 after #164; on each merge check the other open
+   PRs (conflict recipe below in "How CI runs now").
+2. **A4b** (AS-21; plan section 11 rows Q7 14.40 to 14.43, lead-approved, tests only): second crop as a second
+   intermediate lot of the same batch (#158); mother liquor carried into the next batch as a held container released by
+   QA and added at G-24 RECOVERY (recipe-core 0622); a recovery master whose product is the recovered solvent, its
+   output posted as an intermediate lot, tested, released for further processing, weighed at G-07 (fresh + recovered =
+   two weighings). New `substance/recovery.test.ts` on `support.ts`; AS-21 file; its engine name needs a substance
+   number: 5008 is ours (tell the lead).
+3. **A1b E2E** after #155 merges (lead: wait; #155 moves acceptance.ts into library-support.ts): own Playwright group,
+   generic library-step form, AS-14 via the G-21 label specimen.
+4. The plan's next slices, small, one PR each.
+
+Owner open item (in plan section 11): the Schedule M extract lacks Part XII 11.3 and 14.2.2 to 14.4; ICH Q7 (official
+PDF, database.ich.org, Step 4 of 10 November 2000) is the checked source until the owner supplies them. CLAUDE.md allows
+only short quoted phrases of regulation text: quote the key phrase, paraphrase the rest.
 
 ## Rules learnt this round (owner and lead)
 
@@ -63,9 +66,9 @@ fields there; registerTestLots waits for the emptied Lot code box; web test [DI-
 
 ## Numbers in use
 
-substance 5000, 5003 (main), 5004 (A2), 5005 (A3); site-services 1732 (A2), 1734 (#158), 1735 (A3 telephone); tablets
-1903 (#153), 1904 (#145); kernel 1405 (#150); recipe-core 1879 (genealogy, assigned 7 Nov; branch still says 1876). Substance
-5006+ are ours; ask the lead for every shared number.
+substance 5000, 5003, 5004 (A2), 5005 (A3), 5006 (AS-17, #166), 5007 (AS-19/AS-20, #167); site-services 1732, 1734, 1735;
+tablets 1903, 1904; kernel 1405; recipe-core 1879 (genealogy, #165). Substance 5008+ are ours (tell the lead); ask the
+lead for every shared number.
 
 ## Lead rulings of 6 November (in force, beyond plan.md)
 
