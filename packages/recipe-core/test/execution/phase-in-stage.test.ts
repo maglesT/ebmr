@@ -2,13 +2,15 @@
  * R-flow item 1 (D-0 row 3; ADR 0004 decision 1, amended 7 November 2026): the operation level is optional. A master
  * whose stages hold their phases and hold points directly, with no operation, passes the validator, is numbered
  * `stage.step` the same way by the engine and by the database (recipe.flow_numbering, sql/0304), and runs to the end.
- * The edition is not part of the rule: the same flow is checked as an injectables and an API master.
+ * The edition is not part of the rule: the tablets granulation fixture, with header.edition changed, is checked as an
+ * injectables and an API master too (no real fixture of those editions exists). The database's checks of a run of
+ * this master (step order, step acts, stage summary) are in step-order-sql, step-acts-sql and stage-summary-sql.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { childrenOf, type FlowNode, type MbrContent } from '../../src/flow/model.ts';
 import { numberMbr } from '../../src/flow/numbering.ts';
-import { clone, errors, loadFixture, validate } from '../flow/support.ts';
+import { clone, errors, loadFixture, validate, withoutOperations } from '../flow/support.ts';
 import { autopilot, define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS, GRANULATION_SCENARIO, Run } from '../engine/support.ts';
 
 let db: TestDatabase;
@@ -18,20 +20,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.drop();
 });
-
-/** Every operation dissolved into its parent: its body takes its place. */
-function withoutOperations(mbr: MbrContent): MbrContent {
-  const out = clone(mbr);
-  const lift = (n: FlowNode): FlowNode => (n.kind === 'operation' ? lift(n.body) : n);
-  const visit = (n: FlowNode): void => {
-    if (n.kind === 'sequence') n.children = n.children.map(lift);
-    if (n.kind === 'stage' || n.kind === 'loop' || n.kind === 'operation') n.body = lift(n.body);
-    if (n.kind === 'parallel' || n.kind === 'alternative') for (const b of n.branches) if (b.body) b.body = lift(b.body);
-    childrenOf(n).forEach(visit);
-  };
-  visit(out.procedure.body);
-  return out;
-}
 
 function operations(n: FlowNode): number {
   return (n.kind === 'operation' ? 1 : 0) + childrenOf(n).reduce((s, c) => s + operations(c), 0);

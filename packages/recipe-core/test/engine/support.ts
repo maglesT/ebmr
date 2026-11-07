@@ -21,7 +21,7 @@ import { RELEASING_DISPOSITIONS } from '../../src/engine/definition.ts';
 import { compareDecimal, midpointDecimal } from '../../src/flow/decimal.ts';
 import type { MbrContent, Parameter } from '../../src/flow/model.ts';
 import type { Frame } from '../../src/flow/tokens.ts';
-import { expr, loadFixture, type FixtureName } from '../flow/support.ts';
+import { expr, loadFixture, withoutOperations, type FixtureName } from '../flow/support.ts';
 
 export { expr };
 
@@ -60,6 +60,11 @@ export const FIXTURE_JUSTIFICATIONS = [
 
 export function fixtureDefinition(name: FixtureName, policy: Partial<EnginePolicy> = {}): BatchDefinition {
   return defineBatch(loadFixture(name), { registry: testRegistry(), expressions: expr, policy, justifications: FIXTURE_JUSTIFICATIONS, installation: 'SANDBOX' });
+}
+
+/** The granulation fixture with every operation dissolved into its stage (R-flow item 1); it runs with GRANULATION_SCENARIO. */
+export function flatGranulationDefinition(): BatchDefinition {
+  return defineBatch(withoutOperations(loadFixture('tablet-granulation-compression')), { registry: testRegistry(), expressions: expr, justifications: FIXTURE_JUSTIFICATIONS, installation: 'SANDBOX' });
 }
 
 export function define(mbr: MbrContent, options: Partial<DefineOptions> = {}): BatchDefinition {

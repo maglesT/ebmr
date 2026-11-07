@@ -211,10 +211,17 @@ function checkOptionalSections(def: BlockDefinition): LibraryProblem[] {
     else if (typeof s.when !== 'string' || s.when.trim() === '') out.push(err('LIB-SECTION-OPTIONAL', `sections[${si}].when`, `Section ${s.id} is optional; name the event that calls for it in "when" (e.g. an extra binder addition, an alarm, a rework) [PR-03]`, ['PR-03']));
     else if (s.repeat !== undefined && s.repeat.kind !== 'ONCE' && s.repeat.kind !== 'PER_CONTAINER') {
       out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} repeats ${s.repeat.kind === 'UNTIL_PASS' ? 'until it passes' : s.repeat.kind === 'COUNT' ? 'a planned number of times' : 'at planned intervals'}; a planned check is part of the step's record, so it stays required [PR-03]`, ['PR-03']));
+    } else {
+      // A judged value (a CPP or IPC, a field with limits, a test result) is the step's record, never an event.
+      const judged = (s.fields ?? []).find((f) => ('critical' in f && f.critical === true) || ('limitSlot' in f && f.limitSlot !== undefined) || f.type === 'TEST_RESULT');
+      if (judged) out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} holds ${judged.id}, a value judged against limits; it is part of the step's record, so the section stays required [PR-03, PR-08]`, ['PR-03', 'PR-08']));
     }
   });
-  if (def.sections.length > 0 && def.sections.every((s) => s.required === false)) {
-    out.push(err('LIB-SECTION-OPTIONAL', 'sections', 'Every section is optional; the section that records the step itself stays required (21 CFR 211.188(b)) [PR-03]', ['PR-03']));
+  // 21 CFR 211.188(b): the record documents that each significant step was accomplished, so a block (other than a
+  // fieldless instruction or sign-off) keeps at least one required section that records something.
+  const hasFields = def.sections.some((s) => (s.fields ?? []).length > 0); // none at all is LIB-NO-FIELDS
+  if (hasFields && !def.sections.some((s) => s.required !== false && (s.fields ?? []).length > 0)) {
+    out.push(err('LIB-SECTION-OPTIONAL', 'sections', 'No required section records a field; the section that records the step itself stays required (21 CFR 211.188(b)) [PR-03]', ['PR-03']));
   }
   return out;
 }

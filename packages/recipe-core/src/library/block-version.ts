@@ -630,7 +630,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
           const r = s.repeat ?? { kind: 'ONCE' as const };
           // An optional event section (R-flow item 3) is recorded only when its event happens; the sections of a
           // fieldless instruction or sign-off block (item 5) hold only text, and the signature is the record.
-          if (s.required === false || fieldless) continue;
+          if ((s.required === false && (r.kind === 'ONCE' || r.kind === 'PER_CONTAINER')) || fieldless) continue;
           if (r.kind === 'COUNT') {
             const want = Number(config.counts?.[r.countSlot] ?? '1');
             if (n < want) out.push(problem('LIB-PERFORM-SECTION', `${s.title} is recorded ${n} of ${want} times`));

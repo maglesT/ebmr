@@ -93,6 +93,15 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(() => run(undefined).perform('p')).toThrow(/Alarm acknowledgement is not recorded yet \(LIB-PERFORM-SECTION/);
   });
 
+  it('[PR-03] R-flow item 3 boundary: the engine skips an optional section only when it repeats ONCE or PER_CONTAINER; an optional COUNT section still blocks the end', () => {
+    const def = friability();
+    def.sections.push({ id: 'checks', title: 'Planned checks', required: false, when: 'Defined as optional by mistake', repeat: { kind: 'COUNT', countSlot: 'checks' }, fields: [{ id: 'seen', label: 'Seen', type: 'TEXT' }] });
+    const use = { ...friabilityUse(), counts: { checks: '2' } };
+    const run = runFor(def, use);
+    run.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false });
+    expect(() => run.perform('p')).toThrow(/Planned checks is recorded 0 of 2 times \(LIB-PERFORM-SECTION/);
+  });
+
   it('[PR-03][DI-35] R-flow item 5: a fieldless instruction block ends on its PERFORMED signature alone', () => {
     const def: BlockDefinition = {
       code: 'SOP-READ', version: 1, title: 'Read the cleaning SOP', category: 'CONTROL', roles: ['INSTRUCTION'],

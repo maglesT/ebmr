@@ -59,3 +59,11 @@ When a change keeps a refusal because a binding clause asks for it, the PR quote
 
 Not in R-flow: the sanity bounds (LIB-FIELD-DECIMALS, LIB-FIELD-LENGTH, 60 formula lines, 9 further batch sizes) stay
 as (b) storage and screen limits, citing no clause. R-rest takes the other (c) rows.
+
+## Done (PR #162) and the gap left
+
+Built as planned; the lead's audit of #162 settled the generic set: the controls, dispensing (weight, potency, liquid),
+sift, mill, cone mill, dry mix, hold, transfer, carton, label reconciliation and shipper are generic. **Gap:** PROC-FBD,
+PROC-TRAY-DRY and PROC-BLEND stay tablets blocks (their text names granules; the API edition has its own drying
+blocks), and PACK-CODING and PACK-LEAK stay tablets blocks (blister or strip foil, pockets). Making any of them generic
+changes its data, so it is a new version with edition-neutral wording; not in this PR.

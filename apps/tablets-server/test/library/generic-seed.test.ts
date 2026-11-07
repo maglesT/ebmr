@@ -1,8 +1,8 @@
 /**
  * R-flow item 2 (D-0 row 4, EBMR-LIB-024): the edition-neutral seed blocks are generic, so an injectables or API master
- * uses the catalogue's line clearance, room and equipment status, dispensing, sifting, milling, hold, transfer and
- * packaging blocks without a copy. The blocks that name a tablet process (granulation, compression, coating, blistering
- * of tablets and the like) stay tablets blocks. A library that already holds the earlier, unchanged copy of a block that
+ * uses the catalogue's line clearance, room and equipment status, dispensing, sifting, milling, dry mixing, hold,
+ * transfer, cartoning, label reconciliation and shipper blocks without a copy. The blocks whose text names a tablet
+ * process or pack (granules, compression, coating, blister or strip foil, pockets) stay tablets blocks. A library that already holds the earlier, unchanged copy of a block that
  * became generic takes the generic one as its next version when the catalogue is loaded; a site's own version is never
  * touched.
  *
@@ -29,8 +29,8 @@ afterAll(async () => {
 const GENERIC = [
   'CTRL-BALANCE-CHECK', 'CTRL-DEVIATION-REF', 'CTRL-EQUIP-STATUS', 'CTRL-LINE-CLEAR-END', 'CTRL-LINE-CLEAR-START', 'CTRL-MATERIAL-RECON',
   'CTRL-PRINTED-RECON', 'CTRL-QA-VERIFY', 'CTRL-ROOM-STATUS', 'CTRL-SAMPLING', 'CTRL-STAGE-SIGNOFF', 'CTRL-YIELD',
-  'PACK-CARTON', 'PACK-CODING', 'PACK-LABEL-RECON', 'PACK-LEAK', 'PACK-SHIPPER',
-  'PROC-CONE-MILL', 'PROC-DISP', 'PROC-DISP-LIQUID', 'PROC-DISP-POTENCY', 'PROC-HOLD', 'PROC-MILL', 'PROC-SIFT', 'PROC-TRANSFER',
+  'PACK-CARTON', 'PACK-LABEL-RECON', 'PACK-SHIPPER',
+  'PROC-CONE-MILL', 'PROC-DISP', 'PROC-DRY-MIX', 'PROC-DISP-LIQUID', 'PROC-DISP-POTENCY', 'PROC-HOLD', 'PROC-MILL', 'PROC-SIFT', 'PROC-TRANSFER',
 ];
 const seed = (code: string): librarySeed.SeedItem => {
   const item = librarySeed.SEED_CATALOGUE.find((i) => i.definition.code === code);
@@ -43,7 +43,7 @@ describe('generic seed blocks (R-flow item 2, EBMR-LIB-024)', () => {
     const generic = librarySeed.SEED_CATALOGUE.filter((i) => library.blockEdition(i.definition) === 'generic').map((i) => i.definition.code).sort();
     expect(generic).toEqual([...GENERIC].sort());
     for (const code of GENERIC) expect(seed(code).definition.version).toBe(1);
-    for (const code of ['PROC-RMG', 'PROC-COMPRESS', 'PROC-FBD', 'PROC-BLEND', 'PACK-BLISTER-THERMO']) expect(library.blockEdition(seed(code).definition)).toBe('tablets');
+    for (const code of ['PROC-RMG', 'PROC-COMPRESS', 'PROC-FBD', 'PROC-TRAY-DRY', 'PROC-BLEND', 'PACK-BLISTER-THERMO', 'PACK-CODING', 'PACK-LEAK']) expect(library.blockEdition(seed(code).definition)).toBe('tablets');
   });
 
   it('[PR-05][DI-35] the catalogue loads the generic blocks; an injectables and an API master holding one is approved by QA', async () => {

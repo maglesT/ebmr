@@ -229,6 +229,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-DRY-MIX',
       version: 1,
+      edition: 'generic',
       title: 'Dry mixing',
       category: 'PROCESS',
       instructions: 'Load the materials in the order the formulation gives and mix for the set time at the set speed.',

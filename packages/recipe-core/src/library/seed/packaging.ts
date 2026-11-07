@@ -252,7 +252,6 @@ export const PACKAGING_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PACK-CODING',
       version: 1,
-      edition: 'generic',
       title: 'Coding and overprint check',
       category: 'PACKAGING',
       instructions: 'Read the overprint on the first pack and compare it with the batch record; record what is printed as read.',
@@ -282,7 +281,6 @@ export const PACKAGING_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PACK-LEAK',
       version: 1,
-      edition: 'generic',
       title: 'Leak test',
       category: 'PACKAGING',
       instructions: 'At each interval test the stated number of packs under vacuum; any pack that leaks fails the round.',

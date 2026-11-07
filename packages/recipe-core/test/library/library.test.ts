@@ -156,7 +156,24 @@ describe('library block definitions', () => {
     }
     expect(errors(checkBlockDefinition({ ...base, sections: [...base.sections, { ...event, repeat: { kind: 'PER_CONTAINER' } }] }, expr))).toEqual([]);
     const allOptional = { ...base, sections: base.sections.map((x) => ({ ...x, required: false, when: 'Sometimes' })) };
-    expect(codes(checkBlockDefinition(allOptional, expr))).toEqual(['LIB-SECTION-OPTIONAL']);
+    expect(codes(checkBlockDefinition(allOptional, expr))).toEqual(['LIB-SECTION-OPTIONAL', 'LIB-SECTION-OPTIONAL']);
+  });
+
+  it('[PR-03][PR-08] R-flow item 3 boundary: the record section cannot be made optional behind a field-less required one, and a judged value is never in an optional section', () => {
+    const text = { id: 'note', title: 'Read the SOP', fields: [] };
+    const plain = { id: 'obs', title: 'Observation', fields: [{ id: 'colour', label: 'Colour', type: 'TEXT' as const }] };
+    const optional = <T extends object>(x: T) => ({ ...x, required: false, when: 'Only when it happens' });
+    const def = (sections: BlockDefinition['sections']): BlockDefinition => ({ code: 'OPT-EDGE', version: 1, title: 'Edge', category: 'CONTROL', sections, signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }] });
+    const problems = (d: BlockDefinition) => errors(checkBlockDefinition(d, expr)).map((p) => [p.code, p.path]);
+    // (a) one field-less required section and the real record optional: nothing would be recorded.
+    expect(problems(def([text, optional(plain)]))).toEqual([['LIB-SECTION-OPTIONAL', 'sections']]);
+    expect(problems(def([text, plain]))).toEqual([]);
+    // (b) a value with limits, a CPP or IPC, or a test result stays in a required section.
+    const base = friability();
+    const run = base.sections[0] as BlockDefinition['sections'][number];
+    expect(problems({ ...base, sections: [optional(run), plain] })).toEqual([['LIB-SECTION-OPTIONAL', 'sections[0].required']]);
+    const limited = { id: 'extra', title: 'Extra', fields: [{ id: 'temp', label: 'Temperature', type: 'NUMBER' as const, unit: 'Cel', limitSlot: 'temp' }] };
+    expect(problems({ ...base, sections: [run, optional(limited)] })).toEqual([['LIB-SECTION-OPTIONAL', 'sections[1].required']]);
   });
 
   it('[DI-33] R-flow item 3: a calculation cannot read a field of an optional section, which may never be recorded', () => {
