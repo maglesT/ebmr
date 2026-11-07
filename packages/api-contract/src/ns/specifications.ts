@@ -137,7 +137,7 @@ export type LotReleaseCheckView = z.infer<typeof LotReleaseCheckView>;
 export const LotDecisionProposalView = z.strictObject({
   proposalId: Uuid,
   lotId: Uuid,
-  event: z.enum(['HOLD', 'UNHOLD', 'RETURN', 'RECALL']),
+  event: z.enum(['HOLD', 'UNHOLD', 'RETURN', 'RECALL', 'RELEASE_FOR_FURTHER_PROCESSING']),
   fromState: z.string(),
   /** The lot's state version the proposal was made at (a later change voids it). */
   version: z.string(),
@@ -156,6 +156,19 @@ export const FinishedLotView = z.strictObject({
   expiry: Instant,
 });
 export type FinishedLotView = z.infer<typeof FinishedLotView>;
+
+/** API plan A2 (C1): the intermediate lot of a processing batch of the API edition (site-services 1732, substance 5004). */
+export const IntermediateLotView = z.strictObject({
+  lotId: Uuid,
+  lotCode: z.string(),
+  batchId: Uuid,
+  materialCode: z.string(),
+  status: z.string(),
+  quantity: DecimalString,
+  unit: z.string(),
+  expiry: Instant,
+});
+export type IntermediateLotView = z.infer<typeof IntermediateLotView>;
 
 export const specifications = {
   list: defineRoute({
@@ -231,9 +244,9 @@ export const specifications = {
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
-    summary: 'QA proposes a status decision on a lot (HOLD, UNHOLD, RETURN, RECALL); it is then signed and applied as LOT_DECISION (D-P4-3)',
+    summary: 'QA proposes a status decision on a lot (HOLD, UNHOLD, RETURN, RECALL, or the release of an intermediate for further processing); it is then signed and applied as LOT_DECISION (D-P4-3; API plan A2)',
     params: z.strictObject({ lotId: Uuid }),
-    body: withAttribution({ event: z.enum(['HOLD', 'UNHOLD', 'RETURN', 'RECALL']) }),
+    body: withAttribution({ event: z.enum(['HOLD', 'UNHOLD', 'RETURN', 'RECALL', 'RELEASE_FOR_FURTHER_PROCESSING']) }),
     response: LotDecisionProposalView,
   }),
   postFinishedLot: defineRoute({
@@ -247,5 +260,17 @@ export const specifications = {
     summary: 'Post the finished lot of a completed packaging order, in quarantine (IN-05 (a), PR-45)',
     body: withAttribution({ batchId: Uuid, quantity: DecimalString, unit: Unit }),
     response: FinishedLotView,
+  }),
+  postIntermediateLot: defineRoute({
+    id: 'specifications.postIntermediateLot',
+    method: 'POST',
+    path: '/api/quality/intermediate-lots',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Post the intermediate lot of a completed processing batch of the API edition, in quarantine (API plan A2, C1; AS-03, AS-09)',
+    body: withAttribution({ batchId: Uuid, quantity: DecimalString, unit: Unit }),
+    response: IntermediateLotView,
   }),
 } as const;

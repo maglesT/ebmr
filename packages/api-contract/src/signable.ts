@@ -17,6 +17,7 @@
  *    MATERIAL_LOT_STATUS_DECIDED) of a material lot, as the lot's state machine names them;
  *    Phase 4 slice 2b: also HOLD, UNHOLD, RETURN and RECALL (MATERIAL_LOT_STATUS_DECIDED over the proposed decision);
  *  - LIBRARY_ACT (decision 0026 slice S3): BLOCK_APPROVE (LIBRARY_BLOCK_APPROVED, never by the author).
+ *  - COA_ACT (API plan A3, AS-17): COA_SIGN (COA_APPROVED on substance_coa <coa id>, state PREPARED; right RELEASE.MANUFACTURER).
  *  - LIMS_ACT (Phase 4 slice 2b): SPECIFICATION_APPROVE (SPECIFICATION_APPROVED, never by the drafter) and
  *    RETURN_ASSESSMENT_SIGN (RETURNED_GOODS_ASSESSED, by the QC person who recorded the assessment);
  *  - REPROCESSING_ACT: RESERVE_RESIDUE (RESIDUE_RESERVED), AUTHORISE_ADDITION and AUTHORISE_REQUEST
@@ -288,7 +289,8 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('LOT_DECISION'),
     lotId: Uuid,
     /** Phase 4 slice 2b: HOLD, UNHOLD, RETURN and RECALL sign MATERIAL_LOT_STATUS_DECIDED over the decision QA proposed (D-P4-3). */
-    decision: z.enum(['RELEASE', 'REJECT', 'HOLD', 'UNHOLD', 'RETURN', 'RECALL']),
+    /** API plan A2: RELEASE_FOR_FURTHER_PROCESSING releases an intermediate (the lot's machine, site-services 0711), as HOLD. */
+    decision: z.enum(['RELEASE', 'REJECT', 'HOLD', 'UNHOLD', 'RETURN', 'RECALL', 'RELEASE_FOR_FURTHER_PROCESSING']),
     /** A RELEASE names its route, and only a RELEASE does (IN-24 (c)). */
     route: z.enum(['IDENTITY_TESTED', 'VENDOR_HISTORY']).optional(),
     /** The person's own reason, both halves (a status decision such as a rejection carries one: DI-22, EBMR-AUDIT-002). */
@@ -306,6 +308,13 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('LIBRARY_ACT'),
     act: z.enum(['BLOCK_APPROVE']),
     /** The library block version. */
+    subjectId: Uuid,
+  }),
+  z.strictObject({
+    /** API plan A3 (ns/release.ts coa; AS-17): the quality unit's COA_APPROVED signature of a prepared CoA (substance_coa). */
+    kind: z.literal('COA_ACT'),
+    act: z.enum(['COA_SIGN']),
+    /** The prepared CoA (substance.coa). */
     subjectId: Uuid,
   }),
   z.strictObject({

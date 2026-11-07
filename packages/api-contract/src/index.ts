@@ -167,6 +167,10 @@ export {
   AfterReleaseAct,
   AfterReleaseDecisionView,
   AfterReleaseMarketView,
+  CoaDocumentView,
+  CoaRecordView,
+  CoaTestView,
+  LotCoaView,
   DisposalRoute,
   DisposalView,
   LotAfterReleaseView,
@@ -240,7 +244,7 @@ export {
   PqrSignOffView,
 } from './ns/pqr.ts';
 export { LibraryBlockState, LibraryBlockView, LibraryProblemView } from './ns/library.ts';
-export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, ProfilePointInput, ProfilePointView, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
+export { EditionReviewItem, FinishedLotView, IntermediateLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, ProfilePointInput, ProfilePointView, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView, StepBindingsView } from './ns/device-readings.ts';
 export {

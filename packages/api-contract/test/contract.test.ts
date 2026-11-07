@@ -229,7 +229,7 @@ describe('route table', () => {
       'marketConfig.openCampaign', 'marketConfig.recordChangeRecord', 'marketConfig.recordLineIsolation', 'marketConfig.recordPeriodicReview',
       'marketConfig.recordReferenceDocument', 'marketConfig.recordRiskAssessment', 'marketConfig.recordRuleSetVerification',
       'marketConfig.retireReferenceDocument', 'marketConfig.setDraftAttributes', 'marketConfig.setPolicyVersion', 'marketConfig.setSiteValue',
-      'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment', 'masterData.addFormulaVersion', 'masterData.createFormula', 'masterData.enterMaterial', 'masterData.enterProduct',
+      'marketConfig.setUtilityFeedAge', 'marketConfig.unlinkRiskAssessment', 'masterData.addFormulaVersion', 'masterData.createFormula', 'masterData.enterMaterial', 'masterData.enterProduct', 'masterData.withdrawFormulaVersion',
       'notifications.acknowledge', 'people.acknowledgeAlert', 'people.activateAccount', 'people.activateBadge', 'people.addQualificationRequirement',
       'people.approveBreakGlass', 'people.createAccount', 'people.createPerson', 'people.createQualificationType', 'people.createRole',
       'people.decideGrant', 'people.endQualificationRequirement', 'people.processLeaver', 'people.recertify', 'people.recordBadgeTest',
@@ -249,7 +249,7 @@ describe('route table', () => {
       'quality.proposeReprocessingRequest', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotDestruction', 'quality.recordLotReceipt',
       'quality.registerEvidenceDocument', 'quality.reserveLot', 'quality.resolveLotLocationException', 'quality.withdrawManufacturerApproval', 'recall.refreshFederation',
       'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
-      'samples.recoverReturn', 'serialisation.rejectPool', 'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot',
+      'samples.recoverReturn', 'serialisation.rejectPool', 'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.postIntermediateLot',
       'specifications.proposeLotDecision', 'support.requestGrant', 'support.revokeGrant', 'training.completeStep', 'training.start', 'transfers.acknowledgeAlarm',
       'transfers.import', 'transfers.prepare',
     ]);

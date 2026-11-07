@@ -447,6 +447,12 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'rejects', label: 'Ampoules rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
         },
+        {
+          // The rounds' rejects added up once, for unit accountability to read (INJ-24): never typed again.
+          id: 'end',
+          title: 'End of sealing',
+          fields: [{ id: 'totalRejects', label: 'Ampoules rejected at sealing', type: 'CALC', expression: 'sum(rejects)', unit: UNITS }],
+        },
       ],
       signatures: [OPERATOR, VERIFIER],
     },
@@ -483,6 +489,12 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'crimpOk', label: 'Crimp tight, seal does not turn, stopper not displaced', type: 'YES_NO', expected: true },
             { id: 'rejects', label: 'Vials rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
+        },
+        {
+          // The rounds' rejects added up once, for unit accountability to read (INJ-24): never typed again.
+          id: 'end',
+          title: 'End of capping',
+          fields: [{ id: 'totalRejects', label: 'Vials rejected at capping', type: 'CALC', expression: 'sum(rejects)', unit: UNITS }],
         },
       ],
       signatures: [OPERATOR, VERIFIER],
@@ -640,7 +652,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-24: 211.188(b), 211.192; SM 10.3-10.8.
+    // INJ-24: 211.188(b), 211.192; SM 10.3-10.8. The counts that filling, capping or sealing, and inspection
+    // recorded are read from those steps (STEP_VALUE, decision 0026; the I-1 finding the lead approved), never typed
+    // again: only the samples and the documented losses are new here.
     definition: {
       code: 'INJ-UNIT-ACCOUNT',
       version: 1,
@@ -648,18 +662,23 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['YIELD_RECONCILIATION'],
-      description: 'INJ-24. Every unit filled is accounted for: accepted, rejected at the line and at inspection, sampled and documented losses. A unit not accounted for is an exception.',
-      instructions: 'Take the counts from the filling, inspection and sampling steps. Explain any unit not accounted for before signing.',
+      description: 'INJ-24. Every unit filled is accounted for: accepted, rejected at the line, at capping or sealing and at inspection, sampled and documented losses. The units filled and rejected at the line are read from the filling step, the units rejected at closing from the capping (vials) or sealing (ampoules) step, the units accepted and rejected at inspection from the inspection step. A unit not accounted for is an exception.',
+      instructions: 'Enter the units sampled and the documented losses; the other counts come from the filling, capping or sealing, and inspection steps. Explain any unit not accounted for before signing.',
+      inputs: [
+        { id: 'filled', label: 'Units filled (from filling)', kind: 'STEP_VALUE', unit: UNITS, slot: 'filledSource' },
+        { id: 'lineRejects', label: 'Units rejected at the line (from filling)', kind: 'STEP_VALUE', unit: UNITS, slot: 'lineRejectsSource' },
+        { id: 'closingRejects', label: 'Units rejected at closing (from capping or sealing)', kind: 'STEP_VALUE', unit: UNITS, slot: 'closingRejectsSource' },
+        { id: 'accepted', label: 'Units accepted after inspection (from inspection)', kind: 'STEP_VALUE', unit: UNITS, slot: 'acceptedSource' },
+        { id: 'inspectionRejects', label: 'Units rejected at inspection (from inspection)', kind: 'STEP_VALUE', unit: UNITS, slot: 'inspectionRejectsSource' },
+      ],
       sections: [
         {
           id: 'account',
           title: 'Accountability',
           fields: [
-            { id: 'filled', label: 'Units filled', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'filled' },
-            { id: 'accepted', label: 'Units accepted after inspection', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'accepted' },
-            { id: 'rejected', label: 'Units rejected (line and inspection)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'rejected' },
             { id: 'sampled', label: 'Units sampled (QC, sterility, AQL, CCI destroyed)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'sampled' },
             { id: 'losses', label: 'Documented losses (broken, set-up)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'losses' },
+            { id: 'rejected', label: 'Units rejected (line, closing and inspection)', type: 'CALC', expression: 'lineRejects + closingRejects + inspectionRejects', unit: UNITS },
             { id: 'unaccounted', label: 'Units not accounted for', type: 'CALC', expression: 'unaccounted(filled, accepted, rejected, sampled, losses)', unit: UNITS, limitSlot: 'unaccounted', critical: true },
             { id: 'explanation', label: 'Explanation of any difference', type: 'TEXT', required: false },
           ],
@@ -669,14 +688,25 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
     exampleUse: {
       limits: {
-        filled: pv(UNITS, '1', '100000'),
-        accepted: pv(UNITS, '0', '100000'),
-        rejected: pv(UNITS, '0', '100000'),
         sampled: pv(UNITS, '0', '100000'),
         losses: pv(UNITS, '0', '100000'),
         unaccounted: spec(UNITS, '0', '0'),
       },
-      targets: { filled: '10000', accepted: '9700', rejected: '160', sampled: '120', losses: '20' },
+      targets: { sampled: '120', losses: '20' },
+      stepValues: {
+        filledSource: { step: 'filling', field: 'filled' },
+        lineRejectsSource: { step: 'filling', field: 'rejects' },
+        closingRejectsSource: { step: 'capping', field: 'totalRejects' },
+        acceptedSource: { step: 'inspection', field: 'accepted' },
+        inspectionRejectsSource: { step: 'inspection', field: 'rejected' },
+      },
+    },
+    exampleInputs: {
+      filled: { value: '10000', unit: UNITS },
+      lineRejects: { value: '20', unit: UNITS },
+      closingRejects: { value: '40', unit: UNITS },
+      accepted: { value: '9700', unit: UNITS },
+      inspectionRejects: { value: '100', unit: UNITS },
     },
   },
   {

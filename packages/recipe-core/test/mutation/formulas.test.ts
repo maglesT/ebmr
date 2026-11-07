@@ -2,7 +2,7 @@
  * The company formulation library, rule by rule (SQL mutation group "formulas": recipe-core 0640, 0642, 0690). These
  * tests close the gaps the Phase 3 exit SQL mutation run found in apps/tablets-server/test/master-data: each refusal
  * of a malformed formula or version on its own (whole units, 1 to 60 lines, decimal text, flags, basis, one draft at a
- * time, one compensating excipient), the state of a version read against its own formula, the readers' answers for
+ * time, a compensating excipient only with an adjusted active), the state of a version read against its own formula, the readers' answers for
  * the formula named, the signed content of a version, and the row lock of an approval.
  *
  * Every write is made in a command of a seeded person (the application's path); the readers owner-only are called by
@@ -139,7 +139,7 @@ describe('a formula and its versions are refused rule by rule', () => {
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('[DI-35][INV-25] one draft at a time: a new version follows an approved one; one compensating excipient, read in this version only', async () => {
+  it('[DI-35][INV-25] one draft at a time: a new version follows an approved one; a compensating excipient needs an adjusted active, read in this version only', async () => {
     const f = await newFormula();
     const v1 = await addVersion(f.id, version());
     expect(await refusal(addVersion(f.id, version()))).toMatch(/Version 1 of this formula is still a draft.*EBMR-FRM-006/);
@@ -153,9 +153,48 @@ describe('a formula and its versions are refused rule by rule', () => {
     const other = await newFormula();
     await addVersion(other.id, version(adjusted));
     expect(await addVersion(f.id, version(adjusted))).toMatch(/^[0-9a-f-]{36}$/);
+    // D-0 sweep (recipe-core 1877): two compensating excipients are allowed; one with no adjusted active in this version
+    // is refused, whatever another formula holds.
     const twice = await newFormula();
     const two = [adjusted[0], adjusted[1], { ...adjusted[2], compensating: true }];
-    expect(await refusal(addVersion(twice.id, version(two)))).toMatch(/at most one compensating excipient.*EBMR-FRM-011/);
+    expect(await addVersion(twice.id, version(two))).toMatch(/^[0-9a-f-]{36}$/);
+    const none = await newFormula();
+    expect(await refusal(addVersion(none.id, version([LINE, adjusted[1], adjusted[2]])))).toMatch(/adjusts none.*EBMR-FRM-011/);
+  });
+});
+
+describe('demo finding D-2 and the D-0 sweep: the new refusals (recipe-core 1877)', () => {
+  const withdraw = (formula: string, versionId: string, why = 'Written for the wrong product') =>
+    run(db, steward, (c) => one<string>(c, 'select recipe.formula_withdraw($1, $2, $3)::text as r', [formula, versionId, why]));
+
+  it('[INV-25] one formula per product, strength and batch size (EBMR-FRM-021); another batch size is another formula', async () => {
+    const f = await newFormula('120000');
+    expect(await refusal(createFormula({ productCode: f.product, strength: STRENGTH, batchSizeUnits: '120000' }))).toMatch(/already has a formula for 120000 units.*EBMR-FRM-021/);
+    expect(await createFormula({ productCode: f.product, strength: STRENGTH, batchSizeUnits: '120001' })).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-24][DI-22] only a draft is withdrawn (EBMR-FRM-022), under its own formula (EBMR-FRM-003), with a reason (EBMR-FRM-004); an approved version is never withdrawn', async () => {
+    const f = await newFormula();
+    const other = await newFormula();
+    const v1 = await addVersion(f.id, version());
+    expect(await refusal(withdraw(other.id, v1))).toMatch(/has no version.*EBMR-FRM-003/);
+    expect(await refusal(withdraw(f.id, v1, '   '))).toMatch(/EBMR-FRM-004/);
+    await withdraw(f.id, v1);
+    expect(await refusal(withdraw(f.id, v1))).toMatch(/is withdrawn; only a draft is withdrawn.*EBMR-FRM-022/);
+    const v2 = await addVersion(f.id, version());
+    await approve(v2);
+    expect(await refusal(withdraw(f.id, v2))).toMatch(/is approved; only a draft is withdrawn.*EBMR-FRM-022/);
+  });
+
+  it('[INV-25] line ids differ whatever their letter case (EBMR-FRM-023); a line with no id is refused as an invalid line (EBMR-FRM-010), not as a repeated id', async () => {
+    const f = await newFormula();
+    const mcc = LINES[1] as Record<string, unknown>;
+    expect(await refusal(addVersion(f.id, version([LINE, mcc, { ...mcc, lineId: 'MCC', quantity: '6' }])))).toMatch(/same line id, letter case aside.*EBMR-FRM-023/);
+    const noId = Object.fromEntries(Object.entries(LINE).filter(([k]) => k !== 'lineId'));
+    const noId2 = Object.fromEntries(Object.entries(mcc).filter(([k]) => k !== 'lineId'));
+    expect(await refusal(addVersion(f.id, version([noId, noId2])))).toMatch(/Line 1 is not a valid formula line.*EBMR-FRM-010/);
+    // The same material on two lines with their own ids is a valid version.
+    expect(await addVersion(f.id, version([LINE, mcc, { ...mcc, lineId: 'mcc2', quantity: '6' }]))).toMatch(/^[0-9a-f-]{36}$/);
   });
 });
 

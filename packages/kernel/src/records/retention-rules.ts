@@ -3,7 +3,7 @@
  *
  * This is the one place where the retention periods live until the market-profile engine (module B3)
  * serves them as rule keys. `proposedRuleKey` names the key each row should map to; the lead wires
- * them. The database holds the same rows in `records.retention_rule` (migration 0420), and a test
+ * them. The database holds the same rows in `records.retention_rule` (migrations 0420 and 1405), and a test
  * proves both copies are identical, so the rules cannot drift apart.
  *
  * Sources are paraphrased references, never regulation text. Verification markers follow the
@@ -52,6 +52,8 @@ export interface RetentionPredicate {
   euCertification?: 'PENDING' | 'CERTIFIED' | 'NEVER_CERTIFIED';
   aborted?: boolean;
   maInForce?: boolean;
+  /** The batch's lot carries a retest date (an API, AS-24); from the input retestLabelled, absent = false. */
+  retestLabelled?: boolean;
 }
 
 export interface RetentionRule {
@@ -74,7 +76,8 @@ export interface RetentionRuleSet {
 
 const P = (years: number, months = 0) => ({ years, months });
 
-export const RETENTION_RULE_SET: RetentionRuleSet = {
+/** The first rule set (kernel 0420). Kept as published: evaluations stored under it name it. */
+export const RETENTION_RULE_SET_2026_1: RetentionRuleSet = {
   version: 'RET-2026.1',
   rules: [
     {
@@ -255,6 +258,43 @@ export const RETENTION_RULE_SET: RetentionRuleSet = {
       period: P(0),
       openReason: null,
       source: 'EU GMP Chapter 4, 4.12: until the authorisation ends; batches released on it extend this through retention dependencies',
+      verification: 'CHECKED',
+    },
+  ],
+};
+
+/**
+ * The current rule set (kernel 1405): every RET-2026.1 row unchanged, plus the retest-date API rules (AS-24; lead ruling
+ * of 6 November 2026). An API batch with a retest date keeps its records three years after it is completely
+ * distributed, in India (Revised Schedule M Part XII 6.1.4, following ICH Q7 6.13) and for the EU (EU GMP Part II
+ * 6.13); none for the US, where ICH Q7 is guidance. The expiry rules still apply, so the latest date wins.
+ */
+export const RETENTION_RULE_SET: RetentionRuleSet = {
+  version: 'RET-2026.2',
+  rules: [
+    ...RETENTION_RULE_SET_2026_1.rules,
+    {
+      ruleId: 'IN_SCHEDULE_M_RETEST_DISTRIBUTION',
+      proposedRuleKey: 'kernel.retention.batch.retestAfterDistribution',
+      retentionKeys: ['BATCH_RECORD'],
+      market: 'IN',
+      predicate: { retestLabelled: true },
+      anchor: 'DISTRIBUTION',
+      period: P(3),
+      openReason: null,
+      source: 'Revised Schedule M Part XII 6.1.4 (as ICH Q7 6.13): records of an API with a retest date kept at least three years after the batch is completely distributed',
+      verification: 'P~',
+    },
+    {
+      ruleId: 'EU_GMP_II_RETEST_DISTRIBUTION',
+      proposedRuleKey: 'kernel.retention.batch.retestAfterDistribution',
+      retentionKeys: ['BATCH_RECORD'],
+      market: 'EU',
+      predicate: { retestLabelled: true },
+      anchor: 'DISTRIBUTION',
+      period: P(3),
+      openReason: null,
+      source: 'EU GMP Part II 6.13: records of an active substance with a retest date kept at least three years after the batch is completely distributed',
       verification: 'CHECKED',
     },
   ],

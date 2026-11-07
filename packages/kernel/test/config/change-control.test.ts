@@ -329,12 +329,22 @@ describe('roles, permission sets and retention rules are configuration (DI-09, D
 
   it('[DI-09] the retention rules and the permission sets shipped before change control are versions too, valid from when they were published', async () => {
     const { rows } = await db.admin.query<{ n: string; m: string }>(
-      `select (select count(*) from records.retention_rule)::text as n,
-              (select count(*) from platform.config_version v where v.area = 'RETENTION_RULE'
+      `select (select count(*) from records.retention_rule r join records.retention_rule_set s on s.version = r.rule_set_version
+                where s.version in (select v.item_key from platform.config_version v where v.area = 'RETENTION_RULE_SET' and v.basis = 'BEFORE_CONTROL'))::text as n,
+              (select count(*) from platform.config_version v where v.area = 'RETENTION_RULE' and v.basis = 'BEFORE_CONTROL'
                   and v.valid_from = (select s.published_at from records.retention_rule_set s where s.version = v.source_row ->> 'rule_set_version'))::text as m`,
     );
     expect(Number(rows[0]!.n)).toBeGreaterThan(0);
     expect(rows[0]!.m).toBe(rows[0]!.n);
+    // A rule set a later release publishes (RET-2026.2, kernel 1405) is recorded as it is written: every rule a version,
+    // never valid before its set was published.
+    const later = await db.admin.query<{ n: string; m: string }>(
+      `select (select count(*) from records.retention_rule r where r.rule_set_version not in
+                (select v.item_key from platform.config_version v where v.area = 'RETENTION_RULE_SET' and v.basis = 'BEFORE_CONTROL'))::text as n,
+              (select count(*) from platform.config_version v where v.area = 'RETENTION_RULE' and v.basis = 'RELEASE'
+                  and v.valid_from >= (select s.published_at from records.retention_rule_set s where s.version = v.source_row ->> 'rule_set_version'))::text as m`,
+    );
+    expect(later.rows[0]!.m).toBe(later.rows[0]!.n);
     const live = await db.admin.query<{ n: string }>(
       `select count(*)::text as n from iam.role_permission p where p.removed_at is null and not exists (
          select 1 from platform.config_as_of(clock_timestamp()) v where v.area = 'ROLE_PERMISSION' and v.item_key = p.role_code || '|' || p.permission_code

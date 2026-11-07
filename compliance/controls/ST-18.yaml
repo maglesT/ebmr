@@ -37,7 +37,8 @@ behaviour: |-
   - Each task records the sampler device ID (calibration current), actual volume, media lot and sampler identity.
 catalog_test: Leave a 15-min gap between Grade A plates → coverage exception. Log a plate exposed for 4 h 20 min → flagged invalid. Try a needle-surface sample before fill end → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its sample, time and count after incubation, and limits the settle plate exposure"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

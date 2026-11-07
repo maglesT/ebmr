@@ -7,7 +7,7 @@ asks for. The guides name the right and the meaning of each task; this page list
 them. A person acts through a role granted to their account for a scope (site, product); a role grant needs a
 requester and a second person who approves it.
 
-In all: 163 rights, 39 roles, 118 signature meanings.
+In all: 163 rights, 39 roles, 119 signature meanings.
 
 ## Rights by domain
 
@@ -262,6 +262,7 @@ Each electronic signature states one of these meanings; the signer must hold one
 | `CAPA_CLOSED` | CAPA closed by QA | EXCEPTION | APPROVER | CAPA.QA_APPROVE |
 | `CHARGE_IN_VERIFIED` | Charge-in verified | VERIFICATION | VERIFIER | STEP.VERIFY |
 | `CHECKED` | Independently checked | MASTER_RECORD | VERIFIER | MBR.CHECK |
+| `COA_APPROVED` | Certificate of analysis approved | RELEASE | APPROVER | RELEASE.MANUFACTURER |
 | `COMPENDIAL_RULE_SET_VERIFIED` | Compendial rule set verified | MASTER_RECORD | APPROVER | MBR.APPROVE |
 | `CONFIG_CHANGE_APPROVED` | Configuration change approved | MASTER_RECORD | APPROVER | RECORD.QA_REVIEW, MBR.APPROVE |
 | `CONTAINER_CHECKED` | Dispensed container checked | VERIFICATION | VERIFIER | STEP.VERIFY |

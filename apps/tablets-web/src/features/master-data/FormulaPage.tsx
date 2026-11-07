@@ -48,6 +48,7 @@ export function FormulaPage() {
 
 function VersionCard({ version, readable, dosageForm }: { version: FormulaVersionView; readable: boolean; dosageForm?: string | undefined }) {
   const approver = useOffered('FORMULA_APPROVER');
+  const author = useOffered('FORMULA_AUTHOR');
   const signed = useSignedAct(REFRESH);
   return (
     <Section title={`Version ${version.versionNumber}`} testId={`formula-version-${version.versionNumber}`}>
@@ -106,7 +107,25 @@ function VersionCard({ version, readable, dosageForm }: { version: FormulaVersio
           <ActResult error={signed.error} outcome={signed.outcome} />
         </>
       ) : null}
+      {version.state === 'DRAFT' && author ? <WithdrawDraft version={version} /> : null}
     </Section>
+  );
+}
+
+/** D-2: the author withdraws a draft written by mistake, with a reason; it stays on record as WITHDRAWN. */
+function WithdrawDraft({ version }: { version: FormulaVersionView }) {
+  const [reason, setReason] = useState('');
+  const cmd = useCommand(routes.masterData.withdrawFormulaVersion, REFRESH);
+  return (
+    <>
+      <Field name={`withdrawReason-${version.versionNumber}`} label={`Reason to withdraw version ${version.versionNumber}`} value={reason} onChange={setReason} />
+      <ActButton
+        label={`Withdraw draft version ${version.versionNumber}`}
+        onPress={() => void cmd.run({ params: { formulaId: version.formulaId, versionId: version.versionId }, body: { reason: reason.trim() } })}
+        disabled={reason.trim() === '' || cmd.busy}
+      />
+      <ActResult error={cmd.error} done={cmd.done} label={`Version ${version.versionNumber} withdrawn.`} />
+    </>
   );
 }
 

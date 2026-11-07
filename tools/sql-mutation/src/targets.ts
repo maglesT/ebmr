@@ -133,6 +133,13 @@ export const TARGETS: Target[] = [
     tests: [k('records/retention-purge.test.ts')],
     threshold: 90,
   },
+  // Kernel 1405 (API retest-distribution rows, rule set RET-2026.2): the retention evaluation and input normalisation.
+  {
+    group: 'retention-rules',
+    functions: ['records.evaluate_retention', 'records.normalize_retention_inputs'],
+    tests: [k('records/retention-rules.test.ts'), k('records/batch-retention.test.ts')],
+    threshold: 90,
+  },
   {
     group: 'site-values-and-policies',
     functions: ['market.assess_site_value', 'market.set_site_value', 'market.policy_pin_guard', 'market.policy_version_guard',
@@ -765,7 +772,8 @@ export const TARGETS: Target[] = [
                 'recipe.formula_version_content', 'recipe.formula_read', 'recipe.formula_choice',
                 'recipe.formula_version_for_mbr', 'recipe.formula_pin_mbr', 'recipe.mbr_formula_of',
                 'recipe.formula_listing', 'recipe.formula_choice_of', 'recipe.formula_mbr_problem',
-                'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json', 'recipe.bom_overage_matches'],
+                'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json', 'recipe.bom_overage_matches',
+                'recipe.formula_withdraw'],
     // Slice 7q (recipe-core 1740): the overage with its reason, re-created writers and the BOM's overage statement.
     tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts')],
     threshold: 90,
@@ -997,6 +1005,23 @@ export const TARGETS: Target[] = [
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },
+  // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
+  // read class (tablets 1904) is tab.aggregate_read_class, which stays in its group. ----
+  {
+    group: 'api-coa',
+    functions: ['substance.coa_document', 'substance.coa_state', 'substance.coa_intact', 'substance.coa_content', 'substance.prepare_coa',
+                'substance.sign_coa'],
+    tests: [s('substance/api-chain.test.ts')],
+    threshold: 90,
+  },
+  // ---- API plan A2 (C1): an intermediate lot posted from a complete processing batch of the API edition only
+  // (site-services 1732, substance 5004) ---------------------------------------------------------------------------------
+  {
+    group: 'api-intermediate-lots',
+    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'site.intermediate_lots_of', 'substance.post_intermediate_lot'],
+    tests: [s('substance/intermediate-lots.test.ts')],
+    threshold: 90,
+  },
   {
     group: 'us-disposition',
     functions: ['recipe.disposition_state', 'recipe.check_us_disposition', 'recipe.us_disposition_gate_problems',
@@ -1113,7 +1138,8 @@ export const TARGETS: Target[] = [
                 'site.india_instant', 'site.record_manufacturing_licence', 'site.approve_manufacturing_licence',
                 'site.suspend_manufacturing_licence', 'site.record_export_permission', 'site.approve_export_permission',
                 'site.suspend_export_permission', 'site.erp_product_effective_at', 'site.shelf_life_basis_of',
-                'site.shelf_life_change_check', 'site.record_shelf_life_basis'],
+                'site.shelf_life_change_check', 'site.record_shelf_life_basis', 'site.licence_telephone',
+                'site.record_licence_holder_telephone'],
     tests: [site('india/licences.test.ts'), r('release/india.test.ts'), site('mutation/india-licences.test.ts')],
     threshold: 90,
   },

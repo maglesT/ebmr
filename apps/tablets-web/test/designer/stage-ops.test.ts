@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { flow } from '@ebmr/recipe-core/pure';
 import granulation from '../../../../packages/recipe-core/test/fixtures/tablet-granulation-compression.mbr.json' with { type: 'json' };
+import dcMini from '../../../../packages/recipe-core/test/fixtures/dc-mini.mbr.json' with { type: 'json' };
+import newStageFixture from '../../../../packages/recipe-core/test/fixtures/designer-new-stage.json' with { type: 'json' };
 import { applyOp, newStage, OpError, treeIds, type Content, type PaletteEntry } from '../../src/features/designer/model/ops.ts';
 
 function parsed(json: unknown): Content {
@@ -30,11 +32,18 @@ const wellFormed = (c: Content): void => {
 describe('stage operations (slice 7j)', () => {
   const base = parsed(granulation);
 
-  it('[PR-03] a new stage starts with its room clearance and equipment status (the database-backed versions) and goes where the author puts it', () => {
+  it('[DI-34] demo finding D-1: newStage builds exactly the stage the server test validates (fixture designer-new-stage.json)', () => {
+    expect(newStage(parsed(dcMini), PALETTE, 'Layer 2 granulation', 'GRAN-2')).toEqual(newStageFixture);
+  });
+
+  it('[PR-03][DI-34] a new stage starts with its room clearance and equipment status (the database-backed versions) and goes where the author puts it', () => {
     const first = stagesOf(base)[0] as flow.StageNode;
     const stage = newStage(base, PALETTE, 'Film coating', 'COAT-1');
     expect(stage.binding.rooms).toEqual(['COAT-1']);
-    const steps = (stage.body as flow.SequenceNode).children as flow.PhaseNode[];
+    // Demo finding D-1: the phases sit in an operation of the stage (FLOW-LEVELS, DI-34), never directly in it.
+    const ops = (stage.body as flow.SequenceNode).children as flow.OperationNode[];
+    expect(ops.map((o) => [o.kind, o.name])).toEqual([['operation', 'Film coating: preparation']]);
+    const steps = ((ops[0] as flow.OperationNode).body as flow.SequenceNode).children as flow.PhaseNode[];
     expect(steps.map((s) => `${s.block.type}@${s.block.version}`)).toEqual(['G-10@2', 'G-09@2']);
     const c = applyOp(base, { kind: 'ADD_STAGE', afterStageId: first.id, stage });
     wellFormed(c);

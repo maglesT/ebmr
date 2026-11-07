@@ -13,6 +13,7 @@ import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { lotAfterRelease, suspendedLots } from './after-release.ts';
+import { coaActHandler, lotCoa } from './coa.ts';
 import { euImporters, grelView, lotMarkets, lotRelease, marketAddView, releaseQueue } from './reads.ts';
 import { batchMarketActHandler, releaseActHandler } from './signables.ts';
 
@@ -20,6 +21,8 @@ export function registerSignableActions(registry: SignableActionRegistry, app: A
   if (app.installation !== 'GMP') return;
   registry.register(releaseActHandler(app));
   registry.register(batchMarketActHandler(app));
+  // API plan A3: the quality unit's signature of a CoA of a released API lot (substance 5005).
+  registry.register(coaActHandler(app));
 }
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
@@ -94,6 +97,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     afterRelease: async ({ params, requireSession }) => {
       requireSession();
       return lotAfterRelease(app, pool, params.lotId);
+    },
+    // API plan A3 (AS-17): the CoA of a released API lot; the database prepares it and refuses while a problem stands.
+    coa: async ({ params, requireSession }) => {
+      requireSession();
+      return lotCoa(app, pool, params.lotId);
+    },
+    prepareCoa: async ({ params, actor, idempotencyKey, requestHash }) => {
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select substance.prepare_coa($1)', [params.lotId]);
+        return null;
+      });
+      return lotCoa(app, pool, params.lotId);
     },
   });
   return Promise.resolve();

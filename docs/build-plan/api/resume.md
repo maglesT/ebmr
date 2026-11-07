@@ -20,9 +20,10 @@ commits). A1b also needs rebasing onto the audited API-PACK (below).
 
 ## Reserved numbers
 
-- substance namespace: 5000 to 5999 is the API edition's. Used: 5000 (A1a), 5001 (A2), 5002 (A3), 5003 (A1b, the AS
+- substance namespace: 5000 to 5999 is the API edition's. Used: 5000 (A1a), 5003 (A1b), 5004 (A2, was 5001), 5005 (A3, was 5002) (renumbered 7 Nov: main has 5003, the AS
   engine names). Ask the lead for nothing in this range; still ask for every shared number.
 - site-services 1732: A2 (`site.intermediate_lot`, `site.create_intermediate_lot`).
+- site-services 1734: A2 several intermediate lots per batch (#158, merged); site-services 1735: A3 licence holder telephone history (was 1733; renumbered 7 Nov after #158 merged 1734).
 - Shared numbers already used by A1a: kernel 1404, recipe-core 1873.
 
 ## The lead's decisions of 5 November (in force)
@@ -64,7 +65,7 @@ commits). A1b also needs rebasing onto the audited API-PACK (below).
   lot_consumption chain A → B → C, and batch C to a released API lot.
 - **A3:** (a) `QA_APPROVED` is tied to plant-rule approval, so A3 added a meaning `COA_APPROVED` (on
   RELEASE.MANUFACTURER) and a signable action `COA_ACT`: a new signing meaning, lead to confirm under decision 4;
-  (b) 5002 re-creates the tablets function `tab.aggregate_read_class` to add `substance_coa` (a test guards it, but a
+  (b) 5005 re-creates the tablets function `tab.aggregate_read_class` to add `substance_coa` (a test guards it, but a
   later tablets redefinition would drop it: lead to decide the right home); (c) no master data holds the manufacturer's
   telephone (SM 11.3 / Q7 11.40 name it): the CoA shows "not on record"; (d) "grade" comes from the specification's
   monograph reference; (e) A3's CoA tests extend `api-chain.test.ts` and must be adjusted to the audited A1a.

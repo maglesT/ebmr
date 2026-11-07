@@ -115,4 +115,32 @@ describe('storing a batch\'s retention (archive syncRetention; T13)', () => {
     const denied = await w.gmp.db.app.query("select records.retention_of('batch', $1)", [processing]).then(() => 'ran', (e: Error) => e.message);
     expect(denied).toMatch(/permission denied/);
   });
+
+  it('[AS-24][DI-47] a lot with a retest date makes its batch retest-labelled: OPEN until it ships, then the latest shipment date of its lots reaches the stored retention inputs', async () => {
+    const [, pack] = await packedPair(await w.gmp.asPersona('issuer'));
+    const lot = (await w.gmp.db.admin.query<{ id: string }>('select lot_id as id from site.finished_lot where batch_id = $1', [pack])).rows[0]!.id;
+    await fixture("update site.material_lot set retest_at = '2027-06-30T12:00:00Z' where id = $1", [lot]);
+    const unshipped = await sync(pack);
+    expect(unshipped.status).toBe('OPEN');
+    expect(unshipped.openBecause).toContain(`batch:${pack}: MISSING_INPUT:DISTRIBUTION`);
+    const ship = (no: string, shippedAt: string | null, recordedAt: string) =>
+      fixture(
+        `insert into site.erp_shipment (shipment_no, lot_id, market, consignee_code, consignee_name, quantity, unit, quarantine, manufacturer_state, disposition_state,
+                                        erp_reference, recorded_by_person, recorded_by_account, correlation_id, shipped_at, recorded_at)
+         values ($1, $2, 'IN', 'C-1', 'Consignee', 10, 'units', false, 'RELEASED', 'RELEASED', 'ERP-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), $3, $4)`,
+        [no, lot, shippedAt, recordedAt],
+      );
+    await ship(`SH-${pack.slice(0, 8).toUpperCase()}-1`, '2026-08-01T12:00:00Z', '2026-08-02T12:00:00Z');
+    // A stub-route shipment without a shipping date counts at its recording time.
+    await ship(`SH-${pack.slice(0, 8).toUpperCase()}-2`, null, '2026-09-15T12:00:00Z');
+    const shipped = await sync(pack);
+    expect(shipped.drift).toEqual([]);
+    const stored = (await w.gmp.db.admin.query<{ i: Record<string, unknown> }>(
+      'select inputs as i from records.retention_input where record_key = $1 order by input_version desc limit 1', [`batch:${pack}`])).rows[0]!.i;
+    expect([stored['retestLabelled'], stored['distributionDate']]).toEqual([true, '2026-09-15']);
+    const own = (await w.gmp.db.admin.query<{ e: { ruleId: string; date: string | null }[] }>(
+      "select records.evaluate_retention(inputs || '{\"retentionKey\": \"BATCH_RECORD\"}') -> 'evaluated' as e from records.retention_input where record_key = $1 order by input_version desc limit 1",
+      [`batch:${pack}`])).rows[0]!.e;
+    expect(own.find((x) => x.ruleId === 'IN_SCHEDULE_M_RETEST_DISTRIBUTION')?.date).toBe('2029-09-15');
+  });
 });
