@@ -995,7 +995,7 @@ export const TARGETS: Target[] = [
   // (site-services 1732, substance 5001) ---------------------------------------------------------------------------------
   {
     group: 'api-intermediate-lots',
-    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'substance.post_intermediate_lot'],
+    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'site.intermediate_lots_of', 'substance.post_intermediate_lot'],
     tests: [s('substance/intermediate-lots.test.ts')],
     threshold: 90,
   },
