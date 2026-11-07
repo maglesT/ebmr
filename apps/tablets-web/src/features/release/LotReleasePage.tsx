@@ -67,6 +67,14 @@ function LotRelease({ view: v }: { view: LotReleaseView }) {
           {v.batchNumber}
         </Link>{' '}
         · lot {words(v.lotStatus)} · markets {v.markets.join(', ')}
+        {v.state === 'RELEASED' ? (
+          <>
+            {' · '}
+            <Link to="/release/$lotId/coa" params={{ lotId: v.lotId }} data-testid="coa-link">
+              Certificate of analysis
+            </Link>
+          </>
+        ) : null}
       </p>
       <RecurrenceWarning lotId={v.lotId} />
       <div role="tablist" aria-label="Release of the lot">

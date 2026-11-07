@@ -64,6 +64,17 @@ describe('licences and export permissions over HTTP (Phase 4 slice 6a)', () => {
     expect(suspended).toMatchObject({ state: 'SUSPENDED', current: false, suspension: { reason: 'Suspended by order of the licensing authority' } });
   });
 
+  it('[IN-30] the regulatory signer records a new holder telephone for a licence over HTTP; the licence shows the new one; the issuer may not, and a telephone with ; or = is refused', async () => {
+    const reg = await gmp.asPersona('regulatory');
+    const l = valueOf(await reg.call(I.recordLicence, { body: { ...licenceBody(code()), holderTelephone: '+91 20 1111 2222' } }));
+    expect(l.holderTelephone).toBe('+91 20 1111 2222');
+    const issuer = await gmp.asPersona('issuer');
+    expect(refusalOf(await issuer.call(I.recordLicenceTelephone, { params: { licenceId: l.licenceId }, body: { telephone: '+91 20 3333 4444' } })).code).toMatch(/EBMR-IAM/);
+    expect((await reg.call(I.recordLicenceTelephone, { params: { licenceId: l.licenceId }, body: { telephone: '020 1111; x' } })).ok).toBe(false);
+    const changed = valueOf(await reg.call(I.recordLicenceTelephone, { params: { licenceId: l.licenceId }, body: { telephone: '+91 20 3333 4444' } }));
+    expect(changed).toMatchObject({ licenceId: l.licenceId, holderTelephone: '+91 20 3333 4444' });
+  });
+
   it('[IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder', async () => {
     const reg = await gmp.asPersona('regulatory');
     const qa = await gmp.asPersona('approver');

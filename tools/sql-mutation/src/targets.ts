@@ -1000,6 +1000,15 @@ export const TARGETS: Target[] = [
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },
+  // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
+  // read class (tablets 1904) is tab.aggregate_read_class, which stays in its group. ----
+  {
+    group: 'api-coa',
+    functions: ['substance.coa_document', 'substance.coa_state', 'substance.coa_intact', 'substance.coa_content', 'substance.prepare_coa',
+                'substance.sign_coa'],
+    tests: [s('substance/api-chain.test.ts')],
+    threshold: 90,
+  },
   // ---- API plan A2 (C1): an intermediate lot posted from a complete processing batch of the API edition only
   // (site-services 1732, substance 5004) ---------------------------------------------------------------------------------
   {
@@ -1124,7 +1133,8 @@ export const TARGETS: Target[] = [
                 'site.india_instant', 'site.record_manufacturing_licence', 'site.approve_manufacturing_licence',
                 'site.suspend_manufacturing_licence', 'site.record_export_permission', 'site.approve_export_permission',
                 'site.suspend_export_permission', 'site.erp_product_effective_at', 'site.shelf_life_basis_of',
-                'site.shelf_life_change_check', 'site.record_shelf_life_basis'],
+                'site.shelf_life_change_check', 'site.record_shelf_life_basis', 'site.licence_telephone',
+                'site.record_licence_holder_telephone'],
     tests: [site('india/licences.test.ts'), r('release/india.test.ts'), site('mutation/india-licences.test.ts')],
     threshold: 90,
   },
