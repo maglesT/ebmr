@@ -43,6 +43,16 @@ holds the reworked batch until QC records its decision on additional testing. A 
 material is a G-24 step with QA's signed authorisation (recipe-core 0621, 0622). The tests are in
 [rework.test.ts](../../../apps/tablets-server/test/substance/rework.test.ts).
 
+## Recovery of materials and solvents (plan A4b, AS-21)
+
+No code of the edition's own either; migration 5008 only names AS-21. A second crop of the same batch is a step of the
+approved master, and its lot is posted as `<batch>-2` in quarantine. A recovered solvent is the product of a recovery
+master of the API edition, and its batch posts the solvent as a lot in quarantine. Either lot is reserved and weighed only
+once QC has tested it and QA has released it for further processing. Fresh and recovered solvent are mixed as two G-07
+weighings, and the genealogy shows both lots consumed. Not yet covered: mother liquor carried into a later batch through a
+G-24 RECOVERY step, because only a press in-process failure can hold a container, so QA cannot release a container of an
+API batch. The tests are in [recovery.test.ts](../../../apps/tablets-server/test/substance/recovery.test.ts).
+
 ## The certificate of analysis (plan C3, AS-17)
 
 Migration 5005. The CoA of a released finished lot of the API edition is read only from existing records
