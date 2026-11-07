@@ -291,8 +291,17 @@ describe("a product's values for a library block", () => {
     expect(target('64.9', open)).toEqual([]);
     // A limit with no range, and a target with no limit at all.
     expect(target('60', { unit: 'Cel', ranges: [] })).not.toContain('LIB-USE-TARGET');
+    // A CPP or IPC slot needs its limits; the target adds no refusal of its own.
     const noLimit = { ...friabilityUse(), limits: {}, targets: { loss: '0.5' } };
-    expect(codes(checkBlockUse(friability(), noLimit, expr))).toEqual(['LIB-USE-LIMIT-MISSING', 'LIB-USE-TARGET']);
+    expect(codes(checkBlockUse(friability(), noLimit, expr))).toEqual(['LIB-USE-LIMIT-MISSING']);
+  });
+
+  it('[PR-08] R-flow item 6: a target with no limits on a slot that needs none is an instruction (shown, never judged); it is still a decimal, and a market rule still needs limits', () => {
+    const { dryingTime: _limit, ...others } = fluidBedDryingUse().limits ?? {};
+    const use = (targets: Record<string, string>, extra: object = {}) => ({ ...fluidBedDryingUse(), limits: others, targets, ...extra });
+    expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: '45' }), expr))).toEqual([]);
+    expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: 'long' }), expr))).toEqual(['LIB-USE-TARGET']);
+    expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: '45' }, { marketRules: { dryingTime: { key: 'K', bound: 'HIGH' } } }), expr))).toEqual(['LIB-USE-MARKET-RULE']);
   });
 
   it('[PR-08] a market rule binds a slot that has limits', () => {
