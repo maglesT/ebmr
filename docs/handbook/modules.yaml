@@ -330,7 +330,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0885_', '^0903_', '^1733_']
+      packages/site-services/sql: ['^0885_', '^0903_', '^1735_']
     src: [packages/site-services/src/india]
     tests: ['packages/site-services/test/india/**', 'packages/site-services/test/mutation/india-licences.test.ts']
 

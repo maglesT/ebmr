@@ -23,6 +23,7 @@ commits). A1b also needs rebasing onto the audited API-PACK (below).
 - substance namespace: 5000 to 5999 is the API edition's. Used: 5000 (A1a), 5003 (A1b), 5004 (A2, was 5001), 5005 (A3, was 5002) (renumbered 7 Nov: main has 5003, the AS
   engine names). Ask the lead for nothing in this range; still ask for every shared number.
 - site-services 1732: A2 (`site.intermediate_lot`, `site.create_intermediate_lot`).
+- site-services 1734: A2 several intermediate lots per batch (#158, merged); site-services 1735: A3 licence holder telephone history (was 1733; renumbered 7 Nov after #158 merged 1734).
 - Shared numbers already used by A1a: kernel 1404, recipe-core 1873.
 
 ## The lead's decisions of 5 November (in force)

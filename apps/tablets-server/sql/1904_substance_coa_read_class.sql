@@ -3,7 +3,7 @@
 -- Handbook: modules/tablets-server.md
 --
 --   * tab.aggregate_read_class: CREATE OR REPLACE from its latest definition (1802) with substance_coa and the licence
---     holder's telephone history (site-services 1733; RECORD, as the licence itself), so a
+--     holder's telephone history (site-services 1735; RECORD, as the licence itself), so a
 --     reader holding RECORD.READ previews the CoA and the authorised person who signs it (RELEASE.MANUFACTURER and
 --     RECORD.READ) reads its content (editions/substance/sql 5005). Nothing else changes; a later migration that
 --     re-creates the function starts from this definition.

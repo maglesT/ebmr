@@ -152,7 +152,7 @@ beforeAll(async () => {
   valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 36, changeReason: REASON } }));
   await confirmErpPending(gmp);
   // API plan A3: the site's manufacturing licence endorsing the API (regulatory records it, QA approves it); its holder
-  // name, address and telephone are the manufacturer's on the CoA (site-services 1733; ICH Q7 11.43).
+  // name, address and telephone are the manufacturer's on the CoA (site-services 1735; ICH Q7 11.43).
   const regulatory = await gmp.asPersona('regulatory');
   const licence = valueOf(await regulatory.call(routes.india.recordLicence, { body: {
     licenceKind: 'MANUFACTURING', form: '25', licenceNumber: `MFG/A3/${TAG}`, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
@@ -345,7 +345,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
   });
 
-  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1733)', async () => {
+  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)', async () => {
     const regulatory = await gmp.asPersona('regulatory');
     const body = { licenceKind: 'MANUFACTURING' as const, form: '25' as const, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
       validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: `${PRODUCT.code}-T`, strength: PRODUCT.strength }] };

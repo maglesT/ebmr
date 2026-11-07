@@ -45,7 +45,7 @@ export const LicenceView = z.strictObject({
   licenceNumber: z.string(),
   holderName: z.string(),
   holderAddress: z.string(),
-  /** API plan A3 (site-services 1733): the holder's telephone, when recorded (the CoA names it; ICH Q7 11.43). */
+  /** API plan A3 (site-services 1735): the holder's telephone, when recorded (the CoA names it; ICH Q7 11.43). */
   holderTelephone: z.string().nullable(),
   hostLicenceId: Uuid.nullable(),
   hostLicenceNumber: z.string().nullable(),

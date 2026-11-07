@@ -18,7 +18,7 @@
 --       problems (each refuses a CoA): the lot is no finished lot of the SUBSTANCE edition, it is not RELEASED, no approved
 --       specification is in effect, a required test has no approved result, a result is outside its limits, no
 --       manufacturer address is on record. gaps (shown, never invented): the manufacturer's telephone when the licence
---       records none (site-services 1733 keeps it on the licence, beside the holder's name and address).
+--       records none (site-services 1735 keeps it on the licence, beside the holder's name and address).
 --   substance.coa                 insert-only: one prepared CoA (the document as it was, its SHA-256 over the canonical
 --                                 text). The stored document is the true copy: it never changes, and its hash is checked
 --                                 on every read (substance.coa_intact).

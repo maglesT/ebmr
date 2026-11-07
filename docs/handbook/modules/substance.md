@@ -38,7 +38,7 @@ Migration 5005. The CoA of a released finished lot of the API edition is read on
 (`substance.coa_document`): the product's name and grade (the monograph reference of the specification in effect), the
 lot and batch numbers, the release date (the manufacturer release decision), the retest and expiry dates, each test of the
 specification with its limits and the latest approved result, and the manufacturer's name and address from the
-manufacturing licence, with its telephone when the licence records one (site-services 1733); without one the CoA shows the
+manufacturing licence, with its telephone when the licence records one (site-services 1735); without one the CoA shows the
 telephone as not on record.
 
 1. The authorised person prepares it (`substance.prepare_coa`, right RELEASE.MANUFACTURER): refused while a problem
