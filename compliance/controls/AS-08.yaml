@@ -1,0 +1,23 @@
+id: AS-08
+title: "Reprocessed or failing material controlled"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 8.1.8, 14.1; ICH Q7 (EU GMP Part II) 8.17, 14.10. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Material to be reprocessed or reworked is controlled against unauthorised use, and failing material is quarantined."
+catalog_test: "Dispense a quarantined or rejected lot; refused."
+implemented_by:
+  modules:
+    - "Lot status, G-24; the material lot fields accept only a released lot of the line (S6)."
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: SPECIFIED
+scope: "API edition (substance) only; slice A1 of the API plan."

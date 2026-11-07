@@ -27,7 +27,7 @@ import { dirname, isAbsolute, join, relative } from 'node:path';
 import { inGateEditions, ROOT, type ClauseRecord, type ControlRecord, type EditionName } from './register.ts';
 import { declaredIn, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest, type TestPath } from './test-index.ts';
 
-const CONTROL_TAG = /\[((?:DI|PR|ST|IN)-\d{2})\]/g;
+const CONTROL_TAG = /\[((?:DI|PR|ST|IN|AS)-\d{2})\]/g;
 
 /** The controls a test's full name (its describes and title) is tagged with, each once. */
 export const controlTags = (name: string): string[] => [...new Set([...name.matchAll(CONTROL_TAG)].map((m) => m[1] ?? ''))];

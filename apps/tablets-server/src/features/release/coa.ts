@@ -1,6 +1,6 @@
 /**
  * API plan A3 (C3, AS-17): the certificate of analysis of a released finished lot of the API edition. Every rule is the
- * database's (editions/substance/sql 5002): substance.coa_document reads what the CoA says from the existing records,
+ * database's (editions/substance/sql 5005): substance.coa_document reads what the CoA says from the existing records,
  * substance.prepare_coa stores it as a true copy (the document and its SHA-256), and substance.sign_coa records the
  * quality unit's COA_APPROVED signature, made through the usual ceremony (signable action COA_ACT, aggregate
  * substance_coa <coa id>, state PREPARED). The right is the existing lot-release right RELEASE.MANUFACTURER (the lead's
@@ -63,7 +63,7 @@ export async function lotCoa(app: AppContext, db: Db, lotId: string): Promise<Lo
   };
 }
 
-/** COA_ACT: the quality unit's COA_APPROVED signature of a prepared CoA; the database command decides (substance 5002). */
+/** COA_ACT: the quality unit's COA_APPROVED signature of a prepared CoA; the database command decides (substance 5005). */
 export function coaActHandler(app: AppContext): SignableActionHandler<CoaAct> {
   const base = dbActHandler<CoaAct>(app, {
     kind: 'COA_ACT',

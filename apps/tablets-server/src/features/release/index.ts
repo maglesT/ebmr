@@ -21,7 +21,7 @@ export function registerSignableActions(registry: SignableActionRegistry, app: A
   if (app.installation !== 'GMP') return;
   registry.register(releaseActHandler(app));
   registry.register(batchMarketActHandler(app));
-  // API plan A3: the quality unit's signature of a CoA of a released API lot (substance 5002).
+  // API plan A3: the quality unit's signature of a CoA of a released API lot (substance 5005).
   registry.register(coaActHandler(app));
 }
 

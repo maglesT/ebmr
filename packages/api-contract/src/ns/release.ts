@@ -459,7 +459,7 @@ export const SuspendedLotSummaryView = z.strictObject({
 export type SuspendedLotSummaryView = z.infer<typeof SuspendedLotSummaryView>;
 
 /**
- * API plan A3 (C3, AS-17): the certificate of analysis of a released finished lot of the API edition (substance 5002),
+ * API plan A3 (C3, AS-17): the certificate of analysis of a released finished lot of the API edition (substance 5005),
  * built only from records that exist. Values are text as stored (GMP numbers never pass through a JS number).
  */
 export const CoaTestView = z.strictObject({

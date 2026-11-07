@@ -298,7 +298,7 @@ select kernel.set_actor_context(jsonb_build_object(
   'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
   'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
   'site_zone', 'UTC', 'correlation_id', gen_random_uuid(),
-  'legal_name', 'Software release (substance migration 5002_api_coa)',
+  'legal_name', 'Software release (substance migration 5005_api_coa)',
   'reason_code', 'SOFTWARE_RELEASE',
   'reason_text', 'the API edition: the certificate of analysis of a released lot, signed by the quality unit (AS-17)'));
 

@@ -28,14 +28,12 @@ describe('CI runner labels', () => {
     const sizes: Record<string, number | 'github'> = {};
     for (const [id, text] of jobs) {
       expect(text, id).not.toMatch(/github\.job|format\(|fromJSON\(/);
-      expect(text, id).toContain("'ubuntu-latest'");
-      expect(text, id).toContain("'ebmr-pod'");
+      expect(text, id).toContain('ubuntu-latest');
       const size = ubicloudSize(text);
       if (size !== undefined) sizes[id] = size;
       else {
-        // GitHub-hosted for both github and ubicloud, the pod otherwise. No Ubicloud label at all.
+        // GitHub-hosted in every mode: no Ubicloud label at all.
         expect(text, id).not.toContain('ubicloud-standard');
-        expect(text, id).toContain("== 'ubicloud') && 'ubuntu-latest'");
         sizes[id] = 'github';
       }
     }
@@ -53,6 +51,22 @@ describe('CI runner labels', () => {
       'e2e-report': 'github',
       traceability: 'github',
     });
+  });
+
+  it('[meta] in pod mode only the heavy jobs (the end-to-end groups and the golden batches) run on the pod, and CI_RUNNER github moves them to GitHub-hosted; every other ci.yml job runs on GitHub-hosted in every mode (owner: heavy jobs on the good machine, light ones elsewhere)', () => {
+    const onPod: string[] = [];
+    for (const [id, text] of runsOn('ci.yml')) {
+      if (!text.includes("'ebmr-pod'")) {
+        // Never the pod: a literal GitHub-hosted label, or Ubicloud's size else GitHub-hosted.
+        expect(text, id).not.toContain('ebmr-pod');
+        expect(text === 'ubuntu-latest' || text.endsWith("|| 'ubuntu-latest' }}"), id).toBe(true);
+        continue;
+      }
+      onPod.push(id);
+      expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'github' && 'ubuntu-latest' \|\|/);
+      expect(text, id).toMatch(/\|\| 'ebmr-pod' \}\}$/);
+    }
+    expect(onPod.sort()).toEqual(['e2e', 'golden']);
   });
 
   it('[meta] the mutation workflow runs its jobs on Ubicloud standard-8 or GitHub-hosted, the size written out', () => {

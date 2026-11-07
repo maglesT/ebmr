@@ -1,7 +1,7 @@
 /**
  * API plan A3 (C3, AS-17): the certificate of analysis of a released API lot, reached from the lot's release page. A
  * plain form-style document, top to bottom (label, value, unit, limits), the quality unit's signature at the bottom, so
- * it can move onto the shared form layout later. Every rule is the database's (substance 5002): the page shows what the
+ * it can move onto the shared form layout later. Every rule is the database's (substance 5005): the page shows what the
  * CoA says now, prepares it as a true copy, and has it signed COA_APPROVED through the usual ceremony (COA_ACT).
  */
 import { routes, type CoaDocumentView, type CoaRecordView } from '@ebmr/api-contract';

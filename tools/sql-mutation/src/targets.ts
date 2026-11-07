@@ -991,7 +991,7 @@ export const TARGETS: Target[] = [
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },
-  // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5002; AS-17). Its
+  // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
   // read class (tablets 1904) is tab.aggregate_read_class, which stays in its group. ----
   {
     group: 'api-coa',

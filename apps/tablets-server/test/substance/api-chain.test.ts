@@ -184,7 +184,7 @@ afterAll(async () => {
 });
 
 describe('API plan A1a: one API batch from library blocks to a released lot, over the routes', () => {
-  it('[PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not', async () => {
+  it('[AS-01][PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not', async () => {
     const problem = async (edition: string, content: flow.MbrContent) =>
       (await gmp.db.admin.query<{ p: string | null }>('select recipe.packaging_master_problem($1, $2::jsonb) as p', [edition, JSON.stringify(content)])).rows[0]?.p ?? null;
     expect(await problem('substance', packaging)).toBeNull();
@@ -196,7 +196,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     await expect(gmp.db.admin.query("insert into recipe.packaging_completion_block (edition, block_type) values ('substance', 'LIB-api-pack')")).rejects.toThrow(/packaging_completion_block_block_type_check/);
   });
 
-  it('[INV-27][PR-37][IN-18] the processing batch is planned from its ERP order, issued, run from the master\'s library snapshot, its output closed into a verified bulk container and released for packing by QA (H-PACK)', async () => {
+  it('[AS-03][INV-27][PR-37][IN-18] the processing batch is planned from its ERP order, issued, run from the master\'s library snapshot, its output closed into a verified bulk container and released for packing by QA (H-PACK)', async () => {
     const issuer = await gmp.asPersona('issuer');
     await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), processing, SIZE);
     const planned = valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId: proc.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE } }));
@@ -250,7 +250,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(rows).toEqual([{ edition: 'SUBSTANCE', status: 'QUARANTINE', q: '60', unit: 'kg' }]);
   });
 
-  it('[IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (the tablets items that apply to any packaging order), and the authorised person releases the lot', async () => {
+  it('[AS-16][IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (the tablets items that apply to any packaging order), and the authorised person releases the lot', async () => {
     // QC: the API's specification, the lot's results approved by the head of QC, and the reserve samples.
     const [qc, head] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover')]);
     const tests = [{ testCode: 'ASSAY', methodReference: 'STP-A1A-AS-01', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }];

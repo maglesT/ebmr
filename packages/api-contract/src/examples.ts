@@ -175,7 +175,7 @@ const BATCH_NUMBER_RULE_EXAMPLE = {
 };
 /** Phase 7 slice 7h (WP-C, gap C4): a product of the plant's product list (recipe-core 0400). */
 const PLANT_PRODUCT_EXAMPLE = { code: 'PCM-500', name: 'Paracetamol tablets 500 mg', highlyPotent: false, recordedBy: STEWARD_EXAMPLE, recordedAt: INSTANT_EXAMPLE };
-/** API plan A3 (AS-17): the CoA of a released API lot (substance 5002). */
+/** API plan A3 (AS-17): the CoA of a released API lot (substance 5005). */
 const COA_DOCUMENT_EXAMPLE = {
   kind: 'CERTIFICATE_OF_ANALYSIS' as const,
   manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789' },
