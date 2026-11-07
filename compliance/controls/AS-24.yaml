@@ -1,0 +1,23 @@
+id: AS-24
+title: "Record retention for APIs"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 6.1.4; ICH Q7 (EU GMP Part II) 6.13. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Records are kept at least 1 year after expiry, and for retest-dated APIs at least 3 years after the batch is completely distributed."
+catalog_test: "Delete an API record within 3 years of its last distribution; refused."
+implemented_by:
+  modules:
+    - "C5: the kernel retention rule set to 3 years after the last distribution, or one retention basis added (open)."
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: SPECIFIED
+scope: "API edition (substance) only; slice A1 of the API plan."

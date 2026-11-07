@@ -109,7 +109,7 @@ export default class EvidenceReporter implements Reporter {
     this.tests.push({
       title,
       project: test.parent.project()?.name ?? '',
-      controls: [...title.matchAll(/\[((?:DI|PR|ST|IN|INV)-\d{2})\]/g)].map((m) => m[1] ?? ''),
+      controls: [...title.matchAll(/\[((?:DI|PR|ST|IN|INV|AS)-\d{2})\]/g)].map((m) => m[1] ?? ''),
       status: result.status,
       durationMs: result.duration,
       startedAt: result.startTime.toISOString(),

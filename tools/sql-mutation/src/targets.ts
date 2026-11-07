@@ -238,7 +238,9 @@ export const TARGETS: Target[] = [
                 'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check',
                 // Slice 7o (tablets 1700): a test run's disposal or sample names the batch's own output container; (recipe-core
                 // 1745) a test run's own container labels are bound words of its record.
-                'tab.own_output_container', 'recipe.run_bound_words'],
+                'tab.own_output_container', 'recipe.run_bound_words',
+                // Tablets 1903: a lot this command used up is judged by its status before the command.
+                'tab.lot_used_up_by_this_command'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
             s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts'), s('execution/sandbox-own-containers.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
@@ -989,6 +991,14 @@ export const TARGETS: Target[] = [
     group: 'api-release-items',
     functions: ['substance.grel_edition_items', 'substance.grel_pack_examination', 'market.evaluate_stub_scope'],
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
+    threshold: 90,
+  },
+  // ---- API plan A2 (C1): an intermediate lot posted from a complete processing batch of the API edition only
+  // (site-services 1732, substance 5004) ---------------------------------------------------------------------------------
+  {
+    group: 'api-intermediate-lots',
+    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'site.intermediate_lots_of', 'substance.post_intermediate_lot'],
+    tests: [s('substance/intermediate-lots.test.ts')],
     threshold: 90,
   },
   {

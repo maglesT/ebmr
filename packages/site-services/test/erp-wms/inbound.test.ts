@@ -199,7 +199,7 @@ describe('integration identities (DI-20, DI-14)', () => {
     // Every other table of a person's material act carries the same guard, whatever function writes it.
     const { rows } = await db.admin.query<{ t: string }>(
       "select tgrelid::regclass::text as t from pg_trigger where tgname = 'zz_material_act_by_person' and tgenabled in ('O', 'A') order by 1");
-    expect(rows.map((r) => r.t)).toEqual(['site.chemical_recovery', 'site.finished_lot', 'site.lot_destruction', 'site.lot_reservation_revocation',
+    expect(rows.map((r) => r.t)).toEqual(['site.chemical_recovery', 'site.finished_lot', 'site.intermediate_lot', 'site.lot_destruction', 'site.lot_reservation_revocation',
       'site.returned_goods', 'site.transfer_package', 'site.transfer_package_seal', 'site.transfer_receipt']);
   });
 });

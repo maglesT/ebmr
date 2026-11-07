@@ -15,7 +15,7 @@
         "properties": {
           "id": { "type": "string", "pattern": "^[0-9A-Za-z]+([.-][0-9A-Za-z]+)*$" },
           "severity": { "enum": ["critical", "high", "medium", "low"] },
-          "controls": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^(DI|PR|ST|IN)-\\d{2}$" } },
+          "controls": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^(DI|PR|ST|IN|AS)-\\d{2}$" } },
           "summary": { "type": "string", "minLength": 10 },
           "source": { "type": "string", "pattern": "^[^/].*\\.md$" }
         }
