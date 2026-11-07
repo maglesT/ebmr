@@ -254,7 +254,7 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     expect(await offered()).toBe(true);
   });
 
-  it('[INV-27][IN-05] a lot code another lot holds at the site is refused: a received lot carrying <batch>-2 stops step B\'s second post (EBMR-SITE-997) and no intermediate lot is recorded; the material-lot uniqueness refuses any other row reusing the code', async () => {
+  it('[INV-27][IN-05] a lot code another lot holds at the site is never reused: with a received lot carrying <batch>-2, step B\'s second post takes the next free code <batch>-3; the material-lot uniqueness refuses any other row reusing a code', async () => {
     const stores = await gmp.asPersona('stores');
     const erp = gmp.seed.services.find((s) => s.key === 'erpInterface');
     if (!erp) throw new Error('no ERP interface in the GMP seed');
@@ -265,10 +265,10 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     valueOf(await stores.call(routes.quality.receiveLot, {
       body: { materialCode: material, lotCode: `${batch.B.batchNumber}-2`, supplier: 'Demo Supplier', supplierLot: `S-${TAG}`, quantity: '5.000', expiresAt: '2029-09-30T00:00:00+05:30', retestAt: '2029-03-31T00:00:00+05:30' },
     }));
-    const r = await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '1', unit: 'kg' } });
-    expect(refusalOf(r)?.why).toMatch(/EBMR-SITE-997|already held by another lot/);
+    const next = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '1', unit: 'kg' } }));
+    expect(next).toMatchObject({ lotCode: `${batch.B.batchNumber}-3`, materialCode: INT_B.code, status: 'QUARANTINE' });
     const n = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.intermediate_lot where batch_id = $1', [batch.B.batchId]);
-    expect(n.rows[0]?.n).toBe('1');
+    expect(n.rows[0]?.n).toBe('2');
     // The table's own rule, under any path: a second row with the code at the site is refused by unique (site, lot code).
     await expect(gmp.db.admin.query(
       `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)

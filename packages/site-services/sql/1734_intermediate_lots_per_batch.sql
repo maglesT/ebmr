@@ -9,11 +9,13 @@
 --                           batch's lots found fast.
 --   site.create_intermediate_lot(p)  as 1732 without the "already posted" refusal (EBMR-SITE-996 is no longer raised).
 --                           The lot code is the batch number for the batch's first intermediate lot, then
---                           <batch number>-2, -3, ... in posting order: the count of the batch's intermediate lots plus
---                           one, taken under the per-batch advisory transaction lock, so two posts never draw the same
---                           number; lots are never deleted, so a number is never reused (INV-27). A code already held at
---                           the site by any lot (for example a received lot that happens to carry it) is still refused:
---                           by name (EBMR-SITE-997), backed by the material-lot uniqueness of (site, lot code) (0710).
+--                           <batch number>-2, -3, ... in posting order: the next FREE number, from the count of the
+--                           batch's intermediate lots plus one, past any code another lot already holds at the site (for
+--                           example a received lot that happens to carry it), taken under the per-batch advisory
+--                           transaction lock, so two posts never draw the same number, a code is never reused (INV-27)
+--                           and the batch can always post. The material-lot uniqueness of (site, lot code) (0710) still
+--                           refuses a reused code on any path; a race that reaches it here is refused by name
+--                           (EBMR-SITE-997).
 --   site.intermediate_lot_of(p_batch)  the batch's latest intermediate lot, or NULL (its one caller reads a single lot).
 --   site.intermediate_lots_of(p_batch)  every intermediate lot of the batch, in posting order.
 -- Messages: EBMR-SITE-993 to EBMR-SITE-995 (unchanged), EBMR-SITE-997.
@@ -79,27 +81,34 @@ begin
   end if;
   v_exp := (p ->> 'expiresAt')::timestamptz;
   v_rt := (p ->> 'retestAt')::timestamptz;
-  -- Basis: ICH Q7 section 11.6 paraphrased (a held intermediate carries an expiry or retest date; AS-09).
+  -- Basis: AS-09 per the existing 1732 basis (a held intermediate carries an expiry date, and a retest date only on or before it).
   if v_exp is null or (v_rt is not null and v_rt > v_exp) then
     raise exception using errcode = 'P0001',
       message = 'EBMR-SITE-995 an intermediate lot carries its expiry date from the product master''s shelf life, and a retest date only on or before it (AS-09)';
   end if;
   -- The batch's next lot number (INV-27): drawn under the per-batch lock, so concurrent posts are serialised.
   perform pg_advisory_xact_lock(hashtext('site.intermediate_lot'), hashtext(v_batch::text));
+  -- The next FREE number: from the count of the batch's lots plus one, past any code another lot already holds at the site
+  -- (a received lot that happens to carry <batch>-N), so a code is never reused and the batch can always post.
   select count(*) + 1 into v_n from site.intermediate_lot i where i.batch_id = v_batch;
-  v_code := case when v_n = 1 then v_b ->> 'batchNumber' else (v_b ->> 'batchNumber') || '-' || v_n::text end;
-  -- Basis: record integrity (one code names one lot at a site): a code another lot holds is refused by name here, and by
-  -- the unique (site, lot code) of site.material_lot (0710) for any path that reaches the insert.
-  if exists (select 1 from site.material_lot l where l.site_code = v_b ->> 'siteCode' and l.lot_code = v_code) then
-    raise exception using errcode = 'P0001',
-      message = format('EBMR-SITE-997 lot code %s, the next intermediate lot of batch %s, is already held by another lot at site %s: one code names one lot (INV-27)',
-                       v_code, v_b ->> 'batchNumber', v_b ->> 'siteCode');
-  end if;
-  insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, retest_at, expires_at,
+  loop
+    v_code := case when v_n = 1 then v_b ->> 'batchNumber' else (v_b ->> 'batchNumber') || '-' || v_n::text end;
+    exit when not exists (select 1 from site.material_lot l where l.site_code = v_b ->> 'siteCode' and l.lot_code = v_code);
+    v_n := v_n + 1;
+  end loop;
+  begin
+    insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, retest_at, expires_at,
                                  received_by_person, received_by_account, correlation_id)
   values (v_id, v_b ->> 'siteCode', v_code, v_b ->> 'productCode', coalesce(nullif(btrim(p ->> 'productName'), ''), v_b ->> 'productCode'),
           'INTERMEDIATE', (p ->> 'quantity')::numeric, p ->> 'unit', v_rt, v_exp,
           (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid, (v_ctx ->> 'correlation_id')::uuid);
+  exception when unique_violation then
+    -- Basis: record integrity (one code names one lot at a site): only a race with a lot received outside this lock, or
+    -- an unexpected clash, reaches the unique (site, lot code) of site.material_lot (0710); refused by name.
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-SITE-997 lot code %s, the next intermediate lot of batch %s, was taken by another lot at site %s meanwhile: one code names one lot (INV-27); post again',
+                       v_code, v_b ->> 'batchNumber', v_b ->> 'siteCode');
+  end;
   insert into site.intermediate_lot (lot_id, batch_id, batch_number, edition, product_code, strength, posted_by_person, posted_by_account)
   values (v_id, v_batch, v_b ->> 'batchNumber', v_b ->> 'edition', v_b ->> 'productCode', v_b ->> 'strength',
           (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid);
