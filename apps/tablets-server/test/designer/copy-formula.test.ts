@@ -9,6 +9,7 @@ import type { formula } from '@ebmr/recipe-core';
 import { rtwProcessingContent } from '../../src/cli/demo-route-masters.ts';
 import { definitionFindings } from '../../src/features/designer/definition.ts';
 import { contentFromFormula, standardPerTabletMg, type FormulaSource } from '../../src/features/designer/from-formula.ts';
+import { withFormulaBom } from '../../src/features/designer/formula-choice.ts';
 import { TEMPLATES } from '../../src/features/designer/templates/index.ts';
 
 const line = (lineId: string, materialCode: string, role: formula.FormulaLineRole, basis: 'PER_UNIT' | 'PER_BATCH', quantity: string, batchQuantity: string, extra: Partial<formula.FormulaLine> = {}): formula.FormulaLine => ({
@@ -85,5 +86,60 @@ describe('a copy names the copy\'s own materials (R10 #9, slice 7u)', () => {
     // A material the copy keeps (the compensating cellulose) keeps its names.
     expect(c.parameters.find((p) => p.id === 'dispMcc')?.name).toBe(source.parameters.find((p) => p.id === 'dispMcc')?.name);
     expect(definitionFindings(c).filter((f) => f.severity === 'ERROR')).toEqual([]);
+  });
+});
+
+describe('a copy for a formula with a material on two lines (demo finding D-2, lead audit of #160)', () => {
+  const withLac2 = (lac2First: boolean): FormulaSource => {
+    const lines = SRC.chosen.lines.filter((l) => l.lineId !== 'lac');
+    const lac = SRC.chosen.lines.find((l) => l.lineId === 'lac') as formula.FormulaLine;
+    const lac2 = line('lac2', 'MAT-LAC-MH', 'EXCIPIENT', 'PER_UNIT', '20', '3.000');
+    lines.splice(2, 0, ...(lac2First ? [lac2, lac] : [lac, lac2]));
+    return { ...SRC, chosen: { ...SRC.chosen, lines } };
+  };
+
+  const twoLines = (lac2First: boolean): void => {
+    const source = rtwProcessingContent('RTW-WG-SRC');
+    const base = TEMPLATES.get('dc-mini');
+    if (!base) throw new Error('no dc-mini');
+    const src = withLac2(lac2First);
+    const c = contentFromFormula(base, src, { familyCode: 'DMT400-T-02', markets: ['IN'], start: 'COPY' }, source);
+    const ids = c.bom.map((b) => b.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const lacLines = c.bom.filter((b) => b.material === source.bom.find((x) => x.id === 'BOM-LAC')?.material).map((b) => `${b.id}:${b.quantity.value}`);
+    expect(lacLines.sort()).toEqual(['BOM-LAC2:3.000', 'BOM-LAC:10.500']);
+    // The master's quantities from the formula (withFormulaBom, at definition): each BOM line its own formula line's.
+    const q = withFormulaBom(c, src.chosen);
+    expect(q.bom.filter((b) => b.id.startsWith('BOM-LAC')).map((b) => `${b.id}:${b.quantity.value}`).sort()).toEqual(['BOM-LAC2:3.000', 'BOM-LAC:10.500']);
+  };
+  it('[PR-03][INV-25] a material on two formula lines is matched by line id (lac before lac2): one BOM line per formula line, the source\'s BOM-LAC kept for lac, a new BOM-LAC2; the quantities are each line\'s own', () => {
+    twoLines(false);
+  });
+  it('[PR-03][INV-25] a material on two formula lines is matched by line id (lac2 before lac): the same lines, no BOM-LAC taken twice', () => {
+    twoLines(true);
+  });
+
+  it('[PR-03][INV-25] a material on one formula line takes the source\'s BOM line of that material under the source\'s id; on two lines it does not, and withFormulaBom refuses a BOM line of a repeated material that names no formula line', () => {
+    const source = rtwProcessingContent('RTW-WG-SRC');
+    const base = TEMPLATES.get('dc-mini');
+    if (!base) throw new Error('no dc-mini');
+    const renamed = structuredClone(source);
+    const was = renamed.bom.find((b) => b.id === 'BOM-LAC');
+    if (!was) throw new Error('no BOM-LAC in the source');
+    was.id = 'BOM-LACTOSE';
+    const one = contentFromFormula(base, SRC, { familyCode: 'DMT400-T-03', markets: ['IN'], start: 'COPY' }, renamed);
+    expect(one.bom.filter((b) => b.material === was.material).map((b) => b.id)).toEqual(['BOM-LACTOSE']);
+    const two = contentFromFormula(base, withLac2(true), { familyCode: 'DMT400-T-04', markets: ['IN'], start: 'COPY' }, renamed);
+    expect(two.bom.filter((b) => b.material === was.material).map((b) => b.id).sort()).toEqual(['BOM-LAC', 'BOM-LAC2']);
+    const stray = structuredClone(two);
+    const lac = stray.bom.find((b) => b.id === 'BOM-LAC');
+    if (lac) lac.id = 'BOM-LACTOSE';
+    let refused: unknown;
+    try {
+      withFormulaBom(stray, withLac2(true).chosen);
+    } catch (e) {
+      refused = e;
+    }
+    expect(JSON.stringify(refused)).toMatch(/BOM line BOM-LACTOSE .* is not a line of the formula/);
   });
 });

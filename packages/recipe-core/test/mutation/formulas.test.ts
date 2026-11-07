@@ -163,6 +163,41 @@ describe('a formula and its versions are refused rule by rule', () => {
   });
 });
 
+describe('demo finding D-2 and the D-0 sweep: the new refusals (recipe-core 1877)', () => {
+  const withdraw = (formula: string, versionId: string, why = 'Written for the wrong product') =>
+    run(db, steward, (c) => one<string>(c, 'select recipe.formula_withdraw($1, $2, $3)::text as r', [formula, versionId, why]));
+
+  it('[INV-25] one formula per product, strength and batch size (EBMR-FRM-021); another batch size is another formula', async () => {
+    const f = await newFormula('120000');
+    expect(await refusal(createFormula({ productCode: f.product, strength: STRENGTH, batchSizeUnits: '120000' }))).toMatch(/already has a formula for 120000 units.*EBMR-FRM-021/);
+    expect(await createFormula({ productCode: f.product, strength: STRENGTH, batchSizeUnits: '120001' })).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-24][DI-22] only a draft is withdrawn (EBMR-FRM-022), under its own formula (EBMR-FRM-003), with a reason (EBMR-FRM-004); an approved version is never withdrawn', async () => {
+    const f = await newFormula();
+    const other = await newFormula();
+    const v1 = await addVersion(f.id, version());
+    expect(await refusal(withdraw(other.id, v1))).toMatch(/has no version.*EBMR-FRM-003/);
+    expect(await refusal(withdraw(f.id, v1, '   '))).toMatch(/EBMR-FRM-004/);
+    await withdraw(f.id, v1);
+    expect(await refusal(withdraw(f.id, v1))).toMatch(/is withdrawn; only a draft is withdrawn.*EBMR-FRM-022/);
+    const v2 = await addVersion(f.id, version());
+    await approve(v2);
+    expect(await refusal(withdraw(f.id, v2))).toMatch(/is approved; only a draft is withdrawn.*EBMR-FRM-022/);
+  });
+
+  it('[INV-25] line ids differ whatever their letter case (EBMR-FRM-023); a line with no id is refused as an invalid line (EBMR-FRM-010), not as a repeated id', async () => {
+    const f = await newFormula();
+    const mcc = LINES[1] as Record<string, unknown>;
+    expect(await refusal(addVersion(f.id, version([LINE, mcc, { ...mcc, lineId: 'MCC', quantity: '6' }])))).toMatch(/same line id, letter case aside.*EBMR-FRM-023/);
+    const noId = Object.fromEntries(Object.entries(LINE).filter(([k]) => k !== 'lineId'));
+    const noId2 = Object.fromEntries(Object.entries(mcc).filter(([k]) => k !== 'lineId'));
+    expect(await refusal(addVersion(f.id, version([noId, noId2])))).toMatch(/Line 1 is not a valid formula line.*EBMR-FRM-010/);
+    // The same material on two lines with their own ids is a valid version.
+    expect(await addVersion(f.id, version([LINE, mcc, { ...mcc, lineId: 'mcc2', quantity: '6' }]))).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
 describe('what the library answers', () => {
   it('[DI-35] a version is SUPERSEDED only by a later approved version of its own formula', async () => {
     const a = await newFormula();

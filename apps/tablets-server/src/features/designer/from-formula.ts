@@ -335,12 +335,16 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   const t = structuredClone(source);
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
   checkShells(src);
-  // A formula line takes the source's BOM line of its own id, else the next unused one of its material (D-2: a
-  // material may be on several lines), else a new id; each source line is taken once.
+  // A formula line takes the source's BOM line of its own id; a material on one formula line only may take the source's
+  // line of that material (the source's BOM id kept), as recipe.formula_mbr_problem matches them (recipe-core 1877).
+  // A material on several formula lines (D-2) is matched by line id only, else a new id; each source line is taken once.
   const taken = new Set<string>();
   const lineOf = new Map<string, formula.FormulaLine>();
+  const onOneLine = (code: string): boolean => src.chosen.lines.filter((x) => x.materialCode === code).length === 1;
+  const byId = new Map(src.chosen.lines.map((l) => [l.lineId, t.bom.find((b) => b.id === bomId(l) && codeOf(b) === l.materialCode)]));
+  for (const b of byId.values()) if (b) taken.add(b.id);
   const bom: flow.BomLine[] = src.chosen.lines.map((l) => {
-    const same = t.bom.find((b) => b.id === bomId(l) && codeOf(b) === l.materialCode && !taken.has(b.id)) ?? t.bom.find((b) => codeOf(b) === l.materialCode && !taken.has(b.id));
+    const same = byId.get(l.lineId) ?? (onOneLine(l.materialCode) ? t.bom.find((b) => codeOf(b) === l.materialCode && !taken.has(b.id)) : undefined);
     if (same) taken.add(same.id);
     const line: flow.BomLine = { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
     lineOf.set(line.id, l);

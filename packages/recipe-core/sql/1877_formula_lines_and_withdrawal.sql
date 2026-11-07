@@ -16,6 +16,8 @@
 --     it carries, or to the one line of its material; each formula line is matched once.
 --   * recipe.formula_create (CREATE OR REPLACE from 0640): a second formula for the same product, strength and batch
 --     size is refused with EBMR-FRM-021, not a bare unique violation.
+--   * recipe.erp_order_problem (CREATE OR REPLACE from 0602): a material's BOM lines are summed before they are
+--     compared with the ERP order's quantity of that material, so a master with a material on two lines is issued.
 --   * formulary.formula_withdrawal and recipe.formula_withdraw: the author withdraws a DRAFT version with a reason
 --     (DI-22). Nothing is deleted: the version, its lines and the withdrawal stay, insert-only and in the audit trail
 --     (record retention, 211.180, Part 11 11.10(c)); the version reads WITHDRAWN, cannot be approved (EBMR-FRM-022),
@@ -68,7 +70,7 @@ language sql stable security definer set search_path = pg_catalog, recipe, pg_te
 $$;
 
 -- The author (FORMULA.MANAGE) withdraws a DRAFT version with a reason; it stays on record, WITHDRAWN.
-create function recipe.formula_withdraw(p_version uuid, p_reason text) returns void
+create function recipe.formula_withdraw(p_formula uuid, p_version uuid, p_reason text) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
 declare
   v_actor jsonb := iam.assert_validated_actor();
@@ -76,15 +78,17 @@ declare
   f       formulary.formula;
 begin
   perform iam.assert_not_administrator();
-  select * into v from formulary.formula_version where id = p_version;
+  select * into v from formulary.formula_version where id = p_version and formula_id = p_formula;
   if v.id is null then
-    perform recipe.formula_fail('EBMR-FRM-003', format('There is no formula version %s', p_version));
+    perform recipe.formula_fail('EBMR-FRM-003', format('Formula %s has no version %s', p_formula, p_version));
   end if;
   select * into f from formulary.formula where id = v.formula_id for update;
   perform iam.require_permission('FORMULA.MANAGE', jsonb_build_object('product', f.product_code));
   if btrim(coalesce(p_reason, '')) = '' then
     perform recipe.formula_fail('EBMR-FRM-004', 'Withdrawing a formula version carries its reason (DI-22)');
   end if;
+  -- EBMR-FRM-022, basis: an approved version is a released record; a later version supersedes it and it stays as
+  -- approved (DI-24, PR-05). Only a draft, which nothing has used, is withdrawn.
   if recipe.formula_version_state(v.id) <> 'DRAFT' then
     perform recipe.formula_fail('EBMR-FRM-022', format('Version %s of this formula is %s; only a draft is withdrawn', v.version_number, lower(recipe.formula_version_state(v.id))));
   end if;
@@ -110,6 +114,8 @@ begin
                                                       coalesce(p ->> 'productCode', 'NULL'), coalesce(p ->> 'strength', 'NULL')));
   end if;
   -- 1877: a formula is one per product, strength and batch size; say so instead of a bare unique violation.
+  -- EBMR-FRM-021, basis: record integrity; a master names its formula by product, strength and batch size, and two
+  -- formulas for the same three would leave which composition a master uses open. A change is a new version.
   if exists (select 1 from formulary.formula x where x.product_code = p ->> 'productCode' and x.strength = p ->> 'strength'
                 and x.batch_size_units = (p ->> 'batchSizeUnits')::numeric) then
     perform recipe.formula_fail('EBMR-FRM-021', format('Product %s %s already has a formula for %s units; write a new version of that formula',
@@ -160,7 +166,7 @@ begin
   insert into formulary.formula_version (id, formula_id, version_number, change_reason, authored_by_person, authored_by_account, correlation_id)
   values (v_id, f.id, v_n + 1, btrim(p ->> 'changeReason'), (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid);
   -- 1877: line ids are told apart whatever their letter case (the designer upper-cases them into BOM ids).
-  if exists (select 1 from jsonb_array_elements(p -> 'lines') x where jsonb_typeof(x) = 'object'
+  if exists (select 1 from jsonb_array_elements(p -> 'lines') x where jsonb_typeof(x) = 'object' and jsonb_typeof(x -> 'lineId') = 'string'
               group by upper(x ->> 'lineId') having count(*) > 1) then
     perform recipe.formula_fail('EBMR-FRM-023', 'Two lines of the formula have the same line id, letter case aside; give each line its own id');
   end if;
@@ -337,7 +343,76 @@ begin
 end
 $$;
 
-revoke all on function recipe.formula_withdraw(uuid, text) from public;
-grant execute on function recipe.formula_withdraw(uuid, text) to ebmr_app;
+-- As 0602, with a material's BOM lines summed (header): an order gives a quantity per material, and a master may have
+-- the same material on several lines (a bilayer's two layers, water for injection twice, a solvent in two stages).
+create or replace function recipe.erp_order_problem(p_order_no text, p_order jsonb, f recipe.mbr_family, p_site text, p_size_id text, p_content jsonb) returns text
+language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
+declare
+  v_ref   jsonb := p_content -> 'header' -> 'batchSizes' -> 0 -> 'quantity';
+  v_size  jsonb := (select x -> 'quantity' from jsonb_array_elements(f.batch_sizes) x where x ->> 'id' = p_size_id limit 1);
+  v_bom   jsonb := case when jsonb_typeof(p_content -> 'bom') = 'array' then p_content -> 'bom' else '[]'::jsonb end;
+  v_ebom  jsonb := case when jsonb_typeof(p_order -> 'bom') = 'array' then p_order -> 'bom' else '[]'::jsonb end;
+  v_mbr   text[];
+  v_erp   text[];
+  r       record;
+  dec     constant text := '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,9})?$';
+begin
+  if btrim(coalesce(p_order_no, '')) = '' then
+    return 'a GMP batch is planned against an ERP production order (erpOrder) and names none';
+  end if;
+  if p_order is null then
+    return format('ERP order %s is not in the ERP stub', p_order_no);
+  end if;
+  if exists (select 1 from recipe.batch_erp_order o where o.order_no = p_order ->> 'orderNo') then
+    return format('ERP order %s planned a batch already; an order plans one batch', p_order ->> 'orderNo');
+  end if;
+  if p_order ->> 'productCode' is distinct from f.product_code or p_order ->> 'strength' is distinct from f.strength then
+    return format('ERP order %s is for product %s %s, not for the MBR''s product %s %s', p_order ->> 'orderNo', p_order ->> 'productCode', p_order ->> 'strength',
+                  f.product_code, f.strength);
+  end if;
+  if p_order ->> 'siteCode' is distinct from p_site then
+    return format('ERP order %s is for site %s, not %s', p_order ->> 'orderNo', p_order ->> 'siteCode', coalesce(p_site, 'none'));
+  end if;
+  if v_size is null or coalesce(v_size ->> 'value', '') !~ dec or (p_order ->> 'batchSize')::numeric <> (v_size ->> 'value')::numeric
+     or p_order ->> 'batchSizeUnit' is distinct from v_size ->> 'unit' then
+    return format('ERP order %s is for a batch of %s %s, not the approved batch size %s (%s %s)', p_order ->> 'orderNo', p_order ->> 'batchSize',
+                  p_order ->> 'batchSizeUnit', coalesce(p_size_id, 'none'), coalesce(v_size ->> 'value', '?'), coalesce(v_size ->> 'unit', '?'));
+  end if;
+  if v_ref is null or coalesce(v_ref ->> 'value', '') !~ dec or (v_ref ->> 'value')::numeric = 0 or v_ref ->> 'unit' is distinct from v_size ->> 'unit' then
+    return 'the MBR states no reference batch size its BOM quantities are for';
+  end if;
+  v_mbr := array(select distinct x ->> 'material' from jsonb_array_elements(v_bom) x order by 1);
+  v_erp := array(select distinct x ->> 'materialCode' from jsonb_array_elements(v_ebom) x order by 1);
+  if v_mbr is distinct from v_erp then
+    return format('the BOM of ERP order %s holds {%s}, the MBR''s BOM {%s}', p_order ->> 'orderNo', array_to_string(v_erp, ', '), array_to_string(v_mbr, ', '));
+  end if;
+  -- 1877: per material, the MBR's lines (one unit, decimal quantities) summed against the order's.
+  for r in
+    with m as (select x ->> 'material' as material, x -> 'quantity' ->> 'value' as qty, x -> 'quantity' ->> 'unit' as unit from jsonb_array_elements(v_bom) x),
+         e as (select x ->> 'materialCode' as material, x ->> 'quantity' as qty, x ->> 'unit' as unit from jsonb_array_elements(v_ebom) x)
+    select m.material, count(*) as lines,
+           bool_and(coalesce(m.qty, '') ~ dec) and count(distinct m.unit) = 1 as m_ok, min(m.unit) as m_unit,
+           sum(case when coalesce(m.qty, '') ~ dec then m.qty::numeric end) as m_qty,
+           (select bool_and(coalesce(e.qty, '') ~ dec) and count(distinct e.unit) = 1 from e where e.material = m.material) as e_ok,
+           (select min(e.unit) from e where e.material = m.material) as e_unit,
+           (select sum(case when coalesce(e.qty, '') ~ dec then e.qty::numeric end) from e where e.material = m.material) as e_qty
+      from m group by m.material order by m.material
+  loop
+    if not r.m_ok or not coalesce(r.e_ok, false) or r.e_unit is distinct from r.m_unit
+       or r.e_qty * (v_ref ->> 'value')::numeric <> r.m_qty * (v_size ->> 'value')::numeric then
+      return format('ERP order %s gives %s %s of %s; the MBR gives %s %s%s for %s %s, which is %s %s for this batch size', p_order ->> 'orderNo',
+                    coalesce(trim_scale(r.e_qty)::text, '?'), coalesce(r.e_unit, '?'), r.material, coalesce(trim_scale(r.m_qty)::text, '?'), coalesce(r.m_unit, '?'),
+                    case when r.lines > 1 then format(' on %s lines', r.lines) else '' end, v_ref ->> 'value', v_ref ->> 'unit',
+                    case when r.m_ok then trim_scale(r.m_qty * (v_size ->> 'value')::numeric / (v_ref ->> 'value')::numeric)::text else '?' end,
+                    coalesce(r.m_unit, '?'));
+    end if;
+  end loop;
+  return null;
+end
+$$;
+revoke all on function recipe.erp_order_problem(text, jsonb, recipe.mbr_family, text, text, jsonb) from public;
+
+revoke all on function recipe.formula_withdraw(uuid, uuid, text) from public;
+grant execute on function recipe.formula_withdraw(uuid, uuid, text) to ebmr_app;
 
 reset role;

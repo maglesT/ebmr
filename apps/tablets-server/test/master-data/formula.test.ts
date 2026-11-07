@@ -367,6 +367,10 @@ describe('formulation library (slice 6a)', () => {
       const v1 = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'Typed in the wrong layer', lines: LINES } }));
       const w = (versionId: string, reason: string) => steward.call(md.withdrawFormulaVersion, { params: { formulaId, versionId }, body: { reason } });
       expect((await steward.call(md.withdrawFormulaVersion, { params: { formulaId, versionId: v1.versionId }, body: { reason: '  ' } })).ok).toBe(false);
+      // A version is withdrawn under its own formula only: another formula's id is refused and leaves it a draft.
+      const otherId = await newFormula('82001', prod('J'));
+      expect(refusalOf(await steward.call(md.withdrawFormulaVersion, { params: { formulaId: otherId, versionId: v1.versionId }, body: { reason: 'Wrong formula named' } }))?.code).toBe('EBMR-FRM-003');
+      expect(valueOf(await steward.call(md.formula, { params: { formulaId } })).versions.find((x) => x.versionId === v1.versionId)?.state).toBe('DRAFT');
       expect(valueOf(await w(v1.versionId, 'Written for the wrong layer split')).state).toBe('WITHDRAWN');
       // Nothing is deleted: the version, its lines and the withdrawal are on record, and in the audit trail.
       const kept = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from formulary.formula_line where version_id = $1', [v1.versionId]);

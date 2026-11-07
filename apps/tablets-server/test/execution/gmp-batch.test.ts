@@ -337,6 +337,54 @@ describe('GMP batches on the GMP installation (slice 2b)', () => {
     ).toMatch(/linked to a planned batch before it is pinned, once .*\[EBMR-EXE-191\]/);
   }, 300_000);
 
+  it('[PR-03][INV-25] demo finding D-2 (recipe-core 1877): a master with a material on two BOM lines is planned against the ERP order of their sum, issued, and each line asks its own quantity on the floor', async () => {
+    // The same excipient in two parts (a bilayer's two layers): BOM-MCC 9.400 kg split into 5.000 and 4.400 kg.
+    const content = JSON.parse(JSON.stringify(gmpContent())) as Json;
+    const bom = content['bom'] as Json[];
+    const mcc = bom.find((b) => b['id'] === 'BOM-MCC') as Json;
+    mcc['quantity'] = { value: '5.000', unit: 'kg' };
+    bom.splice(bom.indexOf(mcc) + 1, 0, { id: 'BOM-MCC2', material: mcc['material'], role: 'EXCIPIENT', quantity: { value: '4.400', unit: 'kg' } });
+    const addConsumer = (n: unknown): void => {
+      if (Array.isArray(n)) n.forEach(addConsumer);
+      else if (n && typeof n === 'object') {
+        const o = n as Json;
+        if (o['kind'] === 'phase' && Array.isArray(o['consumes']) && (o['consumes'] as string[]).includes('BOM-MCC')) (o['consumes'] as string[]).push('BOM-MCC2');
+        Object.values(o).forEach(addConsumer);
+      }
+    };
+    addConsumer(content['procedure']);
+    const parsed = flow.parseMbr(content);
+    if (!parsed.ok) throw new Error(`the two-line master does not parse: ${JSON.stringify(parsed.problems.slice(0, 3))}`);
+    const twoLine = parsed.mbr;
+    const v = await world.approvedVersion(twoLine);
+    await world.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, BATCH_SIZE)], regulatoryBasis: 'IN: registration on file' });
+    await world.run(await actorOf(gmp, 'steward'), (c) =>
+      c.query('select site.define_batch_number_rule($1::jsonb)', [
+        JSON.stringify({ rule_code: `G-${randomUUID().slice(0, 8).toUpperCase()}`, site_code: SITE, product_code: twoLine.header.product.code, batch_kind: 'PROCESSING', format: 'G{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' }),
+      ]),
+      reason('numbering rule for the test'),
+    );
+    const issuer = await gmp.asPersona('issuer');
+    const erp = await openServiceSession(gmp.db, gmp.seed, 'erpInterface');
+    const body = { familyId: v.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE };
+    // An order for one of the two lines only is refused, naming the sum of both.
+    const short = await postOrder(gmp.db.app, erp, twoLine, BATCH_SIZE, { bom: [{ materialCode: 'MAT-PCM', quantity: '50.000', unit: 'kg' }, { materialCode: 'MAT-MCC', quantity: '5.000', unit: 'kg' }, { materialCode: 'MAT-MGS', quantity: '0.600', unit: 'kg' }] });
+    expect(refusalOf(await issuer.call(routes.execution.planBatch, { body: { ...body, erpOrder: short } }))).toMatchObject({ code: 'EBMR-EXE-605', why: expect.stringMatching(/gives 5 kg of MAT-MCC; the MBR gives 9\.4 kg on 2 lines/) as unknown });
+    // The order of their sum (9.400 kg) plans and issues the batch.
+    const order = await postOrder(gmp.db.app, erp, twoLine, BATCH_SIZE);
+    const plan = valueOf(await issuer.call(routes.execution.planBatch, { body: { ...body, erpOrder: order } }));
+    const { result } = await signIssue(issuer, plan.batchId);
+    if (!result.ok) throw new Error(`the issue was refused: ${JSON.stringify(refusalOf(result))}`);
+    // On the floor each line asks its own quantity, not the order's 9.400 kg twice.
+    const d = new RunDriver(gmp, plan.batchId, { issuer, operator1: await gmp.asPersona('operator1') });
+    const step = await d.stepView('operator1', 'p-disp-exc@');
+    expect((step.bomRemaining ?? []).map((l) => [l.bomLine, l.basis, l.required, l.unit])).toEqual([
+      ['BOM-MCC', 'ORDER', '5.000', 'kg'],
+      ['BOM-MGS', 'ORDER', '0.600', 'kg'],
+      ['BOM-MCC2', 'ORDER', '4.400', 'kg'],
+    ]);
+  }, 300_000);
+
   it('[INV-01][INV-27][IN-18] a GMP batch is planned with its id and an existing MBR family, and a batch number only from an allocation of the register', async () => {
     const prepare = (batch: string | null, def: unknown): Promise<string> =>
       messageOf(world.run(world.cast.issuer, (c) => c.query('select recipe.prepare_gmp_issue($1, $2::jsonb) as r', [batch, JSON.stringify(def)]), reason('planning for the test')));

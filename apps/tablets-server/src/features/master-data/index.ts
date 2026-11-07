@@ -173,7 +173,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     withdrawFormulaVersion: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
       const s = requireSession();
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        await formula.withdrawFormulaVersion(c, params.versionId, body.reason);
+        await formula.withdrawFormulaVersion(c, params.formulaId, params.versionId, body.reason);
         return params.versionId;
       });
       const v = (await one(s.tokenHash, params.formulaId)).versions.find((x) => x.versionId === params.versionId);

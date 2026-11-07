@@ -1102,6 +1102,14 @@ async function bomRemainingOf(ctx: ViewContext, lines: readonly string[], potenc
     // The order names the material by its code, or (orders posted from the master itself) by the BOM line's material.
     const ordered = bom.find((b) => b.materialCode === code) ?? bom.find((b) => line !== undefined && b.materialCode === line.material);
     if (!ordered || typeof ordered.quantity !== 'string' || typeof ordered.unit !== 'string' || !Dec.isValid(ordered.quantity)) continue;
+    // D-2: the order gives a material's quantity once; a material on several BOM lines (a bilayer's two layers, water
+    // for injection twice) is required per line, at the line's own quantity for this batch size (recipe-core 1877 checks
+    // the lines sum to the order).
+    const own = line && def.mbr.bom.filter((x) => x.material === line.material).length > 1 ? library.scaledLine(def.mbr, id, ctx.state.header.batchSize, def.expr) : undefined;
+    if (own) {
+      out.push({ bomLine: id, material: ref ? `${ref.title} (${ref.code})` : String(code), unit: own.unit, basis: 'ORDER', ...remainingOf(ctx, id, own.unit, Dec.parse(own.value)) });
+      continue;
+    }
     out.push({ bomLine: id, material: ref ? `${ref.title} (${ref.code})` : String(code), unit: ordered.unit, basis: 'ORDER', ...remainingOf(ctx, id, ordered.unit, Dec.parse(ordered.quantity)) });
   }
   return out;

@@ -16,12 +16,17 @@ Changes:
 - The master's BOM is matched to the formula by line id (`BOM-<line id>`), or by material when the material is on one
   line only (copies keep the source's BOM ids); each formula line is matched once (`recipe.formula_mbr_problem`). The
   designer gives each formula line its own BOM line and lists a material's reference once (`from-formula.ts`).
+- Where a material is on several lines, the rest of the chain follows the line, not the material (lead audit of #160):
+  the ERP order gives a material once, so `recipe.erp_order_problem` compares the order with the sum of the master's
+  lines of that material; the floor's "remaining" panel asks each such line its own quantity for the batch size, not
+  the order's whole quantity; the copy and the template's quantities (`withFormulaBom`) match a BOM line to a formula
+  line by line id first, and by material only when the material is on one formula line (the SQL's rule).
 - EBMR-FRM-011: no count of compensating excipients and no compensating excipient required for an adjusted active
   (TB-01 dispenses one without compensation); a compensating excipient still needs an adjusted active.
 - EBMR-FRM-009: a capsule's coat (COATING) is given per batch, as the designer asks for it.
 - A second formula for the same product, strength and batch size is EBMR-FRM-021 (it was a bare 500).
 - Withdraw a DRAFT formula version with a reason (route `masterData.withdrawFormulaVersion`, button on the formula
-  page). Nothing is deleted: the version, its lines and the withdrawal row stay, insert-only and in the audit trail
+  page; a version named under another formula is refused, EBMR-FRM-003). Nothing is deleted: the version, its lines and the withdrawal row stay, insert-only and in the audit trail
   (DI-24, DI-22); the version reads WITHDRAWN, is never approved (EBMR-FRM-022), and a new version may follow it. An
   approved version is not withdrawn.
 
@@ -34,4 +39,7 @@ the step.
 Tests (all editions): `apps/tablets-server/test/master-data/formula.test.ts` (describe "demo finding D-2 and the D-0
 sweep"), `apps/tablets-server/test/designer/from-formula.test.ts` (a bilayer tablet master from the skeleton passes
 the validator; an injectables and an API master start blank from formulas with water and a solvent on two lines; each
-pinned), `apps/tablets-web/test/office/master-data.test.tsx` (the withdraw button), `packages/recipe-core/test/mutation/formulas.test.ts`.
+pinned), `apps/tablets-web/test/office/master-data.test.tsx` (the withdraw button), `packages/recipe-core/test/mutation/formulas.test.ts`
+(FRM-021, -022, -023, -003), `apps/tablets-server/test/execution/gmp-batch.test.ts` (a GMP batch of a master with a
+material on two lines: planned against the order of their sum, issued, each line's own quantity on the floor),
+`apps/tablets-server/test/designer/copy-formula.test.ts` (the copy's matching, both line orders).
