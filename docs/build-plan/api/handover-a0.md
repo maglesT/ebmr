@@ -170,3 +170,20 @@ Open, as next steps:
 - **Header** "Batchwright API" via the Capsules C2 mechanism (`apps/tablets-web/src/app/brand.tsx`, on main): not done.
 - **Server tests tagged with AS IDs** for AS-01, AS-03, AS-16 (the chain test could carry them) and the C5 check for
   AS-24.
+
+## A2 part 1 (5 November 2026, paused by the owner)
+
+- **site-services 1732:** `site.intermediate_lot`, a sibling register of `site.finished_lot` (edition SUBSTANCE only), and
+  `site.create_intermediate_lot(jsonb)` (no grant to the app; a complete PROCESSING batch whose family edition is
+  `substance` only, read from the batch record at run time and failing closed). Release, G-REL and every finished-lot read
+  are unchanged.
+- **substance 5004:** `substance.post_intermediate_lot(batch, quantity, unit)` (MATERIAL.HANDLE; expiry from
+  `recipe.batch_expiry`), route `specifications.postIntermediateLot`.
+- **Release:** QA's existing release for further processing (lot machine `RELEASE_FOR_FURTHER_PROCESSING`,
+  MATERIAL_LOT_STATUS_DECIDED); the contract now lets `proposeLotDecision` and `LOT_DECISION` name that existing event
+  (lead, 6 November: kept; no database change).
+- **Test:** `apps/tablets-server/test/substance/intermediate-lots.test.ts` (A posted, released, refused while in quarantine,
+  reserved by B; B posted).
+- **Next:** B consumes A through a G-07 weighing (needs a qualified balance and the plant steps; a bare
+  `recipe.consume_lot` is refused, EBMR-RCP-433); the `site.lot_consumption` chain over three steps; batch C to a released
+  API lot (without the 5000 pieces being removed on api-a1a).

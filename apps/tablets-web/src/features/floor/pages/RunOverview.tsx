@@ -27,6 +27,9 @@ import { useLeaveGuard } from '../unsettled.ts';
 import { useSignedAction } from '../useSignedAction.ts';
 import { actionLabel, st } from '../text.ts';
 import { useScreensOff } from '../../../app/disconnected.tsx';
+import { Section } from '../../../app/acts.tsx';
+import { DefineForm } from '../../../app/define-form.tsx';
+import { useOffered } from '../../../app/roles.ts';
 
 type Replay = Result<RouteResponse<typeof routes.execution.verifyReplay>>;
 type RunResultExport = Result<RouteResponse<typeof routes.execution.exportRunResult>>;
@@ -107,6 +110,47 @@ function PackagingLinks({ batchId }: { batchId: string }) {
         )}
       </p>
     </section>
+  );
+}
+
+/**
+ * The intermediate lot of a complete processing batch of the API edition, posted in quarantine by the stores (API plan
+ * A2, C1; IN-05 (a), PR-45): the server says whether the batch posts one (header.postsIntermediateLot), the database
+ * checks it again. The quantity is the person's; once posted the lot is given back by its code with a link to it, and the
+ * post is not offered again on this screen (the database allows one intermediate lot per batch).
+ */
+function IntermediateLot({ batchId }: { batchId: string }) {
+  const stores = useOffered('STORES');
+  const [answer, setAnswer] = useState<{ lotId: string; lotCode: string } | null>(null);
+  if (answer) {
+    return (
+      <Section title="Intermediate lot" testId="intermediate-lot">
+        <p data-testid="intermediate-lot-posted">
+          Intermediate lot{' '}
+          <Link to="/quality/lots/$lotId" params={{ lotId: answer.lotId }}>
+            {answer.lotCode}
+          </Link>{' '}
+          posted in quarantine
+        </p>
+      </Section>
+    );
+  }
+  if (!stores) return null;
+  return (
+    <Section title="Intermediate lot" testId="intermediate-lot">
+      <DefineForm
+        title="Post the intermediate lot"
+        route={routes.specifications.postIntermediateLot}
+        fixed={{ batchId }}
+        refresh={[routes.quality.lots.id, routes.batches.batch.id]}
+        submitLabel="Post the intermediate lot in quarantine"
+        onDone={(r) => setAnswer({ lotId: r.lotId, lotCode: r.lotCode })}
+        fields={[
+          { name: 'quantity', label: 'Intermediate quantity', kind: 'decimal' },
+          { name: 'unit', label: 'Unit', kind: 'text', description: 'e.g. kg' },
+        ]}
+      />
+    </Section>
   );
 }
 
@@ -270,6 +314,7 @@ export function RunOverviewPage() {
 
       {isGmpFloor() ? <BatchWorkQueue batchId={runId} /> : null}
       {isGmpFloor() ? <PackagingLinks batchId={runId} /> : null}
+      {isGmpFloor() && view.header.postsIntermediateLot ? <IntermediateLot batchId={runId} /> : null}
       {/* Phase 7 slice 7g (WP4): a merge of two scanned containers of the batch. */}
       {isGmpFloor() ? <MergeContainers /> : null}
 
