@@ -53,6 +53,16 @@ describe('stage operations (slice 7j)', () => {
     expect(() => applyOp(c, { kind: 'ADD_STAGE', afterStageId: null, stage })).toThrow(OpError);
   });
 
+  it('[PR-03][PR-31] R-flow item 4: a stage takes a written reason for having no yield, and loses it with an empty text', () => {
+    const [a] = stagesOf(base) as [flow.StageNode];
+    const c = applyOp(base, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: '  Yield taken at the end of the next stage  ' } });
+    wellFormed(c);
+    expect(stagesOf(c)[0]?.noYieldReason).toBe('Yield taken at the end of the next stage');
+    const cleared = applyOp(c, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: ' ' } });
+    expect('noYieldReason' in (stagesOf(cleared)[0] as flow.StageNode)).toBe(false);
+    expect(() => applyOp(base, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: 'x'.repeat(10_000) } })).toThrow(OpError);
+  });
+
   it('[PR-03] stages move, are renamed and rebound, take and lose equipment by a pinned class, and are removed; refusals change nothing', () => {
     const [a, b] = stagesOf(base) as [flow.StageNode, flow.StageNode];
     let c = applyOp(base, { kind: 'MOVE_STAGE', stageId: b.id, direction: -1 });

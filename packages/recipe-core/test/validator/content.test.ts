@@ -458,14 +458,31 @@ describe('GMP content gates', () => {
     });
   });
 
-  it('[PR-03] nothing that processes material may run after a stage yield', () => {
+  it('[PR-03][PR-31] processing after a stage yield is a warning (R-flow item 4): no clause forbids it, the yield then does not close the stage', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     const seq = m.procedure.body.kind === 'sequence' ? m.procedure.body.children.find((c) => c.id === 'S-BLEND') : undefined;
     if (seq?.kind !== 'stage' || seq.body.kind !== 'sequence') throw new Error('fixture changed');
     const out = seq.body.children.find((c) => c.id === 'O-BLEND-OUT');
     if (out?.kind !== 'operation' || out.body.kind !== 'sequence') throw new Error('fixture changed');
     out.body.children.reverse();
-    expect(errors(validate(m)).map((f) => `${f.rule}: ${f.message}`).join('\n')).toMatch(/GMP-STAGE-YIELD: "Discharge and weigh the blend" \(p-blend-out\) can run after the yield/);
+    const found = validate(m).findings.filter((f) => f.rule === 'GMP-STAGE-YIELD');
+    expect(found.map((f) => [f.severity, f.subject])).toEqual([['WARNING', 'p-blend-out']]);
+    expect(found[0]?.message).toMatch(/"Discharge and weigh the blend" \(p-blend-out\) can run after the yield of stage .* the yield does not close/);
+  });
+
+  it('[PR-03][PR-31] a material stage may have no yield when the stage says why (21 CFR 211.103: each appropriate phase; R-flow item 4); a blank reason is no reason', () => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    removeNode(m, 'p-blend-yield');
+    const stage = m.procedure.body.kind === 'sequence' ? m.procedure.body.children.find((c) => c.id === 'S-BLEND') : undefined;
+    if (stage?.kind !== 'stage') throw new Error('fixture changed');
+    const yieldErrors = (): string[] => errors(validate(m)).filter((f) => f.rule === 'GMP-STAGE-YIELD').map((f) => f.subject);
+    expect(yieldErrors()).toEqual(['S-BLEND']);
+    stage.noYieldReason = '   ';
+    expect(yieldErrors()).toEqual(['S-BLEND']);
+    stage.noYieldReason = 'The blend is compressed in the next stage without discharge; its yield is taken there';
+    expect(yieldErrors()).toEqual([]);
+    const parsed = parseMbr(JSON.parse(JSON.stringify(m)));
+    expect(parsed.ok && parsed.mbr.procedure.body.kind === 'sequence' && parsed.mbr.procedure.body.children.find((c) => c.id === 'S-BLEND')).toMatchObject({ noYieldReason: stage.noYieldReason });
   });
 
   it('[PR-03] a non-material stage may not move material', () => {

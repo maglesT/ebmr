@@ -309,7 +309,11 @@ const stageClearance = defineRule('GMP-STAGE-CLEARANCE', 'Each stage starts with
   return out;
 });
 
-const stageYield = defineRule('GMP-STAGE-YIELD', 'Each material stage ends with yield or reconciliation', ['PR-03', 'PR-31'], (a) => {
+// 21 CFR 211.103 asks for the actual yield and its percentage of theoretical at the end of each appropriate phase of
+// manufacturing; the master decides which phases are appropriate. So a material stage ends with its yield, or names on
+// the stage why it has none (`noYieldReason`, approved with the master; R-flow item 4). Processing after the yield step
+// is a warning: no clause forbids it, but the yield then does not close the stage's processing.
+const stageYield = defineRule('GMP-STAGE-YIELD', 'Each material stage ends with yield or reconciliation, or says why it has none', ['PR-03', 'PR-31'], (a) => {
   const out: RuleFinding[] = [];
   const facts = a.mustBefore([], (n) => {
     const p = a.phaseOf(n);
@@ -320,8 +324,9 @@ const stageYield = defineRule('GMP-STAGE-YIELD', 'Each material stage ends with 
   for (const s of stages(a)) {
     if (s.purpose !== 'MATERIAL') continue;
     const end = a.graphNodeOf(s.id, 'SCOPE_END');
+    if (s.noYieldReason !== undefined && s.noYieldReason.trim() !== '' && !phasesIn(s.body).some((p) => a.hasRole(p, 'YIELD_RECONCILIATION'))) continue;
     if (end && !facts.get(end.id)?.has(`yield:${s.id}`)) {
-      out.push(error(s.id, `Stage ${label(a, s.id)} can end without a yield or reconciliation step; each material stage ends with its yield`));
+      out.push(error(s.id, `Stage ${label(a, s.id)} can end without a yield or reconciliation step; each material stage ends with its yield, or states on the stage why it has none`));
       continue;
     }
     // Nothing that processes material may follow the stage's yield step.
@@ -340,7 +345,7 @@ const stageYield = defineRule('GMP-STAGE-YIELD', 'Each material stage ends with 
         if (!p || !inStage.has(p.id)) continue;
         const d = a.describe(p);
         const benign = d !== undefined && d.roles.length > 0 && d.roles.every((r) => AFTER_YIELD.has(r)) && p.consumes.length === 0 && p.produces.length === 0 && !p.equipment.some((x) => x.use === 'USE');
-        if (!benign) out.push(error(p.id, `${label(a, p.id)} can run after the yield of stage ${label(a, s.id)}; the yield must close the stage's processing`));
+        if (!benign) out.push(warning(p.id, `${label(a, p.id)} can run after the yield of stage ${label(a, s.id)}; the yield does not close the stage's processing`));
       }
     }
   }

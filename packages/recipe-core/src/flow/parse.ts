@@ -39,6 +39,7 @@ import {
   type ReplicateCount,
   type RiskReduction,
   type StageEquipment,
+  type StageNode,
   type TimeConstraint,
   type YieldCheckpoint,
 } from './model.ts';
@@ -824,7 +825,8 @@ function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefi
     case 'phase':
       return phase(r, o, path);
     case 'stage': {
-      r.object(o, path, ['kind', 'id', 'name', 'binding', 'purpose', 'responsibleRole', 'body']);
+      r.object(o, path, ['kind', 'id', 'name', 'binding', 'purpose', 'responsibleRole', 'body'], ['noYieldReason']);
+      const noYieldReason = r.string(o, 'noYieldReason', path);
       const id = r.id(o, 'id', path);
       const name = r.string(o, 'name', path);
       const purpose = r.literal(o, 'purpose', path, ['MATERIAL', 'NON_MATERIAL'] as const);
@@ -841,7 +843,10 @@ function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefi
         }
       }
       const body = o['body'] === undefined ? undefined : parseFlowNode(r, o['body'], `${path}.body`);
-      return id && name && purpose && responsibleRole && binding && body ? { kind: 'stage', id, name, binding, purpose, responsibleRole, body } : undefined;
+      if (!(id && name && purpose && responsibleRole && binding && body)) return undefined;
+      const stage: StageNode = { kind: 'stage', id, name, binding, purpose, responsibleRole, body };
+      opt(stage, 'noYieldReason', noYieldReason);
+      return stage;
     }
     case 'operation': {
       r.object(o, path, ['kind', 'id', 'name', 'body']);
