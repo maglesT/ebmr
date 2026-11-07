@@ -209,6 +209,30 @@ describe('recipe-core 0328: an entry names only what its step\'s node in the MBR
   }, 120_000);
 });
 
+describe('recipe-core 1885: a clearance step records one clearance per room (runtime gaps G8; PR-34)', () => {
+  it('[PR-34][DI-30] a second AREA_OCCUPANCY of a step for another area passes; one for an area the step already records is refused (G10-TWICE)', async () => {
+    const U1 = '00000000-0000-4000-9000-000000000001';
+    const U2 = '00000000-0000-4000-9000-000000000002';
+    const rows = rowsFor(mbrWith(seqOf('ops', phase('clr', { block: { type: 'G-10', version: '2' } }))), (run) => {
+      run.start('clr');
+      run.entry('clr', { kind: 'AREA_OCCUPANCY', areaCode: 'GRAN-1', occupancyId: U1 });
+      run.entry('clr', { kind: 'AREA_OCCUPANCY', areaCode: 'DRY-1', occupancyId: U2 });
+    });
+    const adds = rows.filter((x) => x.accepted && Object.values(entriesOf(x.after)).length > Object.values(entriesOf(x.before)).length);
+    expect(adds).toHaveLength(2);
+    const [first, second] = adds as [Row, Row];
+    const again = forge(second, ({ data, sent }) => {
+      data['areaCode'] = 'GRAN-1';
+      sent['areaCode'] = 'GRAN-1';
+    });
+    expect({ first: await blockProblem(first), second: await blockProblem(second), again: await blockProblem(again) }).toEqual({
+      first: null,
+      second: null,
+      again: `stores ${about(again)} for GRAN-1 a second time (G10-TWICE)`,
+    });
+  }, 120_000);
+});
+
 describe('recipe-core 0330: the checklists, the lot and the entry its block builds (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-47)', () => {
   it('[PR-23][PR-34] a step\'s checks and checklist are its configuration\'s when it lists any, else the block\'s defaults, as the blocks read them (status.ts statusChecks, clearanceChecklist)', async () => {
     const configs: Json[] = [

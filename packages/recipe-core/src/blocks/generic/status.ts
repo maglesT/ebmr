@@ -18,7 +18,7 @@
  *   Meanings LINE_CLEARANCE_PERFORMED and LINE_CLEARANCE_VERIFIED.
  * Both accept `config: {}` (the default lists below), so the tablet fixtures run unchanged.
  */
-import type { PhaseNode } from '../../flow/model.ts';
+import { childrenOf, type FlowNode, type PhaseNode } from '../../flow/model.ts';
 import type { BlockVersion, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import type { FieldSchema } from '../schema.ts';
 import { problem } from './common.ts';
@@ -495,16 +495,38 @@ export const G10V2: BlockVersion = {
       : [{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: `Clearance step ${phase.id} names no checker: a clearance is a significant step with an independent checker`, controls: ['PR-14', 'PR-34'] }],
   handler: {
     acceptEntry: (view, entry) => {
-      if (view.entries('AREA_OCCUPANCY').length > 0) return { ok: false, problems: [problem('G10-TWICE', `The area of ${view.stepKey} is already recorded`, ['PR-34'])] };
+      // One entry per area: a second one for the same room or line would name a second occupancy for one clearance
+      // (record integrity; recipe-core 1885 holds it in the database too).
+      if (view.entries('AREA_OCCUPANCY').some((e) => e.data['areaCode'] === entry['areaCode'])) {
+        return { ok: false, problems: [problem('G10-TWICE', `Area ${String(entry['areaCode'])} of ${view.stepKey} is already recorded`, ['PR-34'])] };
+      }
       return { ok: true, data: { areaCode: entry['areaCode'], occupancyId: entry['occupancyId'], recordedBy: view.actor.id } };
     },
-    beforePerform: (view) => (view.entries('AREA_OCCUPANCY').length === 0 ? [problem('G10-INCOMPLETE', 'Record the cleared room or line the batch occupies first', ['PR-34', 'IN-21'])] : []),
+    // Every room of the stage is cleared before the stage's work: revised Schedule M (GSR 922(E)) Part I 18.4.1 asks
+    // that the work area be checked clear "before any processing operation is started", and 18.5.2 that a packaging
+    // line clearance "shall be recorded" (PR-34, IN-21). So one recorded clearance per room the stage binds, or at least
+    // one where it binds none (a line only).
+    beforePerform: (view) => {
+      const recorded = new Set(view.entries('AREA_OCCUPANCY').map((e) => String(e.data['areaCode'])));
+      const rooms = stageRoomsOf(view.mbr.procedure.body, view.phase.id) ?? [];
+      if (recorded.size === 0) return [problem('G10-INCOMPLETE', 'Record the cleared room or line the batch occupies first', ['PR-34', 'IN-21'])];
+      const missing = rooms.filter((r) => !recorded.has(r));
+      return missing.length > 0 ? [problem('G10-INCOMPLETE', `Record the clearance of ${missing.join(', ')} first`, ['PR-34', 'IN-21'])] : [];
+    },
     meanings: { perform: ['LINE_CLEARANCE_PERFORMED'], check: ['LINE_CLEARANCE_VERIFIED'] },
   },
   exceptionRules: [],
   simulatorModel: {
     exceptionTypes: () => [],
-    nominalEntries: () => [{ kind: 'AREA_OCCUPANCY', areaCode: 'TEST-ROOM', occupancyId: '00000000-0000-4000-9000-000000000101' }],
+    // One occupancy per room of the stage (beforePerform needs each), or one stand-in room where it binds none.
+    nominalEntries: ({ phase, mbr }) => {
+      const rooms = stageRoomsOf(mbr.procedure.body, phase.id) ?? [];
+      return (rooms.length > 0 ? rooms : ['TEST-ROOM']).map((areaCode, i) => ({
+        kind: 'AREA_OCCUPANCY',
+        areaCode,
+        occupancyId: `00000000-0000-4000-9000-${(0x101 + i).toString(16).padStart(12, '0')}`,
+      }));
+    },
   },
   goldenFixture: {
     description: 'The compression room, cleared, verified and occupied for the batch in site services, is recorded; performed and verified, the step completes',
@@ -517,6 +539,17 @@ export const G10V2: BlockVersion = {
 };
 
 export const STATUS_BLOCKS: readonly BlockVersion[] = [G09, G10, G09V2, G10V2];
+
+/** The rooms the stage around phase `phaseId` binds; undefined when the phase is in no stage. */
+function stageRoomsOf(node: FlowNode, phaseId: string, rooms?: readonly string[]): readonly string[] | undefined {
+  const here = node.kind === 'stage' ? node.binding.rooms : rooms;
+  if (node.kind === 'phase') return node.id === phaseId ? here : undefined;
+  for (const child of childrenOf(node)) {
+    const found = stageRoomsOf(child, phaseId, here);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
 
 /** The answers of a checklist entry counted by answer: "12 confirmed, 1 not applicable". */
 function answerTally(d: Readonly<Record<string, unknown>>): string {

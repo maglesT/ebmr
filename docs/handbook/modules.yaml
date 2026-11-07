@@ -547,7 +547,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0520_', '^0541_', '^058[01]_']
+      packages/recipe-core/sql: ['^0520_', '^0541_', '^058[01]_', '^1885_']
     src: [packages/recipe-core/src/blocks]
     tests:
       - 'packages/recipe-core/test/blocks/**'

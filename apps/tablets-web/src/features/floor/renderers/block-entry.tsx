@@ -406,7 +406,7 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
     },
     onDiscarded: clear,
   });
-  useSessionChange(clear);
+  useSessionChange(clear, { keepOnLock: true });
   useDraftGuard(Object.keys(drafts).length > 0);
   const locked = cmd.busy || cmd.state === 'notSaved';
   const merged: Record<string, Draft> = { ...drafts, ...chosen };
