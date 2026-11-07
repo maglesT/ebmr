@@ -154,8 +154,9 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   if (actives.length === 0) throw new FamilyInputError('DESIGNER_FORMULA', 'The formula has no active given per unit; a processing master dispenses its actives.', ['PR-01']);
   const mgText = (ls: formula.FormulaLine[]): string => sum(ls.map(unitMg));
   const refUnits = c.batchSizeUnits;
-  // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026).
-  const unit = flowNs.isCapsuleForm(src.product.dosageForm) ? 'capsule' : 'tablet';
+  // The unit's name in the master's own wording: a capsule product says capsule (Capsules edition plan, 4 November 2026);
+  // an injectables product says unit (a vial, an ampoule: injectables plan I-1c, from EDITION_START).
+  const unit = EDITION_START[req.edition ?? 'tablets'].unit ?? (flowNs.isCapsuleForm(src.product.dosageForm) ? 'capsule' : 'tablet');
   const kg = (mg: string): string => Dec.parse(mg).times(Dec.parse(refUnits)).div(Dec.parse('1000000')).toString();
 
   const param = (id: string, name: string): flow.Parameter =>
@@ -297,6 +298,32 @@ function skeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyReque
   return t;
 }
 
+/**
+ * How a family of each edition starts from a formula (injectables plan I-1c, lead S1, 6 November 2026): one table, so no
+ * edition name is tested in the code paths. The templates and copies are tablet procedures, so only the tablets edition
+ * copies; the skeleton is the full tablet one, or its dispensing stage alone for injectables; a BLANK or dispensing
+ * master of an edition with `releaseForPacking` ends with QA's release for packing (API plan A1a), the gate the packaging
+ * order of the batch needs (recipe-core 0701). `unit` is the master's unit word where the dosage form does not give it.
+ */
+export const EDITION_START: Readonly<Record<flow.Edition, {
+  readonly starts: readonly FormulaStart[];
+  readonly skeleton: 'FULL' | 'DISPENSING' | null;
+  readonly releaseForPacking: boolean;
+  readonly unit?: string;
+  /** Why the edition refuses a start it does not list, and the library its steps come from; null where every start is listed. */
+  readonly refusal: { readonly why: string; readonly library: string } | null;
+}>> = {
+  tablets: { starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false, refusal: null },
+  injectables: {
+    starts: ['SKELETON', 'BLANK'], skeleton: 'DISPENSING', releaseForPacking: true, unit: 'unit',
+    refusal: { why: 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.', library: 'injectables' },
+  },
+  substance: {
+    starts: ['BLANK'], skeleton: null, releaseForPacking: true,
+    refusal: { why: 'An API master starts blank: the skeleton, templates and copies are tablet procedures.', library: 'API' },
+  },
+};
+
 /** BLANK (header comment): the header, the bill of materials and a dispensing stage with its clearance and balance status. */
 function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
   const t = skeleton(base, src, req, markets, undefined);
@@ -307,9 +334,9 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
     }
   });
   (t.procedure.body as flow.SequenceNode).children = [disp];
-  // API plan A1a: an API master ends with QA's release for packing (H-PACK) in a stage of its own, so the synthesis
-  // stages the author adds go before it and the packaging order of the batch can take its bulk (recipe-core 0701).
-  if (req.edition === 'substance') (t.procedure.body as flow.SequenceNode).children.push(releaseForPacking(disp));
+  // API plan A1a: an API (or injectables) master ends with QA's release for packing (H-PACK) in a stage of its own, so
+  // the stages the author adds go before it and the packaging order of the batch can take its bulk (recipe-core 0701).
+  if (EDITION_START[req.edition ?? 'tablets'].releaseForPacking) (t.procedure.body as flow.SequenceNode).children.push(releaseForPacking(disp));
   t.parameters = [];
   t.calculations = [];
   t.yieldCheckpoints = [];
@@ -321,10 +348,37 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
   return t;
 }
 
-/** API plan A1a: the last stage of an API processing master, QA's release for packing (H-PACK). */
+/**
+ * API plan A1a: the last stage of an API (or injectables) processing master, QA's release for packing (H-PACK). It
+ * processes no material and is bound to no room (NON_MATERIAL, I-1c): the stage rules (clearance first, yield last) are
+ * the material stages' own.
+ */
 function releaseForPacking(like: flow.StageNode): flow.StageNode {
   const hold = { kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] } as flow.FlowNode;
-  return { ...like, id: 'S-RELEASE', name: 'Release for packing', body: { kind: 'sequence', id: 'seq-release', children: [hold] } };
+  return { ...like, id: 'S-RELEASE', name: 'Release for packing', purpose: 'NON_MATERIAL', binding: { rooms: [], equipment: [] }, body: { kind: 'sequence', id: 'seq-release', children: [hold] } };
+}
+
+/**
+ * Injectables plan I-1c: the skeleton of an injectables master is the dispensing stage alone (clearance, balance status,
+ * dispensing quantities, the weighings that consume the bill of materials, reconciliation), then QA's release for
+ * packing in its own stage (the API's, A1a). There is no blending stage: the author adds the injectables library steps
+ * (compounding, filtration, filling and so on) between the two.
+ */
+function dispensingOnly(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[], timeSystem?: flow.Reference): flow.MbrContent {
+  // The trusted-time system stays pinned: the library's timed steps (mixing, inspection) rely on it (DI-04).
+  const t = skeleton(base, src, req, markets, timeSystem);
+  const disp = (t.procedure.body as flow.SequenceNode).children.find((n) => n.id === 'S-DISP') as flow.StageNode;
+  (t.procedure.body as flow.SequenceNode).children = [disp, releaseForPacking(disp)];
+  t.procedure = { ...t.procedure, name: `${src.product.name} ${src.chosen.strength}: dispensing` };
+  const blending = new Set(['blendTime', 'lubeTime', 'blendNet', 'blendInput', 'blendYield']);
+  t.parameters = t.parameters.filter((p) => !blending.has(p.id));
+  t.calculations = t.calculations.filter((x) => !blending.has(x.id));
+  t.goldenCases = t.goldenCases.filter((g) => g.id !== 'G-BLEND-YIELD');
+  t.yieldCheckpoints = t.yieldCheckpoints.filter((y) => !blending.has(y.result));
+  t.timeConstraints = [];
+  t.intermediates = [];
+  t.references = t.references.filter((r) => !['SOP-BLEND-002', 'VR-BLEND-01', 'EQC-BLENDER', 'HS-PCM-01'].includes(r.id));
+  return t;
 }
 
 /** COPY (header comment): the approved master's procedure with this header and bill of materials. */
@@ -438,5 +492,6 @@ export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: F
     if (!copySource) throw new FamilyInputError('DESIGNER_COPY', 'Name the approved master to copy.', ['PR-01']);
     return parsed(copy(copySource, src, req, markets));
   }
-  return parsed(req.start === 'BLANK' ? blank(base, src, req, markets) : skeleton(base, src, req, markets, timeSystem));
+  if (req.start === 'BLANK') return parsed(blank(base, src, req, markets));
+  return parsed(EDITION_START[req.edition ?? 'tablets'].skeleton === 'DISPENSING' ? dispensingOnly(base, src, req, markets, timeSystem) : skeleton(base, src, req, markets, timeSystem));
 }

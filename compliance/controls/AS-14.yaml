@@ -1,0 +1,26 @@
+id: AS-14
+title: "Label reconciliation, examination and specimen"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 9.3.2, 9.3.6, 9.3.7; ICH Q7 (EU GMP Part II) 9.31, 9.35, 9.36. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Issued labels are reconciled, examined and the result recorded, and a representative label is kept in the batch record."
+catalog_test: "Close the G-21 step of an API packaging order without a label specimen of each printed item; the database refuses it (EBMR-LBL-060)."
+implemented_by:
+  modules:
+    - "G-21 printed materials (any edition): labels issued and reconciled against their limits (recipe-core 0580; G-REL E.RECONCILIATION_PRINTED, which the API hook returns, substance 5000), and a label specimen of every printed item before the step closes (tablets 1230, EBMR-LBL-060)."
+tests:
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16][AS-14] removing one label specimen or one checker signature blocks completion and names the gap"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][INV-32][AS-14] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site; the specimen label is the G-21 step's); isolation is one block per type, each keeping the mother liquor as a registered container"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

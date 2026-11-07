@@ -139,4 +139,51 @@ CONTAINER REGISTER field, the net mass, and the closure and label checks. Labels
 the label specimen in the record (SM 9.3.7, AS-14) comes with A1b. It is not in `SEED_GROUPS` yet.
 
 **The chain test** `apps/tablets-server/test/substance/api-chain.test.ts` drives the masters (built as content, without
-the G-10/G-09 plant steps or a G-21 step) to a RELEASED lot through the routes.
+the G-10/G-09 plant steps or a G-21 step) to a RELEASED lot through the routes. A1b's E2E builds them on screen with the plant steps.
+
+## A1b paused (5 November 2026)
+
+The owner paused the API edition after this round. Branch `api-a1b` (from `api-a1a`, main merged in) holds:
+
+1. **Catalogue v1** in `packages/recipe-core/src/library/seed/substance.ts`: API-DISP, API-CHARGE, API-REACT,
+   API-IPC-COMPLETE, API-CRYST, API-FILTER (Nutsche or centrifuge), API-DRY (LOD loop UNTIL_PASS), API-YIELD
+   (actual yield against the batch size, molar yield against the key starting material's formula line),
+   API-LABEL-CHECK and API-PACK (unchanged). Group `substance` in SEED_GROUPS, so the catalogue load drafts them; the
+   library offers them only to API masters. No calculation reads an earlier step. Seed tests carry the AS IDs.
+2. **AS controls:** fifteen files `compliance/controls/AS-*.yaml` (part D, group API edition, editions `substance`,
+   expert decision PENDING). The register accepts the prefix AS and the edition `substance` (schemas, trace tag,
+   evidence reporter); the gate's default stays tablets and injectables, so AS controls are due only when
+   `compliance/phase.yaml` lists `substance`. AS-01, AS-03, AS-07, AS-08, AS-16 and AS-24 have no tagged test yet
+   (SPECIFIED).
+3. **AS-14 specimen label:** covered as a recorded confirmation (API-LABEL-CHECK `specimen`: a specimen label attached
+   to the record); no image of the label is stored. Open if the owner wants the specimen itself in the electronic record.
+
+Open, as next steps:
+
+- **Rebase on the reworked API_PACK** (lead: drums as a CONTAINER REGISTER field, labels through G-21, the `recon` and
+  `exam` sections go). This branch does not edit API_PACK's definition.
+- **E2E acceptance not built.** On screen an API family cannot be started today: the New master page sends no edition
+  (the server defaults to tablets) and has no PACKAGING_BLANK, which is being removed. With only the existing starts,
+  the API master pair cannot be built on screen; this is an open point for the lead, not built around. The E2E
+  should drive the generic library-step form only (owner UI directive); group of its own in playwright.config.ts and
+  ci.yml once it exists.
+- **Header** "Batchwright API" via the Capsules C2 mechanism (`apps/tablets-web/src/app/brand.tsx`, on main): not done.
+- **Server tests tagged with AS IDs** for AS-01, AS-03, AS-16 (the chain test could carry them) and the C5 check for
+  AS-24.
+
+## A2 part 1 (5 November 2026, paused by the owner)
+
+- **site-services 1732:** `site.intermediate_lot`, a sibling register of `site.finished_lot` (edition SUBSTANCE only), and
+  `site.create_intermediate_lot(jsonb)` (no grant to the app; a complete PROCESSING batch whose family edition is
+  `substance` only, read from the batch record at run time and failing closed). Release, G-REL and every finished-lot read
+  are unchanged.
+- **substance 5004:** `substance.post_intermediate_lot(batch, quantity, unit)` (MATERIAL.HANDLE; expiry from
+  `recipe.batch_expiry`), route `specifications.postIntermediateLot`.
+- **Release:** QA's existing release for further processing (lot machine `RELEASE_FOR_FURTHER_PROCESSING`,
+  MATERIAL_LOT_STATUS_DECIDED); the contract now lets `proposeLotDecision` and `LOT_DECISION` name that existing event
+  (lead, 6 November: kept; no database change).
+- **Test:** `apps/tablets-server/test/substance/intermediate-lots.test.ts` (A posted, released, refused while in quarantine,
+  reserved by B; B posted).
+- **Next:** B consumes A through a G-07 weighing (needs a qualified balance and the plant steps; a bare
+  `recipe.consume_lot` is refused, EBMR-RCP-433); the `site.lot_consumption` chain over three steps; batch C to a released
+  API lot (without the 5000 pieces being removed on api-a1a).

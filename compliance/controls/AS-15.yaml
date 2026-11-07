@@ -1,0 +1,24 @@
+id: AS-15
+title: "Label content and line inspection"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 9.4.3, 9.4.4, 9.4.5, 9.4.6; ICH Q7 (EU GMP Part II) 9.42, 9.43, 9.44, 9.45. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Labels show name, batch and storage, and for containers leaving the company also the manufacturer, quantity, transport conditions and retest or expiry date; the line is inspected before use and the labelled containers checked."
+catalog_test: "Pack with labels of an earlier batch in the area; the check raises an exception."
+implemented_by:
+  modules:
+    - "API-LABEL-CHECK (line clearance, label content against the master), API-PACK, clearance."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-14][AS-15][AS-18] API plan A1b: before packing the label line is cleared of earlier labels and one label is checked against the master (name, batch, quantity, retest or expiry date, storage, and the manufacturer and transport conditions for containers leaving the site; the specimen label is the G-21 step's); isolation is one block per type, each keeping the mother liquor as a registered container"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

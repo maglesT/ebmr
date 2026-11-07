@@ -6,11 +6,11 @@
   "additionalProperties": false,
   "required": ["id", "title", "part", "group", "editions", "type", "target_phase", "target_phase_source", "requirement_rows", "sources", "behaviour", "catalog_test", "implemented_by", "tests", "expert_decision", "build_status"],
   "properties": {
-    "id": { "type": "string", "pattern": "^(DI|PR|ST|IN)-\\d{2}$" },
+    "id": { "type": "string", "pattern": "^(DI|PR|ST|IN|AS)-\\d{2}$" },
     "title": { "type": "string", "minLength": 3 },
     "part": { "enum": ["A", "B", "C", "D"] },
     "group": { "type": "string" },
-    "editions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["tablets", "injectables"] } },
+    "editions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["tablets", "injectables", "substance"] } },
     "type": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["ENFORCED", "CONFIGURABLE", "DESIGN_CHOICE"] } },
     "target_phase": { "type": "integer", "minimum": 0, "maximum": 7 },
     "target_phase_source": { "enum": ["outline", "default"] },
