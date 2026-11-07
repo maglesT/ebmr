@@ -345,7 +345,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
   });
 
-  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with other characters is refused (site-services 1733)', async () => {
+  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1733)', async () => {
     const regulatory = await gmp.asPersona('regulatory');
     const body = { licenceKind: 'MANUFACTURING' as const, form: '25' as const, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
       validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: `${PRODUCT.code}-T`, strength: PRODUCT.strength }] };

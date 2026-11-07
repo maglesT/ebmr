@@ -203,7 +203,7 @@ export const india = {
       licenceNumber: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9/._ -]{0,63}$/),
       holderName: LabelText(200),
       holderAddress: LabelText(400),
-      holderTelephone: z.string().regex(/^[0-9+() -]{3,40}$/).optional(),
+      holderTelephone: LabelText(200).optional(),
       hostLicenceId: Uuid.optional(),
       technicalAgreement: Text(200).optional(),
       validFrom: IsoInstant,
@@ -233,7 +233,7 @@ export const india = {
     mutating: true,
     summary: 'Record a new telephone for the holder of a licence of this site (regulatory affairs); it supersedes the earlier one on the CoA, which stays in the history (ICH Q7 11.43)',
     params: z.strictObject({ licenceId: Uuid }),
-    body: z.strictObject({ telephone: z.string().regex(/^[0-9+() -]{3,40}$/) }),
+    body: z.strictObject({ telephone: LabelText(200) }),
     response: LicenceView,
   }),
   exportPermissions: defineRoute({

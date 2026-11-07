@@ -141,7 +141,7 @@ describe('manufacturing and loan licences (site services 0885)', () => {
     await approve(id);
     const tel = (by: SeededActor, licenceId: string, t: string) =>
       w.run(by, (c) => c.query('select site.record_licence_holder_telephone($1, $2) as id', [licenceId, t]));
-    // A telephone with other characters, and an unknown licence, are refused; QA without LICENCE.RECORD is refused.
+    // A telephone with ; or =, and an unknown licence, are refused; QA without LICENCE.RECORD is refused.
     expect(await refusal(tel(reg, id, '020 1111; x'))).toMatch(/EBMR-IND-003/);
     expect(await refusal(tel(reg, randomUUID(), '+91 20 3333 4444'))).toMatch(/EBMR-IND-008/);
     expect(await refusal(tel(qa, id, '+91 20 3333 4444'))).toMatch(/LICENCE\.RECORD|EBMR-IAM/);
@@ -158,6 +158,9 @@ describe('manufacturing and loan licences (site services 0885)', () => {
     // The entries are insert-only.
     expect(await refusal(db.admin.query("update site.licence_holder_telephone set telephone = '+91 20 0000 0000' where licence_id = $1", [id]))).toMatch(/EBMR-AUDIT-004|EBMR-IND-001/);
     expect(await refusal(db.admin.query('delete from site.licence_holder_telephone where licence_id = $1', [id]))).toMatch(/EBMR-AUDIT-004|EBMR-IND-001/);
+    // Any way of writing the number is accepted: no format beyond the text rule of the licence content.
+    await tel(reg, id, 'Tel. 020 1111 2222 ext. 12 / Fax 020 1111 2223');
+    expect(await licenceBasis(db.app, SITE, p, '500 mg')).toMatchObject({ holderTelephone: 'Tel. 020 1111 2222 ext. 12 / Fax 020 1111 2223' });
   });
 });
 

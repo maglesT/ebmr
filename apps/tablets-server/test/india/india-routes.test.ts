@@ -64,7 +64,7 @@ describe('licences and export permissions over HTTP (Phase 4 slice 6a)', () => {
     expect(suspended).toMatchObject({ state: 'SUSPENDED', current: false, suspension: { reason: 'Suspended by order of the licensing authority' } });
   });
 
-  it('[IN-30] the regulatory signer records a new holder telephone for a licence over HTTP; the licence shows the new one; the issuer may not, and a telephone with other characters is refused', async () => {
+  it('[IN-30] the regulatory signer records a new holder telephone for a licence over HTTP; the licence shows the new one; the issuer may not, and a telephone with ; or = is refused', async () => {
     const reg = await gmp.asPersona('regulatory');
     const l = valueOf(await reg.call(I.recordLicence, { body: { ...licenceBody(code()), holderTelephone: '+91 20 1111 2222' } }));
     expect(l.holderTelephone).toBe('+91 20 1111 2222');

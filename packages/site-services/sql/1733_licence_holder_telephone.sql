@@ -5,8 +5,8 @@
 --
 -- Handbook: modules/site-services.md
 --
---   site.licence_holder_telephone   insert-only telephone entries of a licence (free text: digits, spaces and + ( ) -, up
---                                 to 40 characters), each with who recorded it and when (from the trusted session); the
+--   site.licence_holder_telephone   insert-only telephone entries of a licence (a line of text up to 200 characters,
+--                                 without ; or =, like the holder's name and address), each with who recorded it and when (from the trusted session); the
 --                                 latest entry is the licence's telephone, earlier ones stay as its history (lead, 6 Nov).
 --                                 Audited in its own chain per licence (aggregate licence_holder_telephone), immutable.
 --   site.licence_telephone(id)    the licence's current telephone (latest entry), or null.
@@ -24,7 +24,9 @@ set local role ebmr_owner;
 create table site.licence_holder_telephone (
   id                   uuid primary key default gen_random_uuid(),
   licence_id           uuid not null references site.manufacturing_licence (id),
-  telephone            text not null check (btrim(telephone) <> '' and telephone ~ '^[0-9+() -]{3,40}$'),
+  -- The same text rule as the holder's name and address (0885): record integrity of the licence content's text form (a
+  -- line of text, no ; or =). No format beyond that: ICH Q7 11.43 asks for the telephone, not a way of writing it.
+  telephone            text not null check (btrim(telephone) <> '' and length(telephone) <= 200 and telephone !~ '[;=]'),
   recorded_by_person   uuid not null,
   recorded_by_account  uuid not null,
   recorded_at          timestamptz not null default clock_timestamp(),
@@ -53,12 +55,14 @@ declare
 begin
   perform iam.assert_not_administrator();
   select * into l from site.manufacturing_licence where id = p_licence;
+  -- Record integrity: the entry belongs to an existing licence of the actor's own site.
   if l.id is null or l.site_code <> site.actor_site() then
     raise exception using errcode = 'P0001', message = format('EBMR-IND-008 unknown licence %s', coalesce(p_licence::text, 'NULL'));
   end if;
   perform iam.require_permission('LICENCE.RECORD', jsonb_build_object('site', l.site_code));
-  if coalesce(btrim(p_telephone), '') !~ '^[0-9+() -]{3,40}$' then
-    raise exception using errcode = 'P0001', message = 'EBMR-IND-003 a telephone is given in digits, spaces and + ( ) -, up to 40 characters (IN-30)';
+  -- Record integrity of the licence content's text form, as for the holder's name and address (see the table).
+  if coalesce(btrim(p_telephone), '') = '' or length(btrim(p_telephone)) > 200 or p_telephone ~ '[;=]' then
+    raise exception using errcode = 'P0001', message = 'EBMR-IND-003 a telephone is a line of text up to 200 characters, without ; or = (IN-30)';
   end if;
   perform pg_advisory_xact_lock(hashtext('site.manufacturing_licence'), hashtext(l.id::text));
   insert into site.licence_holder_telephone (licence_id, telephone, recorded_by_person, recorded_by_account, correlation_id)
@@ -131,7 +135,7 @@ begin
       raise exception using errcode = 'P0001', message = format('EBMR-IND-007 licence number %s is recorded already', btrim(p ->> 'licenceNumber'));
     when check_violation or not_null_violation then
       raise exception using errcode = 'P0001',
-        message = 'EBMR-IND-003 the licence is incomplete: number, holder name and address (without ; or =; a telephone, when given, in digits, spaces and + ( ) -), and a validity that ends after it starts (IN-30)';
+        message = 'EBMR-IND-003 the licence is incomplete: number, holder name and address (without ; or =; a telephone, when given, likewise), and a validity that ends after it starts (IN-30)';
   end;
   insert into site.licence_product (licence_id, product_code, strength)
   select distinct v_id, e ->> 'productCode', btrim(e ->> 'strength') from jsonb_array_elements(p -> 'products') e;
