@@ -83,6 +83,9 @@ export const ADDED_ONLY_ALLOWED: Readonly<Record<string, string>> = {
   '"platform"."config_version"': 'configuration versions with basis RELEASE, recorded for the catalogue rows the migrations add',
   '"platform"."db_time_column"': 'registry of the columns that take database time: a release registers its new columns',
   '"platform"."inbound_schema"': 'the inbound message schemas the eBMR accepts (insert-only; a release adds its own)',
+  // API plan A4c (recipe-core 1881): a release publishes a new version of a state machine (machine output_container v2).
+  '"platform"."machine_transition"': "the transitions of the state machine versions a release publishes (a published version is immutable; earlier versions' rows must be unchanged)",
+  '"platform"."machine_version"': 'the state machine versions a release publishes (a published version is immutable; earlier versions must be unchanged)',
   '"platform"."setting_definition"': 'catalogue of setting definitions: a release defines its new settings (earlier definitions must be unchanged)',
   '"recipe"."block_data_schema"': 'catalogue of block data schemas',
   '"recipe"."block_signature_meaning"': 'catalogue of the signature meanings each block type uses',
