@@ -270,3 +270,32 @@ same day, and AS-25 to AS-33 were added. Part XII has one table (1.2.9, where AP
 Part XII nor Part II carries a numerical limit table. Residual-solvent and impurity limits come from separate ICH
 guidelines (Q3A, Q3C) and the pharmacopoeias, so they are the product's specification data, not rules of the
 software.
+
+## 11. Slice A4 plan: recovery, reprocessing, rework (7 November 2026, for the lead)
+
+Binding text: ICH Q7 section 14, checked against the official text (Step 4, 10 November 2000, database.ich.org). From
+the Schedule M extract, Part XII 8.1.8, 14.1 and 14.2.1 were checked; the extract's pages for 14.2.2 to 14.4 are
+missing, so those rows cite Q7 only. Clauses are paraphrased, with short quotes.
+
+| Clause | What it asks | What exists (reused) | New |
+|---|---|---|---|
+| Q7 14.10, SM 14.1 | Failing material identified and quarantined; its final disposition recorded | Lot states and the material-lot decision (signed) | Test |
+| Q7 8.17, SM 8.1.8 (AS-08) | Material to be reprocessed or reworked controlled against unauthorised use | A quarantined lot is refused at reservation and weighing (A2); a container of another batch is charged only by a linked reprocessing child (0624 `plant.charge_container`) | Test |
+| Q7 14.20, SM 14.2.1 (AS-19) | Repeating a step "that are part of the established manufacturing process" is acceptable | G-24 `VALIDATED_RETREATMENT` in the approved master; whole-batch `REPROCESSING` family (0624). A step in the approved master is the established process by definition | Test |
+| Q7 14.21 | Continuing a step after an incomplete IPC is normal, not reprocessing | API-IPC-COMPLETE loop (A1b) | None |
+| Q7 14.22 (AS-19) | Unreacted material returned "preceded by careful evaluation" | G-24 `REPROCESSING_ADDITION`: QA's signed authorisation with the risk evaluation (0621, 0622) | Test |
+| Q7 14.30 (AS-20, plan C4) | "an investigation into the reason for non-conformance" before a rework | A rework is a different process, so it cannot be a step of the approved master: it is its own master of record kind `REPROCESSING` (the rework master), and planning it needs a QA-concluded deviation linked to each parent and a stored risk evaluation (0624 EBMR-RPR-050/052) | **Test only, no guard** |
+| Q7 14.31, 14.32 (AS-20) | Reworked batch evaluated, tested, documented; impurity profile compared | G-REL `G3.EXTRA_TESTING` refuses release of a batch with a reprocessing basis until QC decides on extra testing (0781:428, `recipe.reprocessing_release_problem`); the impurity comparison is QC's extra test result | Test |
+| Q7 14.40, 14.43 (AS-21) | Recovery from mother liquor or filtrates under approved procedures, recovered material meeting its specification; use documented | (a) Second crop in the same batch: a further crystallisation step in the master and a second intermediate lot `<batch>-2` (#158). (b) Mother liquor carried into a later batch: held as a container in batch N, released by QA, added in batch N+1's G-24 `RECOVERY` step (0622). Both are on the genealogy | Test |
+| Q7 14.41, 14.42, 14.43 (AS-21) | Recovered solvent meets its standard before reuse or mixing with fresh; use documented | A recovery master of the API edition whose product is the recovered solvent: its output is posted as an intermediate lot in quarantine, QC tests it, and QA releases it for further processing (A2). The next batch weighs it at G-07 as a BOM line, and mixing fresh with recovered is two weighings. Genealogy 1879 | Test |
+
+Truly new code: none expected. Controls AS-19, AS-20 and AS-21 become files, with AS-08 and their names in
+`recipe.engine_name` (substance 5007, our range). Tests go in `apps/tablets-server/test/substance/`, reusing
+`support.ts`.
+
+Gap noted, not closed: G-24's `investigation_ref` is checked only as non-empty text (0621, EBMR-RPR-020). That is a
+14.22 or 14.40 step of the approved process, not a 14.30 rework, so no clause needs more; adding a refusal there
+would break the owner's flexibility rule.
+
+Slices: **A4a** rework and reprocessing (AS-08, AS-19, AS-20); **A4b** recovery, mother liquor and solvent (AS-21). If a
+test shows an existing piece cannot do its row for the API edition, the smallest fix goes to the lead first.
