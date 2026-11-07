@@ -9,7 +9,7 @@
 --                           strength, and who posted it. A sibling of site.finished_lot (0842), not a row of it: the
 --                           manufacturer release, G-REL and every finished-lot read (recipe.release_lots, EBMR-REL-010,
 --                           distribution, ERP outbound, recall) stay those of finished lots, unchanged.
---   site.create_intermediate_lot(p)  written only by the edition's definer (substance 5001,
+--   site.create_intermediate_lot(p)  written only by the edition's definer (substance 5004,
 --                           substance.post_intermediate_lot); the application role cannot call it. MATERIAL.HANDLE at the
 --                           batch's site, never an administrator, a person's act (site.material_act_by_person, 0990).
 --                           The batch is named by its id only: its number, edition, site, product and strength are the

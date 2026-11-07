@@ -177,7 +177,7 @@ Open, as next steps:
   `site.create_intermediate_lot(jsonb)` (no grant to the app; a complete PROCESSING batch whose family edition is
   `substance` only, read from the batch record at run time and failing closed). Release, G-REL and every finished-lot read
   are unchanged.
-- **substance 5001:** `substance.post_intermediate_lot(batch, quantity, unit)` (MATERIAL.HANDLE; expiry from
+- **substance 5004:** `substance.post_intermediate_lot(batch, quantity, unit)` (MATERIAL.HANDLE; expiry from
   `recipe.batch_expiry`), route `specifications.postIntermediateLot`.
 - **Release:** QA's existing release for further processing (lot machine `RELEASE_FOR_FURTHER_PROCESSING`,
   MATERIAL_LOT_STATUS_DECIDED); the contract now lets `proposeLotDecision` and `LOT_DECISION` name that existing event

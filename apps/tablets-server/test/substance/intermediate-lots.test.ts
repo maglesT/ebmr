@@ -1,5 +1,5 @@
 /**
- * API plan A2, change C1 (site-services 1732, substance 5001): a processing batch of the API edition posts its output as
+ * API plan A2, change C1 (site-services 1732, substance 5004): a processing batch of the API edition posts its output as
  * an INTERMEDIATE lot in quarantine; QA releases it for further processing through the material-lot release
  * (RELEASE_FOR_FURTHER_PROCESSING over the proposal, MATERIAL_LOT_STATUS_DECIDED); the next step's batch reserves and
  * reserves it as any lot (site.reserve_lot).

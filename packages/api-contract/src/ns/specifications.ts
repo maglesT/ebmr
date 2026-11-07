@@ -157,7 +157,7 @@ export const FinishedLotView = z.strictObject({
 });
 export type FinishedLotView = z.infer<typeof FinishedLotView>;
 
-/** API plan A2 (C1): the intermediate lot of a processing batch of the API edition (site-services 1732, substance 5001). */
+/** API plan A2 (C1): the intermediate lot of a processing batch of the API edition (site-services 1732, substance 5004). */
 export const IntermediateLotView = z.strictObject({
   lotId: Uuid,
   lotCode: z.string(),
