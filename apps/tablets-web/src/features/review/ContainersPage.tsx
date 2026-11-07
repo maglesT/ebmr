@@ -6,7 +6,8 @@
  * The acts are the person's own: open (at a stage, on a press and, when each side of the press discharges into its own
  * containers, on that side: its stream; Phase 7 slice 7h, gap report D2), close (weighed: tare and gross captured from a balance of the room, the readings
  * named by id; typed: the net, which a second person then verifies with CONTAINER_ACT VERIFY_CLOSE, DI-30), sort and
- * reject with a reason, and QA's release (CONTAINER_ACT RELEASE, with QA's reason). On a shared terminal the plain
+ * reject with a reason, QA's own hold with its reason (offered only when the server says the container takes it,
+ * `qaHoldable`; API plan A4c), and QA's release (CONTAINER_ACT RELEASE, with QA's reason). On a shared terminal the plain
  * commands carry a fresh badge tap (FRESH_ON_SHARED, through app/acts.tsx). Every rule is the database's; the screen
  * only shows its answers.
  */
@@ -76,11 +77,21 @@ function ContainerCard({ c }: { c: ContainerView }) {
           ))}
         </ul>
       ) : null}
+      {c.qaHolds.length > 0 ? (
+        <ul aria-label="Holds by QA">
+          {c.qaHolds.map((h) => (
+            <li key={h.recordedAt.us}>
+              Held by QA ({h.by.legalName}, {h.recordedAt.text}): {h.reasonText} [{h.reasonCode}]
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {c.usableProblem ? <p data-testid="usable-problem">Not usable now: {c.usableProblem}</p> : null}
       {c.releaseProblem ? <Banner tone="warning" title="QA cannot release it yet" >{<p data-testid="release-problem">{c.releaseProblem}</p>}</Banner> : null}
       {c.state === 'OPEN' && floorActs ? <CloseContainer c={c} /> : null}
       {c.state !== 'OPEN' && c.closeBasis === 'TYPED' && c.netVerifiedBy === null ? <VerifyNet c={c} /> : null}
       {c.state === 'HELD' && floorActs ? <ReasonAct c={c} act="sort" /> : null}
+      {c.qaHoldable && qa ? <ReasonAct c={c} act="hold" /> : null}
       {(c.state === 'HELD' || c.state === 'SORTED') && qa ? (
         <>
           <Release c={c} />
@@ -167,18 +178,24 @@ function Release({ c }: { c: ContainerView }) {
   );
 }
 
-function ReasonAct({ c, act }: { c: ContainerView; act: 'sort' | 'reject' }) {
+const REASON_ACTS = {
+  sort: { route: routes.containers.sort, what: 'Sort', done: 'Container sorted.' },
+  reject: { route: routes.containers.reject, what: 'Reject', done: 'Container rejected.' },
+  hold: { route: routes.containers.hold, what: 'Hold', done: 'Container held by QA.' },
+} as const;
+
+function ReasonAct({ c, act }: { c: ContainerView; act: keyof typeof REASON_ACTS }) {
   const [code, setCode] = useState('');
   const [text, setText] = useState('');
-  const cmd = useCommand(act === 'sort' ? routes.containers.sort : routes.containers.reject, CONTAINER_READS, `the ${act} of container ${c.label}`);
+  const { route, what, done } = REASON_ACTS[act];
+  const cmd = useCommand(route, CONTAINER_READS, `the ${act} of container ${c.label}`);
   const reason = code.trim() && text.trim() ? { code: code.trim(), text: text.trim() } : null;
-  const what = act === 'sort' ? 'Sort' : 'Reject';
   return (
     <div data-testid={`${act}-container`}>
       <Field name={`${act}-code-${c.label}`} label={`${what} reason code`} value={code} onChange={setCode} />
       <Field name={`${act}-text-${c.label}`} label={`Reason to ${act}`} value={text} onChange={setText} />
       <ActButton primary={false} label={`${what} ${c.label}`} onPress={() => reason && cmd.run({ params: { containerId: c.containerId }, body: { expectedVersion: c.version, reason } })} disabled={reason === null || cmd.busy} />
-      <ActResult error={cmd.error} done={cmd.done} label={act === 'sort' ? 'Container sorted.' : 'Container rejected.'} />
+      <ActResult error={cmd.error} done={cmd.done} label={done} />
     </div>
   );
 }

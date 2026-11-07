@@ -211,7 +211,7 @@ describe('route table', () => {
       'analyticsConfig.setMethodVersion', 'analyticsConfig.setReferenceSet', 'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk',
       'batches.issueSscc', 'batches.plantEntry', 'batches.proposeAct', 'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise',
       'capa.recordEffectiveness', 'capa.scheduleCheck', 'config.closeChangeRecord', 'config.raiseChangeRecord', 'config.setRbeRule', 'config.setSetting',
-      'containers.close', 'containers.merge', 'containers.open', 'containers.reject', 'containers.sort', 'contractGiver.grantAccess', 'contractGiver.revokeAccess',
+      'containers.close', 'containers.hold', 'containers.merge', 'containers.open', 'containers.reject', 'containers.sort', 'contractGiver.grantAccess', 'contractGiver.revokeAccess',
       'controlled.proposeCustody', 'controlled.recordCheckpoint', 'controlled.recordProduct', 'controlled.runRegister', 'designer.proposeMarketAuthorisation',
       'designer.withdrawMarketAuthorisation', 'deviceRegistry.attestHardening', 'deviceRegistry.bindDevice', 'deviceRegistry.bindGatewayFeed',
       'deviceRegistry.endBinding', 'deviceRegistry.enrolGatewayKey', 'deviceRegistry.enrolOpcuaEndpoint', 'deviceRegistry.linkProcessDeviceUnit',

@@ -436,6 +436,15 @@ export const EXAMPLES = {
   'containers-open': { schema: r.containers.open.response, data: { ...cn.closedTyped, state: 'OPEN', version: 1, netQuantity: null, closeBasis: null, closedBy: null, closedAt: null, usableProblem: 'container OC-B26-0001-0003 is still open' }, routeId: r.containers.open.id },
   'containers-close': { schema: r.containers.close.response, data: cn.closedTyped, routeId: r.containers.close.id },
   'containers-sort': { schema: r.containers.sort.response, data: { ...cn.held, state: 'SORTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is SORTED: held containers are never merged, charged or packed until QA releases them' }, routeId: r.containers.sort.id },
+  'containers-hold': {
+    schema: r.containers.hold.response,
+    data: {
+      ...cn.closedTyped, state: 'HELD', version: 4, netVerifiedBy: cn.held.closedBy, qaHoldable: false,
+      qaHolds: [{ reasonCode: 'MOTHER_LIQUOR', reasonText: 'Mother liquor kept under quarantine until QC tests it for recovery', by: { personId: '6a7b8c9d-0e1f-4a2b-8c3d-4e5f6a7b8c90', legalName: 'Meera Iyer', loginName: 'meera.iyer', role: 'QA' }, recordedAt: { us: '1790672400000000', text: '29-SEP-2026 12:30:00 +05:30 (Asia/Kolkata)' } }],
+      usableProblem: 'container OC-B26-0001-0003 is HELD: held containers are never merged, charged or packed until QA releases them',
+    },
+    routeId: r.containers.hold.id,
+  },
   'containers-reject': { schema: r.containers.reject.response, data: { ...cn.held, state: 'REJECTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is REJECTED', releaseProblem: null }, routeId: r.containers.reject.id },
   'devices-process-readings': { schema: r.devices.processReadings.response, data: cn.processReadings, routeId: r.devices.processReadings.id },
   // Phase 4 slice 2c: packaging orders, planned from an issued processing batch, and their bulk issue.

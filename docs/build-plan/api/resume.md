@@ -1,4 +1,4 @@
-# API edition (substance): resume notes (7 November 2026, 16:30 UTC)
+# API edition (substance): resume notes (7 November 2026, 17:00 UTC, handover)
 
 Read with: `plan.md`, `handover-a0.md` (sections "A1a done", "A1b paused", "A2 part 1", "A2 part 2"), CLAUDE.md and
 `docs/build-plan/capsules/plan.md` section 8 (rules learnt). Lead: session_01PybpFuUgimTwCNtTsK7cf1. Report each merge
@@ -20,12 +20,14 @@ OPEN, in merge order (all lead-audited unless said):
 - **#163**: green (sent to the lead).
 - **#168** (`api-a4b`, base api-a4; A4b recovery tests, AS-21 SPECIFIED, substance 5008): CLEARED for its three cases;
   dispatch 42391051996.
-- **A4c** (`api-a4c`, base api-a4b, recipe-core 1881 assigned by the lead; 1880 is the designer's): lead decision (b):
-  one QA command `plant.hold_container(container, reason)` (QA right, reason required, insert-only history, basis
-  comment citing the quality unit's authority to hold), its route and a Hold button on the container page; the existing
-  release then reaches RELEASED_BY_QA and G-24 RECOVERY adds the mother liquor with RECOVERY_ADDITION (not
-  REPROCESSING_ADDITION: the record must say what was done). Add the mother-liquor test to recovery.test.ts, AS-21 to
-  IMPLEMENTED. Being built in worktree ../ebmr-a4c (uncommitted until reviewed).
+- **#169** (`api-a4c`, base api-a4b; A4c, recipe-core 1881 machine v2 + 1882 hold_container): CLEARED (lead: 1882 for the function, upgrade note in the handbook); dispatch 42393815868. Machine
+  output_container v2 (QA_HOLD: CLOSED or RELEASED_BY_QA -> HELD, qa.floor_approve, reason), `plant.hold_container` over
+  `plant.dispose_container`, route `containers.hold`, `qaHoldable` + Hold button; recovery.test.ts mother-liquor case
+  (RECOVERY_ADDITION N -> N+1); AS-21 IMPLEMENTED. Lead accepted points 2 to 6.
+- Counts: `tools/register/test/register.test.ts` AND `tools/validation/test/validation.test.ts:73` both pin the
+  control count (#166 262, #167 263, #168/#169 264); on each merge the later PR takes main's count plus its own files.
+- Dispatches after the count fix: #166 42391298335, #167 42391300482, #168 42391302134; #164 42386401699; #165
+  42389615163 (re-dispatch after retargeting to main).
 - **#167** (`api-a4`, base api-a2b; plan section 11 + A4a tests, AS-19/AS-20, substance 5007): sent for audit; dispatch
   42389996600. Retarget to main after #164. Register count: #166 makes 262, #167 263; the second to merge takes 264.
 
@@ -45,7 +47,7 @@ OPEN, in merge order (all lead-audited unless said):
 
 1. Send the "#N green" messages above as runs pass; retarget #165 and #167 after #164; on each merge check the other open
    PRs (conflict recipe below in "How CI runs now").
-2. **A4c** (above) as its own PR after #168. Then the older item, kept for reference: **A4b** (done, #168) (AS-21; plan section 11 rows Q7 14.40 to 14.43, lead-approved, tests only): second crop as a second
+2. Lead's answers on #169's six points. Done for reference: **A4b** (#168) (AS-21; plan section 11 rows Q7 14.40 to 14.43, lead-approved, tests only): second crop as a second
    intermediate lot of the same batch (#158); mother liquor carried into the next batch as a held container released by
    QA and added at G-24 RECOVERY (recipe-core 0622); a recovery master whose product is the recovered solvent, its
    output posted as an intermediate lot, tested, released for further processing, weighed at G-07 (fresh + recovered =
@@ -76,7 +78,7 @@ only short quoted phrases of regulation text: quote the key phrase, paraphrase t
 ## Numbers in use
 
 substance 5000, 5003, 5004 (A2), 5005 (A3), 5006 (AS-17, #166), 5007 (AS-19/AS-20, #167), 5008 (AS-21, #168); site-services 1732, 1734, 1735;
-tablets 1903, 1904; kernel 1405; recipe-core 1879 (genealogy, #165), 1881 (A4c hold_container). Substance 5009+ are ours (tell the lead); ask the
+tablets 1903, 1904; kernel 1405; recipe-core 1879 (genealogy, #165), 1881 (machine v2), 1882 (hold_container). Substance 5009+ (5008: AS-21, #168) are ours (tell the lead); ask the
 lead for every shared number.
 
 ## Lead rulings of 6 November (in force, beyond plan.md)

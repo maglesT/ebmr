@@ -18,6 +18,8 @@
     "closedAt": { "us": "1790668800000000", "text": "29-SEP-2026 11:30:00 +05:30 (Asia/Kolkata)" },
     "netVerifiedBy": null,
     "holds": [],
+    "qaHolds": [],
+    "qaHoldable": true,
     "usableProblem": "the typed net quantity of container OC-B26-0001-0003 has not been verified by a second person (DI-30)",
     "releaseProblem": null
   },
@@ -49,6 +51,8 @@
         "recordedAt": { "us": "1790669400000000", "text": "29-SEP-2026 11:40:00 +05:30 (Asia/Kolkata)" }
       }
     ],
+    "qaHolds": [],
+    "qaHoldable": false,
     "usableProblem": "container OC-B26-0001-0004 is HELD: held containers are never merged, charged or packed until QA releases them",
     "releaseProblem": "container OC-B26-0001-0004 is held (TB11:p-comp-ipc@:7) and exception EX-12 (IPC_CHECK_FAILED) of step p-comp-ipc@ is still open; it is released once the exception is dispositioned (INV-41, L-30; EBMR-CNT-052)"
   },

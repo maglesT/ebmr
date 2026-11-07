@@ -12,19 +12,25 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { state } from '@ebmr/kernel';
-import { OUTPUT_CONTAINER_V1 } from '../containers/machine.ts';
+import { OUTPUT_CONTAINER_V1, OUTPUT_CONTAINER_V2 } from '../containers/machine.ts';
 import { MBR_VERSION_V1 } from './machine.ts';
 
 export interface RecipeMachine {
   descriptor: state.MachineDescriptor;
   /** Repository-relative path of the TypeScript source, written into the generated header. */
   source: string;
+  /**
+   * The handbook page the seed names in its `-- Handbook:` line (tools/handbook: every migration above the source's mark
+   * names its page). Seeds published before that rule have none, and their text stays as published.
+   */
+  handbook?: string;
 }
 
 /** Every published machine version of recipe-core. Add entries; never edit a published one. */
 export const RECIPE_MACHINES: readonly RecipeMachine[] = [
   { descriptor: MBR_VERSION_V1, source: 'packages/recipe-core/src/lifecycle/machine.ts' },
   { descriptor: OUTPUT_CONTAINER_V1, source: 'packages/recipe-core/src/containers/machine.ts' },
+  { descriptor: OUTPUT_CONTAINER_V2, source: 'packages/recipe-core/src/containers/machine.ts', handbook: 'modules/recipe-core.md' },
 ];
 
 export const RECIPE_SQL_DIR = new URL('../../sql', import.meta.url).pathname;
@@ -36,7 +42,10 @@ const RECIPE_GENERATOR = 'by packages/recipe-core/src/lifecycle/write-seeds.ts (
 export function recipeMachineSeedSql(machine: RecipeMachine): string {
   const sql = state.machineSeedSql(machine.descriptor, machine.source);
   if (!sql.includes(KERNEL_GENERATOR)) throw new Error('the kernel seed header changed; update recipeMachineSeedSql');
-  return sql.replace(KERNEL_GENERATOR, RECIPE_GENERATOR);
+  const out = sql.replace(KERNEL_GENERATOR, RECIPE_GENERATOR);
+  if (!machine.handbook) return out;
+  const nl = out.indexOf('\n');
+  return `${out.slice(0, nl + 1)}-- Handbook: ${machine.handbook}\n${out.slice(nl + 1)}`;
 }
 
 export interface SeedStatus {

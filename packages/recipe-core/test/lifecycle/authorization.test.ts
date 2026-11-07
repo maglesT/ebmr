@@ -113,6 +113,8 @@ const PLANT: ScanRules = {
     'plant.instrument_use_assessment(uuid,uuid,timestamp with time zone)': 'reads only: the fitness and the checks of an instrument at its planned use; writes nothing',
   },
   delegates: {
+    // API plan A4c (recipe-core 1882): QA's own hold, through the same disposal path (QA.FLOOR_APPROVE).
+    'plant.hold_container(uuid,bigint)': 'plant.dispose_container',
     'plant.reject_container(uuid,bigint)': 'plant.dispose_container',
     'plant.release_container(uuid,bigint,uuid)': 'plant.dispose_container',
     'plant.sort_container(uuid,bigint)': 'plant.dispose_container',
