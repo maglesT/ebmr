@@ -1,0 +1,24 @@
+id: AS-01
+title: "Master production instruction for each intermediate and API"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 6.4.1; ICH Q7 (EU GMP Part II) 6.40. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Each intermediate and API has a master instruction, prepared and signed by one person and independently checked and signed by the quality unit."
+catalog_test: "Approve an API master with the same person preparing and checking it; refused."
+implemented_by:
+  modules:
+    - "Master life cycle (prepared, checked, QA approved by different people); one master per isolated step."
+tests:
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-01][PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

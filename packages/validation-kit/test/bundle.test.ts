@@ -155,7 +155,7 @@ const SHAPES: Record<string, { all: string[]; required: string[] }> = {
 
 /** Enums of the schema (a $defs name, or a property of a definition) and the union type that matches each. */
 const ENUMS: [string, string[]][] = [
-  ['Edition', members<Edition>({ tablets: true, injectables: true })],
+  ['Edition', members<Edition>({ tablets: true, injectables: true, substance: true })],
   ['Severity', members<Severity>({ critical: true, high: true, medium: true, low: true })],
   ['Run.kind', members<RunKind>({ vitest: true, golden: true, playwright: true, load: true, drill: true, security: true, accessibility: true, mutation: true })],
   ['Result.status', members<ResultStatus>({ passed: true, failed: true, skipped: true })],

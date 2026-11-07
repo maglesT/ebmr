@@ -41,7 +41,7 @@ export interface ControlRecord {
   title: string;
   part: 'A' | 'B' | 'C' | 'D';
   group: string;
-  editions: ('tablets' | 'injectables')[];
+  editions: ('tablets' | 'injectables' | 'substance')[];
   type: ('ENFORCED' | 'CONFIGURABLE' | 'DESIGN_CHOICE')[];
   target_phase: number;
   target_phase_source: 'outline' | 'default';
@@ -87,7 +87,7 @@ export function loadRequirements(file = REQUIREMENTS_FILE): RequirementRow[] {
 }
 
 export type EditionName = ControlRecord['editions'][number];
-const EDITIONS: readonly EditionName[] = ['tablets', 'injectables'];
+const EDITIONS: readonly EditionName[] = ['tablets', 'injectables', 'substance'];
 
 interface PhaseDoc {
   current_phase: number;
@@ -108,7 +108,8 @@ export function currentPhase(file = PHASE_FILE): number {
  */
 export function gateEditions(file = PHASE_FILE): EditionName[] {
   const listed = readPhaseDoc(file).editions;
-  if (listed === undefined) return [...EDITIONS];
+  // Absent means the two editions of the outline; the API edition (substance) is gated only when phase.yaml lists it.
+  if (listed === undefined) return ['tablets', 'injectables'];
   if (!Array.isArray(listed) || listed.length === 0) throw new Error(`${file}: editions must be a non-empty list of ${EDITIONS.join(', ')}`);
   for (const e of listed) if (!EDITIONS.includes(e as EditionName)) throw new Error(`${file}: unknown edition ${String(e)} (known: ${EDITIONS.join(', ')})`);
   return [...new Set(listed as EditionName[])];

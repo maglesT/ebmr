@@ -111,7 +111,7 @@ export function controlTypes(typeField: string | undefined): ControlType[] {
   return out;
 }
 
-export type Edition = 'tablets' | 'injectables';
+export type Edition = 'tablets' | 'injectables' | 'substance';
 
 export function editionsOf(control: ParsedControl): Edition[] {
   if (control.part === 'C') return ['injectables'];
