@@ -1,6 +1,7 @@
 /**
- * The product's brand in this app (decision 0020): Batchwright Tablets, by Medhanta; "Batchwright Capsules" in the
- * header while a master or batch with a capsule dosage form is on screen (decision 0020 amended, Capsules edition C2). The header shows the icon, the
+ * The product's brand in this app (decision 0020): Batchwright Tablets, by Medhanta; "Batchwright Capsules" or "Batchwright Injectables" in
+ * the header while a master or batch with a capsule or injectable dosage form is on screen (decision 0020 amended,
+ * Capsules edition C2, injectables plan I-1c). The header shows the icon, the
  * name and the maker's mark; inside the router the name links to the about page (/about, feature session). The header
  * is also drawn outside the router (the role choice), where the name is plain text: InRouter says which.
  */
@@ -12,13 +13,13 @@ import { brand, t } from '@ebmr/ui-kit';
 export const EDITION: brand.LockupEdition = 'TABLETS';
 
 /**
- * The capsule screens on show: each master or batch screen with a capsule dosage form counts itself in while it is
- * mounted (useScreenDosageForm). Display only; no record depends on it.
+ * The capsule and injectable screens on show: each master or batch screen with a capsule or an injectable dosage form
+ * counts itself in while it is mounted (useScreenDosageForm). Display only; no record depends on it.
  */
-let capsuleScreens = 0;
+const screens: Record<'CAPSULES' | 'INJECTABLES', number> = { CAPSULES: 0, INJECTABLES: 0 };
 const listeners = new Set<() => void>();
-const changed = (by: number): void => {
-  capsuleScreens += by;
+const changed = (edition: 'CAPSULES' | 'INJECTABLES', by: number): void => {
+  screens[edition] += by;
   for (const l of listeners) l();
 };
 const subscribe = (l: () => void): (() => void) => {
@@ -26,20 +27,27 @@ const subscribe = (l: () => void): (() => void) => {
   return () => listeners.delete(l);
 };
 
-/** A master or batch screen names its product's dosage form: a capsule form turns the header to Batchwright Capsules. */
+/** The header's edition per product line (the one dosage form → edition map, lead S3); null keeps the app's own. */
+const HEADER_OF_LINE: Readonly<Record<flow.ProductLine, 'CAPSULES' | 'INJECTABLES' | null>> = { tablets: null, capsules: 'CAPSULES', injectables: 'INJECTABLES', substance: null };
+
+/**
+ * A master or batch screen names its product's dosage form: a capsule form turns the header to Batchwright Capsules,
+ * an injectable form (injectables plan I-1c) to Batchwright Injectables.
+ */
 export function useScreenDosageForm(dosageForm: string | null | undefined): void {
-  const capsule = flow.isCapsuleForm(dosageForm);
+  const edition = HEADER_OF_LINE[flow.productLineOf(dosageForm) ?? 'tablets'];
   useEffect(() => {
-    if (!capsule) return;
-    changed(1);
-    return () => changed(-1);
-  }, [capsule]);
+    if (!edition) return;
+    changed(edition, 1);
+    return () => changed(edition, -1);
+  }, [edition]);
 }
 
-/** The header's edition now: Capsules while a capsule master or batch is on screen, else the app's own. */
+const headerNow = (): brand.Edition => (screens.CAPSULES > 0 ? 'CAPSULES' : screens.INJECTABLES > 0 ? 'INJECTABLES' : EDITION);
+
+/** The header's edition now: Capsules or Injectables while such a master or batch is on screen, else the app's own. */
 export function useHeaderEdition(): brand.Edition {
-  const n = useSyncExternalStore(subscribe, () => capsuleScreens, () => 0);
-  return n > 0 ? 'CAPSULES' : EDITION;
+  return useSyncExternalStore(subscribe, headerNow, () => EDITION);
 }
 
 /** True under the router's root route (ShellOutlet), where a Link can be drawn. */

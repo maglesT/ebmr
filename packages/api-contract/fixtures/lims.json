@@ -182,5 +182,18 @@
       "us": "1877000000000000",
       "text": "30-JUN-2029 23:59 IST"
     }
+  },
+  "intermediateLot": {
+    "lotId": "8e4b6f5a-7c9d-4e0f-9a1b-3c4d5e6f7a81",
+    "lotCode": "A2600001",
+    "batchId": "3d9a1e0f-2b4c-4d5e-8f6a-8b9c0d1e2f31",
+    "materialCode": "INTA-DEMO",
+    "status": "QUARANTINE",
+    "quantity": "50",
+    "unit": "kg",
+    "expiry": {
+      "us": "1877000000000000",
+      "text": "30-JUN-2029 23:59 IST"
+    }
   }
 }

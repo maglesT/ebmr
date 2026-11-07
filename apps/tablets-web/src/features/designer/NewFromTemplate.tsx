@@ -35,7 +35,7 @@ const UNITS = ['kg', 'g'];
 type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_COPY';
 const STARTS: { value: Start; label: string }[] = [
   { value: 'TEMPLATE', label: 'From a template' },
-  { value: 'SKELETON', label: 'From the formula, with the required skeleton (dispensing and blending stages)' },
+  { value: 'SKELETON', label: 'From the formula, with the required skeleton (dispensing, and blending for a tablet or capsule)' },
   { value: 'BLANK', label: 'From the formula, blank (clearance and balance status only)' },
   { value: 'COPY', label: 'From the formula, as a copy of an approved master' },
   { value: 'PACKAGING_COPY', label: 'A packaging master for a product, as a copy of an approved packaging master' },

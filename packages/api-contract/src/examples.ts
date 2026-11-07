@@ -461,6 +461,7 @@ export const EXAMPLES = {
   'specifications-lot-release-check': { schema: r.specifications.lotReleaseCheck.response, data: lm.releaseCheck, routeId: r.specifications.lotReleaseCheck.id },
   'specifications-propose-lot-decision': { schema: r.specifications.proposeLotDecision.response, data: lm.proposal, routeId: r.specifications.proposeLotDecision.id },
   'specifications-post-finished-lot': { schema: r.specifications.postFinishedLot.response, data: lm.finishedLot, routeId: r.specifications.postFinishedLot.id },
+  'specifications-post-intermediate-lot': { schema: r.specifications.postIntermediateLot.response, data: lm.intermediateLot, routeId: r.specifications.postIntermediateLot.id },
   'samples-list': { schema: r.samples.list.response, data: { samples: [lm.sample] }, routeId: r.samples.list.id },
   'samples-pull': { schema: r.samples.pull.response, data: lm.sample, routeId: r.samples.pull.id },
   'samples-dispose': {

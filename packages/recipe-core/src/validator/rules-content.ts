@@ -412,10 +412,34 @@ const yields = defineRule('GMP-YIELDS', 'Yield checkpoints have a basis, minimum
     }
   }
   for (const p of a.phases) {
-    if (a.hasRole(p, 'YIELD_RECONCILIATION') && p.yieldCheckpoint === undefined) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
+    if (!a.hasRole(p, 'YIELD_RECONCILIATION') || p.yieldCheckpoint !== undefined) continue;
+    const own = libraryYieldSlots(a, p);
+    if (own === undefined) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
+    for (const slot of own ?? []) {
+      const ranges = limitsOf(p)[slot]?.ranges ?? [];
+      if (!ranges.some((r) => r.low !== undefined && r.high !== undefined)) out.push(error(p.id, `${label(a, p.id)} gives its calculated ${slot} no minimum and maximum; every yield and reconciliation needs both, with their source`));
+    }
   }
   return out;
 });
+
+/**
+ * A library yield or reconciliation block computes its own yield (a critical CALC field with a limit slot) and the
+ * step carries that limit, so it stands as its own checkpoint (demo finding D-1): the limit slots of those fields, or
+ * undefined when the step is no such library step.
+ */
+function libraryYieldSlots(a: Analysis, p: PhaseNode): string[] | undefined {
+  if (!p.block.type.startsWith('LIB-')) return undefined;
+  const code = p.block.type.slice('LIB-'.length);
+  const def = (a.mbr.blockDefinitions ?? []).find((d) => d['code'] === code && (typeof d['version'] === 'number' || typeof d['version'] === 'string') && String(d['version']) === p.block.version) as { sections?: { fields?: { type?: string; limitSlot?: string; critical?: boolean }[] }[] } | undefined;
+  const slots = (def?.sections ?? []).flatMap((s) => s.fields ?? []).filter((f) => f.type === 'CALC' && f.critical === true && typeof f.limitSlot === 'string').map((f) => f.limitSlot as string);
+  return slots.length > 0 ? slots : undefined;
+}
+
+function limitsOf(p: PhaseNode): Record<string, LimitSpec | undefined> {
+  const l = p.config['limits'];
+  return l !== null && typeof l === 'object' && !Array.isArray(l) ? (l as unknown as Record<string, LimitSpec | undefined>) : {};
+}
 
 const intermediates = defineRule('GMP-INTERMEDIATES', 'Every intermediate has a hold time and is produced before use', ['PR-03', 'INV-34', 'IN-13'], (a) => {
   const out: RuleFinding[] = [];

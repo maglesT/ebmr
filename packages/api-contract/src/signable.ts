@@ -289,7 +289,8 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('LOT_DECISION'),
     lotId: Uuid,
     /** Phase 4 slice 2b: HOLD, UNHOLD, RETURN and RECALL sign MATERIAL_LOT_STATUS_DECIDED over the decision QA proposed (D-P4-3). */
-    decision: z.enum(['RELEASE', 'REJECT', 'HOLD', 'UNHOLD', 'RETURN', 'RECALL']),
+    /** API plan A2: RELEASE_FOR_FURTHER_PROCESSING releases an intermediate (the lot's machine, site-services 0711), as HOLD. */
+    decision: z.enum(['RELEASE', 'REJECT', 'HOLD', 'UNHOLD', 'RETURN', 'RECALL', 'RELEASE_FOR_FURTHER_PROCESSING']),
     /** A RELEASE names its route, and only a RELEASE does (IN-24 (c)). */
     route: z.enum(['IDENTITY_TESTED', 'VENDOR_HISTORY']).optional(),
     /** The person's own reason, both halves (a status decision such as a rejection carries one: DI-22, EBMR-AUDIT-002). */

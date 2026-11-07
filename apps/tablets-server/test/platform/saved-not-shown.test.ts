@@ -104,6 +104,7 @@ const LATER_READ_ROUTES = [
   'features/quality/lims.ts#dispose',
   'features/quality/lims.ts#draft',
   'features/quality/lims.ts#postFinishedLot',
+  'features/quality/lims.ts#postIntermediateLot',
   'features/quality/lims.ts#proposeLotDecision',
   'features/quality/lims.ts#pull',
   'features/quality/lims.ts#receiveReturn',
