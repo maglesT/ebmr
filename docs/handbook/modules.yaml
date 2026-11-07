@@ -369,7 +369,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql:
-        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_']
+        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_', '^1734_']
     src: [packages/site-services/src/lots]
     tests: ['packages/site-services/test/lots/**', 'packages/site-services/test/mutation/lots-and-lims.test.ts']
 

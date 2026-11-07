@@ -116,40 +116,39 @@ function PackagingLinks({ batchId }: { batchId: string }) {
 /**
  * The intermediate lot of a complete processing batch of the API edition, posted in quarantine by the stores (API plan
  * A2, C1; IN-05 (a), PR-45): the server says whether the batch posts one (header.postsIntermediateLot), the database
- * checks it again. The quantity is the person's; once posted the lot is given back by its code with a link to it, and the
- * post is not offered again on this screen (the database allows one intermediate lot per batch).
+ * checks it again. The quantity is the person's. A batch may post more than one intermediate lot (second crops, split
+ * isolations; site-services 1734): each lot posted on this screen is given back by its code with a link to it, and the
+ * form (cleared after each post) stays offered for the next one.
  */
 function IntermediateLot({ batchId }: { batchId: string }) {
   const stores = useOffered('STORES');
-  const [answer, setAnswer] = useState<{ lotId: string; lotCode: string } | null>(null);
-  if (answer) {
-    return (
-      <Section title="Intermediate lot" testId="intermediate-lot">
-        <p data-testid="intermediate-lot-posted">
+  const [posted, setPosted] = useState<readonly { lotId: string; lotCode: string }[]>([]);
+  if (!stores && posted.length === 0) return null;
+  return (
+    <Section title="Intermediate lot" testId="intermediate-lot">
+      {posted.map((l) => (
+        <p key={l.lotId} data-testid="intermediate-lot-posted">
           Intermediate lot{' '}
-          <Link to="/quality/lots/$lotId" params={{ lotId: answer.lotId }}>
-            {answer.lotCode}
+          <Link to="/quality/lots/$lotId" params={{ lotId: l.lotId }}>
+            {l.lotCode}
           </Link>{' '}
           posted in quarantine
         </p>
-      </Section>
-    );
-  }
-  if (!stores) return null;
-  return (
-    <Section title="Intermediate lot" testId="intermediate-lot">
-      <DefineForm
-        title="Post the intermediate lot"
-        route={routes.specifications.postIntermediateLot}
-        fixed={{ batchId }}
-        refresh={[routes.quality.lots.id, routes.batches.batch.id]}
-        submitLabel="Post the intermediate lot in quarantine"
-        onDone={(r) => setAnswer({ lotId: r.lotId, lotCode: r.lotCode })}
-        fields={[
-          { name: 'quantity', label: 'Intermediate quantity', kind: 'decimal' },
-          { name: 'unit', label: 'Unit', kind: 'text', description: 'e.g. kg' },
-        ]}
-      />
+      ))}
+      {stores ? (
+        <DefineForm
+          title={posted.length === 0 ? 'Post the intermediate lot' : 'Post another intermediate lot'}
+          route={routes.specifications.postIntermediateLot}
+          fixed={{ batchId }}
+          refresh={[routes.quality.lots.id, routes.batches.batch.id]}
+          submitLabel="Post the intermediate lot in quarantine"
+          onDone={(r) => setPosted((s) => [...s, { lotId: r.lotId, lotCode: r.lotCode }])}
+          fields={[
+            { name: 'quantity', label: 'Intermediate quantity', kind: 'decimal' },
+            { name: 'unit', label: 'Unit', kind: 'text', description: 'e.g. kg' },
+          ]}
+        />
+      ) : null}
     </Section>
   );
 }
