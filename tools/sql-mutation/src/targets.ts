@@ -775,7 +775,7 @@ export const TARGETS: Target[] = [
                 'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json', 'recipe.bom_overage_matches',
                 'recipe.formula_withdraw'],
     // Slice 7q (recipe-core 1740): the overage with its reason, re-created writers and the BOM's overage statement.
-    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts')],
+    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts'), s('designer/from-formula-lines.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: process devices, readings, setpoint downloads, alarms, device units, G-06 values and exceptions,
