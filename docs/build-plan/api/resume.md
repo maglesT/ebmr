@@ -39,7 +39,7 @@ fields there; registerTestLots waits for the emptied Lot code box; web test [DI-
    open the PR. Its whole-lot test (A 50 kg, B 42.5 kg) needs #153 (merged). Note #158: several lots per batch, codes
    `<batch>-N`; `site.intermediate_lot_of` returns the LATEST lot, `site.intermediate_lots_of` all.
 3. **Genealogy** (`api-genealogy-intermediate`, stacked on api-a2b): recipe-core migration currently 1876; main has 1875
-   and #160/#161 take 1877/1878, so the lead assigns a new number (asked 15:15); renumber, merge, PR.
+   and #160/#161 take 1877/1878: the lead assigned **recipe-core 1879** (15:14); renumber 1876 → 1879, merge, PR.
 4. **AS-17 / AS test lists**: add `compliance/controls/AS-17.yaml` (SM XII 11.3.1-11.3.4; Q7 11.40-11.43) and AS-17 to
    `recipe.engine_name` (substance 5003 holds the engine names, kept equal to the AS files; check the DI-05/DI-30 test in
    substance-edition.test.ts), tag the CoA tests [AS-17]; add the AS test names A2 part 2 and genealogy carry (AS-03,
@@ -64,7 +64,7 @@ fields there; registerTestLots waits for the emptied Lot code box; web test [DI-
 ## Numbers in use
 
 substance 5000, 5003 (main), 5004 (A2), 5005 (A3); site-services 1732 (A2), 1734 (#158), 1735 (A3 telephone); tablets
-1903 (#153), 1904 (#145); kernel 1405 (#150); recipe-core 1876 (genealogy, to be renumbered: ask the lead). Substance
+1903 (#153), 1904 (#145); kernel 1405 (#150); recipe-core 1879 (genealogy, assigned 7 Nov; branch still says 1876). Substance
 5006+ are ours; ask the lead for every shared number.
 
 ## Lead rulings of 6 November (in force, beyond plan.md)
