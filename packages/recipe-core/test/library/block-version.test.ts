@@ -81,7 +81,7 @@ describe('the generic handler runs library blocks in the engine', () => {
       r.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false });
       return r;
     };
-    const ends = (r: Run): string => {
+    const ends = (r: Run): string | undefined => {
       r.perform('p');
       if (r.status('p') === 'AWAITING_VERIFICATION') r.verify('p');
       return r.status('p');

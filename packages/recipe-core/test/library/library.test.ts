@@ -149,7 +149,7 @@ describe('library block definitions', () => {
     const event = { id: 'binder', title: 'Extra binder addition', required: false, when: 'Only if the granules need more binder', fields: [{ id: 'extra', label: 'Binder added', type: 'NUMBER' as const, unit: 'g' }] };
     const base = friability();
     expect(errors(checkBlockDefinition({ ...base, sections: [...base.sections, event] }, expr))).toEqual([]);
-    const { when: _w, ...unnamed } = event;
+    const unnamed = Object.fromEntries(Object.entries(event).filter(([k]) => k !== 'when')) as Omit<typeof event, 'when'>;
     expect(codes(checkBlockDefinition({ ...base, sections: [...base.sections, unnamed] }, expr))).toEqual(['LIB-SECTION-OPTIONAL']);
     for (const repeat of [{ kind: 'COUNT' as const, countSlot: 'n' }, { kind: 'PER_INTERVAL' as const, intervalSlot: 'every' }]) {
       expect(codes(errors(checkBlockDefinition({ ...base, sections: [...base.sections, { ...event, repeat }] }, expr)))).toEqual(['LIB-SECTION-OPTIONAL']);
@@ -297,7 +297,7 @@ describe("a product's values for a library block", () => {
   });
 
   it('[PR-08] R-flow item 6: a target with no limits on a slot that needs none is an instruction (shown, never judged); it is still a decimal, and a market rule still needs limits', () => {
-    const { dryingTime: _limit, ...others } = fluidBedDryingUse().limits ?? {};
+    const others = Object.fromEntries(Object.entries(fluidBedDryingUse().limits ?? {}).filter(([k]) => k !== 'dryingTime'));
     const use = (targets: Record<string, string>, extra: object = {}) => ({ ...fluidBedDryingUse(), limits: others, targets, ...extra });
     expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: '45' }), expr))).toEqual([]);
     expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: 'long' }), expr))).toEqual(['LIB-USE-TARGET']);

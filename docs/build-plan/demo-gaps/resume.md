@@ -29,8 +29,8 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 | D-1 new stage passes the validator | #159 | merged |
 | D-2 formula lines, formula draft withdrawal (recipe-core 1877) | #160 | cleared by the lead; the lead squash-merges it on green |
 | D-3 discard a draft, restart the family (recipe-core 1878) | #161 | cleared by the lead; squash-merge it on green after #160 (plain trailers) |
-| R-flow | not started | plan in `r-flow.md` |
-| D-3 follow-up: PROGRESS | this docs PR | the "Demo gaps" paragraph of `PROGRESS.md` names D-1 to D-3 |
+| R-flow | this PR (branch `fix/demo-gaps-r-flow`) | built; carries this docs branch and the PROGRESS line |
+| D-3 follow-up: PROGRESS | in the R-flow PR | the "Demo gaps" paragraph of `PROGRESS.md` names D-1 to D-3 and R-flow |
 | R-rest, then D-4 to D-8 | not started | D-8 is a plan only, sent to the lead before any building |
 
 ## Learned on the way
@@ -44,3 +44,6 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
   needs an entry there.
 - There is no real injectables or API master fixture. Those editions' masters start blank from a formula
   (`apps/tablets-server/test/designer/discard-draft-editions.test.ts` has a small set-up).
+- A seed block's definition changes reach a library that already holds the code only through `loadCatalogue`'s
+  rule: a held latest version equal to the seed apart from version and edition gets the seed as the next version.
+- The database keeps `EBMR-LIB-001` (at least one section); a fieldless block therefore has one text section.
