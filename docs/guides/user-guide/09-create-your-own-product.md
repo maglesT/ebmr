@@ -135,6 +135,8 @@ it on the kiosks as for any test run. The issuer exports the test-run result for
 The author starts the verification and imports the sandbox run's result as evidence; then the author signs
 *Prepared*, the checker *Independently checked*, the regulatory signer confirms the registration references and QA
 approves. QA proposes the market authorisation, the regulatory signer confirms its registration and QA authorises it.
+The same QA person may propose and authorise; the regulatory signer is always a person other than the QA signer (ADR
+0014: QA plus regulatory).
 
 ## 9. The packaging master
 
@@ -147,16 +149,41 @@ lots carrying the artwork version), signatures and authorisation as the processi
 
 ## 10. The GMP batch
 
+### Before the first GMP batch of a new product
+
+Each of these is checked by the system, and the batch, the lot or the step is refused without it. Do them once per
+product (or per lot, where it says so):
+
+| What | Who | Where | Refused without it |
+|---|---|---|---|
+| A batch-number rule for the product at the site | Master-data steward | **Planning, Batch numbers**, Numbering rules | Planning: "no numbering rule is in force" (EBMR-SITE-011) |
+| The Form 25 manufacturing licence endorsing the product and strength (and an export permission per export market) | Regulatory signer records it; QA approves it with a signature | **Licences and export permissions** | Planning and issue: EBMR-IND-040 (licence), EBMR-IND-041 (export permission) |
+| The product in the plant's product list | Master-data steward | **Master data, Plant**, Products | Plant steps: "define it in the plant product list first" (EBMR-PLANT-012) |
+| An approved manufacturer for each new material | QA proposes it and approves it with a signature | **Quality, Approved manufacturers** | Reserving or using a lot: EBMR-SITE-918 |
+| Each lot received, with its containers examined (per lot) | Warehouse | **Quality, Receive a delivery**, then the lot's **Receipt record** | Reserving or using the lot: EBMR-SITE-917 |
+| Each lot's results and QA's release (per lot) | QC records; QA releases | The lot page | Reserving: the lot is not released (EBMR-SITE-141) |
+| The lot reserved for the batch (per lot) | Warehouse | The lot page, **Reservations** | Dispensing: "no reservation for this batch" (EBMR-EXE-245) |
+| The ERP production order for the batch | The ERP sends it. On a demo installation the administrator sends one from **Operations, Simulators**, "Send a production order" | Then **Planning** shows the order | Planning: no open order for the product, site and batch size |
+
+Who sends the order is deliberate: on a real installation the ERP's own service identity posts production orders, and
+no person types one. The demo button is a simulator, an IT function (decision 0025, point 2; kernel 1376), so only the
+system administrator holds it (`PLATFORM.OPERATE`). The head of production and the process owner do not need it: once
+the order is there, the batch issuer (`BATCH_ISSUER`, permission `BATCH.ISSUE`) plans and issues the batch from it on
+**Planning**.
+
+### Running the batch
+
 On GMP, QC records each received lot's results on the lot page: the identity test (**Identity test**) and the assay,
-water and other results picked from approved PASS results; QA releases the lot. The batch comes from its ERP order; the
-floor runs it on the kiosks stage by stage (clearance, equipment status, the steps, the stage sign-off), then packing,
+water and other results picked from approved PASS results; QA releases the lot. The batch comes from its ERP order:
+**Plan a batch** on the order, then **Issue** (a planned batch stays on its order card until it is issued, so it can be
+issued later or from another terminal). The floor runs it on the kiosks stage by stage (clearance, equipment status, the steps, the stage sign-off), then packing,
 QC, the production and QA reviews and the release.
 
 A GMP batch needs the plant the master names (rooms, equipment and their kiosks) registered and qualified; with the
 skeleton's sandbox clearance and status steps (G-10 and G-09 version 1) the validator reports that a GMP batch refuses
 them: insert their database-backed versions from the palette once the plant is in place.
 
-## 9. Complex formulations
+## 11. Complex formulations
 
 Some products need more than one route or a special calculation. Each is built from the existing blocks:
 
