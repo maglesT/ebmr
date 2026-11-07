@@ -404,8 +404,10 @@ function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_ST
 }
 
 /**
- * A new stage (slice 7j): bound to `room`, responsible the production supervisor, a material stage that starts with
- * its room clearance and its equipment status check (the database-backed versions a GMP batch takes, when offered).
+ * A new stage (slice 7j): bound to `room`, responsible the production supervisor, a material stage whose first
+ * operation, "<name>: preparation", holds its room clearance and its equipment status check (the database-backed
+ * versions a GMP batch takes, when offered). A phase belongs in an operation (FLOW-LEVELS, DI-34); the author inserts
+ * the stage's own steps (its process blocks, its yield step) after them in that operation.
  */
 export function newStage(c: Content, palette: readonly PaletteEntry[], name: string, room: string): flow.StageNode {
   const latest = (type: string): PaletteEntry | undefined => palette.filter((b) => b.type === type).sort((a, b) => (Number(a.version) < Number(b.version) ? 1 : -1))[0];
@@ -413,8 +415,9 @@ export function newStage(c: Content, palette: readonly PaletteEntry[], name: str
   const id = newStepId(c, `S-${slug}`);
   const steps: flow.FlowNode[] = [];
   const probe: Content = structuredClone(c);
-  const probeSeq: flow.SequenceNode = { kind: 'sequence', id: `${id}-seq`, children: steps };
-  const stage: flow.StageNode = { kind: 'stage', id, name: name.trim(), binding: { rooms: [room.trim()], equipment: [] }, purpose: 'MATERIAL', responsibleRole: 'PRODUCTION_SUPERVISOR', body: probeSeq };
+  const opId = newStepId(c, `O-${slug}-PREP`);
+  const operation: flow.OperationNode = { kind: 'operation', id: opId, name: `${name.trim()}: preparation`, body: { kind: 'sequence', id: `${opId}-seq`, children: steps } };
+  const stage: flow.StageNode = { kind: 'stage', id, name: name.trim(), binding: { rooms: [room.trim()], equipment: [] }, purpose: 'MATERIAL', responsibleRole: 'PRODUCTION_SUPERVISOR', body: { kind: 'sequence', id: `${id}-seq`, children: [operation] } };
   if (probe.procedure.body.kind === 'sequence') probe.procedure.body.children.push(stage);
   for (const type of ['G-10', 'G-09']) {
     const block = latest(type);

@@ -412,26 +412,39 @@ const yields = defineRule('GMP-YIELDS', 'Yield checkpoints have a basis, minimum
     }
   }
   for (const p of a.phases) {
-    if (a.hasRole(p, 'YIELD_RECONCILIATION') && p.yieldCheckpoint === undefined && !judgesOwnYield(a, p)) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
+    if (!a.hasRole(p, 'YIELD_RECONCILIATION') || p.yieldCheckpoint !== undefined) continue;
+    const own = libraryYieldSlots(a, p);
+    if (own === undefined) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
+    for (const slot of own ?? []) {
+      const ranges = limitsOf(p)[slot]?.ranges ?? [];
+      if (!ranges.some((r) => r.low !== undefined && r.high !== undefined)) out.push(error(p.id, `${label(a, p.id)} gives its calculated ${slot} no minimum and maximum; every yield and reconciliation needs both, with their source`));
+    }
   }
   return out;
 });
 
 /**
- * Injectables I-1c (lead ruling, 6 November 2026; narrowed after the #155 audit): a library step judges its own unit
- * accountability when its block's snapshot in the master has a critical calculated field that calls `unaccounted(` with a
- * limit, and the step's values give that limit (INJ-UNIT-ACCOUNT). Only such a step needs no master yield checkpoint; a
- * yield or reconciliation block with any other critical calculation (CTRL-YIELD, CTRL-MATERIAL-RECON, CTRL-PRINTED-RECON,
- * PACK-LABEL-RECON) still names one.
+ * A library yield or reconciliation block computes its own yield (a critical CALC field with a limit slot) and the
+ * step carries that limit, so it stands as its own checkpoint (demo finding D-1): the limit slots of those fields, or
+ * undefined when the step is no such library step. Narrowed after #155 (lead ruling, 7 November 2026): 21 CFR 211.103
+ * asks for the product's actual yield against theoretical at each phase, while a reconciliation of printed packaging or
+ * labels answers 211.125 (labeling reconciliation) and is no yield of the stage's product, so those blocks never stand as
+ * the stage's yield checkpoint.
  */
-function judgesOwnYield(a: Analysis, p: PhaseNode): boolean {
-  if (!p.block.type.startsWith('LIB-')) return false;
-  type Field = { type?: unknown; critical?: unknown; limitSlot?: unknown; expression?: unknown };
-  const def = (a.mbr.blockDefinitions ?? []).find((d) => typeof d['code'] === 'string' && `LIB-${d['code']}` === p.block.type && typeof d['version'] === 'number' && d['version'].toString() === p.block.version) as
-    | { sections?: { fields?: Field[] }[] }
-    | undefined;
-  const limits = (p.config as { limits?: Record<string, unknown> }).limits ?? {};
-  return (def?.sections ?? []).some((s) => (s.fields ?? []).some((f) => f.type === 'CALC' && f.critical === true && typeof f.expression === 'string' && /\bunaccounted\(/.test(f.expression) && typeof f.limitSlot === 'string' && limits[f.limitSlot] !== undefined));
+const LABELING_RECONCILIATIONS: ReadonlySet<string> = new Set(['CTRL-PRINTED-RECON', 'PACK-LABEL-RECON']);
+
+function libraryYieldSlots(a: Analysis, p: PhaseNode): string[] | undefined {
+  if (!p.block.type.startsWith('LIB-')) return undefined;
+  const code = p.block.type.slice('LIB-'.length);
+  if (LABELING_RECONCILIATIONS.has(code)) return undefined;
+  const def = (a.mbr.blockDefinitions ?? []).find((d) => d['code'] === code && (typeof d['version'] === 'number' || typeof d['version'] === 'string') && String(d['version']) === p.block.version) as { sections?: { fields?: { type?: string; limitSlot?: string; critical?: boolean }[] }[] } | undefined;
+  const slots = (def?.sections ?? []).flatMap((s) => s.fields ?? []).filter((f) => f.type === 'CALC' && f.critical === true && typeof f.limitSlot === 'string').map((f) => f.limitSlot as string);
+  return slots.length > 0 ? slots : undefined;
+}
+
+function limitsOf(p: PhaseNode): Record<string, LimitSpec | undefined> {
+  const l = p.config['limits'];
+  return l !== null && typeof l === 'object' && !Array.isArray(l) ? (l as unknown as Record<string, LimitSpec | undefined>) : {};
 }
 
 const intermediates = defineRule('GMP-INTERMEDIATES', 'Every intermediate has a hold time and is produced before use', ['PR-03', 'INV-34', 'IN-13'], (a) => {

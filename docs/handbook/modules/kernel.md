@@ -623,6 +623,11 @@ purge, the true-copy register and data-integrity investigations. The area README
 > - **Code:** [`records.purge`](../../../packages/kernel/sql/0440_records_blockers_and_purge.sql#sym=records.purge),
 >   [`records.approve_purge`](../../../packages/kernel/sql/0440_records_blockers_and_purge.sql#sym=records.approve_purge),
 >   [`records.evaluate_retention`](../../../packages/kernel/sql/0420_records_retention.sql#sym=records.evaluate_retention).
+> - **Rule sets:** RET-2026.1 (0420) and the current RET-2026.2
+>   ([1405](../../../packages/kernel/sql/1405_retention_api_retest.sql), API plan C5, control AS-24): RET-2026.1 plus the
+>   India and EU rules for an API with a retest date, kept three years after the batch is completely distributed (OPEN
+>   until the distribution date is known); the expiry rules still apply and the latest date wins. The input
+>   `retestLabelled` is stored only when true, so inputs stored earlier stay in normal form.
 > - **Tests:** [retention-purge.test.ts](../../../packages/kernel/test/records/retention-purge.test.ts) (`[INV-22]`,
 >   `[DI-47]`), [retention-rules.test.ts](../../../packages/kernel/test/records/retention-rules.test.ts),
 >   [calendar.test.ts](../../../packages/kernel/test/records/calendar.test.ts).

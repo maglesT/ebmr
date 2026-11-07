@@ -28,7 +28,7 @@ implemented_by:
 tests:
   - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [PR-13][PR-16] the database never lets a Tablets edition step be skipped (TB-09, TB-10, TB-17 and every later TB block), even one the MBR marks skippable that moves no material"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
-  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16] removing one label specimen or one checker signature blocks completion and names the gap"
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16][AS-14] removing one label specimen or one checker signature blocks completion and names the gap"
   - "apps/tablets-server/test/execution/db-guards-stage-sign-off.test.ts > F01 round 2: a stage sign-off records exactly what the engine records (DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a SIGN_OFF_STAGE row whose sign-off holds a member, a time or a signer the engine does not record is refused (EBMR-EXE-135)"
   - "apps/tablets-server/test/execution/db-guards-stage-summary.test.ts > F01: the database binds a stage sign-off to its summary (DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a SIGN_OFF_STAGE row recording another summary than its signature covers is refused (EBMR-EXE-135); the honest row is accepted"
   - "apps/tablets-server/test/execution/plain-words.test.ts > MBR names and plain words instead of internal codes (R10 #14) > [DI-34][PR-16] the packaging completion view names its steps by number and MBR name, not by key"
@@ -57,7 +57,7 @@ tests:
 clauses:
   - clause: "Removing one label specimen"
     tests:
-      - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16] removing one label specimen or one checker signature blocks completion and names the gap"
+      - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16][AS-14] removing one label specimen or one checker signature blocks completion and names the gap"
   - clause: "or one checker signature blocks completion, and the message names the gap."
     tests:
       - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"

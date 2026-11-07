@@ -640,9 +640,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-24: 211.188(b), 211.192; SM 10.3-10.8. The counts filling and inspection recorded are read from those steps
-    // (STEP_VALUE, decision 0026; the I-1 finding the lead approved), never typed again: only the samples and the
-    // documented losses are new here.
+    // INJ-24: 211.188(b), 211.192; SM 10.3-10.8. The counts that filling, capping or sealing, and inspection
+    // recorded are read from those steps (STEP_VALUE, decision 0026; the I-1 finding the lead approved), never typed
+    // again: only the samples and the documented losses are new here.
     definition: {
       code: 'INJ-UNIT-ACCOUNT',
       version: 1,

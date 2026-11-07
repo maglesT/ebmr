@@ -24,7 +24,7 @@
     "knownIssues": { "type": "array", "items": { "$ref": "#/$defs/KnownIssue" } }
   },
   "$defs": {
-    "Edition": { "enum": ["tablets", "injectables"] },
+    "Edition": { "enum": ["tablets", "injectables", "substance"] },
     "Text": { "type": "string", "minLength": 1 },
     "Sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "CommitId": { "type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$" },

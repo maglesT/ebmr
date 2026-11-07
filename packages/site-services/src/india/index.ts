@@ -26,6 +26,8 @@ export interface NewManufacturingLicence {
   licenceNumber: string;
   holderName: string;
   holderAddress: string;
+  /** The holder's telephone, optional (site-services 1735; the API CoA names it). */
+  holderTelephone?: string;
   /** LOAN only: the host's approved manufacturing licence at the same site. */
   hostLicenceId?: string;
   /** LOAN only: the technical agreement with the host. */
@@ -63,6 +65,7 @@ export interface LicenceBasis {
   form: LicenceForm;
   holderName: string;
   holderAddress: string;
+  holderTelephone: string | null;
   loanLicenceId?: string;
   loanLicenceNumber?: string;
   loanForm?: LicenceForm;

@@ -151,6 +151,14 @@ beforeAll(async () => {
   const steward = await gmp.asPersona('steward');
   valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 36, changeReason: REASON } }));
   await confirmErpPending(gmp);
+  // API plan A3: the site's manufacturing licence endorsing the API (regulatory records it, QA approves it); its holder
+  // name, address and telephone are the manufacturer's on the CoA (site-services 1735; ICH Q7 11.43).
+  const regulatory = await gmp.asPersona('regulatory');
+  const licence = valueOf(await regulatory.call(routes.india.recordLicence, { body: {
+    licenceKind: 'MANUFACTURING', form: '25', licenceNumber: `MFG/A3/${TAG}`, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
+    holderTelephone: '+91 40 2345 6789', validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: PRODUCT.code, strength: PRODUCT.strength }],
+  } }));
+  await sign(await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   // QA approves the two library blocks (drafted by the author).
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
   for (const def of [REACT, API_PACK.definition]) {
@@ -176,7 +184,7 @@ afterAll(async () => {
 });
 
 describe('API plan A1a: one API batch from library blocks to a released lot, over the routes', () => {
-  it('[PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not', async () => {
+  it('[AS-01][PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not', async () => {
     const problem = async (edition: string, content: flow.MbrContent) =>
       (await gmp.db.admin.query<{ p: string | null }>('select recipe.packaging_master_problem($1, $2::jsonb) as p', [edition, JSON.stringify(content)])).rows[0]?.p ?? null;
     expect(await problem('substance', packaging)).toBeNull();
@@ -188,7 +196,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     await expect(gmp.db.admin.query("insert into recipe.packaging_completion_block (edition, block_type) values ('substance', 'LIB-api-pack')")).rejects.toThrow(/packaging_completion_block_block_type_check/);
   });
 
-  it('[INV-27][PR-37][IN-18] the processing batch is planned from its ERP order, issued, run from the master\'s library snapshot, its output closed into a verified bulk container and released for packing by QA (H-PACK)', async () => {
+  it('[AS-03][INV-27][PR-37][IN-18] the processing batch is planned from its ERP order, issued, run from the master\'s library snapshot, its output closed into a verified bulk container and released for packing by QA (H-PACK)', async () => {
     const issuer = await gmp.asPersona('issuer');
     await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), processing, SIZE);
     const planned = valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId: proc.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE } }));
@@ -242,7 +250,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(rows).toEqual([{ edition: 'SUBSTANCE', status: 'QUARANTINE', q: '60', unit: 'kg' }]);
   });
 
-  it('[IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (the tablets items that apply to any packaging order), and the authorised person releases the lot', async () => {
+  it('[AS-16][IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (the tablets items that apply to any packaging order), and the authorised person releases the lot', async () => {
     // QC: the API's specification, the lot's results approved by the head of QC, and the reserve samples.
     const [qc, head] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover')]);
     const tests = [{ testCode: 'ASSAY', methodReference: 'STP-A1A-AS-01', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }];
@@ -292,5 +300,72 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     // The hook is registered for the API edition, beside the tablets one.
     const hooks = (await gmp.db.admin.query<{ edition: string; function_name: string }>('select edition, function_name from recipe.grel_edition_hook order by edition')).rows;
     expect(hooks).toEqual(expect.arrayContaining([{ edition: 'SUBSTANCE', function_name: 'substance.grel_edition_items(uuid,text)' }]));
+  });
+
+  // API plan A3 (C3; AS-17 once its control file lands): the CoA of the released lot, from the records only.
+  it('[IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once', async () => {
+    const ap = await gmp.asPersona('qcuAuthoriser');
+    const view = valueOf(await ap.call(routes.release.coa, { params: { lotId } }));
+    expect(view.problems).toEqual([]);
+    expect(view.gaps).toEqual([]);
+    expect(view.current).toMatchObject({
+      kind: 'CERTIFICATE_OF_ANALYSIS',
+      manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789' },
+      product: { name: expect.any(String) as unknown, grade: 'In-house monograph' },
+      lot: { lotId, batchNumber: order.batchNumber },
+      tests: [{ testCode: 'ASSAY', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }],
+    });
+    // Only what SM Part XII 11.3 (ICH Q7 11.41 to 11.43) names (lead audit of #145).
+    expect(Object.keys(view.current ?? {}).sort()).toEqual(['expiresAt', 'kind', 'lot', 'manufacturer', 'product', 'releasedAt', 'retestAt', 'tests']);
+    expect(Object.keys(view.current?.manufacturer ?? {}).sort()).toEqual(['address', 'name', 'telephone']);
+    expect(view.current?.releasedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(view.current?.expiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(view.coas).toEqual([]);
+    // Preparing needs the lot-release right: QC's analyst is refused and nothing is stored.
+    const qc = await gmp.asPersona('qcAnalyst');
+    expect((await qc.call(routes.release.prepareCoa, { params: { lotId }, body: {} })).ok).toBe(false);
+    const prepared = valueOf(await ap.call(routes.release.prepareCoa, { params: { lotId }, body: {} }));
+    expect(prepared.coas).toHaveLength(1);
+    const coa = prepared.coas[0]!;
+    expect(coa).toMatchObject({ state: 'PREPARED', intact: true, signedBy: null, document: view.current });
+    // The same document again is the same CoA.
+    expect(valueOf(await ap.call(routes.release.prepareCoa, { params: { lotId }, body: {} })).coas.map((c) => c.coaId)).toEqual([coa.coaId]);
+    // QA's dated signature through the ceremony; a second one is refused.
+    await sign(ap, 'qcuAuthoriser', { kind: 'COA_ACT', act: 'COA_SIGN', subjectId: coa.coaId });
+    const signed = valueOf(await ap.call(routes.release.coa, { params: { lotId } })).coas[0]!;
+    expect(signed).toMatchObject({ coaId: coa.coaId, state: 'SIGNED', intact: true, signedBy: { legalName: personaIn(gmp, 'qcuAuthoriser').legalName } });
+    expect(signed.signedAt).not.toBeNull();
+    await expect(sign(ap, 'qcuAuthoriser', { kind: 'COA_ACT', act: 'COA_SIGN', subjectId: coa.coaId })).rejects.toThrow(/EBMR-COA-004|SIGNED|PREPARED/);
+    const sig = (await gmp.db.admin.query<{ m: string; t: string }>('select meaning_code as m, aggregate_type as t from esig.signature where id = $1', [signed.signatureId])).rows[0];
+    expect(sig).toEqual({ m: 'COA_APPROVED', t: 'substance_coa' });
+    // The true copy never changes: the tables are insert-only, and the application role cannot write them at all.
+    await expect(gmp.db.admin.query("update substance.coa set document = document || '{\"x\": 1}'::jsonb where id = $1", [coa.coaId])).rejects.toThrow();
+    await expect(gmp.db.app.query('delete from substance.coa_signature where coa_id = $1', [coa.coaId])).rejects.toThrow();
+    // The tablets read class lists the CoA as a RECORD-class record (tablets 1904).
+    expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
+  });
+
+  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)', async () => {
+    const regulatory = await gmp.asPersona('regulatory');
+    const body = { licenceKind: 'MANUFACTURING' as const, form: '25' as const, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
+      validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: `${PRODUCT.code}-T`, strength: PRODUCT.strength }] };
+    const bare = valueOf(await regulatory.call(routes.india.recordLicence, { body: { ...body, licenceNumber: `MFG/A3T/${TAG}` } }));
+    const content = (await gmp.db.admin.query<{ c: { content: Json } }>('select site.manufacturing_licence_content($1) as c', [bare.licenceId])).rows[0]!.c.content;
+    expect(content).not.toHaveProperty('holder_telephone');
+    expect(Object.keys(content).sort()).toEqual(['form', 'holder_address', 'holder_name', 'host_licence_number', 'licence_kind', 'licence_number', 'products', 'recorded_at', 'recorded_by', 'site_code', 'technical_agreement', 'valid_from', 'valid_until']);
+    const bad = await regulatory.call(routes.india.recordLicence, { body: { ...body, licenceNumber: `MFG/A3U/${TAG}`, holderTelephone: '040 2345; x' } });
+    expect(bad.ok).toBe(false);
+    const withPhone = (await gmp.db.admin.query<{ c: { content: Json } }>(
+      'select site.manufacturing_licence_content(id::text) as c from site.manufacturing_licence where licence_number = $1', [`MFG/A3/${TAG}`])).rows[0]!.c.content;
+    expect(withPhone).toMatchObject({ holder_telephone: '+91 40 2345 6789' });
+  });
+
+  it('[IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it', async () => {
+    const other = (await gmp.db.admin.query<{ d: { document: unknown; problems: string[] } }>('select substance.coa_document($1) as d', [randomUUID()])).rows[0]!.d;
+    expect(other).toMatchObject({ document: null, problems: [expect.stringMatching(/no finished lot of the API edition/)] });
+    const ap = await gmp.asPersona('qcuAuthoriser');
+    const r = await ap.call(routes.release.prepareCoa, { params: { lotId: randomUUID() }, body: {} });
+    expect(r.ok).toBe(false);
+    if (!r.ok && r.error.kind === 'REFUSAL') expect(r.error.envelope.refusal.code).toBe('EBMR-COA-001');
   });
 });

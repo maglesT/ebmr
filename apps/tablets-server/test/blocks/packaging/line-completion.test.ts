@@ -201,7 +201,7 @@ describe('packaging line completion in the database (tablets 1230)', () => {
     expect(fn).toMatch(/b\.package_hash is null or kernel\.installation_kind\(\) <> 'SANDBOX'/);
   });
 
-  it('[PR-16] removing one label specimen or one checker signature blocks completion and names the gap', async () => {
+  it('[PR-16][AS-14] removing one label specimen or one checker signature blocks completion and names the gap', async () => {
     const r = await run([packPhase('p-g21', 'G-21', { items: [CARTON(false)] })]);
     await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
     expect(await r.rec.record('p-g21', issueEntry)).toBe('ok');

@@ -12,6 +12,7 @@ import { PROCESS_SEEDS } from './process.ts';
 import { MULTIPARTICULATE_SEEDS } from './multiparticulates.ts';
 import { SOFTGEL_SEEDS } from './softgels.ts';
 import { IPC_TEST_SEEDS } from './tests-ipc.ts';
+import { SUBSTANCE_SEEDS } from './substance.ts';
 import { RELEASE_TEST_SEEDS } from './tests-release.ts';
 import type { SeedItem } from './types.ts';
 
@@ -38,6 +39,9 @@ export const SEED_GROUPS: Readonly<Record<string, readonly SeedItem[]>> = {
   // Injectables edition, slice I-2 (plan v2): aseptic processing and environmental monitoring blocks of the same edition.
   'injectables aseptic': INJECTABLE_ASEPTIC_SEEDS,
   'release tests': [...RELEASE_TEST_SEEDS, ...CAPSULE_RELEASE_SEEDS, ...INJECTABLE_RELEASE_SEEDS],
+  // API edition (plan A1b): catalogue v1 of the `substance` edition. The blocks carry their edition, so the library
+  // offers them only to API masters (recipe.library_block_edition).
+  substance: SUBSTANCE_SEEDS,
 };
 
 /** Every item of the catalogue. */

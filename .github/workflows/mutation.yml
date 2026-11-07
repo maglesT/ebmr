@@ -82,7 +82,7 @@ jobs:
       matrix:
         # Every group of tools/sql-mutation/src/targets.ts (tools/sql-mutation/test/harness.test.ts checks the list).
         group: [audit-trail, actor-validation, signing, signature-invalidation, segregation-and-grants,
-                authentication-events, retention-and-purge, site-values-and-policies, protected-numbers,
+                authentication-events, retention-and-purge, retention-rules, site-values-and-policies, protected-numbers,
                 mbr-lifecycle, market-authorisation-and-issue, execution-commands, execution-state-binding,
                 evidence-source-and-entries, execution-steps-and-order, system-facts-and-time, exceptions-and-dispositions,
                 limit-exceptions, involvement-and-independence, weighing, signed-content, sandbox-and-import,
@@ -95,7 +95,7 @@ jobs:
                 tablets-granulation, tablets-compression, tablets-ipc, tablets-coating, tablets-forming,
                 packaging-g21-rules, packaging-printing-and-serialisation, packaging-blister, packaging-bottle,
                 platform-scope, tablets-core-checks, release-gate, release-gate-market-items, manufacturer-release,
-                tablets-release-items, api-release-items, us-disposition, qp-certification, market-changes, after-release-suspension,
+                tablets-release-items, api-release-items, api-coa, api-intermediate-lots, us-disposition, qp-certification, market-changes, after-release-suspension,
                 after-release-decisions, shipping-interlock, record-lock-and-amendment, bulk-and-bright-stock,
                 execution-complete-forms, india-licences, india-issue-gate, india-expiry, india-h2-and-allocation,
                 records-evidence-export, records-contingency-forms, pqr-extract, inbound-adapters-and-mirrors,

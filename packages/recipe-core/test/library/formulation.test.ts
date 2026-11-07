@@ -64,24 +64,22 @@ describe('assembling a formulation from library blocks', () => {
     expect(noCheckpoint(stepOf(unitAccount.definition, unitAccount.exampleUse as never))).toEqual([]);
   });
 
-  it('[PR-03][INV-34][PR-31][PR-39] every library yield or reconciliation block of the catalogue but unit accountability still names a master yield checkpoint, and unit accountability too when its calculation is not critical or its limit is not given', () => {
+  it('[PR-03][INV-34][PR-31][PR-39] every library yield or reconciliation block of the catalogue with a critical calculated limit stands as its own yield checkpoint but the printed-packaging and label reconciliations, and unit accountability needs a master checkpoint when its calculation is not critical', () => {
     const reconciling = SEED_CATALOGUE.filter((s) => (s.definition.roles ?? []).includes('YIELD_RECONCILIATION'));
-    expect(reconciling.length).toBeGreaterThan(1);
+    expect(reconciling.length).toBeGreaterThan(2);
     for (const s of reconciling) {
       const found = noCheckpoint(stepOf(s.definition, s.exampleUse));
-      expect(found, s.definition.code).toHaveLength(s.definition.code === 'INJ-UNIT-ACCOUNT' ? 0 : 1);
+      expect(found, s.definition.code).toHaveLength(['CTRL-PRINTED-RECON', 'PACK-LABEL-RECON'].includes(s.definition.code) ? 1 : 0);
     }
     const notCritical: BlockDefinition = {
       ...unitAccount.definition,
       sections: unitAccount.definition.sections.map((sec) => ({ ...sec, fields: sec.fields.map((f) => (f.type === 'CALC' ? { ...f, critical: false } : f)) })),
     };
     expect(noCheckpoint(stepOf(notCritical, unitAccount.exampleUse as never))).toHaveLength(1);
-    const otherLimits = Object.fromEntries(Object.entries(unitAccount.exampleUse.limits ?? {}).filter(([slot]) => slot !== 'unaccounted'));
-    expect(noCheckpoint(stepOf(unitAccount.definition, { ...unitAccount.exampleUse, limits: otherLimits }))).toHaveLength(1);
   });
 
-  it('[PR-03][INV-34][PR-31][PR-39] CTRL-YIELD, CTRL-MATERIAL-RECON, CTRL-PRINTED-RECON and PACK-LABEL-RECON, each a step with its example limits, still raise names no yield checkpoint (a critical calculation that is not unit accountability exempts nothing)', () => {
-    for (const code of ['CTRL-YIELD', 'CTRL-MATERIAL-RECON', 'CTRL-PRINTED-RECON', 'PACK-LABEL-RECON']) {
+  it('[PR-03][INV-34][PR-31][PR-39] CTRL-PRINTED-RECON and PACK-LABEL-RECON, each a step with its example limits, still raise names no yield checkpoint: a labeling reconciliation (211.125) is no yield of the product (211.103)', () => {
+    for (const code of ['CTRL-PRINTED-RECON', 'PACK-LABEL-RECON']) {
       const s = item(code);
       expect(noCheckpoint(stepOf(s.definition, s.exampleUse as never)), code).toHaveLength(1);
     }
