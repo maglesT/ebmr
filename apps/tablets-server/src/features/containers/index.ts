@@ -5,6 +5,8 @@
  * OUTPUT_CONTAINER_RELEASED once the hold is explained). Every write is the person's own command; every rule is the
  * database's (recipe-core 0420 to 0422, 0740, 0741; tablets 1111). The views show the database's own reasons why a
  * container is not usable (plant.container_usable_problem) or not releasable (plant.container_release_problem).
+ * API plan A4c (recipe-core 1881): QA's own hold of a closed or released container (plant.hold_container, with QA's
+ * reason); `qaHoldable` is the database's answer whether the container's machine version takes QA_HOLD in its state.
  */
 import { routes, type ContainerView, type SignableAction } from '@ebmr/api-contract';
 import type { ActorContext } from '@ebmr/kernel';
@@ -42,6 +44,8 @@ interface Row {
   closed_us: string | null;
   verified_by: string | null;
   holds: { checkId: string; result: 'FAIL' | 'MISSED'; press: string; stream: string | null; reference: string; us: string }[];
+  qa_holds: { reasonCode: string; reasonText: string; personId: string; us: string }[];
+  qa_holdable: boolean;
   usable_problem: string | null;
   release_problem: string | null;
 }
@@ -55,6 +59,11 @@ async function containerViews(app: AppContext, db: Db, filter: { batchId?: strin
             coalesce((select jsonb_agg(jsonb_build_object('checkId', k.id, 'result', k.result, 'press', k.press_code, 'stream', k.stream, 'reference', k.reference,
                                                           'us', ${usOf('k.recorded_at')}) order by h.recorded_at, h.id)
                         from plant.container_hold h join plant.ipc_check k on k.id = h.ipc_check_id where h.container_id = c.id), '[]'::jsonb) as holds,
+            coalesce((select jsonb_agg(jsonb_build_object('reasonCode', coalesce(sh.reason_code, ''), 'reasonText', coalesce(sh.reason_text, ''), 'personId', sh.person_id,
+                                                          'us', ${usOf('sh.recorded_at')}) order by sh.to_version)
+                        from platform.state_history sh where sh.aggregate_type = 'output_container' and sh.aggregate_id = c.id and sh.event = 'QA_HOLD'), '[]'::jsonb) as qa_holds,
+            exists (select 1 from platform.machine_transition t where t.machine_code = s.machine_code and t.machine_version = s.machine_version
+                       and t.from_state = s.state and t.event = 'QA_HOLD') as qa_holdable,
             plant.container_usable_problem(c.id) as usable_problem,
             case when s.state in ('HELD', 'SORTED') then plant.container_release_problem(c.id) end as release_problem
        from plant.output_container c
@@ -65,7 +74,7 @@ async function containerViews(app: AppContext, db: Db, filter: { batchId?: strin
       order by c.opened_at, c.id`,
     [filter.batchId ?? null, filter.id ?? null],
   );
-  const people = await peopleOf(db, rows.flatMap((r) => [r.opened_by_person, r.closed_by, r.verified_by]));
+  const people = await peopleOf(db, rows.flatMap((r) => [r.opened_by_person, r.closed_by, r.verified_by, ...r.qa_holds.map((h) => h.personId)]));
   return rows.map((r) => ({
     containerId: r.id,
     label: r.label_code,
@@ -85,6 +94,8 @@ async function containerViews(app: AppContext, db: Db, filter: { batchId?: strin
     closedAt: r.closed_us ? app.formatInstant(r.closed_us) : null,
     netVerifiedBy: r.verified_by ? personRef(people, r.verified_by, 'VERIFIER') : null,
     holds: r.holds.map((h) => ({ checkId: h.checkId, result: h.result, press: h.press, stream: h.stream, reference: h.reference, recordedAt: app.formatInstant(h.us) })),
+    qaHolds: r.qa_holds.map((h) => ({ reasonCode: h.reasonCode, reasonText: h.reasonText, by: personRef(people, h.personId, 'QA'), recordedAt: app.formatInstant(h.us) })),
+    qaHoldable: r.qa_holdable,
     usableProblem: r.usable_problem,
     releaseProblem: r.release_problem,
   }));
@@ -168,6 +179,15 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       ctx.requireSession();
       await write(ctx, async (c) => {
         await c.query('select plant.reject_container($1, $2)', [ctx.params.containerId, ctx.body.expectedVersion]);
+        return ctx.params.containerId;
+      }, ctx.body.reason);
+      return containerView(app, pool, ctx.params.containerId);
+    },
+    // API plan A4c (recipe-core 1881): QA holds a closed or released container with its own reason (QA.FLOOR_APPROVE).
+    hold: async (ctx) => {
+      ctx.requireSession();
+      await write(ctx, async (c) => {
+        await c.query('select plant.hold_container($1, $2)', [ctx.params.containerId, ctx.body.expectedVersion]);
         return ctx.params.containerId;
       }, ctx.body.reason);
       return containerView(app, pool, ctx.params.containerId);

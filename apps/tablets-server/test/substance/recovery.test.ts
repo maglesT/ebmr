@@ -14,9 +14,12 @@
  *    solvent, and the mix is two G-07 weighings, one per lot, each consumed in its own command; the genealogy shows both
  *    lots CONSUMED into that batch.
  *
- * Not here: (b) of plan row 14.40, mother liquor carried into a later batch through a G-24@2 RECOVERY step, because a
- * container of an API batch cannot reach RELEASED_BY_QA (only a press IPC failure holds a container); and the OUTPUT
- * edges of an intermediate lot on the genealogy, which are recipe-core 1879 on another branch.
+ *  - Q7 14.40, 14.43 (A4c, recipe-core 1881): mother liquor of batch N carried into batch N+1 of the same master. The
+ *    mother liquor is a closed output container of batch N; QA holds it of its own decision (plant.hold_container,
+ *    QA_HOLD of machine output_container v2), releases it under its signature once tested, and authorises batch N+1's
+ *    G-24@2 RECOVERY step; the step adds part of it, and the genealogy shows the RECOVERY_ADDITION edge N -> N+1.
+ *
+ * Not here: the OUTPUT edges of an intermediate lot on the genealogy, which are recipe-core 1879 on another branch.
  *
  * Arranged outside the routes, as in intermediate-lots.test.ts: the plant-free masters (the dispensing step excepted),
  * the ERP orders, the numbering rules and the dispensing balance of the plant (support.ts); and, as a TEST FIXTURE with
@@ -32,13 +35,13 @@ import type { flow } from '@ebmr/recipe-core/pure';
 import { openServiceSession, terminalOf } from '@ebmr/test-kit';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
-import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
+import { personaIn, refusalOf, startSigningServer, tapFor, valueOf } from '../esig/support.ts';
 import type { ExecServer, RunDriver } from '../execution/support.ts';
 import { actorOf, gmpLifecycleWorld } from '../support/gmp-world.ts';
 import { arrangeCompleteReceipt } from '../support/receipt-fixture.ts';
 import { confirmErpPending } from '../support/signed-acts.ts';
 import {
-  apiContent, arrangeBalance, bookBalance, driverOf, g07Phase, issueBatch, libraryEntry, phaseOf, range, reactBlock, signAs, stage, statusOf,
+  apiContent, arrangeBalance, bookBalance, closeBulk, driverOf, g07Phase, issueBatch, libraryEntry, phaseOf, range, reactBlock, signAs, stage, statusOf,
   type BatchRef, type Json, type Product, type StepInput,
 } from './support.ts';
 
@@ -51,6 +54,7 @@ const INT_A = { code: `RCA-${TAG}`, name: 'Demo intermediate A (second crop)', s
 const SOLV = { code: `RTOL-${TAG}`, name: 'Recovered toluene', strength: 'Recovered' };
 const INT_B = { code: `RCB-${TAG}`, name: 'Demo intermediate B (recovered solvent)', strength: 'Step 2' };
 const FRESH = { code: `TOL-${TAG}`, name: 'Toluene (fresh, invented)' };
+const INT_M = { code: `RCM-${TAG}`, name: 'Demo intermediate M (mother-liquor recovery)', strength: 'Step 1' };
 const IN_R: StepInput = { code: SOLV.code, name: SOLV.name, quantity: '30', item: 'dispRecovered' };
 const IN_F: StepInput = { code: FRESH.code, name: FRESH.name, quantity: '20', item: 'dispFresh' };
 const REASON = 'API edition A4b recovery';
@@ -77,12 +81,25 @@ const masterB = ((): flow.MbrContent => {
   return content;
 })();
 
-type Step = 'A' | 'S' | 'B';
+/**
+ * Master M: the reaction, then a G-24@2 step that adds QA-released material recovered from an earlier batch's mother
+ * liquor (case RECOVERY, Q7 14.40), within its limits (3 % of the standard batch, 90 days from manufacture, 1 source).
+ */
+const G24_RECOVERY: Json = {
+  kind: 'phase', id: 'p-g24', name: 'Addition of material recovered from mother liquor', block: { type: 'G-24', version: '2' }, config: {},
+  records: [], computes: [], reads: [], consumes: [], produces: [], uses: [], equipment: [],
+  signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } }, significant: true, riskClass: 'HIGH',
+  reprocessing: { case: 'RECOVERY', maxPercent: '3', maxAge: { value: '90', unit: 'd' }, maxSourceBatches: 1 },
+};
+const masterM = master(INT_M, `${INT_M.name}: synthesis with recovery from mother liquor`, (like) => [unit(like, 'S-REACT', 'Reaction', 'p-react'), stage(like, 'S-RCV', 'Recovery from mother liquor', [G24_RECOVERY])],
+  { materials: [{ code: `KSM-M-${TAG}`, title: 'Key starting material M (invented)', role: 'ACTIVE', quantity: { value: '50', unit: 'kg' } }] });
+
+type Step = 'A' | 'S' | 'B' | 'M';
 let gmp: ExecServer;
 let world: World;
-const fam: Record<Step, string> = { A: '', S: '', B: '' };
+const fam: Record<Step, string> = { A: '', S: '', B: '', M: '' };
 const empty = (): BatchRef => ({ batchId: '', batchNumber: '' });
-const batch: Record<Step, BatchRef> = { A: empty(), S: empty(), B: empty() };
+const batch: Record<Step, BatchRef> = { A: empty(), S: empty(), B: empty(), M: empty() };
 let recovered = '';
 let freshLot = { lotId: '', lotCode: '' };
 
@@ -154,7 +171,7 @@ beforeAll(async () => {
   gmp = Object.assign(await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } }), { exchangeDir: ledgerDir });
   vi.useFakeTimers({ toFake: ['performance'] });
   const steward = await gmp.asPersona('steward');
-  for (const p of [INT_A, SOLV, INT_B]) {
+  for (const p of [INT_A, SOLV, INT_B, INT_M]) {
     valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: p.code, strength: p.strength, productName: p.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 12, changeReason: REASON } }));
   }
   // The fresh solvent is a material of the ERP master, received from a supplier.
@@ -168,7 +185,7 @@ beforeAll(async () => {
   await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   world = await gmpLifecycleWorld(gmp);
   const stewardActor = await actorOf(gmp, 'steward');
-  for (const [s, content, p] of [['A', masterA, INT_A], ['S', masterS, SOLV], ['B', masterB, INT_B]] as const) {
+  for (const [s, content, p] of [['A', masterA, INT_A], ['S', masterS, SOLV], ['B', masterB, INT_B], ['M', masterM, INT_M]] as const) {
     const v = await world.approvedVersion(content);
     await world.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE)], regulatoryBasis: 'IN: registration on file (invented API)' });
     fam[s] = v.familyId;
@@ -269,5 +286,49 @@ describe('API plan A4b: recovery of materials and solvents (ICH Q7 14.4)', () =>
     };
     expect(await trace('BATCH', batch.B.batchId, 'BACKWARD')).toEqual(expect.arrayContaining([['LOT', batch.S.batchNumber, 'CONSUMED'], ['LOT', `FT-${TAG}`, 'CONSUMED']]));
     expect(await trace('LOT', recovered, 'FORWARD')).toEqual(expect.arrayContaining([['BATCH', batch.B.batchNumber, 'CONSUMED']]));
+  });
+
+  it('[AS-21][PR-47][IN-19][PR-57][DI-22] mother liquor of batch N is a closed output container; QA holds it with its reason and releases it under its signature; batch N+1 of the same master adds part of it at its G-24@2 RECOVERY step after the quality unit\'s signed authorisation of the step; the genealogy shows the RECOVERY_ADDITION edge N -> N+1', async () => {
+    const n = await plannedAndIssued('M', masterM);
+    const dn = await driverOf(gmp, n.batchId);
+    await runUnit(dn, 'p-react', 'S-REACT');
+    // The mother liquor of batch N: its own container, the net typed and verified by a second person.
+    const label = await closeBulk(gmp, dn, n.batchId, '5.000');
+    const qa = await gmp.asPersona('qa1');
+    const mother = valueOf(await qa.call(routes.containers.list, { query: { batchId: n.batchId } })).containers.find((c) => c.label === label);
+    expect(mother).toMatchObject({ state: 'CLOSED', qaHoldable: true });
+    if (!mother) throw new Error('no mother-liquor container');
+    // Batch N+1 cannot take it while it is only closed: RECOVERY is QA-released material.
+    const n1 = await plannedAndIssued('M', masterM);
+    const factsOf = async () => (await gmp.db.app.query<{ r: Json | null }>('select recipe.source_container_facts($1, $2) as r', [mother.containerId, n1.batchId])).rows[0]?.r;
+    expect((await factsOf())?.['case']).toBeUndefined();
+    // QA holds it of its own decision (quarantine until tested), then releases it under its signature.
+    const path = `/api/containers/${mother.containerId}/hold`;
+    const body = { expectedVersion: mother.version, reason: { code: 'MOTHER_LIQUOR', text: 'Mother liquor kept in quarantine until QC tests it for recovery' } };
+    vi.advanceTimersByTime(7_000);
+    expect(valueOf(await qa.call(routes.containers.hold, { params: { containerId: mother.containerId }, body, attribution: await tapFor(qa, personaIn(gmp, 'qa1'), 'POST', path, body) }))).toMatchObject({ state: 'HELD', qaHolds: [{ reasonCode: 'MOTHER_LIQUOR' }] });
+    await signAs(gmp, qa, 'qa1', { kind: 'CONTAINER_ACT', act: 'RELEASE', containerId: mother.containerId, reason: { code: 'QC_PASSED', text: 'Mother liquor tested; fit for recovery' } });
+    expect((await factsOf())?.['case']).toBe('RECOVERY');
+    // Batch N+1: the reaction, then the quality unit's signed authorisation of its recovery step, then the addition.
+    const d = await driverOf(gmp, n1.batchId);
+    await runUnit(d, 'p-react', 'S-REACT');
+    const qcu = await gmp.asPersona('qcuAuthoriser');
+    // The step's authorisation (its start) and the authorisation of this use of the container (the addition entry).
+    const authorised = async (containerId?: string): Promise<string> => {
+      const { authorisationId } = valueOf(await qcu.call(Q.proposeReprocessingAuthorisation, { body: { batchId: n1.batchId, step: 'p-g24', ...(containerId ? { containerId } : {}), investigationRef: `DEV-A4C-${TAG}`, riskEvaluationRef: `RA-A4C-${TAG}` } }));
+      await signAs(gmp, qcu, 'qcuAuthoriser', { kind: 'REPROCESSING_ACT', act: 'AUTHORISE_ADDITION', subjectId: authorisationId, input: {} });
+      return authorisationId;
+    };
+    await authorised();
+    const use = await authorised(mother.containerId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g24@' });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-g24@', entry: { kind: 'BLOCK_ENTRY', entryKind: 'ADDITION', data: { container: mother.containerId, authorisation: use, quantity: { value: '1.000', unit: 'kg' } } } } as never);
+    const added = (await gmp.db.admin.query<{ case_code: string; block: string; q: string; source: string }>(
+      'select case_code, block, trim_scale(net_quantity)::text as q, source_batch_number as source from recipe.source_addition where batch_id = $1', [n1.batchId])).rows;
+    expect(added).toEqual([{ case_code: 'RECOVERY', block: 'G-24@2', q: '1', source: n.batchNumber }]);
+    // driverOf signed qa1 in again on its terminal (one shop-floor session at a time): read through that session.
+    const t = valueOf(await d.browser('qa1').call(routes.genealogy.trace, { query: { kind: 'BATCH', id: n.batchId, direction: 'FORWARD' } }));
+    const edges = t.edges.map((e) => [e.node.kind, t.nodes.find((x) => x.kind === e.node.kind && x.id === e.node.id)?.label ?? null, e.edgeKind]);
+    expect(edges).toEqual(expect.arrayContaining([['BATCH', n1.batchNumber, 'RECOVERY_ADDITION']]));
   });
 });

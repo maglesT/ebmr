@@ -1,8 +1,8 @@
 /**
  * The output containers of a batch (Phase 4 slice 1c screens on the 1b routes): the close, typed or weighed (readings
  * named by id), with a fresh badge tap on a shared terminal; the second person's check of a typed net and QA's release
- * through the ceremony; sort and reject with a reason; and why a container cannot be used or released, in the
- * database's words.
+ * through the ceremony; sort and reject with a reason; QA's own hold with a reason, offered only when the server says the
+ * container takes it (API plan A4c); and why a container cannot be used or released, in the database's words.
  */
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -96,5 +96,28 @@ describe('output containers', () => {
     await waitFor(() => expect(ui.posts('/api/containers')).toHaveLength(1));
     expect(ui.tap.requestTap).toHaveBeenCalledTimes(1);
     expect(ui.posts('/api/containers')[0]?.body).toMatchObject({ batchId: B, stage: 'COMPRESSION', unit: 'kg', press: 'PRESS-01', stream: 'L', attribution: { method: 'BADGE_TAP' } });
+  });
+
+  // API plan A4c (recipe-core 1881): the quality unit's own hold of a closed or released container.
+  it('[AS-21][L-30][DI-22] QA holds a closed container with its reason, offered only where the server says the container takes it; the floor is not offered it; a QA hold is shown with its reason', async () => {
+    const ui = renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'containers.list': { containers: [typed, held] } } });
+    const card = await screen.findByTestId(`container-${typed.label}`);
+    expect(within(await screen.findByTestId(`container-${held.label}`)).queryByTestId('hold-container')).toBeNull();
+    const button = within(card).getByRole('button', { name: `Hold ${typed.label}` });
+    await userEvent.type(within(card).getByRole('textbox', { name: 'Hold reason code' }), 'MOTHER_LIQUOR');
+    expect(button.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(card).getByRole('textbox', { name: 'Reason to hold' }), 'Quarantine until QC tests it for recovery');
+    await userEvent.click(button);
+    await waitFor(() => expect(ui.posts(`/api/containers/${typed.containerId}/hold`)).toHaveLength(1));
+    expect(ui.posts(`/api/containers/${typed.containerId}/hold`)[0]?.body).toEqual({ expectedVersion: typed.version, reason: { code: 'MOTHER_LIQUOR', text: 'Quarantine until QC tests it for recovery' } });
+    cleanup();
+    renderOffice(path, { role: 'OPERATOR', fixtures: { 'containers.list': { containers: [typed] } } });
+    expect(within(await screen.findByTestId(`container-${typed.label}`)).queryByTestId('hold-container')).toBeNull();
+    cleanup();
+    const heldByQa = example('containers-hold');
+    renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'containers.list': { containers: [heldByQa] } } });
+    const qaCard = await screen.findByTestId(`container-${heldByQa.label}`);
+    expect(within(qaCard).getByRole('list', { name: 'Holds by QA' }).textContent).toContain(heldByQa.qaHolds[0]?.reasonText ?? 'x');
+    expect(within(qaCard).queryByTestId('hold-container')).toBeNull();
   });
 });

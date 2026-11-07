@@ -6,7 +6,9 @@
  *    a typed net leaves the container unusable until a second person verifies it (CONTAINER_ACT VERIFY_CLOSE, meaning
  *    VERIFIED, never the closer: DI-30);
  *  - QA releases a held container (CONTAINER_ACT RELEASE, meaning OUTPUT_CONTAINER_RELEASED) only once its hold's
- *    exceptions are dispositioned and their deviations concluded (`releaseProblem` says why not yet).
+ *    exceptions are dispositioned and their deviations concluded (`releaseProblem` says why not yet);
+ *  - QA holds a closed or released container of its own decision, with its reason (API plan A4c, recipe-core 1881,
+ *    machine output_container v2 QA_HOLD; ICH Q7 2.22, 14.40): `qaHoldable` says when the database takes it.
  * Reads are plain SESSION routes; the commands are the person's own (FRESH_ON_SHARED on a kiosk).
  * Phase 7 slice 7o (D-7o-1): served on both installations, each against its own database (a test run's containers).
  */
@@ -33,6 +35,15 @@ export const ContainerHoldView = z.strictObject({
 });
 export type ContainerHoldView = z.infer<typeof ContainerHoldView>;
 
+/** A hold the quality unit made of its own decision (QA_HOLD, recipe-core 1881): its reason, the person, the time. */
+export const ContainerQaHoldView = z.strictObject({
+  reasonCode: z.string(),
+  reasonText: z.string(),
+  by: PersonRef,
+  recordedAt: Instant,
+});
+export type ContainerQaHoldView = z.infer<typeof ContainerQaHoldView>;
+
 export const ContainerView = z.strictObject({
   containerId: Uuid,
   label: z.string(),
@@ -55,6 +66,10 @@ export const ContainerView = z.strictObject({
   /** The second person who verified a typed net (DI-30), or null. */
   netVerifiedBy: PersonRef.nullable(),
   holds: z.array(ContainerHoldView),
+  /** The quality unit's own holds, oldest first. */
+  qaHolds: z.array(ContainerQaHoldView),
+  /** Whether QA can hold it now: its machine version takes QA_HOLD in its state (CLOSED or RELEASED_BY_QA, v2). */
+  qaHoldable: z.boolean(),
   /** Why it cannot be charged, merged or packed now (the database's words), or null. */
   usableProblem: z.string().nullable(),
   /** Why QA cannot release it now (held only), or null. */
@@ -127,6 +142,20 @@ export const containers = {
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
     summary: 'QA rejects a held or sorted container, with the person\'s reason',
+    params: containerParams,
+    body: withAttribution({ expectedVersion: z.number().int().positive(), reason: Reason }),
+    response: ContainerView,
+  }),
+  // API plan A4c (recipe-core 1881): the quality unit's own hold of a closed or released container (QA.FLOOR_APPROVE).
+  hold: defineRoute({
+    id: 'containers.hold',
+    method: 'POST',
+    path: '/api/containers/:containerId/hold',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'QA holds a closed or released container of its own decision (quarantine until its release), with the person\'s reason',
     params: containerParams,
     body: withAttribution({ expectedVersion: z.number().int().positive(), reason: Reason }),
     response: ContainerView,

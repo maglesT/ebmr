@@ -299,6 +299,30 @@ describe('dispositions of a held container', () => {
     expect(rejected.state).toBe('REJECTED');
     await expectRefused(charge(b, ref.labelCode), 'EBMR-CNT-042', /REJECTED/);
   });
+
+  // API plan A4c (sql/1881): a container no in-process check covers (an API batch's mother liquor) is held by QA itself.
+  it('[AS-21][DI-17][DI-22][L-30] QA holds a closed container of its own decision with its reason (QA_HOLD, machine v2), and a released one again; the floor, a command without a reason, an unknown container and a container that is open or already held are refused; QA then releases it', async () => {
+    const b = await newBatch();
+    const opened = await open(b);
+    await expectRefused(run(db, qa, (c) => oc.holdContainer(c, opened.containerId, opened.version), why('open')), 'EBMR-PLAT-067', /QA_HOLD is not allowed in state OPEN/);
+    const ref = await close(opened);
+    const v = (await status(ref)).version;
+    await expectRefused(run(db, qa, (c) => oc.holdContainer(c, randomUUID(), v), why('unknown')), 'EBMR-CNT-030');
+    await expectRefused(run(db, operator, (c) => oc.holdContainer(c, ref.containerId, v), why('floor')), 'EBMR-IAM-040');
+    await expectRefused(run(db, qa, (c) => oc.holdContainer(c, ref.containerId, v)), 'EBMR-PLAT-068', /reason is required/);
+    const held = await run(db, qa, (c) => oc.holdContainer(c, ref.containerId, v), why('mother liquor in quarantine until tested'));
+    expect(held).toEqual({ state: 'HELD', version: v + 1 });
+    const { rows } = await db.admin.query<{ permission_code: string; reason_text: string; person_id: string; from_state: string }>(
+      "select permission_code, reason_text, person_id, from_state from platform.state_history where aggregate_type = 'output_container' and aggregate_id = $1 and event = 'QA_HOLD'", [ref.containerId]);
+    expect(rows).toEqual([{ permission_code: 'qa.floor_approve', reason_text: 'mother liquor in quarantine until tested', person_id: qa.personId, from_state: 'CLOSED' }]);
+    expect((await status(ref)).usableProblem).toMatch(/HELD/);
+    await expectRefused(run(db, qa, (c) => oc.holdContainer(c, ref.containerId, held.version), why('again')), 'EBMR-PLAT-067', /QA_HOLD is not allowed in state HELD/);
+    const sig = await sign(qa, ref, 'HELD');
+    const r = await run(db, qa, (c) => oc.releaseContainer(c, ref.containerId, held.version, sig));
+    expect(r.state).toBe('RELEASED_BY_QA');
+    const again = await run(db, qa, (c) => oc.holdContainer(c, ref.containerId, r.version), why('a later doubt about the released container'));
+    expect(again.state).toBe('HELD');
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -713,7 +713,8 @@ for the next step. Signable action `CONTAINER_ACT` (meanings for verify-close an
 **Routes** (contract [containers.ts](../../../packages/api-contract/src/ns/containers.ts)): GET `/api/containers`
 (`containers.list`), POST `/api/containers` (`containers.open`), POST `/api/containers/:containerId/close`
 (`containers.close`), POST `/api/containers/:containerId/sort` (`containers.sort`), POST
-`/api/containers/:containerId/reject` (`containers.reject`).
+`/api/containers/:containerId/reject` (`containers.reject`), POST `/api/containers/:containerId/hold`
+(`containers.hold`: QA's own hold with its reason, offered where the view's `qaHoldable` says so; recipe-core 1881).
 
 **Handler.** [containers/index.ts](../../../apps/tablets-server/src/features/containers/index.ts). SQL: recipe-core's
 `plant.*` container commands and

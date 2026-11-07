@@ -55,7 +55,7 @@ The migrations, grouped by area (the same grouping as the [code map](../code-map
 | Change paths, approvals, hand-over | 0450 to 0453, 0461 to 0463, 0470 to 0472, 0480 | [Change paths, approvals and hand-over](#change-paths-approvals-and-hand-over) |
 | Execution complete with contingency forms | 0911 | [Execution store and engine](#execution-store-and-engine) |
 | Plant: equipment, rooms, logbook, hazard dedication | 0400 to 0405, 0460, 0521 to 0523, 0691, 0890, 0912 | [Plant](#plant) |
-| Output containers | 0420 to 0422, 0540, 0740, 0741 | [Output containers](#output-containers) |
+| Output containers | 0420 to 0422, 0540, 0740, 0741, 1881 | [Output containers](#output-containers) |
 | Material consumption (batch side) | 0430, 0700, 0701 | [Material consumption](#material-consumption) |
 | GMP batch store and issue, packaging orders, allocation register, expiry | 0500 to 0504, 0582, 0600 to 0602, 0761, 0762, 0893, 0895, 0913 | [GMP batches, issue and packaging orders](#gmp-batches-issue-and-packaging-orders) |
 | Block versions in the database (G-06, G-09@2, G-10@2, G-21) | 0520, 0541, 0580, 0581 | [Blocks](#blocks) |
@@ -918,7 +918,17 @@ stateDiagram-v2
   HELD --> RELEASED_BY_QA: RELEASE (signed, hold explained)
   SORTED --> RELEASED_BY_QA: RELEASE (signed, hold explained)
   RELEASED_BY_QA --> HELD: a later failure covers it
+  CLOSED --> HELD: QA_HOLD (QA, reason; v2)
+  RELEASED_BY_QA --> HELD: QA_HOLD (QA, reason; v2)
 ```
+
+**QA's own hold (API plan A4c, 1881).** The quality unit holds a closed or released container of its own decision, with
+its reason: [plant.hold_container](../../../packages/recipe-core/sql/1881_hold_container.sql#sym=plant.hold_container)
+(QA.FLOOR_APPROVE) moves it to HELD through event QA_HOLD of machine `output_container` version 2
+([1881_machine_output_container_v2.sql](../../../packages/recipe-core/sql/1881_machine_output_container_v2.sql)), and the
+engine's state-history row is its record (person, right, reason, time); QA then releases it as any held container. This is
+how an API batch's mother liquor, which no press check covers, reaches RELEASED_BY_QA for a later batch's G-24@2 RECOVERY
+step ([AS-21](../../../compliance/controls/AS-21.yaml)). Containers opened before 1881 keep version 1 and cannot be held so.
 
 **Main tables.** [plant.output_container](../../../packages/recipe-core/sql/0420_output_containers.sql#sym=plant.output_container), [plant.container_close](../../../packages/recipe-core/sql/0420_output_containers.sql#sym=plant.container_close), [plant.container_close_verification](../../../packages/recipe-core/sql/0740_container_close_net_check.sql#sym=plant.container_close_verification),
 [plant.ipc_check](../../../packages/recipe-core/sql/0420_output_containers.sql#sym=plant.ipc_check), [plant.container_hold](../../../packages/recipe-core/sql/0420_output_containers.sql#sym=plant.container_hold), [plant.container_merge](../../../packages/recipe-core/sql/0420_output_containers.sql#sym=plant.container_merge), [plant.container_charge](../../../packages/recipe-core/sql/0420_output_containers.sql#sym=plant.container_charge),

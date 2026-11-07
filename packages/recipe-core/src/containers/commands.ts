@@ -125,6 +125,14 @@ export async function rejectContainer(db: Db, containerId: string, expectedVersi
   return moved(await one(db, 'select plant.reject_container($1, $2) as r', [containerId, expectedVersion]));
 }
 
+/**
+ * CLOSED or RELEASED_BY_QA -> HELD by QA of its own decision (sql/1881, machine v2 QA_HOLD; QA.FLOOR_APPROVE); the
+ * command carries the reason.
+ */
+export async function holdContainer(db: Db, containerId: string, expectedVersion: number): Promise<{ state: OutputContainerState; version: number }> {
+  return moved(await one(db, 'select plant.hold_container($1, $2) as r', [containerId, expectedVersion]));
+}
+
 /** The signature meaning of the second person's check of a typed net quantity (sql/0740, DI-30). */
 export const CONTAINER_NET_VERIFY_MEANING = 'VERIFIED';
 

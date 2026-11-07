@@ -1,13 +1,15 @@
 /**
  * The container routes on GMP (Phase 4 slice 1b; contract ns/containers.ts): open, close typed or weighed, the second
  * person's VERIFY_CLOSE and QA's RELEASE through the signing ceremony (CONTAINER_ACT), sort and reject with the person's
- * reason. The rules are the database's (recipe-core 0740, 0741; tablets 1111); these tests prove the server reaches them.
+ * reason, and QA's own hold with its reason (API plan A4c, recipe-core 1881). The rules are the database's (recipe-core
+ * 0740, 0741, 1881; tablets 1111); these tests prove the server reaches them.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
+import { withCommand } from '@ebmr/kernel';
 import { routes, type ContainerView, type SignableAction } from '@ebmr/api-contract';
-import { personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';
+import { actorOfBrowser, personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 import { credentialsOf } from '../support/signed-acts.ts';
@@ -97,6 +99,37 @@ describe('container routes (GMP, Phase 4 slice 1b)', () => {
     const sorted = await operator.call(routes.containers.sort, { params: { containerId: c.containerId }, body, attribution: await tap(`/api/containers/${c.containerId}/sort`, body) });
     expect(sorted.ok).toBe(false);
     expect(await listed(c.containerId)).toMatchObject({ state: 'CLOSED', releaseProblem: null });
+  }, 180_000);
+
+  // API plan A4c (recipe-core 1881): the quality unit holds a closed container no in-process check covers, then releases it.
+  it('[AS-21][DI-17][DI-22][L-30] QA holds a closed container with its reason (QA_HOLD, recorded in the state history with the person, the right and the reason); a person without QA\'s right, a command without a reason and a second hold are refused; QA then releases it to RELEASED_BY_QA', async () => {
+    const c = valueOf(await closeTyped(await open(), '2.500'));
+    const verified = await signAction(verifier, 'verifier1', { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: c.containerId });
+    expect(verified.ok).toBe(true);
+    expect(await listed(c.containerId)).toMatchObject({ state: 'CLOSED', qaHoldable: true, qaHolds: [], usableProblem: null });
+    const qa = await w.gmp.asPersona('qa1');
+    const path = `/api/containers/${c.containerId}/hold`;
+    const body = { expectedVersion: c.version, reason: { code: 'MOTHER_LIQUOR', text: 'Quarantine until QC tests it for recovery' } };
+    // The floor has no right to hold of its own decision (QA.FLOOR_APPROVE).
+    const byOperator = await operator.call(routes.containers.hold, { params: { containerId: c.containerId }, body, attribution: await tap(path, body) });
+    expect(refusalOf(byOperator)?.code).toBe('EBMR-IAM-040');
+    // The database refuses a hold without the person's reason, whoever calls it (platform.reason_given).
+    vi.advanceTimersByTime(7_000);
+    await expect(withCommand(w.gmp.db.app, await actorOfBrowser(w.gmp, qa, 'qa1'), (x) => x.query('select plant.hold_container($1, $2)', [c.containerId, c.version]))).rejects.toThrow(/EBMR-PLAT-068 QA_HOLD refused.*a reason is required/);
+    vi.advanceTimersByTime(7_000);
+    const held = valueOf(await qa.call(routes.containers.hold, { params: { containerId: c.containerId }, body, attribution: await tapFor(qa, personaIn(w.gmp, 'qa1'), 'POST', path, body) }));
+    expect(held).toMatchObject({ state: 'HELD', qaHoldable: false, holds: [], qaHolds: [{ reasonCode: 'MOTHER_LIQUOR', reasonText: body.reason.text, by: { personId: personaIn(w.gmp, 'qa1').personId } }], releaseProblem: null });
+    expect(held.usableProblem).toMatch(/HELD/);
+    const { rows } = await w.gmp.db.admin.query<{ event: string; permission_code: string; reason_code: string; reason_text: string; person_id: string }>(
+      "select event, permission_code, reason_code, reason_text, person_id from platform.state_history where aggregate_type = 'output_container' and aggregate_id = $1 and event = 'QA_HOLD'", [c.containerId]);
+    expect(rows).toEqual([{ event: 'QA_HOLD', permission_code: 'qa.floor_approve', reason_code: 'MOTHER_LIQUOR', reason_text: body.reason.text, person_id: personaIn(w.gmp, 'qa1').personId }]);
+    // Held once: a second hold is refused by the state machine.
+    const again = { ...body, expectedVersion: held.version };
+    vi.advanceTimersByTime(7_000);
+    expect(refusalOf(await qa.call(routes.containers.hold, { params: { containerId: c.containerId }, body: again, attribution: await tapFor(qa, personaIn(w.gmp, 'qa1'), 'POST', path, again) }))?.why).toMatch(/EBMR-PLAT-067|not allowed in state HELD/);
+    const release = await signAction(qa, 'qa1', { kind: 'CONTAINER_ACT', act: 'RELEASE', containerId: c.containerId, reason: { code: 'QC_PASSED', text: 'Tested; fit for recovery' } });
+    expect(release.ok, release.ok ? '' : JSON.stringify(release.error)).toBe(true);
+    expect(await listed(c.containerId)).toMatchObject({ state: 'RELEASED_BY_QA', qaHoldable: true, usableProblem: null });
   }, 180_000);
 
   it('[IN-26] a merge pours a usable container into an open one of the same batch, stage and unit, both named by their labels; an unverified source, an unknown label and a person without the right are refused (slice 7g WP4)', async () => {

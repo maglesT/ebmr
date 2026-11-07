@@ -617,7 +617,7 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // ---- Phase 3: output containers: closing, holds, bracketing, disposal, merge and the press discharge codes
-  //     (recipe-core 0420, 0422, 0540; plant.charge_container of 0624) ----
+  //     (recipe-core 0420, 0422, 0540; plant.charge_container of 0624; plant.hold_container of 1881) ----
   {
     group: 'output-containers',
     functions: ['plant.container_state', 'plant.container_closed_at', 'plant.press_streams_separate',
@@ -627,7 +627,9 @@ export const TARGETS: Target[] = [
                 'plant.configure_press_discharge', 'plant.open_container', 'plant.apply_hold',
                 'plant.press_unit_problem', 'plant.charge_container',
                 // The in-process check record and its hold selection (recipe-core 0541), proven by the containers tests.
-                'plant.record_ipc_check', 'plant.ipc_check_record', 'plant.record_missed_ipc_check'],
+                'plant.record_ipc_check', 'plant.ipc_check_record', 'plant.record_missed_ipc_check',
+                // API plan A4c: the quality unit's own hold (recipe-core 1881), proven by the containers tests.
+                'plant.hold_container'],
     tests: [r('containers/containers.test.ts'), r('plant/equipment.test.ts'), s('blocks/compression/db-guards.test.ts')],
     threshold: 90,
   },
