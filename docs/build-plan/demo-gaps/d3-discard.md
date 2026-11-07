@@ -21,7 +21,7 @@ Changes:
 Not added: deleting a family or a version (record retention), or reopening a family that ever had an approved version
 (a change to an approved master is a new version derived from it, PR-06).
 
-Tests (all editions): `apps/tablets-server/test/designer/discard-draft.test.ts` (the discard with its reason and audit
+Tests (all editions): `apps/tablets-server/test/designer/discard-draft.test.ts` and `discard-draft-editions.test.ts` (the discard with its reason and audit
 entry, a refusal for a version that is not a draft, a restart of a tablets, an injectables and an API family under the
 same code), `packages/recipe-core/test/mutation/reopen-family.test.ts` (the database's refusals),
 `apps/tablets-web/test/designer/` (the button).
