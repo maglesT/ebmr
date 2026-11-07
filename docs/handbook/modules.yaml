@@ -449,7 +449,7 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql:
-        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_']
+        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_', '^1878_']
     src: [packages/recipe-core/src/lifecycle]
     tests:
       - 'packages/recipe-core/test/lifecycle/**'

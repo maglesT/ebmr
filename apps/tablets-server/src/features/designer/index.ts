@@ -334,7 +334,10 @@ async function uniqueViolationAsConflict<T>(work: () => Promise<T>, what: string
         whatHappened: `${what} already exists.`,
         why: 'One MBR family per family code, and per product, strength, dosage form and batch-size set, so there is never a twin master (INV-17).',
         controls: ['PR-01', 'PR-05'],
-        whatYouCanDo: ['Open the existing family in the library, or choose another family code or batch-size set.'],
+        whatYouCanDo: [
+          'Open the existing family in the library, or choose another family code or batch-size set.',
+          'If its draft was abandoned, discard that draft (Designer, "Discard draft") and create the family again under the same family code: the new draft starts in that family.',
+        ],
       });
     }
     throw error;
@@ -546,7 +549,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               whatYouCanDo: ['Ask QA to record and approve the dedication of a contained room or line for the class first.'],
             });
           }
-          const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(contained));
+          const familyId = await lifecycle.familyForNewDraft(c, lifecycle.familyOf(contained));
           const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : 'the required skeleton';
           const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template`);
           await formula.pinFormula(c, v.versionId, chosen.versionId);
@@ -595,7 +598,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             if (error instanceof FamilyInputError) throw familyRefusal(error);
             throw error;
           }
-          const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(content));
+          const familyId = await lifecycle.familyForNewDraft(c, lifecycle.familyOf(content));
           const v = await lifecycle.createVersion(c, familyId, content, `Created as a copy of packaging master version ${body.copyOfVersionId ?? ''} for ${body.product.code} ${body.product.strength}, with its own printed materials`);
           return { versionId: v.versionId };
         }),
@@ -706,7 +709,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
                 whoCanHelp: ['QA (hazard classes and area dedications)'],
               });
             }
-            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(contained));
+            const familyId = await lifecycle.familyForNewDraft(c, lifecycle.familyOf(contained));
             const v = await lifecycle.createVersion(c, familyId, contained, `Created from template ${template.templateId}${chosen ? ` with formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)}` : ''}${hazard.classes.length > 0 ? `; ${hazard.classes.join(', ')} product: protective equipment and decontamination steps added, contained areas only (IN-27)` : ''}`);
             if (chosen) await formula.pinFormula(c, v.versionId, chosen.versionId);
             return { versionId: v.versionId };
@@ -860,6 +863,23 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       return versionView(pool, app, id);
     },
 
+    async discardDraft(ctx) {
+      // D-3: the lifecycle's WITHDRAW of a DRAFT (MBR.AUTHOR; guard platform.reason_given), with the author's own reason,
+      // both halves, in the command (DI-22): a status change in the audit trail; nothing is deleted (DI-24). A version
+      // past DRAFT is refused here; its own withdrawal belongs to QA.
+      ctx.requireRole(...AUTHOR_ROLES);
+      const id = ctx.params.versionId;
+      const head = await requireHead(pool, id);
+      if (head.state !== 'DRAFT') throw notDraft(head.state, 'a version is discarded');
+      const actor = ctx.actor({ reasonCode: ctx.body.reason.code, reasonText: ctx.body.reason.text });
+      await withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
+        const st = await lifecycle.versionState(c, id);
+        if (st?.state !== 'DRAFT') throw notDraft(st?.state ?? 'unknown', 'a version is discarded');
+        await lifecycle.withdrawVersion(c, id, st.version);
+        return id;
+      });
+      return versionView(pool, app, id);
+    },
     async startVerification(ctx) {
       // The author only (the database requires MBR.AUTHOR), before the saved content is analysed (review P18).
       ctx.requireRole(...AUTHOR_ROLES);

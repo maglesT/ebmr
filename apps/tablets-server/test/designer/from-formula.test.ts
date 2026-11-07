@@ -436,3 +436,28 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(report.findings.filter((f) => f.rule === 'GMP-REFERENCES').map((f) => f.message)).toEqual([]);
   }, 120_000);
 });
+
+describe('a discarded draft and a new start in every edition (demo finding D-3, recipe-core 1878)', () => {
+  it('[PR-01][PR-05][DI-24] a blank tablets, injectables and API master is discarded with a reason and created again under the same code: the new draft is in the same family, pinned to its formula; the discarded one stays WITHDRAWN', async () => {
+    for (const [code, dosageForm, edition] of [
+      ['DMT7KT', 'Film-coated tablet', 'tablets'],
+      ['DMT7KI', 'Injection', 'injectables'],
+      ['DMT7KA', 'API', 'substance'],
+    ] as const) {
+      valueOf(await steward.call(md.enterProduct, { body: { productCode: code, strength: PRODUCT.strength, productName: `D-3 ${edition}`, dosageForm, betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+      await confirmErpPending(gmp);
+      const f = await approvedFormula('100000', undefined, LINES, code);
+      const make = () => author.call(routes.designer.createFamily, { body: { familyCode: `${code}-D3`, product: { code, name: `D-3 ${edition}`, strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: f, edition, start: 'BLANK' } });
+      const first = valueOf(await make());
+      expect(refusalOf(await make()).code).toBe('DESIGNER_FAMILY_EXISTS');
+      const gone = valueOf(await author.call(routes.designer.discardDraft, { params: { versionId: first.versionId }, body: { reason: { code: 'DRAFT_DISCARDED', text: `Abandoned the first ${edition} draft` } } }));
+      expect(gone.state).toBe('WITHDRAWN');
+      const again = valueOf(await make());
+      expect(again).toMatchObject({ familyId: first.familyId, state: 'DRAFT' });
+      expect(again.versionId).not.toBe(first.versionId);
+      expect((await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [again.versionId])).rowCount).toBe(1);
+      const { rows } = await gmp.db.admin.query<{ edition: string; n: number }>('select f.edition, count(v.id)::int as n from recipe.mbr_family f join recipe.mbr_version v on v.family_id = f.id where f.id = $1 group by f.edition', [first.familyId]);
+      expect(rows).toEqual([{ edition, n: 2 }]);
+    }
+  }, 240_000);
+});
