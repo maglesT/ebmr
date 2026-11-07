@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { flow } from '@ebmr/recipe-core/pure';
 import granulation from '../../../../packages/recipe-core/test/fixtures/tablet-granulation-compression.mbr.json' with { type: 'json' };
+import dcMini from '../../../../packages/recipe-core/test/fixtures/dc-mini.mbr.json' with { type: 'json' };
+import newStageFixture from '../../../../packages/recipe-core/test/fixtures/designer-new-stage.json' with { type: 'json' };
 import { applyOp, newStage, OpError, treeIds, type Content, type PaletteEntry } from '../../src/features/designer/model/ops.ts';
 
 function parsed(json: unknown): Content {
@@ -29,6 +31,10 @@ const wellFormed = (c: Content): void => {
 
 describe('stage operations (slice 7j)', () => {
   const base = parsed(granulation);
+
+  it('[DI-34] demo finding D-1: newStage builds exactly the stage the server test validates (fixture designer-new-stage.json)', () => {
+    expect(newStage(parsed(dcMini), PALETTE, 'Layer 2 granulation', 'GRAN-2')).toEqual(newStageFixture);
+  });
 
   it('[PR-03][DI-34] a new stage starts with its room clearance and equipment status (the database-backed versions) and goes where the author puts it', () => {
     const first = stagesOf(base)[0] as flow.StageNode;

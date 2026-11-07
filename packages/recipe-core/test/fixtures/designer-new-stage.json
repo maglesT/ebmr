@@ -1,0 +1,82 @@
+{
+  "kind": "stage",
+  "id": "S-LAYER-2-GRANULATION",
+  "name": "Layer 2 granulation",
+  "binding": {
+    "rooms": [
+      "GRAN-2"
+    ],
+    "equipment": []
+  },
+  "purpose": "MATERIAL",
+  "responsibleRole": "PRODUCTION_SUPERVISOR",
+  "body": {
+    "kind": "sequence",
+    "id": "S-LAYER-2-GRANULATION-seq",
+    "children": [
+      {
+        "kind": "operation",
+        "id": "O-LAYER-2-GRANULATION-PREP",
+        "name": "Layer 2 granulation: preparation",
+        "body": {
+          "kind": "sequence",
+          "id": "O-LAYER-2-GRANULATION-PREP-seq",
+          "children": [
+            {
+              "kind": "phase",
+              "id": "p-g-10",
+              "name": "Layer 2 granulation: room clearance",
+              "block": {
+                "type": "G-10",
+                "version": "2"
+              },
+              "config": {},
+              "records": [],
+              "computes": [],
+              "reads": [],
+              "consumes": [],
+              "produces": [],
+              "uses": [],
+              "equipment": [],
+              "signatures": {
+                "perform": {
+                  "role": "PRODUCTION_OPERATOR"
+                },
+                "check": {
+                  "meaning": "VERIFIED",
+                  "role": "PRODUCTION_VERIFIER"
+                }
+              },
+              "significant": true,
+              "riskClass": "MEDIUM"
+            },
+            {
+              "kind": "phase",
+              "id": "p-g-09",
+              "name": "Layer 2 granulation: equipment status",
+              "block": {
+                "type": "G-09",
+                "version": "2"
+              },
+              "config": {},
+              "records": [],
+              "computes": [],
+              "reads": [],
+              "consumes": [],
+              "produces": [],
+              "uses": [],
+              "equipment": [],
+              "signatures": {
+                "perform": {
+                  "role": "PRODUCTION_OPERATOR"
+                }
+              },
+              "significant": false,
+              "riskClass": "MEDIUM"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
