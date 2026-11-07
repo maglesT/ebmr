@@ -1,0 +1,26 @@
+id: AS-17
+title: "Certificate of analysis of an API batch"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 11.3.1 to 11.3.4; ICH Q7 (EU GMP Part II) 11.40 to 11.43. API plan docs/build-plan/api/plan.md sections 4 (C3) and 6."
+behaviour: "An authentic certificate of analysis can be issued for each batch on request. It gives the product's name and grade, the batch number, the release date, the retest or expiry date, each test with its limits and numerical result, and the original manufacturer's name, address and telephone, and the quality unit dates and signs it."
+catalog_test: "Prepare a CoA for a lot that is not released, or that has a required test without an approved result; refused."
+implemented_by:
+  modules:
+    - "substance 5005 (substance.coa_document, prepare_coa, sign_coa: a true copy read from the records, signed COA_APPROVED); tablets 1904 (read class); site-services 1735 (licence holder telephone); CoaPage on the lot release."
+tests:
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-17][AS-18][IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once"
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-17][IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it"
+  - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-17][IN-30][DI-35] the licence holder's telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A3 of the API plan."

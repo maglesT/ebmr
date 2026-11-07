@@ -302,8 +302,8 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(hooks).toEqual(expect.arrayContaining([{ edition: 'SUBSTANCE', function_name: 'substance.grel_edition_items(uuid,text)' }]));
   });
 
-  // API plan A3 (C3; AS-17 once its control file lands): the CoA of the released lot, from the records only.
-  it('[IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once', async () => {
+  // API plan A3 (C3, AS-17): the CoA of the released lot, from the records only.
+  it('[AS-17][AS-18][IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once', async () => {
     const ap = await gmp.asPersona('qcuAuthoriser');
     const view = valueOf(await ap.call(routes.release.coa, { params: { lotId } }));
     expect(view.problems).toEqual([]);
@@ -345,7 +345,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
   });
 
-  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)', async () => {
+  it('[AS-17][IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)', async () => {
     const regulatory = await gmp.asPersona('regulatory');
     const body = { licenceKind: 'MANUFACTURING' as const, form: '25' as const, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
       validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: `${PRODUCT.code}-T`, strength: PRODUCT.strength }] };
@@ -360,7 +360,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(withPhone).toMatchObject({ holder_telephone: '+91 40 2345 6789' });
   });
 
-  it('[IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it', async () => {
+  it('[AS-17][IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it', async () => {
     const other = (await gmp.db.admin.query<{ d: { document: unknown; problems: string[] } }>('select substance.coa_document($1) as d', [randomUUID()])).rows[0]!.d;
     expect(other).toMatchObject({ document: null, problems: [expect.stringMatching(/no finished lot of the API edition/)] });
     const ap = await gmp.asPersona('qcuAuthoriser');
