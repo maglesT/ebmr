@@ -32,6 +32,17 @@ after the tablets namespace), and it never changes how tablets or injectables be
 5. The market guard (kernel 1404) refuses a tablets or sterile rule key on an API scope: an API master binds the kernel
    rule table only.
 
+## Rework and reprocessing (plan A4a, AS-08, AS-19, AS-20)
+
+No code of the edition's own: the API edition uses the existing mechanisms, and migration 5007 only names AS-19 and
+AS-20. An intermediate lot that fails its specification is rejected by QA through the material-lot decision and cannot be
+reserved by the next step. A rework is a master of its own, of record kind REPROCESSING and the same product; its batch is
+planned only on the quality unit's authorised request, with a QA-concluded investigation linked to each parent, a stored
+risk evaluation and the product's reprocessing permission (recipe-core 0624, 0625). The release item G3.EXTRA_TESTING
+holds the reworked batch until QC records its decision on additional testing. A step that adds unreacted or reprocessed
+material is a G-24 step with QA's signed authorisation (recipe-core 0621, 0622). The tests are in
+[rework.test.ts](../../../apps/tablets-server/test/substance/rework.test.ts).
+
 ## The certificate of analysis (plan C3, AS-17)
 
 Migration 5005. The CoA of a released finished lot of the API edition is read only from existing records

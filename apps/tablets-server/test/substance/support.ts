@@ -56,7 +56,7 @@ export const g07Phase = (id: string, input: StepInput): Json => ({
 
 /** dc-mini reshaped as a master of the API edition: the product's header, the stages given, the input's BOM line (if any). */
 export function apiContent(o: {
-  family: string; title: string; product: Product; recordKind: 'PROCESSING' | 'PACKAGING'; defs: library.BlockDefinition[];
+  family: string; title: string; product: Product; recordKind: 'PROCESSING' | 'PACKAGING' | 'REPROCESSING'; defs: library.BlockDefinition[];
   stages: (like: Json) => Json[]; input?: StepInput; materials?: { code: string; title: string; role: string; quantity: { value: string; unit: string } }[]; packType?: string;
 }): flow.MbrContent {
   return gmpContent((m) => {
