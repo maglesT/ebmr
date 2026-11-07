@@ -75,6 +75,7 @@ const LATER_READ_ROUTES = [
   'features/market/policies.ts#setSiteValue',
   'features/master-data/index.ts#addFormulaVersion',
   'features/master-data/index.ts#createFormula',
+  'features/master-data/index.ts#withdrawFormulaVersion',
   'features/notifications/index.ts#acknowledge',
   'features/operations/index.ts#acknowledgeAlarm',
   'features/operations/index.ts#controlWorker',

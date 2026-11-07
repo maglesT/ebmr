@@ -21,7 +21,7 @@ behaviour: |-
 catalog_test: Dispense an excipient with its endotoxin result pending → hard stop.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-39] a primary component is accepted by its lot on the formula line (the lot register checks its material and QC release); an open pack is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-39] each primary component lot is named where it is used (vial or ampoule at washing, stopper in a stopper load, seal at capping), not as a formula line; a second person verifies it, and a lot QC has not released is refused (G07-LOT-STATUS)"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
