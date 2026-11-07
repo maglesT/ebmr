@@ -2,8 +2,8 @@
  * Demo finding D-1 (bilayer MGL-SR-BL, 7 November 2026): a stage added in the designer passes the full validator against
  * the real adapters. The stage is the designer's own `newStage` output (fixture designer-new-stage.json, which
  * apps/tablets-web/test/designer/stage-ops.test.ts proves newStage builds; a server test does not import the web app).
- * Its room clearance and equipment status sit in an operation of the stage, never directly in it (FLOW-LEVELS, DI-34),
- * and the stage takes its own yield step there: the library yield block, as the designer inserts it
+ * Its room clearance and equipment status sit in an operation of the stage (the operation level is optional since
+ * R-flow, ADR 0004 decision 1 as amended), and the stage takes its own yield step there: the library yield block, as the designer inserts it
  * (library.libraryPhase with the definition carried, ADD_LIBRARY_BLOCK).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

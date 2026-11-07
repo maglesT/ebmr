@@ -40,7 +40,7 @@ describe('stage operations (slice 7j)', () => {
     const first = stagesOf(base)[0] as flow.StageNode;
     const stage = newStage(base, PALETTE, 'Film coating', 'COAT-1');
     expect(stage.binding.rooms).toEqual(['COAT-1']);
-    // Demo finding D-1: the phases sit in an operation of the stage (FLOW-LEVELS, DI-34), never directly in it.
+    // Demo finding D-1: the phases sit in an operation of the stage (an optional level, ADR 0004 decision 1 as amended).
     const ops = (stage.body as flow.SequenceNode).children as flow.OperationNode[];
     expect(ops.map((o) => [o.kind, o.name])).toEqual([['operation', 'Film coating: preparation']]);
     const steps = ((ops[0] as flow.OperationNode).body as flow.SequenceNode).children as flow.PhaseNode[];
