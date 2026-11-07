@@ -133,6 +133,13 @@ export const TARGETS: Target[] = [
     tests: [k('records/retention-purge.test.ts')],
     threshold: 90,
   },
+  // Kernel 1405 (API retest-distribution rows, rule set RET-2026.2): the retention evaluation and input normalisation.
+  {
+    group: 'retention-rules',
+    functions: ['records.evaluate_retention', 'records.normalize_retention_inputs'],
+    tests: [k('records/retention-rules.test.ts'), k('records/batch-retention.test.ts')],
+    threshold: 90,
+  },
   {
     group: 'site-values-and-policies',
     functions: ['market.assess_site_value', 'market.set_site_value', 'market.policy_pin_guard', 'market.policy_version_guard',
