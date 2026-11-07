@@ -46,3 +46,17 @@ describe('the header name follows the dosage form on screen (Capsules edition C2
     expect(header()).toContain('Batchwright Tablets');
   });
 });
+
+describe('the header names the Injectables edition for an injectable dosage form (injectables plan I-1c)', () => {
+  it('[PR-01] Injectables while a vial or ampoule master or batch is on screen; back to Tablets when it leaves', () => {
+    const { rerender } = render(<App />);
+    for (const form of ['Solution for injection', 'Powder for injection', 'Infusion', 'Parenteral solution'] as const) {
+      rerender(<App form={form} />);
+      expect(header()).toContain('Batchwright Injectables');
+    }
+    rerender(<App form="Film-coated tablet" />);
+    expect(header()).toContain('Batchwright Tablets');
+    rerender(<App />);
+    expect(header()).toContain('Batchwright Tablets');
+  });
+});
