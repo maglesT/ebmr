@@ -22,8 +22,14 @@ export function useRefresh(ids: readonly string[]): () => Promise<void> {
   }, [qc, ids]);
 }
 
+export interface RunOptions<R extends AnyRoute> {
+  /** Called with the answer once the command committed and before the reads are read again (a form empties itself here,
+   *  so a person who starts the next entry as soon as the lists show the last one keeps what they type). */
+  onCommitted?: (value: RouteResponse<R>) => void;
+}
+
 export interface Command<R extends AnyRoute> {
-  run: (input: CallInput<R>) => Promise<RouteResponse<R> | null>;
+  run: (input: CallInput<R>, options?: RunOptions<R>) => Promise<RouteResponse<R> | null>;
   busy: boolean;
   error: CallError | null;
   done: RouteResponse<R> | null;
@@ -45,7 +51,7 @@ export function useCommand<R extends AnyRoute>(route: R, refresh: readonly strin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CallError | null>(null);
   const [done, setDone] = useState<RouteResponse<R> | null>(null);
-  const run = async (input: CallInput<R>): Promise<RouteResponse<R> | null> => {
+  const run = async (input: CallInput<R>, options?: RunOptions<R>): Promise<RouteResponse<R> | null> => {
     setBusy(true);
     setError(null);
     setDone(null);
@@ -64,6 +70,7 @@ export function useCommand<R extends AnyRoute>(route: R, refresh: readonly strin
         if (!attribution) return null;
       }
       const r = await api.call(route, attribution ? ({ ...input, attribution }) : input);
+      if (r.ok) options?.onCommitted?.(r.value);
       await reread();
       if (!r.ok) {
         setError(r.error);
