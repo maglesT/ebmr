@@ -79,7 +79,7 @@ describe('run-level exceptions on the run overview (T3)', () => {
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'Risk rationale' }), 'Blend time beyond the validated range');
     await userEvent.click(raise);
     expect((await within(dialog).findByTestId('deviation-raised')).textContent).toContain('DEV-2026-0099');
-    expect((within(dialog).getByRole('textbox', { name: 'Deviation number' })).value).toBe('DEV-2026-0099');
+    expect(within(dialog).getByRole('textbox', { name: 'Deviation number' })).toHaveProperty('value', 'DEV-2026-0099');
     const posts = ui.requests.filter((r) => r.method === 'POST' && r.path.startsWith('/api/quality/deviations'));
     expect(posts.map((r) => [r.path, r.body])).toEqual([
       ['/api/quality/deviations', { kind: 'DEVIATION', title: 'Wrong label roll delivered to the line', classification: 'MAJOR', riskRationale: 'Blend time beyond the validated range' }],

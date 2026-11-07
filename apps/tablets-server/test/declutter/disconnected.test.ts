@@ -85,7 +85,7 @@ describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch p
   it('[DI-17] the disconnected deviation routes are exactly the full-record ones, all owned by Deviations', () => {
     expect(Object.entries(DISCONNECTED_ROUTES).sort()).toEqual(
       [
-        'quality.cancelDeviation', 'quality.deviation', 'quality.reclassifyDeviation',
+        'quality.cancelDeviation', 'quality.reclassifyDeviation',
       ].sort().map((id) => [id, 'Deviations']),
     );
   });
@@ -113,7 +113,7 @@ describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch p
     expect(gone(await qa.call(routes.quality.deviationRelease, { query: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
     // D4-R5 (lead, option A) and D4b: the investigation, its finding, the impact and the closure basis QA's conclusion
     // needs (site.conclude_deviation), and the record's detail, stay for invalidation and reprocessing.
-    const oosPath = [routes.quality.startInvestigation, routes.quality.recordFinding, routes.quality.deviationDetail, routes.quality.recordDeviationImpact, routes.quality.recordDeviationClosureBasis] as AnyRoute[];
+    const oosPath = [routes.quality.deviation, routes.quality.startInvestigation, routes.quality.recordFinding, routes.quality.deviationDetail, routes.quality.recordDeviationImpact, routes.quality.recordDeviationClosureBasis] as AnyRoute[];
     for (const route of oosPath) expect(isDisconnectedRoute(route.id), route.id).toBe(false);
     for (const route of oosPath) {
       const res = await qa.inject({ method: route.method, url: urlOf(route) });
