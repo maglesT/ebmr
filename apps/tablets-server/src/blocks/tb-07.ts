@@ -53,6 +53,7 @@ import {
   type MbrContent,
   type PhaseNode,
 } from './granulation/common.ts';
+import { limits } from '@ebmr/recipe-core/pure';
 import { PROCESS_SUMMARIES, S } from './summaries.ts';
 
 const CONTROLS = ['IN-36', 'IN-13', 'PR-29', 'DI-29'];
@@ -112,8 +113,18 @@ function acceptEnd(view: HandlerView, startKind: string, kind: string, key: stri
   if (w.min !== undefined && elapsed < w.min) {
     return refuse(kind === 'BLEND_END' ? 'TB07-BLEND-SHORT' : 'TB07-LUBRICATION-SHORT', `The ${what} of ${view.stepKey} (${secondsText(elapsed)} s) has not reached the MBR's minimum`, ['IN-36', 'IN-13']);
   }
-  const ok = w.max === undefined || elapsed <= w.max;
-  return { ok: true, data: { seconds: secondsText(elapsed), withinLimits: ok, recordedBy: view.actor.id }, ...(ok ? {} : { exceptions: [exceeded(view, type, what, elapsed)] }) };
+  const inWindow = w.max === undefined || elapsed <= w.max;
+  // "Within limits" in the record means within every limit of the time: the block's window and the tiers of the MBR
+  // parameter it computes (owner report item 18: 340.8 s read "within limits" against a validated 270 to 330 s). The
+  // engine judges the time and raises the tier's exception when it stores it, at the PERFORMED attempt (INV-25).
+  const p = w.item !== undefined ? view.parameter(w.item) : undefined;
+  let inTiers = true;
+  try {
+    inTiers = !p?.limits || limits.evaluateLimits(p.limits, { value: secondsText(elapsed), unit: 's' }, view.expr).breached === undefined;
+  } catch {
+    // A limit in a unit seconds cannot convert to: the engine refuses the entry when it stores the time (ENG-VALUE-UNIT).
+  }
+  return { ok: true, data: { seconds: secondsText(elapsed), withinLimits: inWindow && inTiers, recordedBy: view.actor.id }, ...(inWindow ? {} : { exceptions: [exceeded(view, type, what, elapsed)] }) };
 }
 
 function blendingFinished(view: HandlerView): boolean {

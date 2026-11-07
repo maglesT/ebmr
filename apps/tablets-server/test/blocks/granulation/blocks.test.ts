@@ -9,7 +9,7 @@ import { blocks, type flow } from '@ebmr/recipe-core/pure';
 import { GRANULATION_BLOCK_VERSIONS, TB02, TB03, TB04, TB05, TB07 } from '../../../src/blocks/granulation/index.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
 import { blockMbr, definitionCodes, fixturePhase, iteration, LOOP, MIN, OP1, phase, Run, runGolden, sig, startRun, T0, VER1, defineFor } from './support.ts';
-import type { engine } from '@ebmr/recipe-core/pure';
+import { engine } from '@ebmr/recipe-core/pure';
 
 /** An operator without the production-operator role (not authorised for extra fluid). */
 const OP9: engine.Actor = { id: 'OP9', kind: 'PERSON', roles: ['OPERATOR'] };
@@ -306,6 +306,30 @@ describe('TB-07 blending, lubrication and blend uniformity', () => {
     expect(run.value('blendTime', 'p')).toBe('1200.000000');
     expect(run.value('lubeTime', 'p')).toBe('360.000000');
     expect(run.exceptions().map((e) => `${e.type}${e.tier ? `:${e.tier}` : ''}`).sort()).toEqual(['BLEND_TIME_EXCEEDED', 'LIMIT_BREACH:INTERNAL_ACTION', 'LUBRICATION_TIME_EXCEEDED']);
+  });
+
+  it('[PR-08][IN-36][INV-25] a blend time outside its validated tier reads "outside limits" when blending ends; the signature stays offered, its attempt records the exception, which takes its deviation, and the step is then signed (owner report items 1 and 18)', () => {
+    // The demo case: validated 270 to 330 s, the blend ended after 341 s. Before, the breach was raised only inside the
+    // PERFORMED attempt, which the action list dry-ran and greyed out, so the exception was never stored.
+    const f = fixturePhase(TB07);
+    const p = { ...f, records: ['blendTime'], config: { blendTime: { min: { value: '4', unit: 'min' }, max: { value: '15', unit: 'min' }, item: 'blendTime' } } } as flow.PhaseNode;
+    const base = blockMbr(TB07, p);
+    const validated = { unit: 's', ranges: [{ tier: 'VALIDATED', low: { value: '270', inclusive: true }, high: { value: '330', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'VR' } }] };
+    const mbr = { ...base, parameters: base.parameters.map((x) => (x.id === 'blendTime' ? { ...x, limits: validated } : x)) } as flow.MbrContent;
+    const { run } = startRun(TB07, mbr);
+    const offered = () => engine.availableActions(run.def, run.state, OP1, { nowUs: run.nowUs }, { stepKey: 'p@' }).find((a) => a.action === 'SIGN_PERFORMED');
+    run.entry('p', { kind: 'BLEND_START' });
+    run.advance(341_000_000n);
+    run.entry('p', { kind: 'BLEND_END' });
+    expect(Object.values(run.state.entries).find((e) => e.kind === 'BLEND_END')?.data['withinLimits']).toBe(false);
+    expect(offered()?.available).toBe(true);
+    expect(run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'p', context: [], signature: sig('PERFORMED', OP1) }).code).toBe('ENG-BLOCKED');
+    const [ex] = run.exceptions('LIMIT_BREACH');
+    expect(ex).toMatchObject({ tier: 'VALIDATED', registrationRelevant: true, qaOnly: true, status: 'OPEN', source: { stepKey: 'p@' } });
+    expect(offered()).toMatchObject({ available: false, refusal: { code: 'ENG-BLOCKED' } });
+    run.ok({ type: 'ATTACH_DEVIATION', actor: OP1, exception: ex?.id ?? '', deviationRef: 'TEST-DEV-0001' });
+    expect(run.perform('p').accepted).toBe(true);
+    expect(run.exceptions('LIMIT_BREACH')).toHaveLength(1);
   });
 
   it('[PR-29][DI-29] blend-uniformity samples only of the sampling plan, after blending is finished, once each, in the unit-dose unit, 1 to 3 unit doses unless a justification is recorded; locations not sampled are flagged at PERFORMED', () => {
