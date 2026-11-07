@@ -17,6 +17,9 @@ import type { SeedItem } from './types.ts';
 
 export type { SeedItem } from './types.ts';
 
+// R-flow item 2 (D-0 row 4): the edition-neutral blocks (the controls; dispensing, sifting, milling, hold and transfer;
+// cartoning, coding, leak test, label reconciliation and shipper packing) name `edition: 'generic'`, so every edition's
+// master may use them (EBMR-LIB-024). A block whose text names a tablet process stays a tablets block.
 export const SEED_GROUPS: Readonly<Record<string, readonly SeedItem[]>> = {
   process: PROCESS_SEEDS,
   controls: CONTROL_SEEDS,
