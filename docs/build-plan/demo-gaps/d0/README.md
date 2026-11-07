@@ -50,3 +50,23 @@ TB-04, TB-05 and TB-18 show "existing masters only": they are built-in tablet bl
 O-6 takes TB-01..24 out of the palette (`apps/tablets-server/src/features/designer/palette.ts` `retiredFromPalette`,
 `insertable: false`); existing masters keep running them. Their library replacements are PROC-RMG, PROC-FBD and the
 COAT-* blocks.
+
+## Lead audit (7 November 2026): accepted
+
+- Rows 1, 2, 3, 4, 7, 8 and 9 as proposed.
+- Row 5: `required: false` only on a section the block marks as an event or conditional section (extra binder, alarm,
+  rework); a section that is the step's processing record stays required (211.188(b), documentation of each
+  significant step).
+- Row 6: 211.103 asks for yields at the end of each appropriate phase and the master decides which are appropriate:
+  "no yield for this stage" takes a reason written on the stage, approved with the master (no extra signature);
+  "nothing after the yield" becomes a warning.
+- Other (c) rows as proposed, except the sanity bounds (LIB-FIELD-DECIMALS, LIB-FIELD-LENGTH, 60 formula lines, 9
+  further batch sizes): kept as (b) storage and screen limits, citing no clause.
+- The defects are fixed too (line-id case collision, an EBMR-FRM code for a duplicate formula, the wrong citations).
+- PR order: D-1; D-2 (formula: FRM-010 by line id, FRM-011, FRM-009 capsule coat, withdraw a formula draft, the
+  line-id case, the duplicate-formula code); R-flow (FLOW-LEVELS with LIB_LEVEL and the ADR 0004 amendment, LIB-024
+  generic seed blocks, optional event sections, stage yield with a reason, LIB-NO-FIELDS for INSTRUCTION and
+  SIGN_OFF, a target without limits, LIB-CALC-REQUIRED a warning, the citation fixes); D-3; R-rest (the other (c)
+  rows); then D-4 to D-8.
+- A removal PR that keeps a refusal for an (a) clause quotes the official text there; the official-text check of all
+  81 (a) rows follows the removals as its own docs PR.
