@@ -99,7 +99,10 @@ function header(src: FormulaSource, req: FormulaFamilyRequest, markets: string[]
 }
 
 function materialRefs(src: FormulaSource): flow.Reference[] {
-  return src.chosen.lines.map((l) => {
+  // D-2: a material on several lines (two layers, two kinds of pellets) is one reference.
+  const codes = [...new Set(src.chosen.lines.map((l) => l.materialCode))];
+  return codes.map((code) => {
+    const l = { materialCode: code };
     const m = src.materials.find((x) => x.code === l.materialCode);
     if (!m) throw new FamilyInputError('DESIGNER_MATERIAL', `Material ${l.materialCode} of the formula is not in effect in the material master.`, ['PR-17']);
     // Slice 7o (found by the R4 browser run): a material with a registered MATERIAL document is pinned to that document,
@@ -332,9 +335,16 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   const t = structuredClone(source);
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
   checkShells(src);
+  // A formula line takes the source's BOM line of its own id, else the next unused one of its material (D-2: a
+  // material may be on several lines), else a new id; each source line is taken once.
+  const taken = new Set<string>();
+  const lineOf = new Map<string, formula.FormulaLine>();
   const bom: flow.BomLine[] = src.chosen.lines.map((l) => {
-    const same = t.bom.find((b) => codeOf(b) === l.materialCode);
-    return { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
+    const same = t.bom.find((b) => b.id === bomId(l) && codeOf(b) === l.materialCode && !taken.has(b.id)) ?? t.bom.find((b) => codeOf(b) === l.materialCode && !taken.has(b.id));
+    if (same) taken.add(same.id);
+    const line: flow.BomLine = { id: same?.id ?? bomId(l), material: same?.material ?? l.materialCode, role: isShellLine(src, l) ? 'OTHER' : BOM_ROLE[l.role], quantity: { value: l.batchQuantity, unit: 'kg' } };
+    lineOf.set(line.id, l);
+    return line;
   });
   const kept = new Set(bom.map((b) => b.id));
   // Slice 7o (found by the R4 browser run): a material the approved source already names keeps the source's reference
@@ -365,7 +375,7 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
   });
   const units = Dec.parse(src.chosen.batchSizeUnits);
   for (const b of bom) {
-    const l = src.chosen.lines.find((x) => x.materialCode === b.material);
+    const l = lineOf.get(b.id);
     if (!l || !onBase.has(b.id) || l.role !== 'ACTIVE' || l.basis !== 'PER_UNIT' || l.saltFactor === undefined || l.saltFactor === null) continue;
     const base = Dec.parse(l.quantity).times(units).times(Dec.parse('100').plus(Dec.parse(l.overagePercent ?? '0'))).div(Dec.parse('100')).div(Dec.parse('1000000'));
     b.quantity = { value: base.toString(), unit: 'kg' };

@@ -303,6 +303,35 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect((await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [proc.versionId])).rowCount).toBe(1);
   });
 
+  it('[PR-03][INV-25] demo finding D-2: the same material on several formula lines (a bilayer tablet\'s two layers, an injectable\'s water for the solution and the rinse, an API\'s solvent in two stages) makes a master in each edition: one BOM line per formula line, one material reference, pinned', async () => {
+    const twice = (lines: FormulaLineInput[], dup: FormulaLineInput): FormulaLineInput[] => [...lines, { ...dup, lineId: `${dup.lineId}2`, compensating: false, quantity: '20', overagePercent: undefined, overageReason: undefined }];
+    const bilayer = twice(LINES, LINES[1] as FormulaLineInput);
+    const tf = await approvedFormula('130001', undefined, bilayer);
+    const t = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-BL2', product: PRODUCT, markets: ['IN'], formulaVersionId: tf, start: 'SKELETON' } }));
+    type Bom = { bom: { id: string; material: string }[]; references: { id: string; kind: string; code?: string }[] };
+    const tc = t.content as unknown as Bom;
+    expect(tc.bom.filter((b) => b.material === tc.bom.find((x) => x.id === 'BOM-LAC')?.material).map((b) => b.id)).toEqual(['BOM-LAC', 'BOM-LAC2']);
+    expect(tc.references.filter((r) => r.kind === 'MATERIAL' && r.code === 'RM-7JF-LAC')).toHaveLength(1);
+    expect((await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [t.versionId])).rowCount).toBe(1);
+    const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: t.versionId, content: t.content } }));
+    expect(report.findings.filter((f) => f.severity === 'ERROR').map((f) => `${f.rule}: ${f.message}`)).toEqual([]);
+    // Injectables and API: the blank start from such a formula, pinned the same way.
+    for (const [code, dosageForm, edition, dup] of [
+      ['DMT7JW', 'Injection', 'injectables', { lineId: 'wat', materialCode: 'RM-7JF-WAT', role: 'EXCIPIENT', basis: 'PER_UNIT', quantity: '100', potencyAdjusted: false, compensating: false }],
+      ['DMT7JX', 'API', 'substance', LINES[3] as FormulaLineInput],
+    ] as const) {
+      valueOf(await steward.call(md.enterProduct, { body: { productCode: code, strength: PRODUCT.strength, productName: `D-2 ${edition}`, dosageForm, betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+      await confirmErpPending(gmp);
+      const lines = dup.lineId === 'wat' ? twice([...LINES, dup], dup) : twice(LINES, dup);
+      const f = await approvedFormula('100000', undefined, lines, code);
+      const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: `${code}-BL`, product: { code, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: f, edition, start: 'BLANK' } }));
+      const c = v.content as unknown as Bom;
+      expect(c.bom.map((b) => b.id)).toEqual(expect.arrayContaining([`BOM-${dup.lineId.toUpperCase()}`, `BOM-${dup.lineId.toUpperCase()}2`]));
+      expect(c.references.filter((r) => r.kind === 'MATERIAL' && r.code === dup.materialCode)).toHaveLength(1);
+      expect((await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [v.versionId])).rowCount).toBe(1);
+    }
+  }, 240_000);
+
   it('[PR-01][PR-03][INV-25] a hard-capsule product makes a master from its formula: the dosage form is the product master\'s, the dispensing targets are worded per capsule, and the validator passes; a dosage form counts as a capsule only when it says capsule, so a bare Softgel is refused (Capsules edition plan, slice C1)', async () => {
     const capsuleFormula = await approvedFormula('100000', undefined, LINES, CAPSULE_PRODUCT);
     const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JC-SK', product: { code: CAPSULE_PRODUCT, name: 'x', strength: PRODUCT.strength }, markets: ['IN'], formulaVersionId: capsuleFormula, start: 'SKELETON' } }));

@@ -2,7 +2,7 @@
  * The company formulation library, rule by rule (SQL mutation group "formulas": recipe-core 0640, 0642, 0690). These
  * tests close the gaps the Phase 3 exit SQL mutation run found in apps/tablets-server/test/master-data: each refusal
  * of a malformed formula or version on its own (whole units, 1 to 60 lines, decimal text, flags, basis, one draft at a
- * time, one compensating excipient), the state of a version read against its own formula, the readers' answers for
+ * time, a compensating excipient only with an adjusted active), the state of a version read against its own formula, the readers' answers for
  * the formula named, the signed content of a version, and the row lock of an approval.
  *
  * Every write is made in a command of a seeded person (the application's path); the readers owner-only are called by
@@ -139,7 +139,7 @@ describe('a formula and its versions are refused rule by rule', () => {
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('[DI-35][INV-25] one draft at a time: a new version follows an approved one; one compensating excipient, read in this version only', async () => {
+  it('[DI-35][INV-25] one draft at a time: a new version follows an approved one; a compensating excipient needs an adjusted active, read in this version only', async () => {
     const f = await newFormula();
     const v1 = await addVersion(f.id, version());
     expect(await refusal(addVersion(f.id, version()))).toMatch(/Version 1 of this formula is still a draft.*EBMR-FRM-006/);
@@ -153,9 +153,13 @@ describe('a formula and its versions are refused rule by rule', () => {
     const other = await newFormula();
     await addVersion(other.id, version(adjusted));
     expect(await addVersion(f.id, version(adjusted))).toMatch(/^[0-9a-f-]{36}$/);
+    // D-0 sweep (recipe-core 1876): two compensating excipients are allowed; one with no adjusted active in this version
+    // is refused, whatever another formula holds.
     const twice = await newFormula();
     const two = [adjusted[0], adjusted[1], { ...adjusted[2], compensating: true }];
-    expect(await refusal(addVersion(twice.id, version(two)))).toMatch(/at most one compensating excipient.*EBMR-FRM-011/);
+    expect(await addVersion(twice.id, version(two))).toMatch(/^[0-9a-f-]{36}$/);
+    const none = await newFormula();
+    expect(await refusal(addVersion(none.id, version([LINE, adjusted[1], adjusted[2]])))).toMatch(/adjusts none.*EBMR-FRM-011/);
   });
 });
 

@@ -42,7 +42,7 @@ async function importMasters(): Promise<void> {
   const material = (code: string, name: string, kind: 'API' | 'EXCIPIENT') => ({ materialCode: code, materialName: name, materialKind: kind, unit: 'kg', maxRetestMonths: 24, erpReference: `SAP-${code}` });
   const catalogue = {
     products: [
-      ...['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((t) => ({ productCode: prod(t).code, strength: prod(t).strength, productName: prod(t).name, betaLactam: false, shelfLifeMonths: 36, erpReference: `SAP-FG-${prod(t).code}` })),
+      ...['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map((t) => ({ productCode: prod(t).code, strength: prod(t).strength, productName: prod(t).name, betaLactam: false, shelfLifeMonths: 36, erpReference: `SAP-FG-${prod(t).code}` })),
       { productCode: 'IBU400', strength: '400 mg', productName: 'Ibuprofen tablets IP 400 mg', betaLactam: false, shelfLifeMonths: 36, erpReference: 'SAP-FG-IBU400' },
     ],
     materials: [material('MAT-PCM', 'Paracetamol IP', 'API'), material('MAT-MCC', 'Microcrystalline cellulose', 'EXCIPIENT'), material('MAT-MGS', 'Magnesium stearate', 'EXCIPIENT'),
@@ -325,4 +325,66 @@ describe('formulation library (slice 6a)', () => {
     await expect(world.approve(second)).rejects.toThrow(/SUPERSEDED.*EBMR-FRM-020/);
     expect((await world.state(second)).state).toBe('CHECKED');
   }, 300_000);
+  describe('demo finding D-2 and the D-0 sweep (recipe-core 1876)', () => {
+    let n = 0;
+    const draft = async (lines: unknown[], unitForm?: string): Promise<string | null> => {
+      n += 1;
+      const f = await newFormula(String(80000 + n), prod('I'));
+      return asApp(steward, 'steward', 'select recipe.formula_add_version($1, $2::jsonb)::text', [f, JSON.stringify({ changeReason: 'D-2', lines, ...(unitForm ? { unitForm } : {}) })]);
+    };
+    const [api, mcc, mgs] = LINES as [FormulaLineInput, FormulaLineInput, FormulaLineInput];
+
+    it('[INV-25][PR-03] a material may be on several lines (a bilayer tablet\'s two layers); line ids stay unique whatever their letter case', async () => {
+      expect(await draft([api, mcc, { ...mcc, lineId: 'mcc2', quantity: '40' }, mgs])).toBeNull();
+      expect(await draft([api, mcc, { ...mcc, lineId: 'MCC', quantity: '40' }, mgs])).toMatch(/EBMR-FRM-023/);
+      // The database itself refuses two ids of one version that differ only in case, whoever writes them.
+      const { rows } = await gmp.db.admin.query<{ i: string }>("select indexdef as i from pg_indexes where schemaname = 'formulary' and indexname = 'formula_line_id_any_case'");
+      expect(rows[0]?.i).toMatch(/upper\(line_id\)/);
+    }, 120_000);
+
+    it('[INV-25][PR-03] compensating excipients: several are allowed, an adjusted active may have none, a compensating excipient still needs an adjusted active (EBMR-FRM-011)', async () => {
+      const adjusted = { ...api, potencyAdjusted: true };
+      const comp = (id: string) => ({ ...mcc, lineId: id, compensating: true });
+      expect(await draft([adjusted, comp('mcc'), comp('mcc2'), mgs])).toBeNull();
+      expect(await draft([adjusted, mcc, mgs])).toBeNull();
+      expect(await draft([api, comp('mcc'), mgs])).toMatch(/EBMR-FRM-011/);
+    }, 120_000);
+
+    it('[INV-25][PR-03] a capsule\'s coat is given per batch, as the designer asks; a tablet\'s per-batch coat stays refused (EBMR-FRM-009)', async () => {
+      const coat = { lineId: 'coat', materialCode: 'MAT-MGS', role: 'COATING', basis: 'PER_BATCH', quantity: '2', potencyAdjusted: false, compensating: false };
+      expect(await draft([api, mcc, coat], 'CAPSULE')).toBeNull();
+      expect(await draft([api, mcc, coat])).toMatch(/EBMR-FRM-009/);
+    }, 120_000);
+
+    it('[PR-03] a second formula for the same product, strength and batch size is refused with its own code, not as an internal error (EBMR-FRM-021)', async () => {
+      await newFormula('81000', prod('J'));
+      const again = refusalOf(await steward.call(md.createFormula, { body: { productCode: prod('J').code, strength: prod('J').strength, batchSizeUnits: '81000' } }));
+      expect(again).toMatchObject({ status: 422, code: 'EBMR-FRM-021' });
+    });
+
+    it('[DI-24][DI-22] the author withdraws a draft with a reason; it stays on record as WITHDRAWN, cannot be approved, and a new version follows it; an approved version is never withdrawn', async () => {
+      const formulaId = await newFormula('82000', prod('J'));
+      const v1 = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'Typed in the wrong layer', lines: LINES } }));
+      const w = (versionId: string, reason: string) => steward.call(md.withdrawFormulaVersion, { params: { formulaId, versionId }, body: { reason } });
+      expect((await steward.call(md.withdrawFormulaVersion, { params: { formulaId, versionId: v1.versionId }, body: { reason: '  ' } })).ok).toBe(false);
+      expect(valueOf(await w(v1.versionId, 'Written for the wrong layer split')).state).toBe('WITHDRAWN');
+      // Nothing is deleted: the version, its lines and the withdrawal are on record, and in the audit trail.
+      const kept = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from formulary.formula_line where version_id = $1', [v1.versionId]);
+      expect(kept.rows[0]?.n).toBe(String(LINES.length));
+      const audit = await gmp.db.admin.query<{ reason: string }>("select payload -> 'row' ->> 'reason' as reason from kernel.audit_event where table_name = 'formulary.formula_withdrawal' and action = 'INSERT' and payload::text like '%' || $1 || '%'", [v1.versionId]);
+      expect(audit.rowCount).toBe(1);
+      expect(await asApp(steward, 'steward', 'update formulary.formula_withdrawal set reason = $2 where version_id = $1', [v1.versionId, 'x'])).toMatch(/permission denied|EBMR/);
+      // A withdrawn version is not approved, and is not withdrawn twice.
+      const signed = await signAction(gmp, approver, 'approver', { kind: 'MASTER_DATA_APPROVE', masterKind: 'FORMULA', versionId: v1.versionId });
+      expect(signed.ok).toBe(false);
+      expect(JSON.stringify(signed)).toMatch(/EBMR-FRM-022|WITHDRAWN|withdrawn/);
+      expect(refusalOf(await w(v1.versionId, 'again'))?.code).toBe('EBMR-FRM-022');
+      // A new version follows the withdrawn draft (EBMR-FRM-006 asked only that the latest is not a DRAFT); approved, it
+      // cannot be withdrawn.
+      const v2 = await approvedVersion(formulaId);
+      expect(refusalOf(await w(v2, 'too late'))?.code).toBe('EBMR-FRM-022');
+      const after = valueOf(await steward.call(md.formula, { params: { formulaId } }));
+      expect(after.versions.map((x) => x.state)).toEqual(expect.arrayContaining(['WITHDRAWN', 'APPROVED']));
+    }, 180_000);
+  });
 });
