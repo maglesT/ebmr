@@ -5,7 +5,7 @@
  * OUTPUT_CONTAINER_RELEASED once the hold is explained). Every write is the person's own command; every rule is the
  * database's (recipe-core 0420 to 0422, 0740, 0741; tablets 1111). The views show the database's own reasons why a
  * container is not usable (plant.container_usable_problem) or not releasable (plant.container_release_problem).
- * API plan A4c (recipe-core 1881): QA's own hold of a closed or released container (plant.hold_container, with QA's
+ * API plan A4c (recipe-core 1881, 1882, 1882): QA's own hold of a closed or released container (plant.hold_container, with QA's
  * reason); `qaHoldable` is the database's answer whether the container's machine version takes QA_HOLD in its state.
  */
 import { routes, type ContainerView, type SignableAction } from '@ebmr/api-contract';
@@ -183,7 +183,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       }, ctx.body.reason);
       return containerView(app, pool, ctx.params.containerId);
     },
-    // API plan A4c (recipe-core 1881): QA holds a closed or released container with its own reason (QA.FLOOR_APPROVE).
+    // API plan A4c (recipe-core 1881, 1882, 1882): QA holds a closed or released container with its own reason (QA.FLOOR_APPROVE).
     hold: async (ctx) => {
       ctx.requireSession();
       await write(ctx, async (c) => {

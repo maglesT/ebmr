@@ -14,7 +14,7 @@
  *    solvent, and the mix is two G-07 weighings, one per lot, each consumed in its own command; the genealogy shows both
  *    lots CONSUMED into that batch.
  *
- *  - Q7 14.40, 14.43 (A4c, recipe-core 1881): mother liquor of batch N carried into batch N+1 of the same master. The
+ *  - Q7 14.40, 14.43 (A4c, recipe-core 1881, 1882, 1882): mother liquor of batch N carried into batch N+1 of the same master. The
  *    mother liquor is a closed output container of batch N; QA holds it of its own decision (plant.hold_container,
  *    QA_HOLD of machine output_container v2), releases it under its signature once tested, and authorises batch N+1's
  *    G-24@2 RECOVERY step; the step adds part of it, and the genealogy shows the RECOVERY_ADDITION edge N -> N+1.

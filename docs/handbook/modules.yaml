@@ -518,7 +518,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^042\d_', '^0540_', '^074\d_', '^1870_', '^1881_']
+      packages/recipe-core/sql: ['^042\d_', '^0540_', '^074\d_', '^1870_', '^1881_', '^1882_']
     src: [packages/recipe-core/src/containers]
     tests:
       - 'packages/recipe-core/test/containers/**'

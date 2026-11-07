@@ -20,11 +20,10 @@ OPEN, in merge order (all lead-audited unless said):
 - **#163**: green (sent to the lead).
 - **#168** (`api-a4b`, base api-a4; A4b recovery tests, AS-21 SPECIFIED, substance 5008): CLEARED for its three cases;
   dispatch 42391051996.
-- **#169** (`api-a4c`, base api-a4b; A4c, recipe-core 1881): sent for audit; dispatch 42393815868. Machine
+- **#169** (`api-a4c`, base api-a4b; A4c, recipe-core 1881 machine v2 + 1882 hold_container): CLEARED (lead: 1882 for the function, upgrade note in the handbook); dispatch 42393815868. Machine
   output_container v2 (QA_HOLD: CLOSED or RELEASED_BY_QA -> HELD, qa.floor_approve, reason), `plant.hold_container` over
   `plant.dispose_container`, route `containers.hold`, `qaHoldable` + Hold button; recovery.test.ts mother-liquor case
-  (RECOVERY_ADDITION N -> N+1); AS-21 IMPLEMENTED. Six points put to the lead (PR body), first: two files carry 1881
-  (`1881_hold_container.sql`, generated `1881_machine_output_container_v2.sql`); renumber one if the lead assigns.
+  (RECOVERY_ADDITION N -> N+1); AS-21 IMPLEMENTED. Lead accepted points 2 to 6.
 - Counts: `tools/register/test/register.test.ts` AND `tools/validation/test/validation.test.ts:73` both pin the
   control count (#166 262, #167 263, #168/#169 264); on each merge the later PR takes main's count plus its own files.
 - Dispatches after the count fix: #166 42391298335, #167 42391300482, #168 42391302134; #164 42386401699; #165
@@ -79,7 +78,7 @@ only short quoted phrases of regulation text: quote the key phrase, paraphrase t
 ## Numbers in use
 
 substance 5000, 5003, 5004 (A2), 5005 (A3), 5006 (AS-17, #166), 5007 (AS-19/AS-20, #167), 5008 (AS-21, #168); site-services 1732, 1734, 1735;
-tablets 1903, 1904; kernel 1405; recipe-core 1879 (genealogy, #165), 1881 (A4c hold_container). Substance 5009+ (5008: AS-21, #168) are ours (tell the lead); ask the
+tablets 1903, 1904; kernel 1405; recipe-core 1879 (genealogy, #165), 1881 (machine v2), 1882 (hold_container). Substance 5009+ (5008: AS-21, #168) are ours (tell the lead); ask the
 lead for every shared number.
 
 ## Lead rulings of 6 November (in force, beyond plan.md)

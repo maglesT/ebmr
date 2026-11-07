@@ -1,8 +1,8 @@
 /**
  * The container routes on GMP (Phase 4 slice 1b; contract ns/containers.ts): open, close typed or weighed, the second
  * person's VERIFY_CLOSE and QA's RELEASE through the signing ceremony (CONTAINER_ACT), sort and reject with the person's
- * reason, and QA's own hold with its reason (API plan A4c, recipe-core 1881). The rules are the database's (recipe-core
- * 0740, 0741, 1881; tablets 1111); these tests prove the server reaches them.
+ * reason, and QA's own hold with its reason (API plan A4c, recipe-core 1881, 1882, 1882). The rules are the database's (recipe-core
+ * 0740, 0741, 1881, 1882; tablets 1111); these tests prove the server reaches them.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -101,7 +101,7 @@ describe('container routes (GMP, Phase 4 slice 1b)', () => {
     expect(await listed(c.containerId)).toMatchObject({ state: 'CLOSED', releaseProblem: null });
   }, 180_000);
 
-  // API plan A4c (recipe-core 1881): the quality unit holds a closed container no in-process check covers, then releases it.
+  // API plan A4c (recipe-core 1881, 1882, 1882): the quality unit holds a closed container no in-process check covers, then releases it.
   it('[AS-21][DI-17][DI-22][L-30] QA holds a closed container with its reason (QA_HOLD, recorded in the state history with the person, the right and the reason); a person without QA\'s right, a command without a reason and a second hold are refused; QA then releases it to RELEASED_BY_QA', async () => {
     const c = valueOf(await closeTyped(await open(), '2.500'));
     const verified = await signAction(verifier, 'verifier1', { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: c.containerId });

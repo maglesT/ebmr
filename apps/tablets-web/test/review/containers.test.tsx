@@ -98,7 +98,7 @@ describe('output containers', () => {
     expect(ui.posts('/api/containers')[0]?.body).toMatchObject({ batchId: B, stage: 'COMPRESSION', unit: 'kg', press: 'PRESS-01', stream: 'L', attribution: { method: 'BADGE_TAP' } });
   });
 
-  // API plan A4c (recipe-core 1881): the quality unit's own hold of a closed or released container.
+  // API plan A4c (recipe-core 1881, 1882, 1882): the quality unit's own hold of a closed or released container.
   it('[AS-21][L-30][DI-22] QA holds a closed container with its reason, offered only where the server says the container takes it; the floor is not offered it; a QA hold is shown with its reason', async () => {
     const ui = renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'containers.list': { containers: [typed, held] } } });
     const card = await screen.findByTestId(`container-${typed.label}`);

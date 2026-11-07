@@ -7,7 +7,7 @@
  *    VERIFIED, never the closer: DI-30);
  *  - QA releases a held container (CONTAINER_ACT RELEASE, meaning OUTPUT_CONTAINER_RELEASED) only once its hold's
  *    exceptions are dispositioned and their deviations concluded (`releaseProblem` says why not yet);
- *  - QA holds a closed or released container of its own decision, with its reason (API plan A4c, recipe-core 1881,
+ *  - QA holds a closed or released container of its own decision, with its reason (API plan A4c, recipe-core 1881, 1882,
  *    machine output_container v2 QA_HOLD; ICH Q7 2.22, 14.40): `qaHoldable` says when the database takes it.
  * Reads are plain SESSION routes; the commands are the person's own (FRESH_ON_SHARED on a kiosk).
  * Phase 7 slice 7o (D-7o-1): served on both installations, each against its own database (a test run's containers).
@@ -35,7 +35,7 @@ export const ContainerHoldView = z.strictObject({
 });
 export type ContainerHoldView = z.infer<typeof ContainerHoldView>;
 
-/** A hold the quality unit made of its own decision (QA_HOLD, recipe-core 1881): its reason, the person, the time. */
+/** A hold the quality unit made of its own decision (QA_HOLD, recipe-core 1881, 1882, 1882): its reason, the person, the time. */
 export const ContainerQaHoldView = z.strictObject({
   reasonCode: z.string(),
   reasonText: z.string(),
@@ -146,7 +146,7 @@ export const containers = {
     body: withAttribution({ expectedVersion: z.number().int().positive(), reason: Reason }),
     response: ContainerView,
   }),
-  // API plan A4c (recipe-core 1881): the quality unit's own hold of a closed or released container (QA.FLOOR_APPROVE).
+  // API plan A4c (recipe-core 1881, 1882, 1882): the quality unit's own hold of a closed or released container (QA.FLOOR_APPROVE).
   hold: defineRoute({
     id: 'containers.hold',
     method: 'POST',
