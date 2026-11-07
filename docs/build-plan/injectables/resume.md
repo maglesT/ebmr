@@ -1,27 +1,32 @@
-# Injectables: resume notes (I-1 under way, 5 November 2026)
+# Injectables: resume notes (I-1c1 under way, 7 November 2026)
 
 Read these instead of the session history. The rules in force are:
-- `plan.md` (approved v2);
+- `plan.md` (approved v2; the block-version rule is in it);
 - `platform-fit.md`;
 - section 9 of the plan (the owner's and the lead's answers);
 - the hard rules of `CLAUDE.md`.
 
-## Resumed 6 November 2026 (capsules complete)
+## State on 7 November 2026
 
-Paused by the owner on 5 November while capsules and declutter ran; resumed on 6 November. The order now (lead):
-the `inj/i1a-audit` PR with these notes; #131 with the lead's S1–S3 conditions; the `showWhen` checker fix;
-`inj/unit-account-v2`; I-1c; the I-2 blocks. The API edition runs in parallel; shared-code changes go through the lead.
-The table below is the state at the pause.
+Merged: #146 (I-1a audit), #148 (`showWhen` checker fix), #147 (S1–S3 shared work), #149 (unit-account v2),
+#151 (unit accountability reads the capping or sealing rejects), #152 (I-2 blocks: 6 base and 6 EU-market), #156 (CI, lead) and #155 (I-1c1: a vial from the
+library to sandbox run, approval and IN authorisation, E2E). No injectables PR is open.
 
-### Branches and PRs at the pause
+### Rules added since 6 November
 
-| Branch | Based on | What | State |
-|---|---|---|---|
-| `inj/i1a-audit` | #114 head | The lead's audit of #114, items 1, 2, 4, 5 and 6: pressure difference not critical and its ST-17 tag dropped; room temperature and humidity removed; `accountedPct`, `takenAt` and `loadNumber` removed | Pushed; PR to open once #114 merges, **first thing**, ping the lead for the audit |
-| `inj/i1c-shared` | main | S1–S3 (below) | **Draft PR #131**; apply the lead's conditions before merge |
-| `inj/unit-account-v2` | #114 head | INJ-UNIT-ACCOUNT reads filled and line rejects (INJ-FILL `end.*`) and accepted and inspection rejects (INJ-VISUAL-INSPECT `counts.*`) via STEP_VALUE; only `sampled` and `losses` typed; v1 edited (lead: fine) | Pushed (8398a59), branch only; **merge `inj/i1a-audit` in first** (both touch the block; the audit drops `accountedPct`) |
-| `inj/i2-blocks` | #114 head | I-2: 8 blocks in `seed/injectables-aseptic.ts` (INJ-SUPPLIER-STERILE ← INJ-03, SIP ← 07, ASEPTIC-ASSEMBLY ← 08, VHP ← 09, GLOVE-TEST ← 10, SUS ← 11, STERILE-FILTER ← 13, EM ← 32), tests tagged by ST/IN/PR | Pushed (f293202), branch only; the full recipe-core suite not yet run; not yet reviewed |
-| `inj/i1c-e2e` | #114 + `inj/i1c-shared` | Base for the vial and ampoule E2E; no E2E code written yet | Pushed |
+- **Owner, 7 November (via the lead): flexibility within compliance.** Add no refusal (validator rule, SQL check, unique
+  index, error code) unless it has a quoted binding clause or a real engine or record-integrity need, and say which in
+  the code comment next to it.
+- **Annex 1 items are EU-market blocks.** The base blocks follow 211 and Schedule M; Annex 1 items sit in their own
+  EU-market blocks, which a non-EU master leaves out.
+- **Block versions** (lead, 6 November): see `plan.md`. Until the first customer install a catalogue block is edited in
+  its version 1; after it, a change is a new version.
+- **Component lots (lead, 6 November):** component lots are recorded in INJ-WASH, INJ-PARTS-AUTOCLAVE and INJ-CAPPING
+  with second-person verification; acceptance comes from the lot's release status (211.84). ST-39's `expert_decision`
+  is the owner's to record; this text is the lead's proposal.
+- **Yield checkpoints (GMP-YIELDS, #155 narrowing D-1 of #159):** a library yield or reconciliation step with a critical
+  calculated limit is its own yield checkpoint (211.103), except CTRL-PRINTED-RECON and PACK-LABEL-RECON: a labeling
+  reconciliation answers 211.125 and is no yield of the product.
 
 ### Lead decisions to apply (5 November 2026)
 
@@ -50,17 +55,13 @@ The table below is the state at the pause.
 
 ### Next, in order
 
-1. `inj/i1a-audit` PR once #114 merges, after the lead's audit.
-2. The `showWhen` checker fix (small LIB- PR).
-3. #131: apply S1 and S3 as above, then CI, the lead's audit and merge.
-4. `inj/unit-account-v2`: merge the audit branch in, then the PR.
-5. `inj/i2-blocks`: apply the Annex 1 EU-market tagging, run the full suite, one review, then the PR.
-6. I-1c1: the vial and ampoule E2E in the sandbox (I-1c section below). Facts found for it:
-   - `library-support.ts` lacks STEP_VALUE in `fillValues`, and DATE_TIME and repeat sections in `runLibraryStep`.
-   - `skeleton-floor.ts` needs a dispensing-only path: the library steps after `p-disp-recon`, then `H-PACK`.
-   - The qualification and area-authorisation screens exist (administration `QualificationsPage`, plant-status
-     `AreaAuthorisationsPage`), but no E2E drives them yet.
-7. I-1c2: the GMP chain to release. Send the lead the size of a non-blister (vial) packaging master first.
+1. Fresh session. The ampoule product, which completes I-1c1 (the vial E2E is merged in #155).
+2. I-1c2: the GMP vial chain to release. Send the lead the size of a non-blister (vial) packaging master first.
+3. The first PR that adds injectables SQL puts it in `editions/injectables/sql`, and makes `editionMigrationSources()`
+   (test-kit `db.ts`) pick up every `editions/*/sql` directory in a fixed order and fail loudly when one is missing.
+   Migration numbers come from the lead (`inj.*` 3000–3999).
+4. Pod-down CI regime (lead): push only when needed, then dispatch
+   `gh workflow run ci.yml --repo maglest/ebmr --ref <branch> -f runner=github` and merge on its green.
 
 ### Local environment notes
 
