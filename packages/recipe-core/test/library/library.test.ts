@@ -130,6 +130,28 @@ describe('library block definitions', () => {
     expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-CALC-REQUIRED']);
   });
 
+  it('[PR-03] R-flow item 3: a section may be optional only as a named event; a planned count, interval or loop and the step\'s own record stay required', () => {
+    const event = { id: 'binder', title: 'Extra binder addition', required: false, when: 'Only if the granules need more binder', fields: [{ id: 'extra', label: 'Binder added', type: 'NUMBER' as const, unit: 'g' }] };
+    const base = friability();
+    expect(errors(checkBlockDefinition({ ...base, sections: [...base.sections, event] }, expr))).toEqual([]);
+    const { when: _w, ...unnamed } = event;
+    expect(codes(checkBlockDefinition({ ...base, sections: [...base.sections, unnamed] }, expr))).toEqual(['LIB-SECTION-OPTIONAL']);
+    for (const repeat of [{ kind: 'COUNT' as const, countSlot: 'n' }, { kind: 'PER_INTERVAL' as const, intervalSlot: 'every' }]) {
+      expect(codes(errors(checkBlockDefinition({ ...base, sections: [...base.sections, { ...event, repeat }] }, expr)))).toEqual(['LIB-SECTION-OPTIONAL']);
+    }
+    expect(errors(checkBlockDefinition({ ...base, sections: [...base.sections, { ...event, repeat: { kind: 'PER_CONTAINER' } }] }, expr))).toEqual([]);
+    const allOptional = { ...base, sections: base.sections.map((x) => ({ ...x, required: false, when: 'Sometimes' })) };
+    expect(codes(checkBlockDefinition(allOptional, expr))).toEqual(['LIB-SECTION-OPTIONAL']);
+  });
+
+  it('[DI-33] R-flow item 3: a calculation cannot read a field of an optional section, which may never be recorded', () => {
+    const base = friability();
+    const event = { id: 'binder', title: 'Extra binder addition', required: false, when: 'Only if the granules need more binder', fields: [{ id: 'extra', label: 'Binder added', type: 'NUMBER' as const, unit: 'g' }] };
+    const reader = { id: 'sum', title: 'Sum', fields: [{ id: 'total', label: 'Total', type: 'CALC' as const, expression: 'w0 + extra', unit: 'g' }] };
+    const ps = errors(checkBlockDefinition({ ...base, sections: [...base.sections, event, reader] }, expr));
+    expect(ps.map((p) => [p.code, p.message])).toEqual([['LIB-CALC-CONDITIONAL', expect.stringMatching(/reads extra of the optional section binder/)]]);
+  });
+
   it('[INV-20] a repeat until a value passes must wait on a field with limits or an expected answer', () => {
     const def = fluidBedDrying();
     const loop = def.sections[1];

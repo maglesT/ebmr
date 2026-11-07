@@ -162,6 +162,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
     problems.push(...checkRepeat(s, sp));
   });
   if (fieldCount === 0) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one'));
+  problems.push(...checkOptionalSections(def));
 
   // An UNTIL_PASS repeat ends only on a field with a pass/fail meaning in the same section.
   def.sections.forEach((s, si) => {
@@ -192,6 +193,28 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   problems.push(...checkReferenceLimits(def, expr));
   problems.push(...checkSignatures(def));
   return problems;
+}
+
+/**
+ * Optional sections (R-flow item 3). Kept, each for its reason: the step's processing record is a required section
+ * (21 CFR 211.188(b): the batch record documents each significant step); a planned count, interval or loop is the
+ * product's instruction, never an event, so its section stays required (an UNTIL_PASS loop must also run, INV-20).
+ */
+function checkOptionalSections(def: BlockDefinition): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  def.sections.forEach((s, si) => {
+    if (s.required === undefined || s.required === true) return;
+    const at = `sections[${si}].required`;
+    if (s.required !== false) out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id}: required is true or false`));
+    else if (typeof s.when !== 'string' || s.when.trim() === '') out.push(err('LIB-SECTION-OPTIONAL', `sections[${si}].when`, `Section ${s.id} is optional; name the event that calls for it in "when" (e.g. an extra binder addition, an alarm, a rework) [PR-03]`, ['PR-03']));
+    else if (s.repeat !== undefined && s.repeat.kind !== 'ONCE' && s.repeat.kind !== 'PER_CONTAINER') {
+      out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} repeats ${s.repeat.kind === 'UNTIL_PASS' ? 'until it passes' : s.repeat.kind === 'COUNT' ? 'a planned number of times' : 'at planned intervals'}; a planned check is part of the step's record, so it stays required [PR-03]`, ['PR-03']));
+    }
+  });
+  if (def.sections.length > 0 && def.sections.every((s) => s.required === false)) {
+    out.push(err('LIB-SECTION-OPTIONAL', 'sections', 'Every section is optional; the section that records the step itself stays required (21 CFR 211.188(b)) [PR-03]', ['PR-03']));
+  }
+  return out;
 }
 
 function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: boolean): LibraryProblem[] {
@@ -358,6 +381,13 @@ function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionD
   const conditional = c.reads
     .filter((r) => { const src = earlier.get(r)?.field; return src !== undefined && src.showWhen !== undefined && !sameCondition(src.showWhen, f.showWhen); })
     .map((r) => err('LIB-CALC-CONDITIONAL', `${fp}.expression`, `Field ${f.id} reads ${r}, which is shown only under a condition that ${f.id} does not share [DI-33]`, ['DI-33']));
+  // An optional section may never be recorded, so a calculation elsewhere cannot read it (engine need: no input, no value).
+  for (const r of c.reads) {
+    const from = earlier.get(r)?.section;
+    if (from !== undefined && from !== section && from.required === false) {
+      conditional.push(err('LIB-CALC-CONDITIONAL', `${fp}.expression`, `Field ${f.id} reads ${r} of the optional section ${from.id}, which may never be recorded [DI-33]`, ['DI-33']));
+    }
+  }
   return conditional.concat(c.problems.map((p) => ({
     code: 'LIB-CALC-EXPRESSION',
     severity: p.severity,

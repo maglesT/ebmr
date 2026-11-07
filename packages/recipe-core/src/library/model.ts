@@ -204,6 +204,14 @@ export interface SectionDef {
   title: string;
   fields: FieldDef[];
   repeat?: SectionRepeat;
+  /**
+   * `false` marks an event or conditional section (an extra binder addition, an alarm acknowledgement, a rework): it is
+   * recorded when the event happens, and the step may end without it (R-flow item 3). It names the event in `when`. A
+   * section that is the step's processing record stays required (21 CFR 211.188(b)), so at least one section is.
+   */
+  required?: boolean;
+  /** The event that calls for an optional section, shown to the operator (e.g. "Only if the granules need more binder"). */
+  when?: string;
 }
 
 export interface SignatureDef {

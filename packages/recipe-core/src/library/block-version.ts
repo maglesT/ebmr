@@ -627,6 +627,8 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         for (const s of def.sections) {
           const n = view.entries(s.id).length;
           const r = s.repeat ?? { kind: 'ONCE' as const };
+          // An optional event section (R-flow item 3) is recorded only when its event happens.
+          if (s.required === false) continue;
           if (r.kind === 'COUNT') {
             const want = Number(config.counts?.[r.countSlot] ?? '1');
             if (n < want) out.push(problem('LIB-PERFORM-SECTION', `${s.title} is recorded ${n} of ${want} times`));

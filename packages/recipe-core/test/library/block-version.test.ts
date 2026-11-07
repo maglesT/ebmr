@@ -72,6 +72,27 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(() => define(mbrFor(def, stale), { registry })).toThrow(/LIB-USE-HASH|pinned/);
   });
 
+  it('[PR-03] R-flow item 3: an optional event section is recorded only when its event happens; the step ends without it, a required section still blocks the end', () => {
+    const alarm = { id: 'alarm', title: 'Alarm acknowledgement', when: 'Only if the drum alarm sounds', fields: [{ id: 'alarmNote', label: 'What the alarm showed', type: 'TEXT' as const }] };
+    const run = (required: boolean | undefined): Run => {
+      const def = friability();
+      def.sections.push({ ...alarm, ...(required === undefined ? {} : { required }) });
+      const r = runFor(def, friabilityUse());
+      r.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false });
+      return r;
+    };
+    const ends = (r: Run): string => {
+      r.perform('p');
+      if (r.status('p') === 'AWAITING_VERIFICATION') r.verify('p');
+      return r.status('p');
+    };
+    expect(ends(run(false))).toBe('COMPLETED');
+    const happened = run(false);
+    happened.entry('p', { kind: 'alarm', alarmNote: 'Door open, closed and restarted' });
+    expect(ends(happened)).toBe('COMPLETED');
+    expect(() => run(undefined).perform('p')).toThrow(/Alarm acknowledgement is not recorded yet \(LIB-PERFORM-SECTION/);
+  });
+
   it('[INV-25] a calculated field cannot be typed', () => {
     const run = runFor(friability(), friabilityUse());
     run.refused(entryCmd(run, { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false, loss: '0.1' }), 'ENG-ENTRY-SCHEMA');
