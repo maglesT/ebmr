@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { blocks, type flow } from '@ebmr/recipe-core/pure';
 import { GRANULATION_BLOCK_VERSIONS, TB02, TB03, TB04, TB05, TB07 } from '../../../src/blocks/granulation/index.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
+import { recordedByAttempt } from '../../../src/features/execution/signable.ts';
 import { blockMbr, definitionCodes, fixturePhase, iteration, LOOP, MIN, OP1, phase, Run, runGolden, sig, startRun, T0, VER1, defineFor } from './support.ts';
 import { engine } from '@ebmr/recipe-core/pure';
 
@@ -323,9 +324,13 @@ describe('TB-07 blending, lubrication and blend uniformity', () => {
     run.entry('p', { kind: 'BLEND_END' });
     expect(Object.values(run.state.entries).find((e) => e.kind === 'BLEND_END')?.data['withinLimits']).toBe(false);
     expect(offered()?.available).toBe(true);
+    const known = new Set(Object.keys(run.state.exceptions));
     expect(run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'p', context: [], signature: sig('PERFORMED', OP1) }).code).toBe('ENG-BLOCKED');
     const [ex] = run.exceptions('LIMIT_BREACH');
     expect(ex).toMatchObject({ tier: 'VALIDATED', registrationRelevant: true, qaOnly: true, status: 'OPEN', source: { stepKey: 'p@' } });
+    // What the operator reads at the refused signing (the lead's condition on #170).
+    expect(recordedByAttempt(run.def, run.state, known)).toBe(`The main blend time 341 s is outside the validated 270 to 330 s. This is recorded as exception ${ex?.id ?? ''}. Link a deviation to it, then sign again.`);
+    expect(recordedByAttempt(run.def, run.state, new Set(Object.keys(run.state.exceptions)))).toBeNull();
     expect(offered()).toMatchObject({ available: false, refusal: { code: 'ENG-BLOCKED' } });
     run.ok({ type: 'ATTACH_DEVIATION', actor: OP1, exception: ex?.id ?? '', deviationRef: 'TEST-DEV-0001' });
     expect(run.perform('p').accepted).toBe(true);
