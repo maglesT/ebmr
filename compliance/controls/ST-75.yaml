@@ -31,7 +31,8 @@ behaviour: |-
   - **Glove-port manipulations** are logged as interventions (type, port, duration, operator), with tools linked to sterilisation records. Fingertip PM covers each port used.
 catalog_test: Enter a failed end-of-batch test on port 3 → deviation plus impact window since the last pass. Log a RABS door opening with glove exposure and no disinfection → next aseptic step blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-75] glove and sleeve integrity is recorded per port of the formulation's count, with the tester; a port that fails is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

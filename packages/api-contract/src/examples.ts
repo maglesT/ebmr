@@ -289,6 +289,11 @@ export const EXAMPLES = {
     data: { ...s6.formulaVersion, versionId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d', versionNumber: 2, state: 'DRAFT', changeReason: 'Coating level changed', approvedBy: null, approvedAt: null, signable: { aggregateType: 'formula_version', aggregateId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d' } },
     routeId: r.masterData.addFormulaVersion.id,
   },
+  'master-data-withdraw-formula-version': {
+    schema: r.masterData.withdrawFormulaVersion.response,
+    data: { ...s6.formulaVersion, versionId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d', versionNumber: 2, state: 'WITHDRAWN', changeReason: 'Coating level changed', approvedBy: null, approvedAt: null, signable: { aggregateType: 'formula_version', aggregateId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d' } },
+    routeId: r.masterData.withdrawFormulaVersion.id,
+  },
   'designer-formula-choice': {
     schema: r.designer.formulaChoice.response,
     data: { formulaId: s6.formulaSummary.formulaId, versionId: s6.formulaVersion.versionId, versionNumber: 1, productCode: 'GBT01', strength: '500 mg', batchSizeUnits: '200000', bom: s6.formulaVersion.lines, target: s6.formulaVersion.target },
