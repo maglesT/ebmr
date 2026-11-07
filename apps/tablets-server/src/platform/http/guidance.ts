@@ -187,6 +187,16 @@ export const PLATFORM_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: ['The system administrator (quote the correlation id)'],
     retryable: true,
   },
+  // G9 (owner report item 20): the free-text guard's refusal is about the text typed, not the database the installation
+  // is connected to (the EBMR-SBX-* entry below).
+  'EBMR-SBX-024': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The text holds a word that looks like a real batch or lot number. Nothing was saved.',
+    whatYouCanDo: ['In the sandbox, write batch and lot numbers with the TEST- prefix, or leave the number out of the text.'],
+    whoCanHelp: [],
+    controls: ['DI-05'],
+  },
   'EBMR-SBX-*': {
     status: 503,
     kind: 'NOT_ENABLED',

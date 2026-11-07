@@ -68,6 +68,37 @@ function unstorableTextRefusal(app: AppContext, error: unknown, correlationId: s
   return { ...fromGuidance('SCHEMA', entry, `The request holds text no record can hold (U+0000, or half of a surrogate pair); it was refused ${where} and nothing was saved.`, correlationId), warn: true };
 }
 
+/**
+ * A row the database refuses by a table's own rule (owner report items 22 and 23, G5): a check constraint (23514), a unique
+ * constraint (23505) or a value that may not be empty (23502), raised without an EBMR code. It is a refusal of this input,
+ * not an unexpected error: 422, or 409 for a duplicate, naming the constraint; nothing was saved. The database's rule stays
+ * the guard; only the answer changes.
+ */
+function integrityRefusal(error: unknown, correlationId: string): MappedError | null {
+  const e = error as { code?: unknown; constraint?: unknown; column?: unknown; table?: unknown; cause?: unknown };
+  const pg = (['23514', '23505', '23502'] as unknown[]).includes(e.code) ? e : (e.cause as typeof e | undefined);
+  if (!pg || !(['23514', '23505', '23502'] as unknown[]).includes(pg.code)) return null;
+  const name = typeof pg.constraint === 'string' && pg.constraint !== '' ? pg.constraint : typeof pg.column === 'string' ? `${typeof pg.table === 'string' ? pg.table : ''}.${pg.column}` : 'a rule of the record';
+  const duplicate = pg.code === '23505';
+  const why = duplicate ? `A record with the same key already exists (${name}).` : pg.code === '23502' ? `A required value is missing (${name}).` : `The combination does not meet the record's rule ${name}.`;
+  return {
+    status: duplicate ? 409 : 422,
+    envelope: {
+      refusal: {
+        code: duplicate ? 'EBMR-API-DUPLICATE' : 'EBMR-API-CHECK',
+        kind: duplicate ? 'NOT_ALLOWED' : 'INVALID_INPUT',
+        whatHappened: duplicate ? 'The database refused this as a duplicate. Nothing was saved.' : 'The database refused this combination. Nothing was saved.',
+        why,
+        controls: ['DI-34'],
+        whatYouCanDo: duplicate ? ['Use another code, or open the existing record.'] : ['Correct the values the form names as required, then try again.'],
+        whoCanHelp: [],
+      },
+      correlationId,
+      retryable: false,
+    },
+  };
+}
+
 export function mapError(app: AppContext, error: unknown, correlationId: string): MappedError {
   const g = (code: string): GuidanceEntry => app.guidance.lookup(code) ?? app.guidance.lookup('INTERNAL')!;
   if (error instanceof HttpRefusal) return { status: error.status, envelope: { refusal: error.refusal, correlationId, retryable: error.retryable } };
@@ -95,6 +126,8 @@ export function mapError(app: AppContext, error: unknown, correlationId: string)
   if (typeof fe.statusCode === 'number' && fe.statusCode >= 400 && fe.statusCode < 500) {
     return fromGuidance('SCHEMA', { ...g('SCHEMA'), status: fe.statusCode === 404 ? 404 : 400 }, fe.message ?? 'bad request', correlationId);
   }
+  const integrity = integrityRefusal(error, correlationId);
+  if (integrity) return integrity;
   return fromGuidance('INTERNAL', g('INTERNAL'), 'An unexpected error occurred; it has been logged.', correlationId);
 }
 

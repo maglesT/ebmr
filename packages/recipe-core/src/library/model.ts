@@ -175,6 +175,11 @@ export interface CalcField extends FieldBase {
   unit: string;
   limitSlot?: string;
   critical?: boolean;
+  /**
+   * Decimals the value is shown with in the entry's sentence (display only, half-up; default 4). The exact value is
+   * stored and a limit judges it at the limit's own written decimals (owner report item 24, G6).
+   */
+  decimals?: number;
 }
 
 export type FieldDef =
