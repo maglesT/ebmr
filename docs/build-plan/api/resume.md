@@ -1,82 +1,76 @@
-# API edition (substance): resume notes (paused 5 November 2026)
+# API edition (substance): resume notes (7 November 2026, 15:20 UTC)
 
-**Why paused:** owner decision of 5 November: two editions at a time (capsules and injectables) plus declutter. The API
-edition resumes when capsules is finished; the lead starts a fresh session from this file.
+Read with: `plan.md`, `handover-a0.md` (sections "A1a done", "A1b paused", "A2 part 1", "A2 part 2"), CLAUDE.md and
+`docs/build-plan/capsules/plan.md` section 8 (rules learnt). Lead: session_01PybpFuUgimTwCNtTsK7cf1. Report each merge
+in 2 lines; lead audit before each merge; squash-merge on green.
 
-Read with: `plan.md`, `platform-fit.md`, `handover-a0.md` (sections "A1a done", "A1b paused", "A2 part 1").
+## State at 7 November 2026, 15:20 UTC (handover from session_01PybpFtk8NDMMd6ZHTNovoe)
 
-## State
+MERGED this round (squash, by the lead): #154 (pod E2E chromium), #143 (A1b catalogue), #153 (whole-lot guard, tablets
+1903), #144 (A2 part 1: intermediate lot, substance 5004, `RunHeaderView.postsIntermediateLot` + "Post the intermediate
+lot" on RunOverview), #158 (site-services 1734: several intermediate lots per batch, codes `<batch>`, `-2`, `-3`, next
+free, never reused), #150 (kernel 1405 retention RET-2026.2), #145 (A3 CoA, substance 5005, tablets 1904; licence holder
+telephone history site-services 1735 in its own aggregate `licence_holder_telephone`, route `india.recordLicenceTelephone`).
 
-| Slice | Branch / PR | State |
-|---|---|---|
-| A0 | #111 | merged |
-| A1a | `api-a1a`, PR #119 | lead-audited and cleared; merged on green (if not, merge it first: main in only on a conflict, squash) |
-| A1b | `api-a1b`, draft PR | catalogue v1 and AS controls done; on-screen E2E not built (blocked, below) |
-| A2 | `api-a2`, draft PR | part 1 done (intermediate lot posting and release); consumption chain and batch C not built |
-| A3 | `api-a3`, draft PR | CoA content, prepare, sign, screen and print done; open points below |
+OPEN: **#163** (`e2e-wait-real-signals`, lead CLEARED): route-w 10 waits for `finished-lot-posted` before navigating;
+`useCommand.run` gets optional `onCommitted` (called on an OK answer before the reread) and `DefineForm` empties its
+fields there; registerTestLots waits for the emptied Lot code box; web test [DI-28] in
+`apps/tablets-web/test/app/define-form.test.tsx`. Send the lead "#163 green" when dispatch run 42377574705 passes.
 
-The three drafts were cut from `api-a1a` before #119 merged. Rebase each onto main after #119 merges (each holds A1a's
-commits). A1b also needs rebasing onto the audited API-PACK (below).
+## How CI runs now (pod is dead; owner: go on without it)
 
-## Reserved numbers
+- Pushes start a `pull_request` run whose E2E goes to the dead pod. After every push: dispatch
+  `gh workflow run ci.yml --ref <branch> -f runner=github`, then cancel that push's pull_request run
+  (`gh api -X POST repos/maglesT/ebmr/actions/runs/<id>/cancel`) and any superseded dispatch run.
+- This session cannot merge (permission refused) or PATCH a PR from the shell: send the lead "#N green"; retarget a PR's
+  base with the GitHub MCP tool `update_pull_request`. Commit trailers carry no model name:
+  `Co-Authored-By: Claude <noreply@anthropic.com>` and the Claude-Session line.
+- After each squash-merge, check the other open PRs' mergeability; on a conflict merge main in (merge commit, never
+  rebase), list-only resolutions: union the control test lists, then drop the names `register:validate` reports as not
+  existing (renamed on main), `register:sort-tests`; a file identical on main to the stacked base's head takes ours.
 
-- substance namespace: 5000 to 5999 is the API edition's. Used: 5000 (A1a), 5003 (A1b), 5004 (A2, was 5001), 5005 (A3, was 5002) (renumbered 7 Nov: main has 5003, the AS
-  engine names). Ask the lead for nothing in this range; still ask for every shared number.
-- site-services 1732: A2 (`site.intermediate_lot`, `site.create_intermediate_lot`).
-- site-services 1734: A2 several intermediate lots per batch (#158, merged); site-services 1735: A3 licence holder telephone history (was 1733; renumbered 7 Nov after #158 merged 1734).
-- Shared numbers already used by A1a: kernel 1404, recipe-core 1873.
+## Next (in order)
 
-## The lead's decisions of 5 November (in force)
+1. **#163** green → lead merges. Then the stale-comment nit the lead found goes into the NEXT PR (not #163):
+   `tools/e2e/specs/phase7/own-product-flow.ts` ~line 545 says DefineForm empties "only after the lists are read again",
+   no longer true after #163; reword (it waits for the emptied form as a belt-and-braces check).
+2. **A2 part 2** (`api-a2b`): branch is stacked on the OLD api-a2-r; merge origin/main in (A2 part 1 is now squashed on
+   main; expect conflicts in intermediate-lots.test.ts, IN-05/PR-45 lists, README rows), keep its own delta only, then
+   open the PR. Its whole-lot test (A 50 kg, B 42.5 kg) needs #153 (merged). Note #158: several lots per batch, codes
+   `<batch>-N`; `site.intermediate_lot_of` returns the LATEST lot, `site.intermediate_lots_of` all.
+3. **Genealogy** (`api-genealogy-intermediate`, stacked on api-a2b): recipe-core migration currently 1876; main has 1875
+   and #160/#161 take 1877/1878: the lead assigned **recipe-core 1879** (15:14); renumber 1876 → 1879, merge, PR.
+4. **AS-17 / AS test lists**: add `compliance/controls/AS-17.yaml` (SM XII 11.3.1-11.3.4; Q7 11.40-11.43) and AS-17 to
+   `recipe.engine_name` (substance 5003 holds the engine names, kept equal to the AS files; check the DI-05/DI-30 test in
+   substance-edition.test.ts), tag the CoA tests [AS-17]; add the AS test names A2 part 2 and genealogy carry (AS-03,
+   AS-04, AS-16) to their AS files.
+5. A1b E2E on #147 (own Playwright group; generic library-step form; AS-14 via G-21 label specimen), then A4
+   (recovery/rework) and the plan's next slices, small, one PR each.
 
-1. **No over-engineering (lead audit of #119):** only what C1 to C5 and the binding clauses need. No new designer start
-   (PACKAGING_BLANK was removed). API-PACK registers each drum or bag as a container; labels go through the existing
-   printed-materials block G-21; no own label reconciliation. The API G-REL hook returns the existing tablets items plus
-   one group-9 item, E.PACK_EXAMINATION (the core gate requires an edition answer for group 9: recipe-core 0781;
-   SM 11.3.7, PR-37). Anything new must cite a binding clause number.
-2. **C1, intermediate lots (A2):** approved as designed, without production delegation and without a shipping guard: the
-   existing QC/QA lot release is enough (Q7 says the QU *can* delegate, which is not binding).
-3. **Core material category 'intermediate'** is in core master data (databsee #61, 73c8254); `report.material_v1` shows
-   it as a category value, no new columns. A2 consumes intermediates as that category.
-4. **CoA (A3):** sign with the existing QA lot-release permission; no new right code `ebmr.coa.sign` unless a binding
-   clause needs CoA signing separate from release (cite it); no `report.coa_v1` until a consumer exists.
-5. **One dosage-form → edition rule:** the injectables session adds it in recipe-core flow (PR inj/i1c-shared), with
-   substance in it. Use that rule for the header and the edition; add none of our own.
-6. **UI:** Batchwright is a simple digital form (label, input, unit, limits, signature at the bottom); the declutter
-   session builds the shared layout (D3). No edition-specific screens or panels; the CoA is a plain form-style document.
-   D3 removes the edition prop from SignInBrand; the header names the record's edition through capsules C2's mechanism.
-7. **Merging:** merge your own PR on green yourself; merge main in only when GitHub shows a conflict; report each merge
-   to the lead in two lines. After #126 (generated files): do not run `pnpm handbook` before pushing; keep control test
-   lists sorted with `pnpm register:sort-tests`, and on a controls-yaml conflict take main's and re-sort.
-8. **No STEP_VALUE workaround needed any more:** the shared fix (#117) is on main.
+## Rules learnt this round (owner and lead)
 
-## Open points (for the lead or the next session)
+- Owner (7 Nov): as much flexibility as possible within compliance: add no refusal (validator rule, SQL check, unique
+  index, error code) without a quoted binding clause or a real engine or record-integrity need, and say which in a
+  comment. Lead audits check it.
+- A table added to an existing audited aggregate changes the true copy of every existing record (empty tables are listed);
+  give new tables their own aggregate type unless they must be in the record. Never add a column to an insert-only
+  audited table (the stored row hash covers the whole row).
+- Screens show only what works (server-computed flags, not a button the DB refuses). Every person's DB act needs a route
+  and screen (decision 0025; exemption lists stay empty); new routes need O-T13-1 listing, a contract example and a
+  route-role-matrix row (lead reviews the row).
+- Every function a migration since Phase 6 defines is in a sql-mutation group, and each group is in mutation.yml.
+- Migration numbers: renumber when main overtakes; within substance 5004+ is ours, shared packages ask the lead.
 
-- **A1b E2E blocked:** the New master page sends no edition, and with PACKAGING_BLANK gone no existing designer start
-  makes an API packaging master (PACKAGING_COPY copies only an existing packaging master, refused for non-tablets). The
-  lead decides the smallest way (e.g. let PACKAGING_COPY copy a substance packaging master, or the page pass the edition).
-- **A1b:** the "Batchwright API" header via the C2 mechanism and the shared dosage-form rule (point 5); AS-tagged
-  server tests for AS-01, AS-03, AS-16 and the C5 check (AS-24); AS-14's label specimen (SM 9.3.7) is only a recorded
-  confirmation in API-LABEL-CHECK, not the specimen itself. 5003 adds the AS names to `recipe.engine_name`; the register,
-  its schemas and the validation bundle now accept the AS prefix and the `substance` edition (shared tooling: review).
-- **A1b rebase:** API_PACK on main is the audited one (container REGISTER, net mass, sealed, label check; no recon/exam).
-- **A2:** the database lets QA release an intermediate only as RELEASE_FOR_FURTHER_PROCESSING; A2 added that decision to
-  `proposeLotDecision` and the LOT_DECISION signed action (contract change: lead to confirm). Next: batch B consumes A
-  through a G-07 weighing (consumption must be named by a batch-record entry, EBMR-RCP-433; needs plant set-up), the
-  lot_consumption chain A → B → C, and batch C to a released API lot.
-- **A3:** (a) `QA_APPROVED` is tied to plant-rule approval, so A3 added a meaning `COA_APPROVED` (on
-  RELEASE.MANUFACTURER) and a signable action `COA_ACT`: a new signing meaning, lead to confirm under decision 4;
-  (b) 5005 re-creates the tablets function `tab.aggregate_read_class` to add `substance_coa` (a test guards it, but a
-  later tablets redefinition would drop it: lead to decide the right home); (c) no master data holds the manufacturer's
-  telephone (SM 11.3 / Q7 11.40 name it): the CoA shows "not on record"; (d) "grade" comes from the specification's
-  monograph reference; (e) A3's CoA tests extend `api-chain.test.ts` and must be adjusted to the audited A1a.
-- **Upgrade drill:** `tools/drills/src/upgrade.ts` ADDED_ONLY_ALLOWED lists `recipe.grel_edition_hook` and
-  `recipe.packaging_completion_block` (A1a).
+## Numbers in use
 
-## Next steps when resumed
+substance 5000, 5003 (main), 5004 (A2), 5005 (A3); site-services 1732 (A2), 1734 (#158), 1735 (A3 telephone); tablets
+1903 (#153), 1904 (#145); kernel 1405 (#150); recipe-core 1879 (genealogy, assigned 7 Nov; branch still says 1876). Substance
+5006+ are ours; ask the lead for every shared number.
 
-1. Confirm #119 is merged; rebase `api-a1b`, `api-a2`, `api-a3` onto main (A1b onto the audited API_PACK).
-2. Get the lead's answers on the open points above (E2E path, A2 contract change, A3 meaning and read class).
-3. A1b: E2E on screen and its group; the AS server tests; merge.
-4. A2: consumption chain and batch C; merge.
-5. A3: adjust to decisions; merge.
-6. Then A4 (recovery, reprocessing, rework) and A5 (blending), per `plan.md`.
+## Lead rulings of 6 November (in force, beyond plan.md)
+
+- Intermediate release: the existing lot-machine event RELEASE_FOR_FURTHER_PROCESSING, exposed in the contract (no DB
+  change). COA_APPROVED meaning approved. No `report.coa_v1`, no production-release delegation.
+- Catalogue: a clause line per field; `critical` only on time limits (Q7 8.20), IPC results (8.30) and yield (8.14); no
+  YES_NO, limit slot or CHOICE without a clause; one isolation block per type (API-FILTER, API-CENTRIFUGE).
+- AS-14 specimen = G-21 label specimen (EBMR-LBL-060). Retention: IN and EU rows only (no US: Q7 is guidance there).

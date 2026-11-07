@@ -98,6 +98,8 @@ register (`iam.qualification_type`), checked at signature by role or by area aut
 | Glove and sleeve integrity | A1 4.21 | INJ-10: per glove port (COUNT repeat): Y/N result, TXT tester ID, SIGN | per-port result is what the clause asks |
 | Single-use and closed systems | A1 8.127-8.139 | INJ-11: LOT (assembly), Y/N (integrity check before use), SIGN | as above |
 
+Component acceptance (211.84) is incoming QC's lot release, enforced at use by the lot's released status; each component lot is named where it is used (washing, the stopper load, capping) for 211.188(b) traceability, and INJ-COMPONENT-ACCEPT was dropped (lead, 6 November 2026). Known gap: those lot fields do not check that the lot is the right component (the material match needs a formula line), so the second person's VERIFIED signature on each of those steps covers it.
+
 ### 4.3 Processing
 
 | Item | Binding clause | Smallest means | Why nothing smaller |
@@ -185,6 +187,8 @@ the lead. Migration numbers: the injectables namespace has 3000–3999 (reserved
 | I-6 Edition exit | `injectables` in `compliance/phase.yaml` editions; trace per Q1's outcome; golden batches; browser suite; one review | trace green with the edition in the gate |
 
 The trace gate stays Tablets-only until I-6; meanwhile a per-edition trace report lists each slice's controls.
+
+Block versions (lead, 6 November 2026): until the first customer install, a catalogue block is edited in its version 1 (no customer database holds the catalogue; demo, CI and pod databases are rebuilt from seed). After the first customer install, a changed block is a new version.
 
 ## 7. Risks
 

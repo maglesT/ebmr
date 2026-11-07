@@ -35,7 +35,8 @@ behaviour: |-
   - **Excursions.** Any excursion above the limit becomes a batch event (location, magnitude, duration, severity). It needs an assessment sized to its severity, with a trend look-up, before review can close. A missing counter feed is treated as an alarm (ST-06).
 catalog_test: Replay three consecutive samples with 1–2 counts at 5 µm in Grade A → investigation event. Start the Grade A counter 20 min after assembly began → coverage gap.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

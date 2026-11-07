@@ -90,11 +90,11 @@ export function DefineForm<R extends AnyRoute>({ title, route, fields, params, f
   const parsed = missing.length === 0 && route.body ? route.body.safeParse(full) : null;
   const problem = parsed && !parsed.success ? parsed.error.issues.map((i) => `${i.path.join('.') || 'form'}: ${i.message}`).join('; ') : null;
   const send = async () => {
-    const r = await cmd.run({ body: full, ...(params ? { params } : {}) } as unknown as CallInput<R>);
-    if (r) {
-      setValues({});
-      onDone?.(r);
-    }
+    // The fields empty as soon as the command committed, before its lists are read again (onCommitted): emptied after
+    // the reread, the new row showed while the old entry still filled the form, and a person who began the next entry
+    // lost it when the late reset fired (route E2E own-demotab, 7 November 2026).
+    const r = await cmd.run({ body: full, ...(params ? { params } : {}) } as unknown as CallInput<R>, { onCommitted: () => setValues({}) });
+    if (r) onDone?.(r);
   };
   return (
     <form aria-label={title} onSubmit={(e) => e.preventDefault()} data-testid={`form-${title}`}>

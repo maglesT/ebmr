@@ -15,6 +15,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { library, librarySeed } from '@ebmr/recipe-core';
 import { expect } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
+import { explained } from '../phase7/own-product-floor.ts';
 import { card, choose, openStep, paceTaps, primary, signPrimary, startStep, switchUser, tap } from '../journey/support.ts';
 
 type Def = library.BlockDefinition;
@@ -24,13 +25,36 @@ type Use = librarySeed.SeedItem['exampleUse'];
 export interface ProductBlock {
   def: Def;
   use: Use;
+  /**
+   * The product's own values of a nominal run where the block's nominal ones would not add up across steps (by section
+   * id, then field id): an injectable's unit counts, which unit accountability reconciles to the unit.
+   */
+  values?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
+
+/**
+ * The steps the catalogue's examples name by what they do (`exampleUse.stepValues`: "filling", "inspection"), as the
+ * block codes a product adds; a product passes its own where it differs (an ampoule closes by sealing, not capping).
+ */
+const EXAMPLE_STEPS: Readonly<Record<string, string>> = {
+  compounding: 'INJ-COMPOUND',
+  filling: 'INJ-FILL',
+  capping: 'INJ-CAPPING',
+  sealing: 'INJ-AMPOULE-SEAL',
+  inspection: 'INJ-VISUAL-INSPECT',
+};
 
 /**
  * The catalogue item `code` with its example values, its equipment slots set to the plant's class `classes` (one class
  * for every slot, or by slot name).
  */
-export function productBlock(code: string, classes: string | Readonly<Record<string, string>>, bomLines?: Readonly<Record<string, string>>): ProductBlock {
+export function productBlock(
+  code: string,
+  classes: string | Readonly<Record<string, string>>,
+  bomLines?: Readonly<Record<string, string>>,
+  /** The block code of each step the example names (merged over EXAMPLE_STEPS). */
+  steps?: Readonly<Record<string, string>>,
+): ProductBlock {
   const item = librarySeed.SEED_CATALOGUE.find((s) => s.definition.code === code);
   if (!item) throw new Error(`${code} is not in the ready-made catalogue`);
   const def = item.definition;
@@ -43,12 +67,27 @@ export function productBlock(code: string, classes: string | Readonly<Record<str
   }
   // The sandbox run is compressed in time: a timer runs seconds, not the product's minutes. A timer's limit keeps its upper
   // bound and loses its lower one, here only; every other limit is the catalogue's example, as typed by the author.
-  const timed = new Set(def.sections.flatMap((x) => x.fields).flatMap((f) => (f.type === 'TIMER' && f.limitSlot !== undefined ? [f.limitSlot] : [])));
+  // A critical timer with a minimum only (an injectable's contact or mixing time) keeps a lower bound of zero: it must
+  // have a limit (LIB-USE-LIMIT-MISSING).
+  const fields = def.sections.flatMap((x) => x.fields);
+  const timed = new Set(fields.flatMap((f) => (f.type === 'TIMER' && f.limitSlot !== undefined ? [f.limitSlot] : [])));
+  const critical = new Set(fields.flatMap((f) => (f.type === 'TIMER' && f.limitSlot !== undefined && f.critical === true ? [f.limitSlot] : [])));
   const limits = Object.fromEntries(
-    Object.entries(item.exampleUse.limits ?? {}).map(([slot, spec]) => [slot, timed.has(slot) ? { ...spec, ranges: spec.ranges.map((r) => withoutLow(r)) } : spec]),
+    Object.entries(item.exampleUse.limits ?? {}).map(([slot, spec]) => [
+      slot,
+      timed.has(slot) ? { ...spec, ranges: spec.ranges.map((r) => (critical.has(slot) && r.high === undefined ? { ...r, low: { value: '0', inclusive: true } } : withoutLow(r))) } : spec,
+    ]),
   );
+  // An earlier step's value is read from the master's step of that block (its designer id, p-<code>).
+  const named = { ...EXAMPLE_STEPS, ...steps };
+  const stepValues = item.exampleUse.stepValues
+    ? Object.fromEntries(Object.entries(item.exampleUse.stepValues).map(([slot, sv]) => {
+      const of = named[sv.step];
+      return [slot, of ? { step: stepIdOf(of), field: sv.field } : sv];
+    }))
+    : undefined;
   // The formula lines a step reads or names a lot of are the product's own master's lines (BOM-<line id>).
-  return { def, use: { ...item.exampleUse, equipmentClasses, limits, ...(bomLines ? { bomLines: { ...bomLines } } : {}) } };
+  return { def, use: { ...item.exampleUse, equipmentClasses, limits, ...(bomLines ? { bomLines: { ...bomLines } } : {}), ...(stepValues ? { stepValues } : {}) } };
 }
 
 /** A range without its lower bound. */
@@ -229,8 +268,14 @@ async function fillValues(page: Page, b: ProductBlock): Promise<void> {
         await page.getByRole('group', { name: 'Consumes (BOM lines)' }).getByRole('checkbox', { name: new RegExp(`^${line}:`) }).check();
         break;
       }
+      case 'STEP_VALUE': {
+        // An earlier step's recorded value, written step.field (the master's step id, productBlock).
+        const sv = use.stepValues?.[s.name];
+        await commit(form, `Earlier step value for ${s.owner} (step.field)`, sv ? `${sv.step}.${sv.field}` : '');
+        break;
+      }
       default:
-        throw new Error(`${b.def.code}: the acceptance blocks carry no ${s.kind} slot (${s.name})`);
+        throw new Error(`${b.def.code}: the acceptance blocks carry no slot of this kind (${(s as { name: string }).name})`);
     }
   }
 }
@@ -252,6 +297,12 @@ export async function runLibraryStep(
   n = 1,
   /** The prefix of the identifiers the operator writes: a sandbox run names things only by TEST- ones (DI-05). */
   idPrefix = 'TEST-',
+  /**
+   * The run's containers, when its steps hand containers on: a REGISTER field adds the name it gives, and a CONSUME field
+   * names the earliest one not consumed yet (sterilisation consumes the trays filling registered). Without it every
+   * container field gets a fresh name.
+   */
+  pool?: string[],
 ): Promise<void> {
   const key = `${stepIdOf(b.def.code)}@`;
   await openStep(page, ctx.base, ctx.runId, key, b.def.title);
@@ -259,7 +310,8 @@ export async function runLibraryStep(
   await startStep(page, ctx.operator);
   const fields = new Map(b.def.sections.flatMap((s) => s.fields.map((f) => [f.id, f] as const)));
   let container = 0;
-  for (const e of library.nominalEntries(b.def, b.use as never)) {
+  for (const nominal of library.nominalEntries(b.def, b.use as never)) {
+    const e: typeof nominal = { ...nominal, ...b.values?.[nominal.kind] };
     if (e.kind === library.TIMER_START || e.kind === library.TIMER_STOP) {
       const f = fields.get(String(e['field']));
       await withTap(page, ctx.operator, page.getByTestId(`lib-timer-${String(e['field'])}`).getByRole('button', { name: `${e.kind === library.TIMER_START ? 'Start' : 'Stop'} ${f?.label ?? ''}` }));
@@ -304,13 +356,22 @@ export async function runLibraryStep(
           await form.getByRole('textbox', { name: f.label, exact: true }).fill(lot);
           break;
         }
-        case 'CONTAINER':
+        case 'CONTAINER': {
+          if (pool && f.action === 'CONSUME') {
+            const name = pool.shift();
+            if (!name) throw new Error(`${b.def.code}: ${f.id} consumes a container, and no earlier step registered one`);
+            await form.getByRole('textbox', { name: f.label, exact: true }).fill(name);
+            break;
+          }
           container += 1;
           // The block code without its category (PROC-, COAT-, IPC-): a sandbox name stays within the 32 characters of a
           // lot number even read with a second TEST- (kernel 1030); a longer one is split and a part like CHECKWEIGH-1
           // reads as a real lot number (EBMR-EXE-147, seen with PROC-CAPS-CHECKWEIGH).
-          await form.getByRole('textbox', { name: f.label, exact: true }).fill(`${idPrefix}${b.def.code.replace(/^[A-Z]+-/, '')}-${String(n)}-${String(container)}`);
+          const name = `${idPrefix}${b.def.code.replace(/^[A-Z]+-/, '')}-${String(n)}-${String(container)}`;
+          await form.getByRole('textbox', { name: f.label, exact: true }).fill(name);
+          if (pool && f.action === 'REGISTER') pool.push(name);
           break;
+        }
         case 'CALC':
         case 'TIMER':
           break;
@@ -344,7 +405,8 @@ async function withTap(page: Page, who: SeededPersona, button: Locator): Promise
   await paceTaps(page, who);
   await button.click();
   await tap(page, who);
-  await expect(async () => expect(await entries.count()).toBeGreaterThan(before)).toPass({ timeout: 20_000 });
+  // A refusal says why on the screen: the failure carries its words.
+  await explained(expect(async () => expect(await entries.count()).toBeGreaterThan(before)).toPass({ timeout: 20_000 }), page.locator('main'));
 }
 
 export { primary };
