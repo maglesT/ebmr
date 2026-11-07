@@ -13,7 +13,7 @@
         "additionalProperties": false,
         "required": ["id", "class", "basis"],
         "properties": {
-          "id": { "type": "string", "pattern": "^(DI|PR|ST|IN)-\\d{2}$" },
+          "id": { "type": "string", "pattern": "^(DI|PR|ST|IN|AS)-\\d{2}$" },
           "class": { "enum": ["core", "other"] },
           "basis": { "type": "string", "minLength": 10 }
         }

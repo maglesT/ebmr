@@ -1,0 +1,24 @@
+id: AS-05
+title: "Critical weighing and dispensing witnessed"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 8.1.3, 8.1.4; ICH Q7 (EU GMP Part II) 8.12, 8.13. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Critical weighing, sub-dividing and other critical activities are witnessed or controlled to an equivalent level."
+catalog_test: "Complete a dispensing step with the performer as verifier; refused."
+implemented_by:
+  modules:
+    - "API-DISP and API-CHARGE: each container against its bill-of-materials line, signed by the performer and verified by a second person of another role."
+tests:
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-05][AS-04][PR-18] API plan A1b: API dispensing weighs each container against its bill-of-materials line, records the lot as that line's material, checks the sub-divided container's label (material, control number, quantity, retest date), and a second person of another role verifies it"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."
