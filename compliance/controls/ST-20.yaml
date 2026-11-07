@@ -53,7 +53,9 @@ behaviour: |-
   - **Rapid methods.** Results from validated rapid or alternative methods may use non-CFU units, with a correlated limit and justification reference. Results from unvalidated methods are refused.
 catalog_test: Configure a Grade B air action limit of 15 → rejected. The Grade A viable alert field is absent. Three low-level recoveries at one ISO 7 location in 10 days → the frequency trend rule fires and links to batches.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
