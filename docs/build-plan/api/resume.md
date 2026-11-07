@@ -1,29 +1,33 @@
-# API edition (substance): resume notes (6 November 2026, 15:10 UTC)
+# API edition (substance): resume notes (7 November 2026, 05:30 UTC)
 
 Read with: `plan.md`, `handover-a0.md` (sections "A1a done", "A1b paused", "A2 part 1", "A2 part 2"), CLAUDE.md and
 `docs/build-plan/capsules/plan.md` section 8 (rules learnt). Lead: session_01PybpFuUgimTwCNtTsK7cf1. Report each merge
 in 2 lines; lead audit before each merge; squash-merge on green.
 
-## PRs and branches (merge in this order, each on green)
+## State at 7 November 2026, 05:30 UTC (session_01PybpFtk8NDMMd6ZHTNovoe)
+
+This session cannot merge (permission refused): send the lead "#N green" and the lead squash-merges with plain trailers.
+Commit trailers carry no model name: `Co-Authored-By: Claude <noreply@anthropic.com>` plus the Claude-Session line.
 
 | # | Branch | What | State |
 |---|---|---|---|
-| #154 | `ci-pod-playwright` | CI: pod E2E uses the preinstalled chromium (/opt/pw-browsers, revision 1194), no apt/sudo | lead: merge on green |
-| #153 | `fix-whole-lot-weighing` | tablets 1903 (was 1808; renumbered 16:05, main has 1902): a GMP weighing that uses up a whole lot is accepted (EBMR-EXE-078, TB01 FEFO); audit tests added | lead audit done (MINOR, fixed): merge on green, before the API PRs |
-| #143 | `api-a1b-r` | A1b: catalogue v1 (11 blocks, every field with its clause), 15 AS controls, substance 5003 | lead CLEARED; CI blocked by the pod only |
-| #144 | `api-a2-r` | A2 part 1: intermediate lot (site-services 1732, substance 5001); contract names the existing RELEASE_FOR_FURTHER_PROCESSING | waits for #143 |
-| #145 | `api-a3-r` | A3: CoA (substance 5002) trimmed to SM XII 11.3 / Q7 11.41-11.43; read class in tablets 1904 (was 1807; claimed in modules.yaml with site-services 1733); telephone site-services 1733 | lead approved the trim; waits for #144 |
-| #150 | `kernel-retention-api-r` (base `api-a1b-r`) | kernel 1405: RET-2026.2, IN and EU retest-distribution rows (AS-24) | retarget to main after #143 merges; then merge |
-| — | `api-a2b` (stacked on `api-a2-r`) | A2 part 2: B and C consume their intermediate through G-07; C to a released API lot | no PR yet: open after #144 merges |
-| — | `api-genealogy-intermediate` (stacked on `api-a2b`) | recipe-core 1876: genealogy crosses intermediate lots (edge kind OUTPUT) | no PR yet: open with/after A2 part 2 |
+| #154 | `ci-pod-playwright` | pod E2E uses the preinstalled chromium | MERGED 6 Nov 21:10 (0da4f74) |
+| #143 | `api-a1b-r` | A1b catalogue | cleared; 26 pass, 2 queued; merges FIRST (lead order) |
+| #153 | `fix-whole-lot-weighing` | whole-lot guard, now tablets 1903 | cleared; E2E route-s died in the 01:25 pod event |
+| #144 | `api-a2-r` | A2 part 1 + main merged + fixes (05c2a2b) | cleared: sorted lists, DI-14/DI-20 list + site.intermediate_lot, O-T13-1 entry, RunHeaderView.postsIntermediateLot (server-computed, false once posted) + "Post the intermediate lot" on RunOverview for STORES |
+| #145 | `api-a3-r` | A3 CoA, tablets 1904 (fee31ac) | cleared: telephone history in site.licence_holder_telephone (own aggregate licence_holder_telephone, RECORD class in 1904; insert-only; latest wins; signed licence content keeps the telephone recorded with it), route india.recordLicenceTelephone + field on the licence card, matrix rows for release.coa/prepareCoa/recordLicenceTelephone approved |
+| #150 | `kernel-retention-api-r` (base api-a1b-r) | kernel 1405 retention rows | cleared; 2 E2E died in the 01:25 pod event; retarget to main after #143 |
+| — | `api-a2b` | A2 part 2 (whole-lot test done, fdd7c93) | open its PR after #144 merges |
+| — | `api-genealogy-intermediate` | recipe-core 1876 | open with/after A2 part 2 |
 
 ## Blockers right now
 
-- **Pod CI:** the runners have no passwordless sudo. E2E jobs failed in `tools/ci/playwright-install.sh` (#154 fixes
-  that), and `packages/kernel/test/review/f55.test.ts` uses `sudo -n` (lead: owner adds NOPASSWD; never skip f55, no
-  helper change). After that the lead re-runs #143's failed jobs (shard 4 timeout, nine E2E groups, the gate).
-- **#147** (injectables, one dosage-form → edition map `flow.productLineOf`) must land before the A1b on-screen E2E and the
-  "Batchwright API" header (ui-kit brand edition 'API'; HEADER_OF_LINE substance → 'API').
+- **Pod down since about 01:50 UTC 7 Nov**: no job runs on any PR; at 01:25 three E2E jobs died at once with no logs
+  (#153 route-s pod-5, #150 route-s pod-8 and own-demotab pod-3). Lead told; owner to check runners pod-1..8.
+- **#156** (lead): moves every job but E2E and golden to GitHub-hosted. When it merges, merge origin/main into each branch
+  above (merge commit, no other change; update #150 on its base) and push, then "#N green" in order, #143 first.
+- Re-run once the 01:25 E2E failures when their runs finish (unless the main merge restarts them).
+- The sudo fix for f55 is in (owner, 18:25 6 Nov).
 
 ## To do after the merges
 
