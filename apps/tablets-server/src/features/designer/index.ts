@@ -864,9 +864,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     },
 
     async discardDraft(ctx) {
-      // D-3: the lifecycle's WITHDRAW of a DRAFT (MBR.AUTHOR; guard platform.reason_given), with the author's own reason,
-      // both halves, in the command (DI-22): a status change in the audit trail; nothing is deleted (DI-24). A version
-      // past DRAFT is refused here; its own withdrawal belongs to QA.
+      // D-3: the lifecycle's WITHDRAW of a DRAFT (guard platform.reason_given), with the author's own reason, both halves,
+      // in the command (DI-22): a status change in the audit trail; nothing is deleted (DI-24). Anyone holding MBR.AUTHOR
+      // for the product may discard it (the lifecycle's existing rule); who did and why are recorded. D-3 discards only a
+      // DRAFT; the other withdrawals (the machine also allows one from IN_VERIFICATION, and QA's of an APPROVED version
+      // never authorised) use their own route.
       ctx.requireRole(...AUTHOR_ROLES);
       const id = ctx.params.versionId;
       const head = await requireHead(pool, id);

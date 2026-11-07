@@ -26,8 +26,8 @@ describe('a never-approved draft is discarded and the family starts again (demo 
   it('[DI-22][DI-24][PR-05] the author discards a DRAFT with a reason: it reads WITHDRAWN, its content and revisions stay, and the state change is in the audit trail and the history with that reason; a second discard and a checker are refused', async () => {
     const v = await createFamily(author, { familyCode: 'PCM500-D3A', batchSizes: [{ quantity: '41.000', unit: 'kg' }] });
     const checker = await server.asPersona('checker');
-    expect(refusalOf(await discard(checker, v))?.status).toBe(403);
-    expect((await author.call(routes.designer.discardDraft, { params: { versionId: v.versionId }, body: { reason: { code: 'DRAFT_DISCARDED', text: ' ' } } })).ok).toBe(false);
+    expect(refusalOf(await discard(checker, v))).toMatchObject({ status: 403, code: 'ROLE_NOT_ALLOWED' });
+    expect(refusalOf(await author.call(routes.designer.discardDraft, { params: { versionId: v.versionId }, body: { reason: { code: 'DRAFT_DISCARDED', text: ' ' } } }))).toMatchObject({ status: 400 });
     const w = valueOf(await discard(author, v));
     expect(w).toMatchObject({ versionId: v.versionId, state: 'WITHDRAWN', revision: v.revision, contentHash: v.contentHash });
     const history = await server.db.admin.query<{ reason_code: string; reason_text: string }>(
@@ -43,7 +43,15 @@ describe('a never-approved draft is discarded and the family starts again (demo 
     expect(audit.rows).toEqual([{ reason_text: 'Started with the wrong batch-size set', state: 'WITHDRAWN' }]);
     const kept = await server.db.admin.query<{ n: number }>('select count(*)::int as n from recipe.mbr_version where id = $1', [v.versionId]);
     expect(kept.rows[0]?.n).toBe(1);
-    expect(refusalOf(await discard(author, v))?.code).toBe('EBMR-RCP-021');
+    expect(refusalOf(await discard(author, v))).toMatchObject({ status: 422, code: 'EBMR-RCP-021' });
+  }, 120_000);
+
+  it('[DI-24][PR-06] a version past DRAFT is not discarded here: one in verification is refused and stays IN_VERIFICATION', async () => {
+    const v = await createFamily(author, { familyCode: 'PCM500-D3V', batchSizes: [{ quantity: '42.000', unit: 'kg' }] });
+    const started = valueOf(await author.call(routes.designer.startVerification, { params: { versionId: v.versionId }, body: { baseRevision: v.revision } }));
+    expect(started.state).toBe('IN_VERIFICATION');
+    expect(refusalOf(await discard(author, started))).toMatchObject({ status: 422, code: 'EBMR-RCP-021', why: expect.stringMatching(/./) as unknown });
+    expect(valueOf(await author.call(routes.designer.version, { params: { versionId: v.versionId } })).state).toBe('IN_VERIFICATION');
   }, 120_000);
 
   it('[PR-01][PR-05] creating the family again under the same code starts a new draft in it (the next version number); a twin under another code, and a family whose draft is not discarded, are refused as before', async () => {

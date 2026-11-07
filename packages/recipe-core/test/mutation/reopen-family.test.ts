@@ -44,6 +44,42 @@ describe('recipe.reopen_family (demo finding D-3)', () => {
     expect(await reopen(def)).toBe(v.familyId);
   });
 
+  it('[PR-05][PR-06][INV-17] two restarts at the same time give one draft: the second waits on the family row, then answers none, so define_family refuses the twin', async () => {
+    const content = uniqueContent('tablet-granulation-compression', ['IN']);
+    const v = await w.newVersion(content);
+    await discard(v.versionId);
+    const def = lc.familyOf(content);
+    let locked: () => void = () => undefined;
+    let release: () => void = () => undefined;
+    const holding = new Promise<void>((r) => (locked = r));
+    const go = new Promise<void>((r) => (release = r));
+    // The first restart reopens the family and holds its row until it has written its draft.
+    const first = w.run(w.cast.author, async (c) => {
+      const id = await lc.reopenFamily(c, def);
+      locked();
+      await go;
+      if (id) await lc.createVersion(c, id, clone(content), 'started again (first)');
+      return id;
+    });
+    await holding;
+    // The second, by another author on its own connection, at the same time: it waits for the first one's lock.
+    const second = w.run(w.cast.coAuthor, async (c) => (await lc.reopenFamily(c, def)) ?? lc.defineFamily(c, def));
+    const waiting = async (): Promise<boolean> => {
+      for (let i = 0; i < 100; i += 1) {
+        const { rows } = await db.admin.query<{ n: number }>("select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'");
+        if ((rows[0]?.n ?? 0) > 0) return true;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return false;
+    };
+    expect(await waiting()).toBe(true);
+    release();
+    expect(await first).toBe(v.familyId);
+    await expect(second).rejects.toThrow(/mbr_family_identity|duplicate key|unique/);
+    const { rows } = await db.admin.query<{ state: string }>('select recipe.version_state(id) as state from recipe.mbr_version where family_id = $1 order by version_number', [v.familyId]);
+    expect(rows.map((r) => r.state)).toEqual(['WITHDRAWN', 'DRAFT']);
+  });
+
   it('[PR-05][PR-06] a family that had an approved version is never reopened, even when that version was withdrawn before any authorisation', async () => {
     const content: MbrContent = uniqueContent('tablet-granulation-compression', ['IN']);
     const v = await w.approvedVersion(content);
