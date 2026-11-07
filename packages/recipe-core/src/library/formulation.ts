@@ -21,7 +21,9 @@ export function libraryPhase(def: BlockDefinition, id: string, riskClass: string
     config: { hash: definitionHash(def) },
     records: [],
     computes: [],
-    reads: (def.inputs ?? []).map((i) => i.id),
+    // A formula-line or batch-size input is read from the master's own BOM and batch size when the step runs
+    // (scaling.ts), so it is no value the master declares (demo finding D-1).
+    reads: (def.inputs ?? []).filter((i) => i.kind !== 'FORMULA_LINE' && i.kind !== 'BATCH_SIZE').map((i) => i.id),
     consumes: [],
     produces: [],
     uses: [],
