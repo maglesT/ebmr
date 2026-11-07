@@ -29,6 +29,7 @@ const LATER_READ_ROUTES = [
   'features/config-change/index.ts#setRbeRule',
   'features/config-change/index.ts#setSetting',
   'features/designer/index.ts#createFamily',
+  'features/designer/index.ts#discardDraft',
   'features/designer/index.ts#justify',
   'features/designer/index.ts#saveContent',
   'features/designer/index.ts#startVerification',

@@ -168,13 +168,17 @@ export const TARGETS: Target[] = [
                 'recipe.guard_draft_entry_recorded', 'recipe.guard_never_authorised', 'recipe.create_version', 'recipe.derive_version',
                 'recipe.save_content', 'recipe.set_draft_attributes', 'recipe.link_risk_assessment', 'recipe.unlink_risk_assessment',
                 'recipe.record_evidence', 'recipe.return_to_draft', 'recipe.record_change_record', 'recipe.inv04_violations',
-                'recipe.approved_content_violations'],
+                'recipe.approved_content_violations',
+                // Demo finding D-3 (recipe-core 1878): a new draft in a family whose drafts were all discarded.
+                'recipe.reopen_family'],
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
             r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
             s('master-data/formula.test.ts'),
             // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
-            r('review/rbe-rules.test.ts')],
+            r('review/rbe-rules.test.ts'),
+            // D-3: recipe.reopen_family.
+            r('mutation/reopen-family.test.ts'), s('designer/discard-draft.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, market authorisation, batch issue, periodic review (sql 0160-0180, 0250, 0290) --------
