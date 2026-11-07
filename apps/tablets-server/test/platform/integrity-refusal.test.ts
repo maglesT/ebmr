@@ -11,7 +11,7 @@ const app = { guidance: { lookup: (code: string) => (code === 'INTERNAL' ? { sta
 const pg = (code: string, extra: Record<string, unknown> = {}) => Object.assign(new Error('new row violates a rule'), { code, ...extra });
 
 describe('database rule violations as refusals (G5)', () => {
-  it('[DI-34] a check, a not-null and a unique violation, as the error or its cause, answer 422, 422 and 409 naming the rule; any other database error stays INTERNAL', () => {
+  it('[DI-34] a check, a not-null and a unique violation, as the error or its cause, answer 422, 422 and 409 naming the rule; any other database error stays INTERNAL; each is logged at warn with the raw error', () => {
     const check = mapError(app, pg('23514', { constraint: 'equipment_event_check' }), 'c1');
     expect([check.status, check.envelope.refusal.code, check.envelope.refusal.why]).toEqual([422, 'EBMR-API-CHECK', "The combination does not meet the record's rule equipment_event_check."]);
     const missing = mapError(app, pg('23502', { table: 'material_lot', column: 'supplier' }), 'c2');
@@ -19,6 +19,8 @@ describe('database rule violations as refusals (G5)', () => {
     const duplicate = mapError(app, Object.assign(new Error('wrapped'), { cause: pg('23505', { constraint: 'material_lot_site_code_lot_code_key' }) }), 'c3');
     expect([duplicate.status, duplicate.envelope.refusal.code, duplicate.envelope.refusal.why]).toEqual([409, 'EBMR-API-DUPLICATE', 'A record with the same key already exists (material_lot_site_code_lot_code_key).']);
     expect(duplicate.envelope.refusal.whatHappened).toMatch(/Nothing was saved/);
+    // Logged at warn with the raw error and the correlation id (setErrorHandler), so a defect behind a rule stays findable.
+    expect([check.warn, missing.warn, duplicate.warn]).toEqual([true, true, true]);
     expect(mapError(app, pg('40001'), 'c4').status).toBe(500);
   });
 });

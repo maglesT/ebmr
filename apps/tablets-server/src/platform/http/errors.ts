@@ -15,7 +15,8 @@ import { HttpRefusal } from './refusal.ts';
 export interface MappedError {
   status: number;
   envelope: RefusalEnvelope;
-  /** Logged at warn with the error: a refusal that a line before it should have given (unstorableTextRefusal). */
+  /** Logged at warn with the raw error: a refusal that a line before it should have given (unstorableTextRefusal), or a
+   * table rule the database applied (integrityRefusal). */
   warn?: true;
 }
 
@@ -72,7 +73,7 @@ function unstorableTextRefusal(app: AppContext, error: unknown, correlationId: s
  * A row the database refuses by a table's own rule (owner report items 22 and 23, G5): a check constraint (23514), a unique
  * constraint (23505) or a value that may not be empty (23502), raised without an EBMR code. It is a refusal of this input,
  * not an unexpected error: 422, or 409 for a duplicate, naming the constraint; nothing was saved. The database's rule stays
- * the guard; only the answer changes.
+ * the guard; only the answer changes. It is logged at warn with the raw error (setErrorHandler).
  */
 function integrityRefusal(error: unknown, correlationId: string): MappedError | null {
   const e = error as { code?: unknown; constraint?: unknown; column?: unknown; table?: unknown; cause?: unknown };
@@ -96,6 +97,9 @@ function integrityRefusal(error: unknown, correlationId: string): MappedError | 
       correlationId,
       retryable: false,
     },
+    // Logged at warn with the raw database error and the correlation id (lead, #175): a real defect behind a table's
+    // rule stays findable in the server log.
+    warn: true,
   };
 }
 
