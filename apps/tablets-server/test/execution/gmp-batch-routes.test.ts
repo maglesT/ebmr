@@ -34,7 +34,7 @@ afterAll(async () => {
 });
 
 const U = '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e';
-const sample: Record<string, string> = { batchId: U, runId: U, formulaId: U, id: U, allocationId: U, stepKey: 'p-disp-sop@', code: 'RMG-01', occupancyId: U, useId: U, issueId: U, set: 'TS-01' };
+const sample: Record<string, string> = { batchId: U, runId: U, formulaId: U, versionId: U, id: U, allocationId: U, stepKey: 'p-disp-sop@', code: 'RMG-01', occupancyId: U, useId: U, issueId: U, set: 'TS-01' };
 const inject = (server: { app: { inject: (o: Record<string, unknown>) => Promise<{ statusCode: number }> }; config: { publicOrigin: string } }, route: AnyRoute) =>
   server.app.inject({ method: route.method, url: buildPath(route.path, sample), headers: { origin: server.config.publicOrigin, 'sec-fetch-site': 'same-origin' } });
 

@@ -49,6 +49,24 @@ describe('formulas', () => {
     expect(within(again).queryByRole('button', { name: /Approve/ })).toBeNull();
   });
 
+  it('[DI-24] demo finding D-2: the author withdraws a DRAFT version with a reason (the button waits for it); an approver is not offered it', async () => {
+    const withDraft = { ...formula, versions: [draft, ...formula.versions] };
+    const ui = renderOffice(formulaPath, { role: 'MASTER_DATA_STEWARD', fixtures: { 'masterData.formula': withDraft } });
+    const card = await screen.findByTestId('formula-version-2');
+    const button = within(card).getByRole('button', { name: 'Withdraw draft version 2' });
+    expect(button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true').toBe(true);
+    await userEvent.type(within(card).getByRole('textbox', { name: 'Reason to withdraw version 2' }), 'Written for the wrong layer split');
+    await userEvent.click(button);
+    const path = `/api/master-data/formulas/${formula.formula.formulaId}/versions/${draft.versionId}/withdraw`;
+    await waitFor(() => expect(ui.posts(path)).toHaveLength(1));
+    expect(ui.posts(path)[0]?.body).toEqual({ reason: 'Written for the wrong layer split' });
+    expect(await within(card).findByText('Version 2 withdrawn.')).toBeTruthy();
+    expect(within(screen.getByTestId('formula-version-1')).queryByRole('button', { name: /Withdraw/ })).toBeNull();
+    cleanup();
+    renderOffice(formulaPath, { role: 'QA_REVIEWER', fixtures: { 'masterData.formula': withDraft } });
+    expect(within(await screen.findByTestId('formula-version-2')).queryByRole('button', { name: /Withdraw/ })).toBeNull();
+  });
+
   it('a new version is written per unit (no batch quantity typed) and a refusal is shown with the server\'s words', async () => {
     const ui = renderOffice(formulaPath, { role: 'MASTER_DATA_STEWARD', fixtures: { 'masterData.addFormulaVersion': refusal('EBMR-FORM-010', 'Only one compensating excipient per formula.') } });
     const form = await screen.findByTestId('new-formula-version');

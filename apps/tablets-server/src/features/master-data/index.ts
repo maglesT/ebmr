@@ -170,6 +170,16 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       if (!v) throw new Error('the new formula version was not read back');
       return v;
     },
+    withdrawFormulaVersion: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
+      const s = requireSession();
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await formula.withdrawFormulaVersion(c, params.formulaId, params.versionId, body.reason);
+        return params.versionId;
+      });
+      const v = (await one(s.tokenHash, params.formulaId)).versions.find((x) => x.versionId === params.versionId);
+      if (!v) throw new Error('the withdrawn formula version was not read back');
+      return v;
+    },
     // Slice 7j (R4, D-7j-1; site-services 1530): masters entered on screen wait for QA's confirmation.
     enterMaterial: async ({ body, actor, idempotencyKey, requestHash }) => {
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
