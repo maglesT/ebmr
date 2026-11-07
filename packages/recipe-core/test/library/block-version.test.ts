@@ -334,10 +334,10 @@ describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
     run.entry('p', entry());
   });
 
-  it('[PR-19][IN-11] equipment must be of the class the formulation names and fit for use', () => {
+  it('[PR-23][IN-25] equipment must be of the class the formulation names and fit for use', () => {
     const run = runFor(dispense(), use, { extra });
-    run.refused(entryCmd(run, entry(lot(), bal({ classCode: 'BAL-5' }))), 'LIB-EQUIPMENT-CLASS');
-    run.refused(entryCmd(run, entry(lot(), bal({ fitness: 'CALIBRATION_OVERDUE' }))), 'LIB-EQUIPMENT-FITNESS');
+    expect(run.refused(entryCmd(run, entry(lot(), bal({ classCode: 'BAL-5' }))), 'LIB-EQUIPMENT-CLASS').controls).toEqual(['PR-23', 'IN-25']);
+    expect(run.refused(entryCmd(run, entry(lot(), bal({ fitness: 'CALIBRATION_OVERDUE' }))), 'LIB-EQUIPMENT-FITNESS').controls).toEqual(['PR-23', 'IN-25']);
     run.entry('p', entry(lot(), bal({ fitness: 'CALIBRATION_DUE_SOON' })));
   });
 

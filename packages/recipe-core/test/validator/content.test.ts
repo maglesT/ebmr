@@ -5,6 +5,7 @@ import { parseMbr } from '../../src/flow/parse.ts';
 import { GENERIC_BLOCK_VERSIONS, MATERIAL_BLOCKS } from '../../src/blocks/generic/index.ts';
 import { checkMeaning } from '../../src/engine/actions.ts';
 import type { ValidationContext } from '../../src/validator/types.ts';
+import { CONTENT_RULES } from '../../src/validator/rules-content.ts';
 import { gate, validateMbr } from '../../src/validator/validate.ts';
 import { define, param as engineParam, Run, T0 } from '../engine/support.ts';
 import { clone, context, errors, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, TEST_ROLES, validate, type FixtureName } from '../flow/support.ts';
@@ -483,6 +484,12 @@ describe('GMP content gates', () => {
     expect(yieldErrors()).toEqual([]);
     const parsed = parseMbr(JSON.parse(JSON.stringify(m)));
     expect(parsed.ok && parsed.mbr.procedure.body.kind === 'sequence' && parsed.mbr.procedure.body.children.find((c) => c.id === 'S-BLEND')).toMatchObject({ noYieldReason: stage.noYieldReason });
+  });
+
+  it('[PR-14][PR-47] R-flow item 8: the significant-step rule cites PR-14, the reprocessing rule PR-47 and IN-19', () => {
+    const controls = (id: string): readonly string[] | undefined => CONTENT_RULES.find((r) => r.id === id)?.controls;
+    expect(controls('GMP-SIGNIFICANT-STEPS')).toEqual(['PR-14']);
+    expect(controls('GMP-REPROCESSING')).toEqual(['PR-47', 'IN-19']);
   });
 
   it('[PR-03] a non-material stage may not move material', () => {

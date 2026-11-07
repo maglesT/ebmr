@@ -174,7 +174,7 @@ const loops = defineRule('FLOW-LOOPS', 'Loops are bounded and exit on a process 
       out.push(
         error(
           n.id,
-          `Loop ${label(a, n.id)} would repeat until ${endpoint.name} passes, but ${endpoint.name} is ${what}; a loop may only repeat on a process endpoint (LOD, pH, weight gain). Repeating a test until it passes is refused: a failure goes to investigation and any rework is a separately approved reprocessing procedure`,
+          `Loop ${label(a, n.id)} would repeat until ${endpoint.name} passes, but ${endpoint.name} is ${what}; a loop may only repeat on a process endpoint (LOD, pH, weight gain). Repeating a test until it passes is refused: a failure goes to investigation and any rework is a separately approved reprocessing procedure [IN-20 OOS investigation, PR-47 reprocessing]`,
         ),
       );
     }

@@ -437,7 +437,7 @@ function checkReferenceLimits(def: BlockDefinition, expr: ExpressionService): Li
 function checkSignatures(def: BlockDefinition): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   const sigs = Array.isArray(def.signatures) ? def.signatures : [];
-  if (!sigs.some((s) => s.meaning === 'PERFORMED')) out.push(err('LIB-SIGNATURE-PERFORMED', 'signatures', 'The block needs a PERFORMED signature: every step is attributed to the person who did it [DI-35, ST-33]', ['DI-35', 'ST-33']));
+  if (!sigs.some((s) => s.meaning === 'PERFORMED')) out.push(err('LIB-SIGNATURE-PERFORMED', 'signatures', 'The block needs a PERFORMED signature: every step is attributed to the person who did it [PR-14, DI-35]', ['PR-14', 'DI-35']));
   const meanings = new Set<string>();
   sigs.forEach((s, i) => {
     if (!(SIGNATURE_MEANINGS as readonly string[]).includes(s.meaning)) out.push(err('LIB-SIGNATURE-MEANING', `signatures[${i}].meaning`, `Unknown signature meaning ${JSON.stringify(s.meaning)}`, ['DI-35']));

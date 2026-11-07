@@ -64,7 +64,7 @@ function withYield(c: Content, limits: boolean): Content {
 }
 
 describe('a new stage in the designer (demo finding D-1)', () => {
-  it('[DI-34][PR-03] the stage the designer adds passes the full validator: its clearance and status are in an operation, at the latest block versions', async () => {
+  it('[DI-34][PR-03][PR-31] the stage the designer adds passes the full validator: its clearance and status are in an operation, at the latest block versions', async () => {
     const c = base();
     expect(await findings(c)).toEqual([]);
     // The fixture holds the latest G-10 and G-09 the installation registers (the palette offers the latest).
@@ -87,7 +87,7 @@ describe('a new stage in the designer (demo finding D-1)', () => {
     ['injectables', 'Injection'],
     ['substance', 'API'],
     ['tablets', 'Hard capsule'],
-  ] as const)('[DI-34][PR-03] edition %s, dosage form %s: a new stage with its yield step adds no finding', async (edition, dosageForm) => {
+  ] as const)('[DI-34][PR-03][PR-31] edition %s, dosage form %s: a new stage with its yield step adds no finding', async (edition, dosageForm) => {
     const c = base();
     c.header.edition = edition;
     c.header.product.dosageForm = dosageForm;

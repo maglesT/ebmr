@@ -122,7 +122,7 @@ describe('structure gates on the tree', () => {
     expect(messages(loop('PROCESS_ENDPOINT'), 'FLOW-LOOPS')).toEqual([]);
     const refused = messages(loop('ACCEPTANCE_TEST'), 'FLOW-LOOPS');
     expect(refused).toHaveLength(1);
-    expect(refused[0]).toMatch(/acceptance or release test.*only repeat on a process endpoint.*reprocessing/);
+    expect(refused[0]).toMatch(/acceptance or release test.*only repeat on a process endpoint.*reprocessing procedure \[IN-20 OOS investigation, PR-47 reprocessing\]/);
     expect(refused[0]).toMatch(/\(FLOW-LOOPS; DI-34, INV-19\)$/);
   });
 

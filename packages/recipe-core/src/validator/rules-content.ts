@@ -127,7 +127,7 @@ const limitNesting = defineRule('GMP-LIMITS', 'Limit tiers are nested and source
   return out;
 });
 
-const significantSteps = defineRule('GMP-SIGNIFICANT-STEPS', 'Performer plus checker on significant steps', ['PR-03', 'IN-02'], (a) => {
+const significantSteps = defineRule('GMP-SIGNIFICANT-STEPS', 'Performer plus checker on significant steps', ['PR-14'], (a) => {
   const out: RuleFinding[] = [];
   for (const p of a.phases) {
     const d = a.describe(p);
@@ -420,6 +420,10 @@ const yields = defineRule('GMP-YIELDS', 'Yield checkpoints have a basis, minimum
     if (!a.hasRole(p, 'YIELD_RECONCILIATION') || p.yieldCheckpoint !== undefined) continue;
     const own = libraryYieldSlots(a, p);
     if (own === undefined) out.push(error(p.id, `${label(a, p.id)} is a yield or reconciliation step but names no yield checkpoint`));
+    // Basis (demo finding D-1): a yield outside its limits must be investigated (PR-31: 21 CFR 211.192, EU GMP 4.17;
+    // PR-39: reconciliation of bulk and printed materials with set limits), so a library yield step of the master
+    // carries both its minimum and its maximum, with their source, as the yield checkpoints above do.
+
     for (const slot of own ?? []) {
       const ranges = limitsOf(p)[slot]?.ranges ?? [];
       if (!ranges.some((r) => r.low !== undefined && r.high !== undefined)) out.push(error(p.id, `${label(a, p.id)} gives its calculated ${slot} no minimum and maximum; every yield and reconciliation needs both, with their source`));
@@ -606,7 +610,7 @@ const pat = defineRule('GMP-PAT', 'PAT steps define method, model version and ac
   return out;
 });
 
-const reprocessing = defineRule('GMP-REPROCESSING', 'Reprocessing and recovery steps declare their case and limits', ['PR-03'], (a) => {
+const reprocessing = defineRule('GMP-REPROCESSING', 'Reprocessing and recovery steps declare their case and limits', ['PR-47', 'IN-19'], (a) => {
   const out: RuleFinding[] = [];
   for (const p of a.phases) {
     const name = label(a, p.id);

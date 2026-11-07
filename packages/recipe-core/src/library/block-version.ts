@@ -454,9 +454,9 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       if (f.type === 'EQUIPMENT') {
         const e = equipment[f.id];
         const wanted = config.equipmentClasses?.[f.classSlot];
-        if (!e || e['code'] !== data[f.id]) problems.push(problem('LIB-EQUIPMENT-FACTS', `${f.label}: the plant register has no equipment ${text(data[f.id])}`, ['PR-19']));
-        else if (wanted !== undefined && e['classCode'] !== wanted) problems.push(problem('LIB-EQUIPMENT-CLASS', `${f.label}: ${text(e['code'])} is of class ${text(e['classCode'])}, not ${wanted} as the formulation requires`, ['PR-19', 'IN-11']));
-        else if (!USABLE_FITNESS.includes(text(e['fitness']))) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-19', 'IN-11']));
+        if (!e || e['code'] !== data[f.id]) problems.push(problem('LIB-EQUIPMENT-FACTS', `${f.label}: the plant register has no equipment ${text(data[f.id])}`, ['PR-23', 'IN-25']));
+        else if (wanted !== undefined && e['classCode'] !== wanted) problems.push(problem('LIB-EQUIPMENT-CLASS', `${f.label}: ${text(e['code'])} is of class ${text(e['classCode'])}, not ${wanted} as the formulation requires`, ['PR-23', 'IN-25']));
+        else if (!USABLE_FITNESS.includes(text(e['fitness']))) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-23', 'IN-25']));
       }
       // Every library weighing is keyed by hand (balances join in a later slice): two-person verification (DI-30, PR-14).
       if (f.type === 'WEIGHING') manualWeighing = true;

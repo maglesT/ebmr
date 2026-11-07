@@ -188,7 +188,7 @@ describe('library block definitions', () => {
   it('[DI-35] every block needs a PERFORMED signature with a role, each meaning once', () => {
     const none = { ...friability(), signatures: [{ meaning: 'CHECKED' as const, role: 'SUPERVISOR' }] };
     const twice = { ...friability(), signatures: [{ meaning: 'PERFORMED' as const, role: 'A' }, { meaning: 'PERFORMED' as const, role: '' }] };
-    expect(codes(checkBlockDefinition(none, expr))).toEqual(['LIB-SIGNATURE-PERFORMED']);
+    expect(checkBlockDefinition(none, expr).map((p) => [p.code, p.controls])).toEqual([['LIB-SIGNATURE-PERFORMED', ['PR-14', 'DI-35']]]);
     expect(codes(checkBlockDefinition(twice, expr)).sort()).toEqual(['LIB-SIGNATURE-MEANING', 'LIB-SIGNATURE-ROLE']);
   });
 

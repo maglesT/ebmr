@@ -141,6 +141,7 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > timer durations in any time unit (S7 catalogue finding) > [PR-30][PR-08] S11a finding: a timer outside its limit is recorded and judged exactly, and its exception shows the duration to three decimals"
   - "packages/recipe-core/test/library/formulation.test.ts > assembling a formulation from library blocks > [PR-08] a library limit bound to a market rule is refused when looser than the registered value (O-5)"
   - "packages/recipe-core/test/library/integration.test.ts > library blocks in masters and batches > [PR-08] a library limit is written in its field's unit, so the database compares in one unit"
+  - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] R-flow item 6: a target with no limits on a slot that needs none is an instruction (shown, never judged); it is still a decimal, and a market rule still needs limits"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] a limit in a unit that does not convert to the field unit is refused"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] a limit looser than the reference limit is a warning, cleared by a written reason (O-5)"
   - "packages/recipe-core/test/library/library.test.ts > a product's values for a library block > [PR-08] a limit whose lower bound is above its upper bound is refused"
