@@ -133,6 +133,13 @@ export const TARGETS: Target[] = [
     tests: [k('records/retention-purge.test.ts')],
     threshold: 90,
   },
+  // Kernel 1405 (API retest-distribution rows, rule set RET-2026.2): the retention evaluation and input normalisation.
+  {
+    group: 'retention-rules',
+    functions: ['records.evaluate_retention', 'records.normalize_retention_inputs'],
+    tests: [k('records/retention-rules.test.ts'), k('records/batch-retention.test.ts')],
+    threshold: 90,
+  },
   {
     group: 'site-values-and-policies',
     functions: ['market.assess_site_value', 'market.set_site_value', 'market.policy_pin_guard', 'market.policy_version_guard',
@@ -238,7 +245,9 @@ export const TARGETS: Target[] = [
                 'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check',
                 // Slice 7o (tablets 1700): a test run's disposal or sample names the batch's own output container; (recipe-core
                 // 1745) a test run's own container labels are bound words of its record.
-                'tab.own_output_container', 'recipe.run_bound_words'],
+                'tab.own_output_container', 'recipe.run_bound_words',
+                // Tablets 1903: a lot this command used up is judged by its status before the command.
+                'tab.lot_used_up_by_this_command'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
             s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts'), s('execution/sandbox-own-containers.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
@@ -991,11 +1000,20 @@ export const TARGETS: Target[] = [
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },
+  // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
+  // read class (tablets 1904) is tab.aggregate_read_class, which stays in its group. ----
+  {
+    group: 'api-coa',
+    functions: ['substance.coa_document', 'substance.coa_state', 'substance.coa_intact', 'substance.coa_content', 'substance.prepare_coa',
+                'substance.sign_coa'],
+    tests: [s('substance/api-chain.test.ts')],
+    threshold: 90,
+  },
   // ---- API plan A2 (C1): an intermediate lot posted from a complete processing batch of the API edition only
-  // (site-services 1732, substance 5001) ---------------------------------------------------------------------------------
+  // (site-services 1732, substance 5004) ---------------------------------------------------------------------------------
   {
     group: 'api-intermediate-lots',
-    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'substance.post_intermediate_lot'],
+    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'site.intermediate_lots_of', 'substance.post_intermediate_lot'],
     tests: [s('substance/intermediate-lots.test.ts')],
     threshold: 90,
   },
@@ -1115,7 +1133,8 @@ export const TARGETS: Target[] = [
                 'site.india_instant', 'site.record_manufacturing_licence', 'site.approve_manufacturing_licence',
                 'site.suspend_manufacturing_licence', 'site.record_export_permission', 'site.approve_export_permission',
                 'site.suspend_export_permission', 'site.erp_product_effective_at', 'site.shelf_life_basis_of',
-                'site.shelf_life_change_check', 'site.record_shelf_life_basis'],
+                'site.shelf_life_change_check', 'site.record_shelf_life_basis', 'site.licence_telephone',
+                'site.record_licence_holder_telephone'],
     tests: [site('india/licences.test.ts'), r('release/india.test.ts'), site('mutation/india-licences.test.ts')],
     threshold: 90,
   },

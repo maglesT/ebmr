@@ -1,0 +1,28 @@
+id: AS-04
+title: "Batch record content of each significant step"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "Revised Schedule M Part XII 6.5.3; ICH Q7 (EU GMP Part II) 6.52. API plan docs/build-plan/api/plan.md section 6."
+behaviour: "Each significant step records dates and times, major equipment, each input lot and quantity, actual critical parameter results, sampling, performer and checker signatures, in-process and laboratory results, actual yields, package and label, deviations and release results."
+catalog_test: "Run the API master; every step shows its equipment, lots, values, yields and two signatures."
+implemented_by:
+  modules:
+    - "Catalogue v1 blocks (equipment, lot and weighing fields, critical values with limits, signatures), G blocks and lot results."
+tests:
+  - "apps/tablets-server/test/substance/intermediate-lots.test.ts > API plan A2: intermediate lots between synthesis steps (C1) > [AS-03][AS-04][INV-13][INV-14][PR-57][IN-05][PR-45] step B dispenses intermediate A at its G-07 step on the booked balance: the weighing is consumed from B's reservation in the same command, so B's record names lot A and its quantity; B completes and posts intermediate B in quarantine, a lot of its own product; the overview still offers the post after it is made"
+  - "apps/tablets-server/test/substance/intermediate-lots.test.ts > API plan A2: intermediate lots between synthesis steps (C1) > [PR-57][IN-07][AS-04] the genealogy route traces each step's consumption both ways: lot A forward to step B, step B back to lot A, and the API lot back through its packaging order and step C to lot B"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-04][AS-09][AS-10] API plan A1b: the reaction records its temperature against limits at each round and its time as a critical time limit; the completion check repeats until the remaining starting material is within its limit; crystallisation ages for a limited time"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-05][AS-04][PR-18] API plan A1b: API dispensing weighs each container against its bill-of-materials line, records the lot as that line's material, checks the sub-divided container's label (material, control number, quantity, retest date), and a second person of another role verifies it"
+  - "packages/recipe-core/test/library/seed.test.ts > the ready-made catalogue > [AS-06][AS-04] API plan A1b: the yield step works out the actual yield against the expected yield (the batch size), critical with limits; a low yield raises an exception (to be explained and investigated) and blocks completion"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A1 of the API plan."

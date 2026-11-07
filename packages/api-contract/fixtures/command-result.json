@@ -21,6 +21,7 @@
       ],
       "status": "IN_PROGRESS",
       "statusText": "In progress",
+      "postsIntermediateLot": false,
       "watermark": {
         "text": "TEST, NOT GMP",
         "source": "SANDBOX_TEST_RUN",

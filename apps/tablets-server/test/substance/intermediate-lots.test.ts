@@ -1,5 +1,5 @@
 /**
- * API plan A2, change C1 (site-services 1732, substance 5001): a processing batch of the API edition posts its output as
+ * API plan A2, change C1 (site-services 1732, substance 5004): a processing batch of the API edition posts its output as
  * an INTERMEDIATE lot in quarantine; QA releases it for further processing through the material-lot release
  * (RELEASE_FOR_FURTHER_PROCESSING over the proposal, MATERIAL_LOT_STATUS_DECIDED); the next step's batch reserves it as
  * any lot (site.reserve_lot) and consumes it through the G-07 weighing of its own record.
@@ -23,12 +23,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import { routes } from '@ebmr/api-contract';
 import type { flow } from '@ebmr/recipe-core/pure';
-import { openServiceSession } from '@ebmr/test-kit';
+import { openServiceSession, terminalOf } from '@ebmr/test-kit';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { API_PACK } from '../../../../packages/recipe-core/src/library/seed/substance.ts';
 import { actorOfBrowser, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
-import type { ExecServer, RunDriver } from '../execution/support.ts';
+import { RunDriver, type ExecServer } from '../execution/support.ts';
+import { intermediatePostOffered } from '../../src/features/execution/views.ts';
 import { actorOf, gmpLifecycleWorld } from '../support/gmp-world.ts';
 import { confirmErpPending } from '../support/signed-acts.ts';
 import {
@@ -188,7 +189,7 @@ afterAll(async () => {
 });
 
 describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
-  it('[IN-05][PR-45][INV-27] step A runs to completion and the stores post its output as an INTERMEDIATE lot in quarantine, dated from the product master\'s shelf life; an incomplete batch, a second post and a non-stores person are refused', async () => {
+  it('[IN-05][PR-45][INV-27] step A runs to completion and the stores post its output as an INTERMEDIATE lot in quarantine, dated from the product master\'s shelf life; a second and a third post of the same batch are lots <batch>-2 and <batch>-3; an incomplete batch and a non-stores person are refused', async () => {
     batch.A = await plannedAndIssued('A', masterA);
     const stores = await gmp.asPersona('stores');
     const post = { batchId: batch.A.batchId, quantity: '50', unit: 'kg' };
@@ -202,11 +203,19 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
       `select l.material_kind as kind, i.edition, (l.expires_at at time zone 'Asia/Kolkata')::date::text as exp, recipe.batch_expiry($2) ->> 'expiryDate' as want
          from site.intermediate_lot i join site.material_lot l on l.id = i.lot_id where i.lot_id = $1`, [lot.A, batch.A.batchId]);
     expect(rows).toEqual([{ kind: 'INTERMEDIATE', edition: 'SUBSTANCE', exp: rows[0]?.want, want: rows[0]?.want }]);
-    expect(refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: post }))?.why).toMatch(/already posted/);
+    // More than one intermediate lot per batch (second crops, split isolations; site-services 1734): numbered in posting order.
+    const second = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { ...post, quantity: '7.25' } }));
+    const third = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { ...post, quantity: '3' } }));
+    expect([second, third]).toMatchObject([
+      { lotCode: `${batch.A.batchNumber}-2`, batchId: batch.A.batchId, materialCode: INT_A.code, status: 'QUARANTINE', quantity: '7.25' },
+      { lotCode: `${batch.A.batchNumber}-3`, batchId: batch.A.batchId, materialCode: INT_A.code, status: 'QUARANTINE', quantity: '3' },
+    ]);
     // Not a finished lot: the manufacturer release and the finished-lot register never see it.
     expect((await gmp.db.admin.query('select 1 from site.finished_lot where lot_id = $1', [lot.A])).rowCount).toBe(0);
     const of = async (b: string): Promise<string | null> => (await gmp.db.app.query<{ l: string | null }>('select site.intermediate_lot_of($1) as l', [b])).rows[0]?.l ?? null;
-    expect([await of(batch.A.batchId), await of(randomUUID())]).toEqual([lot.A, null]);
+    expect([await of(batch.A.batchId), await of(randomUUID())]).toEqual([third.lotId, null]);
+    const all = (await gmp.db.app.query<{ l: string }>('select l from site.intermediate_lots_of($1) as l', [batch.A.batchId])).rows.map((r) => r.l);
+    expect(all).toEqual([lot.A, second.lotId, third.lotId]);
   });
 
   it('[INV-27][IN-18] a tablets batch never reaches the intermediate post: the site function refuses any batch that is not a complete processing batch of the API edition', async () => {
@@ -231,7 +240,18 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     expect(await consumptions(batch.B.batchId)).toEqual([]);
   });
 
-  it('[AS-03][AS-04][INV-13][INV-14][PR-57][IN-05][PR-45] step B dispenses intermediate A at its G-07 step on the booked balance: the weighing is consumed from B\'s reservation in the same command, so B\'s record names lot A and its quantity; B completes and posts intermediate B in quarantine, a lot of its own product', async () => {
+  it('[IN-05][PR-45][INV-27] the batch overview offers the intermediate post only for a complete processing batch of the API edition, also once a lot is posted (header.postsIntermediateLot, the server\'s answer): step A posted, yes; step B issued and not complete, no; a tablets batch, no', async () => {
+    const offered = async (batchId: string): Promise<boolean | undefined> =>
+      (await new RunDriver(gmp, batchId, { stores: await gmp.asPersona('stores') }).runView('stores')).header.postsIntermediateLot;
+    expect([await offered(batch.A.batchId), await offered(batch.B.batchId)]).toEqual([true, false]);
+    // A tablets processing batch at the same state, whatever its register says: the master's edition decides first.
+    const tablets = { familyEdition: 'tablets', recordKind: 'PROCESSING', status: 'EXECUTION_COMPLETE' };
+    expect([intermediatePostOffered({ ...tablets, registerEdition: 'TABLETS' }), intermediatePostOffered({ ...tablets, registerEdition: 'SUBSTANCE' }),
+      intermediatePostOffered({ ...tablets, familyEdition: 'substance', registerEdition: 'TABLETS' }), intermediatePostOffered({ ...tablets, familyEdition: 'substance', recordKind: 'PACKAGING', registerEdition: 'SUBSTANCE' }),
+      intermediatePostOffered({ ...tablets, familyEdition: 'substance', registerEdition: 'SUBSTANCE' })]).toEqual([false, false, false, false, true]);
+  });
+
+  it('[AS-03][AS-04][INV-13][INV-14][PR-57][IN-05][PR-45] step B dispenses intermediate A at its G-07 step on the booked balance: the weighing is consumed from B\'s reservation in the same command, so B\'s record names lot A and its quantity; B completes and posts intermediate B in quarantine, a lot of its own product; the overview still offers the post after it is made', async () => {
     await bookBalance(gmp, BALANCE, batch.B.batchId);
     const d = await driverOf(gmp, batch.B.batchId);
     await d.ok('dispenser1', { type: 'START_STEP', stepKey: 'p-disp@' });
@@ -241,9 +261,13 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     await closeDispensing(d);
     await runReaction(d);
     expect(await statusOf(gmp, batch.B.batchId)).toBe('EXECUTION_COMPLETE');
+    const offered = async (): Promise<boolean | undefined> =>
+      (await new RunDriver(gmp, batch.B.batchId, { stores: await gmp.asPersona('stores') }).runView('stores')).header.postsIntermediateLot;
+    expect(await offered()).toBe(true);
     const posted = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '42.5', unit: 'kg' } }));
     lot.B = posted.lotId;
     expect(posted).toMatchObject({ lotCode: batch.B.batchNumber, materialCode: INT_B.code, status: 'QUARANTINE', quantity: '42.5' });
+    expect(await offered()).toBe(true);
   });
 
   it('[AS-16][PR-18][INV-13][INV-14] the final step C refuses intermediate B in quarantine at the reservation and at its G-07 weighing, consuming nothing; once QA releases B for further processing, C reserves it and its weighing consumes it', async () => {
@@ -297,5 +321,27 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     expect(await trace('LOT', lot.P, 'BACKWARD')).toEqual(expect.arrayContaining([
       ['BATCH', batch.P.batchNumber, 'FINISHED'], ['BATCH', batch.C.batchNumber, 'PACKAGING_ORDER'], ['LOT', batch.B.batchNumber, 'CONSUMED'],
     ]));
+  });
+
+  it('[INV-27][IN-05] a lot code another lot holds at the site is never reused: with a received lot carrying <batch>-2, step B\'s second post takes the next free code <batch>-3; the material-lot uniqueness refuses any other row reusing a code', async () => {
+    const stores = await gmp.asPersona('stores');
+    const erp = gmp.seed.services.find((s) => s.key === 'erpInterface');
+    if (!erp) throw new Error('no ERP interface in the GMP seed');
+    const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
+    const material = `EXC-${TAG}`;
+    valueOf(await gmp.browser().call(routes.quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [{ materialCode: material, materialName: 'Excipient (invented)', materialKind: 'EXCIPIENT' as const, unit: 'kg', maxRetestMonths: 24, erpReference: `SAP-${material}` }], orders: [] } } }));
+    await confirmErpPending(gmp);
+    valueOf(await stores.call(routes.quality.receiveLot, {
+      body: { materialCode: material, lotCode: `${batch.B.batchNumber}-2`, supplier: 'Demo Supplier', supplierLot: `S-${TAG}`, quantity: '5.000', expiresAt: '2029-09-30T00:00:00+05:30', retestAt: '2029-03-31T00:00:00+05:30' },
+    }));
+    const next = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '1', unit: 'kg' } }));
+    expect(next).toMatchObject({ lotCode: `${batch.B.batchNumber}-3`, materialCode: INT_B.code, status: 'QUARANTINE' });
+    const n = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.intermediate_lot where batch_id = $1', [batch.B.batchId]);
+    expect(n.rows[0]?.n).toBe('2');
+    // The table's own rule, under any path: a second row with the code at the site is refused by unique (site, lot code).
+    await expect(gmp.db.admin.query(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+       select gen_random_uuid(), l.site_code, l.lot_code, l.material_code, l.material_name, l.material_kind, l.received_quantity, l.unit, l.expires_at, l.received_by_person, l.received_by_account, gen_random_uuid()
+         from site.material_lot l where l.site_code = $1 and l.lot_code = $2`, [SITE, batch.B.batchNumber])).rejects.toThrow(/material_lot_site_code_lot_code_key/);
   });
 });

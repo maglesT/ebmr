@@ -185,6 +185,11 @@ export const RunHeaderView = z.strictObject({
   markets: z.array(z.string()),
   status: BatchStatus,
   statusText: z.string(),
+  /**
+   * Whether the stores post this batch's output as an intermediate lot (API plan A2, C1): the server's answer, true only
+   * for a processing batch of the API (SUBSTANCE) edition whose execution is complete; the database checks it again.
+   */
+  postsIntermediateLot: z.boolean().optional(),
   /** TEST, NOT GMP on a sandbox test run; null on a GMP batch (DI-05: the installation decides, never the run). */
   watermark: Watermark.nullable(),
   /** Run version (optimistic locking: commands send it back as expectedVersion). */

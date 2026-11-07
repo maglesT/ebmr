@@ -96,7 +96,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^04\d\d_', '^133[56]_']
+      packages/kernel/sql: ['^04\d\d_', '^133[56]_', '^1405_']
     src: [packages/kernel/src/records]
     tests: ['packages/kernel/test/records/**']
 
@@ -330,7 +330,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0885_', '^0903_']
+      packages/site-services/sql: ['^0885_', '^0903_', '^1735_']
     src: [packages/site-services/src/india]
     tests: ['packages/site-services/test/india/**', 'packages/site-services/test/mutation/india-licences.test.ts']
 
@@ -369,7 +369,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql:
-        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_']
+        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_', '^1734_']
     src: [packages/site-services/src/lots]
     tests: ['packages/site-services/test/lots/**', 'packages/site-services/test/mutation/lots-and-lims.test.ts']
 
@@ -1112,7 +1112,7 @@ modules:
     package: apps/tablets-server
     migrations:
       apps/tablets-server/sql:
-        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_', '^1320_']
+        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_', '^1320_', '^1903_']
     server: [apps/tablets-server/src/features/execution]
     contract: [packages/api-contract/src/ns/execution.ts, packages/api-contract/src/ns/batches.ts]
     screens: [apps/tablets-web/src/features/floor]
@@ -1287,6 +1287,7 @@ modules:
     package: editions/substance
     migrations:
       editions/substance/sql: ['^5\d\d\d_']
+      apps/tablets-server/sql: ['^1904_']
     tests: ['apps/tablets-server/test/substance/**']
 
   # ---------------------------------------------------------------- tools

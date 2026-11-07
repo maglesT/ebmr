@@ -10,6 +10,7 @@ import { createRoute, type AnyRootRoute, type AnyRoute } from '@tanstack/react-r
 import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
 import { BatchMarketsPage } from './BatchMarketsPage.tsx';
+import { CoaPage } from './CoaPage.tsx';
 import { LotReleasePage } from './LotReleasePage.tsx';
 import { QpReaderPage } from './QpReaderPage.tsx';
 import { ReleaseQueuePage } from './ReleaseQueuePage.tsx';
@@ -20,6 +21,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/release', component: ReleaseQueuePage }),
     createRoute({ getParentRoute: () => root, path: '/release/suspended', component: SuspendedPage }),
     createRoute({ getParentRoute: () => root, path: '/release/$lotId', component: LotReleasePage }),
+    // API plan A3: the CoA of a released API lot, linked from the lot's release page only.
+    createRoute({ getParentRoute: () => root, path: '/release/$lotId/coa', component: CoaPage }),
     createRoute({ getParentRoute: () => root, path: '/release/batches/$batchId', component: BatchMarketsPage }),
     createRoute({ getParentRoute: () => root, path: '/qp', component: QpReaderPage }),
   ];

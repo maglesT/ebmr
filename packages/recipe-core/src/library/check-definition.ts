@@ -152,7 +152,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
       if (typeof f.id === 'string' && IDENT.test(f.id)) {
         if (seen.has(f.id) || inputIds.has(f.id)) problems.push(err('LIB-FIELD-ID', `${fp}.id`, `Field id ${f.id} is used twice; each field and input needs its own id`));
         else {
-          if (f.showWhen !== undefined) problems.push(...checkShowWhen(f, fp, seen));
+          if (f.showWhen !== undefined) problems.push(...checkShowWhen(f, fp, s, seen));
           if (f.type === 'CALC') problems.push(...checkCalc(f, fp, s, seen, def.inputs ?? [], expr));
           seen.set(f.id, { field: f, section: s, index: order });
         }
@@ -306,13 +306,19 @@ function checkInputs(def: BlockDefinition, expr: ExpressionService): LibraryProb
   return out;
 }
 
-/** A condition refers to an earlier yes/no or choice field and to one of its answers. */
-function checkShowWhen(f: FieldDef, fp: string, earlier: ReadonlyMap<string, { field: FieldDef }>): LibraryProblem[] {
+/**
+ * A condition refers to an earlier yes/no or choice field of the same section and to one of its answers. The runtime
+ * reads the condition from the entry being recorded (one section's record, block-version.ts `shown`), so a field of
+ * another section is never there and the conditional field would never be asked (injectables I-1c, lead).
+ */
+function checkShowWhen(f: FieldDef, fp: string, section: SectionDef, earlier: ReadonlyMap<string, { field: FieldDef; section: SectionDef }>): LibraryProblem[] {
   const w = f.showWhen;
   if (w === undefined) return [];
-  const on = earlier.get(w.field)?.field;
+  const found = earlier.get(w.field);
+  const on = found?.field;
   const at = `${fp}.showWhen`;
   if (!on) return [err('LIB-SHOW-WHEN', at, `Field ${f.id} is shown when ${JSON.stringify(w.field)} has an answer, but no earlier field has that id`)];
+  if (found.section !== section) return [err('LIB-SHOW-WHEN', at, `Field ${f.id} is shown when ${on.id} has an answer, but ${on.id} is in section ${found.section.id}; a condition reads a field of its own section, so ${f.id} would never be asked`)];
   if (on.type === 'YES_NO') return typeof w.equals === 'boolean' ? [] : [err('LIB-SHOW-WHEN', at, `Field ${f.id}: ${on.id} is a yes/no field, so the condition is yes or no`)];
   if (on.type === 'CHOICE') return typeof w.equals === 'string' && on.options.includes(w.equals) ? [] : [err('LIB-SHOW-WHEN', at, `Field ${f.id}: ${JSON.stringify(w.equals)} is not an option of ${on.id}`)];
   return [err('LIB-SHOW-WHEN', at, `Field ${f.id} depends on ${on.id}, which is not a yes/no or choice field`)];
