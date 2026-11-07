@@ -258,7 +258,8 @@ export function LibraryRenderer({ view }: RendererProps) {
       ) : null}
       <EntryList entries={view.entries} />
       {working ? timers.map((t) => <TimerControl key={t.id} view={view} f={t} />) : null}
-      {working ? def.sections.filter((s) => openFor(s, config, view.entries)).map((s) => <SectionForm key={s.id} view={view} section={s} config={config} />) : null}
+      {working && library.fieldlessBlock(def) ? def.sections.map((s) => <p key={s.id}>{s.title}</p>) : null}
+      {working && !library.fieldlessBlock(def) ? def.sections.filter((s) => openFor(s, config, view.entries)).map((s) => <SectionForm key={s.id} view={view} section={s} config={config} />) : null}
     </>
   );
 }

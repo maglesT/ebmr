@@ -93,6 +93,19 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(() => run(undefined).perform('p')).toThrow(/Alarm acknowledgement is not recorded yet \(LIB-PERFORM-SECTION/);
   });
 
+  it('[PR-03][DI-35] R-flow item 5: a fieldless instruction block ends on its PERFORMED signature alone', () => {
+    const def: BlockDefinition = {
+      code: 'SOP-READ', version: 1, title: 'Read the cleaning SOP', category: 'CONTROL', roles: ['INSTRUCTION'],
+      sections: [{ id: 'text', title: 'Read SOP-PR-012 before the start', fields: [] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }],
+    };
+    const run = runFor(def, { block: { code: def.code, version: 1 } });
+    run.perform('p');
+    if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p');
+    expect(run.status('p')).toBe('COMPLETED');
+    expect(types(run)).toEqual([]);
+  });
+
   it('[INV-25] a calculated field cannot be typed', () => {
     const run = runFor(friability(), friabilityUse());
     run.refused(entryCmd(run, { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false, loss: '0.1' }), 'ENG-ENTRY-SCHEMA');

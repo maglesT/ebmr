@@ -30,7 +30,7 @@ import { LIMIT_SOURCE_KINDS, LIMIT_TIERS, ROUNDING_RULES, type LimitSpec } from 
 import { lotProblems } from '../blocks/generic/material.ts';
 import { checkBlockUse } from './check-use.ts';
 import { scaledInputs } from './scaling.ts';
-import type { BlockDefinition, BlockUse, FieldDef, SectionDef, TestStatistic } from './model.ts';
+import { fieldlessBlock, type BlockDefinition, type BlockUse, type FieldDef, type SectionDef, type TestStatistic } from './model.ts';
 
 /** Block type of a library definition in the registry and in the MBR, e.g. LIB-IPC-FRIAB. */
 export function libraryBlockType(code: string): string {
@@ -624,11 +624,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       beforePerform: (view) => {
         const config = configOf(view);
         const out: HandlerProblem[] = [];
+        const fieldless = fieldlessBlock(def);
         for (const s of def.sections) {
           const n = view.entries(s.id).length;
           const r = s.repeat ?? { kind: 'ONCE' as const };
-          // An optional event section (R-flow item 3) is recorded only when its event happens.
-          if (s.required === false) continue;
+          // An optional event section (R-flow item 3) is recorded only when its event happens; the sections of a
+          // fieldless instruction or sign-off block (item 5) hold only text, and the signature is the record.
+          if (s.required === false || fieldless) continue;
           if (r.kind === 'COUNT') {
             const want = Number(config.counts?.[r.countSlot] ?? '1');
             if (n < want) out.push(problem('LIB-PERFORM-SECTION', `${s.title} is recorded ${n} of ${want} times`));

@@ -253,6 +253,15 @@ export type ExternalInput =
 export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
+/**
+ * Whether a block records nothing but its signatures (R-flow item 5): an INSTRUCTION or SIGN_OFF block whose sections
+ * hold no field. Its PERFORMED signature, with who and when, is the record; its sections only carry the text the
+ * operator reads.
+ */
+export function fieldlessBlock(def: Pick<BlockDefinition, 'roles' | 'sections'>): boolean {
+  return Array.isArray(def.roles) && def.roles.length > 0 && def.roles.every((r) => r === 'INSTRUCTION' || r === 'SIGN_OFF') && Array.isArray(def.sections) && def.sections.every((s) => (s.fields ?? []).length === 0);
+}
+
 export interface BlockDefinition {
   /** Upper-case code, e.g. "IPC-FRIAB". */
   code: string;

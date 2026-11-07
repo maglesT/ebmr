@@ -11,6 +11,7 @@ import type { ExpressionService, ExprType } from '../flow/expression-port.ts';
 import {
   BLOCK_CATEGORIES,
   LIBRARY_EDITIONS,
+  fieldlessBlock,
   EQUIPMENT_KINDS,
   FIELD_TYPES,
   LIBRARY_ROLES,
@@ -161,7 +162,8 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
     });
     problems.push(...checkRepeat(s, sp));
   });
-  if (fieldCount === 0) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one'));
+  // An INSTRUCTION or SIGN_OFF block may hold no field: its PERFORMED signature is the record (R-flow item 5).
+  if (fieldCount === 0 && !fieldlessBlock(def)) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one, unless the block is an instruction or a sign-off (roles INSTRUCTION, SIGN_OFF)'));
   problems.push(...checkOptionalSections(def));
 
   // An UNTIL_PASS repeat ends only on a field with a pass/fail meaning in the same section.
@@ -246,7 +248,8 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: 
     case 'CALC':
       unitOk(f.unit, `${fp}.unit`);
       criticalNeedsLimit(f.critical, f.limitSlot);
-      if (f.required === false) out.push(err('LIB-CALC-REQUIRED', `${fp}.required`, `Field ${f.id} is calculated; it is never typed, so it cannot be optional or required [INV-25]`, ['INV-25']));
+      // R-flow item 7: the flag is ignored (a calculation is never typed, and is always computed), so it only warns.
+      if (f.required === false) out.push({ ...err('LIB-CALC-REQUIRED', `${fp}.required`, `Field ${f.id} is calculated; it is never typed and always computed, so "required: false" is ignored [INV-25]`, ['INV-25']), severity: 'WARNING' });
       break;
     case 'TIMER': {
       const unit = f.durationUnit ?? 'min';

@@ -125,9 +125,24 @@ describe('library block definitions', () => {
     expect(codes(checkBlockDefinition(scalar, expr))).toContain('LIB-CALC-EXPRESSION');
   });
 
-  it('[INV-25] a calculated field cannot be marked optional: it is never typed', () => {
+  it('[INV-25] "required: false" on a calculated field is ignored with a warning (R-flow item 7): it is never typed and always computed', () => {
     const def = withField(friability(), { id: 'c2', label: 'C2', type: 'CALC', expression: 'w0', unit: 'g', required: false });
-    expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-CALC-REQUIRED']);
+    expect(checkBlockDefinition(def, expr).map((p) => [p.code, p.severity])).toEqual([['LIB-CALC-REQUIRED', 'WARNING']]);
+  });
+
+  it('[PR-03][DI-35] R-flow item 5: an instruction or sign-off block may hold no field (its PERFORMED signature is the record); any other block needs one', () => {
+    const fieldless = (roles: BlockDefinition['roles']): BlockDefinition => ({
+      code: 'SOP-READ', version: 1, title: 'Read the cleaning SOP', category: 'CONTROL', ...(roles ? { roles } : {}),
+      sections: [{ id: 'text', title: 'Read SOP-PR-012 before the start', fields: [] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }],
+    });
+    expect(errors(checkBlockDefinition(fieldless(['INSTRUCTION']), expr))).toEqual([]);
+    expect(errors(checkBlockDefinition(fieldless(['SIGN_OFF']), expr))).toEqual([]);
+    expect(errors(checkBlockDefinition(fieldless(['INSTRUCTION', 'SIGN_OFF']), expr))).toEqual([]);
+    expect(codes(errors(checkBlockDefinition(fieldless(['INSTRUCTION', 'IPC']), expr)))).toEqual(['LIB-NO-FIELDS']);
+    expect(codes(errors(checkBlockDefinition(fieldless(undefined), expr)))).toEqual(['LIB-NO-FIELDS']);
+    // The database keeps its shape rule (EBMR-LIB-001: at least one section), so a fieldless block has a text section.
+    expect(codes(errors(checkBlockDefinition({ ...fieldless(['INSTRUCTION']), sections: [] }, expr)))).toEqual(['LIB-NO-FIELDS']);
   });
 
   it('[PR-03] R-flow item 3: a section may be optional only as a named event; a planned count, interval or loop and the step\'s own record stay required', () => {
