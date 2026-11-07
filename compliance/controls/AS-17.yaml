@@ -9,8 +9,8 @@ type:
 target_phase: 7
 target_phase_source: default
 requirement_rows: []
-sources: "Revised Schedule M Part XII 11.3.1 to 11.3.4; ICH Q7 (EU GMP Part II) 11.40 to 11.43. API plan docs/build-plan/api/plan.md sections 4 (C3) and 6."
-behaviour: "An authentic certificate of analysis can be issued for each batch on request. It gives the product's name and grade, the batch number, the release date, the retest or expiry date, each test with its limits and numerical result, and the original manufacturer's name, address and telephone, and the quality unit dates and signs it."
+sources: "ICH Q7 (Step 4, 10 November 2000; EU GMP Part II) section 11.4, Certificates of Analysis, 11.40 to 11.43, checked against the official text (database.ich.org, Q7 Guideline.pdf). 11.44 (new certificates from repackers, reprocessors, agents or brokers) does not apply to a manufacturer running Batchwright (plan section 5). API plan docs/build-plan/api/plan.md row C3."
+behaviour: "11.40: \"authentic Certificates of Analysis\" for each batch \"on request\". 11.41: the name of the API with its grade where appropriate, the batch number and the date of release; the expiry date, or the retest date, when the API has one. 11.42: each test performed, with its acceptance limits and its numerical result. 11.43: \"dated and signed by authorised personnel of the quality unit\", with the name, address and telephone number of the original manufacturer."
 catalog_test: "Prepare a CoA for a lot that is not released, or that has a required test without an approved result; refused."
 implemented_by:
   modules:
