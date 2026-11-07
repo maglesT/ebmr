@@ -114,7 +114,7 @@ one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and
 ## Next
 
 **Demo gaps (bilayer MGL-SR-BL, 7 November 2026).** Plan `docs/build-plan/demo-gaps/` (D-0 restriction sweep, lead-audited:
-`d0/README.md`; D-1 to D-8). D-1 (a new stage passes the validator, its own yield step) and D-2 (recipe-core 1876: the
+`d0/README.md`; D-1 to D-8). D-1 (a new stage passes the validator, its own yield step) and D-2 (recipe-core 1877: the
 same material on several formula lines, FRM-011 relaxed, a capsule's coat per batch, a duplicate formula EBMR-FRM-021,
 withdraw a formula draft) in review. Next by the lead's order: R-flow (FLOW-LEVELS, LIB-024, optional event sections,
 stage yield with a reason), D-3, R-rest, D-4 to D-8.

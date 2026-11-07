@@ -112,7 +112,7 @@ export const setFormulaTarget = async (db: Db, versionId: string, t: { targetUni
 /** The version's target, or null when none was written. */
 export const formulaTargetOf = (db: Db, versionId: string): Promise<FormulaTarget | null> => one(db, 'select recipe.formula_target_of($1) as r', [versionId]);
 
-/** D-2 (recipe-core 1876): the author withdraws a DRAFT version with a reason; it stays on record as WITHDRAWN. */
+/** D-2 (recipe-core 1877): the author withdraws a DRAFT version with a reason; it stays on record as WITHDRAWN. */
 export const withdrawFormulaVersion = async (db: Db, versionId: string, reason: string): Promise<void> => {
   await one(db, 'select recipe.formula_withdraw($1, $2)::text as r', [versionId, reason]);
 };

@@ -1,6 +1,6 @@
 # D-2 Formula lines for multi-part products (with the D-0 formula rows)
 
-Part of the demo-gap plan (`plan.md`; lead audit of the D-0 sweep in `d0/README.md`). One PR: recipe-core 1876.
+Part of the demo-gap plan (`plan.md`; lead audit of the D-0 sweep in `d0/README.md`). One PR: recipe-core 1877.
 
 Found: a material could be on one line of a formula only (EBMR-FRM-010, unique key version + material). A bilayer
 tablet (the same excipient in both layers), core + coat, two kinds of granules or pellets, an injectable's powder and

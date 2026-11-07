@@ -33,7 +33,7 @@ begin
    where c.conrelid = 'formulary.formula_line'::regclass and c.contype = 'u'
      and (select array_agg(a.attname::text order by a.attname) from pg_attribute a where a.attrelid = c.conrelid and a.attnum = any (c.conkey)) = array['material_code', 'version_id'];
   if k is null then
-    raise exception '1876: the unique key (version_id, material_code) of formulary.formula_line is not there';
+    raise exception '1877: the unique key (version_id, material_code) of formulary.formula_line is not there';
   end if;
   execute format('alter table formulary.formula_line drop constraint %I', k);
 end
@@ -109,7 +109,7 @@ begin
     perform recipe.formula_fail('EBMR-FRM-002', format('Product %s %s is not in the ERP product master; a formula is recorded only for a known product (D-S6-3)',
                                                       coalesce(p ->> 'productCode', 'NULL'), coalesce(p ->> 'strength', 'NULL')));
   end if;
-  -- 1876: a formula is one per product, strength and batch size; say so instead of a bare unique violation.
+  -- 1877: a formula is one per product, strength and batch size; say so instead of a bare unique violation.
   if exists (select 1 from formulary.formula x where x.product_code = p ->> 'productCode' and x.strength = p ->> 'strength'
                 and x.batch_size_units = (p ->> 'batchSizeUnits')::numeric) then
     perform recipe.formula_fail('EBMR-FRM-021', format('Product %s %s already has a formula for %s units; write a new version of that formula',
@@ -159,7 +159,7 @@ begin
   end if;
   insert into formulary.formula_version (id, formula_id, version_number, change_reason, authored_by_person, authored_by_account, correlation_id)
   values (v_id, f.id, v_n + 1, btrim(p ->> 'changeReason'), (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid);
-  -- 1876: line ids are told apart whatever their letter case (the designer upper-cases them into BOM ids).
+  -- 1877: line ids are told apart whatever their letter case (the designer upper-cases them into BOM ids).
   if exists (select 1 from jsonb_array_elements(p -> 'lines') x where jsonb_typeof(x) = 'object'
               group by upper(x ->> 'lineId') having count(*) > 1) then
     perform recipe.formula_fail('EBMR-FRM-023', 'Two lines of the formula have the same line id, letter case aside; give each line its own id');
@@ -288,7 +288,7 @@ begin
   end if;
   for b in select * from jsonb_array_elements(coalesce(c -> 'bom', '[]'::jsonb)) loop
     select r ->> 'code' into v_code from jsonb_array_elements(coalesce(c -> 'references', '[]'::jsonb)) r where r ->> 'id' = b ->> 'material' limit 1;
-    -- 1876: a material may be on several lines (a bilayer's two layers, two kinds of pellets, a solvent in two
+    -- 1877: a material may be on several lines (a bilayer's two layers, two kinds of pellets, a solvent in two
     -- stages): the BOM line is the formula line whose BOM id it carries (BOM-<line id>), or else the one line of
     -- its material; each formula line is taken once.
     l := null;

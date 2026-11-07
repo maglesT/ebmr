@@ -153,7 +153,7 @@ describe('a formula and its versions are refused rule by rule', () => {
     const other = await newFormula();
     await addVersion(other.id, version(adjusted));
     expect(await addVersion(f.id, version(adjusted))).toMatch(/^[0-9a-f-]{36}$/);
-    // D-0 sweep (recipe-core 1876): two compensating excipients are allowed; one with no adjusted active in this version
+    // D-0 sweep (recipe-core 1877): two compensating excipients are allowed; one with no adjusted active in this version
     // is refused, whatever another formula holds.
     const twice = await newFormula();
     const two = [adjusted[0], adjusted[1], { ...adjusted[2], compensating: true }];

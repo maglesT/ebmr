@@ -325,7 +325,7 @@ describe('formulation library (slice 6a)', () => {
     await expect(world.approve(second)).rejects.toThrow(/SUPERSEDED.*EBMR-FRM-020/);
     expect((await world.state(second)).state).toBe('CHECKED');
   }, 300_000);
-  describe('demo finding D-2 and the D-0 sweep (recipe-core 1876)', () => {
+  describe('demo finding D-2 and the D-0 sweep (recipe-core 1877)', () => {
     let n = 0;
     const draft = async (lines: unknown[], unitForm?: string): Promise<string | null> => {
       n += 1;
