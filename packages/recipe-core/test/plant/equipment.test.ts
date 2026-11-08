@@ -78,10 +78,12 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
   });
 
   it("[IN-25][PR-23] wait past a press's clean-hold: the next batch cannot use it until it is cleaned again", async () => {
-    const press = await w.press({ cleanHold: '1 second' });
+    // 4 s, not 1: on a GitHub-hosted runner the second cleaning and the use took over 1 s, so the hold had expired again
+    // before the use that must be accepted (EBMR-PLANT-061, run 42470816675).
+    const press = await w.press({ cleanHold: '4 seconds' });
     const product = await w.product();
     await w.clean('EQUIPMENT', press.code, 'MAJOR');
-    await sleep(db, 1.2);
+    await sleep(db, 4.2);
     await expect(w.startUse(press.code, 'B-H1', product)).rejects.toThrow(/clean-hold expired at .*clean it again.*EBMR-PLANT-061/);
     expect(await w.state('equipment', press.id)).toBe('CLEAN');
     await w.clean('EQUIPMENT', press.code, 'MAJOR');

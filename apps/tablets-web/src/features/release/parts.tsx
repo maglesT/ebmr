@@ -7,23 +7,24 @@ import { Link } from '@tanstack/react-router';
 import { routes, type GrelItemView, type GrelView } from '@ebmr/api-contract';
 import { StatusChip } from '@ebmr/ui-kit';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
-import { useScreensOff } from '../../app/disconnected.tsx';
 import { evidenceLink, itemTone, itemWord, RELEASE_READS, words } from './reads.ts';
+import { DeviationRef } from '../quality/BatchDeviation.tsx';
 
 type EvidenceItem = GrelItemView['evidence'][number];
 
 export function EvidenceList({ evidence, label }: { evidence: readonly EvidenceItem[]; label: string }) {
-  const off = useScreensOff();
   if (evidence.length === 0) return null;
   return (
     <ul aria-label={label}>
       {evidence.map((e) => {
-        // Slice D4: where the deviation screens are off, a deviation is named by its label.
-        const link = e.kind === 'DEVIATION' && off('/quality/deviations') ? null : evidenceLink(e);
+        // G2: a deviation opens as the record of the page's batch (DeviationRef), never from a list across batches.
+        const link = e.kind === 'DEVIATION' ? null : evidenceLink(e);
         return (
           <li key={`${e.kind}:${e.ref}`}>
             {words(e.kind)}:{' '}
-            {link ? (
+            {e.kind === 'DEVIATION' ? (
+              <DeviationRef deviationId={e.ref} label={e.label || e.ref} />
+            ) : link ? (
               <Link to={link.to} params={link.params}>
                 {e.label || e.ref}
               </Link>
