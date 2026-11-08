@@ -134,10 +134,11 @@ test.describe('designer', () => {
 
     expect(await cspViolations(page)).toEqual([]);
   });
-  // D-7 (owner's MGL-SR-BL report item 12): at 1400 px the sticky findings panel covered the steps' "⋯" buttons. The
-  // procedure now scrolls inside its own column; each button takes a real click (Playwright refuses one another element
-  // would receive) and opens its menu.
-  test('[PR-03] at 1400 px every step\'s actions button is reachable by the mouse, never under the findings panel', { tag: '@office' }, async ({ officePage, persona }, testInfo) => {
+  // D-7 (owner's MGL-SR-BL report item 12): at 1400 px the sticky findings panel covered the steps' "⋯" buttons. A table
+  // wider than the document column ran on into the panel's column, under the panel. The column now scrolls its own
+  // content: no part of a document table can be hit beside the column, and each step's actions button takes a real click
+  // (Playwright refuses one another element would receive) and opens its menu.
+  test('[PR-03] at 1400 px no document table runs under the findings panel, and every step\'s actions button takes a click', { tag: '@office' }, async ({ officePage, persona }, testInfo) => {
     test.setTimeout(120_000);
     const page = await officePage('GMP', 'PC-DESIGN-01');
     await page.setViewportSize({ width: 1400, height: 900 });
@@ -151,6 +152,26 @@ test.describe('designer', () => {
     await page.getByRole('textbox', { name: 'Batch size 1' }).fill('60.000');
     await page.getByRole('button', { name: 'Create the family and its draft' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Paracetamol tablets 500 mg');
+    const aside = page.getByRole('complementary', { name: 'Findings, step properties and simulation' });
+    // The template's widest table (1122 px in an 832 px column at this width) is the case: its part beyond the column must
+    // not be hit there (it runs under the panel without the change).
+    const probe = await page.evaluate(() => {
+      const side = document.querySelector('aside[aria-label="Findings, step properties and simulation"]');
+      const doc = side?.previousElementSibling as HTMLElement | null | undefined;
+      if (!doc) return { overflow: 0, hit: 'none' };
+      const right = doc.getBoundingClientRect().right;
+      const tables = [...doc.querySelectorAll('table')];
+      const table = tables.sort((x, y) => y.getBoundingClientRect().right - x.getBoundingClientRect().right)[0];
+      if (!table) return { overflow: 0, hit: 'none' };
+      table.scrollIntoView({ block: 'center' });
+      const t = table.getBoundingClientRect();
+      const e = document.elementFromPoint((right + Math.min(t.right, window.innerWidth - 1)) / 2, t.top + Math.min(t.height / 2, 20));
+      return { overflow: Math.round(t.right - right), hit: e && table.contains(e) ? 'the table' : 'not the table' };
+    });
+    expect(probe.overflow).toBeGreaterThan(100);
+    const hit = probe.hit;
+    expect(hit).toBe('not the table');
+    await expect(aside).toBeVisible();
     const buttons = page.getByRole('button', { name: /^Actions for step / });
     const count = await buttons.count();
     expect(count).toBeGreaterThan(0);
