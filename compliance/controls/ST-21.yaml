@@ -23,7 +23,8 @@ behaviour: |-
   - **Investigation template.** Pre-filled with the context around the sample: interventions, personnel present, PM, particle and DP data, alarms, and the sterilisation records of the sampled item.
 catalog_test: Enter an action result on day 5 for a sample taken on day 1 → all batches in that area on days 1–5 are linked and held. Enter 1 CFU on a Grade A plate → automatic investigation and release block.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

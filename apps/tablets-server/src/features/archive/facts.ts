@@ -7,6 +7,9 @@
  * basis.form 25 or 25A is FORM_25, 28 or 28A is FORM_28); none recorded (a batch issued before 6a): no licence rule.
  * D-6b-3: the EU state is CERTIFIED when a lot of the batch has a QP certification (the latest date), FINALLY_REJECTED when
  * the QP rejected it or its EU disposition is REJECTED or INELIGIBLE (the date of that event), else PENDING.
+ * API plan C5 (AS-24): the batch is retest-labelled when a lot made from it carries a retest date, and its distribution
+ * date is the site date of the latest shipment of those lots (the shipping date, or the recording time of a stub-route
+ * shipment without one); none while nothing has shipped, so the retest rules stay OPEN.
  */
 import type { records } from '@ebmr/kernel';
 import type pg from 'pg';
@@ -36,6 +39,8 @@ interface Row {
   licence_form: string | null;
   packed_from: string[] | null;
   packed_into: string[] | null;
+  retest_labelled: boolean | null;
+  distribution_date: string | null;
 }
 
 /** The retention engine's licence form of a recorded licence basis form (Drugs Rules Form 25/25A or 28/28A), or null. */
@@ -62,7 +67,10 @@ export async function batchFacts(db: Db, batchId: string): Promise<BatchFacts | 
                  where ev.market = 'EU' and recipe.disposition_state(ev.lot_id, 'EU') in ('REJECTED', 'INELIGIBLE')) x) as eu_rejected,
             (select lb.basis ->> 'form' from recipe.batch_licence_basis lb where lb.batch_id = b.id) as licence_form,
             (select array_agg(distinct x::text) from lots, unnest(lots.batches) x where lots.batches[1] = b.id and x <> b.id) as packed_from,
-            (select array_agg(distinct lots.batches[1]::text) from lots where lots.batches[1] <> b.id) as packed_into
+            (select array_agg(distinct lots.batches[1]::text) from lots where lots.batches[1] <> b.id) as packed_into,
+            exists (select 1 from site.material_lot l join lots on lots.lot_id = l.id where l.retest_at is not null) as retest_labelled,
+            (select to_char(max((coalesce(sh.shipped_at, sh.recorded_at) at time zone b.site_zone)::date), 'YYYY-MM-DD')
+               from site.erp_shipment sh join lots on lots.lot_id = sh.lot_id) as distribution_date
        from b left join recipe.execution_state s on s.batch_id = b.id`,
     [batchId],
   );
@@ -95,6 +103,8 @@ export async function batchFacts(db: Db, batchId: string): Promise<BatchFacts | 
       outcome,
       abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
       eu,
+      ...(r.retest_labelled ? { retestLabelled: true } : {}),
+      ...(r.distribution_date ? { distributionDate: r.distribution_date } : {}),
     },
   };
 }

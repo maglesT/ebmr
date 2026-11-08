@@ -184,6 +184,23 @@ Open, as next steps:
   (lead, 6 November: kept; no database change).
 - **Test:** `apps/tablets-server/test/substance/intermediate-lots.test.ts` (A posted, released, refused while in quarantine,
   reserved by B; B posted).
-- **Next:** B consumes A through a G-07 weighing (needs a qualified balance and the plant steps; a bare
-  `recipe.consume_lot` is refused, EBMR-RCP-433); the `site.lot_consumption` chain over three steps; batch C to a released
-  API lot (without the 5000 pieces being removed on api-a1a).
+- **Next:** done in A2 part 2 below.
+
+## A2 part 2 (6 November 2026)
+
+- **No database change.** Steps B and C consume their input intermediate through a **G-07 dispensing step** of their own
+  master (BOM line = the previous intermediate): the dispenser keys the weight on a booked, qualified balance and the
+  server consumes the net from the batch's reservation in the same command (tablets 1093, as tb-01-gmp.test.ts). Batch C
+  then runs to a packed, released API lot as in A1a.
+- **Test:** `intermediate-lots.test.ts` now runs A -> B -> C: the consumption rows and G-07 entries name each lot and
+  quantity, a quarantined intermediate B is refused at the reservation and at C's weighing, and the genealogy route shows
+  each step's consumption edge both ways. Shared helpers moved to `apps/tablets-server/test/substance/support.ts`
+  (`api-chain.test.ts` uses them too).
+- **Open for the lead (each needs a migration number):**
+  1. The genealogy has no edge from a batch to its intermediate lot (`recipe.genealogy_step` reads `site.finished_lot`,
+     not `site.intermediate_lot`), so one trace does not cross from lot B back to batch B: the API lot traces back to
+     lot B and stops. The plan (2.3) and ICH Q7 6.52 / Revised Schedule M Part XII (batch record names the batch numbers
+     of the intermediates used; traceability from the API back through its intermediates) need it.
+  2. A GMP weighing (G-07 or TB-01) that consumes the **whole** remaining quantity of a lot is refused (EBMR-EXE-078):
+     the lot is CONSUMED when the entry guard (tablets 1700, `tab.entry_identifier_problem`) re-reads its facts, so the
+     entry's RELEASED no longer matches. The test dispenses 50 of 52 kg and 42.5 of 44 kg to stay clear of it.

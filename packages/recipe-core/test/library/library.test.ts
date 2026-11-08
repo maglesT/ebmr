@@ -234,6 +234,12 @@ describe('library block definitions', () => {
     expect(codes(checkBlockDefinition({ ...friability(), version: 0 }, expr))).toEqual(['LIB-VERSION']);
     expect(codes(checkBlockDefinition({ ...friability(), version: 1.5 }, expr))).toEqual(['LIB-VERSION']);
   });
+
+  it('[PR-03] a block may be tagged for the markets whose clause alone asks for it (metadata, e.g. an Annex 1 item for the EU); an empty list, a market named twice or an unknown market is refused (LIB-MARKETS)', () => {
+    expect(checkBlockDefinition({ ...friability(), markets: ['EU'] }, expr)).toEqual([]);
+    expect(checkBlockDefinition({ ...friability(), markets: ['IN', 'US', 'EU'] }, expr)).toEqual([]);
+    for (const markets of [[], ['EU', 'EU'], ['UK']]) expect(codes(checkBlockDefinition({ ...friability(), markets: markets as never }, expr)), JSON.stringify(markets)).toEqual(['LIB-MARKETS']);
+  });
 });
 
 describe("a product's values for a library block", () => {

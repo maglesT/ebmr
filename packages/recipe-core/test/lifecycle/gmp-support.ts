@@ -4,6 +4,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
+import { Dec } from '@ebmr/expr';
 import { withCommand, type ActorContext } from '../../../kernel/src/db/command.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import type { TestDatabase } from '../../../kernel/test/support/db.ts';
@@ -25,7 +26,13 @@ export function bomFor(content: MbrContent, sizeId: string): { materialCode: str
   const size = content.header.batchSizes.find((s) => s.id === sizeId);
   if (!ref || !size) throw new Error(`no batch size ${sizeId}`);
   if (ref.quantity.value !== size.quantity.value) throw new Error('bomFor scales only the reference size in these tests');
-  return content.bom.map((b) => ({ materialCode: b.material, quantity: b.quantity.value, unit: b.quantity.unit }));
+  // The ERP gives a material once (site-services 0751); a material on several BOM lines (D-2) is ordered as their sum.
+  const out = new Map<string, { materialCode: string; quantity: string; unit: string }>();
+  for (const b of content.bom) {
+    const had = out.get(b.material);
+    out.set(b.material, { materialCode: b.material, quantity: had ? Dec.parse(had.quantity).plus(Dec.parse(b.quantity.value)).toString() : b.quantity.value, unit: b.quantity.unit });
+  }
+  return [...out.values()];
 }
 
 /** Posts an ERP order for a batch of `content` at batch size `sizeId` (site SITE-1) as `erp` on `pool`; returns its number. */

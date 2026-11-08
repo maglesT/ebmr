@@ -175,6 +175,23 @@ const BATCH_NUMBER_RULE_EXAMPLE = {
 };
 /** Phase 7 slice 7h (WP-C, gap C4): a product of the plant's product list (recipe-core 0400). */
 const PLANT_PRODUCT_EXAMPLE = { code: 'PCM-500', name: 'Paracetamol tablets 500 mg', highlyPotent: false, recordedBy: STEWARD_EXAMPLE, recordedAt: INSTANT_EXAMPLE };
+/** API plan A3 (AS-17): the CoA of a released API lot (substance 5005). */
+const COA_DOCUMENT_EXAMPLE = {
+  kind: 'CERTIFICATE_OF_ANALYSIS' as const,
+  manufacturer: { name: 'Demo API Works Pvt Ltd', address: 'Plot 7, API Park, Hyderabad 500078', telephone: '+91 40 2345 6789' },
+  product: { name: 'Demosubstance', grade: 'In-house monograph' },
+  lot: { lotId: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70', lotCode: 'A2600001-P01', batchNumber: 'A2600001/P01' },
+  releasedAt: '2026-11-05T09:30:00.000000Z',
+  retestAt: null,
+  expiresAt: '2029-10-31T18:30:00.000000Z',
+  tests: [{ testCode: 'ASSAY', methodReference: 'STP-AS-01', pharmacopoeia: 'IN_HOUSE', edition: 'STP-2026-1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6', resultId: 'f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b92' }],
+};
+const COA_EXAMPLE = { lotId: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70', current: COA_DOCUMENT_EXAMPLE, problems: [], gaps: [], coas: [] };
+const COA_PREPARED_EXAMPLE = {
+  ...COA_EXAMPLE,
+  coas: [{ coaId: 'a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c03', state: 'SIGNED' as const, document: COA_DOCUMENT_EXAMPLE, documentSha256: 'a'.repeat(64), intact: true,
+           preparedBy: STEWARD_EXAMPLE, preparedAt: INSTANT_EXAMPLE, signedBy: STEWARD_EXAMPLE, signedAt: INSTANT_EXAMPLE, signatureId: 'b8c9d0e1-f2a3-4b4c-8d5e-6f7a8b9c0d14' }],
+};
 
 export const EXAMPLES = {
   'planning-batch-number-rules': { schema: r.planning.batchNumberRules.response, data: { rules: [BATCH_NUMBER_RULE_EXAMPLE] }, routeId: r.planning.batchNumberRules.id },
@@ -271,6 +288,11 @@ export const EXAMPLES = {
     schema: r.masterData.addFormulaVersion.response,
     data: { ...s6.formulaVersion, versionId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d', versionNumber: 2, state: 'DRAFT', changeReason: 'Coating level changed', approvedBy: null, approvedAt: null, signable: { aggregateType: 'formula_version', aggregateId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d' } },
     routeId: r.masterData.addFormulaVersion.id,
+  },
+  'master-data-withdraw-formula-version': {
+    schema: r.masterData.withdrawFormulaVersion.response,
+    data: { ...s6.formulaVersion, versionId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d', versionNumber: 2, state: 'WITHDRAWN', changeReason: 'Coating level changed', approvedBy: null, approvedAt: null, signable: { aggregateType: 'formula_version', aggregateId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d' } },
+    routeId: r.masterData.withdrawFormulaVersion.id,
   },
   'designer-formula-choice': {
     schema: r.designer.formulaChoice.response,
@@ -473,6 +495,9 @@ export const EXAMPLES = {
   'release-suspended': { schema: r.release.suspended.response, data: rl.suspended, routeId: r.release.suspended.id },
   'release-after-release': { schema: r.release.afterRelease.response, data: rl.afterRelease, routeId: r.release.afterRelease.id },
   'release-after-release-disposed': { schema: r.release.afterRelease.response, data: rl.afterReleaseDisposed },
+  // API plan A3 (AS-17): the CoA of a released API lot, before and after it is prepared.
+  'release-coa': { schema: r.release.coa.response, data: COA_EXAMPLE, routeId: r.release.coa.id },
+  'release-prepare-coa': { schema: r.release.prepareCoa.response, data: COA_PREPARED_EXAMPLE, routeId: r.release.prepareCoa.id },
   // Phase 4 slice 3c: the notification centre (IN-39 clause 2).
   'notifications-list': { schema: r.notifications.list.response, data: nt.list, routeId: r.notifications.list.id },
   'notifications-acknowledge': { schema: r.notifications.acknowledge.response, data: nt.list.notifications[0], routeId: r.notifications.acknowledge.id },
@@ -589,6 +614,11 @@ export const EXAMPLES = {
     schema: r.india.suspendLicence.response,
     data: { ...ind.licence, state: 'SUSPENDED', current: false, suspension: { reason: 'Suspended by order of the licensing authority', suspendedBy: ind.licence.approvedBy, suspendedAt: ind.licence.approvedAt } },
     routeId: r.india.suspendLicence.id,
+  },
+  'india-record-licence-telephone': {
+    schema: r.india.recordLicenceTelephone.response,
+    data: { ...ind.licence, holderTelephone: '+91 20 3333 4444' },
+    routeId: r.india.recordLicenceTelephone.id,
   },
   'india-export-permissions': { schema: r.india.exportPermissions.response, data: { permissions: [ind.permission] }, routeId: r.india.exportPermissions.id },
   'india-record-export-permission': {

@@ -5,7 +5,8 @@
  * Form 25 or 28 periods, US expiry + 1 year, EU the later of expiry + 1 year and certification + 5 years), keeps an EU
  * batch OPEN until it is certified or finally rejected, keeps an aborted batch like a completed one, and lets a record
  * another record depends on inherit the longer period (records.link_retention_dependency). Nothing here deletes:
- * records.request_disposal answers a deletion request and logs it (kernel 1172).
+ * records.request_disposal answers a deletion request and logs it (kernel 1172). A batch whose lot carries a retest date
+ * (an API, AS-24) is also kept three years after its distribution (kernel 1405), OPEN until it has shipped.
  */
 import type pg from 'pg';
 import type { CalendarDate } from './calendar.ts';
@@ -25,6 +26,10 @@ export interface BatchRetentionFacts {
   abortCancelDate: CalendarDate | null;
   /** The EU disposition of the batch's lot: certified (with the QP's date), finally rejected (with the date), or pending. */
   eu: { state: 'PENDING' } | { state: 'CERTIFIED'; date: CalendarDate } | { state: 'FINALLY_REJECTED'; date: CalendarDate } | null;
+  /** A lot made from the batch carries a retest date (an API, AS-24). Absent: none does. */
+  retestLabelled?: boolean;
+  /** Site date of the latest shipment of the batch's lots; null or absent while none has shipped. */
+  distributionDate?: CalendarDate | null;
 }
 
 /** The retention-engine inputs of a batch from its facts (pure). */
@@ -38,6 +43,13 @@ export function batchRetentionInputs(f: BatchRetentionFacts): RetentionInputs {
     expiryDate: f.expiryDate,
   };
   if (aborted) inputs.abortCancelDate = f.abortCancelDate;
+  // Only a retest-dated batch sends the flag (kernel 1405 stores it only when true) and, once shipped, its distribution
+  // date: no rule of any other batch the edition feeds is anchored on distribution, so their stored inputs stay as
+  // they are (a new input version would void a signed disposal approval, kernel 0720).
+  if (f.retestLabelled) {
+    inputs.retestLabelled = true;
+    if (f.distributionDate) inputs.distributionDate = f.distributionDate;
+  }
   if (markets.includes('EU') && f.eu) {
     if (f.eu.state === 'CERTIFIED') inputs.euCertificationDate = f.eu.date;
     else if (f.eu.state === 'FINALLY_REJECTED') {

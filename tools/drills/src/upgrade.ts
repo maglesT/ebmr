@@ -90,6 +90,9 @@ export const ADDED_ONLY_ALLOWED: Readonly<Record<string, string>> = {
   '"recipe"."grel_edition_hook"': 'registry of the G-REL item function of each edition (owner only, insert-only): a release registers a new edition\'s hook',
   '"recipe"."packaging_completion_block"': 'catalogue of the block types that complete a packaging record, per edition (insert-only): a release adds a new edition\'s',
   '"recipe"."engine_name"': "the names the engine's registers give (rule codes, block types, controls, schema tags): a release registers its new ones",
+  // API plan C5 (kernel 1405): a release publishes a new retention rule set with its rows; earlier sets stay unchanged.
+  '"records"."retention_rule"': 'the rows of the retention rule set a release publishes (insert-only; the rows of earlier sets must be unchanged)',
+  '"records"."retention_rule_set"': 'retention rule sets: a release publishes a new version (earlier versions must be unchanged)',
   '"report"."view_registry"': 'registry of the report views (insert-only; a release adds its new views)',
 };
 

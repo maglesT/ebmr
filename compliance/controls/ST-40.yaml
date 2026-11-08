@@ -26,7 +26,8 @@ behaviour: |-
   - **Aseptic upstream stages** (for example aluminium-adjuvanted suspensions): steps that expose product or contact surfaces need ISO 5/Grade A unidirectional air with an ISO 7 / Grade B or better background. EM and PM tasks are generated for these stages. End-of-operation surface EM must be recorded before the cleaning step can be signed. Sterile bulk transfer and transport are logged: vessel ID, integrity or pressure status, route, times, and a hold within the validated vessel-integrity time (ST-29). Where the MBR requires a bulk sterility test, the downstream step is blocked until the result is linked.
 catalog_test: Issue RTU syringe tubs after the CoA-reliability confirmation has lapsed → blocked. Add a sterile API lot without a sterility certificate → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-40][ST-49] a supplier-sterilised component is accepted by its lot on the formula line, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

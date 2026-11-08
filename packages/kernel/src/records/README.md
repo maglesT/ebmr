@@ -51,7 +51,8 @@ proposed starting register for customer QA to review and approve.
 
 - **Rules**: `retention-rules.ts` is the single interim data structure (sources and verification
   markers per row; `proposedRuleKey` for wiring to the market-profile engine, B3). The same rows are
-  seeded into `records.retention_rule` (rule set `RET-2026.1`); a test proves both are identical.
+  seeded into `records.retention_rule` (rule set `RET-2026.1`, 0420; the current `RET-2026.2`, 1405, adds the
+  retest-date API rules of AS-24); a test proves both copies of each set are identical.
 - **Where the decision is computed**: in the database. `records.evaluate_retention` mirrors the pure
   TS `evaluateOwnRetention`, and a property test (fast-check) proves they agree. Reason: INV-22 must
   hold against a faulty or hostile application, so purge recomputes retain-until from stored inputs

@@ -10,6 +10,7 @@ import { compareDecimal, isDecimalLiteral } from '../flow/decimal.ts';
 import type { ExpressionService, ExprType } from '../flow/expression-port.ts';
 import {
   BLOCK_CATEGORIES,
+  BLOCK_MARKETS,
   LIBRARY_EDITIONS,
   fieldlessBlock,
   EQUIPMENT_KINDS,
@@ -124,6 +125,9 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   if (typeof def.title !== 'string' || def.title.trim() === '') problems.push(err('LIB-TITLE', 'title', 'The block needs a title'));
   if (!(BLOCK_CATEGORIES as readonly string[]).includes(def.category)) problems.push(err('LIB-CATEGORY', 'category', `Unknown category ${JSON.stringify(def.category)}`));
   if (def.edition !== undefined && !(LIBRARY_EDITIONS as readonly string[]).includes(def.edition)) problems.push(err('LIB-EDITION', 'edition', `The edition is one of ${LIBRARY_EDITIONS.join(', ')}`));
+  if (def.markets !== undefined && (def.markets.length === 0 || new Set(def.markets).size !== def.markets.length || def.markets.some((m) => !(BLOCK_MARKETS as readonly string[]).includes(m)))) {
+    problems.push(err('LIB-MARKETS', 'markets', `The markets are left out (every market) or name each of ${BLOCK_MARKETS.join(', ')} at most once`));
+  }
   if (def.roles !== undefined && (!Array.isArray(def.roles) || def.roles.length === 0 || def.roles.some((r) => !(LIBRARY_ROLES as readonly string[]).includes(r)))) {
     problems.push(err('LIB-ROLES', 'roles', `Roles are one or more of ${LIBRARY_ROLES.join(', ')}`));
   }
