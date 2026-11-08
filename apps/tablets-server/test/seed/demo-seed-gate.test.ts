@@ -24,7 +24,7 @@ afterAll(async () => {
 });
 
 describe('the DEMO-ONLY seeds of the set-up CLI are gated to demo databases', () => {
-  it('[meta] --gmp-review-batch and --gmp-packaging on a non-demo database name are refused before any database is created or dropped', async () => {
+  it('[meta] --gmp-review-batch, --gmp-packaging and --gmp-demo-catalogue on a non-demo database name are refused before any database is created or dropped', async () => {
     const database = `ebmr_prod_${randomBytes(4).toString('hex')}`;
     const common = { installation: 'GMP' as const, database, keysDir: join(dir, 'keys'), exchangeDir: join(dir, 'exchange'), personaSets: 1, recreate: true, log: () => undefined };
     await expect(setupInstallation({ ...common, packaging: true })).rejects.toThrow(/DEMO-ONLY: database ebmr_prod_[0-9a-f]+ is not a demo or E2E database/);
@@ -37,6 +37,10 @@ describe('the DEMO-ONLY seeds of the set-up CLI are gated to demo databases', ()
     expect(demoSeedRefusal({ database: 'ebmr_prod' })).toBeNull();
     expect(demoSeedRefusal({ database: 'ebmr_sandbox_tablets_e2e_0a1b2c', sandboxPlant: true })).toBeNull();
     expect(demoSeedRefusal({ database: 'ebmr_sandbox_prod', sandboxPlant: true })).toMatch(/DEMO-ONLY/);
+    // D-4: the demo's approved library catalogue likewise (its approvals are the demo QA persona's, never a production one).
+    await expect(setupInstallation({ ...common, demoCatalogue: true })).rejects.toThrow(/DEMO-ONLY/);
+    expect(demoSeedRefusal({ database: 'ebmr_prod', demoCatalogue: true })).toMatch(/DEMO-ONLY/);
+    expect(demoSeedRefusal({ database: 'ebmr_tablets_demo', demoCatalogue: true })).toBeNull();
     // Slices 7p and 7s (review P7S-2): the SR profile and the P3 demo options are refused by name on a non-demo database.
     expect(demoSeedRefusal({ database: 'ebmr_prod', srProfile: true })).toMatch(/DEMO-ONLY/);
     expect(demoSeedRefusal({ database: 'ebmr_prod', p3Demo: true })).toMatch(/DEMO-ONLY/);

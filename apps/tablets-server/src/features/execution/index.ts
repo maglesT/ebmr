@@ -30,7 +30,7 @@ import { bindRoutes, type Handlers } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { floorActHandlers } from './floor-acts.ts';
-import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
+import { gmpIssueHandler, planGmpBatch, plannedBatchView } from './gmp-issue.ts';
 import { unconfirmedCounts } from './issue-expectations.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent, stepTarget } from './intents.ts';
@@ -469,6 +469,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         // Phase 7 slice 7i (G2, P7H-4): the order the planner chose; the database checks it (recipe.erp_order_problem).
         ...(body.erpOrder !== undefined ? { erpOrder: body.erpOrder } : {}),
       });
+    },
+
+    plannedBatch: async ({ params, requireSession }) => {
+      requireSession();
+      const view = await plannedBatchView(app.pools.app, params.batchId);
+      if (!view) throw notFound('planned batch');
+      return view;
     },
 
     // Phase 7 slice 7g (WP4): packaging batch data, its check, the print job, the detector challenge (floor-acts.ts).
