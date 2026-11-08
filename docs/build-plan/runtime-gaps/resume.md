@@ -10,20 +10,19 @@ Commit trailers: `Co-Authored-By: Claude <noreply@anthropic.com>` and the Claude
 | PR | Gaps | Notes |
 |---|---|---|
 | #170 | G1 (items 1, 18) | merged before this session |
+| #171 | G2 (item 2) | owner's batch-only ruling (below) |
 | #174 | G4 (items 14, 15) | planned batches issued from any session; IN-30 at planning |
-| #175 | G5, G6, G9 (items 20, 22-25) | tablets 1906; tests read the rounded CALC text and the "Reference (required…)" label |
+| #175 | G5, G6, G9 (items 20, 22-25) | tablets 1906 |
 | #176 | G11, G12 (items 11, 16) | docs |
-| #185 | flake | equipment.test.ts IN-25 crossed-calibration test: 6 s margin |
+| #185, #186 | flakes | equipment.test.ts IN-25 timing tests: 6 s and 4 s margins |
 
-## Open (all cleared or audited by the lead; merge when green)
+## Open (cleared or audited by the lead)
 
-| PR | Branch | What | CI state at handover |
-|---|---|---|---|
-| #171 | runtime-gaps/g2-deviation-link | G2, reworked to the owner's ruling (below) | main merged; fixed PR-49 list and the guides screen list; focused dispatch `e2e_groups=rest` |
-| #172 | runtime-gaps/g3-lib-refusal | G3, tablets 1905; ENG-* headline edit reverted (the GMP catalogue already says "in the batch") | main merged (modules.yaml has 1905 and 1906); focused dispatch `library-caps,own-p3` (library-caps timed out once on the ERP send-order radio, judged flaky) |
-| #183 | runtime-gaps/g7-g8-draft | G7 (option 1), G8 (recipe-core 1885), draft kept across a lock, useRefresh | audited; full run 42474455810: only the equipment flake so far, last E2E groups were running |
-| #184 | batch-record-pdf | "Batch record (PDF)" button | main merged; EMBEDDED list names the archive button; the release-flow step checks the archive.pdf answer (the browser download event never came within 30 s); focused dispatch `e2e_groups=rest` |
-| #186 | fix/equipment-clean-hold-margin | flake | clean-hold test hold 4 s; dispatch `e2e_groups=p3-demo` running |
+| PR | Branch | State at handover (8 November, 14:50) |
+|---|---|---|
+| #172 | runtime-gaps/g3-lib-refusal | G3, tablets 1905. Head cbc8ad82 (main merged, modules.yaml has 1905 and 1906). Earlier full run: only the equipment flake and a library-caps radio timeout (judged flaky). Focused dispatch 42486376954 (`library-caps,own-p3`) running: merge when green. |
+| #183 | runtime-gaps/g7-g8-draft | G7 (option 1), G8 (recipe-core 1885), draft kept across a lock, useRefresh; audited. Full run 42474455810 green but for the equipment flake; then conflicted with #175 in `library/block-version.ts` and `index.ts` (both helpers kept, 769d9e01, library tests 359/359 local). Focused dispatch 42489123136 (`library-caps,library-softgel`) running: merge when green. |
+| #184 | batch-record-pdf | "Batch record (PDF)" button. **Needs a decision (not a small fix).** The release-flow E2E signs in as `qcuAuthoriser` (AUTHORISED_PERSON): archive.pdf refuses it with EBMR-IAM-040, "lacks permission RECORD.TRUE_COPY_REGISTER" (reproduced locally; QA_REVIEWER/qaInvestigator is served). The route-role matrix marks that cell allowed ("A"), so `readOffered` shows the button and the server refuses it. Choose: grant the authorised person the true-copy read (21 CFR 211.180(c): records available for review; the AP reviews the batch record before release), or record the refusal in the matrix fixture / BUTTON_READS so the button is hidden from that role and the E2E step uses the QA persona. The other fixes on the branch (EMBEDDED list, the step reads the route's answer) are in; shards, static and golden passed in the earlier full run. |
 
 ## Rulings in force
 
