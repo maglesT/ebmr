@@ -1,0 +1,26 @@
+id: AS-21
+title: "Recovery from mother liquors and of solvents under approved procedures, recovered material within specification, its use documented"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "ICH Q7 (Step 4, 10 November 2000; EU GMP Part II) 14.40, 14.41, 14.42, 14.43. Revised Schedule M Part XII: the extract on file lacks 14.2.2 to 14.4, so 14.4.1 to 14.4.4 are not checked (open item for the owner). API plan docs/build-plan/api/plan.md section 11 (rows Q7 14.40 to 14.43)."
+behaviour: "Material is recovered from mother liquor or filtrates only by a step of an approved master (a second crop of the same batch, or a G-24 RECOVERY step adding a QA-released container of an earlier batch), and a recovered solvent only by a recovery master of the API edition whose product is the solvent. Recovered material is posted as a lot in quarantine and is reserved or used only once QC tested it against its specification and QA released it for further processing; fresh and recovered solvent are mixed as separate weighings of released lots. Each use is on the batch record and the genealogy."
+catalog_test: "Reserve a recovered lot (second crop or recovered solvent) still in quarantine for the next step; refused. Weigh recovered and fresh solvent into one batch; both lots are consumed and on the genealogy."
+implemented_by:
+  modules:
+    - "site-services 1732 to 1734 and substance 5004 (intermediate lot post, <batch>-2 codes); the material-lot release for further processing (site-services 0711); the G-07 weighing that consumes a reserved lot (tablets 1093); genealogy (recipe-core 1010, 1090); G-24@2 RECOVERY (recipe-core 0621, 0622); no code of the edition's own."
+tests:
+  - "apps/tablets-server/test/substance/recovery.test.ts > API plan A4b: recovery of materials and solvents (ICH Q7 14.4) > [AS-21][AS-04][INV-13][PR-57][IN-07] fresh and recovered toluene are mixed in step B as two G-07 weighings on the booked balance, each consuming its own reserved, released lot in the same command; the genealogy shows both lots CONSUMED into step B and the recovered lot forward to it"
+  - "apps/tablets-server/test/substance/recovery.test.ts > API plan A4b: recovery of materials and solvents (ICH Q7 14.4) > [AS-21][IN-05][PR-18][IN-18] solvent recovery: the recovery master of the API edition posts recovered toluene as a lot in quarantine; the next step cannot reserve it until QC tested it against its specification and QA released it for further processing"
+  - "apps/tablets-server/test/substance/recovery.test.ts > API plan A4b: recovery of materials and solvents (ICH Q7 14.4) > [AS-21][IN-05][PR-45] a second crop of the same batch: the approved master crystallises the mother liquor a second time; the stores post the second crop as lot <batch>-2 in quarantine, beside the first; it is used only once QC tested it against its specification and QA released it for further processing"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: SPECIFIED
+scope: "API edition (substance) only; slice A4b of the API plan. Not yet proven: mother liquor carried into a later batch through a G-24@2 RECOVERY step (a container of an API batch cannot be released by QA without a press IPC hold), and the OUTPUT edges of an intermediate lot on the genealogy (recipe-core 1879, another branch)."
