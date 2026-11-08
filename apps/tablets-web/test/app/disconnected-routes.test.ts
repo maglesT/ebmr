@@ -45,9 +45,9 @@ const EMBEDDED: Record<string, string[]> = {
 };
 
 /**
- * Slice D4: the files of kept features that name a single disconnected route (DISCONNECTED_ROUTES: reclassifying and
- * cancelling a deviation record), each a form the deviation screens hide when disconnected (G2) (DeviationsPage only names two ids among the
- * reads it refreshes). The lot page embeds DeviationDetail's release checklist, which reads quality.deviationRelease
+ * Slice D4, G2: the files of kept features that name a single disconnected route (DISCONNECTED_ROUTES: reclassifying
+ * and cancelling a deviation record), each a form the deviation page hides when disconnected; the page itself opens only
+ * as a batch's record (BatchDeviation.tsx). The lot page embeds DeviationDetail's release checklist, which reads quality.deviationRelease
  * (kept connected). Slice D4b: the lot's OOS record (LotOosRecord.tsx) names none, so it is not listed here.
  */
 const DEVIATION_SCREENS: Record<string, string[]> = {
@@ -89,7 +89,7 @@ describe('[DI-17] the kept screens call no disconnected route (declutter D1)', (
 });
 
 describe('[DI-17] the kept screens call no disconnected deviation route (declutter D4)', () => {
-  it('[DI-17] only the deviation screens name a disconnected deviation route (forms they hide when disconnected); the deviation screens stay on (G2)', () => {
+  it('[DI-17] only the deviation screens, switched off where the functions are disconnected, name a disconnected deviation route', () => {
     const names = Object.keys(DISCONNECTED_ROUTES).map((id) => id.split('.'));
     const pattern = new RegExp(`\\broutes\\.(${names.map(([ns, name]) => `${ns ?? ''}\\.${name ?? ''}`).join('|')})\\b`, 'g');
     const found: Record<string, string[]> = {};
@@ -98,7 +98,12 @@ describe('[DI-17] the kept screens call no disconnected deviation route (declutt
       if (hits.length > 0) found[relative(SRC, file)] = [...new Set(hits)].sort();
     }
     expect(found).toEqual(DEVIATION_SCREENS);
-    // G2 (owner report item 2): the deviation screens stay on; their reclassify and cancel forms hide when disconnected.
-    for (const path of ['/quality/deviations', '/quality/deviations/123', '/quality', '/quality/lots/123', '/quality/lots/123/oos/456', '/records/123', '/release/123']) expect(screenOff(path, true, false), path).toBe(false);
+    for (const path of ['/quality/deviations', '/quality/deviations/123']) {
+      expect(screenOff(path, true, false), path).toBe(true);
+      expect(screenOff(path, false, false), path).toBe(false);
+    }
+    // G2 (owner ruling): a batch's deviation record opens from the batch, at /review/<batch>/deviations/<id>; the list
+    // across batches (/quality/deviations and what is under it) stays off.
+    for (const path of ['/quality', '/quality/lots/123', '/quality/lots/123/oos/456', '/records/123', '/release/123', '/review/123/deviations/456']) expect(screenOff(path, true, false), path).toBe(false);
   });
 });

@@ -102,6 +102,14 @@ describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch p
     expect(served.statusCode).not.toBe(410);
   });
 
+  it('[DI-17] a deviation list across batches answers 410 DISCONNECTED with EBMR_DISCONNECT=1, filtered or not; one batch\'s list is served, and a standalone server without the switch serves both (G2, owner ruling)', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    for (const query of [{}, { state: 'OPEN' as const }, { kind: 'DEVIATION' as const }]) expect(gone(await qa.call(routes.quality.deviations, { query })), JSON.stringify(query)).toBe(true);
+    expect(valueOf(await qa.call(routes.quality.deviations, { query: { batchId: randomUUID() } })).deviations).toEqual([]);
+    const soloQa = await solo.asPersona('qaInvestigator');
+    expect(gone(await soloQa.call(routes.quality.deviations, { query: {} }))).toBe(false);
+  });
+
   it('[DI-17] the deviation routes the kept path needs stay served with EBMR_DISCONNECT=1: raise and link (exception and OOS references), the batch list, the release checklist', async () => {
     const qa = await gmp.asPersona('qaInvestigator');
     const raised = valueOf(
@@ -109,7 +117,8 @@ describe('[DI-17] the full deviation routes answer 410 DISCONNECTED; the batch p
     );
     expect(raised.ref).toMatch(/\S/);
     expect(gone(await qa.call(routes.quality.linkDeviation, { params: { deviationId: raised.deviationId }, body: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
-    expect(valueOf(await qa.call(routes.quality.deviations, { query: {} })).deviations.map((d) => d.ref)).toContain(raised.ref);
+    const batchId = randomUUID();
+    expect(gone(await qa.call(routes.quality.deviations, { query: { batchId } }))).toBe(false);
     expect(gone(await qa.call(routes.quality.deviationRelease, { query: { subjectKind: 'BATCH', subjectId: randomUUID() } }))).toBe(false);
     // D4-R5 (lead, option A) and D4b: the investigation, its finding, the impact and the closure basis QA's conclusion
     // needs (site.conclude_deviation), and the record's detail, stay for invalidation and reprocessing.

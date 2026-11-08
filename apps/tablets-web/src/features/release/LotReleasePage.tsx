@@ -32,6 +32,7 @@ import { AfterReleaseTab } from './AfterRelease.tsx';
 import { IndiaTab, MarketTab } from './MarketTabs.tsx';
 import { GrelChecklist, SinceReview } from './parts.tsx';
 import { itemWord, RELEASE_READS, releaseTone, words } from './reads.ts';
+import { DeviationBatch } from '../quality/BatchDeviation.tsx';
 
 export function LotReleasePage() {
   const lotId = useRouteParams()['lotId'] ?? '';
@@ -41,7 +42,11 @@ export function LotReleasePage() {
     <>
       <h1>Release of lot {v ? v.lotCode : lotId}</h1>
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
-      {v ? <LotRelease view={v} /> : null}
+      {v ? (
+        <DeviationBatch batchId={v.batchId}>
+          <LotRelease view={v} />
+        </DeviationBatch>
+      ) : null}
     </>
   );
 }
