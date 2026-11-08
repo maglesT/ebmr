@@ -412,6 +412,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return formsView(app, pool, batchId);
     },
     pdf: async ({ params, actor }) => {
+      // The batch record PDF is a true copy (RECORD.TRUE_COPY_REGISTER, the permission records.true_copy_snapshot checks
+      // with the same empty scope). It is checked first, so a session without it is refused for want of the right, never
+      // told first whether the batch exists, and the route-by-role matrix records the refusal the server gives.
+      await withReadCommand(pool, actor(), ['RECORD.TRUE_COPY_REGISTER'], (c) => c.query("select iam.require_permission('RECORD.TRUE_COPY_REGISTER', '{}'::jsonb)")).catch((e: unknown) => {
+        throw commands.asKernelError(e);
+      });
       const f = await facts(pool, params.batchId);
       const bundle = await inSnapshot(pool, actor(), (c) => batchBundle(c, f));
       const out = await records.renderTrueCopyPdf(bundle, { title: pdfTitle(f), label: `Batch ${f.batchNumber}` });
