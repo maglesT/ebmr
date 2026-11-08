@@ -605,7 +605,8 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
         where x.change_record_id = (select (recipe.batch_master_version($1)).change_record_id) order by x.validation_ref`, [next.batchId])).rows.map((r) => r.ref);
     expect(own.length).toBeGreaterThan(0);
     expect(refs(item(nextGrel, 'G6.VALIDATION_BASIS'))).toEqual(own);
-  });
+    // Two changed masters and two batches: over 30 s on a GitHub-hosted runner.
+  }, 120_000);
 
   it('[PR-56][INV-43][IN-30] for a market the lot is not made for, the lot-set item is RED; no market item reads "since review"; the licence item names the batch, its licence and the export permission of the product', async () => {
     // Both masters authorised for the US too (the test cast records the export permissions with the authorisation).
