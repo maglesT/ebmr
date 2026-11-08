@@ -201,6 +201,8 @@ Open, as next steps:
      not `site.intermediate_lot`), so one trace does not cross from lot B back to batch B: the API lot traces back to
      lot B and stops. The plan (2.3) and ICH Q7 6.52 / Revised Schedule M Part XII (batch record names the batch numbers
      of the intermediates used; traceability from the API back through its intermediates) need it.
+     **Done (recipe-core 1879):** the trace now crosses intermediate lots both ways (batch -> intermediate lot edge, kind
+     OUTPUT, the batch's output; not FINISHED); the last test of `intermediate-lots.test.ts` traces the API lot back to lot A and lot A forward to it.
   2. A GMP weighing (G-07 or TB-01) that consumes the **whole** remaining quantity of a lot is refused (EBMR-EXE-078):
      the lot is CONSUMED when the entry guard (tablets 1700, `tab.entry_identifier_problem`) re-reads its facts, so the
      entry's RELEASED no longer matches. The test dispenses 50 of 52 kg and 42.5 of 44 kg to stay clear of it.

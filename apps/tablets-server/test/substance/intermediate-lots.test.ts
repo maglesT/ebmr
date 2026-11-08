@@ -323,6 +323,24 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     ]));
   });
 
+  it('[AS-04][PR-57][IN-07] the trace crosses the intermediate lots both ways (recipe-core 1879): the API lot back through step C, lot B and step B to lot A and step A; lot A forward through step B, lot B and step C to the API lot', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    const trace = async (kind: 'LOT' | 'BATCH', id: string, direction: 'FORWARD' | 'BACKWARD'): Promise<(string | null)[][]> => {
+      const t = valueOf(await qa.call(routes.genealogy.trace, { query: { kind, id, direction } }));
+      const label = (r: { kind: string; id: string } | null): string | null => (r ? t.nodes.find((n) => n.kind === r.kind && n.id === r.id)?.label ?? null : null);
+      return t.edges.map((e) => [e.parent?.kind ?? null, label(e.parent), e.edgeKind, e.node.kind, label(e.node)]);
+    };
+    const [A, B, C, P] = [batch.A.batchNumber, batch.B.batchNumber, batch.C.batchNumber, batch.P.batchNumber];
+    expect(await trace('LOT', lot.P, 'BACKWARD')).toEqual(expect.arrayContaining([
+      ['LOT', P, 'FINISHED', 'BATCH', P], ['BATCH', P, 'PACKAGING_ORDER', 'BATCH', C], ['BATCH', C, 'CONSUMED', 'LOT', B],
+      ['LOT', B, 'OUTPUT', 'BATCH', B], ['BATCH', B, 'CONSUMED', 'LOT', A], ['LOT', A, 'OUTPUT', 'BATCH', A],
+    ]));
+    expect(await trace('LOT', lot.A, 'FORWARD')).toEqual(expect.arrayContaining([
+      ['LOT', A, 'CONSUMED', 'BATCH', B], ['BATCH', B, 'OUTPUT', 'LOT', B], ['LOT', B, 'CONSUMED', 'BATCH', C],
+      ['BATCH', C, 'PACKAGING_ORDER', 'BATCH', P], ['BATCH', P, 'FINISHED', 'LOT', P],
+    ]));
+  });
+
   it('[INV-27][IN-05] a lot code another lot holds at the site is never reused: with a received lot carrying <batch>-2, step B\'s second post takes the next free code <batch>-3; the material-lot uniqueness refuses any other row reusing a code', async () => {
     const stores = await gmp.asPersona('stores');
     const erp = gmp.seed.services.find((s) => s.key === 'erpInterface');
