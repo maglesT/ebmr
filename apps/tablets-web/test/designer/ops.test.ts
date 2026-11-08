@@ -191,6 +191,16 @@ describe('designer edit operations', () => {
     expect(() => applyOp(FIXTURES[0] as Content, { kind: 'SET_MARKETS', markets: ['US'] })).toThrow(/India/);
   });
 
+  it('[IN-02] R-rest A11: the master names its criticality assessment, pinned as a reference; a document of another kind is refused; none removes it', () => {
+    const c = FIXTURES[0] as Content;
+    const ra: flow.Reference = { id: 'RA-CRIT-01', kind: 'RISK_ASSESSMENT', code: 'RA-CRIT-01', version: '1', hash: 'a'.repeat(64), title: 'Criticality assessment' };
+    const set = applyOp(c, { kind: 'SET_CRITICALITY_ASSESSMENT', reference: ra });
+    expect(set.header.criticalityAssessment).toBe('RA-CRIT-01');
+    expect(set.references.filter((r) => r.id === 'RA-CRIT-01')).toEqual([ra]);
+    expect(() => applyOp(c, { kind: 'SET_CRITICALITY_ASSESSMENT', reference: { ...ra, kind: 'SOP' } })).toThrow(/risk assessment/);
+    expect('criticalityAssessment' in applyOp(set, { kind: 'SET_CRITICALITY_ASSESSMENT', reference: null }).header).toBe(false);
+  });
+
   it('[DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)', () => {
     const c = FIXTURES[0] as Content;
     const phase = steps(c).find((id) => locate(c, id)?.node.kind === 'phase') as string;

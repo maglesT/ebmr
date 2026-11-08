@@ -119,7 +119,12 @@ validator and takes its own yield step. D-2 (#160, recipe-core 1877): the same m
 compensation and capsule-coating fixes, a formula draft withdrawn with a reason. D-3 (#161, recipe-core 1878): a
 master draft discarded with a reason, and the family started again. R-flow (`r-flow.md`): a phase directly in a stage
 (ADR 0004 amended), generic seed blocks, optional event sections, a stage with no yield and its reason, fieldless
-instruction and sign-off blocks, a target without limits, and the citation fixes. Next: R-rest, then D-4 to D-8.
+instruction and sign-off blocks, a target without limits, and the citation fixes. R-rest Part A (`r-rest.md`): the
+validator rows; dead branch, critical text, path-bound BOM line and SOP or process-data hold-time sources are warnings; a
+clearance needs one person unless marked significant (a tablets packaging one keeps its second, Schedule M Part VIII 7.1); a stage may continue an
+earlier clearance (`clearanceFrom`) and an earlier status check in the same room counts; reprocessing needs only its
+maximum percentage; a master-level criticality assessment (`header.criticalityAssessment`) covers non-critical items; a
+one-branch parallel stays refused (engine). Next: R-rest Part B (recipe-core 1880), then D-4 to D-8.
 
 ## Next
 

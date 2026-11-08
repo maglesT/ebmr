@@ -63,6 +63,15 @@ describe('stage operations (slice 7j)', () => {
     expect(() => applyOp(base, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: 'x'.repeat(10_000) } })).toThrow(OpError);
   });
 
+  it('[PR-03] R-rest A6: a stage takes the earlier stage whose clearance it continues, and loses it with an empty choice', () => {
+    const [a, b] = stagesOf(base) as [flow.StageNode, flow.StageNode];
+    const c = applyOp(base, { kind: 'UPDATE_STAGE', stageId: b.id, patch: { clearanceFrom: a.id } });
+    wellFormed(c);
+    expect(stagesOf(c)[1]?.clearanceFrom).toBe(a.id);
+    const cleared = applyOp(c, { kind: 'UPDATE_STAGE', stageId: b.id, patch: { clearanceFrom: '' } });
+    expect('clearanceFrom' in (stagesOf(cleared)[1] as flow.StageNode)).toBe(false);
+  });
+
   it('[PR-03] stages move, are renamed and rebound, take and lose equipment by a pinned class, and are removed; refusals change nothing', () => {
     const [a, b] = stagesOf(base) as [flow.StageNode, flow.StageNode];
     let c = applyOp(base, { kind: 'MOVE_STAGE', stageId: b.id, direction: -1 });
