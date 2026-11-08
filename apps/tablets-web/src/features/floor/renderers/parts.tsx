@@ -145,7 +145,7 @@ function ManualFieldEntry({ field, view, fallback = false }: { field: FieldView;
     setScan(null);
   };
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: field.name }), { onSaved: clear, onDiscarded: clear });
-  useSessionChange(clear);
+  useSessionChange(clear, { keepOnLock: true });
   useDraftGuard(text !== '' || choice !== null || scan !== null);
   const locked = cmd.busy || cmd.state === 'notSaved';
   const value = valueOf(field, { text, choice, scan });
@@ -514,7 +514,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
     onNotApplied: dropReadings,
     onDiscarded: clear,
   });
-  useSessionChange(clear);
+  useSessionChange(clear, { keepOnLock: true });
   useDraftGuard([state.texts, state.choices, state.scans, state.readings, state.checks].some((part) => Object.keys(part).length > 0));
   // R3.5: the BOM line of a scanned lot's material, when exactly one line of the form is that material (the option's
   // label ends with the material code); a line chosen for an earlier container never carries over to another lot.

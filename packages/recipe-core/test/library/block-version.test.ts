@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { DataValue } from '../../src/engine/types.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockType, libraryBlockVersion, nominalEntries, statistic, TIMER_START, TIMER_STOP, type BlockDefinition, type BlockUse } from '../../src/library/index.ts';
-import { checkBlockUse, definitionHash } from '../../src/library/index.ts';
+import { checkBlockUse, definitionHash, entrySummariesOf, shownCalc } from '../../src/library/index.ts';
 import { define, MIN, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 import { dissolutionProfile, dissolutionUse, fluidBedDrying, fluidBedDryingUse, friability, friabilityUse, potencyDispensing, range } from './examples.ts';
@@ -303,6 +303,12 @@ describe('the sentences of library entries (S5: step screens, review and the pri
     const t = libraryBlockVersion(fluidBedDrying(), expr).entrySummaries ?? {};
     expect(t[TIMER_STOP]?.({ field: 'drying', duration: { value: '45', unit: 'min' } }, undefined as never)).toBe('Drying time stopped after 45 min');
   });
+
+  it('[PR-21][DI-33] a container field reads in the record as the identifier entered, a reference only: the genealogy is recorded at the output or charge step (G7)', () => {
+    const def = { ...friability(), sections: [{ id: 'run', title: 'Run', fields: [{ id: 'blendIn', label: 'Blend container', type: 'CONTAINER' as const, action: 'CONSUME' as const }, { id: 'out', label: 'Core container', type: 'CONTAINER' as const, action: 'REGISTER' as const }] }] };
+    const s = libraryBlockVersion(def, expr).entrySummaries ?? {};
+    expect(s['run']?.({ blendIn: 'C-0001', out: 'C-0002' }, undefined as never)).toBe('Run: Blend container ID (reference; genealogy is recorded at the charge step): C-0001; Core container ID (reference; genealogy is recorded at the output step): C-0002');
+  });
 });
 
 describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
@@ -441,3 +447,27 @@ describe('timer durations in any time unit (S7 catalogue finding)', () => {
     expect(ex?.title).not.toContain('1.06666');
   });
 });
+
+describe('calculated values in the entry\'s sentence (G6, owner report item 24)', () => {
+  it('[DI-33][PR-08] a calculated value is shown rounded half-up to its field\'s decimals (default 4) and says the exact value is kept; a value already that short is shown as it is', () => {
+    expect(shownCalc('96.80495946590367', 4)).toBe('96.8050');
+    expect(shownCalc('96.80495946590367', 1)).toBe('96.8');
+    expect(shownCalc('99.995', 2)).toBe('100.00');
+    expect(shownCalc('-0.125', 2)).toBe('-0.13');
+    expect(shownCalc('0.3077', 4)).toBe('0.3077');
+    expect(shownCalc('12', 2)).toBe('12');
+    const def = {
+      code: 'CALC-SHOW', name: 'Calc', version: 1, inputs: [],
+      sections: [{ id: 'run', title: 'Run', fields: [
+        { id: 'a', type: 'NUMBER', label: 'A', unit: '%' },
+        { id: 'c', type: 'CALC', label: 'Assay', unit: '%', expression: 'a' },
+        { id: 'd', type: 'CALC', label: 'Assay at 1 decimal', unit: '%', expression: 'a', decimals: 1 },
+      ] }],
+    } as unknown as BlockDefinition;
+    const say = entrySummariesOf(def)['run'];
+    const text = say?.({ a: '96.80495946590367', computed: { c: { value: '96.80495946590367' }, d: { value: '96.80495946590367' } } });
+    expect(text).toContain('Assay 96.8050 % (calculated; shown rounded half-up to 4 decimals, the exact value is kept)');
+    expect(text).toContain('Assay at 1 decimal 96.8 % (calculated; shown rounded half-up to 1 decimal, the exact value is kept)');
+  });
+});
+

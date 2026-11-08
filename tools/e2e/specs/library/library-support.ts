@@ -175,7 +175,7 @@ export async function registerPlantUnits(page: Page, base: string, units: readon
     await choose(log.getByRole('radiogroup', { name: 'Record' }).getByRole('radio', { name: 'A logbook event' }));
     await choose(log.getByRole('radiogroup', { name: 'Event' }).getByRole('radio', { name: 'QUALIFIED', exact: true }));
     await log.getByRole('textbox', { name: 'Detail' }).fill('IQ/OQ/PQ approved (DEMO-ONLY)');
-    await log.getByRole('textbox', { name: 'Reference (optional)' }).fill(`QUAL-${u.code}`);
+    await log.getByRole('textbox', { name: /^Reference \(required/ }).fill(`QUAL-${u.code}`);
     await log.getByRole('button', { name: 'Record in the logbook' }).click();
     await expect(log.getByText('Recorded.')).toBeVisible();
   }
@@ -360,7 +360,7 @@ export async function runLibraryStep(
           if (pool && f.action === 'CONSUME') {
             const name = pool.shift();
             if (!name) throw new Error(`${b.def.code}: ${f.id} consumes a container, and no earlier step registered one`);
-            await form.getByRole('textbox', { name: f.label, exact: true }).fill(name);
+            await form.getByRole('textbox', { name: library.containerFieldLabel(f), exact: true }).fill(name);
             break;
           }
           container += 1;
@@ -368,7 +368,7 @@ export async function runLibraryStep(
           // lot number even read with a second TEST- (kernel 1030); a longer one is split and a part like CHECKWEIGH-1
           // reads as a real lot number (EBMR-EXE-147, seen with PROC-CAPS-CHECKWEIGH).
           const name = `${idPrefix}${b.def.code.replace(/^[A-Z]+-/, '')}-${String(n)}-${String(container)}`;
-          await form.getByRole('textbox', { name: f.label, exact: true }).fill(name);
+          await form.getByRole('textbox', { name: library.containerFieldLabel(f), exact: true }).fill(name);
           if (pool && f.action === 'REGISTER') pool.push(name);
           break;
         }

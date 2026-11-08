@@ -220,13 +220,26 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     expect(ui.tap.requestTap).toHaveBeenCalledTimes(1);
   });
 
-  it('[INV-40] a lock of the same person\'s session discards the pending entry too; an unlock by the same person does not', async () => {
+  it('[INV-40] an unsent draft survives a lock of the same person\'s session and is there after their unlock; an unlock by another person drops it', async () => {
     renderFloor(stepPath('p-blend@'), { tap: fakeTap(null), fixtures: stepFixtures(g04Recording) });
     const input = await screen.findByRole<HTMLInputElement>('textbox', { name: 'Blend time' });
     await userEvent.type(input, '15');
-    window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'UNLOCK', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52' } }));
-    expect(input.value).toBe('15');
     window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'LOCK', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52' } }));
+    window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'UNLOCK', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52' } }));
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe('15');
+    window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'LOCK', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52' } }));
+    window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'UNLOCK', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61' } }));
+    await waitFor(() => expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe(''));
+  });
+
+  it('[INV-40] an unsent draft is dropped when the session is switched to another person or ends', async () => {
+    renderFloor(stepPath('p-blend@'), { tap: fakeTap(null), fixtures: stepFixtures(g04Recording) });
+    const input = await screen.findByRole<HTMLInputElement>('textbox', { name: 'Blend time' });
+    await userEvent.type(input, '15');
+    window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'SWITCH', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61' } }));
+    await waitFor(() => expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe(''));
+    await userEvent.type(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }), '16');
+    window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'ENDED', personId: null } }));
     await waitFor(() => expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe(''));
   });
 

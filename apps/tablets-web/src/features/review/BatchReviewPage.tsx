@@ -24,6 +24,7 @@ import { BatchAlarmLog } from '../plant-status/BatchAlarmLog.tsx';
 import { AuditTrailPanel } from './AuditTrailPanel.tsx';
 import { GateProblems } from './parts.tsx';
 import { REVIEW_READS, stateTone, words } from './reads.ts';
+import { BatchDeviations } from '../quality/BatchDeviation.tsx';
 
 export function BatchReviewPage() {
   const batchId = useRouteParams()['batchId'] ?? '';
@@ -77,6 +78,8 @@ function BatchReview({ view: v }: { view: BatchReviewView }) {
           </ul>
         </Banner>
       ) : null}
+      {/* G2: the batch's deviations, each opening as this batch's record (raised or linked from the floor). */}
+      <BatchDeviations batchId={v.batchId} />
       <Section title="Signed acts of the review" testId="review-acts">
         {v.acts.length === 0 ? <p>None yet.</p> : null}
         <ul>

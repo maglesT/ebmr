@@ -105,6 +105,7 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
           expectedVersion={version}
           view={view}
           stepKey={stepKey}
+          gmp={view.run.watermark === null}
           exception={view.exceptions.find((e) => e.exceptionId === open.exception) ?? { exceptionId: open.exception, title: open.exception }}
         />
       ) : null}
