@@ -8,6 +8,6 @@ export { checkBlockUse } from './check-use.ts';
 export { definitionHash } from './hash.ts';
 export { libraryBlockVersion, libraryBlockType, nominalEntries, statistic, LIBRARY_EXCEPTION_RULES, TIMER_START, TIMER_STOP } from './block-version.ts';
 export { definitionsOf, snapshotProblems, descriptorOf, catalogWithLibrary, registryWithLibrary, defineOptionsFor } from './integration.ts';
-export { containerFieldLabel, entrySummariesOf } from './block-version.ts';
+export { CALC_DISPLAY_DECIMALS, containerFieldLabel, entrySummariesOf, shownCalc } from './block-version.ts';
 export { libraryPhase, withSnapshot } from './formulation.ts';
 export { batchSizeOf, scaledLine, scaledInputs, type ScaledQuantity } from './scaling.ts';

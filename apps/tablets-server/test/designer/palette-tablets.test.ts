@@ -4,7 +4,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { blocks } from '@ebmr/recipe-core/pure';
-import { paletteBlocks, RETIRED_BADGE } from '../../src/features/designer/palette.ts';
+import { LIBRARY_REPLACEMENT, paletteBlocks, RETIRED_BADGE } from '../../src/features/designer/palette.ts';
+import { librarySeed } from '@ebmr/recipe-core';
 import { tabletsBlockRegistry } from '../../src/features/edition-blocks.ts';
 
 describe('the tablets palette (slice 7j)', () => {
@@ -24,10 +25,22 @@ describe('the tablets palette (slice 7j)', () => {
     expect(tb.length).toBeGreaterThanOrEqual(24);
     for (const b of tb) {
       expect(b.insertable, b.key).toBe(false);
-      expect(b.badge, b.key).toBe(RETIRED_BADGE);
+      expect(b.badge, b.key).toBe(LIBRARY_REPLACEMENT[b.type] ? `existing masters only (use the library's ${LIBRARY_REPLACEMENT[b.type]})` : RETIRED_BADGE);
       expect(Object.keys(b.configSchema).length, b.key).toBeGreaterThan(0);
     }
     for (const b of palette.filter((x) => !x.type.startsWith('TB-'))) expect(b.insertable, b.key).toBe(true);
+  });
+
+  it('[PR-05] D-4: the badge of TB-04, TB-05 and TB-18 names the library block that replaces it, and each named block is in the seed catalogue', () => {
+    const badges = Object.fromEntries(paletteBlocks().filter((b) => ['TB-04', 'TB-05', 'TB-18'].includes(b.type)).map((b) => [b.type, b.badge]));
+    expect(badges).toEqual({
+      'TB-04': "existing masters only (use the library's PROC-RMG)",
+      'TB-05': "existing masters only (use the library's PROC-FBD)",
+      'TB-18': "existing masters only (use the library's COAT- blocks)",
+    });
+    const codes = librarySeed.SEED_CATALOGUE.map((i) => i.definition.code);
+    expect(codes).toEqual(expect.arrayContaining(['PROC-RMG', 'PROC-FBD']));
+    expect(codes.some((c) => c.startsWith('COAT-'))).toBe(true);
   });
 
   it('every palette entry is a block version of the edition registry the definition check and the runs use', () => {

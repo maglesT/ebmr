@@ -175,7 +175,7 @@ export async function registerPlantUnits(page: Page, base: string, units: readon
     await choose(log.getByRole('radiogroup', { name: 'Record' }).getByRole('radio', { name: 'A logbook event' }));
     await choose(log.getByRole('radiogroup', { name: 'Event' }).getByRole('radio', { name: 'QUALIFIED', exact: true }));
     await log.getByRole('textbox', { name: 'Detail' }).fill('IQ/OQ/PQ approved (DEMO-ONLY)');
-    await log.getByRole('textbox', { name: 'Reference (optional)' }).fill(`QUAL-${u.code}`);
+    await log.getByRole('textbox', { name: /^Reference \(required/ }).fill(`QUAL-${u.code}`);
     await log.getByRole('button', { name: 'Record in the logbook' }).click();
     await expect(log.getByText('Recorded.')).toBeVisible();
   }

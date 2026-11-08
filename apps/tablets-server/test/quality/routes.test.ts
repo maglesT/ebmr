@@ -223,6 +223,11 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
       }));
     const lot = await receive(`L6-${randomUUID().slice(0, 6).toUpperCase()}`);
     expect(lot).toMatchObject({ status: 'QUARANTINE', material: { code: 'MAT-S6', kind: 'EXCIPIENT' }, quantity: '100' });
+    // G5 (owner report item 23): a lot code received twice is refused as a duplicate (409), never a 500.
+    const again = await warehouse.call(quality.receiveLot, {
+      body: { materialCode: 'MAT-S6', lotCode: lot.lotCode, supplier: 'Demo Excipients', supplierLot: 'S-AGAIN', quantity: '1.000', expiresAt: '2029-09-30T00:00:00+05:30', retestAt: '2027-03-31T00:00:00+05:30' },
+    });
+    expect(refusalOf(again)).toMatchObject({ status: 409, code: 'EBMR-API-DUPLICATE' });
     expect(valueOf(await warehouse.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.map((l) => l.lotId)).toContain(lot.lotId);
 
     // A release result, approved by the head of QC (never its analyst, never on other content than shown).
@@ -344,6 +349,10 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     valueOf(await steward.call(routes.plant.defineArea, { body: { code: `RM${tag}`, kind: 'ROOM', name: 'Blending room' } }));
     const eq = valueOf(await steward.call(routes.plant.defineEquipment, { body: { code: `BLD-${tag}`, name: 'Bin blender 200 L', classCode: `BLD${tag}`, areaCode: `RM${tag}` } }));
     expect(eq).toMatchObject({ kind: 'PROCESS', areaCode: `RM${tag}` });
+    // G5 (owner report item 22): a qualification names its reference (recipe-core 0400's table rule); without one it is a
+    // refusal of the input (422), never a 500.
+    const unqualified = await steward.call(routes.plant.equipmentEvent, { params: { code: eq.code }, body: { event: 'EVENT', kind: 'QUALIFIED', detail: 'OQ completed' } });
+    expect(refusalOf(unqualified)).toMatchObject({ status: 422, code: 'EBMR-API-CHECK' });
     const started = valueOf(await b1.call(routes.plant.startCleaning, { body: { target: 'EQUIPMENT', code: eq.code, level: 'MAJOR' } }));
     valueOf(await b1.call(routes.plant.completeCleaning, { params: { id: started.cleaningId }, body: {} }));
     expect(valueOf(await b2.call(routes.plant.pendingVerifications)).items.map((i) => i.id)).toContain(started.cleaningId);

@@ -165,6 +165,10 @@ export async function planGmpBatch(app: AppContext, actor: ActorContext, key: st
       const out = await withIdempotentActorCommand(pool, actor, key, requestHash, async (client) => {
         const erpOrder = plan.erpOrder ?? (await openErpOrder(client, plan));
         const planned = plan.reprocessingRequest !== undefined ? await prepareReprocessingIssue(client, batchId, { ...plan, erpOrder }) : await execution.prepareGmpIssue(client, batchId, { ...plan, erpOrder });
+        // IN-30 at planning (owner report item 15, G4): the licence, export-permission and hazard-area rule the issue gate
+        // applies (recipe.india_issue_problem, called by recipe.gmp_issue_problem), with its message, so a batch the issue
+        // would refuse is not planned. The command rolls back: no number is used and no batch is left planned.
+        await licenceAtPlanning(client, planned.batchId);
         return planned as unknown as commands.JsonValue;
       });
       const planned = out.result as unknown as execution.PlannedGmpBatch;
@@ -177,6 +181,45 @@ export async function planGmpBatch(app: AppContext, actor: ActorContext, key: st
       await continuity.reserveCounterBlock(pool, actor, ledgerOf(app), counter);
     }
   }
+}
+
+/**
+ * A batch planned and not yet issued, as planGmpBatch answered it (G4, owner report item 14): from the database's own
+ * rows (the stub batch, its MBR pin and control recipe), so the issue form opens after a reload. Undefined when the
+ * batch is not PLANNED (issued, cancelled or unknown).
+ */
+export async function plannedBatchView(db: Db, batchId: string): Promise<PlannedBatchView | undefined> {
+  const { rows } = await db.query<{ batch_number: string; markets: string[]; site: string; line: string; batch_size: string; version_number: number; content_hash: string; control_recipe_id: string | null }>(
+    `select b.batch_number, b.markets, b.site, b.line, b.batch_size, p.version_number, p.content_hash, cr.id as control_recipe_id
+       from recipe.stub_batch b
+       join recipe.batch_mbr_pin p on p.batch_id = b.id
+       left join recipe.control_recipe cr on cr.batch_id = b.id
+      where b.id = $1 and b.status = 'PLANNED'`,
+    [batchId],
+  );
+  const r = rows[0];
+  if (!r?.control_recipe_id) return undefined;
+  const source = await loadControlRecipe(db, r.control_recipe_id);
+  if (!source) return undefined;
+  const planned = { batchId, batchNumber: r.batch_number, versionNumber: r.version_number, contentHash: r.content_hash, markets: r.markets, controlRecipeId: r.control_recipe_id } as execution.PlannedGmpBatch;
+  return plannedView(planned, { site: r.site, line: r.line, batchSize: r.batch_size } as PlanInput, defineForGmp(source));
+}
+
+/** Refuses the plan when the issue gate's India rule would refuse the batch (IN-30), with that rule's own message. */
+async function licenceAtPlanning(client: Db, batchId: string): Promise<void> {
+  const { rows } = await client.query<{ p: string | null }>('select recipe.india_issue_problem($1) as p', [batchId]);
+  const p = rows[0]?.p ?? null;
+  if (p === null) return;
+  const code = /\[(EBMR-IND-\d{3})\]/.exec(p)?.[1] ?? 'EBMR-IND-040';
+  throw refusal(422, {
+    code,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The batch was not planned: its issue would be refused. Nothing was saved.',
+    why: p.replace(/\s*\[EBMR-IND-\d{3}\]\s*$/, ''),
+    controls: ['IN-30'],
+    whatYouCanDo: ['Ask regulatory affairs to record the licence or permission that covers this product, site and market, and QA to approve it; then plan again.'],
+    whoCanHelp: ['Regulatory affairs', 'QA'],
+  });
 }
 
 /** The oldest open ERP order for the plan's family, site and batch size ('' when there is none: the database refuses). */
