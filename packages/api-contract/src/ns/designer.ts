@@ -243,7 +243,7 @@ export const designer = {
        * header, the bill of materials and a dispensing stage's clearance and balance status) or COPY (the procedure of the
        * approved master `copyOfVersionId`). The header, the batch sizes and the bill of materials come from the formula.
        */
-      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY']).optional(),
+      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY', 'PACKAGING_BLANK']).optional(),
       /**
        * Injectables plan I-0: the family's edition. An injectables family starts from a formula with BLANK or SKELETON
        * (I-1c: the dispensing stage alone; templates and copies are Tablets procedures) and its product's dosage form must
@@ -260,6 +260,12 @@ export const designer = {
        */
       printed: z.array(z.strictObject({ item: z.string().min(1).max(64), material: z.string().min(1).max(40), artwork: z.string().min(1).max(64) })).max(20).optional(),
       copyOfVersionId: Uuid.optional(),
+      /**
+       * API plan A1b (C6): PACKAGING_BLANK (offered where the formula choice lists it: the API edition) makes a blank
+       * packaging master from the formula's product and batch sizes, not pinned to the formula; its bill of materials is
+       * these packing materials, each with its quantity for the reference batch size.
+       */
+      packing: z.array(z.strictObject({ material: z.string().min(1).max(40), quantity: DecimalString, unit: z.string().min(1).max(16) })).max(20).optional(),
       familyCode: z.string().min(1).max(64),
       product: ProductRef,
       batchSizes: z.array(z.strictObject({ quantity: DecimalString, unit: z.string().min(1) })).min(1).optional(),

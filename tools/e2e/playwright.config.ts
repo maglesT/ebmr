@@ -30,6 +30,8 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'library-softgel': ['library/softgel.spec.ts'],
   // Injectables edition I-1c1: a terminally sterilised vial from the catalogue to its approved master and sandbox run.
   'library-inj-vial': ['library/inj-vial.spec.ts'],
+  // API edition A1b: an API master pair from the catalogue and the formula on screen (the blank packaging start).
+  'library-api': ['library/api.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

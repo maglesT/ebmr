@@ -32,7 +32,7 @@ interface SizeRow {
 
 const UNITS = ['kg', 'g'];
 
-type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_COPY';
+type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_COPY' | 'PACKAGING_BLANK';
 const STARTS: { value: Start; label: string }[] = [
   { value: 'TEMPLATE', label: 'From a template' },
   { value: 'SKELETON', label: 'From the formula, with the required skeleton (dispensing, and blending for a tablet or capsule)' },
@@ -40,6 +40,17 @@ const STARTS: { value: Start; label: string }[] = [
   { value: 'COPY', label: 'From the formula, as a copy of an approved master' },
   { value: 'PACKAGING_COPY', label: 'A packaging master for a product, as a copy of an approved packaging master' },
 ];
+/**
+ * API plan A1b (C6): a blank packaging master from the chosen formula's product and batch sizes, offered only where the
+ * server's formula choice lists the start (the API edition); the screen keeps no list of its own.
+ */
+const PACKAGING_BLANK = { value: 'PACKAGING_BLANK' as const, label: 'A packaging master from the formula, blank (line clearance only; add the printed materials and the pack from the library)' };
+
+interface PackingRow {
+  material: string;
+  quantity: string;
+  unit: string;
+}
 
 interface Printed {
   material: string;
@@ -91,6 +102,9 @@ export function NewFromTemplate() {
   const packaging = start === 'PACKAGING_COPY';
   const [packProduct, setPackProduct] = useState({ code: '', strength: '' });
   const [printed, setPrinted] = useState<Record<string, Printed>>({});
+  const [packing, setPacking] = useState<PackingRow[]>([{ material: '', quantity: '', unit: '1' }]);
+  const packingBlankListed = formula?.starts.includes('PACKAGING_BLANK') ?? false;
+  const startOptions = packingBlankListed ? [...STARTS, PACKAGING_BLANK] : STARTS;
   const source = useApiQuery(routes.designer.version, { params: { versionId: copyOf ?? '' } }, { enabled: packaging && copyOf !== null });
   const sourceContent = source.data?.content as { header?: { recordKind?: string }; procedure?: unknown } | undefined;
   const sourceIsPackaging = sourceContent?.header?.recordKind === 'PACKAGING';
@@ -111,7 +125,8 @@ export function NewFromTemplate() {
     ? code.trim() !== '' && packProduct.code.trim() !== '' && packProduct.strength.trim() !== '' && sourceIsPackaging && items.every((i) => (printed[i.item]?.material ?? '').trim() !== '' && (printed[i.item]?.artwork ?? '').trim() !== '')
     : fromTemplate
     ? chosen !== undefined && code.trim() !== '' && product.code.trim() !== '' && product.name.trim() !== '' && product.strength.trim() !== '' && sizes.every((s) => s.quantity !== '')
-    : formula !== null && code.trim() !== '' && (start !== 'COPY' || copyOf !== null);
+    : formula !== null && code.trim() !== '' && (start !== 'COPY' || copyOf !== null) &&
+      (start !== 'PACKAGING_BLANK' || (packingBlankListed && packing.every((l) => l.material.trim() !== '' && l.quantity.trim() !== '' && l.unit.trim() !== '')));
 
   const create = async (): Promise<void> => {
     if (fromTemplate && !chosen) return;
@@ -144,6 +159,7 @@ export function NewFromTemplate() {
           formulaVersionId: formula?.versionId ?? '',
           start: start as Exclude<Start, 'TEMPLATE' | 'PACKAGING_COPY'>,
           ...(start === 'COPY' && copyOf ? { copyOfVersionId: copyOf } : {}),
+          ...(start === 'PACKAGING_BLANK' ? { packing: packing.map((l) => ({ material: l.material.trim(), quantity: l.quantity.trim(), unit: l.unit.trim() })) } : {}),
         };
     const r = await api.call(routes.designer.createFamily, { body, idempotencyKey: key });
     setBusy(false);
@@ -165,7 +181,7 @@ export function NewFromTemplate() {
       <h1>New master record</h1>
       <fieldset className={dcls('fieldset')}>
         <legend className={dcls('legend')}>How the master starts</legend>
-        {STARTS.map((o) => (
+        {startOptions.map((o) => (
           <div key={o.value} className={dcls('checkbox')}>
             <input type="radio" id={`${startGroup}-${o.value}`} name={startGroup} checked={start === o.value} onChange={() => setStart(o.value)} />
             <label htmlFor={`${startGroup}-${o.value}`}>{o.label}</label>
@@ -230,6 +246,19 @@ export function NewFromTemplate() {
           The product, the approved batch sizes and the bill of materials come from the chosen product&apos;s approved formula; nothing is taken from a template.
         </p>
       )}
+      {start === 'PACKAGING_BLANK' && packingBlankListed ? (
+        <fieldset className={dcls('fieldset')} data-testid="packing-materials">
+          <legend className={dcls('legend')}>Packing materials (for the reference batch size)</legend>
+          {packing.map((l, i) => (
+            <div key={i} className={dcls('inline')}>
+              <Field label={`Packing material ${i + 1}`} name={`packing-material-${i}`} value={l.material} onChange={(v) => setPacking((p) => p.map((x, j) => (j === i ? { ...x, material: v } : x)))} />
+              <Field label={`Quantity of packing material ${i + 1}`} name={`packing-quantity-${i}`} value={l.quantity} onChange={(v) => setPacking((p) => p.map((x, j) => (j === i ? { ...x, quantity: v } : x)))} />
+              <Field label={`Unit of packing material ${i + 1}`} name={`packing-unit-${i}`} value={l.unit} onChange={(v) => setPacking((p) => p.map((x, j) => (j === i ? { ...x, unit: v } : x)))} />
+            </div>
+          ))}
+          <Button onPress={() => setPacking((p) => [...p, { material: '', quantity: '', unit: '1' }])}>Add a packing material</Button>
+        </fieldset>
+      ) : null}
       {packaging ? null : <ChooseProduct
         onChosen={(c) => {
           setFormula(c);

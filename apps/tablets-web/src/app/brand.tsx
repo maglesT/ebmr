@@ -16,9 +16,9 @@ export const EDITION: brand.LockupEdition = 'TABLETS';
  * The capsule and injectable screens on show: each master or batch screen with a capsule or an injectable dosage form
  * counts itself in while it is mounted (useScreenDosageForm). Display only; no record depends on it.
  */
-const screens: Record<'CAPSULES' | 'INJECTABLES', number> = { CAPSULES: 0, INJECTABLES: 0 };
+const screens: Record<'CAPSULES' | 'INJECTABLES' | 'API', number> = { CAPSULES: 0, INJECTABLES: 0, API: 0 };
 const listeners = new Set<() => void>();
-const changed = (edition: 'CAPSULES' | 'INJECTABLES', by: number): void => {
+const changed = (edition: 'CAPSULES' | 'INJECTABLES' | 'API', by: number): void => {
   screens[edition] += by;
   for (const l of listeners) l();
 };
@@ -28,7 +28,8 @@ const subscribe = (l: () => void): (() => void) => {
 };
 
 /** The header's edition per product line (the one dosage form → edition map, lead S3); null keeps the app's own. */
-const HEADER_OF_LINE: Readonly<Record<flow.ProductLine, 'CAPSULES' | 'INJECTABLES' | null>> = { tablets: null, capsules: 'CAPSULES', injectables: 'INJECTABLES', substance: null };
+// API plan A1b (lead, 8 November 2026): an API or intermediate on screen turns the header to Batchwright API.
+const HEADER_OF_LINE: Readonly<Record<flow.ProductLine, 'CAPSULES' | 'INJECTABLES' | 'API' | null>> = { tablets: null, capsules: 'CAPSULES', injectables: 'INJECTABLES', substance: 'API' };
 
 /**
  * A master or batch screen names its product's dosage form: a capsule form turns the header to Batchwright Capsules,
@@ -43,7 +44,7 @@ export function useScreenDosageForm(dosageForm: string | null | undefined): void
   }, [edition]);
 }
 
-const headerNow = (): brand.Edition => (screens.CAPSULES > 0 ? 'CAPSULES' : screens.INJECTABLES > 0 ? 'INJECTABLES' : EDITION);
+const headerNow = (): brand.Edition => (screens.CAPSULES > 0 ? 'CAPSULES' : screens.INJECTABLES > 0 ? 'INJECTABLES' : screens.API > 0 ? 'API' : EDITION);
 
 /** The header's edition now: Capsules or Injectables while such a master or batch is on screen, else the app's own. */
 export function useHeaderEdition(): brand.Edition {

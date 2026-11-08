@@ -27,7 +27,19 @@ import { bomOverage, withOverageQuantity } from './formula-choice.ts';
 import { materialReference, type MaterialMaster } from './material-refs.ts';
 import type { MbrTemplate } from './templates/index.ts';
 
-export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY';
+export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_BLANK';
+
+/**
+ * API plan A1b (C6, lead 8 November 2026): a packing material of a blank packaging master (PACKAGING_BLANK), as the author
+ * names it: the material and its quantity for the reference batch size (decimal text). A formula holds no packing
+ * material (recipe-core 0640: its lines are actives, excipients, coatings and processing aids), so the author states them,
+ * as a packaging copy takes its source's.
+ */
+export interface PackingLine {
+  material: string;
+  quantity: string;
+  unit: string;
+}
 
 export interface FormulaFamilyRequest {
   familyCode: string;
@@ -35,6 +47,8 @@ export interface FormulaFamilyRequest {
   start: FormulaStart;
   /** Injectables plan I-0: the family's edition (default tablets). */
   edition?: flow.Edition;
+  /** API plan A1b: the packing materials of a PACKAGING_BLANK master (none for the other starts). */
+  packing?: readonly PackingLine[];
 }
 
 export interface FormulaSource {
@@ -314,15 +328,22 @@ export const EDITION_START: Readonly<Record<flow.Edition, {
   readonly releaseForPacking: boolean;
   readonly unit?: string;
   /** Why the edition refuses a start it does not list, and the library its steps come from; null where every start is listed. */
-  readonly refusal: { readonly why: string; readonly library: string } | null;
+  readonly refusal: { readonly why: string; readonly library: string; readonly instead?: string } | null;
 }>> = {
-  tablets: { starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false, refusal: null },
+  // API plan A1b: the tablets starts are unchanged; the refusal names the one start they do not list (PACKAGING_BLANK).
+  tablets: {
+    starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false,
+    refusal: { why: 'A blank packaging master from the formula is a start of the API edition: a tablets packaging master is a copy of an approved packaging master.', library: 'tablets', instead: 'Choose "A packaging master for a product, as a copy of an approved packaging master".' },
+  },
   injectables: {
     starts: ['SKELETON', 'BLANK'], skeleton: 'DISPENSING', releaseForPacking: true, unit: 'unit',
     refusal: { why: 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.', library: 'injectables' },
   },
+  // API plan A1b (C6 of plan section 4: decision 0025, every act a person performs has a screen; ICH Q7 6.41 and 9.44,
+  // 9.45: the packaging and labelling instructions and records are required): the first packaging master of an API
+  // has a start of its own, as no approved API packaging master exists to copy. The API edition only.
   substance: {
-    starts: ['BLANK'], skeleton: null, releaseForPacking: true,
+    starts: ['BLANK', 'PACKAGING_BLANK'], skeleton: null, releaseForPacking: true,
     refusal: { why: 'An API master starts blank: the skeleton, templates and copies are tablet procedures.', library: 'API' },
   },
 };
@@ -336,6 +357,14 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
       o['children'] = (o['children'] as flow.FlowNode[]).filter((n) => n.kind !== 'phase' || n.id === 'p-disp-clear' || n.id === 'p-disp-bal');
     }
   });
+  // API plan A1b (found by the library-api browser run): an edition without the full tablet skeleton builds its master
+  // from the library, whose steps the author adds after a step, not into an empty operation; the dispensing operations
+  // left with no step are therefore left out, as the validator refuses an operation with no step (FLOW-LEVELS, DI-34).
+  // A tablets author fills them with the tablet blocks, so a tablets blank keeps them.
+  if (EDITION_START[req.edition ?? 'tablets'].skeleton !== 'FULL') {
+    const ops = disp.body as flow.SequenceNode;
+    ops.children = ops.children.filter((n) => n.kind !== 'operation' || ((n.body as flow.SequenceNode | undefined)?.children.length ?? 0) > 0);
+  }
   (t.procedure.body as flow.SequenceNode).children = [disp];
   // API plan A1a: an API (or injectables) master ends with QA's release for packing (H-PACK) in a stage of its own, so
   // the stages the author adds go before it and the packaging order of the batch can take its bulk (recipe-core 0701).
@@ -348,6 +377,39 @@ function blank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest,
   t.intermediates = [];
   t.riskReductions = [];
   t.references = t.references.filter((r) => r.kind === 'MATERIAL' || ['SOP-CLEAN-003', 'QRM-SCALE', 'EQC-BAL'].includes(r.id));
+  return t;
+}
+
+/**
+ * API plan A1b (C6): a blank packaging master from the formula's product and batch sizes. The formula is not pinned: its
+ * composition is the processing master's (recipe-core 0690 checks a pinned master carries every formula line), and a
+ * packaging master has none, as a packaging copy has none. The bill of materials is the author's packing materials, each
+ * pinned to its material master version; the procedure is one packing stage with its line clearance (ICH Q7 9.44), to
+ * which the author adds the printed materials step (G-21) and the library's pack block. Nothing else is written: the
+ * validator and the planning check (recipe-core 0800, packaging_master_problem: a block that completes the record) say
+ * what is left to do, as for any master.
+ */
+function packagingBlank(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
+  const t = blank(base, src, { ...req, edition: req.edition ?? 'tablets' }, markets);
+  const disp = (t.procedure.body as flow.SequenceNode).children.find((n) => n.id === 'S-DISP') as flow.StageNode;
+  walk(disp, (o) => {
+    if (o['kind'] === 'sequence' && Array.isArray(o['children'])) o['children'] = (o['children'] as flow.FlowNode[]).filter((n) => n.kind !== 'phase' || n.id === 'p-disp-clear');
+  });
+  const pack: flow.StageNode = { ...disp, id: 'S-PACK', name: 'Packing' };
+  (t.procedure.body as flow.SequenceNode).children = [pack];
+  // A packaging master has no unit mass: its batch sizes are the processing batch's, not counts of units.
+  t.header = { ...t.header, title: `${src.product.name} ${src.chosen.strength}: packing`, recordKind: 'PACKAGING' };
+  delete t.header.unitMassMg;
+  const lines = req.packing ?? [];
+  t.bom = lines.map((l) => ({ id: `BOM-${l.material}`, material: l.material, role: 'PRIMARY_PACKAGING', quantity: { value: l.quantity, unit: l.unit } }));
+  t.references = [
+    ...t.references.filter((r) => r.kind !== 'MATERIAL'),
+    ...[...new Set(lines.map((l) => l.material))].map((code) => {
+      const m = src.materials.find((x) => x.code === code);
+      if (!m) throw new FamilyInputError('DESIGNER_MATERIAL', `Packing material ${code} is not in effect in the material master.`, ['PR-17']);
+      return src.materialDocuments?.find((d) => d.code === code) ?? materialReference(m);
+    }),
+  ];
   return t;
 }
 
@@ -507,5 +569,6 @@ export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: F
     return parsed(copy(copySource, src, req, markets));
   }
   if (req.start === 'BLANK') return parsed(blank(base, src, req, markets));
+  if (req.start === 'PACKAGING_BLANK') return parsed(packagingBlank(base, src, req, markets));
   return parsed(EDITION_START[req.edition ?? 'tablets'].skeleton === 'DISPENSING' ? dispensingOnly(base, src, req, markets, timeSystem) : skeleton(base, src, req, markets, timeSystem));
 }

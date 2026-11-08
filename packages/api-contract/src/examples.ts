@@ -296,7 +296,7 @@ export const EXAMPLES = {
   },
   'designer-formula-choice': {
     schema: r.designer.formulaChoice.response,
-    data: { formulaId: s6.formulaSummary.formulaId, versionId: s6.formulaVersion.versionId, versionNumber: 1, productCode: 'GBT01', strength: '500 mg', batchSizeUnits: '200000', bom: s6.formulaVersion.lines, target: s6.formulaVersion.target },
+    data: { formulaId: s6.formulaSummary.formulaId, versionId: s6.formulaVersion.versionId, versionNumber: 1, productCode: 'GBT01', strength: '500 mg', batchSizeUnits: '200000', bom: s6.formulaVersion.lines, target: s6.formulaVersion.target, starts: ['SKELETON', 'BLANK', 'COPY'] },
     routeId: r.designer.formulaChoice.id,
   },
   'plant-areas': { schema: r.plant.areas.response, data: { areas: s6.plant.areas }, routeId: r.plant.areas.id },

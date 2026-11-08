@@ -11,6 +11,7 @@ import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 import { definitionFindings } from '../../src/features/designer/definition.ts';
+import { EDITION_START } from '../../src/features/designer/from-formula.ts';
 import { expectedTabletCount } from '../../src/features/execution/issue-expectations.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
 import { publishTables, saveContent, stewardActor } from './support.ts';
@@ -53,6 +54,19 @@ async function approvedFormula(units: string, target?: { targetUnitMassMg: strin
   return v.versionId;
 }
 
+/** API plan A1b: one API product and its approved formula, shared by the A1b tests (one approval: the signing limit). */
+const A1B_API = { code: 'DMT7JP', name: 'Demosubstance P', strength: '' };
+let a1bFormula: Promise<string> | undefined;
+function a1bApiFormula(): Promise<string> {
+  a1bFormula ??= (async () => {
+    A1B_API.strength = PRODUCT.strength;
+    valueOf(await steward.call(md.enterProduct, { body: { productCode: A1B_API.code, strength: A1B_API.strength, productName: A1B_API.name, dosageForm: 'API', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    await confirmErpPending(gmp);
+    return approvedFormula('100000', undefined, LINES, A1B_API.code);
+  })();
+  return a1bFormula;
+}
+
 beforeAll(async () => {
   gmp = await startSigningServer('GMP', { stub: false });
   await seedReferenceDocuments(gmp.db.app, await stewardActor(gmp));
@@ -65,6 +79,8 @@ beforeAll(async () => {
     ['RM-7JF-IPA', 'Isopropyl alcohol', 'EXCIPIENT'],
     ['RM-7JF-WAT', 'Purified water', 'EXCIPIENT'],
     ['RM-7JF-SHL', 'Empty hard gelatin capsule shells, size 0', 'EXCIPIENT'],
+    // API plan A1b: a drum, the packing material of a blank API packaging master.
+    ['PM-7JF-DRUM', 'HDPE drum 30 kg with two PE liners', 'PRIMARY_PACKAGING'],
   ] as const) {
     valueOf(await steward.call(md.enterMaterial, { body: { materialCode: code, materialName: name, materialKind: kind, unit: 'kg', pharmacopoeia: 'IP', changeReason: REASON } }));
   }
@@ -332,6 +348,75 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(families.find((f) => f.familyCode === 'DMT7JA-BL')?.edition).toBe('substance');
     const { rows } = await gmp.db.admin.query<{ edition: string }>("select edition from recipe.mbr_family where code = 'DMT7JA-BL'");
     expect(rows[0]?.edition).toBe('substance');
+  });
+
+  it('[PR-01][INV-17] API plan A1b (C6): only the API edition offers the blank packaging start; the tablets and injectables starts are unchanged, and the formula choice lists the starts of the product\'s edition', async () => {
+    expect(EDITION_START.tablets.starts).toEqual(['SKELETON', 'BLANK', 'COPY']);
+    expect(EDITION_START.injectables.starts).toEqual(['SKELETON', 'BLANK']);
+    expect(EDITION_START.substance.starts).toEqual(['BLANK', 'PACKAGING_BLANK']);
+    await a1bApiFormula();
+    const API = A1B_API;
+    const choice = (code: string) => author.call(routes.designer.formulaChoice, { query: { product: code, strength: PRODUCT.strength, batchSize: '100000' } });
+    expect(valueOf(await choice(API.code)).starts).toEqual(['BLANK', 'PACKAGING_BLANK']);
+    expect(valueOf(await choice(PRODUCT.code)).starts).toEqual(['SKELETON', 'BLANK', 'COPY']);
+    // A tablets product: the start is refused with the edition's existing refusal (no new one).
+    const tablet = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-PKB', product: PRODUCT, markets: ['IN'], formulaVersionId: otherVersionId, start: 'PACKAGING_BLANK' } });
+    expect(refusalOf(tablet).code).toBe('DESIGNER_EDITION_START');
+  });
+
+  it('[PR-01][DI-34] API plan A1b (found by the library-api browser run): a blank master of an edition built from the library has no empty dispensing operation, so its checks can pass', async () => {
+    const apiFormula = await a1bApiFormula();
+    const API = A1B_API;
+    const operations = (content: unknown): { id: string; steps: number }[] => {
+      const out: { id: string; steps: number }[] = [];
+      const visit = (n: unknown): void => {
+        if (Array.isArray(n)) n.forEach(visit);
+        else if (n && typeof n === 'object') {
+          const o = n as { kind?: string; id?: string; body?: { children?: unknown[] } };
+          if (o.kind === 'operation') out.push({ id: o.id ?? '', steps: o.body?.children?.length ?? 0 });
+          Object.values(o).forEach(visit);
+        }
+      };
+      visit((content as { procedure: unknown }).procedure);
+      return out;
+    };
+    const api = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JP-BL', product: API, markets: ['IN'], formulaVersionId: apiFormula, start: 'BLANK' } }));
+    expect(operations(api.content).length).toBeGreaterThan(0);
+    expect(operations(api.content).filter((o) => o.steps === 0)).toEqual([]);
+  });
+
+  it('[PR-01][PR-37][IN-16][AS-01] API plan A1b (C6): a blank API packaging master takes the formula\'s product and batch sizes, is not pinned to the formula, carries the author\'s packing materials and a packing stage with its line clearance, and is refused for planning by the existing check until the library\'s pack block completes it', async () => {
+    const apiFormula = await a1bApiFormula();
+    const API = A1B_API;
+    const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JP-PK', product: API, markets: ['IN'], formulaVersionId: apiFormula, start: 'PACKAGING_BLANK', packing: [{ material: 'PM-7JF-DRUM', quantity: '2', unit: '1' }] } }));
+    const c = v.content as unknown as { header: { edition: string; recordKind: string; title: string; batchSizes: unknown[]; unitMassMg?: string }; bom: { id: string; material: string; role: string; quantity: unknown }[]; references: { kind: string; code?: string }[]; procedure: { body: { children: { id: string; name: string; body: { children: { id: string }[] } }[] } } };
+    expect(c.header).toMatchObject({ edition: 'substance', recordKind: 'PACKAGING', title: `Demosubstance P ${PRODUCT.strength}: packing` });
+    expect(c.header.unitMassMg).toBeUndefined();
+    expect(c.header.batchSizes.length).toBeGreaterThan(0);
+    expect(c.bom).toEqual([{ id: 'BOM-PM-7JF-DRUM', material: 'PM-7JF-DRUM', role: 'PRIMARY_PACKAGING', quantity: { value: '2', unit: '1' } }]);
+    expect(c.references.filter((r) => r.kind === 'MATERIAL').map((r) => r.code)).toEqual(['PM-7JF-DRUM']);
+    const phases: string[] = [];
+    const visit = (n: unknown): void => {
+      if (Array.isArray(n)) n.forEach(visit);
+      else if (n && typeof n === 'object') {
+        const o = n as { id?: string; kind?: string };
+        if (o.kind === 'phase' || o.kind === 'holdPoint') phases.push(o.id ?? '');
+        Object.values(o).forEach(visit);
+      }
+    };
+    visit(c.procedure);
+    expect(c.procedure.body.children.map((x) => [x.id, x.name])).toEqual([['S-PACK', 'Packing']]);
+    expect(phases).toEqual(['p-disp-clear']);
+    // No formula pin: a packaging master carries no composition (recipe-core 0690 would refuse the drum as the BOM).
+    const pins = await gmp.db.admin.query('select 1 from formulary.mbr_formula_pin where mbr_version_id = $1', [v.versionId]);
+    expect(pins.rowCount).toBe(0);
+    // The existing planning check (recipe-core 0761/0800, raised as EBMR-PLN-005 at planning and issue) refuses it until
+    // the author adds the library pack block: no refusal of its own.
+    const problem = (await gmp.db.admin.query<{ p: string | null }>('select recipe.packaging_master_problem($1, $2::jsonb) as p', ['substance', JSON.stringify(v.content)])).rows[0]?.p ?? null;
+    expect(problem).toMatch(/LIB-API-PACK/);
+    // A packing material that is not in the material master is refused as any material of a new master is.
+    const unknown = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JP-PK2', product: API, markets: ['IN'], formulaVersionId: apiFormula, start: 'PACKAGING_BLANK', packing: [{ material: 'PM-NONE', quantity: '1', unit: '1' }] } });
+    expect(refusalOf(unknown).code).toBe('DESIGNER_MATERIAL');
   });
 
   it('[PR-01][PR-37][INV-27] API plan A1a: an API processing master starts blank with QA\'s release for packing (H-PACK) in a last stage of its own, after which the author adds the synthesis stages; it is pinned to its formula', async () => {

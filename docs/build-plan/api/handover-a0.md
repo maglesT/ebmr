@@ -206,3 +206,46 @@ Open, as next steps:
   2. A GMP weighing (G-07 or TB-01) that consumes the **whole** remaining quantity of a lot is refused (EBMR-EXE-078):
      the lot is CONSUMED when the entry guard (tablets 1700, `tab.entry_identifier_problem`) re-reads its facts, so the
      entry's RELEASED no longer matches. The test dispenses 50 of 52 kg and 42.5 of 44 kg to stay clear of it.
+
+## A1b E2E paused (8 November 2026, owner: API edition paused; branch `api-a1b-e2e`, no PR)
+
+Lead rulings of 8 November:
+- **Option A:** a narrow designer start `PACKAGING_BLANK` (a blank packaging master), listed in `EDITION_START.substance`
+  only, so that the first API packaging master has a screen. It was proposed for substance in A1a (#119), and the A1a audit
+  removed it as outside C1-C5. It is now **C6** in plan.md section 4. No binding clause asks for a designer start. Its basis
+  is decision 0025 (every act a person performs has a screen) and the owner's "flexibility within compliance". The record
+  itself is required: ICH Q7 6.41 (master instructions cover storage "including the labelling and packaging materials"),
+  9.44 and 9.45 (line clearance and label examination recorded in the batch record). This was checked against the
+  official Q7 Step 4 PDF of 10 November 2000.
+- Conditions:
+  1. Gated by edition: tablets and injectables start lists unchanged, with a test.
+  2. No new refusal: 0800 `packaging_master_problem` refuses a blank packaging master without LIB-API-PACK at planning,
+     with today's code, with a test.
+  3. Validation, verification and approval as for any master.
+  4. The NewFromTemplate option shows only when the server lists the start.
+  5. The "Batchwright API" header line.
+  6. One PR on GitHub CI, with E2E group `library-api`.
+- **recipe-core 1884** is held for this slice, only if checks 0640/0690 cannot take a packaging BOM without the formula
+  pin. The work in progress did not need it: the author enters the packing materials on the start.
+
+State of the branch (work in progress, committed as is; not reviewed, not CI-run):
+- plan.md C6 row.
+- Server: `FormulaStart` gains PACKAGING_BLANK (from-formula.ts, designer/index.ts), with the packing materials of the
+  start. The contract (designer.ts, master-data.ts: the starts the server lists) and examples are updated.
+- Web: NewFromTemplate option, and the brand header (brand.tsx, ui-kit brand.ts).
+- Tests: from-formula.test.ts and master-data.test.tsx changes, and control lists touched (AS-01, DI-04, DI-34, IN-16,
+  PR-01, PR-03, PR-05, PR-37).
+- New E2E spec `tools/e2e/specs/library/api.spec.ts` and group `library-api` (playwright.config.ts, ci.yml).
+
+Last local run: the processing master's on-screen checks passed. The packaging step failed only on a locator:
+"Packing material 1" also matches its quantity and unit fields, so it needs `exact: true`.
+
+Next, when the owner restarts the API edition:
+1. Fix the locator and finish the E2E locally.
+2. Write the condition tests listed above, if any is still missing, and check every changed control list with
+   register:validate.
+3. Run the fast checks, then open the PR and dispatch CI with runner=github.
+4. #169 (A4c) stays open and unmerged until then. Its last run, 42451349922, had only main's release-gate timeout (#179)
+   in shard 3, with E2E still running when paused. Re-dispatch it after a main merge.
+
+Local E2E: see resume.md, "How CI runs now" (Playwright browser link).

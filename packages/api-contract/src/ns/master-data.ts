@@ -124,6 +124,8 @@ export const FormulaChoiceView = z.strictObject({
   target: FormulaTargetView.nullable(),
   /** The product's dosage form, when one is stated (C2: a capsule's shells line is named as such). */
   dosageForm: z.string().optional(),
+  /** API plan A1b: the starts of a master from this formula that the product's edition offers (the server's EDITION_START). */
+  starts: z.array(z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_BLANK'])),
 });
 export type FormulaChoiceView = z.infer<typeof FormulaChoiceView>;
 

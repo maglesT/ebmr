@@ -5,14 +5,15 @@
  * (decision 0020 point 3; D-P7-11: no "Batchwright" version line in v1.0). Code names (packages, schemas, the `ebmr`
  * prefix) do not change.
  */
-export type Edition = 'TABLETS' | 'INJECTABLES' | 'CAPSULES';
+export type Edition = 'TABLETS' | 'INJECTABLES' | 'CAPSULES' | 'API';
 
 /**
  * The editions with a lockup of their own (the sign-in page). CAPSULES is a display value only (decision 0020,
  * amended 4 November 2026): the Tablets build's header reads "Batchwright Capsules" while a master or batch with a
- * capsule dosage form is on screen. It has no lockup, database or app.
+ * capsule dosage form is on screen. It has no lockup, database or app. API (API plan A1b) is the same: "Batchwright API"
+ * while a master or batch of an API or intermediate is on screen.
  */
-export type LockupEdition = Exclude<Edition, 'CAPSULES'>;
+export type LockupEdition = Exclude<Edition, 'CAPSULES' | 'API'>;
 
 export const PRODUCT = {
   name: 'Batchwright',
@@ -21,9 +22,9 @@ export const PRODUCT = {
   tagline: 'Every batch, proven',
 } as const;
 
-const EDITION_WORD: Readonly<Record<Edition, string>> = { TABLETS: 'Tablets', INJECTABLES: 'Injectables', CAPSULES: 'Capsules' };
+const EDITION_WORD: Readonly<Record<Edition, string>> = { TABLETS: 'Tablets', INJECTABLES: 'Injectables', CAPSULES: 'Capsules', API: 'API' };
 
-/** "Batchwright Tablets", "Batchwright Injectables" or "Batchwright Capsules". */
+/** "Batchwright Tablets", "Batchwright Injectables", "Batchwright Capsules" or "Batchwright API". */
 export function productTitle(edition: Edition): string {
   return `${PRODUCT.name} ${EDITION_WORD[edition]}`;
 }

@@ -13,14 +13,19 @@ after the tablets namespace), and it never changes how tablets or injectables be
 |---|---|
 | The edition's migrations | [editions/substance/sql](../../../editions/substance/sql/README.md) |
 | The pack block API-PACK (each drum or bag a registered container, its net mass, closure and label checked) | [seed/substance.ts](../../../packages/recipe-core/src/library/seed/substance.ts) |
-| A blank API master in the designer (ends with H-PACK) | [from-formula.ts](../../../apps/tablets-server/src/features/designer/from-formula.ts) |
+| A blank API master in the designer (ends with H-PACK), and the blank API packaging master (PACKAGING_BLANK) | [from-formula.ts](../../../apps/tablets-server/src/features/designer/from-formula.ts) |
+| The screen-level acceptance (the master pair on screen) | [api.spec.ts](../../../tools/e2e/specs/library/api.spec.ts) |
 | The chain from library blocks to a released lot, over the routes | [api-chain.test.ts](../../../apps/tablets-server/test/substance/api-chain.test.ts) |
 
 ## How a batch reaches release
 
 1. The designer starts an API master BLANK from the formula of a product whose dosage form is API or Intermediate; it
-   ends with QA's release for packing (H-PACK) in a stage of its own. The packaging master uses the existing starts;
-   its labels are issued and reconciled by the printed-materials block (G-21).
+   ends with QA's release for packing (H-PACK) in a stage of its own. The first packaging master starts from the same
+   formula as a blank packaging master (start PACKAGING_BLANK, API plan A1b, plan section 4 row C6; offered only where the
+   formula choice lists it, the API edition): the formula's product and batch sizes, not pinned to the formula (a
+   packaging master carries no composition), the author's packing materials as its bill of materials, and one packing
+   stage with the line clearance; the author adds the printed-materials block (G-21) and API-PACK from the library. Later
+   packaging masters may also be copies of an approved one.
 2. A packaging master packs to the end when its procedure holds a step of the library block API-PACK
    (`recipe.packaging_completion_block`, row of migration 5000; recipe-core 1873 lets a library block name it).
 3. The packaging order takes the processing batch's bulk after H-PACK, packs it and the stores post the finished lot

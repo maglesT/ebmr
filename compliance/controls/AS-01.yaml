@@ -16,7 +16,10 @@ implemented_by:
   modules:
     - "Master life cycle (prepared, checked, QA approved by different people); one master per isolated step."
 tests:
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > [PR-01][PR-37][IN-16][AS-01] API plan A1b (C6): a blank API packaging master takes the formula's product and batch sizes, is not pinned to the formula, carries the author's packing materials and a packing stage with its line clearance, and is refused for planning by the existing check until the library's pack block completes it"
   - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-01][PR-01][PR-05][PR-37] the API master pair is approved: an API packaging master completes with the library pack block (recipe.packaging_completion_block), a tablets one without TB-24 still does not"
+  - "tools/e2e/specs/library/api.spec.ts > [PR-01][PR-03][PR-37][DI-04][INV-25][AS-01] API edition: the processing master and its first packaging master are set up on screen from the formula and the library, with no code change; the checks pass on both @office"
+  - "tools/e2e/specs/library/api.spec.ts > [PR-05][DI-04][AS-01] API edition: the author loads the ready-made catalogue as drafts; QA approves each API block the masters use through the signature ceremony @office"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"

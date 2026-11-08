@@ -188,6 +188,32 @@ describe('"Choose a product" in the designer\'s create flow', () => {
     expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Product code' }).value).toBe('GBT01');
   });
 
+  it('[PR-01] API plan A1b: the blank packaging start is offered only where the server\'s formula choice lists it, and sends the packing materials', async () => {
+    const choice = example('designer-formula-choice');
+    const pick = async (): Promise<void> => {
+      const panel = await screen.findByTestId('choose-product');
+      await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
+      await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '500 mg');
+      await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (units)' }), '200000');
+      await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
+      await within(panel).findByTestId('formula-bom');
+    };
+    const label = /A packaging master from the formula, blank/;
+    renderOffice('/mbr/new', { role: 'MBR_AUTHOR' });
+    await pick();
+    expect(screen.queryByRole('radio', { name: label })).toBeNull();
+    cleanup();
+    const ui = renderOffice('/mbr/new', { role: 'MBR_AUTHOR', fixtures: { 'designer.formulaChoice': { ...choice, starts: ['BLANK', 'PACKAGING_BLANK'] } } });
+    await pick();
+    await userEvent.click(await screen.findByRole('radio', { name: label }));
+    const packing = await screen.findByTestId('packing-materials');
+    await userEvent.type(within(packing).getByRole('textbox', { name: 'Packing material 1' }), 'MAT-DRUM-30');
+    await userEvent.type(within(packing).getByRole('textbox', { name: 'Quantity of packing material 1' }), '2');
+    await userEvent.click(screen.getByRole('button', { name: /^Create/ }));
+    await waitFor(() => expect(ui.posts('/api/mbr/families')).toHaveLength(1));
+    expect(ui.posts('/api/mbr/families')[0]?.body).toMatchObject({ start: 'PACKAGING_BLANK', formulaVersionId: choice.versionId, packing: [{ material: 'MAT-DRUM-30', quantity: '2', unit: '1' }] });
+  });
+
   it('a refusal (no FORMULA.READ, no approved version) is shown with the server\'s words', async () => {
     renderOffice('/mbr/new', { role: 'MBR_AUTHOR', fixtures: { 'designer.formulaChoice': refusal('EBMR-FORM-003', 'No approved formula for GBT01 250 mg.') } });
     const panel = await screen.findByTestId('choose-product');

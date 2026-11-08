@@ -133,7 +133,7 @@ function dosageFormFits(edition: flow.Edition, dosageForm: string): boolean {
 }
 
 /** The refusal wording of an edition that does not list a start (EDITION_START). */
-function refusalOf(edition: flow.Edition): { readonly why: string; readonly library: string } {
+function refusalOf(edition: flow.Edition): { readonly why: string; readonly library: string; readonly instead?: string } {
   const r = EDITION_START[edition].refusal;
   if (!r) throw new Error(`EDITION_START: the ${edition} edition refuses a start but names no refusal`);
   return r;
@@ -471,7 +471,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         whatHappened: 'The family was not created.',
         why: why.why,
         controls: ['PR-01'],
-        whatYouCanDo: [`Choose "Blank" and add the steps from the ${why.library} library.`],
+        whatYouCanDo: [why.instead ?? `Choose "Blank" and add the steps from the ${why.library} library.`],
       });
     };
     if (body.edition !== undefined) startFits(body.edition);
@@ -519,14 +519,17 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
             });
           }
-          const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
-          const materialDocuments = await materialDocumentsInForce(c, chosen.lines.map((l) => l.materialCode), await siteToday(c));
+          // API plan A1b (C6): a blank packaging master's bill of materials is the author's packing materials (from-formula.ts).
+          const packing = start === 'PACKAGING_BLANK' ? (body.packing ?? []) : [];
+          const materialCodes = [...new Set([...chosen.lines.map((l) => l.materialCode), ...packing.map((l) => l.material)])];
+          const materials = await materialMasters(c, materialCodes);
+          const materialDocuments = await materialDocumentsInForce(c, materialCodes, await siteToday(c));
           let content: flow.MbrContent;
           try {
             content = contentFromFormula(
               base,
               { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments },
-              { familyCode: body.familyCode, markets: body.markets, start, edition },
+              { familyCode: body.familyCode, markets: body.markets, start, edition, packing },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
             );
@@ -550,9 +553,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             });
           }
           const familyId = await lifecycle.familyForNewDraft(c, lifecycle.familyOf(contained));
-          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : 'the required skeleton';
+          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : start === 'PACKAGING_BLANK' ? 'a blank packaging master' : 'the required skeleton';
           const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template`);
-          await formula.pinFormula(c, v.versionId, chosen.versionId);
+          // API plan A1b (C6): a packaging master carries no formula (recipe-core 0690 checks a pinned master holds every
+          // formula line; a packaging copy is not pinned either); every other start pins it.
+          if (start !== 'PACKAGING_BLANK') await formula.pinFormula(c, v.versionId, chosen.versionId);
           return { versionId: v.versionId };
         }),
       `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,
@@ -636,7 +641,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       // C2: the dosage form names a capsule's shells line on screen (core's on the platform build).
       const local = (await productNames(pool)).get(`${c.productCode}|${c.strength}`)?.dosageForm ?? null;
       const dosageForm = await dosageFormOf(c.productCode, local);
-      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines, target, ...(dosageForm ? { dosageForm } : {}) };
+      // API plan A1b: the starts the product's edition offers (EDITION_START), so the screen offers only those.
+      const starts = [...EDITION_START[flow.editionOfDosageForm(dosageForm) ?? 'tablets'].starts];
+      return { starts, formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines, target, ...(dosageForm ? { dosageForm } : {}) };
     },
     templates: () => Promise.resolve({ templates: templateViews }),
 
