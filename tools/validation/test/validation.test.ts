@@ -70,7 +70,7 @@ afterAll(async () => {
 describe('the evidence bundle of a migrated database (tools/validation)', () => {
   it('[IN-12] a real bundle of a migrated database gives every document of the validation package, the same bytes each time', () => {
     expect(bundle.release).toEqual({ product: 'Batchwright Tablets', maker: 'Medhanta', version: '1.0.0-rc.1', ...commit, schemaRelease: schemaReleaseOfFiles() });
-    expect(bundle.register.controls.length).toBe(262); // 246 and the API edition's sixteen AS controls (A1b, AS-17)
+    expect(bundle.register.controls.length).toBe(264); // 246 and the API edition's eighteen AS controls (A1b, AS-17, AS-19, AS-20)
     expect(bundle.inventory.migrations.length).toBeGreaterThan(300);
     // The inventory sees the interlocks of this slice in the database.
     expect(bundle.inventory.triggers).toContainEqual({ table: 'recipe.batch_execution', name: 'a0_validation_summary_gate', enabled: true, function: 'recipe.batch_execution_validation_gate' });
