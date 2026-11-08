@@ -53,20 +53,28 @@ describe('CI runner labels', () => {
     });
   });
 
-  it('[meta] in pod mode only the heavy jobs (the end-to-end groups and the golden batches) run on the pod, and CI_RUNNER github moves them to GitHub-hosted; every other ci.yml job runs on GitHub-hosted in every mode (owner: heavy jobs on the good machine, light ones elsewhere)', () => {
-    const onPod: string[] = [];
+  it('[meta] in pod mode only the heavy jobs (the end-to-end groups and the golden batches) run on the pod, and CI_RUNNER github moves them to GitHub-hosted; only CI_RUNNER pod-all puts the light ci.yml jobs on the pod too, and in every other mode they run on GitHub-hosted (owner: heavy jobs on the good machine, light ones elsewhere; lead, 8 Nov: pod-all while GitHub-hosted runners are blocked)', () => {
+    const heavy: string[] = [];
+    const light: string[] = [];
+    const podAllFirst = /^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'pod-all' && 'ebmr-pod' \|\| /;
     for (const [id, text] of runsOn('ci.yml')) {
-      if (!text.includes("'ebmr-pod'")) {
-        // Never the pod: a literal GitHub-hosted label, or Ubicloud's size else GitHub-hosted.
-        expect(text, id).not.toContain('ebmr-pod');
-        expect(text === 'ubuntu-latest' || text.endsWith("|| 'ubuntu-latest' }}"), id).toBe(true);
+      if (podAllFirst.test(text)) {
+        // A light job: the pod only in pod-all mode, named first; after it, GitHub-hosted (or Ubicloud's size, then
+        // GitHub-hosted), and the pod named nowhere else.
+        light.push(id);
+        const rest = text.replace(podAllFirst, '');
+        expect(rest, id).not.toContain('ebmr-pod');
+        expect(rest === "'ubuntu-latest' }}" || rest.endsWith("|| 'ubuntu-latest' }}"), id).toBe(true);
         continue;
       }
-      onPod.push(id);
+      // A heavy job: GitHub-hosted only for CI_RUNNER github, else (Ubicloud's size, then) the pod, in pod and pod-all.
+      expect(text, id).not.toContain('pod-all');
+      heavy.push(id);
       expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'github' && 'ubuntu-latest' \|\|/);
       expect(text, id).toMatch(/\|\| 'ebmr-pod' \}\}$/);
     }
-    expect(onPod.sort()).toEqual(['e2e', 'golden']);
+    expect(heavy.sort()).toEqual(['e2e', 'golden']);
+    expect(light.sort()).toEqual(['changes', 'checks', 'e2e-plan', 'e2e-report', 'report', 'supply-chain', 'tests', 'traceability']);
   });
 
   it('[meta] the mutation workflow runs its jobs on Ubicloud standard-8 or GitHub-hosted, the size written out', () => {
