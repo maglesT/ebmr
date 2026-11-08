@@ -111,6 +111,16 @@ scope; substance 5000 the API-PACK completion row and the API G-REL hook; H-PACK
 one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and the E2E acceptance); resume from
 `docs/build-plan/api/handover-a0.md` (section "A1a done").
 
+## Demo gaps (designer restrictions, 7 November 2026)
+
+Plan `docs/build-plan/demo-gaps/plan.md`; the D-0 sweep and the lead's audit in `d0/README.md`; resume notes in
+`resume.md`. D-0 (#157) classified every refusal an author can hit. D-1 (#159): a stage added in the designer passes the
+validator and takes its own yield step. D-2 (#160, recipe-core 1877): the same material on two formula lines, the
+compensation and capsule-coating fixes, a formula draft withdrawn with a reason. D-3 (#161, recipe-core 1878): a
+master draft discarded with a reason, and the family started again. R-flow (`r-flow.md`): a phase directly in a stage
+(ADR 0004 amended), generic seed blocks, optional event sections, a stage with no yield and its reason, fieldless
+instruction and sign-off blocks, a target without limits, and the citation fixes. Next: R-rest, then D-4 to D-8.
+
 ## Next
 
 **Demo gaps (bilayer MGL-SR-BL, 7 November 2026).** Plan `docs/build-plan/demo-gaps/` (D-0 restriction sweep, lead-audited:

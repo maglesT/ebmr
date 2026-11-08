@@ -308,6 +308,12 @@ export interface StageNode {
   purpose: 'MATERIAL' | 'NON_MATERIAL';
   /** Role of the person responsible for the stage (IN-15). */
   responsibleRole: string;
+  /**
+   * A material stage with no yield of its own, with the author's reason (R-flow item 4): 21 CFR 211.103 asks for the
+   * yield at the end of each appropriate phase, and the master says which phases are appropriate. The reason is approved
+   * with the master; no further signature.
+   */
+  noYieldReason?: string;
   body: FlowNode;
 }
 

@@ -7,7 +7,7 @@ import { childrenOf, type FlowNode, type Level } from '../flow/model.ts';
 import { isTimeUnit, durationToMicros, compareDecimal } from '../flow/decimal.ts';
 import { calculationOptions, CONDITION, GLOBAL_SCOPE, type Analysis } from './analysis.ts';
 import { checkGraph, type GraphProblem, type GraphProblemCode } from './graph-checks.ts';
-import { defineRule, error, label, type Rule } from './rule-kit.ts';
+import { defineRule, error, label, warning, type Rule } from './rule-kit.ts';
 import type { RuleFinding } from './types.ts';
 
 const SEQ = ['DI-34'];
@@ -72,24 +72,29 @@ const idsUnique = defineRule('FLOW-ID-UNIQUE', 'Every id is unique', SEQ, (a) =>
   return out;
 });
 
+// ADR 0004 decision 1 (amended 7 November 2026, R-flow): the operation level is optional. A phase may sit in an
+// operation or directly in a stage; the engine, the graph, the numbering and the database need an enclosing stage,
+// not an operation. Kept, for the engine and the record: a stage only at the procedure level (a stage is the unit a
+// room, line or train is bound to and its yield is taken in), no stage in a stage, and no step outside a stage.
 const PLACEMENT: Record<string, Level[]> = {
   stage: ['PROCEDURE'],
   operation: ['STAGE'],
-  phase: ['OPERATION'],
+  phase: ['STAGE', 'OPERATION'],
 };
 
-const levels = defineRule('FLOW-LEVELS', 'Procedure -> stage -> operation -> phase', SEQ, (a) => {
+const levels = defineRule('FLOW-LEVELS', 'Procedure -> stage -> (operation ->) phase', SEQ, (a) => {
   const out: RuleFinding[] = [];
   const where: Record<Level, string> = { PROCEDURE: 'directly in the procedure', STAGE: 'directly in a stage', OPERATION: 'inside an operation' };
   for (const info of a.nodes.values()) {
     const allowed = PLACEMENT[info.node.kind];
     if (allowed && !allowed.includes(info.level)) {
-      const need = info.node.kind === 'stage' ? 'the procedure level' : info.node.kind === 'operation' ? 'a stage' : 'an operation';
+      const need = info.node.kind === 'stage' ? 'the procedure level' : info.node.kind === 'operation' ? 'a stage' : 'a stage or an operation of a stage';
       out.push(error(info.node.id, `${label(a, info.node.id)} is a ${info.node.kind} placed ${where[info.level]}; a ${info.node.kind} belongs in ${need} (ISA-88 procedure -> stage -> operation -> phase)`));
     }
-    if ((info.node.kind === 'stage' || info.node.kind === 'operation') && !hasStep(info.node.body)) {
-      out.push(error(info.node.id, `${label(a, info.node.id)} contains no step`));
-    }
+    // An empty stage is an error: it would be bound and opened with nothing to record. An empty operation is only a
+    // grouping with nothing in it, so it warns.
+    if (info.node.kind === 'stage' && !hasStep(info.node.body)) out.push(error(info.node.id, `${label(a, info.node.id)} contains no step`));
+    if (info.node.kind === 'operation' && !hasStep(info.node.body)) out.push(warning(info.node.id, `${label(a, info.node.id)} contains no step`));
   }
   const stages = [...a.nodes.values()].filter((i) => i.node.kind === 'stage').length;
   if (stages === 0) out.push(error('$', 'The procedure has no stage; every step runs inside a stage bound to a room, line or equipment train'));
@@ -169,7 +174,7 @@ const loops = defineRule('FLOW-LOOPS', 'Loops are bounded and exit on a process 
       out.push(
         error(
           n.id,
-          `Loop ${label(a, n.id)} would repeat until ${endpoint.name} passes, but ${endpoint.name} is ${what}; a loop may only repeat on a process endpoint (LOD, pH, weight gain). Repeating a test until it passes is refused: a failure goes to investigation and any rework is a separately approved reprocessing procedure`,
+          `Loop ${label(a, n.id)} would repeat until ${endpoint.name} passes, but ${endpoint.name} is ${what}; a loop may only repeat on a process endpoint (LOD, pH, weight gain). Repeating a test until it passes is refused: a failure goes to investigation and any rework is a separately approved reprocessing procedure [IN-20 OOS investigation, PR-47 reprocessing]`,
         ),
       );
     }

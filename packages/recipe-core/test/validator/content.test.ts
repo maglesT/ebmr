@@ -5,6 +5,7 @@ import { parseMbr } from '../../src/flow/parse.ts';
 import { GENERIC_BLOCK_VERSIONS, MATERIAL_BLOCKS } from '../../src/blocks/generic/index.ts';
 import { checkMeaning } from '../../src/engine/actions.ts';
 import type { ValidationContext } from '../../src/validator/types.ts';
+import { CONTENT_RULES } from '../../src/validator/rules-content.ts';
 import { gate, validateMbr } from '../../src/validator/validate.ts';
 import { define, param as engineParam, Run, T0 } from '../engine/support.ts';
 import { clone, context, errors, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, TEST_ROLES, validate, type FixtureName } from '../flow/support.ts';
@@ -458,14 +459,37 @@ describe('GMP content gates', () => {
     });
   });
 
-  it('[PR-03] nothing that processes material may run after a stage yield', () => {
+  it('[PR-03][PR-31] processing after a stage yield is a warning (R-flow item 4): no clause forbids it, the yield then does not close the stage', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     const seq = m.procedure.body.kind === 'sequence' ? m.procedure.body.children.find((c) => c.id === 'S-BLEND') : undefined;
     if (seq?.kind !== 'stage' || seq.body.kind !== 'sequence') throw new Error('fixture changed');
     const out = seq.body.children.find((c) => c.id === 'O-BLEND-OUT');
     if (out?.kind !== 'operation' || out.body.kind !== 'sequence') throw new Error('fixture changed');
     out.body.children.reverse();
-    expect(errors(validate(m)).map((f) => `${f.rule}: ${f.message}`).join('\n')).toMatch(/GMP-STAGE-YIELD: "Discharge and weigh the blend" \(p-blend-out\) can run after the yield/);
+    const found = validate(m).findings.filter((f) => f.rule === 'GMP-STAGE-YIELD');
+    expect(found.map((f) => [f.severity, f.subject])).toEqual([['WARNING', 'p-blend-out']]);
+    expect(found[0]?.message).toMatch(/"Discharge and weigh the blend" \(p-blend-out\) can run after the yield of stage .* the yield does not close/);
+  });
+
+  it('[PR-03][PR-31] a material stage may have no yield when the stage says why (21 CFR 211.103: each appropriate phase; R-flow item 4); a blank reason is no reason', () => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    removeNode(m, 'p-blend-yield');
+    const stage = m.procedure.body.kind === 'sequence' ? m.procedure.body.children.find((c) => c.id === 'S-BLEND') : undefined;
+    if (stage?.kind !== 'stage') throw new Error('fixture changed');
+    const yieldErrors = (): string[] => errors(validate(m)).filter((f) => f.rule === 'GMP-STAGE-YIELD').map((f) => f.subject);
+    expect(yieldErrors()).toEqual(['S-BLEND']);
+    stage.noYieldReason = '   ';
+    expect(yieldErrors()).toEqual(['S-BLEND']);
+    stage.noYieldReason = 'The blend is compressed in the next stage without discharge; its yield is taken there';
+    expect(yieldErrors()).toEqual([]);
+    const parsed = parseMbr(JSON.parse(JSON.stringify(m)));
+    expect(parsed.ok && parsed.mbr.procedure.body.kind === 'sequence' && parsed.mbr.procedure.body.children.find((c) => c.id === 'S-BLEND')).toMatchObject({ noYieldReason: stage.noYieldReason });
+  });
+
+  it('[PR-14][PR-47] R-flow item 8: the significant-step rule cites PR-14, the reprocessing rule PR-47 and IN-19', () => {
+    const controls = (id: string): readonly string[] | undefined => CONTENT_RULES.find((r) => r.id === id)?.controls;
+    expect(controls('GMP-SIGNIFICANT-STEPS')).toEqual(['PR-14']);
+    expect(controls('GMP-REPROCESSING')).toEqual(['PR-47', 'IN-19']);
   });
 
   it('[PR-03] a non-material stage may not move material', () => {

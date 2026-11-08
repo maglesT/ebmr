@@ -49,6 +49,13 @@ export function StageEditor({ stage, first, last, dispatch }: { stage: flow.Stag
     <div className={dcls('stack')} data-testid={`stage-editor-${stage.id}`}>
       <CommitText label={`Name of stage ${stage.id}`} value={stage.name} onCommit={(name) => dispatch({ kind: 'UPDATE_STAGE', stageId: stage.id, patch: { name } })} />
       <CommitText label={`Rooms of ${stage.name} (comma separated)`} value={stage.binding.rooms.join(', ')} onCommit={(text) => dispatch({ kind: 'UPDATE_STAGE', stageId: stage.id, patch: { rooms: text.split(',') } })} />
+      {stage.purpose === 'MATERIAL' ? (
+        <CommitText
+          label={`Why ${stage.name} has no yield of its own (leave empty when it ends with a yield step)`}
+          value={stage.noYieldReason ?? ''}
+          onCommit={(noYieldReason) => dispatch({ kind: 'UPDATE_STAGE', stageId: stage.id, patch: { noYieldReason } })}
+        />
+      ) : null}
       <ul className={dcls('list')}>
         {stage.binding.equipment.map((e) => (
           <li key={e.ref}>

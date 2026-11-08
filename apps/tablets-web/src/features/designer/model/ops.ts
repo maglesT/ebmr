@@ -60,7 +60,7 @@ export type Op =
   | { kind: 'ADD_STAGE'; afterStageId: string | null; stage: flow.StageNode }
   | { kind: 'MOVE_STAGE'; stageId: string; direction: -1 | 1 }
   | { kind: 'DELETE_STAGE'; stageId: string }
-  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[] } }
+  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[]; noYieldReason?: string } }
   | { kind: 'ADD_STAGE_EQUIPMENT'; stageId: string; equipment: flow.StageEquipment; reference?: flow.Reference }
   | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string }
   // Slice 7o (R4, R8 C3; D-7o-2): one more coat of the same tablets after a step (coating-layer.ts).
@@ -375,6 +375,11 @@ function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_ST
         if (rooms.length === 0) throw new OpError('A stage is bound to at least one room.');
         stage.binding = { ...stage.binding, rooms: [...new Set(rooms)] };
       }
+      // R-flow item 4: a material stage with no yield says why on the stage; an empty text takes the reason away.
+      if (op.patch.noYieldReason !== undefined) {
+        if (op.patch.noYieldReason.trim() === '') delete stage.noYieldReason;
+        else stage.noYieldReason = checkName(op.patch.noYieldReason, 'The reason for no yield');
+      }
       return;
     }
     case 'ADD_STAGE_EQUIPMENT': {
@@ -406,8 +411,9 @@ function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_ST
 /**
  * A new stage (slice 7j): bound to `room`, responsible the production supervisor, a material stage whose first
  * operation, "<name>: preparation", holds its room clearance and its equipment status check (the database-backed
- * versions a GMP batch takes, when offered). A phase belongs in an operation (FLOW-LEVELS, DI-34); the author inserts
- * the stage's own steps (its process blocks, its yield step) after them in that operation.
+ * versions a GMP batch takes, when offered). The author inserts the stage's own steps (its process blocks, its yield
+ * step) after them in that operation, or directly in the stage: the operation level is optional (FLOW-LEVELS, ADR 0004
+ * decision 1 as amended).
  */
 export function newStage(c: Content, palette: readonly PaletteEntry[], name: string, room: string): flow.StageNode {
   const latest = (type: string): PaletteEntry | undefined => palette.filter((b) => b.type === type).sort((a, b) => (Number(a.version) < Number(b.version) ? 1 : -1))[0];
