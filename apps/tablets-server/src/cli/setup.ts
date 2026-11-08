@@ -34,6 +34,7 @@ async function main(): Promise<void> {
       'gmp-sr-profile': { type: 'boolean', default: false },
       // Phase 7 slice 7s (D-7s-1): with --gmp-packaging, also P3 rabeprazole ready for the presenter's GMP batch.
       'gmp-p3-demo': { type: 'boolean', default: false },
+      'gmp-demo-catalogue': { type: 'boolean', default: false },
     },
   });
   if (values.installation !== 'GMP' && values.installation !== 'SANDBOX') throw new Error('--installation GMP|SANDBOX is required');
@@ -51,6 +52,7 @@ async function main(): Promise<void> {
     sandboxPlant: values['sandbox-plant'],
     srProfile: values['gmp-sr-profile'],
     p3Demo: values['gmp-p3-demo'],
+    demoCatalogue: values['gmp-demo-catalogue'],
     backupIdentity: true,
     ...(values['gateway-spki'] ? { gatewaySpki: values['gateway-spki'] } : {}),
     ...(values['demo-process-devices'] ? { demoProcessDevices: true } : {}),

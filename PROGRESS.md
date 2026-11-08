@@ -119,7 +119,8 @@ validator and takes its own yield step. D-2 (#160, recipe-core 1877): the same m
 compensation and capsule-coating fixes, a formula draft withdrawn with a reason. D-3 (#161, recipe-core 1878): a
 master draft discarded with a reason, and the family started again. R-flow (`r-flow.md`): a phase directly in a stage
 (ADR 0004 amended), generic seed blocks, optional event sections, a stage with no yield and its reason, fieldless
-instruction and sign-off blocks, a target without limits, and the citation fixes. Next: R-rest, then D-4 to D-8.
+instruction and sign-off blocks, a target without limits, and the citation fixes. D-4 (`d4-catalogue.md`): the demo set-up approves the seed catalogue as the demo QA persona, each approval recorded
+as the set-up's; the retired tablet blocks' badge names its library replacement. Next: R-rest, then D-5 to D-8.
 
 ## Next
 

@@ -89,6 +89,8 @@ export interface SetupOptions {
    * approved and IN-authorised masters, specifications, released lots, numbering rules and tooling.
    */
   p3Demo?: boolean;
+  /** GMP, DEMO-ONLY (demo gaps D-4): the library catalogue loaded and approved by the demo QA persona (demo-catalogue.ts). */
+  demoCatalogue?: boolean;
   /** Phase 7 slice 7g-4: also the backup service identity and the DEMO-ONLY backup key (header). */
   backupIdentity?: boolean;
   /** The superuser connection to the database server (default: test-kit's, EBMR_PG_ADMIN_URL). */
@@ -108,9 +110,9 @@ export const BACKUP_SERVICE = {
  * The DEMO-ONLY seeds (--gmp-review-batch, --gmp-packaging) write superuser shortcuts (a status set complete, a hold point
  * set approved with a placeholder signature): they run only on a database named as a demo or E2E one (slice 2 review).
  */
-export function demoSeedRefusal(opts: Pick<SetupOptions, 'database' | 'reviewBatch' | 'packaging' | 'sandboxPlant' | 'srProfile' | 'p3Demo'>): string | null {
+export function demoSeedRefusal(opts: Pick<SetupOptions, 'database' | 'reviewBatch' | 'packaging' | 'sandboxPlant' | 'srProfile' | 'p3Demo' | 'demoCatalogue'>): string | null {
   // The SR profile (7p) and P3 demo (7s) run only under --gmp-packaging today; named here so a later edit cannot ungate them.
-  if (!opts.reviewBatch && !opts.packaging && !opts.sandboxPlant && !opts.srProfile && !opts.p3Demo) return null;
+  if (!opts.reviewBatch && !opts.packaging && !opts.sandboxPlant && !opts.srProfile && !opts.p3Demo && !opts.demoCatalogue) return null;
   if (DEMO_NAME.test(opts.database)) return null;
   return `--gmp-review-batch and --gmp-packaging are DEMO-ONLY: database ${opts.database} is not a demo or E2E database (its name must end in _demo or _e2e_<hex>)`;
 }
@@ -254,10 +256,10 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       adminActor: () => passwordActor(db, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
       ownerActor: () => passwordActor(db, seed.bootstrap.owner, seed.bootstrap.owner.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
       serviceActorFor: async (k): Promise<ActorContext> => ({ ...(await openServiceSession(db, seed, k as ServiceKey)), reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
-      signAs: async (signer, aggregate, meaning, expectedState): Promise<string> => {
+      signAs: async (signer, aggregate, meaning, expectedState, reasonText): Promise<string> => {
         const p = personaOf(seed, signer);
         const t = terminalOf(seed, p.homeTerminal);
-        const actor = { ...(await openPersonaSession(db, seed, signer)), reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' };
+        const actor = { ...(await openPersonaSession(db, seed, signer)), reasonCode: 'DEMO_SETUP', reasonText: reasonText ?? 'demo installation set-up' };
         // The set-up tool reads the content it shows the signer with the installation's own (superuser) connection: no
         // browser session exists here to preview it (tablets 0410). The challenge, the authentication and the signature
         // are the persona's, and the database's guards decide as for any signature.
@@ -300,6 +302,12 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         log(`seeding feature ${f.name}`);
         await f.module.seed(ctx);
       }
+    }
+
+    if (opts.demoCatalogue === true) {
+      if (kind !== 'GMP') throw new Error('--gmp-demo-catalogue is for the GMP installation');
+      const catalogue = await (await import('./demo-catalogue.ts')).seedDemoCatalogue(ctx, log);
+      writeJson(join(opts.keysDir, 'gmp-demo-catalogue.json'), { label: 'DEMO-ONLY library catalogue', ...catalogue });
     }
 
     if (opts.reviewBatch || opts.packaging) {
