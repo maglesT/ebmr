@@ -98,7 +98,7 @@ describe('a library block in a GMP batch', () => {
     expect((view.library?.definition as Json | undefined)?.['code']).toBe('IPC-FRIAB-S4');
     expect(view.library?.config['limits']).toBeDefined();
     expect(view.library?.inputs).toEqual({}); // S10: friability reads no formula line or batch size
-    expect(view.entries.find((e) => e.kind === 'run')?.summary).toMatch(/^Run: Weight before 6\.500 g; Weight after 6\.480 g; Weight loss 0\.307\d* % \(calculated\); Any tablet cracked or broken: no$/);
+    expect(view.entries.find((e) => e.kind === 'run')?.summary).toMatch(/^Run: Weight before 6\.500 g; Weight after 6\.480 g; Weight loss 0\.3077 % \(calculated; shown rounded half-up to 4 decimals, the exact value is kept\); Any tablet cracked or broken: no$/);
 
     const second = await runOnLibraryStep();
     await second.d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-lib@', entry: { kind: 'LIBRARY_ENTRY', entryKind: 'run', data: { w0: '6.500', w1: '6.400', cracked: false } } });
