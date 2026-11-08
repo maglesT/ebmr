@@ -78,6 +78,8 @@ export const VersionView = z.strictObject({
   justifications: z.array(JustificationView),
   savedAt: Instant,
   savedBy: PersonRef,
+  /** D-5: the change note of the saved revision (a copy's names renamed and to check), when it has one. */
+  savedNote: z.string().optional(),
   /** Audit chain of this version, e.g. mbr_version:<id> (deep link to the viewer). */
   auditChain: z.string(),
 });

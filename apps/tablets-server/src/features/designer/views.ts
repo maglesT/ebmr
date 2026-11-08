@@ -243,6 +243,7 @@ export async function versionView(db: Db, app: AppContext, versionId: string): P
     justifications: [...jviews.values()],
     savedAt: app.formatInstant(saved.savedAtUs),
     savedBy: await personRef(db, saved.personId, saved.accountId, saved.role),
+    ...(saved.note ? { savedNote: saved.note } : {}),
     auditChain: auditChainOf(versionId),
   };
 }
