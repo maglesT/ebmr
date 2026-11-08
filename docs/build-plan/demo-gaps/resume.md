@@ -36,6 +36,45 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 | R-rest Part B (SQL rows; recipe-core 1880) | not started | plan in `r-rest.md` |
 | D-5 to D-7 | not started | D-5 copied names (with item 13), D-6 equipment class from the plant, D-7 findings panel at 1400 px |
 
+## The lead's rulings in force (7 and 8 November 2026)
+
+- A1 FLOW-CONSTRUCTS: a parallel with one branch stays refused, for an engine need (GRAPH-MATCHED: the AND split and
+  join need two edges each).
+- A3 DATA-PARALLEL: option (b), kept. Since D-2, the portions of one material are two BOM lines.
+- A5 line-clearance second person, by edition:
+  - The tablets edition (tablets and capsules) keeps it on a packaging clearance. The basis is Revised Schedule M
+    Part VIII 7.1, "There shall be an independent recorded check of the equipment before a new batch of tablets or
+    capsules is handled", checked in the notified G.S.R. 922(E) text.
+  - Injectables and API follow 211.130(e) and EU GMP 5.50: one person, unless the step is marked significant.
+- A10 GMP-REPROCESSING: maxPercent stays required, because G-24 and recipe-core 0622 judge the addition against it.
+- A11 GMP-RISK: an MBR-level criticality assessment (`header.criticalityAssessment`) covers the non-critical items.
+- D-4: demo:setup approves the seed catalogue through the real signed act. Each approval carries the reason "Demo
+  set-up: seed catalogue approved by the demo QA persona (demo:setup)". It runs on demo databases only.
+- D-8 conditions:
+  1. The five ops work on DRAFT only; tested refused on an approved master.
+  2. The limit source is a recorded reference, not a gate (21 CFR 211.160(b)). The model already needs a source on
+     every range, so an empty source cannot occur.
+  3. A broken formula is caught by the existing DATA check, with no new refusal.
+  4. The plan ships in the PR.
+- Re-set rules for Part B (FRM-051 target, FRM-018 pin): insert-only, the latest row stands. Part B takes recipe-core 1880.
+
+## How CI runs now (8 November 2026)
+
+- GitHub-hosted runners: the repo is public, so Actions are free, and the RunPod pod is down. Dispatch with
+  `gh workflow run ci.yml --ref <branch> -f runner=github -f e2e_groups=<the groups the change touches>`, then cancel
+  the push's own pull_request run.
+- A dispatch with `e2e_groups` skips the static checks, the test shards, the golden batches and the trace. So run
+  those locally on the PR head: `pnpm run ci`, then the golden batches and the trace (below). Post the counts in the PR
+  and send the lead "#N green".
+- A test that times out only on GitHub's runners (release-gate.test.ts:575, fixed by #179) counts as green when it is
+  the only failure.
+
+## Next for the new session
+
+1. Retarget the D-8 PR to main once #180 merges (the lead does it), then rebase.
+2. R-rest Part B (recipe-core 1880; ask the lead for a second number).
+3. Plan D-5 to D-7 and send each plan to the lead before building.
+
 ## Learned on the way
 
 - The approver persona has a signing limit (DI-19, 429 RATE_LIMITED). A test file that approves many formulas runs
