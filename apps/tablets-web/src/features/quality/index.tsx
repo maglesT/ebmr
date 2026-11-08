@@ -8,6 +8,7 @@ import { createRoute, Link, type AnyRootRoute, type AnyRoute } from '@tanstack/r
 import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
 import { BatchQualityPage } from './BatchQualityPage.tsx';
+import { BatchDeviationPage } from './BatchDeviation.tsx';
 import { DeviationPage } from './DeviationPage.tsx';
 import { DeviationsPage } from './DeviationsPage.tsx';
 import { ApprovedManufacturersPage } from './ApprovedManufacturersPage.tsx';
@@ -72,6 +73,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/quality', component: QualityHome }),
     createRoute({ getParentRoute: () => root, path: '/quality/deviations', component: DeviationsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/deviations/$deviationId', component: DeviationPage }),
+    // G2: a deviation record opens only as one batch's (BatchDeviation.tsx); /quality/deviations stays off.
+    createRoute({ getParentRoute: () => root, path: '/review/$batchId/deviations/$deviationId', component: BatchDeviationPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots', component: LotsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId', component: LotPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId/potency', component: UpdatePotencyPage }),

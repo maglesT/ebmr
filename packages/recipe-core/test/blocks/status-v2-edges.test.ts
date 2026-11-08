@@ -1,7 +1,7 @@
 /**
  * G-09@2 and G-10@2 (database-backed equipment use and area occupancy; PR-23, PR-34, IN-21) at their edges, through
  * their handlers on a minimal view: only the units the step checks, each once; PERFORMED needs every unit (or one when
- * the step names none) and the occupied area; a clearance step names its checker; the nominal entries. The database
+ * the step names none) and one occupied area per room of the stage (G8); a clearance step names its checker; the nominal entries. The database
  * binding of the use and occupancy is proved in test/plant/status-blocks.test.ts. Written for the Phase 3 exit mutation
  * run (decision 0009).
  */
@@ -15,9 +15,18 @@ const U1 = '00000000-0000-4000-9000-000000000001';
 
 class World {
   entries: { id: string; kind: string; data: Json; recordedAt: bigint }[] = [];
-  constructor(readonly phase: Json) {}
+  constructor(
+    readonly phase: Json,
+    readonly rooms?: string[],
+  ) {}
+  /** The master: the phase inside a stage bound to `rooms`, or in no stage when none are given. */
+  mbr(): Json {
+    const phase = { kind: 'phase', ...this.phase };
+    const body = this.rooms === undefined ? phase : { kind: 'stage', id: 'S', binding: { rooms: this.rooms, equipment: [] }, body: phase };
+    return { procedure: { body: { kind: 'sequence', children: [body] } } };
+  }
   view(): HandlerView {
-    return { phase: this.phase, config: {}, stepKey: 'p@', nowUs: 0n, entries: (k?: string) => this.entries.filter((e) => k === undefined || e.kind === k), actor: { id: 'OP1' } } as unknown as HandlerView;
+    return { phase: this.phase, mbr: this.mbr(), config: {}, stepKey: 'p@', nowUs: 0n, entries: (k?: string) => this.entries.filter((e) => k === undefined || e.kind === k), actor: { id: 'OP1' } } as unknown as HandlerView;
   }
   rec(block: typeof G09V2, entry: Json & { kind: string }): { refused?: string; data?: Json } {
     const r = (block.handler?.acceptEntry as (v: HandlerView, e: Json) => { ok: boolean; data?: Json; problems?: { message: string }[] })(this.view(), entry);
@@ -66,15 +75,36 @@ describe('G-09@2 equipment use', () => {
 
 describe('G-10@2 area occupancy', () => {
   it('[PR-34][IN-21] one occupied area, needed before PERFORMED; a clearance names its checker', () => {
-    const w = new World({ id: 'p', equipment: [] });
+    const w = new World({ id: 'p', equipment: [] }, []);
     expect(w.before(G10V2)).toEqual(['Record the cleared room or line the batch occupies first (G10-INCOMPLETE; PR-34, IN-21)']);
     expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'ROOM-1', occupancyId: U1 }).data).toStrictEqual({ areaCode: 'ROOM-1', occupancyId: U1, recordedBy: 'OP1' });
-    expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'ROOM-2', occupancyId: U1 }).refused).toBe('The area of p@ is already recorded (G10-TWICE; PR-34)');
+    expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'ROOM-1', occupancyId: U1 }).refused).toBe('Area ROOM-1 of p@ is already recorded (G10-TWICE; PR-34)');
     expect(w.before(G10V2)).toEqual([]);
     const check = (signatures: Json) => G10V2.checkConfig?.({ id: 'p', signatures } as unknown as PhaseNode, {}, {} as never);
     expect(check({ check: { role: 'VERIFIER' } })).toEqual([]);
     expect(check({})).toEqual([{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: 'Clearance step p names no checker: a clearance is a significant step with an independent checker', controls: ['PR-14', 'PR-34'] }]);
     expect(G10V2.handler?.meanings).toEqual({ perform: ['LINE_CLEARANCE_PERFORMED'], check: ['LINE_CLEARANCE_VERIFIED'] });
-    expect(G10V2.simulatorModel?.nominalEntries?.({} as never)).toEqual([{ kind: 'AREA_OCCUPANCY', areaCode: 'TEST-ROOM', occupancyId: '00000000-0000-4000-9000-000000000101' }]);
+    expect(G10V2.simulatorModel?.nominalEntries?.({ phase: { id: 'p' }, mbr: w.mbr() } as never)).toEqual([{ kind: 'AREA_OCCUPANCY', areaCode: 'TEST-ROOM', occupancyId: '00000000-0000-4000-9000-000000000101' }]);
+  });
+
+  it('[PR-34][IN-21] G8: a stage bound to two rooms records one clearance per room, each once; PERFORMED needs both', () => {
+    const w = new World({ id: 'p', equipment: [] }, ['GRAN-1', 'DRY-1']);
+    const U2 = '00000000-0000-4000-9000-000000000002';
+    expect(w.before(G10V2)).toEqual(['Record the cleared room or line the batch occupies first (G10-INCOMPLETE; PR-34, IN-21)']);
+    expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'GRAN-1', occupancyId: U1 }).refused).toBeUndefined();
+    expect(w.before(G10V2)).toEqual(['Record the clearance of DRY-1 first (G10-INCOMPLETE; PR-34, IN-21)']);
+    expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'GRAN-1', occupancyId: U2 }).refused).toBe('Area GRAN-1 of p@ is already recorded (G10-TWICE; PR-34)');
+    expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'DRY-1', occupancyId: U2 }).data).toStrictEqual({ areaCode: 'DRY-1', occupancyId: U2, recordedBy: 'OP1' });
+    expect(w.before(G10V2)).toEqual([]);
+    expect(G10V2.simulatorModel?.nominalEntries?.({ phase: { id: 'p' }, mbr: w.mbr() } as never)).toEqual([
+      { kind: 'AREA_OCCUPANCY', areaCode: 'GRAN-1', occupancyId: '00000000-0000-4000-9000-000000000101' },
+      { kind: 'AREA_OCCUPANCY', areaCode: 'DRY-1', occupancyId: '00000000-0000-4000-9000-000000000102' },
+    ]);
+  });
+
+  it('[PR-34] G8: a phase in no stage needs one recorded area', () => {
+    const w = new World({ id: 'p', equipment: [] });
+    expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'ROOM-1', occupancyId: U1 }).refused).toBeUndefined();
+    expect(w.before(G10V2)).toEqual([]);
   });
 });

@@ -12,11 +12,13 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { routes, type SignableAction } from '@ebmr/api-contract';
+import { routes, type Result, type SignableAction } from '@ebmr/api-contract';
+import { personaOf } from '@ebmr/test-kit';
 import { setupInstallation } from '../../src/cli/setup.ts';
 import type { ReviewBatchSeed } from '../../src/cli/review-batch.ts';
 import { valueOf } from '../esig/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
+import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { signAction } from '../support/signed-acts.ts';
 
 const database = `ebmr_d4devref_e2e_${randomBytes(4).toString('hex')}`;
@@ -37,7 +39,7 @@ afterAll(async () => {
 });
 
 describe('[DI-17] a batch exception keeps its deviation reference where the deviation routes are disconnected (declutter D4)', () => {
-  it('[DI-17] the review register shows each exception\'s deviation reference and a grouped disposition records; the full deviation record answers 410 DISCONNECTED', async () => {
+  it('[DI-17] the review register shows each exception\'s deviation reference and a grouped disposition records; the full deviation record is served', async () => {
     const B = batch.batchId;
     const qa = await server.asPersona('qaInvestigator');
     const shown = valueOf(await qa.call(routes.review.register, { params: { batchId: B }, body: {} }));
@@ -47,13 +49,10 @@ describe('[DI-17] a batch exception keeps its deviation reference where the devi
     expect(refs['EX-1']).toBe(refs['EX-2']);
     expect(shown.items.every((i) => i.group === i.deviationRef)).toBe(true);
 
-    // The batch's deviation list (record lock and release pages) stays; the full record of each is Deviations'.
+    // The batch's deviation list (record lock and release pages) stays, and so does the full record of each (G2).
     const listed = valueOf(await qa.call(routes.quality.deviations, { query: { batchId: B } })).deviations;
     expect(listed.map((d) => d.ref).sort()).toEqual([...new Set(Object.values(refs))].sort());
-    for (const d of listed) {
-      const full = await qa.call(routes.quality.deviation, { params: { deviationId: d.deviationId } });
-      expect(full.ok ? 'served' : JSON.stringify(full.error)).toContain('"DISCONNECTED"');
-    }
+    for (const d of listed) expect(valueOf(await qa.call(routes.quality.deviation, { params: { deviationId: d.deviationId } })).ref).toBe(d.ref);
 
     // A grouped disposition over the shared reference still records.
     const head = await server.asPersona('head1');
@@ -73,5 +72,37 @@ describe('[DI-17] a batch exception keeps its deviation reference where the devi
       [B],
     );
     expect(kept.rows.map((r) => r.ref)).toEqual([refs['EX-1'], refs['EX-2'], refs['EX-3']]);
+  }, 300_000);
+
+  it('[PR-49][PR-50][DI-17] with EBMR_DISCONNECT=1, QA investigates, concludes and closes each deviation linked to the batch on the deviation screens\' routes, and the batch\'s release checklist then has no blocking deviation (G2, owner report item 2)', async () => {
+    const B = batch.batchId;
+    const [inv, qa2] = await Promise.all([server.asPersona('qaInvestigator'), server.asPersona('qaApprover2')]);
+    const qa1 = await loginOf(server, await grantedPerson(server, 'QA_SHOP_FLOOR', 'Meera Pillai (QA classifier)'));
+    const owner = personaOf(server.seed, 'qaInvestigator').personId;
+    const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
+    const ok = async (r: Promise<Result<unknown>>) => expect(((await r) as { ok: boolean }).ok).toBe(true);
+    const before = valueOf(await inv.call(routes.quality.deviationRelease, { query: { subjectKind: 'BATCH', subjectId: B } }));
+    expect(before.items.some((i) => i.blocking)).toBe(true);
+    for (const d of valueOf(await inv.call(routes.quality.deviations, { query: { batchId: B } })).deviations) {
+      const id = { deviationId: d.deviationId };
+      // Classified by QA other than the initiator; that QA then neither concludes nor closes (INV-03).
+      valueOf(await qa1.call(routes.quality.startInvestigation, { params: id, body: { classification: 'MINOR', riskRationale: 'Corrected at the booth before any material was handled', ownerPersonId: owner, dueDate: due } }));
+      valueOf(await inv.call(routes.quality.recordFinding, { params: id, body: { assignableCause: true, cause: 'Booth readiness checked late', rootCauseCategory: 'METHOD' } }));
+      for (const link of valueOf(await inv.call(routes.quality.deviationDetail, { params: id })).links) {
+        valueOf(await inv.call(routes.quality.recordDeviationImpact, { params: id, body: { linkId: link.linkId, market: 'IN', impact: 'NONE', rationale: 'No material was handled before the correction' } }));
+      }
+      await ok(signAction(server, qa2, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_IMPACT_ASSESS', subjectId: d.deviationId, input: {} }));
+      valueOf(
+        await inv.call(routes.quality.recordDeviationClosureBasis, {
+          params: id,
+          body: { rootCauseMethod: 'Five whys with production', capaRefs: [], noCapaReason: 'A one-off finding corrected at once; the booth check already exists', notificationRequired: false, notificationRationale: 'No registered detail or licence condition is affected', otherBatches: [{ subjectKind: 'PRODUCT', ref: 'Batches dispensed at DISP-1 that day', included: false, reason: 'No other batch used the booth before the correction' }] },
+        }),
+      );
+      await ok(signAction(server, qa2, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: d.deviationId, input: {} }));
+      await ok(signAction(server, qa2, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CLOSE', subjectId: d.deviationId, input: {} }));
+      expect(valueOf(await inv.call(routes.quality.deviation, { params: id })).state).toBe('CLOSED');
+    }
+    const after = valueOf(await inv.call(routes.quality.deviationRelease, { query: { subjectKind: 'BATCH', subjectId: B } }));
+    expect(after.items.filter((i) => i.blocking)).toEqual([]);
   }, 300_000);
 });

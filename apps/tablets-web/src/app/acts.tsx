@@ -18,6 +18,11 @@ import { RefusalMessage } from './refusal.tsx';
 export function useRefresh(ids: readonly string[]): () => Promise<void> {
   const qc = useQueryClient();
   return useCallback(async () => {
+    // A read already on its way may have been sent before the command committed. TanStack Query cancels such a read on
+    // invalidation only once the query has data; on a first read it joins it, and the list kept the answer from before
+    // the command (E2E library-softgel, 8 November 2026). So the reads on their way are cancelled first (a first read is
+    // reverted, not failed), then read afresh.
+    await Promise.all(ids.map((id) => qc.cancelQueries({ queryKey: [id] })));
     await Promise.all(ids.map((id) => qc.invalidateQueries({ queryKey: [id] })));
   }, [qc, ids]);
 }

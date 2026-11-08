@@ -13,6 +13,7 @@ import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
+import { useDisconnectedServer } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { DEVIATION_READS } from './DeviationsPage.tsx';
@@ -24,6 +25,8 @@ const IMPACTS = ['NONE', 'POTENTIAL', 'CONFIRMED'] as const;
 export function DeviationDetail({ deviationId }: { deviationId: string }) {
   const q = useApiQuery(routes.quality.deviationDetail, { params: { deviationId } });
   const qa = useOffered('QA');
+  // Reclassifying and cancelling stay with the Deviations product when disconnected (api-contract disconnected.ts).
+  const disconnected = useDisconnectedServer();
   if (q.error) return <RefusalMessage error={q.error.error} />;
   const d = q.data;
   if (!d) return null;
@@ -39,7 +42,7 @@ export function DeviationDetail({ deviationId }: { deviationId: string }) {
         ) : (
           <p>Not classified by QA yet.</p>
         )}
-        {qa && investigating && d.qaClassification ? <Reclassify d={d} /> : null}
+        {qa && investigating && d.qaClassification && !disconnected ? <Reclassify d={d} /> : null}
       </Section>
       <Section title="Impact per market" testId="deviation-impacts">
         {d.links.length === 0 ? <p>Nothing is linked, so there is no impact to assess.</p> : null}
