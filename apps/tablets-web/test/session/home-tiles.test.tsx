@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { allRoutes, routes } from '@ebmr/api-contract';
 import { WEB_FEATURES } from '../../src/app/features.ts';
-import { READ_REFUSED, TILE_READS, tileOffered } from '../../src/app/tile-access.ts';
+import { BUTTON_READS, READ_REFUSED, TILE_READS, tileOffered } from '../../src/app/tile-access.ts';
 
 const MATRIX = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'tablets-server', 'test', 'security', 'fixtures', 'route-role-matrix.json');
 interface Matrix {
@@ -29,7 +29,7 @@ describe('home tiles by role (D-P7R-18, F1)', () => {
 
   it('[DI-17] the roles a tile is hidden from are exactly the roles the reviewed route-by-role matrix records as refused that read (its F cells)', () => {
     const m = JSON.parse(readFileSync(MATRIX, 'utf8')) as Matrix;
-    const reads = [...new Set(Object.values(TILE_READS).filter((r): r is string => r !== null))].sort();
+    const reads = [...new Set([...Object.values(TILE_READS).filter((r): r is string => r !== null), ...BUTTON_READS])].sort();
     for (const inst of ['GMP', 'SANDBOX'] as const) {
       const expected: Record<string, string[]> = {};
       for (const read of reads) {

@@ -97,6 +97,12 @@ export const TILE_READS: Readonly<Record<string, string | null>> = {
   validation: "validation.summary",
 };
 
+/**
+ * Reads a button names outside the home (the batch record PDF on the review and release pages): readOffered decides
+ * whether the button is shown, from the same table and the same matrix as the tiles.
+ */
+export const BUTTON_READS: readonly string[] = ["archive.pdf"];
+
 export const READ_REFUSED: Readonly<
   Record<"GMP" | "SANDBOX", Readonly<Record<string, readonly string[]>>>
 > = {
@@ -274,6 +280,7 @@ export const READ_REFUSED: Readonly<
       "WAREHOUSE_LABELLING",
     ],
     "archive.batches": ["CONTRACT_GIVER_REVIEWER", "EU_QP_READER"],
+    "archive.pdf": ["CONTRACT_GIVER_REVIEWER", "EU_QP_READER"],
     "archive.inspection": [
       "AUDITOR_READONLY",
       "AUTHORISED_PERSON",

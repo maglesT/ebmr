@@ -87,6 +87,17 @@ test('release cockpit: red and green items with evidence, a signed rejection, an
     return { red: await checklist.locator('[data-status="RED"]').count(), green: await checklist.locator('[data-status="GREEN"]').count() };
   }, page);
 
+  await evidence.step('The authorised person saves the batch record as a PDF from the release page', 'The "Batch record (PDF)" button saves the batch\'s PDF/A-3 true copy, named after the batch (owner request; 21 CFR 211.180(c), 211.188; Annex 11 8.1)', async () => {
+    const box = page.getByTestId('batch-record-pdf');
+    const download = page.waitForEvent('download');
+    await box.getByRole('button', { name: 'Batch record (PDF)' }).click();
+    const file = await download;
+    expect(file.suggestedFilename()).toMatch(/-true-copy\.pdf$/);
+    const head = readFileSync(await file.path());
+    expect(head.subarray(0, 8).toString('latin1')).toBe('%PDF-1.7');
+    return { file: file.suggestedFilename() };
+  }, page);
+
   await evidence.step('Any "since review" item is acknowledged one by one', 'Each acknowledgement is the person\'s own at the epoch shown', async () => {
     const since = page.getByTestId('since-review');
     let acknowledged = 0;

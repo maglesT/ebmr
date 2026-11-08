@@ -24,6 +24,7 @@ import { BatchAlarmLog } from '../plant-status/BatchAlarmLog.tsx';
 import { AuditTrailPanel } from './AuditTrailPanel.tsx';
 import { GateProblems } from './parts.tsx';
 import { REVIEW_READS, stateTone, words } from './reads.ts';
+import { BatchRecordPdfButton } from '../archive/BatchRecordPdf.tsx';
 
 export function BatchReviewPage() {
   const batchId = useRouteParams()['batchId'] ?? '';
@@ -66,6 +67,7 @@ function BatchReview({ view: v }: { view: BatchReviewView }) {
           </li>
         </ul>
       </nav>
+      <BatchRecordPdfButton batchId={v.batchId} />
       {v.pausedSteps.length > 0 ? (
         <Banner tone="warning" title="Review by exception is paused for some steps (three deviations): their items are reviewed one by one.">
           <ul>

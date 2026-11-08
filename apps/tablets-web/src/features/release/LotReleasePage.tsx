@@ -32,6 +32,7 @@ import { AfterReleaseTab } from './AfterRelease.tsx';
 import { IndiaTab, MarketTab } from './MarketTabs.tsx';
 import { GrelChecklist, SinceReview } from './parts.tsx';
 import { itemWord, RELEASE_READS, releaseTone, words } from './reads.ts';
+import { BatchRecordPdfButton } from '../archive/BatchRecordPdf.tsx';
 
 export function LotReleasePage() {
   const lotId = useRouteParams()['lotId'] ?? '';
@@ -76,6 +77,7 @@ function LotRelease({ view: v }: { view: LotReleaseView }) {
           </>
         ) : null}
       </p>
+      <BatchRecordPdfButton batchId={v.batchId} />
       <RecurrenceWarning lotId={v.lotId} />
       <div role="tablist" aria-label="Release of the lot">
         {TABS.map((t) => (
