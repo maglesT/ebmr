@@ -39,7 +39,7 @@ import {
   receiveDelivery, recordArtwork, recordIdentity, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial, type StageCtx } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
 
 
@@ -543,6 +543,16 @@ export function defineAcceptance(tabletKey: string): void {
       await expect(a.getByText('Blending and lubrication').first()).toBeVisible();
       return { versionId };
     }, a);
+
+    // D-6: the classes the product's library blocks name are on the GMP plant before the master names them (the designer
+    // offers the plant's classes); the units and their qualification come later, as before.
+    const named = [...(t.plant ?? []), ...(t.gmpPlant ?? [])];
+    if (named.length > 0) {
+      await evidence.step('The steward defines on the GMP plant the equipment classes the product\'s library blocks name', 'Each class listed on Plant definitions', async () => {
+        await definePlantClasses(s, e2e.url('GMP'), named);
+        return { classes: [...new Set(named.map((u) => u.classCode))].join(', ') };
+      }, s);
+    }
 
     // Decision 0026 S11: the product's own steps are library blocks, chosen and given the product's values on screen.
     await evidence.step('The author adds the product\'s library blocks in the designer with the product\'s values; the checks pass', 'Each block pinned with its version and content hash; the values form shows no problem; the revision saved', async () => {

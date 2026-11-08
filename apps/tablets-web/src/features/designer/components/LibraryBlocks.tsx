@@ -96,6 +96,34 @@ function withMember(config: Config, member: string, slot: string, value: flow.Js
   return { ...config, [member]: all };
 }
 
+/**
+ * D-6 (owner's MGL-SR-BL report, item 9): a library step's equipment class is chosen from the plant's classes (the run
+ * accepts only a unit of that class). A class the plant lacks is defined in Plant master data; a saved value that is
+ * not a plant class stays shown and marked, and the validator warns of it (GMP-EQUIPMENT-CLASS-PLANT). Free text only
+ * when the plant's classes cannot be read.
+ */
+function PlantClassChoice({ label, value, readOnly, onChange }: { label: string; value: string; readOnly: boolean; onChange: (value: string) => void }) {
+  const q = useApiQuery(routes.plant.equipmentClasses, {});
+  const classes = q.data?.classes;
+  if (!classes) return <CommitText label={label} value={value} readOnly={readOnly} onCommit={onChange} />;
+  const known = classes.some((c) => c.code === value);
+  const options: Option[] = [
+    { value: '', label: '— choose a class of the plant —' },
+    ...(value !== '' && !known ? [{ value, label: `${value} (not a plant class)` }] : []),
+    ...classes.map((c) => ({ value: c.code, label: `${c.code}: ${c.description} (${c.kind.toLowerCase()})` })),
+  ];
+  return (
+    <div className={dcls('inline')}>
+      <Select label={label} value={value} options={options} disabled={readOnly} onChange={onChange} />
+      {readOnly ? null : (
+        <a href="/master-data/plant" target="_blank" rel="noreferrer">
+          Define a class in Plant master data
+        </a>
+      )}
+    </div>
+  );
+}
+
 export function LibraryValuesForm({ content, step, readOnly, onChange }: { content: Content; step: flow.PhaseNode; readOnly: boolean; onChange: (config: Config) => void }) {
   const def = library.definitionsOf(content).find((d) => library.libraryBlockType(d.code) === step.block.type && String(d.version) === step.block.version);
   if (!def) return <p className={dcls('small')}>This master carries no snapshot of {step.block.type}@{step.block.version}; add the block again from the library.</p>;
@@ -132,7 +160,7 @@ export function LibraryValuesForm({ content, step, readOnly, onChange }: { conte
           );
         }
         if (s.kind === 'BOM_LINE') return <Select key={s.name} label={`Formula line for ${s.owner}`} value={String((config['bomLines'] as Record<string, string> | undefined)?.[s.name] ?? '')} options={bom} disabled={readOnly} onChange={(v) => onChange(withMember(config, 'bomLines', s.name, v))} />;
-        if (s.kind === 'EQUIPMENT_CLASS') return <CommitText key={s.name} label={`Equipment class for ${s.owner}`} value={String((config['equipmentClasses'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'equipmentClasses', s.name, v.trim()))} />;
+        if (s.kind === 'EQUIPMENT_CLASS') return <PlantClassChoice key={s.name} label={`Equipment class for ${s.owner}`} value={String((config['equipmentClasses'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onChange={(v) => onChange(withMember(config, 'equipmentClasses', s.name, v.trim()))} />;
         if (s.kind === 'COUNT') return <CommitText key={s.name} label={`Number for ${label}`} value={String((config['counts'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'counts', s.name, v.trim()))} />;
         if (s.kind === 'INTERVAL') {
           const iv = (config['intervals'] as Record<string, { value: string; unit: string }> | undefined)?.[s.name];
