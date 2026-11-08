@@ -427,6 +427,27 @@ const equipmentStatus = defineRule('GMP-EQUIPMENT-STATUS', 'Equipment use is pre
   return out;
 });
 
+/**
+ * D-6 (owner's MGL-SR-BL report, item 9): a library block's equipment class is one of the plant's classes. The binding
+ * duty is that the instructions name the principal equipment (LIB-USE-EQUIPMENT-CLASS, 21 CFR 211.186(b)(9)); no clause
+ * refuses a master over a class missing from the plant register, and the run refuses a unit of another class
+ * (recipe-core 0521). So a class the plant does not hold is a WARNING: define it in Plant master data, or justify it.
+ */
+const plantClasses = defineRule('GMP-EQUIPMENT-CLASS-PLANT', "A library block's equipment class is a class of the plant", ['PR-03'], (a) => {
+  const known = a.ctx.plantClasses;
+  if (!known) return [];
+  const out: RuleFinding[] = [];
+  for (const p of a.phases) {
+    const named = (p.config as Record<string, unknown> | undefined)?.['equipmentClasses'];
+    if (typeof named !== 'object' || named === null || Array.isArray(named)) continue;
+    for (const [slot, cls] of Object.entries(named as Record<string, unknown>)) {
+      if (typeof cls !== 'string' || cls.trim() === '' || known.includes(cls.trim())) continue;
+      out.push(warning(p.id, `${label(a, p.id)} names the equipment class ${cls.trim()} for ${slot}, which is not a class of the plant: define it in Plant master data, or justify it`));
+    }
+  }
+  return out;
+});
+
 const bomConsumed = defineRule('GMP-BOM-CONSUMED', 'Every BOM line is consumed on every completing path', ['PR-03'], (a) => {
   const out: RuleFinding[] = [];
   const facts = a.mustBefore([], (n) => a.phaseOf(n)?.consumes ?? []);
@@ -719,6 +740,7 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
 
 export const CONTENT_RULES: readonly Rule[] = [
   header,
+  plantClasses,
   typedFields,
   criticalParameters,
   limitNesting,

@@ -7,6 +7,7 @@
  * (library.libraryPhase with the definition carried, ADD_LIBRARY_BLOCK).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { routes } from '@ebmr/api-contract';
 import { librarySeed } from '@ebmr/recipe-core';
 import { flow, library, validator } from '@ebmr/recipe-core/pure';
 import stageFixture from '../../../../packages/recipe-core/test/fixtures/designer-new-stage.json' with { type: 'json' };
@@ -16,9 +17,15 @@ import type { TestServer } from '../support/harness.ts';
 import { startDesignerServer } from './support.ts';
 
 let server: TestServer;
+/** A balance class the test plant holds: the author's yield step names a class of the plant (D-6, GMP-EQUIPMENT-CLASS-PLANT). */
+let plantBalance = '';
 
 beforeAll(async () => {
   server = await startDesignerServer();
+  const steward = await server.asPersona('steward');
+  const defined = await steward.call(routes.plant.defineEquipmentClass, { body: { code: 'EQC-BAL-D1', kind: 'INSTRUMENT', description: 'Floor balance, 300 kg', calibrationRequired: true, checkRegime: 'DAILY' } });
+  if (!defined.ok) throw new Error(`SETUP: the balance class was not defined: ${JSON.stringify(defined).slice(0, 300)}`);
+  plantBalance = 'EQC-BAL-D1';
 });
 afterAll(async () => {
   await server?.close();
@@ -57,7 +64,7 @@ function withYield(c: Content, limits: boolean): Content {
   });
   if (!op) throw new Error('the new stage has no preparation operation');
   const step = library.libraryPhase(def, 'p-l2-yield', 'MEDIUM');
-  if (limits) Object.assign(step.config, structuredClone(YIELD?.exampleUse));
+  if (limits) Object.assign(step.config, structuredClone(YIELD?.exampleUse), { equipmentClasses: { balanceClass: plantBalance } });
   op.children.push(step);
   out.blockDefinitions = library.withSnapshot(out, def);
   return out;

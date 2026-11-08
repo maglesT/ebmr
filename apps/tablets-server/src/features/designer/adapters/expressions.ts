@@ -86,8 +86,9 @@ export async function loadValidationContext(db: Db, mbr: flow.MbrContent, asOf?:
   const market = await loadMarketMinimaPort(db, request);
   const roles = await engineRoles(db);
   const checkers = await checkerRoles(db);
+  const { rows: classes } = await db.query<{ code: string }>('select code from plant.equipment_class order by code');
   return {
-    context: { expressions: EXPRESSIONS, blocks: library.catalogWithLibrary(BLOCK_CATALOG, mbr), references: refs.port, market: market.port, roles: { engineRoles: roles, checkers }, asOf: date },
+    context: { expressions: EXPRESSIONS, blocks: library.catalogWithLibrary(BLOCK_CATALOG, mbr), references: refs.port, market: market.port, roles: { engineRoles: roles, checkers }, plantClasses: classes.map((r) => r.code), asOf: date },
     asOf: date,
     references: refs.rows,
     minimaRequest: request,
