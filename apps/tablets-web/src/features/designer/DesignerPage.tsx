@@ -223,6 +223,7 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
           <a href={`/mbr/versions/${saved.versionId}/signing`}>Signatures and markets</a>
         </div>
       </div>
+      {saved.savedNote ? <p className={dcls('small')} data-testid="revision-note">Note of revision {saved.revision}: {saved.savedNote}</p> : null}
 
       {draftOffer ? (
         readOnly ? (

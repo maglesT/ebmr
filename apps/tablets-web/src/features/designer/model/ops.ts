@@ -57,6 +57,7 @@ export type Op =
   | { kind: 'SET_TARGET'; parameterId: string; value: string | null }
   | { kind: 'SET_TIME_BOUND'; constraintId: string; side: 'min' | 'max'; value: string | null }
   | { kind: 'SET_HOLD_TIME'; intermediateId: string; value: string }
+  | { kind: 'UPDATE_INTERMEDIATE_NAME'; intermediateId: string; name: string }
   // Slice 7j (R4, D-7j-8): stages of the top-level sequence, their rooms and equipment classes.
   | { kind: 'ADD_STAGE'; afterStageId: string | null; stage: flow.StageNode }
   | { kind: 'MOVE_STAGE'; stageId: string; direction: -1 | 1 }
@@ -328,6 +329,14 @@ function applyInPlace(c: Content, op: Op): void {
       const i = c.intermediates.find((x) => x.id === op.intermediateId);
       if (!i?.holdTime) throw new OpError(`Intermediate ${op.intermediateId} has no hold time to change.`);
       i.holdTime = { ...i.holdTime, max: { value: checkDecimal(op.value, 'The maximum hold time', { positive: true }), unit: i.holdTime.max.unit } };
+      return;
+    }
+    // D-5 (item 13): the author names an intermediate (a skeleton's "Final blend", a copied source's "Printed tablets");
+    // the id stays. A DRAFT only: the server saves revisions of a DRAFT only.
+    case 'UPDATE_INTERMEDIATE_NAME': {
+      const i = c.intermediates.find((x) => x.id === op.intermediateId);
+      if (!i) throw new OpError(`There is no intermediate ${op.intermediateId}.`);
+      i.name = checkName(op.name, 'The intermediate name');
       return;
     }
   }

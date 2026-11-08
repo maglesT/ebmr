@@ -60,7 +60,7 @@ import {
 } from './package-export.ts';
 import { paletteBlocks } from './palette.ts';
 import { productNames, targetsOf } from '../master-data/index.ts';
-import { contentFromFormula, EDITION_START } from './from-formula.ts';
+import { contentFromFormula, EDITION_START, type CopyReport } from './from-formula.ts';
 import { materialMasters } from './material-refs.ts';
 import { packagingCopy } from './packaging-copy.ts';
 import { acquireSimulationSlot, DEFAULT_MAX_CONCURRENT_SIMULATIONS, DEFAULT_SIMULATION_TIMEOUT_MS, simulateInWorker, simulationReportView } from './simulation.ts';
@@ -522,6 +522,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
           const materialDocuments = await materialDocumentsInForce(c, chosen.lines.map((l) => l.materialCode), await siteToday(c));
           let content: flow.MbrContent;
+          const copied: CopyReport = { renamed: [] };
           try {
             content = contentFromFormula(
               base,
@@ -529,6 +530,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               { familyCode: body.familyCode, markets: body.markets, start, edition },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
+              copied,
             );
           } catch (error) {
             if (error instanceof FamilyInputError) throw familyRefusal(error);
@@ -551,7 +553,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           }
           const familyId = await lifecycle.familyForNewDraft(c, lifecycle.familyOf(contained));
           const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : 'the required skeleton';
-          const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template`);
+          // D-5: a copy says which material names it renamed; every other name is the source's, for the author to check.
+          const names = start !== 'COPY' ? '' : copied.renamed.length > 0
+            ? ` Names renamed after this formula's materials: ${copied.renamed.map((r) => `${r.from} -> ${r.to}`).join('; ')}. Every other name is the source's: check them in the draft.`
+            : " No names were renamed: every name is the source's; check them in the draft.";
+          const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template.${names}`);
           await formula.pinFormula(c, v.versionId, chosen.versionId);
           return { versionId: v.versionId };
         }),
