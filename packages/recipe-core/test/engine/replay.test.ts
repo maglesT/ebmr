@@ -11,7 +11,7 @@ import { replay, type ExecutionRow } from '../../src/engine/replay.ts';
 import type { Command, IssueRequest } from '../../src/engine/types.ts';
 import { buildFlow, candidateCommands, GENERATED_DATA, shapes } from './model-support.ts';
 import { Recorder } from './recorder.ts';
-import { autopilot, define, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, MIN, OP1, PACKAGING_SCENARIO, Run, SUP1, T0, type Scenario } from './support.ts';
+import { autopilot, define, FIXTURE_INPUTS, fixtureDefinition, flatGranulationDefinition, GRANULATION_SCENARIO, MIN, OP1, PACKAGING_SCENARIO, Run, SUP1, T0, type Scenario } from './support.ts';
 
 type Name = 'tablet-granulation-compression' | 'tablet-blister-packaging';
 
@@ -31,8 +31,7 @@ function request(def: BatchDefinition, name?: Name): IssueRequest {
  * Runs a fixture to completion on autopilot while a recorder mirrors every command the way the store
  * persists it (PREPARE, COMMAND, a SWEEP every few commands), plus one refused command.
  */
-function recordedRun(name: Name, scenario: Scenario): { def: BatchDefinition; rows: ExecutionRow[] } {
-  const def = fixtureDefinition(name);
+function recordedRun(name: Name, scenario: Scenario, def: BatchDefinition = fixtureDefinition(name)): { def: BatchDefinition; rows: ExecutionRow[] } {
   const rec = Recorder.issue(def, request(def, name), T0);
   const run = Run.issue(def, request(def, name), T0);
   let n = 0;
@@ -81,6 +80,15 @@ describe('replay of stored execution rows', { timeout: 240_000 }, () => {
       expect(r.state?.status).toBe('EXECUTION_COMPLETE');
     });
   }
+
+  it('[DI-34][INV-19][INV-20] R-flow item 1: the granulation master with no operation (its phases directly in its stages) replays identically, row for row', () => {
+    const { def, rows } = recordedRun('tablet-granulation-compression', GRANULATION_SCENARIO, flatGranulationDefinition());
+    const r = replay(def, rows);
+    expect(r.firstDifference).toBeNull();
+    expect(r.identical).toBe(true);
+    expect(r.invariantViolations).toEqual([]);
+    expect(r.state?.status).toBe('EXECUTION_COMPLETE');
+  });
 
   it('[DI-34] a tampered value, clock or state hash is reported at the row where it was changed', () => {
     const { def, rows } = fixtureRows('tablet-granulation-compression');

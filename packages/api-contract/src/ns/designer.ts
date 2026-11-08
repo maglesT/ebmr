@@ -351,6 +351,18 @@ export const designer = {
     body: z.strictObject({ baseRevision: z.number().int().nonnegative() }),
     response: VersionView,
   }),
+  discardDraft: defineRoute({
+    id: 'designer.discardDraft',
+    method: 'POST',
+    path: '/api/mbr/versions/:versionId/discard',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: "Discard a DRAFT version (D-3): the lifecycle's WITHDRAW with the author's own reason; nothing is deleted",
+    params: z.strictObject({ versionId: Uuid }),
+    body: z.strictObject({ reason: Reason }),
+    response: VersionView,
+  }),
   testPackage: defineRoute({
     id: 'designer.testPackage',
     method: 'POST',

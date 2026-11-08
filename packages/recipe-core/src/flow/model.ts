@@ -58,6 +58,12 @@ export interface MbrHeader {
    * records it (decision 0026 S11b), so the tablet count of each batch size is its mass divided by this, exactly (R3.1).
    */
   unitMassMg?: string;
+  /**
+   * The id of the master's pinned risk assessment (a RISK_ASSESSMENT reference) that classifies its parameters and
+   * calculations (R-rest A11): ICH Q9 asks for a documented assessment, not one per item, so a master that names it
+   * may classify an item non-critical without a reduction of its own. Approved with the master.
+   */
+  criticalityAssessment?: string;
 }
 
 /** A controlled, versioned risk scale (IN-02). */
@@ -308,6 +314,17 @@ export interface StageNode {
   purpose: 'MATERIAL' | 'NON_MATERIAL';
   /** Role of the person responsible for the stage (IN-15). */
   responsibleRole: string;
+  /**
+   * A material stage with no yield of its own, with the author's reason (R-flow item 4): 21 CFR 211.103 asks for the
+   * yield at the end of each appropriate phase, and the master says which phases are appropriate. The reason is approved
+   * with the master; no further signature.
+   */
+  noYieldReason?: string;
+  /**
+   * The id of an earlier stage in the same room or on the same line whose clearance this stage continues (R-rest A6):
+   * the batch stays in the cleared area, so the stage needs no clearance step of its own.
+   */
+  clearanceFrom?: string;
   body: FlowNode;
 }
 

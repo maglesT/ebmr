@@ -25,7 +25,7 @@ import type { BatchDefinition } from '../../src/engine/definition.ts';
 import { compareCodePoints, deriveStageSummary, stageSummaryContent, stageSummaryMember } from '../../src/engine/stage-summary.ts';
 import { ctxKey } from '../../src/engine/tx.ts';
 import type { BatchState, ExceptionRecord } from '../../src/engine/types.ts';
-import { autopilot, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run } from '../engine/support.ts';
+import { autopilot, FIXTURE_INPUTS, fixtureDefinition, flatGranulationDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -57,13 +57,21 @@ async function disagreements(def: BatchDefinition, s: BatchState, label: string)
   return out;
 }
 
+// R-flow item 1: the granulation master with no operation (its phases directly in its stages) runs as a third case.
+const NO_OPERATIONS = 'tablet-granulation-compression, no operations';
 const RUNS = [
   ['tablet-granulation-compression', GRANULATION_SCENARIO, {}],
   ['tablet-blister-packaging', PACKAGING_SCENARIO, { packDestination: 'US-EXPORT' }],
+  [NO_OPERATIONS, GRANULATION_SCENARIO, {}],
 ] as const;
 
+function issued(name: (typeof RUNS)[number][0], variants: Record<string, string>): Run {
+  const fixture = name === NO_OPERATIONS ? 'tablet-granulation-compression' : name;
+  return Run.issue(name === NO_OPERATIONS ? flatGranulationDefinition() : fixtureDefinition(fixture), { inputs: FIXTURE_INPUTS[fixture], variants });
+}
+
 function goldenRun(name: (typeof RUNS)[number][0], scenario: (typeof RUNS)[number][1], variants: Record<string, string>): Run {
-  const run = Run.issue(fixtureDefinition(name), { inputs: FIXTURE_INPUTS[name], variants });
+  const run = issued(name, variants);
   expect(autopilot(run, scenario)).toBe('COMPLETE');
   return run;
 }
@@ -206,7 +214,7 @@ describe('the database derives a stage summary as the engine does (F01; DI-37, I
     const problems: Record<string, unknown> = {};
     for (const [name, scenario, variants] of RUNS) {
       const run = goldenRun(name, scenario, variants);
-      let before: BatchState | undefined = Run.issue(fixtureDefinition(name), { inputs: FIXTURE_INPUTS[name], variants }).state;
+      let before: BatchState | undefined = issued(name, variants).state;
       for (const [i, e] of run.log.entries()) {
         const prior = before;
         before = e.result.state;

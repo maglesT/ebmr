@@ -36,12 +36,12 @@ function withUse(item: SeedItem, change: { limits?: SeedItem['exampleUse']['limi
 }
 
 const I1_CODES = [
-  'INJ-ROOM-READY', 'INJ-COMPONENT-ACCEPT', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
+  'INJ-ROOM-READY', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
   'INJ-AMPOULE-SEAL', 'INJ-CAPPING', 'INJ-TERMINAL-STERILISE', 'INJ-VISUAL-INSPECT', 'INJ-CCI', 'INJ-UNIT-ACCOUNT', 'INJ-STERILITY-SAMPLE', 'TEST-INJ-RELEASE',
 ];
 
 describe('the Injectables catalogue (slice I-1)', () => {
-  it('[PR-05] the catalogue holds the 17 blocks of I-1 (INJ-01, 02, 04, 05, 06, 12, 14, 15, 18 to 26), each of the injectables edition, loaded with the rest of the catalogue', () => {
+  it('[PR-05] the catalogue holds the 16 blocks of I-1 (INJ-01, 04, 05, 06, 12, 14, 15, 18 to 26; INJ-02 dropped, its lots named where used), each of the injectables edition, loaded with the rest of the catalogue', () => {
     expect(INJECTABLE_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I1_CODES].sort());
     for (const s of INJECTABLE_CATALOGUE) {
       expect(blockEdition(s.definition), s.definition.code).toBe('injectables');
@@ -69,10 +69,21 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(judgedRun(short, {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-39] a primary component is accepted by its lot on the formula line (the lot register checks its material and QC release); an open pack is an exception', () => {
-    const item = byCode('INJ-COMPONENT-ACCEPT');
-    expect(fieldOf(item, 'componentLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' });
-    expect(judgedRun(item, { component: { packsIntact: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+  it('[ST-39] each primary component lot is named where it is used (vial or ampoule at washing, stopper in a stopper load, seal at capping), not as a formula line; a second person verifies it, and a lot QC has not released is refused (G07-LOT-STATUS)', () => {
+    const lots: [string, string, string][] = [['INJ-WASH', 'run', 'containerLot'], ['INJ-PARTS-AUTOCLAVE', 'cycle', 'stopperLot'], ['INJ-CAPPING', 'setup', 'sealLot']];
+    for (const [code, section, id] of lots) {
+      const item = byCode(code);
+      const f = fieldOf(item, id);
+      expect(f.type, code).toBe('MATERIAL_LOT');
+      expect(f.type === 'MATERIAL_LOT' && f.bomLineSlot, code).toBeUndefined();
+      expect(item.definition.signatures.map((x) => x.meaning), code).toEqual(['PERFORMED', 'VERIFIED']);
+      // The nominal run uses a released lot; the same entry with a quarantined lot is refused at once.
+      expect(judgedRun(item, {}).exceptions, code).toEqual([]);
+      const quarantined = { lots: { [id]: { id: `SIM-${id.toUpperCase()}`, material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } } };
+      expect(() => judgedRun(item, { [section]: quarantined }), code).toThrow(/G07-LOT-STATUS/);
+    }
+    // An ampoule has no stopper: the stopper lot is asked only for a stopper load.
+    expect(fieldOf(byCode('INJ-PARTS-AUTOCLAVE'), 'stopperLot').showWhen).toEqual({ field: 'loadPattern', equals: 'Stoppers' });
   });
 
   it('[ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout', () => {
@@ -86,7 +97,8 @@ describe('the Injectables catalogue (slice I-1)', () => {
       const item = byCode(code);
       for (const id of ids) expect(fieldOf(item, id), `${code} ${id}`).toMatchObject({ type: 'NUMBER', critical: true });
       const [performed, checked] = item.definition.signatures;
-      expect([performed?.meaning, checked?.meaning], code).toEqual(['PERFORMED', 'CHECKED']);
+      // Washing and parts sterilisation also name a component lot, so their second person VERIFIES (lead, I-1c).
+      expect([performed?.meaning, checked?.meaning], code).toEqual(['PERFORMED', ['INJ-WASH', 'INJ-PARTS-AUTOCLAVE'].includes(code) ? 'VERIFIED' : 'CHECKED']);
       expect(checked?.role, code).not.toBe(performed?.role);
     }
     expect(judgedRun(byCode('INJ-DEPYRO'), { cycle: { zoneTemp: '280.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);

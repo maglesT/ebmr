@@ -40,7 +40,7 @@ describe('stage operations (slice 7j)', () => {
     const first = stagesOf(base)[0] as flow.StageNode;
     const stage = newStage(base, PALETTE, 'Film coating', 'COAT-1');
     expect(stage.binding.rooms).toEqual(['COAT-1']);
-    // Demo finding D-1: the phases sit in an operation of the stage (FLOW-LEVELS, DI-34), never directly in it.
+    // Demo finding D-1: the phases sit in an operation of the stage (an optional level, ADR 0004 decision 1 as amended).
     const ops = (stage.body as flow.SequenceNode).children as flow.OperationNode[];
     expect(ops.map((o) => [o.kind, o.name])).toEqual([['operation', 'Film coating: preparation']]);
     const steps = ((ops[0] as flow.OperationNode).body as flow.SequenceNode).children as flow.PhaseNode[];
@@ -51,6 +51,25 @@ describe('stage operations (slice 7j)', () => {
     expect(stagesOf(c)).toHaveLength(stagesOf(base).length + 1);
     // The same stage twice: its ids are already used.
     expect(() => applyOp(c, { kind: 'ADD_STAGE', afterStageId: null, stage })).toThrow(OpError);
+  });
+
+  it('[PR-03][PR-31] R-flow item 4: a stage takes a written reason for having no yield, and loses it with an empty text', () => {
+    const [a] = stagesOf(base) as [flow.StageNode];
+    const c = applyOp(base, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: '  Yield taken at the end of the next stage  ' } });
+    wellFormed(c);
+    expect(stagesOf(c)[0]?.noYieldReason).toBe('Yield taken at the end of the next stage');
+    const cleared = applyOp(c, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: ' ' } });
+    expect('noYieldReason' in (stagesOf(cleared)[0] as flow.StageNode)).toBe(false);
+    expect(() => applyOp(base, { kind: 'UPDATE_STAGE', stageId: a.id, patch: { noYieldReason: 'x'.repeat(10_000) } })).toThrow(OpError);
+  });
+
+  it('[PR-03] R-rest A6: a stage takes the earlier stage whose clearance it continues, and loses it with an empty choice', () => {
+    const [a, b] = stagesOf(base) as [flow.StageNode, flow.StageNode];
+    const c = applyOp(base, { kind: 'UPDATE_STAGE', stageId: b.id, patch: { clearanceFrom: a.id } });
+    wellFormed(c);
+    expect(stagesOf(c)[1]?.clearanceFrom).toBe(a.id);
+    const cleared = applyOp(c, { kind: 'UPDATE_STAGE', stageId: b.id, patch: { clearanceFrom: '' } });
+    expect('clearanceFrom' in (stagesOf(cleared)[1] as flow.StageNode)).toBe(false);
   });
 
   it('[PR-03] stages move, are renamed and rebound, take and lose equipment by a pinned class, and are removed; refusals change nothing', () => {
