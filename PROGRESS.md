@@ -121,7 +121,7 @@ master draft discarded with a reason, and the family started again. R-flow (`r-f
 (ADR 0004 amended), generic seed blocks, optional event sections, a stage with no yield and its reason, fieldless
 instruction and sign-off blocks, a target without limits, and the citation fixes. R-rest Part A (`r-rest.md`): the
 validator rows; dead branch, critical text, path-bound BOM line and SOP or process-data hold-time sources are warnings; a
-processing clearance needs one person (a packaging one keeps its second, Schedule M Part VIII 7); a stage may continue an
+clearance needs one person unless marked significant (a tablets packaging one keeps its second, Schedule M Part VIII 7.1); a stage may continue an
 earlier clearance (`clearanceFrom`) and an earlier status check in the same room counts; reprocessing needs only its
 maximum percentage; a master-level criticality assessment (`header.criticalityAssessment`) covers non-critical items; a
 one-branch parallel stays refused (engine). Next: R-rest Part B (recipe-core 1880), then D-4 to D-8.

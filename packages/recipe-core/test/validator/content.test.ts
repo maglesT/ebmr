@@ -609,7 +609,14 @@ describe('risk-based reductions (IN-02)', () => {
     }
   });
 
-  it('[IN-02][PR-14] R-rest A5: a packaging clearance keeps its second person even unmarked (Schedule M Part VIII 7), or the declared S24 reduction', () => {
+  it('[IN-02][PR-14] R-rest A5: a tablets packaging clearance keeps its second person even unmarked (Schedule M Part VIII 7.1), or the declared S24 reduction; an injectables or API packaging clearance needs one person', () => {
+    for (const edition of ['injectables', 'substance'] as const) {
+      const other = clone(loadFixture('tablet-blister-packaging'));
+      other.header.edition = edition;
+      delete findPhase(other, 'p-pri-clear').signatures.check;
+      findPhase(other, 'p-pri-clear').significant = false;
+      expect(errors(validate(other)).filter((f) => f.rule === 'GMP-SIGNIFICANT-STEPS')).toEqual([]);
+    }
     const m = clone(loadFixture('tablet-blister-packaging'));
     const clear = findPhase(m, 'p-pri-clear');
     delete clear.signatures.check;

@@ -141,10 +141,13 @@ const significantSteps = defineRule('GMP-SIGNIFICANT-STEPS', 'Performer plus che
     // R-rest A5: a line clearance is not a significant step by its block alone. 21 CFR 211.130(e) and EU GMP 5.50 ask
     // for the clearance and its record, not a second person; 211.188(b)(11) asks for one on a significant step, so a
     // clearance the author marks significant, or one with critical data typed by hand, keeps it. Revised Schedule M
-    // Part VIII 7 asks for "an independent, recorded check" of counting, strip and blister machines before a new batch;
-    // the master does not say which machines a packaging line has, so a packaging clearance keeps its second person
-    // (or the declared S24 reduction for a line without them).
-    const significant = (clearance && a.mbr.header.recordKind !== 'PACKAGING' ? false : d.significant) || p.significant || criticalManual;
+    // (G.S.R. 922(E), 28 December 2023) Part VIII, which binds oral solid dosage forms (tablets and capsules: the
+    // tablets edition), 7.1: "There shall be an independent recorded check of the equipment before a new batch of
+    // tablets or capsules is handled" (counting, strip and blister equipment). The master does not say which machines
+    // a packaging line has, so a tablets packaging clearance keeps its second person (or the declared S24 reduction for
+    // a line without them).
+    const oralSolidPacking = a.mbr.header.recordKind === 'PACKAGING' && a.mbr.header.edition === 'tablets';
+    const significant = (clearance && !oralSolidPacking ? false : d.significant) || p.significant || criticalManual;
     const name = label(a, p.id);
     if (!p.signatures.perform) {
       if (!automated) out.push(error(p.id, `${name} has no performer signature`));
