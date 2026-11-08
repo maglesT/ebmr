@@ -87,7 +87,7 @@ method in section 5. These candidates were looked at and rejected:
 |---|---|---|---|
 | C1 | SM 6.5.1 and 6.5.3, 6.7.4, 10.2.1 (Q7 6.50, 6.52, 6.73, 10.20): a batch record for each intermediate. Intermediates may be released by production under QU delegation only while they stay inside the company. | Let a batch post its output as a lot of kind INTERMEDIATE (today a batch posts only a FINISHED lot, `site.finished_lot`). Release goes through the existing lot release. A database guard refuses a delegated (production) release of a lot that is shipped outside. | Without it the next step's batch has no released lot to consume, and the chain breaks. This is a **shared change** to site-services and recipe-core. The lead coordinates it (Q6). |
 | C2 | SM 8.4.2, 8.4.5, 8.4.8 (Q7 8.41, 8.44, 8.47): OOS batches are never blended. A blend traces back to every batch in it. Its retest or expiry date comes from the oldest batch or tailing in it. | A blending master record built from library blocks (data). One SQL guard in the edition namespace refuses (a) a component lot that is not released, and (b) a retest or expiry date on the blended lot later than the one the oldest component allows. | A CALC field cannot read a lot's manufacturing date, and a date entered by hand needs a guard (decision 0008 section 2: the database enforces the regulation-required core). |
-| C3 | SM 11.3.1 to 11.3.4 (Q7 11.40 to 11.43): an authentic CoA for each batch on request, giving the name, grade, batch, release date, retest or expiry date, each test with its limits and numerical results, dated and signed by the QU, with the original manufacturer's name, address and telephone. | One read-only CoA view and print of a released lot, built from data that already exists (lot, specification tests, results, release signature, site address). It is signed with the existing e-signature (meaning QA_APPROVED) and kept as a true copy. | Nothing outside the frozen QP package prints a CoA today. The clause names the content and the signature. |
+| C3 | ICH Q7 11.40 to 11.43 (checked against the official text, 7 November 2026; the Schedule M extract lacks Part XII 11.3): an authentic CoA for each batch on request, giving the name, grade, batch, release date, retest or expiry date, each test with its limits and numerical results, dated and signed by the QU, with the original manufacturer's name, address and telephone. | One read-only CoA view and print of a released lot, built from data that already exists (lot, specification tests, results, release signature, site address). It is signed with the existing e-signature (meaning QA_APPROVED) and kept as a true copy. | Nothing outside the frozen QP package prints a CoA today. The clause names the content and the signature. |
 | C4 | SM 14.3.1 (Q7 14.30): an investigation before a decision to rework. | Check whether G-24 (reprocessing and rework gate, database facts) already requires a linked deviation or investigation for **rework** as opposed to **reprocessing**. If it does, there is no code (test only). If not, add one guard in the edition namespace. | A rework without its investigation would breach a "shall" clause. |
 | C5 | SM 6.1.4 (Q7 6.13): records of an API with a retest date are kept at least 3 years after the batch is completely distributed (other records: 1 year after expiry). | Check that the kernel retention rule can be set to "3 years after the last distribution" (0961 distribution records). If yes, it is config. If not, one retention basis is added (shared, through the lead). | Retention is a hard records rule (DI). |
 
@@ -173,7 +173,7 @@ existing generic block, used as it is.
 | AS-14 | 9.3.2, 9.3.6, 9.3.7 | 9.31, 9.35, 9.36 | Label reconciliation; issued labels examined and the result recorded; a representative label in the batch record | G printed materials |
 | AS-15 | 9.4.3, 9.4.4, 9.4.5, 9.4.6 | 9.42 to 9.45 | Label content (name, batch, storage; outside the company also manufacturer, quantity, transport conditions, retest or expiry); line inspection before use; labelled containers checked | API-PACK, API-LABEL-CHECK, clearance |
 | AS-16 | 6.7.2, 6.7.3, 6.7.4, 2.1.8, 10.2.1 | 6.71 to 6.73, 2.17, 10.20 | QU reviews critical-step records and all deviations and OOS before release; delegation of intermediate release only in-house; nothing used or shipped before QU release | Review and release + **C1** guard |
-| AS-17 | 11.3.1 to 11.3.4 | 11.40 to 11.43 | Authentic CoA per batch on request, with the stated content, signed by the QU | **C3** |
+| AS-17 | (not in the extract) | 11.40 to 11.43 | Authentic CoA per batch on request, with the stated content, signed by the QU | **C3** |
 | AS-18 | 11.5.2, 9.4.4 | 11.61, 9.43 | Retest or expiry date assigned and shown on the label and CoA | Lot dates, label, CoA |
 | AS-19 | 14.2.1, 14.2.3 | 14.20, 14.22 | Reprocessing within the established process; unreacted material returned only after evaluation and recorded | G-24 |
 | AS-20 | 14.3.1, 14.3.2 | 14.30, 14.31 | Investigation before rework; reworked batches evaluated, tested and documented | G-24, deviation, **C4** |
@@ -270,3 +270,40 @@ same day, and AS-25 to AS-33 were added. Part XII has one table (1.2.9, where AP
 Part XII nor Part II carries a numerical limit table. Residual-solvent and impurity limits come from separate ICH
 guidelines (Q3A, Q3C) and the pharmacopoeias, so they are the product's specification data, not rules of the
 software.
+
+## 11. Slice A4 plan: recovery, reprocessing, rework (7 November 2026, for the lead)
+
+Binding text: ICH Q7 section 14, checked against the official text (Step 4, 10 November 2000, database.ich.org). From
+the Schedule M extract, Part XII 8.1.8, 14.1 and 14.2.1 were checked; the extract's pages for 14.2.2 to 14.4 are
+missing, so those rows cite Q7 only. Clauses are paraphrased, with short quotes.
+
+| Clause | What it asks | What exists (reused) | New |
+|---|---|---|---|
+| Q7 14.10, SM 14.1 | Failing material identified and quarantined; its final disposition recorded | Lot states and the material-lot decision (signed) | Test |
+| Q7 8.17, SM 8.1.8 (AS-08) | Material to be reprocessed or reworked controlled against unauthorised use | A quarantined lot is refused at reservation and weighing (A2); a container of another batch is charged only by a linked reprocessing child (0624 `plant.charge_container`) | Test |
+| Q7 14.20, SM 14.2.1 (AS-19) | Repeating a step "that are part of the established manufacturing process" is acceptable | G-24 `VALIDATED_RETREATMENT` in the approved master; whole-batch `REPROCESSING` family (0624). A step in the approved master is the established process by definition | Test |
+| Q7 14.21 | Continuing a step after an incomplete IPC is normal, not reprocessing | API-IPC-COMPLETE loop (A1b) | None |
+| Q7 14.22 (AS-19) | Unreacted material returned "preceded by careful evaluation" | G-24 `REPROCESSING_ADDITION`: QA's signed authorisation with the risk evaluation (0621, 0622) | Test |
+| Q7 14.30 (AS-20, plan C4) | "an investigation into the reason for non-conformance" before a rework | A rework is a different process, so it cannot be a step of the approved master: it is its own master of record kind `REPROCESSING` (the rework master), and planning it needs a QA-concluded deviation linked to each parent and a stored risk evaluation (0624 EBMR-RPR-050/052) | **Test only, no guard** |
+| Q7 14.31, 14.32 (AS-20) | Reworked batch evaluated, tested, documented; impurity profile compared | G-REL `G3.EXTRA_TESTING` refuses release of a batch with a reprocessing basis until QC decides on extra testing (0781:428, `recipe.reprocessing_release_problem`); the impurity comparison is QC's extra test result | Test |
+| Q7 14.40, 14.43 (AS-21) | Recovery from mother liquor or filtrates under approved procedures, recovered material meeting its specification; use documented | (a) Second crop in the same batch: a further crystallisation step in the master and a second intermediate lot `<batch>-2` (#158). (b) Mother liquor carried into a later batch: held as a container in batch N, released by QA, added in batch N+1's G-24 `RECOVERY` step (0622). Both are on the genealogy | Test |
+| Q7 14.41, 14.42, 14.43 (AS-21) | Recovered solvent meets its standard before reuse or mixing with fresh; use documented | A recovery master of the API edition whose product is the recovered solvent: its output is posted as an intermediate lot in quarantine, QC tests it, and QA releases it for further processing (A2). The next batch weighs it at G-07 as a BOM line, and mixing fresh with recovered is two weighings. Genealogy 1879 | Test |
+
+Truly new code: none expected. Controls AS-19, AS-20 and AS-21 become files, with AS-08 and their names in
+`recipe.engine_name` (substance 5007, our range). Tests go in `apps/tablets-server/test/substance/`, reusing
+`support.ts`.
+
+Gap noted, not closed: G-24's `investigation_ref` is checked only as non-empty text (0621, EBMR-RPR-020). That is a
+14.22 or 14.40 step of the approved process, not a 14.30 rework, so no clause needs more; adding a refusal there
+would break the owner's flexibility rule.
+
+Slices: **A4a** rework and reprocessing (AS-08, AS-19, AS-20); **A4b** recovery, mother liquor and solvent (AS-21). If a
+test shows an existing piece cannot do its row for the API edition, the smallest fix goes to the lead first.
+
+Lead decision (7 November 2026): approved; test only; no refusal on `investigation_ref`; substance 5007 for the AS file
+names.
+
+**Open item for the owner:** the Schedule M extract (`docs/regulatory/sources-extracted/india-schedule-m-2023.txt`, a
+compressed copy with missing pages) lacks Part XII 11.3 (certificates of analysis) and 14.2.2 to 14.4 (reprocessing
+after 14.2.1, reworking, recovery of materials and solvents). Please supply those pages. Until then, ICH Q7 11.4 and 14
+are the checked source for AS-17 and AS-19 to AS-21.

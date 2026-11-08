@@ -9,7 +9,11 @@
  *
  * Choices kept to the binding minimum (plan section 8a):
  *  - Parameters from a device (autoclave, depyrogenation tunnel) are typed from the attached printout and checked by a
- *    second person (21 CFR 211.68(b); lead, Q2), so those blocks carry a CHECKED signature.
+ *    second person (21 CFR 211.68(b); lead, Q2), so those blocks carry a CHECKED signature, or a VERIFIED one where the
+ *    step also names a component lot (washing, parts sterilisation).
+ *  - Primary components (vials, ampoules, stoppers, seals) are not formula lines and are not dispensed: each lot is named
+ *    where it is used (washing, the stopper load, capping), its QC release checked at use, and a second person
+ *    VERIFIES it, since without a formula line the lot is not matched to its material (lead, 6 November 2026).
  *  - A grade is a room or line class (the formulation names the class of the right grade; slice I-1b adds the classes):
  *    the room field refuses a room of another class, one past its requalification date, or one not clean.
  *  - The disinfectant is a site consumable, not a line of the product's formula, so its name and lot are typed; its
@@ -107,34 +111,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-02: 211.84(d), 211.94(c)-(d); A1 2.1(iv), 10.2.
-    definition: {
-      code: 'INJ-COMPONENT-ACCEPT',
-      version: 1,
-      title: 'Primary component acceptance (vials, ampoules, stoppers, seals)',
-      category: 'CONTROL',
-      edition: EDITION,
-      roles: ['VERIFICATION'],
-      description: 'INJ-02. One primary component of the batch: its lot (released by QC, which already holds its tests), its packs intact, the quantity issued. Used once per component.',
-      instructions: 'Check the component lot against the formula line, its released label and the packs. Do not use a pack that is open or damaged.',
-      sections: [
-        {
-          id: 'component',
-          title: 'Component',
-          fields: [
-            { id: 'component', label: 'Component', type: 'CHOICE', options: ['Glass vial', 'Glass ampoule', 'Rubber stopper', 'Aluminium seal', 'Other primary component'] },
-            { id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' },
-            { id: 'labelReleased', label: 'Released label on every pack', type: 'YES_NO', expected: true },
-            { id: 'packsIntact', label: 'Packs closed and undamaged', type: 'YES_NO', expected: true },
-            { id: 'issued', label: 'Quantity issued', type: 'NUMBER', unit: UNITS, decimals: 0 },
-          ],
-        },
-      ],
-      signatures: [OPERATOR, CHECKER],
-    },
-    exampleUse: { bomLines: { componentLine: 'L2' } },
-  },
-  {
     // INJ-04: 211.94(c); A1 8.18.
     definition: {
       code: 'INJ-WASH',
@@ -142,7 +118,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Container washing and siliconisation',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-04. The washer, its water for injection temperature and pressure, the washing time, siliconisation where the product needs it, and the washed containers free of visible particles.',
+      description: 'INJ-04. The vial or ampoule lot washed (released by QC; checked by a second person), the washer, its water for injection temperature and pressure, the washing time, siliconisation where the product needs it, and the washed containers free of visible particles.',
       instructions: 'Run the washer with the validated programme. Record the final rinse water readings from the washer display. Siliconise only where the formulation says so.',
       sections: [
         {
@@ -150,6 +126,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Washing',
           fields: [
             { id: 'washer', label: 'Container washer', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'washerClass' },
+            // 21 CFR 211.188(b); SM Part I 17.3.8: the component lot named where it is used; its QC release is checked at
+            // use, no formula line.
+            { id: 'containerLot', label: 'Vial or ampoule lot', type: 'MATERIAL_LOT' },
             { id: 'programme', label: 'Washing programme', type: 'TEXT', maxLength: 40 },
             { id: 'wfiTemp', label: 'Final rinse WFI temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp', critical: true },
             { id: 'wfiPressure', label: 'Final rinse WFI pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'wfiPressure', critical: true },
@@ -161,7 +140,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, CHECKER],
+      // A second person VERIFIES the printout values (211.68(b)) and the component lot (lead, I-1c): one signature of the
+      // verifier's role, never two of one role (R3-CAT-5).
+      signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
       equipmentClasses: { washerClass: 'VIAL-WASHER' },
@@ -209,7 +190,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Moist-heat sterilisation of parts and components',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-06. A validated load of parts or components (stoppers, filling parts, filters, garments): the autoclave, the load, the cycle values typed from the printout, and the indicator. Its time to use is a time constraint of the master from this step.',
+      description: 'INJ-06. A validated load of parts or components (stoppers, filling parts, filters, garments): the autoclave, the load (a stopper load names its stopper lot, released by QC and checked by a second person), the cycle values typed from the printout, and the indicator. Its time to use is a time constraint of the master from this step.',
       instructions: 'Load to the validated pattern. Read the values from the cycle printout and attach it. A second person checks the typed values against the printout.',
       sections: [
         {
@@ -218,6 +199,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'autoclave', label: 'Steam steriliser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'autoclaveClass' },
             { id: 'loadPattern', label: 'Load (validated pattern)', type: 'CHOICE', options: PART_LOADS },
+            // 21 CFR 211.188(b); SM Part I 17.3.8: a stopper load names the stopper lot it sterilises (vials only: an
+            // ampoule has no stopper).
+            { id: 'stopperLot', label: 'Stopper lot', type: 'MATERIAL_LOT', showWhen: { field: 'loadPattern', equals: 'Stoppers' } },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
             { id: 'temperature', label: 'Lowest temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
             { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
@@ -228,7 +212,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, CHECKER],
+      // A second person VERIFIES the printout values (211.68(b)) and the component lot (lead, I-1c): one signature of the
+      // verifier's role, never two of one role (R3-CAT-5).
+      signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
       equipmentClasses: { autoclaveClass: 'STEAM-STERILISER' },
@@ -471,7 +457,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Capping and crimping (vials)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-20. The capping machine, the crimp at each round and the rejects. A maximum time from stoppering to capping is a hold-time constraint of the master.',
+      description: 'INJ-20. The seal lot (released by QC; checked by a second person), the capping machine, the crimp at each round and the rejects. A maximum time from stoppering to capping is a hold-time constraint of the master.',
       instructions: 'Cap the stoppered vials. At each round check the crimp: the seal tight, not turning, the stopper not displaced.',
       sections: [
         {
@@ -479,6 +465,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Set-up',
           fields: [
             { id: 'capper', label: 'Capping machine', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'capperClass' },
+            // 21 CFR 211.188(b); SM Part I 17.3.8: the seal lot named where it is used.
+            { id: 'sealLot', label: 'Seal lot', type: 'MATERIAL_LOT' },
           ],
         },
         {

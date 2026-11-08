@@ -8,6 +8,7 @@
  * with a reason.
  */
 import { routes, type LibraryBlockView, type SignableAction } from '@ebmr/api-contract';
+import { canonicalJson } from '@ebmr/expr';
 import { librarySeed } from '@ebmr/recipe-core';
 import { library } from '@ebmr/recipe-core/pure';
 import type { FastifyInstance } from 'fastify';
@@ -76,6 +77,14 @@ async function blocks(app: AppContext, db: Db, filter: { id?: string; code?: str
   }));
 }
 
+/** Whether a held definition is the seed item apart from its version and a different edition. */
+function blockEditionChanged(held: unknown, seed: library.BlockDefinition): boolean {
+  if (typeof held !== 'object' || held === null) return false;
+  const rest = (d: Record<string, unknown>): string => canonicalJson(Object.fromEntries(Object.entries(d).filter(([k]) => k !== 'version' && k !== 'edition')));
+  const h = held as Record<string, unknown>;
+  return library.blockEdition(h) !== library.blockEdition(seed) && rest(h) === rest(seed as unknown as Record<string, unknown>);
+}
+
 function checkDefinition(definition: Record<string, unknown>): library.LibraryProblem[] {
   return library.checkBlockDefinition(definition as unknown as library.BlockDefinition, EXPRESSIONS);
 }
@@ -136,18 +145,25 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       // blocks of their edition, offered only to an injectables master (recipe-core 1871).
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
         await c.query('select recipe.require_library_author()');
-        const { rows } = await c.query<{ code: string }>('select distinct code from recipe.library_block');
-        const held = new Set(rows.map((r) => r.code));
+        const { rows } = await c.query<{ code: string; version: number; definition: unknown }>(
+          'select distinct on (code) code, version, definition from recipe.library_block order by code, version desc',
+        );
+        const held = new Map(rows.map((r) => [r.code, r]));
         const drafted: string[] = [];
         const skipped: string[] = [];
         for (const item of librarySeed.SEED_CATALOGUE) {
-          const def = item.definition;
-          if (held.has(def.code) || checkDefinition(def as unknown as Record<string, unknown>).some((p) => p.severity === 'ERROR')) {
-            skipped.push(def.code);
+          let def: unknown = item.definition;
+          const latest = held.get(item.definition.code);
+          // R-flow item 2: a seed block that became generic reaches a library holding its earlier, unchanged copy as the
+          // next version (the library's versioning: every change is a new version, PR-05); any other held code is the
+          // site's and is left alone.
+          if (latest) def = blockEditionChanged(latest.definition, item.definition) ? { ...item.definition, version: latest.version + 1 } : undefined;
+          if (!def || checkDefinition(def as Record<string, unknown>).some((p) => p.severity === 'ERROR')) {
+            skipped.push(item.definition.code);
             continue;
           }
           await c.query('select recipe.draft_library_block($1::jsonb)', [JSON.stringify(def)]);
-          drafted.push(def.code);
+          drafted.push(item.definition.code);
         }
         return { drafted, skipped };
       });

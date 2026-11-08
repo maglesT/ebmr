@@ -18,6 +18,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-SIFT',
       version: 1,
+      edition: 'generic',
       title: 'Sifting',
       category: 'PROCESS',
       instructions: 'Check the screen before and after use; sift the materials named in the formulation.',
@@ -49,6 +50,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-DISP',
       version: 1,
+      edition: 'generic',
       title: 'Dispensing by weight',
       category: 'PROCESS',
       instructions: 'Weigh each container of the material on the named balance class, label it and keep it closed until charging.',
@@ -82,6 +84,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-DISP-POTENCY',
       version: 1,
+      edition: 'generic',
       title: 'Potency-adjusted dispensing',
       category: 'PROCESS',
       instructions: 'Dispense the active on its approved assay on the dried basis and its loss on drying; the quantity to dispense is calculated, then weighed. The assay must be the dried-basis result: an as-is assay already includes the water and would be corrected twice.',
@@ -119,6 +122,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-DISP-LIQUID',
       version: 1,
+      edition: 'generic',
       title: 'Liquid dispensing by volume',
       category: 'PROCESS',
       instructions: 'Measure the liquid in a calibrated measure into a clean closed container and label it.',
@@ -149,6 +153,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-MILL',
       version: 1,
+      edition: 'generic',
       title: 'Milling',
       category: 'PROCESS',
       instructions: 'Fit the screen named in the formulation and check it before and after milling.',
@@ -186,6 +191,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-CONE-MILL',
       version: 1,
+      edition: 'generic',
       title: 'Cone milling',
       category: 'PROCESS',
       instructions: 'Fit the conical screen and impeller named in the formulation and check the screen before and after.',
@@ -223,6 +229,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-DRY-MIX',
       version: 1,
+      edition: 'generic',
       title: 'Dry mixing',
       category: 'PROCESS',
       instructions: 'Load the materials in the order the formulation gives and mix for the set time at the set speed.',
@@ -969,6 +976,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-HOLD',
       version: 1,
+      edition: 'generic',
       title: 'Hold of an intermediate',
       category: 'PROCESS',
       instructions: 'Keep the containers closed in the named area; the hold time runs from the start to the release for the next step.',
@@ -1004,6 +1012,7 @@ export const PROCESS_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PROC-TRANSFER',
       version: 1,
+      edition: 'generic',
       title: 'Transfer between areas',
       category: 'PROCESS',
       instructions: 'Move the named containers with their labels; the receiving person checks each container and signs.',

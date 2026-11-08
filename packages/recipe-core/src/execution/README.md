@@ -903,6 +903,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   severity, without its deviation or block, with another tier, type, title, source or raiser, left out, twice, not
   marked on its value, or added where nothing is judged is refused, as are an endpoint judged before its loop's
   exit and an exit that judges nothing; a value in another unit than its limits is refused (stricter).
+- `test/execution/phase-in-stage.test.ts` (sql 0304; ADR 0004 decision 1, amended): a master whose stages hold their
+  phases directly, with no operation, passes the validator in every edition, is numbered `stage.step` by the engine
+  and the database alike, and runs to the end.
 - `test/execution/stage-summary-sql.test.ts` (sql 0319, 0320, Phase 2 exit review F01): for every state of both golden
   runs and every stage frame, and for states changed in every fact the summary reads, the database's summary member is
   the engine's, before and after the sign-off; every sign-off of the golden runs has exactly the engine's shape at the

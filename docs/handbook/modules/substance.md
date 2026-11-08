@@ -32,9 +32,30 @@ after the tablets namespace), and it never changes how tablets or injectables be
 5. The market guard (kernel 1404) refuses a tablets or sterile rule key on an API scope: an API master binds the kernel
    rule table only.
 
+## Rework and reprocessing (plan A4a, AS-08, AS-19, AS-20)
+
+No code of the edition's own: the API edition uses the existing mechanisms, and migration 5007 only names AS-19 and
+AS-20. An intermediate lot that fails its specification is rejected by QA through the material-lot decision and cannot be
+reserved by the next step. A rework is a master of its own, of record kind REPROCESSING and the same product; its batch is
+planned only on the quality unit's authorised request, with a QA-concluded investigation linked to each parent, a stored
+risk evaluation and the product's reprocessing permission (recipe-core 0624, 0625). The release item G3.EXTRA_TESTING
+holds the reworked batch until QC records its decision on additional testing. A step that adds unreacted or reprocessed
+material is a G-24 step with QA's signed authorisation (recipe-core 0621, 0622). The tests are in
+[rework.test.ts](../../../apps/tablets-server/test/substance/rework.test.ts).
+
+## Recovery of materials and solvents (plan A4b, AS-21)
+
+No code of the edition's own either; migration 5008 only names AS-21. A second crop of the same batch is a step of the
+approved master, and its lot is posted as `<batch>-2` in quarantine. A recovered solvent is the product of a recovery
+master of the API edition, and its batch posts the solvent as a lot in quarantine. Either lot is reserved and weighed only
+once QC has tested it and QA has released it for further processing. Fresh and recovered solvent are mixed as two G-07
+weighings, and the genealogy shows both lots consumed. Not yet covered: mother liquor carried into a later batch through a
+G-24 RECOVERY step, because only a press in-process failure can hold a container, so QA cannot release a container of an
+API batch. The tests are in [recovery.test.ts](../../../apps/tablets-server/test/substance/recovery.test.ts).
+
 ## The certificate of analysis (plan C3, AS-17)
 
-Migration 5005. The CoA of a released finished lot of the API edition is read only from existing records
+Migrations 5005 and 5006 (5006 enters AS-17 in the names a test run may cite, `recipe.engine_name`). The CoA of a released finished lot of the API edition is read only from existing records
 (`substance.coa_document`): the product's name and grade (the monograph reference of the specification in effect), the
 lot and batch numbers, the release date (the manufacturer release decision), the retest and expiry dates, each test of the
 specification with its limits and the latest approved result, and the manufacturer's name and address from the

@@ -19,20 +19,17 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
-import { routes, type ContainerView, type SignableAction, type SignatureCredentials } from '@ebmr/api-contract';
-import type { flow } from '@ebmr/recipe-core/pure';
-import { library } from '@ebmr/recipe-core/pure';
+import { routes } from '@ebmr/api-contract';
+import type { flow, library } from '@ebmr/recipe-core/pure';
 import { openServiceSession } from '@ebmr/test-kit';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { API_PACK } from '../../../../packages/recipe-core/src/library/seed/substance.ts';
-import { personaIn, startSigningServer, tapFor, valueOf } from '../esig/support.ts';
-import { RunDriver, type ExecServer } from '../execution/support.ts';
-import type { TestBrowser } from '../support/harness.ts';
+import { personaIn, startSigningServer, valueOf } from '../esig/support.ts';
+import type { ExecServer } from '../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
-import { confirmErpPending, credentialsOf } from '../support/signed-acts.ts';
-
-type Json = Record<string, unknown>;
+import { confirmErpPending } from '../support/signed-acts.ts';
+import { closeBulk, driverOf, issueBatch, libraryEntry, packIntoDrums, phaseOf, range, reactBlock, releaseApiLot, signAs, stage, statusOf, type Json } from './support.ts';
 
 const SITE = 'SITE-1';
 const LINE = 'L1';
@@ -42,27 +39,9 @@ const PRODUCT = { code: `APIA1A-${TAG}`, name: 'Demosubstance A1a', strength: '5
 const REASON = 'API edition A1a chain';
 
 /** A test reaction block of the API edition (catalogue v1 brings the real ones in A1b). */
-const REACT: library.BlockDefinition = {
-  code: `API-REACT-T${TAG}`,
-  version: 1,
-  title: 'Reaction (test block)',
-  category: 'PROCESS',
-  edition: 'substance',
-  sections: [{ id: 'run', title: 'Reaction', fields: [
-    { id: 'temp', label: 'Reaction temperature', type: 'NUMBER', unit: 'Cel', limitSlot: 'temp', critical: true },
-    { id: 'complete', label: 'Reaction complete by the in-process check', type: 'YES_NO', expected: true },
-  ] }],
-  signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }, { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' }],
-};
-const range = (unit: string, low: string, high: string) => ({ unit, ranges: [{ tier: 'REGISTERED', low: { value: low, inclusive: true }, high: { value: high, inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: 'REF-A1A' } }] });
+const REACT = reactBlock(`API-REACT-T${TAG}`);
 /** The pack: 60 kg into two 30 kg drums. */
 const PACK_USE = { ...API_PACK.exampleUse, limits: { ...API_PACK.exampleUse.limits, netMass: range('kg', '29.950', '30.050') }, targets: { ...API_PACK.exampleUse.targets, netMass: '30.000' }, counts: { containers: '2' } };
-
-const phaseOf = (def: library.BlockDefinition, id: string, use: Json): Json => {
-  const p = library.libraryPhase(def, id, 'HIGH') as unknown as Json;
-  return { ...p, config: { ...(p['config'] as Json), ...use } };
-};
-const stage = (like: Json, id: string, name: string, children: Json[]): Json => ({ ...like, id, name, body: { kind: 'sequence', id: `seq-${id}`, children } });
 
 /** dc-mini reshaped as an API master: the header of the API product, the stages given, no tablet calculations. */
 function apiMaster(recordKind: 'PROCESSING' | 'PACKAGING', stages: (like: Json) => Json[], defs: library.BlockDefinition[]): flow.MbrContent {
@@ -107,41 +86,7 @@ let order: { batchId: string; batchNumber: string };
 let bulkLabel = '';
 let lotId = '';
 
-const password = (k: string): SignatureCredentials => ({ kind: 'PASSWORD', loginName: personaIn(gmp, k).loginName, password: personaIn(gmp, k).password });
-
-/** The signing ceremony of any act; a kiosk persona confirms the challenge with a fresh badge tap. */
-async function sign(b: TestBrowser, key: string, action: SignableAction, meaning?: string): Promise<void> {
-  const d = valueOf(await b.call(routes.esig.describe, { body: { action } }));
-  const m = meaning ?? d.meaning ?? '';
-  const preview = valueOf(await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: m } }));
-  const body = { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.contentVersion, meaning: m, clientContentHash: sha256Hex(preview.canonicalText), action };
-  vi.advanceTimersByTime(7_000);
-  const attribution = b.terminal.includes('KIOSK') ? { attribution: await tapFor(b, personaIn(gmp, key), 'POST', '/api/esig/challenges', body) } : {};
-  const challenge = valueOf(await b.call(routes.esig.createChallenge, { body, ...attribution }));
-  const signBody = { challengeId: challenge.challengeId, credentials: credentialsOf(gmp, key), action };
-  const r = await b.call(routes.esig.sign, { body: { ...signBody, proof: await b.proof('POST', '/api/esig/sign', signBody) } });
-  if (!r.ok) throw new Error(`${key} ${action.kind} was refused: ${JSON.stringify(r.error.kind === 'REFUSAL' ? r.error.envelope.refusal : r.error)}`);
-}
-
-/** The issuer's ISSUED signature on a planned batch (the issue ceremony). */
-async function issue(issuer: TestBrowser, batchId: string, why: { code: string; text: string }): Promise<void> {
-  const preview = valueOf(await issuer.call(routes.esig.content, { query: { aggregateType: 'batch_issue', aggregateId: batchId, intent: 'ISSUED' } }));
-  const action = { kind: 'GMP_BATCH_ISSUE' as const, batchId, reason: why, variants: {}, inputs: {} };
-  const challenge = valueOf(await issuer.call(routes.esig.createChallenge, { body: { aggregateType: 'batch_issue', aggregateId: batchId, contentVersion: preview.contentVersion, meaning: 'ISSUED', clientContentHash: sha256Hex(preview.canonicalText), action } }));
-  const body = { challengeId: challenge.challengeId, credentials: password('issuer'), action };
-  valueOf(await issuer.call(routes.esig.sign, { body: { ...body, proof: await issuer.proof('POST', '/api/esig/sign', body) } }));
-}
-
-const driver = async (batchId: string): Promise<RunDriver> => {
-  const d = new RunDriver(gmp, batchId, {
-    operator1: await gmp.asPersona('operator1'), verifier1: await gmp.asPersona('verifier1'), supervisor1: await gmp.asPersona('supervisor1'), qa1: await gmp.asPersona('qa1'),
-  });
-  d.beforeTap = () => vi.advanceTimersByTime(7_000);
-  return d;
-};
-const libraryEntry = (stepKey: string, entryKind: string, data: Json) => ({ type: 'RECORD_ENTRY', stepKey, entry: { kind: 'LIBRARY_ENTRY', entryKind, data } }) as never;
-const status = async (batchId: string): Promise<string | undefined> =>
-  (await gmp.db.admin.query<{ s: string }>('select status as s from recipe.execution_state where batch_id = $1', [batchId])).rows[0]?.s;
+const status = (batchId: string): Promise<string | undefined> => statusOf(gmp, batchId);
 
 beforeAll(async () => {
   const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-api-chain-'));
@@ -158,12 +103,12 @@ beforeAll(async () => {
     licenceKind: 'MANUFACTURING', form: '25', licenceNumber: `MFG/A3/${TAG}`, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
     holderTelephone: '+91 40 2345 6789', validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: PRODUCT.code, strength: PRODUCT.strength }],
   } }));
-  await sign(await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
+  await signAs(gmp, await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   // QA approves the two library blocks (drafted by the author).
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
   for (const def of [REACT, API_PACK.definition]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
-    await sign(approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
+    await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
   world = await gmpLifecycleWorld(gmp);
   const stewardActor = await actorOf(gmp, 'steward');
@@ -200,22 +145,15 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     const issuer = await gmp.asPersona('issuer');
     await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), processing, SIZE);
     const planned = valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId: proc.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE } }));
-    await issue(issuer, planned.batchId, { code: 'PRODUCTION_PLAN', text: 'Issued for the plan' });
+    await issueBatch(gmp, planned.batchId, { code: 'PRODUCTION_PLAN', text: 'Issued for the plan' });
     batch = { batchId: planned.batchId, batchNumber: planned.batchNumber };
-    const d = await driver(batch.batchId);
+    const d = await driverOf(gmp, batch.batchId);
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-react@' });
     await d.ok('operator1', libraryEntry('p-react@', 'run', { temp: '61.5', complete: true }));
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-react@' });
     await d.signed('verifier1', { type: 'VERIFY', stepKey: 'p-react@', meaning: 'VERIFIED' });
     // The isolated API into one bulk container: 60 kg typed, verified by a second person.
-    const operator = d.browser('operator1');
-    const tap = (path: string, body: Json) => { vi.advanceTimersByTime(7_000); return tapFor(operator, personaIn(gmp, 'operator1'), 'POST', path, body); };
-    const openBody = { batchId: batch.batchId, stage: 'ISOLATION', unit: 'kg' as const };
-    const c: ContainerView = valueOf(await operator.call(routes.containers.open, { body: openBody, attribution: await tap('/api/containers', openBody) }));
-    const closeBody = { expectedVersion: c.version, typed: { net: '60.000' } };
-    valueOf(await operator.call(routes.containers.close, { params: { containerId: c.containerId }, body: closeBody, attribution: await tap(`/api/containers/${c.containerId}/close`, closeBody) }));
-    await sign(d.browser('verifier1'), 'verifier1', { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: c.containerId });
-    bulkLabel = c.label;
+    bulkLabel = await closeBulk(gmp, d, batch.batchId, '60.000');
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-REACT@' });
     await d.signed('qa1', { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-PACK@', disposition: 'APPROVED', comment: 'Batch released for packing' });
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-RELEASE@' });
@@ -228,20 +166,10 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     const issuer = await gmp.asPersona('issuer');
     const orderNo = await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), packaging, SIZE);
     const planned = valueOf(await issuer.call(routes.planning.planPackagingOrder, { body: { familyId: pack.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE, erpOrder: orderNo, parentBatchId: batch.batchId } }));
-    await issue(issuer, planned.batchId, { code: 'PACKING_PLAN', text: `Packaging order of batch ${batch.batchNumber}` });
+    await issueBatch(gmp, planned.batchId, { code: 'PACKING_PLAN', text: `Packaging order of batch ${batch.batchNumber}` });
     order = { batchId: planned.batchId, batchNumber: planned.batchNumber };
     expect(order.batchNumber).toBe(`${batch.batchNumber}/P01`);
-    const d = await driver(order.batchId);
-    const operator = d.browser('operator1');
-    const bulkBody = { labels: [bulkLabel] };
-    vi.advanceTimersByTime(7_000);
-    valueOf(await operator.call(routes.batches.issueBulk, { params: { batchId: order.batchId }, body: bulkBody, attribution: await tapFor(operator, personaIn(gmp, 'operator1'), 'POST', `/api/batches/${order.batchId}/bulk`, bulkBody) }));
-    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-pack@' });
-    for (const no of ['D-01', 'D-02']) await d.ok('operator1', libraryEntry('p-pack@', 'container', { container: `${order.batchNumber}-${no}`, netMass: '30.000', sealed: true, labelOk: true }));
-    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-pack@' });
-    await d.signed('verifier1', { type: 'VERIFY', stepKey: 'p-pack@', meaning: 'VERIFIED' });
-    await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-PACK@' });
-    expect(await status(order.batchId)).toBe('EXECUTION_COMPLETE');
+    await packIntoDrums(gmp, order, bulkLabel, [['D-01', '30.000'], ['D-02', '30.000']]);
     const stores = await gmp.asPersona('stores');
     const lot = valueOf(await stores.call(routes.specifications.postFinishedLot, { body: { batchId: order.batchId, quantity: '60', unit: 'kg' } }));
     lotId = (lot as unknown as { lotId: string }).lotId;
@@ -251,45 +179,13 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
   });
 
   it('[AS-16][IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition\'s items (the tablets items that apply to any packaging order), and the authorised person releases the lot', async () => {
-    // QC: the API's specification, the lot's results approved by the head of QC, and the reserve samples.
-    const [qc, head] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover')]);
-    const tests = [{ testCode: 'ASSAY', methodReference: 'STP-A1A-AS-01', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }];
-    const spec = valueOf(await qc.call(routes.specifications.draft, { body: {
-      materialCode: PRODUCT.code, title: 'API specification (invented)', monographReference: 'In-house monograph',
-      tests: tests.map((t) => ({ testCode: t.testCode, methodReference: t.methodReference, unit: t.unit, lowerLimit: t.lowerLimit, upperLimit: t.upperLimit, required: true, pharmacopoeia: 'IN_HOUSE' as const, edition: 'STP-2026-1', sampleQuantity: '0.1', sampleUnit: 'kg' })),
-    } }));
-    await sign(head, 'qcApprover', { kind: 'LIMS_ACT', act: 'SPECIFICATION_APPROVE', subjectId: spec.specificationId });
-    for (const t of tests) {
-      const r = valueOf(await qc.call(routes.quality.recordLotResult, { params: { lotId }, body: { testCode: t.testCode, methodReference: t.methodReference, purpose: 'RELEASE', value: t.result, unit: t.unit } }));
-      await sign(head, 'qcApprover', { kind: 'QUALITY_ACT', act: 'LOT_RESULT_APPROVE', subjectId: r.resultId, input: {} });
-    }
-    valueOf(await qc.call(routes.samples.pull, { params: { lotId }, body: { kind: 'RESERVE', quantity: '0.2', container: 'Reserve sample jar', storageLocation: 'Reserve sample room RS-1' } }));
-    // QA: production approval, the register items, the audit-trail review and the QA review of each record.
-    for (const b of [batch, order]) {
-      const [prod, qa, qa2] = await Promise.all([gmp.asPersona('head1'), gmp.asPersona('qaInvestigator'), gmp.asPersona('qaApprover2')]);
-      await sign(prod, 'head1', { kind: 'REVIEW_ACT', act: 'PRODUCTION_APPROVE', batchId: b.batchId, input: {} });
-      const register = valueOf(await qa2.call(routes.review.register, { params: { batchId: b.batchId }, body: {} }));
-      for (const item of register.items.filter((i) => i.reviewStatus === 'OPEN')) {
-        if (item.critical) valueOf(await qa2.call(routes.review.openItem, { params: { batchId: b.batchId, exceptionId: item.exceptionId }, body: {} }));
-        await sign(qa2, 'qaApprover2', { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId: b.batchId, input: { items: [item.exceptionId], disposition: 'ACCEPT', ...(item.critical ? { justification: 'Reviewed with its disposition: no impact on the batch' } : {}) } });
-      }
-      const report = valueOf(await qa.call(routes.review.auditTrail, { params: { batchId: b.batchId }, query: {} }));
-      await sign(qa, 'qaInvestigator', { kind: 'REVIEW_ACT', act: 'AUDIT_TRAIL_REVIEW', batchId: b.batchId, input: { reviewId: report.reviewId } });
-      const view = valueOf(await qa2.call(routes.review.batch, { params: { batchId: b.batchId } }));
-      expect(view.gates.qaReview.problems, b.batchNumber).toEqual([]);
-      await sign(qa2, 'qaApprover2', { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId: b.batchId, input: { expectedEpoch: view.epoch } });
-    }
-    const ap = await gmp.asPersona('qcuAuthoriser');
-    const view = valueOf(await ap.call(routes.release.lot, { params: { lotId } }));
-    expect(view.grel.items.filter((i) => i.status === 'RED').map((i) => `${i.id}: ${i.problem ?? ''}`)).toEqual([]);
-    const edition = Object.fromEntries(view.grel.items.filter((i) => i.id.startsWith('E.')).map((i) => [i.id, `${i.group} ${i.status}`]));
+    // QC tests and samples the lot; production and QA review both records; G-REL green; the authorised person releases.
+    const items = await releaseApiLot(gmp, lotId, PRODUCT.code, [batch, order]);
+    const edition = Object.fromEntries(items.filter((i) => i.id.startsWith('E.')).map((i) => [i.id, `${i.group} ${i.status}`]));
     expect(edition).toEqual({
       'E.RECONCILIATION_PRINTED': '4 NA', 'E.RECONCILIATION_YIELD': '4 GREEN', 'E.PACK_EXAMINATION': '9 GREEN',
       'E.HELD_CONTAINERS': '10 GREEN', 'E.CONTAINER_RELEASE': '10 GREEN', 'E.RULE_SETS_VERIFIED': '10 NA', 'E.WHOLE_BATCH_PARENTS': '10 NA',
     });
-    expect(view.state).toBe('READY');
-    await sign(ap, 'qcuAuthoriser', { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { expectedEpoch: view.grel.epoch } });
-    expect(valueOf(await ap.call(routes.release.lot, { params: { lotId } }))).toMatchObject({ state: 'RELEASED', lotStatus: 'RELEASED' });
   });
   it('[IN-17][PR-37][INV-05] the API edition\'s items fail closed: a record with no pack step examined no drum (RED), and a lot that is no API finished lot answers one RED item; the hook is registered for the API edition', async () => {
     const exam = (await gmp.db.admin.query<{ r: { status: string; problem: string | null } }>('select substance.grel_pack_examination($1) as r', [batch.batchId])).rows[0]?.r;
@@ -302,8 +198,8 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(hooks).toEqual(expect.arrayContaining([{ edition: 'SUBSTANCE', function_name: 'substance.grel_edition_items(uuid,text)' }]));
   });
 
-  // API plan A3 (C3; AS-17 once its control file lands): the CoA of the released lot, from the records only.
-  it('[IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once', async () => {
+  // API plan A3 (C3, AS-17): the CoA of the released lot, from the records only.
+  it('[AS-17][AS-18][IN-05][DI-35][DI-41] the CoA of the released API lot says the product, grade, lot, release, retest or expiry date, each test with its limits and approved result and the manufacturer from the licence; the authorised person prepares it as a true copy and signs it COA_APPROVED once', async () => {
     const ap = await gmp.asPersona('qcuAuthoriser');
     const view = valueOf(await ap.call(routes.release.coa, { params: { lotId } }));
     expect(view.problems).toEqual([]);
@@ -331,11 +227,11 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     // The same document again is the same CoA.
     expect(valueOf(await ap.call(routes.release.prepareCoa, { params: { lotId }, body: {} })).coas.map((c) => c.coaId)).toEqual([coa.coaId]);
     // QA's dated signature through the ceremony; a second one is refused.
-    await sign(ap, 'qcuAuthoriser', { kind: 'COA_ACT', act: 'COA_SIGN', subjectId: coa.coaId });
+    await signAs(gmp, ap, 'qcuAuthoriser', { kind: 'COA_ACT', act: 'COA_SIGN', subjectId: coa.coaId });
     const signed = valueOf(await ap.call(routes.release.coa, { params: { lotId } })).coas[0]!;
     expect(signed).toMatchObject({ coaId: coa.coaId, state: 'SIGNED', intact: true, signedBy: { legalName: personaIn(gmp, 'qcuAuthoriser').legalName } });
     expect(signed.signedAt).not.toBeNull();
-    await expect(sign(ap, 'qcuAuthoriser', { kind: 'COA_ACT', act: 'COA_SIGN', subjectId: coa.coaId })).rejects.toThrow(/EBMR-COA-004|SIGNED|PREPARED/);
+    await expect(signAs(gmp, ap, 'qcuAuthoriser', { kind: 'COA_ACT', act: 'COA_SIGN', subjectId: coa.coaId })).rejects.toThrow(/EBMR-COA-004|SIGNED|PREPARED/);
     const sig = (await gmp.db.admin.query<{ m: string; t: string }>('select meaning_code as m, aggregate_type as t from esig.signature where id = $1', [signed.signatureId])).rows[0];
     expect(sig).toEqual({ m: 'COA_APPROVED', t: 'substance_coa' });
     // The true copy never changes: the tables are insert-only, and the application role cannot write them at all.
@@ -345,7 +241,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect((await gmp.db.admin.query<{ c: string }>("select tab.aggregate_read_class('substance_coa') as c")).rows[0]?.c).toBe('RECORD');
   });
 
-  it('[IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)', async () => {
+  it('[AS-17][IN-30][DI-35] the licence holder\'s telephone is optional free text: a licence recorded without one signs the same content as before (no telephone member) and gives the CoA no telephone; a telephone with ; or = is refused (site-services 1735)', async () => {
     const regulatory = await gmp.asPersona('regulatory');
     const body = { licenceKind: 'MANUFACTURING' as const, form: '25' as const, holderName: 'Demo API Works Pvt Ltd', holderAddress: 'Plot 7, API Park, Hyderabad 500078',
       validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: `${PRODUCT.code}-T`, strength: PRODUCT.strength }] };
@@ -360,7 +256,7 @@ describe('API plan A1a: one API batch from library blocks to a released lot, ove
     expect(withPhone).toMatchObject({ holder_telephone: '+91 40 2345 6789' });
   });
 
-  it('[IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it', async () => {
+  it('[AS-17][IN-05][DI-41] a CoA fails closed: a lot that is no API finished lot has no CoA and none is prepared for it', async () => {
     const other = (await gmp.db.admin.query<{ d: { document: unknown; problems: string[] } }>('select substance.coa_document($1) as d', [randomUUID()])).rows[0]!.d;
     expect(other).toMatchObject({ document: null, problems: [expect.stringMatching(/no finished lot of the API edition/)] });
     const ap = await gmp.asPersona('qcuAuthoriser');

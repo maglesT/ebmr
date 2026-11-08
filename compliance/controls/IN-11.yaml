@@ -16,8 +16,6 @@ behaviour: "Any batch record can be exported as a package: rendered human-readab
 catalog_test: export a batch; alter one byte; hash verification fails.
 implemented_by: {}
 tests:
-  - "apps/tablets-server/test/library/library-batch-gmp.test.ts > smart fields of library entries on GMP (S6; tablets 1803) > [PR-19][IN-11] the database refuses equipment it does not hold, facts other than its register's, and equipment that is not fit for use"
-  - "apps/tablets-server/test/mutation/library-blocks.test.ts > smart fields of library entries (tablets 1803) > [PR-19][IN-11] equipment of another class than the formulation requires is refused; with no class required the class is not compared"
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification"
   - "packages/kernel/test/mutation/records-evidence-export.test.ts > the certification, the state and the signed content of one export among several (kernel 1171) > [IN-11] [DI-35] an unknown export is not certified; a signature of another export is refused for its binding"
   - "packages/kernel/test/mutation/records-evidence-export.test.ts > the certification, the state and the signed content of one export among several (kernel 1171) > [IN-11] the batch status a contingency pack reads is NULL where the database holds no batch store"
@@ -47,7 +45,6 @@ tests:
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-41] a PDF without the audit trail, or whose content SHA-256 is not its bundle's, is refused"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-41] an export whose bundle part was altered, even under a manifest made for it, is refused, so it can never be certified"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-46] export a batch; alter one byte; hash verification fails"
-  - "packages/recipe-core/test/library/block-version.test.ts > smart fields (S6): lots, equipment and hand-keyed weighings > [PR-19][IN-11] equipment must be of the class the formulation names and fit for use"
 clauses:
   - clause: "export a batch; alter one byte; hash verification fails."
     tests:
