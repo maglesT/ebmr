@@ -825,8 +825,9 @@ function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefi
     case 'phase':
       return phase(r, o, path);
     case 'stage': {
-      r.object(o, path, ['kind', 'id', 'name', 'binding', 'purpose', 'responsibleRole', 'body'], ['noYieldReason']);
+      r.object(o, path, ['kind', 'id', 'name', 'binding', 'purpose', 'responsibleRole', 'body'], ['noYieldReason', 'clearanceFrom']);
       const noYieldReason = r.string(o, 'noYieldReason', path);
+      const clearanceFrom = r.id(o, 'clearanceFrom', path);
       const id = r.id(o, 'id', path);
       const name = r.string(o, 'name', path);
       const purpose = r.literal(o, 'purpose', path, ['MATERIAL', 'NON_MATERIAL'] as const);
@@ -846,6 +847,7 @@ function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefi
       if (!(id && name && purpose && responsibleRole && binding && body)) return undefined;
       const stage: StageNode = { kind: 'stage', id, name, binding, purpose, responsibleRole, body };
       opt(stage, 'noYieldReason', noYieldReason);
+      opt(stage, 'clearanceFrom', clearanceFrom);
       return stage;
     }
     case 'operation': {

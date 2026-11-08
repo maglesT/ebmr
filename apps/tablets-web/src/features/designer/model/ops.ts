@@ -60,7 +60,7 @@ export type Op =
   | { kind: 'ADD_STAGE'; afterStageId: string | null; stage: flow.StageNode }
   | { kind: 'MOVE_STAGE'; stageId: string; direction: -1 | 1 }
   | { kind: 'DELETE_STAGE'; stageId: string }
-  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[]; noYieldReason?: string } }
+  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[]; noYieldReason?: string; clearanceFrom?: string } }
   | { kind: 'ADD_STAGE_EQUIPMENT'; stageId: string; equipment: flow.StageEquipment; reference?: flow.Reference }
   | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string }
   // Slice 7o (R4, R8 C3; D-7o-2): one more coat of the same tablets after a step (coating-layer.ts).
@@ -379,6 +379,11 @@ function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_ST
       if (op.patch.noYieldReason !== undefined) {
         if (op.patch.noYieldReason.trim() === '') delete stage.noYieldReason;
         else stage.noYieldReason = checkName(op.patch.noYieldReason, 'The reason for no yield');
+      }
+      // R-rest A6: the stage continues an earlier stage's clearance (the validator checks the room or line); empty removes it.
+      if (op.patch.clearanceFrom !== undefined) {
+        if (op.patch.clearanceFrom === '') delete stage.clearanceFrom;
+        else stage.clearanceFrom = op.patch.clearanceFrom;
       }
       return;
     }

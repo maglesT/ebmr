@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { MbrContent } from '../../src/flow/model.ts';
+import type { MbrContent, StageNode } from '../../src/flow/model.ts';
 import { parseMbr } from '../../src/flow/parse.ts';
 import { GENERIC_BLOCK_VERSIONS, MATERIAL_BLOCKS } from '../../src/blocks/generic/index.ts';
 import { checkMeaning } from '../../src/engine/actions.ts';
@@ -8,7 +8,7 @@ import type { ValidationContext } from '../../src/validator/types.ts';
 import { CONTENT_RULES } from '../../src/validator/rules-content.ts';
 import { gate, validateMbr } from '../../src/validator/validate.ts';
 import { define, param as engineParam, Run, T0 } from '../engine/support.ts';
-import { clone, context, errors, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, TEST_ROLES, validate, type FixtureName } from '../flow/support.ts';
+import { clone, context, errors, findNode, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, TEST_ROLES, validate, type FixtureName } from '../flow/support.ts';
 
 interface Deletion {
   item: string;
@@ -552,12 +552,29 @@ describe('risk-based reductions (IN-02)', () => {
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-SIGNIFICANT-STEPS')?.message).toMatch(/checked by one person only \(one-verifier mode, S5a\).*needs a declared reduction/);
   });
 
-  it('[IN-02] no second person on a clearance (S24) needs a declared reduction; with one it passes', () => {
-    const m = clone(loadFixture('tablet-granulation-compression'));
-    delete findPhase(m, 'p-blend-clear').signatures.check;
+  it('[IN-02][PR-14] R-rest A5: a processing clearance not marked significant needs one person in every edition; marked significant it needs a checker or the declared S24 reduction', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      // The author unticks "Significant step" (the G-10 block's default) and removes the checker.
+      delete findPhase(m, 'p-blend-clear').signatures.check;
+      findPhase(m, 'p-blend-clear').significant = false;
+      expect(errors(validate(m))).toEqual([]);
+      findPhase(m, 'p-blend-clear').significant = true;
+      expect(errors(validate(m)).find((f) => f.rule === 'GMP-SIGNIFICANT-STEPS')?.message).toMatch(/line clearance without a second person; that is a risk-based reduction \(S24\)/);
+      m.riskReductions.push({ id: 'RR-S24', kind: 'NO_SECOND_PERSON_CLEARANCE', subjects: ['p-blend-clear'], riskClass: 'LOW', rationale: 'RA-GRAN-01' });
+      expect(errors(validate(m))).toEqual([]);
+    }
+  });
+
+  it('[IN-02][PR-14] R-rest A5: a packaging clearance keeps its second person even unmarked (Schedule M Part VIII 7), or the declared S24 reduction', () => {
+    const m = clone(loadFixture('tablet-blister-packaging'));
+    const clear = findPhase(m, 'p-pri-clear');
+    delete clear.signatures.check;
+    clear.significant = false;
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-SIGNIFICANT-STEPS')?.message).toMatch(/line clearance without a second person; that is a risk-based reduction \(S24\)/);
-    m.riskReductions.push({ id: 'RR-S24', kind: 'NO_SECOND_PERSON_CLEARANCE', subjects: ['p-blend-clear'], riskClass: 'LOW', rationale: 'RA-GRAN-01' });
-    expect(errors(validate(m))).toEqual([]);
+    m.riskReductions.push({ id: 'RR-S24', kind: 'NO_SECOND_PERSON_CLEARANCE', subjects: ['p-pri-clear'], riskClass: 'LOW', rationale: m.riskReductions[0]?.rationale ?? 'RA-PACK-01' });
+    expect(errors(validate(m)).filter((f) => f.rule === 'GMP-SIGNIFICANT-STEPS')).toEqual([]);
   });
 
   it('[PR-52] review by exception on a step without a validation reference is an error at configuration time', () => {
@@ -614,5 +631,55 @@ describe('risk-based reductions (IN-02)', () => {
     delete findPhase(m, 'p-bulk-weigh').signatures.check;
     delete findPhase(m, 'p-bulk-weigh').system;
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-SIGNIFICANT-STEPS')?.message).toMatch(/is a significant step \(critical data entered by hand\) and needs a checker/);
+  });
+});
+
+describe('critical free text (R-rest A4)', () => {
+  it('[PR-03][DI-30] a critical text field is a warning in every edition; entered by hand it still needs its accuracy check', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      m.parameters.push({ ...param(m, 'driedNet'), id: 'lotRef', name: 'Granulation lot reference', valueType: 'TEXT', criticality: 'CRITICAL', capture: 'MANUAL', accuracyCheck: 'SECOND_PERSON', unit: undefined, precision: undefined, limits: undefined } as MbrContent['parameters'][number]);
+      const of = (mbr: MbrContent, rule: string) => validate(mbr).findings.filter((f) => f.rule === rule && f.subject === 'lotRef').map((f) => `${f.severity}: ${f.message}`);
+      expect(of(m, 'GMP-TYPED-FIELDS')).toEqual([expect.stringMatching(/^WARNING: .*\(lotRef\) is critical but free text/)]);
+      expect(of(m, 'GMP-CRITICAL-PARAMETERS')).toEqual([]);
+      delete param(m, 'lotRef').accuracyCheck;
+      expect(of(m, 'GMP-CRITICAL-PARAMETERS')).toEqual([expect.stringMatching(/^ERROR: .*no accuracy check/)]);
+    }
+  });
+});
+
+describe('a stage that continues an earlier clearance (R-rest A6)', () => {
+  const stage = (m: MbrContent, id: string): StageNode => findNode(m, id) as StageNode;
+  const clearanceFindings = (m: MbrContent): string[] => errors(validate(m)).filter((f) => f.rule === 'GMP-STAGE-CLEARANCE').map((f) => f.message);
+
+  it('[PR-03] a stage in the same room as an earlier one may continue its clearance, in every edition; the key round-trips', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      removeNode(m, 'p-comp-clear');
+      expect(clearanceFindings(m)).toEqual([expect.stringMatching(/Stage "Compression" \(S-COMP\) has no line or room clearance step/)]);
+      stage(m, 'S-COMP').binding.rooms = ['BLND-01'];
+      stage(m, 'S-COMP').clearanceFrom = 'S-BLEND';
+      expect(clearanceFindings(m)).toEqual([]);
+      const parsed = parseMbr(JSON.parse(JSON.stringify(m)));
+      if (!parsed.ok) throw new Error(JSON.stringify(parsed.problems));
+      expect((findNode(parsed.mbr, 'S-COMP') as StageNode).clearanceFrom).toBe('S-BLEND');
+    }
+  });
+
+  it('[PR-03] it is refused for another area, a node that is no stage, and a stage that runs later', () => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    removeNode(m, 'p-comp-clear');
+    stage(m, 'S-COMP').clearanceFrom = 'S-BLEND';
+    expect(clearanceFindings(m)).toEqual([expect.stringMatching(/continues the clearance of .*S-BLEND.*share no room or line/)]);
+    stage(m, 'S-COMP').clearanceFrom = 'p-blend-clear';
+    expect(clearanceFindings(m)).toEqual([expect.stringMatching(/continues the clearance of p-blend-clear, which is not another stage/)]);
+    const later = clone(loadFixture('tablet-granulation-compression'));
+    removeNode(later, 'p-blend-clear');
+    stage(later, 'S-BLEND').binding.rooms = ['COMP-01'];
+    stage(later, 'S-BLEND').clearanceFrom = 'S-COMP';
+    expect(clearanceFindings(later).length).toBeGreaterThan(0);
+    expect(clearanceFindings(later).every((t) => /can run before the clearance of stage .*S-COMP/.test(t))).toBe(true);
   });
 });

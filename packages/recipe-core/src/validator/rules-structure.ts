@@ -111,7 +111,9 @@ const constructs = defineRule('FLOW-CONSTRUCTS', 'Every construct is well formed
         if (n.children.length === 0 && !failedCalls.has(n.id)) out.push(error(n.id, `Sequence ${n.id} is empty`));
         break;
       case 'parallel':
-        if (n.branches.length < 2) out.push(error(n.id, `Parallel ${n.id} needs at least two branches`));
+        // Kept for an engine need (R-rest A1): the compiled AND split and join need two or more edges each
+        // (GRAPH-MATCHED, ENG-DEF-GRAPH); one branch is written as a plain sequence instead.
+        if (n.branches.length < 2) out.push(error(n.id, `Parallel ${n.id} needs at least two branches; write one branch as a plain sequence`));
         for (const b of n.branches) if (!hasStep(b.body)) out.push(error(n.id, `Branch ${b.id} of parallel ${n.id} contains no step`));
         break;
       case 'alternative': {

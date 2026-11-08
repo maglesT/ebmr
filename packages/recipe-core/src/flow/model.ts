@@ -314,6 +314,11 @@ export interface StageNode {
    * with the master; no further signature.
    */
   noYieldReason?: string;
+  /**
+   * The id of an earlier stage in the same room or on the same line whose clearance this stage continues (R-rest A6):
+   * the batch stays in the cleared area, so the stage needs no clearance step of its own.
+   */
+  clearanceFrom?: string;
   body: FlowNode;
 }
 

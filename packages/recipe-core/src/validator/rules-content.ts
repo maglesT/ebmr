@@ -65,7 +65,9 @@ const typedFields = defineRule('GMP-TYPED-FIELDS', 'Every data-entry point is a 
     if (p.valueType === 'CATEGORY' && (!p.categories || p.categories.length < 2 || new Set(p.categories).size !== p.categories.length)) {
       out.push(error(p.id, `${name} is a choice but lists fewer than two distinct values`));
     }
-    if (p.valueType === 'TEXT' && p.criticality === 'CRITICAL') out.push(error(p.id, `${name} is critical but free text; critical data must be typed (unit, precision, range or list)`));
+    // R-rest A4: no clause forbids critical free text; the binding part is the accuracy check on critical data entered by
+    // hand (EU Annex 11 section 6, DI-30), which GMP-CRITICAL-PARAMETERS still asks for. A warning suggests a list.
+    if (p.valueType === 'TEXT' && p.criticality === 'CRITICAL') out.push(warning(p.id, `${name} is critical but free text; a choice list or a typed value is easier to check`));
   }
   return out;
 });
@@ -136,7 +138,13 @@ const significantSteps = defineRule('GMP-SIGNIFICANT-STEPS', 'Performer plus che
     const clearance = d.roles.includes('CLEARANCE');
     // Critical data typed by hand always needs a second person (PR-14; outline 7.2 S5), with or without a photo.
     const criticalManual = p.records.some((id) => a.parameters.get(id)?.criticality === 'CRITICAL' && a.parameters.get(id)?.capture === 'MANUAL');
-    const significant = d.significant || p.significant || criticalManual;
+    // R-rest A5: a line clearance is not a significant step by its block alone. 21 CFR 211.130(e) and EU GMP 5.50 ask
+    // for the clearance and its record, not a second person; 211.188(b)(11) asks for one on a significant step, so a
+    // clearance the author marks significant, or one with critical data typed by hand, keeps it. Revised Schedule M
+    // Part VIII 7 asks for "an independent, recorded check" of counting, strip and blister machines before a new batch;
+    // the master does not say which machines a packaging line has, so a packaging clearance keeps its second person
+    // (or the declared S24 reduction for a line without them).
+    const significant = (clearance && a.mbr.header.recordKind !== 'PACKAGING' ? false : d.significant) || p.significant || criticalManual;
     const name = label(a, p.id);
     if (!p.signatures.perform) {
       if (!automated) out.push(error(p.id, `${name} has no performer signature`));
@@ -296,14 +304,31 @@ const stageClearance = defineRule('GMP-STAGE-CLEARANCE', 'Each stage starts with
     const bound = s.purpose === 'MATERIAL' || s.binding.rooms.length > 0 || s.binding.line !== undefined;
     if (!bound) continue;
     const ps = phasesIn(s.body);
-    if (!ps.some((p) => a.hasRole(p, 'CLEARANCE'))) {
-      out.push(error(s.id, `Stage ${label(a, s.id)} has no line or room clearance step; each stage starts with clearance`));
+    // R-rest A6: EU GMP 4.18(c) and 5.50 ask that the area is cleared before an operation starts, not that each stage
+    // clears again. A stage may continue the clearance of an earlier stage in the same room or on the same line (the
+    // batch has not left the cleared area); its steps then need that stage's clearance before them.
+    let cleared = s.id;
+    if (s.clearanceFrom !== undefined) {
+      const from = a.nodes.get(s.clearanceFrom)?.node;
+      const sameArea = from?.kind === 'stage' && (from.binding.rooms.some((r) => s.binding.rooms.includes(r)) || (from.binding.line !== undefined && from.binding.line === s.binding.line));
+      if (from?.kind !== 'stage' || from.id === s.id) {
+        out.push(error(s.id, `Stage ${label(a, s.id)} continues the clearance of ${s.clearanceFrom}, which is not another stage of the master`));
+        continue;
+      }
+      if (!sameArea) {
+        out.push(error(s.id, `Stage ${label(a, s.id)} continues the clearance of ${label(a, from.id)}, but they share no room or line; a stage in another area starts with its own clearance`));
+        continue;
+      }
+      if (!ps.some((p) => a.hasRole(p, 'CLEARANCE'))) cleared = from.id;
+    }
+    if (cleared === s.id && !ps.some((p) => a.hasRole(p, 'CLEARANCE'))) {
+      out.push(error(s.id, `Stage ${label(a, s.id)} has no line or room clearance step; each stage starts with clearance, or continues the clearance of an earlier stage in the same room or line`));
       continue;
     }
     for (const p of ps) {
       if (a.hasRole(p, 'CLEARANCE') || a.hasRole(p, 'INSTRUCTION')) continue;
       const t = a.taskOf(p.id);
-      if (t && !facts.get(t.id)?.has(`clear:${s.id}`)) out.push(error(p.id, `${label(a, p.id)} can run before the clearance of stage ${label(a, s.id)}; each stage starts with clearance`));
+      if (t && !facts.get(t.id)?.has(`clear:${cleared}`)) out.push(error(p.id, `${label(a, p.id)} can run before the clearance of stage ${label(a, cleared)}; each stage starts with clearance`));
     }
   }
   return out;
