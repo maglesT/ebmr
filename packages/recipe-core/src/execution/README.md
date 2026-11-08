@@ -1465,6 +1465,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   and unit words instead of placeholders.
 - `value-display.test.ts` (slice 7u, R10 #11): a computed value shown at its limits' precision, the stored value
   unchanged.
+- `refusal-code-prefixes.test.ts` (G3, tablets sql 1905): every refusal code the sources emit (ENG, LIB, Gnn, TBnn)
+  passes `recipe.refusal_problem` as tablets 1905 leaves it, so a refused library entry records its refusal.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures. REPLAY-GATE (decision REPLAY-GATE.1): a computed value

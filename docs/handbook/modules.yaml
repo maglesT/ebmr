@@ -1112,7 +1112,7 @@ modules:
     package: apps/tablets-server
     migrations:
       apps/tablets-server/sql:
-        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_', '^1320_', '^1903_', '^1906_']
+        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_', '^1320_', '^1903_', '^1905_', '^1906_']
     server: [apps/tablets-server/src/features/execution]
     contract: [packages/api-contract/src/ns/execution.ts, packages/api-contract/src/ns/batches.ts]
     screens: [apps/tablets-web/src/features/floor]
