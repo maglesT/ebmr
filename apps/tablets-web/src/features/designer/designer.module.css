@@ -37,6 +37,8 @@
 }
 .document {
   min-width: 0;
+  /* D-7 (item 12): a procedure wider than its column scrolls inside it, never under the sticky findings panel. */
+  overflow-x: auto;
 }
 .side {
   position: sticky;
