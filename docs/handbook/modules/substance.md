@@ -45,7 +45,7 @@ material is a G-24 step with QA's signed authorisation (recipe-core 0621, 0622).
 
 ## The certificate of analysis (plan C3, AS-17)
 
-Migration 5005. The CoA of a released finished lot of the API edition is read only from existing records
+Migrations 5005 and 5006 (5006 enters AS-17 in the names a test run may cite, `recipe.engine_name`). The CoA of a released finished lot of the API edition is read only from existing records
 (`substance.coa_document`): the product's name and grade (the monograph reference of the specification in effect), the
 lot and batch numbers, the release date (the manufacturer release decision), the retest and expiry dates, each test of the
 specification with its limits and the latest approved result, and the manufacturer's name and address from the
