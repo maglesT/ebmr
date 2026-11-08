@@ -38,8 +38,10 @@ const D2_UNHOOK: Record<string, string[]> = {
  */
 const EMBEDDED: Record<string, string[]> = {
   'features/floor/pages/StepScreen.tsx': ['plant-status'], // BatchAlarmLog: alarms stay connected
-  'features/review/BatchReviewPage.tsx': ['plant-status'], // BatchAlarmLog: alarms stay connected
-  'features/release/LotReleasePage.tsx': ['genealogy', 'notifications'], // RecurrenceWarning hides on error; DecisionNotifications
+  // BatchAlarmLog: alarms stay connected. BatchRecordPdfButton: archive.pdf stays connected (owner request, 8 November 2026).
+  'features/review/BatchReviewPage.tsx': ['archive', 'plant-status'],
+  // RecurrenceWarning hides on error; DecisionNotifications; BatchRecordPdfButton (archive.pdf stays connected).
+  'features/release/LotReleasePage.tsx': ['archive', 'genealogy', 'notifications'],
   'features/review/AuditTrailPanel.tsx': ['analytics-audit'], // useFlaggedEntries ignores errors
   'features/review/ReviewQueuePage.tsx': ['analytics-review'], // PriorityNote and QueueOrderingBand make no call
 };

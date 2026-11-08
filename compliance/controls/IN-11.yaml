@@ -17,6 +17,9 @@ catalog_test: export a batch; alter one byte; hash verification fails.
 implemented_by: {}
 tests:
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification"
+  - "apps/tablets-server/test/records/batch-record-pdf.test.ts > the batch record PDF of the review and release pages (owner request) > [DI-41][IN-11] with EBMR_DISCONNECT=1 the route stays served and returns that batch's own true copy; another batch gives another content"
+  - "apps/tablets-web/test/archive/batch-record-pdf.test.tsx > [DI-41] the batch record PDF on the review and release pages (owner request) > [DI-41][IN-11] the release page offers QA the batch's PDF/A-3 true copy and reads it for that batch"
+  - "apps/tablets-web/test/archive/batch-record-pdf.test.tsx > [DI-41] the batch record PDF on the review and release pages (owner request) > [DI-41][IN-11] the review page offers QA the batch's PDF/A-3 true copy and reads it for that batch"
   - "packages/kernel/test/mutation/records-evidence-export.test.ts > the certification, the state and the signed content of one export among several (kernel 1171) > [IN-11] [DI-35] an unknown export is not certified; a signature of another export is refused for its binding"
   - "packages/kernel/test/mutation/records-evidence-export.test.ts > the certification, the state and the signed content of one export among several (kernel 1171) > [IN-11] the batch status a contingency pack reads is NULL where the database holds no batch store"
   - "packages/kernel/test/mutation/records-evidence-export.test.ts > what an evidence export package must be (kernel 1174, records.register_evidence_export) > [IN-11] [DI-41] a PDF embeds the record, its audit trail and its content descriptor, each as the true copy has it"
