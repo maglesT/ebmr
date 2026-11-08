@@ -87,6 +87,26 @@ test('release cockpit: red and green items with evidence, a signed rejection, an
     return { red: await checklist.locator('[data-status="RED"]').count(), green: await checklist.locator('[data-status="GREEN"]').count() };
   }, page);
 
+  // The batch record PDF is a true copy (RECORD.TRUE_COPY_REGISTER): the authorised person does not hold it, so the button
+  // is not offered to them (the server refuses them, EBMR-IAM-040); a QA reviewer, who holds it, saves the PDF.
+  await evidence.step('The release page offers the authorised person no PDF button; a QA reviewer saves the batch record as a PDF from it', 'Not offered to the authorised person, who lacks the true-copy permission; for the QA reviewer the "Batch record (PDF)" button saves the batch\'s PDF/A-3 true copy, named after the batch (owner request; 21 CFR 211.180(c), 211.188; Annex 11 8.1)', async () => {
+    await expect(page.getByRole('button', { name: 'Batch record (PDF)' })).toHaveCount(0);
+    const lotPage = page.url();
+    const qp = await officePage('GMP', 'PC-QA-02');
+    await signIn.office(qp, qa);
+    await qp.goto(lotPage);
+    const box = qp.getByTestId('batch-record-pdf');
+    const answer = qp.waitForResponse((r) => /\/api\/archive\/batches\/[^/]+\/pdf$/.test(new URL(r.url()).pathname), { timeout: 60_000 });
+    await box.getByRole('button', { name: 'Batch record (PDF)' }).click();
+    const res = await answer;
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { fileName: string; pdfBase64: string };
+    expect(body.fileName).toMatch(/-true-copy\.pdf$/);
+    expect(Buffer.from(body.pdfBase64, 'base64').subarray(0, 8).toString('latin1')).toBe('%PDF-1.7');
+    await qp.context().close();
+    return { file: body.fileName };
+  }, page);
+
   await evidence.step('Any "since review" item is acknowledged one by one', 'Each acknowledgement is the person\'s own at the epoch shown', async () => {
     const since = page.getByTestId('since-review');
     let acknowledged = 0;

@@ -97,6 +97,12 @@ export const TILE_READS: Readonly<Record<string, string | null>> = {
   validation: "validation.summary",
 };
 
+/**
+ * Reads a button names outside the home (the batch record PDF on the review and release pages): readOffered decides
+ * whether the button is shown, from the same table and the same matrix as the tiles.
+ */
+export const BUTTON_READS: readonly string[] = ["archive.pdf"];
+
 export const READ_REFUSED: Readonly<
   Record<"GMP" | "SANDBOX", Readonly<Record<string, readonly string[]>>>
 > = {
@@ -274,6 +280,37 @@ export const READ_REFUSED: Readonly<
       "WAREHOUSE_LABELLING",
     ],
     "archive.batches": ["CONTRACT_GIVER_REVIEWER", "EU_QP_READER"],
+    "archive.pdf": [
+      "AUDITOR_READONLY",
+      "AUTHORISED_PERSON",
+      "BATCH_ISSUER",
+      "BREAK_GLASS_ADMIN",
+      "CONTRACT_GIVER_REVIEWER",
+      "CSV_DI_LEAD",
+      "DISPENSER",
+      "EU_QP",
+      "EU_QP_READER",
+      "HEAD_OF_PRODUCTION",
+      "HEAD_OF_QC",
+      "INSPECTION_READER",
+      "MAINTENANCE_TECHNICIAN",
+      "MASTER_DATA_STEWARD",
+      "MBR_AUTHOR",
+      "MBR_CHECKER",
+      "OPERATOR",
+      "PROCESS_OWNER",
+      "QA_MBR_APPROVER",
+      "QA_SHOP_FLOOR",
+      "QC_ANALYST",
+      "REGULATORY_SIGNER",
+      "SHIFT_SUPERVISOR",
+      "STAGE_RESPONSIBLE",
+      "SYSTEM_ADMINISTRATOR",
+      "TRAINING_COORDINATOR",
+      "US_QCU_SIGNER",
+      "VERIFIER",
+      "WAREHOUSE_LABELLING",
+    ],
     "archive.inspection": [
       "AUDITOR_READONLY",
       "AUTHORISED_PERSON",

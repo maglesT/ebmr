@@ -1,4 +1,4 @@
-# Demo gaps: resume notes (7 November 2026)
+# Demo gaps: resume notes (8 November 2026, handover)
 
 The lead session (session_01PybpFuUgimTwCNtTsK7cf1) coordinates. A fresh session starts from this file, `plan.md`
 and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_message` tool.
@@ -32,9 +32,11 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 | R-flow (`r-flow.md`) | #162 | merged (8a159db) |
 | R-rest Part A, the validator rows (`r-rest.md`) | #180 | merged (af7cfff) |
 | D-4 demo catalogue approved, badge names the replacement (`d4-catalogue.md`) | #181 | merged (83f0cbf) |
-| D-8 own calculations, names, yield, limit sources (`d8-calcs.md`) | #182 (branch `designer/d8-calcs`) | main merged in; base is main |
+| D-8 own calculations, names, yield, limit sources (`d8-calcs.md`) | #182 | merged (4d74809) |
 | R-rest Part B (SQL rows; recipe-core 1880) | not started | plan in `r-rest.md` |
-| D-5 to D-7 | not started | D-5 copied names (with item 13), D-6 equipment class from the plant, D-7 findings panel at 1400 px |
+| D-5 copied names, intermediate names (`d5-copied-names.md`) | #187 | E2E own-p3, gmp-batches, own-demotab, rest green (on fabebd0, before main merged in); local `pnpm run ci`, golden, trace were running at handover (logs in the old session's scratchpad): re-run them on the head, post the counts, merge |
+| D-6 library equipment class from the plant's classes (`d6-plant-classes.md`) | #188 | lead's option A; the 7 library groups green in one run (42492831639); local `pnpm run ci`, golden, trace still to run |
+| D-7 findings panel at 1400 px (`d7-findings-panel.md`) | #189 | reproduced (fails without the CSS); E2E rest on the fix commit was running (42497427114); main merged in after (52d0790, list-only); local `pnpm run ci`, golden, trace still to run |
 
 ## The lead's rulings in force (7 and 8 November 2026)
 
@@ -50,6 +52,13 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 - A11 GMP-RISK: an MBR-level criticality assessment (`header.criticalityAssessment`) covers the non-critical items.
 - D-4: demo:setup approves the seed catalogue through the real signed act. Each approval carries the reason "Demo
   set-up: seed catalogue approved by the demo QA persona (demo:setup)". It runs on demo databases only.
+- D-5: pairing by role only, 1:1 in formula order, no rename for an unpaired line; the copy's first revision note
+  names the renames for the author to check.
+- D-6: option A. A WARNING (GMP-EQUIPMENT-CLASS-PLANT), not an error; a saved non-plant class is shown marked; free
+  text only when the class list cannot be read; the E2E flows define plant classes before the master (order only).
+  Residual: the stage-binding picker still lists the document-management EQUIPMENT_CLASS records.
+- #184 (PDF button): nobody's rights widened; archive.pdf checks RECORD.TRUE_COPY_REGISTER first, the matrix and
+  READ_REFUSED record it; granting the authorised person the true-copy read is an owner option.
 - D-8 conditions:
   1. The five ops work on DRAFT only; tested refused on an approved master.
   2. The limit source is a recorded reference, not a gate (21 CFR 211.160(b)). The model already needs a source on
@@ -71,9 +80,12 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 
 ## Next for the new session
 
-1. D-8 (#182): main merged in; squash-merge on green.
+1. #187 (D-5), #188 (D-6), #189 (D-7): run `pnpm run ci`, the golden batches and the trace locally on each head (the
+   lead's split), post the counts, and squash-merge each when green. Merge main in first where it moved (list-only
+   resolutions in `compliance/controls/*.yaml`, then `pnpm register:sort-tests`).
 2. R-rest Part B (recipe-core 1880; ask the lead for a second number).
-3. Plan D-5 to D-7 and send each plan to the lead before building.
+3. The run-time gaps are done but for the notes in `docs/build-plan/runtime-gaps/resume.md` (G1 to G9, G11, G12 merged;
+   #172, #183, #184 merged on 8 November).
 
 ## Learned on the way
 
@@ -100,3 +112,9 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
   `chromium_headless_shell-1194/chrome-linux/headless_shell` and `chromium-1194/chrome-linux`, linked to the installed
   1243 builds (`chrome-headless-shell-linux64/chrome-headless-shell` and `chrome-linux64`).
 - A yield outside its limits raises YIELD_OUT_OF_LIMITS (not LIMIT_BREACH), and the run waits on it.
+- A route that looks up its record before it checks the permission reads "A" (404) in the route-by-role matrix for a
+  role the server refuses on a real record (#184). Check the permission first, then re-record the matrix
+  (`EBMR_WRITE_MATRIX=1`) and regenerate READ_REFUSED from its F cells (home-tiles.test.tsx).
+- A layout E2E check must probe the case that fails: the first form of the D-7 check passed without the fix. Measure
+  first (page.evaluate with bounding boxes), then assert on the measured case.
+- Local E2E of one spec: about 23 minutes on 4 cores (global set-up of both servers dominates).
