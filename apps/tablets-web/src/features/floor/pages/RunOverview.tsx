@@ -344,7 +344,7 @@ export function RunOverviewPage() {
       <RaiseExceptionDialog isOpen={open?.kind === 'RAISE_EXCEPTION'} onClose={close} runId={runId} expectedVersion={view.header.version} stepKey={null} />
       {open?.kind === 'RELEASE_HOLD' ? <ReleaseHoldDialog isOpen onClose={close} runId={runId} expectedVersion={view.header.version} stepKey={null} hold={open.hold} /> : null}
       {open?.kind === 'ATTACH_DEVIATION' ? (
-        <LinkDeviationDialog isOpen onClose={close} runId={runId} expectedVersion={view.header.version} stepKey={null} exception={exceptionNamed(open.exception)} />
+        <LinkDeviationDialog isOpen onClose={close} runId={runId} expectedVersion={view.header.version} stepKey={null} exception={exceptionNamed(open.exception)} gmp={view.header.watermark === null} />
       ) : null}
       {open?.kind === 'DISPOSITION_EXCEPTION' ? (
         <DispositionDialog

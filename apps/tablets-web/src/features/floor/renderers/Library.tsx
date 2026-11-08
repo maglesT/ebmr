@@ -186,6 +186,9 @@ function FieldInput({ f, config, drafts, set, disabled }: { f: FieldDef; config:
     case 'CALC':
     case 'TIMER':
       return null;
+    case 'CONTAINER':
+      // G7 (lead's ruling): an identifier only; the master's G-22 output and G-08 charge steps record the genealogy.
+      return <Field name={name} label={library.containerFieldLabel(f)} value={drafts[f.id] ?? ''} onChange={(v) => set(f.id, v)} isDisabled={disabled} {...(f.help !== undefined ? { description: f.help } : {})} />;
     default:
       return <Field name={name} label={f.label} value={drafts[f.id] ?? ''} onChange={(v) => set(f.id, v)} isDisabled={disabled} {...(f.help !== undefined ? { description: f.help } : {})} />;
   }

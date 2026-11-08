@@ -86,6 +86,16 @@ describe('the generic library renderer', () => {
     expect(ClientEntry.safeParse(entry).success).toBe(true);
   });
 
+  it('[PR-21][DI-33] a library container field reads as an identifier only; the genealogy is recorded at the output or charge step (G7)', async () => {
+    const def = { ...DEF, sections: [{ id: 'run', title: 'Run', fields: [{ id: 'blendIn', label: 'Blend container', type: 'CONTAINER', action: 'CONSUME' }, { id: 'out', label: 'Core container', type: 'CONTAINER', action: 'REGISTER' }] }] };
+    const view = libraryStep(def, {});
+    renderFloor(stepPath('p-lib@'), { fixtures: stepFixtures(view), intercept: ok(view) });
+    const form = await screen.findByTestId('lib-section-run');
+    expect(within(form).getByRole('textbox', { name: 'Blend container ID (reference; genealogy is recorded at the charge step)' })).toBeTruthy();
+    expect(within(form).getByRole('textbox', { name: 'Core container ID (reference; genealogy is recorded at the output step)' })).toBeTruthy();
+    expect(within(form).queryByRole('textbox', { name: 'Blend container' })).toBeNull();
+  });
+
   it('[DI-33] a conditional field appears only when its condition holds, and is then required', async () => {
     const view = libraryStep();
     renderFloor(stepPath('p-lib@'), { fixtures: stepFixtures(view), intercept: ok(view) });

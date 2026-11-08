@@ -12,9 +12,9 @@ import { z } from 'zod';
 import { DecimalString, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
-const Code = z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/);
-const TestCode = z.string().regex(/^[A-Z0-9][A-Z0-9_.-]{0,39}$/);
-const Unit = z.string().regex(/^[!-~]{1,32}$/);
+const Code = z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/, 'capital letters and digits, with / . _ or -, up to 40 characters (e.g. SPEC-PARA-500)');
+const TestCode = z.string().regex(/^[A-Z0-9][A-Z0-9_.-]{0,39}$/, 'capital letters and digits, with _ . or -, up to 40 characters (e.g. ASSAY)');
+const Unit = z.string().regex(/^[!-~]{1,32}$/, 'a unit without spaces, e.g. % or mg');
 export const Pharmacopoeia = z.enum(['IP', 'BP', 'PH_EUR', 'USP', 'IN_HOUSE']);
 const Edition = z.string().trim().min(1).max(32);
 

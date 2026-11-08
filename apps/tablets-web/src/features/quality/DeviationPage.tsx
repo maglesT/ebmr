@@ -12,6 +12,7 @@ import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
+import { useDisconnectedServer } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
@@ -28,6 +29,8 @@ export function DeviationPage() {
 
 function DeviationRecord({ d }: { d: DeviationView }) {
   const qa = useOffered('QA');
+  // Reclassifying and cancelling stay with the Deviations product when disconnected (api-contract disconnected.ts).
+  const disconnected = useDisconnectedServer();
   const open = d.state !== 'CLOSED' && d.state !== 'CANCELLED';
   const investigating = d.state === 'UNDER_INVESTIGATION' || d.state === 'IMPACT_ASSESSED';
   return (
@@ -53,7 +56,7 @@ function DeviationRecord({ d }: { d: DeviationView }) {
       <DeviationDetail deviationId={d.deviationId} />
       {investigating ? <FindingForm deviationId={d.deviationId} /> : null}
       {qa && (investigating || d.state === 'PENDING_CLOSURE') ? <SignedActs d={d} /> : null}
-      {qa && d.state === 'OPEN' ? <CancelForm deviationId={d.deviationId} /> : null}
+      {qa && d.state === 'OPEN' && !disconnected ? <CancelForm deviationId={d.deviationId} /> : null}
     </>
   );
 }

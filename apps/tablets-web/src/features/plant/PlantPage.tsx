@@ -246,7 +246,14 @@ function EquipmentEventForm() {
       />
       {event === 'EVENT' ? <FieldInput field={{ name: 'kind', label: 'Event', kind: 'choice', options: EVENT_KINDS }} value={values['kind'] ?? ''} onChange={set('kind')} /> : null}
       <Field name="detail" label="Detail" value={values['detail'] ?? ''} onChange={set('detail')} />
-      <Field name="reference" label={event === 'REPAIR' ? 'Work order reference' : 'Reference (optional)'} value={values['reference'] ?? ''} onChange={set('reference')} />
+      {/* G5 (owner report item 22): a qualification or a repair names its reference (recipe-core 0400's table rule). */}
+      <Field
+        name="reference"
+        label={event === 'REPAIR' ? 'Work order reference' : values['kind'] === 'QUALIFIED' || values['kind'] === 'REPAIRED' ? 'Reference (required: the qualification report or work order)' : 'Reference (optional)'}
+        value={values['reference'] ?? ''}
+        onChange={set('reference')}
+        isRequired={event === 'REPAIR' || values['kind'] === 'QUALIFIED' || values['kind'] === 'REPAIRED'}
+      />
       {event === 'EVENT' && values['kind'] === 'FAILURE_SIGNALLED' ? <Field name="batchNumber" label="Batch it was signalled in" value={values['batchNumber'] ?? ''} onChange={set('batchNumber')} /> : null}
       <ActButton
         label="Record in the logbook"
@@ -256,7 +263,7 @@ function EquipmentEventForm() {
             if (r) setValues({});
           }
         }}
-        disabled={!parsed?.success || code.trim() === '' || cmd.busy}
+        disabled={!parsed?.success || code.trim() === '' || cmd.busy || ((values['kind'] === 'QUALIFIED' || values['kind'] === 'REPAIRED') && event === 'EVENT' && (values['reference'] ?? '').trim() === '')}
       />
       <ActResult error={cmd.error} done={cmd.done} label={event === 'REPAIR' ? 'Repair recorded: a second person verifies it.' : 'Recorded.'} />
     </>

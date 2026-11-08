@@ -658,6 +658,26 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   };
 }
 
+/**
+ * G7 (lead's ruling, 8 November 2026, option 1): a library CONTAINER field records the identifier the person read off the
+ * container, nothing more. It registers and consumes nothing: genealogy is recorded by the guarded G-22 output step and
+ * G-08 charge step of the master. So its label on the step screen and in the record reads as a reference only, never as
+ * if it had registered or consumed the container (the record says what was actually done).
+ */
+export function containerFieldLabel(f: { label: string; action: 'REGISTER' | 'CONSUME' }): string {
+  return `${f.label} ID (reference; genealogy is recorded at the ${f.action === 'REGISTER' ? 'output' : 'charge'} step)`;
+}
+
+/** Decimals a calculated value is shown with when its field names none (G6, owner report item 24: 96.80495946590367 %). */
+export const CALC_DISPLAY_DECIMALS = 4;
+
+/** A calculated value at `decimals` decimals, half-up, for display only; text that is not a decimal is shown as it is. */
+export function shownCalc(exact: string, decimals: number): string {
+  const i = exact.indexOf('.');
+  if (i < 0 || exact.length - i - 1 <= decimals || !/^-?[0-9]+\.[0-9]+$/.test(exact)) return exact;
+  return Dec.parse(exact).toFixed(decimals, 'HALF_UP');
+}
+
 /** One recorded value as people read it: the label, the value and its unit; a calculated value says so. */
 function valueText(f: FieldDef, v: unknown): string | undefined {
   if (v === undefined || v === null) return undefined;
@@ -667,13 +687,19 @@ function valueText(f: FieldDef, v: unknown): string | undefined {
     case 'NUMBER':
     case 'WEIGHING':
       return `${f.label} ${text(v)} ${f.unit}`;
-    case 'CALC':
-      return `${f.label} ${text((v as { value?: unknown }).value)} ${f.unit} (calculated)`;
+    case 'CALC': {
+      const exact = text((v as { value?: unknown }).value);
+      const d = f.decimals ?? CALC_DISPLAY_DECIMALS;
+      const shown = shownCalc(exact, d);
+      return shown === exact ? `${f.label} ${exact} ${f.unit} (calculated)` : `${f.label} ${shown} ${f.unit} (calculated; shown rounded half-up to ${d} decimal${d === 1 ? "" : "s"}, the exact value is kept)`;
+    }
     case 'TEST_RESULT':
       if (Array.isArray(v)) return `${f.label}: ${v.map(text).join(', ')} ${f.unit}`;
       return `${f.label}: ${Object.entries(v as Record<string, unknown[]>).map(([p, rs]) => `${p} ${rs.map(text).join(', ')}`).join('; ')} ${f.unit}`;
     case 'SAMPLE':
       return `${f.label}: ${text(v)} units`;
+    case 'CONTAINER':
+      return `${containerFieldLabel(f)}: ${text(v)}`;
     default:
       return `${f.label}: ${text(v)}`;
   }

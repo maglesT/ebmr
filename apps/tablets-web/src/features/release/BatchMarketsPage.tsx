@@ -16,6 +16,7 @@ import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
 import { MarketAddEvaluation } from './MarketTabs.tsx';
 import { RELEASE_READS, words } from './reads.ts';
+import { DeviationBatch } from '../quality/BatchDeviation.tsx';
 
 // India is never added or removed (INV-28: every batch is made under an Indian licence; the database refuses it).
 const MARKETS: readonly ReleaseMarket[] = ['US', 'EU'];
@@ -29,7 +30,7 @@ export function BatchMarketsPage() {
   const market = MARKETS.find((m) => m === choice);
   const b = batch.data;
   return (
-    <>
+    <DeviationBatch batchId={batchId}>
       <h1>Markets of batch {b ? b.batchNumber : batchId}</h1>
       {batch.error ? <RefusalMessage error={batch.error.error} /> : null}
       {b ? (
@@ -43,7 +44,7 @@ export function BatchMarketsPage() {
       ) : null}
       <floor.ChoiceGroup label="Market" options={MARKETS.map((m) => ({ value: m, label: m }))} value={choice} onChange={setChoice} />
       {market && b ? <BatchMarket key={market} batchId={batchId} batchNumber={b.batchNumber} market={market} inSet={b.markets.includes(market)} offered={qa} /> : null}
-    </>
+    </DeviationBatch>
   );
 }
 
