@@ -36,7 +36,8 @@ export interface FeatureSeedContext {
    * home terminal) with `meaning` over the aggregate in `expectedState`, through the kernel's ceremony (challenge,
    * authentication for the signature, seal with the installation's DEMO-ONLY seal key). Returns the signature id.
    */
-  signAs(signer: string, aggregate: { type: string; id: string }, meaning: string, expectedState: string | null): Promise<string>;
+  /** `reasonText` (D-4): the signer's reason when the set-up's default ("demo installation set-up") does not say enough. */
+  signAs(signer: string, aggregate: { type: string; id: string }, meaning: string, expectedState: string | null, reasonText?: string): Promise<string>;
   exchangeDir: string;
   /** Sandbox: base64 SPKI of the site gateway's Ed25519 key (set-up `--gateway-spki`); null when none was given. */
   gatewaySpki: string | null;

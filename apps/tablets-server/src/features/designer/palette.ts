@@ -26,6 +26,10 @@ const HIDDEN = new Set<string>();
 /** Decision 0026 O-6: a block an author no longer inserts (the tablet blocks; the library replaces them). */
 export const retiredFromPalette = (type: string): boolean => /^TB-\d{2}$/.test(type);
 export const RETIRED_BADGE = 'existing masters only (library replaces it)';
+/** D-4: the library block that replaces a retired tablet block, where the catalogue has one (decision 0026 O-6). */
+export const LIBRARY_REPLACEMENT: Readonly<Record<string, string>> = { 'TB-04': 'PROC-RMG', 'TB-05': 'PROC-FBD', 'TB-18': 'COAT- blocks' };
+/** The badge of a retired block: naming its library replacement when there is one. */
+export const retiredBadge = (type: string): string => (LIBRARY_REPLACEMENT[type] ? `existing masters only (use the library's ${LIBRARY_REPLACEMENT[type]})` : RETIRED_BADGE);
 
 /** Plain names an author recognises from a paper batch record. */
 export const PLAIN_NAMES: Readonly<Record<string, string>> = {
@@ -107,7 +111,7 @@ export function paletteBlocks(registry: blocks.BlockRegistry = tabletsBlockRegis
       roles: [...(d?.roles ?? [])],
       significant: d?.significant ?? false,
       availability,
-      badge: retiredFromPalette(b.type) ? RETIRED_BADGE : availability === 'SANDBOX_ONLY' ? 'sandbox only' : null,
+      badge: retiredFromPalette(b.type) ? retiredBadge(b.type) : availability === 'SANDBOX_ONLY' ? 'sandbox only' : null,
       insertable: !retiredFromPalette(b.type),
       configSchema: schemaJson(schema),
       defaultConfig: b.level === 'HOLD_POINT' ? {} : (defaultConfig(schema) as Record<string, Json>),
