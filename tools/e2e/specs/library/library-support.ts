@@ -145,6 +145,34 @@ export interface PlantUnit {
   area: string;
 }
 
+/** The unit's class on the Plant definitions screen, unless the plant already lists it (D-6: defined before the master). */
+async function defineClass(page: Page, u: PlantUnit): Promise<void> {
+  await choose(page.getByRole('radiogroup', { name: 'Show' }).getByRole('radio', { name: 'Equipment classes', exact: true }));
+  const table = page.getByRole('table', { name: 'Equipment classes' });
+  await expect(table).toBeVisible();
+  if ((await table.getByRole('cell', { name: u.classCode, exact: true }).count()) > 0) return;
+  const cf = page.getByRole('form', { name: 'Define: Equipment classes' });
+  await cf.getByRole('textbox', { name: 'Code', exact: true }).fill(u.classCode);
+  await choose(cf.getByRole('radiogroup', { name: 'Kind' }).getByRole('radio', { name: u.classKind, exact: true }));
+  await cf.getByRole('textbox', { name: 'Description', exact: true }).fill(u.classDescription);
+  await cf.getByRole('button', { name: 'Define' }).click();
+  await expect(table).toContainText(u.classCode);
+}
+
+/**
+ * D-6: the steward defines on the plant the classes of these units that it does not list yet, before a master names
+ * them (the designer offers the plant's classes; the validator warns of one the plant lacks). The units come later.
+ */
+export async function definePlantClasses(page: Page, base: string, units: readonly PlantUnit[]): Promise<void> {
+  await page.goto(`${base}/master-data/plant`);
+  const seen = new Set<string>();
+  for (const u of units) {
+    if (seen.has(u.classCode)) continue;
+    seen.add(u.classCode);
+    await defineClass(page, u);
+  }
+}
+
 /**
  * The steward defines each unit's class and the unit on the Plant definitions screen and records its qualification in
  * the equipment logbook: the plant's data, entered on screen (a process unit needs no calibration).
@@ -152,13 +180,7 @@ export interface PlantUnit {
 export async function registerPlantUnits(page: Page, base: string, units: readonly PlantUnit[]): Promise<void> {
   await page.goto(`${base}/master-data/plant`);
   for (const u of units) {
-    await choose(page.getByRole('radiogroup', { name: 'Show' }).getByRole('radio', { name: 'Equipment classes', exact: true }));
-    const cf = page.getByRole('form', { name: 'Define: Equipment classes' });
-    await cf.getByRole('textbox', { name: 'Code', exact: true }).fill(u.classCode);
-    await choose(cf.getByRole('radiogroup', { name: 'Kind' }).getByRole('radio', { name: u.classKind, exact: true }));
-    await cf.getByRole('textbox', { name: 'Description', exact: true }).fill(u.classDescription);
-    await cf.getByRole('button', { name: 'Define' }).click();
-    await expect(page.getByRole('table', { name: 'Equipment classes' })).toContainText(u.classCode);
+    await defineClass(page, u);
     await choose(page.getByRole('radiogroup', { name: 'Show' }).getByRole('radio', { name: 'Equipment', exact: true }));
     const ef = page.getByRole('form', { name: 'Define: Equipment' });
     await ef.getByRole('textbox', { name: 'Code', exact: true }).fill(u.code);
@@ -253,7 +275,8 @@ async function fillValues(page: Page, b: ProductBlock): Promise<void> {
         break;
       }
       case 'EQUIPMENT_CLASS':
-        await commit(form, `Equipment class for ${s.owner}`, use.equipmentClasses?.[s.name] ?? '');
+        // D-6: the class is chosen from the plant's classes (this flow defines them on the plant before the master).
+        await form.getByRole('combobox', { name: `Equipment class for ${s.owner}`, exact: true }).selectOption(use.equipmentClasses?.[s.name] ?? '');
         break;
       case 'COUNT':
         await commit(form, `Number for ${label}`, use.counts?.[s.name] ?? '');

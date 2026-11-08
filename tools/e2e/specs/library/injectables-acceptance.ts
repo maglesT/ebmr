@@ -19,7 +19,7 @@ import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
 import { authoriseIn, changeControl, checksPass, fourSignatures, home, importEvidence, saveProduct, saveRevision, sendToSandbox } from '../phase7/own-product-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
 
 
 interface Injectable {
@@ -266,6 +266,16 @@ export function defineInjectablesAcceptance(productKey: string): void {
       await expect(a.getByText('Blending and lubrication')).toHaveCount(0);
       return { versionId };
     }, a);
+
+    // D-6: the classes the product's library blocks name are on the GMP plant before the master names them (the designer
+    // offers the plant's classes); the units and their qualification come later, as before.
+    const named = [...t.plant];
+    if (named.length > 0) {
+      await evidence.step('The steward defines on the GMP plant the equipment classes the product\'s library blocks name', 'Each class listed on Plant definitions', async () => {
+        await definePlantClasses(s, e2e.url('GMP'), named);
+        return { classes: [...new Set(named.map((u) => u.classCode))].join(', ') };
+      }, s);
+    }
 
     await evidence.step('The author adds the product\'s library blocks after the dispensing of the other components with the product\'s values; the checks pass', 'Each block pinned with its version and content hash; the values form shows no problem; the revision saved', async () => {
       await addLibraryBlocks(a, 'p-disp-exc', t.steps);

@@ -110,6 +110,11 @@ export interface ValidationContext {
   market?: MarketMinimaPort;
   /** Absent: the roles cannot be checked and the validation fails closed (error FLOW-ROLES). */
   roles?: RoleVocabularyPort;
+  /**
+   * D-6: the plant's equipment class codes (plant.equipment_class). Absent (the web's own check, a simulation job): a
+   * library block's equipment class is not compared with the plant's, and GMP-EQUIPMENT-CLASS-PLANT says nothing.
+   */
+  plantClasses?: readonly string[];
   /** Validation date (YYYY-MM-DD), passed in: domain code never reads the clock. */
   asOf: string;
   /** Upper bounds for the analyses (defaults in DEFAULT_LIMITS). */

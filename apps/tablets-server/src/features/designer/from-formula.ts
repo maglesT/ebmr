@@ -385,7 +385,7 @@ function dispensingOnly(base: MbrTemplate, src: FormulaSource, req: FormulaFamil
 }
 
 /** COPY (header comment): the approved master's procedure with this header and bill of materials. */
-function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
+function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyRequest, markets: string[], report?: CopyReport): flow.MbrContent {
   const t = structuredClone(source);
   const codeOf = (b: flow.BomLine): string => t.references.find((r) => r.id === b.material)?.code ?? b.material;
   checkShells(src);
@@ -439,7 +439,8 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
     b.quantity = { value: base.toString(), unit: 'kg' };
   }
   t.bom = [...bom, ...packaging];
-  renameMaterials(t, source, src);
+  const renamed = renameMaterials(t, source, src);
+  if (report) report.renamed = renamed;
   t.header = { ...header(src, req, markets), recordKind: source.header.recordKind, predicates: source.header.predicates, variants: source.header.variants };
   // Slice 7o (D-7o-5): the standard quantity per tablet follows this formula. A calculation of the source that is its
   // formula's quantity per tablet (mg terms only) times the batch size in tablets is written from this formula (each line
@@ -460,31 +461,60 @@ function copy(source: flow.MbrContent, src: FormulaSource, req: FormulaFamilyReq
 /** A material's name without its trailing remark: "Rabeprazole sodium (invented data)" -> "Rabeprazole sodium". */
 const plainMaterialName = (name: string): string => name.replace(/\s*\([^()]*\)\s*$/, '').trim();
 
+/** What a copy changed that the author should check in the draft (D-5): the material names it renamed. */
+export interface CopyReport {
+  renamed: { from: string; to: string }[];
+}
+
+const INGREDIENT_ROLES: readonly string[] = ['ACTIVE', 'EXCIPIENT', 'PROCESSING_AID'];
+
 /**
- * Slice 7u (R10 #9): a BOM line of the copy that holds another material than the source's line of the same id (the
+ * Slice 7u (R10 #9): a BOM line of the copy that holds another material than the source's line it stands for (the
  * active of another product) renames what the source named after its material: the parameters, calculations, yield
  * checkpoints and steps that carry the source material's name carry this formula's material name (from its material
  * master), so a rabeprazole batch never shows "Exemplazine sodium dispensed". Names only; ids and configuration stay.
+ *
+ * D-5 (owner's MGL-SR-BL report, item 7): a copy line stands for the source line of its own id; failing that, a source
+ * ingredient line the copy dropped pairs with a copy line the source did not have, of the same role, one to one in
+ * formula order. A line left without a partner renames nothing (no name is guessed). Returns the renames that changed a name.
  */
-function renameMaterials(t: flow.MbrContent, source: flow.MbrContent, src: FormulaSource): void {
-  const renames: { from: RegExp; to: string }[] = [];
+function renameMaterials(t: flow.MbrContent, source: flow.MbrContent, src: FormulaSource): { from: string; to: string }[] {
+  const pairs: { was: flow.BomLine; now: flow.BomLine }[] = [];
+  const sourceIds = new Set(source.bom.map((b) => b.id));
+  const copyIds = new Set(t.bom.map((b) => b.id));
   for (const b of t.bom) {
     const was = source.bom.find((x) => x.id === b.id);
-    if (!was || was.material === b.material) continue;
+    if (was && was.material !== b.material) pairs.push({ was, now: b });
+  }
+  for (const role of INGREDIENT_ROLES) {
+    const dropped = source.bom.filter((b) => b.role === role && !copyIds.has(b.id));
+    const added = t.bom.filter((b) => b.role === role && !sourceIds.has(b.id));
+    for (let i = 0; i < Math.min(dropped.length, added.length); i++) pairs.push({ was: dropped[i] as flow.BomLine, now: added[i] as flow.BomLine });
+  }
+  const renames: { from: RegExp; to: string; text: { from: string; to: string } }[] = [];
+  for (const { was, now } of pairs) {
+    if (was.material === now.material) continue;
     const oldName = source.references.find((r) => r.id === was.material)?.title;
-    const newName = src.materials.find((m) => m.code === b.material)?.name ?? src.chosen.lines.find((l) => l.materialCode === b.material)?.materialName;
+    const newName = src.materials.find((m) => m.code === now.material)?.name ?? src.chosen.lines.find((l) => l.materialCode === now.material)?.materialName;
     const from = oldName ? plainMaterialName(oldName) : '';
     const to = newName ? plainMaterialName(newName) : '';
     if (from.length < 3 || to.length === 0 || from.toLowerCase() === to.toLowerCase()) continue;
-    renames.push({ from: new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), to });
+    if (renames.some((r) => r.text.from.toLowerCase() === from.toLowerCase())) continue;
+    renames.push({ from: new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), to, text: { from, to } });
   }
-  if (renames.length === 0) return;
+  if (renames.length === 0) return [];
+  const applied = new Set<(typeof renames)[number]>();
   const rename = (name: string): string =>
-    renames.reduce((s, r) => s.replace(r.from, (m) => (m.charAt(0) === m.charAt(0).toUpperCase() ? r.to.charAt(0).toUpperCase() : r.to.charAt(0).toLowerCase()) + r.to.slice(1)), name);
+    renames.reduce((s, r) => {
+      if (s.search(r.from) < 0) return s;
+      applied.add(r);
+      return s.replace(r.from, (m) => (m.charAt(0) === m.charAt(0).toUpperCase() ? r.to.charAt(0).toUpperCase() : r.to.charAt(0).toLowerCase()) + r.to.slice(1));
+    }, name);
   for (const x of [...t.parameters, ...t.calculations, ...t.yieldCheckpoints]) x.name = rename(x.name);
   walk(t.procedure, (o) => {
     if (typeof o['kind'] === 'string' && typeof o['name'] === 'string') o['name'] = rename(o['name']);
   });
+  return renames.filter((r) => applied.has(r)).map((r) => r.text);
 }
 
 /** A source calculation that is a formula's quantity per tablet: a parenthesised sum of mg terms times tabletsPerBatch. */
@@ -500,11 +530,11 @@ export function standardPerTabletMg(src: FormulaSource): string {
  * The DRAFT content of a new family from an approved formula (throws FamilyInputError with a plain message). `base` is
  * the dc-mini demo master the skeleton is shaped from; `timeSystem` the trusted-time system TB-07 relies on (DI-04).
  */
-export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, copySource?: flow.MbrContent, timeSystem?: flow.Reference): flow.MbrContent {
+export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, copySource?: flow.MbrContent, timeSystem?: flow.Reference, report?: CopyReport): flow.MbrContent {
   const markets = checkRequest(req);
   if (req.start === 'COPY') {
     if (!copySource) throw new FamilyInputError('DESIGNER_COPY', 'Name the approved master to copy.', ['PR-01']);
-    return parsed(copy(copySource, src, req, markets));
+    return parsed(copy(copySource, src, req, markets, report));
   }
   if (req.start === 'BLANK') return parsed(blank(base, src, req, markets));
   return parsed(EDITION_START[req.edition ?? 'tablets'].skeleton === 'DISPENSING' ? dispensingOnly(base, src, req, markets, timeSystem) : skeleton(base, src, req, markets, timeSystem));

@@ -127,6 +127,27 @@ describe('library blocks in the designer', () => {
     expect(within(form).getByRole('group', { name: 'Limits of note' })).toBeTruthy();
   });
 
+  // D-6 (owner's MGL-SR-BL report, item 9): the equipment class is chosen from the plant's classes; a saved value the
+  // plant lacks stays shown and marked; the plant's definitions screen is one link away.
+  it('[PR-03] the equipment class of a library step is chosen from the plant\'s classes; a saved class the plant lacks is marked "not a plant class"', async () => {
+    const cls = (code: string, description: string) => ({ code, kind: 'INSTRUMENT' as const, description, cleanHold: null, dirtyHold: null, calibrationRequired: true, checkRegime: 'DAILY' as const, cipValidationRef: null });
+    installFixtures({ 'plant.equipmentClasses': { classes: [cls('EQC-FRB', 'Friabilator, drum'), cls('EQC-BAL', 'Balance, analytical')] } });
+    const withDrum: library.BlockDefinition = { ...FRIAB, sections: [{ ...(FRIAB.sections[0] as library.SectionDef), fields: [{ id: 'drum', label: 'Friabilator', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'friabilatorClass' }, ...(FRIAB.sections[0]?.fields ?? [])] }] };
+    const c = applyOp(content(), { kind: 'ADD_LIBRARY_BLOCK', ...(insertionPoint(content(), firstPhase(content()).id) as { sequenceId: string; index: number }), stepId: 'p-ipc-friab', definition: withDrum });
+    const step = byId(c, 'p-ipc-friab');
+    if (!step) throw new Error('no step');
+    const onChange = vi.fn();
+    const saved = { ...step, config: { ...step.config, equipmentClasses: { friabilatorClass: 'FRIABILATOR' } } } as flow.PhaseNode;
+    renderRouted(() => <LibraryValuesForm content={c} step={saved} readOnly={false} onChange={onChange} />);
+    const select = await screen.findByRole('combobox', { name: 'Equipment class for drum' });
+    await waitFor(() => expect(within(select).getByText('EQC-FRB: Friabilator, drum (instrument)')).toBeTruthy());
+    expect(within(select).getByText('FRIABILATOR (not a plant class)')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Define a class in Plant master data' }).getAttribute('href')).toBe('/master-data/plant');
+    await userEvent.selectOptions(select, 'EQC-FRB');
+    const config = onChange.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(config['equipmentClasses']).toEqual({ friabilatorClass: 'EQC-FRB' });
+  });
+
   it('[PR-05] the author picks an approved library block and adds it after the step', async () => {
     installFixtures({
       'library.list': {
