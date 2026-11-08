@@ -47,6 +47,8 @@ export interface SkeletonExtras {
   afterDischarge?: (page: Page, ctx: StageCtx) => Promise<void>;
   /** The lubricant added in TB-07 (kg; default 0.600). */
   lubricantKg?: string;
+  /** An injectables master: the dispensing stage with the product's steps, then H-PACK (library/skeleton-floor.ts). */
+  dispensingOnly?: boolean;
 }
 
 /**
@@ -90,6 +92,7 @@ export async function runSkeletonTestBatch(
       lots, discharge, lubricantKg: extra.lubricantKg ?? '0.600',
       ...(extra.afterDispensing ? { afterDispensing: extra.afterDispensing } : {}),
       ...(extra.afterDischarge ? { afterDischarge: extra.afterDischarge } : {}),
+      ...(extra.dispensingOnly ? { dispensingOnly: extra.dispensingOnly } : {}),
     });
   } finally {
     await closeFloor();

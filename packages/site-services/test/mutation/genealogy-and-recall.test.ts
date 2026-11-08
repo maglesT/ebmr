@@ -4,7 +4,7 @@
  * working; these take the rules the Phase 6 mutation run found unproven, where a change could silently drop a lot, a
  * consignee or a depth level from a recall, or loosen the AP's sign-off:
  *
- * - the as-of point is inclusive everywhere: in a world where every event happened at one instant T, the genealogy,
+ * - the as-of point is inclusive everywhere (the intermediate lot's OUTPUT edge of recipe-core 1879 included): in a world where every event happened at one instant T, the genealogy,
  *   the mock recall and the impact query as of exactly T hold every edge, lot and batch (an exclusive comparison would
  *   drop them, PR-57, IN-29, PR-50); every edge kind is checked one node at a time in both directions, with decoys (a
  *   package not sealed, a container charged into its own batch) that must not become edges, and the recall's
@@ -38,6 +38,7 @@ let F1: Lot;
 let RET: Lot;
 let REC: Lot;
 let LIN: Lot;
+let IL: Lot;
 let G1: Batch;
 let G2: Batch;
 let H: Batch;
@@ -115,7 +116,7 @@ const STAMPED: [string, string][] = [
   ['site.material_lot', 'received_at'], ['site.lot_consumption', 'consumed_at'], ['site.returned_goods', 'received_at'],
   ['site.chemical_recovery', 'recorded_at'], ['site.erp_shipment', 'recorded_at'], ['site.transfer_package_seal', 'sealed_at'],
   ['site.transfer_receipt', 'received_at'], ['plant.output_container', 'opened_at'], ['recipe.batch_parent_link', 'recorded_at'],
-  ['recipe.source_addition', 'recorded_at'], ['recipe.batch_allocation_link', 'recorded_at'], ['site.finished_lot', 'posted_at'],
+  ['recipe.source_addition', 'recorded_at'], ['recipe.batch_allocation_link', 'recorded_at'], ['site.finished_lot', 'posted_at'], ['site.intermediate_lot', 'posted_at'],
   ['plant.container_merge', 'recorded_at'], ['recipe.packaging_bulk_issue', 'recorded_at'], ['plant.container_charge', 'recorded_at'],
   ['site.deviation', 'raised_at'], ['site.deviation_link', 'linked_at'],
 ];
@@ -151,6 +152,11 @@ beforeAll(async () => {
   await w.addition(G1, X, C1, 'REPROCESSING_ADDITION');
   await w.addition(G2, Y, C2, 'RECOVERY');
   F1 = await w.finishedLot('F1', P1);
+  // An intermediate lot H posted (API edition, site services 1732; the OUTPUT edge of recipe-core 1879), as a fixture row.
+  IL = await w.materialLot('IL', 'INTERMEDIATE', 'INT-1');
+  await w.fixture(
+    `insert into site.intermediate_lot (lot_id, batch_id, batch_number, edition, product_code, strength, posted_by_person, posted_by_account)
+     values ($1, $2, $3, 'SUBSTANCE', 'INT-1', 'Step 1', gen_random_uuid(), gen_random_uuid())`, [IL.id, H.id, H.number]);
   await w.released(F1);
   S1 = (await w.ship(F1, 'CUST-1', '300')).shipmentId;
   S2 = (await w.ship(F1, 'CUST-2', '200')).shipmentId;
@@ -176,13 +182,13 @@ beforeAll(async () => {
     ['BATCH', G1.id, 'CONTAINER', C1, 'OUTPUT'], ['BATCH', G2.id, 'CONTAINER', C2, 'OUTPUT'], ['BATCH', G2.id, 'CONTAINER', C3, 'OUTPUT'],
     ['CONTAINER', C2, 'CONTAINER', C3, 'MERGED'], ['CONTAINER', C1, 'BATCH', P1.id, 'BULK_ISSUE'], ['CONTAINER', C2, 'BATCH', K.id, 'CHARGED'],
     ['BATCH', G1.id, 'BATCH', R.id, 'REPROCESSED'], ['BATCH', G1.id, 'BATCH', X.id, 'REPROCESSING_ADDITION'], ['BATCH', G2.id, 'BATCH', Y.id, 'RECOVERY_ADDITION'],
-    ['BATCH', G1.id, 'BATCH', P1.id, 'PACKAGING_ORDER'], ['BATCH', P1.id, 'LOT', F1.id, 'FINISHED'],
+    ['BATCH', G1.id, 'BATCH', P1.id, 'PACKAGING_ORDER'], ['BATCH', P1.id, 'LOT', F1.id, 'FINISHED'], ['BATCH', H.id, 'LOT', IL.id, 'OUTPUT'],
     ['LOT', F1.id, 'SHIPMENT', S1, 'SHIPPED'], ['LOT', F1.id, 'SHIPMENT', S2, 'SHIPPED'],
     ['LOT', F1.id, 'LOT', RET.id, 'RETURNED'], ['LOT', RET.id, 'LOT', REC.id, 'RECOVERED'],
     ['LOT', F1.id, 'TRANSFER', TP, 'TRANSFERRED'], ['TRANSFER', TIN, 'LOT', LIN.id, 'TRANSFER_RECEIVED'],
   ];
   NODES = [
-    ...[A, E, F1, RET, REC, LIN].map((l): [string, string] => ['LOT', l.id]),
+    ...[A, E, F1, RET, REC, LIN, IL].map((l): [string, string] => ['LOT', l.id]),
     ...[G1, G2, H, R, X, Y, K, P1].map((b): [string, string] => ['BATCH', b.id]),
     ...[C1, C2, C3].map((c): [string, string] => ['CONTAINER', c]),
     ...[S1, S2].map((s): [string, string] => ['SHIPMENT', s]),

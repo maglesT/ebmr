@@ -72,6 +72,49 @@ describe('the generic handler runs library blocks in the engine', () => {
     expect(() => define(mbrFor(def, stale), { registry })).toThrow(/LIB-USE-HASH|pinned/);
   });
 
+  it('[PR-03] R-flow item 3: an optional event section is recorded only when its event happens; the step ends without it, a required section still blocks the end', () => {
+    const alarm = { id: 'alarm', title: 'Alarm acknowledgement', when: 'Only if the drum alarm sounds', fields: [{ id: 'alarmNote', label: 'What the alarm showed', type: 'TEXT' as const }] };
+    const run = (required: boolean | undefined): Run => {
+      const def = friability();
+      def.sections.push({ ...alarm, ...(required === undefined ? {} : { required }) });
+      const r = runFor(def, friabilityUse());
+      r.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false });
+      return r;
+    };
+    const ends = (r: Run): string | undefined => {
+      r.perform('p');
+      if (r.status('p') === 'AWAITING_VERIFICATION') r.verify('p');
+      return r.status('p');
+    };
+    expect(ends(run(false))).toBe('COMPLETED');
+    const happened = run(false);
+    happened.entry('p', { kind: 'alarm', alarmNote: 'Door open, closed and restarted' });
+    expect(ends(happened)).toBe('COMPLETED');
+    expect(() => run(undefined).perform('p')).toThrow(/Alarm acknowledgement is not recorded yet \(LIB-PERFORM-SECTION/);
+  });
+
+  it('[PR-03] R-flow item 3 boundary: the engine skips an optional section only when it repeats ONCE or PER_CONTAINER; an optional COUNT section still blocks the end', () => {
+    const def = friability();
+    def.sections.push({ id: 'checks', title: 'Planned checks', required: false, when: 'Defined as optional by mistake', repeat: { kind: 'COUNT', countSlot: 'checks' }, fields: [{ id: 'seen', label: 'Seen', type: 'TEXT' }] });
+    const use = { ...friabilityUse(), counts: { checks: '2' } };
+    const run = runFor(def, use);
+    run.entry('p', { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false });
+    expect(() => run.perform('p')).toThrow(/Planned checks is recorded 0 of 2 times \(LIB-PERFORM-SECTION/);
+  });
+
+  it('[PR-03][DI-35] R-flow item 5: a fieldless instruction block ends on its PERFORMED signature alone', () => {
+    const def: BlockDefinition = {
+      code: 'SOP-READ', version: 1, title: 'Read the cleaning SOP', category: 'CONTROL', roles: ['INSTRUCTION'],
+      sections: [{ id: 'text', title: 'Read SOP-PR-012 before the start', fields: [] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }],
+    };
+    const run = runFor(def, { block: { code: def.code, version: 1 } });
+    run.perform('p');
+    if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p');
+    expect(run.status('p')).toBe('COMPLETED');
+    expect(types(run)).toEqual([]);
+  });
+
   it('[INV-25] a calculated field cannot be typed', () => {
     const run = runFor(friability(), friabilityUse());
     run.refused(entryCmd(run, { kind: 'run', drum: 'F1', equipment: { drum: { code: 'F1', classCode: 'FRIABILATOR', fitness: 'QUALIFIED' } }, w0: '6.500', w1: '6.480', cracked: false, loss: '0.1' }), 'ENG-ENTRY-SCHEMA');
@@ -300,10 +343,10 @@ describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
     run.entry('p', entry());
   });
 
-  it('[PR-19][IN-11] equipment must be of the class the formulation names and fit for use', () => {
+  it('[PR-23][IN-25] equipment must be of the class the formulation names and fit for use', () => {
     const run = runFor(dispense(), use, { extra });
-    run.refused(entryCmd(run, entry(lot(), bal({ classCode: 'BAL-5' }))), 'LIB-EQUIPMENT-CLASS');
-    run.refused(entryCmd(run, entry(lot(), bal({ fitness: 'CALIBRATION_OVERDUE' }))), 'LIB-EQUIPMENT-FITNESS');
+    expect(run.refused(entryCmd(run, entry(lot(), bal({ classCode: 'BAL-5' }))), 'LIB-EQUIPMENT-CLASS').controls).toEqual(['PR-23', 'IN-25']);
+    expect(run.refused(entryCmd(run, entry(lot(), bal({ fitness: 'CALIBRATION_OVERDUE' }))), 'LIB-EQUIPMENT-FITNESS').controls).toEqual(['PR-23', 'IN-25']);
     run.entry('p', entry(lot(), bal({ fitness: 'CALIBRATION_DUE_SOON' })));
   });
 

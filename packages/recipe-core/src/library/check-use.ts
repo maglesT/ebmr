@@ -74,7 +74,11 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
     const at = `limits.${slot.name}`;
     if (spec === undefined) {
       if (slot.required) out.push(err('LIB-USE-LIMIT-MISSING', at, `${def.title}: ${slot.owner} is a CPP or IPC and needs limits [PR-03, PR-08]`, ['PR-03', 'PR-08']));
-      if (use.targets?.[slot.name] !== undefined) out.push(err('LIB-USE-TARGET', `targets.${slot.name}`, `${def.title}: a target for ${slot.name} needs limits too`, ['PR-08']));
+      // R-flow item 6: a target with no limits, on a slot that needs none, is an instruction to the operator: it is
+      // shown and simulated, never judged. (A CPP or IPC slot is refused above for its missing limits, a market rule
+      // binding the slot by LIB-USE-MARKET-RULE.)
+      const target = use.targets?.[slot.name];
+      if (target !== undefined && !isDecimalLiteral(target)) out.push(err('LIB-USE-TARGET', `targets.${slot.name}`, `${def.title}: the target ${JSON.stringify(target)} is not a decimal`, ['PR-08']));
       continue;
     }
     out.push(...checkLimit(def, slot, spec, at, expr));

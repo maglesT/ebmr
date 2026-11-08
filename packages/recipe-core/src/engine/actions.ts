@@ -10,8 +10,8 @@
  * command all name the same meaning.
  */
 import { RELEASING_DISPOSITIONS, type BatchDefinition } from './definition.ts';
-import { step as engineStep } from './engine.ts';
-import { blockActive } from './exceptions.ts';
+import { prepareForSignature, step as engineStep } from './engine.ts';
+import { blockActive, blockingExceptions } from './exceptions.ts';
 import { checkMeanings, handEntriesWithoutDeclaredEvidence, MEANINGS, performMeanings, witnessPossible } from './guards.ts';
 import { cloneState, stepKey as keyOf, Tx } from './tx.ts';
 import type { Actor, BatchState, Clock, Command, Refusal, SignatureRef, StepInstance } from './types.ts';
@@ -112,6 +112,22 @@ export function holdPointMeaning(disposition: string): string {
   return RELEASING_DISPOSITIONS.includes(disposition) ? MEANINGS.HOLD_RELEASED : MEANINGS.HOLD_NOT_RELEASED;
 }
 
+/**
+ * The refusal the step's PERFORMED action is shown with. A refusal only by exceptions the finalisation of that very
+ * attempt raises (a block-computed total outside a blocking tier, judged at PERFORMED) is not shown as a refusal: those
+ * exceptions exist only once the attempt is prepared, so a greyed action would keep them from ever being stored and
+ * from taking their deviation (owner report item 1, PR-08). The signing then prepares the attempt, which records them,
+ * and refuses it with their reason; nothing is signed.
+ */
+function signRefusal(def: BatchDefinition, state: BatchState, actor: Actor, clock: Clock, inst: StepInstance, refusal: Refusal | null): Refusal | null {
+  if (refusal?.code !== 'ENG-BLOCKED') return refusal;
+  if (blockingExceptions(def, state, inst, 'COMPLETE').length > 0) return refusal;
+  const prepared = prepareForSignature(def, state, { type: 'SIGN_PERFORMED', step: inst.step, context: [...inst.frames] }, actor, clock).state;
+  const after = prepared.steps[inst.key];
+  const raised = after ? blockingExceptions(def, prepared, after, 'COMPLETE').filter((e) => state.exceptions[e.id] === undefined) : [];
+  return raised.length > 0 ? null : refusal;
+}
+
 function result(action: ActionKind, refusal: Refusal | null, extra: { signed?: boolean; meaning?: string | null; target?: string | null } = {}): AvailableAction {
   return { action, available: refusal === null, signed: extra.signed ?? false, meaning: extra.meaning ?? null, target: extra.target ?? null, refusal };
 }
@@ -145,7 +161,7 @@ export function availableActions(def: BatchDefinition, state: BatchState, actor:
       if (phase && phase.records.some((r) => !stepDef?.computedItems.has(r))) out.push(result('RECORD_DATA', entryRefusal));
       if (stepDef?.block?.dataSchema && Object.keys(stepDef.block.dataSchema.entries).length > 0) out.push(result('RECORD_ENTRY', entryRefusal));
       const pm = performMeaning(def, inst.step);
-      out.push(result('SIGN_PERFORMED', run({ type: 'SIGN_PERFORMED', step: inst.step, context: frames, signature: placeholder(pm, actor) }), { signed: true, meaning: pm }));
+      out.push(result('SIGN_PERFORMED', signRefusal(def, state, actor, clock, inst, run({ type: 'SIGN_PERFORMED', step: inst.step, context: frames, signature: placeholder(pm, actor) })), { signed: true, meaning: pm }));
       const cm = checkMeaning(def, inst, inst.step, state, clock.nowUs);
       out.push(result(cm === MEANINGS.WITNESSED ? 'WITNESS' : 'VERIFY', run({ type: 'VERIFY', step: inst.step, context: frames, signature: placeholder(cm, actor) }), { signed: true, meaning: cm }));
     }

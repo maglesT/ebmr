@@ -191,3 +191,20 @@ export function endpoint(id: string, role: 'PROCESS_ENDPOINT' | 'ACCEPTANCE_TEST
     limits: { unit: '%', ranges: [{ tier: 'VALIDATED', low: { value: '0.0', inclusive: true }, high: { value: '5.0', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'VR' } }] },
   };
 }
+
+/**
+ * The content with every operation dissolved into its parent, its body in its place (R-flow item 1, ADR 0004 decision 1
+ * amended: the operation level is optional).
+ */
+export function withoutOperations(mbr: MbrContent): MbrContent {
+  const out = clone(mbr);
+  const lift = (n: FlowNode): FlowNode => (n.kind === 'operation' ? lift(n.body) : n);
+  const visit = (n: FlowNode): void => {
+    if (n.kind === 'sequence') n.children = n.children.map(lift);
+    if (n.kind === 'stage' || n.kind === 'loop' || n.kind === 'operation') n.body = lift(n.body);
+    if (n.kind === 'parallel' || n.kind === 'alternative') for (const b of n.branches) if (b.body) b.body = lift(b.body);
+    childrenOf(n).forEach(visit);
+  };
+  visit(out.procedure.body);
+  return out;
+}

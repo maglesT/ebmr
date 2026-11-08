@@ -128,7 +128,9 @@ export function expandLibraryCalls(mbr: MbrContent): ExpandedFlow {
       problems.push({ code: 'LIB_DEPTH', nodeId: id, message: `Library calls are nested more than ${MAX_DEPTH} deep at ${id}` });
       return empty;
     }
-    if ((snapshot.level === 'STAGE' && level !== 'STAGE') || (snapshot.level === 'OPERATION' && level !== 'OPERATION')) {
+    // A STAGE element holds operations, so it is called in a stage. An OPERATION element holds phases, so it is
+    // called in an operation or, the operation level being optional (ADR 0004 decision 1, amended), directly in a stage.
+    if ((snapshot.level === 'STAGE' && level !== 'STAGE') || (snapshot.level === 'OPERATION' && level !== 'OPERATION' && level !== 'STAGE')) {
       problems.push({
         code: 'LIB_LEVEL',
         nodeId: id,

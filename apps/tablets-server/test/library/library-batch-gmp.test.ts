@@ -216,7 +216,7 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
     expect(await problemIn(withLine({ line: realLine }), anyLot)).toMatch(/lot register does not hold/);
   });
 
-  it('[PR-19][IN-11] the database refuses equipment it does not hold, facts other than its register\'s, and equipment that is not fit for use', async () => {
+  it('[PR-23][IN-25] the database refuses equipment it does not hold, facts other than its register\'s, and equipment that is not fit for use', async () => {
     expect(await problem(state({ weighBalance: 'BAL-NOT-THERE', equipment: { weighBalance: { code: 'BAL-NOT-THERE', classCode: 'CL-BAL-S6', fitness: 'QUALIFIED' } } }))).toMatch(/plant register does not hold/);
     await asSetup(w.gmp, `insert into plant.equipment_class (code, kind, description, calibration_required, check_regime, recorded_by)
                           values ('CL-BAL-S6', 'INSTRUMENT', 'Balance 150 kg (test)', true, 'DAILY', gen_random_uuid())`);
