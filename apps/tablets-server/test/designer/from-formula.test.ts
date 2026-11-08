@@ -49,7 +49,7 @@ async function approvedFormula(units: string, target?: { targetUnitMassMg: strin
   const { formulaId } = valueOf(await steward.call(md.createFormula, { body: { productCode, strength: PRODUCT.strength, batchSizeUnits: units } }));
   const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: REASON, lines, ...(target ? { target } : {}) } }));
   const signed = await signAction(gmp, approver, 'approver', { kind: 'MASTER_DATA_APPROVE', masterKind: 'FORMULA', versionId: v.versionId });
-  if (!signed.ok) throw new Error('SETUP: the formula was not approved');
+  if (!signed.ok) throw new Error(`SETUP: the formula was not approved: ${JSON.stringify(signed).slice(0, 300)}`);
   return v.versionId;
 }
 
@@ -229,6 +229,14 @@ describe('a new master from an approved formula (slice 7j)', () => {
     const none = await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JF-N', product: PRODUCT, batchSizes: [{ quantity: '1', unit: 'kg' }], markets: ['IN'] } });
     expect(refusalOf(none).code).toBe('DESIGNER_FORMULA_REQUIRED');
   });
+
+  it('[DI-24][PR-01] demo finding D-2: a withdrawn formula version makes no master; the refusal names it', async () => {
+    const { formulaId } = valueOf(await steward.call(md.createFormula, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, batchSizeUnits: '140001' } }));
+    const v = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: REASON, lines: LINES } }));
+    expect(valueOf(await steward.call(md.withdrawFormulaVersion, { params: { formulaId, versionId: v.versionId }, body: { reason: 'Entered for the wrong batch size' } })).state).toBe('WITHDRAWN');
+    const r = refusalOf(await create('DMT7JF-WD', 'SKELETON', { formulaVersionId: v.versionId }));
+    expect(r).toMatchObject({ code: 'EBMR-FRM-016', why: expect.stringMatching(/Formula version 1 is WITHDRAWN; an MBR takes its composition only from an approved version/) as unknown });
+  }, 120_000);
 
   it('a copy needs an approved master version: a draft is refused', async () => {
     const draft = valueOf(await author.call(routes.designer.families)).families.find((f) => f.familyCode === 'DMT7JF-BL')?.versions[0]?.versionId ?? '';

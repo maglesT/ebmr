@@ -449,7 +449,7 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql:
-        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_']
+        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_', '^1878_']
     src: [packages/recipe-core/src/lifecycle]
     tests:
       - 'packages/recipe-core/test/lifecycle/**'
@@ -497,7 +497,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^101\d_']
+      packages/recipe-core/sql: ['^101\d_', '^1879_']
 
   - id: rc-transfer
     title: Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i)
@@ -581,7 +581,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_', '^1877_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'

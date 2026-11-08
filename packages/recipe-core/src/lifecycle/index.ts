@@ -40,6 +40,8 @@ export {
   createStubBatch,
   createVersion,
   defineFamily,
+  familyForNewDraft,
+  reopenFamily,
   deriveVersion,
   evidenceStatus,
   familyOf,

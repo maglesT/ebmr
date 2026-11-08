@@ -103,6 +103,19 @@ export function defineFamily(c: pg.PoolClient, def: FamilyDefinition): Promise<s
   return one<string>(c, 'select recipe.define_family($1::jsonb) as r', [JSON.stringify(def)]);
 }
 
+/**
+ * D-3 (recipe-core 1878): the family of `def`'s code when it has `def`'s identity and every version of it was discarded
+ * (WITHDRAWN, never approved), else null; a new draft then starts in it instead of a twin family.
+ */
+export async function reopenFamily(c: pg.PoolClient, def: FamilyDefinition): Promise<string | null> {
+  return (await c.query<{ r: string | null }>('select recipe.reopen_family($1::jsonb) as r', [JSON.stringify(def)])).rows[0]?.r ?? null;
+}
+
+/** The family of `def`: the discarded one of its code and identity (reopenFamily), else a new one (defineFamily). */
+export async function familyForNewDraft(c: pg.PoolClient, def: FamilyDefinition): Promise<string> {
+  return (await reopenFamily(c, def)) ?? defineFamily(c, def);
+}
+
 export async function createVersion(c: pg.PoolClient, familyId: string, content: unknown, reason?: string): Promise<VersionRef> {
   const { content: mbr, hash } = checkedContent(content);
   return toVersionRef(await one(c, 'select recipe.create_version($1, $2::jsonb, $3, $4) as r', [familyId, JSON.stringify(mbr), hash, reason ?? null]));

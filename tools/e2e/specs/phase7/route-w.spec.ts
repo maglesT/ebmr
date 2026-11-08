@@ -955,6 +955,9 @@ test('[IN-05][PR-45][DI-35] route W 10: the finished lot posted in quarantine; Q
     await box.getByRole('textbox', { name: 'Finished quantity' }).fill('10');
     await box.getByRole('textbox', { name: 'Unit' }).fill('packs');
     await box.getByRole('button', { name: 'Post the finished lot in quarantine' }).click();
+    // The post's own answer: the screen shows the posted lot only once the command committed. Navigating before it
+    // can abort the request in flight, and then the lot never appears on the list (seen on GitHub-hosted runners).
+    await expect(sp.getByTestId('finished-lot-posted')).toBeVisible();
     await sp.goto(`${base}/quality/lots`);
     const row = sp.getByTestId(`lot-${s.orderNumber ?? ''}`);
     await expect(row).toBeVisible();

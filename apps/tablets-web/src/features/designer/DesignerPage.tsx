@@ -54,7 +54,7 @@ export function DesignerPage() {
 
 /** The justify dialog keeps the warning and the saved revision (with its content hash) it was opened on. */
 type JustifyDialog = { justify: FindingItem; revision: number; contentHash: string };
-type Dialogs = 'save' | 'start' | 'package' | JustifyDialog | null;
+type Dialogs = 'save' | 'start' | 'package' | 'discard' | JustifyDialog | null;
 
 export function DesignerEditor({ initial, palette, personId }: { initial: VersionView; palette: readonly PaletteItem[]; personId: string }) {
   const queryClient = useQueryClient();
@@ -217,6 +217,7 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
           <Button isDisabled={dirty || validation.report?.gate.passed !== true} onPress={() => setDialog('package')}>
             Send to sandbox…
           </Button>
+          {saved.state === 'DRAFT' ? <Button onPress={() => setDialog('discard')}>Discard draft…</Button> : null}
           <a href={auditLink(saved.versionId)}>Audit trail</a>
           <a href={`/mbr/versions/${saved.versionId}/review`}>Change control and evidence</a>
           <a href={`/mbr/versions/${saved.versionId}/signing`}>Signatures and markets</a>
@@ -406,6 +407,19 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
         </p>
       </CommandDialog>
 
+      <DiscardDraftDialog
+        open={dialog === 'discard'}
+        versionId={saved.versionId}
+        number={saved.number}
+        onClose={() => setDialog(null)}
+        onDone={(v) => {
+          clearDraft(personId, v.versionId);
+          setRestored(false);
+          afterServerChange(v);
+          setDialog(null);
+        }}
+      />
+
       <CommandDialog
         title="Send to a sandbox test run"
         open={dialog === 'package'}
@@ -501,6 +515,31 @@ function JustifyWarningDialog({ justifying, versionId, savedRevision, savedHash,
         The justification is recorded with your name and the time, on the saved revision {justifying?.revision ?? savedRevision}; it travels with the version to verification and to the sandbox.
       </p>
       <NoteField label="Why the warning is acceptable" value={justification} onChange={setJustification} max={4000} />
+    </CommandDialog>
+  );
+}
+
+/**
+ * D-3: discard a DRAFT (the lifecycle's WITHDRAW) with the author's reason. Nothing is deleted: the version stays,
+ * WITHDRAWN, with its revisions and the reason in the audit trail; the family takes a new draft under its code.
+ */
+function DiscardDraftDialog({ open, versionId, number, onClose, onDone }: { open: boolean; versionId: string; number: string; onClose: () => void; onDone: (v: VersionView) => void }) {
+  const [why, setWhy] = useState('');
+  return (
+    <CommandDialog
+      title={`Discard draft ${number}`}
+      open={open}
+      onClose={onClose}
+      confirmLabel="Discard the draft"
+      canConfirm={why.trim().length > 0}
+      run={(idempotencyKey) => api.call(routes.designer.discardDraft, { params: { versionId }, body: { reason: { code: 'DRAFT_DISCARDED', text: why.trim() } }, idempotencyKey })}
+      onDone={onDone}
+    >
+      <p>
+        The draft is withdrawn, not deleted: it stays on record with its revisions and your reason, and can no longer be edited. To start again, create
+        the family again under the same family code.
+      </p>
+      <NoteField label="Why is this draft discarded?" value={why} onChange={setWhy} max={2000} />
     </CommandDialog>
   );
 }

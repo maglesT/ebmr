@@ -53,6 +53,13 @@ export interface SkeletonPlan {
    * screen after the product's last step and closed with its net verified; QA then releases it for packing (H-PACK).
    */
   bulkNet?: string;
+  /**
+   * An injectables master (from-formula dispensingOnly, injectables plan I-1c): the dispensing stage alone, with the
+   * product's library steps before its reconciliation (`afterDispensing`: the reconciliation's yield closes the stage,
+   * GMP-STAGE-YIELD), then QA's release for packing (H-PACK) in its own stage. No blending stage: `discharge`,
+   * `lubricantKg` and `afterDischarge` are not used.
+   */
+  dispensingOnly?: boolean;
 }
 
 /** "28.800" minus "1.000": the net of a typed tare and gross (exact, three decimals). */
@@ -165,6 +172,15 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const containers = await dispensedContainers(f, disp, ['p-disp-act@', 'p-disp-exc@']);
   expect(containers).toHaveLength(p.lots.filter((l) => l.material.group !== 'aid').length);
   const aidContainers = hasAid ? await dispensedContainers(f, disp, ['p-disp-aid@']) : [];
+  if (p.dispensingOnly) {
+    // The release for packing is a stage of its own with no room (NON_MATERIAL): QA decides it on the same kiosk.
+    await holdPoint(f, disp, 'H-PACK@', qa);
+    await closeStage(f, disp, 'H-PACK@', op1);
+    await load(disp, `${base}/runs/${f.batchId}`);
+    await expect(disp.getByText('Execution complete').first()).toBeVisible();
+    await disp.context().close();
+    return { containers: [...containers, ...aidContainers] };
+  }
   await disp.context().close();
 
   // Stage 2: blending and lubrication (TB-07) on the trusted clock, the QA hold point, the hand-typed discharge.
