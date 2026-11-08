@@ -92,13 +92,15 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     const press = await w.press({
       cleanHold: '1 second',
       calibrationRequired: true,
-      calibratedForSeconds: 2,
+      // 6 s, not 2: the set-up below (product, cleaning) took over 1.3 s on a GitHub-hosted runner, which put the planned
+      // end (1 s after the start) past the due time and refused the use (EBMR-PLANT-061). The margin is now about 5 s.
+      calibratedForSeconds: 6,
     });
     const product = await w.product();
     await w.clean('EQUIPMENT', press.code, 'MAJOR');
     // The planned end is inside the calibration; the use itself runs past both.
     const use = await w.startUse(press.code, 'B-C1', product, 1);
-    await sleep(db, 2.2);
+    await sleep(db, 6.2);
     const ended = await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, use));
     // Evaluated against the actual end, which passed the planned end too.
     expect(ended).toMatchObject({

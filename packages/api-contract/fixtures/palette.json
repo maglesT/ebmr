@@ -1829,7 +1829,7 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": "existing masters only (library replaces it)",
+      "badge": "existing masters only (use the library's PROC-RMG)",
       "insertable": false,
       "configSchema": {
         "type": "object",
@@ -2095,7 +2095,7 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": "existing masters only (library replaces it)",
+      "badge": "existing masters only (use the library's PROC-FBD)",
       "insertable": false,
       "configSchema": {
         "type": "object",
@@ -6194,7 +6194,7 @@
       ],
       "significant": true,
       "availability": "ALL",
-      "badge": "existing masters only (library replaces it)",
+      "badge": "existing masters only (use the library's COAT- blocks)",
       "insertable": false,
       "configSchema": {
         "type": "object",

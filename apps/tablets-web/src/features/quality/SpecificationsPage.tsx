@@ -264,13 +264,24 @@ function DraftForm({ seed }: { seed: SpecificationView | null }) {
   const problems = SpecificationTestInput.array().min(1).safeParse(body.tests);
   const header = body.materialCode !== '' && body.title !== '' && body.monographReference !== '';
   const problem = !header ? 'material code, title and monograph reference are needed' : problems.success ? null : problems.error.issues.map((i) => `test ${i.path.join('.')}: ${i.message}`).join('; ');
-  const set = (i: number, patch: Partial<TestRow>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-  const setPoint = (i: number, k: number, patch: Partial<PointRow>) =>
+  // G5 (owner report item 25): what is still missing shows once the person has started the tests, not on an untouched or
+  // just-sent form; the button stays off until the version is complete either way.
+  const [touched, setTouched] = useState(false);
+  const set = (i: number, patch: Partial<TestRow>) => {
+    setTouched(true);
+    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  };
+  const setPoint = (i: number, k: number, patch: Partial<PointRow>) => {
+    setTouched(true);
     setRows((rs) => rs.map((r, j) => (j === i ? { ...r, points: r.points.map((p, m) => (m === k ? { ...p, ...patch } : p)) } : r)));
+  };
   const send = async () => {
     if (!problems.success) return;
     const r = await draft.run({ body: { ...body, tests: problems.data } });
-    if (r) setRows([EMPTY]);
+    if (r) {
+      setRows([EMPTY]);
+      setTouched(false);
+    }
   };
   return (
     <Section title="Draft a specification version" testId="draft-specification">
@@ -322,7 +333,7 @@ function DraftForm({ seed }: { seed: SpecificationView | null }) {
         </fieldset>
       ))}
       <ActButton primary={false} label="Add a test" onPress={() => setRows((rs) => [...rs, EMPTY])} />
-      {problem ? <p role="alert">Not complete yet: {problem}</p> : null}
+      {problem && touched ? <p role="alert">Not complete yet: {problem}</p> : null}
       <ActButton label="Draft the version" onPress={send} disabled={problem !== null || draft.busy} />
       <ActResult error={draft.error} done={draft.done} label="Drafted; another person approves it." />
     </Section>

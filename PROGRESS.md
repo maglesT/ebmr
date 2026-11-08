@@ -124,7 +124,9 @@ validator rows; dead branch, critical text, path-bound BOM line and SOP or proce
 clearance needs one person unless marked significant (a tablets packaging one keeps its second, Schedule M Part VIII 7.1); a stage may continue an
 earlier clearance (`clearanceFrom`) and an earlier status check in the same room counts; reprocessing needs only its
 maximum percentage; a master-level criticality assessment (`header.criticalityAssessment`) covers non-critical items; a
-one-branch parallel stays refused (engine). Next: R-rest Part B (recipe-core 1880), then D-4 to D-8.
+one-branch parallel stays refused (engine). D-4 (`d4-catalogue.md`): the demo set-up approves the seed catalogue as the
+demo QA persona, each approval recorded as the set-up's; the retired tablet blocks' badge names its library replacement.
+Next: R-rest Part B (recipe-core 1880), then D-5 to D-8.
 
 ## Next
 

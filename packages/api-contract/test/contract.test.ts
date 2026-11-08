@@ -263,6 +263,7 @@ describe('route table', () => {
   it('[DI-05][INV-18] designer routes and the GMP batch plan are GMP only, test packages and running test batches sandbox only (GMP batches run under batches, D-S6-1); work queue, lots, devices and the rest serve both', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
+    expect(routes.execution.plannedBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
     const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.exportRunResult, routes.execution.command, routes.execution.plantEntry, routes.execution.testLots, routes.execution.registerTestLot];
     for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
@@ -270,7 +271,7 @@ describe('route table', () => {
     // installations (each against its own database: test/plant/sandbox-plant.test.ts); every other batches route is GMP's.
     const plantReads = ['batches.stepPlant', 'batches.additionSources', 'batches.sscc', 'batches.issueSscc', 'batches.issueBulk', 'batches.printedLot', 'batches.cleaningNeeds'];
     for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe(plantReads.includes(r.id) ? 'ANY' : 'GMP');
-    const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
+    const installationBound: readonly string[] = ['execution.planBatch', 'execution.plannedBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
     for (const r of Object.values(routes.execution).filter((x) => !installationBound.includes(x.id))) expect(r.installation, r.id).toBe('ANY');
     for (const r of [...Object.values(routes.devices), ...Object.values(routes.meta), ...Object.values(routes.session), ...Object.values(routes.access), ...Object.values(routes.esig), ...Object.values(routes.audit)]) {
       expect(r.installation, r.id).toBe('ANY');
