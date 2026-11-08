@@ -717,6 +717,21 @@ export const execution = {
     }),
     response: PlannedBatchView,
   }),
+  /**
+   * A batch planned and not yet issued, as "Plan a batch" answered it (owner report item 14, G4): the planning page opens
+   * the issue form from it after a reload, so a planned batch is never stranded in one browser session.
+   */
+  plannedBatch: defineRoute({
+    id: 'execution.plannedBatch',
+    method: 'GET',
+    path: '/api/batches/:batchId/planned',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'A planned GMP batch with what its issue needs (variants, inputs, control recipe); not found once issued',
+    params: z.strictObject({ batchId: Uuid }),
+    response: PlannedBatchView,
+  }),
   runs: defineRoute({
     id: 'execution.runs',
     method: 'GET',

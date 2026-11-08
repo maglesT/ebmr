@@ -60,12 +60,37 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
         </Banner>
       )}
       {order.batches.length > 0 ? <p>Batches: {order.batches.map((b) => `${b.batchNumber} (${floor.stateWords(b.status)})`).join(', ')}</p> : null}
-      {order.match && canPlan && !planned ? (
+      {canPlan && !planned
+        ? order.batches
+            .filter((b) => b.status === 'PLANNED')
+            .map((b) => <PlannedRow key={b.batchId} batchId={b.batchId} batchNumber={b.batchNumber} />)
+        : null}
+      {order.match && canPlan && !planned && !order.batches.some((b) => b.status === 'PLANNED') ? (
         order.match.recordKind === 'PACKAGING' ? <PackagingPlanForm order={order} site={site} onPlanned={setPlanned} /> : <PlanForm order={order} site={site} onPlanned={setPlanned} />
       ) : null}
       {planned ? <IssueForm batch={planned} /> : null}
       {planned ? <PotencyPreview batchId={planned.batchId} /> : null}
     </article>
+  );
+}
+
+/**
+ * A batch of the order planned and not yet issued (G4, owner report item 14): the issue form opens from the server's own
+ * record of it, so a planned batch is issued from any session, not only right after "Plan a batch".
+ */
+function PlannedRow({ batchId, batchNumber }: { batchId: string; batchNumber: string }) {
+  const [open, setOpen] = useState(false);
+  const view = useApiQuery(routes.execution.plannedBatch, { params: { batchId } }, { enabled: open });
+  return (
+    <div data-testid={`planned-${batchNumber}`}>
+      <p>
+        {batchNumber} is planned and not issued yet.{' '}
+        {!open ? <ActButton label={`Issue ${batchNumber}`} onPress={() => setOpen(true)} /> : null}
+      </p>
+      {view.error ? <RefusalMessage error={view.error.error} /> : null}
+      {view.data ? <IssueForm batch={view.data} /> : null}
+      {view.data ? <PotencyPreview batchId={view.data.batchId} /> : null}
+    </div>
   );
 }
 
