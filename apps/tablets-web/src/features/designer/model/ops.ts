@@ -41,6 +41,11 @@ export type Op =
   | { kind: 'SET_TITLE'; title: string }
   | { kind: 'SET_MARKETS'; markets: string[] }
   | { kind: 'SET_CRITICALITY_ASSESSMENT'; reference: flow.Reference | null }
+  | { kind: 'UPDATE_CALCULATION'; id: string; name?: string; expression?: string }
+  | { kind: 'UPDATE_PARAMETER_NAME'; id: string; name: string }
+  | { kind: 'UPDATE_YIELD'; id: string; name?: string; result?: string; theoretical?: string }
+  | { kind: 'SET_LIMIT_SOURCE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: limits.LimitTier; kindOfSource: limits.LimitSourceKind; reference: flow.Reference }
+  | { kind: 'ADD_LIMIT_RANGE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: limits.LimitTier; unit: string; kindOfSource: limits.LimitSourceKind; reference: flow.Reference }
   | { kind: 'INSERT_STEP'; sequenceId: string; index: number; step: Step }
   | { kind: 'MOVE_STEP'; nodeId: string; direction: -1 | 1 }
   | { kind: 'DELETE_STEP'; nodeId: string }
@@ -162,6 +167,11 @@ function stepOf(c: Content, id: string): Step {
   return l.node;
 }
 
+/** A reference the content pins (by id, version and hash), added once. */
+function pinReference(c: Content, ref: flow.Reference): void {
+  if (!c.references.some((r) => r.id === ref.id)) c.references.push(structuredClone(ref));
+}
+
 function limitSpecOf(c: Content, owner: 'parameter' | 'calculation' | 'yield', id: string): { holder: { limits?: limits.LimitSpec }; name: string } {
   const list = owner === 'parameter' ? c.parameters : owner === 'calculation' ? c.calculations : c.yieldCheckpoints;
   const holder = (list as { id: string; name: string; limits?: limits.LimitSpec }[]).find((x) => x.id === id);
@@ -216,6 +226,60 @@ function applyInPlace(c: Content, op: Op): void {
     case 'SET_TITLE':
       c.header.title = checkName(op.title, 'The title');
       return;
+    // D-8 (items 13 and 21): the author's own names, formulas, yield calculation and limit sources. The validator and the
+    // simulation judge the result as for any content; an approved master changes only through a new version (the server
+    // saves revisions of a DRAFT only).
+    case 'UPDATE_CALCULATION': {
+      const x = c.calculations.find((k) => k.id === op.id);
+      if (!x) throw new OpError(`There is no calculation ${op.id}.`);
+      if (op.name !== undefined) x.name = checkName(op.name, 'The calculation name');
+      if (op.expression !== undefined) x.expression = checkName(op.expression, 'The formula');
+      return;
+    }
+    case 'UPDATE_PARAMETER_NAME': {
+      const p = c.parameters.find((k) => k.id === op.id);
+      if (!p) throw new OpError(`There is no parameter ${op.id}.`);
+      p.name = checkName(op.name, 'The parameter name');
+      return;
+    }
+    case 'UPDATE_YIELD': {
+      const y = c.yieldCheckpoints.find((k) => k.id === op.id);
+      if (!y) throw new OpError(`There is no yield checkpoint ${op.id}.`);
+      if (op.name !== undefined) y.name = checkName(op.name, 'The yield name');
+      if (op.result !== undefined && op.result !== y.result) {
+        const calc = c.calculations.find((k) => k.id === op.result);
+        if (calc?.output.valueType !== 'DECIMAL') throw new OpError(`The yield is a decimal calculation of the master (${op.result} is not one).`);
+        // The steps that evaluate the checkpoint compute its result (GMP-YIELDS): swap the old result for the new one.
+        const old = y.result;
+        flow.walk(c.procedure.body, (n) => {
+          if (n.kind === 'phase' && n.yieldCheckpoint === y.id) n.computes = [...new Set(n.computes.map((k) => (k === old ? calc.id : k)).concat(n.computes.includes(old) ? [] : [calc.id]))];
+        });
+        y.result = calc.id;
+      }
+      if (op.theoretical !== undefined) {
+        const known = c.calculations.some((k) => k.id === op.theoretical) || c.parameters.some((k) => k.id === op.theoretical) || c.inputs.some((k) => k.id === op.theoretical);
+        if (!known) throw new OpError(`The theoretical quantity is a calculation, parameter or input of the master (${op.theoretical} is not one).`);
+        y.theoretical = op.theoretical;
+      }
+      return;
+    }
+    case 'SET_LIMIT_SOURCE': {
+      const { holder, name } = limitSpecOf(c, op.owner, op.id);
+      const range = holder.limits?.ranges.find((r) => r.tier === op.tier);
+      if (!range) throw new OpError(`${name} has no ${op.tier.toLowerCase().replace('_', ' ')} range.`);
+      pinReference(c, op.reference);
+      range.source = { kind: op.kindOfSource, ref: op.reference.id };
+      return;
+    }
+    case 'ADD_LIMIT_RANGE': {
+      const { holder, name } = limitSpecOf(c, op.owner, op.id);
+      if (holder.limits?.ranges.some((r) => r.tier === op.tier)) throw new OpError(`${name} already has a ${op.tier.toLowerCase().replace('_', ' ')} range.`);
+      if (holder.limits && holder.limits.unit !== op.unit) throw new OpError(`The limits of ${name} are in ${holder.limits.unit}.`);
+      pinReference(c, op.reference);
+      const range: limits.LimitRange = { tier: op.tier, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: op.kindOfSource, ref: op.reference.id } };
+      holder.limits = holder.limits ? { ...holder.limits, ranges: [...holder.limits.ranges, range] } : { unit: checkName(op.unit, 'The unit'), ranges: [range] };
+      return;
+    }
     // R-rest A11: the master's criticality assessment (a pinned risk assessment), the rationale for its non-critical items.
     case 'SET_CRITICALITY_ASSESSMENT': {
       if (op.reference === null) {
