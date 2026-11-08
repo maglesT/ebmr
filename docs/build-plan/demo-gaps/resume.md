@@ -31,7 +31,8 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 | D-3 discard a draft, restart the family (recipe-core 1878) | #161 | cleared by the lead; squash-merge it on green after #160 (plain trailers) |
 | R-flow | this PR (branch `fix/demo-gaps-r-flow`) | built; carries this docs branch and the PROGRESS line |
 | D-3 follow-up: PROGRESS | in the R-flow PR | the "Demo gaps" paragraph of `PROGRESS.md` names D-1 to D-3 and R-flow |
-| R-rest, then D-4 to D-8 | not started | D-8 is a plan only, sent to the lead before any building |
+| R-rest Part A (validator rows) | built, PR to come; see `r-rest.md` | Part B (SQL rows) next, recipe-core 1880 |
+| D-4 to D-8 | not started | D-8 is a plan only, sent to the lead before any building |
 
 ## Learned on the way
 

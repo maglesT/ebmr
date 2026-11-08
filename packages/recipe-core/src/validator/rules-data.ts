@@ -284,7 +284,9 @@ const guards = defineRule('DATA-GUARDS', 'Branch conditions cover every case and
     }
     if (r.uncovered) out.push(error(n.id, `No branch of alternative ${n.id} applies when ${describePoint(r.uncovered)}; add a branch or an "otherwise" branch`));
     for (const o of r.overlaps) out.push(error(n.id, `Branches ${o.a} and ${o.b} of alternative ${n.id} both apply when ${describePoint(o.at)}; conditions must never overlap`));
-    for (const d of r.dead) out.push(error(n.id, `Branch ${d} of alternative ${n.id} can never be taken`));
+    // R-rest A2: a branch that can never be taken is inert (the engine never enables it); no clause refuses it, so a
+    // warning asks the author to check the condition.
+    for (const d of r.dead) out.push(warning(n.id, `Branch ${d} of alternative ${n.id} can never be taken; check its condition`));
   }
   return out;
 });

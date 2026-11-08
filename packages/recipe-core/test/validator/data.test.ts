@@ -6,6 +6,7 @@ import { analyseGuards } from '../../src/validator/guards.ts';
 import { DATA_RULES } from '../../src/validator/rules-data.ts';
 import { STRUCTURE_RULES } from '../../src/validator/rules-structure.ts';
 import { clone, findNode, findPhase, loadFixture, mbrWith, phase, registryOf, validate } from '../flow/support.ts';
+import { define } from '../engine/support.ts';
 
 const dataRules = registryOf(STRUCTURE_RULES, DATA_RULES);
 const seq = (id: string, children: FlowNode[]): FlowNode => ({ kind: 'sequence', id, children });
@@ -224,8 +225,10 @@ describe('branch conditions: exhaustive, non-overlapping, reachable', () => {
     expect(found(guarded(['lod <= 3.5 [%]', 'lod >= 3.5 [%]']), 'DATA-GUARDS')).toEqual([expect.stringMatching(/Branches b0 and b1 of alternative A both apply when lod = 3\.5/)]);
   });
 
-  it('[DI-34] a branch that can never be taken is refused', () => {
-    expect(found(guarded(['lod < 2.0 [%]', 'lod >= 2.0 [%]', undefined]), 'DATA-GUARDS')).toEqual([expect.stringMatching(/Branch b2 of alternative A can never be taken/)]);
+  it('[DI-34] R-rest A2: a branch that can never be taken is a warning, and the engine accepts the master', () => {
+    const m = guarded(['lod < 2.0 [%]', 'lod >= 2.0 [%]', undefined]);
+    expect(found(m, 'DATA-GUARDS')).toEqual([expect.stringMatching(/^WARNING: Branch b2 of alternative A can never be taken; check its condition/)]);
+    expect(() => define(m)).not.toThrow();
   });
 
   it('[DI-34] conditions outside the decidable form need a justification (warning), never a silent pass', () => {

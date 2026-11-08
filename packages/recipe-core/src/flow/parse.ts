@@ -250,7 +250,7 @@ function marketRule(r: Reader, v: unknown, path: string): { key: string; bound: 
 }
 
 function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
-  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType', 'unitMassMg']);
+  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType', 'unitMassMg', 'criticalityAssessment']);
   if (!o) return undefined;
   const family = r.id(o, 'family', path);
   const title = r.string(o, 'title', path);
@@ -294,7 +294,13 @@ function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
   if (!family || !title || !edition || !recordKind || !product || !batchSizes || !marketSet || !variants) return undefined;
   const unitMassMg = r.string(o, 'unitMassMg', path, /^(0|[1-9][0-9]*)(\.[0-9]+)?$/);
   if (unitMassMg !== undefined && /^0(\.0*)?$/.test(unitMassMg)) r.fail(`${path}.unitMassMg`, 'is the mass of one unit, above zero');
-  return { family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants, ...(packType !== undefined ? { packType } : {}), ...(unitMassMg !== undefined ? { unitMassMg } : {}) };
+  const criticalityAssessment = r.id(o, 'criticalityAssessment', path);
+  return {
+    family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants,
+    ...(packType !== undefined ? { packType } : {}),
+    ...(unitMassMg !== undefined ? { unitMassMg } : {}),
+    ...(criticalityAssessment !== undefined ? { criticalityAssessment } : {}),
+  };
 }
 
 function reference(r: Reader, v: unknown, path: string): Reference | undefined {
@@ -825,8 +831,9 @@ function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefi
     case 'phase':
       return phase(r, o, path);
     case 'stage': {
-      r.object(o, path, ['kind', 'id', 'name', 'binding', 'purpose', 'responsibleRole', 'body'], ['noYieldReason']);
+      r.object(o, path, ['kind', 'id', 'name', 'binding', 'purpose', 'responsibleRole', 'body'], ['noYieldReason', 'clearanceFrom']);
       const noYieldReason = r.string(o, 'noYieldReason', path);
+      const clearanceFrom = r.id(o, 'clearanceFrom', path);
       const id = r.id(o, 'id', path);
       const name = r.string(o, 'name', path);
       const purpose = r.literal(o, 'purpose', path, ['MATERIAL', 'NON_MATERIAL'] as const);
@@ -846,6 +853,7 @@ function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefi
       if (!(id && name && purpose && responsibleRole && binding && body)) return undefined;
       const stage: StageNode = { kind: 'stage', id, name, binding, purpose, responsibleRole, body };
       opt(stage, 'noYieldReason', noYieldReason);
+      opt(stage, 'clearanceFrom', clearanceFrom);
       return stage;
     }
     case 'operation': {
