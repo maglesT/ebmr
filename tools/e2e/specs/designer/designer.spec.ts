@@ -134,4 +134,31 @@ test.describe('designer', () => {
 
     expect(await cspViolations(page)).toEqual([]);
   });
+  // D-7 (owner's MGL-SR-BL report item 12): at 1400 px the sticky findings panel covered the steps' "⋯" buttons. The
+  // procedure now scrolls inside its own column; each button takes a real click (Playwright refuses one another element
+  // would receive) and opens its menu.
+  test('[PR-03] at 1400 px every step\'s actions button is reachable by the mouse, never under the findings panel', { tag: '@office' }, async ({ officePage, persona }, testInfo) => {
+    test.setTimeout(120_000);
+    const page = await officePage('GMP', 'PC-DESIGN-01');
+    await page.setViewportSize({ width: 1400, height: 900 });
+    const tag = `W${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
+    await signIn.office(page, persona('GMP', 'author'));
+    await page.getByTestId('home-all-screens').click();
+    await page.getByRole('link', { name: /Master records/ }).click();
+    await page.getByRole('link', { name: 'New master record (from a template or a formula)' }).click();
+    await page.getByLabel('Family code').fill(`FAM-${tag}`);
+    await page.getByLabel('Product code').fill(`PCM500-${tag}`);
+    await page.getByRole('textbox', { name: 'Batch size 1' }).fill('60.000');
+    await page.getByRole('button', { name: 'Create the family and its draft' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Paracetamol tablets 500 mg');
+    const buttons = page.getByRole('button', { name: /^Actions for step / });
+    const count = await buttons.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await buttons.nth(i).click();
+      await expect(page.getByRole('menuitem', { name: 'Step properties' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('menuitem', { name: 'Step properties' })).toHaveCount(0);
+    }
+  });
 });
