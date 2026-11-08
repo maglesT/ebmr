@@ -30,7 +30,7 @@ import { LIMIT_SOURCE_KINDS, LIMIT_TIERS, ROUNDING_RULES, type LimitSpec } from 
 import { lotProblems } from '../blocks/generic/material.ts';
 import { checkBlockUse } from './check-use.ts';
 import { scaledInputs } from './scaling.ts';
-import type { BlockDefinition, BlockUse, FieldDef, SectionDef, TestStatistic } from './model.ts';
+import { fieldlessBlock, type BlockDefinition, type BlockUse, type FieldDef, type SectionDef, type TestStatistic } from './model.ts';
 
 /** Block type of a library definition in the registry and in the MBR, e.g. LIB-IPC-FRIAB. */
 export function libraryBlockType(code: string): string {
@@ -454,9 +454,9 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       if (f.type === 'EQUIPMENT') {
         const e = equipment[f.id];
         const wanted = config.equipmentClasses?.[f.classSlot];
-        if (!e || e['code'] !== data[f.id]) problems.push(problem('LIB-EQUIPMENT-FACTS', `${f.label}: the plant register has no equipment ${text(data[f.id])}`, ['PR-19']));
-        else if (wanted !== undefined && e['classCode'] !== wanted) problems.push(problem('LIB-EQUIPMENT-CLASS', `${f.label}: ${text(e['code'])} is of class ${text(e['classCode'])}, not ${wanted} as the formulation requires`, ['PR-19', 'IN-11']));
-        else if (!USABLE_FITNESS.includes(text(e['fitness']))) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-19', 'IN-11']));
+        if (!e || e['code'] !== data[f.id]) problems.push(problem('LIB-EQUIPMENT-FACTS', `${f.label}: the plant register has no equipment ${text(data[f.id])}`, ['PR-23', 'IN-25']));
+        else if (wanted !== undefined && e['classCode'] !== wanted) problems.push(problem('LIB-EQUIPMENT-CLASS', `${f.label}: ${text(e['code'])} is of class ${text(e['classCode'])}, not ${wanted} as the formulation requires`, ['PR-23', 'IN-25']));
+        else if (!USABLE_FITNESS.includes(text(e['fitness']))) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-23', 'IN-25']));
       }
       // Every library weighing is keyed by hand (balances join in a later slice): two-person verification (DI-30, PR-14).
       if (f.type === 'WEIGHING') manualWeighing = true;
@@ -624,9 +624,13 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       beforePerform: (view) => {
         const config = configOf(view);
         const out: HandlerProblem[] = [];
+        const fieldless = fieldlessBlock(def);
         for (const s of def.sections) {
           const n = view.entries(s.id).length;
           const r = s.repeat ?? { kind: 'ONCE' as const };
+          // An optional event section (R-flow item 3) is recorded only when its event happens; the sections of a
+          // fieldless instruction or sign-off block (item 5) hold only text, and the signature is the record.
+          if ((s.required === false && (r.kind === 'ONCE' || r.kind === 'PER_CONTAINER')) || fieldless) continue;
           if (r.kind === 'COUNT') {
             const want = Number(config.counts?.[r.countSlot] ?? '1');
             if (n < want) out.push(problem('LIB-PERFORM-SECTION', `${s.title} is recorded ${n} of ${want} times`));

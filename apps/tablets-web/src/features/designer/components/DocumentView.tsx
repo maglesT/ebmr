@@ -21,6 +21,7 @@ import type { FindingItem, PaletteItem } from '../model/types.ts';
 import { boundWords, Check, CommitDecimal, CommitText, comparisonWords, roleTitle, Select } from './common.tsx';
 import { ProcedureTable } from './ProcedureTable.tsx';
 import { AddStage, StageEditor } from './StageEditor.tsx';
+import { CriticalityAssessment } from './CriticalityAssessment.tsx';
 import { actionBreachWords, eventWords, goldenValueText, humanize, itemLabel, marketRuleWords, quantityWords, referenceLabel, roundingWords, samplingWords, sourceWords, yesNo } from './words.ts';
 import { useScreenDosageForm } from '../../../app/brand.tsx';
 
@@ -520,7 +521,7 @@ export function DocumentView(props: DocumentProps) {
               ))}
             </ul>
             {!readOnly && c.procedure.body.kind === 'sequence' && c.procedure.body.children.includes(s) ? (
-              <StageEditor stage={s} first={stages[0]?.id === s.id} last={stages[stages.length - 1]?.id === s.id} dispatch={dispatch} />
+              <StageEditor stage={s} first={stages[0]?.id === s.id} last={stages[stages.length - 1]?.id === s.id} earlier={stages.slice(0, stages.findIndex((x) => x.id === s.id))} dispatch={dispatch} />
             ) : null}
           </div>
         ))}
@@ -654,6 +655,11 @@ export function DocumentView(props: DocumentProps) {
         <p>
           Risk scale {referenceLabel(c, c.riskScale.ref)}: {c.riskScale.classes.join(' < ')}
         </p>
+        {readOnly ? (
+          c.header.criticalityAssessment ? <p>Criticality assessment: {referenceLabel(c, c.header.criticalityAssessment)}</p> : null
+        ) : (
+          <CriticalityAssessment content={c} dispatch={dispatch} />
+        )}
         {c.riskReductions.length > 0 ? (
           <ul className={dcls('list')}>
             {c.riskReductions.map((r) => (

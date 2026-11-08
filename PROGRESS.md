@@ -111,6 +111,21 @@ scope; substance 5000 the API-PACK completion row and the API G-REL hook; H-PACK
 one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and the E2E acceptance); resume from
 `docs/build-plan/api/handover-a0.md` (section "A1a done").
 
+## Demo gaps (designer restrictions, 7 November 2026)
+
+Plan `docs/build-plan/demo-gaps/plan.md`; the D-0 sweep and the lead's audit in `d0/README.md`; resume notes in
+`resume.md`. D-0 (#157) classified every refusal an author can hit. D-1 (#159): a stage added in the designer passes the
+validator and takes its own yield step. D-2 (#160, recipe-core 1877): the same material on two formula lines, the
+compensation and capsule-coating fixes, a formula draft withdrawn with a reason. D-3 (#161, recipe-core 1878): a
+master draft discarded with a reason, and the family started again. R-flow (`r-flow.md`): a phase directly in a stage
+(ADR 0004 amended), generic seed blocks, optional event sections, a stage with no yield and its reason, fieldless
+instruction and sign-off blocks, a target without limits, and the citation fixes. R-rest Part A (`r-rest.md`): the
+validator rows; dead branch, critical text, path-bound BOM line and SOP or process-data hold-time sources are warnings; a
+clearance needs one person unless marked significant (a tablets packaging one keeps its second, Schedule M Part VIII 7.1); a stage may continue an
+earlier clearance (`clearanceFrom`) and an earlier status check in the same room counts; reprocessing needs only its
+maximum percentage; a master-level criticality assessment (`header.criticalityAssessment`) covers non-critical items; a
+one-branch parallel stays refused (engine). Next: R-rest Part B (recipe-core 1880), then D-4 to D-8.
+
 ## Next
 
 **Demo gaps (bilayer MGL-SR-BL, 7 November 2026).** Plan `docs/build-plan/demo-gaps/` (D-0 restriction sweep, lead-audited:
@@ -142,7 +157,11 @@ the owner's control decisions recorded (#120: 89 MODIFY, ST-68 FOLLOW, ST-69 DON
 calculation over a typed date/time or a timer (#115). **#117 merged** (shared fix: a library block reads an earlier
 step's value at runtime; ENG-DEF-STEP-VALUE at master check) and **#114 I-1a** (17 INJ blocks as data, the `sterile` rule
 table published). **Resumed 6 November** after capsules: the #114 audit clean-up, then #131 (S1–S3), the `showWhen`
-checker fix, unit-account v2, I-1c (vial and ampoule batches to release, E2E) and the I-2 blocks. Notes: `docs/build-plan/injectables/resume.md`. Migrations: `inj.*` 3000-3999.
+checker fix, unit-account v2, I-1c (vial and ampoule batches to release, E2E) and the I-2 blocks. **7 November:** merged
+#146, #148, #147 (S1–S3), #149, #151, #152 (I-2 blocks, Annex 1 items as EU-market blocks) and #155 (I-1c1 vial E2E; it
+narrows D-1 so the printed-packaging and label reconciliations, 211.125, are no yield checkpoint). Owner rule (7 November):
+no new refusal without a quoted binding clause or a real engine or record-integrity need, named in the code comment.
+Next: the ampoule, then I-1c2. Notes: `docs/build-plan/injectables/resume.md`. Migrations: `inj.*` 3000-3999.
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
 plan `docs/build-plan/capsules/plan.md` approved by the lead (v3, PR #102). The owner's binding rule: every numbered

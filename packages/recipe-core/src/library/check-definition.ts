@@ -12,6 +12,7 @@ import {
   BLOCK_CATEGORIES,
   BLOCK_MARKETS,
   LIBRARY_EDITIONS,
+  fieldlessBlock,
   EQUIPMENT_KINDS,
   FIELD_TYPES,
   LIBRARY_ROLES,
@@ -165,7 +166,9 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
     });
     problems.push(...checkRepeat(s, sp));
   });
-  if (fieldCount === 0) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one'));
+  // An INSTRUCTION or SIGN_OFF block may hold no field: its PERFORMED signature is the record (R-flow item 5).
+  if (fieldCount === 0 && !fieldlessBlock(def)) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one, unless the block is an instruction or a sign-off (roles INSTRUCTION, SIGN_OFF)'));
+  problems.push(...checkOptionalSections(def));
 
   // An UNTIL_PASS repeat ends only on a field with a pass/fail meaning in the same section.
   def.sections.forEach((s, si) => {
@@ -198,6 +201,35 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   return problems;
 }
 
+/**
+ * Optional sections (R-flow item 3). Kept, each for its reason: the step's processing record is a required section
+ * (21 CFR 211.188(b): the batch record documents each significant step); a planned count, interval or loop is the
+ * product's instruction, never an event, so its section stays required (an UNTIL_PASS loop must also run, INV-20).
+ */
+function checkOptionalSections(def: BlockDefinition): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  def.sections.forEach((s, si) => {
+    if (s.required === undefined || s.required === true) return;
+    const at = `sections[${si}].required`;
+    if (s.required !== false) out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id}: required is true or false`));
+    else if (typeof s.when !== 'string' || s.when.trim() === '') out.push(err('LIB-SECTION-OPTIONAL', `sections[${si}].when`, `Section ${s.id} is optional; name the event that calls for it in "when" (e.g. an extra binder addition, an alarm, a rework) [PR-03]`, ['PR-03']));
+    else if (s.repeat !== undefined && s.repeat.kind !== 'ONCE' && s.repeat.kind !== 'PER_CONTAINER') {
+      out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} repeats ${s.repeat.kind === 'UNTIL_PASS' ? 'until it passes' : s.repeat.kind === 'COUNT' ? 'a planned number of times' : 'at planned intervals'}; a planned check is part of the step's record, so it stays required [PR-03]`, ['PR-03']));
+    } else {
+      // A judged value (a CPP or IPC, a field with limits, a test result) is the step's record, never an event.
+      const judged = (s.fields ?? []).find((f) => ('critical' in f && f.critical === true) || ('limitSlot' in f && f.limitSlot !== undefined) || f.type === 'TEST_RESULT');
+      if (judged) out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} holds ${judged.id}, a value judged against limits; it is part of the step's record, so the section stays required [PR-03, PR-08]`, ['PR-03', 'PR-08']));
+    }
+  });
+  // 21 CFR 211.188(b): the record documents that each significant step was accomplished, so a block (other than a
+  // fieldless instruction or sign-off) keeps at least one required section that records something.
+  const hasFields = def.sections.some((s) => (s.fields ?? []).length > 0); // none at all is LIB-NO-FIELDS
+  if (hasFields && !def.sections.some((s) => s.required !== false && (s.fields ?? []).length > 0)) {
+    out.push(err('LIB-SECTION-OPTIONAL', 'sections', 'No required section records a field; the section that records the step itself stays required (21 CFR 211.188(b)) [PR-03]', ['PR-03']));
+  }
+  return out;
+}
+
 function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: boolean): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   if (!(FIELD_TYPES as readonly string[]).includes((f as { type: string }).type)) {
@@ -227,7 +259,8 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: 
     case 'CALC':
       unitOk(f.unit, `${fp}.unit`);
       criticalNeedsLimit(f.critical, f.limitSlot);
-      if (f.required === false) out.push(err('LIB-CALC-REQUIRED', `${fp}.required`, `Field ${f.id} is calculated; it is never typed, so it cannot be optional or required [INV-25]`, ['INV-25']));
+      // R-flow item 7: the flag is ignored (a calculation is never typed, and is always computed), so it only warns.
+      if (f.required === false) out.push({ ...err('LIB-CALC-REQUIRED', `${fp}.required`, `Field ${f.id} is calculated; it is never typed and always computed, so "required: false" is ignored [INV-25]`, ['INV-25']), severity: 'WARNING' });
       break;
     case 'TIMER': {
       const unit = f.durationUnit ?? 'min';
@@ -362,6 +395,13 @@ function checkCalc(f: FieldDef & { type: 'CALC' }, fp: string, section: SectionD
   const conditional = c.reads
     .filter((r) => { const src = earlier.get(r)?.field; return src !== undefined && src.showWhen !== undefined && !sameCondition(src.showWhen, f.showWhen); })
     .map((r) => err('LIB-CALC-CONDITIONAL', `${fp}.expression`, `Field ${f.id} reads ${r}, which is shown only under a condition that ${f.id} does not share [DI-33]`, ['DI-33']));
+  // An optional section may never be recorded, so a calculation elsewhere cannot read it (engine need: no input, no value).
+  for (const r of c.reads) {
+    const from = earlier.get(r)?.section;
+    if (from !== undefined && from !== section && from.required === false) {
+      conditional.push(err('LIB-CALC-CONDITIONAL', `${fp}.expression`, `Field ${f.id} reads ${r} of the optional section ${from.id}, which may never be recorded [DI-33]`, ['DI-33']));
+    }
+  }
   return conditional.concat(c.problems.map((p) => ({
     code: 'LIB-CALC-EXPRESSION',
     severity: p.severity,
@@ -408,7 +448,7 @@ function checkReferenceLimits(def: BlockDefinition, expr: ExpressionService): Li
 function checkSignatures(def: BlockDefinition): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   const sigs = Array.isArray(def.signatures) ? def.signatures : [];
-  if (!sigs.some((s) => s.meaning === 'PERFORMED')) out.push(err('LIB-SIGNATURE-PERFORMED', 'signatures', 'The block needs a PERFORMED signature: every step is attributed to the person who did it [DI-35, ST-33]', ['DI-35', 'ST-33']));
+  if (!sigs.some((s) => s.meaning === 'PERFORMED')) out.push(err('LIB-SIGNATURE-PERFORMED', 'signatures', 'The block needs a PERFORMED signature: every step is attributed to the person who did it [PR-14, DI-35]', ['PR-14', 'DI-35']));
   const meanings = new Set<string>();
   sigs.forEach((s, i) => {
     if (!(SIGNATURE_MEANINGS as readonly string[]).includes(s.meaning)) out.push(err('LIB-SIGNATURE-MEANING', `signatures[${i}].meaning`, `Unknown signature meaning ${JSON.stringify(s.meaning)}`, ['DI-35']));

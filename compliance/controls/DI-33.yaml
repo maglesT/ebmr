@@ -296,6 +296,7 @@ tests:
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [DI-33] conditional fields: a hidden field is refused, a shown one is required, and a calculation reads the formula line and the lot assay"
   - "packages/recipe-core/test/library/block-version.test.ts > the generic handler runs library blocks in the engine > [DI-33] the server computes a calculated field and stores it with its evaluation record (O-9 b)"
   - "packages/recipe-core/test/library/block-version.test.ts > the sentences of library entries (S5: step screens, review and the printed record) > [DI-33] a section entry reads as its fields with units, a calculated value says so, a timer stop says how long"
+  - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33] R-flow item 3: a calculation cannot read a field of an optional section, which may never be recorded"
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33] a calculation must check against the fields declared before it, in its declared unit"
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33] a calculation outside a repeating section reads its fields as a series"
   - "packages/recipe-core/test/library/library.test.ts > library block definitions > [DI-33][PR-03] a calculation cannot read a typed date and time or a timer: the definition is refused, so QA never approves a block whose calculation the runtime cannot evaluate (I-1 finding)"

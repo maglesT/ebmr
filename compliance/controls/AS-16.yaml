@@ -17,6 +17,8 @@ implemented_by:
     - "Review and release (existing), G-REL with the API items; C1 guard for intermediates (A2)."
 tests:
   - "apps/tablets-server/test/substance/api-chain.test.ts > API plan A1a: one API batch from library blocks to a released lot, over the routes > [AS-16][IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the API edition's items (the tablets items that apply to any packaging order), and the authorised person releases the lot"
+  - "apps/tablets-server/test/substance/intermediate-lots.test.ts > API plan A2: intermediate lots between synthesis steps (C1) > [AS-16][INV-13][PR-18][IN-18] a quarantined intermediate is refused for step B at the reservation; QA releases it for further processing over the material-lot release, then step B reserves it; a consumption no batch-record entry names is refused"
+  - "apps/tablets-server/test/substance/intermediate-lots.test.ts > API plan A2: intermediate lots between synthesis steps (C1) > [AS-16][PR-18][INV-13][INV-14] the final step C refuses intermediate B in quarantine at the reservation and at its G-07 weighing, consuming nothing; once QA releases B for further processing, C reserves it and its weighing consumes it"
 expert_decision:
   status: PENDING
   pack_version: "api-0.1"

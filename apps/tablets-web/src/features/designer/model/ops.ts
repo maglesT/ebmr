@@ -40,6 +40,7 @@ export type PhasePatch = Partial<
 export type Op =
   | { kind: 'SET_TITLE'; title: string }
   | { kind: 'SET_MARKETS'; markets: string[] }
+  | { kind: 'SET_CRITICALITY_ASSESSMENT'; reference: flow.Reference | null }
   | { kind: 'INSERT_STEP'; sequenceId: string; index: number; step: Step }
   | { kind: 'MOVE_STEP'; nodeId: string; direction: -1 | 1 }
   | { kind: 'DELETE_STEP'; nodeId: string }
@@ -60,7 +61,7 @@ export type Op =
   | { kind: 'ADD_STAGE'; afterStageId: string | null; stage: flow.StageNode }
   | { kind: 'MOVE_STAGE'; stageId: string; direction: -1 | 1 }
   | { kind: 'DELETE_STAGE'; stageId: string }
-  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[] } }
+  | { kind: 'UPDATE_STAGE'; stageId: string; patch: { name?: string; rooms?: string[]; noYieldReason?: string; clearanceFrom?: string } }
   | { kind: 'ADD_STAGE_EQUIPMENT'; stageId: string; equipment: flow.StageEquipment; reference?: flow.Reference }
   | { kind: 'REMOVE_STAGE_EQUIPMENT'; stageId: string; ref: string }
   // Slice 7o (R4, R8 C3; D-7o-2): one more coat of the same tablets after a step (coating-layer.ts).
@@ -215,6 +216,17 @@ function applyInPlace(c: Content, op: Op): void {
     case 'SET_TITLE':
       c.header.title = checkName(op.title, 'The title');
       return;
+    // R-rest A11: the master's criticality assessment (a pinned risk assessment), the rationale for its non-critical items.
+    case 'SET_CRITICALITY_ASSESSMENT': {
+      if (op.reference === null) {
+        delete c.header.criticalityAssessment;
+        return;
+      }
+      if (op.reference.kind !== 'RISK_ASSESSMENT') throw new OpError('The criticality assessment is a risk assessment.');
+      if (!c.references.some((r) => r.id === op.reference?.id)) c.references.push(structuredClone(op.reference));
+      c.header.criticalityAssessment = op.reference.id;
+      return;
+    }
     case 'SET_MARKETS': {
       if (!op.markets.includes('IN')) throw new OpError('India (IN) stays in every market set (Revised Schedule M always applies).');
       const unknown = op.markets.filter((m) => !(KNOWN_MARKETS as readonly string[]).includes(m));
@@ -375,6 +387,16 @@ function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_ST
         if (rooms.length === 0) throw new OpError('A stage is bound to at least one room.');
         stage.binding = { ...stage.binding, rooms: [...new Set(rooms)] };
       }
+      // R-flow item 4: a material stage with no yield says why on the stage; an empty text takes the reason away.
+      if (op.patch.noYieldReason !== undefined) {
+        if (op.patch.noYieldReason.trim() === '') delete stage.noYieldReason;
+        else stage.noYieldReason = checkName(op.patch.noYieldReason, 'The reason for no yield');
+      }
+      // R-rest A6: the stage continues an earlier stage's clearance (the validator checks the room or line); empty removes it.
+      if (op.patch.clearanceFrom !== undefined) {
+        if (op.patch.clearanceFrom === '') delete stage.clearanceFrom;
+        else stage.clearanceFrom = op.patch.clearanceFrom;
+      }
       return;
     }
     case 'ADD_STAGE_EQUIPMENT': {
@@ -406,8 +428,9 @@ function applyStageOp(c: Content, op: Extract<Op, { kind: 'ADD_STAGE' | 'MOVE_ST
 /**
  * A new stage (slice 7j): bound to `room`, responsible the production supervisor, a material stage whose first
  * operation, "<name>: preparation", holds its room clearance and its equipment status check (the database-backed
- * versions a GMP batch takes, when offered). A phase belongs in an operation (FLOW-LEVELS, DI-34); the author inserts
- * the stage's own steps (its process blocks, its yield step) after them in that operation.
+ * versions a GMP batch takes, when offered). The author inserts the stage's own steps (its process blocks, its yield
+ * step) after them in that operation, or directly in the stage: the operation level is optional (FLOW-LEVELS, ADR 0004
+ * decision 1 as amended).
  */
 export function newStage(c: Content, palette: readonly PaletteEntry[], name: string, room: string): flow.StageNode {
   const latest = (type: string): PaletteEntry | undefined => palette.filter((b) => b.type === type).sort((a, b) => (Number(a.version) < Number(b.version) ? 1 : -1))[0];

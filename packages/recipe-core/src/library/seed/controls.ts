@@ -14,6 +14,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-LINE-CLEAR-START',
       version: 1,
+      edition: 'generic',
       title: 'Line clearance before start',
       category: 'CONTROL',
       roles: ['CLEARANCE'],
@@ -43,6 +44,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-LINE-CLEAR-END',
       version: 1,
+      edition: 'generic',
       title: 'Line clearance at the end of the stage',
       category: 'CONTROL',
       roles: ['CLEARANCE'],
@@ -69,6 +71,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-ROOM-STATUS',
       version: 1,
+      edition: 'generic',
       title: 'Room status check',
       category: 'CONTROL',
       roles: ['ENVIRONMENT_CHECK'],
@@ -98,6 +101,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-EQUIP-STATUS',
       version: 1,
+      edition: 'generic',
       title: 'Equipment status and cleaning label check',
       category: 'CONTROL',
       roles: ['EQUIPMENT_STATUS_CHECK'],
@@ -125,6 +129,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-BALANCE-CHECK',
       version: 1,
+      edition: 'generic',
       title: 'Balance daily check',
       category: 'CONTROL',
       roles: ['EQUIPMENT_STATUS_CHECK'],
@@ -162,6 +167,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-SAMPLING',
       version: 1,
+      edition: 'generic',
       title: 'Sampling',
       category: 'CONTROL',
       roles: ['SAMPLING'],
@@ -187,6 +193,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-YIELD',
       version: 1,
+      edition: 'generic',
       title: 'Stage yield',
       category: 'CONTROL',
       roles: ['YIELD_RECONCILIATION'],
@@ -219,6 +226,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-MATERIAL-RECON',
       version: 1,
+      edition: 'generic',
       title: 'Material reconciliation',
       category: 'CONTROL',
       roles: ['YIELD_RECONCILIATION'],
@@ -250,6 +258,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-PRINTED-RECON',
       version: 1,
+      edition: 'generic',
       title: 'Printed packaging material reconciliation',
       category: 'CONTROL',
       roles: ['YIELD_RECONCILIATION'],
@@ -281,6 +290,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-STAGE-SIGNOFF',
       version: 1,
+      edition: 'generic',
       title: 'Stage sign-off',
       category: 'CONTROL',
       roles: ['SIGN_OFF'],
@@ -309,6 +319,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-DEVIATION-REF',
       version: 1,
+      edition: 'generic',
       title: 'Deviation reference',
       category: 'CONTROL',
       roles: ['OBSERVATION'],
@@ -335,6 +346,7 @@ export const CONTROL_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'CTRL-QA-VERIFY',
       version: 1,
+      edition: 'generic',
       title: 'QA verification',
       category: 'CONTROL',
       roles: ['VERIFICATION'],
