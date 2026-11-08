@@ -30,13 +30,14 @@ responsibility (decision 0026 point 3).
 
 | Check | Code | Controls |
 |---|---|---|
-| Code, version, title, category; at least one field | LIB-CODE, LIB-VERSION, LIB-TITLE, LIB-CATEGORY, LIB-NO-FIELDS | PR-03, PR-05 |
+| Code, version, title, category; at least one field, unless the block is an INSTRUCTION or SIGN_OFF whose PERFORMED signature is the record (R-flow) | LIB-CODE, LIB-VERSION, LIB-TITLE, LIB-CATEGORY, LIB-NO-FIELDS | PR-03, PR-05 |
 | Every field typed: known type, label, a valid UCUM unit; a weighing in mass, a timer in time | LIB-FIELD-* | PR-03 |
 | Every critical field (CPP, IPC) has a limit slot; a test judges at least one statistic | LIB-CRITICAL-NO-LIMIT, LIB-TEST-NO-LIMIT | PR-03, PR-08, PR-29 |
-| A calculation checks against the fields declared before it (so no cycles), in its declared unit; it is never optional | LIB-CALC-EXPRESSION, LIB-CALC-REQUIRED | DI-33, INV-25 |
+| A calculation checks against the fields declared before it (so no cycles), in its declared unit, and reads no field of another optional section; `required: false` on it is ignored with a warning | LIB-CALC-EXPRESSION, LIB-CALC-CONDITIONAL, LIB-CALC-REQUIRED | DI-33, INV-25 |
 | An UNTIL_PASS repeat waits on a field with limits or an expected answer; with no maximum it is a warning | LIB-REPEAT-UNTIL, LIB-REPEAT-NO-MAX | INV-20 |
+| An optional event section (`required: false`) names its event in `when`, repeats ONCE or PER_CONTAINER and holds no judged value (critical, limited or a test result); at least one required section records a field (21 CFR 211.188(b)) | LIB-SECTION-OPTIONAL | PR-03, PR-08 |
 | Unique field ids and slot names; choices with two distinct options and one allowed answer | LIB-FIELD-ID, LIB-SLOT-*, LIB-CHOICE-* | PR-03 |
-| A PERFORMED signature, each meaning once, each with a role | LIB-SIGNATURE-* | DI-35, ST-33 |
+| A PERFORMED signature, each meaning once, each with a role | LIB-SIGNATURE-* | PR-14, DI-35 |
 | Reference limits name a limit slot, carry a note, are in order and in a compatible unit | LIB-REFERENCE-* | PR-08, IN-33 |
 | A use: required slots filled, no unknown slot, whole-number counts, positive time intervals | LIB-USE-* | PR-03, PR-29 |
 | A use's limits: well-formed nested tiers (`limits/checkLimitSpec`), a unit that converts to the field's, a target inside its limits, time points each with limits | LIB-USE-LIMIT-*, LIB-USE-TARGET, LIB-USE-POINTS | PR-08 |

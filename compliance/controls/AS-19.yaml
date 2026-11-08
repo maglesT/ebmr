@@ -1,0 +1,24 @@
+id: AS-19
+title: "Reprocessing within the established process; unreacted material returned only after evaluation"
+part: D
+group: API edition
+editions:
+  - substance
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows: []
+sources: "ICH Q7 (Step 4, 10 November 2000; EU GMP Part II) 14.20, 14.22. Revised Schedule M Part XII 14.2.1 checked; the extract on file lacks 14.2.2 to 14.4 (open item for the owner). API plan docs/build-plan/api/plan.md section 11."
+behaviour: "Repeating a step is allowed only when it is part of the approved manufacturing process (a G-24 step of the approved master, or a whole-batch REPROCESSING master). A step that returns unreacted or reprocessed material into a batch is authorised by the quality unit before it is carried out, citing the investigation and the risk evaluation; a step that is no reprocessing step and a person without the authorising right are refused."
+catalog_test: "Ask for the authorisation of a reprocessing addition on a step that is no reprocessing step, or as a person without REPROCESSING.AUTHORISE; refused."
+implemented_by:
+  modules:
+    - "recipe-core 0621 (recipe.propose_reprocessing_authorisation, EBMR-RPR-020; recipe.authorise_reprocessing), 0622 (G-24 case limits), 0624 and 0625 (whole-batch REPROCESSING master); no code of the edition's own."
+tests:
+  - "apps/tablets-server/test/substance/rework.test.ts > API plan A4a: rework and reprocessing of an API batch (ICH Q7 14.1 to 14.3) > [AS-19][IN-19][PR-47] a G-24 step of an API master that returns unreacted material (case REPROCESSING_ADDITION) is authorised by the quality unit before it is carried out, citing the investigation and the risk evaluation; a step that is no reprocessing step and a person without REPROCESSING.AUTHORISE are refused"
+expert_decision:
+  status: PENDING
+  pack_version: "api-0.1"
+build_status: IMPLEMENTED
+scope: "API edition (substance) only; slice A4a of the API plan."

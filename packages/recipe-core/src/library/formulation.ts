@@ -22,8 +22,9 @@ export function libraryPhase(def: BlockDefinition, id: string, riskClass: string
     records: [],
     computes: [],
     // A formula-line or batch-size input is read from the master's own BOM and batch size when the step runs
-    // (scaling.ts), so it is no value the master declares (demo finding D-1).
-    reads: (def.inputs ?? []).filter((i) => i.kind !== 'FORMULA_LINE' && i.kind !== 'BATCH_SIZE').map((i) => i.id),
+    // (scaling.ts), and an earlier-step value from the step it names (STEP_VALUE), so neither is a value the master
+    // declares (demo finding D-1; Injectables I-1c).
+    reads: (def.inputs ?? []).filter((i) => i.kind !== 'FORMULA_LINE' && i.kind !== 'BATCH_SIZE' && i.kind !== 'STEP_VALUE').map((i) => i.id),
     consumes: [],
     produces: [],
     uses: [],

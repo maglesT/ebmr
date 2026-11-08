@@ -162,11 +162,12 @@ function mutations(mbr: MbrContent): Mutation[] {
     });
   }
   out.push({
-    name: 'a step placed directly in the stage',
+    // The operation level is optional (ADR 0004 decision 1, amended): a step directly in a stage is sound; a step
+    // outside every stage is not.
+    name: 'a step placed directly in the procedure',
     expected: ['FLOW-LEVELS'],
     apply: (m) => {
-      const stage = all(m).find((x) => x.kind === 'stage');
-      if (stage?.kind === 'stage') stage.body = { kind: 'sequence', id: 'stage-seq', children: [stage.body, phase('stray')] };
+      m.procedure.body = { kind: 'sequence', id: 'mut-proc-seq', children: [m.procedure.body, phase('mut-stray')] };
     },
   });
   return out;

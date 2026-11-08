@@ -26,15 +26,39 @@ describe('structure gates on the tree', () => {
     expect(structureRules(mbrWith(seq('ops', [phase('a'), phase('b')])))).toEqual([]);
   });
 
-  it('[DI-34] FLOW-LEVELS: a phase outside an operation, an operation outside a stage and a stage inside a stage are refused', () => {
+  it('[DI-34] FLOW-LEVELS: a phase outside every stage, an operation outside a stage and a stage inside a stage are refused', () => {
     const m = mbrWith(phase('ok'));
     m.procedure.body = seq('proc', [...(m.procedure.body.kind === 'sequence' ? m.procedure.body.children : []), phase('stray')]);
-    expect(messages(m, 'FLOW-LEVELS').join(' ')).toMatch(/stray.*is a phase placed directly in the procedure/);
+    expect(messages(m, 'FLOW-LEVELS').join(' ')).toMatch(/stray.*is a phase placed directly in the procedure; a phase belongs in a stage or an operation of a stage/);
     const nested = mbrWith(phase('ok'));
     const stage = nested.procedure.body.kind === 'sequence' ? nested.procedure.body.children[0] : undefined;
     if (stage?.kind !== 'stage') throw new Error('builder changed');
     stage.body = seq('st', [stage.body, { ...stage, id: 'S2', body: { kind: 'operation', id: 'O2', name: 'Op', body: phase('x') } }]);
     expect(messages(nested, 'FLOW-LEVELS').join(' ')).toMatch(/S2.*is a stage placed directly in a stage/);
+    const opInOp = mbrWith(seq('ops', [phase('a'), { kind: 'operation', id: 'O3', name: 'Op', body: phase('b') }]));
+    expect(messages(opInOp, 'FLOW-LEVELS').join(' ')).toMatch(/O3.*is a operation placed inside an operation; a operation belongs in a stage/);
+  });
+
+  it('[DI-34] FLOW-LEVELS: the operation level is optional, so a phase, a hold point or both sit directly in a stage (ADR 0004 decision 1, amended)', () => {
+    const m = mbrWith(phase('ok'));
+    const stage = m.procedure.body.kind === 'sequence' ? m.procedure.body.children[0] : undefined;
+    if (stage?.kind !== 'stage') throw new Error('builder changed');
+    stage.body = seq('st', [phase('direct'), { kind: 'holdPoint', id: 'H', name: 'Hold', role: 'QA', dispositions: ['OK'] }, stage.body]);
+    expect(validate(m, {}, structureOnly).findings).toEqual([]);
+    stage.body = seq('st2', [phase('only')]);
+    expect(validate(m, {}, structureOnly).findings).toEqual([]);
+  });
+
+  it('[DI-34] FLOW-LEVELS: an empty stage is refused; an empty operation only warns', () => {
+    const m = mbrWith(phase('ok'));
+    const stage = m.procedure.body.kind === 'sequence' ? m.procedure.body.children[0] : undefined;
+    if (stage?.kind !== 'stage') throw new Error('builder changed');
+    stage.body = seq('st', [phase('direct'), { kind: 'operation', id: 'O-EMPTY', name: 'Empty', body: seq('none', []) }]);
+    const levels = validate(m, {}, structureOnly).findings.filter((f) => f.rule === 'FLOW-LEVELS');
+    expect(levels.map((f) => [f.severity, f.subject])).toEqual([['WARNING', 'O-EMPTY']]);
+    stage.body = seq('none', []);
+    const empty = validate(m, {}, structureOnly).findings.filter((f) => f.rule === 'FLOW-LEVELS');
+    expect(empty.map((f) => [f.severity, f.subject])).toEqual([['ERROR', 'S']]);
   });
 
   it('[DI-34] FLOW-LEVELS: a procedure without any stage is refused', () => {
@@ -98,7 +122,7 @@ describe('structure gates on the tree', () => {
     expect(messages(loop('PROCESS_ENDPOINT'), 'FLOW-LOOPS')).toEqual([]);
     const refused = messages(loop('ACCEPTANCE_TEST'), 'FLOW-LOOPS');
     expect(refused).toHaveLength(1);
-    expect(refused[0]).toMatch(/acceptance or release test.*only repeat on a process endpoint.*reprocessing/);
+    expect(refused[0]).toMatch(/acceptance or release test.*only repeat on a process endpoint.*reprocessing procedure \[IN-20 OOS investigation, PR-47 reprocessing\]/);
     expect(refused[0]).toMatch(/\(FLOW-LOOPS; DI-34, INV-19\)$/);
   });
 

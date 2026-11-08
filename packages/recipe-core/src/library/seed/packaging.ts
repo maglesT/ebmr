@@ -213,6 +213,7 @@ export const PACKAGING_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PACK-CARTON',
       version: 1,
+      edition: 'generic',
       title: 'Cartoning',
       category: 'PACKAGING',
       instructions: 'Put the stated number of packs and one leaflet in each carton; check the empty-carton and missing-leaflet rejection at the start.',
@@ -317,6 +318,7 @@ export const PACKAGING_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PACK-LABEL-RECON',
       version: 1,
+      edition: 'generic',
       title: 'Label reconciliation',
       category: 'PACKAGING',
       roles: ['YIELD_RECONCILIATION'],
@@ -347,6 +349,7 @@ export const PACKAGING_SEEDS: readonly SeedItem[] = [
     definition: {
       code: 'PACK-SHIPPER',
       version: 1,
+      edition: 'generic',
       title: 'Shipper packing',
       category: 'PACKAGING',
       instructions: 'Pack the stated number of cartons in each shipper, label it and weigh it; a part shipper is labelled as such.',

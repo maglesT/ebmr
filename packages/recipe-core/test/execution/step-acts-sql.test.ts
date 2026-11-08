@@ -20,7 +20,7 @@ import { stepKey } from '../../src/engine/tx.ts';
 import type { BatchState, Command } from '../../src/engine/types.ts';
 import type { FlowNode } from '../../src/flow/model.ts';
 import { mbrWith, phase } from '../flow/support.ts';
-import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, PACKAGING_SCENARIO, QA1, Run, sig, SUP1, VER1 } from '../engine/support.ts';
+import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, flatGranulationDefinition, GRANULATION_SCENARIO, OP1, PACKAGING_SCENARIO, QA1, Run, sig, SUP1, VER1 } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -122,6 +122,13 @@ describe('F67: minimum durations and blocks at the database agree with the engin
       expect(autopilot(run, scenario)).toBe('COMPLETE');
       expect(await honestObjections(run, start), name).toEqual({});
     }
+  }, 300_000);
+
+  it('[INV-20][PR-08][PR-45][PR-30] R-flow item 1: every accepted act of the golden run of the granulation master with no operation passes', async () => {
+    const run = Run.issue(flatGranulationDefinition(), { inputs: FIXTURE_INPUTS['tablet-granulation-compression'] });
+    const start = run.state;
+    expect(autopilot(run, GRANULATION_SCENARIO)).toBe('COMPLETE');
+    expect(await honestObjections(run, start)).toEqual({});
   }, 300_000);
 
   it('[INV-20][PR-30] a step ended or started before its minimum is refused, measured within the constraint instance; once the minimum has passed it is accepted', async () => {
