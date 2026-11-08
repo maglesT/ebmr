@@ -189,11 +189,28 @@ describe('GMP content gates', () => {
     expect(gate(report).passed).toBe(false);
   });
 
-  it('[INV-34] a hold time must cite a hold-time study or validation report', () => {
+  it('[INV-34][IN-13] R-rest A9: a hold time cites a hold-time study or validation report, or process data or a company SOP with a warning, in every edition; a registration is refused', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      const i = m.intermediates.find((x) => x.id === 'I-BLEND');
+      const of = (mbr: MbrContent): string[] => validate(mbr).findings.filter((f) => f.rule === 'GMP-INTERMEDIATES' && f.subject === 'I-BLEND').map((f) => `${f.severity}: ${f.message}`);
+      if (!i?.holdTime) throw new Error('SETUP: I-BLEND has no hold time');
+      for (const kind of ['COMPANY_STANDARD', 'PROCESS_DATA'] as const) {
+        i.holdTime.source = { kind, ref: 'SOP-IPC' };
+        expect(of(m)).toEqual([expect.stringMatching(/^WARNING: The hold time of Intermediate "Lubricated blend" \(I-BLEND\) cites .*keep the written basis/)]);
+      }
+      i.holdTime.source = { kind: 'REGISTRATION', ref: 'SOP-IPC' };
+      expect(of(m)).toEqual([expect.stringMatching(/^ERROR: The hold time of .*\(I-BLEND\) cites a registration; it must cite/)]);
+    }
+  });
+
+  it('[INV-34][IN-13] R-rest A9: a timer may cite process data or a company SOP, with a warning', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
-    const i = m.intermediates.find((x) => x.id === 'I-BLEND');
-    if (i?.holdTime) i.holdTime.source = { kind: 'COMPANY_STANDARD', ref: 'SOP-IPC' };
-    expect(errors(validate(m)).map((f) => f.message).join(' ')).toMatch(/hold time of Intermediate "Lubricated blend" \(I-BLEND\) cites a company standard/);
+    const t = m.timeConstraints[0];
+    if (!t?.source) throw new Error('SETUP: no timer with a source');
+    t.source = { ...t.source, kind: 'PROCESS_DATA' };
+    expect(validate(m).findings.filter((f) => f.rule === 'GMP-TIMERS' && f.subject === t.id).map((f) => `${f.severity}: ${f.message}`)).toEqual([expect.stringMatching(/^WARNING: Timer .* cites process data; keep the written basis/)]);
   });
 
   it('[PR-08] limit tiers must nest: an alert limit outside the action limit is refused', () => {
@@ -499,12 +516,18 @@ describe('GMP content gates', () => {
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-STAGE-NON-MATERIAL')?.message).toMatch(/declared non-material/);
   });
 
-  it('[PR-03] every reprocessing or recovery step declares its case and limits', () => {
-    const m = clone(loadFixture('tablet-granulation-compression'));
-    findPhase(m, 'p-blend-charge').reprocessing = { case: 'RECOVERY' };
-    expect(errors(validate(m)).find((f) => f.rule === 'GMP-REPROCESSING')?.message).toMatch(/does not set the maximum percentage, maximum age and maximum number of source batches/);
-    findPhase(m, 'p-blend-charge').reprocessing = { case: 'VALIDATED_RETREATMENT' };
-    expect(errors(validate(m)).find((f) => f.rule === 'GMP-REPROCESSING')?.message).toMatch(/must be a bounded loop/);
+  it('[PR-03][PR-47][IN-19] R-rest A10: a recovery step declares its case and the maximum percentage the engine judges it by; the age and source-batch caps are optional; a re-treatment outside a loop is a warning', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      const of = (): string[] => validate(m).findings.filter((f) => f.rule === 'GMP-REPROCESSING').map((f) => `${f.severity}: ${f.message}`);
+      findPhase(m, 'p-blend-charge').reprocessing = { case: 'RECOVERY' };
+      expect(of()).toEqual([expect.stringMatching(/^ERROR: .*does not set the maximum percentage of the batch it may add/)]);
+      findPhase(m, 'p-blend-charge').reprocessing = { case: 'RECOVERY', maxPercent: '3' };
+      expect(of()).toEqual([]);
+      findPhase(m, 'p-blend-charge').reprocessing = { case: 'VALIDATED_RETREATMENT' };
+      expect(of()).toEqual([expect.stringMatching(/^WARNING: .*is a validated re-treatment outside a loop/)]);
+    }
   });
 
   it('[PR-03][PR-08] the sampling plan of an ALL_APPLY scheme must serve every criterion (the union)', () => {
@@ -535,6 +558,25 @@ describe('risk-based reductions (IN-02)', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     m.riskReductions = m.riskReductions.filter((r) => r.id !== 'RR-SPEED-MINOR');
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-RISK')?.message).toMatch(/"Press speed" \(machineSpeed\) is classified non-critical without a linked risk-based reduction/);
+  });
+
+  it('[IN-02] R-rest A11: a criticality assessment named on the master stands as the rationale for every non-critical item, in every edition; it must be a pinned risk assessment', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      m.riskReductions = m.riskReductions.filter((r) => r.kind !== 'MINOR_CLASSIFICATION');
+      const risk = (): string[] => errors(validate(m)).filter((f) => f.rule === 'GMP-RISK').map((f) => f.message);
+      expect(risk().some((t) => /is classified non-critical without/.test(t))).toBe(true);
+      const ra = m.references.find((r) => r.kind === 'RISK_ASSESSMENT');
+      if (!ra) throw new Error('SETUP: no risk assessment');
+      m.header.criticalityAssessment = ra.id;
+      expect(risk()).toEqual([]);
+      const parsed = parseMbr(JSON.parse(JSON.stringify(m)));
+      if (!parsed.ok) throw new Error(JSON.stringify(parsed.problems));
+      expect(parsed.mbr.header.criticalityAssessment).toBe(ra.id);
+      m.header.criticalityAssessment = m.references.find((r) => r.kind !== 'RISK_ASSESSMENT')?.id ?? 'NOT-A-REF';
+      expect(risk()).toEqual(expect.arrayContaining([expect.stringMatching(/criticality assessment .* is not a pinned risk assessment/), expect.stringMatching(/is classified non-critical without/)]));
+    }
   });
 
   it('[IN-02] a risk-based reduction cannot be saved without a risk class from the controlled scale', () => {
@@ -639,7 +681,8 @@ describe('critical free text (R-rest A4)', () => {
     for (const edition of ['tablets', 'injectables', 'substance'] as const) {
       const m = clone(loadFixture('tablet-granulation-compression'));
       m.header.edition = edition;
-      m.parameters.push({ ...param(m, 'driedNet'), id: 'lotRef', name: 'Granulation lot reference', valueType: 'TEXT', criticality: 'CRITICAL', capture: 'MANUAL', accuracyCheck: 'SECOND_PERSON', unit: undefined, precision: undefined, limits: undefined } as MbrContent['parameters'][number]);
+      const base = Object.fromEntries(Object.entries(param(m, 'driedNet')).filter(([k]) => !['unit', 'precision', 'limits'].includes(k))) as MbrContent['parameters'][number];
+      m.parameters.push({ ...base, id: 'lotRef', name: 'Granulation lot reference', valueType: 'TEXT', criticality: 'CRITICAL', capture: 'MANUAL', accuracyCheck: 'SECOND_PERSON' });
       const of = (mbr: MbrContent, rule: string) => validate(mbr).findings.filter((f) => f.rule === rule && f.subject === 'lotRef').map((f) => `${f.severity}: ${f.message}`);
       expect(of(m, 'GMP-TYPED-FIELDS')).toEqual([expect.stringMatching(/^WARNING: .*\(lotRef\) is critical but free text/)]);
       expect(of(m, 'GMP-CRITICAL-PARAMETERS')).toEqual([]);
@@ -681,5 +724,51 @@ describe('a stage that continues an earlier clearance (R-rest A6)', () => {
     stage(later, 'S-BLEND').clearanceFrom = 'S-COMP';
     expect(clearanceFindings(later).length).toBeGreaterThan(0);
     expect(clearanceFindings(later).every((t) => /can run before the clearance of stage .*S-COMP/.test(t))).toBe(true);
+  });
+});
+
+describe('an earlier equipment status check in the same room (R-rest A7)', () => {
+  // The compression stage weighs on SCALE2, the blending stage's balance, and does not check it again.
+  const shared = (rooms: string[], cls = 'EQC-BAL'): MbrContent => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    const comp = findNode(m, 'S-COMP') as StageNode;
+    comp.binding.rooms = rooms;
+    comp.binding.equipment = comp.binding.equipment.map((e) => (e.ref === 'SCALE3' ? { ...e, ref: 'SCALE2', equipmentClass: cls } : e));
+    const status = findPhase(m, 'p-comp-status');
+    status.equipment = status.equipment.filter((e) => e.ref !== 'SCALE3');
+    const charge = findPhase(m, 'p-comp-charge');
+    charge.equipment = charge.equipment.map((e) => (e.ref === 'SCALE3' ? { ...e, ref: 'SCALE2' } : e));
+    return m;
+  };
+  const statusFindings = (m: MbrContent): string[] => errors(validate(m)).filter((f) => f.rule === 'GMP-EQUIPMENT-STATUS').map((f) => f.message);
+
+  it('[PR-03] a check of the same equipment in an earlier stage in the same room counts, in every edition', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = shared(['BLND-01']);
+      m.header.edition = edition;
+      expect(statusFindings(m)).toEqual([]);
+    }
+  });
+
+  it('[PR-03] it does not count from another room, or for equipment of another class under the same name', () => {
+    expect(statusFindings(shared(['COMP-01']))).toEqual([expect.stringMatching(/p-comp-charge\) uses SCALE2 before its status .* is checked in stage .*S-COMP.*, or earlier in the same room/)]);
+    expect(statusFindings(shared(['BLND-01'], 'EQC-SCALE-FLOOR'))).toEqual([expect.stringMatching(/uses SCALE2 before its status/)]);
+  });
+});
+
+describe('a BOM line consumed on some paths only (R-rest A8)', () => {
+  it('[PR-03] a line consumed only in one branch of an alternative is a warning in every edition; a line never consumed stays an error', () => {
+    for (const edition of ['tablets', 'injectables', 'substance'] as const) {
+      const m = clone(loadFixture('tablet-granulation-compression'));
+      m.header.edition = edition;
+      const mgs = m.bom.find((b) => b.id === 'BOM-MGS');
+      if (!mgs) throw new Error('SETUP: no BOM-MGS');
+      m.bom.push({ ...mgs, id: 'BOM-IPA-EXTRA' });
+      findPhase(m, 'p-extra-ipa').consumes = ['BOM-IPA-EXTRA'];
+      const bom = validate(m).findings.filter((f) => f.rule === 'GMP-BOM-CONSUMED').map((f) => `${f.severity}: ${f.message}`);
+      expect(bom).toEqual([expect.stringMatching(/^WARNING: BOM line BOM-IPA-EXTRA is consumed on some paths only/)]);
+      findPhase(m, 'p-extra-ipa').consumes = [];
+      expect(errors(validate(m)).filter((f) => f.rule === 'GMP-BOM-CONSUMED').map((f) => f.message)).toEqual([expect.stringMatching(/BOM line BOM-IPA-EXTRA is never consumed/)]);
+    }
   });
 });

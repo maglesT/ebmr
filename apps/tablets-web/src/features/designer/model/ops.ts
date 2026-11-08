@@ -40,6 +40,7 @@ export type PhasePatch = Partial<
 export type Op =
   | { kind: 'SET_TITLE'; title: string }
   | { kind: 'SET_MARKETS'; markets: string[] }
+  | { kind: 'SET_CRITICALITY_ASSESSMENT'; reference: flow.Reference | null }
   | { kind: 'INSERT_STEP'; sequenceId: string; index: number; step: Step }
   | { kind: 'MOVE_STEP'; nodeId: string; direction: -1 | 1 }
   | { kind: 'DELETE_STEP'; nodeId: string }
@@ -215,6 +216,17 @@ function applyInPlace(c: Content, op: Op): void {
     case 'SET_TITLE':
       c.header.title = checkName(op.title, 'The title');
       return;
+    // R-rest A11: the master's criticality assessment (a pinned risk assessment), the rationale for its non-critical items.
+    case 'SET_CRITICALITY_ASSESSMENT': {
+      if (op.reference === null) {
+        delete c.header.criticalityAssessment;
+        return;
+      }
+      if (op.reference.kind !== 'RISK_ASSESSMENT') throw new OpError('The criticality assessment is a risk assessment.');
+      if (!c.references.some((r) => r.id === op.reference?.id)) c.references.push(structuredClone(op.reference));
+      c.header.criticalityAssessment = op.reference.id;
+      return;
+    }
     case 'SET_MARKETS': {
       if (!op.markets.includes('IN')) throw new OpError('India (IN) stays in every market set (Revised Schedule M always applies).');
       const unknown = op.markets.filter((m) => !(KNOWN_MARKETS as readonly string[]).includes(m));

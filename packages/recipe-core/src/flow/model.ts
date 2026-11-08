@@ -58,6 +58,12 @@ export interface MbrHeader {
    * records it (decision 0026 S11b), so the tablet count of each batch size is its mass divided by this, exactly (R3.1).
    */
   unitMassMg?: string;
+  /**
+   * The id of the master's pinned risk assessment (a RISK_ASSESSMENT reference) that classifies its parameters and
+   * calculations (R-rest A11): ICH Q9 asks for a documented assessment, not one per item, so a master that names it
+   * may classify an item non-critical without a reduction of its own. Approved with the master.
+   */
+  criticalityAssessment?: string;
 }
 
 /** A controlled, versioned risk scale (IN-02). */

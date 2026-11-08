@@ -250,7 +250,7 @@ function marketRule(r: Reader, v: unknown, path: string): { key: string; bound: 
 }
 
 function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
-  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType', 'unitMassMg']);
+  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType', 'unitMassMg', 'criticalityAssessment']);
   if (!o) return undefined;
   const family = r.id(o, 'family', path);
   const title = r.string(o, 'title', path);
@@ -294,7 +294,13 @@ function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
   if (!family || !title || !edition || !recordKind || !product || !batchSizes || !marketSet || !variants) return undefined;
   const unitMassMg = r.string(o, 'unitMassMg', path, /^(0|[1-9][0-9]*)(\.[0-9]+)?$/);
   if (unitMassMg !== undefined && /^0(\.0*)?$/.test(unitMassMg)) r.fail(`${path}.unitMassMg`, 'is the mass of one unit, above zero');
-  return { family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants, ...(packType !== undefined ? { packType } : {}), ...(unitMassMg !== undefined ? { unitMassMg } : {}) };
+  const criticalityAssessment = r.id(o, 'criticalityAssessment', path);
+  return {
+    family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants,
+    ...(packType !== undefined ? { packType } : {}),
+    ...(unitMassMg !== undefined ? { unitMassMg } : {}),
+    ...(criticalityAssessment !== undefined ? { criticalityAssessment } : {}),
+  };
 }
 
 function reference(r: Reader, v: unknown, path: string): Reference | undefined {

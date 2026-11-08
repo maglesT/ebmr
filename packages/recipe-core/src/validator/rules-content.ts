@@ -390,10 +390,19 @@ const nonMaterialStages = defineRule('GMP-STAGE-NON-MATERIAL', 'Non-material sta
 
 const equipmentStatus = defineRule('GMP-EQUIPMENT-STATUS', 'Equipment use is preceded by a status check', ['PR-03'], (a) => {
   const out: RuleFinding[] = [];
+  // R-rest A7: 211.67 and EU GMP 5.x ask for clean, fit equipment before use, not for a check in each stage. A check of
+  // the same equipment (reference and class) earlier on every path, in a stage that shares a room with this one, counts.
+  const roomKeys = (stage: StageNode, ref: string): string[] => {
+    const cls = stage.binding.equipment.find((x) => x.ref === ref)?.equipmentClass ?? '';
+    return stage.binding.rooms.map((r) => `room:${r}:${ref}:${cls}`);
+  };
   const facts = a.mustBefore([], (n) => {
     const p = a.phaseOf(n);
-    const stage = p ? a.nodes.get(p.id)?.stage : undefined;
-    return p && stage ? p.equipment.filter((e) => e.use === 'STATUS_CHECK').map((e) => `${stage}:${e.ref}`) : [];
+    const sid = p ? a.nodes.get(p.id)?.stage : undefined;
+    const stage = sid ? a.nodes.get(sid)?.node : undefined;
+    if (!p || !sid) return [];
+    const checked = p.equipment.filter((e) => e.use === 'STATUS_CHECK');
+    return [...checked.map((e) => `${sid}:${e.ref}`), ...(stage?.kind === 'stage' ? checked.flatMap((e) => roomKeys(stage, e.ref)) : [])];
   });
   if (!facts) return out;
   for (const p of a.phases) {
@@ -406,8 +415,9 @@ const equipmentStatus = defineRule('GMP-EQUIPMENT-STATUS', 'Equipment use is pre
       const kind = stage.binding.equipment.find((x) => x.ref === e.ref)?.kind;
       if (kind === 'UTILITY' || kind === undefined) continue;
       const checkedHere = p.equipment.some((x) => x.ref === e.ref && x.use === 'STATUS_CHECK');
-      if (!checkedHere && t && !facts.get(t.id)?.has(`${stage.id}:${e.ref}`)) {
-        out.push(error(p.id, `${label(a, p.id)} uses ${e.ref} before its status (clean, qualified, calibrated) is checked in stage ${label(a, stage.id)} on every path`));
+      const before = t ? facts.get(t.id) : undefined;
+      if (!checkedHere && t && !before?.has(`${stage.id}:${e.ref}`) && !roomKeys(stage, e.ref).some((k) => before?.has(k))) {
+        out.push(error(p.id, `${label(a, p.id)} uses ${e.ref} before its status (clean, qualified, calibrated) is checked in stage ${label(a, stage.id)}, or earlier in the same room, on every path`));
       }
     }
   }
@@ -422,7 +432,12 @@ const bomConsumed = defineRule('GMP-BOM-CONSUMED', 'Every BOM line is consumed o
   for (const b of a.mbr.bom) {
     if (!atEnd.has(b.id)) {
       const anywhere = a.phases.some((p) => p.consumes.includes(b.id));
-      out.push(error(b.id, anywhere ? `BOM line ${b.id} is not consumed on every path through the batch (some branch completes without it)` : `BOM line ${b.id} is never consumed by any step`));
+      // R-rest A8: a line consumed only in some branches (an optional material, a variant's material) is bound to those
+      // paths; no clause asks that each path use every line, and the batch's reconciliation shows a line not used. A
+      // warning asks the author to confirm it; a line no step consumes stays an error (record integrity: the master lists a
+      // material its batch record can never account for).
+      if (anywhere) out.push(warning(b.id, `BOM line ${b.id} is consumed on some paths only; a batch that takes another branch completes without it`));
+      else out.push(error(b.id, `BOM line ${b.id} is never consumed by any step`));
     }
   }
   return out;
@@ -481,14 +496,21 @@ function limitsOf(p: PhaseNode): Record<string, LimitSpec | undefined> {
   return l !== null && typeof l === 'object' && !Array.isArray(l) ? (l as unknown as Record<string, LimitSpec | undefined>) : {};
 }
 
+/** Sources accepted with a warning for a hold time or a timer (R-rest A9). */
+const WRITTEN_BASIS = new Set(['PROCESS_DATA', 'COMPANY_STANDARD']);
+
 const intermediates = defineRule('GMP-INTERMEDIATES', 'Every intermediate has a hold time and is produced before use', ['PR-03', 'INV-34', 'IN-13'], (a) => {
   const out: RuleFinding[] = [];
   const facts = a.mustBefore([], (n) => a.phaseOf(n)?.produces ?? []);
   for (const i of a.mbr.intermediates) {
     const name = `Intermediate ${label(a, i.id)}`;
     if (!i.holdTime) out.push(error(i.id, `${name} has no hold time; every intermediate needs a maximum hold time from a hold-time study`));
-    else if (i.holdTime.source.kind !== 'HOLD_STUDY' && i.holdTime.source.kind !== 'VALIDATION_REPORT') {
-      out.push(error(i.id, `The hold time of ${name} cites a ${i.holdTime.source.kind.toLowerCase().replace('_', ' ')}; it must cite a hold-time study or validation report`));
+    // R-rest A9: INV-34 asks for a source; no clause names its kind (211.111 asks for time limits for the phases of
+    // production where appropriate). Process data or a company SOP is accepted with a warning that asks for the written basis.
+    else if (WRITTEN_BASIS.has(i.holdTime.source.kind)) {
+      out.push(warning(i.id, `The hold time of ${name} cites ${i.holdTime.source.kind === 'PROCESS_DATA' ? 'process data' : 'a company standard (SOP)'}; keep the written basis (the data or the SOP's study) with it`));
+    } else if (i.holdTime.source.kind !== 'HOLD_STUDY' && i.holdTime.source.kind !== 'VALIDATION_REPORT') {
+      out.push(error(i.id, `The hold time of ${name} cites a ${i.holdTime.source.kind.toLowerCase().replace('_', ' ')}; it must cite a hold-time study, a validation report, process data or a company SOP`));
     }
     const producers = a.phases.filter((p) => p.produces.includes(i.id));
     const users = a.phases.filter((p) => p.uses.includes(i.id));
@@ -510,6 +532,7 @@ const timers = defineRule('GMP-TIMERS', 'Every timer has limits and a validation
   const out: RuleFinding[] = [];
   for (const t of a.mbr.timeConstraints) {
     if (!t.source) out.push(error(t.id, `Timer ${label(a, t.id)} lacks a validation reference`));
+    else if (WRITTEN_BASIS.has(t.source.kind)) out.push(warning(t.id, `Timer ${label(a, t.id)} cites ${t.source.kind === 'PROCESS_DATA' ? 'process data' : 'a company standard (SOP)'}; keep the written basis (the data or the SOP's study) with it`));
     else if (!TIMER_SOURCES.has(t.source.kind)) out.push(error(t.id, `Timer ${label(a, t.id)} cites a ${t.source.kind.toLowerCase().replace('_', ' ')}, which is not a validation or hold-study reference`));
   }
   for (const p of a.phases) {
@@ -607,9 +630,14 @@ const risk = defineRule('GMP-RISK', 'Every risk-based reduction has a risk class
       if (!fits && (node !== undefined || a.data.has(s))) out.push(error(r.id, `${name} cannot apply to ${label(a, s)}`));
     }
   }
+  // R-rest A11 (lead, 7 November): an MBR-level criticality assessment, named on the header and approved with the
+  // master, stands as the rationale for every non-critical item (ICH Q9 asks for a documented assessment, not one per item).
+  const assessment = a.mbr.header.criticalityAssessment;
+  const assessed = assessment !== undefined && a.references.get(assessment)?.kind === 'RISK_ASSESSMENT';
+  if (assessment !== undefined && !assessed) out.push(error('$', `The criticality assessment ${assessment} named on the header is not a pinned risk assessment of the master`));
   for (const item of [...a.mbr.parameters, ...a.mbr.calculations]) {
-    if (item.criticality === 'NON_CRITICAL' && !reducedBy(a, 'MINOR_CLASSIFICATION', item.id)) {
-      out.push(error(item.id, `${label(a, item.id)} is classified non-critical without a linked risk-based reduction (risk class and rationale); until then it is treated as critical`));
+    if (item.criticality === 'NON_CRITICAL' && !assessed && !reducedBy(a, 'MINOR_CLASSIFICATION', item.id)) {
+      out.push(error(item.id, `${label(a, item.id)} is classified non-critical without a linked risk-based reduction (risk class and rationale) or a criticality assessment named on the master; until then it is treated as critical`));
     }
   }
   return out;
@@ -648,12 +676,16 @@ const reprocessing = defineRule('GMP-REPROCESSING', 'Reprocessing and recovery s
     if (a.hasRole(p, 'REPROCESSING') && !p.reprocessing) out.push(error(p.id, `${name} is a reprocessing or recovery step but does not declare its case`));
     const r = p.reprocessing;
     if (!r) continue;
-    if ((r.case === 'REPROCESSING_ADDITION' || r.case === 'RECOVERY') && (r.maxPercent === undefined || r.maxAge === undefined || r.maxSourceBatches === undefined)) {
-      out.push(error(p.id, `${name} adds material from other batches but does not set the maximum percentage, maximum age and maximum number of source batches`));
+    // R-rest A10: Schedule M 14.32-14.34 and 211.115 ask for an authorised procedure, not for each cap. The maximum
+    // percentage stays required for an engine and database need: the addition is judged against it (G-24, recipe-core
+    // 0622), and is refused without it. The maximum age and number of source batches are checked when set.
+    if ((r.case === 'REPROCESSING_ADDITION' || r.case === 'RECOVERY') && r.maxPercent === undefined) {
+      out.push(error(p.id, `${name} adds material from other batches but does not set the maximum percentage of the batch it may add`));
     }
     if (r.maxPercent !== undefined && (compareDecimal(r.maxPercent, '0') <= 0 || compareDecimal(r.maxPercent, '100') > 0)) out.push(error(p.id, `${name} has a maximum percentage outside 0-100`));
     if (r.case === 'VALIDATED_RETREATMENT' && !(a.nodes.get(p.id)?.ancestors ?? []).some((id) => a.nodes.get(id)?.node.kind === 'loop')) {
-      out.push(error(p.id, `${name} is a validated re-treatment, which must be a bounded loop on a process endpoint`));
+      // R-rest A10: no clause asks for the loop; a re-treatment done once is a warning.
+      out.push(warning(p.id, `${name} is a validated re-treatment outside a loop; it runs once, with no process endpoint deciding a repeat`));
     }
   }
   return out;
