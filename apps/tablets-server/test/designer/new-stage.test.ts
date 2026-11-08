@@ -2,8 +2,8 @@
  * Demo finding D-1 (bilayer MGL-SR-BL, 7 November 2026): a stage added in the designer passes the full validator against
  * the real adapters. The stage is the designer's own `newStage` output (fixture designer-new-stage.json, which
  * apps/tablets-web/test/designer/stage-ops.test.ts proves newStage builds; a server test does not import the web app).
- * Its room clearance and equipment status sit in an operation of the stage, never directly in it (FLOW-LEVELS, DI-34),
- * and the stage takes its own yield step there: the library yield block, as the designer inserts it
+ * Its room clearance and equipment status sit in an operation of the stage (the operation level is optional since
+ * R-flow, ADR 0004 decision 1 as amended), and the stage takes its own yield step there: the library yield block, as the designer inserts it
  * (library.libraryPhase with the definition carried, ADD_LIBRARY_BLOCK).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -64,7 +64,7 @@ function withYield(c: Content, limits: boolean): Content {
 }
 
 describe('a new stage in the designer (demo finding D-1)', () => {
-  it('[DI-34][PR-03] the stage the designer adds passes the full validator: its clearance and status are in an operation, at the latest block versions', async () => {
+  it('[DI-34][PR-03][PR-31] the stage the designer adds passes the full validator: its clearance and status are in an operation, at the latest block versions', async () => {
     const c = base();
     expect(await findings(c)).toEqual([]);
     // The fixture holds the latest G-10 and G-09 the installation registers (the palette offers the latest).
@@ -87,7 +87,7 @@ describe('a new stage in the designer (demo finding D-1)', () => {
     ['injectables', 'Injection'],
     ['substance', 'API'],
     ['tablets', 'Hard capsule'],
-  ] as const)('[DI-34][PR-03] edition %s, dosage form %s: a new stage with its yield step adds no finding', async (edition, dosageForm) => {
+  ] as const)('[DI-34][PR-03][PR-31] edition %s, dosage form %s: a new stage with its yield step adds no finding', async (edition, dosageForm) => {
     const c = base();
     c.header.edition = edition;
     c.header.product.dosageForm = dosageForm;

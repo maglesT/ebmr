@@ -125,9 +125,63 @@ describe('library block definitions', () => {
     expect(codes(checkBlockDefinition(scalar, expr))).toContain('LIB-CALC-EXPRESSION');
   });
 
-  it('[INV-25] a calculated field cannot be marked optional: it is never typed', () => {
+  it('[INV-25] "required: false" on a calculated field is ignored with a warning (R-flow item 7): it is never typed and always computed', () => {
     const def = withField(friability(), { id: 'c2', label: 'C2', type: 'CALC', expression: 'w0', unit: 'g', required: false });
-    expect(codes(checkBlockDefinition(def, expr))).toEqual(['LIB-CALC-REQUIRED']);
+    expect(checkBlockDefinition(def, expr).map((p) => [p.code, p.severity])).toEqual([['LIB-CALC-REQUIRED', 'WARNING']]);
+  });
+
+  it('[PR-03][DI-35] R-flow item 5: an instruction or sign-off block may hold no field (its PERFORMED signature is the record); any other block needs one', () => {
+    const fieldless = (roles: BlockDefinition['roles']): BlockDefinition => ({
+      code: 'SOP-READ', version: 1, title: 'Read the cleaning SOP', category: 'CONTROL', ...(roles ? { roles } : {}),
+      sections: [{ id: 'text', title: 'Read SOP-PR-012 before the start', fields: [] }],
+      signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }],
+    });
+    expect(errors(checkBlockDefinition(fieldless(['INSTRUCTION']), expr))).toEqual([]);
+    expect(errors(checkBlockDefinition(fieldless(['SIGN_OFF']), expr))).toEqual([]);
+    expect(errors(checkBlockDefinition(fieldless(['INSTRUCTION', 'SIGN_OFF']), expr))).toEqual([]);
+    expect(codes(errors(checkBlockDefinition(fieldless(['INSTRUCTION', 'IPC']), expr)))).toEqual(['LIB-NO-FIELDS']);
+    expect(codes(errors(checkBlockDefinition(fieldless(undefined), expr)))).toEqual(['LIB-NO-FIELDS']);
+    // The database keeps its shape rule (EBMR-LIB-001: at least one section), so a fieldless block has a text section.
+    expect(codes(errors(checkBlockDefinition({ ...fieldless(['INSTRUCTION']), sections: [] }, expr)))).toEqual(['LIB-NO-FIELDS']);
+  });
+
+  it('[PR-03] R-flow item 3: a section may be optional only as a named event; a planned count, interval or loop and the step\'s own record stay required', () => {
+    const event = { id: 'binder', title: 'Extra binder addition', required: false, when: 'Only if the granules need more binder', fields: [{ id: 'extra', label: 'Binder added', type: 'NUMBER' as const, unit: 'g' }] };
+    const base = friability();
+    expect(errors(checkBlockDefinition({ ...base, sections: [...base.sections, event] }, expr))).toEqual([]);
+    const unnamed = Object.fromEntries(Object.entries(event).filter(([k]) => k !== 'when')) as Omit<typeof event, 'when'>;
+    expect(codes(checkBlockDefinition({ ...base, sections: [...base.sections, unnamed] }, expr))).toEqual(['LIB-SECTION-OPTIONAL']);
+    for (const repeat of [{ kind: 'COUNT' as const, countSlot: 'n' }, { kind: 'PER_INTERVAL' as const, intervalSlot: 'every' }]) {
+      expect(codes(errors(checkBlockDefinition({ ...base, sections: [...base.sections, { ...event, repeat }] }, expr)))).toEqual(['LIB-SECTION-OPTIONAL']);
+    }
+    expect(errors(checkBlockDefinition({ ...base, sections: [...base.sections, { ...event, repeat: { kind: 'PER_CONTAINER' } }] }, expr))).toEqual([]);
+    const allOptional = { ...base, sections: base.sections.map((x) => ({ ...x, required: false, when: 'Sometimes' })) };
+    expect(codes(checkBlockDefinition(allOptional, expr))).toEqual(['LIB-SECTION-OPTIONAL', 'LIB-SECTION-OPTIONAL']);
+  });
+
+  it('[PR-03][PR-08] R-flow item 3 boundary: the record section cannot be made optional behind a field-less required one, and a judged value is never in an optional section', () => {
+    const text = { id: 'note', title: 'Read the SOP', fields: [] };
+    const plain = { id: 'obs', title: 'Observation', fields: [{ id: 'colour', label: 'Colour', type: 'TEXT' as const }] };
+    const optional = <T extends object>(x: T) => ({ ...x, required: false, when: 'Only when it happens' });
+    const def = (sections: BlockDefinition['sections']): BlockDefinition => ({ code: 'OPT-EDGE', version: 1, title: 'Edge', category: 'CONTROL', sections, signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }] });
+    const problems = (d: BlockDefinition) => errors(checkBlockDefinition(d, expr)).map((p) => [p.code, p.path]);
+    // (a) one field-less required section and the real record optional: nothing would be recorded.
+    expect(problems(def([text, optional(plain)]))).toEqual([['LIB-SECTION-OPTIONAL', 'sections']]);
+    expect(problems(def([text, plain]))).toEqual([]);
+    // (b) a value with limits, a CPP or IPC, or a test result stays in a required section.
+    const base = friability();
+    const run = base.sections[0] as BlockDefinition['sections'][number];
+    expect(problems({ ...base, sections: [optional(run), plain] })).toEqual([['LIB-SECTION-OPTIONAL', 'sections[0].required']]);
+    const limited = { id: 'extra', title: 'Extra', fields: [{ id: 'temp', label: 'Temperature', type: 'NUMBER' as const, unit: 'Cel', limitSlot: 'temp' }] };
+    expect(problems({ ...base, sections: [run, optional(limited)] })).toEqual([['LIB-SECTION-OPTIONAL', 'sections[1].required']]);
+  });
+
+  it('[DI-33] R-flow item 3: a calculation cannot read a field of an optional section, which may never be recorded', () => {
+    const base = friability();
+    const event = { id: 'binder', title: 'Extra binder addition', required: false, when: 'Only if the granules need more binder', fields: [{ id: 'extra', label: 'Binder added', type: 'NUMBER' as const, unit: 'g' }] };
+    const reader = { id: 'sum', title: 'Sum', fields: [{ id: 'total', label: 'Total', type: 'CALC' as const, expression: 'w0 + extra', unit: 'g' }] };
+    const ps = errors(checkBlockDefinition({ ...base, sections: [...base.sections, event, reader] }, expr));
+    expect(ps.map((p) => [p.code, p.message])).toEqual([['LIB-CALC-CONDITIONAL', expect.stringMatching(/reads extra of the optional section binder/)]]);
   });
 
   it('[INV-20] a repeat until a value passes must wait on a field with limits or an expected answer', () => {
@@ -151,7 +205,7 @@ describe('library block definitions', () => {
   it('[DI-35] every block needs a PERFORMED signature with a role, each meaning once', () => {
     const none = { ...friability(), signatures: [{ meaning: 'CHECKED' as const, role: 'SUPERVISOR' }] };
     const twice = { ...friability(), signatures: [{ meaning: 'PERFORMED' as const, role: 'A' }, { meaning: 'PERFORMED' as const, role: '' }] };
-    expect(codes(checkBlockDefinition(none, expr))).toEqual(['LIB-SIGNATURE-PERFORMED']);
+    expect(checkBlockDefinition(none, expr).map((p) => [p.code, p.controls])).toEqual([['LIB-SIGNATURE-PERFORMED', ['PR-14', 'DI-35']]]);
     expect(codes(checkBlockDefinition(twice, expr)).sort()).toEqual(['LIB-SIGNATURE-MEANING', 'LIB-SIGNATURE-ROLE']);
   });
 
@@ -260,8 +314,17 @@ describe("a product's values for a library block", () => {
     expect(target('64.9', open)).toEqual([]);
     // A limit with no range, and a target with no limit at all.
     expect(target('60', { unit: 'Cel', ranges: [] })).not.toContain('LIB-USE-TARGET');
+    // A CPP or IPC slot needs its limits; the target adds no refusal of its own.
     const noLimit = { ...friabilityUse(), limits: {}, targets: { loss: '0.5' } };
-    expect(codes(checkBlockUse(friability(), noLimit, expr))).toEqual(['LIB-USE-LIMIT-MISSING', 'LIB-USE-TARGET']);
+    expect(codes(checkBlockUse(friability(), noLimit, expr))).toEqual(['LIB-USE-LIMIT-MISSING']);
+  });
+
+  it('[PR-08] R-flow item 6: a target with no limits on a slot that needs none is an instruction (shown, never judged); it is still a decimal, and a market rule still needs limits', () => {
+    const others = Object.fromEntries(Object.entries(fluidBedDryingUse().limits ?? {}).filter(([k]) => k !== 'dryingTime'));
+    const use = (targets: Record<string, string>, extra: object = {}) => ({ ...fluidBedDryingUse(), limits: others, targets, ...extra });
+    expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: '45' }), expr))).toEqual([]);
+    expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: 'long' }), expr))).toEqual(['LIB-USE-TARGET']);
+    expect(codes(checkBlockUse(fluidBedDrying(), use({ dryingTime: '45' }, { marketRules: { dryingTime: { key: 'K', bound: 'HIGH' } } }), expr))).toEqual(['LIB-USE-MARKET-RULE']);
   });
 
   it('[PR-08] a market rule binds a slot that has limits', () => {

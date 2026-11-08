@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { libraryElementHash } from '../../src/flow/canonical.ts';
 import { expandLibraryCalls } from '../../src/flow/expand.ts';
-import type { LibraryElement, MbrContent } from '../../src/flow/model.ts';
+import { childrenOf, type FlowNode, type LibraryElement, type MbrContent, type StageNode } from '../../src/flow/model.ts';
 import { clone, loadFixture } from './support.ts';
 
 const base = loadFixture('tablet-granulation-compression');
@@ -54,7 +54,28 @@ describe('library calls to pinned element versions (outline 6.2, 6.5)', () => {
     expect(codes(m)).toEqual(['LIB_UNDECLARED_SYMBOL']);
   });
 
-  it('[DI-04] an operation-level element called at stage level is refused', () => {
+  it('[DI-04] an operation-level element called directly in a stage expands: the operation level is optional (ADR 0004 decision 1, amended)', () => {
+    const m = clone(base);
+    let call: FlowNode | undefined;
+    const lift = (n: FlowNode, stage: StageNode | undefined): void => {
+      if (n.kind === 'sequence') {
+        const i = n.children.findIndex((c) => c.kind === 'libraryCall');
+        if (i >= 0 && stage && !call) {
+          call = n.children.splice(i, 1)[0];
+          if (call) stage.body = { kind: 'sequence', id: 'lifted', children: [call, stage.body] };
+          return;
+        }
+      }
+      for (const c of childrenOf(n)) lift(c, n.kind === 'stage' ? n : stage);
+    };
+    lift(m.procedure.body, undefined);
+    expect(call?.kind).toBe('libraryCall');
+    const out = expandLibraryCalls(m);
+    expect(out.problems).toEqual([]);
+    expect(JSON.stringify(out.root)).toContain(`"${call?.id ?? ''}/`);
+  });
+
+  it('[DI-04] a stage-level element (it holds operations) called inside an operation is refused', () => {
     const m = clone(base);
     const e = element(m);
     e.level = 'STAGE';

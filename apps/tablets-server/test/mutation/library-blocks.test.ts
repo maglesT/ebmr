@@ -805,7 +805,7 @@ describe('smart fields of library entries (tablets 1803)', () => {
     });
   });
 
-  it('[PR-19][IN-11] equipment of another class than the formulation requires is refused; with no class required the class is not compared', async () => {
+  it('[PR-23][IN-25] equipment of another class than the formulation requires is refused; with no class required the class is not compared', async () => {
     await inCommand(gmp, 'author', async (c) => {
       const code = `BAL-K-${tag()}`;
       await replica(c, async () => {

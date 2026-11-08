@@ -20,7 +20,7 @@ import { signatureTargetOf } from '../../src/engine/signing-content.ts';
 import type { Actor, BatchState, DataValue } from '../../src/engine/types.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { endpoint, mbrWith, phase } from '../flow/support.ts';
-import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, PACKAGING_SCENARIO, param, Run, sig, SUP1 } from '../engine/support.ts';
+import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, flatGranulationDefinition, GRANULATION_SCENARIO, OP1, PACKAGING_SCENARIO, param, Run, sig, SUP1 } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -212,6 +212,15 @@ describe('F66: the database brings in a step instance only where the token can b
     expect(run.status('in')).toBe('AWAITING_VERIFICATION');
     expect(await allObjections(run.def.mbr, rowsOf(run, start))).toEqual({});
     expect(await invariantObjections(run.def.mbr, run.state)).toEqual({});
+  }, 300_000);
+
+  it('[DI-34][PR-13][INV-19] R-flow item 1: the golden run of the granulation master with no operation (its phases directly in its stages) passes every row and its final state', async () => {
+    const run = Run.issue(flatGranulationDefinition(), { inputs: FIXTURE_INPUTS['tablet-granulation-compression'] });
+    const start = run.state;
+    expect(autopilot(run, GRANULATION_SCENARIO)).toBe('COMPLETE');
+    expect(await allObjections(run.def.mbr, rowsOf(run, start))).toEqual({});
+    expect(await invariantObjections(run.def.mbr, run.state)).toEqual({});
+    expect(Object.values(run.state.stages).filter((f) => f.signOff !== undefined).length).toBeGreaterThan(3);
   }, 300_000);
 
   it('[DI-34][PR-13][INV-19] a step instance the token cannot have reached is refused, with the reason: a step before it unfinished, frames the engine never gives, an untaken branch, an iteration that did not continue, a sub-lot beyond the count, a stage not signed off, a loop not ended, an alternative or replicate section not decided', async () => {

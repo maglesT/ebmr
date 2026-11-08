@@ -25,7 +25,7 @@
         "S-BLEND"
       ],
       "nodeId": "S-BLEND",
-      "message": "Stage \"Blending\" (S-BLEND) has no line or room clearance step; each stage starts with clearance (GMP-STAGE-CLEARANCE; PR-03)",
+      "message": "Stage \"Blending\" (S-BLEND) has no line or room clearance step; each stage starts with clearance, or continues the clearance of an earlier stage in the same room or line (GMP-STAGE-CLEARANCE; PR-03)",
       "justification": null
     },
     {

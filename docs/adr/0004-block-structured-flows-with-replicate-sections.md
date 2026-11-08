@@ -1,6 +1,6 @@
 # ADR-0004: Block-structured flows with replicate sections
 
-- **Status:** Accepted (2026-09-27)
+- **Status:** Accepted (2026-09-27); decision 1 amended 2026-11-07, the operation level is optional (see Amendment)
 - **Deciders:** project owner (maglesT), accepting build outline v0.2 (decision record 0001)
 - **Supersedes:** none
 
@@ -51,6 +51,23 @@
 - **Linear step lists only.** Rejected: cannot express parallel work, endpoint loops or sub-lots without workarounds.
 - **Sub-lots as separate batches.** Rejected: breaks one record per batch, complicates yield and reconciliation, and multiplies batch numbers.
 - **Loops on any parameter.** Rejected: repeating an acceptance test until it passes is testing into compliance; the OOS and reprocessing paths apply instead.
+
+## Amendment (7 November 2026): the operation level is optional
+
+- **Decided by:** the lead's audit of the D-0 restriction sweep (`docs/build-plan/demo-gaps/d0/README.md`, row 3), under
+  the owner's rule that a refusal needs a binding clause or a real engine or record need.
+- **Decision 1 now reads:** procedure -> stage -> (operation ->) phase. A phase, a hold point or a call of an
+  OPERATION-level library element may sit in an operation or directly in a stage. An operation is an optional grouping.
+- **Kept:** a stage sits only at the procedure level, never in another stage, and every phase is inside a stage (rule
+  FLOW-LEVELS). A stage is what a room, line or equipment train is bound to, what is cleared and signed off, and where a
+  yield is taken; the engine, the stage summary and the database select a step's record by its stage.
+- **Why no record or engine need asks for the operation:** the graph compiles a stage and an operation with the same
+  code, the engine definition keeps only a step's stage, and the numbering in TypeScript and SQL numbers the children
+  of a stage with one counter, so a phase directly in stage 2 is `2.3` (`d0/validator.md`, "FLOW-LEVELS: does the
+  engine need a phase inside an operation?"). No ISA-88 clause is binding regulation.
+- **Also:** an operation with no step is a warning (it groups nothing); a stage with no step stays an error. No control
+  changes. Tests: `packages/recipe-core/test/validator/structure.test.ts`, `test/flow/expand.test.ts` and
+  `test/execution/phase-in-stage.test.ts`.
 
 ## Related controls and invariants
 
