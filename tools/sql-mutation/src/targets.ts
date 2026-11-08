@@ -175,13 +175,17 @@ export const TARGETS: Target[] = [
                 'recipe.guard_draft_entry_recorded', 'recipe.guard_never_authorised', 'recipe.create_version', 'recipe.derive_version',
                 'recipe.save_content', 'recipe.set_draft_attributes', 'recipe.link_risk_assessment', 'recipe.unlink_risk_assessment',
                 'recipe.record_evidence', 'recipe.return_to_draft', 'recipe.record_change_record', 'recipe.inv04_violations',
-                'recipe.approved_content_violations'],
+                'recipe.approved_content_violations',
+                // Demo finding D-3 (recipe-core 1878): a new draft in a family whose drafts were all discarded.
+                'recipe.reopen_family'],
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
             r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
             s('master-data/formula.test.ts'),
             // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
-            r('review/rbe-rules.test.ts')],
+            r('review/rbe-rules.test.ts'),
+            // D-3: recipe.reopen_family.
+            r('mutation/reopen-family.test.ts'), s('designer/discard-draft.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, market authorisation, batch issue, periodic review (sql 0160-0180, 0250, 0290) --------
@@ -770,9 +774,10 @@ export const TARGETS: Target[] = [
                 'recipe.formula_version_content', 'recipe.formula_read', 'recipe.formula_choice',
                 'recipe.formula_version_for_mbr', 'recipe.formula_pin_mbr', 'recipe.mbr_formula_of',
                 'recipe.formula_listing', 'recipe.formula_choice_of', 'recipe.formula_mbr_problem',
-                'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json', 'recipe.bom_overage_matches'],
+                'recipe.formula_bom_line_on_base', 'recipe.formula_line_overage_json', 'recipe.bom_overage_matches',
+                'recipe.formula_withdraw'],
     // Slice 7q (recipe-core 1740): the overage with its reason, re-created writers and the BOM's overage statement.
-    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts')],
+    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('designer/from-formula.test.ts'), s('designer/from-formula-lines.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: process devices, readings, setpoint downloads, alarms, device units, G-06 values and exceptions,

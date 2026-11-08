@@ -426,11 +426,17 @@ const yields = defineRule('GMP-YIELDS', 'Yield checkpoints have a basis, minimum
 /**
  * A library yield or reconciliation block computes its own yield (a critical CALC field with a limit slot) and the
  * step carries that limit, so it stands as its own checkpoint (demo finding D-1): the limit slots of those fields, or
- * undefined when the step is no such library step.
+ * undefined when the step is no such library step. Narrowed after #155 (lead ruling, 7 November 2026): 21 CFR 211.103
+ * asks for the product's actual yield against theoretical at each phase, while a reconciliation of printed packaging or
+ * labels answers 211.125 (labeling reconciliation) and is no yield of the stage's product, so those blocks never stand as
+ * the stage's yield checkpoint.
  */
+const LABELING_RECONCILIATIONS: ReadonlySet<string> = new Set(['CTRL-PRINTED-RECON', 'PACK-LABEL-RECON']);
+
 function libraryYieldSlots(a: Analysis, p: PhaseNode): string[] | undefined {
   if (!p.block.type.startsWith('LIB-')) return undefined;
   const code = p.block.type.slice('LIB-'.length);
+  if (LABELING_RECONCILIATIONS.has(code)) return undefined;
   const def = (a.mbr.blockDefinitions ?? []).find((d) => d['code'] === code && (typeof d['version'] === 'number' || typeof d['version'] === 'string') && String(d['version']) === p.block.version) as { sections?: { fields?: { type?: string; limitSlot?: string; critical?: boolean }[] }[] } | undefined;
   const slots = (def?.sections ?? []).flatMap((s) => s.fields ?? []).filter((f) => f.type === 'CALC' && f.critical === true && typeof f.limitSlot === 'string').map((f) => f.limitSlot as string);
   return slots.length > 0 ? slots : undefined;

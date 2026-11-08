@@ -74,7 +74,7 @@ export const FormulaVersionView = z.strictObject({
   versionId: Uuid,
   formulaId: Uuid,
   versionNumber: z.number().int().positive(),
-  state: z.enum(['DRAFT', 'APPROVED', 'SUPERSEDED']),
+  state: z.enum(['DRAFT', 'APPROVED', 'SUPERSEDED', 'WITHDRAWN']),
   changeReason: z.string(),
   /** Null when the reader lacks FORMULA.READ (DI-13): the identity is shown, the composition is not. */
   lines: z.array(FormulaLineView).nullable(),
@@ -209,6 +209,19 @@ export const masterData = {
       /** Slice 7j (recipe-core 1535): the tablet's target weight in mg and the batch sizes besides the formula's (units). */
       target: z.strictObject({ targetUnitMassMg: DecimalString, otherBatchSizesUnits: z.array(IntegerString).max(9) }).optional(),
     }),
+    response: FormulaVersionView,
+  }),
+  withdrawFormulaVersion: defineRoute({
+    id: 'masterData.withdrawFormulaVersion',
+    method: 'POST',
+    path: '/api/master-data/formulas/:formulaId/versions/:versionId/withdraw',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Withdraw a DRAFT formula version with a reason (FORMULA.MANAGE); it stays on record as WITHDRAWN and a new version may follow',
+    params: z.strictObject({ formulaId: Uuid, versionId: Uuid }),
+    body: withAttribution({ reason: z.string().trim().min(1).max(2000) }),
     response: FormulaVersionView,
   }),
   enterMaterial: defineRoute({

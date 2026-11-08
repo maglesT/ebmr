@@ -113,6 +113,12 @@ one API batch from library blocks to a released lot. Next: A1b (catalogue v1 and
 
 ## Next
 
+**Demo gaps (bilayer MGL-SR-BL, 7 November 2026).** Plan `docs/build-plan/demo-gaps/` (D-0 restriction sweep, lead-audited:
+`d0/README.md`; D-1 to D-8). D-1 (a new stage passes the validator, its own yield step) and D-2 (recipe-core 1877: the
+same material on several formula lines, FRM-011 relaxed, a capsule's coat per batch, a duplicate formula EBMR-FRM-021,
+withdraw a formula draft) in review. Next by the lead's order: R-flow (FLOW-LEVELS, LIB-024, optional event sections,
+stage yield with a reason), D-3, R-rest, D-4 to D-8.
+
 **Declutter (owner, 5 November 2026). Plan approved:** `docs/build-plan/declutter/plan.md` (#113).
 - Only the working batch-record path stays on screen: library → formula → master and approval → batch → dispensing →
   floor and IPC → exceptions → review → packaging and labels → release, plus the audit trail, batch numbers, records and
@@ -136,7 +142,11 @@ the owner's control decisions recorded (#120: 89 MODIFY, ST-68 FOLLOW, ST-69 DON
 calculation over a typed date/time or a timer (#115). **#117 merged** (shared fix: a library block reads an earlier
 step's value at runtime; ENG-DEF-STEP-VALUE at master check) and **#114 I-1a** (17 INJ blocks as data, the `sterile` rule
 table published). **Resumed 6 November** after capsules: the #114 audit clean-up, then #131 (S1–S3), the `showWhen`
-checker fix, unit-account v2, I-1c (vial and ampoule batches to release, E2E) and the I-2 blocks. Notes: `docs/build-plan/injectables/resume.md`. Migrations: `inj.*` 3000-3999.
+checker fix, unit-account v2, I-1c (vial and ampoule batches to release, E2E) and the I-2 blocks. **7 November:** merged
+#146, #148, #147 (S1–S3), #149, #151, #152 (I-2 blocks, Annex 1 items as EU-market blocks) and #155 (I-1c1 vial E2E; it
+narrows D-1 so the printed-packaging and label reconciliations, 211.125, are no yield checkpoint). Owner rule (7 November):
+no new refusal without a quoted binding clause or a real engine or record-integrity need, named in the code comment.
+Next: the ampoule, then I-1c2. Notes: `docs/build-plan/injectables/resume.md`. Migrations: `inj.*` 3000-3999.
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
 plan `docs/build-plan/capsules/plan.md` approved by the lead (v3, PR #102). The owner's binding rule: every numbered

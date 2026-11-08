@@ -41,9 +41,9 @@ describe('catalog parser', () => {
 });
 
 describe('control register', () => {
-  it('[meta] is valid: 264 controls (the drafts IN-53, DI-51, DI-52, DI-53 and PR-61 and the API edition controls AS-01 to AS-10, AS-14 to AS-16, AS-18 to AS-21 and AS-24 included), schema, references to requirement rows', () => {
+  it('[meta] is valid: 265 controls (the drafts IN-53, DI-51, DI-52, DI-53 and PR-61 and the API edition controls AS-01 to AS-10, AS-14 to AS-21 and AS-24 included), schema, references to requirement rows', () => {
     expect(validateRegister()).toEqual([]);
-    expect(loadControls()).toHaveLength(264);
+    expect(loadControls()).toHaveLength(265);
   });
 
   it('[meta] every requirement row is used by a control or documented as not an eBMR function', () => {

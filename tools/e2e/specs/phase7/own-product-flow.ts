@@ -542,6 +542,9 @@ export async function registerTestLots(page: Page, lots: readonly TestLotEntry[]
     await form.getByRole('textbox', { name: 'Expires in (days)' }).fill(l.expiresInDays ?? '365');
     await form.getByRole('button', { name: 'Register the test lot' }).click();
     await expect(page.getByTestId(`test-lot-${l.lotCode}`)).toContainText('RELEASED');
+    // DefineForm empties its fields once the command has committed, before its lists are read again (#163); waiting for
+    // the empty form here is a check that this lot's command committed before the next lot is typed.
+    await expect(form.getByRole('textbox', { name: 'Lot code' })).toHaveValue('');
   }
   for (const l of lots.filter((x) => x.assay ?? x.artwork)) {
     await choose(page.getByRole('radiogroup', { name: 'Assay and artwork of a test lot' }).getByRole('radio', { name: `${l.lotCode} (${l.material})` }));

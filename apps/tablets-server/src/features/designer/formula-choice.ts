@@ -67,7 +67,8 @@ export function bomOverage(f: formula.FormulaLine): flow.BomOverage | undefined 
 
 /**
  * The content with each BOM line of an active, excipient or processing aid carrying the formula's computed batch
- * quantity (kg) of the line of the same material (the template names the materials, the formula gives the quantities).
+ * quantity (kg) of its formula line: the line of its BOM id, or the one line of its material (the template names the
+ * materials, the formula gives the quantities).
  * Every formula line must find its BOM line and every such BOM line its formula line.
  */
 export function withFormulaBom(content: flow.MbrContent, chosen: formula.FormulaChoice): flow.MbrContent {
@@ -79,8 +80,11 @@ export function withFormulaBom(content: flow.MbrContent, chosen: formula.Formula
   for (const line of out.bom) {
     if (!COMPOSITION_ROLES.has(line.role)) continue;
     const code = out.references.find((r) => r.id === line.material)?.code ?? line.material;
-    const f = chosen.lines.find((l) => l.materialCode === code);
-    if (!f) throw mismatch(`BOM line ${line.id} (${code}) is not a material of the formula.`);
+    // D-2: the formula line of this BOM id first (BOM-<line id>); by material only when it is on one formula line.
+    const ofCode = chosen.lines.filter((l) => l.materialCode === code);
+    const f = ofCode.find((l) => `BOM-${l.lineId.toUpperCase()}` === line.id) ?? (ofCode.length === 1 ? ofCode[0] : undefined);
+    if (!f) throw mismatch(`BOM line ${line.id} (${code}) is not a line of the formula.`);
+    if (used.has(f.lineId)) throw mismatch(`Formula line ${f.lineId} (${code}) is matched by two BOM lines.`);
     line.quantity = { value: bomQuantity(out, line, f, chosen.batchSizeUnits), unit: 'kg' };
     const overage = bomOverage(f);
     if (overage) line.overage = overage;

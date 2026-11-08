@@ -43,6 +43,9 @@ OPEN, in merge order (all lead-audited unless said):
   rebase), list-only resolutions: union the control test lists, then drop the names `register:validate` reports as not
   existing (renamed on main), `register:sort-tests`; a file identical on main to the stacked base's head takes ours.
 
+- Local E2E (8 Nov): Playwright 1.56.1 wants `chromium_headless_shell-1194`; `/opt/pw-browsers` has 1243. Point `PLAYWRIGHT_BROWSERS_PATH` at a scratch folder whose `chromium_headless_shell-1194/chrome-linux/` links the files of `/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/`, with `headless_shell` linked to `chrome-headless-shell` (no repo change, no `playwright install`).
+- Local gate (lead, 8 Nov, while GitHub CI is blocked by billing): `pnpm run ci` + the golden batches (cluster `golden` on 5435 as `tools/dev-env/runpod-setup.sh` builds it; `start-postgres.sh` refuses root) + `pnpm trace` with both reports + the E2E groups the PR touches; summary in the PR text, then "#N local-green" to the lead.
+
 ## Next (in order)
 
 1. Send the "#N green" messages above as runs pass; retarget #165 and #167 after #164; on each merge check the other open
