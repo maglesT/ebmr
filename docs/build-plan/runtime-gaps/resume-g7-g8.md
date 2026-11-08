@@ -22,6 +22,14 @@ open runtime-gaps PR branches (#170 to #176).
   Tests: `packages/recipe-core/test/blocks/status-v2-edges.test.ts`, `packages/recipe-core/test/mutation/
   entry-references-and-schema.test.ts` (`recipe-core 1885 ...`, which fails without 1885).
 
+- **Lead's #163 question (E2E library-softgel, run 42428248639): not #163.** The trace holds one GET of
+  `/api/test-lots`, the page's first read (05.004, 295 ms), and the POST ran inside it (05.201 to 05.288); no read
+  followed. TanStack Query 5.104 (`query-core/build/modern/query.js:298`) cancels a read on its way at invalidation only
+  when the query has data; on a first read it joins it, so the list kept the answer from before the commit. Fix:
+  `useRefresh` (`apps/tablets-web/src/app/acts.tsx`) cancels the reads on their way, then invalidates. Test:
+  `apps/tablets-web/test/app/define-form.test.tsx` (`[DI-28] a command that commits while the list is still on its
+  first read ...`, fails without the fix). It affects every page whose list is on its first read when a command commits.
+
 ## Not done: G7 (items 26, 27), waiting for the lead's ruling
 
 The agreed route (a library CONTAINER `CONSUME` field goes through G-08's checks and consumes; `REGISTER` registers the
