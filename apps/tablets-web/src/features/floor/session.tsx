@@ -5,7 +5,9 @@
  * Session changes: C1's access Provider dispatches a window CustomEvent `ebmr:session-change` with
  * {reason: SWITCH | LOCK | UNLOCK | ENDED, personId}; the boot state's person changes too. Pending entries are
  * discarded on SWITCH, LOCK and ENDED, and whenever the person differs, so an entry is never sent under
- * another person (and a locked kiosk keeps nothing typed for the next person).
+ * another person (INV-40). A step form's unsent draft (typed, never sent) is the exception at LOCK: it stays behind
+ * the lock screen and is there again when the same person unlocks; an unlock or switch by anyone else drops it, so the
+ * next person never sees or sends it (owner, runtime gaps G10: a lock lost the blend end typed before it).
  * Nothing here is stored: the session lives in the boot state (memory) only.
  */
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
@@ -86,9 +88,12 @@ export function FloorSessionProvider({ children }: { children: ReactNode }) {
 
 /**
  * Calls `onChange` when pending entries must go: a switch, lock or end of the session, any session event
- * naming another person, or the session's person changing in the boot state.
+ * naming another person, or the session's person changing in the boot state. With `keepOnLock` (a step form's unsent
+ * draft) a lock alone does not call it: the draft waits for the unlock, and an unlock naming another person, a switch
+ * or the end of the session still drops it.
  */
-export function useSessionChange(onChange: (detail: SessionChangeDetail) => void): void {
+export function useSessionChange(onChange: (detail: SessionChangeDetail) => void, options: { keepOnLock?: boolean } = {}): void {
+  const keepOnLock = options.keepOnLock === true;
   const session = useFloorSession();
   const current = useRef(session.personId);
   const callback = useRef(onChange);
@@ -106,9 +111,10 @@ export function useSessionChange(onChange: (detail: SessionChangeDetail) => void
       const detail = (e as CustomEvent<Partial<SessionChangeDetail> | undefined>).detail;
       const personId = typeof detail?.personId === 'string' ? detail.personId : null;
       const reason = detail?.reason ?? 'SWITCH';
+      if (keepOnLock && reason === 'LOCK' && personId === current.current) return;
       if (DISCARDING.has(reason) || personId !== current.current) callback.current({ reason, personId });
     };
     window.addEventListener(SESSION_CHANGE_EVENT, listener);
     return () => window.removeEventListener(SESSION_CHANGE_EVENT, listener);
-  }, []);
+  }, [keepOnLock]);
 }

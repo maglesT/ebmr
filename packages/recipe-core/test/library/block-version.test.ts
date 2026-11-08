@@ -303,6 +303,12 @@ describe('the sentences of library entries (S5: step screens, review and the pri
     const t = libraryBlockVersion(fluidBedDrying(), expr).entrySummaries ?? {};
     expect(t[TIMER_STOP]?.({ field: 'drying', duration: { value: '45', unit: 'min' } }, undefined as never)).toBe('Drying time stopped after 45 min');
   });
+
+  it('[PR-21][DI-33] a container field reads in the record as the identifier entered, a reference only: the genealogy is recorded at the output or charge step (G7)', () => {
+    const def = { ...friability(), sections: [{ id: 'run', title: 'Run', fields: [{ id: 'blendIn', label: 'Blend container', type: 'CONTAINER' as const, action: 'CONSUME' as const }, { id: 'out', label: 'Core container', type: 'CONTAINER' as const, action: 'REGISTER' as const }] }] };
+    const s = libraryBlockVersion(def, expr).entrySummaries ?? {};
+    expect(s['run']?.({ blendIn: 'C-0001', out: 'C-0002' }, undefined as never)).toBe('Run: Blend container ID (reference; genealogy is recorded at the charge step): C-0001; Core container ID (reference; genealogy is recorded at the output step): C-0002');
+  });
 });
 
 describe('smart fields (S6): lots, equipment and hand-keyed weighings', () => {
