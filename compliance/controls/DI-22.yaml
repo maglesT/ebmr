@@ -108,6 +108,7 @@ tests:
   - "apps/tablets-server/test/platform/unstorable-text.test.ts > text no record can hold, behind the contract (review F30-F33) > [DI-37][DI-22] a path parameter or query string holding U+0000 is refused 400 naming it, never 500 (the database refused it before as 22021)"
   - "apps/tablets-server/test/quality/lot-handling-routes.test.ts > reservations, stock-location exceptions and the OOS record of a lot > [DI-22] stores cancel an open reservation with their own reason; QA is refused for want of the right; a cancelled reservation is not cancelled again"
   - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [DI-22][DI-24][INV-09] an ERP master confirmation keeps its signed content after it takes effect: the values in effect and the changes are those before it (issue #95)"
+  - "apps/tablets-server/test/seed/demo-catalogue.test.ts > the demo's approved library catalogue (D-4) > [DI-22][DI-35] each approval's audit record says the demo set-up made it, not a person who reviewed the block"
   - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22] deep links for other screens: chain, command and person"
   - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22] the chain list links to each chain"
   - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22][DI-23] a chain shows its entries with who, when and why, and verifies the chain; nothing can be edited"
