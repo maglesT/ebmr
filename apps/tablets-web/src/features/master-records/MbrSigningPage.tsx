@@ -91,7 +91,7 @@ function Markets({ version }: { version: VersionView }) {
     <Section title="Market authorisations" testId="mbr-markets">
       <p>
         An approved version is used for a market only through an authorisation for that market and scope (site, line, batch size): QA proposes it, the regulatory-conformity
-        signer confirms its registration, and QA, another person, authorises it, which makes it effective. Markets of this master: {version.markets.join(', ') || 'none'}.
+        signer, a person other than QA's signer, confirms its registration, and QA authorises it, which makes it effective. Markets of this master: {version.markets.join(', ') || 'none'}.
       </p>
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       {q.data && q.data.authorisations.length === 0 ? <p>No market authorisation is recorded for this version.</p> : null}

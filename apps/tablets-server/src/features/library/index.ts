@@ -89,6 +89,37 @@ function checkDefinition(definition: Record<string, unknown>): library.LibraryPr
   return library.checkBlockDefinition(definition as unknown as library.BlockDefinition, EXPRESSIONS);
 }
 
+
+/**
+ * S7: the catalogue goes into the library as drafts through the same command as any author's draft; codes the library
+ * already holds are left alone (a site's own versions are never overwritten). Also used by the demo set-up (D-4,
+ * cli/demo-catalogue.ts), in the author's command.
+ */
+export async function draftSeedCatalogue(c: pg.PoolClient): Promise<{ drafted: string[]; skipped: string[] }> {
+  await c.query('select recipe.require_library_author()');
+  const { rows } = await c.query<{ code: string; version: number; definition: unknown }>(
+    'select distinct on (code) code, version, definition from recipe.library_block order by code, version desc',
+  );
+  const held = new Map(rows.map((r) => [r.code, r]));
+  const drafted: string[] = [];
+  const skipped: string[] = [];
+  for (const item of librarySeed.SEED_CATALOGUE) {
+    let def: unknown = item.definition;
+    const latest = held.get(item.definition.code);
+    // R-flow item 2: a seed block that became generic reaches a library holding its earlier, unchanged copy as the
+    // next version (the library's versioning: every change is a new version, PR-05); any other held code is the
+    // site's and is left alone.
+    if (latest) def = blockEditionChanged(latest.definition, item.definition) ? { ...item.definition, version: latest.version + 1 } : undefined;
+    if (!def || checkDefinition(def as Record<string, unknown>).some((p) => p.severity === 'ERROR')) {
+      skipped.push(item.definition.code);
+      continue;
+    }
+    await c.query('select recipe.draft_library_block($1::jsonb)', [JSON.stringify(def)]);
+    drafted.push(item.definition.code);
+  }
+  return { drafted, skipped };
+}
+
 export function libraryActHandler(app: AppContext): SignableActionHandler<LibraryAct> {
   return dbActHandler<LibraryAct>(app, {
     kind: 'LIBRARY_ACT',
@@ -144,28 +175,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       // with the rest (Capsules edition plan, 4 November 2026, lifting R3-CAT-4), and the injectables blocks of slice I-1 as
       // blocks of their edition, offered only to an injectables master (recipe-core 1871).
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        await c.query('select recipe.require_library_author()');
-        const { rows } = await c.query<{ code: string; version: number; definition: unknown }>(
-          'select distinct on (code) code, version, definition from recipe.library_block order by code, version desc',
-        );
-        const held = new Map(rows.map((r) => [r.code, r]));
-        const drafted: string[] = [];
-        const skipped: string[] = [];
-        for (const item of librarySeed.SEED_CATALOGUE) {
-          let def: unknown = item.definition;
-          const latest = held.get(item.definition.code);
-          // R-flow item 2: a seed block that became generic reaches a library holding its earlier, unchanged copy as the
-          // next version (the library's versioning: every change is a new version, PR-05); any other held code is the
-          // site's and is left alone.
-          if (latest) def = blockEditionChanged(latest.definition, item.definition) ? { ...item.definition, version: latest.version + 1 } : undefined;
-          if (!def || checkDefinition(def as Record<string, unknown>).some((p) => p.severity === 'ERROR')) {
-            skipped.push(item.definition.code);
-            continue;
-          }
-          await c.query('select recipe.draft_library_block($1::jsonb)', [JSON.stringify(def)]);
-          drafted.push(item.definition.code);
-        }
-        return { drafted, skipped };
+        return draftSeedCatalogue(c);
       });
       return out.result;
     },

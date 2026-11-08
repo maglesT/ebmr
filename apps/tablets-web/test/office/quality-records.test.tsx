@@ -177,6 +177,35 @@ describe('specifications', () => {
     });
   });
 
+  it('[DI-34] the draft form says what is missing only once a test is started, in words (no pattern), and not again after the version is sent (owner report item 25, G5)', async () => {
+    const ui = renderOffice('/quality/specifications', { role: 'QC_ANALYST' });
+    const form = await screen.findByTestId('draft-specification');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Material code' }), 'mat-mcc-101');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Title' }), 'Microcrystalline cellulose');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Monograph reference' }), 'IP 2022 monograph');
+    expect(within(form).queryByRole('alert')).toBeNull();
+    expect(within(form).getByRole('button', { name: 'Draft the version' }).hasAttribute('disabled')).toBe(true);
+    const t = within(form).getByTestId('spec-test-0');
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Test code 1' }), 'lod test');
+    const alert = within(form).getByRole('alert').textContent ?? '';
+    expect(alert).toMatch(/^Not complete yet: /);
+    expect(alert).toContain('capital letters and digits');
+    expect(alert).not.toMatch(/pattern/);
+    await userEvent.clear(within(t).getByRole('textbox', { name: 'Test code 1' }));
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Test code 1' }), 'lod');
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Method 1' }), 'STP-LOD-01');
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Unit 1' }), '%');
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Upper limit 1' }), '5.0');
+    await userEvent.click(within(within(t).getByRole('radiogroup', { name: 'Required for release 1' })).getByRole('radio', { name: 'Yes' }));
+    await userEvent.click(within(t).getByRole('radio', { name: 'IP' }));
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Edition 1' }), '2022');
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Sample per run 1' }), '0.010');
+    await userEvent.type(within(t).getByRole('textbox', { name: 'Sample unit 1' }), 'kg');
+    await userEvent.click(within(form).getByRole('button', { name: 'Draft the version' }));
+    await waitFor(() => expect(ui.posts('/api/quality/specifications')).toHaveLength(1));
+    await waitFor(() => expect(within(form).queryByRole('alert')).toBeNull());
+  });
+
   it('shows the review list of specifications citing an older edition', async () => {
     renderOffice('/quality/specifications', { role: 'QA_REVIEWER' });
     const item = example('specifications-edition-review').items[0];
