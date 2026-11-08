@@ -23,6 +23,13 @@ CALC; plus `signatures` (PERFORMED, CHECKED, VERIFIED, QA_APPROVED). A section r
 PER_CONTAINER, PER_INTERVAL (IPC rounds) or UNTIL_PASS (the LOD drying loop). A block may carry reference limits (for
 example a common compendial value) that are shown to the author (owner decision O-5).
 
+A CONTAINER field (`action` REGISTER or CONSUME) records the identifier the person reads off the container, and nothing
+more: it registers and consumes no container and makes no genealogy link (G7, lead's ruling of 8 November 2026, option
+1; no migration). The genealogy is recorded by the master's guarded steps: a G-22 output step registers what a phase
+produces (the coating suspension, each layer blend) and a G-08 charge step consumes it, with G-08's checks, before the
+step that uses it (the coater, the bilayer or trilayer press). So the step screen and the record name the field as a
+reference only (`containerFieldLabel`: "Blend container ID (reference; genealogy is recorded at the charge step)").
+
 ## What is checked
 
 The software checks the form and the limits. It does not judge the process: that is the preparer's and QA's

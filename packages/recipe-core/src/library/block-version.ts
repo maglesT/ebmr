@@ -658,6 +658,16 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
   };
 }
 
+/**
+ * G7 (lead's ruling, 8 November 2026, option 1): a library CONTAINER field records the identifier the person read off the
+ * container, nothing more. It registers and consumes nothing: genealogy is recorded by the guarded G-22 output step and
+ * G-08 charge step of the master. So its label on the step screen and in the record reads as a reference only, never as
+ * if it had registered or consumed the container (the record says what was actually done).
+ */
+export function containerFieldLabel(f: { label: string; action: 'REGISTER' | 'CONSUME' }): string {
+  return `${f.label} ID (reference; genealogy is recorded at the ${f.action === 'REGISTER' ? 'output' : 'charge'} step)`;
+}
+
 /** One recorded value as people read it: the label, the value and its unit; a calculated value says so. */
 function valueText(f: FieldDef, v: unknown): string | undefined {
   if (v === undefined || v === null) return undefined;
@@ -674,6 +684,8 @@ function valueText(f: FieldDef, v: unknown): string | undefined {
       return `${f.label}: ${Object.entries(v as Record<string, unknown[]>).map(([p, rs]) => `${p} ${rs.map(text).join(', ')}`).join('; ')} ${f.unit}`;
     case 'SAMPLE':
       return `${f.label}: ${text(v)} units`;
+    case 'CONTAINER':
+      return `${containerFieldLabel(f)}: ${text(v)}`;
     default:
       return `${f.label}: ${text(v)}`;
   }

@@ -30,20 +30,13 @@ open runtime-gaps PR branches (#170 to #176).
   `apps/tablets-web/test/app/define-form.test.tsx` (`[DI-28] a command that commits while the list is still on its
   first read ...`, fails without the fix). It affects every page whose list is on its first read when a command commits.
 
-## Not done: G7 (items 26, 27), waiting for the lead's ruling
+## G7 (items 26, 27): done, lead's ruling of 8 November 2026 (option 1)
 
-The agreed route (a library CONTAINER `CONSUME` field goes through G-08's checks and consumes; `REGISTER` registers the
-phase's product) is refused by the database as it stands:
-- `recipe.new_container_problem` (recipe-core 0317; the latest is tablets 0844) accepts a new container only from a
-  G-07/TB-01 CONTAINER_WEIGHING or a G-22 OUTPUT_CONTAINER entry, one per row;
-- `recipe.entry_reference_problem` (0328) lets a row mark a container consumed only when a CHARGE_CONTAINER entry of the
-  row names it.
-Option 1 (recommended, no migration): add a REGISTER "Suspension container" field to COAT-SUSPENSION-PREP (new library
-version), and follow each TB-07 layer blend with a G-22 output step in the masters that run PROC-COMPRESS-BILAYER and the
-multilayer press, so the containers exist in the record with genealogy before the press asks for them. Option 2: a
-recipe-core migration replacing both functions for library CONTAINER fields, plus a tablets migration after it that
-keeps 0844's TB-01 rule (two numbers from the lead). It would change about 90 library CONTAINER fields across every
-edition, and some sections have two REGISTER fields while the database allows one container per row.
+No migration (recipe-core 1883 released). Genealogy is recorded through the existing guarded G-22 output and G-08 charge
+steps of the master. A library CONTAINER field records an identifier only, and says so on the step screen and in the
+record (`library.containerFieldLabel`, `block-version.ts` valueText; `renderers/Library.tsx`); documented in
+`packages/recipe-core/src/library/README.md`. No new refusal. Tests: `block-version.test.ts` and
+`library-renderer.test.tsx` (`[PR-21][DI-33] ... (G7)`); the library E2E fills the field by its new label.
 
 ## Session notes
 
