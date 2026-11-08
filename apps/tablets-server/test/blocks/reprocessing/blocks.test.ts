@@ -58,6 +58,26 @@ describe('TB-08@1 rework or recovered-material addition', () => {
     expect(TB08.exceptionRules?.map((r) => r.type)).toEqual(['QC_ADDITIONAL_TESTING_DECISION']);
   });
 
+  it('[PR-08][INV-25] a total the block computes at PERFORMED outside a blocking tier leaves the signature offered, so the attempt records the exception before it is refused, and the step can then be signed (owner report item 1)', () => {
+    const base = blockMbr(TB08, phase());
+    const limits = { unit: 'kg', ranges: [{ tier: 'VALIDATED', low: { value: '0.001', inclusive: true }, high: { value: '0.010', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'VR' } }] };
+    const mbr = { ...base, parameters: base.parameters.map((x) => (x.id === 'reworkAdded' ? { ...x, limits } : x)) } as flow.MbrContent;
+    const run = startRun(mbr);
+    run.entry('p', add());
+    const offered = () => engine.availableActions(run.def, run.state, OP1, { nowUs: run.nowUs }, { stepKey: 'p@' }).find((a) => a.action === 'SIGN_PERFORMED');
+    // Nothing is stored yet: before, the action was greyed with the reason of an exception that did not exist.
+    expect(run.exceptions('LIMIT_BREACH')).toEqual([]);
+    expect(offered()?.available).toBe(true);
+    expect(run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'p', context: [], signature: sig('PERFORMED', OP1) }).code).toBe('ENG-BLOCKED');
+    const [ex] = run.exceptions('LIMIT_BREACH');
+    expect(ex).toMatchObject({ tier: 'VALIDATED', registrationRelevant: true, status: 'OPEN' });
+    // Stored now: the action is refused with its reason until the deviation is linked.
+    expect(offered()).toMatchObject({ available: false, refusal: { code: 'ENG-BLOCKED' } });
+    run.ok({ type: 'ATTACH_DEVIATION', actor: OP1, exception: ex?.id ?? '', deviationRef: 'TEST-DEV-0001' });
+    expect(offered()?.available).toBe(true);
+    expect(run.perform('p').accepted).toBe(true);
+  });
+
   it('[PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused', () => {
     const p = phase();
     expect(refusalOf(p, add())).toBeUndefined();

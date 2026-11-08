@@ -17,7 +17,7 @@ import { watchForDeath } from './processes.ts';
 import { buildWeb, credentialCard, setupStack, startStack } from './stack.ts';
 
 async function setup(): Promise<void> {
-  await setupStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, personaSets: 1, demoDevices: true, ...setupOptions(process.argv) });
+  await setupStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, personaSets: 1, demoDevices: true, gmpDemoCatalogue: true, ...setupOptions(process.argv) });
   await buildWeb();
   console.log('\nDemo set-up complete. Start it with: pnpm demo\n');
 }

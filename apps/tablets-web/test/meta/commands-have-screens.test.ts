@@ -121,6 +121,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'apps/tablets-server/src/cli/demo-p3.ts': 'library of the demo data load (the packaging-order option): P3 rabeprazole ready for the presenter\'s GMP batch of R8, slice 7s; each act it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-route-masters.ts': 'library of the demo data load (masters of the demo routes, slice 7l)',
   'apps/tablets-server/src/cli/demo-route-beta-lactam.ts': 'library of the demo data load (the packaging-order option): demo route B, the beta-lactam suite of R7, slice 7n; each act it performs has its own route and screen',
+  'apps/tablets-server/src/cli/demo-catalogue.ts': 'library of the demo data load (the gmp-demo-catalogue option): the demo QA persona approves the seed library catalogue, D-4; the library approval it performs has its own route and screen',
   'apps/tablets-server/src/cli/demo-route-masters-b.ts': 'library of the demo data load (masters of demo route B, slice 7n)',
   'apps/tablets-server/src/cli/demo-route-masters-ds.ts': 'library of the demo data load (masters of demo routes D and S, slice 7m)',
   'apps/tablets-server/src/cli/golden-packaging.ts': 'library of the demo data load and the golden batches (masters)',

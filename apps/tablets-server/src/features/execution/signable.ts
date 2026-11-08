@@ -669,6 +669,34 @@ function signedHash(def: engine.BatchDefinition, state: engine.BatchState, type:
   return sha256Hex(canonicalJson({ content: c.content, summary: engine.stageSummaryMember(def, state, key) ?? null }));
 }
 
+/** "341.000000" -> "341", "96.80" -> "96.8": a figure as people read it in a sentence (the record keeps the exact text). */
+const plainFigure = (v: string): string => (v.includes('.') ? v.replace(/0+$/, '').replace(/\.$/, '') : v);
+
+/**
+ * What a refused PERFORMED attempt itself recorded (G1, owner report item 1): the open exceptions that need a deviation
+ * and did not exist before the attempt was prepared (a value the block computes at PERFORMED outside a blocking tier).
+ * Said plainly: the value, the tier's limits, the exception's id and what to do next. Null when the attempt recorded none.
+ */
+export function recordedByAttempt(def: engine.BatchDefinition, state: engine.BatchState, known: ReadonlySet<string>): string | null {
+  const fresh = Object.values(state.exceptions).filter((e) => !known.has(e.id) && e.status === 'OPEN' && e.deviationRequired && !e.deviation);
+  if (fresh.length === 0) return null;
+  return fresh
+    .map((e) => {
+      const item = e.source.item;
+      const param = item !== undefined ? def.analysis.parameters.get(item) : undefined;
+      const range = param?.limits?.ranges.find((x) => x.tier === e.tier);
+      const point = e.source.point !== undefined ? state.points[e.source.point] : undefined;
+      const pv = point?.value;
+      const value = pv?.kind === 'DECIMAL' ? `${plainFigure(pv.value)} ${pv.unit}` : undefined;
+      const unit = param?.limits?.unit ?? '';
+      const limits = range ? [range.low ? `${range.low.inclusive ? '' : 'above '}${range.low.value}` : null, range.high ? `${range.high.inclusive ? '' : 'below '}${range.high.value}` : null].filter((x) => x !== null).join(' to ') : '';
+      const tier = (e.tier ?? '').toLowerCase().replace('_', ' ');
+      const what = param && value && range ? `The ${param.name.toLowerCase()} ${value} is outside the ${tier} ${limits} ${unit}.` : `${e.title}.`;
+      return `${what} This is recorded as exception ${e.id}. Link a deviation to it, then sign again.`;
+    })
+    .join(' ');
+}
+
 export function engineCommandHandler(app: AppContext): SignableActionHandler<EngineAction> {
   const cache = runCache(app);
 
@@ -765,6 +793,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       if (decided) return { accepted: false, status: 409, refusal: decided };
       const roles = await engineRoles(client, a.runId);
       const actor = engineActor(ctx.actor.personId, roles);
+      const known = new Set(Object.keys(o.tx.state.exceptions));
       await o.tx.prepare(o.subject.target, actor, roles, o.meaning);
       const placeholder: engine.SignatureRef = { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: o.meaning, signer: actor.id };
       const approval = a.intent.type === 'CORRECT_ENTRY' && a.intent.approvalSignatureId ? await correctionApproval(client, a.runId, a.intent.point, a.intent.approvalSignatureId) : undefined;
@@ -776,7 +805,12 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
         cache.set(a.runId, { def: o.run.def, state: o.tx.state });
         const mapped = engineRefusal(app.guidance, r.refusal ?? { code: 'ENG-REFUSED', message: 'Refused', controls: ['DI-34'] });
         // The engine's reason as people read it (T4); the refused row keeps the engine's own text.
-        return { accepted: false, status: mapped.status, refusal: { ...mapped.refusal, whatHappened: `${mapped.refusal.whatHappened} Nothing was signed.`, why: peopleText({ def: o.run.def }, mapped.refusal.why) } };
+        const recorded = r.refusal?.code === 'ENG-BLOCKED' ? recordedByAttempt(o.run.def, o.tx.state, known) : null;
+        return {
+          accepted: false,
+          status: mapped.status,
+          refusal: { ...mapped.refusal, whatHappened: recorded ? `Nothing was signed. ${recorded}` : `${mapped.refusal.whatHappened} Nothing was signed.`, why: peopleText({ def: o.run.def }, mapped.refusal.why) },
+        };
       }
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const c = engine.aggregateContent(o.run.def, dry.state, o.subject.aggregateType, o.subject.key);

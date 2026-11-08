@@ -51,6 +51,8 @@ export interface SetupStackOptions {
   gmpSrProfile?: boolean;
   /** GMP, DEMO-ONLY: with the packaging demo, P3 rabeprazole ready for the presenter's GMP batch (--gmp-p3-demo; slice 7s, D-7s-1). */
   gmpP3Demo?: boolean;
+  /** `pnpm demo:setup` (demo gaps D-4): the library catalogue loaded and approved by the demo QA persona (--gmp-demo-catalogue). */
+  gmpDemoCatalogue?: boolean;
   /** `pnpm demo:setup`: also register and bind the demo's simulated machines (DEMO_DEVICES) in the sandbox. */
   demoDevices?: boolean;
 }
@@ -61,7 +63,7 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   for (const d of ['to-sandbox', 'to-gmp']) mkdirSync(join(exchangeDir, d), { recursive: true });
   const gatewaySpki = ensureGatewayKey(opts.keysDir);
   const common = ['--keys-dir', opts.keysDir, '--exchange-dir', exchangeDir, '--persona-sets', String(opts.personaSets ?? 1), '--recreate'];
-  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : []), ...(opts.gmpPackaging ? ['--gmp-packaging'] : []), ...(opts.gmpSrProfile ? ['--gmp-sr-profile'] : []), ...(opts.gmpP3Demo ? ['--gmp-p3-demo'] : [])], env: {}, echo: opts.echo ?? true });
+  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : []), ...(opts.gmpDemoCatalogue ? ['--gmp-demo-catalogue'] : []), ...(opts.gmpPackaging ? ['--gmp-packaging'] : []), ...(opts.gmpSrProfile ? ['--gmp-sr-profile'] : []), ...(opts.gmpP3Demo ? ['--gmp-p3-demo'] : [])], env: {}, echo: opts.echo ?? true });
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,

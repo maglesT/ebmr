@@ -30,9 +30,9 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 | D-2 formula lines, formula draft withdrawal (recipe-core 1877) | #160 | merged |
 | D-3 discard a draft, restart the family (recipe-core 1878) | #161 | merged |
 | R-flow (`r-flow.md`) | #162 | merged (8a159db) |
-| R-rest Part A, the validator rows (`r-rest.md`) | #180 | in review: 5 E2E groups on GitHub plus the local `pnpm run ci`, golden batches and trace (the lead's split) |
-| D-4 demo catalogue approved, badge names the replacement (`d4-catalogue.md`) | #181 | in review: E2E library-dc on GitHub plus the local `pnpm run ci` |
-| D-8 own calculations, names, yield, limit sources (`d8-calcs.md`) | this PR (branch `designer/d8-calcs`) | built on #180's head; rebase onto main after #180 merges (`git rebase --onto origin/main <#180 head> designer/d8-calcs`) |
+| R-rest Part A, the validator rows (`r-rest.md`) | #180 | merged (af7cfff) |
+| D-4 demo catalogue approved, badge names the replacement (`d4-catalogue.md`) | #181 | merged (83f0cbf) |
+| D-8 own calculations, names, yield, limit sources (`d8-calcs.md`) | #182 (branch `designer/d8-calcs`) | main merged in; base is main |
 | R-rest Part B (SQL rows; recipe-core 1880) | not started | plan in `r-rest.md` |
 | D-5 to D-7 | not started | D-5 copied names (with item 13), D-6 equipment class from the plant, D-7 findings panel at 1400 px |
 
@@ -71,7 +71,7 @@ and `d0/README.md`, and reports to the lead with the Claude Code Remote `send_me
 
 ## Next for the new session
 
-1. Retarget the D-8 PR to main once #180 merges (the lead does it), then rebase.
+1. D-8 (#182): main merged in; squash-merge on green.
 2. R-rest Part B (recipe-core 1880; ask the lead for a second number).
 3. Plan D-5 to D-7 and send each plan to the lead before building.
 
