@@ -22,6 +22,7 @@ import { boundWords, Check, CommitDecimal, CommitText, comparisonWords, roleTitl
 import { ProcedureTable } from './ProcedureTable.tsx';
 import { AddStage, StageEditor } from './StageEditor.tsx';
 import { CriticalityAssessment } from './CriticalityAssessment.tsx';
+import { AddLimitRange, LimitSourcePicker } from './LimitSource.tsx';
 import { actionBreachWords, eventWords, goldenValueText, humanize, itemLabel, marketRuleWords, quantityWords, referenceLabel, roundingWords, samplingWords, sourceWords, yesNo } from './words.ts';
 import { useScreenDosageForm } from '../../../app/brand.tsx';
 
@@ -114,6 +115,7 @@ function LimitsTable({ owner, id, name, spec, dispatch, readOnly }: { owner: Lim
               <td>
                 {sourceWords(r.source)}
                 {r.pharmacopoeia ? ` (${r.pharmacopoeia.code} ${r.pharmacopoeia.edition})` : ''}
+                {readOnly ? null : <LimitSourcePicker owner={owner} id={id} name={name} tier={r.tier} current={sourceWords(r.source)} dispatch={dispatch} />}
               </td>
               <td className={dcls('small')}>{roundingWords(r.rounding)}</td>
             </tr>
@@ -205,6 +207,7 @@ function Parameters({ c, dispatch, readOnly }: { c: Content; dispatch: (op: Op) 
           <h3 className={dcls('panelTitle')}>
             {p.name} <span className={dcls('mono')}>{p.id}</span>
           </h3>
+          {readOnly ? null : <CommitText label={`Name of ${p.id}`} value={p.name} readOnly={false} onCommit={(name) => dispatch({ kind: 'UPDATE_PARAMETER_NAME', id: p.id, name })} />}
           <p className={dcls('small')}>{parameterFacts(p).join(' · ')}</p>
           {p.valueType === 'DECIMAL' && !readOnly ? (
             <CommitDecimal label={`Target of ${p.name}`} unit={p.unit ?? ''} value={p.target} readOnly={false} onCommit={(value) => dispatch({ kind: 'SET_TARGET', parameterId: p.id, value })} />
@@ -215,6 +218,7 @@ function Parameters({ c, dispatch, readOnly }: { c: Content; dispatch: (op: Op) 
           )}
           {p.marketRule ? <p className={dcls('small')}>Limit {marketRuleWords(p.marketRule)}.</p> : null}
           {p.limits ? <LimitsTable owner="parameter" id={p.id} name={p.name} spec={p.limits} dispatch={dispatch} readOnly={readOnly} /> : <p className={dcls('small')}>No limits.</p>}
+          {!readOnly && !p.limits && p.valueType === 'DECIMAL' && p.unit ? <AddLimitRange owner="parameter" id={p.id} name={p.name} unit={p.unit} dispatch={dispatch} /> : null}
         </div>
       ))}
     </>
@@ -229,18 +233,26 @@ function Calculations({ c, dispatch, readOnly }: { c: Content; dispatch: (op: Op
           <h3 className={dcls('panelTitle')}>
             {x.name} <span className={dcls('mono')}>{x.id}</span>
           </h3>
-          <p>
-            Formula: <span className={dcls('mono')}>{x.expression}</span>
-          </p>
+          {readOnly ? (
+            <p>
+              Formula: <span className={dcls('mono')}>{x.expression}</span>
+            </p>
+          ) : (
+            <>
+              <CommitText label={`Name of ${x.id}`} value={x.name} readOnly={false} onCommit={(name) => dispatch({ kind: 'UPDATE_CALCULATION', id: x.id, name })} />
+              <CommitText label={`Formula of ${x.id}`} value={x.expression} readOnly={false} onCommit={(expression) => dispatch({ kind: 'UPDATE_CALCULATION', id: x.id, expression })} />
+            </>
+          )}
           <p className={dcls('small')}>
             Result {humanize(x.output.valueType)}
             {x.output.unit ? ` in ${x.output.unit}` : ''}
             {x.output.semanticTag ? ` (semantic tag ${x.output.semanticTag})` : ''} · {x.criticality === 'CRITICAL' ? 'critical' : 'non-critical'} · risk class {x.riskClass}
           </p>
           {x.limits ? <LimitsTable owner="calculation" id={x.id} name={x.name} spec={x.limits} dispatch={dispatch} readOnly={readOnly} /> : <p className={dcls('small')}>No limits.</p>}
+          {!readOnly && !x.limits && x.output.valueType === 'DECIMAL' && x.output.unit ? <AddLimitRange owner="calculation" id={x.id} name={x.name} unit={x.output.unit} dispatch={dispatch} /> : null}
         </div>
       ))}
-      <p className={dcls('small')}>Formulas are read-only in this release (the formula editor comes next).</p>
+      {readOnly ? null : <p className={dcls('small')}>A formula reads the master's values by id; the checks judge it when the revision is saved.</p>}
     </>
   );
 }
@@ -646,7 +658,25 @@ export function DocumentView(props: DocumentProps) {
             <p className={dcls('small')}>
               Result {itemLabel(c, y.result)} against the theoretical {itemLabel(c, y.theoretical)}
             </p>
+            {readOnly ? null : (
+              <>
+                <CommitText label={`Name of ${y.id}`} value={y.name} readOnly={false} onCommit={(name) => dispatch({ kind: 'UPDATE_YIELD', id: y.id, name })} />
+                <Select
+                  label={`Calculation giving ${y.name}`}
+                  value={y.result}
+                  options={c.calculations.filter((k) => k.output.valueType === 'DECIMAL').map((k) => ({ value: k.id, label: `${k.name} (${k.id})` }))}
+                  onChange={(result) => dispatch({ kind: 'UPDATE_YIELD', id: y.id, result })}
+                />
+                <Select
+                  label={`Theoretical quantity of ${y.name}`}
+                  value={y.theoretical}
+                  options={[...c.calculations, ...c.parameters, ...c.inputs].map((k) => ({ value: k.id, label: `${k.name} (${k.id})` }))}
+                  onChange={(theoretical) => dispatch({ kind: 'UPDATE_YIELD', id: y.id, theoretical })}
+                />
+              </>
+            )}
             {y.limits ? <LimitsTable owner="yield" id={y.id} name={y.name} spec={y.limits} dispatch={dispatch} readOnly={readOnly} /> : <p>No limits.</p>}
+            {!readOnly && !y.limits ? <AddLimitRange owner="yield" id={y.id} name={y.name} unit="%" dispatch={dispatch} /> : null}
           </div>
         ))}
       </Section>
