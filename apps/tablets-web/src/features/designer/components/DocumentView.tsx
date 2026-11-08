@@ -572,7 +572,7 @@ export function DocumentView(props: DocumentProps) {
         {c.intermediates.map((i) => (
           <div key={i.id} id={`mbr-item-${i.id}`} tabIndex={-1}>
             <div className={dcls('inline')}>
-              <strong>{i.name}</strong>
+              {readOnly ? <strong>{i.name}</strong> : <CommitText label={`Name of intermediate ${i.id}`} value={i.name} readOnly={false} onCommit={(name) => dispatch({ kind: 'UPDATE_INTERMEDIATE_NAME', intermediateId: i.id, name })} />}
               <span className={dcls('mono')}>{i.id}</span>
               {i.holdTime && !readOnly ? (
                 <CommitDecimal

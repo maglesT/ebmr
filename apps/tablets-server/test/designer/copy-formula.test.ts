@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { formula } from '@ebmr/recipe-core';
 import { rtwProcessingContent } from '../../src/cli/demo-route-masters.ts';
 import { definitionFindings } from '../../src/features/designer/definition.ts';
-import { contentFromFormula, standardPerTabletMg, type FormulaSource } from '../../src/features/designer/from-formula.ts';
+import { contentFromFormula, standardPerTabletMg, type CopyReport, type FormulaSource } from '../../src/features/designer/from-formula.ts';
 import { withFormulaBom } from '../../src/features/designer/formula-choice.ts';
 import { TEMPLATES } from '../../src/features/designer/templates/index.ts';
 
@@ -141,5 +141,61 @@ describe('a copy for a formula with a material on two lines (demo finding D-2, l
       refused = e;
     }
     expect(JSON.stringify(refused)).toMatch(/BOM line BOM-LACTOSE .* is not a line of the formula/);
+  });
+});
+
+/**
+ * D-5 (owner's MGL-SR-BL report, item 7): a copy for a formula whose lines have other ids than the source's (a bilayer
+ * with two actives copied from a one-active master) still renames: the source's dropped active pairs with the copy's
+ * first new active, one to one in formula order; the second new active has no partner and nothing is named after it.
+ */
+describe('a copy pairs the source\'s dropped lines with the copy\'s new ones by role (D-5)', () => {
+  const twoActives = (materials: [string, string][]): FormulaSource => {
+    const lines = [line('met', 'MAT-MET-T', 'ACTIVE', 'PER_UNIT', '500', '75.000'), line('gli', 'MAT-GLI-T', 'ACTIVE', 'PER_UNIT', '2', '0.300'), ...SRC.chosen.lines.filter((l) => l.role !== 'ACTIVE')];
+    return {
+      ...SRC,
+      chosen: { ...SRC.chosen, lines },
+      materials: [...SRC.materials.filter((m) => m.code !== 'DMT-API-T'), ...materials.map(([code, name], i) => ({ versionId: `11111111-2222-4333-8444-5555555557${String(i).padStart(2, '0')}`, code, name, kind: 'API', unit: 'kg' }))],
+    };
+  };
+
+  it('[PR-01][PR-03] tablets: two actives under other line ids; the source\'s active is renamed to the first, nothing to the second; the report lists the rename', () => {
+    const source = rtwProcessingContent('RTW-WG-SRC');
+    const base = TEMPLATES.get('dc-mini');
+    if (!base) throw new Error('no dc-mini');
+    const report: CopyReport = { renamed: [] };
+    const c = contentFromFormula(base, twoActives([['MAT-MET-T', 'Metformin hydrochloride (invented data)'], ['MAT-GLI-T', 'Glimepiride']]), { familyCode: 'MGL-T-01', markets: ['IN'], start: 'COPY' }, source, undefined, report);
+    expect(c.bom.filter((b) => b.role === 'ACTIVE').map((b) => b.id)).toEqual(['BOM-MET', 'BOM-GLI']);
+    expect(c.parameters.find((p) => p.id === 'dispApi')?.name).toBe('Metformin hydrochloride dispensed (potency-adjusted)');
+    const names = [...c.parameters, ...c.calculations, ...c.yieldCheckpoints].map((x) => x.name);
+    expect(names.filter((n) => /exemplazine/i.test(n))).toEqual([]);
+    expect(names.filter((n) => /glimepiride/i.test(n))).toEqual([]);
+    expect(report.renamed).toEqual([{ from: 'Exemplazine sodium', to: 'Metformin hydrochloride' }]);
+  });
+
+  it('[PR-01][PR-03] another edition (injectables): a source named after its active is renamed the same way; a copy with nothing to pair renames nothing', () => {
+    const base = TEMPLATES.get('dc-mini');
+    if (!base) throw new Error('no dc-mini');
+    const inj = (lineId: string, code: string): FormulaSource => ({
+      ...SRC,
+      chosen: { ...SRC.chosen, productCode: 'INJ-D5', lines: [line(lineId, code, 'ACTIVE', 'PER_UNIT', '40', '4.000'), line('wfi', 'MAT-WFI', 'EXCIPIENT', 'PER_BATCH', '100.000', '100.000')] },
+      product: { name: 'D-5 injection', dosageForm: 'Injection' },
+      materials: [
+        { versionId: '11111111-2222-4333-8444-555555555801', code, name: code === 'MAT-INJ-A' ? 'Exemplazine sodium' : 'Demolol tartrate', kind: 'API', unit: 'kg' },
+        { versionId: '11111111-2222-4333-8444-555555555802', code: 'MAT-WFI', name: 'Water for injection', kind: 'EXCIPIENT', unit: 'kg' },
+      ],
+      target: { targetUnitMassMg: '40', batchSizesUnits: ['150000'] },
+    });
+    const source = contentFromFormula(base, inj('api', 'MAT-INJ-A'), { familyCode: 'INJ-D5-SRC', markets: ['IN'], start: 'BLANK', edition: 'injectables' });
+    source.parameters.push({ id: 'dispInj', name: 'Exemplazine sodium dispensed', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' });
+    const report: CopyReport = { renamed: [] };
+    const c = contentFromFormula(base, inj('act', 'MAT-INJ-B'), { familyCode: 'INJ-D5-01', markets: ['IN'], start: 'COPY', edition: 'injectables' }, source, undefined, report);
+    expect(c.parameters.find((p) => p.id === 'dispInj')?.name).toBe('Demolol tartrate dispensed');
+    expect(report.renamed).toEqual([{ from: 'Exemplazine sodium', to: 'Demolol tartrate' }]);
+    // The same active under another line id: nothing pairs to rename, and the names stay the source's.
+    const same: CopyReport = { renamed: [] };
+    const kept = contentFromFormula(base, inj('act', 'MAT-INJ-A'), { familyCode: 'INJ-D5-02', markets: ['IN'], start: 'COPY', edition: 'injectables' }, source, undefined, same);
+    expect(kept.parameters.find((p) => p.id === 'dispInj')?.name).toBe('Exemplazine sodium dispensed');
+    expect(same.renamed).toEqual([]);
   });
 });
