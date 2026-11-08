@@ -47,7 +47,7 @@ describe('the author\'s own calculations, names and yield limits (D-8)', () => {
     expect((await world.state(v.versionId)).state).toBe('APPROVED');
     const author = await gmp.asPersona('author');
     const view: VersionView = valueOf(await author.call(routes.designer.version, { params: { versionId: v.versionId } }));
-    expect(view.content.yieldCheckpoints.find((k) => k.id === 'Y-BLEND')?.name).toBe('Lubricated blend yield (bilayer core)');
+    expect((view.content as unknown as flow.MbrContent).yieldCheckpoints.find((k) => k.id === 'Y-BLEND')?.name).toBe('Lubricated blend yield (bilayer core)');
     // Each of the five D-8 ops' changes (the editor is read-only there; the server refuses the save whoever sends it).
     const changes: Record<string, (m: flow.MbrContent) => void> = {
       UPDATE_CALCULATION: (m) => void Object.assign(m.calculations.find((c) => c.id === 'blendYield') ?? {}, { expression: 'yield(blendNet, blendInput)' }),
