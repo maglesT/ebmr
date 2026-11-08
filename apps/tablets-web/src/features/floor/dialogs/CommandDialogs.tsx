@@ -9,8 +9,10 @@
  * something not yet sent, a reload or closing the tab asks first (useDraftGuard, review F63).
  */
 import { useState } from 'react';
-import type { ExceptionView, StepScreenView } from '@ebmr/api-contract';
-import { Field, floor } from '@ebmr/ui-kit';
+import { routes, type CallError, type ExceptionView, type StepScreenView } from '@ebmr/api-contract';
+import { Button, Field, floor } from '@ebmr/ui-kit';
+import { api } from '../../../api/client.ts';
+import { RefusalMessage } from '../../../app/refusal.tsx';
 import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
 import { CommandBody, CommandDialog } from './CommandDialog.tsx';
@@ -75,7 +77,8 @@ function RaiseExceptionForm({ stepKey, ...p }: FormBase & { stepKey: string | nu
 
 type DeviationTarget = ExceptionView | { exceptionId: string; title: string };
 
-export function LinkDeviationDialog({ isOpen, ...p }: Base & { exception: DeviationTarget; stepKey: string | null }) {
+/** `gmp`: a GMP batch, whose deviation link names a deviation record of this installation linked to the batch (recipe-core 0601). */
+export function LinkDeviationDialog({ isOpen, ...p }: Base & { exception: DeviationTarget; stepKey: string | null; gmp: boolean }) {
   return (
     <CommandDialog title={st('dialog.deviation.title', { title: p.exception.title })} isOpen={isOpen}>
       <LinkDeviationForm {...p} />
@@ -83,13 +86,62 @@ export function LinkDeviationDialog({ isOpen, ...p }: Base & { exception: Deviat
   );
 }
 
-function LinkDeviationForm({ exception, stepKey, ...p }: FormBase & { exception: DeviationTarget; stepKey: string | null }) {
+function LinkDeviationForm({ exception, stepKey, gmp, ...p }: FormBase & { exception: DeviationTarget; stepKey: string | null; gmp: boolean }) {
   const [ref, setRef] = useTyped();
   const intent = nonEmpty(ref) ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, deviationRef: ref.trim() } as const) : null;
   return (
     <CommandBody viewStepKey={stepKey} reason={st('tap.reason.ATTACH_DEVIATION')} intent={intent} draft={ref !== ''} {...p}>
       <Field label={st('dialog.deviation.ref')} name="deviationRef" value={ref} onChange={setRef} description={st('dialog.deviation.help')} isRequired autoComplete="off" />
+      {gmp ? <RaiseBatchDeviation runId={p.runId} title={exception.title} onRaised={setRef} /> : null}
     </CommandBody>
+  );
+}
+
+/**
+ * Owner report item 2: on a GMP batch the link names a deviation record of this installation linked to the batch
+ * (recipe-core 0601, EBMR-EXE-600), and with the deviation screens off (EBMR_DISCONNECT) nothing else raises one. The
+ * served routes raiseDeviation and linkDeviation (api-contract disconnected.ts keeps both) raise it here and link it to
+ * the batch; its reference fills the field. The person chooses the classification and writes the risk rationale.
+ */
+function RaiseBatchDeviation({ runId, title, onRaised }: { runId: string; title: string; onRaised: (ref: string) => void }) {
+  const [classification, setClassification] = useChoice();
+  const [rationale, setRationale] = useTyped();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<CallError | null>(null);
+  const [raised, setRaised] = useState<string | null>(null);
+  const ready = (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10;
+  const raise = async () => {
+    if (!ready) return;
+    setBusy(true);
+    setError(null);
+    const r = await api.call(routes.quality.raiseDeviation, { body: { kind: 'DEVIATION', title: title.slice(0, 200), classification, riskRationale: rationale.trim() } });
+    const linked = r.ok ? await api.call(routes.quality.linkDeviation, { params: { deviationId: r.value.deviationId }, body: { subjectKind: 'BATCH', subjectId: runId } }) : null;
+    setBusy(false);
+    if (!r.ok) return setError(r.error);
+    if (linked && !linked.ok) return setError(linked.error);
+    setRaised(r.value.ref);
+    onRaised(r.value.ref);
+  };
+  if (raised !== null) return <p data-testid="deviation-raised">{st('dialog.deviation.raised', { ref: raised })}</p>;
+  return (
+    <section aria-label={st('dialog.deviation.raise')}>
+      <h3>{st('dialog.deviation.raise')}</h3>
+      <floor.ChoiceGroup
+        label={st('dialog.deviation.classification')}
+        options={[
+          { value: 'MINOR', label: st('dialog.deviation.MINOR') },
+          { value: 'MAJOR', label: st('dialog.deviation.MAJOR') },
+          { value: 'CRITICAL', label: st('dialog.deviation.CRITICAL') },
+        ]}
+        value={classification}
+        onChange={setClassification}
+      />
+      <Field label={st('dialog.deviation.rationale')} name="riskRationale" value={rationale} onChange={setRationale} description={st('dialog.deviation.rationaleHelp')} autoComplete="off" />
+      {error ? <RefusalMessage error={error} /> : null}
+      <Button onPress={() => void raise()} isDisabled={!ready || busy}>
+        {st('dialog.deviation.raiseButton')}
+      </Button>
+    </section>
   );
 }
 

@@ -12,7 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
-import { bindRoutes } from '../../platform/http/bind.ts';
+import { bindRoutes, disconnected } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
@@ -177,6 +177,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       },
       erpImport: async ({ body }) => asErp(app, body, (c) => importCatalogue(c, body.catalogue)),
       deviations: async ({ query, requireSession }) => {
+        // G2 (owner ruling, 8 November 2026): deviations here exist only for batch records. Where the Deviations
+        // product is disconnected, only one batch's list is served (record lock, review, release); a list across
+        // batches, or a search, belongs to that product.
+        if ((app.platform.build || app.config.disconnect) && query.batchId === undefined) throw disconnected('The deviation list across batches');
         requireSession();
         const out = [];
         for (const id of await deviationIds(pool, query)) out.push(await deviationView(pool, id));

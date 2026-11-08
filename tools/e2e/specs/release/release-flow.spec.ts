@@ -203,9 +203,10 @@ test('market tabs: the market-add evaluation, a signed addition and removal of U
 
   await evidence.step('QA removes US again with a deviation linked to the lot\'s records', 'MARKET_REMOVE through the office ceremony; the removal is listed with its deviation, flagged "removed after failure" when the market had failed, and US is REMOVED', async () => {
     // The deviation the release gate names as evidence (an open record linked to a batch of the lot's records).
-    const link = page.getByTestId('grel-US-item-G2.DEVIATIONS').locator('a[href^="/quality/deviations/"]').first();
+    // G2: a deviation opens as the record of the lot's batch (/review/<batch>/deviations/<id>).
+    const link = page.getByTestId('grel-US-item-G2.DEVIATIONS').locator('a[href^="/review/"][href*="/deviations/"]').first();
     await expect(link).toBeVisible();
-    const deviationId = ((await link.getAttribute('href')) ?? '').replace('/quality/deviations/', '');
+    const deviationId = ((await link.getAttribute('href')) ?? '').replace(/^.*\/deviations\//, '');
     const box = page.getByTestId('market-remove-US');
     await box.getByRole('textbox', { name: 'Deviation (id)' }).fill(deviationId);
     await box.getByRole('button', { name: 'Sign the removal of US' }).click();

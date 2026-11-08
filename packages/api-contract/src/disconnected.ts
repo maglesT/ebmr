@@ -69,13 +69,13 @@ export const DISCONNECTED_NAMESPACES = Object.keys(DISCONNECTED) as readonly Nam
  *   for a laboratory error and reprocessing need a QA-concluded OOS record, and the database concludes only a record
  *   whose impact is assessed and whose closure basis is recorded (site.conclude_deviation). The web opens these only as
  *   one lot's OOS record from its lot page, until the Deviations product publishes its view (plan section 7, D4-R5).
+ * - quality.deviation and the deviation screens (owner report item 2, G2, lead ruling of 7 November 2026): a GMP batch's
+ *   exception links a deviation record of this installation (EBMR-EXE-600), and review and release read that record's
+ *   state, so QA investigates, concludes and closes it on the deviation screens. Only reclassifying and cancelling a
+ *   record stay with the Deviations product; the deviation page hides them when disconnected.
  */
 export const DISCONNECTED_ROUTES: Readonly<Record<string, DisconnectedOwner>> = Object.fromEntries(
-  [
-    deviationRoutes.reclassifyDeviation,
-    routes.quality.deviation,
-    routes.quality.cancelDeviation,
-  ].map((r) => [r.id, 'Deviations' as const]),
+  [deviationRoutes.reclassifyDeviation, routes.quality.cancelDeviation].map((r) => [r.id, 'Deviations' as const]),
 );
 
 /** Every route id of a disconnected namespace, and every single disconnected route. */
