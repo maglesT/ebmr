@@ -17,12 +17,12 @@ import { routes, type AmendmentView, type RecordLockView } from '@ebmr/api-contr
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
-import { useScreensOff } from '../../app/disconnected.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
 import { stateTone } from '../release/reads.ts';
 import { lockTone, RECORDS_READS, words } from './reads.ts';
+import { DeviationRef } from '../quality/BatchDeviation.tsx';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -261,7 +261,6 @@ function OpenAmendmentWork({ view: v, a }: { view: RecordLockView; a: AmendmentV
 }
 
 function Amendments({ view: v }: { view: RecordLockView }) {
-  const off = useScreensOff();
   if (v.amendments.length === 0) return null;
   return (
     <Section title="Amendments" testId="amendments">
@@ -272,13 +271,7 @@ function Amendments({ view: v }: { view: RecordLockView }) {
           </h3>
           <p>
             Under {a.basis.kind === 'DEVIATION' ? 'deviation' : 'change record'}{' '}
-            {a.basis.kind === 'DEVIATION' && !off('/quality/deviations') ? (
-              <Link to="/quality/deviations/$deviationId" params={{ deviationId: a.basis.id }}>
-                {a.basis.ref}
-              </Link>
-            ) : (
-              a.basis.ref
-            )}
+            {a.basis.kind === 'DEVIATION' ? <DeviationRef deviationId={a.basis.id} label={a.basis.ref} batchId={v.batchId} /> : a.basis.ref}
             : {a.reason}. Opened by {a.openedBy.legalName} ({words(a.openedBy.role)}), {a.openedAt.text}.
             {a.closedBy && a.closedAt ? ` Closed by ${a.closedBy.legalName} (${words(a.closedBy.role)}), ${a.closedAt.text}: ${a.closingStatement ?? ''}` : ''}
           </p>

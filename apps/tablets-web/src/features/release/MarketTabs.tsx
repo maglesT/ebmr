@@ -13,18 +13,17 @@
  * through esig.describe and the ceremony (acts.tsx).
  */
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
 import { routes, type LotReleaseView, type ReleaseMarket } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
-import { useScreensOff } from '../../app/disconnected.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered, useSessionRole, useSessionRoles } from '../../app/roles.ts';
 import { GateProblems } from '../review/parts.tsx';
 import { EuTab } from './EuTab.tsx';
 import { EvidenceList, GrelChecklist, SinceReview } from './parts.tsx';
 import { addTone, marketTone, RELEASE_READS, releaseTone, words, type ExportMarket, type MarketAddEvaluationView, type MarketChangeView, type MarketDispositionView } from './reads.ts';
+import { DeviationRef } from '../quality/BatchDeviation.tsx';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -102,7 +101,6 @@ function UsParts({ lot, d, inSet }: { lot: LotReleaseView; d: MarketDispositionV
 }
 
 function UsDecision({ d }: { d: MarketDispositionView }) {
-  const off = useScreensOff();
   const x = d.decision;
   if (!x) return null;
   return (
@@ -118,13 +116,7 @@ function UsDecision({ d }: { d: MarketDispositionView }) {
       {x.deviationId ? (
         <p>
           Investigation:{' '}
-          {off('/quality/deviations') ? (
-            x.deviationId
-          ) : (
-            <Link to="/quality/deviations/$deviationId" params={{ deviationId: x.deviationId }}>
-              {x.deviationId}
-            </Link>
-          )}
+          <DeviationRef deviationId={x.deviationId} />
         </p>
       ) : null}
     </Section>

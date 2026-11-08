@@ -124,7 +124,7 @@ export function evidenceLink(e: Evidence): { to: string; params: Record<string, 
     case 'LOT':
       return { to: '/quality/lots/$lotId', params: { lotId: e.ref } };
     case 'DEVIATION':
-      return { to: '/quality/deviations/$deviationId', params: { deviationId: e.ref } };
+      return null; // G2: opened as the page's batch's record (quality/BatchDeviation.tsx DeviationRef)
     case 'CONTAINER':
     case 'EXCEPTION':
       return null;
