@@ -57,13 +57,14 @@ function tempDir(): string {
 }
 
 describe('the definitions the harness mutates', () => {
-  it('[meta] come from every SQL directory, in the order the test set-ups migrate: kernel, site services, recipe-core, tablets, substance (API plan A0)', () => {
+  it('[meta] come from every SQL directory, in the order the test set-ups migrate: kernel, site services, recipe-core, tablets, substance (API plan A0), injectables (I-1c2)', () => {
     expect(sqlSources()).toEqual([
       { namespace: 'kernel', directory: 'packages/kernel/sql' },
       { namespace: 'site-services', directory: 'packages/site-services/sql' },
       { namespace: 'recipe-core', directory: 'packages/recipe-core/sql' },
       { namespace: 'tablets', directory: 'apps/tablets-server/sql' },
       { namespace: 'substance', directory: 'editions/substance/sql' },
+      { namespace: 'injectables', directory: 'editions/injectables/sql' },
     ]);
     const defs = loadDefinitions();
     const fileOf = (identity: string) => defs.get(identity)?.file;

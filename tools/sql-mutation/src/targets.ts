@@ -1006,6 +1006,13 @@ export const TARGETS: Target[] = [
     tests: [s('substance/api-chain.test.ts'), k('market/in52.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables I-1c2: the edition's release items (editions/injectables/sql 3000) --------------------------------
+  {
+    group: 'inj-release-items',
+    functions: ['injectables.grel_edition_items', 'injectables.grel_pack_examination'],
+    tests: [s('injectables/vial-chain.test.ts')],
+    threshold: 90,
+  },
   // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
   // read class (tablets 1904) is tab.aggregate_read_class, which stays in its group. ----
   {

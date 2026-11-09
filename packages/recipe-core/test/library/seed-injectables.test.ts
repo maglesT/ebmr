@@ -38,10 +38,12 @@ function withUse(item: SeedItem, change: { limits?: SeedItem['exampleUse']['limi
 const I1_CODES = [
   'INJ-ROOM-READY', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
   'INJ-AMPOULE-SEAL', 'INJ-CAPPING', 'INJ-TERMINAL-STERILISE', 'INJ-VISUAL-INSPECT', 'INJ-CCI', 'INJ-UNIT-ACCOUNT', 'INJ-STERILITY-SAMPLE', 'TEST-INJ-RELEASE',
+  // Slice I-1c2: the finished-pack examination that closes a packaging record of the edition.
+  'INJ-PACK-EXAM',
 ];
 
 describe('the Injectables catalogue (slice I-1)', () => {
-  it('[PR-05] the catalogue holds the 16 blocks of I-1 (INJ-01, 04, 05, 06, 12, 14, 15, 18 to 26; INJ-02 dropped, its lots named where used), each of the injectables edition, loaded with the rest of the catalogue', () => {
+  it('[PR-05] the catalogue holds the 17 blocks of I-1 (INJ-01, 04, 05, 06, 12, 14, 15, 18 to 27; INJ-02 dropped, its lots named where used), each of the injectables edition, loaded with the rest of the catalogue', () => {
     expect(INJECTABLE_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I1_CODES].sort());
     for (const s of INJECTABLE_CATALOGUE) {
       expect(blockEdition(s.definition), s.definition.code).toBe('injectables');
@@ -247,6 +249,26 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(ok.unaccounted?.['stepValues']).toMatchObject({ filled: { step: 'filling', field: 'filled' }, accepted: { step: 'inspection', field: 'accepted' } });
     expect(ok.unaccounted?.['inputs']).toMatchObject({ rejected: { value: '190' } });
     expect(run('10251').exceptions).toEqual(['LIB_LIMIT_BREACH']);
+  });
+
+  it('[PR-37] the finished-pack examination at completion takes the sample the master sets, records the label as read on a unit and every count as found; a unit with a wrong or missing label fails it (an exception for QA), and it refuses nothing at entry', () => {
+    const item = byCode('INJ-PACK-EXAM');
+    expect(item.definition.category).toBe('PACKAGING');
+    // 211.134(b): the sample size is the master's (a count slot), not a number of the block.
+    expect(fieldOf(item, 'sample')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'examUnits' });
+    expect(fieldOf(item, 'wrongLabel')).toMatchObject({ type: 'NUMBER', limitSlot: 'wrongLabel', critical: true });
+    for (const id of ['printedBatch', 'printedExpiry']) expect(fieldOf(item, id).type).toBe('TEXT');
+    // Owner rule (flexibility within compliance): no other field is judged and none expects an answer.
+    const fields = item.definition.sections.flatMap((s) => s.fields);
+    expect(fields.filter((f) => 'limitSlot' in f && f.limitSlot !== undefined).map((f) => f.id)).toEqual(['wrongLabel']);
+    expect(fields.filter((f) => 'expected' in f)).toEqual([]);
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    expect(judgedRun(item, {}).exceptions).toEqual([]);
+    // Two wrong labels are recorded as found and raise the exception that keeps the step from completing until QA
+    // decides; the entry itself is not refused.
+    const wrong = judgedRun(item, { exam: { wrongLabel: '2' } });
+    expect(wrong.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(wrong.status).not.toBe('COMPLETED');
   });
 
   it('[ST-66] sterility sampling records each point of the formulation\'s plan (count of points, units per point, time)', () => {

@@ -23,8 +23,9 @@ export const TABLETS_SOURCES: readonly ReleaseSource[] = [
   { namespace: 'site-services', directory: join(ROOT, 'packages/site-services/sql') },
   { namespace: 'recipe-core', directory: join(ROOT, 'packages/recipe-core/sql') },
   { namespace: 'tablets', directory: join(ROOT, 'apps/tablets-server/sql') },
-  // API edition plan A0: the substance namespace runs last in the same database (no files yet).
+  // The edition namespaces, in test-kit EDITION_NAMESPACES order: the API edition (plan A0), then injectables (I-1c2).
   { namespace: 'substance', directory: join(ROOT, 'editions/substance/sql') },
+  { namespace: 'injectables', directory: join(ROOT, 'editions/injectables/sql') },
 ];
 
 export const sha256 = (s: string | Buffer): string => createHash('sha256').update(s).digest('hex');

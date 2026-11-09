@@ -8,7 +8,7 @@
  * copied with the template; applying the policy again changes nothing there).
  */
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import pg from 'pg';
 import { KERNEL_MIGRATIONS, migrate, type AppliedMigration, type MigrationSource } from '@ebmr/kernel';
 import type { identity } from '@ebmr/kernel';
@@ -75,9 +75,18 @@ export async function asAdmin<T>(database: string, work: (c: pg.Client) => Promi
 }
 
 /**
- * The migrations of a tablets edition database, in order: kernel, site services, recipe-core, then any
- * edition sources (the tablets server passes its own `sql` directory; test-kit never imports an app), then the API
- * edition's `substance` namespace (editions/substance/sql; API plan A0), which runs after them in the same database.
+ * The edition namespaces under editions/ (each `editions/<name>/sql`), in the fixed order they run, after the core and
+ * the server's own sources: an edition added later runs after the earlier ones, so a fresh database and an upgraded one
+ * apply them in the same order. Each namespace numbers its migrations in its own range (editions/README.md).
+ */
+export const EDITION_NAMESPACES = ['substance', 'injectables'] as const;
+
+/**
+ * The migrations of a tablets edition database, in order: kernel, site services, recipe-core, then any extra sources
+ * (the tablets server passes its own `sql` directory; test-kit never imports an app), then every edition namespace of
+ * `EDITION_NAMESPACES` (API plan A0; injectables I-1c2), which run after them in the same database. A missing edition
+ * directory, or one under editions/ that the list does not name, fails loudly: a database without an edition's
+ * migrations would pass its tests and fail the installation.
  */
 export function editionMigrationSources(extra: MigrationSource[] = []): MigrationSource[] {
   const sources: MigrationSource[] = [KERNEL_MIGRATIONS];
@@ -85,8 +94,15 @@ export function editionMigrationSources(extra: MigrationSource[] = []): Migratio
   if (existsSync(siteServices)) sources.push({ namespace: 'site-services', directory: siteServices });
   const recipeCore = new URL('../../recipe-core/sql', import.meta.url).pathname;
   if (existsSync(recipeCore)) sources.push({ namespace: 'recipe-core', directory: recipeCore });
-  const substance = new URL('../../../editions/substance/sql', import.meta.url).pathname;
-  const tail = existsSync(substance) && !extra.some((s) => s.namespace === 'substance') ? [{ namespace: 'substance', directory: substance }] : [];
+  const editionsRoot = new URL('../../../editions', import.meta.url).pathname;
+  const present = readdirSync(editionsRoot, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+  const unlisted = present.filter((n) => !(EDITION_NAMESPACES as readonly string[]).includes(n));
+  if (unlisted.length > 0) throw new Error(`editions/ holds ${unlisted.join(', ')}, which EDITION_NAMESPACES (test-kit db.ts) does not name: add it in its place in the order`);
+  const tail = EDITION_NAMESPACES.filter((n) => !extra.some((s) => s.namespace === n)).map((n) => {
+    const directory = `${editionsRoot}/${n}/sql`;
+    if (!existsSync(directory)) throw new Error(`the migrations of edition namespace ${n} are missing: ${directory}`);
+    return { namespace: n, directory };
+  });
   return [...sources, ...extra, ...tail];
 }
 

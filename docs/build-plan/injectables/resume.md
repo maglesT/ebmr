@@ -1,4 +1,4 @@
-# Injectables: resume notes (I-1c1 under way, 7 November 2026)
+# Injectables: resume notes (I-1c2 under way, 9 November 2026)
 
 Read these instead of the session history. The rules in force are:
 - `plan.md` (approved v2; the block-version rule is in it);
@@ -59,14 +59,37 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### I-1c2 (lead rulings, 9 November 2026)
+
+- I-1c1 is complete: the vial (#155) and the ampoule (#193).
+- Plan P1 -> P2 -> P3 -> P4, one PR at a time.
+- **P1 + P2 (one PR):**
+  - INJ-PACK-EXAM (INJ-27): the finished-pack examination at completion, 211.134(c). Its only refusal is a critical
+    limit of 0 units with a wrong or missing label.
+  - It closes a packaging record of the edition: editions/injectables/sql 3000 adds the completion row
+    LIB-INJ-PACK-EXAM and the G-REL hook (E.PACK_EXAMINATION plus the tablets items that apply to any packaging order).
+  - editionMigrationSources reads `EDITION_NAMESPACES` (substance, then injectables) and fails loudly.
+  - The DB proof is `apps/tablets-server/test/injectables/vial-chain.test.ts`: the sterilised loads, as output
+    containers in units, are the bulk the packaging order takes after H-PACK, and G-REL is green for India.
+  - 3001 is unused (kept for the edition).
+- **Labelling:** G-21 with LABEL, LEAFLET and CARTON items covers the label lot, the first print, the on-line checks and
+  the reconciliation (211.125). No INJ-LABEL, and no PACK-LABEL-RECON in a vial master; the lead was told, and their
+  answer is awaited.
+- **P3 (ruling (a)):** the designer starts an injectables PACKAGING master from the skeleton. The skeleton holds only
+  what is binding: line clearance (211.130(e)), equipment status, printed items (G-21) and the counts. A yield or a
+  reconciliation goes in only where 211.103 or 211.125 applies. PACKAGING_COPY is not changed and no master is seeded.
+- **P4:** the GMP half of `injectables-acceptance.ts`:
+  - printed LABEL, LEAFLET and CARTON;
+  - the packaging master from P3;
+  - the packaging runs through `runLibraryStep` on a packaging kiosk (not the RTW `packagingRun`);
+  - QC with TEST-INJ-RELEASE, the review and the release.
+- **Output containers:** a library CONTAINER field is a reference only. The physical bulk is an output container that
+  the operator opens and closes (routes.containers, stage and unit).
+
 ### Next, in order
 
-1. The ampoule product, which completes I-1c1: PR #193 (the E2E group `library-inj-amp`).
-2. I-1c2: the GMP vial chain to release. Send the lead the size of a non-blister (vial) packaging master first.
-3. The first PR that adds injectables SQL puts it in `editions/injectables/sql`, and makes `editionMigrationSources()`
-   (test-kit `db.ts`) pick up every `editions/*/sql` directory in a fixed order and fail loudly when one is missing.
-   Migration numbers come from the lead (`inj.*` 3000–3999).
-4. Pod-down CI regime (lead): push only when needed, then dispatch
+1. Merge the P1+P2 PR, then P3, then P4.
+2. Pod-down CI regime (lead): push only when needed, then dispatch
    `gh workflow run ci.yml --repo maglest/ebmr --ref <branch> -f runner=github` and merge on its green.
 
 ### Local environment notes

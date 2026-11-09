@@ -34,7 +34,7 @@ describe('MEDHANTA platform wiring (Phase B slice 1)', () => {
   it('[DI-17] [PL-08] a platform-initialised database migrates to exactly the standalone rights of the app login', async () => {
     await platformInit();
     const first = await platformMigrate({ url: urlFor(database), passwords: { authn: 'x'.repeat(16), analytics: 'y'.repeat(16) }, keysDir, setLogins: false });
-    expect(platformSources().map((s) => s.namespace)).toEqual(['platform', 'kernel', 'site-services', 'recipe-core', 'tablets', 'substance']);
+    expect(platformSources().map((s) => s.namespace)).toEqual(['platform', 'kernel', 'site-services', 'recipe-core', 'tablets', 'substance', 'injectables']);
     expect(first.applied).toBeGreaterThan(600);
 
     const standalone = inject('serverTemplates').gmp.template;
