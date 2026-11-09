@@ -1,4 +1,4 @@
-# Injectables: resume notes (I-1c2 P2 merged; P3 next, 9 November 2026)
+# Injectables: resume notes (I-1c2 P4a merged; P3c next, then P4b, 9 November 2026)
 
 Read these instead of the session history. The rules in force are:
 - `plan.md` (approved v2; the block-version rule is in it);
@@ -59,7 +59,85 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
-### I-1c2 handover (9 November 2026; the next session starts at P3)
+### I-1c2 handover after P4a (9 November 2026; the next session starts at P4b)
+
+Merged on 9 November:
+- **#196, P3:** the designer's from-formula start `PACKAGING`, injectables only. Tablets and substance refuse it (DESIGNER_EDITION_START, an engine need).
+  - It writes one stage S-PACK:
+    - G-10@2 clearance;
+    - G-09@2 status;
+    - G-21 with LABEL, LEAFLET and CARTON, artwork per market;
+    - the G-04 counts unitsReceived and unitsPacked, with a second person (211.103);
+    - G-20 Y-PACK.
+  - The batch sizes are the formula's, in `{unit}`. The bill of materials is the printed items only, and no formula is pinned.
+  - The skeleton leaves to the author, so that the validator asks:
+    - the G-21 reconciliation limits (G21-NO-LIMITS);
+    - the Y-PACK limits.
+  - The G-21 issue allowance is `0` and the need is the batch size, both draft values (the block needs them to parse).
+  - The new-master screen has the option "From the formula, an injectables packaging master".
+- **#197, P3b (lead ruling A5):**
+  - G10-NO-CHECKER refuses a missing checker only in a tablets PACKAGING master (Schedule M Part VIII 7.1), or where the master is unknown (fails closed).
+  - recipe-core 1886:
+    - `recipe.clearance_checked`, step-keyed from the batch's master;
+    - `start_area_occupancy` and `plant_status_entry_problem` accept an unverified passed clearance only for a stage without a checker;
+    - the occupancy foreign key now names the clearance, with the row guard EBMR-PLANT-131;
+    - the guard `plant.clearance_recorded_passed`.
+  - recipe-core 1887 (generated): area_status v2 = v1 + CLEAR_UNCHECKED (step.execute). CLEAR keeps step.verify.
+  - The upgrade drill's ADDED_ONLY_ALLOWED now holds machine_version, machine_transition and state_guard.
+  - **Residual:** areas created before 1887 stay on v1 (the verified rule) until the owner decides. No aggregate is migrated.
+- **#198, P4a:** the vial's GMP half, GMP 1-4, in E2E group `library-inj-gmp` (`inj-vial-gmp.spec.ts`, `defineInjectablesGmp`):
+  - the materials, components and printed items, their specifications (DEMO-ONLY), the first lots, the ERP order, the issue and the reservation;
+  - the GMP processing batch, with the sterilised load as a 'units' output container (stage STERILISATION, 9,720 accepted units, typed net verified), then H-PACK;
+  - the vial, stopper and seal lots asserted on the entries (211.184(a), 211.188(b)(3));
+  - the ERP simulator's tablets-only filter removed (`erp-orders.ts`), with a test [PR-04][IN-18];
+  - the ampoule's GMP half: enabled by data when wanted (the `gmp` switch on `INJECTABLES`).
+
+Lead rulings of 9 November 2026, evening (binding; session 6 starts at P3c):
+- **(A) G-10 in the packaging skeleton:** perform-only with `significant: false` is confirmed.
+  - Lead A5: a line clearance is not a significant step by its block alone.
+  - The firm may still designate it significant (211.188(b)(11)) and add a checker on screen. Say so in the code comment.
+- **P3c, one small PR before P4b (the create-time option):**
+  - Fix 3: the skeleton's G-21 consumes the three printed BOM lines.
+  - Fix 4: `p-pk-count`'s check is WITNESSED (the existing validator rule, GMP-WITNESS).
+  - Fixes 1 and 2: the PACKAGING request takes the firm's own values per printed item at create time: maxUnexplained (or percent), the allowance, and the specimen reference.
+    - The basis is 211.188(b)(8), specimens or copies of the labelling, and 211.125(c), the firm's reconciliation limits.
+    - The new-master screen gets those fields.
+    - No defaults, no invented values. Missing values are refused by the existing validator codes (G21-NO-LIMITS, GMP-SPECIMENS).
+  - Tests by control ID: PR-32, PR-39, PR-31 and the GMP-* validator codes.
+  - **Residual:** "edit a packaging master's printed items after create". There is no G-21 items editor in the designer now (ConfigForm shows `items[]` read-only).
+- **P4b, GMP 8:** add STERILITY (211.167(a): each batch purporting to be sterile is tested) and PARTICULATE MATTER (the compendial test for injections; 211.160(b)) to the product specification, marked DEMO-ONLY. Results stay QC results (D-S11-R1).
+- **Order:** P3c, then P4b. Rebase nothing: merge main into `inj/i1c2-p4b-gmp-packaging` after P3c merges.
+
+Then P4b (GMP 5-9, lead-approved; one PR, after P3c):
+- The packaging master from the P3 skeleton on screen, plus PACK-CARTON, INJ-PACK-EXAM and PACK-SHIPPER. The author sets the G-21 limits, allowance and Y-PACK range (DEMO-ONLY).
+- Its sandbox run via `runLibraryStep` on a packaging kiosk (not `packagingRun`), then evidence, four signatures and IN authorisation.
+- The GMP packaging order from H-PACK, with the 9,720-unit container as its bulk.
+- QC release results (TEST-INJ-RELEASE if the lot flow offers it), the reserve sample, the head of QC's approval.
+- Both records reviewed; G-REL green for IN; release.
+- With it: the skeleton's G-10 goes perform-only for injectables (211.130(e), A5), with a unit test [PR-34].
+P4b state (branch `inj/i1c2-p4b-gmp-packaging`, pushed, no PR):
+- Main is merged in (it needs #197).
+- The skeleton's G-10 is perform-only and `significant: false`, with a test [PR-34] (the lead confirmed this: see the rulings below).
+- library-inj-gmp passes 6 of 6 on it. GMP 5-9 are not written.
+- It stopped at GMP 5. The P3 skeleton fails the validator in ways an author cannot fix on screen; sent to the lead:
+  1. G21-NO-LIMITS: the designer shows G-21 `items[]` read-only (ConfigForm.tsx:116-128), so maxUnexplained and the allowance cannot be typed.
+  2. GMP-SPECIMENS: each printed BOM line needs a SPECIMEN reference (rules-content.ts:569-582), and the designer cannot name one.
+  3. GMP-BOM-CONSUMED: the skeleton's G-21 consumes no printed line (a P3 defect).
+  4. GMP-WITNESS: p-pk-count's typed counts need WITNESSED, but the skeleton sets VERIFIED (a P3 defect).
+  5. GMP-YIELDS: Y-PACK has no limits (expected; fixable on screen).
+- GMP 8: TEST-INJ-RELEASE is not offered in the lot flow; release tests are QC results (D-S11-R1).
+- The kiosk helpers for a non-tablets packaging run (G-10@2, G-09, G-21, G-04, G-20) are still to be written.
+
+Learnt in P3 to P4a:
+- A new state machine version is published by adding a descriptor in `plant/machine.ts` and running `npx tsx packages/recipe-core/src/plant/write-seeds.ts`.
+  - A guard must be registered in an earlier migration than the machine that names it.
+  - A seed past the handbook mark carries `handbook:` (the "-- Handbook:" line).
+- The upgrade drill refuses growth of a records table not in ADDED_ONLY_ALLOWED (`tools/drills/src/upgrade.ts`).
+- An occupancy referenced `plant.clearance_verification` by its foreign key, a schema-level rule to check before relaxing verification anywhere.
+- `bool_or` over NULLs is NULL: coalesce each term before aggregating.
+- Edition filters in shared code: grep for `edition = 'tablets'` before an injectables E2E needs a screen.
+
+### I-1c2 handover (9 November 2026; superseded by the handover above)
 
 Merged:
 - **I-1c1** is complete: the vial (#155) and the ampoule (#193, E2E group `library-inj-amp`).
