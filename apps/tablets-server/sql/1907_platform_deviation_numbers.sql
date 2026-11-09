@@ -30,7 +30,8 @@
 --   PROCESSING and UNHOLD; an output container's RELEASE), for the lot's batches (recipe.release_batches, its
 --   intermediate lot's batch) and the container's batch.
 --   site.deviation_ref_problem: a number linked to the batch is accepted where an exception or a review disposition
---   names a deviation (LINK, DISPOSITION). Invalidation and reprocessing still take a record concluded here (residual DV-R1).
+--   names a deviation (LINK, DISPOSITION). Invalidation and reprocessing name a local OOS or investigation record, which stays
+--   local and fully working with the link (lead ruling, 9 November 2026).
 
 create schema dv authorization ebmr_owner;
 revoke all on schema dv from public;
@@ -181,7 +182,7 @@ begin
   if not found then
     if exists (select 1 from dv.batch_number_link l where l.batch_id = p_batch and l.number = btrim(p_ref)) then
       if p_use in ('INVALIDATION', 'REPROCESSING') then
-        return format('%s is a Deviations number; invalidating a result and reprocessing still take a deviation record concluded in this installation (DV-R1)', btrim(p_ref));
+        return format('%s is a Deviations number of a batch deviation; invalidating a result and reprocessing name the OOS or investigation record of this installation that concluded it (IN-20)', btrim(p_ref));
       end if;
       return null;
     end if;

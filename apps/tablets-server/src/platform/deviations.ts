@@ -46,6 +46,33 @@ export function deviationsOff() {
   }, true);
 }
 
+/** The refusal of a batch deviation's management where the server has a Deviations link (lead ruling, subject-scoped). */
+export function batchDeviationInDeviations(): Error {
+  return refusal(410, {
+    code: 'DISCONNECTED',
+    kind: 'NOT_ENABLED',
+    whatHappened: 'Batch deviations are managed in Deviations; link its number.',
+    why: 'In this installation a deviation of a batch is investigated, classified and closed in the Deviations product, and the batch keeps only its Deviations number. Nothing was saved.',
+    controls: ['DI-17'],
+    whatYouCanDo: ['Raise or open the deviation in the Deviations product, then link its number to the batch.'],
+    whoCanHelp: ['QA'],
+  });
+}
+
+/**
+ * Is deviation record `deviationId` a batch deviation (kind DEVIATION, linked to a batch or an output container), or would
+ * linking it to `subjectKind` make it one? OOS and investigation records, and records of lots only, are not.
+ */
+export async function isBatchDeviation(db: Pick<pg.Pool, 'query'>, deviationId: string, subjectKind?: string): Promise<boolean> {
+  const { rows } = await db.query<{ batch: boolean }>(
+    `select d.kind = 'DEVIATION' and ($2::text in ('BATCH', 'CONTAINER')
+              or exists (select 1 from site.deviation_link l where l.deviation_id = d.id and l.subject_kind in ('BATCH', 'CONTAINER'))) as batch
+       from site.deviation d where d.id = $1`,
+    [deviationId, subjectKind ?? null],
+  );
+  return rows[0]?.batch === true;
+}
+
 export class Deviations {
   constructor(private readonly pool: pg.Pool) {}
 

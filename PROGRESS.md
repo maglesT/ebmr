@@ -49,10 +49,11 @@ Deviations link (`DEVIATIONS_DATABASE_URL`, optional; second small pool `platfor
 stored only as its Deviations number (`dv.batch_number_link`, tablets 1907, `quality.linkDeviationNumber`); the release
 checklist, G-REL (item `G2.DEVIATIONS_LINKED`) and the review read each status from `report.deviation_v1`; the database
 refuses a lot or container release until every linked number is closed or rejected (guard fact `dv.status_fact`, as master
-data); an unreadable view refuses with `DEVIATIONS_OFF`. Raise, link, investigate, finding, detail, impact and closure basis
-(`DISCONNECTED_WHEN_LINKED`) and the signed impact, conclusion and closure answer 410 (owner Deviations) with the link only.
-Standalone unchanged. Residual DV-R1: invalidation and reprocessing still need a record concluded here. The platform
-manifest's `reads` (databsee `apps/ebmr/manifest.json`) must add `deviations: deviation_v1`.
+data); an unreadable view refuses with `DEVIATIONS_OFF`. Lead ruling (subject-scoped): with the link, only a batch
+deviation (kind DEVIATION linked to a batch or container) is refused on the local routes and signed acts
+(`BATCH_DEVIATION_ROUTES_WHEN_LINKED`, 410 "Batch deviations are managed in Deviations; link its number"); a lot's OOS
+(IN-20), lab-error invalidation and reprocessing stay local and fully working. Standalone unchanged. The platform manifest
+reads `deviation_v1` (databsee #64).
 
 **Declutter (owner, 5 November 2026; plan `docs/build-plan/declutter/plan.md`, PR #113).** Only the working batch-record
 path stays on screen. Owner decisions: records and amendments KEEP, the formulary is Batchwright's, the penicillin and

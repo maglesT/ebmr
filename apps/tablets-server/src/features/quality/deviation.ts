@@ -9,7 +9,7 @@ import type { ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import type { Handlers } from '../../platform/http/bind.ts';
-import { isResolved, type Deviations } from '../../platform/deviations.ts';
+import { batchDeviationInDeviations, isBatchDeviation, isResolved, type Deviations } from '../../platform/deviations.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
@@ -157,9 +157,14 @@ export function deviationHandlers(pool: pg.Pool, link: Deviations | null = null)
       await c.query(sql, params);
       return null;
     });
+  // MEDHANTA slice 2 (lead ruling, subject-scoped): with a Deviations link a batch deviation is managed in Deviations.
+  const notBatchDeviation = async (deviationId: string): Promise<void> => {
+    if (link && (await isBatchDeviation(pool, deviationId))) throw batchDeviationInDeviations();
+  };
   return {
     deviationDetail: async ({ params, requireSession }) => {
       requireSession();
+      await notBatchDeviation(params.deviationId);
       return deviationDetail(pool, params.deviationId);
     },
     reclassifyDeviation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
@@ -167,10 +172,12 @@ export function deviationHandlers(pool: pg.Pool, link: Deviations | null = null)
       return deviationDetail(pool, params.deviationId);
     },
     recordDeviationImpact: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await notBatchDeviation(params.deviationId);
       await command(actor(), idempotencyKey, requestHash, 'select site.record_deviation_impact($1, $2::jsonb)', [params.deviationId, JSON.stringify(body)]);
       return deviationDetail(pool, params.deviationId);
     },
     recordDeviationClosureBasis: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await notBatchDeviation(params.deviationId);
       await command(actor(), idempotencyKey, requestHash, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [params.deviationId, JSON.stringify(body)]);
       return deviationDetail(pool, params.deviationId);
     },

@@ -79,16 +79,17 @@ export const DISCONNECTED_ROUTES: Readonly<Record<string, DisconnectedOwner>> = 
 );
 
 /**
- * MEDHANTA slice 2 (owner ruling, 9 November 2026; replaces declutter residual D4-R5): where the server has a Deviations
- * link (DEVIATIONS_DATABASE_URL), deviation management (investigation, classification, impact, conclusion, closure)
- * belongs to the Deviations product, and a batch's deviation is stored only as its Deviations number. These routes then
- * answer 410 DISCONNECTED; the signed deviation acts (QUALITY_ACT DEVIATION_IMPACT_ASSESS, DEVIATION_CONCLUDE,
- * DEVIATION_CLOSE) are refused the same way by the server's signing. Without the link nothing here applies: the batch-only
- * deviation screens of G2 stay (standalone, unchanged).
+ * MEDHANTA slice 2 (owner ruling, 9 November 2026; lead ruling of the same day, subject-scoped; replaces declutter
+ * residual D4-R5): where the server has a Deviations link (DEVIATIONS_DATABASE_URL), a batch's deviation is managed in
+ * the Deviations product and stored here only as its Deviations number. These routes then refuse a batch deviation
+ * (410 DISCONNECTED, "Batch deviations are managed in Deviations; link its number"): a record of kind DEVIATION linked
+ * to a batch or an output container, or a link of such a record to one. A lot's OOS record (IN-20), and the OOS and
+ * investigation records the lab-error invalidation and reprocessing need, stay local and fully working. The signed acts
+ * (QUALITY_ACT DEVIATION_IMPACT_ASSESS, DEVIATION_CONCLUDE, DEVIATION_CLOSE) are refused the same way. Without the link
+ * nothing here applies: the batch-only deviation screens of G2 stay (standalone, unchanged).
  */
-export const DISCONNECTED_WHEN_LINKED: Readonly<Record<string, DisconnectedOwner>> = Object.fromEntries(
+export const BATCH_DEVIATION_ROUTES_WHEN_LINKED: Readonly<Record<string, DisconnectedOwner>> = Object.fromEntries(
   [
-    routes.quality.raiseDeviation,
     routes.quality.linkDeviation,
     routes.quality.startInvestigation,
     routes.quality.recordFinding,
@@ -98,7 +99,7 @@ export const DISCONNECTED_WHEN_LINKED: Readonly<Record<string, DisconnectedOwner
   ].map((r) => [r.id, 'Deviations' as const]),
 );
 
-/** The signed deviation acts refused where the server has a Deviations link (slice 2). */
+/** The signed deviation acts refused for a batch deviation where the server has a Deviations link (slice 2). */
 export const DEVIATION_ACTS_WHEN_LINKED: readonly string[] = ['DEVIATION_IMPACT_ASSESS', 'DEVIATION_CONCLUDE', 'DEVIATION_CLOSE'];
 
 /** Routes served only where the server has a Deviations link (slice 2); elsewhere 410 DISCONNECTED. */
@@ -115,7 +116,7 @@ export function isDisconnectedRoute(routeId: string): boolean {
   return DISCONNECTED_ROUTE_IDS.has(routeId);
 }
 
-/** Is this route refused because of the Deviations link (`linked`: the server has one), slice 2? */
+/** Is this route refused whole because of the Deviations link (`linked`: the server has one)? Only the number routes, without it. */
 export function isDisconnectedForDeviationsLink(routeId: string, linked: boolean): boolean {
-  return linked ? routeId in DISCONNECTED_WHEN_LINKED : LINKED_ONLY_ROUTE_IDS.has(routeId);
+  return !linked && LINKED_ONLY_ROUTE_IDS.has(routeId);
 }
