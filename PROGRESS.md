@@ -175,7 +175,11 @@ checker fix, unit-account v2, I-1c (vial and ampoule batches to release, E2E) an
 narrows D-1 so the printed-packaging and label reconciliations, 211.125, are no yield checkpoint). Owner rule (7 November):
 no new refusal without a quoted binding clause or a real engine or record-integrity need, named in the code comment.
 I-1c1 complete (vial #155, ampoule #193). I-1c2 P2 merged (#194): the finished-pack examination and the
-edition's release items (editions/injectables/sql 3000). Next: the packaging skeleton (P3), then the GMP E2E (P4). Notes:
+edition's release items (editions/injectables/sql 3000). P3 (#196): the packaging skeleton start. P3b (#197): a
+clearance needs a second person only where its step names a checker (recipe-core 1886, 1887; residual: areas made
+before 1887 stay on area_status v1). P4a (#198): the vial's GMP half to H-PACK (E2E group library-inj-gmp). Next: P3c
+(the skeleton takes the firm's printed-item limits and specimens at create), then P4b (GMP 5-9; work in progress on
+branch inj/i1c2-p4b-gmp-packaging, pushed without a PR). Notes:
 `docs/build-plan/injectables/resume.md`. Migrations: `injectables` 3000-3999 (editions/README.md).
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
