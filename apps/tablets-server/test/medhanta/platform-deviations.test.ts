@@ -17,6 +17,7 @@ import { actorOfBrowser, personaIn, refusalOf, startSigningServer, valueOf } fro
 import { FakeDeviations } from '../support/fake-deviations.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
+import { grantedPerson, loginOf } from '../support/granted-person.ts';
 
 const dv = new FakeDeviations();
 let linked: TestServer;
@@ -133,20 +134,41 @@ describe('with the link, batch deviations are managed in Deviations; lot and lab
     expect((await linked.db.admin.query("select count(*)::int as n from esig.signature where aggregate_type = 'deviation' and aggregate_id = $1", [d.deviationId])).rows[0]).toEqual({ n: 0 });
   });
 
-  it('[DI-17][IN-20] a lot\'s OOS record, and an OOS record of a batch result, are raised, linked, investigated and their finding recorded as before', async () => {
+  it('[DI-17][IN-20][PR-50] a lot\'s OOS record, and an OOS record of a batch result, are raised, linked, investigated, concluded and closed as before; the concluded laboratory error serves an invalidation', async () => {
     const owner = personaIn(linked, 'qaInvestigator').personId;
-    const qa1 = await linked.asPersona('qaApprover2');
+    const classifier = await loginOf(linked, await grantedPerson(linked, 'QA_SHOP_FLOOR', 'Meera Pillai (QA classifier)'));
+    const approver = await linked.asPersona('qaApprover2');
     const l = await lot(linked);
     const b = await gmpBatch(linked);
+    const ok = async (r: Promise<unknown>) => expect(((await r) as { ok: boolean }).ok).toBe(true);
     // A DEVIATION of a lot only, an OOS of a lot and an OOS linked to a batch: none is a batch deviation.
     const cases: [string, 'DEVIATION' | 'OOS', 'LOT' | 'BATCH', string][] = [['lot deviation', 'DEVIATION', 'LOT', l], ['lot OOS', 'OOS', 'LOT', l], ['batch OOS', 'OOS', 'BATCH', b.id]];
     for (const [what, kind, subjectKind, subjectId] of cases) {
       const d = valueOf(await qa.call(routes.quality.raiseDeviation, { body: { ...raiseBody, kind, title: `Assay out of specification (${what})` } }));
       const id = { deviationId: d.deviationId };
       valueOf(await qa.call(routes.quality.linkDeviation, { params: id, body: { subjectKind, subjectId } }));
-      valueOf(await qa1.call(routes.quality.startInvestigation, { params: id, body: classify(owner) }));
+      valueOf(await classifier.call(routes.quality.startInvestigation, { params: id, body: classify(owner) }));
       valueOf(await qa.call(routes.quality.recordFinding, { params: id, body: finding }));
-      expect(valueOf(await qa.call(routes.quality.deviationDetail, { params: id })).links.map((k) => k.subjectKind), what).toEqual([subjectKind]);
+      const links = valueOf(await qa.call(routes.quality.deviationDetail, { params: id })).links;
+      expect(links.map((k) => k.subjectKind), what).toEqual([subjectKind]);
+      for (const k of links) {
+        valueOf(await qa.call(routes.quality.recordDeviationImpact, { params: id, body: { linkId: k.linkId, market: 'IN', impact: 'NONE', rationale: 'The repeat test by a second analyst passed' } }));
+      }
+      await ok(signAction(linked, approver, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_IMPACT_ASSESS', subjectId: d.deviationId, input: {} }));
+      valueOf(
+        await qa.call(routes.quality.recordDeviationClosureBasis, {
+          params: id,
+          body: { rootCauseMethod: 'Laboratory investigation phase 1', capaRefs: [], noCapaReason: 'Calibration schedule already corrected', notificationRequired: false, notificationRationale: 'No registered detail is affected', otherBatches: [{ subjectKind: 'PRODUCT', ref: 'Tests on that balance that day', included: false, reason: 'No other test used the balance' }] },
+        }),
+      );
+      await ok(signAction(linked, approver, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: d.deviationId, input: {} }));
+      if (subjectKind === 'BATCH') {
+        // The check an invalidation of the batch's result runs (recipe-core 0601/0770: deviation_ref_problem, INVALIDATION).
+        const p = (await linked.db.app.query<{ p: string | null }>("select site.deviation_ref_problem($1, 'INVALIDATION', $2) as p", [d.ref, b.id])).rows[0]?.p;
+        expect(p, what).toBeNull();
+      }
+      await ok(signAction(linked, approver, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CLOSE', subjectId: d.deviationId, input: {} }));
+      expect(valueOf(await qa.call(routes.quality.deviation, { params: id })).state, what).toBe('CLOSED');
     }
   });
 

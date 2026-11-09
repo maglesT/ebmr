@@ -13,7 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
 import { sha256Hex } from '@ebmr/expr';
-import { esig, withCommand } from '@ebmr/kernel';
+import { esig, registerFactResolver, withCommand } from '@ebmr/kernel';
 import { openServiceSession } from '@ebmr/test-kit';
 import { flow } from '@ebmr/recipe-core';
 import { cmd, signatureAuth } from '../../../../packages/kernel/test/esig/helpers.ts';
@@ -24,6 +24,9 @@ import { actorOfBrowser, personaIn, valueOf } from '../esig/support.ts';
 import { codeOf } from '../execution/db-guards-support.ts';
 import { asSetup } from '../blocks/compression/plant-support.ts';
 import { G21_CONFIG } from '../blocks/packaging/db-support.ts';
+import { Deviations } from '../../src/platform/deviations.ts';
+import { grelView } from '../../src/features/release/reads.ts';
+import { FakeDeviations } from '../support/fake-deviations.ts';
 import { actorOf, gmpLifecycleWorld, INPUTS, LINE, SITE, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 
 type Json = Record<string, unknown>;
@@ -672,5 +675,44 @@ describe('the bulk read of a packaging order with its finished lot (R10 #12)', (
     const issuer = await w.gmp.asPersona('issuer');
     const code = (await w.gmp.db.admin.query<{ c: string }>('select lot_code as c from site.material_lot where id = $1', [lotId])).rows[0]?.c;
     expect(valueOf(await issuer.call(routes.planning.packagingBulk, { params: { batchId: orderId } })).finishedLot).toEqual({ lotId, lotCode: code });
+  });
+});
+
+describe('MEDHANTA slice 2: G-REL of a finished lot reads the batches\' Deviations numbers (PR-49, IN-05)', () => {
+  it('[PR-49][IN-05][PL-08] a number linked to the processing batch keeps G-REL red (G2.DEVIATIONS_LINKED) and the lot\'s release refused while it is open; green and not refused once it is closed', async () => {
+    const dv = await new FakeDeviations().create();
+    const reader = Deviations.open(dv.url);
+    try {
+      const number = `DEV-${randomUUID().slice(0, 6)}`;
+      await dv.put(number, 'investigation', 'B-PARENT');
+      await w.gmp.db.admin.query("insert into dv.batch_number_link (batch_id, batch_number, number, linked_by_person, linked_by_account) values ($1, 'B-PARENT', $2, $3, $3)", [parentId, number, randomUUID()]);
+      const person = personaIn(w.gmp, 'qaInvestigator').personId;
+      const personaActor = await actorOf(w.gmp, 'qaInvestigator');
+      // dv.release_problem is the release trigger's (no grant to ebmr_app): read here on the owner's pool, with the resolver.
+      registerFactResolver(w.gmp.db.admin, reader.resolver(null));
+      const item = async () => (await grelView(w.gmp.db.app, lotId, 'IN', person, reader)).items.find((i) => i.id === 'G2.DEVIATIONS_LINKED');
+      const ready = async () => (await grelView(w.gmp.db.app, lotId, 'IN', person, reader)).ready;
+      // Standalone (no link): no such item; the database's own items are unchanged.
+      expect((await grelView(w.gmp.db.app, lotId, 'IN', person)).items.some((i) => i.id === 'G2.DEVIATIONS_LINKED')).toBe(false);
+
+      expect(await item()).toMatchObject({ group: '2', status: 'RED', problem: like(new RegExp(`deviation ${number} linked to batch B-PARENT is investigation in the Deviations product`)), evidence: [{ kind: 'DEVIATION_NUMBER', ref: number }] });
+      expect(await ready()).toBe(false);
+      // The lot's release reads the same batches (the lot's own packaging batch and its processing parent) in the database.
+      const releaseProblem = () =>
+        withCommand(w.gmp.db.admin, { ...personaActor, correlationId: randomUUID() }, async (c) =>
+          (await c.query<{ p: string | null }>("select dv.release_problem(dv.subject_batches('LOT', $1)) as p", [lotId])).rows[0]?.p ?? null);
+      expect(await releaseProblem()).toMatch(new RegExp(`deviation ${number} .* is investigation`));
+      await dv.cut();
+      expect((await item())?.status).toBe('RED');
+      await expect(releaseProblem()).rejects.toThrow(/DEVIATIONS_OFF/);
+      await dv.restore();
+
+      await dv.put(number, 'closed');
+      expect(await item()).toMatchObject({ status: 'GREEN', problem: null });
+      expect(await releaseProblem()).toBeNull();
+    } finally {
+      await reader.close();
+      await dv.drop();
+    }
   });
 });
