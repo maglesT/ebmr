@@ -141,7 +141,7 @@ export const EnvSchema = z.object({
   /** Phase B slice 3: the platform's master_data database, read through its versioned views (MASTER_DATA_DATABASE_URL). */
   EBMR_MASTER_DATA_URL: z.string().optional(),
   /**
-   * MEDHANTA slice 2: the Deviations database, read through report.deviation_v1; optional. The platform's apply sets this
+   * Platform slice 2: the Deviations database, read through report.deviation_v1; optional. The platform's apply sets this
    * name (databsee #64, the manifest's reads {"deviations": ["deviation_v1"]}); set: "linked" mode.
    */
   DEVIATIONS_DATABASE_URL: z.string().optional(),
@@ -205,7 +205,7 @@ export interface EnvConfig {
   oidc: { issuer: string; clientId: string; clientSecret: string | null; redirectUri: string; codesClaim: string } | null;
   /** Phase B slice 3: the master_data database (EBMR_MASTER_DATA_URL), or null (a platform build then refuses to start). */
   masterDataUrl: string | null;
-  /** MEDHANTA slice 2: the Deviations link (DEVIATIONS_DATABASE_URL), or null: standalone deviation records, unchanged. */
+  /** Platform slice 2: the Deviations link (DEVIATIONS_DATABASE_URL), or null: standalone deviation records, unchanged. */
   deviationsUrl: string | null;
 }
 
@@ -276,7 +276,7 @@ export function platformEnv(env: Readonly<Record<string, string | undefined>>): 
     EBMR_DATABASE: database,
     // Phase B slice 3: the master_data database, as ebmr_app (the platform's link), on verified TLS like the own one.
     EBMR_MASTER_DATA_URL: master ? verifiedOf(master, ca) : undefined,
-    // MEDHANTA slice 2: the Deviations database, as this product's own login (the platform's link), verified TLS too.
+    // Platform slice 2: the Deviations database, as this product's own login (the platform's link), verified TLS too.
     EBMR_DEVIATIONS_URL: deviations ? verifiedOf(deviations, ca) : undefined,
     EBMR_DB_APP_URL: verified(),
     EBMR_DB_AUTHN_URL: authn ? verified('ebmr_authn', authn) : undefined,

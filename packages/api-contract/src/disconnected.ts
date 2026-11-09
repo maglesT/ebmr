@@ -79,7 +79,7 @@ export const DISCONNECTED_ROUTES: Readonly<Record<string, DisconnectedOwner>> = 
 );
 
 /**
- * MEDHANTA slice 2 (owner ruling, 9 November 2026; lead ruling of the same day, subject-scoped; replaces declutter
+ * Platform slice 2 (owner ruling, 9 November 2026; lead ruling of the same day, subject-scoped; replaces declutter
  * residual D4-R5): where the server has a Deviations link (DEVIATIONS_DATABASE_URL), a batch's deviation is managed in
  * the Deviations product and stored here only as its Deviations number. These routes then refuse a batch deviation
  * (410 DISCONNECTED, "Batch deviations are managed in Deviations; link its number"): a record of kind DEVIATION linked

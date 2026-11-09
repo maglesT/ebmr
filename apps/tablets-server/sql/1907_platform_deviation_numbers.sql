@@ -1,8 +1,12 @@
--- MEDHANTA slice 2, deviations through the Deviations product (owner ruling, 9 November 2026; replaces declutter residual
--- D4-R5). A batch record system records exceptions and links deviations; the deviation itself (investigation,
+-- Platform slice 2, deviations through the Deviations product (owner ruling, 9 November 2026; replaces declutter residual
+-- D4-R5).
+--
+-- Handbook: modules/site-services.md
+--
+-- A batch record system records exceptions and links deviations; the deviation itself (investigation,
 -- classification, closure, CAPA) is managed in the Deviations product, which publishes report.deviation_v1 (one row per
 -- linked batch: number, status, classification, ...). Where the server has a Deviations link (DEVIATIONS_DATABASE_URL),
--- a batch's deviation is stored here only as its Deviations number; the exception stays in Batchwright and Deviations
+-- a batch's deviation is stored here only as its Deviations number; the exception stays in this record system and Deviations
 -- reads it through exception_v1. Release stays blocked until every linked number is closed or rejected in Deviations
 -- (21 CFR 211.192: the quality unit reviews the records before release and any unexplained discrepancy is thoroughly
 -- investigated; 211.100(b): a departure is recorded and justified; Revised Schedule M 18.2.2 and 18.5.12, as control
@@ -10,8 +14,6 @@
 -- database's, through the same guard-fact pattern as master data (1900): the server reads the view on its own login, in
 -- the transaction that releases, and records what it read here. A standalone server writes no row here, so nothing
 -- below changes its behaviour.
---
--- Handbook: modules/site-services.md
 --
 --   dv.batch_number_link   insert-only: a GMP batch ↔ a Deviations number, by whom and when (dv.link_number).
 --   dv.status_fact         insert-only evidence of each release-time read of deviation_v1: the number's status as the view

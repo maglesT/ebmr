@@ -97,7 +97,7 @@ export const DeviationReleaseItem = z.strictObject({
 export type DeviationReleaseItem = z.infer<typeof DeviationReleaseItem>;
 
 /**
- * MEDHANTA slice 2 (owner ruling, 9 November 2026): where the server has a Deviations link, a batch's deviation is its
+ * Platform slice 2 (owner ruling, 9 November 2026): where the server has a Deviations link, a batch's deviation is its
  * Deviations number, and its status is read from the view Deviations publishes (report.deviation_v1). Closed and
  * rejected are resolved; anything else, and a number Deviations does not have (status null), blocks release.
  */

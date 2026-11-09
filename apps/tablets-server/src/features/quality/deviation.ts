@@ -101,7 +101,7 @@ type DeviationRoutes = Pick<
 >;
 
 /**
- * MEDHANTA slice 2: the Deviations numbers linked to the batches `batches`, each with its status read now from the
+ * Platform slice 2: the Deviations numbers linked to the batches `batches`, each with its status read now from the
  * Deviations product (report.deviation_v1). An unreadable view throws DEVIATIONS_OFF: nothing is shown as resolved.
  */
 export async function linkedDeviations(pool: Pick<pg.Pool, 'query'>, link: Deviations, batches: readonly string[]): Promise<LinkedDeviation[]> {
@@ -157,7 +157,7 @@ export function deviationHandlers(pool: pg.Pool, link: Deviations | null = null)
       await c.query(sql, params);
       return null;
     });
-  // MEDHANTA slice 2 (lead ruling, subject-scoped): with a Deviations link a batch deviation is managed in Deviations.
+  // Platform slice 2 (lead ruling, subject-scoped): with a Deviations link a batch deviation is managed in Deviations.
   const notBatchDeviation = async (deviationId: string): Promise<void> => {
     if (link && (await isBatchDeviation(pool, deviationId))) throw batchDeviationInDeviations();
   };

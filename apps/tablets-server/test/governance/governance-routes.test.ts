@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { routes, type Result, type SignableAction, type SignatureCredentials } from '@ebmr/api-contract';
+import { isDisconnectedForDeviationsLink, routes, type Result, type SignableAction, type SignatureCredentials } from '@ebmr/api-contract';
 import { sha256Hex } from '@ebmr/expr';
 import { esig, identity, withCommand } from '@ebmr/kernel';
 import { passwordActor, terminalOf } from '@ebmr/test-kit';
@@ -192,7 +192,9 @@ describe('the contract giver\'s reviewer over HTTP (IN-30)', () => {
       const res = await b.inject({ method: r.method, url, payload: {}, headers: { 'idempotency-key': randomUUID() } });
       const code = res.json<{ refusal?: { code?: string } }>().refusal?.code;
       if (code === 'CONTRACT_GIVER_SCOPE') scoped += 1;
-      if (res.statusCode < 400 || (code !== 'CONTRACT_GIVER_SCOPE' && code !== 'SCHEMA')) allowed.push(`${r.id} ${res.statusCode} ${code ?? ''}`);
+      // A route not connected on this server (the Deviations-number routes without a Deviations link) answers 410 first.
+      const notConnected = res.statusCode === 410 && code === 'DISCONNECTED' && isDisconnectedForDeviationsLink(r.id, false);
+      if (res.statusCode < 400 || (code !== 'CONTRACT_GIVER_SCOPE' && code !== 'SCHEMA' && !notConnected)) allowed.push(`${r.id} ${res.statusCode} ${code ?? ''}`);
     }
     expect(allowed).toEqual([]);
     expect(scoped).toBeGreaterThan(5);

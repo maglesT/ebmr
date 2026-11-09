@@ -101,7 +101,7 @@ function LinkDeviationForm({ exception, stepKey, gmp, ...p }: FormBase & { excep
 }
 
 /**
- * MEDHANTA slice 2: with a Deviations link the deviation is raised in the Deviations product; the batch stores only its
+ * Platform slice 2: with a Deviations link the deviation is raised in the Deviations product; the batch stores only its
  * number (quality.linkDeviationNumber, which checks the number is one Deviations publishes).
  */
 function LinkDeviationNumber({ runId, number }: { runId: string; number: string }) {

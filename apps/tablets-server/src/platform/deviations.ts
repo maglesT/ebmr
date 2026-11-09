@@ -1,5 +1,5 @@
 /**
- * MEDHANTA slice 2 (owner ruling, 9 November 2026; replaces declutter residual D4-R5): deviations through the Deviations
+ * Platform slice 2 (owner ruling, 9 November 2026; replaces declutter residual D4-R5): deviations through the Deviations
  * product. Where the server has a Deviations link (DEVIATIONS_DATABASE_URL), a batch's deviation is stored only as its
  * Deviations number (dv.batch_number_link, sql/1907), and its status is read, on this small pool and its own login,
  * from the view Deviations publishes, report.deviation_v1 (one row per linked batch; status classification, approval,

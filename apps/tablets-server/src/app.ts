@@ -76,7 +76,7 @@ export interface BuiltApp {
  * configured refuses to start (nobody could sign in); a standalone database ignores the setting.
  */
 async function platformState(pool: Pools['app'], config: ServerConfig, coreFetch?: FetchFn): Promise<AppContext['platform']> {
-  // MEDHANTA slice 2: the Deviations link, on any build. It resolves the 'deviation' facts a release needs (sql/1907);
+  // Platform slice 2: the Deviations link, on any build. It resolves the 'deviation' facts a release needs (sql/1907);
   // without it a linked number (from an earlier start with the link) blocks release with DEVIATIONS_OFF.
   const deviations = config.deviationsUrl ? Deviations.open(config.deviationsUrl) : null;
   const deviationFacts = (next: FactResolver | null): FactResolver =>

@@ -26,7 +26,7 @@ export const MetaView = z.strictObject({
    */
   disconnected: z.boolean(),
   /**
-   * MEDHANTA slice 2: the server has a Deviations link (DEVIATIONS_DATABASE_URL). A batch's deviation is then linked by
+   * Platform slice 2: the server has a Deviations link (DEVIATIONS_DATABASE_URL). A batch's deviation is then linked by
    * its Deviations number and its status read from Deviations; the batch-only deviation screens are off.
    */
   deviationsLinked: z.boolean().optional(),

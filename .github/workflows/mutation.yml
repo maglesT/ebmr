@@ -109,7 +109,7 @@ jobs:
                 full-export, evaluation-pack, interface-drift, validation-summary-gate, specimen-approval,
                 first-run-setup, operations-acts, operations-demo-backups,
                 iq-record, validation-records-reads, operations-drills-restore, own-product-masters, specification-profiles, deviations-reader-views,
-                platform-identity, platform-master-facts]
+                platform-identity, platform-master-facts, platform-deviation-numbers]
     services:
       postgres:
         image: postgres:16

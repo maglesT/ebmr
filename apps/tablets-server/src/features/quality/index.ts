@@ -109,7 +109,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     app,
     routes.quality,
     {
-      ...deviationHandlers(pool, app.platform.deviations),
+      ...deviationHandlers(pool, (app.platform?.deviations ?? null)),
       // Phase 6 slice 6a builder A: receipt, the receipt record and the approved-manufacturer register (receipt.ts).
       ...receiptHandlers(app, pool),
       raiseDeviation: async ({ body, actor, idempotencyKey, requestHash }) => {
@@ -122,7 +122,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       },
       deviation: async ({ params }) => deviationView(pool, params.deviationId),
       linkDeviation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
-        if (app.platform.deviations && (await isBatchDeviation(pool, params.deviationId, body.subjectKind))) throw batchDeviationInDeviations();
+        if ((app.platform?.deviations ?? null) && (await isBatchDeviation(pool, params.deviationId, body.subjectKind))) throw batchDeviationInDeviations();
         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           await c.query('select site.link_deviation($1, $2, $3)', [params.deviationId, body.subjectKind, body.subjectId]);
           return null;
@@ -130,7 +130,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return deviationView(pool, params.deviationId);
       },
       startInvestigation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
-        if (app.platform.deviations && (await isBatchDeviation(pool, params.deviationId))) throw batchDeviationInDeviations();
+        if ((app.platform?.deviations ?? null) && (await isBatchDeviation(pool, params.deviationId))) throw batchDeviationInDeviations();
         // QA's classification starts the investigation (IN-02; site services 0821).
         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           await c.query('select site.start_deviation_investigation($1, $2::jsonb)', [params.deviationId, JSON.stringify(body)]);
@@ -139,7 +139,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return deviationView(pool, params.deviationId);
       },
       recordFinding: async ({ params, body, actor, idempotencyKey, requestHash }) => {
-        if (app.platform.deviations && (await isBatchDeviation(pool, params.deviationId))) throw batchDeviationInDeviations();
+        if ((app.platform?.deviations ?? null) && (await isBatchDeviation(pool, params.deviationId))) throw batchDeviationInDeviations();
         const f = body;
         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           await c.query('select site.record_deviation_finding($1, $2::jsonb)', [params.deviationId, JSON.stringify(f)]);

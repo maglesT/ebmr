@@ -106,9 +106,9 @@ export function qualityActHandler(app: AppContext): SignableActionHandler<Qualit
       return { ...qualityTarget(a), aggregateId: rows[0]?.id ?? qualityTarget(a).aggregateId };
     },
     async precheck(client, _ctx, a) {
-      // MEDHANTA slice 2 (lead ruling, subject-scoped): with a Deviations link, a batch deviation's impact sign-off,
+      // Platform slice 2 (lead ruling, subject-scoped): with a Deviations link, a batch deviation's impact sign-off,
       // conclusion and closure are signed in Deviations; a lot's OOS record and other local records still sign here.
-      if (app.platform.deviations !== null && DEVIATION_ACTS_WHEN_LINKED.includes(a.act) && (await isBatchDeviation(client, a.subjectId))) {
+      if ((app.platform?.deviations ?? null) !== null && DEVIATION_ACTS_WHEN_LINKED.includes(a.act) && (await isBatchDeviation(client, a.subjectId))) {
         return refusedOutcome(
           410,
           'DISCONNECTED',

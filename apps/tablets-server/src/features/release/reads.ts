@@ -61,7 +61,7 @@ function noLot(lotId: string): Error {
 
 /** G-REL of the lot for the market, evaluated now, with the items this person acknowledged at its epoch. */
 /**
- * MEDHANTA slice 2: with a Deviations link, the Deviations numbers linked to the lot's batches, each closed or rejected in
+ * Platform slice 2: with a Deviations link, the Deviations numbers linked to the lot's batches, each closed or rejected in
  * Deviations, as one more item of group 2 (the database refuses the release itself: sql/1907, dv.release_problem). An
  * unreadable view is RED: release is never shown as allowed without the read.
  */
@@ -136,7 +136,7 @@ export async function lotRelease(app: AppContext, db: Db, lotId: string, personI
   if (!row) throw noLot(lotId);
   const facts = (await db.query<{ f: Facts }>('select recipe.release_lot_facts($1) as f', [lotId])).rows[0]?.f;
   if (!facts) throw noLot(lotId);
-  const grel = await grelView(db, lotId, 'IN', personId, app.platform.deviations);
+  const grel = await grelView(db, lotId, 'IN', personId, (app.platform?.deviations ?? null));
   const d = facts.decision;
   const people = await peopleOf(db, [d?.person_id]);
   return {
@@ -292,7 +292,7 @@ export async function lotMarkets(app: AppContext, db: Db, lotId: string, personI
     dispositions.push({
       market,
       state: st,
-      grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId, app.platform.deviations),
+      grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId, (app.platform?.deviations ?? null)),
       decision:
         market === 'US' && decision
           ? {

@@ -38,7 +38,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     grel: async ({ params, query, requireSession }) => {
       const s = requireSession();
-      return grelView(pool, params.lotId, query.market, s.personId, app.platform.deviations);
+      return grelView(pool, params.lotId, query.market, s.personId, (app.platform?.deviations ?? null));
     },
     acknowledge: async ({ params, body, actor, idempotencyKey, requestHash }) => {
       const who = actor();
@@ -46,7 +46,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         await c.query('select recipe.acknowledge_release_item($1, $2, $3, $4)', [params.lotId, body.market, body.itemId, body.epoch]);
         return null;
       });
-      return grelView(pool, params.lotId, body.market, who.personId, app.platform.deviations);
+      return grelView(pool, params.lotId, body.market, who.personId, (app.platform?.deviations ?? null));
     },
     // Slice 4a: the market dispositions, market-add evaluations, certification intake and importers.
     markets: async ({ params, requireSession }) => {

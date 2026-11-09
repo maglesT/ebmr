@@ -37,7 +37,7 @@ export function DeviationRef({ deviationId, label, batchId }: { deviationId: str
 }
 
 /**
- * MEDHANTA slice 2: with a Deviations link, the batch's deviations are its Deviations numbers, each with the status the
+ * Platform slice 2: with a Deviations link, the batch's deviations are its Deviations numbers, each with the status the
  * Deviations product publishes (closed or rejected: resolved; anything else keeps release blocked).
  */
 function LinkedBatchDeviations({ batchId }: { batchId: string }) {
