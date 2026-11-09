@@ -130,6 +130,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libtab 250 mg, direct compression, uncoated (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libtab 400 mg, wet granulation, film coated (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Rabeprazole sodium 20 mg, enteric coated, three coats (library) uses through the signature ceremony @office"
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libinj 10 mg/2 mL, solution for injection in ampoules (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libinj 10 mg/2 mL, solution for injection in vials (library) uses through the signature ceremony @office"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."

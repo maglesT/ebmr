@@ -53,9 +53,15 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Residuals (lead, 9 November 2026)
+
+- **EU-market ampoule:** INJ-CCI-100, the 100 % integrity test of fusion-sealed ampoules of 100 mL or less (EU GMP Annex 1
+  8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
+  scope. The IN ampoule (#193) uses INJ-CCI as a sample.
+
 ### Next, in order
 
-1. Fresh session. The ampoule product, which completes I-1c1 (the vial E2E is merged in #155).
+1. The ampoule product, which completes I-1c1: PR #193 (the E2E group `library-inj-amp`).
 2. I-1c2: the GMP vial chain to release. Send the lead the size of a non-blister (vial) packaging master first.
 3. The first PR that adds injectables SQL puts it in `editions/injectables/sql`, and makes `editionMigrationSources()`
    (test-kit `db.ts`) pick up every `editions/*/sql` directory in a fixed order and fail loudly when one is missing.
