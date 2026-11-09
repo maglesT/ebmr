@@ -1,4 +1,4 @@
-# Injectables: resume notes (I-1c2 under way, 9 November 2026)
+# Injectables: resume notes (I-1c2 P2 merged; P3 next, 9 November 2026)
 
 Read these instead of the session history. The rules in force are:
 - `plan.md` (approved v2; the block-version rule is in it);
@@ -59,38 +59,78 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
-### I-1c2 (lead rulings, 9 November 2026)
+### I-1c2 handover (9 November 2026; the next session starts at P3)
 
-- I-1c1 is complete: the vial (#155) and the ampoule (#193).
-- Plan P1 -> P2 -> P3 -> P4, one PR at a time.
-- **P1 + P2 (one PR):**
-  - INJ-PACK-EXAM (INJ-27): the finished-pack examination at completion, 211.134(c). Its only refusal is a critical
-    limit of 0 units with a wrong or missing label.
-  - It closes a packaging record of the edition: editions/injectables/sql 3000 adds the completion row
-    LIB-INJ-PACK-EXAM and the G-REL hook (E.PACK_EXAMINATION plus the tablets items that apply to any packaging order).
-  - editionMigrationSources reads `EDITION_NAMESPACES` (substance, then injectables) and fails loudly.
-  - The DB proof is `apps/tablets-server/test/injectables/vial-chain.test.ts`: the sterilised loads, as output
-    containers in units, are the bulk the packaging order takes after H-PACK, and G-REL is green for India.
-  - 3001 is unused (kept for the edition).
-- **Labelling:** G-21 with LABEL, LEAFLET and CARTON items covers the label lot, the first print, the on-line checks and
-  the reconciliation (211.125). No INJ-LABEL, and no PACK-LABEL-RECON in a vial master; the lead was told, and their
-  answer is awaited.
-- **P3 (ruling (a)):** the designer starts an injectables PACKAGING master from the skeleton. The skeleton holds only
-  what is binding: line clearance (211.130(e)), equipment status, printed items (G-21) and the counts. A yield or a
-  reconciliation goes in only where 211.103 or 211.125 applies. PACKAGING_COPY is not changed and no master is seeded.
-- **P4:** the GMP half of `injectables-acceptance.ts`:
-  - printed LABEL, LEAFLET and CARTON;
-  - the packaging master from P3;
-  - the packaging runs through `runLibraryStep` on a packaging kiosk (not the RTW `packagingRun`);
-  - QC with TEST-INJ-RELEASE, the review and the release.
-- **Output containers:** a library CONTAINER field is a reference only. The physical bulk is an output container that
-  the operator opens and closes (routes.containers, stage and unit).
+Merged:
+- **I-1c1** is complete: the vial (#155) and the ampoule (#193, E2E group `library-inj-amp`).
+- **I-1c2 P2 (#194):**
+  - **INJ-PACK-EXAM (INJ-27):** the finished-pack examination at the completion of finishing, 211.134(b) and (c).
+    - The sample is the master's (`examUnits` count slot).
+    - Any count of wrong or missing labels is recorded as found; nothing is refused at entry.
+    - Above 0 is a critical breach (LIB_LIMIT_BREACH). It needs a deviation (PR-49).
+    - E.PACK_EXAMINATION stays RED until that deviation is CLOSED.
+    - Signatures are OPERATOR and VERIFIED.
+  - **editions/injectables/sql 3000:** the schema `injectables`, the completion row (injectables, LIB-INJ-PACK-EXAM) and
+    the G-REL hook `injectables.grel_edition_items`. The hook gives E.PACK_EXAMINATION plus the tablets items that apply
+    to any packaging order. It has no posted-quantity item, because D-3b-6 is a default.
+  - **Migration 3001** is free for the edition.
+  - **Namespace order:** test-kit `EDITION_NAMESPACES` (substance, then injectables) is the one fixed order. It fails
+    loudly. editions/README.md holds the ranges: injectables 3000-3999.
+  - **The DB proof** is `apps/tablets-server/test/injectables/vial-chain.test.ts`:
+    - the bulk link: the sterilised loads, as output containers in units, are the only bulk offered after H-PACK;
+    - the first INJECTABLES lot is released, with G-REL green for India;
+    - the wrong-label path and the fail-closed cases.
+
+Lead rulings of 9 November 2026 (binding):
+- **No P1 (INJ-LABEL dropped):** G-21 with LABEL, LEAFLET and CARTON items covers labelling:
+  - the label lot and its artwork;
+  - the first-print approval;
+  - the on-line checks (211.134(a));
+  - the reconciliation (211.125).
+  Neither PACK-LABEL-RECON nor PACK-CODING goes in a vial master.
+- **P3, option (a):** the designer's from-formula start writes an injectables PACKAGING master from a packaging skeleton.
+  - Keep only what is binding:
+    - G-10 line clearance (211.130(e); no second person for injectables);
+    - G-09 equipment status;
+    - G-21 printed items;
+    - the counts.
+  - A yield or a reconciliation goes in only where 211.103 or 211.125 applies.
+  - The author adds the library steps: PACK-CARTON, then INJ-PACK-EXAM, which closes the record, then PACK-SHIPPER
+    (optional).
+  - Do not change PACKAGING_COPY and do not seed a master.
+  - Code to read first:
+    - `EDITION_START` in `apps/tablets-server/src/features/designer/from-formula.ts`, around line 319;
+    - designer/index.ts, around line 572 (PACKAGING_COPY);
+    - `recordKind`, set at from-formula.ts:88.
+  - API's packaging BLANK was removed (handover-a0 113-116). The removal does not apply here: API packs inside its own
+    record.
+- **P4:** the GMP half of `tools/e2e/specs/library/injectables-acceptance.ts`:
+  - printed LABEL, LEAFLET and CARTON materials with specifications, lots and artwork;
+  - the GMP processing batch;
+  - the packaging master from P3 on screen;
+  - the sandbox and GMP packaging runs through the generic `runLibraryStep` on a packaging kiosk (not the RTW-hard-coded
+    `packagingRun` in phase7/own-product-floor.ts);
+  - QC with TEST-INJ-RELEASE, the review, then G-REL.
+  The sterilised loads must be opened and closed as output containers on screen. Check that the kiosk offers it for a
+  library master, and send the lead a fix first if it doesn't.
+
+Learnt in P2:
+- A library CONTAINER field is a reference only. The physical bulk is an output container (routes.containers.open with
+  a stage and unit 'units'), closed and verified.
+- A library entry is stored with kind = the section id, and its data values are strings (read with
+  `tab.grel_entries(order, step, '<section>')`).
+- A critical library breach cannot be dispositioned NO_IMPACT (EBMR-EXE-084). It takes DEVIATION_RAISED, with the
+  deviation raised, linked and attached first.
+- Once a parent batch's lot is released, the parent is LOCKED (EBMR-LCK-001): plan any further packaging order before.
+- Namespace lists appear in tests: harness.test.ts, grel-interfaces.test.ts and medhanta/platform-wiring.test.ts.
+- The local PostgreSQL clusters stop with an idle container: `pg_ctlcluster 16 main start` (and ci, ci2, ci3, golden).
 
 ### Next, in order
 
-1. Merge the P1+P2 PR, then P3, then P4.
-2. Pod-down CI regime (lead): push only when needed, then dispatch
-   `gh workflow run ci.yml --repo maglest/ebmr --ref <branch> -f runner=github` and merge on its green.
+1. P3 (skeleton start of an injectables packaging master), a fresh session, plan to the lead first.
+2. P4 (the GMP E2E to release).
+3. Pod-down CI regime (lead): dispatch ci.yml with runner=github, cancel the duplicate pull_request run after each push
+   and the main push run after each merge.
 
 ### Local environment notes
 
