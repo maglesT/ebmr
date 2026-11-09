@@ -46,6 +46,8 @@ export const AREA_EVENTS = [
   'TAKE_OUT_OF_SERVICE',
   'RETURN_TO_SERVICE',
 ] as const;
+/** area_status version 2 (injectables I-1c2 P3b, recipe-core 1887): version 1's events and CLEAR_UNCHECKED. */
+export const AREA_EVENTS_V2 = [...AREA_EVENTS, 'CLEAR_UNCHECKED'] as const;
 
 /** Guard codes registered by sql/0400_plant_foundation.sql. */
 export const PLANT_GUARDS = {
@@ -58,6 +60,8 @@ export const PLANT_GUARDS = {
   clearancePassed: 'plant.clearance_passed',
   occupancyOpen: 'plant.area_occupancy_open',
   noOccupancyOpen: 'plant.area_no_occupancy_open',
+  /** recipe-core 1886: an unused PASSED clearance recorded after the last occupancy, verified or not. */
+  clearanceRecordedPassed: 'plant.clearance_recorded_passed',
 } as const;
 
 /** Platform permission names (iam.platform_permission_code maps them to the catalogue codes). */
@@ -123,7 +127,8 @@ const outOfService = gmp('OUT_OF_SERVICE', {
   permission: P.logbookEntry,
 });
 
-export const areaStatusMachine = setup({}).createMachine({
+/** The room and line status machine; version 2 adds `cleanExtra` to the events of CLEAN (areaStatusMachineV2). */
+const areaStatusConfig = (cleanExtra: Record<string, ReturnType<typeof gmp>> = {}) => ({
   id: AREA_MACHINE,
   initial: 'DIRTY',
   states: {
@@ -145,6 +150,7 @@ export const areaStatusMachine = setup({}).createMachine({
         START_CLEANING: startCleaning,
         MARK_DIRTY: markDirty,
         TAKE_OUT_OF_SERVICE: outOfService,
+        ...cleanExtra,
       },
     },
     CLEARED_FOR_BATCH: {
@@ -176,6 +182,23 @@ export const areaStatusMachine = setup({}).createMachine({
   },
 });
 
+export const areaStatusMachine = setup({}).createMachine(areaStatusConfig());
+
+/**
+ * area_status version 2 (injectables I-1c2 P3b, lead ruling A5, 9 November 2026): version 1 and one more way from CLEAN to
+ * CLEARED_FOR_BATCH, CLEAR_UNCHECKED, by the person who starts the batch (step.execute) on a passed clearance nobody
+ * verified. Only plant.start_area_occupancy takes it, and only where the stage's clearance step in the master names no
+ * checker (recipe.clearance_checked, recipe-core 1886): 211.130(e) and EU GMP 5.50 ask for an inspection before use and
+ * no second person. CLEAR keeps step.verify. An area keeps the version it was created with: areas created before 1887
+ * stay on version 1 (the stricter rule) until the owner decides.
+ */
+export const areaStatusMachineV2 = setup({}).createMachine(areaStatusConfig({
+  CLEAR_UNCHECKED: gmp('CLEARED_FOR_BATCH', {
+    guards: [G.clearanceRecordedPassed],
+    permission: P.execute,
+  }),
+}));
+
 export const EQUIPMENT_CLEANLINESS_V1: state.MachineDescriptor = {
   code: EQUIPMENT_MACHINE,
   version: 1,
@@ -194,4 +217,14 @@ export const AREA_STATUS_V1: state.MachineDescriptor = {
   createPermission: P.masterData,
   machine: areaStatusMachine,
   seedFile: '0402_machine_area_status_v1.sql',
+};
+
+export const AREA_STATUS_V2: state.MachineDescriptor = {
+  code: AREA_MACHINE,
+  version: 2,
+  aggregateType: AREA_AGGREGATE,
+  description: 'Room and line status: version 1 and CLEAR_UNCHECKED, the clearance of a stage whose clearance step names no checker (injectables I-1c2 P3b; IN-21, INV-15, PR-34)',
+  createPermission: P.masterData,
+  machine: areaStatusMachineV2,
+  seedFile: '1887_machine_area_status_v2.sql',
 };

@@ -18,8 +18,8 @@
  *   Meanings LINE_CLEARANCE_PERFORMED and LINE_CLEARANCE_VERIFIED.
  * Both accept `config: {}` (the default lists below), so the tablet fixtures run unchanged.
  */
-import { childrenOf, type FlowNode, type PhaseNode } from '../../flow/model.ts';
-import type { BlockVersion, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
+import { childrenOf, type FlowNode, type MbrContent, type PhaseNode } from '../../flow/model.ts';
+import type { BlockVersion, ConfigProblem, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import type { FieldSchema } from '../schema.ts';
 import { problem } from './common.ts';
 import * as S from '../summary.ts';
@@ -35,6 +35,21 @@ export interface ClearanceItem {
   id: string;
   text: string;
   expected: 'CONFIRMED' | 'CONFIRMED_OR_NOT_APPLICABLE';
+}
+
+/**
+ * A clearance step with no checker (G10-NO-CHECKER), refused only in a tablets-edition packaging master (capsules are
+ * that edition): revised Schedule M Part VIII 7.1 asks for a second person's check of the packaging line there (lead
+ * ruling A5). Elsewhere 211.130(e) and EU GMP 5.50 ask for the inspection before use, recorded in the batch record, and
+ * no second person; PR-34 makes the verifier configurable, so the author decides (injectables I-1c2 P3b). Site services
+ * then require the clearance's verification only where the step names a checker (recipe-core 1886).
+ */
+function noChecker(phase: PhaseNode, mbr: Pick<MbrContent, 'header'> | undefined): ConfigProblem[] {
+  // Fails closed: a step whose master is not known here is held to the second person (lead pre-audit of #197).
+  const header = mbr?.header as Partial<MbrContent['header']> | undefined;
+  const packagingByScheduleM = header?.edition === undefined || header.recordKind === undefined || (header.edition === 'tablets' && header.recordKind === 'PACKAGING');
+  if (phase.signatures.check || !packagingByScheduleM) return [];
+  return [{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: `Clearance step ${phase.id} names no checker: a tablets or capsules packaging line clearance is checked by a second person (revised Schedule M Part VIII 7.1)`, controls: ['PR-14', 'PR-34'] }];
 }
 
 /** Default checks of G-09@1 when the configuration names none. */
@@ -315,13 +330,11 @@ export const G10: BlockVersion = {
       },
     },
   },
-  checkConfig: (phase, config) => {
+  checkConfig: (phase, config, mbr) => {
     const ids = clearanceChecklist(config).map((c) => c.id);
     const dup = duplicateIds(ids);
-    const out = dup.length > 0 ? [{ code: 'G10-CHECK-IDS', severity: 'ERROR' as const, message: `Clearance step ${phase.id} lists item ${dup.join(', ')} twice`, controls: ['PR-34'] }] : [];
-    if (!phase.signatures.check) {
-      out.push({ code: 'G10-NO-CHECKER', severity: 'ERROR', message: `Clearance step ${phase.id} names no checker: a clearance is a significant step with an independent checker`, controls: ['PR-14', 'PR-34'] });
-    }
+    const out: ConfigProblem[] = dup.length > 0 ? [{ code: 'G10-CHECK-IDS', severity: 'ERROR', message: `Clearance step ${phase.id} lists item ${dup.join(', ')} twice`, controls: ['PR-34'] }] : [];
+    out.push(...noChecker(phase, mbr));
     return out;
   },
   handler: {
@@ -489,10 +502,7 @@ export const G10V2: BlockVersion = {
       },
     },
   },
-  checkConfig: (phase) =>
-    phase.signatures.check
-      ? []
-      : [{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: `Clearance step ${phase.id} names no checker: a clearance is a significant step with an independent checker`, controls: ['PR-14', 'PR-34'] }],
+  checkConfig: (phase, _config, mbr) => noChecker(phase, mbr),
   handler: {
     acceptEntry: (view, entry) => {
       // One entry per area: a second one for the same room or line would name a second occupancy for one clearance

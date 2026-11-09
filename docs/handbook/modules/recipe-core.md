@@ -725,6 +725,17 @@ guard of them is a consistency check against the plant rows, so a transition mad
 `platform.transition` without the command's rows is refused. Hazardous products (hormones, steroids, cytotoxics) and
 the areas dedicated to them come in 0890 and need a second person's signature since 0912.
 
+**Clearance with or without a checker (1886, 1887; injectables I-1c2 P3b, lead ruling A5).** A room or line clearance
+needs a second person's verification only where the master's clearance step (G-10) names a checker. A tablets or
+capsules packaging clearance always does (revised Schedule M Part VIII 7.1; validator G10-NO-CHECKER). Other
+clearances may have none, because 211.130(e) and EU GMP 5.50 ask for an inspection before use but no second person.
+`recipe.clearance_checked` reads the step from the batch's master and treats an unknown stage as checked.
+`plant.start_area_occupancy` and the row guard on `plant.area_occupancy` (EBMR-PLANT-131) accept a passed clearance
+nobody verified only for a stage without a checker. Such a CLEAN area moves to CLEARED_FOR_BATCH through
+`CLEAR_UNCHECKED` (step.execute), an event that exists only in area_status version 2. `CLEAR` keeps step.verify.
+**Known residual:** an area created before 1887 stays on version 1 and keeps the verified rule until the owner
+decides. No aggregate was migrated.
+
 **Pharma context.** Equipment must be clean, calibrated and fit before use, with its status visibly identified and
 its use logged (Schedule M, equipment section; 21 CFR 211.67, 211.68, 211.105, 211.182; EU GMP 3.36 to 3.44;
 [IN-25](../../../compliance/controls/IN-25.yaml), [PR-23](../../../compliance/controls/PR-23.yaml),

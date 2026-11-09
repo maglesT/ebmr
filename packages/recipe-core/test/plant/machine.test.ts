@@ -38,6 +38,11 @@ const MACHINES: {
     m: plant.areaStatusMachine,
     events: plant.AREA_EVENTS,
     states: plant.AREA_STATES,
+  },  {
+    d: plant.AREA_STATUS_V2,
+    m: plant.areaStatusMachineV2,
+    events: plant.AREA_EVENTS_V2,
+    states: plant.AREA_STATES,
   },
 ];
 
@@ -61,6 +66,18 @@ describe('the generated plant machine seeds', () => {
   });
 });
 
+describe('area_status version 2 (injectables I-1c2 P3b, recipe-core 1887)', () => {
+  it('[PR-34][IN-21][INV-15] version 2 is version 1 and CLEAR_UNCHECKED, CLEAN -> CLEARED_FOR_BATCH by step.execute on a recorded passed clearance; CLEAR keeps step.verify and IN_USE is still reached only from CLEARED_FOR_BATCH', () => {
+    const row = (t: { from: string; event: string; to: string; permission?: string | null; guards?: readonly string[] }) => `${t.from} ${t.event} ${t.to} ${t.permission ?? ''} ${(t.guards ?? []).join(',')}`;
+    const v1 = state.extractDefinition(plant.AREA_STATUS_V1).transitions.map(row);
+    const v2 = state.extractDefinition(plant.AREA_STATUS_V2).transitions.map(row);
+    expect(v2.filter((t) => !v1.includes(t))).toEqual(['CLEAN CLEAR_UNCHECKED CLEARED_FOR_BATCH step.execute plant.clearance_recorded_passed']);
+    expect(v1.filter((t) => !v2.includes(t))).toEqual([]);
+    expect(v2).toContain('CLEAN CLEAR CLEARED_FOR_BATCH step.verify plant.clearance_passed');
+    expect(state.extractDefinition(plant.AREA_STATUS_V2).transitions.filter((t) => t.to === 'IN_USE').map((t) => t.from)).toEqual(['CLEARED_FOR_BATCH']);
+  });
+});
+
 describe('XState and the database agree', () => {
   it('[INV-12][INV-15] each transition table holds exactly the XState transitions, with the same sealed hash, and every guard is registered', async () => {
     const registered = new Set((await db.app.query<{ code: string }>('select code from platform.state_guard')).rows.map((r) => r.code));
@@ -68,12 +85,12 @@ describe('XState and the database agree', () => {
       const def = state.extractDefinition(d);
       const { rows } = await db.app.query(
         `select from_state as from, event, to_state as to, guard_codes as guards, signature_meaning as signature, permission_code as permission
-           from platform.machine_transition where machine_code = $1 and machine_version = 1
+           from platform.machine_transition where machine_code = $1 and machine_version = $2
           order by from_state collate "C", event collate "C"`,
-        [d.code],
+        [d.code, d.version],
       );
       expect(rows).toEqual(def.transitions);
-      const { rows: h } = await db.app.query<{ hash: string }>('select platform.machine_definition_hash($1, 1) as hash', [d.code]);
+      const { rows: h } = await db.app.query<{ hash: string }>('select platform.machine_definition_hash($1, $2) as hash', [d.code, d.version]);
       expect(h[0]?.hash).toBe(state.definitionHash(def));
       expect(def.transitions.flatMap((t) => t.guards).filter((g) => !registered.has(g))).toEqual([]);
     }

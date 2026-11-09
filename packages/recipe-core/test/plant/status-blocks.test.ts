@@ -121,6 +121,95 @@ describe('G-10@2: the room occupancy an entry names is the plant record (recipe-
   });
 });
 
+describe('injectables P3b: a clearance needs verification only where the step names a checker (recipe-core 1886, lead ruling A5)', () => {
+  /** A test batch of `product` whose MBR has stage S-NO with a G-10 step without a checker and S-CHK with one (test setup only). */
+  async function batchWithClearances(product: string): Promise<string> {
+    const id = randomUUID();
+    const hash = createHash('sha256').update(id).digest('hex');
+    const g10 = (pid: string, check: boolean) => ({ kind: 'phase', id: pid, block: { type: 'G-10', version: '2' }, signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, ...(check ? { check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : {}) } });
+    const content = { procedure: { kind: 'procedure', id: 'proc', body: { kind: 'sequence', id: 'seq', children: [
+      { kind: 'stage', id: 'S-NO', body: { kind: 'sequence', id: 's1', children: [g10('p-clear-no', false)] } },
+      { kind: 'stage', id: 'S-CHK', body: { kind: 'sequence', id: 's2', children: [g10('p-clear-chk', true)] } },
+    ] } } };
+    await asTimeTraveller(
+      db,
+      `insert into recipe.test_package (package_hash, file_name, package, content, content_hash, family_id, family_code, product, version_id, version_number,
+                                        revision, version_state, exporter, exported_at_us, source, imported_by_person, imported_by_account, correlation_id)
+       values ($1, $1 || '.json', '{}', $3::jsonb, $1, gen_random_uuid(), 'FAM', $2::jsonb, gen_random_uuid(), '1', 1, 'APPROVED', '{}', 0, '{}',
+               gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      [hash, JSON.stringify({ code: product, name: `Product ${product}`, strength: '10 mg' }), JSON.stringify(content)],
+    );
+    await asTimeTraveller(
+      db,
+      `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint, policy,
+                                           policy_hash, issue_request, market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person,
+                                           issued_by_account, correlation_id)
+       values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', '1', $3, '{}', $3, '{}', '{IN}', 'BS', 'SITE-1', 'Asia/Kolkata', 0, gen_random_uuid(),
+               gen_random_uuid(), gen_random_uuid())`,
+      [id, `TEST-P3B-${id.slice(0, 6).toUpperCase()}`, hash],
+    );
+    return id;
+  }
+  const cleanRoom = async (): Promise<string> => {
+    const room = await w.room();
+    await w.clean('AREA', room.code, 'MAJOR');
+    return room.code;
+  };
+  const record = (area: string, batchId: string, result: 'PASSED' | 'FAILED' = 'PASSED') =>
+    w.run(w.cast.operator, (c) => plant.recordClearance(c, area, 'PRODUCT_CHANGE', { batchId, result }));
+  const start = (area: string, batchId: string, stage: string) => w.run(w.cast.operator, (c) => plant.startAreaOccupancy(c, area, { batchId, stage }));
+
+  it('[PR-34][PR-14][IN-21][INV-15] a stage whose clearance step names no checker starts on a passed clearance nobody verified (211.130(e)); the step\'s AREA_OCCUPANCY entry stands on it; a failed one does not start it', async () => {
+    const product = await w.product();
+    const batchId = await batchWithClearances(product);
+    const failedRoom = await cleanRoom();
+    await record(failedRoom, batchId, 'FAILED');
+    await expect(start(failedRoom, batchId, 'S-NO')).rejects.toThrow(/no passed PRODUCT_CHANGE clearance/);
+    const room = await cleanRoom();
+    await record(room, batchId);
+    const occupancyId = await start(room, batchId, 'S-NO');
+    const area = await db.admin.query<{ id: string }>('select id from plant.area where code = $1', [room]);
+    expect(await w.state('area', area.rows[0]?.id ?? '')).toBe('IN_USE');
+    const entry = { kind: 'AREA_OCCUPANCY', areaCode: room, occupancyId };
+    expect(await problem(batchId, w.cast.operator, entry, 'p-clear-no')).toBeNull();
+    // The same unverified clearance does not stand for a step that names a checker.
+    expect(await problem(batchId, w.cast.operator, entry, 'p-clear-chk')).toMatch(/is unverified, not a passed clearance/);
+  });
+
+  it('[PR-34][PR-14][IN-21][INV-15] a stage whose clearance step names a checker, or a stage the master does not have, still starts only on a verified clearance (Schedule M Part VIII 7.1 for tablets packaging; fails closed)', async () => {
+    const product = await w.product();
+    const batchId = await batchWithClearances(product);
+    const room = await cleanRoom();
+    const clearance = await record(room, batchId);
+    // The area stays CLEAN: only a verified clearance clears it for such a stage (CLEAR, step.verify).
+    await expect(start(room, batchId, 'S-CHK')).rejects.toThrow(/is CLEAN \(no passed clearance\)/);
+    await expect(start(room, batchId, 'S-UNKNOWN')).rejects.toThrow(/is CLEAN \(no passed clearance\)/);
+    // Whoever writes (ADR 0012): an occupancy row on that unverified clearance is refused by the row guard.
+    await expect(db.admin.query(
+      `insert into plant.area_occupancy (area_id, exclusive, batch_id, batch_ref, product_code, stage, clearance_id, started_by)
+       select a.id, true, $2, 'X', $3, 'S-CHK', $4, gen_random_uuid() from plant.area a where a.code = $1`,
+      [room, batchId, product, clearance],
+    )).rejects.toThrow(/EBMR-PLANT-131/);
+    const sig = await w.sign(w.cast.verifier, 'plant_clearance', clearance, 'VERIFIED', 'PERFORMED');
+    await w.run(w.cast.verifier, (c) => plant.verifyClearance(c, clearance, sig));
+    const occupancyId = await start(room, batchId, 'S-CHK');
+    expect(await problem(batchId, w.cast.operator, { kind: 'AREA_OCCUPANCY', areaCode: room, occupancyId }, 'p-clear-chk')).toBeNull();
+    const checked = async (stage: string | null, step: string | null) =>
+      (await db.admin.query<{ c: boolean }>('select recipe.clearance_checked(recipe.batch_mbr_content($1), $2, $3) as c', [batchId, stage, step])).rows[0]?.c;
+    expect([await checked('S-NO', null), await checked('S-CHK', null), await checked('S-UNKNOWN', null), await checked(null, 'p-clear-no'), await checked(null, 'p-nope')]).toEqual([false, true, true, false, true]);
+  });
+
+  it('[PR-34][IN-21][INV-15] an area created before area_status version 2 (on version 1) keeps refusing an unverified clearance even for a stage with no checker, until the owner decides (no aggregate is migrated)', async () => {
+    const product = await w.product();
+    const batchId = await batchWithClearances(product);
+    const room = await cleanRoom();
+    // Test setup only: the area as one created before recipe-core 1887 (its aggregate on version 1).
+    await asTimeTraveller(db, "update platform.aggregate_state set machine_version = 1 where aggregate_type = 'plant_area' and aggregate_id = (select id from plant.area where code = $1)", [room]);
+    await record(room, batchId);
+    await expect(start(room, batchId, 'S-NO')).rejects.toThrow(/is CLEAN \(no passed clearance\)/);
+  });
+});
+
 describe('review backlog #5: plant transitions evaluate the batch product (recipe-core 0522)', () => {
   it('[DI-17][IN-21] an operator whose STEP.EXECUTE is limited to a product starts and ends a press use and opens a container for a batch of that product, and is refused for another product', async () => {
     const product = await w.product();
