@@ -78,6 +78,32 @@ export const DISCONNECTED_ROUTES: Readonly<Record<string, DisconnectedOwner>> = 
   [deviationRoutes.reclassifyDeviation, routes.quality.cancelDeviation].map((r) => [r.id, 'Deviations' as const]),
 );
 
+/**
+ * MEDHANTA slice 2 (owner ruling, 9 November 2026; replaces declutter residual D4-R5): where the server has a Deviations
+ * link (DEVIATIONS_DATABASE_URL), deviation management (investigation, classification, impact, conclusion, closure)
+ * belongs to the Deviations product, and a batch's deviation is stored only as its Deviations number. These routes then
+ * answer 410 DISCONNECTED; the signed deviation acts (QUALITY_ACT DEVIATION_IMPACT_ASSESS, DEVIATION_CONCLUDE,
+ * DEVIATION_CLOSE) are refused the same way by the server's signing. Without the link nothing here applies: the batch-only
+ * deviation screens of G2 stay (standalone, unchanged).
+ */
+export const DISCONNECTED_WHEN_LINKED: Readonly<Record<string, DisconnectedOwner>> = Object.fromEntries(
+  [
+    routes.quality.raiseDeviation,
+    routes.quality.linkDeviation,
+    routes.quality.startInvestigation,
+    routes.quality.recordFinding,
+    deviationRoutes.deviationDetail,
+    deviationRoutes.recordDeviationImpact,
+    deviationRoutes.recordDeviationClosureBasis,
+  ].map((r) => [r.id, 'Deviations' as const]),
+);
+
+/** The signed deviation acts refused where the server has a Deviations link (slice 2). */
+export const DEVIATION_ACTS_WHEN_LINKED: readonly string[] = ['DEVIATION_IMPACT_ASSESS', 'DEVIATION_CONCLUDE', 'DEVIATION_CLOSE'];
+
+/** Routes served only where the server has a Deviations link (slice 2); elsewhere 410 DISCONNECTED. */
+export const LINKED_ONLY_ROUTE_IDS: ReadonlySet<string> = new Set([deviationRoutes.deviationNumbers.id, deviationRoutes.linkDeviationNumber.id]);
+
 /** Every route id of a disconnected namespace, and every single disconnected route. */
 export const DISCONNECTED_ROUTE_IDS: ReadonlySet<string> = new Set([
   ...DISCONNECTED_NAMESPACES.flatMap((ns) => Object.values(routes[ns] as Record<string, { id: string }>).map((r) => r.id)),
@@ -87,4 +113,9 @@ export const DISCONNECTED_ROUTE_IDS: ReadonlySet<string> = new Set([
 /** Is this route disconnected (by its route id, `namespace.name`)? */
 export function isDisconnectedRoute(routeId: string): boolean {
   return DISCONNECTED_ROUTE_IDS.has(routeId);
+}
+
+/** Is this route refused because of the Deviations link (`linked`: the server has one), slice 2? */
+export function isDisconnectedForDeviationsLink(routeId: string, linked: boolean): boolean {
+  return linked ? routeId in DISCONNECTED_WHEN_LINKED : LINKED_ONLY_ROUTE_IDS.has(routeId);
 }

@@ -22,7 +22,7 @@
  *                AUTHORISE_REQUEST    reprocessing_request        REPROCESSING_AUTHORISED  recipe.authorise_reprocessing_request
  */
 import type pg from 'pg';
-import type { SignableAction } from '@ebmr/api-contract';
+import { DEVIATION_ACTS_WHEN_LINKED, type SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { DryRunOutcome, SignableActionHandler } from '../../platform/ports.ts';
 import { dbActHandler, refusedOutcome, type ActTarget } from '../esig/db-acts.ts';
@@ -105,6 +105,17 @@ export function qualityActHandler(app: AppContext): SignableActionHandler<Qualit
       return { ...qualityTarget(a), aggregateId: rows[0]?.id ?? qualityTarget(a).aggregateId };
     },
     async precheck(client, _ctx, a) {
+      // MEDHANTA slice 2: with a Deviations link, the impact sign-off, conclusion and closure are signed in Deviations.
+      if (app.platform.deviations !== null && DEVIATION_ACTS_WHEN_LINKED.includes(a.act)) {
+        return refusedOutcome(
+          410,
+          'DISCONNECTED',
+          'This function is not connected.',
+          `${a.act}: deviations are investigated, concluded and closed in the Deviations product in this installation; nothing was signed.`,
+          ['DI-17'],
+          ['Open the deviation in the Deviations product.'],
+        );
+      }
       const refusal = inputRefusal(a);
       if (refusal || a.act !== 'LOT_RETEST') return refusal;
       // The signed aggregate names the instant and the results exactly as the database does (0762), or nothing is signed.

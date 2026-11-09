@@ -40,6 +40,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       setupRequired: !(await isBootstrapped(app)),
       // Declutter D1/D2: bind.ts refuses the disconnected functions here (410 DISCONNECTED).
       disconnected: app.platform.build || app.config.disconnect,
+      // MEDHANTA slice 2: deviations are linked by number and read from the Deviations product.
+      deviationsLinked: app.platform.deviations !== null,
     }),
     // Phase 7 slice 7g-4 (decision 0025): the developers' API reference page.
     openapi: async ({ requireSession }) => {

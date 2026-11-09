@@ -18,7 +18,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest, preHandlerAsyncHook
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import type { ActorContext } from '@ebmr/kernel';
-import { isDisconnectedRoute, RefusalEnvelope, type AnyRoute, type Attribution, type RouteBody, type RouteNamespace, type RouteParams, type RouteQuery, type RouteResponse } from '@ebmr/api-contract';
+import { isDisconnectedForDeviationsLink, isDisconnectedRoute, RefusalEnvelope, type AnyRoute, type Attribution, type RouteBody, type RouteNamespace, type RouteParams, type RouteQuery, type RouteResponse } from '@ebmr/api-contract';
 import { actorFrom } from '../auth/actor.ts';
 import { resolveAttribution } from '../auth/attribution.ts';
 import { spkiFingerprint } from '../auth/device-proof.ts';
@@ -472,7 +472,9 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     }
     // Declutter D1: a route of a disconnected namespace answers 410 DISCONNECTED on the platform build, and on a standalone
     // server started with EBMR_DISCONNECT=1; at onRequest, so nothing of the request is read or validated first.
-    const isDisconnected = (app.platform.build || app.config.disconnect) && isDisconnectedRoute(route.id);
+    // MEDHANTA slice 2: with a Deviations link, deviation management is Deviations' (410); without it, the number routes are.
+    const isDisconnected =
+      ((app.platform.build || app.config.disconnect) && isDisconnectedRoute(route.id)) || isDisconnectedForDeviationsLink(route.id, app.platform.deviations !== null);
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       // Phase 7 slice 7g-4: while a demo load or reset recreates the database only the open routes of app.ts reach here
       // (all of them auth NONE), and the database is being dropped: no session is looked up, so following the job never

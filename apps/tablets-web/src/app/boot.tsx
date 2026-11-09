@@ -107,6 +107,11 @@ export function useDisconnectedServer(): boolean {
   return useContext(BootContext)?.meta?.disconnected === true;
 }
 
+/** MEDHANTA slice 2: the server links a batch's deviations by their Deviations number (meta.deviationsLinked). */
+export function useDeviationsLinked(): boolean {
+  return useContext(BootContext)?.meta?.deviationsLinked === true;
+}
+
 export function useBoot(): Boot {
   const b = useContext(BootContext);
   if (!b) throw new Error('useBoot outside BootProvider');

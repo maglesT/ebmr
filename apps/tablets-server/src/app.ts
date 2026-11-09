@@ -11,7 +11,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { continuity, registerFactResolver } from '@ebmr/kernel';
+import { continuity, registerFactResolver, type FactResolver } from '@ebmr/kernel';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { AnalyticsRunner } from './analytics/runner.ts';
 import { ThreadedAnalyticsRunner, type AnalyticsRunnerApi } from './analytics/threaded.ts';
@@ -31,6 +31,7 @@ import { answerFrameworkError, installSecurity, isApiRequest } from './platform/
 import { installSpa } from './platform/http/static.ts';
 import { CoreSignon, type FetchFn } from './platform/auth/core-signon.ts';
 import { MasterData } from './platform/master-data.ts';
+import { Deviations, deviationsOff } from './platform/deviations.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
 import { MAINTENANCE_OPEN_PATHS, maintenanceRefusal, newOperationsRuntime } from './platform/operations.ts';
@@ -75,17 +76,28 @@ export interface BuiltApp {
  * configured refuses to start (nobody could sign in); a standalone database ignores the setting.
  */
 async function platformState(pool: Pools['app'], config: ServerConfig, coreFetch?: FetchFn): Promise<AppContext['platform']> {
+  // MEDHANTA slice 2: the Deviations link, on any build. It resolves the 'deviation' facts a release needs (sql/1907);
+  // without it a linked number (from an earlier start with the link) blocks release with DEVIATIONS_OFF.
+  const deviations = config.deviationsUrl ? Deviations.open(config.deviationsUrl) : null;
+  const deviationFacts = (next: FactResolver | null): FactResolver =>
+    deviations ? deviations.resolver(next) : async (detail) => {
+      if ((JSON.parse(detail) as { kind?: string }).kind === 'deviation') throw deviationsOff();
+      if (next) return next(detail);
+      throw new Error('no fact resolver');
+    };
   // A database at an earlier release (an upgrade or restore drill) has no platform build function: it is no platform build.
   const { rows: fn } = await pool.query<{ present: boolean }>("select to_regprocedure('iam.platform_build()') is not null as present");
-  if (!fn[0]?.present) return { build: false, signon: null, master: null };
-  const { rows } = await pool.query<{ build: boolean }>('select iam.platform_build() as build');
-  if (!rows[0]?.build) return { build: false, signon: null, master: null };
+  const build = fn[0]?.present ? (await pool.query<{ build: boolean }>('select iam.platform_build() as build')).rows[0]?.build === true : false;
+  if (!build) {
+    registerFactResolver(pool, deviationFacts(null));
+    return { build: false, signon: null, master: null, deviations };
+  }
   if (!config.oidc) throw new Error('this is a platform build: core sign-on (EBMR_OIDC_ISSUER, EBMR_OIDC_CLIENT_ID, EBMR_OIDC_REDIRECT_URI) must be configured');
   // Phase B slice 3 (PL-08): every write that names a master item reads it through the master views.
   if (!config.masterDataUrl) throw new Error('this is a platform build: master data (MASTER_DATA_DATABASE_URL, EBMR_MASTER_DATA_URL) must be configured');
   const master = MasterData.open(config.masterDataUrl);
-  registerFactResolver(pool, master.resolver());
-  return { build: true, signon: new CoreSignon(config.oidc, config.secrets.nonceKey, coreFetch), master };
+  registerFactResolver(pool, deviationFacts(master.resolver()));
+  return { build: true, signon: new CoreSignon(config.oidc, config.secrets.nonceKey, coreFetch), master, deviations };
 }
 
 export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<BuiltApp> {
@@ -229,6 +241,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
         await app.close();
         await ctx.readDb.destroy().catch(() => undefined);
         await ctx.platform.master?.close().catch(() => undefined);
+        await ctx.platform.deviations?.close().catch(() => undefined);
         if (ownPools) await pools.close().catch(() => undefined);
       },
     };

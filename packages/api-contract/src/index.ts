@@ -93,7 +93,7 @@ export {
   ReprocessingRequestView,
   ResidueContainerView,
 } from './ns/quality.ts';
-export { DeviationClassificationInput, DeviationClosureBasisInput, DeviationDetailView, DeviationReleaseItem, DeviationState } from './ns/deviation.ts';
+export { DeviationClassificationInput, DeviationClosureBasisInput, DeviationDetailView, DeviationReleaseItem, DeviationState, LinkedDeviation } from './ns/deviation.ts';
 export * from './tablet-entries.ts';
 export * from './ns/people.ts';
 export * from './ns/device-registry.ts';

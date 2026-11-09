@@ -19,6 +19,8 @@ import type {
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { peopleOf, personRef } from '../common/people.ts';
+import type { Deviations } from '../../platform/deviations.ts';
+import { linkedDeviations, linkedProblem } from '../quality/deviation.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 
@@ -58,14 +60,38 @@ function noLot(lotId: string): Error {
 }
 
 /** G-REL of the lot for the market, evaluated now, with the items this person acknowledged at its epoch. */
-export async function grelView(db: Db, lotId: string, market: ReleaseMarket, personId: string): Promise<GrelView> {
+/**
+ * MEDHANTA slice 2: with a Deviations link, the Deviations numbers linked to the lot's batches, each closed or rejected in
+ * Deviations, as one more item of group 2 (the database refuses the release itself: sql/1907, dv.release_problem). An
+ * unreadable view is RED: release is never shown as allowed without the read.
+ */
+async function linkedDeviationItem(db: Db, link: Deviations, lotId: string): Promise<GrelView['items'][number] | null> {
+  const batches = (await db.query<{ b: string[] }>("select dv.subject_batches('LOT', $1)::text[] as b", [lotId])).rows[0]?.b ?? [];
+  const { rows } = await db.query<{ n: number }>('select count(*)::int as n from dv.batch_number_link where batch_id = any ($1::uuid[])', [batches]);
+  if ((rows[0]?.n ?? 0) === 0) return null;
+  const item = { id: 'G2.DEVIATIONS_LINKED', group: '2', title: 'Deviations linked in the Deviations product are closed or rejected', sinceReview: false, acknowledged: false };
+  try {
+    const linked = await linkedDeviations(db, link, batches);
+    const problem = linkedProblem(linked);
+    return {
+      ...item,
+      status: problem === null ? 'GREEN' : 'RED',
+      problem,
+      evidence: linked.map((l) => ({ kind: 'DEVIATION_NUMBER', ref: l.number, label: `${l.number} (batch ${l.batchNumber}): ${l.status ?? 'not in Deviations'}` })),
+    };
+  } catch {
+    return { ...item, status: 'RED', problem: 'Connection to Deviations is off: the linked deviations cannot be read, so release is blocked', evidence: [] };
+  }
+}
+
+export async function grelView(db: Db, lotId: string, market: ReleaseMarket, personId: string, link: Deviations | null = null): Promise<GrelView> {
   const { rows } = await db.query<{ g: GrelRow }>('select recipe.grel_evaluate($1, $2) as g', [lotId, market]);
   const g = rows[0]?.g;
   if (!g) throw noLot(lotId);
   const acked = new Set(
     (await db.query<{ a: string[] }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a ?? [],
   );
-  return {
+  const view: GrelView = {
     lotId: g.lot,
     market: g.market,
     epoch: g.epoch,
@@ -81,6 +107,8 @@ export async function grelView(db: Db, lotId: string, market: ReleaseMarket, per
       acknowledged: i.since_review && acked.has(i.id),
     })),
   };
+  const linked = link ? await linkedDeviationItem(db, link, lotId) : null;
+  return linked ? { ...view, ready: view.ready && linked.status !== 'RED', items: [...view.items, linked] } : view;
 }
 
 function summary(r: LotRow): LotReleaseSummaryView {
@@ -108,7 +136,7 @@ export async function lotRelease(app: AppContext, db: Db, lotId: string, personI
   if (!row) throw noLot(lotId);
   const facts = (await db.query<{ f: Facts }>('select recipe.release_lot_facts($1) as f', [lotId])).rows[0]?.f;
   if (!facts) throw noLot(lotId);
-  const grel = await grelView(db, lotId, 'IN', personId);
+  const grel = await grelView(db, lotId, 'IN', personId, app.platform.deviations);
   const d = facts.decision;
   const people = await peopleOf(db, [d?.person_id]);
   return {
@@ -264,7 +292,7 @@ export async function lotMarkets(app: AppContext, db: Db, lotId: string, personI
     dispositions.push({
       market,
       state: st,
-      grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId),
+      grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId, app.platform.deviations),
       decision:
         market === 'US' && decision
           ? {

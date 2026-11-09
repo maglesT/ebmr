@@ -4,11 +4,13 @@
  * checklist of a subject. Each write runs the person's own command through the site-services definer; every rule is the
  * database's. The signed acts (impact sign-off, conclusion, closure) are QUALITY_ACT (signables.ts).
  */
-import type { DeviationDetailView, DeviationReleaseItem, routes } from '@ebmr/api-contract';
+import type { DeviationDetailView, DeviationReleaseItem, LinkedDeviation, routes } from '@ebmr/api-contract';
 import type { ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import type { Handlers } from '../../platform/http/bind.ts';
+import { isResolved, type Deviations } from '../../platform/deviations.ts';
+import { refusal } from '../../platform/http/refusal.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 
@@ -93,10 +95,63 @@ export async function deviationDetail(db: Db, deviationId: string): Promise<Devi
   };
 }
 
-type DeviationRoutes = Pick<typeof routes.quality, 'deviationDetail' | 'reclassifyDeviation' | 'recordDeviationImpact' | 'recordDeviationClosureBasis' | 'deviationRelease'>;
+type DeviationRoutes = Pick<
+  typeof routes.quality,
+  'deviationDetail' | 'reclassifyDeviation' | 'recordDeviationImpact' | 'recordDeviationClosureBasis' | 'deviationRelease' | 'deviationNumbers' | 'linkDeviationNumber'
+>;
+
+/**
+ * MEDHANTA slice 2: the Deviations numbers linked to the batches `batches`, each with its status read now from the
+ * Deviations product (report.deviation_v1). An unreadable view throws DEVIATIONS_OFF: nothing is shown as resolved.
+ */
+export async function linkedDeviations(pool: Pick<pg.Pool, 'query'>, link: Deviations, batches: readonly string[]): Promise<LinkedDeviation[]> {
+  const { rows } = await pool.query<{ number: string; batch_id: string; batch_number: string; linked_at: Date }>(
+    'select number, batch_id::text as batch_id, batch_number, linked_at from dv.batch_number_link where batch_id = any ($1::uuid[]) order by linked_at, id',
+    [batches],
+  );
+  const out: LinkedDeviation[] = [];
+  for (const r of rows) {
+    const read = await link.read(r.number);
+    out.push({
+      number: r.number,
+      batchId: r.batch_id,
+      batchNumber: r.batch_number,
+      status: read.status,
+      classification: read.classification,
+      blocking: !isResolved(read.status),
+      linkedAt: r.linked_at.toISOString(),
+      dataAsOf: read.dataAsOf,
+    });
+  }
+  return out;
+}
+
+/** The reason release waits for the linked numbers, in the database's words (dv.release_problem); null when none does. */
+export function linkedProblem(linked: readonly LinkedDeviation[]): string | null {
+  const b = linked.find((l) => l.blocking);
+  if (!b) return null;
+  return b.status === null
+    ? `deviation ${b.number} linked to batch ${b.batchNumber} is not in the Deviations product`
+    : `deviation ${b.number} linked to batch ${b.batchNumber} is ${b.status} in the Deviations product; release waits until it is closed or rejected`;
+}
+
+function unknownNumber(number: string): Error {
+  return refusal(422, {
+    code: 'EBMR-DV-002',
+    kind: 'INVALID_INPUT',
+    whatHappened: 'There is no such deviation in the Deviations product. Nothing was linked.',
+    why: `Deviation ${number} is not in the Deviations product's published records.`,
+    whatYouCanDo: ['Check the number in the Deviations product, or raise the deviation there first.'],
+  });
+}
+
+async function subjectBatches(pool: Pick<pg.Pool, 'query'>, kind: string, id: string): Promise<string[]> {
+  const { rows } = await pool.query<{ b: string[] }>('select dv.subject_batches($1, $2)::text[] as b', [kind, id]);
+  return rows[0]?.b ?? [];
+}
 
 /** The handlers of the slice 2a routes, spread into the quality namespace's binding (index.ts). */
-export function deviationHandlers(pool: pg.Pool): Handlers<DeviationRoutes> {
+export function deviationHandlers(pool: pg.Pool, link: Deviations | null = null): Handlers<DeviationRoutes> {
   const command = async (actor: ActorContext, key: string | null | undefined, hash: string, sql: string, params: unknown[]) =>
     withIdempotentActorCommand(pool, actor, key ?? '', hash, async (c) => {
       await c.query(sql, params);
@@ -125,7 +180,22 @@ export function deviationHandlers(pool: pg.Pool): Handlers<DeviationRoutes> {
         'select site.deviation_release_items($1, $2, $3) as items, site.deviation_release_problem($1, $2, $3, null) as problem',
         [query.subjectKind, query.subjectId, query.market ?? null],
       );
-      return { items: rows[0]?.items ?? [], problem: rows[0]?.problem ?? null };
+      const items = rows[0]?.items ?? [];
+      const problem = rows[0]?.problem ?? null;
+      if (!link) return { items, problem };
+      const linked = await linkedDeviations(pool, link, await subjectBatches(pool, query.subjectKind, query.subjectId));
+      return { items, problem: problem ?? linkedProblem(linked), linked };
+    },
+    // Served only with a Deviations link (bind.ts answers 410 without one).
+    deviationNumbers: async ({ params, requireSession }) => {
+      requireSession();
+      return { deviations: link ? await linkedDeviations(pool, link, [params.batchId]) : [] };
+    },
+    linkDeviationNumber: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      // The number must be one Deviations publishes; the read is the view's (an unreadable view: DEVIATIONS_OFF, nothing saved).
+      if (link && (await link.read(body.number)).status === null) throw unknownNumber(body.number);
+      await command(actor(), idempotencyKey, requestHash, 'select dv.link_number($1, $2)', [params.batchId, body.number]);
+      return { deviations: link ? await linkedDeviations(pool, link, [params.batchId]) : [] };
     },
   };
 }

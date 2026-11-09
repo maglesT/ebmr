@@ -108,7 +108,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     app,
     routes.quality,
     {
-      ...deviationHandlers(pool),
+      ...deviationHandlers(pool, app.platform.deviations),
       // Phase 6 slice 6a builder A: receipt, the receipt record and the approved-manufacturer register (receipt.ts).
       ...receiptHandlers(app, pool),
       raiseDeviation: async ({ body, actor, idempotencyKey, requestHash }) => {
