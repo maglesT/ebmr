@@ -24,6 +24,7 @@ implemented_by:
     - "packages/recipe-core/sql/0422_output_container_commands.sql"
     - "packages/recipe-core/src/containers"
 tests:
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > injectables I-1c2 P3: a packaging master from the formula (lead ruling option (a)) > [PR-34][IN-21][PR-23][PR-32][PR-39][PR-31] the skeleton holds only what is binding: line clearance (211.130(e)), equipment status, the printed label, leaflet and carton with their artwork per market (211.125, 211.130), the counts verified by a second person and the packaging yield (211.103); no tablet packing block, no formula composition, no pinned formula"
   - "apps/tablets-server/test/plant/floor-routes.test.ts > the use of a room by a batch (gap report A2) > [IN-21][PR-34][INV-40] the room is occupied for the batch on its verified clearance by the operator's own tapped act; untapped, by a verifier or a second time it is refused; the step screen lists it as the viewer's; ended once"
   - "apps/tablets-web/test/floor/step-plant-acts.test.tsx > the room a clearance step occupies (A2; R3.3) > [IN-21][PR-34][INV-40] starts the batch's use of the stage's room and records it in the step as one act, then ends the use"
   - "packages/recipe-core/test/blocks/status-v2-edges.test.ts > G-10@2 area occupancy > [PR-34][IN-21] G8: a stage bound to two rooms records one clearance per room, each once; PERFORMED needs both"

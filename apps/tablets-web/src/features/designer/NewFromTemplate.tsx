@@ -32,14 +32,19 @@ interface SizeRow {
 
 const UNITS = ['kg', 'g'];
 
-type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_COPY';
+type Start = 'TEMPLATE' | 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING_COPY' | 'PACKAGING';
 const STARTS: { value: Start; label: string }[] = [
   { value: 'TEMPLATE', label: 'From a template' },
   { value: 'SKELETON', label: 'From the formula, with the required skeleton (dispensing, and blending for a tablet or capsule)' },
   { value: 'BLANK', label: 'From the formula, blank (clearance and balance status only)' },
   { value: 'COPY', label: 'From the formula, as a copy of an approved master' },
   { value: 'PACKAGING_COPY', label: 'A packaging master for a product, as a copy of an approved packaging master' },
+  // Injectables I-1c2 P3: the packaging skeleton of an injectable product (the server refuses it for another edition).
+  { value: 'PACKAGING', label: 'From the formula, an injectables packaging master (line clearance, equipment status, printed label, leaflet and carton, counts and yield)' },
 ];
+
+/** The printed items of an injectables packaging master from the formula (the server's PACKAGING_ITEMS). */
+const PACKAGING_ITEMS = ['LABEL', 'LEAFLET', 'CARTON'] as const;
 
 interface Printed {
   material: string;
@@ -89,6 +94,7 @@ export function NewFromTemplate() {
   const copyGroup = useId();
   const fromTemplate = start === 'TEMPLATE';
   const packaging = start === 'PACKAGING_COPY';
+  const packSkeleton = start === 'PACKAGING';
   const [packProduct, setPackProduct] = useState({ code: '', strength: '' });
   const [printed, setPrinted] = useState<Record<string, Printed>>({});
   const source = useApiQuery(routes.designer.version, { params: { versionId: copyOf ?? '' } }, { enabled: packaging && copyOf !== null });
@@ -100,7 +106,7 @@ export function NewFromTemplate() {
   const list = templates.data?.templates ?? [];
   const chosen = list.find((t) => t.templateId === templateId) ?? list[0];
   const product = productEdit ?? chosen?.product ?? { code: '', name: '', strength: '' };
-  const code = familyCode ?? (fromTemplate ? (chosen ? `${chosen.product.code}-DC` : '') : formula ? `${formula.productCode}-01` : '');
+  const code = familyCode ?? (fromTemplate ? (chosen ? `${chosen.product.code}-DC` : '') : formula ? `${formula.productCode}-${packSkeleton ? 'PK' : '01'}` : '');
   const setProduct = (patch: Partial<typeof product>): void => setProductEdit({ ...product, ...patch });
   // The approved batch sizes start as the template's (its first is the reference its bill of materials is written for),
   // until the author edits them (lead TODO T6; PR-01).
@@ -111,7 +117,8 @@ export function NewFromTemplate() {
     ? code.trim() !== '' && packProduct.code.trim() !== '' && packProduct.strength.trim() !== '' && sourceIsPackaging && items.every((i) => (printed[i.item]?.material ?? '').trim() !== '' && (printed[i.item]?.artwork ?? '').trim() !== '')
     : fromTemplate
     ? chosen !== undefined && code.trim() !== '' && product.code.trim() !== '' && product.name.trim() !== '' && product.strength.trim() !== '' && sizes.every((s) => s.quantity !== '')
-    : formula !== null && code.trim() !== '' && (start !== 'COPY' || copyOf !== null);
+    : formula !== null && code.trim() !== '' && (start !== 'COPY' || copyOf !== null)
+      && (!packSkeleton || PACKAGING_ITEMS.every((i) => (printed[i]?.material ?? '').trim() !== '' && (printed[i]?.artwork ?? '').trim() !== ''));
 
   const create = async (): Promise<void> => {
     if (fromTemplate && !chosen) return;
@@ -144,6 +151,7 @@ export function NewFromTemplate() {
           formulaVersionId: formula?.versionId ?? '',
           start: start as Exclude<Start, 'TEMPLATE' | 'PACKAGING_COPY'>,
           ...(start === 'COPY' && copyOf ? { copyOfVersionId: copyOf } : {}),
+          ...(packSkeleton ? { printed: PACKAGING_ITEMS.map((i) => ({ item: i, material: (printed[i]?.material ?? '').trim(), artwork: (printed[i]?.artwork ?? '').trim() })) } : {}),
         };
     const r = await api.call(routes.designer.createFamily, { body, idempotencyKey: key });
     setBusy(false);
@@ -197,6 +205,17 @@ export function NewFromTemplate() {
               </span>
               <Field label={`Printed material for ${i.item}`} name={`material-${i.item}`} value={printed[i.item]?.material ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i.item]: { material: v, artwork: p[i.item]?.artwork ?? '' } }))} />
               <Field label={`Artwork version for ${i.item}`} name={`artwork-${i.item}`} value={printed[i.item]?.artwork ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i.item]: { material: p[i.item]?.material ?? '', artwork: v } }))} />
+            </div>
+          ))}
+        </fieldset>
+      ) : null}
+      {packSkeleton ? (
+        <fieldset className={dcls('fieldset')} data-testid="packaging-skeleton">
+          <legend className={dcls('legend')}>The printed packaging</legend>
+          {PACKAGING_ITEMS.map((i) => (
+            <div key={i} className={dcls('inline')} data-testid={`printed-${i}`}>
+              <Field label={`Printed material for ${i}`} name={`material-${i}`} value={printed[i]?.material ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i]: { material: v, artwork: p[i]?.artwork ?? '' } }))} />
+              <Field label={`Artwork version for ${i}`} name={`artwork-${i}`} value={printed[i]?.artwork ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i]: { material: p[i]?.material ?? '', artwork: v } }))} />
             </div>
           ))}
         </fieldset>

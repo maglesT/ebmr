@@ -14,6 +14,9 @@ import { definitionFindings } from '../../src/features/designer/definition.ts';
 import { expectedTabletCount } from '../../src/features/execution/issue-expectations.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
 import { publishTables, saveContent, stewardActor } from './support.ts';
+import { library, type flow } from '@ebmr/recipe-core/pure';
+import { INJECTABLE_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables.ts';
+import { PACKAGING_SEEDS } from '../../../../packages/recipe-core/src/library/seed/packaging.ts';
 
 let gmp: TestServer;
 let steward: TestBrowser;
@@ -309,6 +312,92 @@ describe('a new master from an approved formula (slice 7j)', () => {
     expect(report.findings.filter((f) => f.severity !== 'INFO' && !f.rule.startsWith('MKT-')).map((f) => `${f.severity} ${f.rule}: ${f.message}`)).toEqual([]);
     const { rows } = await gmp.db.admin.query<{ edition: string }>("select edition from recipe.mbr_family where code = 'DMT7JV-SK'");
     expect(rows[0]?.edition).toBe('injectables');
+  });
+
+  describe('injectables I-1c2 P3: a packaging master from the formula (lead ruling option (a))', () => {
+    const INJ = { code: 'DMT7JP', name: 'Demoject vials', strength: PRODUCT.strength };
+    const PRINTED = [
+      { item: 'LABEL', material: 'PM-7JP-LBL', artwork: 'ART-7JP-LBL-1' },
+      { item: 'LEAFLET', material: 'PM-7JP-LFT', artwork: 'ART-7JP-LFT-1' },
+      { item: 'CARTON', material: 'PM-7JP-CTN', artwork: 'ART-7JP-CTN-1' },
+    ];
+    type Node = { id: string; kind: string; block?: { type: string; version: string }; config?: Record<string, unknown>; records?: string[]; signatures?: { check?: { meaning: string } } };
+    const nodes = (n: unknown, out: Node[] = []): Node[] => {
+      if (Array.isArray(n)) n.forEach((x) => nodes(x, out));
+      else if (n && typeof n === 'object') {
+        const o = n as Node;
+        if (o.kind === 'stage' || o.kind === 'phase' || o.kind === 'holdPoint') out.push(o);
+        Object.values(o).forEach((x) => nodes(x, out));
+      }
+      return out;
+    };
+    let injFormula = '';
+    let skeleton: flow.MbrContent | undefined;
+    const pack = (familyCode: string, extra: Record<string, unknown> = {}) =>
+      author.call(routes.designer.createFamily, { body: { familyCode, product: INJ, markets: ['IN', 'US'], formulaVersionId: injFormula, start: 'PACKAGING', printed: PRINTED, ...extra } });
+    beforeAll(async () => {
+      valueOf(await steward.call(md.enterProduct, { body: { productCode: INJ.code, strength: INJ.strength, productName: INJ.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+      for (const p of PRINTED) valueOf(await steward.call(md.enterMaterial, { body: { materialCode: p.material, materialName: `Demoject ${p.item.toLowerCase()}`, materialKind: 'PRINTED_PACKAGING', unit: '1', pharmacopoeia: 'NONE', changeReason: REASON } }));
+      valueOf(await steward.call(md.enterMaterial, { body: { materialCode: 'PM-7JP-VIAL', materialName: 'Glass vial 2 mL', materialKind: 'PRIMARY_PACKAGING', unit: '1', pharmacopoeia: 'NONE', changeReason: REASON } }));
+      await confirmErpPending(gmp);
+      injFormula = await approvedFormula('100000', { targetUnitMassMg: '564', otherBatchSizesUnits: ['50000'] }, LINES, INJ.code);
+    }, 120_000);
+
+    it('[PR-34][IN-21][PR-23][PR-32][PR-39][PR-31] the skeleton holds only what is binding: line clearance (211.130(e)), equipment status, the printed label, leaflet and carton with their artwork per market (211.125, 211.130), the counts verified by a second person and the packaging yield (211.103); no tablet packing block, no formula composition, no pinned formula', async () => {
+      const v = valueOf(await pack('DMT7JP-PK'));
+      const c = v.content as unknown as flow.MbrContent;
+      skeleton = c;
+      expect(c.header).toMatchObject({ edition: 'injectables', recordKind: 'PACKAGING', product: { code: INJ.code, dosageForm: 'Injection' }, marketSet: ['IN', 'US'] });
+      expect(c.header.batchSizes).toEqual([{ id: 'BS-100000U', quantity: { value: '100000', unit: '{unit}' } }, { id: 'BS-50000U', quantity: { value: '50000', unit: '{unit}' } }]);
+      expect(c.bom.map((b) => `${b.id} ${b.material} ${b.role}`)).toEqual(['BOM-LABEL PM-7JP-LBL PRINTED_COMPONENT', 'BOM-LEAFLET PM-7JP-LFT PRINTED_COMPONENT', 'BOM-CARTON PM-7JP-CTN PRINTED_COMPONENT']);
+      const all = nodes(c.procedure);
+      expect(all.map((n) => `${n.id}${n.block ? ` ${n.block.type}@${n.block.version}` : ''}`)).toEqual([
+        'S-PACK', 'p-pk-clear G-10@2', 'p-pk-status G-09@2', 'p-pk-printed G-21@1', 'p-pk-count G-04@1', 'p-pk-yield G-20@1',
+      ]);
+      const g21 = all.find((n) => n.id === 'p-pk-printed')?.config as { items: { id: string; artwork: Record<string, string>; coded?: boolean; limits: Record<string, string>; issue: { need: string } }[] };
+      expect(g21.items.map((i) => [i.id, i.artwork, i.issue.need, i.coded ?? false, i.limits])).toEqual(PRINTED.map((p) => [p.item, { IN: p.artwork, US: p.artwork }, '100000', false, {}]));
+      expect(all.find((n) => n.id === 'p-pk-count')?.records).toEqual(['unitsReceived', 'unitsPacked']);
+      expect(all.find((n) => n.id === 'p-pk-count')?.signatures?.check?.meaning).toBe('VERIFIED');
+      expect(c.parameters.every((p) => p.accuracyCheck === 'SECOND_PERSON')).toBe(true);
+      expect(c.yieldCheckpoints).toEqual([{ id: 'Y-PACK', name: 'Packaging yield', kind: 'YIELD', theoretical: 'unitsReceived', result: 'packYield', basis: 'COUNT' }]);
+      const { rows } = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from formulary.mbr_formula_pin where mbr_version_id = $1', [v.versionId]);
+      expect(rows[0]?.n).toBe('0');
+      // What is left to the author is asked by the validator: the firm's reconciliation limits (211.125(c)) and yield range.
+      const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+      const rules = new Set(report.findings.filter((f) => f.severity === 'ERROR').map((f) => f.rule));
+      expect(rules.has('G21-NO-LIMITS')).toBe(true);
+    });
+
+    it('[PR-37][PR-01] with PACK-CARTON and INJ-PACK-EXAM added from the library the packaging master closes (recipe.packaging_master_problem is null); the skeleton alone names the missing finished-pack examination', async () => {
+      // One family per product and batch sizes (INV-17): the skeleton made by the test above.
+      const c = skeleton;
+      if (!c) throw new Error('SETUP: the skeleton test did not run');
+      const problem = async (content: unknown): Promise<string | null> =>
+        (await gmp.db.admin.query<{ p: string | null }>("select recipe.packaging_master_problem('injectables', $1::jsonb) as p", [JSON.stringify(content)])).rows[0]?.p ?? null;
+      expect(await problem(c)).toMatch(/INJ-PACK-EXAM/);
+      const seed = (items: readonly { definition: library.BlockDefinition; exampleUse: unknown }[], code: string) => {
+        const s = items.find((x) => x.definition.code === code);
+        if (!s) throw new Error(`no seed ${code}`);
+        return s;
+      };
+      const added = [seed(PACKAGING_SEEDS, 'PACK-CARTON'), seed(INJECTABLE_SEEDS, 'INJ-PACK-EXAM')];
+      const full = structuredClone(c) as unknown as Record<string, unknown>;
+      const stage = ((full['procedure'] as { body: { children: { body: { children: unknown[] } }[] } }).body.children[0]) as { body: { children: unknown[] } };
+      for (const [i, s] of added.entries()) {
+        const p = library.libraryPhase(s.definition, `p-lib-${String(i)}`, 'HIGH') as unknown as Record<string, unknown>;
+        stage.body.children.push({ ...p, config: { ...(p['config'] as Record<string, unknown>), ...(s.exampleUse as Record<string, unknown>) } });
+      }
+      full['blockDefinitions'] = added.map((s) => s.definition);
+      expect(await problem(full)).toBeNull();
+    });
+
+    it('[PR-01][PR-32] the packaging start is the injectables edition\'s only (an engine need: tablets copy a packaging master, an API packs in its own record); each of LABEL, LEAFLET and CARTON is named once with a printed packaging material in effect', async () => {
+      expect(refusalOf(await create('DMT7JF-PKX', 'PACKAGING' as 'SKELETON', { printed: PRINTED })).code).toBe('DESIGNER_EDITION_START');
+      expect(refusalOf(await pack('DMT7JP-PK3', { printed: PRINTED.slice(0, 2) })).code).toBe('DESIGNER_PRINTED_ITEMS');
+      expect(refusalOf(await pack('DMT7JP-PK4', { printed: [...PRINTED, { item: 'FOIL', material: 'PM-7JP-LBL', artwork: 'A' }] })).code).toBe('DESIGNER_PRINTED_ITEMS');
+      expect(refusalOf(await pack('DMT7JP-PK5', { printed: PRINTED.map((p) => (p.item === 'LABEL' ? { ...p, material: 'PM-7JP-VIAL' } : p)) })).code).toBe('DESIGNER_PRINTED_ITEMS');
+      expect(refusalOf(await pack('DMT7JP-PK6', { printed: PRINTED.map((p) => (p.item === 'LABEL' ? { ...p, material: 'PM-NONE' } : p)) })).code).toBe('DESIGNER_PRINTED_ITEMS');
+    });
   });
 
   it('[PR-01][INV-17] API edition plan A0: an API (substance) family starts blank from the formula of a product whose dosage form is API or Intermediate; a tablet product cannot become one, nor an API product a tablets family, and the family list and the database name the edition', async () => {
