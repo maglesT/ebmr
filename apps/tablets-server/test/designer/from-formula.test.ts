@@ -333,6 +333,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
     };
     let injFormula = '';
     let skeleton: flow.MbrContent | undefined;
+    let skeletonVersionId = '';
     const pack = (familyCode: string, extra: Record<string, unknown> = {}) =>
       author.call(routes.designer.createFamily, { body: { familyCode, product: INJ, markets: ['IN', 'US'], formulaVersionId: injFormula, start: 'PACKAGING', printed: PRINTED, ...extra } });
     beforeAll(async () => {
@@ -347,6 +348,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
       const v = valueOf(await pack('DMT7JP-PK'));
       const c = v.content as unknown as flow.MbrContent;
       skeleton = c;
+      skeletonVersionId = v.versionId;
       expect(c.header).toMatchObject({ edition: 'injectables', recordKind: 'PACKAGING', product: { code: INJ.code, dosageForm: 'Injection' }, marketSet: ['IN', 'US'] });
       expect(c.header.batchSizes).toEqual([{ id: 'BS-100000U', quantity: { value: '100000', unit: '{unit}' } }, { id: 'BS-50000U', quantity: { value: '50000', unit: '{unit}' } }]);
       expect(c.bom.map((b) => `${b.id} ${b.material} ${b.role}`)).toEqual(['BOM-LABEL PM-7JP-LBL PRINTED_COMPONENT', 'BOM-LEAFLET PM-7JP-LFT PRINTED_COMPONENT', 'BOM-CARTON PM-7JP-CTN PRINTED_COMPONENT']);
@@ -356,6 +358,8 @@ describe('a new master from an approved formula (slice 7j)', () => {
       ]);
       const g21 = all.find((n) => n.id === 'p-pk-printed')?.config as { items: { id: string; artwork: Record<string, string>; coded?: boolean; limits: Record<string, string>; issue: { need: string } }[] };
       expect(g21.items.map((i) => [i.id, i.artwork, i.issue.need, i.coded ?? false, i.limits])).toEqual(PRINTED.map((p) => [p.item, { IN: p.artwork, US: p.artwork }, '100000', false, {}]));
+      // 211.130(e): the line is inspected before use, with no second person (lead ruling A5, I-1c2 P4b).
+      expect(all.find((n) => n.id === 'p-pk-clear')?.signatures?.check).toBeUndefined();
       expect(all.find((n) => n.id === 'p-pk-count')?.records).toEqual(['unitsReceived', 'unitsPacked']);
       expect(all.find((n) => n.id === 'p-pk-count')?.signatures?.check?.meaning).toBe('VERIFIED');
       expect(c.parameters.every((p) => p.accuracyCheck === 'SECOND_PERSON')).toBe(true);
@@ -366,6 +370,21 @@ describe('a new master from an approved formula (slice 7j)', () => {
       const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
       const rules = new Set(report.findings.filter((f) => f.severity === 'ERROR').map((f) => f.rule));
       expect(rules.has('G21-NO-LIMITS')).toBe(true);
+    });
+
+    it('[PR-34] the injectables packaging skeleton\'s line clearance (G-10) is performed with no checker, 211.130(e) asking for no second person (lead ruling A5); the validator raises no G10-NO-CHECKER for it, as it would for a tablets packaging master', async () => {
+      // One family per product and batch sizes (INV-17): the skeleton made by the first test.
+      const v = { versionId: skeletonVersionId, content: skeleton as unknown as Record<string, unknown> };
+      if (!skeleton) throw new Error('SETUP: the skeleton test did not run');
+      const clear = nodes(v.content).find((n) => n.id === 'p-pk-clear') as (Node & { signatures?: { perform?: { role: string }; check?: unknown } }) | undefined;
+      expect(clear?.block).toEqual({ type: 'G-10', version: '2' });
+      expect(clear?.signatures).toEqual({ perform: { role: 'PRODUCTION_OPERATOR' } });
+      const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+      expect(report.findings.filter((f) => f.rule === 'G10-NO-CHECKER')).toEqual([]);
+      // The same step in a tablets packaging master is refused (revised Schedule M Part VIII 7.1): the rule still holds there.
+      const tablets = { ...v.content, header: { ...(v.content as unknown as { header: Record<string, unknown> }).header, edition: 'tablets' } };
+      const tabletsReport = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: tablets } }));
+      expect(tabletsReport.findings.filter((f) => f.rule === 'G10-NO-CHECKER').map((f) => f.severity)).toEqual(['ERROR']);
     });
 
     it('[PR-37][PR-01] with PACK-CARTON and INJ-PACK-EXAM added from the library the packaging master closes (recipe.packaging_master_problem is null); the skeleton alone names the missing finished-pack examination', async () => {

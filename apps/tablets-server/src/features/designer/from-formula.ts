@@ -428,7 +428,9 @@ const packPhase = (id: string, name: string, type: string, version: string, conf
  * Injectables I-1c2 P3 (lead ruling option (a), 9 November 2026): an injectables packaging master from the formula holds
  * only what is binding; the author adds the library steps (PACK-CARTON, INJ-PACK-EXAM, which closes the record, and
  * PACK-SHIPPER if used). One stage:
- *  - G-10@2 line clearance before use (211.130(e); PR-34, IN-21), performed and verified: the block's own rule for now;
+ *  - G-10@2 line clearance before use (211.130(e); PR-34, IN-21), performed only, with no checker: 211.130(e) asks for
+ *    the inspection before use and no second person (lead ruling A5, I-1c2 P4b); site services clear the line without a
+ *    verifier since recipe-core 1886/1887 (CLEAR_UNCHECKED), and G10-NO-CHECKER holds only a tablets packaging master;
  *  - G-09@2 equipment status (211.67; PR-23);
  *  - G-21@1 with LABEL, LEAFLET and CARTON: material and artwork per market, issue and reconciliation (211.125,
  *    211.130(a) and (b); PR-32, PR-39). The need is the batch size in units and the allowance 0 (the block needs both to
@@ -483,7 +485,8 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
     binding: { rooms: [], equipment: [] },
     body: {
       kind: 'sequence', id: 'S-PACK-seq', children: [
-        packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}),
+        // 211.130(e): an inspection before use, no second person (lead ruling A5); the author may add a checker (PR-34).
+        packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } } }),
         packPhase('p-pk-status', 'Packaging line: equipment status', 'G-09', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
         packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH' }),
         packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'] }),
