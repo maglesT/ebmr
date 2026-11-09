@@ -8,7 +8,7 @@
 --
 --   recipe.packaging_completion_block  the row ('injectables', 'LIB-INJ-PACK-EXAM'): an injectables packaging master
 --       whose procedure holds a step of the library block INJ-PACK-EXAM, the examination of the finished packs at the
---       completion of finishing (21 CFR 211.134(c)), packs to the end (recipe.packaging_master_problem, recipe-core
+--       completion of finishing (21 CFR 211.134(b), (c)), packs to the end (recipe.packaging_master_problem, recipe-core
 --       0800), so its packaging orders can be planned and issued. A library step's block type is 'LIB-<code>'
 --       (recipe-core 1810, 1873).
 --   injectables.grel_edition_items(lot, market)  the edition's G-REL items, registered for INJECTABLES through
@@ -19,10 +19,13 @@
 --       lot of another edition answers one RED item (fails closed), as the tablets and substance hooks do. No
 --       posted-quantity item: the tablets one counts TB-24 shippers, and its rule is a default (D-3b-6), not a clause.
 --     Group 9 stays RED in the core gate until the edition answers it (recipe-core 0781, G9.PACK_EXAMINATION; PR-37).
---       E.PACK_EXAMINATION  P ran at least one INJ-PACK-EXAM step and each that ran is COMPLETED (211.134(c): a
---                           representative sample examined at completion and the result recorded). A unit with a wrong
---                           or missing label is a critical breach whose exception keeps the step from completing until it
---                           is resolved. No examination ran is RED.
+--       E.PACK_EXAMINATION  211.134(b) and (c): P ran at least one INJ-PACK-EXAM step (a representative sample examined
+--                           for correct labelling at the completion of finishing, the result in the record) and each that
+--                           ran is COMPLETED. An examination that found units with a wrong or missing label failed: its
+--                           count is recorded as found, its critical breach (LIB_LIMIT_BREACH) goes to QA, and the item
+--                           stays RED until that exception is dispositioned and the deviation linked to it is CLOSED
+--                           (tab.grel_unresolved, as the tablets end-of-run examination; lead ruling, 9 November 2026).
+--                           No examination ran is RED.
 --
 -- PL/pgSQL, SECURITY DEFINER, search_path pinned with pg_temp last (ADR 0016). PL/pgSQL because a sandbox database is
 -- migrated without the tablets namespace, and only a SQL function's body is checked when it is created.
@@ -38,6 +41,8 @@ language plpgsql stable security definer set search_path = pg_catalog, injectabl
 declare
   v_probs jsonb := '[]'::jsonb;
   v_any   boolean := false;
+  v_wrong numeric;
+  v_unres jsonb;
   k       text;
   s       jsonb;
 begin
@@ -45,6 +50,17 @@ begin
     v_any := true;
     if s ->> 'status' is distinct from 'COMPLETED' then
       v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the finished-pack examination %s is %s, not COMPLETED', k, coalesce(s ->> 'status', 'of no status')), tab.grel_batch_ev(p_order)));
+      continue;
+    end if;
+    -- The units with a wrong or missing label the examination recorded (a whole number, checked when it was recorded).
+    select coalesce(sum((e -> 'data' ->> 'wrongLabel')::numeric), 0) into v_wrong
+      from jsonb_array_elements(tab.grel_entries(p_order, k, 'exam')) e
+     where e -> 'data' ->> 'wrongLabel' ~ '^[0-9]+$';
+    if v_wrong > 0 then
+      v_unres := tab.grel_unresolved(array[p_order], array['LIB_LIMIT_BREACH'], k);
+      if jsonb_array_length(v_unres) > 0 then
+        v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the finished-pack examination %s found %s unit(s) with a wrong or missing label, not resolved: %s', k, trim_scale(v_wrong), v_unres -> 0 ->> 'problem'), v_unres -> 0 -> 'evidence'));
+      end if;
     end if;
   end loop;
   if not v_any then

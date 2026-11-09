@@ -193,6 +193,37 @@ describe('Injectables I-1c2: one vial batch from catalogue blocks to a released 
     expect(rows).toEqual([{ edition: 'INJECTABLES', status: 'QUARANTINE' }]);
   });
 
+  it('[PR-37][IN-17] a finished-pack examination that finds wrong labels records the count as found (not refused); the step waits for QA\'s disposition, and E.PACK_EXAMINATION stays RED while the deviation QA raised for it is not closed', async () => {
+    const issuer = await gmp.asPersona('issuer');
+    const orderNo = await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), packaging, SIZE);
+    const planned = valueOf(await issuer.call(routes.planning.planPackagingOrder, { body: { familyId: pack.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE, erpOrder: orderNo, parentBatchId: batch.batchId } }));
+    await issueBatch(gmp, planned.batchId, { code: 'PACKING_PLAN', text: `Second packaging order of batch ${batch.batchNumber}` });
+    const exam = async () => (await gmp.db.admin.query<{ r: { status: string; problem: string | null } }>('select injectables.grel_pack_examination($1) as r', [planned.batchId])).rows[0]!.r;
+    const d = await driverOf(gmp, planned.batchId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-exam@' });
+    const [entry] = library.nominalEntries(EXAM.definition, EXAM.exampleUse as never);
+    const { kind, ...data } = entry!;
+    await d.ok('operator1', libraryEntry('p-exam@', kind, { ...data, wrongLabel: '2', printedBatch: batch.batchNumber, printedExpiry: '10/2028' }));
+    const state = (await gmp.db.admin.query<{ s: { entries: Record<string, { data: Json }>; exceptions: Record<string, { type: string }> } }>('select state as s from recipe.execution_state where batch_id = $1', [planned.batchId])).rows[0]!.s;
+    expect(Object.values(state.entries).map((e) => e.data['wrongLabel'])).toEqual(['2']);
+    const breaches = Object.entries(state.exceptions).filter(([, x]) => x.type === 'LIB_LIMIT_BREACH').map(([id]) => id);
+    expect(breaches).toHaveLength(1);
+    const breach = breaches[0] ?? '';
+    expect((await exam()).status).toBe('RED');
+    // A critical breach needs a deviation (PR-49): QA raises one and dispositions the exception under it. The step then
+    // completes, and the gate stays RED while the deviation is open.
+    const qaInv = await gmp.asPersona('qaInvestigator');
+    const dev = valueOf(await qaInv.call(routes.quality.raiseDeviation, { body: { kind: 'DEVIATION', title: `Wrong labels found at the finished-pack examination of ${planned.batchNumber}`, classification: 'MAJOR', riskRationale: 'Two units of the sample bore a wrong label; the order is held until the investigation concludes.' } }));
+    valueOf(await qaInv.call(routes.quality.linkDeviation, { params: { deviationId: dev.deviationId }, body: { subjectKind: 'BATCH', subjectId: planned.batchId } }));
+    await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: breach, deviationRef: dev.ref });
+    await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: breach, outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the order is held until the investigation concludes` });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-exam@' });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: 'p-exam@', meaning: 'VERIFIED' });
+    const after = await exam();
+    expect(after.status).toBe('RED');
+    expect(after.problem).toMatch(new RegExp(`found 2 unit\\(s\\) with a wrong or missing label, not resolved: the deviation ${dev.ref} of exception .+, not CLOSED$`));
+  });
+
   it('[IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the injectables edition\'s items, the loads packed vouched for, and the authorised person releases the lot', async () => {
     const items = await releaseApiLot(gmp, lotId, PRODUCT.code, [batch, order], { quantity: '10', reserve: '20', unit: '1' });
     const edition = Object.fromEntries(items.filter((i) => i.id.startsWith('E.')).map((i) => [i.id, `${i.group} ${i.status}`]));

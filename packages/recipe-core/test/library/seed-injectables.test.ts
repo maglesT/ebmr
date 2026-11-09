@@ -251,18 +251,22 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(run('10251').exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[PR-37] the finished-pack examination at completion records the units examined and the label as read on a unit; one unit with a wrong or missing label is an exception that keeps the step from completing, and it is the block\'s only refusal', () => {
+  it('[PR-37] the finished-pack examination at completion takes the sample the master sets, records the label as read on a unit and every count as found; a unit with a wrong or missing label fails it (an exception for QA), and it refuses nothing at entry', () => {
     const item = byCode('INJ-PACK-EXAM');
     expect(item.definition.category).toBe('PACKAGING');
+    // 211.134(b): the sample size is the master's (a count slot), not a number of the block.
+    expect(fieldOf(item, 'sample')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'examUnits' });
     expect(fieldOf(item, 'wrongLabel')).toMatchObject({ type: 'NUMBER', limitSlot: 'wrongLabel', critical: true });
     for (const id of ['printedBatch', 'printedExpiry']) expect(fieldOf(item, id).type).toBe('TEXT');
-    // Owner rule (flexibility within compliance): no other field is critical and none expects an answer.
+    // Owner rule (flexibility within compliance): no other field is judged and none expects an answer.
     const fields = item.definition.sections.flatMap((s) => s.fields);
-    expect(fields.filter((f) => 'critical' in f && f.critical === true).map((f) => f.id)).toEqual(['wrongLabel']);
+    expect(fields.filter((f) => 'limitSlot' in f && f.limitSlot !== undefined).map((f) => f.id)).toEqual(['wrongLabel']);
     expect(fields.filter((f) => 'expected' in f)).toEqual([]);
     expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     expect(judgedRun(item, {}).exceptions).toEqual([]);
-    const wrong = judgedRun(item, { exam: { wrongLabel: '1' } });
+    // Two wrong labels are recorded as found and raise the exception that keeps the step from completing until QA
+    // decides; the entry itself is not refused.
+    const wrong = judgedRun(item, { exam: { wrongLabel: '2' } });
     expect(wrong.exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(wrong.status).not.toBe('COMPLETED');
   });
