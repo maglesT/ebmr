@@ -30,6 +30,7 @@ implemented_by:
   guards:
     - "G-20: a computed yield outside its limits raises YIELD_OUT_OF_LIMITS, which needs a deviation and blocks the stage sign-off; a yield step needs a verifier (G20-NO-VERIFIER)"
 tests:
+  - "apps/tablets-server/test/designer/from-formula.test.ts > a new master from an approved formula (slice 7j) > injectables I-1c2 P3: a packaging master from the formula (lead ruling option (a)) > [PR-34][IN-21][PR-23][PR-32][PR-39][PR-31] the skeleton holds only what is binding: line clearance (211.130(e)), equipment status, the printed label, leaflet and carton with their artwork per market (211.125, 211.130), the counts verified by a second person and the packaging yield (211.103); no tablet packing block, no formula composition, no pinned formula"
   - "apps/tablets-server/test/designer/new-stage.test.ts > a new stage in the designer (demo finding D-1) > [DI-34][PR-03][PR-31] edition injectables, dosage form Injection: a new stage with its yield step adds no finding"
   - "apps/tablets-server/test/designer/new-stage.test.ts > a new stage in the designer (demo finding D-1) > [DI-34][PR-03][PR-31] edition substance, dosage form API: a new stage with its yield step adds no finding"
   - "apps/tablets-server/test/designer/new-stage.test.ts > a new stage in the designer (demo finding D-1) > [DI-34][PR-03][PR-31] edition tablets, dosage form Hard capsule: a new stage with its yield step adds no finding"

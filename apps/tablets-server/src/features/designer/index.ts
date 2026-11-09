@@ -519,7 +519,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
               whatYouCanDo: ['Correct the product on Master data, Products and materials, and have QA confirm it.'],
             });
           }
-          const materials = await materialMasters(c, chosen.lines.map((l) => l.materialCode));
+          // I-1c2 P3: a packaging start names its printed materials, which are pinned from the material master too.
+          const printed = start === 'PACKAGING' ? (body.printed ?? []) : [];
+          const materials = await materialMasters(c, [...chosen.lines.map((l) => l.materialCode), ...printed.map((p) => p.material)]);
           const materialDocuments = await materialDocumentsInForce(c, chosen.lines.map((l) => l.materialCode), await siteToday(c));
           let content: flow.MbrContent;
           const copied: CopyReport = { renamed: [] };
@@ -527,7 +529,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             content = contentFromFormula(
               base,
               { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments },
-              { familyCode: body.familyCode, markets: body.markets, start, edition },
+              { familyCode: body.familyCode, markets: body.markets, start, edition, ...(start === 'PACKAGING' ? { printed } : {}) },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
               copied,
@@ -552,13 +554,15 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             });
           }
           const familyId = await lifecycle.familyForNewDraft(c, lifecycle.familyOf(contained));
-          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : 'the required skeleton';
+          const how = start === 'COPY' ? `a copy of master version ${body.copyOfVersionId ?? ''}` : start === 'BLANK' ? 'a blank master' : start === 'PACKAGING' ? 'the packaging skeleton' : 'the required skeleton';
           // D-5: a copy says which material names it renamed; every other name is the source's, for the author to check.
           const names = start !== 'COPY' ? '' : copied.renamed.length > 0
             ? ` Names renamed after this formula's materials: ${copied.renamed.map((r) => `${r.from} -> ${r.to}`).join('; ')}. Every other name is the source's: check them in the draft.`
             : " No names were renamed: every name is the source's; check them in the draft.";
           const v = await lifecycle.createVersion(c, familyId, contained, `Created from formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)} as ${how}, without a template.${names}`);
-          await formula.pinFormula(c, v.versionId, chosen.versionId);
+          // A packaging master carries no formula composition (its bill of materials is the printed items), so no formula
+          // is pinned to it, as with a packaging copy (I-1c2 P3).
+          if (start !== 'PACKAGING') await formula.pinFormula(c, v.versionId, chosen.versionId);
           return { versionId: v.versionId };
         }),
       `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,

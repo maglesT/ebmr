@@ -7,6 +7,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { example } from '@ebmr/api-contract/examples';
 import type { FetchLike } from '@ebmr/api-contract';
 import { setTransport } from '../../src/api/client.ts';
 import { createFixtureFetch } from '../../src/api/fixture-fetch.ts';
@@ -82,5 +83,42 @@ describe('new master record from a template', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create the family and its draft' }));
     await waitFor(() => expect(created).toHaveLength(2));
     expect((created[1] as { batchSizes: unknown }).batchSizes).toEqual([{ quantity: '120.000', unit: 'kg' }]);
+  });
+  it('[PR-01][PR-32] injectables I-1c2 P3: "an injectables packaging master" from the formula asks for the printed material and artwork of LABEL, LEAFLET and CARTON and sends them with the PACKAGING start', async () => {
+    const created: unknown[] = [];
+    setTransport(
+      createFixtureFetch(
+        {
+          'designer.templates': { templates: [TEMPLATE] },
+          'designer.formulaChoice': example('designer-formula-choice'),
+          'designer.createFamily': ({ body }: { body: unknown }) => {
+            created.push(body);
+            return { status: 422, body: { refusal: { code: 'X', kind: 'INVALID_INPUT', whatHappened: 'Stopped here by the test.', why: '', controls: [], whatYouCanDo: [], whoCanHelp: [] }, correlationId: 'c', retryable: false } };
+          },
+        },
+        { installation: 'GMP' },
+      ),
+    );
+    renderRouted(() => <NewFromTemplate />);
+    await userEvent.click(await screen.findByRole('radio', { name: /an injectables packaging master/ }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Formula product' }), 'INJ-1');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Formula strength' }), '10 mg');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Formula batch size (units)' }), '100000');
+    await userEvent.click(screen.getByRole('button', { name: 'Choose this product' }));
+    await screen.findByTestId('formula-bom');
+    const create = screen.getByRole('button', { name: 'Create the family and its draft' });
+    // Incomplete until every printed item names its material and artwork.
+    expect(create.hasAttribute('disabled') || create.getAttribute('aria-disabled') === 'true' || create.hasAttribute('data-disabled')).toBe(true);
+    for (const item of ['LABEL', 'LEAFLET', 'CARTON']) {
+      await userEvent.type(screen.getByRole('textbox', { name: `Printed material for ${item}` }), `PM-${item}`);
+      await userEvent.type(screen.getByRole('textbox', { name: `Artwork version for ${item}` }), `ART-${item}-1`);
+    }
+    await userEvent.click(create);
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(created[0]).toMatchObject({
+      start: 'PACKAGING',
+      printed: ['LABEL', 'LEAFLET', 'CARTON'].map((item) => ({ item, material: `PM-${item}`, artwork: `ART-${item}-1` })),
+    });
+    expect(routes.designer.createFamily.body?.safeParse(created[0]).success).toBe(true);
   });
 });

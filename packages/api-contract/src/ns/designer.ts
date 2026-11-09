@@ -245,7 +245,10 @@ export const designer = {
        * header, the bill of materials and a dispensing stage's clearance and balance status) or COPY (the procedure of the
        * approved master `copyOfVersionId`). The header, the batch sizes and the bill of materials come from the formula.
        */
-      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY']).optional(),
+      // Injectables I-1c2 P3: PACKAGING, an injectables packaging master from the formula's product and batch sizes (in
+      // units): line clearance, equipment status, the printed items LABEL, LEAFLET and CARTON (`printed`), the counts and
+      // the packaging yield; the author adds the library's packing steps.
+      start: z.enum(['SKELETON', 'BLANK', 'COPY', 'PACKAGING_COPY', 'PACKAGING']).optional(),
       /**
        * Injectables plan I-0: the family's edition. An injectables family starts from a formula with BLANK or SKELETON
        * (I-1c: the dispensing stage alone; templates and copies are Tablets procedures) and its product's dosage form must

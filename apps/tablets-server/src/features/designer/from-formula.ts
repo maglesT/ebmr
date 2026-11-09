@@ -27,7 +27,14 @@ import { bomOverage, withOverageQuantity } from './formula-choice.ts';
 import { materialReference, type MaterialMaster } from './material-refs.ts';
 import type { MbrTemplate } from './templates/index.ts';
 
-export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY';
+export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING';
+
+/** A printed item of a packaging skeleton (I-1c2 P3): the product's own printed material and its artwork version. */
+export interface PrintedItem {
+  readonly item: string;
+  readonly material: string;
+  readonly artwork: string;
+}
 
 export interface FormulaFamilyRequest {
   familyCode: string;
@@ -35,6 +42,8 @@ export interface FormulaFamilyRequest {
   start: FormulaStart;
   /** Injectables plan I-0: the family's edition (default tablets). */
   edition?: flow.Edition;
+  /** PACKAGING (I-1c2 P3): the printed items LABEL, LEAFLET and CARTON. */
+  printed?: readonly PrintedItem[];
 }
 
 export interface FormulaSource {
@@ -313,12 +322,18 @@ export const EDITION_START: Readonly<Record<flow.Edition, {
   readonly skeleton: 'FULL' | 'DISPENSING' | null;
   readonly releaseForPacking: boolean;
   readonly unit?: string;
-  /** Why the edition refuses a start it does not list, and the library its steps come from; null where every start is listed. */
+  /** Why the edition refuses a start it does not list, and the library its steps come from. */
   readonly refusal: { readonly why: string; readonly library: string } | null;
 }>> = {
-  tablets: { starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false, refusal: null },
+  tablets: {
+    starts: ['SKELETON', 'BLANK', 'COPY'], skeleton: 'FULL', releaseForPacking: false,
+    refusal: { why: 'A tablets packaging master starts as a copy of an approved packaging master; the packaging skeleton is the injectables edition\'s.', library: 'tablets' },
+  },
+  // I-1c2 P3 (lead, 9 November 2026): PACKAGING is offered by the editions that have a packaging skeleton, injectables
+  // only. Tablets keep PACKAGING_COPY and an API packs inside its own record: an engine need (no skeleton of theirs
+  // exists), not a compliance refusal.
   injectables: {
-    starts: ['SKELETON', 'BLANK'], skeleton: 'DISPENSING', releaseForPacking: true, unit: 'unit',
+    starts: ['SKELETON', 'BLANK', 'PACKAGING'], skeleton: 'DISPENSING', releaseForPacking: true, unit: 'unit',
     refusal: { why: 'An injectables master starts blank or from the dispensing skeleton: the templates and copies are tablet procedures.', library: 'injectables' },
   },
   substance: {
@@ -381,6 +396,103 @@ function dispensingOnly(base: MbrTemplate, src: FormulaSource, req: FormulaFamil
   t.timeConstraints = [];
   t.intermediates = [];
   t.references = t.references.filter((r) => !['SOP-BLEND-002', 'VR-BLEND-01', 'EQC-BLENDER', 'HS-PCM-01'].includes(r.id));
+  return t;
+}
+
+/** The printed items of an injectables packaging master (lead P1 ruling: G-21 with these three covers labelling). */
+export const PACKAGING_ITEMS = ['LABEL', 'LEAFLET', 'CARTON'] as const;
+
+/** The request's printed items: each of PACKAGING_ITEMS once, a printed packaging material in effect (PR-32). */
+function checkPrinted(src: FormulaSource, req: FormulaFamilyRequest): PrintedItem[] {
+  const printed = req.printed ?? [];
+  const missing = PACKAGING_ITEMS.filter((i) => !printed.some((p) => p.item === i));
+  if (missing.length > 0) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Name the product's printed material and artwork version for ${missing.join(', ')}.`, ['PR-32']);
+  const other = printed.filter((p, i) => !(PACKAGING_ITEMS as readonly string[]).includes(p.item) || printed.findIndex((q) => q.item === p.item) !== i);
+  if (other.length > 0) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `The printed items are ${PACKAGING_ITEMS.join(', ')}, each once; ${other.map((p) => p.item).join(', ')} is not one of them or is named twice.`, ['PR-32']);
+  for (const p of printed) {
+    if (!/^[!-~]{1,64}$/.test(p.artwork)) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `The artwork version of ${p.item} is printable text of 1 to 64 characters without spaces.`, ['PR-32']);
+    const m = src.materials.find((x) => x.code === p.material);
+    if (!m) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is not in the material master in effect.`, ['PR-32']);
+    if (m.kind !== 'PRINTED_PACKAGING') throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is ${m.kind}, not printed packaging.`, ['PR-32']);
+  }
+  return PACKAGING_ITEMS.map((i) => printed.find((p) => p.item === i) as PrintedItem);
+}
+
+const packPhase = (id: string, name: string, type: string, version: string, config: Record<string, unknown>, extra: Record<string, unknown> = {}): flow.FlowNode =>
+  ({
+    kind: 'phase', id, name, block: { type, version }, config, records: [], computes: [], reads: [], consumes: [], produces: [], uses: [], equipment: [],
+    signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } }, significant: true, riskClass: 'MEDIUM', ...extra,
+  }) as unknown as flow.FlowNode;
+
+/**
+ * Injectables I-1c2 P3 (lead ruling option (a), 9 November 2026): an injectables packaging master from the formula holds
+ * only what is binding; the author adds the library steps (PACK-CARTON, INJ-PACK-EXAM, which closes the record, and
+ * PACK-SHIPPER if used). One stage:
+ *  - G-10@2 line clearance before use (211.130(e); PR-34, IN-21), performed and verified: the block's own rule for now;
+ *  - G-09@2 equipment status (211.67; PR-23);
+ *  - G-21@1 with LABEL, LEAFLET and CARTON: material and artwork per market, issue and reconciliation (211.125,
+ *    211.130(a) and (b); PR-32, PR-39). The need is the batch size in units and the allowance 0 (the block needs both to
+ *    parse; the author sets the firm's own); no reconciliation limits, so the validator asks for the firm's (211.125(c),
+ *    G21-NO-LIMITS). Not coded on the line: an author who codes adds the G-23 destruction step (G21-DESTRUCTION-STEP);
+ *  - G-04 counts of the units received from the bulk and packed, independently verified by a second person, and G-20
+ *    with the packaging yield (211.103: packaging is a phase with its own actual and theoretical yield). Its limits are
+ *    left to the author's validated range (no range is invented).
+ * No formula composition: the batch sizes are the formula's in units and the bill of materials the printed items only.
+ */
+function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFamilyRequest, markets: string[]): flow.MbrContent {
+  const printed = checkPrinted(src, req);
+  const t = structuredClone(base.content);
+  const c = src.chosen;
+  const units = src.target?.batchSizesUnits ?? [c.batchSizeUnits];
+  const artwork = (v: string): Record<string, string> => Object.fromEntries(markets.map((m) => [m, v]));
+  const need = c.batchSizeUnits;
+  const like = (t.procedure.body as flow.SequenceNode).children.find((n) => n.id === 'S-DISP') as flow.StageNode;
+  const count = (id: string, name: string): flow.Parameter =>
+    ({ id, name, valueType: 'DECIMAL', unit: '{unit}', precision: { kind: 'DECIMALS', digits: 0 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'MANUAL', accuracyCheck: 'SECOND_PERSON' });
+  t.header = {
+    family: req.familyCode,
+    title: `${src.product.name} ${c.strength}: packaging`,
+    edition: req.edition ?? 'injectables',
+    recordKind: 'PACKAGING',
+    product: { code: c.productCode, name: src.product.name, strength: c.strength, dosageForm: src.product.dosageForm },
+    batchSizes: units.map((u) => ({ id: `BS-${u}U`, quantity: { value: u, unit: '{unit}' } })),
+    marketSet: markets,
+    predicates: {},
+    variants: [],
+  };
+  t.inputs = [];
+  t.bom = printed.map((p) => ({ id: `BOM-${p.item}`, material: p.material, role: 'PRINTED_COMPONENT', quantity: { value: need, unit: '1' } }));
+  t.intermediates = [];
+  t.parameters = [count('unitsReceived', 'Units received from the bulk (counted)'), count('unitsPacked', 'Units packed in good packs')];
+  t.calculations = [{ id: 'packYield', name: 'Packaging yield', expression: 'yield(unitsPacked, unitsReceived)', output: { valueType: 'DECIMAL', unit: '%', semanticTag: 'yield' }, criticality: 'CRITICAL', riskClass: 'HIGH' }];
+  t.yieldCheckpoints = [{ id: 'Y-PACK', name: 'Packaging yield', kind: 'YIELD', theoretical: 'unitsReceived', result: 'packYield', basis: 'COUNT' }];
+  t.goldenCases = [{ id: 'G-PACK', description: 'Packaging yield of 990 of 1,000 units', inputs: { unitsReceived: { value: '1000', unit: '{unit}' }, unitsPacked: { value: '990', unit: '{unit}' } }, expected: { packYield: { value: '99.00', unit: '%' } } }];
+  t.timeConstraints = [];
+  t.riskReductions = [];
+  t.references = [
+    ...t.references.filter((r) => ['SOP-CLEAN-003', 'QRM-SCALE'].includes(r.id)),
+    ...printed.map((p) => materialReference(src.materials.find((m) => m.code === p.material) as MaterialMaster)),
+  ];
+  const g21 = {
+    items: printed.map((p) => ({ id: p.item, material: p.material, artwork: artwork(p.artwork), unit: '1', issue: { need, allowancePercent: '0' }, counting: 'MANUAL_COUNT', limits: {} })),
+  };
+  const stage = {
+    ...like,
+    id: 'S-PACK',
+    name: 'Labelling and packing',
+    binding: { rooms: [], equipment: [] },
+    body: {
+      kind: 'sequence', id: 'S-PACK-seq', children: [
+        packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}),
+        packPhase('p-pk-status', 'Packaging line: equipment status', 'G-09', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
+        packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH' }),
+        packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'] }),
+        packPhase('p-pk-yield', 'Packaging yield', 'G-20', '1', {}, { computes: ['packYield'], yieldCheckpoint: 'Y-PACK', significant: false }),
+      ],
+    },
+  } as unknown as flow.StageNode;
+  (t.procedure.body as flow.SequenceNode).children = [stage];
+  t.procedure = { ...t.procedure, id: `PROC-${c.productCode}-PK`, name: `${src.product.name} ${c.strength}: packaging` };
   return t;
 }
 
@@ -537,5 +649,6 @@ export function contentFromFormula(base: MbrTemplate, src: FormulaSource, req: F
     return parsed(copy(copySource, src, req, markets, report));
   }
   if (req.start === 'BLANK') return parsed(blank(base, src, req, markets));
+  if (req.start === 'PACKAGING') return parsed(packagingSkeleton(base, src, req, markets));
   return parsed(EDITION_START[req.edition ?? 'tablets'].skeleton === 'DISPENSING' ? dispensingOnly(base, src, req, markets, timeSystem) : skeleton(base, src, req, markets, timeSystem));
 }
