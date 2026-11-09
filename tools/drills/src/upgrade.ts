@@ -94,6 +94,11 @@ export const ADDED_ONLY_ALLOWED: Readonly<Record<string, string>> = {
   '"records"."retention_rule"': 'the rows of the retention rule set a release publishes (insert-only; the rows of earlier sets must be unchanged)',
   '"records"."retention_rule_set"': 'retention rule sets: a release publishes a new version (earlier versions must be unchanged)',
   '"report"."view_registry"': 'registry of the report views (insert-only; a release adds its new views)',
+  // Injectables I-1c2 P3b (recipe-core 1886, 1887): a release publishes a new state machine version and its guards; a
+  // published version is immutable, and an aggregate keeps the version it was created with.
+  '"platform"."machine_version"': 'state machine versions: a release publishes a new version (earlier versions must be unchanged)',
+  '"platform"."machine_transition"': 'the transitions of a state machine version a release publishes (earlier versions\' rows must be unchanged)',
+  '"platform"."state_guard"': 'registry of the state machine guards: a release registers the guards its new machine versions name',
 };
 
 export interface TableResult {
