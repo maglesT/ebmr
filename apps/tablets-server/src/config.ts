@@ -140,6 +140,13 @@ export const EnvSchema = z.object({
   EBMR_OIDC_CODES_CLAIM: z.string().min(1).default('permissions'),
   /** Phase B slice 3: the platform's master_data database, read through its versioned views (MASTER_DATA_DATABASE_URL). */
   EBMR_MASTER_DATA_URL: z.string().optional(),
+  /**
+   * Platform slice 2: the Deviations database, read through report.deviation_v1; optional. The platform's apply sets this
+   * name (databsee #64, the manifest's reads {"deviations": ["deviation_v1"]}); set: "linked" mode.
+   */
+  DEVIATIONS_DATABASE_URL: z.string().optional(),
+  /** Derived from DEVIATIONS_DATABASE_URL on the platform (verified TLS with EBMR_DB_CA_FILE), as for master data. */
+  EBMR_DEVIATIONS_URL: z.string().optional(),
 });
 
 /** What the environment configures (parseConfig). */
@@ -198,6 +205,8 @@ export interface EnvConfig {
   oidc: { issuer: string; clientId: string; clientSecret: string | null; redirectUri: string; codesClaim: string } | null;
   /** Phase B slice 3: the master_data database (EBMR_MASTER_DATA_URL), or null (a platform build then refuses to start). */
   masterDataUrl: string | null;
+  /** Platform slice 2: the Deviations link (DEVIATIONS_DATABASE_URL), or null: standalone deviation records, unchanged. */
+  deviationsUrl: string | null;
 }
 
 /** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
@@ -262,10 +271,13 @@ export function platformEnv(env: Readonly<Record<string, string | undefined>>): 
   const authn = env['EBMR_AUTHN_PASSWORD'];
   const analytics = env['EBMR_ANALYTICS_PASSWORD'];
   const master = env['MASTER_DATA_DATABASE_URL'];
+  const deviations = env['DEVIATIONS_DATABASE_URL'];
   const derived: Record<string, string | undefined> = {
     EBMR_DATABASE: database,
     // Phase B slice 3: the master_data database, as ebmr_app (the platform's link), on verified TLS like the own one.
     EBMR_MASTER_DATA_URL: master ? verifiedOf(master, ca) : undefined,
+    // Platform slice 2: the Deviations database, as this product's own login (the platform's link), verified TLS too.
+    EBMR_DEVIATIONS_URL: deviations ? verifiedOf(deviations, ca) : undefined,
     EBMR_DB_APP_URL: verified(),
     EBMR_DB_AUTHN_URL: authn ? verified('ebmr_authn', authn) : undefined,
     EBMR_DB_ANALYTICS_URL: analytics ? verified('ebmr_analytics', analytics) : undefined,
@@ -315,7 +327,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   // Slice 7d (P7D-6; DI-13, security-baseline.md a): a production database URL must authenticate the server over TLS
   // (sslmode=verify-full; verify-ca and require pass with a warning), as the kernel's baseline rules say.
   if (production) {
-    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL, EBMR_HARDENING_DB_URL: e.EBMR_HARDENING_DB_URL, EBMR_MASTER_DATA_URL: e.EBMR_MASTER_DATA_URL };
+    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL, EBMR_DB_REPORT_URL: e.EBMR_DB_REPORT_URL, EBMR_HARDENING_DB_URL: e.EBMR_HARDENING_DB_URL, EBMR_MASTER_DATA_URL: e.EBMR_MASTER_DATA_URL, EBMR_DEVIATIONS_URL: e.EBMR_DEVIATIONS_URL ?? e.DEVIATIONS_DATABASE_URL };
     const socket = { allowLocalSocket: e.EBMR_DB_ALLOW_LOCAL_SOCKET };
     const refused = Object.entries(urls).flatMap(([name, url]) => (url ? continuity.checkDatabaseUrl(url, name, socket).filter((f) => f.severity === 'ERROR') : []));
     if (refused.length > 0) throw new ConfigError(`EBMR_ENV=production refuses a database connection without verified TLS: ${refused.map((f) => `${f.code} ${f.path}: ${f.message}`).join('; ')} (DI-13)`);
@@ -386,6 +398,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     hardeningDbUrl: e.EBMR_HARDENING_DB_URL ?? e.EBMR_PG_ADMIN_URL ?? null,
     oidc: oidcOf(e, production),
     masterDataUrl: e.EBMR_MASTER_DATA_URL ?? null,
+    deviationsUrl: e.EBMR_DEVIATIONS_URL ?? e.DEVIATIONS_DATABASE_URL ?? null,
     keysDir: e.EBMR_KEYS_DIR ?? (e.EBMR_DEMO_KEYS_FILE ? dirname(e.EBMR_DEMO_KEYS_FILE) : null),
     backup: e.EBMR_BACKUP_DIR
       ? {

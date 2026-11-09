@@ -22,10 +22,11 @@
  *                AUTHORISE_REQUEST    reprocessing_request        REPROCESSING_AUTHORISED  recipe.authorise_reprocessing_request
  */
 import type pg from 'pg';
-import type { SignableAction } from '@ebmr/api-contract';
+import { DEVIATION_ACTS_WHEN_LINKED, type SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { DryRunOutcome, SignableActionHandler } from '../../platform/ports.ts';
 import { dbActHandler, refusedOutcome, type ActTarget } from '../esig/db-acts.ts';
+import { isBatchDeviation } from '../../platform/deviations.ts';
 
 type QualityAct = Extract<SignableAction, { kind: 'QUALITY_ACT' }>;
 type LotDecision = Extract<SignableAction, { kind: 'LOT_DECISION' }>;
@@ -105,6 +106,18 @@ export function qualityActHandler(app: AppContext): SignableActionHandler<Qualit
       return { ...qualityTarget(a), aggregateId: rows[0]?.id ?? qualityTarget(a).aggregateId };
     },
     async precheck(client, _ctx, a) {
+      // Platform slice 2 (lead ruling, subject-scoped): with a Deviations link, a batch deviation's impact sign-off,
+      // conclusion and closure are signed in Deviations; a lot's OOS record and other local records still sign here.
+      if ((app.platform?.deviations ?? null) !== null && DEVIATION_ACTS_WHEN_LINKED.includes(a.act) && (await isBatchDeviation(client, a.subjectId))) {
+        return refusedOutcome(
+          410,
+          'DISCONNECTED',
+          'Batch deviations are managed in Deviations; link its number.',
+          `${a.act}: a deviation of a batch is concluded and closed in the Deviations product in this installation; nothing was signed.`,
+          ['DI-17'],
+          ['Open the deviation in the Deviations product.'],
+        );
+      }
       const refusal = inputRefusal(a);
       if (refusal || a.act !== 'LOT_RETEST') return refusal;
       // The signed aggregate names the instant and the results exactly as the database does (0762), or nothing is signed.

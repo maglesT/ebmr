@@ -11,6 +11,7 @@ import type { CoreSignon } from './auth/core-signon.ts';
 import type { DeviceIdentityProvider } from './auth/device-proof.ts';
 import type { Pools } from './db/pools.ts';
 import type { MasterData } from './master-data.ts';
+import type { Deviations } from './deviations.ts';
 import type { ReadDatabase } from './db/read.ts';
 import type { GuidanceCatalogue } from './http/guidance.ts';
 import type { OperationsRuntime } from './operations.ts';
@@ -58,7 +59,8 @@ export interface AppContext {
   /**
    * Phase B slice 2: the platform build (iam.platform_build(), set by the platform migrator) signs people on and
    * re-authenticates them through core (`signon`); local passwords, badges and PINs, and the people, account and grant
-   * screens, are off. Read once at start-up: the flag is never switched off.
+   * screens, are off. Read once at start-up: the flag is never switched off. Platform slice 2: `deviations`, the
+   * Deviations link (DEVIATIONS_DATABASE_URL, on any build; null: standalone deviation records, platform/deviations.ts).
    */
-  platform: { build: boolean; signon: CoreSignon | null; master: MasterData | null };
+  platform: { build: boolean; signon: CoreSignon | null; master: MasterData | null; deviations: Deviations | null };
 }

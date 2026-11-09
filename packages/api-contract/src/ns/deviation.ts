@@ -96,6 +96,25 @@ export const DeviationReleaseItem = z.strictObject({
 });
 export type DeviationReleaseItem = z.infer<typeof DeviationReleaseItem>;
 
+/**
+ * Platform slice 2 (owner ruling, 9 November 2026): where the server has a Deviations link, a batch's deviation is its
+ * Deviations number, and its status is read from the view Deviations publishes (report.deviation_v1). Closed and
+ * rejected are resolved; anything else, and a number Deviations does not have (status null), blocks release.
+ */
+export const LinkedDeviation = z.strictObject({
+  number: z.string(),
+  batchId: Uuid,
+  batchNumber: z.string(),
+  status: z.enum(['classification', 'approval', 'investigation', 'closure', 'closed', 'rejected']).nullable(),
+  classification: z.string().nullable(),
+  blocking: z.boolean(),
+  linkedAt: z.string(),
+  /** When Deviations last had the record as read (the view's data_as_of); null when the view has no row. */
+  dataAsOf: z.string().nullable(),
+});
+export type LinkedDeviation = z.infer<typeof LinkedDeviation>;
+const batchParams = z.strictObject({ batchId: Uuid });
+
 export const deviationRoutes = {
   deviationDetail: defineRoute({
     id: 'quality.deviationDetail',
@@ -153,6 +172,30 @@ export const deviationRoutes = {
     mutating: false,
     summary: 'The deviations linked to a batch, lot or container as the release checklist lists them, and why release is blocked',
     query: z.strictObject({ subjectKind: SubjectKind, subjectId: Uuid, market: Market.optional() }),
-    response: z.strictObject({ items: z.array(DeviationReleaseItem), problem: z.string().nullable() }),
+    /** `linked`: the Deviations numbers of the subject's batches, where the server has a Deviations link (slice 2). */
+    response: z.strictObject({ items: z.array(DeviationReleaseItem), problem: z.string().nullable(), linked: z.array(LinkedDeviation).optional() }),
+  }),
+  deviationNumbers: defineRoute({
+    id: 'quality.deviationNumbers',
+    method: 'GET',
+    path: '/api/quality/batches/:batchId/deviation-numbers',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The Deviations numbers linked to a batch, with each status as the Deviations product publishes it (Deviations link only)',
+    params: batchParams,
+    response: z.strictObject({ deviations: z.array(LinkedDeviation) }),
+  }),
+  linkDeviationNumber: defineRoute({
+    id: 'quality.linkDeviationNumber',
+    method: 'POST',
+    path: '/api/quality/batches/:batchId/deviation-numbers',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Link a deviation raised in the Deviations product to a batch by its number (Deviations link only)',
+    params: batchParams,
+    body: z.strictObject({ number: z.string().trim().min(1).max(64) }),
+    response: z.strictObject({ deviations: z.array(LinkedDeviation) }),
   }),
 } as const;

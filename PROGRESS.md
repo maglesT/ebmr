@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 5 November 2026 (Capsules C3).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 9 November 2026 (MEDHANTA slice 2, deviations link).
 
 ## What this is
 
@@ -43,6 +43,17 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   maglesT/deep-learning-for-earth-observation for this project.
 
 ## Where things stand
+
+**MEDHANTA slice 2: deviations through the Deviations product (owner ruling, 9 November 2026; replaces D4-R5).** With a
+Deviations link (`DEVIATIONS_DATABASE_URL`, optional; second small pool `platform/deviations.ts`) a batch's deviation is
+stored only as its Deviations number (`dv.batch_number_link`, tablets 1907, `quality.linkDeviationNumber`); the release
+checklist, G-REL (item `G2.DEVIATIONS_LINKED`) and the review read each status from `report.deviation_v1`; the database
+refuses a lot or container release until every linked number is closed or rejected (guard fact `dv.status_fact`, as master
+data); an unreadable view refuses with `DEVIATIONS_OFF`. Lead ruling (subject-scoped): with the link, only a batch
+deviation (kind DEVIATION linked to a batch or container) is refused on the local routes and signed acts
+(`BATCH_DEVIATION_ROUTES_WHEN_LINKED`, 410 "Batch deviations are managed in Deviations; link its number"); a lot's OOS
+(IN-20), lab-error invalidation and reprocessing stay local and fully working. Standalone unchanged. The platform manifest
+reads `deviation_v1` (databsee #64).
 
 **Declutter (owner, 5 November 2026; plan `docs/build-plan/declutter/plan.md`, PR #113).** Only the working batch-record
 path stays on screen. Owner decisions: records and amendments KEEP, the formulary is Batchwright's, the penicillin and

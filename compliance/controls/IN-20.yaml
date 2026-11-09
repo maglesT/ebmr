@@ -31,6 +31,7 @@ implemented_by:
   invariants:
     - "INV-41"
 tests:
+  - "apps/tablets-server/test/medhanta/platform-deviations.test.ts > with the link, batch deviations are managed in Deviations; lot and laboratory records stay here (DI-17, lead ruling) > [DI-17][IN-20][PR-50] a lot's OOS record, and an OOS record of a batch result, are raised, linked, investigated, concluded and closed as before; the concluded laboratory error serves an invalidation"
   - "apps/tablets-server/test/quality/lot-handling-routes.test.ts > reservations, stock-location exceptions and the OOS record of a lot > [IN-20] QC links the OOS record of an approved failing result; a result not yet approved, a person without the right and a second link are refused"
   - "apps/tablets-web/test/quality/lot-oos-record.test.tsx > [DI-17] a lot opens only its own OOS record, with the parts a laboratory-error conclusion needs (declutter D4b) > [DI-17][IN-20] each state offers its next step to the conclusion: OPEN the investigation, IMPACT_ASSESSED the conclusion with the closure basis, PENDING_CLOSURE no closure"
   - "apps/tablets-web/test/quality/lot-oos-record.test.tsx > [DI-17] a lot opens only its own OOS record, with the parts a laboratory-error conclusion needs (declutter D4b) > [DI-17][IN-20] the OOS record of the lot shows the finding, the impact, the closure basis and QA's signed acts; no reclassify, cancel or close, and no disconnected route is called"

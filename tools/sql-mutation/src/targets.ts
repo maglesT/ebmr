@@ -716,7 +716,8 @@ export const TARGETS: Target[] = [
                 'site.record_deviation_finding', 'site.conclude_deviation', 'site.close_deviation',
                 'site.cancel_deviation', 'site.register_evidence_document', 'site.evidence_document_problem',
                 'site.qc_test_codes', 'site.qc_extra_testing_content', 'site.record_qc_extra_testing_decision',
-                'site.qc_extra_testing_decision_of', 'site.assert_deviation_qa_signature', 'site.deviation_ref_problem',
+                'site.qc_extra_testing_decision_of', 'site.assert_deviation_qa_signature',
+                // site.deviation_ref_problem: last defined by tablets 1907 (group platform-deviation-numbers).
                 // Phase 4 slice 2a: the full deviation stand-in and the document service (site-services 0820 to 0823).
                 'site.deviation_latest_classification', 'site.deviation_latest_closure_basis', 'site.deviation_owner',
                 'site.deviation_latest_impact', 'site.deviation_impact_current', 'site.deviation_epoch_hook',
@@ -1742,6 +1743,14 @@ export const TARGETS: Target[] = [
     group: 'platform-master-facts',
     functions: ['md.record_fact', 'md.require_active', 'md.require_active_row', 'md.require_active_entry'],
     tests: [s('medhanta/platform-master-data.test.ts')],
+    threshold: 90,
+  },
+  // Slice 2 of the platform move: a batch's deviation as its Deviations number, release guarded by the status read from
+  // report.deviation_v1 (tablets 1907; PR-49, IN-05). site.deviation_ref_problem is last defined there.
+  {
+    group: 'platform-deviation-numbers',
+    functions: ['dv.link_number', 'dv.record_status', 'dv.release_problem', 'dv.subject_batches', 'dv.guard_release', 'site.deviation_ref_problem'],
+    tests: [s('medhanta/platform-deviations.test.ts'), s('medhanta/platform-deviations-release.test.ts'), s('declutter/exception-deviation-ref.test.ts')],
     threshold: 90,
   },
 ];

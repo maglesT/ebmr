@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { routes, type CallError, type ExceptionView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, Field, floor } from '@ebmr/ui-kit';
 import { api } from '../../../api/client.ts';
+import { useDeviationsLinked } from '../../../app/boot.tsx';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
@@ -88,12 +89,43 @@ export function LinkDeviationDialog({ isOpen, ...p }: Base & { exception: Deviat
 
 function LinkDeviationForm({ exception, stepKey, gmp, ...p }: FormBase & { exception: DeviationTarget; stepKey: string | null; gmp: boolean }) {
   const [ref, setRef] = useTyped();
+  const linked = useDeviationsLinked();
   const intent = nonEmpty(ref) ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, deviationRef: ref.trim() } as const) : null;
   return (
     <CommandBody viewStepKey={stepKey} reason={st('tap.reason.ATTACH_DEVIATION')} intent={intent} draft={ref !== ''} {...p}>
       <Field label={st('dialog.deviation.ref')} name="deviationRef" value={ref} onChange={setRef} description={st('dialog.deviation.help')} isRequired autoComplete="off" />
-      {gmp ? <RaiseBatchDeviation runId={p.runId} title={exception.title} onRaised={setRef} /> : null}
+      {gmp && linked ? <LinkDeviationNumber runId={p.runId} number={ref.trim()} /> : null}
+      {gmp && !linked ? <RaiseBatchDeviation runId={p.runId} title={exception.title} onRaised={setRef} /> : null}
     </CommandBody>
+  );
+}
+
+/**
+ * Platform slice 2: with a Deviations link the deviation is raised in the Deviations product; the batch stores only its
+ * number (quality.linkDeviationNumber, which checks the number is one Deviations publishes).
+ */
+function LinkDeviationNumber({ runId, number }: { runId: string; number: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<CallError | null>(null);
+  const [linkedNumber, setLinkedNumber] = useState<string | null>(null);
+  const link = async () => {
+    if (number === '') return;
+    setBusy(true);
+    setError(null);
+    const r = await api.call(routes.quality.linkDeviationNumber, { params: { batchId: runId }, body: { number } });
+    setBusy(false);
+    if (!r.ok) return setError(r.error);
+    setLinkedNumber(number);
+  };
+  if (linkedNumber !== null && linkedNumber === number) return <p data-testid="deviation-number-linked">{st('dialog.deviation.numberLinked', { ref: linkedNumber })}</p>;
+  return (
+    <section aria-label={st('dialog.deviation.linkNumber')}>
+      <h3>{st('dialog.deviation.linkNumber')}</h3>
+      {error ? <RefusalMessage error={error} /> : null}
+      <Button onPress={() => void link()} isDisabled={number === '' || busy}>
+        {st('dialog.deviation.linkNumberButton')}
+      </Button>
+    </section>
   );
 }
 

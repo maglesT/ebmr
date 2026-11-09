@@ -11,6 +11,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { routes } from '@ebmr/api-contract';
 import { useApiQuery } from '../../api/hooks.ts';
 import { Section } from '../../app/acts.tsx';
+import { useDeviationsLinked } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useRouteParams } from '../floor/params.ts';
 import { DeviationPage } from './DeviationPage.tsx';
@@ -35,8 +36,36 @@ export function DeviationRef({ deviationId, label, batchId }: { deviationId: str
   );
 }
 
+/**
+ * Platform slice 2: with a Deviations link, the batch's deviations are its Deviations numbers, each with the status the
+ * Deviations product publishes (closed or rejected: resolved; anything else keeps release blocked).
+ */
+function LinkedBatchDeviations({ batchId }: { batchId: string }) {
+  const q = useApiQuery(routes.quality.deviationNumbers, { params: { batchId } });
+  if (q.error) return <RefusalMessage error={q.error.error} />;
+  const list = q.data?.deviations ?? [];
+  return (
+    <Section title="Deviations of this batch (Deviations product)" testId="batch-deviations">
+      {list.length === 0 ? <p>No deviation is linked to this batch.</p> : null}
+      <ul>
+        {list.map((d) => (
+          <li key={d.number}>
+            {d.number} · {d.status ?? 'not in Deviations'}
+            {d.classification ? ` · ${d.classification}` : ''}
+            {d.blocking ? ' · blocks release' : ''}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 /** The batch review's list of the batch's deviations, each opening as the batch's record. */
 export function BatchDeviations({ batchId }: { batchId: string }) {
+  return useDeviationsLinked() ? <LinkedBatchDeviations batchId={batchId} /> : <LocalBatchDeviations batchId={batchId} />;
+}
+
+function LocalBatchDeviations({ batchId }: { batchId: string }) {
   const q = useApiQuery(routes.quality.deviations, { query: { batchId } });
   const list = q.data?.deviations ?? [];
   if (q.error) return <RefusalMessage error={q.error.error} />;

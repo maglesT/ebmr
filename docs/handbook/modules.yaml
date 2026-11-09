@@ -357,6 +357,7 @@ modules:
     migrations:
       packages/site-services/sql:
         ['^073[013]_', '^0740_', '^0753_', '^0810_', '^082\d_', '^084[0134]_', '^0859_', '^1720_']
+      apps/tablets-server/sql: ['^1907_']
     src: [packages/site-services/src/quality]
     tests:
       - 'packages/site-services/test/quality/**'
