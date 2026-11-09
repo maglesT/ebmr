@@ -178,6 +178,7 @@ tests:
   - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libtab 250 mg, direct compression, uncoated (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
   - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libtab 400 mg, wet granulation, film coated (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
   - "tools/e2e/specs/library/acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Rabeprazole sodium 20 mg, enteric coated, three coats (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and blending and every library step with the GMP plant's units; QA's hold points; the bulk released for packing @office"
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] Libinj 10 mg/2 mL, solution for injection in vials (library), GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office"
 clauses:
   - clause: "With the scale disconnected during an automated dispense, the step demands a second, different user."
     tests:

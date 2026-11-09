@@ -113,6 +113,10 @@ Lead rulings of 9 November 2026 (binding):
   - QC with TEST-INJ-RELEASE, the review, then G-REL.
   The sterilised loads must be opened and closed as output containers on screen. Check that the kiosk offers it for a
   library master, and send the lead a fix first if it doesn't.
+- **P4a** (GMP 1 to GMP 4, to H-PACK): `defineInjectablesGmp` in injectables-acceptance.ts, its own E2E group
+  `library-inj-gmp` (`inj-vial-gmp.spec.ts`, which runs the sandbox half first). It runs for a product whose
+  `INJECTABLES` entry has `gmp` data (the GMP plant's units, the units of each sterilised load).
+  - the ampoule's GMP half: enabled by data when wanted
 
 Learnt in P2:
 - A library CONTAINER field is a reference only. The physical bulk is an output container (routes.containers.open with
