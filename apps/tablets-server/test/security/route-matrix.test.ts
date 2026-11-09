@@ -20,7 +20,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { allRoutes, routes, type AnyRoute } from '@ebmr/api-contract';
+import { allRoutes, isDisconnectedForDeviationsLink, routes, type AnyRoute } from '@ebmr/api-contract';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
 import { tokenHash } from '../../src/platform/auth/session.ts';
@@ -176,7 +176,10 @@ describe('the route-by-role authorization matrix (slice 7d)', () => {
     for (const kind of ['GMP', 'SANDBOX'] as const) {
       for (const route of allRoutes(routes).filter((r) => (r.installation === 'ANY' || r.installation === kind) && !r.stream)) {
         const c = unauth[kind][route.id];
-        if (route.auth === 'SESSION') expect([`${kind} ${route.id}`, c]).toEqual([`${kind} ${route.id}`, validRequest(route).valid ? 'U' : expect.stringMatching(/^[UV]$/)]);
+        // MEDHANTA slice 2: the Deviations-number routes are not connected without a Deviations link (410 at onRequest,
+        // before anything of the request is read).
+        if (route.auth === 'SESSION' && isDisconnectedForDeviationsLink(route.id, false)) expect([`${kind} ${route.id}`, c]).toEqual([`${kind} ${route.id}`, 'A']);
+        else if (route.auth === 'SESSION') expect([`${kind} ${route.id}`, c]).toEqual([`${kind} ${route.id}`, validRequest(route).valid ? 'U' : expect.stringMatching(/^[UV]$/)]);
         // A route without a session checks its own credentials (login, the ERP's service key): 401 when they are wrong.
         else expect(c, `${kind} ${route.id}`).not.toBe('E');
       }
