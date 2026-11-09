@@ -45,7 +45,9 @@ export interface ClearanceItem {
  * then require the clearance's verification only where the step names a checker (recipe-core 1886).
  */
 function noChecker(phase: PhaseNode, mbr: Pick<MbrContent, 'header'> | undefined): ConfigProblem[] {
-  const packagingByScheduleM = mbr?.header?.edition === 'tablets' && mbr.header.recordKind === 'PACKAGING';
+  // Fails closed: a step whose master is not known here is held to the second person (lead pre-audit of #197).
+  const header = mbr?.header as Partial<MbrContent['header']> | undefined;
+  const packagingByScheduleM = header?.edition === undefined || header.recordKind === undefined || (header.edition === 'tablets' && header.recordKind === 'PACKAGING');
   if (phase.signatures.check || !packagingByScheduleM) return [];
   return [{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: `Clearance step ${phase.id} names no checker: a tablets or capsules packaging line clearance is checked by a second person (revised Schedule M Part VIII 7.1)`, controls: ['PR-14', 'PR-34'] }];
 }
