@@ -374,9 +374,10 @@ describe('a new master from an approved formula (slice 7j)', () => {
 
     it('[PR-34] the injectables packaging skeleton\'s line clearance (G-10) is performed with no checker, 211.130(e) asking for no second person (lead ruling A5); the validator raises neither G10-NO-CHECKER nor a second-person finding (GMP-SIGNIFICANT-STEPS) for it; G10-NO-CHECKER still holds a tablets packaging master', async () => {
       // One family per product and batch sizes (INV-17): the skeleton made by the first test.
-      const v = { versionId: skeletonVersionId, content: skeleton as unknown as Record<string, unknown> };
-      if (!skeleton) throw new Error('SETUP: the skeleton test did not run');
-      const clear = nodes(v.content).find((n) => n.id === 'p-pk-clear') as (Node & { signatures?: { perform?: { role: string }; check?: unknown } }) | undefined;
+      const c = skeleton;
+      if (!c) throw new Error('SETUP: the skeleton test did not run');
+      const v = { versionId: skeletonVersionId, content: c as never };
+      const clear = nodes(c).find((n) => n.id === 'p-pk-clear') as (Node & { signatures?: { perform?: { role: string }; check?: unknown } }) | undefined;
       expect(clear?.block).toEqual({ type: 'G-10', version: '2' });
       expect(clear?.signatures).toEqual({ perform: { role: 'PRODUCTION_OPERATOR' } });
       const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
@@ -384,7 +385,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
       // Nor a second person by the significant-step rule: a clearance is not significant by its block alone (R-rest A5).
       expect(report.findings.filter((f) => f.rule === 'GMP-SIGNIFICANT-STEPS').map((f) => f.message)).toEqual([]);
       // The same step in a tablets packaging master is refused (revised Schedule M Part VIII 7.1): the rule still holds there.
-      const tablets = { ...v.content, header: { ...(v.content as unknown as { header: Record<string, unknown> }).header, edition: 'tablets' } };
+      const tablets = { ...c, header: { ...c.header, edition: 'tablets' } } as never;
       const tabletsReport = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: tablets } }));
       expect(tabletsReport.findings.filter((f) => f.rule === 'G10-NO-CHECKER').map((f) => f.severity)).toEqual(['ERROR']);
     });
