@@ -174,8 +174,8 @@ checker fix, unit-account v2, I-1c (vial and ampoule batches to release, E2E) an
 #146, #148, #147 (S1–S3), #149, #151, #152 (I-2 blocks, Annex 1 items as EU-market blocks) and #155 (I-1c1 vial E2E; it
 narrows D-1 so the printed-packaging and label reconciliations, 211.125, are no yield checkpoint). Owner rule (7 November):
 no new refusal without a quoted binding clause or a real engine or record-integrity need, named in the code comment.
-I-1c1 complete (vial #155, ampoule #193). I-1c2 under way: the finished-pack examination and the edition's
-release items (editions/injectables/sql 3000), then the packaging skeleton (P3), then the GMP E2E (P4). Notes:
+I-1c1 complete (vial #155, ampoule #193). I-1c2 P2 merged (#194): the finished-pack examination and the
+edition's release items (editions/injectables/sql 3000). Next: the packaging skeleton (P3), then the GMP E2E (P4). Notes:
 `docs/build-plan/injectables/resume.md`. Migrations: `injectables` 3000-3999 (editions/README.md).
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
