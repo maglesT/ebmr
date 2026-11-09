@@ -131,9 +131,13 @@ describe('G-10@1 Clearance checklist', () => {
     expect(run.status('cl')).toBe('COMPLETED');
   });
 
-  it('[DI-34] a clearance always needs a second person: an MBR clearance step without a checker cannot be defined', () => {
-    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('cl', { block: { type: 'G-10', version: '1' }, signatures: { perform: { role: 'OPERATOR' } }, significant: true })] });
-    expect(codes(() => define(mbr))).toEqual(['G10-NO-CHECKER']);
+  it('[DI-34][PR-34][PR-14] lead ruling A5 (injectables P3b): a tablets or capsules packaging clearance needs a second person (revised Schedule M Part VIII 7.1), so such a step without a checker cannot be defined; a processing clearance, or one of another edition, may have none (211.130(e))', () => {
+    const body = { kind: 'sequence', id: 'ops', children: [phase('cl', { block: { type: 'G-10', version: '1' }, signatures: { perform: { role: 'OPERATOR' } }, significant: true })] } as const;
+    const base = mbrWith(body as never);
+    const packaging = { ...base, header: { ...base.header, recordKind: 'PACKAGING' as const } };
+    expect(codes(() => define(packaging))).toEqual(['G10-NO-CHECKER']);
+    expect(() => define(base)).not.toThrow();
+    expect(() => define({ ...packaging, header: { ...packaging.header, edition: 'injectables' as const } })).not.toThrow();
   });
 
   it('[DI-34] NOT_APPLICABLE only where the item allows it; every item answered exactly once', () => {

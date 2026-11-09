@@ -600,6 +600,8 @@ export const TARGETS: Target[] = [
                 'plant.guard_cleaning_open', 'plant.guard_cleaning_verified', 'plant.guard_cleaning_abandoned',
                 'plant.guard_equipment_use_open', 'plant.guard_equipment_no_use_open', 'plant.area_last_occupancy_event',
                 'plant.guard_clearance_passed', 'plant.guard_area_occupancy_open', 'plant.guard_area_no_occupancy_open',
+                // Injectables I-1c2 P3b (recipe-core 1886): the clearance's checker read from the stage's G-10 step.
+                'plant.guard_clearance_recorded_passed', 'plant.area_occupancy_clearance_guard', 'recipe.clearance_checked',
                 'plant.fail', 'plant.move', 'plant.state_of', 'plant.equipment_by_code', 'plant.area_by_code',
                 'plant.require_product', 'plant.dirty_since', 'plant.define_equipment_class', 'plant.define_area',
                 'plant.define_equipment', 'plant.latest_event_of', 'plant.latest_calibration',

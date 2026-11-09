@@ -11,23 +11,30 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RECIPE_SQL_DIR, recipeMachineSeedSql, type RecipeMachine } from '../lifecycle/write-seeds.ts';
-import { AREA_STATUS_V1, EQUIPMENT_CLEANLINESS_V1 } from './machine.ts';
+import { AREA_STATUS_V1, AREA_STATUS_V2, EQUIPMENT_CLEANLINESS_V1 } from './machine.ts';
 
 const SOURCE = 'packages/recipe-core/src/plant/machine.ts';
 const LIFECYCLE_WRITER = 'packages/recipe-core/src/lifecycle/write-seeds.ts';
 const PLANT_WRITER = 'packages/recipe-core/src/plant/write-seeds.ts';
 
+/** A plant machine; `handbook` (seeds since the handbook rule) adds the "-- Handbook:" line the handbook check asks for. */
+export type PlantMachine = RecipeMachine & { readonly handbook?: string };
+
 /** Every published plant machine version. Add entries; never edit a published one. */
-export const PLANT_MACHINES: readonly RecipeMachine[] = [
+export const PLANT_MACHINES: readonly PlantMachine[] = [
   { descriptor: EQUIPMENT_CLEANLINESS_V1, source: SOURCE },
   { descriptor: AREA_STATUS_V1, source: SOURCE },
+  { descriptor: AREA_STATUS_V2, source: SOURCE, handbook: 'modules/recipe-core.md' },
 ];
 
 /** The seed migration of a plant machine, naming this writer in the header. */
-export function plantMachineSeedSql(machine: RecipeMachine): string {
+export function plantMachineSeedSql(machine: PlantMachine): string {
   const sql = recipeMachineSeedSql(machine);
   if (!sql.includes(LIFECYCLE_WRITER)) throw new Error('the recipe seed header changed; update plantMachineSeedSql');
-  return sql.replace(LIFECYCLE_WRITER, PLANT_WRITER);
+  const plantSql = sql.replace(LIFECYCLE_WRITER, PLANT_WRITER);
+  if (machine.handbook === undefined) return plantSql;
+  const [first, ...rest] = plantSql.split('\n');
+  return [first, `-- Handbook: ${machine.handbook}`, ...rest].join('\n');
 }
 
 export function plantSeedStatus(sqlDir = RECIPE_SQL_DIR): { file: string; status: 'up-to-date' | 'missing' | 'differs' }[] {
