@@ -80,9 +80,13 @@ describe('G-10@2 area occupancy', () => {
     expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'ROOM-1', occupancyId: U1 }).data).toStrictEqual({ areaCode: 'ROOM-1', occupancyId: U1, recordedBy: 'OP1' });
     expect(w.rec(G10V2, { kind: 'AREA_OCCUPANCY', areaCode: 'ROOM-1', occupancyId: U1 }).refused).toBe('Area ROOM-1 of p@ is already recorded (G10-TWICE; PR-34)');
     expect(w.before(G10V2)).toEqual([]);
-    const check = (signatures: Json) => G10V2.checkConfig?.({ id: 'p', signatures } as unknown as PhaseNode, {}, {} as never);
+    // Lead ruling A5 (P3b): the checker is required only in a tablets-edition packaging master (Schedule M Part VIII 7.1).
+    const check = (signatures: Json, edition = 'tablets', recordKind = 'PACKAGING') => G10V2.checkConfig?.({ id: 'p', signatures } as unknown as PhaseNode, {}, { header: { edition, recordKind } } as never);
     expect(check({ check: { role: 'VERIFIER' } })).toEqual([]);
-    expect(check({})).toEqual([{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: 'Clearance step p names no checker: a clearance is a significant step with an independent checker', controls: ['PR-14', 'PR-34'] }]);
+    expect(check({})).toEqual([{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: 'Clearance step p names no checker: a tablets or capsules packaging line clearance is checked by a second person (revised Schedule M Part VIII 7.1)', controls: ['PR-14', 'PR-34'] }]);
+    expect(check({}, 'tablets', 'PROCESSING')).toEqual([]);
+    expect(check({}, 'injectables')).toEqual([]);
+    expect(check({}, 'substance')).toEqual([]);
     expect(G10V2.handler?.meanings).toEqual({ perform: ['LINE_CLEARANCE_PERFORMED'], check: ['LINE_CLEARANCE_VERIFIED'] });
     expect(G10V2.simulatorModel?.nominalEntries?.({ phase: { id: 'p' }, mbr: w.mbr() } as never)).toEqual([{ kind: 'AREA_OCCUPANCY', areaCode: 'TEST-ROOM', occupancyId: '00000000-0000-4000-9000-000000000101' }]);
   });
