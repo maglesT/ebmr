@@ -49,7 +49,17 @@ const PACKAGING_ITEMS = ['LABEL', 'LEAFLET', 'CARTON'] as const;
 interface Printed {
   material: string;
   artwork: string;
+  /** PACKAGING (I-1c2 P3c): the firm's own values, sent only as typed (no defaults; the validator asks for a missing one). */
+  allowancePercent?: string;
+  maxUnexplained?: string;
+  maxUnexplainedPercent?: string;
+  specimen?: string;
 }
+
+/** The firm's own values of a PACKAGING printed item that were typed (an empty field is not sent). */
+const OWN_VALUES = ['allowancePercent', 'maxUnexplained', 'maxUnexplainedPercent', 'specimen'] as const;
+const typedValues = (p: Printed | undefined): Partial<Record<(typeof OWN_VALUES)[number], string>> =>
+  Object.fromEntries(OWN_VALUES.flatMap((k) => { const v = (p?.[k] ?? '').trim(); return v === '' ? [] : [[k, v]]; }));
 
 /** The printed items (G-21) of a master's content: item id and the material it names. */
 function printedItemsOf(content: unknown): { item: string; material: string }[] {
@@ -97,6 +107,7 @@ export function NewFromTemplate() {
   const packSkeleton = start === 'PACKAGING';
   const [packProduct, setPackProduct] = useState({ code: '', strength: '' });
   const [printed, setPrinted] = useState<Record<string, Printed>>({});
+  const setItem = (i: string, k: keyof Printed, v: string): void => setPrinted((p) => ({ ...p, [i]: { material: '', artwork: '', ...p[i], [k]: v } }));
   const source = useApiQuery(routes.designer.version, { params: { versionId: copyOf ?? '' } }, { enabled: packaging && copyOf !== null });
   const sourceContent = source.data?.content as { header?: { recordKind?: string }; procedure?: unknown } | undefined;
   const sourceIsPackaging = sourceContent?.header?.recordKind === 'PACKAGING';
@@ -151,7 +162,7 @@ export function NewFromTemplate() {
           formulaVersionId: formula?.versionId ?? '',
           start: start as Exclude<Start, 'TEMPLATE' | 'PACKAGING_COPY'>,
           ...(start === 'COPY' && copyOf ? { copyOfVersionId: copyOf } : {}),
-          ...(packSkeleton ? { printed: PACKAGING_ITEMS.map((i) => ({ item: i, material: (printed[i]?.material ?? '').trim(), artwork: (printed[i]?.artwork ?? '').trim() })) } : {}),
+          ...(packSkeleton ? { printed: PACKAGING_ITEMS.map((i) => ({ item: i, material: (printed[i]?.material ?? '').trim(), artwork: (printed[i]?.artwork ?? '').trim(), ...typedValues(printed[i]) })) } : {}),
         };
     const r = await api.call(routes.designer.createFamily, { body, idempotencyKey: key });
     setBusy(false);
@@ -214,8 +225,12 @@ export function NewFromTemplate() {
           <legend className={dcls('legend')}>The printed packaging</legend>
           {PACKAGING_ITEMS.map((i) => (
             <div key={i} className={dcls('inline')} data-testid={`printed-${i}`}>
-              <Field label={`Printed material for ${i}`} name={`material-${i}`} value={printed[i]?.material ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i]: { material: v, artwork: p[i]?.artwork ?? '' } }))} />
-              <Field label={`Artwork version for ${i}`} name={`artwork-${i}`} value={printed[i]?.artwork ?? ''} onChange={(v) => setPrinted((p) => ({ ...p, [i]: { material: p[i]?.material ?? '', artwork: v } }))} />
+              <Field label={`Printed material for ${i}`} name={`material-${i}`} value={printed[i]?.material ?? ''} onChange={(v) => setItem(i, 'material', v)} />
+              <Field label={`Artwork version for ${i}`} name={`artwork-${i}`} value={printed[i]?.artwork ?? ''} onChange={(v) => setItem(i, 'artwork', v)} />
+              <DecimalField label={`Issue allowance for ${i}`} name={`allowance-${i}`} unit="%" maxDecimals={2} value={printed[i]?.allowancePercent ?? ''} onChange={(v) => setItem(i, 'allowancePercent', v)} />
+              <DecimalField label={`Largest unexplained difference for ${i}`} name={`max-unexplained-${i}`} unit="units" maxDecimals={0} value={printed[i]?.maxUnexplained ?? ''} onChange={(v) => setItem(i, 'maxUnexplained', v)} />
+              <DecimalField label={`Largest unexplained difference for ${i}, percent of issued`} name={`max-unexplained-percent-${i}`} unit="%" maxDecimals={2} value={printed[i]?.maxUnexplainedPercent ?? ''} onChange={(v) => setItem(i, 'maxUnexplainedPercent', v)} />
+              <Field label={`Approved specimen (document code) for ${i}`} name={`specimen-${i}`} value={printed[i]?.specimen ?? ''} onChange={(v) => setItem(i, 'specimen', v)} />
             </div>
           ))}
         </fieldset>

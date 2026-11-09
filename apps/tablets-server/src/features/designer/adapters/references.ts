@@ -79,16 +79,17 @@ export function referenceStatus(ref: Pick<flow.Reference, 'kind' | 'code' | 'ver
 }
 
 /**
- * Slice 7o: the registered MATERIAL document in force of each of `codes` on `asOf` (status EFFECTIVE), as the reference a
- * master pins (id = the material code); a code with none is left out (material-refs.ts: a registered document wins).
+ * Slice 7o: the registered document of `kind` in force of each of `codes` on `asOf` (status EFFECTIVE), as the reference a
+ * master pins (id = the code); a code with none is left out. MATERIAL: a registered document wins over the material
+ * master (material-refs.ts). SPECIMEN (injectables I-1c2 P3c): a printed item's specimen (211.188(b)(8)).
  */
-export async function materialDocumentsInForce(db: Db, codes: readonly string[], asOf: string): Promise<flow.Reference[]> {
+export async function documentsInForce(db: Db, kind: 'MATERIAL' | 'SPECIMEN', codes: readonly string[], asOf: string): Promise<flow.Reference[]> {
   if (codes.length === 0) return [];
-  const rows = (await loadReferenceRows(db, codes)).filter((r) => r.kind === 'MATERIAL');
+  const rows = (await loadReferenceRows(db, codes)).filter((r) => r.kind === kind);
   const out: flow.Reference[] = [];
   for (const code of new Set(codes)) {
-    const row = rows.find((r) => r.code === code && referenceStatus({ kind: 'MATERIAL', code, version: r.version, hash: r.contentHash }, rows, asOf) === 'EFFECTIVE');
-    if (row) out.push({ id: code, kind: 'MATERIAL', code, version: row.version, hash: row.contentHash, title: row.title });
+    const row = rows.find((r) => r.code === code && referenceStatus({ kind, code, version: r.version, hash: r.contentHash }, rows, asOf) === 'EFFECTIVE');
+    if (row) out.push({ id: code, kind, code, version: row.version, hash: row.contentHash, title: row.title });
   }
   return out;
 }
