@@ -10,7 +10,7 @@
  *    stage) as library blocks, each typed with the product's values; change control; the sandbox test batch, issued at the further size, runs on the kiosks to
  *    Execution complete, every library step through the one generic screen; its result is imported as evidence; four
  *    people sign; QA authorises the IN market.
- * The products are data (`INJECTABLES`): a terminally sterilised small-volume vial now; an ampoule is a second entry.
+ * The products are data (`INJECTABLES`): a terminally sterilised small-volume vial and ampoule.
  * The GMP batch to release (I-1c2) is not in this file yet. DEMO-ONLY data; every code is unique per run.
  */
 import { randomBytes } from 'node:crypto';
@@ -52,8 +52,8 @@ const unit = (classCode: string, classDescription: string, code: string, name: s
 const SANDBOX_BALANCE: Readonly<Record<string, string>> = { 'EQC-BAL': 'TEST-BAL-02' };
 
 /**
- * The counts of one nominal vial run that add up (INJ-UNIT-ACCOUNT reads the filling, capping and inspection counts and
- * finds no unit unaccounted for): 10,000 filled, 20 rejected at the line, 40 at capping, 9,800 inspected with 80 rejects
+ * The counts of one nominal vial or ampoule run that add up (INJ-UNIT-ACCOUNT reads the filling, capping or sealing, and
+ * inspection counts and finds no unit unaccounted for): 10,000 filled, 20 rejected at the line, 40 at capping or sealing, 9,800 inspected with 80 rejects
  * (9,720 accepted), 120 sampled and 20 documented losses.
  */
 const VIAL_COUNTS = {
@@ -113,6 +113,54 @@ export const INJECTABLES: readonly Injectable[] = [
       // Unit accountability judges its own critical "not accounted for" limit, so it needs no master yield checkpoint
       // (GMP-YIELDS, lead ruling I-1c).
       { ...productBlock('INJ-UNIT-ACCOUNT', {}), values: VIAL_COUNTS.account },
+    ],
+  },
+  {
+    // The same solution in 2 mL glass ampoules: no stopper and no seal. The washed and depyrogenated ampoules are filled,
+    // then fusion-sealed (INJ-AMPOULE-SEAL, in place of capping); the parts autoclave sterilises the filling machine's
+    // parts. Unit accountability reads the units rejected at closing from the sealing step. The integrity test is a
+    // sample, as for the vial: 100 % testing of fusion-sealed units (EU GMP Annex 1 8.22) is an EU-market item, and this
+    // master is for India.
+    key: 'ampoule',
+    prefix: 'LIA10',
+    name: 'Libinj 10 mg/2 mL, solution for injection in ampoules (library)',
+    strength: '10 mg/2 mL',
+    dosageForm: 'Injection',
+    targetMg: '28',
+    materials: [
+      { id: 'api', name: 'Libinj active', mgPerUnit: '10', tare: '0.200', gross: '0.700' },
+      { id: 'nacl', name: 'Sodium chloride (tonicity)', mgPerUnit: '16', tare: '0.200', gross: '1.000' },
+      { id: 'buf', name: 'Sodium citrate dihydrate (buffer)', mgPerUnit: '2', tare: '0.050', gross: '0.150' },
+    ],
+    plant: [
+      unit('ROOM-GRADE-C', 'Clean room, grade C', 'TEST-ROOM-C-01', 'Grade C filling room'),
+      unit('AMPOULE-WASHER', 'Ampoule washing machine', 'TEST-AMP-WASHER-01', 'Ampoule washer'),
+      unit('DEPYRO-TUNNEL', 'Depyrogenation tunnel', 'TEST-DEPYRO-01', 'Depyrogenation tunnel'),
+      unit('STEAM-STERILISER', 'Steam steriliser (autoclave)', 'TEST-AUTOCLAVE-01', 'Steam steriliser'),
+      unit('SS-VESSEL-200L', 'Stainless steel vessel, 200 L', 'TEST-VESSEL-01', 'Compounding and receiving vessel'),
+      unit('WFI-POINT-OF-USE', 'Water for injection point of use', 'TEST-WFI-POU-01', 'WFI point of use'),
+      unit('FILTER-0_45UM', 'Bioburden-reducing filter assembly, 0.45 micrometre', 'TEST-FILTER-01', 'Filter assembly'),
+      unit('AMPOULE-FILLING-LINE', 'Ampoule filling line', 'TEST-AMP-LINE-01', 'Ampoule filling line'),
+      unit('AMPOULE-SEALER', 'Ampoule sealing station', 'TEST-AMP-SEALER-01', 'Ampoule sealer'),
+      unit('INSPECTION-BOOTH', 'Visual inspection booth', 'TEST-BOOTH-01', 'Inspection booth'),
+    ],
+    components: [{ id: 'ampoule', name: 'Glass ampoule, 2 mL, type I', field: 'containerLot' }],
+    steps: [
+      productBlock('INJ-ROOM-READY', 'ROOM-GRADE-C'),
+      productBlock('INJ-WASH', 'AMPOULE-WASHER'),
+      productBlock('INJ-DEPYRO', 'DEPYRO-TUNNEL'),
+      { ...productBlock('INJ-PARTS-AUTOCLAVE', 'STEAM-STERILISER'), values: { cycle: { loadPattern: 'Filling machine parts' } } },
+      productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
+      productBlock('INJ-BULK-FILTER', { filterClass: 'FILTER-0_45UM', receiverClass: 'SS-VESSEL-200L' }),
+      { ...productBlock('INJ-FILL', { lineClass: 'AMPOULE-FILLING-LINE', roomClass: 'ROOM-GRADE-C', balanceClass: 'EQC-BAL' }), values: { ...VIAL_COUNTS.fill, setup: { format: 'Ampoule' } } },
+      productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
+      productBlock('INJ-STERILITY-SAMPLE', {}),
+      { ...productBlock('INJ-AMPOULE-SEAL', 'AMPOULE-SEALER'), values: VIAL_COUNTS.capping },
+      productBlock('INJ-TERMINAL-STERILISE', 'STEAM-STERILISER'),
+      { ...productBlock('INJ-VISUAL-INSPECT', 'INSPECTION-BOOTH'), values: VIAL_COUNTS.inspect },
+      productBlock('INJ-CCI', {}),
+      // The units rejected at closing are the sealing step's (GMP-YIELDS: no master yield checkpoint, as the vial's).
+      { ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { capping: 'INJ-AMPOULE-SEAL' }), values: VIAL_COUNTS.account },
     ],
   },
 ];

@@ -346,6 +346,9 @@ export async function runLibraryStep(
     await expect(form).toBeVisible();
     for (const f of section.fields) {
       if (!(f.id in e)) continue;
+      // A field shown only for another answer (an ampoule has no stopper-height check) is not asked: the nominal entry
+      // carries every field, the screen only the ones its answers show.
+      if (f.showWhen !== undefined && e[f.showWhen.field] !== f.showWhen.equals) continue;
       const v = e[f.id];
       switch (f.type) {
         case 'YES_NO':
