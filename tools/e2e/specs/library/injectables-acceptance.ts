@@ -11,15 +11,30 @@
  *    Execution complete, every library step through the one generic screen; its result is imported as evidence; four
  *    people sign; QA authorises the IN market.
  * The products are data (`INJECTABLES`): a terminally sterilised small-volume vial and ampoule.
- * The GMP batch to release (I-1c2) is not in this file yet. DEMO-ONLY data; every code is unique per run.
+ * I-1c2 P4a, the GMP half (`defineInjectablesGmp`, run after the sandbox half by its own spec file, group library-inj-gmp),
+ * as the tablets' GMP 1 to GMP 4 (library/acceptance.ts S11b): the primary components and the printed label, leaflet and
+ * carton entered; the specifications, the licence and the manufacturer; the first lots received, tested, their artwork
+ * recorded and released; the numbering rules, the GMP plant's units, the ERP order, the batch planned and issued at the
+ * authorised size and the lots reserved; the GMP batch on the kiosks (the dispensing skeleton, every library step with the
+ * GMP plant's units, the sterilised loads as verified output containers in units) to QA's release for packing (H-PACK).
+ * Only a product with GMP data (`gmp`) runs it: the vial now; the ampoule's is enabled by data when wanted.
+ * DEMO-ONLY data; every code is unique per run.
  */
 import { randomBytes } from 'node:crypto';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
-import { authoriseIn, changeControl, checksPass, fourSignatures, home, importEvidence, saveProduct, saveRevision, sendToSandbox } from '../phase7/own-product-flow.ts';
+import { closeFloor, closeTyped, openContainer, type Floor } from '../phase7/own-product-floor.ts';
+import {
+  authoriseIn, changeControl, checksPass, confirmMasters, enterMaterials, fourSignatures, home, importEvidence, loadProduct, saveProduct, saveRevision, sendToSandbox, type ProductState,
+} from '../phase7/own-product-flow.ts';
+import {
+  approveManufacturers, approveResults, approveSpecifications, defineNumberingRule, draftSpecification, endorseOnLicence, openLot, planAndIssue, receiveDelivery, recordArtwork, recordIdentity,
+  recordResults, releaseLot, reserveLots, sendOrder,
+} from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
 import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { skeletonRun } from './skeleton-floor.ts';
 
 
 interface Injectable {
@@ -43,6 +58,21 @@ interface Injectable {
   components: readonly { id: string; name: string; field: string }[];
   /** The product's library steps, in order, after the dispensing of the other components (before the reconciliation). */
   steps: readonly ProductBlock[];
+  /**
+   * The GMP half's data (I-1c2 P4a); a product without it runs the sandbox half only. Its presence is the switch: the
+   * ampoule's GMP half is enabled by data when wanted.
+   */
+  gmp?: InjectableGmp;
+}
+
+interface InjectableGmp {
+  /** The GMP plant's units of the classes the product's library steps name (registered on its screens in GMP 3). */
+  plant: readonly PlantUnit[];
+  /**
+   * The units of each sterilised load put into its output container (typed, a second person verifies it): the units
+   * the inspection accepts from the counts of the run (`VIAL_COUNTS`), the physical bulk the packaging order takes later.
+   */
+  loadUnits: string;
 }
 
 /** A process unit of the sandbox plant (each class its own, as the blocks' examples name them), in the dispensing room. */
@@ -114,6 +144,22 @@ export const INJECTABLES: readonly Injectable[] = [
       // (GMP-YIELDS, lead ruling I-1c).
       { ...productBlock('INJ-UNIT-ACCOUNT', {}), values: VIAL_COUNTS.account },
     ],
+    gmp: {
+      plant: [
+        unit('ROOM-GRADE-C', 'Clean room, grade C', 'ROOM-C-01', 'Grade C filling room'),
+        unit('VIAL-WASHER', 'Vial washing machine', 'VIAL-WASHER-01', 'Vial washer'),
+        unit('DEPYRO-TUNNEL', 'Depyrogenation tunnel', 'DEPYRO-01', 'Depyrogenation tunnel'),
+        unit('STEAM-STERILISER', 'Steam steriliser (autoclave)', 'AUTOCLAVE-01', 'Steam steriliser'),
+        unit('SS-VESSEL-200L', 'Stainless steel vessel, 200 L', 'VESSEL-01', 'Compounding and receiving vessel'),
+        unit('WFI-POINT-OF-USE', 'Water for injection point of use', 'WFI-POU-01', 'WFI point of use'),
+        unit('FILTER-0_45UM', 'Bioburden-reducing filter assembly, 0.45 micrometre', 'FILTER-01', 'Filter assembly'),
+        unit('VIAL-FILLING-LINE', 'Vial filling and stoppering line', 'VIAL-LINE-01', 'Vial filling line'),
+        unit('VIAL-CAPPER', 'Vial capping machine', 'CAPPER-01', 'Vial capper'),
+        unit('INSPECTION-BOOTH', 'Visual inspection booth', 'BOOTH-01', 'Inspection booth'),
+      ],
+      // 10,000 filled, less 20 rejected at the line, 40 at capping, 120 sampled, 20 lost and 80 rejected at inspection.
+      loadUnits: '9720',
+    },
   },
   {
     // The same solution in 2 mL glass ampoules: no stopper and no seal. The washed and depyrogenated ampoules are filled,
@@ -405,5 +451,305 @@ export function defineInjectablesAcceptance(productKey: string): void {
       await authoriseIn(q, r, e2e.url('GMP'), versionId, { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, qa, regulatory, `IN: registration on file (${tag})`);
       return { state: 'ACTIVE' };
     }, q);
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// I-1c2 P4a: the GMP half (as the tablets' GMP 1 to GMP 4, library/acceptance.ts S11b)
+
+/** The GMP demo plant's balance (tablets-server cli/release-path.ts): the fill weights are weighed on it, as the tablets' IPCs. */
+const GMP_BALANCE: Readonly<Record<string, string>> = { 'EQC-BAL': 'BAL-COMP-01' };
+
+/** The GMP batch's size: the master's reference size, the one the ERP order names and the IN authorisation covers. */
+const GMP_UNITS_PER_BATCH = '100000';
+
+/** "0.200", "0.700" as exact thousandths, and back (kg, three decimals). */
+const milli = (x: string): bigint => {
+  const [i = '0', f = ''] = x.split('.');
+  return BigInt(i) * 1000n + BigInt(f.padEnd(3, '0').slice(0, 3));
+};
+const kg = (m: bigint): string => `${(m / 1000n).toString()}.${(m % 1000n).toString().padStart(3, '0')}`;
+
+interface GmpMaterial {
+  id: string;
+  code: string;
+  name: string;
+  active: boolean;
+  /** Tare and gross of the one container weighed at 1,00,000 units (twice the sandbox's net, on its tare). */
+  tare: string;
+  gross: string;
+  /** What stores reserve for the batch and the quantity of the first delivery (kg). */
+  reserve: string;
+  delivery: string;
+}
+
+/** The formula's materials as the GMP batch weighs them (the codes the sandbox half entered with this run's tag). */
+function gmpMaterials(t: Injectable, tag: string): GmpMaterial[] {
+  return t.materials.map((m, i) => {
+    const net = (milli(m.gross) - milli(m.tare)) * 2n;
+    return {
+      id: m.id, code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, active: i === 0,
+      tare: m.tare, gross: kg(milli(m.tare) + net), reserve: kg(net + 1000n), delivery: kg(net * 2n + 10_000n),
+    };
+  });
+}
+
+/**
+ * Declares the GMP half of the injectable `productKey` (GMP 1 to GMP 4), after `defineInjectablesAcceptance` in the same
+ * serial file: it takes the product, its approved master and its IN authorisation from the sandbox half's state. A
+ * product without GMP data (`gmp`) declares nothing.
+ */
+export function defineInjectablesGmp(productKey: string): void {
+  const t = INJECTABLES.find((x) => x.key === productKey);
+  if (!t) throw new Error(`no injectable ${productKey} in the acceptance`);
+  const gmp = t.gmp;
+  if (!gmp) return;
+  // Serial already: `defineInjectablesAcceptance` configures the file (Playwright allows one mode per scope).
+
+  const PC_STEWARD = 'PC-QA-01';
+  const PC_QA = 'PC-QA-02';
+  const PC_QC = 'PC-QC-01';
+  const PC_PLAN = 'PC-PLAN-04';
+  const PC_QA2 = 'PC-QA-09';
+  const key = `library-inj-${t.key}`;
+  const mats = (s: ProductState): GmpMaterial[] => gmpMaterials(t, s.tag);
+  /** The primary components on the GMP site: materials of their own (no formula line), named by the library steps' lot fields. */
+  const components = (s: ProductState) => t.components.map((c) => ({ ...c, code: `${t.prefix}-${c.id.toUpperCase()}-${s.tag}` }));
+  const printedOf = (s: ProductState) => [
+    // No product prefix in what a later sandbox entry names: the sandbox refuses a word shaped like a real batch or lot
+    // number (DI-05); the run's tag keeps each unique.
+    { role: 'label', material: `LBL-${s.tag}`, name: `Printed vial label, ${t.strength} (invented)`, artwork: `ART-LBL-${s.tag}-1`, delivery: '20000' },
+    { role: 'leaflet', material: `LFT-${s.tag}`, name: `Printed package leaflet, ${t.strength} (invented)`, artwork: `ART-LFT-${s.tag}-1`, delivery: '20000' },
+    { role: 'carton', material: `CTN-${s.tag}`, name: `Printed carton, ${t.strength}, 10 vials (invented)`, artwork: `ART-CTN-${s.tag}-1`, delivery: '5000' },
+  ];
+  const manufacturer = (s: ProductState) => ({ code: `MFR-${t.prefix}-${s.tag}`, name: `${t.prefix} Parenteral Supplies Pvt Ltd (invented)` });
+  /** Every material outside the formula that the site specifies, receives and releases: the components, the printed items. */
+  const others = (s: ProductState) => [
+    ...components(s).map((c) => ({ role: c.id, material: c.code, test: 'DEFECTS', identity: 'VIS-PC-01', delivery: '20000' })),
+    ...printedOf(s).map((p) => ({ role: p.role, material: p.material, test: 'TEXT_CHECK', identity: 'VIS-PM-01', delivery: p.delivery })),
+  ];
+
+  test(`[IN-33][PR-17][DI-17][IN-30] ${t.name}, GMP 1: the primary components and the printed label, leaflet and carton entered and confirmed; the specifications of the materials, the components, the printed materials and the product approved by the head of QC; the licence endorsing the product; the manufacturer approved by QA @office`, async ({ e2e, officePage, persona, evidence }) => {
+    test.setTimeout(25 * 60_000);
+    const s = loadProduct(e2e, key);
+    const pr = printedOf(s);
+    const comps = components(s);
+    const st = await officePage('GMP', PC_STEWARD);
+    await signIn.office(st, persona('GMP', 'steward'));
+    await evidence.step('The steward enters the primary components and the printed label, leaflet and carton', 'Each waits for QA\'s confirmation', async () => {
+      await enterMaterials(st, [
+        ...comps.map((c) => ({ code: c.code, name: c.name, kind: 'PRIMARY_PACKAGING' as const, unit: '1', grade: 'Parenteral', pharmacopoeia: 'NONE' as const })),
+        ...pr.map((p) => ({ code: p.material, name: p.name, kind: 'PRINTED_PACKAGING' as const, unit: '1', grade: 'Printed', pharmacopoeia: 'NONE' as const })),
+      ]);
+      return { materials: [...comps.map((c) => c.code), ...pr.map((p) => p.material)].join(', ') };
+    }, st);
+    const q = await officePage('GMP', PC_QA);
+    await signIn.office(q, persona('GMP', 'approver'));
+    await evidence.step('QA confirms the components and the printed materials', 'ERP_MASTER_CONFIRMED by a second person', async () => {
+      await confirmMasters(q, [...comps.map((c) => c.code), ...pr.map((p) => p.material)], persona('GMP', 'approver'));
+    }, q);
+    const qc = await officePage('GMP', PC_QC);
+    await signIn.office(qc, persona('GMP', 'qcAnalyst'));
+    await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), each component (defects), the printed label, leaflet and carton (text check) and the product (assay, bacterial endotoxins)', 'A DRAFT specification of each', async () => {
+      // DEMO-ONLY: every test, method, limit and sample below is invented for the demonstration, not a real product's
+      // or a pharmacopoeia's specification (the materials', the components', the printed items' and the product's).
+      for (const m of mats(s)) {
+        await draftSpecification(qc, {
+          material: m.code, title: m.name, monograph: `In-house specification STP-${m.code}, version 1`,
+          tests: m.active
+            ? [{ code: 'ASSAY', method: `STP-${t.prefix}-AS-01`, unit: '%', lower: '98.0', upper: '102.0' }, { code: 'WATER', method: 'STP-KF-01', unit: '%', upper: '1.5' }]
+            : [{ code: 'WATER', method: 'STP-KF-01', unit: '%', upper: '5.0' }],
+        });
+      }
+      for (const c of comps) {
+        await draftSpecification(qc, { material: c.code, title: c.name, monograph: `In-house specification of primary components, version 1 (${s.tag})`, tests: [{ code: 'DEFECTS', method: 'STP-PC-VIS-01', unit: '1', upper: '0' }] });
+      }
+      for (const p of pr) {
+        await draftSpecification(qc, { material: p.material, title: p.name, monograph: `In-house specification of printed materials, version 1 (${s.tag})`, tests: [{ code: 'TEXT_CHECK', method: 'STP-PM-TXT-01', unit: '1', upper: '0' }] });
+      }
+      // DEMO-ONLY: the finished product's ASSAY and BACTERIAL_ENDOTOXINS limits are invented values.
+      await draftSpecification(qc, { material: s.product.code, title: s.product.name, monograph: `In-house finished-product specification STP-${t.prefix}-FP, version 1 (${s.tag})`, tests: [
+        { code: 'ASSAY', method: `STP-${t.prefix}-AS-02`, unit: '%', lower: '95.0', upper: '105.0', sample: { quantity: '1', unit: 'packs' } },
+        { code: 'BACTERIAL_ENDOTOXINS', method: `STP-${t.prefix}-BET-01`, unit: 'EU/mL', upper: '17.5', sample: { quantity: '1', unit: 'packs' } },
+      ] });
+    }, qc);
+    const hq = await officePage('GMP', PC_QC);
+    await signIn.office(hq, persona('GMP', 'qcApprover'));
+    await evidence.step('The head of QC approves the specifications', 'Each APPROVED and in effect', async () => {
+      await approveSpecifications(hq, [...mats(s).map((m) => m.code), ...comps.map((c) => c.code), ...pr.map((p) => p.material), s.product.code], persona('GMP', 'qcApprover'));
+    }, hq);
+    const rg = await officePage('GMP', PC_QA);
+    await signIn.office(rg, persona('GMP', 'regulatory'));
+    await evidence.step('The regulatory signer records the site\'s manufacturing licence endorsing the product; QA approves it', 'The issue gate says the product may be issued (IN-30)', async () => {
+      await endorseOnLicence(rg, q, { number: `MH/26/${t.prefix}-${s.tag}`, product: s.product.code, strength: s.product.strength }, persona('GMP', 'approver'));
+    }, q);
+    const qa = await officePage('GMP', PC_QA2);
+    await signIn.office(qa, persona('GMP', 'qaInvestigator'));
+    await evidence.step('QA proposes and approves the manufacturer of each material, component and printed material', 'APPROVED entries of the register (PR-17)', async () => {
+      await approveManufacturers(qa, [...mats(s).map((m) => m.code), ...comps.map((c) => c.code), ...pr.map((p) => p.material)], manufacturer(s), persona('GMP', 'qaInvestigator'));
+    }, qa);
+  });
+
+  test(`[PR-17][IN-24][IN-33][PR-32] ${t.name}, GMP 2: the first lots of the materials, the components and the printed materials received and examined by stores, tested by QC and approved by the head of QC, the printed lots' artwork recorded, released by QA @office`, async ({ e2e, officePage, persona, evidence }) => {
+    test.setTimeout(30 * 60_000);
+    const s = loadProduct(e2e, key);
+    const pr = printedOf(s);
+    const sp = await officePage('GMP', PC_PLAN);
+    await signIn.office(sp, persona('GMP', 'stores'));
+    const deliveries: (readonly [string, string, string, string])[] = [
+      ...mats(s).map((m) => [m.id, m.code, 'kg', m.delivery] as const),
+      ...others(s).map((o) => [o.role, o.material, '1', o.delivery] as const),
+    ];
+    await evidence.step('Stores receive a delivery of each material, component and printed material and examine its container', 'Each lot in quarantine with its receipt record and examination', async () => {
+      s.lots ??= {};
+      for (const [role, material, unit, quantity] of deliveries) {
+        if (s.lots[role]) continue;
+        const lot = await receiveDelivery(sp, { delivery: `GRN-${t.prefix}-${s.tag}-${role.toUpperCase()}`, material, unit, supplierLot: `SB-${t.prefix}-${s.tag}-${role.toUpperCase()}`, manufacturer: manufacturer(s).code, quantity, expiry: '2029-06-30' });
+        s.lots[role] = lot.lotCode;
+        saveProduct(e2e, key, s);
+      }
+      return { lots: Object.values(s.lots).join(', ') };
+    }, sp);
+    const lots = s.lots ?? {};
+    const qc = await officePage('GMP', PC_QC);
+    await signIn.office(qc, persona('GMP', 'qcAnalyst'));
+    await evidence.step('QC records each lot\'s results and its identity', 'Every result PASS against the approved specification; identity PASS', async () => {
+      for (const m of mats(s)) {
+        await openLot(qc, lots[m.id] ?? '');
+        // DEMO-ONLY: invented results against the invented specifications.
+        await recordResults(qc, m.active ? [['ASSAY', '99.20'], ['WATER', '0.80']] : [['WATER', '2.10']]);
+        await recordIdentity(qc, lots[m.id] ?? '', `IR-${t.prefix}-${m.id.toUpperCase()}`);
+      }
+      for (const o of others(s)) {
+        await openLot(qc, lots[o.role] ?? '');
+        await recordResults(qc, [[o.test, '0']]);
+        await recordIdentity(qc, lots[o.role] ?? '', o.identity);
+      }
+    }, qc);
+    const hq = await officePage('GMP', PC_QC);
+    await signIn.office(hq, persona('GMP', 'qcApprover'));
+    await evidence.step('The head of QC approves the results', 'Each result APPROVED by a second person', async () => {
+      for (const m of mats(s)) {
+        await openLot(hq, lots[m.id] ?? '');
+        await approveResults(hq, m.active ? ['ASSAY', 'WATER'] : ['WATER'], persona('GMP', 'qcApprover'));
+      }
+      for (const o of others(s)) {
+        await openLot(hq, lots[o.role] ?? '');
+        await approveResults(hq, [o.test], persona('GMP', 'qcApprover'));
+      }
+    }, hq);
+    await evidence.step('QC records the artwork version of each printed lot (label, leaflet, carton)', 'The artwork versions G-21 checks', async () => {
+      for (const p of pr) {
+        await openLot(qc, lots[p.role] ?? '');
+        await recordArtwork(qc, lots[p.role] ?? '', p.artwork);
+      }
+      return { artwork: pr.map((p) => p.artwork).join(', ') };
+    }, qc);
+    const qa = await officePage('GMP', PC_QA2);
+    await signIn.office(qa, persona('GMP', 'qaInvestigator'));
+    await evidence.step('QA releases every lot (identity tested)', 'Each lot RELEASED', async () => {
+      for (const [role] of deliveries) {
+        await openLot(qa, lots[role] ?? '');
+        await releaseLot(qa, lots[role] ?? '', persona('GMP', 'qaInvestigator'));
+      }
+    }, qa);
+  });
+
+  test(`[INV-01][PR-04][PR-18][IN-18] ${t.name}, GMP 3: the numbering rules; the GMP plant's units of the product; the ERP simulator sends the processing order; the batch planned and issued at the authorised size; stores reserve the lots @office`, async ({ e2e, officePage, persona, evidence }) => {
+    test.setTimeout(20 * 60_000);
+    const s = loadProduct(e2e, key);
+    const base = e2e.url('GMP');
+    const st = await officePage('GMP', PC_STEWARD);
+    await signIn.office(st, persona('GMP', 'steward'));
+    await evidence.step('The steward defines the product\'s numbering rules at SITE-1 (processing and packaging, IN-18)', 'Both rules listed on Batch numbers', async () => {
+      await home(st, /^Batch numbers/);
+      await defineNumberingRule(st, { ruleCode: `${t.prefix}-PROC-${s.tag}`, kind: 'PROCESSING', format: `V${s.tag}{SEQ:3}`, product: s.product.code });
+      await defineNumberingRule(st, { ruleCode: `${t.prefix}-PACK-${s.tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', product: s.product.code });
+    }, st);
+    await evidence.step('The steward lists the product in the GMP plant\'s product list (a room\'s clearance names it)', 'The product is listed on Plant definitions', async () => {
+      await definePlantProduct(st, base, s.product);
+    }, st);
+    await evidence.step('The steward registers the GMP plant\'s units of the classes the product\'s library steps name', 'Each unit defined and QUALIFIED in its logbook', async () => {
+      await registerPlantUnits(st, base, gmp.plant);
+      return { units: gmp.plant.map((u) => u.code).join(', ') };
+    }, st);
+    await st.context().close();
+    const op = await officePage('GMP', PC_PLAN);
+    await signIn.office(op, e2e.seeds.GMP.bootstrap.admin as unknown as Parameters<typeof signIn.office>[1]);
+    await evidence.step('The ERP simulator sends a processing order of the product (its master approved and authorised)', 'A new order number; it waits on the planning screen', async () => {
+      s.processingOrder = await sendOrder(op, s.product.name, 'processing');
+      saveProduct(e2e, key, s);
+      return { order: s.processingOrder };
+    }, op);
+    await op.context().close();
+    const issuer = persona('GMP', 'issuer');
+    const ip = await officePage('GMP', PC_PLAN);
+    await signIn.office(ip, issuer);
+    await evidence.step('The batch issuer plans the batch on SITE-1 line L1 and issues it at the authorised size, 1,00,000 units', 'The batch takes its number from the register and is ISSUED', async () => {
+      const b = await planAndIssue(ip, base, s.processingOrder ?? '', new RegExp(`MBR ${s.familyCode ?? ''}`), GMP_UNITS_PER_BATCH, issuer);
+      s.batchNumber = b.batchNumber;
+      s.batchId = b.batchId;
+      saveProduct(e2e, key, s);
+      return b;
+    }, ip);
+    await ip.context().close();
+    const sp = await officePage('GMP', PC_PLAN);
+    await signIn.office(sp, persona('GMP', 'stores'));
+    await evidence.step('Stores reserve each lot of the formula\'s materials for the batch', 'Each lot lists the open reservation', async () => {
+      await reserveLots(sp, s.batchNumber ?? '', mats(s).map((m) => [s.lots?.[m.id] ?? '', m.reserve] as const));
+    }, sp);
+  });
+
+  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, persona, evidence, browser }) => {
+    test.setTimeout(90 * 60_000);
+    const s = loadProduct(e2e, key);
+    const floor: Floor = {
+      e2e, browser, inst: 'GMP', batchId: s.batchId ?? '', batchNumber: s.batchNumber ?? '',
+      persona: (k) => persona('GMP', k), containers: (s.gmpContainers ??= {}), save: () => saveProduct(e2e, key, s),
+    };
+    const units = { ...GMP_BALANCE, ...Object.fromEntries(gmp.plant.map((u) => [u.classCode, u.code])) };
+    const stepLots = Object.fromEntries(t.components.map((c) => [c.field, s.lots?.[c.id] ?? '']));
+    await evidence.step('GMP floor: the plant cleaned for the batch; dispensing, the product\'s library steps, the sterilised loads into output containers (units, the net verified), the reconciliation, QA\'s release for packing; each person by the Tap button of the demo reader', 'Both stages signed off; H-PACK approved by QA; the run is Execution complete', async () => {
+      const lots = mats(s).map((m) => ({ lotCode: s.lots?.[m.id] ?? '', material: { code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: m.active ? ('act' as const) : ('exc' as const) } }));
+      // The containers the run's steps hand on: filling's trays, consumed into sterilisation's loads.
+      const pool: string[] = [];
+      const loads: string[] = [];
+      const lotsShown: string[] = [];
+      try {
+        await skeletonRun(floor, {
+          lots, discharge: { tare: '0', gross: '0' }, lubricantKg: '0', dispensingOnly: true,
+          afterDispensing: async (page, ctx) => {
+            for (const b of t.steps) {
+              await runLibraryStep(page, ctx, b, units, stepLots, 1, 'GMP-', pool);
+              // 211.184(a), 211.188(b)(3): the record names the lot of each container and closure used. The step's
+              // completed entry on the kiosk shows the released GMP lot its MATERIAL_LOT field named (the containers at
+              // INJ-WASH, the stoppers at INJ-PARTS-AUTOCLAVE, the seals at INJ-CAPPING).
+              for (const f of b.def.sections.flatMap((x) => x.fields)) {
+                const lot = stepLots[f.id];
+                if (f.type !== 'MATERIAL_LOT' || !lot) continue;
+                await expect(page.getByRole('region', { name: 'Entries so far' })).toContainText(`${f.label}: ${lot}`);
+                lotsShown.push(`${b.def.code}.${f.id}=${lot}`);
+              }
+            }
+            // A library CONTAINER field is a reference only: each sterilised load is also a physical output container of
+            // the batch (units), opened on the containers screen and closed with its typed net, which a second person
+            // verifies. The packaging order takes these after H-PACK (injectables resume notes, learnt in P2).
+            for (let i = 0; i < pool.length; i += 1) {
+              const c = await openContainer(floor, page, 'STERILISATION', ctx.operator, 'units');
+              await closeTyped(floor, page, c, gmp.loadUnits, ctx.operator, ctx.verifier);
+              loads.push(c);
+            }
+          },
+        });
+        loads.forEach((c, i) => { floor.containers[`load-${String(i + 1)}`] = c; });
+        floor.save();
+      } finally {
+        await closeFloor();
+      }
+      expect(loads.length).toBeGreaterThan(0);
+      // Every component's lot (vial, stopper, seal) was shown as used, once each.
+      expect(lotsShown.map((x) => x.split('=')[1]).sort()).toEqual(Object.values(stepLots).sort());
+      return { loads: loads.join(', '), componentLots: lotsShown.join(', ') };
+    });
   });
 }
