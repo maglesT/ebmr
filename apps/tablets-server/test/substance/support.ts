@@ -158,19 +158,19 @@ export async function bookBalance(gmp: ExecServer, code: string, batchId: string
  * each record (every open register item disposed, the audit trail reviewed); G-REL for India has no RED item and the
  * authorised person releases the lot. Returns the release view's items before the release.
  */
-export async function releaseApiLot(gmp: ExecServer, lotId: string, materialCode: string, records: BatchRef[]): Promise<{ id: string; group: string; status: string }[]> {
+export async function releaseApiLot(gmp: ExecServer, lotId: string, materialCode: string, records: BatchRef[], sample: { quantity: string; reserve: string; unit: string } = { quantity: '0.1', reserve: '0.2', unit: 'kg' }): Promise<{ id: string; group: string; status: string }[]> {
   const [qc, head] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover')]);
   const tests = [{ testCode: 'ASSAY', methodReference: `STP-${materialCode}-AS`, unit: '%', lowerLimit: '98.0', upperLimit: '102.0', result: '99.6' }];
   const spec = valueOf(await qc.call(routes.specifications.draft, { body: {
     materialCode, title: 'API specification (invented)', monographReference: 'In-house monograph',
-    tests: tests.map((t) => ({ testCode: t.testCode, methodReference: t.methodReference, unit: t.unit, lowerLimit: t.lowerLimit, upperLimit: t.upperLimit, required: true, pharmacopoeia: 'IN_HOUSE' as const, edition: 'STP-2026-1', sampleQuantity: '0.1', sampleUnit: 'kg' })),
+    tests: tests.map((t) => ({ testCode: t.testCode, methodReference: t.methodReference, unit: t.unit, lowerLimit: t.lowerLimit, upperLimit: t.upperLimit, required: true, pharmacopoeia: 'IN_HOUSE' as const, edition: 'STP-2026-1', sampleQuantity: sample.quantity, sampleUnit: sample.unit })),
   } }));
   await signAs(gmp, head, 'qcApprover', { kind: 'LIMS_ACT', act: 'SPECIFICATION_APPROVE', subjectId: spec.specificationId });
   for (const t of tests) {
     const r = valueOf(await qc.call(routes.quality.recordLotResult, { params: { lotId }, body: { testCode: t.testCode, methodReference: t.methodReference, purpose: 'RELEASE', value: t.result, unit: t.unit } }));
     await signAs(gmp, head, 'qcApprover', { kind: 'QUALITY_ACT', act: 'LOT_RESULT_APPROVE', subjectId: r.resultId, input: {} });
   }
-  valueOf(await qc.call(routes.samples.pull, { params: { lotId }, body: { kind: 'RESERVE', quantity: '0.2', container: 'Reserve sample jar', storageLocation: 'Reserve sample room RS-1' } }));
+  valueOf(await qc.call(routes.samples.pull, { params: { lotId }, body: { kind: 'RESERVE', quantity: sample.reserve, container: 'Reserve sample jar', storageLocation: 'Reserve sample room RS-1' } }));
   for (const b of records) {
     const [prod, qa, qa2] = await Promise.all([gmp.asPersona('head1'), gmp.asPersona('qaInvestigator'), gmp.asPersona('qaApprover2')]);
     await signAs(gmp, prod, 'head1', { kind: 'REVIEW_ACT', act: 'PRODUCTION_APPROVE', batchId: b.batchId, input: {} });

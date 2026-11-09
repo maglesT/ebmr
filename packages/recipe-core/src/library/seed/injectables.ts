@@ -724,6 +724,41 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
     exampleUse: { counts: { samplingPoints: '3', unitsPerPoint: '20' } },
   },
+  {
+    // INJ-27 (slice I-1c2): 211.134(c), 211.130; EU GMP 5.57-5.60; PR-37. The on-line label checks during the run are
+    // G-21's device challenges (211.134(a)); this block is the examination of a representative sample of the finished
+    // packs at the completion of finishing, and it closes a packaging record of the edition (editions/injectables/sql
+    // 3000; release gate group 9).
+    definition: {
+      code: 'INJ-PACK-EXAM',
+      version: 1,
+      title: 'Examination of the finished packs (completion of packaging)',
+      category: 'PACKAGING',
+      edition: EDITION,
+      description: 'INJ-27. At the completion of finishing, a representative sample of the labelled units and packs (its size from the SOP, set as the minimum of the units examined) is examined for the correct label: the batch number and expiry date as read on a unit, the units with a wrong or missing label, and other pack defects.',
+      instructions: 'Take the sample across the run. Read the label of a unit and type the batch number and expiry date as printed. Examine every unit of the sample for the correct label, leaflet and carton.',
+      sections: [
+        {
+          id: 'exam',
+          title: 'Examination of the finished packs',
+          fields: [
+            { id: 'examined', label: 'Units and packs examined', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'examined' },
+            { id: 'printedBatch', label: 'Batch number as printed on a unit', type: 'TEXT', maxLength: 30 },
+            { id: 'printedExpiry', label: 'Expiry date as printed on a unit', type: 'TEXT', maxLength: 20 },
+            // 211.130 and 211.134(c): a unit bearing a wrong or missing label is never released unexamined; one is an
+            // exception for QA (the only refusal of the block).
+            { id: 'wrongLabel', label: 'Units with a wrong or missing label', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'wrongLabel', critical: true },
+            { id: 'otherDefects', label: 'Units or packs with another defect (leaflet, carton, seal)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'otherDefects' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { examined: pv(UNITS, '50', '100000'), wrongLabel: spec(UNITS, '0', '0'), otherDefects: pv(UNITS, '0', '100000') },
+      targets: { examined: '80', wrongLabel: '0', otherDefects: '0' },
+    },
+  },
 ];
 
 /** INJ-26: QC's release tests of an injectable (211.165, 211.167(a); SM 2.1-2.4; A1 10.1-10.11). */
