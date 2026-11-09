@@ -20,6 +20,8 @@ import { asErp } from '../quality/index.ts';
  * version is APPROVED and holds an ACTIVE market authorisation (a company's own product made on screen), for the
  * family's first approved batch size, its BOM the master's own scaled from the master's reference size in exact decimals
  * (the database compares them at planning, recipe-core 0602). Read from the database each time; a demo template wins.
+ * Every edition's approved, authorised master is offered (injectables I-1c2 P4a, lead ruling of 9 November 2026): no
+ * binding clause limits the ERP's orders to one edition.
  */
 export async function authorisedTemplates(app: AppContext): Promise<DemoOrderTemplate[]> {
   const { rows } = await app.pools.app.query<{ product_code: string; strength: string; product_name: string; kind: DemoOrderKind; size: string; unit: string; bom: { materialCode: string; quantity: string; unit: string }[] | null }>(
@@ -32,8 +34,7 @@ export async function authorisedTemplates(app: AppContext): Promise<DemoOrderTem
        from recipe.mbr_family f
        join recipe.mbr_version v on v.family_id = f.id and recipe.version_state(v.id) = 'APPROVED'
        join lateral (select mc.content from recipe.mbr_content mc where mc.version_id = v.id order by mc.revision desc limit 1) c on true
-      where f.edition = 'tablets'
-        and exists (select 1 from recipe.market_authorisation a where a.version_id = v.id and recipe.market_authorisation_state(a.id) = 'ACTIVE')
+      where exists (select 1 from recipe.market_authorisation a where a.version_id = v.id and recipe.market_authorisation_state(a.id) = 'ACTIVE')
         and (c.content -> 'header' -> 'batchSizes' -> 0 -> 'quantity' ->> 'value') ~ '^[0-9]+(\\.[0-9]+)?$'
         and (c.content -> 'header' -> 'batchSizes' -> 0 -> 'quantity' ->> 'value')::numeric > 0
       order by f.product_code, f.record_kind`,

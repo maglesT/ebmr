@@ -26,6 +26,7 @@ import { cell, reason, type World } from '../../../../packages/recipe-core/test/
 import { INJECTABLE_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables.ts';
 import { personaIn, startSigningServer, tapFor, valueOf } from '../esig/support.ts';
 import type { ExecServer, RunDriver } from '../execution/support.ts';
+import { authorisedTemplates } from '../../src/features/operations/erp-orders.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
 import { confirmErpPending } from '../support/signed-acts.ts';
 import { driverOf, issueBatch, libraryEntry, phaseOf, releaseApiLot, signAs, stage, statusOf, type BatchRef, type Json } from '../substance/support.ts';
@@ -46,14 +47,14 @@ const SAMPLING = seed('INJ-STERILITY-SAMPLE');
 const EXAM = seed('INJ-PACK-EXAM');
 
 /** dc-mini reshaped as an injectables master: the product's header, the stages given, no tablet calculations. */
-function vialMaster(recordKind: 'PROCESSING' | 'PACKAGING', stages: (like: Json) => Json[], defs: library.BlockDefinition[]): flow.MbrContent {
+function vialMaster(recordKind: 'PROCESSING' | 'PACKAGING', stages: (like: Json) => Json[], defs: library.BlockDefinition[], product = PRODUCT): flow.MbrContent {
   return gmpContent((m) => {
     const header = m['header'] as Json;
-    header['family'] = `INJ-${recordKind === 'PROCESSING' ? 'PR' : 'PK'}-${TAG}`;
+    header['family'] = `INJ-${recordKind === 'PROCESSING' ? 'PR' : 'PK'}-${product === PRODUCT ? TAG : product.code}`;
     header['edition'] = 'injectables';
     header['recordKind'] = recordKind;
     header['title'] = `${PRODUCT.name}: ${recordKind === 'PROCESSING' ? 'compounding to sterilised vials' : 'labelling and packing'}`;
-    header['product'] = { code: PRODUCT.code, name: PRODUCT.name, strength: PRODUCT.strength, dosageForm: 'Injection' };
+    header['product'] = { code: product.code, name: product.name, strength: product.strength, dosageForm: 'Injection' };
     delete header['unitMassMg'];
     if (recordKind === 'PACKAGING') header['packType'] = 'GLASS-VIAL-2ML';
     const body = (m['procedure'] as Json)['body'] as Json;
@@ -71,6 +72,9 @@ const processing = vialMaster('PROCESSING', (like) => [
   stage(like, 'S-RELEASE', 'Release for packing', [{ kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] }]),
 ], [SAMPLING.definition]);
 const packaging = vialMaster('PACKAGING', (like) => [stage(like, 'S-PACK', 'Labelling and packing', [phaseOf(EXAM.definition, 'p-exam', EXAM.exampleUse)])], [EXAM.definition]);
+/** A processing master of another injectable product (the ERP simulator's offer: unapproved, or approved and not authorised). */
+const otherProcessing = (product: typeof PRODUCT): flow.MbrContent =>
+  vialMaster('PROCESSING', (like) => [stage(like, 'S-FILL', 'Filling and terminal sterilisation', [phaseOf(SAMPLING.definition, 'p-sampling', SAMPLING.exampleUse)])], [SAMPLING.definition], product);
 
 let gmp: ExecServer;
 let world: World;
@@ -151,6 +155,23 @@ describe('Injectables I-1c2: one vial batch from catalogue blocks to a released 
     expect(await problem('tablets', packaging)).toMatch(/has no TB-24 step/);
     const { rows } = await gmp.db.admin.query<{ e: string; k: string }>('select edition as e, record_kind as k from recipe.mbr_family where id = any ($1) order by record_kind desc', [[proc.familyId, pack.familyId]]);
     expect(rows).toEqual([{ e: 'injectables', k: 'PROCESSING' }, { e: 'injectables', k: 'PACKAGING' }]);
+  });
+
+  it('[PR-04][IN-18] the ERP simulator offers an order of the approved, ACTIVE-authorised injectables master (every edition, lead ruling I-1c2 P4a); an unapproved injectables master and an approved one with no authorisation are not offered', async () => {
+    const steward = await gmp.asPersona('steward');
+    const draft = { code: `INJD-${TAG}`, name: 'Demoinj draft vials', strength: '10 mg/2 mL' };
+    const unauthorised = { code: `INJU-${TAG}`, name: 'Demoinj unauthorised vials', strength: '10 mg/2 mL' };
+    for (const p of [draft, unauthorised]) {
+      valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: p.code, strength: p.strength, productName: p.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+    }
+    await confirmErpPending(gmp);
+    await world.newVersion(otherProcessing(draft));
+    await world.approvedVersion(otherProcessing(unauthorised));
+    const offered = (await authorisedTemplates(gmp.built.ctx)).map((t) => `${t.productCode}:${t.kind}`);
+    expect(offered).toEqual(expect.arrayContaining([`${PRODUCT.code}:PROCESSING`, `${PRODUCT.code}:PACKAGING`]));
+    expect(offered.filter((o) => o.startsWith(draft.code) || o.startsWith(unauthorised.code))).toEqual([]);
+    const { rows } = await gmp.db.admin.query<{ e: string }>('select distinct edition as e from recipe.mbr_family where product_code = any ($1)', [[PRODUCT.code, draft.code, unauthorised.code]]);
+    expect(rows.map((r) => r.e)).toEqual(['injectables']);
   });
 
   it('[INV-27][PR-37][IN-18][ST-66] the processing batch is planned from its ERP order, issued, runs the catalogue\'s sterility sampling, puts its sterilised loads into verified output containers (units) in its last stage and is released for packing by QA (H-PACK)', async () => {
