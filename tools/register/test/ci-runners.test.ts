@@ -53,7 +53,7 @@ describe('CI runner labels', () => {
     });
   });
 
-  it('[meta] in pod mode only the heavy jobs (the end-to-end groups and the golden batches) run on the pod, and CI_RUNNER github moves them to GitHub-hosted; every other ci.yml job runs on GitHub-hosted in every mode (owner: heavy jobs on the good machine, light ones elsewhere)', () => {
+  it('[meta] only CI_RUNNER pod (by name) puts the heavy jobs (the end-to-end groups and the golden batches) on the pod; unset or any other value runs them on GitHub-hosted; every other ci.yml job runs on GitHub-hosted in every mode (owner: the repository is public, the pod only when asked for)', () => {
     const onPod: string[] = [];
     for (const [id, text] of runsOn('ci.yml')) {
       if (!text.includes("'ebmr-pod'")) {
@@ -63,8 +63,8 @@ describe('CI runner labels', () => {
         continue;
       }
       onPod.push(id);
-      expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'github' && 'ubuntu-latest' \|\|/);
-      expect(text, id).toMatch(/\|\| 'ebmr-pod' \}\}$/);
+      expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'pod' && 'ebmr-pod' \|\|/);
+      expect(text, id).toMatch(/\|\| 'ubuntu-latest' \}\}$/);
     }
     expect(onPod.sort()).toEqual(['e2e', 'golden']);
   });

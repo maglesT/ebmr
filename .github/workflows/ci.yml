@@ -23,10 +23,12 @@ on:
 permissions:
   contents: read
 
-# The runner of this run: the run-by-hand input `runner`, else the repository variable CI_RUNNER (the scripts in tools/ci
+# The runner of this run: the run-by-hand input `runner`, else the repository variable CI_RUNNER; unset or anything but
+# 'pod' or 'ubicloud' means GitHub-hosted (owner, 8 Nov 2026: the repository is public and the pod is off; the pod is
+# used only when asked for by name, so no outside pull request reaches it by default) (the scripts in tools/ci
 # read EBMR_CI_HOST: 'ubicloud' is a one-job VM of GitHub's image, like a GitHub-hosted runner).
 env:
-  EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'github' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud' || 'pod' }}
+  EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud' || 'github' }}
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
@@ -44,14 +46,11 @@ concurrency:
 # GitHub's Ubuntu 22.04 image (its PostgreSQL is 14, so tools/ci/start-postgres.sh installs 16 from PGDG) and serve one
 # job each, so the scripts in tools/ci treat them as GitHub-hosted (EBMR_CI_HOST). mutation.yml follows the same switch
 # (standard-8, on its schedule or by hand only).
-# Otherwise the heavy jobs (the end-to-end groups and the golden batches) run on the owner's self-hosted RunPod pod
-# (runner label ebmr-pod: eight runners, pod-1 ... pod-8, on one 32-vCPU machine) and every other job (the static
-# checks, the eight test shards, supply chain, code or docs only, the end-to-end plan, the reports, traceability) on
-# GitHub-hosted ubuntu-latest (owner: heavy jobs on the good machine, light ones elsewhere; the pod's eight runners were
-# the queue). With the repository variable CI_RUNNER 'github' every job runs on GitHub-hosted ubuntu-latest, exactly as
-# before the pod. Set CI_RUNNER=github (Settings > Secrets and variables > Actions >
-# Variables) while the pod is stopped, and delete it (or set it to anything else) when the pod is back; a job queued
-# for the pod while it is stopped waits until it returns.
+# CI_RUNNER 'pod' (by name only) puts the heavy jobs (the end-to-end groups and the golden batches) on the owner's
+# self-hosted RunPod pod (runner label ebmr-pod: eight runners, pod-1 ... pod-8, on one 32-vCPU machine); every other job
+# stays on GitHub-hosted ubuntu-latest. Unset, or any other value, runs every job on GitHub-hosted ubuntu-latest (owner,
+# 8 November 2026: the repository is public and the pod is off, so nothing goes to the pod unless asked for by name).
+# A job queued for the pod while it is stopped waits until it returns.
 # The pod differs from a GitHub-hosted runner in what the scripts in tools/ci handle: eight jobs share one machine and
 # one user, so each job gets its own PostgreSQL cluster on a free port in its temporary directory
 # (tools/ci/start-postgres.sh; on a GitHub-hosted runner the runner's own cluster, as before), each runner its own HOME
@@ -192,7 +191,7 @@ jobs:
   golden:
     name: Golden batches (golden clock cluster)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-latest' }}
     # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8.
     timeout-minutes: 60
     steps:
@@ -363,7 +362,7 @@ jobs:
   e2e:
     name: End-to-end (Playwright, chromium, ${{ matrix.group }})
     needs: [e2e-plan]
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'github' && 'ubuntu-latest' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ebmr-pod' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-latest' }}
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
     # set-up on its own PostgreSQL and the spec files tools/e2e/playwright.config.ts (E2E_GROUPS) names; 'rest' runs
