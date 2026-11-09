@@ -551,6 +551,8 @@ export function defineInjectablesGmp(productKey: string): void {
     const qc = await officePage('GMP', PC_QC);
     await signIn.office(qc, persona('GMP', 'qcAnalyst'));
     await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), each component (defects), the printed label, leaflet and carton (text check) and the product (assay, bacterial endotoxins)', 'A DRAFT specification of each', async () => {
+      // DEMO-ONLY: every test, method, limit and sample below is invented for the demonstration, not a real product's
+      // or a pharmacopoeia's specification (the materials', the components', the printed items' and the product's).
       for (const m of mats(s)) {
         await draftSpecification(qc, {
           material: m.code, title: m.name, monograph: `In-house specification STP-${m.code}, version 1`,
@@ -565,6 +567,7 @@ export function defineInjectablesGmp(productKey: string): void {
       for (const p of pr) {
         await draftSpecification(qc, { material: p.material, title: p.name, monograph: `In-house specification of printed materials, version 1 (${s.tag})`, tests: [{ code: 'TEXT_CHECK', method: 'STP-PM-TXT-01', unit: '1', upper: '0' }] });
       }
+      // DEMO-ONLY: the finished product's ASSAY and BACTERIAL_ENDOTOXINS limits are invented values.
       await draftSpecification(qc, { material: s.product.code, title: s.product.name, monograph: `In-house finished-product specification STP-${t.prefix}-FP, version 1 (${s.tag})`, tests: [
         { code: 'ASSAY', method: `STP-${t.prefix}-AS-02`, unit: '%', lower: '95.0', upper: '105.0', sample: { quantity: '1', unit: 'packs' } },
         { code: 'BACTERIAL_ENDOTOXINS', method: `STP-${t.prefix}-BET-01`, unit: 'EU/mL', upper: '17.5', sample: { quantity: '1', unit: 'packs' } },
@@ -613,6 +616,7 @@ export function defineInjectablesGmp(productKey: string): void {
     await evidence.step('QC records each lot\'s results and its identity', 'Every result PASS against the approved specification; identity PASS', async () => {
       for (const m of mats(s)) {
         await openLot(qc, lots[m.id] ?? '');
+        // DEMO-ONLY: invented results against the invented specifications.
         await recordResults(qc, m.active ? [['ASSAY', '99.20'], ['WATER', '0.80']] : [['WATER', '2.10']]);
         await recordIdentity(qc, lots[m.id] ?? '', `IR-${t.prefix}-${m.id.toUpperCase()}`);
       }
@@ -710,11 +714,23 @@ export function defineInjectablesGmp(productKey: string): void {
       // The containers the run's steps hand on: filling's trays, consumed into sterilisation's loads.
       const pool: string[] = [];
       const loads: string[] = [];
+      const lotsShown: string[] = [];
       try {
         await skeletonRun(floor, {
           lots, discharge: { tare: '0', gross: '0' }, lubricantKg: '0', dispensingOnly: true,
           afterDispensing: async (page, ctx) => {
-            for (const b of t.steps) await runLibraryStep(page, ctx, b, units, stepLots, 1, 'GMP-', pool);
+            for (const b of t.steps) {
+              await runLibraryStep(page, ctx, b, units, stepLots, 1, 'GMP-', pool);
+              // 211.184(a), 211.188(b)(3): the record names the lot of each container and closure used. The step's
+              // completed entry on the kiosk shows the released GMP lot its MATERIAL_LOT field named (the containers at
+              // INJ-WASH, the stoppers at INJ-PARTS-AUTOCLAVE, the seals at INJ-CAPPING).
+              for (const f of b.def.sections.flatMap((x) => x.fields)) {
+                const lot = stepLots[f.id];
+                if (f.type !== 'MATERIAL_LOT' || !lot) continue;
+                await expect(page.getByRole('region', { name: 'Entries so far' })).toContainText(`${f.label}: ${lot}`);
+                lotsShown.push(`${b.def.code}.${f.id}=${lot}`);
+              }
+            }
             // A library CONTAINER field is a reference only: each sterilised load is also a physical output container of
             // the batch (units), opened on the containers screen and closed with its typed net, which a second person
             // verifies. The packaging order takes these after H-PACK (injectables resume notes, learnt in P2).
@@ -731,7 +747,9 @@ export function defineInjectablesGmp(productKey: string): void {
         await closeFloor();
       }
       expect(loads.length).toBeGreaterThan(0);
-      return { loads: loads.join(', ') };
+      // Every component's lot (vial, stopper, seal) was shown as used, once each.
+      expect(lotsShown.map((x) => x.split('=')[1]).sort()).toEqual(Object.values(stepLots).sort());
+      return { loads: loads.join(', '), componentLots: lotsShown.join(', ') };
     });
   });
 }
