@@ -486,7 +486,9 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
     body: {
       kind: 'sequence', id: 'S-PACK-seq', children: [
         // 211.130(e): an inspection before use, no second person (lead ruling A5); the author may add a checker (PR-34).
-        packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } } }),
+        // Not marked significant: the validator holds a clearance the master marks significant to a second person
+        // (GMP-SIGNIFICANT-STEPS, R-rest A5), which 211.130(e) does not ask for here.
+        packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
         packPhase('p-pk-status', 'Packaging line: equipment status', 'G-09', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
         packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH' }),
         packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'] }),
