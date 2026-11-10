@@ -225,6 +225,7 @@ function fillWithEvents(events: readonly Readonly<Record<string, unknown>>[]): {
     if (!(e instanceof Error && e.message.includes('ENG-BLOCKED'))) throw e;
     return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
   }
+  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p');
   return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
 }
 
@@ -282,6 +283,7 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
   it('[ST-34][ST-36] an event not on the formulation\'s list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)', () => {
     const run = fillWithEvents([{ eventListed: false, eventWhat: 'Unlisted: stopper chute cleared by hand' }]);
     expect(run.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(run.status).not.toBe('COMPLETED');
   });
 
   it('[ST-32][IN-45] the media fill reading records the units removed before incubation and why, the units incubated, each incubation period against the site\'s validated conditions, and the contaminated units; the second period is asked only for a two-temperature scheme', () => {
