@@ -25,14 +25,14 @@ import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
 import { begin, cleanForBatch, closeFloor, closeStage, closeTyped, done, explained, field, floorKiosk, openContainer, releasePlant, step, type Floor } from '../phase7/own-product-floor.ts';
-import { act, as, completed, entry, performAndCheck, startStep } from '../phase7/kiosk-batch-support.ts';
+import { act, as, completed, entry, performAndCheck, reviewRecord, startStep } from '../phase7/kiosk-batch-support.ts';
 import {
   authoriseIn, changeControl, checksPass, confirmMasters, enterMaterials, exportTestResult, fourSignatures, home, importEvidence, issueTestBatch, load, loadProduct,
   registerTestLots as registerArtworkTestLots, saveProduct, saveRevision, sendToSandbox, type ProductState,
 } from '../phase7/own-product-flow.ts';
 import {
   approveManufacturers, approveResults, approveSpecifications, defineNumberingRule, draftSpecification, endorseOnLicence, openLot, planAndIssue, receiveDelivery, recordArtwork, recordIdentity,
-  recordResults, releaseLot, reserveLots, sendOrder,
+  planPackaging, postFinishedLot, pullReserveSample, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
 import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
@@ -523,7 +523,7 @@ interface PackItem {
  */
 async function injPackagingRun(
   f: Floor,
-  p: { line: string; cartoner: string; items: readonly PackItem[]; received: string; packed: string; cartoning: ProductBlock; exam: ProductBlock; idPrefix: string; bulk?: string },
+  p: { line: string; cartoner: string; items: readonly PackItem[]; received: string; packed: string; cartoning: ProductBlock; exam: ProductBlock; idPrefix: string; bulk?: readonly string[] },
 ): Promise<void> {
   const base = f.e2e.url(f.inst);
   const op = f.persona('operator2');
@@ -531,10 +531,11 @@ async function injPackagingRun(
   const ctx = { base, runId: f.batchId, operator: op, verifier };
   await cleanForBatch(f);
   const page = await floorKiosk(f, p.line, op);
-  if (p.bulk) {
+  if (p.bulk && p.bulk.length > 0) {
+    // The bulk: the sterilised loads released for packing (H-PACK), each a verified output container in units.
     await load(page, `${base}/planning/packaging/${f.batchId}`);
-    await page.getByTestId(`bulk-container-${p.bulk}`).getByRole('checkbox').check();
-    await act(page, page.getByRole('button', { name: /^Issue 1 container/ }), op);
+    for (const c of p.bulk) await page.getByTestId(`bulk-container-${c}`).getByRole('checkbox').check();
+    await act(page, page.getByRole('button', { name: p.bulk.length === 1 ? 'Issue 1 container' : `Issue ${String(p.bulk.length)} containers` }), op);
     await expect(page.getByText('Bulk issued.')).toBeVisible();
   }
   if (!(await done(f, page, 'p-pk-clear@'))) {
@@ -1023,5 +1024,131 @@ export function defineInjectablesGmp(productKey: string): void {
       await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author: persona('GMP', 'author'), checker: persona('GMP', 'checker'), regulatory: persona('GMP', 'regulatory'), qa: persona('GMP', 'approver') }, base, s.packVersionId ?? '');
       await authoriseIn(q, r, base, s.packVersionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration of the pack on file (${s.tag})`);
     }, q);
+  });
+
+  /**
+   * The packaging order's counts. The bulk is GMP 4's sterilised loads, each a verified output container of
+   * `gmp.loadUnits`. DEMO-ONLY: 20 vials of each load kept back at the line; one label and one leaflet per vial, ten
+   * vials per carton; what is not used goes back, so each item reconciles with no unexplained difference (211.125(c)).
+   */
+  const packCounts = (s: ProductState) => {
+    const loads = Object.entries(s.gmpContainers ?? {}).filter(([k]) => k.startsWith('load-')).map(([, c]) => c);
+    const received = BigInt(gmp.loadUnits) * BigInt(loads.length);
+    const packed = received - 20n * BigInt(loads.length);
+    return { loads, received: received.toString(), packed: packed.toString(), cartons: (packed / 10n).toString() };
+  };
+
+  test(`[IN-38][PR-37][PR-33][PR-34][PR-32][PR-39][INV-27][DI-30] ${t.name}, GMP 7: the packaging order sent, planned from the batch released for packing (H-PACK) and issued; the sterilised loads issued as its bulk; the order run on the packaging kiosk with the product's printed lots @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
+    test.setTimeout(60 * 60_000);
+    const s = loadProduct(e2e, key);
+    const base = e2e.url('GMP');
+    const pr = printedOf(s);
+    const op = await officePage('GMP', PC_PLAN);
+    await signIn.office(op, e2e.seeds.GMP.bootstrap.admin as unknown as Parameters<typeof signIn.office>[1]);
+    await evidence.step('The ERP simulator sends a packaging order of the product', 'A new order number; it waits on the planning screen', async () => {
+      s.packagingOrder = await sendOrder(op, s.product.name, 'packaging');
+      saveProduct(e2e, key, s);
+      return { order: s.packagingOrder };
+    }, op);
+    await op.context().close();
+    const issuer = persona('GMP', 'issuer');
+    const ip = await officePage('GMP', PC_PLAN);
+    await signIn.office(ip, issuer);
+    await evidence.step('The batch issuer plans the packaging order of the batch released for packing and issues it', 'The order takes the packaging number of the batch and is ISSUED', async () => {
+      const o = await planPackaging(ip, base, s.packagingOrder ?? '', s.batchNumber ?? '', issuer);
+      s.orderNumber = o.orderNumber;
+      s.orderId = o.orderId;
+      saveProduct(e2e, key, s);
+      return o;
+    }, ip);
+    await ip.context().close();
+    const { loads, received, packed, cartons } = packCounts(s);
+    expect(loads.length).toBeGreaterThan(0);
+    const floor: Floor = {
+      e2e, browser, inst: 'GMP', batchId: s.orderId ?? '', batchNumber: s.orderNumber ?? '',
+      persona: (k) => persona('GMP', k), containers: (s.packContainers ??= {}), save: () => saveProduct(e2e, key, s),
+    };
+    await evidence.step('GMP floor: the sterilised loads issued to the order; the vial packaging on the packaging kiosk with the product\'s printed lots', 'The packaging stage is signed off and the order is Execution complete', async () => {
+      const issued = (role: string): bigint => (role === 'carton' ? BigInt(cartons) + 30n : BigInt(packed) + 200n);
+      const used = (role: string): bigint => (role === 'carton' ? BigInt(cartons) : BigInt(packed));
+      try {
+        await injPackagingRun(floor, {
+          line: 'PL-2', cartoner: 'CTN-03', cartoning, exam: packExam, idPrefix: 'GMP-', received, packed, bulk: loads,
+          items: pr.map((p) => ({
+            item: p.role.toUpperCase() as PackItem['item'], material: p.material, lot: s.lots?.[p.role] ?? '', artwork: p.artwork,
+            issued: issued(p.role).toString(), used: used(p.role).toString(), returned: (issued(p.role) - used(p.role)).toString(),
+          })),
+        });
+      } finally {
+        await closeFloor();
+      }
+      return { bulk: loads.join(', '), received, packed, cartons };
+    });
+  });
+
+  test(`[IN-05][PR-45][DI-35][IN-33] ${t.name}, GMP 8: the finished lot posted in quarantine; QC records its results against the product's specification, sterility and particulate matter included, and pulls the reserve sample; the head of QC approves them @office`, async ({ e2e, officePage, persona, evidence }) => {
+    test.setTimeout(15 * 60_000);
+    const s = loadProduct(e2e, key);
+    const base = e2e.url('GMP');
+    const sp = await officePage('GMP', PC_PLAN);
+    await signIn.office(sp, persona('GMP', 'stores'));
+    await evidence.step('Stores post the finished cartons of the order as its lot, in quarantine', 'The lot of the order is listed', async () => {
+      s.lotId = await postFinishedLot(sp, base, s.orderId ?? '', s.orderNumber ?? '', packCounts(s).cartons);
+      s.lotCode = s.orderNumber ?? '';
+      saveProduct(e2e, key, s);
+      return { lot: s.lotCode, packs: packCounts(s).cartons };
+    }, sp);
+    // DEMO-ONLY results, invented; each within the product's specification (GMP 1). Sterility (211.167(a)) and particulate
+    // matter (211.160(b)) are QC results on the lot, as every release test (D-S11-R1).
+    const results = [['ASSAY', '99.6'], ['BACTERIAL_ENDOTOXINS', '2.5'], ['STERILITY', '0'], ['PARTICULATE_MATTER', '850']] as const;
+    const qc = await officePage('GMP', PC_QC);
+    await signIn.office(qc, persona('GMP', 'qcAnalyst'));
+    await evidence.step('QC records the release results of the lot and pulls its reserve samples', 'Each result PASS against the product\'s specification; the reserve sample is listed', async () => {
+      await openLot(qc, s.lotCode ?? '');
+      await recordResults(qc, results);
+      await pullReserveSample(qc, s.lotCode ?? '');
+    }, qc);
+    const hq = await officePage('GMP', PC_QC);
+    await signIn.office(hq, persona('GMP', 'qcApprover'));
+    await evidence.step('The head of QC approves the results', 'Each result APPROVED by a second person', async () => {
+      await openLot(hq, s.lotCode ?? '');
+      await approveResults(hq, results.map(([c]) => c), persona('GMP', 'qcApprover'));
+    }, hq);
+  });
+
+  test(`[INV-05][IN-05][DI-25][INV-48] ${t.name}, GMP 9: both records reviewed and the lot released for IN by the authorised person on a checklist with no red item @office`, async ({ e2e, officePage, persona, evidence }) => {
+    test.setTimeout(40 * 60_000);
+    const s = loadProduct(e2e, key);
+    const base = e2e.url('GMP');
+    const head = persona('GMP', 'head1');
+    const qa = persona('GMP', 'qaInvestigator');
+    const qa2 = persona('GMP', 'qaApprover2');
+    const production = await officePage('GMP', PC_PLAN);
+    await signIn.office(production, head);
+    const qaPage = await officePage('GMP', PC_QA2);
+    await signIn.office(qaPage, qa);
+    const qa2Page = await officePage('GMP', PC_QA2);
+    await signIn.office(qa2Page, qa2);
+    const pages = { production, qa: qaPage, qa2: qa2Page };
+    const people = { head, qa, qa2 };
+    await evidence.step('The processing record reviewed', 'The processing batch is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, pages, people, s.batchId ?? '') }), qa2Page);
+    await evidence.step('The packaging record reviewed', 'The packaging order is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, pages, people, s.orderId ?? '') }), qa2Page);
+    await evidence.step('QA signs the delta audit-trail review of the processing record if one became due', 'The processing record is covered by its last signed mark', async () => {
+      await load(qaPage, `${base}/review/${s.batchId ?? ''}`);
+      const panel = qaPage.getByTestId('audit-trail-review');
+      await expect(panel.getByTestId('audit-trail-marks')).toBeVisible();
+      const button = panel.getByRole('button', { name: 'Sign the delta review' });
+      if ((await button.count()) > 0 && (await button.isEnabled())) {
+        await button.click();
+        await officeSign(qaPage, /^Delta review /, qa);
+      }
+      await expect(panel.getByText('Covered by the last signed mark')).toBeVisible();
+    }, qaPage);
+    const cockpit = await officePage('GMP', PC_QA2);
+    await signIn.office(cockpit, persona('GMP', 'qcuAuthoriser'));
+    await evidence.step('The authorised person releases the lot for IN: ready, no red item on its checklist, the manufacturer release signed', 'The lot is RELEASED', async () => {
+      await releaseFinishedLot(cockpit, s.lotCode ?? '', persona('GMP', 'qcuAuthoriser'));
+      return { lot: s.lotCode ?? '', state: 'RELEASED' };
+    }, cockpit);
   });
 }
