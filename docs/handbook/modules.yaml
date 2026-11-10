@@ -995,7 +995,7 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^1230_']
+      apps/tablets-server/sql: ['^1230_', '^1908_']
     server: [apps/tablets-server/src/features/labels]
     contract: [packages/api-contract/src/ns/labels.ts]
     screens: [apps/tablets-web/src/features/labels]

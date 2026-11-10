@@ -1482,10 +1482,12 @@ order:
 - **Label specimens (PR-16, D-P6c-5).** One per printed item; withdrawn with a reason while the step runs. The step's
   checker signature is the check of the specimens (D-P6c-3). A row that closes the step is refused while a specimen is
   missing or a line stop is open (EBMR-LBL-060).
-- **Post-use inspection (PR-34, D-P6c-6).** Four checks, recorded once every G-21 step is performed, verified by another
-  person (STEP.VERIFY). `a2_packaging_completion` refuses EXECUTION_COMPLETE of a batch with a G-21 step while
+- **Post-use inspection (PR-34; D-P6c-6 superseded by tablets 1908).** Four checks, recorded once every G-21 step is
+  performed (211.188(b)(6)). A verification by another person (STEP.VERIFY, never the inspector) stays available but is
+  optional: no binding clause asks for a second person on the after-use inspection (lead ruling, 10 November 2026).
+  `a2_packaging_completion` refuses EXECUTION_COMPLETE of a batch with a G-21 step while
   `tab.packaging_completion_problem` names a gap (a step not performed or awaiting its checker, a specimen, an open line
-  stop, no passing verified inspection; EBMR-LBL-061).
+  stop, no inspection or a latest one that did not pass; EBMR-LBL-061).
 - **Line stops (PR-36, D-P6c-7).** A printer FAULT EXPIRY_REJECTED or LINE_STOPPED on a job opens a line stop for the
   job's step (trigger on `tab.print_event`); no print job is released for the step (EBMR-LBL-062) until QA
   (QA.FLOOR_APPROVE) resolves it with a reason. The printer simulator's EXPIRY challenge produces both faults and stops.
