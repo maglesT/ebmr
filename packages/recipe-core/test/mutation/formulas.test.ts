@@ -115,14 +115,22 @@ describe('a formula and its versions are refused rule by rule', () => {
     expect(await createFormula({ productCode: p, strength: STRENGTH, batchSizeUnits: '1000' })).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('[INV-25] a version lists 1 to 60 lines', async () => {
+  it('[INV-25] a version lists 1 to 200 lines (lean review: no clause sets a number; recipe-core 1893)', async () => {
     const f = await newFormula();
-    expect(await refusal(addVersion(f.id, version('api')))).toMatch(/1 to 60 lines.*EBMR-FRM-005/);
+    expect(await refusal(addVersion(f.id, version('api')))).toMatch(/1 to 200 lines.*EBMR-FRM-005/);
     expect(await refusal(addVersion(f.id, version([])))).toMatch(/EBMR-FRM-005/);
-    const many = Array.from({ length: 61 }, (_, i) => ({ ...LINE, lineId: `l${i}`, materialCode: `F-X${i}` }));
+    const many = Array.from({ length: 201 }, (_, i) => ({ ...LINE, lineId: `l${i}`, materialCode: `F-X${i}` }));
     expect(await refusal(addVersion(f.id, version(many)))).toMatch(/EBMR-FRM-005/);
-    // Sixty lines pass the count (the first then fails on its unknown material, a later rule).
-    expect(await refusal(addVersion(f.id, version(many.slice(0, 60))))).toMatch(/Line 1: material F-X0 is not in the ERP material master.*EBMR-FRM-008/);
+    // Two hundred lines pass the count (the first then fails on its unknown material, a later rule).
+    expect(await refusal(addVersion(f.id, version(many.slice(0, 200))))).toMatch(/Line 1: material F-X0 is not in the ERP material master.*EBMR-FRM-008/);
+  });
+
+  it('[INV-25] lean review (recipe-core 1893): an overage of 100 % or more is accepted with its reason; a negative one is still refused', async () => {
+    const f = await newFormula();
+    const id = await addVersion(f.id, version([{ ...LINE, overagePercent: '120', overageReason: 'Loss on the film coating, justified in development' }, LINES[1]]));
+    expect(id).toMatch(/^[0-9a-f-]{36}$/);
+    const f2 = await newFormula();
+    expect(await refusal(addVersion(f2.id, version([{ ...LINE, overagePercent: '-1', overageReason: 'none' }, LINES[1]])))).toMatch(/EBMR-FRM-0(07|10|61)/);
   });
 
   it('[INV-25] each line: decimal text, an overage and salt factor that are decimal or null, both flags boolean, the basis per unit or per batch', async () => {
