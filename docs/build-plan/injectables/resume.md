@@ -80,6 +80,21 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     `pullReserveSample` takes a quantity (default 4).
   - `releaseFinishedLot` opens a lot that stays not ready and names its red checklist items.
 - **Result:** library-inj-gmp passes GMP 1-9 (run 42800512663 on 8c5a1d1).
+- **Handover (session 8 ends; owner asked for a fresh session):**
+  - #201 merged (squash, 2c57e09) after full CI run 42826140563 was green. The squash message's Co-Authored-By trailer
+    came out HTML-escaped (`&lt;...&gt;`); main is not rewritten for it.
+  - The PR's last fixes were bookkeeping only:
+    - the clearance tests are listed in PR-34, IN-21 and the execution README;
+    - the GMP 5-9 E2E titles are listed in their 18 controls (`trace:e2e`). Add only the entries the trace names: the
+      repository's `register sync-tests` with one Playwright report adds about 690 unrelated E2E entries.
+  - Next (session 9, session_01PybpFw8bnp3yCoWs2nZs4p): the post-use inspection's second-person verification on
+    injectables (tablets 1230, EBMR-LBL-061). It is logged by the lead as a possible defect: no binding clause is cited
+    (211.130(e) and EU 5.50 ask for no second person; ruling A5's logic). P4b complies with it unchanged.
+  - Open residuals:
+    - the skeleton binds no line or equipment;
+    - PACK-SHIPPER is left out (no shipper BOM line);
+    - a packaging master's printed items cannot be edited after create;
+    - areas made before 1887 stay on area_status v1.
 - **Learnt:**
   - A refusal's text is in the output artifact's trace: `*.network` lists the 4xx responses, and
     `resources/<sha1>.json` holds the body.
