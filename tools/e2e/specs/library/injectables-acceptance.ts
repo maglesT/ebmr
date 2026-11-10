@@ -1221,7 +1221,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
           classification: 'MAJOR',
           rationale: 'A Grade B count above the action limit during an aseptic fill; product sterility assurance to be assessed.',
           cause: 'Operator glove print after the recorded intervention; organism identified as skin flora.',
-          causeKind: 'PERSONNEL',
+          causeKind: 'HUMAN_ERROR',
           impact: 'The sterility test of the batch passed; the intervention was on the validated list; the media fill covers it.',
           rootCause: 'Interview, video review of the intervention and the gowning record',
           capa: `CAPA-${s.tag.toUpperCase()}`,
