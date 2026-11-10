@@ -111,6 +111,15 @@ describe('exact conversions', () => {
   });
 });
 
+describe('absorbed dose (radiation sterilisation)', () => {
+  it('[DI-33] the gray is a catalogue unit of its own kind: kGy converts exactly to Gy, and a dose never converts to another kind', () => {
+    expect(unitsOfKind('absorbed_dose')).toEqual(['Gy', 'kGy']);
+    expect(unitCode('kGy')).toBeUndefined();
+    expect(conv('25.0', 'kGy', 'Gy')).toMatchObject({ value: '25000', exact: true });
+    expect(() => convertValue(Dec.parse('1'), parseUnit('kGy'), parseUnit('kg'))).toThrow(UnitError);
+  });
+});
+
 describe('semantic tags', () => {
   it('[DI-33] percentage tags need a dimensionless unit; % w/v is a mass per volume; a count is a plain number', () => {
     expect(tagUnitProblem('lod', parseUnit('%'))).toBeUndefined();

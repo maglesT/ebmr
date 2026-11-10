@@ -27,15 +27,15 @@ describe('the ready-made catalogue', () => {
 
   /** The material lots that name no formula line: an injectable's primary components (block code and field id). */
   // The injectable components named where they are used (lead, 6 November 2026; I-2 filter, single-use assembly and
-  // supplier-sterilised component, 10 November 2026).
-  const COMPONENT_LOTS = ['INJ-WASH containerLot', 'INJ-PARTS-AUTOCLAVE stopperLot', 'INJ-CAPPING sealLot', 'INJ-STERILE-FILTER filterLot', 'INJ-SUS assemblyLot', 'INJ-SUPPLIER-STERILE componentLot'];
+  // supplier-sterilised component, 10 November 2026; I-4 plunger, FFS film and BFS polymer).
+  const COMPONENT_LOTS = ['INJ-WASH containerLot', 'INJ-PARTS-AUTOCLAVE stopperLot', 'INJ-CAPPING sealLot', 'INJ-STERILE-FILTER filterLot', 'INJ-SUS assemblyLot', 'INJ-SUPPLIER-STERILE componentLot', 'INJ-PLUNGER plungerLot', 'INJ-FFS filmLot', 'INJ-BFS polymerLot'];
 
   it('[PR-18][PR-03] every material lot a catalogue block records names the bill-of-materials line whose material it must be, and the example fills that line, so the lot is checked as the right material and not only as released (R3-CAT-2); the only exceptions, the primary component lots of an injectable, are verified by a second person', () => {
     for (const item of SEED_CATALOGUE) {
       for (const f of item.definition.sections.flatMap((s) => s.fields)) {
         if (f.type !== 'MATERIAL_LOT') continue;
         const where = `${item.definition.code} ${f.id}`;
-        // An injectable's primary component (vial or ampoule, stopper, seal) is no formula line (lead, 6 November 2026):
+        // An injectable's primary component (vial or ampoule, stopper, seal, plunger, FFS film, BFS polymer) is no formula line (lead, 6 November 2026):
         // its lot is checked as released at use, and a second person verifies it is the right component.
         if (COMPONENT_LOTS.includes(where)) {
           expect(f.bomLineSlot, where).toBeUndefined();
