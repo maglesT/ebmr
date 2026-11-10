@@ -60,6 +60,7 @@ tests:
   - "packages/recipe-core/test/validator/own-yield.test.ts > a yield on the author's own calculation and limits (D-8) > [PR-03][PR-31] a formula the author breaks (an unknown value) is refused by the validator's existing expression check, naming the calculation; nothing new refuses it"
   - "packages/recipe-core/test/validator/own-yield.test.ts > a yield on the author's own calculation and limits (D-8) > [PR-31][INV-34][PR-08] the edited yield, its limits and their source pass the validator in every edition"
   - "packages/recipe-core/test/validator/own-yield.test.ts > a yield on the author's own calculation and limits (D-8) > [PR-31][PR-08] the engine computes the yield and judges it against the author's limits: inside them the batch completes, outside them the yield step raises a yield out of limits and the batch waits for it"
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-01][PR-03][PR-31][PR-32][PR-39][IN-14] Libinj 10 mg/2 mL, solution for injection in vials (library), GMP 5: the specimens of the label, leaflet and carton recorded and approved by QA; the packaging master from the formula with the firm's allowance, reconciliation limits and specimens; cartoning and the finished-pack examination from the library; the packaging yield range; change control; the test package @office"
 clauses:
   - clause: "A yield of 94.0% against limits of 95.0-101.0% creates an investigation automatically and blocks release."
     tests:
