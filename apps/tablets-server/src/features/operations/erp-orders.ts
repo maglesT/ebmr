@@ -10,6 +10,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DemoOrderTemplateView, SentOrderView } from '@ebmr/api-contract';
+import { commands, identity } from '@ebmr/kernel';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { DEMO_ORDER_TEMPLATES, demoOrder, type DemoOrderKind, type DemoOrderTemplate } from '../execution/seed-demo-orders.ts';
@@ -110,6 +111,35 @@ export async function prepareProductionOrder(app: AppContext, productCode: strin
   const tail = idempotencyKey ? createHash('sha256').update(idempotencyKey).digest('hex').slice(0, 8) : randomUUID().slice(0, 8);
   const orderNo = `PO-SIM-${tail.toUpperCase()}`;
   return { view: { orderNo, productCode: t.productCode, kind: t.kind, batchSize: t.batchSize, batchSizeUnit: t.batchSizeUnit }, order: demoOrder(t, orderNo), login };
+}
+
+/** Thrown inside the check's transaction to roll it back. */
+class DryRun extends Error {}
+
+/**
+ * Owner retest N-2: the order is offered to the database as the ERP interface and rolled back, before the demo act is
+ * recorded, so an order the database refuses commits nothing and the screen says so with the database's reason.
+ */
+export async function checkProductionOrder(app: AppContext, p: PreparedOrder): Promise<void> {
+  try {
+    await asErp(app, p.login, async (c) => {
+      await c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify(p.order)]);
+      throw new DryRun('the order check rolls back');
+    });
+  } catch (e) {
+    if (e instanceof DryRun) return;
+    const code = commands.errorCode(e) ?? identity.ebmrCode(e);
+    if (!code) throw e;
+    throw refusal(422, {
+      code: 'ERP_ORDER_REFUSED',
+      kind: 'NOT_ALLOWED',
+      whatHappened: 'The production order was not sent; nothing was saved.',
+      why: `The database refused the order of ${p.view.productCode} (${code}): ${(e as Error).message.replace(/^\s*EBMR-[A-Z]+-\d{3}:?\s*/, '')}`,
+      whatYouCanDo: ['Correct what the reason names (the product\'s master or the ERP master data), then send the order again.'],
+      whoCanHelp: ['The system administrator'],
+      details: { databaseCode: code },
+    });
+  }
 }
 
 /** Posts a prepared order as the ERP interface (site.erp_receive_order, the ERP import route's own path). */

@@ -23,13 +23,18 @@ export interface CommandScope {
   committed: boolean;
   /** The idempotency key of that command (an idempotent command), or null. */
   commandId: string | null;
+  /**
+   * Some command of the request committed, whatever happened after it (owner retest N-2): a refusal of a later command is
+   * then answered as "part of this request was saved, this part was refused", never as "nothing was saved".
+   */
+  anyCommitted: boolean;
 }
 
 const commandScope = new AsyncLocalStorage<CommandScope>();
 
 /** Runs `work` (a route handler) in a fresh command scope, which it returns with the result or the error. */
 export async function inCommandScope<T>(work: () => Promise<T>): Promise<{ scope: CommandScope; outcome: { ok: true; value: T } | { ok: false; error: unknown } }> {
-  const scope: CommandScope = { committed: false, commandId: null };
+  const scope: CommandScope = { committed: false, commandId: null, anyCommitted: false };
   try {
     return { scope, outcome: { ok: true, value: await commandScope.run(scope, work) } };
   } catch (error) {
@@ -42,6 +47,7 @@ function noteCommand(committed: boolean, commandId: string | null): void {
   if (!scope) return;
   scope.committed = committed;
   scope.commandId = committed ? commandId : null;
+  if (committed) scope.anyCommitted = true;
 }
 
 /** Work a refusal leaves to be done after its command rolled back: typically a guarded command of its own under `actor`. */
