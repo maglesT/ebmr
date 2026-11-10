@@ -15,7 +15,7 @@ behaviour: Steriliser/autoclave/tunnel/EO/irradiation interfaces import each cyc
 catalog_test: select a steriliser whose annual revalidation lapsed; blocked. Import a cycle with an alarm; release is blocked until the alarm is dispositioned.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-49][ST-61][IN-47] terminal sterilisation by radiation consumes every filled tray into its numbered load and, per load, records the certificate, the lowest and highest dose measured against the firm's limits (checked by a second person), the dosimeters read, the dose within its period and the package indicators, and registers the irradiated load; ultraviolet is not offered; for the EU market its own block records each load's loading pattern, reconciliation and the plant's signed records; a dose outside its limits or a failed check is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-49][ST-61][IN-47] terminal sterilisation by radiation consumes every filled tray into its numbered load and, per load, records the certificate, the lowest and highest dose measured against the firm's limits (checked by a second person), the dosimeters read, the dose within its period and the package indicators, and registers the irradiated load; ultraviolet is not offered; for the EU market its own block records each load's loading pattern, reconciliation and the plant's signed records, signed by the operator; a dose outside its limits or a failed check is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

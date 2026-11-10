@@ -26,6 +26,8 @@ function fillsLikeInjFill(item: SeedItem): void {
   expect(item.definition.sections.find((s) => s.id === 'tray')?.repeat, code).toEqual({ kind: 'PER_CONTAINER' });
   expect(item.definition.sections.find((s) => s.id === 'end')?.fields.map((f) => f.id), code).toEqual(['filled', 'rejects']);
   expect(fieldOf(item, 'room'), code).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM' });
+  // The fill weight is recorded once, by IPC-INJ-FILL-WEIGHT.
+  expect(item.definition.sections.flatMap((s) => s.fields).map((f) => f.id), code).not.toContain('fillWeight');
 }
 
 describe('the Injectables catalogue (slice I-4, other containers and routes)', () => {
@@ -44,19 +46,19 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
     expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({ 'INJ-BFS-EU': ['EU'], 'INJ-FFS-EU': ['EU'], 'INJ-RADIATION-EU': ['EU'] });
   });
 
-  it('[IN-41][ST-56] homogenisation of a bulk that cannot be filtered records the homogeniser in its room (the grade from the formulation), the speed and time against the validated settings, and the particle size of each sample against its limits; a value outside is an exception', () => {
+  it('[IN-41][ST-56] homogenisation of a bulk that cannot be filtered records the homogeniser in its room (the grade from the formulation), the speed and time against the validated settings (not critical: no clause names them), and the particle size of each sample against its limits; a value outside is an exception', () => {
     const item = byCode('INJ-HOMOGENISE');
     expect(fieldOf(item, 'room')).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' });
-    expect(fieldOf(item, 'speed')).toMatchObject({ type: 'NUMBER', critical: true });
+    // No binding clause names the speed or time as critical: judged against the validated settings, not critical.
+    expect(fieldOf(item, 'speed')).toMatchObject({ type: 'NUMBER', limitSlot: 'speed' });
+    expect('critical' in fieldOf(item, 'speed') || 'critical' in fieldOf(item, 'time')).toBe(false);
     expect(fieldOf(item, 'size')).toMatchObject({ type: 'TEST_RESULT', replicatesSlot: 'sizeReplicates' });
     expect(judgedRun(item, { homogenisation: { speed: '2500' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-56][IN-41] sterile powder filling records the line in its room, the mean fill weight at each round against its limits and the closures, and registers the filled trays with the counts unit accountability reads; a fill weight outside its limits is an exception', () => {
+  it('[ST-56][IN-41] sterile powder filling records the line in its room and the closures at each round, and registers the filled trays with the counts unit accountability reads; the fill weights are recorded once, by IPC-INJ-FILL-WEIGHT; a closure fault is an exception', () => {
     const item = byCode('INJ-POWDER-FILL');
     fillsLikeInjFill(item);
-    expect(fieldOf(item, 'fillWeight')).toMatchObject({ type: 'NUMBER', critical: true });
-    expect(judgedRun(item, { round: { fillWeight: '470.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(item, { round: { closures: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
@@ -68,11 +70,10 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
     expect(judgedRun(item, { round: { position: ['5.0', '5.0', '6.5', '5.0', '5.0'] } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the fill weight and seals at each round, and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch\'s seal strength; a value outside is an exception', () => {
+  it('[ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT\'s), and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch\'s seal strength; a value outside is an exception', () => {
     const item = byCode('INJ-FFS');
     fillsLikeInjFill(item);
     expect(fieldOf(item, 'filmLot').type).toBe('MATERIAL_LOT');
-    expect(judgedRun(item, { round: { fillWeight: '99.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(item, { round: { sealsOk: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     const eu = byCode('INJ-FFS-EU');
     checkedBySecondPerson(eu);
@@ -81,18 +82,18 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
     expect(judgedRun(eu, { sealStrength: { strength: ['30', '30', '15', '30', '30'] } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the fill weight and seals at each round, and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch\'s wall thickness; a value outside is an exception', () => {
+  it('[ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT\'s), and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch\'s wall thickness; a value outside is an exception', () => {
     const item = byCode('INJ-BFS');
     fillsLikeInjFill(item);
     expect(fieldOf(item, 'polymerLot').type).toBe('MATERIAL_LOT');
-    expect(judgedRun(item, { round: { fillWeight: '5.30' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(item, { round: { sealsOk: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     const eu = byCode('INJ-BFS-EU');
     checkedBySecondPerson(eu);
     expect(judgedRun(eu, { settings: { mouldTemp: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(eu, { wallThickness: { thickness: ['0.50', '0.35', '0.50', '0.50', '0.50'] } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-49][ST-61][IN-47] terminal sterilisation by radiation consumes every filled tray into its numbered load and, per load, records the certificate, the lowest and highest dose measured against the firm\'s limits (checked by a second person), the dosimeters read, the dose within its period and the package indicators, and registers the irradiated load; ultraviolet is not offered; for the EU market its own block records each load\'s loading pattern, reconciliation and the plant\'s signed records; a dose outside its limits or a failed check is an exception', () => {
+  it('[ST-49][ST-61][IN-47] terminal sterilisation by radiation consumes every filled tray into its numbered load and, per load, records the certificate, the lowest and highest dose measured against the firm\'s limits (checked by a second person), the dosimeters read, the dose within its period and the package indicators, and registers the irradiated load; ultraviolet is not offered; for the EU market its own block records each load\'s loading pattern, reconciliation and the plant\'s signed records, signed by the operator; a dose outside its limits or a failed check is an exception', () => {
     const item = byCode('INJ-RADIATION');
     checkedBySecondPerson(item);
     expect(fieldOf(item, 'trayIn')).toMatchObject({ type: 'CONTAINER', action: 'CONSUME' });
@@ -104,7 +105,8 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
     expect(judgedRun(item, { load: { maxDose: '42.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     for (const id of ['dosimetersRead', 'withinPeriod', 'indicators']) expect(judgedRun(item, { load: { [id]: false } }).exceptions, id).toEqual(['LIB_UNEXPECTED_ANSWER']);
     const eu = byCode('INJ-RADIATION-EU');
-    checkedBySecondPerson(eu);
+    // Nothing typed from a device: the operator signs alone.
+    expect(eu.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED']);
     expect(eu.definition.sections.map((s) => [s.id, s.repeat?.kind])).toEqual([['load', 'PER_CONTAINER']]);
     for (const id of ['loadingPattern', 'reconciled', 'plantRecordsSigned']) expect(judgedRun(eu, { load: { [id]: false } }).exceptions, id).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
