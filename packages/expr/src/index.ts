@@ -4,7 +4,7 @@
  * evidence (ADR 0005; build outline 6.3, 6.4; controls DI-33, INV-25). Imports nothing else in the
  * repository. See src/README.md.
  */
-export const PACKAGE = { name: '@ebmr/expr', version: '0.1.0' } as const;
+export const PACKAGE = { name: '@ebmr/expr', version: '0.2.0' } as const;
 export { EXPR_LANGUAGE_VERSION, EVALUATION_RECORD_SCHEMA } from './version.ts';
 
 // Decimal core

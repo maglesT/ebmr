@@ -54,6 +54,17 @@ export const UNIT_TABLE: UnitTable = {
       offset: "5463/20",
       definition: "K = Cel + 273.15",
     },
+    "Gy": {
+      name: "gray",
+      printSymbol: "Gy",
+      property: "energy dose",
+      metric: true,
+      kind: "LINEAR",
+      dimension: { "m": 2, "s": -2 },
+      factor: "1",
+      factorDecimal: "1",
+      definition: "1 J/kg",
+    },
     "K": {
       name: "degree Kelvin",
       printSymbol: "K",
@@ -466,6 +477,14 @@ export const UNIT_TABLE: UnitTable = {
         { code: "N", factor: "1000", factorDecimal: "1000" },
         { code: "kN", factor: "1000000", factorDecimal: "1000000" },
         { code: "kgf", factor: "196133/20", factorDecimal: "9806.65" },
+      ],
+    },
+    "absorbed_dose": {
+      dimension: { "m": 2, "s": -2 },
+      scale: "LINEAR",
+      units: [
+        { code: "Gy", factor: "1", factorDecimal: "1" },
+        { code: "kGy", factor: "1000", factorDecimal: "1000" },
       ],
     },
     "volumetric_flow": {

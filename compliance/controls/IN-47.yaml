@@ -14,7 +14,8 @@ sources: Schedule M Part II 6.3-6.11 (6.5 at least annual verification; 6.8 carr
 behaviour: Steriliser/autoclave/tunnel/EO/irradiation interfaces import each cycle into the batch record (cycle ID, validated load pattern selected from a list, trace, coolest-point temperature with independent second probe where fitted, pressure, F0 where used, alarms; for EO also time, pressure, temperature, humidity, gas concentration and biological indicators; for irradiation dosimeter results). A reviewer signs each cycle before batch release, and cycle faults must be dispositioned. A steriliser whose revalidation (at least yearly and after significant change) or chamber leak test is overdue cannot be selected. Carrier labels (basket, tray) print material name, batch number and sterilised/not-sterilised status. Cooling fluid in contact with product must be recorded as sterile.
 catalog_test: select a steriliser whose annual revalidation lapsed; blocked. Import a cycle with an alarm; release is blocked until the alarm is dispositioned.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-49][ST-61][IN-47] terminal sterilisation by radiation consumes every filled tray into its numbered load and, per load, records the certificate, the lowest and highest dose measured against the firm's limits (checked by a second person), the dosimeters read, the dose within its period and the package indicators, and registers the irradiated load; ultraviolet is not offered; for the EU market its own block records each load's loading pattern, reconciliation and the plant's signed records; a dose outside its limits or a failed check is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
