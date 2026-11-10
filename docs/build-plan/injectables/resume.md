@@ -59,6 +59,29 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
+
+- **Lead change:** the lead is now session_01PybpFvcfiLdV8mgoVVWXTk (owner confirmed); earlier rulings stand.
+- **Approved shared change (lead, session 8):** the injectables packaging skeleton runs G-21 in a parallel `par-pack`
+  beside the packing branch: `p-pk-clear`, `p-pk-status`, parallel { Printed materials: [`p-pk-printed`] | Packing:
+  [`p-pk-count`] }, `p-pk-yield`.
+  - Why: G-21 is issue and reconciliation in one step, and the reconciliation reads counts that exist only after packing
+    (211.125(c), (f)). In a plain sequence cartoning could not start (ENG-NOT-ENABLED).
+  - The author adds PACK-CARTON after the count and moves it up (MOVE_STEP), then INJ-PACK-EXAM after the count.
+  - Server test: the branches' shape and the validator clean with the author's blocks (from-formula.test.ts).
+- **Test-only fixes:**
+  - Sandbox printed lots are `TEST-L26-<tag>-<ITEM>`. The longer `...-PK-LEAFLET` was split at 32 characters, and a part
+    read as a real lot number (EBMR-EXE-147).
+  - PACK-CARTON names the carton and leaflet lots but does not consume their lines (`addLibraryBlocks(..., {
+    consumeLines: false })`). G-21 alone consumes printed items. A second claim breaks DATA-PARALLEL (DI-34).
+  - The post-use line inspection is recorded and verified on the labels page once G-21 is done (EBMR-LBL-061, PR-34).
+  - `reviewRecord` ends its register loop on "The record has no exception."
+- **Learnt:**
+  - A refusal's text is in the output artifact's trace: `*.network` lists the 4xx responses, and
+    `resources/<sha1>.json` holds the body.
+  - The kiosk's own reason for a disabled action is in the last `frame-snapshot` of the `*.trace` files.
+  - A dispatch can hang in the Playwright install step: cancel it after about 40 minutes and dispatch again.
+
 ### Session 7 (10 November 2026): P4b, GMP 6 to 9 (handover at 387k context; session 8 continues on the branch)
 
 - **State (branch `inj/i1c2-p4b-gmp-packaging`, head e555929, no PR):**
