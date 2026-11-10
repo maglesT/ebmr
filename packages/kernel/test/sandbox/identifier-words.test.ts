@@ -1307,3 +1307,58 @@ describe('the characters that can make a line display in another order are those
     expect(await asRelease(gmp, 'Asha Rao', `L${ch(0x5c8)} 2409-0017`)).toBe('ok');
   });
 });
+
+describe('a typed ISO date-time is not read as an identifier (kernel 1406; session 10 defect, lead 10 November 2026)', () => {
+  const DATE_TIMES = [
+    '2026-11-10T10:17',
+    '2026-11-10T10:17:05',
+    '2026-11-10T10:17:05.250',
+    '2026-11-10T10:17Z',
+    '2026-11-10T10:17:05+05:30',
+    '2026-11-10T23:59:59.999-04:00',
+    'sampled at 2026-11-10T10:17, by the 2nd shift',
+    '(2026-11-10T00:00)',
+  ];
+
+  it('[DI-05][INV-18] kernel 1406: a well-formed ISO date-time, alone or in prose, with seconds, a fraction, Z or an offset, is read as no identifier, in text and in a JSON value', async () => {
+    expect(await readWhole(DATE_TIMES)).toEqual(Object.fromEntries(DATE_TIMES.map((t) => [t, []])));
+    const { rows } = await gmp.app.query('select w from sandbox.real_identifiers($1::jsonb) w', [JSON.stringify({ value: '2026-11-10T10:17', at: { t: '2026-11-10T10:17:05Z' } })]);
+    expect(rows).toEqual([]);
+  });
+
+  it('[DI-05][INV-18] kernel 1406: a lot or batch number next to a date-time, glued to one or inside one, and date-shaped values that are no date-time (month 13, day 32, hour 24, minute 60) are still read', async () => {
+    const texts = [
+      'lot L2409-0017 at 2026-11-10T10:17',
+      '2026-11-10T10:17 batch B24-0001',
+      'B2026-11-10T10:17',
+      '2026-11-10T10:17L2409-0017',
+      '2026-11-10TL2409-0017',
+      '2026-13-10T10:17',
+      '2026-11-32T10:17',
+      '2026-11-10T24:17',
+      '2026-11-10T10:60',
+      '2026-11-10T10',
+    ];
+    const read = await readWhole(texts);
+    expect(read['lot L2409-0017 at 2026-11-10T10:17']).toEqual(['L2409-0017']);
+    expect(read['2026-11-10T10:17 batch B24-0001']).toEqual(['B24-0001']);
+    for (const t of texts.slice(2)) expect(read[t], t).not.toEqual([]);
+  });
+
+  it('[DI-05][INV-18] kernel 1406: in a sandbox sandbox.guard_free_text keeps a row whose JSON value holds a typed date-time and still refuses one that holds a lot number beside it (EBMR-SBX-024)', async () => {
+    const table = `
+      create schema a4_dt;
+      create table a4_dt.entry (id serial primary key, value jsonb);
+      create trigger ac_sandbox_free_text before insert on a4_dt.entry
+        for each row execute function sandbox.guard_free_text('value');
+      grant usage on schema a4_dt to ebmr_app;
+      grant select, insert on a4_dt.entry to ebmr_app;
+      grant usage on all sequences in schema a4_dt to ebmr_app;`;
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const insert = 'insert into a4_dt.entry (value) values ($1::jsonb)';
+    await expect(sbx.sandbox.query(insert, [JSON.stringify({ kind: 'DATE_TIME', value: '2026-11-10T10:17' })])).resolves.toBeDefined();
+    await expect(sbx.sandbox.query(insert, [JSON.stringify({ kind: 'TEXT', value: 'lot L2409-0017 at 2026-11-10T10:17' })])).rejects.toThrow(/a4_dt\.entry value holds a word .*\[EBMR-SBX-024\]$/);
+    await expect(sbx.sandbox.query(insert, [JSON.stringify({ kind: 'TEXT', value: '2026-11-10T24:17' })])).rejects.toThrow(/\[EBMR-SBX-024\]$/);
+  });
+});
