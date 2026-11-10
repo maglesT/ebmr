@@ -278,6 +278,8 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const event = byCode('INJ-FILL').definition.sections.find((x) => x.id === 'event');
     expect(event).toMatchObject({ required: false, repeat: { kind: 'PER_CONTAINER' } });
     expect(event?.when).toMatch(/intervention/);
+    // The entry is made when the event is over, so its trusted time is the event's end (lead, ALCOA accurate).
+    expect(event?.when).toMatch(/when the event is over/);
     expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventMinutes', 'eventListed', 'eventUnits']);
     // When it happened is the entry's trusted time, not a typed date and time.
     expect(event?.fields.filter((f) => f.type === 'DATE_TIME')).toEqual([]);
