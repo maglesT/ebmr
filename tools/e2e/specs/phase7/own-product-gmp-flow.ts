@@ -429,12 +429,14 @@ export async function pullReserveSample(page: Page, lotCode: string): Promise<vo
 export async function releaseFinishedLot(page: Page, lotCode: string, ap: SeededPersona, green: readonly string[] = []): Promise<void> {
   await home(page, /^Release cockpit/);
   const row = page.getByTestId(`release-lot-${lotCode}`);
-  await expect(row).toContainText('Ready');
+  // A lot that stays not ready is opened, so the failure names the checklist's red items instead of only "Not ready".
+  const ready = await expect(row).toContainText('Ready').then(() => true, () => false);
   await row.getByRole('link', { name: lotCode }).click();
   const checklist = page.getByTestId('grel-checklist');
   await expect(checklist.locator('[data-status="GREEN"]').first()).toBeVisible();
   const red = checklist.locator('[data-status="RED"]');
   if ((await red.count()) > 0) throw new Error(`the release checklist of ${lotCode} has a red item: ${(await red.allInnerTexts()).join(' | ').replace(/\s+/g, ' ').slice(0, 1500)}`);
+  if (!ready) throw new Error(`${lotCode} is not ready in the release cockpit, with no red item on its checklist: ${((await checklist.innerText()) || '').replace(/\s+/g, ' ').slice(0, 1500)}`);
   // The items the caller names (e.g. a profile's G3.PROFILE_<test>, slice 7p) are on the checklist and green.
   for (const item of green) await expect(checklist.getByTestId(`grel-item-${item}`)).toHaveAttribute('data-status', 'GREEN');
   const since = page.getByTestId('since-review');
