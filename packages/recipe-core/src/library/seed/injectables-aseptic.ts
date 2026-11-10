@@ -60,6 +60,8 @@ const em = (unit: string, action: string, alert?: string): LimitSpec => ({
 });
 
 const CFU = '{CFU}';
+/** How a viable location is sampled. */
+const VIABLE_METHODS = ['Active air sample', 'Settle plate', 'Contact plate', 'Glove print'];
 const UNITS = '{unit}';
 const PARTICLES = '{particles}/m3';
 
@@ -453,15 +455,18 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-32: SM Part II 4.7-4.10 with Tables 1 and 3, 4.8; 211.42(c)(10)(iv), 211.113(b); A1 9.4-9.31, Tables 5-6.
+    // The plates are counted only after incubation, days after the operation, so the counts are a step of their own at
+    // the end of the record (INJ-EM-COUNTS; lead, 10 November 2026): this step records the sampling while it happens and
+    // does not hold the batch until incubation ends.
     definition: {
       code: 'INJ-EM',
       version: 1,
-      title: 'Environmental monitoring during the batch (viable and particles)',
+      title: 'Environmental monitoring during the batch (sampling and particles)',
       category: 'CONTROL',
       edition: EDITION,
       roles: ['ENVIRONMENT_CHECK'],
-      description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with its sample and its count after incubation, and each particle location with its counts per size typed from the counter report and checked by a second person. Counts above the action limit stop the step until a deviation is opened; the release gate waits for the step.',
-      instructions: 'Sample each location of the plan during the operation. Settle plates are exposed no longer than their limit. Enter the counts after incubation. Type the particle counts from the counter report and attach it.',
+      description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
+      instructions: 'Sample each location of the plan during the operation and label the plates with the batch, the location and the time. Settle plates are exposed no longer than their limit. Type the particle counts from the counter report and attach it.',
       sections: [
         {
           id: 'area',
@@ -477,13 +482,9 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           repeat: { kind: 'COUNT', countSlot: 'viableLocations' },
           fields: [
             { id: 'location', label: 'Location (from the sampling plan)', type: 'TEXT', maxLength: 60 },
-            { id: 'method', label: 'Method', type: 'CHOICE', options: ['Active air sample', 'Settle plate', 'Contact plate', 'Glove print'] },
+            { id: 'method', label: 'Method', type: 'CHOICE', options: VIABLE_METHODS },
             { id: 'sample', label: 'Plates taken', type: 'SAMPLE', unitsSlot: 'platesPerLocation', purpose: 'Environmental monitoring' },
             { id: 'exposure', label: 'Settle plate exposure', type: 'NUMBER', unit: 'min', decimals: 0, limitSlot: 'exposure', showWhen: { field: 'method', equals: 'Settle plate' } },
-            { id: 'cfuAir', label: 'Count after incubation, air', type: 'NUMBER', unit: `${CFU}/m3`, decimals: 0, limitSlot: 'cfuAir', critical: true, showWhen: { field: 'method', equals: 'Active air sample' } },
-            { id: 'cfuSettle', label: 'Count after incubation, settle plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuSettle', critical: true, showWhen: { field: 'method', equals: 'Settle plate' } },
-            { id: 'cfuContact', label: 'Count after incubation, contact plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuContact', critical: true, showWhen: { field: 'method', equals: 'Contact plate' } },
-            { id: 'cfuGlove', label: 'Count after incubation, glove print', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuGlove', critical: true, showWhen: { field: 'method', equals: 'Glove print' } },
           ],
         },
         {
@@ -501,23 +502,62 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, CHECKER],
     },
     exampleUse: {
-      // A Grade B room in operation; Grade B action limits of Schedule M Table 3 and the sterile rule table.
+      // A Grade B room in operation; Grade B particle limits of Schedule M Table 1 and the sterile rule table.
       equipmentClasses: { roomClass: 'ROOM-GRADE-B', counterClass: 'PARTICLE-COUNTER' },
       limits: {
         exposure: pv('min', undefined, '240'),
-        cfuAir: em(`${CFU}/m3`, '10', '5'),
-        cfuSettle: em(CFU, '5', '3'),
-        cfuContact: em(CFU, '5', '3'),
-        cfuGlove: em(CFU, '5', '3'),
         particles05: em(PARTICLES, '352000', '300000'),
         particles50: em(PARTICLES, '2900', '2000'),
       },
-      targets: { exposure: '180', cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0', particles05: '50000', particles50: '200' },
+      targets: { exposure: '180', particles05: '50000', particles50: '200' },
       marketRules: {
         particles05: { key: 'sterile.particles.gradeB.inOperation.max0_5um', bound: 'HIGH' },
         particles50: { key: 'sterile.particles.gradeB.inOperation.max5_0um', bound: 'HIGH' },
       },
       counts: { viableLocations: '4', platesPerLocation: '1', particleLocations: '2' },
+    },
+  },
+  {
+    // INJ-32 (counts): SM Part II 4.7-4.10 with Table 3, 4.8 (EM results are considered in the batch release review);
+    // 211.42(c)(10)(iv), 211.113(b); A1 9.4-9.31, Tables 6 (EU). Placed by the master after the batch's last process step
+    // and before the accountability: the plates' counts after incubation. A count above the action limit stops the step
+    // until a deviation is opened, and the release gate stays red while that deviation is open.
+    definition: {
+      code: 'INJ-EM-COUNTS',
+      version: 1,
+      title: 'Environmental monitoring: counts after incubation',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['ENVIRONMENT_CHECK'],
+      description: 'INJ-32. The count of each viable location of the sampling plan after incubation, judged against the site\'s alert level and the grade\'s action limit (Schedule M Table 3; for the EU market Annex 1 Table 6). A count above the action limit stops the step until a deviation is opened; the release gate waits for the step and for the deviation.',
+      instructions: 'Read the plates taken during the batch at the end of their incubation. Enter each location\'s count; send any growth above the alert level for identification.',
+      sections: [
+        {
+          id: 'count',
+          title: 'Count of a location',
+          repeat: { kind: 'COUNT', countSlot: 'viableLocations' },
+          fields: [
+            { id: 'location', label: 'Location (as on the plate)', type: 'TEXT', maxLength: 60 },
+            { id: 'method', label: 'Method', type: 'CHOICE', options: VIABLE_METHODS },
+            { id: 'cfuAir', label: 'Count after incubation, air', type: 'NUMBER', unit: `${CFU}/m3`, decimals: 0, limitSlot: 'cfuAir', critical: true, showWhen: { field: 'method', equals: 'Active air sample' } },
+            { id: 'cfuSettle', label: 'Count after incubation, settle plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuSettle', critical: true, showWhen: { field: 'method', equals: 'Settle plate' } },
+            { id: 'cfuContact', label: 'Count after incubation, contact plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuContact', critical: true, showWhen: { field: 'method', equals: 'Contact plate' } },
+            { id: 'cfuGlove', label: 'Count after incubation, glove print', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuGlove', critical: true, showWhen: { field: 'method', equals: 'Glove print' } },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      // Grade B action limits of Schedule M Table 3; the alert levels are the site's (invented example values).
+      limits: {
+        cfuAir: em(`${CFU}/m3`, '10', '5'),
+        cfuSettle: em(CFU, '5', '3'),
+        cfuContact: em(CFU, '5', '3'),
+        cfuGlove: em(CFU, '5', '3'),
+      },
+      targets: { cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0' },
+      counts: { viableLocations: '4' },
     },
   },
 ];

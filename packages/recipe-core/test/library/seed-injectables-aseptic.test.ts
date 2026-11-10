@@ -26,10 +26,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-APS-READ', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
+const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 13 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 26 for the media fill, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
+  it('[PR-05][PR-03] the catalogue holds the 14 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 26 for the media fill, 32 and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -152,7 +152,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(withLimits(item, { filtrationTime: { unit: 'min', ranges: [{ tier: 'VALIDATED', high: { value: '30', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'PV-REF' } }] } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-18][ST-22][IN-42] EM records each viable location of the formulation\'s plan (air, settle plate, contact plate, glove print) with its sample, time and count after incubation, and limits the settle plate exposure', () => {
+  it('[ST-18][ST-22][IN-42] EM records each viable location of the formulation\'s plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch', () => {
     const item = byCode('INJ-EM');
     expect(item.definition.sections.find((s) => s.id === 'viable')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'viableLocations' });
     const method = fieldOf(item, 'method');
@@ -162,20 +162,25 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(item.definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'DATE_TIME')).toEqual([]);
     // The exposure limit is the formulation's value, not a critical one (lead): judged all the same.
     expect((fieldOf(item, 'exposure') as { critical?: boolean }).critical).toBeUndefined();
-    const settle = { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0', exposure: '240' };
+    // The counts after incubation are not asked here (lead, 10 November 2026): INJ-EM-COUNTS takes them per location.
+    expect(item.definition.sections.flatMap((x) => x.fields).filter((f) => f.id.startsWith('cfu'))).toEqual([]);
+    const counts = byCode('INJ-EM-COUNTS');
+    expect(counts.definition.sections.map((x) => [x.id, x.repeat])).toEqual([['count', { kind: 'COUNT', countSlot: 'viableLocations' }]]);
+    expect(fieldOf(counts, 'method')).toEqual(fieldOf(item, 'method'));
+    const settle = { method: 'Settle plate', exposure: '240' };
     expect(judgedRun(item, { viable: settle })).toEqual({ exceptions: [], status: 'COMPLETED' });
     expect(new Set(judgedRun(item, { viable: { ...settle, exposure: '300' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
   });
 
   it('[ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert', () => {
-    const item = byCode('INJ-EM');
-    const action = judgedRun(item, { viable: { cfuAir: '12' } });
+    const item = byCode('INJ-EM-COUNTS');
+    const action = judgedRun(item, { count: { cfuAir: '12' } });
     expect(new Set(action.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(action.status).not.toBe('COMPLETED');
-    const glove = judgedRun(item, { viable: { method: 'Glove print', cfuAir: undefined, cfuGlove: '6' } });
+    const glove = judgedRun(item, { count: { method: 'Glove print', cfuAir: undefined, cfuGlove: '6' } });
     expect(new Set(glove.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(glove.status).not.toBe('COMPLETED');
-    const alert = judgedRun(item, { viable: { cfuAir: '7' } });
+    const alert = judgedRun(item, { count: { cfuAir: '7' } });
     expect(new Set(alert.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(alert.status).toBe('COMPLETED');
   });
@@ -234,7 +239,7 @@ interface AsepticSetUp {
 }
 
 /** Every aseptic set-up: sterilising filtration, sterilisation in place, aseptic assembly, single-use systems, filling, EM. */
-const ASEPTIC_CORE: readonly CatalogueStep[] = [{ code: 'INJ-SUPPLIER-STERILE' }, { code: 'INJ-SIP' }, { code: 'INJ-SUS' }, { code: 'INJ-STERILE-FILTER' }, { code: 'INJ-ASEPTIC-ASSEMBLY' }, { code: 'INJ-FILL' }, { code: 'INJ-EM' }];
+const ASEPTIC_CORE: readonly CatalogueStep[] = [{ code: 'INJ-SUPPLIER-STERILE' }, { code: 'INJ-SIP' }, { code: 'INJ-SUS' }, { code: 'INJ-STERILE-FILTER' }, { code: 'INJ-ASEPTIC-ASSEMBLY' }, { code: 'INJ-FILL' }, { code: 'INJ-EM' }, { code: 'INJ-EM-COUNTS' }];
 
 const SET_UPS: readonly AsepticSetUp[] = [
   // Open Grade A: a unidirectional airflow zone in a Grade B room; the operators reach in gowned for Grade B.
