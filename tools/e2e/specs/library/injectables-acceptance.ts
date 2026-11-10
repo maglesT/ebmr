@@ -990,7 +990,9 @@ export function defineInjectablesGmp(productKey: string): void {
     const s = loadProduct(e2e, key);
     const sbx = e2e.url('SANDBOX');
     const pr = printedOf(s);
-    const lotCode = (role: string): string => `TEST-L26-${s.tag}-PK-${role.toUpperCase()}`;
+    // Within 27 characters, so the lot number stays whole when read with a second TEST- (32, kernel 1030): a longer one
+    // is split and a part reads as a real lot number (EBMR-EXE-147, seen with TEST-L26-<tag>-PK-LEAFLET).
+    const lotCode = (role: string): string => `TEST-L26-${s.tag}-${role.toUpperCase()}`;
     const st = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(st, persona('SANDBOX', 'steward'));
     await evidence.step('Sandbox: TEST- lots of the product\'s label, leaflet and carton, with their artwork', 'TEST- lots RELEASED (sandbox database only)', async () => {
