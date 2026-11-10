@@ -8,7 +8,11 @@ import { describe, expect, it } from 'vitest';
 import { expr } from '../flow/support.ts';
 import { blockEdition, checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
 import { INJECTABLE_ASEPTIC_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
-import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
+import { byCode, configOf, fieldOf, judgedRun, nominalRun, recordNominal, type CatalogueStep } from './seed-support.ts';
+import { libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
+import { define, Run, T0, testRegistry } from '../engine/support.ts';
+import { mbrWith, phase } from '../flow/support.ts';
+import type { BlockUse } from '../../src/library/model.ts';
 
 /** The item with some example limits changed, to see the block judge a value against them. */
 function withLimits(item: SeedItem, limits: NonNullable<SeedItem['exampleUse']['limits']>): SeedItem {
@@ -22,10 +26,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
+const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 12 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 32), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
+  it('[PR-05][PR-03] the catalogue holds the 14 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 26 for the media fill, 32 and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -54,9 +58,10 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(byCode('INJ-ASEPTIC-ASSEMBLY').definition.sections.map((x) => x.id)).toEqual(['connection']);
   });
 
-  it('[ST-40][ST-49] a supplier-sterilised component is accepted by its lot on the formula line, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception', () => {
+  it('[ST-40][ST-49] a supplier-sterilised component is accepted by its released lot, named where it is used and verified by a second person, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception', () => {
     const item = byCode('INJ-SUPPLIER-STERILE');
-    expect(fieldOf(item, 'componentLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' });
+    expect(fieldOf(item, 'componentLot')).toEqual({ id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT' });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     for (const id of ['certificate', 'doseOrCycle']) expect(fieldOf(item, id).type, id).toBe('TEXT');
     const method = fieldOf(item, 'method');
     expect(method.type === 'CHOICE' ? method.options.filter((o) => /UV|ultraviolet/i.test(o)) : ['not a choice']).toEqual([]);
@@ -106,16 +111,21 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(new Set(failed.exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
   });
 
-  it('[ST-79] a single-use assembly is accepted by its lot on the formula line; for the EU market, in its own block, its integrity not checked before use is an exception', () => {
+  it('[ST-79] a single-use assembly is accepted by its released lot, named where it is used and verified by a second person; for the EU market, in its own block, its integrity not checked before use is an exception', () => {
     const item = byCode('INJ-SUS');
-    expect(fieldOf(item, 'assemblyLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'assemblyLine' });
+    expect(fieldOf(item, 'assemblyLot')).toEqual({ id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT' });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     expect(judgedRun(byCode('INJ-SUS-INTEGRITY'), { integrity: { integrity: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
-  it('[ST-50][IN-48] the sterilising filter is its lot on the formula line, which names the filter registered for the product; no typed type can stand in for it', () => {
+  it('[ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it', () => {
     const item = byCode('INJ-STERILE-FILTER');
-    expect(fieldOf(item, 'filterLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'filterLine' });
+    expect(fieldOf(item, 'filterLot')).toEqual({ id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' });
     expect(item.definition.sections.find((x) => x.id === 'filter')?.fields.map((f) => f.id)).toEqual(['filterLot']);
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    // 211.84: only a released lot may be used (the engine's lot checks of every MATERIAL_LOT field).
+    const quarantined = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } };
+    expect(() => judgedRun(item, { filter: { lots: quarantined } })).toThrow(/G07-LOT-STATUS/);
   });
 
   it('[ST-52][IN-48] filter integrity is judged before use and after use by the formulation\'s method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception', () => {
@@ -148,7 +158,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(withLimits(item, { filtrationTime: { unit: 'min', ranges: [{ tier: 'VALIDATED', high: { value: '30', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'PV-REF' } }] } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-18][ST-22][IN-42] EM records each viable location of the formulation\'s plan (air, settle plate, contact plate, glove print) with its sample, time and count after incubation, and limits the settle plate exposure', () => {
+  it('[ST-18][ST-22][IN-42] EM records each viable location of the formulation\'s plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch', () => {
     const item = byCode('INJ-EM');
     expect(item.definition.sections.find((s) => s.id === 'viable')?.repeat).toEqual({ kind: 'COUNT', countSlot: 'viableLocations' });
     const method = fieldOf(item, 'method');
@@ -158,20 +168,25 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(item.definition.sections.flatMap((x) => x.fields).filter((f) => f.type === 'DATE_TIME')).toEqual([]);
     // The exposure limit is the formulation's value, not a critical one (lead): judged all the same.
     expect((fieldOf(item, 'exposure') as { critical?: boolean }).critical).toBeUndefined();
-    const settle = { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0', exposure: '240' };
+    // The counts after incubation are not asked here (lead, 10 November 2026): INJ-EM-COUNTS takes them per location.
+    expect(item.definition.sections.flatMap((x) => x.fields).filter((f) => f.id.startsWith('cfu'))).toEqual([]);
+    const counts = byCode('INJ-EM-COUNTS');
+    expect(counts.definition.sections.map((x) => [x.id, x.repeat])).toEqual([['count', { kind: 'COUNT', countSlot: 'viableLocations' }]]);
+    expect(fieldOf(counts, 'method')).toEqual(fieldOf(item, 'method'));
+    const settle = { method: 'Settle plate', exposure: '240' };
     expect(judgedRun(item, { viable: settle })).toEqual({ exceptions: [], status: 'COMPLETED' });
     expect(new Set(judgedRun(item, { viable: { ...settle, exposure: '300' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
   });
 
   it('[ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert', () => {
-    const item = byCode('INJ-EM');
-    const action = judgedRun(item, { viable: { cfuAir: '12' } });
+    const item = byCode('INJ-EM-COUNTS');
+    const action = judgedRun(item, { count: { cfuAir: '12' } });
     expect(new Set(action.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(action.status).not.toBe('COMPLETED');
-    const glove = judgedRun(item, { viable: { method: 'Glove print', cfuAir: undefined, cfuGlove: '6' } });
+    const glove = judgedRun(item, { count: { method: 'Glove print', cfuAir: undefined, cfuGlove: '6' } });
     expect(new Set(glove.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(glove.status).not.toBe('COMPLETED');
-    const alert = judgedRun(item, { viable: { cfuAir: '7' } });
+    const alert = judgedRun(item, { count: { cfuAir: '7' } });
     expect(new Set(alert.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(alert.status).toBe('COMPLETED');
   });
@@ -186,5 +201,128 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     for (const id of ['particles05', 'particles50']) expect(fieldOf(item, id), id).toMatchObject({ type: 'NUMBER', unit: '{particles}/m3', critical: true });
     expect(new Set(judgedRun(item, { particles: { particles50: '3000' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(new Set(judgedRun(item, { particles: { reportAttached: false } }).exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
+  });
+});
+
+/**
+ * Runs the filling block (INJ-FILL) once with its nominal entries and the events given, each recorded in its optional
+ * event section while the step is in progress, as the operator records one when it happens.
+ */
+function fillWithEvents(events: readonly Readonly<Record<string, unknown>>[]): { exceptions: string[]; status: string | undefined } {
+  const item = byCode('INJ-FILL');
+  const def = item.definition;
+  const config = item.exampleUse as Record<string, unknown>;
+  const inputs = Object.entries(item.exampleInputs ?? {});
+  const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: '1' }, config: config as never, reads: inputs.map(([k]) => k) }), phase('after')] }, {
+    inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
+  });
+  // The nominal entries hold one event of each optional section; this run records only the events given.
+  const noEvent = { ...def, sections: def.sections.filter((x) => x.id !== 'event') };
+  const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), { inputs: Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }])) }, T0);
+  run.start('p');
+  recordNominal(run, 'p', noEvent, config, mbr);
+  for (const e of events) {
+    run.entry('p', { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventStart: '2026-11-10T10:15', eventEnd: '2026-11-10T10:17', eventListed: true, eventUnits: '3', ...e });
+    run.minutes(1);
+  }
+  try {
+    run.perform('p');
+  } catch (e) {
+    if (!(e instanceof Error && e.message.includes('ENG-BLOCKED'))) throw e;
+    return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
+  }
+  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p');
+  return { exceptions: run.exceptions().map((x) => x.type), status: run.status('p') };
+}
+
+/** The aseptic set-ups of slice I-2 (ST-74): the blocks a formulation adds for its barrier, and the class of its filling room. */
+interface AsepticSetUp {
+  name: string;
+  market: 'IN' | 'EU';
+  /** The background room of the filling line (the formulation's room class in INJ-FILL and INJ-EM). */
+  roomClass: string;
+  lineClass: string;
+  steps: readonly CatalogueStep[];
+}
+
+/** Every aseptic set-up: sterilising filtration, sterilisation in place, aseptic assembly, single-use systems, filling, EM. */
+const ASEPTIC_CORE: readonly CatalogueStep[] = [{ code: 'INJ-SUPPLIER-STERILE' }, { code: 'INJ-SIP' }, { code: 'INJ-SUS' }, { code: 'INJ-STERILE-FILTER' }, { code: 'INJ-ASEPTIC-ASSEMBLY' }, { code: 'INJ-FILL' }, { code: 'INJ-EM' }, { code: 'INJ-EM-COUNTS' }];
+
+const SET_UPS: readonly AsepticSetUp[] = [
+  // Open Grade A: a unidirectional airflow zone in a Grade B room; the operators reach in gowned for Grade B.
+  { name: 'open Grade A', market: 'IN', roomClass: 'ROOM-GRADE-B', lineClass: 'VIAL-FILLING-LINE', steps: ASEPTIC_CORE },
+  // RABS: the Grade A zone behind a barrier with glove ports in a Grade B room. Its glove test is the EU block (A1 4.21).
+  { name: 'RABS', market: 'IN', roomClass: 'ROOM-GRADE-B', lineClass: 'VIAL-FILLING-RABS', steps: ASEPTIC_CORE },
+  // Isolator for the EU market: a Grade C (or D) background; the isolator is bio-decontaminated (A1 4.22) and its gloves
+  // tested (A1 4.21); the EU blocks for the transfer, the pack indicator, single-use integrity and PUPSIT come with it.
+  {
+    name: 'isolator',
+    market: 'EU',
+    roomClass: 'ROOM-GRADE-C',
+    lineClass: 'VIAL-FILLING-ISOLATOR',
+    steps: [...ASEPTIC_CORE, { code: 'INJ-VHP' }, { code: 'INJ-GLOVE-TEST' }, { code: 'INJ-ASEPTIC-TRANSFER' }, { code: 'INJ-STERILE-PACK-INDICATOR' }, { code: 'INJ-SUS-INTEGRITY' }, { code: 'INJ-PUPSIT' }],
+  },
+];
+
+/** A step's use in a set-up: the item's example values with the set-up's room and line classes where the block names them. */
+function setUpUse(setUp: AsepticSetUp, step: CatalogueStep): BlockUse {
+  const ex = byCode(step.code).exampleUse;
+  const classes = { ...ex.equipmentClasses };
+  if ('roomClass' in classes) classes['roomClass'] = setUp.roomClass;
+  if ('lineClass' in classes) classes['lineClass'] = setUp.lineClass;
+  return { block: { code: step.code, version: 1 }, ...ex, ...(ex.equipmentClasses ? { equipmentClasses: classes } : {}) };
+}
+
+describe('aseptic filling events, the media fill and the aseptic set-ups (slice I-2a)', () => {
+  it('[ST-35][PR-03] filling records interventions, stoppages, glove changes and alarms in an optional event section as many times as they happen (what, when, units removed); a fill with none, or with several, completes', () => {
+    const event = byCode('INJ-FILL').definition.sections.find((x) => x.id === 'event');
+    expect(event).toMatchObject({ required: false, repeat: { kind: 'PER_CONTAINER' } });
+    expect(event?.when).toMatch(/intervention/);
+    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventStart', 'eventEnd', 'eventListed', 'eventUnits']);
+    expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] });
+    expect(fillWithEvents([])).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(fillWithEvents([{}, { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventUnits: '0' }, { eventKind: 'Glove change', eventWhat: 'Right glove of port 2 changed' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // Nothing judged sits in the event section: it is the record of an event, not a planned check.
+    for (const f of event?.fields ?? []) expect('limitSlot' in f ? f.limitSlot : undefined, f.id).toBeUndefined();
+  });
+
+  it('[ST-34][ST-36] an event not on the formulation\'s list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)', () => {
+    const run = fillWithEvents([{ eventListed: false, eventWhat: 'Unlisted: stopper chute cleared by hand' }]);
+    expect(run.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(run.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-32][IN-45] the media fill reading records the units removed before incubation and why, the units incubated, each incubation period against the site\'s validated conditions, and the contaminated units; the second period is asked only for a two-temperature scheme', () => {
+    const item = byCode('INJ-APS-READ');
+    expect(item.definition.sections.map((x) => x.id)).toEqual(['incubation', 'reading']);
+    for (const id of ['firstTemperature', 'firstDays', 'secondTemperature', 'secondDays', 'contaminated']) expect(fieldOf(item, id), id).toMatchObject({ critical: true });
+    expect(fieldOf(item, 'secondTemperature').showWhen).toEqual({ field: 'scheme', equals: 'Two temperatures in sequence' });
+    const two = { scheme: 'Two temperatures in sequence', secondTemperature: '32.5', secondDays: '7' };
+    expect(judgedRun(item, { incubation: two })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(new Set(judgedRun(item, { incubation: { ...two, secondTemperature: '37.0' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+    expect(new Set(judgedRun(item, { incubation: { firstDays: '5' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+  });
+
+  it('[ST-33][IN-45] one contaminated media-fill unit is a critical breach of the acceptance limit: the reading cannot be signed until it is handled, and its deviation holds the record', () => {
+    const run = judgedRun(byCode('INJ-APS-READ'), { reading: { contaminated: '1', identification: 'Staphylococcus sp.' } });
+    expect(new Set(run.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+    expect(run.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-74][IN-41] the open Grade A, RABS and isolator set-ups are formulations of the same blocks: each names its background room and line by class; the isolator adds bio-decontamination and the glove test; EU-market blocks appear only in the EU set-up', () => {
+    for (const setUp of SET_UPS) {
+      for (const st of setUp.steps) {
+        const def = byCode(st.code).definition;
+        const use = setUpUse(setUp, st);
+        expect(checkBlockUse(def, use, expr), `${setUp.name} ${st.code}`).toEqual([]);
+        if (def.markets !== undefined) expect(def.markets, `${setUp.name} ${st.code}`).toContain(setUp.market);
+        expect(Object.keys(configOf(use))).not.toContain('block');
+      }
+      const fill = setUpUse(setUp, { code: 'INJ-FILL' }).equipmentClasses;
+      expect([fill?.['roomClass'], fill?.['lineClass']], setUp.name).toEqual([setUp.roomClass, setUp.lineClass]);
+    }
+    const codes = (name: string) => SET_UPS.find((x) => x.name === name)?.steps.map((x) => x.code) ?? [];
+    expect(codes('isolator')).toEqual(expect.arrayContaining(['INJ-VHP', 'INJ-GLOVE-TEST']));
+    expect(codes('RABS').filter((c) => byCode(c).definition.markets !== undefined)).toEqual([]);
   });
 });

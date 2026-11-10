@@ -20,7 +20,8 @@ behaviour: |-
   - A catalogue intervention done more often than demonstrated in APS, or a rare intervention not simulated within its interval, raises a deviation for QA assessment (see ST-31).
 catalog_test: Record an "other" intervention → QA sign-off required before continuing, deviation auto-created, certification blocked while open.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-34][ST-36] an event not on the formulation's list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

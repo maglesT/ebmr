@@ -12,6 +12,10 @@
  * Choices kept to the binding minimum (plan sections 1 and 8a; lead's I-1 design choices):
  *  - Values typed from a device printout or report (SIP and VHP cycles, the particle counter) are checked by a second
  *    person (21 CFR 211.68(b)), so those blocks carry a CHECKED signature. There is no device gateway.
+ *  - Component lots (the sterilising filter, a single-use assembly, a supplier-sterilised component) are named where they
+ *    are used, as the I-1 components (lead, 6 and 10 November 2026): no formula line; the engine accepts only a released
+ *    lot within its dates (211.84, the lot checks of every MATERIAL_LOT field), and a second person verifies that it is
+ *    the item the formulation names (the material-match gap of I-1), so those blocks are signed PERFORMED and VERIFIED.
  *  - Time limits (sterilisation or bio-decontamination to use, the post-SIP hold, the isolator's validity after VHP)
  *    are the master's time constraints (HOLD, PROCESS_WINDOW, USE_BY) on trusted time from the steps' own events, not
  *    typed times. The plan's "validity end, CALC" of INJ-09 and the "hold by CALC" of INJ-07 are therefore not fields:
@@ -60,6 +64,9 @@ const em = (unit: string, action: string, alert?: string): LimitSpec => ({
 });
 
 const CFU = '{CFU}';
+/** How a viable location is sampled. */
+const VIABLE_METHODS = ['Active air sample', 'Settle plate', 'Contact plate', 'Glove print'];
+const UNITS = '{unit}';
 const PARTICLES = '{particles}/m3';
 
 export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
@@ -73,13 +80,13 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       edition: EDITION,
       roles: ['VERIFICATION'],
       description: 'INJ-03. One component sterilised by its supplier or a contract steriliser (irradiation, ethylene oxide or moist heat): its lot (released by QC), the sterilisation method, the certificate and the dose or cycle reference. Used once per component.',
-      instructions: 'Check the lot against the formula line and its released label. Record the sterilisation certificate of the lot and its dose or cycle reference. Do not use a pack whose wrap is damaged.',
+      instructions: 'Name the released lot of the component; a second person verifies it is the component the formulation names. Record the sterilisation certificate of the lot and its dose or cycle reference. Do not use a pack whose wrap is damaged.',
       sections: [
         {
           id: 'component',
           title: 'Component',
           fields: [
-            { id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' },
+            { id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT' },
             { id: 'method', label: 'Sterilisation method', type: 'CHOICE', options: ['Gamma irradiation', 'Electron beam', 'Ethylene oxide', 'Moist heat'] },
             { id: 'certificate', label: 'Sterilisation certificate reference', type: 'TEXT', maxLength: 60 },
             { id: 'doseOrCycle', label: 'Dose or cycle reference (from the certificate)', type: 'TEXT', maxLength: 60 },
@@ -87,9 +94,9 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, CHECKER],
+      signatures: [OPERATOR, VERIFIER],
     },
-    exampleUse: { bomLines: { componentLine: 'L3' } },
+    exampleUse: {},
   },
   {
     // INJ-03 (indicator): A1 8.72-8.78 (EU market only).
@@ -265,20 +272,20 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['VERIFICATION'],
-      description: 'INJ-11. One single-use assembly: its lot (released by QC) on the formula line. Used once per assembly.',
-      instructions: 'Check the assembly lot against the formula line and its released label.',
+      description: 'INJ-11. One single-use assembly: its lot (released by QC), named where it is used and verified by a second person. Used once per assembly.',
+      instructions: 'Name the released lot of the assembly; a second person verifies it is the assembly the formulation names.',
       sections: [
         {
           id: 'assembly',
           title: 'Assembly',
           fields: [
-            { id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT', bomLineSlot: 'assemblyLine' },
+            { id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT' },
           ],
         },
       ],
       signatures: [OPERATOR, VERIFIER],
     },
-    exampleUse: { bomLines: { assemblyLine: 'L4' } },
+    exampleUse: {},
   },
   {
     // INJ-11 (integrity): A1 8.127-8.138 (EU market only).
@@ -313,14 +320,14 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       title: 'Sterilising filtration and filter integrity',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-13. The sterilising filter (its lot on the formula line, which names the filter registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
+      description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
       instructions: 'Use only the filter registered for the product. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [
         {
           id: 'filter',
           title: 'Filter',
           fields: [
-            { id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT', bomLineSlot: 'filterLine' },
+            { id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' },
           ],
         },
         {
@@ -353,7 +360,6 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      bomLines: { filterLine: 'L5' },
       limits: {
         bubblePointPre: pv('bar', '3.20'),
         diffusionPre: pv('mL/min', undefined, '20.0'),
@@ -396,16 +402,74 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     },
   },
   {
+    // INJ-26 (media fill): 211.113(b) (the validation of aseptic processes); SM Part II 5.3-5.7 (process simulation with
+    // media); for EU batches A1 9.41-9.47 (accountability, incubation, reading, the zero target). The incubation conditions
+    // are the ones the site validated, entered as the formulation's limits (plan 8a: no fixed FDA scheme). A contaminated
+    // unit is a critical breach: its exception and deviation reach QA, who then does not extend the line's and the people's
+    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet).
+    definition: {
+      code: 'INJ-APS-READ',
+      version: 1,
+      title: 'Media fill: incubation and reading',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['OBSERVATION'],
+      description: 'INJ-26, media fill. The filled units incubated, the units removed before incubation with the reason, the incubation temperature and time of each period against the site\'s validated conditions, and the units read as contaminated after incubation against the acceptance limit.',
+      instructions: 'Inspect the filled units and remove only those that are not integral, recording why. Incubate them in the validated scheme and read every unit at its end. Record any contaminated unit and send it for identification.',
+      sections: [
+        {
+          id: 'incubation',
+          title: 'Incubation',
+          fields: [
+            { id: 'incubator', label: 'Incubator', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'incubatorClass' },
+            { id: 'unitsRemoved', label: 'Units removed before incubation (not integral)', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'removedReason', label: 'Why they were removed', type: 'TEXT', maxLength: 120, required: false },
+            { id: 'unitsIncubated', label: 'Units incubated', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'scheme', label: 'Incubation scheme', type: 'CHOICE', options: ['One temperature', 'Two temperatures in sequence'] },
+            { id: 'firstTemperature', label: 'Temperature, first period', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'firstTemperature', critical: true },
+            { id: 'firstDays', label: 'Time, first period', type: 'NUMBER', unit: 'd', decimals: 0, limitSlot: 'firstDays', critical: true },
+            { id: 'secondTemperature', label: 'Temperature, second period', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'secondTemperature', critical: true, showWhen: { field: 'scheme', equals: 'Two temperatures in sequence' } },
+            { id: 'secondDays', label: 'Time, second period', type: 'NUMBER', unit: 'd', decimals: 0, limitSlot: 'secondDays', critical: true, showWhen: { field: 'scheme', equals: 'Two temperatures in sequence' } },
+          ],
+        },
+        {
+          id: 'reading',
+          title: 'Reading',
+          fields: [
+            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true },
+            { id: 'identification', label: 'Organisms identified (for a contaminated unit)', type: 'TEXT', maxLength: 120, required: false },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { incubatorClass: 'INCUBATOR' },
+      // Invented example values: the site's validated scheme and its acceptance limit come from its own validation.
+      limits: {
+        firstTemperature: pv('Cel', '20.0', '25.0'),
+        firstDays: pv('d', '7', '8'),
+        secondTemperature: pv('Cel', '30.0', '35.0'),
+        secondDays: pv('d', '7', '8'),
+        contaminated: pv(UNITS, '0', '0'),
+      },
+      targets: { firstTemperature: '22.5', firstDays: '7', secondTemperature: '32.5', secondDays: '7', contaminated: '0' },
+    },
+  },
+  {
     // INJ-32: SM Part II 4.7-4.10 with Tables 1 and 3, 4.8; 211.42(c)(10)(iv), 211.113(b); A1 9.4-9.31, Tables 5-6.
+    // The plates are counted only after incubation, days after the operation, so the counts are a step of their own at
+    // the end of the record (INJ-EM-COUNTS; lead, 10 November 2026): this step records the sampling while it happens and
+    // does not hold the batch until incubation ends.
     definition: {
       code: 'INJ-EM',
       version: 1,
-      title: 'Environmental monitoring during the batch (viable and particles)',
+      title: 'Environmental monitoring during the batch (sampling and particles)',
       category: 'CONTROL',
       edition: EDITION,
       roles: ['ENVIRONMENT_CHECK'],
-      description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with its sample and its count after incubation, and each particle location with its counts per size typed from the counter report and checked by a second person. Counts above the action limit stop the step until a deviation is opened; the release gate waits for the step.',
-      instructions: 'Sample each location of the plan during the operation. Settle plates are exposed no longer than their limit. Enter the counts after incubation. Type the particle counts from the counter report and attach it.',
+      description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
+      instructions: 'Sample each location of the plan during the operation and label the plates with the batch, the location and the time. Settle plates are exposed no longer than their limit. Type the particle counts from the counter report and attach it.',
       sections: [
         {
           id: 'area',
@@ -421,13 +485,9 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           repeat: { kind: 'COUNT', countSlot: 'viableLocations' },
           fields: [
             { id: 'location', label: 'Location (from the sampling plan)', type: 'TEXT', maxLength: 60 },
-            { id: 'method', label: 'Method', type: 'CHOICE', options: ['Active air sample', 'Settle plate', 'Contact plate', 'Glove print'] },
+            { id: 'method', label: 'Method', type: 'CHOICE', options: VIABLE_METHODS },
             { id: 'sample', label: 'Plates taken', type: 'SAMPLE', unitsSlot: 'platesPerLocation', purpose: 'Environmental monitoring' },
             { id: 'exposure', label: 'Settle plate exposure', type: 'NUMBER', unit: 'min', decimals: 0, limitSlot: 'exposure', showWhen: { field: 'method', equals: 'Settle plate' } },
-            { id: 'cfuAir', label: 'Count after incubation, air', type: 'NUMBER', unit: `${CFU}/m3`, decimals: 0, limitSlot: 'cfuAir', critical: true, showWhen: { field: 'method', equals: 'Active air sample' } },
-            { id: 'cfuSettle', label: 'Count after incubation, settle plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuSettle', critical: true, showWhen: { field: 'method', equals: 'Settle plate' } },
-            { id: 'cfuContact', label: 'Count after incubation, contact plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuContact', critical: true, showWhen: { field: 'method', equals: 'Contact plate' } },
-            { id: 'cfuGlove', label: 'Count after incubation, glove print', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuGlove', critical: true, showWhen: { field: 'method', equals: 'Glove print' } },
           ],
         },
         {
@@ -445,23 +505,62 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, CHECKER],
     },
     exampleUse: {
-      // A Grade B room in operation; Grade B action limits of Schedule M Table 3 and the sterile rule table.
+      // A Grade B room in operation; Grade B particle limits of Schedule M Table 1 and the sterile rule table.
       equipmentClasses: { roomClass: 'ROOM-GRADE-B', counterClass: 'PARTICLE-COUNTER' },
       limits: {
         exposure: pv('min', undefined, '240'),
-        cfuAir: em(`${CFU}/m3`, '10', '5'),
-        cfuSettle: em(CFU, '5', '3'),
-        cfuContact: em(CFU, '5', '3'),
-        cfuGlove: em(CFU, '5', '3'),
         particles05: em(PARTICLES, '352000', '300000'),
         particles50: em(PARTICLES, '2900', '2000'),
       },
-      targets: { exposure: '180', cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0', particles05: '50000', particles50: '200' },
+      targets: { exposure: '180', particles05: '50000', particles50: '200' },
       marketRules: {
         particles05: { key: 'sterile.particles.gradeB.inOperation.max0_5um', bound: 'HIGH' },
         particles50: { key: 'sterile.particles.gradeB.inOperation.max5_0um', bound: 'HIGH' },
       },
       counts: { viableLocations: '4', platesPerLocation: '1', particleLocations: '2' },
+    },
+  },
+  {
+    // INJ-32 (counts): SM Part II 4.7-4.10 with Table 3, 4.8 (EM results are considered in the batch release review);
+    // 211.42(c)(10)(iv), 211.113(b); A1 9.4-9.31, Tables 6 (EU). Placed by the master after the batch's last process step
+    // and before the accountability: the plates' counts after incubation. A count above the action limit stops the step
+    // until a deviation is opened, and the release gate stays red while that deviation is open.
+    definition: {
+      code: 'INJ-EM-COUNTS',
+      version: 1,
+      title: 'Environmental monitoring: counts after incubation',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['ENVIRONMENT_CHECK'],
+      description: 'INJ-32. The count of each viable location of the sampling plan after incubation, judged against the site\'s alert level and the grade\'s action limit (Schedule M Table 3; for the EU market Annex 1 Table 6). A count above the action limit stops the step until a deviation is opened; the release gate waits for the step and for the deviation.',
+      instructions: 'Read the plates taken during the batch at the end of their incubation. Enter each location\'s count; send any growth above the alert level for identification.',
+      sections: [
+        {
+          id: 'count',
+          title: 'Count of a location',
+          repeat: { kind: 'COUNT', countSlot: 'viableLocations' },
+          fields: [
+            { id: 'location', label: 'Location (as on the plate)', type: 'TEXT', maxLength: 60 },
+            { id: 'method', label: 'Method', type: 'CHOICE', options: VIABLE_METHODS },
+            { id: 'cfuAir', label: 'Count after incubation, air', type: 'NUMBER', unit: `${CFU}/m3`, decimals: 0, limitSlot: 'cfuAir', critical: true, showWhen: { field: 'method', equals: 'Active air sample' } },
+            { id: 'cfuSettle', label: 'Count after incubation, settle plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuSettle', critical: true, showWhen: { field: 'method', equals: 'Settle plate' } },
+            { id: 'cfuContact', label: 'Count after incubation, contact plate', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuContact', critical: true, showWhen: { field: 'method', equals: 'Contact plate' } },
+            { id: 'cfuGlove', label: 'Count after incubation, glove print', type: 'NUMBER', unit: CFU, decimals: 0, limitSlot: 'cfuGlove', critical: true, showWhen: { field: 'method', equals: 'Glove print' } },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      // Grade B action limits of Schedule M Table 3; the alert levels are the site's (invented example values).
+      limits: {
+        cfuAir: em(`${CFU}/m3`, '10', '5'),
+        cfuSettle: em(CFU, '5', '3'),
+        cfuContact: em(CFU, '5', '3'),
+        cfuGlove: em(CFU, '5', '3'),
+      },
+      targets: { cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0' },
+      counts: { viableLocations: '4' },
     },
   },
 ];

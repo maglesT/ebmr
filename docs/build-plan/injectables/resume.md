@@ -69,6 +69,13 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   (EBMR-LBL-061) but no longer its verification. `tab.verify_post_use_inspection` stays, optional, never the inspector.
 - Removed refusal: "the post-use inspection is not verified by a second person (PR-34)". Tests [PR-34] in
   `line-completion.test.ts` (tablets and injectables).
+- Also merged in session 9: #208, kernel 1406 (a typed ISO date-time is no identifier word in a sandbox; DI-05, INV-18).
+- fix/values-form-tiers (PR open at handover): the designer's values form takes the validated range, the action limit and
+  the alert limit beside the registered range (withTier keeps the other tiers; nesting problems come from
+  checkBlockUse/checkLimitSpec); the floor names every tier, innermost first. Tests [PR-08].
+- Residuals: per-point limits (a TEST_RESULT with perPoint) still take the registered range only; the stale comment in
+  tools/e2e/specs/library/injectables-acceptance.ts:590 still says a second person verifies the post-use inspection
+  (only a comment; the test still verifies, which stays allowed).
 
 ### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
 

@@ -36,7 +36,8 @@ behaviour: |-
   - Impact on commercial batches made since the last passing media fill is always assessed.
 catalog_test: Enter one turbid unit in a 12,000-unit APS on a line with an EU product → failed, line suspended, quarantine and impact list created, 3 repeat runs required. On a US-only line → investigation only.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-33][IN-45] one contaminated media-fill unit is a critical breach of the acceptance limit: the reading cannot be signed until it is handled, and its deviation holds the record"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
