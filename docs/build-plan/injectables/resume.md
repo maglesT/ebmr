@@ -59,6 +59,17 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 9 (10 November 2026): the post-use inspection without a second person (branch `inj/i1c2-postuse-verifier`)
+
+- **Lead ruling (10 November 2026):** no binding clause asks for a second person on the packaging line's post-use
+  inspection in any edition. 211.188(b)(6) asks for the after-use inspection in the record; 211.130(e), EU Ch.5 5.50 and
+  Schedule M Part I 17.3.9 / 18.5.2-18.5.3 are pre-use; Part VIII 7.1's independent check is pre-use (oral solids);
+  Annex 1 and Schedule M Part XIII say nothing here. **D-P6c-6 is superseded** for its second-person part.
+- tablets 1908: `tab.packaging_completion_problem` (create or replace) still needs a passing latest post-use inspection
+  (EBMR-LBL-061) but no longer its verification. `tab.verify_post_use_inspection` stays, optional, never the inspector.
+- Removed refusal: "the post-use inspection is not verified by a second person (PR-34)". Tests [PR-34] in
+  `line-completion.test.ts` (tablets and injectables).
+
 ### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
 
 - **Lead change:** the lead is now session_01PybpFvcfiLdV8mgoVVWXTk (owner confirmed); earlier rulings stand.
