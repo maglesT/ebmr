@@ -6,6 +6,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type FormulaLineInput } from '@ebmr/api-contract';
+import { withCommand } from '@ebmr/kernel';
 import { terminalOf } from '@ebmr/test-kit';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -13,6 +14,7 @@ import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 import { definitionFindings } from '../../src/features/designer/definition.ts';
 import { expectedTabletCount } from '../../src/features/execution/issue-expectations.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
+import { referenceContent, referenceHash } from '../../src/features/designer/reference-catalogue.ts';
 import { publishTables, saveContent, stewardActor } from './support.ts';
 import { library, type flow } from '@ebmr/recipe-core/pure';
 import { INJECTABLE_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables.ts';
@@ -321,7 +323,10 @@ describe('a new master from an approved formula (slice 7j)', () => {
       { item: 'LEAFLET', material: 'PM-7JP-LFT', artwork: 'ART-7JP-LFT-1' },
       { item: 'CARTON', material: 'PM-7JP-CTN', artwork: 'ART-7JP-CTN-1' },
     ];
-    type Node = { id: string; kind: string; block?: { type: string; version: string }; config?: Record<string, unknown>; records?: string[]; signatures?: { check?: { meaning: string } } };
+    // P3c: the firm's own values, each printed item with its approved specimen (SPECIMEN documents recorded below).
+    const OWN = PRINTED.map((p, i) => ({ ...p, allowancePercent: '2', ...(i === 1 ? { maxUnexplainedPercent: '0.5' } : { maxUnexplained: '0' }), specimen: `SPC-7JP-${p.item}` }));
+    const INJ2 = { code: 'DMT7JQ', name: 'Demoject ampoules', strength: PRODUCT.strength };
+    type Node = { id: string; kind: string; block?: { type: string; version: string }; config?: Record<string, unknown>; records?: string[]; consumes?: string[]; signatures?: { check?: { meaning: string } } };
     const nodes = (n: unknown, out: Node[] = []): Node[] => {
       if (Array.isArray(n)) n.forEach((x) => nodes(x, out));
       else if (n && typeof n === 'object') {
@@ -332,6 +337,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
       return out;
     };
     let injFormula = '';
+    let inj2Formula = '';
     let skeleton: flow.MbrContent | undefined;
     let skeletonVersionId = '';
     const pack = (familyCode: string, extra: Record<string, unknown> = {}) =>
@@ -340,9 +346,16 @@ describe('a new master from an approved formula (slice 7j)', () => {
       valueOf(await steward.call(md.enterProduct, { body: { productCode: INJ.code, strength: INJ.strength, productName: INJ.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
       for (const p of PRINTED) valueOf(await steward.call(md.enterMaterial, { body: { materialCode: p.material, materialName: `Demoject ${p.item.toLowerCase()}`, materialKind: 'PRINTED_PACKAGING', unit: '1', pharmacopoeia: 'NONE', changeReason: REASON } }));
       valueOf(await steward.call(md.enterMaterial, { body: { materialCode: 'PM-7JP-VIAL', materialName: 'Glass vial 2 mL', materialKind: 'PRIMARY_PACKAGING', unit: '1', pharmacopoeia: 'NONE', changeReason: REASON } }));
+      valueOf(await steward.call(md.enterProduct, { body: { productCode: INJ2.code, strength: INJ2.strength, productName: INJ2.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
       await confirmErpPending(gmp);
       injFormula = await approvedFormula('100000', { targetUnitMassMg: '564', otherBatchSizesUnits: ['50000'] }, LINES, INJ.code);
-    }, 120_000);
+      inj2Formula = await approvedFormula('100000', undefined, LINES, INJ2.code);
+      const actor = await stewardActor(gmp);
+      for (const o of OWN) {
+        const content = referenceContent({ kind: 'SPECIMEN', code: o.specimen, version: '1', title: `Demoject ${o.item.toLowerCase()} specimen`, effectiveFrom: '2026-01-01', summary: 'Printed item as approved for print (DEMO-ONLY).' });
+        await withCommand(gmp.db.app, actor, (c) => c.query('select tab.record_reference_document($1::jsonb, $2)', [JSON.stringify(content), referenceHash(content)]));
+      }
+    }, 180_000);
 
     it('[PR-34][IN-21][PR-23][PR-32][PR-39][PR-31] the skeleton holds only what is binding: line clearance (211.130(e)), equipment status, the printed label, leaflet and carton with their artwork per market (211.125, 211.130), the counts verified by a second person and the packaging yield (211.103); no tablet packing block, no formula composition, no pinned formula', async () => {
       const v = valueOf(await pack('DMT7JP-PK'));
@@ -357,19 +370,42 @@ describe('a new master from an approved formula (slice 7j)', () => {
         'S-PACK', 'p-pk-clear G-10@2', 'p-pk-status G-09@2', 'p-pk-printed G-21@1', 'p-pk-count G-04@1', 'p-pk-yield G-20@1',
       ]);
       const g21 = all.find((n) => n.id === 'p-pk-printed')?.config as { items: { id: string; artwork: Record<string, string>; coded?: boolean; limits: Record<string, string>; issue: { need: string } }[] };
-      expect(g21.items.map((i) => [i.id, i.artwork, i.issue.need, i.coded ?? false, i.limits])).toEqual(PRINTED.map((p) => [p.item, { IN: p.artwork, US: p.artwork }, '100000', false, {}]));
+      // P3c: nothing the firm did not type is written: no allowance, no limits, no specimen.
+      expect(g21.items.map((i) => [i.id, i.artwork, i.issue, i.coded ?? false, i.limits])).toEqual(PRINTED.map((p) => [p.item, { IN: p.artwork, US: p.artwork }, { need: '100000' }, false, {}]));
+      expect(c.bom.some((b) => b.specimen !== undefined)).toBe(false);
+      expect(all.find((n) => n.id === 'p-pk-printed')?.consumes).toEqual(['BOM-LABEL', 'BOM-LEAFLET', 'BOM-CARTON']);
       // 211.130(e): the line is inspected before use, with no second person (lead ruling A5, I-1c2 P4b).
       expect(all.find((n) => n.id === 'p-pk-clear')?.signatures?.check).toBeUndefined();
       expect(all.find((n) => n.id === 'p-pk-count')?.records).toEqual(['unitsReceived', 'unitsPacked']);
-      expect(all.find((n) => n.id === 'p-pk-count')?.signatures?.check?.meaning).toBe('VERIFIED');
+      expect(all.find((n) => n.id === 'p-pk-count')?.signatures?.check?.meaning).toBe('WITNESSED');
       expect(c.parameters.every((p) => p.accuracyCheck === 'SECOND_PERSON')).toBe(true);
       expect(c.yieldCheckpoints).toEqual([{ id: 'Y-PACK', name: 'Packaging yield', kind: 'YIELD', theoretical: 'unitsReceived', result: 'packYield', basis: 'COUNT' }]);
       const { rows } = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from formulary.mbr_formula_pin where mbr_version_id = $1', [v.versionId]);
       expect(rows[0]?.n).toBe('0');
-      // What is left to the author is asked by the validator: the firm's reconciliation limits (211.125(c)) and yield range.
+      // What was not typed is asked by the existing validator codes: the firm's reconciliation limits (211.125(c)), the
+      // specimens (211.188(b)(8)), the allowance (the block's own configuration) and the yield range; the skeleton's own
+      // defects of P3 are gone (the BOM is consumed, the hand counts are witnessed).
       const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
       const rules = new Set(report.findings.filter((f) => f.severity === 'ERROR').map((f) => f.rule));
-      expect(rules.has('G21-NO-LIMITS')).toBe(true);
+      for (const r of ['G21-NO-LIMITS', 'GMP-SPECIMENS', 'ENG-DEF-CONFIG', 'GMP-YIELDS']) expect(rules.has(r), r).toBe(true);
+      for (const r of ['GMP-BOM-CONSUMED', 'GMP-WITNESS']) expect(rules.has(r), r).toBe(false);
+    });
+
+    it('[PR-31][PR-32][PR-39][IN-14] P3c: the firm\'s own allowance, reconciliation limits (211.125(c)) and specimens (211.188(b)(8)) typed at create time are written exactly as typed and each specimen document in force is pinned; the validator then asks only for the yield range', async () => {
+      const v = valueOf(await author.call(routes.designer.createFamily, { body: { familyCode: 'DMT7JQ-PK', product: INJ2, markets: ['IN', 'US'], formulaVersionId: inj2Formula, start: 'PACKAGING', printed: OWN } }));
+      const c = v.content as unknown as flow.MbrContent;
+      const g21 = nodes(c.procedure).find((n) => n.id === 'p-pk-printed')?.config as { items: { id: string; issue: Record<string, string>; limits: Record<string, string> }[] };
+      expect(g21.items.map((i) => [i.id, i.issue, i.limits])).toEqual([
+        ['LABEL', { need: '100000', allowancePercent: '2' }, { maxUnexplained: '0' }],
+        ['LEAFLET', { need: '100000', allowancePercent: '2' }, { maxUnexplainedPercent: '0.5' }],
+        ['CARTON', { need: '100000', allowancePercent: '2' }, { maxUnexplained: '0' }],
+      ]);
+      expect(c.bom.map((b) => [b.id, b.specimen])).toEqual(OWN.map((o) => [`BOM-${o.item}`, o.specimen]));
+      expect(c.references.filter((r) => r.kind === 'SPECIMEN').map((r) => [r.id, r.code, r.version, typeof r.hash])).toEqual(OWN.map((o) => [o.specimen, o.specimen, '1', 'string']));
+      const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+      const rules = new Set(report.findings.filter((f) => f.severity === 'ERROR').map((f) => f.rule));
+      for (const r of ['G21-NO-LIMITS', 'GMP-SPECIMENS', 'ENG-DEF-CONFIG', 'GMP-BOM-CONSUMED', 'GMP-WITNESS']) expect(rules.has(r), r).toBe(false);
+      expect(rules.has('GMP-YIELDS')).toBe(true);
     });
 
     it('[PR-34] the injectables packaging skeleton\'s line clearance (G-10) is performed with no checker, 211.130(e) asking for no second person (lead ruling A5); the validator raises neither G10-NO-CHECKER nor a second-person finding (GMP-SIGNIFICANT-STEPS) for it; G10-NO-CHECKER still holds a tablets packaging master', async () => {
@@ -419,6 +455,12 @@ describe('a new master from an approved formula (slice 7j)', () => {
       expect(refusalOf(await pack('DMT7JP-PK4', { printed: [...PRINTED, { item: 'FOIL', material: 'PM-7JP-LBL', artwork: 'A' }] })).code).toBe('DESIGNER_PRINTED_ITEMS');
       expect(refusalOf(await pack('DMT7JP-PK5', { printed: PRINTED.map((p) => (p.item === 'LABEL' ? { ...p, material: 'PM-7JP-VIAL' } : p)) })).code).toBe('DESIGNER_PRINTED_ITEMS');
       expect(refusalOf(await pack('DMT7JP-PK6', { printed: PRINTED.map((p) => (p.item === 'LABEL' ? { ...p, material: 'PM-NONE' } : p)) })).code).toBe('DESIGNER_PRINTED_ITEMS');
+    });
+
+    it('[PR-32][IN-14] P3c: a specimen code with no SPECIMEN document in force is refused (record integrity: a master does not pin a document that does not exist), never dropped', async () => {
+      const r = refusalOf(await pack('DMT7JP-PK7', { printed: OWN.map((o) => (o.item === 'CARTON' ? { ...o, specimen: 'SPC-7JP-NONE' } : o)) }));
+      expect(r.code).toBe('DESIGNER_PRINTED_ITEMS');
+      expect(r.why).toMatch(/SPC-7JP-NONE/);
     });
   });
 

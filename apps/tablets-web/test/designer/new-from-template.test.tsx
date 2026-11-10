@@ -84,7 +84,7 @@ describe('new master record from a template', () => {
     await waitFor(() => expect(created).toHaveLength(2));
     expect((created[1] as { batchSizes: unknown }).batchSizes).toEqual([{ quantity: '120.000', unit: 'kg' }]);
   });
-  it('[PR-01][PR-32] injectables I-1c2 P3: "an injectables packaging master" from the formula asks for the printed material and artwork of LABEL, LEAFLET and CARTON and sends them with the PACKAGING start', async () => {
+  it('[PR-01][PR-32][PR-39][IN-14] injectables I-1c2 P3, P3c: "an injectables packaging master" from the formula asks for the printed material and artwork of LABEL, LEAFLET and CARTON and the firm\'s own allowance, limits and specimen, and sends what was typed (an empty value is not sent) with the PACKAGING start', async () => {
     const created: unknown[] = [];
     setTransport(
       createFixtureFetch(
@@ -113,12 +113,21 @@ describe('new master record from a template', () => {
       await userEvent.type(screen.getByRole('textbox', { name: `Printed material for ${item}` }), `PM-${item}`);
       await userEvent.type(screen.getByRole('textbox', { name: `Artwork version for ${item}` }), `ART-${item}-1`);
     }
+    // P3c: the firm's own values as typed; CARTON's are left empty and are not sent (no defaults: the validator asks).
+    for (const item of ['LABEL', 'LEAFLET']) {
+      await userEvent.type(screen.getByRole('textbox', { name: `Issue allowance for ${item}` }), '2');
+      await userEvent.type(screen.getByRole('textbox', { name: `Largest unexplained difference for ${item}` }), '0');
+      await userEvent.type(screen.getByRole('textbox', { name: `Approved specimen (document code) for ${item}` }), `SPC-${item}`);
+    }
+    await userEvent.type(screen.getByRole('textbox', { name: 'Largest unexplained difference for LEAFLET, percent of issued' }), '0.5');
     await userEvent.click(create);
     await waitFor(() => expect(created).toHaveLength(1));
-    expect(created[0]).toMatchObject({
-      start: 'PACKAGING',
-      printed: ['LABEL', 'LEAFLET', 'CARTON'].map((item) => ({ item, material: `PM-${item}`, artwork: `ART-${item}-1` })),
-    });
+    expect(created[0]).toMatchObject({ start: 'PACKAGING' });
+    expect((created[0] as { printed: unknown }).printed).toEqual([
+      { item: 'LABEL', material: 'PM-LABEL', artwork: 'ART-LABEL-1', allowancePercent: '2', maxUnexplained: '0', specimen: 'SPC-LABEL' },
+      { item: 'LEAFLET', material: 'PM-LEAFLET', artwork: 'ART-LEAFLET-1', allowancePercent: '2', maxUnexplained: '0', maxUnexplainedPercent: '0.5', specimen: 'SPC-LEAFLET' },
+      { item: 'CARTON', material: 'PM-CARTON', artwork: 'ART-CARTON-1' },
+    ]);
     expect(routes.designer.createFamily.body?.safeParse(created[0]).success).toBe(true);
   });
 });

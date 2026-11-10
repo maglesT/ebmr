@@ -34,7 +34,7 @@ import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.
 import { bindRoutes, type HandlerContext } from '../../platform/http/bind.ts';
 import { refusal, type HttpRefusal } from '../../platform/http/refusal.ts';
 import { siteToday } from './adapters/expressions.ts';
-import { materialDocumentsInForce } from './adapters/references.ts';
+import { documentsInForce } from './adapters/references.ts';
 import { marketSetProblem } from './adapters/market-minima.ts';
 import { contentFromTemplate, FamilyInputError, KNOWN_MARKETS } from './family.ts';
 import { compositionGate, withFormulaBom } from './formula-choice.ts';
@@ -522,13 +522,15 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           // I-1c2 P3: a packaging start names its printed materials, which are pinned from the material master too.
           const printed = start === 'PACKAGING' ? (body.printed ?? []) : [];
           const materials = await materialMasters(c, [...chosen.lines.map((l) => l.materialCode), ...printed.map((p) => p.material)]);
-          const materialDocuments = await materialDocumentsInForce(c, chosen.lines.map((l) => l.materialCode), await siteToday(c));
+          const today = await siteToday(c);
+          const materialDocuments = await documentsInForce(c, 'MATERIAL', chosen.lines.map((l) => l.materialCode), today);
+          const specimenDocuments = await documentsInForce(c, 'SPECIMEN', printed.flatMap((p) => (p.specimen === undefined ? [] : [p.specimen])), today);
           let content: flow.MbrContent;
           const copied: CopyReport = { renamed: [] };
           try {
             content = contentFromFormula(
               base,
-              { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments },
+              { chosen, target, product: { name: master.name, dosageForm }, materials, materialDocuments, specimenDocuments },
               { familyCode: body.familyCode, markets: body.markets, start, edition, ...(start === 'PACKAGING' ? { printed } : {}) },
               copySource,
               TEMPLATES.get('gb-t-01')?.content.references.find((r) => r.id === 'SYS-EBMR-TIME'),
