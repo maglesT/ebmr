@@ -1212,7 +1212,10 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       const second = await officePage('GMP', PC_QA2);
       await signIn.office(second, qa2);
       await evidence.step('QA investigates the deviation from the batch\'s record, concludes and closes it', 'The deviation is CLOSED', async () => {
-        await owner.goto(`${e2e.url('GMP')}${href}`);
+        // The deviation is the processing batch's (raised from its step); the checklist's link may name the lot's other
+        // record (the packaging order), so the record is opened under the processing batch (G2: /review/<batch>/deviations/<id>).
+        const deviationId = href.replace(/^.*\/deviations\//, '').replace(/[?#].*$/, '');
+        await owner.goto(`${e2e.url('GMP')}/review/${s.batchId ?? ''}/deviations/${deviationId}`);
         await expect(owner.getByTestId('deviation-state')).toContainText('OPEN');
         await investigateAndClose({ owner, classifier: cockpit, second }, { owner: qa, second: qa2 }, {
           classification: 'MAJOR',
