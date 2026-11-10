@@ -59,19 +59,68 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
-### Session 7 (10 November 2026): P4b, GMP 6 to 9
+### Session 7 (10 November 2026): P4b, GMP 6 to 9 (handover at 387k context; session 8 continues on the branch)
 
-- GMP 7-9 written (`defineInjectablesGmp`):
-  - GMP 7: the packaging order from H-PACK, with the sterilised loads as its bulk, on PL-2 with CTN-03.
-  - GMP 8: assay, endotoxins, STERILITY and PARTICULATE_MATTER, all DEMO-ONLY; the reserve sample.
+- **State (branch `inj/i1c2-p4b-gmp-packaging`, head e555929, no PR):**
+  - library-inj-gmp passes GMP 1-5.
+  - GMP 6 passes the clearance and the line start, and failed last at the equipment-status step (p-pk-status).
+  - GMP 7-9 are written and have never run in CI.
+  - **Run 42761655971 on e555929 was still running at the handover: read it first** (the blob artifact's
+    `report.jsonl`: `onTestEnd`, `errors`).
+- **Written in session 7:**
+  - GMP 7: the packaging order from H-PACK; every sterilised load (`load-N`) issued as bulk; `injPackagingRun` on PL-2
+    with CTN-03.
+  - GMP 8: the finished cartons posted; ASSAY, BACTERIAL_ENDOTOXINS, STERILITY and PARTICULATE_MATTER (DEMO-ONLY
+    values); the reserve sample; the head of QC.
   - GMP 9: both records reviewed; the lot released for IN.
-- GMP 6 fixes:
-  - The clearance's artwork set is at most 64 characters, so the codes are joined without item names.
-  - In GMP 5 the author names line PL-2 for S-PACK on screen.
-- Shared fix (lead OK, 10 November): the kiosk's line clearances (`plant.lineClearancesForBatch`, recipe-core) mirror 1886.
-  - An unverified PASSED clearance is listed only for a stage whose G-10 names no checker, on an area of version 2.
-  - Tests [PR-34][IN-21] (status-blocks) and [PR-34] (step-plant-clearance).
-- **Residual (lead):** the packaging skeleton binds no room or line; the author names it.
+  - Counts: `packCounts` (20 vials kept back per load; 10 vials per carton; each printed item reconciles).
+- **GMP 6 fixes (test-only):**
+  - The clearance's artwork set is at most 64 characters (api-contract), so the artwork codes are joined without item
+    names.
+  - In GMP 5 the author names line PL-2 for S-PACK ("Rooms of Labelling and packing").
+  - Also in GMP 5: the author binds CARTONER (EQC-CARTONER) to S-PACK and ticks "checks its status" on p-pk-status.
+    G-09@2 needs at least one unit use (G09-INCOMPLETE). The kiosk books the cartoner (`statusStep`) and ends its use
+    (`releasePlant`).
+- **Next failure, best guesses:**
+  - If p-pk-status still fails: the EQC-CARTONER option may be missing from the stage's equipment class list. That
+    list holds only EFFECTIVE EQUIPMENT_CLASS documents; the GMP demo plant should have one. Fall back to the step's
+    own plant panel.
+  - Untried after that:
+    - the labels page's "Attach the X specimen" buttons;
+    - PACK-CARTON's cartoner field (TEST-CTN-03 or CTN-03);
+    - the G-21 reconciliation limits (allowance 2 %, unexplained 0);
+    - the witnessed counts;
+    - INJ-PACK-EXAM;
+    - Y-PACK, 98-100 %: the sandbox run gives 99 % and GMP 7 about 99.8 %.
+  - GMP 7 assumes CTN-03 exists on the GMP site (the demo routes seed it on PL-2) and that the printed lots need no
+    reservation.
+  - GMP 8 posts `cartons` packs.
+- **Approved shared changes (lead):**
+  - From-formula G-10 perform-only, `significant: false` (session 6, ruling A5; [PR-34]).
+  - `plant.lineClearancesForBatch` (recipe-core, used by `step-plant.ts`) mirrors 1886 in full: an unverified PASSED
+    clearance is listed only for a stage whose G-10 names no checker, on an area of version 2.
+    - Tests: [PR-34][IN-21] in status-blocks.test.ts and step-plant-clearance.test.ts.
+    - The TypeScript `stageClearanceChecked` is pinned to `recipe.clearance_checked` on dc-mini (818d1ef). The lead
+      decided against a grant migration.
+  - No new shared-code changes before the handover (lead).
+- **Residuals:**
+  - The packaging skeleton binds no room or line; the author names it (lead).
+  - The skeleton binds no equipment, so its G-09@2 has no unit until the author binds one. Same kind of gap; not yet
+    raised with the lead.
+  - PACK-SHIPPER is left out: the skeleton has no shipper BOM line (lead accepts; say so in the PR body).
+  - Earlier residuals: editing a packaging master's printed items after create; areas on area_status v1.
+- **Then:**
+  - When GMP 5-9 pass, open the PR.
+  - Dispatch the full CI (runner=github) and cancel the duplicate pull_request run.
+  - Tell the lead "#N ready for audit".
+- **Learnt:**
+  - A form whose body fails the zod contract leaves its button disabled with no message: check the route's limits
+    (`artworkSet` is at most 64).
+  - Local DB tests: `pg_ctlcluster 16 main start` (stopped after a container restart).
+    - Run from the repo root with `EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres`, using
+      `node node_modules/vitest/vitest.mjs run <path>`.
+    - Server tests get a database from `startServer` (harness).
+    - A v1 area set up by an UPDATE cannot transition afterwards (EBMR-PLAT-077).
 
 ### Session 6 (10 November 2026): P3c merged; P4b in progress
 
