@@ -71,10 +71,14 @@ interface InjectableGmp {
   /** The GMP plant's units of the classes the product's library steps name (registered on its screens in GMP 3). */
   plant: readonly PlantUnit[];
   /**
-   * The units of each sterilised load put into its output container (typed, a second person verifies it): the units
-   * the inspection accepts from the counts of the run (`VIAL_COUNTS`), the physical bulk the packaging order takes later.
+   * The batch's output (generic, any form): the containers the run's last container-producing step registered and no
+   * later step consumed (the sterilised loads, the filled trays of an aseptic fill, the lyophiliser loads). Each is also a
+   * physical output container of the batch, opened on the containers screen in the stage `outputStage` and closed with
+   * `outputUnits` units (typed, a second person verifies it): the units the inspection accepts from the counts of the
+   * run (`VIAL_COUNTS`), the physical bulk the packaging order takes later.
    */
-  loadUnits: string;
+  outputStage: string;
+  outputUnits: string;
 }
 
 /** A process unit of the sandbox plant (each class its own, as the blocks' examples name them), in the dispensing room. */
@@ -160,7 +164,8 @@ export const INJECTABLES: readonly Injectable[] = [
         unit('INSPECTION-BOOTH', 'Visual inspection booth', 'BOOTH-01', 'Inspection booth'),
       ],
       // 10,000 filled, less 20 rejected at the line, 40 at capping, 120 sampled, 20 lost and 80 rejected at inspection.
-      loadUnits: '9720',
+      outputStage: 'STERILISATION',
+      outputUnits: '9720',
     },
   },
   {
@@ -855,17 +860,18 @@ export function defineInjectablesGmp(productKey: string): void {
                 lotsShown.push(`${b.def.code}.${f.id}=${lot}`);
               }
             }
-            // A library CONTAINER field is a reference only: each sterilised load is also a physical output container of
+            // A library CONTAINER field is a reference only: each container the run's steps left unconsumed in `pool` (the
+            // sterilised loads here; filled trays or lyophiliser loads in other forms) is also a physical output container of
             // the batch (units), opened on the containers screen and closed with its typed net, which a second person
             // verifies. The packaging order takes these after H-PACK (injectables resume notes, learnt in P2).
             for (let i = 0; i < pool.length; i += 1) {
-              const c = await openContainer(floor, page, 'STERILISATION', ctx.operator, 'units');
-              await closeTyped(floor, page, c, gmp.loadUnits, ctx.operator, ctx.verifier);
+              const c = await openContainer(floor, page, gmp.outputStage, ctx.operator, 'units');
+              await closeTyped(floor, page, c, gmp.outputUnits, ctx.operator, ctx.verifier);
               loads.push(c);
             }
           },
         });
-        loads.forEach((c, i) => { floor.containers[`load-${String(i + 1)}`] = c; });
+        loads.forEach((c, i) => { floor.containers[`output-${String(i + 1)}`] = c; });
         floor.save();
       } finally {
         await closeFloor();
@@ -1068,12 +1074,12 @@ export function defineInjectablesGmp(productKey: string): void {
 
   /**
    * The packaging order's counts. The bulk is GMP 4's sterilised loads, each a verified output container of
-   * `gmp.loadUnits`. DEMO-ONLY: 20 vials of each load kept back at the line; one label and one leaflet per vial, ten
+   * `gmp.outputUnits`. DEMO-ONLY: 20 vials of each load kept back at the line; one label and one leaflet per vial, ten
    * vials per carton; what is not used goes back, so each item reconciles with no unexplained difference (211.125(c)).
    */
   const packCounts = (s: ProductState) => {
-    const loads = Object.entries(s.gmpContainers ?? {}).filter(([k]) => k.startsWith('load-')).map(([, c]) => c);
-    const received = BigInt(gmp.loadUnits) * BigInt(loads.length);
+    const loads = Object.entries(s.gmpContainers ?? {}).filter(([k]) => k.startsWith('output-')).map(([, c]) => c);
+    const received = BigInt(gmp.outputUnits) * BigInt(loads.length);
     const packed = received - 20n * BigInt(loads.length);
     return { loads, received: received.toString(), packed: packed.toString(), cartons: (packed / 10n).toString() };
   };
