@@ -516,8 +516,8 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
         // clearance a significant step (211.188(b)(11)) and add its checker on screen; the skeleton does not decide that.
         packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
         packPhase('p-pk-status', 'Packaging line: equipment status', 'G-09', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
-        // The printed items are issued before packing and reconciled after it (211.125(c), (f)), so G-21 stays open while
-        // the packing steps run: it sits in a parallel branch beside them, as in every tablets packaging master. The author
+        // The printed items are issued before packing and reconciled after it: the reconciliation reads counts that exist
+        // only once packing is done (211.125(c), (f); lead ruling, session 8). So G-21 stays open while the packing steps run: it sits in a parallel branch beside them, as in every tablets packaging master. The author
         // adds the packing steps (cartoning, the finished-pack examination) to the packing branch on screen.
         {
           kind: 'parallel', id: 'par-pack',
