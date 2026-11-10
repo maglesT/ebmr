@@ -1015,6 +1015,14 @@ export const TARGETS: Target[] = [
     tests: [s('injectables/vial-chain.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
+  // 1892; editions/injectables/sql 3020 redefines injectables.grel_pack_examination, which stays in inj-release-items). ----
+  {
+    group: 'packaging-completion-by-role',
+    functions: ['recipe.packaging_completion_types', 'recipe.packaging_master_problem'],
+    tests: [s('injectables/vial-chain.test.ts'), r('lifecycle/packaging-issue.test.ts')],
+    threshold: 90,
+  },
   // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
   // read class (tablets 1904) is tab.aggregate_read_class, which stays in its group. ----
   {
