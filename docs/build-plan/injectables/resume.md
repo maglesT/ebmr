@@ -59,6 +59,20 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 7 (10 November 2026): P4b, GMP 6 to 9
+
+- GMP 7-9 written (`defineInjectablesGmp`):
+  - GMP 7: the packaging order from H-PACK, with the sterilised loads as its bulk, on PL-2 with CTN-03.
+  - GMP 8: assay, endotoxins, STERILITY and PARTICULATE_MATTER, all DEMO-ONLY; the reserve sample.
+  - GMP 9: both records reviewed; the lot released for IN.
+- GMP 6 fixes:
+  - The clearance's artwork set is at most 64 characters, so the codes are joined without item names.
+  - In GMP 5 the author names line PL-2 for S-PACK on screen.
+- Shared fix (lead OK, 10 November): the kiosk's line clearances (`plant.lineClearancesForBatch`, recipe-core) mirror 1886.
+  - An unverified PASSED clearance is listed only for a stage whose G-10 names no checker, on an area of version 2.
+  - Tests [PR-34][IN-21] (status-blocks) and [PR-34] (step-plant-clearance).
+- **Residual (lead):** the packaging skeleton binds no room or line; the author names it.
+
 ### Session 6 (10 November 2026): P3c merged; P4b in progress
 
 - **#200, P3c (merged):** the packaging skeleton's G-21 consumes the three printed BOM lines and `p-pk-count` is

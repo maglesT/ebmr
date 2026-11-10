@@ -13,6 +13,7 @@
  * Read-only; every act re-checks everything in the database.
  */
 import type { StepPlantView } from '@ebmr/api-contract';
+import { plant } from '@ebmr/recipe-core';
 import type { AppContext } from '../../platform/context.ts';
 import { layersOf } from '../../blocks/tb-16.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
@@ -57,15 +58,7 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
          from plant.area a where a.code = any ($1::text[]) order by array_position($1::text[], a.code)`,
       [codes],
     ),
-    db.query<{ code: string; next_order: string; next_artwork_set: string }>(
-      `select a.code, c.next_order, c.next_artwork_set from plant.clearance_status c join plant.area a on a.id = c.area_id
-        where c.next_batch_id = $1 and c.recorded_result = 'PASSED' and c.next_order is not null
-          and (c.verified_at is not null
-               -- As start_area_occupancy (1886): unverified only for a stage with no checker, on an area of area_status v2.
-               or (not $2::boolean and (select s.machine_version from platform.aggregate_state s where s.aggregate_type = 'plant_area' and s.aggregate_id = a.id) >= 2))
-          and not exists (select 1 from plant.area_occupancy o where o.clearance_id = c.id) order by c.performed_at`,
-      [batchId, clearanceChecked],
-    ),
+    plant.lineClearancesForBatch(db, batchId, clearanceChecked),
     db.query<{ id: string; area: string; batch: string; stage: string; by: string; us: string }>(
       `select o.id, a.code as area, o.batch_ref as batch, o.stage, o.started_by as by, ${usOf('o.started_at')} as us
          from plant.area_occupancy_status o join plant.area a on a.id = o.area_id where o.batch_id = $1 and o.ended_at is null order by o.started_at`,

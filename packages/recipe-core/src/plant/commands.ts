@@ -220,3 +220,20 @@ export const MACHINES = {
   equipment: EQUIPMENT_MACHINE,
   area: AREA_MACHINE,
 } as const;
+
+/**
+ * The packaging lines' passed clearances for `batchId` not yet used by a start, which the kiosk offers a line start on.
+ * It mirrors start_area_occupancy (recipe-core 1886) so the screen never offers a start the database refuses: a
+ * verified clearance always; an unverified PASSED one only where the stage's G-10 names no checker
+ * (`clearanceChecked` false: recipe.clearance_checked, 211.130(e), lead ruling A5) and the area's aggregate is on
+ * area_status version 2 (1887; an older area keeps the verified rule until the owner decides).
+ */
+export const lineClearancesForBatch = (db: Db, batchId: string, clearanceChecked: boolean): Promise<pg.QueryResult<{ code: string; next_order: string; next_artwork_set: string }>> =>
+  db.query(
+    `select a.code, c.next_order, c.next_artwork_set from plant.clearance_status c join plant.area a on a.id = c.area_id
+      where c.next_batch_id = $1 and c.recorded_result = 'PASSED' and c.next_order is not null
+        and (c.verified_at is not null
+             or (not $2::boolean and coalesce((select s.machine_version from platform.aggregate_state s where s.aggregate_type = 'plant_area' and s.aggregate_id = a.id), 1) >= 2))
+        and not exists (select 1 from plant.area_occupancy o where o.clearance_id = c.id) order by c.performed_at`,
+    [batchId, clearanceChecked],
+  );
