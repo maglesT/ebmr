@@ -943,8 +943,17 @@ export function defineInjectablesGmp(productKey: string): void {
       return { versionId: s.packVersionId };
     }, a);
     await evidence.step('The author adds cartoning and the finished-pack examination, and sets the packaging yield range from the validation report; the checks pass', 'Both blocks pinned; the yield range with its source; no error, no warning', async () => {
-      await addLibraryBlocks(a, 'p-pk-printed', [cartoning]);
-      // The examination goes before the yield, which closes the stage's processing (GMP-STAGE-YIELD).
+      // The skeleton's packing branch runs beside G-21, which stays open from the issue to the reconciliation. Cartoning
+      // is added in that branch (after the counts, the only step there) and moved up before them.
+      await addLibraryBlocks(a, 'p-pk-count', [cartoning]);
+      const cartonRow = a.locator('tr[data-step-row][data-node="p-pack-carton"]');
+      await cartonRow.getByRole('button', { name: /^Actions for step / }).click();
+      await a.getByRole('menuitem', { name: 'Move up' }).click();
+      await expect.poll(async () => {
+        const order = await a.locator('tr[data-step-row]').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-node')));
+        return order.indexOf('p-pk-count') - order.indexOf('p-pack-carton');
+      }).toBe(1);
+      // The examination goes after the counts and before the yield, which closes the stage's processing (GMP-STAGE-YIELD).
       await addLibraryBlocks(a, 'p-pk-count', [packExam]);
       // DEMO-ONLY: the range is invented; the firm's comes from its validated packaging line (211.103, 211.192).
       // The yield checkpoint's own limits (its calculation, also named Packaging yield, has an editor of its own).

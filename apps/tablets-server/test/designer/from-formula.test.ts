@@ -369,6 +369,12 @@ describe('a new master from an approved formula (slice 7j)', () => {
       expect(all.map((n) => `${n.id}${n.block ? ` ${n.block.type}@${n.block.version}` : ''}`)).toEqual([
         'S-PACK', 'p-pk-clear G-10@2', 'p-pk-status G-09@2', 'p-pk-printed G-21@1', 'p-pk-count G-04@1', 'p-pk-yield G-20@1',
       ]);
+      // G-21 stays open while packing runs (issued before, reconciled after: 211.125(c), (f)): its own branch beside the
+      // packing branch, which the author fills on screen.
+      const seq = (c.procedure.body as flow.SequenceNode).children[0] as flow.StageNode;
+      const par = (seq.body as flow.SequenceNode).children.find((n) => n.kind === 'parallel') as flow.ParallelNode;
+      expect((seq.body as flow.SequenceNode).children.map((n) => n.id)).toEqual(['p-pk-clear', 'p-pk-status', 'par-pack', 'p-pk-yield']);
+      expect(par.branches.map((b) => [b.id, (b.body as flow.SequenceNode).children.map((n) => n.id)])).toEqual([['br-printed', ['p-pk-printed']], ['br-pack', ['p-pk-count']]]);
       const g21 = all.find((n) => n.id === 'p-pk-printed')?.config as { items: { id: string; artwork: Record<string, string>; coded?: boolean; limits: Record<string, string>; issue: { need: string } }[] };
       // P3c: nothing the firm did not type is written: no allowance, no limits, no specimen.
       expect(g21.items.map((i) => [i.id, i.artwork, i.issue, i.coded ?? false, i.limits])).toEqual(PRINTED.map((p) => [p.item, { IN: p.artwork, US: p.artwork }, { need: '100000' }, false, {}]));
@@ -440,11 +446,17 @@ describe('a new master from an approved formula (slice 7j)', () => {
       };
       const added = [seed(PACKAGING_SEEDS, 'PACK-CARTON'), seed(INJECTABLE_SEEDS, 'INJ-PACK-EXAM')];
       const full = structuredClone(c) as unknown as Record<string, unknown>;
-      const stage = ((full['procedure'] as { body: { children: { body: { children: unknown[] } }[] } }).body.children[0]) as { body: { children: unknown[] } };
+      // As the author places them on screen: cartoning before the counts, the finished-pack examination after, both in the
+      // packing branch beside G-21.
+      const stage = ((full['procedure'] as { body: { children: { body: { children: { kind: string; branches?: { id: string; body: { children: unknown[] } }[] }[] } }[] } }).body.children[0]);
+      const packing = stage?.body.children.find((n) => n.kind === 'parallel')?.branches?.find((b) => b.id === 'br-pack')?.body.children ?? [];
       for (const [i, s] of added.entries()) {
         const p = library.libraryPhase(s.definition, `p-lib-${String(i)}`, 'HIGH') as unknown as Record<string, unknown>;
-        stage.body.children.push({ ...p, config: { ...(p['config'] as Record<string, unknown>), ...(s.exampleUse as Record<string, unknown>) } });
+        const step = { ...p, config: { ...(p['config'] as Record<string, unknown>), ...(s.exampleUse as Record<string, unknown>) } };
+        if (i === 0) packing.unshift(step);
+        else packing.push(step);
       }
+      expect(packing).toHaveLength(3);
       full['blockDefinitions'] = added.map((s) => s.definition);
       expect(await problem(full)).toBeNull();
     });

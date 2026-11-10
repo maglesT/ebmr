@@ -516,8 +516,20 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
         // clearance a significant step (211.188(b)(11)) and add its checker on screen; the skeleton does not decide that.
         packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
         packPhase('p-pk-status', 'Packaging line: equipment status', 'G-09', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
-        packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH', consumes: printed.map((p) => `BOM-${p.item}`) }),
-        packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'], signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }),
+        // The printed items are issued before packing and reconciled after it (211.125(c), (f)), so G-21 stays open while
+        // the packing steps run: it sits in a parallel branch beside them, as in every tablets packaging master. The author
+        // adds the packing steps (cartoning, the finished-pack examination) to the packing branch on screen.
+        {
+          kind: 'parallel', id: 'par-pack',
+          branches: [
+            { id: 'br-printed', name: 'Printed materials', body: { kind: 'sequence', id: 'br-printed-seq', children: [
+              packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH', consumes: printed.map((p) => `BOM-${p.item}`) }),
+            ] } },
+            { id: 'br-pack', name: 'Packing', body: { kind: 'sequence', id: 'br-pack-seq', children: [
+              packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'], signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }),
+            ] } },
+          ],
+        },
         packPhase('p-pk-yield', 'Packaging yield', 'G-20', '1', {}, { computes: ['packYield'], yieldCheckpoint: 'Y-PACK', significant: false }),
       ],
     },
