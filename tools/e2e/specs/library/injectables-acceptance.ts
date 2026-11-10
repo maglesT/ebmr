@@ -24,11 +24,11 @@ import { randomBytes } from 'node:crypto';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
-import { begin, cleanForBatch, closeFloor, closeStage, closeTyped, done, explained, field, floorKiosk, openContainer, releasePlant, step, type Floor } from '../phase7/own-product-floor.ts';
+import { begin, cleanForBatch, closeFloor, closeStage, closeTyped, done, explained, field, floorKiosk, openContainer, releasePlant, statusStep, step, type Floor } from '../phase7/own-product-floor.ts';
 import { act, as, completed, entry, performAndCheck, reviewRecord, startStep } from '../phase7/kiosk-batch-support.ts';
 import {
   authoriseIn, changeControl, checksPass, confirmMasters, enterMaterials, exportTestResult, fourSignatures, home, importEvidence, issueTestBatch, load, loadProduct,
-  registerTestLots as registerArtworkTestLots, saveProduct, saveRevision, sendToSandbox, type ProductState,
+  registerTestLots as registerArtworkTestLots, saveProduct, saveRevision, selectStep, sendToSandbox, type ProductState,
 } from '../phase7/own-product-flow.ts';
 import {
   approveManufacturers, approveResults, approveSpecifications, defineNumberingRule, draftSpecification, endorseOnLicence, openLot, planAndIssue, receiveDelivery, recordArtwork, recordIdentity,
@@ -560,12 +560,8 @@ async function injPackagingRun(
     await performAndCheck(page, op, null, op);
     await completed(page);
   }
-  if (!(await done(f, page, 'p-pk-status@'))) {
-    await step(f, page, 'p-pk-status@');
-    await begin(page, op);
-    await performAndCheck(page, op, null, op);
-    await completed(page);
-  }
+  // The equipment status: the cartoner the stage binds, its use booked for the order (G-09@2, PR-23).
+  if (!(await done(f, page, 'p-pk-status@'))) await statusStep(f, page, 'p-pk-status@', [{ ref: 'CARTONER', code: p.cartoner, instrument: false }], op);
   await step(f, page, 'p-pk-printed@');
   await begin(page, op);
   for (const i of p.items) {
@@ -602,7 +598,7 @@ async function injPackagingRun(
   await explained(performAndCheck(page, op, verifier, op), page.locator('main'));
   await completed(page);
   await closeStage(f, page, 'p-pk-yield@', op);
-  await releasePlant(f, page, { status: 'p-pk-status@', units: [], clear: 'p-pk-clear@', area: p.line }, op);
+  await releasePlant(f, page, { status: 'p-pk-status@', units: [['CARTONER', p.cartoner]], clear: 'p-pk-clear@', area: p.line }, op);
   await load(page, `${base}/runs/${f.batchId}`);
   await expect(page.getByText('Execution complete').first()).toBeVisible();
   await page.context().close();
@@ -967,7 +963,18 @@ export function defineInjectablesGmp(productKey: string): void {
       await rooms.fill('PL-2');
       await rooms.press('Tab');
       await expect(a.locator('div[data-node="S-PACK"]')).toContainText('Rooms: PL-2');
-      await saveRevision(a, `${s.product.name}: packing steps, the packaging line and the packaging yield range`);
+      // The skeleton binds no equipment, so its equipment-status step has no unit to check (G-09@2 needs one): the author
+      // binds the cartoner to the stage and the status step checks it (211.67, 211.182; PR-23).
+      const adder = a.getByTestId('stage-equipment-add-S-PACK');
+      const cls = adder.getByRole('combobox', { name: 'Equipment class for Labelling and packing', exact: true });
+      await cls.selectOption((await cls.locator('option', { hasText: '(EQC-CARTONER v' }).first().getAttribute('value')) ?? '');
+      await adder.getByRole('textbox', { name: 'Equipment reference for Labelling and packing' }).fill('CARTONER');
+      await adder.getByRole('combobox', { name: 'Equipment kind for Labelling and packing' }).selectOption('PROCESS');
+      await adder.getByRole('button', { name: 'Add the equipment to Labelling and packing' }).click();
+      await expect(a.locator('div[data-node="S-PACK"]')).toContainText('CARTONER');
+      await selectStep(a, /Packaging line: equipment status/);
+      await a.getByRole('group', { name: 'Stage equipment' }).getByRole('checkbox', { name: 'checks its status' }).check();
+      await saveRevision(a, `${s.product.name}: packing steps, the packaging line, its cartoner and the packaging yield range`);
       await checksPass(a);
       return { blocks: `${cartoning.def.code}, ${packExam.def.code}` };
     }, a);
