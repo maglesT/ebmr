@@ -72,21 +72,45 @@ function limitOf(config: Config, slot: string): Limit | undefined {
   return all?.[slot];
 }
 
-function boundOf(l: Limit | undefined, side: 'low' | 'high'): string {
-  return l?.ranges.find((r) => r.tier === 'REGISTERED')?.[side]?.value ?? '';
+function boundOf(l: Limit | undefined, side: 'low' | 'high', tier: limits.LimitTier = 'REGISTERED'): string {
+  return l?.ranges.find((r) => r.tier === tier)?.[side]?.value ?? '';
 }
 
-/** The registered range of a slot from its two bounds (empty bounds left out; no bound at all removes the limit). */
-function withLimit(config: Config, slot: string, unit: string, low: string, high: string, source: string): Config {
+/**
+ * The tiers an author may give a limit slot besides the registered range (PR-08; outline 5.2.4): the engine nests them
+ * (limits.checkLimitSpec, through library.checkBlockUse) and shows a breach by its tier. Each tier's source is what it
+ * rests on: a validation report for the validated range, the firm's own standard for the action and alert limits.
+ */
+const EXTRA_TIERS: readonly { tier: limits.LimitTier; label: string; source: limits.LimitRange['source']['kind'] }[] = [
+  { tier: 'VALIDATED', label: 'validated range', source: 'VALIDATION_REPORT' },
+  { tier: 'INTERNAL_ACTION', label: 'action limit', source: 'COMPANY_STANDARD' },
+  { tier: 'ALERT', label: 'alert limit', source: 'COMPANY_STANDARD' },
+];
+
+/**
+ * The slot's limit with one tier's range set from its two bounds; the other tiers stay as they are. Empty bounds are
+ * left out; a tier with no bound is removed, and a slot with no tier left is removed.
+ */
+function withTier(config: Config, slot: string, unit: string, tier: limits.LimitTier, low: string, high: string, source: limits.LimitRange['source']): Config {
   const all = { ...((config['limits'] as unknown as Record<string, Limit> | undefined) ?? {}) };
-  if (low.trim() === '' && high.trim() === '') delete all[slot];
-  else {
-    const range: limits.LimitRange = { tier: 'REGISTERED', rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: source.trim() || 'FORMULATION' } };
+  const others = (all[slot]?.ranges ?? []).filter((r) => r.tier !== tier);
+  const ranges = [...others];
+  if (low.trim() !== '' || high.trim() !== '') {
+    const range: limits.LimitRange = { tier, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source };
     if (low.trim() !== '') range.low = { value: low.trim(), inclusive: true };
     if (high.trim() !== '') range.high = { value: high.trim(), inclusive: true };
-    all[slot] = { unit, ranges: [range] };
+    ranges.push(range);
   }
+  const order: readonly limits.LimitTier[] = ['REGISTERED', 'VALIDATED', 'INTERNAL_ACTION', 'ALERT'];
+  ranges.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
+  if (ranges.length === 0) delete all[slot];
+  else all[slot] = { ...(all[slot] ?? {}), unit: all[slot]?.unit ?? unit, ranges };
   return { ...config, limits: all as unknown as flow.JsonValue };
+}
+
+/** The registered range of a slot from its two bounds (empty bounds left out); the slot's other tiers are kept. */
+function withLimit(config: Config, slot: string, unit: string, low: string, high: string, source: string): Config {
+  return withTier(config, slot, unit, 'REGISTERED', low, high, { kind: 'REGISTRATION', ref: source.trim() || 'FORMULATION' });
 }
 
 function withMember(config: Config, member: string, slot: string, value: flow.JsonValue | undefined): Config {
@@ -152,8 +176,14 @@ export function LibraryValuesForm({ content, step, readOnly, onChange }: { conte
                 Limits of {who} ({s.unit}){s.required ? ', required' : ''}
                 {ref ? ` · reference ${ref.low ?? ''}${ref.low && ref.high ? ' to ' : ''}${ref.high ?? ''} ${ref.unit}: ${ref.note}` : ''}
               </legend>
-              <CommitText label={`${who}: lower limit`} value={boundOf(l, 'low')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', v, boundOf(l, 'high'), l?.ranges[0]?.source.ref ?? ''))} />
-              <CommitText label={`${who}: upper limit`} value={boundOf(l, 'high')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', boundOf(l, 'low'), v, l?.ranges[0]?.source.ref ?? ''))} />
+              <CommitText label={`${who}: lower limit`} value={boundOf(l, 'low')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', v, boundOf(l, 'high'), l?.ranges.find((r) => r.tier === 'REGISTERED')?.source.ref ?? ''))} />
+              <CommitText label={`${who}: upper limit`} value={boundOf(l, 'high')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', boundOf(l, 'low'), v, l?.ranges.find((r) => r.tier === 'REGISTERED')?.source.ref ?? ''))} />
+              {EXTRA_TIERS.map((t) => (
+                <div key={t.tier} className={dcls('inline')}>
+                  <CommitText label={`${who}: ${t.label}, lower`} value={boundOf(l, 'low', t.tier)} readOnly={readOnly} onCommit={(v) => onChange(withTier(config, s.name, s.unit ?? '1', t.tier, v, boundOf(l, 'high', t.tier), { kind: t.source, ref: 'FORMULATION' }))} />
+                  <CommitText label={`${who}: ${t.label}, upper`} value={boundOf(l, 'high', t.tier)} readOnly={readOnly} onCommit={(v) => onChange(withTier(config, s.name, s.unit ?? '1', t.tier, boundOf(l, 'low', t.tier), v, { kind: t.source, ref: 'FORMULATION' }))} />
+                </div>
+              ))}
               <CommitText label={`${who}: target`} value={String((config['targets'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'targets', s.name, v.trim()))} />
               <CommitText label={`${who}: reason if looser than the reference`} value={String((config['justifications'] as Record<string, string> | undefined)?.[s.name] ?? '')} readOnly={readOnly} onCommit={(v) => onChange(withMember(config, 'justifications', s.name, v.trim()))} />
             </fieldset>
