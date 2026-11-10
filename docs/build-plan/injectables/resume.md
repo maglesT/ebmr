@@ -59,6 +59,42 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 10 (10 November 2026): I-2, aseptic fill, EM and media fill
+
+- **PRs:** #205 (GMP half's output = the run's unconsumed containers: `outputStage`, `outputUnits`, keys `output-N`;
+  test only) and #206 (I-2a data) passed the lead's audit; each merges on a full green run (decision 0027 V5: every
+  code PR, all E2E groups). I-2b (aseptic vial E2E, branch `inj/i2-b-aseptic-e2e`, group `library-inj-aseptic`) opens
+  as a PR after both merge.
+- **Lead rulings (10 November 2026):**
+  - Interventions are an optional event section in INJ-FILL (R-flow item 3; no new repeat kind). It is recorded when the
+    event is over: the entry's trusted time is its end, the operator types how long it lasted (ALCOA accurate). No typed
+    date and time (the sandbox guard refuses an ISO date-time as a lot-number word; the lead gave that defect to
+    another session).
+  - INJ-EM records sampling and particles during the operation; INJ-EM-COUNTS (before the accountability) takes the
+    counts after incubation, so incubation does not hold the batch.
+  - The filter, single-use assembly and supplier-sterilised component lots are named where used, as the I-1 components:
+    no formula line, released lot (G07 checks), VERIFIED second person.
+  - Media fill: in the sandbox now (I-2c); its GMP run needs B below. Putting it on the licence register (option A) is out.
+- **Designer gap (logged with the lead):** the values form takes one range per limit and stores it as REGISTERED, so
+  an EM alert level or action tier cannot be set on screen; a count above the limit is a registration-relevant
+  deviation (stricter; it still blocks the step and the release).
+- **B, the process-simulation mark (approved; engine, general; its own PR after I-2b; migration recipe-core 1888
+  cleared; worktree `../ebmr-sim`, branch `inj/i2-sim-mark`):**
+  - `MbrHeader.nonProduct?: 'PROCESS_SIMULATION'` (parse.ts header keys, model.ts, validator rules-content.ts, designer
+    header ops.ts and DocumentView.tsx). It is in the approved content and its hash, so it changes only by a new master
+    version: a test must show that. ROUTINE_MONITORING only if routine EM really needs it (no unused values).
+  - 1888: `recipe.india_issue_problem` (0891) skips the licence (site.licence_problem) and every market's export
+    permission for such a batch (one rule, every market); the hazard-area check stays. `recipe.record_batch_licence_basis`
+    must then record "no licence: process simulation" instead of a licence row (licence_number is not null today).
+    Comment cites 211.113(b), SM Part II 5.3-5.7, A1 9.32 (EU).
+  - Refused for record integrity (the units are destroyed): posting a finished lot, planning a packaging order (0582),
+    shipping. QA's review of the record is its end. Tests [IN-30][ST-29][IN-45].
+- **E2E helpers added (generic test code):** `runLibraryStep(..., beforePerform)`; `linkNewDeviation` (the supervisor
+  raises and links a batch deviation from the blocked exception, badge-confirmed); `investigateAndClose`;
+  `gmp.breach` (a step value above its limit in GMP 4; GMP 8b shows G2.DEVIATIONS red, closes it, then green).
+  `ASEPTIC_VIAL` and `MEDIA_FILL` are exported from `injectables-aseptic-acceptance.ts` (session 11 builds its lyo vial on
+  ASEPTIC_VIAL).
+
 ### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
 
 - **Lead change:** the lead is now session_01PybpFvcfiLdV8mgoVVWXTk (owner confirmed); earlier rulings stand.
