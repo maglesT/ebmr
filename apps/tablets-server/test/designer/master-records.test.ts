@@ -30,12 +30,14 @@ let author: TestBrowser;
 let checker: TestBrowser;
 let regulatory: TestBrowser;
 let qa: TestBrowser;
+/** The second QA person: proposes the market authorisation that `qa` authorises (owner item 11, recipe-core 1889). */
+let qa2: TestBrowser;
 let admin: { b: TestBrowser; p: GrantedPerson };
 
 beforeAll(async () => {
   server = await startSigningServer('GMP', { stub: false });
   world = await gmpLifecycleWorld(server);
-  [author, checker, regulatory, qa] = await Promise.all([server.asPersona('author'), server.asPersona('checker'), server.asPersona('regulatory'), server.asPersona('approver')]);
+  [author, checker, regulatory, qa, qa2] = await Promise.all([server.asPersona('author'), server.asPersona('checker'), server.asPersona('regulatory'), server.asPersona('approver'), server.asPersona('approver2')]);
   const p = await grantedPerson(server, 'SYSTEM_ADMINISTRATOR', 'Ada Administrator');
   admin = { b: await loginOf(server, p), p };
 }, 300_000);
@@ -92,9 +94,10 @@ describe('market authorisations (ADR 0014)', () => {
     // The author may not propose an authorisation (MBR.APPROVE), and an administrator may not either.
     expect(refusalOf(await author.call(D.proposeMarketAuthorisation, { params: { versionId }, body })).code).toMatch(/^EBMR-IAM-/);
     expect(refusalOf(await admin.b.call(D.proposeMarketAuthorisation, { params: { versionId }, body })).code).toMatch(/^EBMR-IAM-/);
-    const ma = valueOf(await qa.call(D.proposeMarketAuthorisation, { params: { versionId }, body }));
+    // A second QA person proposes; the one who proposed may not authorise (owner item 11, recipe-core 1889).
+    const ma = valueOf(await qa2.call(D.proposeMarketAuthorisation, { params: { versionId }, body }));
     expect(ma).toMatchObject({ market: 'IN', state: 'PROPOSED', regulatoryConfirmedBy: null, qaAuthorisedBy: null });
-    expect(ma.proposedBy.loginName).toBe('meera.iyer');
+    expect(ma.proposedBy.loginName).toBe('ritu.banerjee');
     const act = (a: 'REGULATORY_CONFIRM' | 'AUTHORISE', reason = true): SignableAction => ({
       kind: 'MBR_MARKET_ACT', act: a, authorisationId: ma.authorisationId, ...(a === 'AUTHORISE' && reason ? { reason: { code: 'MARKET_AUTHORISED', text: 'IN registration confirmed; SITE-1 L1' } } : {}),
     });
@@ -111,6 +114,8 @@ describe('market authorisations (ADR 0014)', () => {
     expect(list[0]?.state).toBe('PROPOSED');
     // The regulatory signer may not authorise (MBR.APPROVE).
     expect((await signAction(server, regulatory, 'regulatory', act('AUTHORISE'))).ok).toBe(false);
+    // The QA person who proposed it may not authorise it (EBMR-RCP-434).
+    expect(refusalOf(await signAction(server, qa2, 'approver2', act('AUTHORISE'))).why).toMatch(/EBMR-RCP-434|proposed this market authorisation/);
     valueOf(await signAction(server, qa, 'approver', act('AUTHORISE')));
     list = valueOf(await qa.call(D.marketAuthorisations, { params: { versionId } })).authorisations;
     expect(list[0]).toMatchObject({ state: 'ACTIVE' });

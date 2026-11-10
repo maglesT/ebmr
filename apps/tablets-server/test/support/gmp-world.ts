@@ -106,9 +106,11 @@ export async function gmpLifecycleWorld(gmp: TestServer): Promise<World> {
   const author = await actorOf(gmp, 'author');
   const checker = await actorOf(gmp, 'checker');
   const qa = await actorOf(gmp, 'approver');
+  // The second QA person proposes market authorisations; the proposer cannot authorise (owner item 11, recipe-core 1889).
+  const qa2 = await actorOf(gmp, 'approver2');
   const regulatory = await actorOf(gmp, 'regulatory');
   const issuerActor = await actorOf(gmp, 'issuer');
-  const cast: Cast = { author, coAuthor: author, checker, checker2: checker, qa, qa2: qa, regulatory, issuer: issuerActor };
+  const cast: Cast = { author, coAuthor: author, checker, checker2: checker, qa, qa2, regulatory, issuer: issuerActor };
   return new GmpWorld(db, cast, key);
 }
 

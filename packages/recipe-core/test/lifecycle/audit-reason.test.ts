@@ -135,9 +135,12 @@ const because = (reasonCode: string, reasonText: string): Partial<ActorContext> 
   correlationId: randomUUID(),
 });
 
-/** A proposed record of `def` with the QA and regulatory signatures, not yet activated. */
+/**
+ * A proposed record of `def` with the QA and regulatory signatures, not yet activated. A second QA person proposes; the
+ * proposer cannot authorise (owner item 11, recipe-core 1889).
+ */
 const signedProposal = async (def: lc.MarketAuthorisationDefinition): Promise<{ id: string; qaSig: string; regSig: string }> => {
-  const id = await w.run(w.cast.qa, (c) => lc.proposeMarketAuthorisation(c, def));
+  const id = await w.run(w.cast.qa2, (c) => lc.proposeMarketAuthorisation(c, def));
   const qaSig = await w.sign(w.cast.qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
   const regSig = await w.sign(w.cast.regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
   return { id, qaSig, regSig };
