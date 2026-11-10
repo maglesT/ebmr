@@ -548,7 +548,8 @@ async function injPackagingRun(
     await choose(box.getByRole('radio', { name: 'PACKAGING_ORDER', exact: true }));
     await choose(box.getByRole('radio', { name: 'PASSED', exact: true }));
     await box.getByRole('textbox', { name: /^Packaging order/ }).fill(f.batchNumber);
-    await box.getByRole('textbox', { name: /^Artwork set/ }).fill(p.items.map((i) => `${i.item}:${i.artwork}`).join(','));
+    // The artwork set the line start must match (at most 64 characters): each artwork code names its item already.
+    await box.getByRole('textbox', { name: /^Artwork set/ }).fill(p.items.map((i) => i.artwork).join(','));
     await act(page, box.getByRole('button', { name: 'Record the clearance' }), op);
     await explained(expect(page.getByTestId(`pending-CLEARANCE-${p.line}`).first()).toBeVisible(), box);
     await step(f, page, 'p-pk-clear@');
