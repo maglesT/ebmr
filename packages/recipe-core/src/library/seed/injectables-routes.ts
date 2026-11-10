@@ -22,8 +22,8 @@
  *
  * Not new blocks (plan section 1: the existing block does the job):
  *  - RTU nested syringes, cartridges and vials (INJ-27): supplier-sterilised components, recorded by INJ-SUPPLIER-STERILE
- *    (its lot on the formula line, method, certificate, packs intact); for the EU market the transfer into Grade A
- *    (Annex 1 8.47-8.48) is INJ-ASEPTIC-TRANSFER.
+ *    (the tub lot named where it is used, released by QC and verified by a second person; method, certificate, packs
+ *    intact); for the EU market the transfer into Grade A (Annex 1 8.47-8.48) is INJ-ASEPTIC-TRANSFER.
  *  - Dual-chamber products: INJ-FILL twice (diluent and drug), INJ-LYO for the in-device drying, INJ-PLUNGER.
  *  - The fill weight of individual units is IPC-INJ-FILL-WEIGHT; container closure integrity is INJ-CCI.
  *

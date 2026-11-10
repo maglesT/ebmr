@@ -303,15 +303,19 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-15: 211.100, 211.110(a); A1 8.20-8.21, 8.26-8.29. Interventions and stoppages (events repeat) arrive in I-2.
+    // INJ-15: 211.100, 211.110(a); A1 8.20-8.21, 8.26-8.29. Interventions, stoppages, glove changes and alarms during
+    // filling (I-2) are an optional event section (R-flow item 3: recorded when the event happens, as many times as it
+    // happens; no new repeat kind): 211.100(b) (a deviation from the written procedure recorded and justified); for EU
+    // batches A1 8.16 and 9.34 (interventions recorded). An event not on the formulation's list of validated
+    // interventions is an exception that reaches the release gate (211.100(b), 211.192).
     definition: {
       code: 'INJ-FILL',
       version: 1,
       title: 'Filling and stoppering (vials and ampoules)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-15. The filling line in its room, the format, the fill weight and volume at each round against limits, the stopper-height check for vials, and the filled trays registered as containers (each later one sterilisation load or part of one).',
-      instructions: 'Set the line for the format. Weigh filled units at each round; the volume follows from the bulk density. Register each filled tray as a container.',
+      description: 'INJ-15. The filling line in its room, the format, the fill weight and volume at each round against limits, the stopper-height check for vials, the filled trays registered as containers (each later one sterilisation load or part of one), and each intervention, stoppage, glove change or alarm when it happens.',
+      instructions: 'Set the line for the format. Weigh filled units at each round; the volume follows from the bulk density. Register each filled tray as a container. Record each intervention, stoppage, glove change or alarm as it happens; one not on the formulation\'s list is raised for QA.',
       inputs: [{ id: 'density', label: 'Density of the bulk (from compounding)', kind: 'STEP_VALUE', unit: 'g/mL', slot: 'densitySource' }],
       sections: [
         {
@@ -333,6 +337,21 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'fillWeight', label: 'Mean fill weight of the units weighed', type: 'NUMBER', unit: 'g', decimals: 3, limitSlot: 'fillWeight', critical: true },
             { id: 'fillVolume', label: 'Mean fill volume', type: 'CALC', expression: 'convert(volume_from_mass(fillWeight, density), [mL])', unit: 'mL', limitSlot: 'fillVolume', critical: true },
             { id: 'closures', label: 'Units closed correctly (stoppers seated, ampoules sealed)', type: 'YES_NO', expected: true },
+          ],
+        },
+        {
+          id: 'event',
+          title: 'Intervention or stoppage',
+          required: false,
+          when: 'Only when an intervention, a stoppage, a glove change or an alarm happens during filling',
+          repeat: { kind: 'PER_CONTAINER' },
+          fields: [
+            { id: 'eventKind', label: 'What happened', type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] },
+            { id: 'eventWhat', label: 'What was done (the intervention as the list names it, or the cause)', type: 'TEXT', maxLength: 120 },
+            { id: 'eventStart', label: 'Started at', type: 'DATE_TIME' },
+            { id: 'eventEnd', label: 'Ended at', type: 'DATE_TIME' },
+            { id: 'eventListed', label: 'On the formulation\'s list (validated interventions, known stoppages)', type: 'YES_NO', expected: true },
+            { id: 'eventUnits', label: 'Units removed because of it (counted in the line rejects)', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
         },
         {

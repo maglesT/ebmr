@@ -22,7 +22,7 @@ behaviour: |-
 catalog_test: Scan a 0.45 µm or non-registered part for final filtration → refused.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its lot on the formula line, which names the filter registered for the product; no typed type can stand in for it"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

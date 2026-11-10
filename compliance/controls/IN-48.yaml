@@ -15,7 +15,7 @@ behaviour: The filtration step records filter ID/lot and pore rating (0.22 micro
 catalog_test: "enter a failing post-use result; the batch goes on hold. Reuse a filter on day 2 without validation; blocked. EU profile, same filter for a second batch on day 1: blocked."
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its lot on the formula line, which names the filter registered for the product; no typed type can stand in for it"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use and after use by the formulation's method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception"
 expert_decision:

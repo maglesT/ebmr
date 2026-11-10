@@ -116,6 +116,18 @@ describe('the generic library renderer', () => {
     expect(limitText(range('%', '20', '40') as never)).toBe('20 to 40 %');
   });
 
+  it('[PR-08] nested tiers are shown on the step, each named, innermost first; a value outside the alert limit but inside the action limit is flagged as an alert breach', async () => {
+    const tier = (t: string, low: string, high: string) => ({ tier: t, low: { value: low, inclusive: true }, high: { value: high, inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'COMPANY_STANDARD', ref: 'FORMULATION' } });
+    const nested = { unit: 'g', ranges: [{ ...tier('REGISTERED', '5.000', '8.000'), source: { kind: 'REGISTRATION', ref: 'FORMULATION' } }, tier('INTERNAL_ACTION', '5.500', '7.500'), tier('ALERT', '6.000', '7.000')] };
+    expect(limitText(nested as never)).toBe('alert 6.000 to 7.000; action limit 5.500 to 7.500; registered 5.000 to 8.000 g');
+    const view = libraryStep(DEF, { limits: { ...CONFIG.limits, w0: nested } });
+    renderFloor(stepPath('p-lib@'), { fixtures: stepFixtures(view), intercept: ok(view) });
+    const form = await screen.findByTestId('lib-section-run');
+    expect(within(form).getByText('Limit alert 6.000 to 7.000; action limit 5.500 to 7.500; registered 5.000 to 8.000 g')).toBeTruthy();
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Weight before (g)' }), '7.200');
+    expect(within(form).getByTestId('lib-breach-w0').textContent).toMatch(/Outside the alert limit/);
+  });
+
   it('[PR-30] a timer is started and stopped on the server\'s clock; a section recorded once closes', async () => {
     const def = { ...DEF, sections: [{ id: 'mix', title: 'Mixing', fields: [{ id: 'mixing', label: 'Mixing time', type: 'TIMER', durationUnit: 'min' }, { id: 'speed', label: 'Impeller speed', type: 'NUMBER', unit: 'rpm' }] }] };
     const view = libraryStep(def, {});
