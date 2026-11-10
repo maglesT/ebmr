@@ -35,7 +35,7 @@ import {
   planPackaging, postFinishedLot, pullReserveSample, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, investigateAndClose, linkNewDeviation, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, investigateAndClose, linkNewDeviation, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, stepIdOf, type PlantUnit, type ProductBlock } from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
 
 
@@ -837,7 +837,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     }, sp);
   });
 
-  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, persona, evidence, browser }) => {
+  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
     test.setTimeout(90 * 60_000);
     const s = loadProduct(e2e, key);
     const floor: Floor = {
@@ -860,7 +860,11 @@ export function defineInjectablesGmp(product: string | Injectable): void {
               const breach = gmp.breach?.step === b.def.code ? gmp.breach : undefined;
               const recorded = breach ? { ...b, values: { ...b.values, ...breach.values } } : b;
               await runLibraryStep(page, ctx, recorded, units, stepLots, 1, 'GMP-', pool, breach ? async (p) => {
-                const ref = await linkNewDeviation(p, floor.persona('supervisor1'), { classification: 'Major', rationale: breach.rationale });
+                const office = await officePage('GMP', PC_PLAN);
+                await signIn.office(office, floor.persona('supervisor1'));
+                const ref = await linkNewDeviation(office, { base: e2e.url('GMP'), runId: floor.batchId, stepKey: `${stepIdOf(b.def.code)}@` }, { classification: 'Major', rationale: breach.rationale });
+                await office.context().close();
+                await expect(p.getByTestId('step-card')).toBeVisible();
                 (s.marks ??= []).push(`deviation ${ref}`);
                 floor.save();
               } : undefined);
