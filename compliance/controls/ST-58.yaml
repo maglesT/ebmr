@@ -30,7 +30,8 @@ behaviour: |-
   - **Trays.** IDs are tracked with last inspection date. A tray that is overdue or flagged misshapen or damaged is refused.
 catalog_test: On a manual-open lyophiliser, attempt a second load without a new SIP → hard block. Start leak rate above maximum → cycle flagged and release blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-58][ST-59][ST-66] for the EU market, its own block records the trays checked, the Grade A transfer means, sterile utensils, the vent filter sterilised and its integrity by the formulation's method, and per load the lyophiliser's sterilisation cycle, the leak test against the firm's maximum and the load's sterility samples; a failed check is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

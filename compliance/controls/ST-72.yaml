@@ -17,7 +17,8 @@ behaviour: |-
   - Certification is blocked while any cycle record is unreviewed or non-conforming.
 catalog_test: Consume stoppers from an unreviewed cycle → certification blocked, with the cycle listed as open.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-59][ST-72] lyophilisation consumes every filled tray into its numbered load and, for each load, records the programme and the cycle values from the printout as critical values with the firm's limits, checked by a second person, and registers the lyophilised load; a value outside its limit, stoppers not seated or an alarm is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -9,7 +9,7 @@ import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { blockEdition, editionFits } from '../../src/library/model.ts';
-import { INJECTABLE_ASEPTIC_CATALOGUE, INJECTABLE_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
+import { INJECTABLE_ASEPTIC_CATALOGUE, INJECTABLE_CATALOGUE, INJECTABLE_LYO_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 import { judgedRun, recordNominal } from './seed-support.ts';
@@ -53,7 +53,7 @@ describe('the Injectables catalogue (slice I-1)', () => {
     // an injectables master.
     expect(editionFits('injectables', 'tablets')).toBe(false);
     expect(editionFits('tablets', 'injectables')).toBe(false);
-    expect(SEED_CATALOGUE.filter((s) => blockEdition(s.definition) === 'injectables')).toHaveLength(I1_CODES.length + INJECTABLE_ASEPTIC_CATALOGUE.length);
+    expect(SEED_CATALOGUE.filter((s) => blockEdition(s.definition) === 'injectables')).toHaveLength(I1_CODES.length + INJECTABLE_ASEPTIC_CATALOGUE.length + INJECTABLE_LYO_CATALOGUE.length);
   });
 
   it('[ST-14][ST-15] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference', () => {
