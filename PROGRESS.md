@@ -178,7 +178,7 @@ I-1c1 complete (vial #155, ampoule #193). I-1c2 P2 merged (#194): the finished-p
 edition's release items (editions/injectables/sql 3000). P3 (#196): the packaging skeleton start. P3b (#197): a
 clearance needs a second person only where its step names a checker (recipe-core 1886, 1887; residual: areas made
 before 1887 stay on area_status v1). P4a (#198): the vial's GMP half to H-PACK (E2E group library-inj-gmp). P3c (#200):
-the skeleton takes the firm's printed-item limits and specimens at create. P4b (GMP 5-9, branch
+the skeleton takes the firm's printed-item limits and specimens at create. P4b (#201, GMP 5-9, branch
 inj/i1c2-p4b-gmp-packaging): the packaging master, its sandbox run, the GMP packaging order, QC and the IN release; the
 skeleton runs G-21 in parallel with packing (lead, session 8). Notes:
 `docs/build-plan/injectables/resume.md`. Migrations: `injectables` 3000-3999 (editions/README.md).
