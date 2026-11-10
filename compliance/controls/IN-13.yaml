@@ -40,6 +40,7 @@ tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-01][IN-13] a batch can only be issued at a batch size the MBR lists; there is no free scaling"
   - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][IN-13][IN-15] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception"
   - "packages/recipe-core/test/execution/system-facts-sql.test.ts > the time breaches the database accepts as the system's (P35, P28) > [INV-20][IN-13] the hold time of an intermediate breached at a refused command is accepted; a hold time the MBR does not define is not"
+  - "packages/recipe-core/test/library/scaling.test.ts > N-3: a batch-size input read as the sum of formula lines > [PR-31][PR-01][IN-13] the theoretical quantity is the scaled sum of the named lines in the input's unit, whatever the batch size's unit"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [IN-13] a size the master does not list is refused at issue: no free scaling"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13] the formula line scales exactly from the reference size (the first listed) to the batch size"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13][DI-33] one approved master runs each listed size, and the calculation reads the quantity scaled to the issued size"
