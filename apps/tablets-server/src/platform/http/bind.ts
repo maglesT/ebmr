@@ -25,6 +25,7 @@ import { spkiFingerprint } from '../auth/device-proof.ts';
 import { isShopFloor, requestTokenHash, resolveSession, type ResolvedSession } from '../auth/session.ts';
 import type { AppContext } from '../context.ts';
 import { inCommandScope } from '../db/commands.ts';
+import { mapError } from './errors.ts';
 import { HttpRefusal, refusal } from './refusal.ts';
 
 declare module 'fastify' {
@@ -598,6 +599,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
             request.log.error({ err: outcome.error, correlationId, commandId: scope.commandId }, 'the command committed; its answer could not be built');
             throw savedNotShown(scope.commandId);
           }
+          if (scope.anyCommitted && !scope.committed && !reply.sent) throw partlySaved(app, outcome.error, correlationId);
           throw outcome.error;
         }
         if (reply.sent) return reply;
@@ -626,6 +628,23 @@ export function savedNotShown(commandId: string | null): HttpRefusal {
     whoCanHelp: ['The system administrator (quote the command id and the correlation id)'],
     ...(commandId ? { details: { commandId } } : {}),
   });
+}
+
+/**
+ * The answer when an earlier command of the request committed and a later one was refused (owner retest N-2, ALCOA
+ * accurate): the refusal as the error mapper gives it (status, code, why), its "what happened" saying that the earlier part
+ * was saved and this part was refused and not saved. Never "nothing was saved". An unexpected (5xx) failure of the later
+ * command is answered the same way, as INTERNAL.
+ */
+export function partlySaved(app: AppContext, error: unknown, correlationId: string): HttpRefusal {
+  const mapped = mapError(app, error, correlationId);
+  const r = mapped.envelope.refusal;
+  return new HttpRefusal(
+    mapped.status,
+    { ...r, whatHappened: `Part of this request was saved before this part was refused; the refused part was not saved. ${r.whatHappened.replace(/\s*Nothing was saved\.?/g, '').trim()}`.trim() },
+    false,
+    { cause: error },
+  );
 }
 
 /**

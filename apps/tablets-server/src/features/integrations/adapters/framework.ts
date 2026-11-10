@@ -61,10 +61,10 @@ import {
   type SourceSystem,
   type SystemContract,
 } from '@ebmr/integration-sdk/adapter';
-import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
+import { identity, type ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import type { AppContext } from '../../../platform/context.ts';
-import { dbNowUs } from '../../../platform/db/commands.ts';
+import { dbNowUs, withScopedCommand } from '../../../platform/db/commands.ts';
 import { mtlsFetch, type FetchFn } from './transport.ts';
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -375,7 +375,7 @@ export class AdapterWorker {
 
   /** Runs `work` as the adapter in one database command (`reason`: the source's reason of a receiving command). */
   async command<T>(work: (client: pg.PoolClient) => Promise<T>, reason?: { reasonCode: string; reasonText: string }): Promise<T> {
-    return withCommand(this.pool, { ...(await this.session()), correlationId: randomUUID(), ...(reason ?? {}) }, work);
+    return withScopedCommand(this.pool, { ...(await this.session()), correlationId: randomUUID(), ...(reason ?? {}) }, work);
   }
 
   /** The highest sequence number the database holds for this adapter (accepted or recorded as refused). */
