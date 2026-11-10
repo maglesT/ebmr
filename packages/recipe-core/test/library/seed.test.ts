@@ -26,7 +26,9 @@ describe('the ready-made catalogue', () => {
   });
 
   /** The material lots that name no formula line: an injectable's primary components (block code and field id). */
-  const COMPONENT_LOTS = ['INJ-WASH containerLot', 'INJ-PARTS-AUTOCLAVE stopperLot', 'INJ-CAPPING sealLot'];
+  // The injectable components named where they are used (lead, 6 November 2026; I-2 filter, single-use assembly and
+  // supplier-sterilised component, 10 November 2026).
+  const COMPONENT_LOTS = ['INJ-WASH containerLot', 'INJ-PARTS-AUTOCLAVE stopperLot', 'INJ-CAPPING sealLot', 'INJ-STERILE-FILTER filterLot', 'INJ-SUS assemblyLot', 'INJ-SUPPLIER-STERILE componentLot'];
 
   it('[PR-18][PR-03] every material lot a catalogue block records names the bill-of-materials line whose material it must be, and the example fills that line, so the lot is checked as the right material and not only as released (R3-CAT-2); the only exceptions, the primary component lots of an injectable, are verified by a second person', () => {
     for (const item of SEED_CATALOGUE) {

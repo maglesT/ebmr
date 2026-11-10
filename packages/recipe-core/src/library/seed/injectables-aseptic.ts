@@ -12,6 +12,10 @@
  * Choices kept to the binding minimum (plan sections 1 and 8a; lead's I-1 design choices):
  *  - Values typed from a device printout or report (SIP and VHP cycles, the particle counter) are checked by a second
  *    person (21 CFR 211.68(b)), so those blocks carry a CHECKED signature. There is no device gateway.
+ *  - Component lots (the sterilising filter, a single-use assembly, a supplier-sterilised component) are named where they
+ *    are used, as the I-1 components (lead, 6 and 10 November 2026): no formula line; the engine accepts only a released
+ *    lot within its dates (211.84, the lot checks of every MATERIAL_LOT field), and a second person verifies that it is
+ *    the item the formulation names (the material-match gap of I-1), so those blocks are signed PERFORMED and VERIFIED.
  *  - Time limits (sterilisation or bio-decontamination to use, the post-SIP hold, the isolator's validity after VHP)
  *    are the master's time constraints (HOLD, PROCESS_WINDOW, USE_BY) on trusted time from the steps' own events, not
  *    typed times. The plan's "validity end, CALC" of INJ-09 and the "hold by CALC" of INJ-07 are therefore not fields:
@@ -76,13 +80,13 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       edition: EDITION,
       roles: ['VERIFICATION'],
       description: 'INJ-03. One component sterilised by its supplier or a contract steriliser (irradiation, ethylene oxide or moist heat): its lot (released by QC), the sterilisation method, the certificate and the dose or cycle reference. Used once per component.',
-      instructions: 'Check the lot against the formula line and its released label. Record the sterilisation certificate of the lot and its dose or cycle reference. Do not use a pack whose wrap is damaged.',
+      instructions: 'Name the released lot of the component; a second person verifies it is the component the formulation names. Record the sterilisation certificate of the lot and its dose or cycle reference. Do not use a pack whose wrap is damaged.',
       sections: [
         {
           id: 'component',
           title: 'Component',
           fields: [
-            { id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' },
+            { id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT' },
             { id: 'method', label: 'Sterilisation method', type: 'CHOICE', options: ['Gamma irradiation', 'Electron beam', 'Ethylene oxide', 'Moist heat'] },
             { id: 'certificate', label: 'Sterilisation certificate reference', type: 'TEXT', maxLength: 60 },
             { id: 'doseOrCycle', label: 'Dose or cycle reference (from the certificate)', type: 'TEXT', maxLength: 60 },
@@ -90,9 +94,9 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, CHECKER],
+      signatures: [OPERATOR, VERIFIER],
     },
-    exampleUse: { bomLines: { componentLine: 'L3' } },
+    exampleUse: {},
   },
   {
     // INJ-03 (indicator): A1 8.72-8.78 (EU market only).
@@ -268,20 +272,20 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['VERIFICATION'],
-      description: 'INJ-11. One single-use assembly: its lot (released by QC) on the formula line. Used once per assembly.',
-      instructions: 'Check the assembly lot against the formula line and its released label.',
+      description: 'INJ-11. One single-use assembly: its lot (released by QC), named where it is used and verified by a second person. Used once per assembly.',
+      instructions: 'Name the released lot of the assembly; a second person verifies it is the assembly the formulation names.',
       sections: [
         {
           id: 'assembly',
           title: 'Assembly',
           fields: [
-            { id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT', bomLineSlot: 'assemblyLine' },
+            { id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT' },
           ],
         },
       ],
       signatures: [OPERATOR, VERIFIER],
     },
-    exampleUse: { bomLines: { assemblyLine: 'L4' } },
+    exampleUse: {},
   },
   {
     // INJ-11 (integrity): A1 8.127-8.138 (EU market only).
@@ -316,14 +320,14 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       title: 'Sterilising filtration and filter integrity',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-13. The sterilising filter (its lot on the formula line, which names the filter registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
+      description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
       instructions: 'Use only the filter registered for the product. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [
         {
           id: 'filter',
           title: 'Filter',
           fields: [
-            { id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT', bomLineSlot: 'filterLine' },
+            { id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' },
           ],
         },
         {
@@ -356,7 +360,6 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      bomLines: { filterLine: 'L5' },
       limits: {
         bubblePointPre: pv('bar', '3.20'),
         diffusionPre: pv('mL/min', undefined, '20.0'),
