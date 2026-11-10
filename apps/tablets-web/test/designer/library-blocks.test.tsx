@@ -87,7 +87,7 @@ describe('library blocks in the designer', () => {
     expect(config['hash']).toBe(library.definitionHash(FRIAB));
   });
 
-  it('[PR-08] the values form takes the tiers the engine nests: an alert and an action limit inside the registered range are stored beside it, a tier that is not nested is a problem, and clearing a tier removes only that tier', async () => {
+  it('[PR-08] the values form takes the tiers the engine nests: an alert and an action limit inside the registered range are stored beside it, a tier that is not nested is a problem, and clearing a tier removes only that tier; the extra tiers show once the slot has one or the author opens them', async () => {
     const c0 = applyOp(content(), { kind: 'ADD_LIBRARY_BLOCK', ...(insertionPoint(content(), firstPhase(content()).id) as { sequenceId: string; index: number }), stepId: 'p-ipc-friab', definition: FRIAB });
     const step0 = byId(c0, 'p-ipc-friab');
     if (!step0) throw new Error('no step');
@@ -97,6 +97,9 @@ describe('library blocks in the designer', () => {
     const onChange = vi.fn();
     const ui = renderRouted(() => <LibraryValuesForm content={c0} step={step} readOnly={false} onChange={onChange} />);
     const form = await screen.findByTestId('library-values');
+    // The owner's simple form: a slot with the registered range only shows no extra tier until the author opens them.
+    expect(within(form).queryByLabelText('loss: alert limit, upper')).toBeNull();
+    await userEvent.click(within(form).getByRole('button', { name: 'More limits for loss (validated, action, alert)' }));
     await userEvent.type(within(form).getByLabelText('loss: alert limit, upper'), '0.6');
     await userEvent.tab();
     await waitFor(() => expect(onChange).toHaveBeenCalled());

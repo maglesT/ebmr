@@ -149,6 +149,8 @@ function PlantClassChoice({ label, value, readOnly, onChange }: { label: string;
 }
 
 export function LibraryValuesForm({ content, step, readOnly, onChange }: { content: Content; step: flow.PhaseNode; readOnly: boolean; onChange: (config: Config) => void }) {
+  // Owner's simple-form rule: a slot's extra tiers show once it has one, or when the author opens them (lead, #209).
+  const [moreOpen, setMoreOpen] = useState<ReadonlySet<string>>(new Set());
   const def = library.definitionsOf(content).find((d) => library.libraryBlockType(d.code) === step.block.type && String(d.version) === step.block.version);
   if (!def) return <p className={dcls('small')}>This master carries no snapshot of {step.block.type}@{step.block.version}; add the block again from the library.</p>;
   const config = step.config;
@@ -178,7 +180,11 @@ export function LibraryValuesForm({ content, step, readOnly, onChange }: { conte
               </legend>
               <CommitText label={`${who}: lower limit`} value={boundOf(l, 'low')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', v, boundOf(l, 'high'), l?.ranges.find((r) => r.tier === 'REGISTERED')?.source.ref ?? ''))} />
               <CommitText label={`${who}: upper limit`} value={boundOf(l, 'high')} readOnly={readOnly} onCommit={(v) => onChange(withLimit(config, s.name, s.unit ?? '1', boundOf(l, 'low'), v, l?.ranges.find((r) => r.tier === 'REGISTERED')?.source.ref ?? ''))} />
-              {EXTRA_TIERS.map((t) => (
+              {!moreOpen.has(s.name) && !(l?.ranges.some((r) => r.tier !== 'REGISTERED') ?? false) ? (
+                readOnly ? null : (
+                  <Button onPress={() => setMoreOpen(new Set([...moreOpen, s.name]))}>More limits for {who} (validated, action, alert)</Button>
+                )
+              ) : EXTRA_TIERS.map((t) => (
                 <div key={t.tier} className={dcls('inline')}>
                   <CommitText label={`${who}: ${t.label}, lower`} value={boundOf(l, 'low', t.tier)} readOnly={readOnly} onCommit={(v) => onChange(withTier(config, s.name, s.unit ?? '1', t.tier, v, boundOf(l, 'high', t.tier), { kind: t.source, ref: 'FORMULATION' }))} />
                   <CommitText label={`${who}: ${t.label}, upper`} value={boundOf(l, 'high', t.tier)} readOnly={readOnly} onCommit={(v) => onChange(withTier(config, s.name, s.unit ?? '1', t.tier, boundOf(l, 'low', t.tier), v, { kind: t.source, ref: 'FORMULATION' }))} />
