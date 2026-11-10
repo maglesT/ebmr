@@ -586,6 +586,20 @@ async function injPackagingRun(
   }
   await explained(performAndCheck(page, op, verifier, op), page.locator('main'));
   await completed(page);
+  // The line after use, once G-21 is done: no printed material, product or documents left, the line clean; a second
+  // person verifies it before the order can complete (EBMR-LBL-061, PR-34), as on the tablets packaging line.
+  await load(page, `${base}/labels/packaging/${f.batchId}`);
+  const postUse = page.getByTestId('post-use-inspection');
+  const postUseForm = postUse.getByTestId('post-use-form');
+  await expect(postUseForm.getByRole('radiogroup')).toHaveCount(4);
+  for (const group of await postUseForm.getByRole('radiogroup').all()) await choose(group.getByRole('radio', { name: 'Yes', exact: true }));
+  await act(page, postUseForm.getByRole('button', { name: 'Record the post-use inspection' }), op);
+  await expect(postUse.getByText('not verified yet')).toBeVisible();
+  await as(page, verifier);
+  await load(page, `${base}/labels/packaging/${f.batchId}`);
+  await act(page, page.getByTestId('post-use-inspection').getByRole('button', { name: 'Verify the inspection' }), verifier);
+  await expect(page.getByTestId('post-use-inspection').getByText(`verified by ${verifier.legalName}`)).toBeVisible();
+  await as(page, op);
   await step(f, page, 'p-pk-count@');
   await begin(page, op);
   await field(page, 'unitsReceived', p.received, op);
