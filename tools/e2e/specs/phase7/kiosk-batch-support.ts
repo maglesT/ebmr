@@ -476,7 +476,9 @@ export async function reviewRecord(e2e: E2eWorld, pages: { production: Page; qa:
     await qa.goto(`${base}/review/${batchId}/register`);
     const summary = qa.getByTestId('register-summary');
     await expect(summary).toBeVisible();
-    if (/(^|\D)0 need QA/.test((await summary.textContent()) ?? '') || /\b0 items\b/.test((await summary.textContent()) ?? '')) break;
+    // A record with no exception says so in words (RegisterPage: "The record has no exception.").
+    const said = (await summary.textContent()) ?? '';
+    if (/(^|\D)0 need QA/.test(said) || /\b0 items\b/.test(said) || /has no exception/.test(said)) break;
     await qa.locator('body').click({ position: { x: 1, y: 1 } });
     await qa.keyboard.press('n');
     const detail = qa.getByTestId('item-disposition');
