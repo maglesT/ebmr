@@ -961,7 +961,13 @@ export function defineInjectablesGmp(productKey: string): void {
         await box.fill(value);
         await box.press('Tab');
       }
-      await saveRevision(a, `${s.product.name}: packing steps and the packaging yield range`);
+      // The skeleton binds no room: the author names the packaging line the stage runs on, where its line clearance and
+      // its start are recorded (211.130(e)).
+      const rooms = a.getByTestId('stage-editor-S-PACK').getByRole('textbox', { name: /^Rooms of .* \(comma separated\)$/ });
+      await rooms.fill('PL-2');
+      await rooms.press('Tab');
+      await expect(a.locator('div[data-node="S-PACK"]')).toContainText('Rooms: PL-2');
+      await saveRevision(a, `${s.product.name}: packing steps, the packaging line and the packaging yield range`);
       await checksPass(a);
       return { blocks: `${cartoning.def.code}, ${packExam.def.code}` };
     }, a);
