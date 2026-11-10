@@ -361,13 +361,17 @@ export const TARGETS: Target[] = [
                 'recipe.package_header_problem', 'recipe.test_package_header_check', 'recipe.begin_issue', 'tab.register_sandbox_lot',
                 'tab.mbr_test_package_export_guard', 'tab.record_test_package_export', 'tab.mark_demo_installation', 'tab.is_demo_installation',
                 // recipe-core 0384 (defect D14): how a refusal of package_header_problem names a JSON value.
-                'recipe.json_value_described'],
+                'recipe.json_value_described',
+                // kernel 1406 (redefined): a typed ISO date-time is no identifier word.
+                'sandbox.identifier_words'],
     tests: [k('sandbox/installation.test.ts'), k('sandbox/identifiers.test.ts'), k('sandbox/bypass.test.ts'), k('sandbox/bootstrap.test.ts'),
             k('sandbox/provision.test.ts'), k('sandbox/watermark.test.ts'), s('execution/import-db-guard.test.ts'),
             s('execution/db-guards-package-header.test.ts'), s('execution/store.test.ts'), s('execution/commands.test.ts'),
             s('designer/package-publish.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            r('lifecycle/gmp-issue.test.ts')],
+            r('lifecycle/gmp-issue.test.ts'),
+            // kernel 1406: the words sandbox.identifier_words reads.
+            k('sandbox/identifier-words.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: tablets, gateway keys, instruments and readings: ingest, proof, age, claim (sql 0250-0330, 0360; 0702:
