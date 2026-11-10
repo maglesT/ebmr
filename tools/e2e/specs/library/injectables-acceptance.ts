@@ -945,7 +945,8 @@ export function defineInjectablesGmp(productKey: string): void {
     await evidence.step('The author adds cartoning and the finished-pack examination, and sets the packaging yield range from the validation report; the checks pass', 'Both blocks pinned; the yield range with its source; no error, no warning', async () => {
       // The skeleton's packing branch runs beside G-21, which stays open from the issue to the reconciliation. Cartoning
       // is added in that branch (after the counts, the only step there) and moved up before them.
-      await addLibraryBlocks(a, 'p-pk-count', [cartoning]);
+      // Cartoning names the carton and leaflet lots; G-21 alone consumes them (issued and reconciled there).
+      await addLibraryBlocks(a, 'p-pk-count', [cartoning], { consumeLines: false });
       const cartonRow = a.locator('tr[data-step-row][data-node="p-pack-carton"]');
       await cartonRow.getByRole('button', { name: /^Actions for step / }).click();
       await a.getByRole('menuitem', { name: 'Move up' }).click();

@@ -237,7 +237,16 @@ const stepRow = (page: Page, id: string): Locator => page.locator(`tr[data-step-
  * Adds `blocks` in order after step `afterId`, each typed with its product values; the values form shows no problem for
  * any of them.
  */
-export async function addLibraryBlocks(page: Page, afterId: string, blocks: readonly ProductBlock[]): Promise<void> {
+export async function addLibraryBlocks(
+  page: Page,
+  afterId: string,
+  blocks: readonly ProductBlock[],
+  /**
+   * Whether a step whose lot field reads a formula line also consumes that line (default). Printed items are consumed
+   * once, by the G-21 step that issues and reconciles them: a packing step beside it only names their lots (DATA-PARALLEL).
+   */
+  opts: { consumeLines?: boolean } = {},
+): Promise<void> {
   let row = afterId;
   for (const b of blocks) {
     await stepRow(page, row).click();
@@ -246,13 +255,13 @@ export async function addLibraryBlocks(page: Page, afterId: string, blocks: read
     await adder.getByRole('button', { name: 'Add the block' }).click();
     row = stepIdOf(b.def.code);
     await stepRow(page, row).click();
-    await fillValues(page, b);
+    await fillValues(page, b, opts.consumeLines ?? true);
     await expect(page.getByTestId('library-values-ok')).toBeVisible();
   }
 }
 
 /** The values form of the selected library step, from the block's slots (the same labels the form derives). */
-async function fillValues(page: Page, b: ProductBlock): Promise<void> {
+async function fillValues(page: Page, b: ProductBlock, consumeLines = true): Promise<void> {
   const form = page.getByTestId('library-values');
   const use = b.use;
   const slots = library.slotsOf(b.def);
@@ -288,7 +297,7 @@ async function fillValues(page: Page, b: ProductBlock): Promise<void> {
         // A field naming a material's lot reads its formula line; the step consumes that line (its lot is named here).
         const line = use.bomLines?.[s.name] ?? '';
         await form.getByRole('combobox', { name: `Formula line for ${s.owner}`, exact: true }).selectOption(line);
-        await page.getByRole('group', { name: 'Consumes (BOM lines)' }).getByRole('checkbox', { name: new RegExp(`^${line}:`) }).check();
+        if (consumeLines) await page.getByRole('group', { name: 'Consumes (BOM lines)' }).getByRole('checkbox', { name: new RegExp(`^${line}:`) }).check();
         break;
       }
       case 'STEP_VALUE': {
