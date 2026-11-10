@@ -76,6 +76,10 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     consumeLines: false })`). G-21 alone consumes printed items. A second claim breaks DATA-PARALLEL (DI-34).
   - The post-use line inspection is recorded and verified on the labels page once G-21 is done (EBMR-LBL-061, PR-34).
   - `reviewRecord` ends its register loop on "The record has no exception."
+  - The finished lot's reserve sample is 64 packs, twice the full test plan (G3.SAMPLES, PR-44, IN-32; 211.170(b)).
+    `pullReserveSample` takes a quantity (default 4).
+  - `releaseFinishedLot` opens a lot that stays not ready and names its red checklist items.
+- **Result:** library-inj-gmp passes GMP 1-9 (run 42800512663 on 8c5a1d1).
 - **Learnt:**
   - A refusal's text is in the output artifact's trace: `*.network` lists the 4xx responses, and
     `resources/<sha1>.json` holds the body.
