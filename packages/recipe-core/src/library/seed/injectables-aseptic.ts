@@ -60,6 +60,7 @@ const em = (unit: string, action: string, alert?: string): LimitSpec => ({
 });
 
 const CFU = '{CFU}';
+const UNITS = '{unit}';
 const PARTICLES = '{particles}/m3';
 
 export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
@@ -393,6 +394,61 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     exampleUse: {
       limits: { bubblePointPupsit: pv('bar', '3.20'), diffusionPupsit: pv('mL/min', undefined, '20.0') },
       targets: { bubblePointPupsit: '3.60', diffusionPupsit: '10.0' },
+    },
+  },
+  {
+    // INJ-26 (media fill): 211.113(b) (the validation of aseptic processes); SM Part II 5.3-5.7 (process simulation with
+    // media); for EU batches A1 9.41-9.47 (accountability, incubation, reading, the zero target). The incubation conditions
+    // are the ones the site validated, entered as the formulation's limits (plan 8a: no fixed FDA scheme). A contaminated
+    // unit is a critical breach: its exception and deviation reach QA, who then does not extend the line's and the people's
+    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet).
+    definition: {
+      code: 'INJ-APS-READ',
+      version: 1,
+      title: 'Media fill: incubation and reading',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['OBSERVATION'],
+      description: 'INJ-26, media fill. The filled units incubated, the units removed before incubation with the reason, the incubation temperature and time of each period against the site\'s validated conditions, and the units read as contaminated after incubation against the acceptance limit.',
+      instructions: 'Inspect the filled units and remove only those that are not integral, recording why. Incubate them in the validated scheme and read every unit at its end. Record any contaminated unit and send it for identification.',
+      sections: [
+        {
+          id: 'incubation',
+          title: 'Incubation',
+          fields: [
+            { id: 'incubator', label: 'Incubator', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'incubatorClass' },
+            { id: 'unitsRemoved', label: 'Units removed before incubation (not integral)', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'removedReason', label: 'Why they were removed', type: 'TEXT', maxLength: 120, required: false },
+            { id: 'unitsIncubated', label: 'Units incubated', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'scheme', label: 'Incubation scheme', type: 'CHOICE', options: ['One temperature', 'Two temperatures in sequence'] },
+            { id: 'firstTemperature', label: 'Temperature, first period', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'firstTemperature', critical: true },
+            { id: 'firstDays', label: 'Time, first period', type: 'NUMBER', unit: 'd', decimals: 0, limitSlot: 'firstDays', critical: true },
+            { id: 'secondTemperature', label: 'Temperature, second period', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'secondTemperature', critical: true, showWhen: { field: 'scheme', equals: 'Two temperatures in sequence' } },
+            { id: 'secondDays', label: 'Time, second period', type: 'NUMBER', unit: 'd', decimals: 0, limitSlot: 'secondDays', critical: true, showWhen: { field: 'scheme', equals: 'Two temperatures in sequence' } },
+          ],
+        },
+        {
+          id: 'reading',
+          title: 'Reading',
+          fields: [
+            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true },
+            { id: 'identification', label: 'Organisms identified (for a contaminated unit)', type: 'TEXT', maxLength: 120, required: false },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      equipmentClasses: { incubatorClass: 'INCUBATOR' },
+      // Invented example values: the site's validated scheme and its acceptance limit come from its own validation.
+      limits: {
+        firstTemperature: pv('Cel', '20.0', '25.0'),
+        firstDays: pv('d', '7', '8'),
+        secondTemperature: pv('Cel', '30.0', '35.0'),
+        secondDays: pv('d', '7', '8'),
+        contaminated: pv(UNITS, '0', '0'),
+      },
+      targets: { firstTemperature: '22.5', firstDays: '7', secondTemperature: '32.5', secondDays: '7', contaminated: '0' },
     },
   },
   {

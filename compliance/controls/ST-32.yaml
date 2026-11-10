@@ -44,7 +44,8 @@ behaviour: |-
   - **After closure.** The line is set to "post-media-fill clean required" until cleaning, sanitisation and sterilisation records are complete.
 catalog_test: Record 12 units removed for an intervention whose catalogue value is 8 → refused. A 6-day + 8-day two-temperature scheme → phase rule fails. A GPT inoculum of 150 CFU → invalid.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-32][IN-45] the media fill reading records the units removed before incubation and why, the units incubated, each incubation period against the site\"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
