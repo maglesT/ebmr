@@ -19,18 +19,23 @@ import { asErp } from '../quality/index.ts';
  * Slice 7o (decision (d) of the lead; R4, R8): besides the demo products, an order of every product whose current master
  * version is APPROVED and holds an ACTIVE market authorisation (a company's own product made on screen), for the
  * family's first approved batch size, its BOM the master's own scaled from the master's reference size in exact decimals
- * (the database compares them at planning, recipe-core 0602). Read from the database each time; a demo template wins.
+ * (the database compares them at planning, recipe-core 0602 and 1877). An order's BOM names a material once (site 0751,
+ * EBMR-SITE-176), so a material on two master lines (a bilayer tablet's binder in each layer, owner retest N-1) is one
+ * order line per material and unit: the master's lines summed, then scaled, as recipe-core 1877 compares them; the
+ * master's lines stay apart for dispensing. Read from the database each time; a demo template wins.
  * Every edition's approved, authorised master is offered (injectables I-1c2 P4a, lead ruling of 9 November 2026): no
  * binding clause limits the ERP's orders to one edition.
  */
 export async function authorisedTemplates(app: AppContext): Promise<DemoOrderTemplate[]> {
   const { rows } = await app.pools.app.query<{ product_code: string; strength: string; product_name: string; kind: DemoOrderKind; size: string; unit: string; bom: { materialCode: string; quantity: string; unit: string }[] | null }>(
     `select f.product_code, f.strength, f.product_name, f.record_kind as kind, f.batch_sizes -> 0 -> 'quantity' ->> 'value' as size, f.batch_sizes -> 0 -> 'quantity' ->> 'unit' as unit,
-            (select jsonb_agg(jsonb_build_object('materialCode', b ->> 'material',
-                     'quantity', trim_scale((b -> 'quantity' ->> 'value')::numeric * (f.batch_sizes -> 0 -> 'quantity' ->> 'value')::numeric
+            (select jsonb_agg(jsonb_build_object('materialCode', g.material,
+                     'quantity', trim_scale(g.qty * (f.batch_sizes -> 0 -> 'quantity' ->> 'value')::numeric
                                             / (c.content -> 'header' -> 'batchSizes' -> 0 -> 'quantity' ->> 'value')::numeric)::text,
-                     'unit', b -> 'quantity' ->> 'unit') order by b ->> 'material')
-               from jsonb_array_elements(case when jsonb_typeof(c.content -> 'bom') = 'array' then c.content -> 'bom' else '[]'::jsonb end) b) as bom
+                     'unit', g.unit) order by g.material, g.unit)
+               from (select b ->> 'material' as material, b -> 'quantity' ->> 'unit' as unit, sum((b -> 'quantity' ->> 'value')::numeric) as qty
+                       from jsonb_array_elements(case when jsonb_typeof(c.content -> 'bom') = 'array' then c.content -> 'bom' else '[]'::jsonb end) b
+                      group by 1, 2) g) as bom
        from recipe.mbr_family f
        join recipe.mbr_version v on v.family_id = f.id and recipe.version_state(v.id) = 'APPROVED'
        join lateral (select mc.content from recipe.mbr_content mc where mc.version_id = v.id order by mc.revision desc limit 1) c on true

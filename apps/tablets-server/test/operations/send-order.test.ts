@@ -2,7 +2,8 @@
  * R5 (Phase 7 slice 7k): "Send a production order" on the simulators' console posts one order of a demo product to a demo
  * GMP installation as the ERP interface (its DEMO-ONLY login from the set-up's seed file in the keys directory), each a
  * recorded demo act; a resend of the same request names the same order and posts nothing again; an installation that is
- * not a demo one refuses it in the database before anything is posted.
+ * not a demo one refuses it in the database before anything is posted. N-2: the order's own refusal by the database after
+ * the demo act committed is a refusal (4xx naming why), not SAVED_NOT_SHOWN (platform/db/commands.ts withScopedCommand).
  */
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -10,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { prepareProductionOrder } from '../../src/features/operations/erp-orders.ts';
 import { refusalOf, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
@@ -68,6 +70,28 @@ describe('R5: the ERP simulator sends a production order to a demo GMP installat
     const gmpAdmin = await loginOf(gmp, await grantedPerson(gmp, 'SYSTEM_ADMINISTRATOR', 'IT Administrator'));
     expect(valueOf(await gmpAdmin.call(O.simulators)).orderTemplates).toBeUndefined();
     expect(refusalOf(await gmpAdmin.call(O.sendProductionOrder, { body: { productCode: 'PCM500', kind: 'PROCESSING', reason: 'x' } }))).toMatchObject({ status: 403, code: 'EBMR-OPS-010' });
+  }, 180_000);
+});
+
+describe('N-2 (owner retest, 10 November 2026): a refused order after the recorded demo act', () => {
+  it('[DI-05] the database\'s refusal of the posted order is answered as a refusal naming why, not "Saved; the result could not be shown"; no order is posted', async () => {
+    const s = await demoServer(true);
+    const admin = await loginOf(s, await grantedPerson(s, 'SYSTEM_ADMINISTRATOR', 'IT Administrator'));
+    // The database refuses the order the route posts after the demo act committed, as it refused the owner's order with
+    // a material twice (EBMR-SITE-176): a test-only trigger stands in for that refusal.
+    await s.db.admin.query(`create function public.n2_refuse_order() returns trigger language plpgsql as $f$
+      begin raise exception using errcode = 'P0001', message = 'EBMR-SITE-176 a material appears once in the BOM of an order (D-S5-4)'; end $f$`);
+    await s.db.admin.query('create trigger n2_refuse_order before insert on site.erp_production_order for each row execute function public.n2_refuse_order()');
+    const key = randomUUID();
+    const first = await prepareProductionOrder(s.built.ctx, 'PCM500', 'PROCESSING', key);
+    const r = refusalOf(await admin.call(O.sendProductionOrder, { body: { productCode: 'PCM500', kind: 'PROCESSING', reason: 'a refused order' }, idempotencyKey: key }));
+    expect(r?.status).toBeGreaterThanOrEqual(400);
+    expect(r?.status).toBeLessThan(500);
+    expect(r?.code).not.toBe('SAVED_NOT_SHOWN');
+    expect(r).toMatchObject({ status: 422, code: 'EBMR-SITE-176' });
+    expect(r?.why).toContain('a material appears once in the BOM of an order');
+    expect(JSON.stringify(r)).not.toContain('Saved; the result could not be shown');
+    expect(await ordersOf(s, first.view.orderNo)).toHaveLength(0);
   }, 180_000);
 });
 

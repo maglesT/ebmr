@@ -8,7 +8,7 @@
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type pg from 'pg';
-import { commands, identity, type ActorContext } from '@ebmr/kernel';
+import { commands, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { HttpRefusal } from '../http/refusal.ts';
 
 /**
@@ -96,6 +96,23 @@ export async function permissionBeforeTap(db: Pick<pg.Pool, 'query'>, actor: Act
 export async function withReadCommand<T>(pool: pg.Pool, actor: ActorContext, permissions: readonly string[], work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   await permissionBeforeTap(pool, actor, permissions);
   return withActorCommand(pool, actor, work);
+}
+
+/**
+ * The kernel's plain `withCommand` (a service's own login, e.g. the ERP interface posting an order), seen by the request's
+ * command scope like the wrappers below (owner retest N-2, 10 November 2026): a refusal of this command after an earlier
+ * command of the same request committed is answered as the refusal (422 naming why), never as "Saved; the result could
+ * not be shown", because nothing of this command was saved.
+ */
+export async function withScopedCommand<T>(pool: pg.Pool, actor: ActorContext, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+  try {
+    const out = await withCommand(pool, actor, work);
+    noteCommand(true, null);
+    return out;
+  } catch (error) {
+    noteCommand(false, null);
+    throw error;
+  }
 }
 
 /** `withActorCommand` = identity.withGuardedCommand, then the refusal's after-rollback action, if any. */
