@@ -104,9 +104,8 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
       decided against a grant migration.
   - No new shared-code changes before the handover (lead).
 - **Residuals:**
-  - The packaging skeleton binds no room or line; the author names it (lead).
-  - The skeleton binds no equipment, so its G-09@2 has no unit until the author binds one. Same kind of gap; not yet
-    raised with the lead.
+  - The skeleton binds no line or equipment; the author binds them (lead ruling, session 8: GMP 5 names line PL-2
+    and binds the cartoner on screen; no equipment is added to the skeleton).
   - PACK-SHIPPER is left out: the skeleton has no shipper BOM line (lead accepts; say so in the PR body).
   - Earlier residuals: editing a packaging master's printed items after create; areas on area_status v1.
 - **Then:**
