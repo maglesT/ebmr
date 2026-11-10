@@ -351,6 +351,9 @@ export async function runLibraryStep(
     }
     const section = b.def.sections.find((s) => s.id === e.kind);
     if (!section) throw new Error(`${b.def.code}: no section ${e.kind}`);
+    // An optional event section (an intervention during filling, R-flow item 3) is recorded only when the product's
+    // values give its event: the nominal entries hold one of every section.
+    if (section.required === false && b.values?.[section.id] === undefined) continue;
     const form = page.getByTestId(`lib-section-${section.id}`);
     await expect(form).toBeVisible();
     for (const f of section.fields) {

@@ -30,7 +30,8 @@ behaviour: |-
   - RABS door openings are batch events that need assessment.
 catalog_test: Assign a RABS line to a Grade C room → rejected. Replay exit-port overpressure at 0 Pa for 20 s → integrity-breach event.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-74][IN-41] the open Grade A, RABS and isolator set-ups are formulations of the same blocks: each names its background room and line by class; the isolator adds bio-decontamination and the glove test; EU-market blocks appear only in the EU set-up"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
