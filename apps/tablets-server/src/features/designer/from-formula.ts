@@ -29,11 +29,19 @@ import type { MbrTemplate } from './templates/index.ts';
 
 export type FormulaStart = 'SKELETON' | 'BLANK' | 'COPY' | 'PACKAGING';
 
-/** A printed item of a packaging skeleton (I-1c2 P3): the product's own printed material and its artwork version. */
+/**
+ * A printed item of a packaging skeleton (I-1c2 P3): the product's own printed material and its artwork version. P3c: the
+ * firm's own issue allowance (percent), reconciliation limits (211.125(c)) and specimen code (211.188(b)(8)), each only as
+ * typed; PACKAGING_COPY ignores them.
+ */
 export interface PrintedItem {
   readonly item: string;
   readonly material: string;
   readonly artwork: string;
+  readonly allowancePercent?: string | undefined;
+  readonly maxUnexplained?: string | undefined;
+  readonly maxUnexplainedPercent?: string | undefined;
+  readonly specimen?: string | undefined;
 }
 
 export interface FormulaFamilyRequest {
@@ -53,6 +61,8 @@ export interface FormulaSource {
   materials: readonly MaterialMaster[];
   /** The registered MATERIAL documents in force of the formula's materials (a registered document wins, D-7j-4). */
   materialDocuments?: readonly flow.Reference[];
+  /** PACKAGING (I-1c2 P3c): the SPECIMEN documents in force of the printed items' specimen codes. */
+  specimenDocuments?: readonly flow.Reference[];
 }
 
 /** The demo references (SOPs, systems, equipment classes, risk scale, validation and hold studies) the skeleton pins, from dc-mini. */
@@ -414,6 +424,12 @@ function checkPrinted(src: FormulaSource, req: FormulaFamilyRequest): PrintedIte
     const m = src.materials.find((x) => x.code === p.material);
     if (!m) throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is not in the material master in effect.`, ['PR-32']);
     if (m.kind !== 'PRINTED_PACKAGING') throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `Material ${p.material} is ${m.kind}, not printed packaging.`, ['PR-32']);
+    // P3c (lead, 9 November 2026): record integrity, not a clause: a master must not pin a document that does not exist,
+    // and dropping the typed code would make the master say other than what was entered. A missing code is no refusal
+    // here: the validator asks for it (GMP-SPECIMENS).
+    if (p.specimen !== undefined && !src.specimenDocuments?.some((d) => d.code === p.specimen)) {
+      throw new FamilyInputError('DESIGNER_PRINTED_ITEMS', `No SPECIMEN document ${p.specimen} is in force for ${p.item}.`, ['PR-32', 'IN-14']);
+    }
   }
   return PACKAGING_ITEMS.map((i) => printed.find((p) => p.item === i) as PrintedItem);
 }
@@ -431,10 +447,13 @@ const packPhase = (id: string, name: string, type: string, version: string, conf
  *  - G-10@2 line clearance before use (211.130(e); PR-34, IN-21), performed and verified: the block's own rule for now;
  *  - G-09@2 equipment status (211.67; PR-23);
  *  - G-21@1 with LABEL, LEAFLET and CARTON: material and artwork per market, issue and reconciliation (211.125,
- *    211.130(a) and (b); PR-32, PR-39). The need is the batch size in units and the allowance 0 (the block needs both to
- *    parse; the author sets the firm's own); no reconciliation limits, so the validator asks for the firm's (211.125(c),
- *    G21-NO-LIMITS). Not coded on the line: an author who codes adds the G-23 destruction step (G21-DESTRUCTION-STEP);
- *  - G-04 counts of the units received from the bulk and packed, independently verified by a second person, and G-20
+ *    211.130(a) and (b); PR-32, PR-39), consuming the three printed BOM lines. The need is the batch size in units. P3c:
+ *    the allowance, the reconciliation limits and each BOM line's specimen are the firm's own as typed at create time
+ *    (211.125(c), 211.188(b)(8)), never defaulted: a missing one is asked by the validator (ENG-DEF-CONFIG for the
+ *    allowance, G21-NO-LIMITS, GMP-SPECIMENS). Not coded on the line: an author who codes adds the G-23 destruction step
+ *    (G21-DESTRUCTION-STEP);
+ *  - G-04 counts of the units received from the bulk and packed, typed by hand with no evidence behind them, so witnessed
+ *    by a second person at the count (WITNESSED, GMP-WITNESS), and G-20
  *    with the packaging yield (211.103: packaging is a phase with its own actual and theoretical yield). Its limits are
  *    left to the author's validated range (no range is invented).
  * No formula composition: the batch sizes are the formula's in units and the bill of materials the printed items only.
@@ -461,7 +480,7 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
     variants: [],
   };
   t.inputs = [];
-  t.bom = printed.map((p) => ({ id: `BOM-${p.item}`, material: p.material, role: 'PRINTED_COMPONENT', quantity: { value: need, unit: '1' } }));
+  t.bom = printed.map((p) => ({ id: `BOM-${p.item}`, material: p.material, role: 'PRINTED_COMPONENT', quantity: { value: need, unit: '1' }, ...(p.specimen !== undefined ? { specimen: p.specimen } : {}) }));
   t.intermediates = [];
   t.parameters = [count('unitsReceived', 'Units received from the bulk (counted)'), count('unitsPacked', 'Units packed in good packs')];
   t.calculations = [{ id: 'packYield', name: 'Packaging yield', expression: 'yield(unitsPacked, unitsReceived)', output: { valueType: 'DECIMAL', unit: '%', semanticTag: 'yield' }, criticality: 'CRITICAL', riskClass: 'HIGH' }];
@@ -472,9 +491,15 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
   t.references = [
     ...t.references.filter((r) => ['SOP-CLEAN-003', 'QRM-SCALE'].includes(r.id)),
     ...printed.map((p) => materialReference(src.materials.find((m) => m.code === p.material) as MaterialMaster)),
+    ...(src.specimenDocuments ?? []).filter((d, i, all) => printed.some((p) => p.specimen === d.code) && all.findIndex((x) => x.code === d.code) === i),
   ];
   const g21 = {
-    items: printed.map((p) => ({ id: p.item, material: p.material, artwork: artwork(p.artwork), unit: '1', issue: { need, allowancePercent: '0' }, counting: 'MANUAL_COUNT', limits: {} })),
+    items: printed.map((p) => ({
+      id: p.item, material: p.material, artwork: artwork(p.artwork), unit: '1',
+      issue: { need, ...(p.allowancePercent !== undefined ? { allowancePercent: p.allowancePercent } : {}) },
+      counting: 'MANUAL_COUNT',
+      limits: { ...(p.maxUnexplained !== undefined ? { maxUnexplained: p.maxUnexplained } : {}), ...(p.maxUnexplainedPercent !== undefined ? { maxUnexplainedPercent: p.maxUnexplainedPercent } : {}) },
+    })),
   };
   const stage = {
     ...like,
@@ -485,8 +510,8 @@ function packagingSkeleton(base: MbrTemplate, src: FormulaSource, req: FormulaFa
       kind: 'sequence', id: 'S-PACK-seq', children: [
         packPhase('p-pk-clear', 'Packaging line clearance before use', 'G-10', '2', {}),
         packPhase('p-pk-status', 'Packaging line: equipment status', 'G-09', '2', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' } }, significant: false }),
-        packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH' }),
-        packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'] }),
+        packPhase('p-pk-printed', 'Printed label, leaflet and carton: issue, examination and reconciliation', 'G-21', '1', g21, { riskClass: 'HIGH', consumes: printed.map((p) => `BOM-${p.item}`) }),
+        packPhase('p-pk-count', 'Units received from the bulk and packed', 'G-04', '1', {}, { records: ['unitsReceived', 'unitsPacked'], signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }),
         packPhase('p-pk-yield', 'Packaging yield', 'G-20', '1', {}, { computes: ['packYield'], yieldCheckpoint: 'Y-PACK', significant: false }),
       ],
     },

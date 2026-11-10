@@ -262,8 +262,16 @@ export const designer = {
        * Slice 7o (R4, R8; D-7o-3): PACKAGING_COPY copies the approved packaging master `copyOfVersionId` for the product of
        * `product` (code and strength; its name from the product master), each printed item (G-21) replaced by the
        * product's own printed material and artwork version. No formula: a packaging master has none.
+       * Injectables I-1c2 P3c: PACKAGING also takes the firm's own values per printed item, each optional and never
+       * defaulted (the validator asks for a missing one): the issue allowance in percent, the reconciliation limits
+       * (211.125(c)) and the code of the item's SPECIMEN document (211.188(b)(8)). PACKAGING_COPY ignores them: its items
+       * keep the approved master's values.
        */
-      printed: z.array(z.strictObject({ item: z.string().min(1).max(64), material: z.string().min(1).max(40), artwork: z.string().min(1).max(64) })).max(20).optional(),
+      printed: z.array(z.strictObject({
+        item: z.string().min(1).max(64), material: z.string().min(1).max(40), artwork: z.string().min(1).max(64),
+        allowancePercent: DecimalString.optional(), maxUnexplained: DecimalString.optional(), maxUnexplainedPercent: DecimalString.optional(),
+        specimen: z.string().min(1).max(64).optional(),
+      })).max(20).optional(),
       copyOfVersionId: Uuid.optional(),
       familyCode: z.string().min(1).max(64),
       product: ProductRef,
