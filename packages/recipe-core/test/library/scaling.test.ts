@@ -105,7 +105,7 @@ describe('N-3: a batch-size input read as the sum of formula lines', () => {
     { id: 'L1-PVP', material: 'MAT-PVP', role: 'EXCIPIENT', quantity: { value: '2000', unit: 'g' } },
     { id: 'L2-PVP', material: 'MAT-PVP', role: 'EXCIPIENT', quantity: { value: '0.6', unit: 'kg' } },
     { id: 'L-API', material: 'MAT-API', role: 'ACTIVE', quantity: { value: '50', unit: 'kg' } },
-    { id: 'L-BOX', material: 'MAT-BOX', role: 'PACKAGING', quantity: { value: '1000', unit: '{unit}' } },
+    { id: 'L-BOX', material: 'MAT-BOX', role: 'EXCIPIENT', quantity: { value: '1000', unit: '{unit}' } },
   ];
   const yieldDef: BlockDefinition = {
     code: 'CTRL-YIELD-TEST',
@@ -113,7 +113,7 @@ describe('N-3: a batch-size input read as the sum of formula lines', () => {
     title: 'Stage yield',
     category: 'CONTROL',
     inputs: [{ id: 'theoretical', label: 'Theoretical quantity', kind: 'BATCH_SIZE', unit: 'kg' }],
-    sections: [{ id: 'y', title: 'Yield', fields: [{ id: 'output', label: 'Output', type: 'DECIMAL', unit: 'kg' }, { id: 'yieldPct', label: 'Yield', type: 'CALC', expression: 'output / theoretical * 100 [%]', unit: '%' }] }],
+    sections: [{ id: 'y', title: 'Yield', fields: [{ id: 'output', label: 'Output', type: 'NUMBER', unit: 'kg' }, { id: 'yieldPct', label: 'Yield', type: 'CALC', expression: 'output / theoretical * 100 [%]', unit: '%' }] }],
     signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
   };
   const mbr = { header: { batchSizes: TABLET_SIZES }, bom: LINES } as unknown as MbrContent;
