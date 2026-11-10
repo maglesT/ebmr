@@ -550,7 +550,7 @@ export function defineInjectablesGmp(productKey: string): void {
     }, q);
     const qc = await officePage('GMP', PC_QC);
     await signIn.office(qc, persona('GMP', 'qcAnalyst'));
-    await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), each component (defects), the printed label, leaflet and carton (text check) and the product (assay, bacterial endotoxins)', 'A DRAFT specification of each', async () => {
+    await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), each component (defects), the printed label, leaflet and carton (text check) and the product (assay, bacterial endotoxins, sterility, particulate matter)', 'A DRAFT specification of each', async () => {
       // DEMO-ONLY: every test, method, limit and sample below is invented for the demonstration, not a real product's
       // or a pharmacopoeia's specification (the materials', the components', the printed items' and the product's).
       for (const m of mats(s)) {
@@ -567,10 +567,15 @@ export function defineInjectablesGmp(productKey: string): void {
       for (const p of pr) {
         await draftSpecification(qc, { material: p.material, title: p.name, monograph: `In-house specification of printed materials, version 1 (${s.tag})`, tests: [{ code: 'TEXT_CHECK', method: 'STP-PM-TXT-01', unit: '1', upper: '0' }] });
       }
-      // DEMO-ONLY: the finished product's ASSAY and BACTERIAL_ENDOTOXINS limits are invented values.
+      // DEMO-ONLY: the finished product's tests, methods, limits and samples are invented values, not a pharmacopoeia's.
+      // STERILITY: each batch purporting to be sterile is tested (211.167(a)); the limit is the count of containers with
+      // growth. PARTICULATE MATTER: the compendial test for injections (211.160(b)), here particles of 10 µm and above per
+      // container. Their results are QC's, recorded on the lot (D-S11-R1).
       await draftSpecification(qc, { material: s.product.code, title: s.product.name, monograph: `In-house finished-product specification STP-${t.prefix}-FP, version 1 (${s.tag})`, tests: [
         { code: 'ASSAY', method: `STP-${t.prefix}-AS-02`, unit: '%', lower: '95.0', upper: '105.0', sample: { quantity: '1', unit: 'packs' } },
         { code: 'BACTERIAL_ENDOTOXINS', method: `STP-${t.prefix}-BET-01`, unit: 'EU/mL', upper: '17.5', sample: { quantity: '1', unit: 'packs' } },
+        { code: 'STERILITY', method: `STP-${t.prefix}-STE-01`, unit: '1', upper: '0', sample: { quantity: '20', unit: 'packs' } },
+        { code: 'PARTICULATE_MATTER', method: `STP-${t.prefix}-PM-01`, unit: '1', upper: '6000', sample: { quantity: '10', unit: 'packs' } },
       ] });
     }, qc);
     const hq = await officePage('GMP', PC_QC);
