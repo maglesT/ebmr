@@ -79,7 +79,14 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     - the author creates the master from the formula with the values, adds PACK-CARTON after `p-pk-printed` and
       INJ-PACK-EXAM after `p-pk-yield`, and adds the Y-PACK range (VALIDATED, source the report);
     - then change control and the sandbox package.
-  - **E2E status:** the first CI dispatch (`e2e_groups=library-inj-gmp`) was pending at this handover.
+  - **E2E status (dispatch run 42739004205):** GMP 1-4 pass. GMP 5 passes up to its checks: the specimens, the
+    approvals, the master, both library blocks and the Y-PACK range (scoped to `#mbr-item-Y-PACK`; the calculation of
+    the same name has its own editor). The last finding was the warning GMP-STAGE-YIELD: INJ-PACK-EXAM ran after the
+    yield. INJ-PACK-EXAM now goes after `p-pk-count`, before the yield, which closes the stage, both in the master and in
+    `injPackagingRun`. Re-dispatched at the handover.
+  - **GMP 6 is written** (`injPackagingRun` in injectables-acceptance.ts plus the test) and has not run yet. Its first
+    risks: whether G-09@2 with no bound units completes, whether PACK-CARTON's cartoner (TEST-CTN-03) needs booking, and
+    the labels page's specimen buttons for LABEL and LEAFLET.
   - **PACK-SHIPPER is left out:** the skeleton has no shipper BOM line.
 - **Next:**
   - GMP 6: the sandbox packaging run on TEST-KIOSK-PACK-2 (cartoner TEST-CTN-03, class EQC-CARTONER; GMP CTN-03).

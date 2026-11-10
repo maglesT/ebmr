@@ -35,7 +35,7 @@ import {
   recordResults, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, stepIdOf, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
 
 
@@ -594,12 +594,12 @@ async function injPackagingRun(
   await field(page, 'unitsPacked', p.packed, op);
   await performAndCheck(page, op, verifier, op, 'Witness');
   await completed(page);
+  await runLibraryStep(page, ctx, p.exam, {}, {}, 1, p.idPrefix);
   await step(f, page, 'p-pk-yield@');
   await begin(page, op);
   await explained(performAndCheck(page, op, verifier, op), page.locator('main'));
   await completed(page);
-  await runLibraryStep(page, ctx, p.exam, {}, {}, 1, p.idPrefix);
-  await closeStage(f, page, `${stepIdOf(p.exam.def.code)}@`, op);
+  await closeStage(f, page, 'p-pk-yield@', op);
   await releasePlant(f, page, { status: 'p-pk-status@', units: [], clear: 'p-pk-clear@', area: p.line }, op);
   await load(page, `${base}/runs/${f.batchId}`);
   await expect(page.getByText('Execution complete').first()).toBeVisible();
@@ -944,9 +944,10 @@ export function defineInjectablesGmp(productKey: string): void {
       saveProduct(e2e, key, s);
       return { versionId: s.packVersionId };
     }, a);
-    await evidence.step('The author adds cartoning after the printed items and the finished-pack examination last, and sets the packaging yield range from the validation report; the checks pass', 'Both blocks pinned; the yield range with its source; no error, no warning', async () => {
+    await evidence.step('The author adds cartoning and the finished-pack examination, and sets the packaging yield range from the validation report; the checks pass', 'Both blocks pinned; the yield range with its source; no error, no warning', async () => {
       await addLibraryBlocks(a, 'p-pk-printed', [cartoning]);
-      await addLibraryBlocks(a, 'p-pk-yield', [packExam]);
+      // The examination goes before the yield, which closes the stage's processing (GMP-STAGE-YIELD).
+      await addLibraryBlocks(a, 'p-pk-count', [packExam]);
       // DEMO-ONLY: the range is invented; the firm's comes from its validated packaging line (211.103, 211.192).
       // The yield checkpoint's own limits (its calculation, also named Packaging yield, has an editor of its own).
       const y = a.locator('#mbr-item-Y-PACK');
