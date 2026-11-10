@@ -1146,7 +1146,9 @@ export function defineInjectablesGmp(productKey: string): void {
     await evidence.step('QC records the release results of the lot and pulls its reserve samples', 'Each result PASS against the product\'s specification; the reserve sample is listed', async () => {
       await openLot(qc, s.lotCode ?? '');
       await recordResults(qc, results);
-      await pullReserveSample(qc, s.lotCode ?? '');
+      // At least twice the quantity the full test plan needs (211.170(b); G3.SAMPLES, PR-44, IN-32): 64 packs with the
+      // sterility test's units (DEMO-ONLY plan quantities from the product's specification).
+      await pullReserveSample(qc, s.lotCode ?? '', '64');
     }, qc);
     const hq = await officePage('GMP', PC_QC);
     await signIn.office(hq, persona('GMP', 'qcApprover'));

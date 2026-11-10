@@ -415,10 +415,10 @@ export async function postFinishedLot(page: Page, base: string, orderId: string,
 }
 
 /** QC pulls the reserve sample of the finished lot. */
-export async function pullReserveSample(page: Page, lotCode: string): Promise<void> {
+export async function pullReserveSample(page: Page, lotCode: string, quantity = '4'): Promise<void> {
   const samples = page.getByTestId('lot-samples');
   await choose(samples.getByRole('radio', { name: 'RESERVE', exact: true }));
-  await samples.getByRole('textbox', { name: 'Quantity' }).fill('4');
+  await samples.getByRole('textbox', { name: 'Quantity' }).fill(quantity);
   await samples.getByRole('textbox', { name: 'Container' }).fill(`Reserve sample box of ${lotCode}`);
   await samples.getByRole('textbox', { name: 'Storage location' }).fill('Reserve sample room RS-1');
   await samples.getByRole('button', { name: 'Pull the sample' }).click();
