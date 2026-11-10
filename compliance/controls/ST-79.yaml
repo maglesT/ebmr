@@ -33,7 +33,7 @@ behaviour: |-
 catalog_test: A closed assembly with one connector lacking sterility evidence → cannot be released for use. A bag part number that differs from the approved BOM revision → refused.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-79] a single-use assembly is accepted by its lot on the formula line; for the EU market, in its own block, its integrity not checked before use is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-79] a single-use assembly is accepted by its released lot, named where it is used and verified by a second person; for the EU market, in its own block, its integrity not checked before use is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

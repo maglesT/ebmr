@@ -58,9 +58,10 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(byCode('INJ-ASEPTIC-ASSEMBLY').definition.sections.map((x) => x.id)).toEqual(['connection']);
   });
 
-  it('[ST-40][ST-49] a supplier-sterilised component is accepted by its lot on the formula line, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception', () => {
+  it('[ST-40][ST-49] a supplier-sterilised component is accepted by its released lot, named where it is used and verified by a second person, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception', () => {
     const item = byCode('INJ-SUPPLIER-STERILE');
-    expect(fieldOf(item, 'componentLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'componentLine' });
+    expect(fieldOf(item, 'componentLot')).toEqual({ id: 'componentLot', label: 'Component lot', type: 'MATERIAL_LOT' });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     for (const id of ['certificate', 'doseOrCycle']) expect(fieldOf(item, id).type, id).toBe('TEXT');
     const method = fieldOf(item, 'method');
     expect(method.type === 'CHOICE' ? method.options.filter((o) => /UV|ultraviolet/i.test(o)) : ['not a choice']).toEqual([]);
@@ -110,16 +111,21 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(new Set(failed.exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
   });
 
-  it('[ST-79] a single-use assembly is accepted by its lot on the formula line; for the EU market, in its own block, its integrity not checked before use is an exception', () => {
+  it('[ST-79] a single-use assembly is accepted by its released lot, named where it is used and verified by a second person; for the EU market, in its own block, its integrity not checked before use is an exception', () => {
     const item = byCode('INJ-SUS');
-    expect(fieldOf(item, 'assemblyLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'assemblyLine' });
+    expect(fieldOf(item, 'assemblyLot')).toEqual({ id: 'assemblyLot', label: 'Single-use assembly lot', type: 'MATERIAL_LOT' });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     expect(judgedRun(byCode('INJ-SUS-INTEGRITY'), { integrity: { integrity: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
-  it('[ST-50][IN-48] the sterilising filter is its lot on the formula line, which names the filter registered for the product; no typed type can stand in for it', () => {
+  it('[ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it', () => {
     const item = byCode('INJ-STERILE-FILTER');
-    expect(fieldOf(item, 'filterLot')).toMatchObject({ type: 'MATERIAL_LOT', bomLineSlot: 'filterLine' });
+    expect(fieldOf(item, 'filterLot')).toEqual({ id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' });
     expect(item.definition.sections.find((x) => x.id === 'filter')?.fields.map((f) => f.id)).toEqual(['filterLot']);
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    // 211.84: only a released lot may be used (the engine's lot checks of every MATERIAL_LOT field).
+    const quarantined = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } };
+    expect(() => judgedRun(item, { filter: { lots: quarantined } })).toThrow(/G07-LOT-STATUS/);
   });
 
   it('[ST-52][IN-48] filter integrity is judged before use and after use by the formulation\'s method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception', () => {
