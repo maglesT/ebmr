@@ -459,7 +459,10 @@ export async function linkNewDeviation(page: Page, supervisor: SeededPersona, d:
   const raise = dialog.getByRole('region', { name: 'No deviation yet? Raise one for this batch' });
   await choose(raise.getByRole('radio', { name: d.classification, exact: true }));
   await raise.getByRole('textbox', { name: 'Risk rationale' }).fill(d.rationale);
+  // Raising and linking is a command on a shared device: the supervisor's badge confirms it (INV-40).
+  await paceTaps(page, supervisor);
   await raise.getByRole('button', { name: 'Raise and link to this batch' }).click();
+  await tap(page, supervisor);
   const raised = dialog.getByTestId('deviation-raised');
   await explained(expect(raised).toBeVisible(), dialog);
   const ref = /DEV-[A-Z0-9-]+/.exec((await raised.textContent()) ?? '')?.[0];
