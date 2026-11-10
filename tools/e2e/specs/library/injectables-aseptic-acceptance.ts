@@ -15,7 +15,7 @@
  * RABS for the India market (an EU set-up adds the Annex 1 blocks; seed-injectables-aseptic.test.ts proves the open
  * Grade A, RABS and isolator set-ups as formulations of the same blocks). DEMO-ONLY data; every code is unique per run.
  */
-import { productBlock, type ProductBlock } from './library-support.ts';
+import { productBlock, stepIdOf, type ProductBlock } from './library-support.ts';
 import { unit, VIAL_COUNTS, type Injectable } from './injectables-acceptance.ts';
 
 /** The intervention the operator records during filling: on the formulation's list, three vials removed (DEMO-ONLY). */
@@ -103,4 +103,57 @@ export const ASEPTIC_VIAL: Injectable = {
       rationale: 'Grade B air count above the action limit during the aseptic fill; sterility assurance to be assessed.',
     },
   },
+};
+
+/**
+ * The media fill (aseptic process simulation, I-2c; 211.113(b), Schedule M Part II 5.3-5.7): the aseptic vial's line and
+ * steps with the sterile medium in place of the product, an intervention recorded during filling (the simulation
+ * includes the line's interventions), then incubation and reading (INJ-APS-READ) in place of inspection, the EM counts and
+ * the unit accountability, which reads the units incubated and removed from the reading. DEMO-ONLY values.
+ * 10,000 filled = 9,840 incubated + 20 rejected at the line + 40 at capping + 80 removed before incubation + 20 lost.
+ */
+const MEDIA_FILL_COUNTS = {
+  read: { incubation: { unitsRemoved: '80', removedReason: 'Cracked or without a crimp, removed before incubation', unitsIncubated: '9840' } },
+  account: { account: { sampled: '0', losses: '20' } },
+} as const;
+
+/** Unit accountability of a media fill: the units incubated and removed come from the reading, not from an inspection. */
+const mediaFillAccount = (): ProductBlock => {
+  const b = productBlock('INJ-UNIT-ACCOUNT', {});
+  const read = stepIdOf('INJ-APS-READ');
+  return {
+    ...b,
+    use: { ...b.use, stepValues: { ...b.use.stepValues, acceptedSource: { step: read, field: 'unitsIncubated' }, inspectionRejectsSource: { step: read, field: 'unitsRemoved' } } },
+    values: MEDIA_FILL_COUNTS.account,
+  };
+};
+
+export const MEDIA_FILL: Injectable = {
+  key: 'media-fill',
+  prefix: 'LMF',
+  name: 'Media fill of the RABS vial line, 2 mL vials (library)',
+  strength: '2 mL',
+  dosageForm: 'Injection',
+  targetMg: '60',
+  // The sterile medium in water for injection (about 30 g/L, 60 mg per 2 mL vial).
+  materials: [{ id: 'medium', name: 'Soybean-casein digest medium', mgPerUnit: '60', tare: '0.300', gross: '3.300' }],
+  plant: [...ASEPTIC_VIAL.plant, unit('INCUBATOR', 'Microbiological incubator', 'TEST-INCUBATOR-01', 'Incubator')],
+  components: ASEPTIC_VIAL.components,
+  steps: [
+    productBlock('INJ-ROOM-READY', 'ROOM-GRADE-B'),
+    productBlock('INJ-WASH', 'VIAL-WASHER'),
+    productBlock('INJ-DEPYRO', 'DEPYRO-TUNNEL'),
+    productBlock('INJ-PARTS-AUTOCLAVE', 'STEAM-STERILISER'),
+    productBlock('INJ-SIP', 'SIP-VESSEL-FILTER'),
+    productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
+    productBlock('INJ-STERILE-FILTER', {}),
+    productBlock('INJ-ASEPTIC-ASSEMBLY', {}),
+    { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B', balanceClass: 'EQC-BAL' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
+    productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
+    plan(productBlock('INJ-EM', { roomClass: 'ROOM-GRADE-B', counterClass: 'PARTICLE-COUNTER' })),
+    { ...productBlock('INJ-CAPPING', 'VIAL-CAPPER'), values: VIAL_COUNTS.capping },
+    { ...productBlock('INJ-APS-READ', 'INCUBATOR'), values: MEDIA_FILL_COUNTS.read },
+    plan(productBlock('INJ-EM-COUNTS', {})),
+    mediaFillAccount(),
+  ],
 };
