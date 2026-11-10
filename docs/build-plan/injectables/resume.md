@@ -89,6 +89,29 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     Comment cites 211.113(b), SM Part II 5.3-5.7, A1 9.32 (EU).
   - Refused for record integrity (the units are destroyed): posting a finished lot, planning a packaging order (0582),
     shipping. QA's review of the record is its end. Tests [IN-30][ST-29][IN-45].
+- **Handover (session 10 ends at about 380k context; the next session continues in this order):**
+  1. #206: merge on its full green run (run 42885506188 on 6434e6d; main was merged in for conflicts in the PR-03 and
+     PR-05 lists). Squash with the full SHA, then cancel the main push run.
+  2. The lean PR from branch `inj/i2-lean` (19ac2c1; the list of changes and kept items was sent to the lead). Open it
+     after #206 merges: merge main in, run the library tests and register:validate, PR, full run, audit.
+  3. I-2b (`inj/i2-b-aseptic-e2e`): merge main in after the lean PR. Conflicts are expected in INJ-FILL's event section
+     (I-2b: eventMinutes in place of eventStart/eventEnd; lean: eventUnits dropped) and in the event tests. Drop
+     `eventUnits` from `INTERVENTION` in injectables-aseptic-acceptance.ts, and drop INJ-FILL's `balanceClass` from the
+     products (harmless, but now unused).
+     - Last iteration run 42893281643 (group library-inj-aseptic only). Before it, the sandbox half, GMP 1-8 and GMP 8b's
+       red checklist passed. GMP 8b now opens the deviation under the processing batch (the checklist link names the
+       wrong batch, a shared defect logged). Read that run first: the blob artifact's `report.jsonl`; for 4xx bodies,
+       the output artifact's trace `*.network` plus `resources/`.
+     - Then: list the new E2E titles in their controls (trace:e2e names them), open the PR (the body says the deviation
+       is raised on an office page because the kiosk dialog cannot raise one, the lead's condition), full run, audit.
+  4. I-2c: a spec for MEDIA_FILL's sandbox half (defineInjectablesAcceptance only), in group library-inj-aseptic.
+     The data is in injectables-aseptic-acceptance.ts, never run yet.
+  5. B (the process-simulation mark), as below; then the media fill's GMP run to QA's record review.
+  6. Routine EM: try a formula with no product on screen; anything that needs code goes to the lead first.
+  - Shared defects logged with the lead (for session 9): the sandbox guard refuses ISO date-times; the values form
+    stores only REGISTERED tiers (add the EM alert tier to the aseptic vial once that is fixed); the kiosk's "raise a
+    deviation" carries no badge attribution; the G2.DEVIATIONS checklist link names the wrong batch.
+  - The lead is now session_01PybpFvEFaQZ3LEfnNdjBCE.
 - **E2E helpers added (generic test code):** `runLibraryStep(..., beforePerform)`; `linkNewDeviation` (the supervisor
   raises and links a batch deviation from the blocked exception, badge-confirmed); `investigateAndClose`;
   `gmp.breach` (a step value above its limit in GMP 4; GMP 8b shows G2.DEVIATIONS red, closes it, then green).
