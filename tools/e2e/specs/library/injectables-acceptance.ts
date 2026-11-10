@@ -550,7 +550,7 @@ export function defineInjectablesGmp(productKey: string): void {
     }, q);
     const qc = await officePage('GMP', PC_QC);
     await signIn.office(qc, persona('GMP', 'qcAnalyst'));
-    await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), each component (defects), the printed label, leaflet and carton (text check) and the product (assay, bacterial endotoxins, sterility, particulate matter)', 'A DRAFT specification of each', async () => {
+    await evidence.step('QC drafts the specifications: the active (assay, water), each excipient (water), each component (defects), the printed label, leaflet and carton (text check) and the product (release tests)', 'A DRAFT specification of each', async () => {
       // DEMO-ONLY: every test, method, limit and sample below is invented for the demonstration, not a real product's
       // or a pharmacopoeia's specification (the materials', the components', the printed items' and the product's).
       for (const m of mats(s)) {
@@ -756,5 +756,108 @@ export function defineInjectablesGmp(productKey: string): void {
       expect(lotsShown.map((x) => x.split('=')[1]).sort()).toEqual(Object.values(stepLots).sort());
       return { loads: loads.join(', '), componentLots: lotsShown.join(', ') };
     });
+  });
+  /** The packing library steps an injectables packaging master adds to the skeleton (lead P3 ruling; PACK-SHIPPER is
+   *  optional and left out: the skeleton's bill of materials has no shipper line). */
+  const cartoning = productBlock('PACK-CARTON', 'EQC-CARTONER', { cartonLine: 'BOM-CARTON', leafletLine: 'BOM-LEAFLET' });
+  const packExam = productBlock('INJ-PACK-EXAM', {});
+
+  test(`[PR-01][PR-03][PR-31][PR-32][PR-39][IN-14] ${t.name}, GMP 5: the specimens of the label, leaflet and carton recorded and approved by QA; the packaging master from the formula with the firm's allowance, reconciliation limits and specimens; cartoning and the finished-pack examination from the library; the packaging yield range; change control; the test package @office`, async ({ e2e, officePage, persona, evidence }) => {
+    test.setTimeout(30 * 60_000);
+    const s = loadProduct(e2e, key);
+    const base = e2e.url('GMP');
+    const pr = printedOf(s);
+    const specimen = (role: string): string => `SPC-${role.toUpperCase()}-${s.tag}`;
+    const report = `VR-PK-${s.tag}`;
+    const st = await officePage('GMP', PC_STEWARD);
+    await signIn.office(st, persona('GMP', 'steward'));
+    await evidence.step('The steward records the specimen of each printed item and the packaging validation report (the document-management stand-in)', 'Each document version EFFECTIVE on the reference documents', async () => {
+      await st.goto(`${base}/mbr`);
+      // DEMO-ONLY: the documents are invented stand-ins for the firm's approved specimens (211.188(b)(8)) and its
+      // packaging validation report (the source of the yield range).
+      const docs = [
+        ...pr.map((p) => ({ kind: 'SPECIMEN', code: specimen(p.role), title: `Specimen of the ${p.role}, ${p.artwork}` })),
+        { kind: 'VALIDATION_REPORT', code: report, title: `Packaging line validation, ${t.strength} vials` },
+      ];
+      for (const d of docs) {
+        const form = st.getByRole('form', { name: 'Record a reference document version' });
+        await choose(form.getByRole('radio', { name: d.kind, exact: true }));
+        await form.getByRole('textbox', { name: 'Code', exact: true }).fill(d.code);
+        await form.getByRole('textbox', { name: 'Version', exact: true }).fill('1');
+        await form.getByRole('textbox', { name: 'Title', exact: true }).fill(d.title);
+        await form.getByRole('textbox', { name: 'Effective from (YYYY-MM-DD)', exact: true }).fill('2026-01-01');
+        await form.getByRole('textbox', { name: 'Summary', exact: true }).fill('DEMO-ONLY stand-in, invented for the demonstration.');
+        await form.getByRole('button', { name: 'Record the document version' }).click();
+        await expect(st.getByRole('table', { name: 'Reference documents with version and hash' }).getByRole('row').filter({ hasText: d.code })).toContainText('EFFECTIVE');
+      }
+      return { documents: docs.map((d) => d.code).join(', ') };
+    }, st);
+    const q = await officePage('GMP', PC_QA);
+    const qa = persona('GMP', 'approver');
+    await signIn.office(q, qa);
+    await evidence.step('QA approves each specimen (never the person who recorded it) and the packing library blocks', 'Each specimen APPROVED; PACK-CARTON and INJ-PACK-EXAM APPROVED', async () => {
+      for (const p of pr) {
+        await q.goto(`${base}/mbr/specimens`);
+        const item = q.getByTestId(`specimen-${specimen(p.role)}-1`);
+        await item.getByRole('button', { name: `Approve specimen ${specimen(p.role)} version 1` }).click();
+        await officeSign(q, new RegExp(`^Approve labelling specimen ${specimen(p.role)}`), qa);
+        await expect(item).toHaveAttribute('data-state', 'APPROVED');
+      }
+      await approveBlocks(q, base, [cartoning.def.code, packExam.def.code], qa);
+      return { specimens: pr.map((p) => specimen(p.role)).join(', ') };
+    }, q);
+    const a = await officePage('GMP', 'PC-DESIGN-01');
+    await signIn.office(a, persona('GMP', 'author'));
+    await evidence.step('The author starts the injectables packaging master from the formula with the firm\'s values for each printed item', 'An Injectables PACKAGING draft: line clearance, equipment status, the printed items, the counts and the yield', async () => {
+      s.packFamilyCode = `FAM-PK-${s.tag}`;
+      await home(a, /^Master records/);
+      await a.getByRole('link', { name: 'New master record (from a template or a formula)' }).click();
+      await a.getByRole('radio', { name: /^From the formula, an injectables packaging master/ }).check();
+      const c = a.getByTestId('choose-product');
+      await c.getByRole('textbox', { name: 'Formula product' }).fill(s.product.code);
+      await c.getByRole('textbox', { name: 'Formula strength' }).fill(s.product.strength);
+      await c.getByRole('textbox', { name: 'Formula batch size (units)' }).fill(GMP_UNITS_PER_BATCH);
+      await c.getByRole('button', { name: 'Choose this product' }).click();
+      await expect(c.getByTestId('formula-bom')).toBeVisible();
+      // DEMO-ONLY: the allowance and the reconciliation limits are invented; a firm types its own (211.125(c)).
+      for (const p of pr) {
+        const item = p.role.toUpperCase();
+        const box = a.getByTestId(`printed-${item}`);
+        await box.getByRole('textbox', { name: `Printed material for ${item}` }).fill(p.material);
+        await box.getByRole('textbox', { name: `Artwork version for ${item}` }).fill(p.artwork);
+        await box.getByRole('textbox', { name: `Issue allowance for ${item}` }).fill('2');
+        await box.getByRole('textbox', { name: `Largest unexplained difference for ${item}`, exact: true }).fill('0');
+        await box.getByRole('textbox', { name: `Approved specimen (document code) for ${item}` }).fill(specimen(p.role));
+      }
+      await a.getByRole('textbox', { name: 'Family code' }).fill(s.packFamilyCode);
+      await a.getByRole('button', { name: 'Create the family and its draft' }).click();
+      await expect(a.getByTestId('header-brand')).toContainText('Batchwright Injectables');
+      s.packVersionId = /\/mbr\/versions\/([0-9a-f-]{36})/.exec(a.url())?.[1] ?? '';
+      expect(s.packVersionId).toMatch(/^[0-9a-f-]{36}$/);
+      saveProduct(e2e, key, s);
+      return { versionId: s.packVersionId };
+    }, a);
+    await evidence.step('The author adds cartoning after the printed items and the finished-pack examination last, and sets the packaging yield range from the validation report; the checks pass', 'Both blocks pinned; the yield range with its source; no error, no warning', async () => {
+      await addLibraryBlocks(a, 'p-pk-printed', [cartoning]);
+      await addLibraryBlocks(a, 'p-pk-yield', [packExam]);
+      // DEMO-ONLY: the range is invented; the firm's comes from its validated packaging line (211.103, 211.192).
+      await a.getByRole('combobox', { name: 'Tier of the new range of Packaging yield' }).selectOption('VALIDATED');
+      await a.getByRole('combobox', { name: 'Source of the new range of Packaging yield' }).selectOption(report);
+      await a.getByRole('button', { name: 'Add limits to Packaging yield' }).click();
+      for (const [side, value] of [['lower', '98.0'], ['upper', '100.0']] as const) {
+        const box = a.getByRole('textbox', { name: new RegExp(`^Packaging yield, .*, ${side} limit$`) });
+        await box.fill(value);
+        await box.press('Tab');
+      }
+      await saveRevision(a, `${s.product.name}: packing steps and the packaging yield range`);
+      await checksPass(a);
+      return { blocks: `${cartoning.def.code}, ${packExam.def.code}` };
+    }, a);
+    await evidence.step('Change control; the test package is written', 'A test package with the GMP stamp in the sandbox inbox', async () => {
+      await changeControl(q, a, base, s.packVersionId ?? '', { changeRecord: `CC-PK-${s.tag}`, risk: `RA-PK-${s.tag}`, title: `New pack of ${s.product.code}, 10 vials per carton`, tag: `PK-${s.tag}` });
+      s.packPackageHash = await sendToSandbox(a, base, s.packVersionId ?? '');
+      saveProduct(e2e, key, s);
+      return { packageHash: s.packPackageHash };
+    }, a);
   });
 }
