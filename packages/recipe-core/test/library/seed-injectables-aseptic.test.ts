@@ -222,7 +222,7 @@ function fillWithEvents(events: readonly Readonly<Record<string, unknown>>[]): {
   run.start('p');
   recordNominal(run, 'p', noEvent, config, mbr);
   for (const e of events) {
-    run.entry('p', { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventStart: '2026-11-10T10:15', eventEnd: '2026-11-10T10:17', eventListed: true, eventUnits: '3', ...e });
+    run.entry('p', { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true, eventUnits: '3', ...e });
     run.minutes(1);
   }
   try {
@@ -278,7 +278,9 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const event = byCode('INJ-FILL').definition.sections.find((x) => x.id === 'event');
     expect(event).toMatchObject({ required: false, repeat: { kind: 'PER_CONTAINER' } });
     expect(event?.when).toMatch(/intervention/);
-    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventStart', 'eventEnd', 'eventListed', 'eventUnits']);
+    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventMinutes', 'eventListed', 'eventUnits']);
+    // When it happened is the entry's trusted time, not a typed date and time.
+    expect(event?.fields.filter((f) => f.type === 'DATE_TIME')).toEqual([]);
     expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] });
     expect(fillWithEvents([])).toEqual({ exceptions: [], status: 'COMPLETED' });
     expect(fillWithEvents([{}, { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventUnits: '0' }, { eventKind: 'Glove change', eventWhat: 'Right glove of port 2 changed' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
