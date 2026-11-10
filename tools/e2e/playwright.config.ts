@@ -34,6 +34,9 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'library-inj-amp': ['library/inj-ampoule.spec.ts'],
   // Injectables edition I-1c2 P4a: the vial's sandbox half, then its GMP processing batch to the release for packing.
   'library-inj-gmp': ['library/inj-vial-gmp.spec.ts'],
+  // Owner acceptance (session 12): a bilayer tablet built on screen (a material on two lines, an added two-room stage
+  // with its own yield, two QA persons authorising) to its released lot.
+  'library-bilayer': ['library/tablet-bilayer.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

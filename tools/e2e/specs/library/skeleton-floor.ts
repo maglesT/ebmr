@@ -26,6 +26,8 @@ export interface OwnMaterial {
    * lines: dispensed in their own step and not charged to the blender; a soft gel's gel-mass components, C6b).
    */
   group: 'act' | 'exc' | 'aid';
+  /** The BOM line this container is weighed for, when the material is on more than one line (a bilayer's layers). */
+  line?: string;
 }
 
 /** Where a master built on the skeleton runs its own further steps (decision 0026 S11: library blocks added on screen). */
@@ -60,6 +62,8 @@ export interface SkeletonPlan {
    * `lubricantKg` and `afterDischarge` are not used.
    */
   dispensingOnly?: boolean;
+  /** Stages the master adds between dispensing and blending (owner acceptance, session 12), run on their own kiosks. */
+  between?: (f: Floor) => Promise<void>;
 }
 
 /** "28.800" minus "1.000": the net of a typed tare and gross (exact, three decimals). */
@@ -123,7 +127,9 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const bal = balanceOf(f, 'DISP-1');
   const weigh = async (l: { lotCode: string; material: OwnMaterial }): Promise<void> => {
     const form = disp.getByTestId('form-CONTAINER_WEIGHING');
-    await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(l.material.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }));
+    const esc = (x: string): string => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // A material on two lines is weighed for each line on its own: the line is chosen by its BOM id.
+    await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(esc(l.material.line ?? l.material.name)) }));
     const lotField = form.getByRole('textbox', { name: 'Lot' });
     await lotField.fill(l.lotCode);
     await lotField.press('Enter');
@@ -182,6 +188,7 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
     return { containers: [...containers, ...aidContainers] };
   }
   await disp.context().close();
+  if (p.between) await p.between(f);
 
   // Stage 2: blending and lubrication (TB-07) on the trusted clock, the QA hold point, the hand-typed discharge.
   const blend = await floorKiosk(f, 'BLEND-1', op2);

@@ -49,6 +49,8 @@ export interface SkeletonExtras {
   lubricantKg?: string;
   /** An injectables master: the dispensing stage with the product's steps, then H-PACK (library/skeleton-floor.ts). */
   dispensingOnly?: boolean;
+  /** Stages the master adds between dispensing and blending, run on their own kiosks (library/skeleton-floor.ts). */
+  between?: (f: Floor) => Promise<void>;
 }
 
 /**
@@ -93,6 +95,7 @@ export async function runSkeletonTestBatch(
       ...(extra.afterDispensing ? { afterDispensing: extra.afterDispensing } : {}),
       ...(extra.afterDischarge ? { afterDischarge: extra.afterDischarge } : {}),
       ...(extra.dispensingOnly ? { dispensingOnly: extra.dispensingOnly } : {}),
+      ...(extra.between ? { between: extra.between } : {}),
     });
   } finally {
     await closeFloor();

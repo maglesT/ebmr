@@ -260,6 +260,52 @@ export async function addLibraryBlocks(
   }
 }
 
+/** The stage id the designer gives a new stage named `name` (designer model/ops.ts newStage). */
+export const stageIdOf = (name: string): string => `S-${name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20) || 'STAGE'}`;
+
+/**
+ * Owner acceptance (session 12): the author adds a stage with "Add the stage" after the first stage (it starts with its
+ * room clearance and equipment status steps), binds its rooms and a unit class, adds its own yield step with "Add a yield
+ * step" (N-3), ticks the formula lines whose sum is the yield's theoretical quantity, and types the block's values.
+ */
+export async function addStageWithYield(
+  page: Page,
+  stage: { name: string; rooms: readonly string[]; equipment: { classCode: string; ref: string } },
+  b: ProductBlock,
+  theoreticalLines: readonly string[],
+): Promise<void> {
+  const add = page.getByTestId('add-stage');
+  await add.getByRole('textbox', { name: 'New stage name' }).fill(stage.name);
+  await add.getByRole('textbox', { name: 'New stage room' }).fill(stage.rooms[0] ?? '');
+  await add.getByRole('combobox', { name: 'Place it after' }).selectOption({ index: 0 });
+  await add.getByRole('button', { name: 'Add the stage' }).click();
+  const id = stageIdOf(stage.name);
+  const editor = page.getByTestId(`stage-editor-${id}`);
+  await expect(editor).toBeVisible();
+  const rooms = editor.getByRole('textbox', { name: `Rooms of ${stage.name} (comma separated)` });
+  await rooms.fill(stage.rooms.join(', '));
+  await rooms.press('Tab');
+  await expect(page.locator(`div[data-node="${id}"]`)).toContainText(`Rooms: ${stage.rooms.join(', ')}`);
+  const adder = editor.getByTestId(`stage-equipment-add-${id}`);
+  const cls = adder.getByRole('combobox', { name: `Equipment class for ${stage.name}`, exact: true });
+  await cls.selectOption((await cls.locator('option', { hasText: `(${stage.equipment.classCode} v` }).first().getAttribute('value')) ?? '');
+  await adder.getByRole('textbox', { name: `Equipment reference for ${stage.name}` }).fill(stage.equipment.ref);
+  await adder.getByRole('combobox', { name: `Equipment kind for ${stage.name}` }).selectOption('INSTRUMENT');
+  await adder.getByRole('button', { name: `Add the equipment to ${stage.name}` }).click();
+  await expect(editor).toContainText(`${stage.equipment.ref}: ${stage.equipment.classCode}`);
+  // The stage's equipment status step checks the unit bound to the stage (G-09@2 needs one to check).
+  await stepRow(page, 'p-g-09').click();
+  await page.getByRole('group', { name: 'Stage equipment' }).getByRole('checkbox', { name: 'checks its status' }).check();
+  const y = editor.getByTestId(`stage-yield-${id}`);
+  await y.getByRole('combobox', { name: `Yield step for ${stage.name}` }).selectOption({ label: `${b.def.code} v${String(b.def.version)}: ${b.def.title}` });
+  await y.getByRole('button', { name: `Add a yield step to ${stage.name}` }).click();
+  const stepId = stepIdOf(b.def.code);
+  for (const line of theoreticalLines) await y.getByTestId(new RegExp(`^input-lines-${stepId}-`)).getByRole('checkbox', { name: `${b.def.title}: ${line}`, exact: true }).check();
+  await stepRow(page, stepId).click();
+  await fillValues(page, b, false);
+  await expect(page.getByTestId('library-values-ok')).toBeVisible();
+}
+
 /** The values form of the selected library step, from the block's slots (the same labels the form derives). */
 async function fillValues(page: Page, b: ProductBlock, consumeLines = true): Promise<void> {
   const form = page.getByTestId('library-values');
