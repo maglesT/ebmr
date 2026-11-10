@@ -1,7 +1,7 @@
 /**
  * The plant facts of a step of a GMP batch (Phase 7 slice 7h, WP-A; contract batches.stepPlant): what the step screen
  * offers its plant acts from, so an operator taps a room, a unit, a set or a container and never types an identifier:
- *  - the rooms and line the step's stage is bound to (the MBR) and a packaging line's verified clearance for an order;
+ *  - the rooms and line the step's stage is bound to (the MBR) and a packaging line's passed clearance for an order (verified, unless the stage's G-10 names no checker: 1886);
  *  - the batch's open occupancies and uses (equipment uses not ended, instrument bookings before their planned end),
  *    each marked when the viewer started it (an entry names only its own person's use: recipe-core 0521);
  *  - the units the step checks (the phase's STATUS_CHECK equipment), each with the plant units of its class, their
@@ -18,6 +18,24 @@ import { layersOf } from '../../blocks/tb-16.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { notFound, runContext, type Db } from './runs.ts';
 
+/** A step of the run's master as far as its clearance rule reads it. */
+interface ClearanceStep {
+  stage?: string | undefined;
+  block?: { type: string } | undefined;
+  node: { kind: string; signatures?: { check?: unknown } };
+}
+
+/**
+ * recipe.clearance_checked (recipe-core 1886) for the kiosk's read: a stage's line clearance needs a second person's
+ * verification unless its G-10 steps name no checker (211.130(e), lead ruling A5). A stage with no G-10 step, or a step
+ * with no stage, keeps the verified rule (fails closed), as the database does.
+ */
+export function stageClearanceChecked(steps: Iterable<ClearanceStep>, stage: string | undefined): boolean {
+  if (stage === undefined) return true;
+  const g10 = [...steps].filter((s) => s.stage === stage && s.block?.type === 'G-10');
+  return g10.length === 0 || g10.some((s) => s.node.kind === 'phase' && s.node.signatures?.check !== undefined);
+}
+
 export async function stepPlantView(app: AppContext, db: Db, batchId: string, stepKey: string, viewer: string): Promise<StepPlantView> {
   const run = await runContext(db, batchId);
   const stepId = stepKey.split('@')[0] ?? stepKey;
@@ -26,6 +44,7 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
   const block = stepDef.block ? `${stepDef.block.type}@${stepDef.block.version}` : null;
   const stage = stepDef.stage === undefined ? undefined : run.def.stages.get(stepDef.stage);
   const codes = [...(stage?.binding.rooms ?? []), ...(stage?.binding.line ? [stage.binding.line] : [])];
+  const clearanceChecked = stageClearanceChecked(run.def.steps.values(), stepDef.stage);
   const refs = stepDef.node.kind === 'phase' ? stepDef.node.equipment.filter((e) => e.use === 'STATUS_CHECK') : [];
   const wanted = refs.map((r) => {
     const s = stage?.binding.equipment.find((x) => x.ref === r.ref);
@@ -40,9 +59,12 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
     ),
     db.query<{ code: string; next_order: string; next_artwork_set: string }>(
       `select a.code, c.next_order, c.next_artwork_set from plant.clearance_status c join plant.area a on a.id = c.area_id
-        where c.next_batch_id = $1 and c.verified_at is not null and c.recorded_result = 'PASSED' and c.next_order is not null
+        where c.next_batch_id = $1 and c.recorded_result = 'PASSED' and c.next_order is not null
+          and (c.verified_at is not null
+               -- As start_area_occupancy (1886): unverified only for a stage with no checker, on an area of area_status v2.
+               or (not $2::boolean and (select s.machine_version from platform.aggregate_state s where s.aggregate_type = 'plant_area' and s.aggregate_id = a.id) >= 2))
           and not exists (select 1 from plant.area_occupancy o where o.clearance_id = c.id) order by c.performed_at`,
-      [batchId],
+      [batchId, clearanceChecked],
     ),
     db.query<{ id: string; area: string; batch: string; stage: string; by: string; us: string }>(
       `select o.id, a.code as area, o.batch_ref as batch, o.stage, o.started_by as by, ${usOf('o.started_at')} as us
