@@ -1186,6 +1186,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   IN-31, PR-36: the giver of an MRP neither checks nor releases it; a change after set-up carries a reason and voids the
   jobs released on the earlier data), and a metal-detector challenge with certified test pieces (tablets 0872; IN-36:
   a failure holds the press output); every call carries a fresh badge tap on the kiosk.
+- `step-plant-clearance.test.ts` (injectables I-1c2 P4b; recipe-core 1886): the line clearances the kiosk offers a
+  start are those the database takes (an unverified passed clearance only for a stage whose G-10 names no checker), and
+  the kiosk's rule equals `recipe.clearance_checked` on the same master (PR-34, IN-21).
 - `us-esig-certification-issue.test.ts` (Phase 7 slice 7g, finding 7g-5; recipe-core 1260): the GMP issue route
   refuses a US-market batch while the licence holder's e-signature certification letter is not on file, issues an
   India-only batch, and issues the US batch once the letter is recorded (DI-15).

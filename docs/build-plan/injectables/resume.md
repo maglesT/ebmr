@@ -59,6 +59,136 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
+
+- **Lead change:** the lead is now session_01PybpFvcfiLdV8mgoVVWXTk (owner confirmed); earlier rulings stand.
+- **Approved shared change (lead, session 8):** the injectables packaging skeleton runs G-21 in a parallel `par-pack`
+  beside the packing branch: `p-pk-clear`, `p-pk-status`, parallel { Printed materials: [`p-pk-printed`] | Packing:
+  [`p-pk-count`] }, `p-pk-yield`.
+  - Why: G-21 is issue and reconciliation in one step, and the reconciliation reads counts that exist only after packing
+    (211.125(c), (f)). In a plain sequence cartoning could not start (ENG-NOT-ENABLED).
+  - The author adds PACK-CARTON after the count and moves it up (MOVE_STEP), then INJ-PACK-EXAM after the count.
+  - Server test: the branches' shape and the validator clean with the author's blocks (from-formula.test.ts).
+- **Test-only fixes:**
+  - Sandbox printed lots are `TEST-L26-<tag>-<ITEM>`. The longer `...-PK-LEAFLET` was split at 32 characters, and a part
+    read as a real lot number (EBMR-EXE-147).
+  - PACK-CARTON names the carton and leaflet lots but does not consume their lines (`addLibraryBlocks(..., {
+    consumeLines: false })`). G-21 alone consumes printed items. A second claim breaks DATA-PARALLEL (DI-34).
+  - The post-use line inspection is recorded and verified on the labels page once G-21 is done (EBMR-LBL-061, PR-34).
+  - `reviewRecord` ends its register loop on "The record has no exception."
+  - The finished lot's reserve sample is 64 packs, twice the full test plan (G3.SAMPLES, PR-44, IN-32; 211.170(b)).
+    `pullReserveSample` takes a quantity (default 4).
+  - `releaseFinishedLot` opens a lot that stays not ready and names its red checklist items.
+- **Result:** library-inj-gmp passes GMP 1-9 (run 42800512663 on 8c5a1d1).
+- **Learnt:**
+  - A refusal's text is in the output artifact's trace: `*.network` lists the 4xx responses, and
+    `resources/<sha1>.json` holds the body.
+  - The kiosk's own reason for a disabled action is in the last `frame-snapshot` of the `*.trace` files.
+  - A dispatch can hang in the Playwright install step: cancel it after about 40 minutes and dispatch again.
+
+### Session 7 (10 November 2026): P4b, GMP 6 to 9 (handover at 387k context; session 8 continues on the branch)
+
+- **State (branch `inj/i1c2-p4b-gmp-packaging`, head e555929, no PR):**
+  - library-inj-gmp passes GMP 1-5.
+  - GMP 6 passes the clearance and the line start, and failed last at the equipment-status step (p-pk-status).
+  - GMP 7-9 are written and have never run in CI.
+  - **Run 42761655971 on e555929 was still running at the handover: read it first** (the blob artifact's
+    `report.jsonl`: `onTestEnd`, `errors`).
+- **Written in session 7:**
+  - GMP 7: the packaging order from H-PACK; every sterilised load (`load-N`) issued as bulk; `injPackagingRun` on PL-2
+    with CTN-03.
+  - GMP 8: the finished cartons posted; ASSAY, BACTERIAL_ENDOTOXINS, STERILITY and PARTICULATE_MATTER (DEMO-ONLY
+    values); the reserve sample; the head of QC.
+  - GMP 9: both records reviewed; the lot released for IN.
+  - Counts: `packCounts` (20 vials kept back per load; 10 vials per carton; each printed item reconciles).
+- **GMP 6 fixes (test-only):**
+  - The clearance's artwork set is at most 64 characters (api-contract), so the artwork codes are joined without item
+    names.
+  - In GMP 5 the author names line PL-2 for S-PACK ("Rooms of Labelling and packing").
+  - Also in GMP 5: the author binds CARTONER (EQC-CARTONER) to S-PACK and ticks "checks its status" on p-pk-status.
+    G-09@2 needs at least one unit use (G09-INCOMPLETE). The kiosk books the cartoner (`statusStep`) and ends its use
+    (`releasePlant`).
+- **Next failure, best guesses:**
+  - If p-pk-status still fails: the EQC-CARTONER option may be missing from the stage's equipment class list. That
+    list holds only EFFECTIVE EQUIPMENT_CLASS documents; the GMP demo plant should have one. Fall back to the step's
+    own plant panel.
+  - Untried after that:
+    - the labels page's "Attach the X specimen" buttons;
+    - PACK-CARTON's cartoner field (TEST-CTN-03 or CTN-03);
+    - the G-21 reconciliation limits (allowance 2 %, unexplained 0);
+    - the witnessed counts;
+    - INJ-PACK-EXAM;
+    - Y-PACK, 98-100 %: the sandbox run gives 99 % and GMP 7 about 99.8 %.
+  - GMP 7 assumes CTN-03 exists on the GMP site (the demo routes seed it on PL-2) and that the printed lots need no
+    reservation.
+  - GMP 8 posts `cartons` packs.
+- **Approved shared changes (lead):**
+  - From-formula G-10 perform-only, `significant: false` (session 6, ruling A5; [PR-34]).
+  - `plant.lineClearancesForBatch` (recipe-core, used by `step-plant.ts`) mirrors 1886 in full: an unverified PASSED
+    clearance is listed only for a stage whose G-10 names no checker, on an area of version 2.
+    - Tests: [PR-34][IN-21] in status-blocks.test.ts and step-plant-clearance.test.ts.
+    - The TypeScript `stageClearanceChecked` is pinned to `recipe.clearance_checked` on dc-mini (818d1ef). The lead
+      decided against a grant migration.
+  - No new shared-code changes before the handover (lead).
+- **Residuals:**
+  - The skeleton binds no line or equipment; the author binds them (lead ruling, session 8: GMP 5 names line PL-2
+    and binds the cartoner on screen; no equipment is added to the skeleton).
+  - PACK-SHIPPER is left out: the skeleton has no shipper BOM line (lead accepts; say so in the PR body).
+  - Earlier residuals: editing a packaging master's printed items after create; areas on area_status v1.
+- **Then:**
+  - When GMP 5-9 pass, open the PR.
+  - Dispatch the full CI (runner=github) and cancel the duplicate pull_request run.
+  - Tell the lead "#N ready for audit".
+- **Learnt:**
+  - A form whose body fails the zod contract leaves its button disabled with no message: check the route's limits
+    (`artworkSet` is at most 64).
+  - Local DB tests: `pg_ctlcluster 16 main start` (stopped after a container restart).
+    - Run from the repo root with `EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres`, using
+      `node node_modules/vitest/vitest.mjs run <path>`.
+    - Server tests get a database from `startServer` (harness).
+    - A v1 area set up by an UPDATE cannot transition afterwards (EBMR-PLAT-077).
+
+### Session 6 (10 November 2026): P3c merged; P4b in progress
+
+- **#200, P3c (merged):** the packaging skeleton's G-21 consumes the three printed BOM lines and `p-pk-count` is
+  WITNESSED.
+  - The PACKAGING request takes per printed item `allowancePercent`, `maxUnexplained` / `maxUnexplainedPercent` and
+    `specimen` (a SPECIMEN document code). They are written only as typed, with no defaults.
+  - A missing value is asked for by ENG-DEF-CONFIG, G21-NO-LIMITS or GMP-SPECIMENS.
+  - The SPECIMEN document in force is pinned (`documentsInForce`). An unknown code is refused with
+    DESIGNER_PRINTED_ITEMS, for record integrity.
+  - The new-master screen has the four fields per item.
+- **P4b branch** (`inj/i1c2-p4b-gmp-packaging`, no PR):
+  - main is merged in (P3c);
+  - the G-10 comment says the firm may designate the clearance significant;
+  - STERILITY and PARTICULATE_MATTER are in the product specification (DEMO-ONLY);
+  - **GMP 5 is written:**
+    - the steward records the SPECIMEN documents and a VALIDATION_REPORT on `/mbr` (the reference documents form);
+    - QA approves the specimens on `/mbr/specimens` and the blocks PACK-CARTON and INJ-PACK-EXAM;
+    - the author creates the master from the formula with the values, adds PACK-CARTON after `p-pk-printed` and
+      INJ-PACK-EXAM after `p-pk-yield`, and adds the Y-PACK range (VALIDATED, source the report);
+    - then change control and the sandbox package.
+  - **E2E status (dispatch run 42739004205):** GMP 1-4 pass. GMP 5 passes up to its checks: the specimens, the
+    approvals, the master, both library blocks and the Y-PACK range (scoped to `#mbr-item-Y-PACK`; the calculation of
+    the same name has its own editor). The last finding was the warning GMP-STAGE-YIELD: INJ-PACK-EXAM ran after the
+    yield. INJ-PACK-EXAM now goes after `p-pk-count`, before the yield, which closes the stage, both in the master and in
+    `injPackagingRun`. Re-dispatched at the handover.
+  - **GMP 6 is written** (`injPackagingRun` in injectables-acceptance.ts plus the test) and has not run yet. Its first
+    risks: whether G-09@2 with no bound units completes, whether PACK-CARTON's cartoner (TEST-CTN-03) needs booking, and
+    the labels page's specimen buttons for LABEL and LEAFLET.
+  - **PACK-SHIPPER is left out:** the skeleton has no shipper BOM line.
+- **Next:**
+  - GMP 6: the sandbox packaging run on TEST-KIOSK-PACK-2 (cartoner TEST-CTN-03, class EQC-CARTONER; GMP CTN-03).
+    Model it on `packagingRun` (phase7/own-product-floor.ts), with these differences:
+    - the G-10 clearance is recorded with no verifier;
+    - G-21 issues and reconciles LABEL, LEAFLET and CARTON;
+    - PACK-CARTON and INJ-PACK-EXAM run through `runLibraryStep`;
+    - the counts are witnessed.
+  - Then GMP 7-9 as in the P4a handover below.
+- **Learnt:**
+  - A long evidence-step title makes a screenshot file name too long (ENAMETOOLONG): keep step titles short.
+  - Container restarts kill local E2E runs: dispatch `ci.yml` with `e2e_groups=<group>` and `runner=github` instead.
+
 ### I-1c2 handover after P4a (9 November 2026; the next session starts at P4b)
 
 Merged on 9 November:

@@ -339,6 +339,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
     let injFormula = '';
     let inj2Formula = '';
     let skeleton: flow.MbrContent | undefined;
+    let skeletonVersionId = '';
     const pack = (familyCode: string, extra: Record<string, unknown> = {}) =>
       author.call(routes.designer.createFamily, { body: { familyCode, product: INJ, markets: ['IN', 'US'], formulaVersionId: injFormula, start: 'PACKAGING', printed: PRINTED, ...extra } });
     beforeAll(async () => {
@@ -360,6 +361,7 @@ describe('a new master from an approved formula (slice 7j)', () => {
       const v = valueOf(await pack('DMT7JP-PK'));
       const c = v.content as unknown as flow.MbrContent;
       skeleton = c;
+      skeletonVersionId = v.versionId;
       expect(c.header).toMatchObject({ edition: 'injectables', recordKind: 'PACKAGING', product: { code: INJ.code, dosageForm: 'Injection' }, marketSet: ['IN', 'US'] });
       expect(c.header.batchSizes).toEqual([{ id: 'BS-100000U', quantity: { value: '100000', unit: '{unit}' } }, { id: 'BS-50000U', quantity: { value: '50000', unit: '{unit}' } }]);
       expect(c.bom.map((b) => `${b.id} ${b.material} ${b.role}`)).toEqual(['BOM-LABEL PM-7JP-LBL PRINTED_COMPONENT', 'BOM-LEAFLET PM-7JP-LFT PRINTED_COMPONENT', 'BOM-CARTON PM-7JP-CTN PRINTED_COMPONENT']);
@@ -367,11 +369,19 @@ describe('a new master from an approved formula (slice 7j)', () => {
       expect(all.map((n) => `${n.id}${n.block ? ` ${n.block.type}@${n.block.version}` : ''}`)).toEqual([
         'S-PACK', 'p-pk-clear G-10@2', 'p-pk-status G-09@2', 'p-pk-printed G-21@1', 'p-pk-count G-04@1', 'p-pk-yield G-20@1',
       ]);
+      // G-21 stays open while packing runs (issued before, reconciled after: 211.125(c), (f)): its own branch beside the
+      // packing branch, which the author fills on screen.
+      const seq = (c.procedure.body as flow.SequenceNode).children[0] as flow.StageNode;
+      const par = (seq.body as flow.SequenceNode).children.find((n) => n.kind === 'parallel') as flow.ParallelNode;
+      expect((seq.body as flow.SequenceNode).children.map((n) => n.id)).toEqual(['p-pk-clear', 'p-pk-status', 'par-pack', 'p-pk-yield']);
+      expect(par.branches.map((b) => [b.id, (b.body as flow.SequenceNode).children.map((n) => n.id)])).toEqual([['br-printed', ['p-pk-printed']], ['br-pack', ['p-pk-count']]]);
       const g21 = all.find((n) => n.id === 'p-pk-printed')?.config as { items: { id: string; artwork: Record<string, string>; coded?: boolean; limits: Record<string, string>; issue: { need: string } }[] };
       // P3c: nothing the firm did not type is written: no allowance, no limits, no specimen.
       expect(g21.items.map((i) => [i.id, i.artwork, i.issue, i.coded ?? false, i.limits])).toEqual(PRINTED.map((p) => [p.item, { IN: p.artwork, US: p.artwork }, { need: '100000' }, false, {}]));
       expect(c.bom.some((b) => b.specimen !== undefined)).toBe(false);
       expect(all.find((n) => n.id === 'p-pk-printed')?.consumes).toEqual(['BOM-LABEL', 'BOM-LEAFLET', 'BOM-CARTON']);
+      // 211.130(e): the line is inspected before use, with no second person (lead ruling A5, I-1c2 P4b).
+      expect(all.find((n) => n.id === 'p-pk-clear')?.signatures?.check).toBeUndefined();
       expect(all.find((n) => n.id === 'p-pk-count')?.records).toEqual(['unitsReceived', 'unitsPacked']);
       expect(all.find((n) => n.id === 'p-pk-count')?.signatures?.check?.meaning).toBe('WITNESSED');
       expect(c.parameters.every((p) => p.accuracyCheck === 'SECOND_PERSON')).toBe(true);
@@ -404,6 +414,24 @@ describe('a new master from an approved formula (slice 7j)', () => {
       expect(rules.has('GMP-YIELDS')).toBe(true);
     });
 
+    it('[PR-34] the injectables packaging skeleton\'s line clearance (G-10) is performed with no checker, 211.130(e) asking for no second person (lead ruling A5); the validator raises neither G10-NO-CHECKER nor a second-person finding (GMP-SIGNIFICANT-STEPS) for it; G10-NO-CHECKER still holds a tablets packaging master', async () => {
+      // One family per product and batch sizes (INV-17): the skeleton made by the first test.
+      const c = skeleton;
+      if (!c) throw new Error('SETUP: the skeleton test did not run');
+      const v = { versionId: skeletonVersionId, content: c as never };
+      const clear = nodes(c).find((n) => n.id === 'p-pk-clear') as (Node & { signatures?: { perform?: { role: string }; check?: unknown } }) | undefined;
+      expect(clear?.block).toEqual({ type: 'G-10', version: '2' });
+      expect(clear?.signatures).toEqual({ perform: { role: 'PRODUCTION_OPERATOR' } });
+      const report = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: v.content } }));
+      expect(report.findings.filter((f) => f.rule === 'G10-NO-CHECKER')).toEqual([]);
+      // Nor a second person by the significant-step rule: a clearance is not significant by its block alone (R-rest A5).
+      expect(report.findings.filter((f) => f.rule === 'GMP-SIGNIFICANT-STEPS').map((f) => f.message)).toEqual([]);
+      // The same step in a tablets packaging master is refused (revised Schedule M Part VIII 7.1): the rule still holds there.
+      const tablets = { ...c, header: { ...c.header, edition: 'tablets' } } as never;
+      const tabletsReport = valueOf(await author.call(routes.designer.validate, { body: { versionId: v.versionId, content: tablets } }));
+      expect(tabletsReport.findings.filter((f) => f.rule === 'G10-NO-CHECKER').map((f) => f.severity)).toEqual(['ERROR']);
+    });
+
     it('[PR-37][PR-01] with PACK-CARTON and INJ-PACK-EXAM added from the library the packaging master closes (recipe.packaging_master_problem is null); the skeleton alone names the missing finished-pack examination', async () => {
       // One family per product and batch sizes (INV-17): the skeleton made by the test above.
       const c = skeleton;
@@ -418,11 +446,17 @@ describe('a new master from an approved formula (slice 7j)', () => {
       };
       const added = [seed(PACKAGING_SEEDS, 'PACK-CARTON'), seed(INJECTABLE_SEEDS, 'INJ-PACK-EXAM')];
       const full = structuredClone(c) as unknown as Record<string, unknown>;
-      const stage = ((full['procedure'] as { body: { children: { body: { children: unknown[] } }[] } }).body.children[0]) as { body: { children: unknown[] } };
+      // As the author places them on screen: cartoning before the counts, the finished-pack examination after, both in the
+      // packing branch beside G-21.
+      const stage = ((full['procedure'] as { body: { children: { body: { children: { kind: string; branches?: { id: string; body: { children: unknown[] } }[] }[] } }[] } }).body.children[0]);
+      const packing = stage?.body.children.find((n) => n.kind === 'parallel')?.branches?.find((b) => b.id === 'br-pack')?.body.children ?? [];
       for (const [i, s] of added.entries()) {
         const p = library.libraryPhase(s.definition, `p-lib-${String(i)}`, 'HIGH') as unknown as Record<string, unknown>;
-        stage.body.children.push({ ...p, config: { ...(p['config'] as Record<string, unknown>), ...(s.exampleUse as Record<string, unknown>) } });
+        const step = { ...p, config: { ...(p['config'] as Record<string, unknown>), ...(s.exampleUse as Record<string, unknown>) } };
+        if (i === 0) packing.unshift(step);
+        else packing.push(step);
       }
+      expect(packing).toHaveLength(3);
       full['blockDefinitions'] = added.map((s) => s.definition);
       expect(await problem(full)).toBeNull();
     });

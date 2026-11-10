@@ -208,6 +208,35 @@ describe('injectables P3b: a clearance needs verification only where the step na
     await record(room, batchId);
     await expect(start(room, batchId, 'S-NO')).rejects.toThrow(/is CLEAN \(no passed clearance\)/);
   });
+  it('[PR-34][IN-21] the kiosk lists a line\'s unverified passed clearance for a start only where the database takes it: a stage with no checker on an area of version 2; not for a stage with a checker, not on a version 1 area', async () => {
+    const product = await w.product();
+    const batchId = await batchWithClearances(product);
+    const checked = async (stage: string) => (await db.admin.query<{ c: boolean }>('select recipe.clearance_checked(recipe.batch_mbr_content($1), $2, null) as c', [batchId, stage])).rows[0]?.c ?? true;
+    const listed = async (stage: string) => (await plant.lineClearancesForBatch(db.admin, batchId, await checked(stage))).rows.map((r) => r.code);
+    const cleanLine = async (): Promise<string> => {
+      const line = await w.room({ kind: 'LINE' });
+      await w.clean('AREA', line.code, 'MAJOR');
+      return line.code;
+    };
+    const order = `PK-${batchId.slice(0, 6).toUpperCase()}`;
+    const recordOnLine = (line: string) =>
+      w.run(w.cast.operator, (c) => plant.recordClearance(c, line, 'PACKAGING_ORDER', { batchId, result: 'PASSED', order, artworkSet: 'ART-1,ART-2' }));
+    const v2 = await cleanLine();
+    await recordOnLine(v2);
+    expect(await listed('S-NO')).toEqual([v2]);
+    expect(await listed('S-CHK')).toEqual([]);
+    // Test setup only: a line as one created before recipe-core 1887 (its aggregate on version 1).
+    const v1 = await cleanLine();
+    await asTimeTraveller(db, "update platform.aggregate_state set machine_version = 1 where aggregate_type = 'plant_area' and aggregate_id = (select id from plant.area where code = $1)", [v1]);
+    await recordOnLine(v1);
+    expect(await listed('S-NO')).toEqual([v2]);
+    // Once verified, the clearance is listed for a stage with a checker too.
+    const id = (await db.admin.query<{ id: string }>('select c.id from plant.clearance_status c join plant.area a on a.id = c.area_id where a.code = $1', [v2])).rows[0]?.id ?? '';
+    const sig = await w.sign(w.cast.verifier, 'plant_clearance', id, 'VERIFIED', 'PERFORMED');
+    await w.run(w.cast.verifier, (c) => plant.verifyClearance(c, id, sig));
+    expect(await listed('S-CHK')).toEqual([v2]);
+    expect(await listed('S-NO')).toEqual([v2]);
+  });
 });
 
 describe('review backlog #5: plant transitions evaluate the batch product (recipe-core 0522)', () => {
