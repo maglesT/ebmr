@@ -948,11 +948,13 @@ export function defineInjectablesGmp(productKey: string): void {
       await addLibraryBlocks(a, 'p-pk-printed', [cartoning]);
       await addLibraryBlocks(a, 'p-pk-yield', [packExam]);
       // DEMO-ONLY: the range is invented; the firm's comes from its validated packaging line (211.103, 211.192).
-      await a.getByRole('combobox', { name: 'Tier of the new range of Packaging yield' }).selectOption('VALIDATED');
-      await a.getByRole('combobox', { name: 'Source of the new range of Packaging yield' }).selectOption(report);
-      await a.getByRole('button', { name: 'Add limits to Packaging yield' }).click();
+      // The yield checkpoint's own limits (its calculation, also named Packaging yield, has an editor of its own).
+      const y = a.locator('#mbr-item-Y-PACK');
+      await y.getByRole('combobox', { name: 'Tier of the new range of Packaging yield' }).selectOption('VALIDATED');
+      await y.getByRole('combobox', { name: 'Source of the new range of Packaging yield' }).selectOption(report);
+      await y.getByRole('button', { name: 'Add limits to Packaging yield' }).click();
       for (const [side, value] of [['lower', '98.0'], ['upper', '100.0']] as const) {
-        const box = a.getByRole('textbox', { name: new RegExp(`^Packaging yield, .*, ${side} limit$`) });
+        const box = y.getByRole('textbox', { name: new RegExp(`^Packaging yield, .*, ${side} limit$`) });
         await box.fill(value);
         await box.press('Tab');
       }
