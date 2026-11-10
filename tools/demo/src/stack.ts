@@ -7,6 +7,8 @@
  *    files are tolerated until module C5 lands.
  */
 import { spawn } from 'node:child_process';
+import { randomInt } from 'node:crypto';
+import { createServer, type Server } from 'node:net';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateServiceKey, type SiteSeed } from '@ebmr/test-kit';
@@ -75,6 +77,37 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
 }
 
 /** `vite build` of the SPA (the demo and E2E serve the built output under the strict CSP). */
+/**
+ * Free, distinct ports for one stack (lead queue: EADDRINUSE in E2E global set-up). Picking each port with a listen on
+ * port 0 and closing it before the next pick could hand the same port out twice (the scale simulator's and a server's),
+ * and port 0 draws from the kernel's ephemeral range, where outgoing connections (the database pools) take ports too
+ * before the server listens. So every port is held open until all are picked, and they are drawn from below the
+ * ephemeral range (Linux default 32768-60999).
+ */
+export async function freeStackPorts(lowest = 20_000, highest = 32_000): Promise<StackPorts> {
+  const held: Server[] = [];
+  const take = async (): Promise<number> => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const port = lowest + randomInt(highest - lowest);
+      const srv = createServer();
+      const ok = await new Promise<boolean>((resolve) => {
+        srv.once('error', () => resolve(false));
+        srv.listen(port, '127.0.0.1', () => resolve(true));
+      });
+      if (ok) {
+        held.push(srv);
+        return port;
+      }
+    }
+    throw new Error(`no free port between ${String(lowest)} and ${String(highest)}`);
+  };
+  try {
+    return { gmp: await take(), sandbox: await take(), gatewayListener: await take(), gateway: await take(), simulatorTcp: await take(), simulatorHttp: await take() };
+  } finally {
+    await Promise.all(held.map((srv) => new Promise<void>((done) => srv.close(() => done()))));
+  }
+}
+
 export function buildWeb(echo = true): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn('pnpm', ['--filter', '@ebmr/tablets-web', 'build'], { cwd: REPO_ROOT, stdio: echo ? 'inherit' : 'ignore' });
