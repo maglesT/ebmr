@@ -59,6 +59,40 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 6 (10 November 2026): P3c merged; P4b in progress
+
+- **#200, P3c (merged):** the packaging skeleton's G-21 consumes the three printed BOM lines and `p-pk-count` is
+  WITNESSED.
+  - The PACKAGING request takes per printed item `allowancePercent`, `maxUnexplained` / `maxUnexplainedPercent` and
+    `specimen` (a SPECIMEN document code). They are written only as typed, with no defaults.
+  - A missing value is asked for by ENG-DEF-CONFIG, G21-NO-LIMITS or GMP-SPECIMENS.
+  - The SPECIMEN document in force is pinned (`documentsInForce`). An unknown code is refused with
+    DESIGNER_PRINTED_ITEMS, for record integrity.
+  - The new-master screen has the four fields per item.
+- **P4b branch** (`inj/i1c2-p4b-gmp-packaging`, no PR):
+  - main is merged in (P3c);
+  - the G-10 comment says the firm may designate the clearance significant;
+  - STERILITY and PARTICULATE_MATTER are in the product specification (DEMO-ONLY);
+  - **GMP 5 is written:**
+    - the steward records the SPECIMEN documents and a VALIDATION_REPORT on `/mbr` (the reference documents form);
+    - QA approves the specimens on `/mbr/specimens` and the blocks PACK-CARTON and INJ-PACK-EXAM;
+    - the author creates the master from the formula with the values, adds PACK-CARTON after `p-pk-printed` and
+      INJ-PACK-EXAM after `p-pk-yield`, and adds the Y-PACK range (VALIDATED, source the report);
+    - then change control and the sandbox package.
+  - **E2E status:** the first CI dispatch (`e2e_groups=library-inj-gmp`) was pending at this handover.
+  - **PACK-SHIPPER is left out:** the skeleton has no shipper BOM line.
+- **Next:**
+  - GMP 6: the sandbox packaging run on TEST-KIOSK-PACK-2 (cartoner TEST-CTN-03, class EQC-CARTONER; GMP CTN-03).
+    Model it on `packagingRun` (phase7/own-product-floor.ts), with these differences:
+    - the G-10 clearance is recorded with no verifier;
+    - G-21 issues and reconciles LABEL, LEAFLET and CARTON;
+    - PACK-CARTON and INJ-PACK-EXAM run through `runLibraryStep`;
+    - the counts are witnessed.
+  - Then GMP 7-9 as in the P4a handover below.
+- **Learnt:**
+  - A long evidence-step title makes a screenshot file name too long (ENAMETOOLONG): keep step titles short.
+  - Container restarts kill local E2E runs: dispatch `ci.yml` with `e2e_groups=<group>` and `runner=github` instead.
+
 ### I-1c2 handover after P4a (9 November 2026; the next session starts at P4b)
 
 Merged on 9 November:
