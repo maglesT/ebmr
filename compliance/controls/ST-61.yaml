@@ -27,7 +27,7 @@ behaviour: |-
 catalog_test: One probe below the F0 minimum on a parametric-release batch → parametric release blocked. A cycle start without the nozzle/drain check → blocked.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are judged against the firm's limits, critical where a clause names the value (the sterilising temperature, hold time and F0, the depyrogenation temperature), and a second person of another role checks them against the printout"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-61][ST-66] terminal sterilisation runs per load: every filled tray is consumed into its numbered load, and each load records its cycle once, takes its own sterility samples and registers the sterilised load; F0, temperature or time below the minimum is an exception"
 expert_decision:
   status: MODIFY

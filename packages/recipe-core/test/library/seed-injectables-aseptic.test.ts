@@ -56,6 +56,8 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(byCode('INJ-STERILE-FILTER').definition.sections.flatMap((x) => x.fields).filter((f) => /pupsit/i.test(f.id))).toEqual([]);
     expect(byCode('INJ-SUS').definition.sections.flatMap((x) => x.fields).map((f) => f.id)).toEqual(['assemblyLot']);
     expect(byCode('INJ-ASEPTIC-ASSEMBLY').definition.sections.map((x) => x.id)).toEqual(['connection']);
+    // Lean review: a block of one answer is signed by the person who did it; no clause asks a second person.
+    for (const code of ['INJ-STERILE-PACK-INDICATOR', 'INJ-ASEPTIC-TRANSFER', 'INJ-SUS-INTEGRITY']) expect(byCode(code).definition.signatures.map((x) => x.meaning), code).toEqual(['PERFORMED']);
   });
 
   it('[ST-40][ST-49] a supplier-sterilised component is accepted by its released lot, named where it is used and verified by a second person, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception', () => {
@@ -222,7 +224,7 @@ function fillWithEvents(events: readonly Readonly<Record<string, unknown>>[]): {
   run.start('p');
   recordNominal(run, 'p', noEvent, config, mbr);
   for (const e of events) {
-    run.entry('p', { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventStart: '2026-11-10T10:15', eventEnd: '2026-11-10T10:17', eventListed: true, eventUnits: '3', ...e });
+    run.entry('p', { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventStart: '2026-11-10T10:15', eventEnd: '2026-11-10T10:17', eventListed: true, ...e });
     run.minutes(1);
   }
   try {
@@ -278,10 +280,10 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const event = byCode('INJ-FILL').definition.sections.find((x) => x.id === 'event');
     expect(event).toMatchObject({ required: false, repeat: { kind: 'PER_CONTAINER' } });
     expect(event?.when).toMatch(/intervention/);
-    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventStart', 'eventEnd', 'eventListed', 'eventUnits']);
+    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventStart', 'eventEnd', 'eventListed']);
     expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] });
     expect(fillWithEvents([])).toEqual({ exceptions: [], status: 'COMPLETED' });
-    expect(fillWithEvents([{}, { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventUnits: '0' }, { eventKind: 'Glove change', eventWhat: 'Right glove of port 2 changed' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(fillWithEvents([{}, { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty' }, { eventKind: 'Glove change', eventWhat: 'Right glove of port 2 changed' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
     // Nothing judged sits in the event section: it is the record of an event, not a planned check.
     for (const f of event?.fields ?? []) expect('limitSlot' in f ? f.limitSlot : undefined, f.id).toBeUndefined();
   });
