@@ -48,9 +48,10 @@ export interface Injectable {
   dosageForm: string;
   /** The dissolved solids per unit (mg): the sum of the per-unit lines; the water for injection is the plant's, not a lot. */
   targetMg: string;
-  /** The active first (potency-adjusted), the compensating excipient second; per unit (mg). Tare and gross (kg) of the one
-   *  container weighed for a batch at the further size, 50,000 units. */
-  materials: readonly { id: string; name: string; mgPerUnit: string; tare: string; gross: string }[];
+  /** The active first (potency-adjusted unless `potencyAdjusted` is false), the compensating excipient second when there is
+   *  one; per unit (mg). A formula of one line (a media fill's medium) has no other components to dispense. Tare and gross
+   *  (kg) of the one container weighed for a batch at the further size, 50,000 units. */
+  materials: readonly { id: string; name: string; mgPerUnit: string; tare: string; gross: string; potencyAdjusted?: boolean }[];
   /** The sandbox plant's units the product needs (its own data, registered on screen before the batch). */
   plant: readonly PlantUnit[];
   /**
@@ -326,8 +327,10 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
         await choose(g.getByRole('radio', { name: i === 0 ? 'ACTIVE' : 'EXCIPIENT', exact: true }));
         await choose(g.getByRole('radio', { name: 'PER_UNIT', exact: true }));
         await g.getByRole('textbox', { name: 'Quantity' }).fill(m.mgPerUnit);
-        await choose(g.getByRole('radiogroup', { name: /^Potency adjusted/ }).getByRole('radio', { name: i === 0 ? 'Yes' : 'No', exact: true }));
-        await choose(g.getByRole('radiogroup', { name: /^Compensating excipient/ }).getByRole('radio', { name: i === 1 ? 'Yes' : 'No', exact: true }));
+        const potency = i === 0 && m.potencyAdjusted !== false;
+        await choose(g.getByRole('radiogroup', { name: /^Potency adjusted/ }).getByRole('radio', { name: potency ? 'Yes' : 'No', exact: true }));
+        const compensating = i === 1 && t.materials[0]?.potencyAdjusted !== false;
+        await choose(g.getByRole('radiogroup', { name: /^Compensating excipient/ }).getByRole('radio', { name: compensating ? 'Yes' : 'No', exact: true }));
       }
       await v.getByRole('textbox', { name: 'Target unit weight (mg)' }).fill(t.targetMg);
       await v.getByRole('textbox', { name: 'Further batch sizes (units)' }).fill('50000');
@@ -387,7 +390,8 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
     }
 
     await evidence.step('The author adds the product\'s library blocks after the dispensing of the other components with the product\'s values; the checks pass', 'Each block pinned with its version and content hash; the values form shows no problem; the revision saved', async () => {
-      await addLibraryBlocks(a, 'p-disp-exc', t.steps);
+      // The skeleton has a step for the other components only when the formula has them (a media fill's medium alone has not).
+      await addLibraryBlocks(a, t.materials.length > 1 ? 'p-disp-exc' : 'p-disp-act', t.steps);
       await saveRevision(a, `${product.name}: its library blocks and values`);
       await checksPass(a);
       return { blocks: codes.join(', ') };

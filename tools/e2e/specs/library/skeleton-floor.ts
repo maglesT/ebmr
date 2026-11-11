@@ -149,8 +149,10 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await withSimulator(f.e2e.state, async () => {
     await simulator(sim, 'clear-faults');
     await simulator(sim, 'remove');
-    // The per-batch lines' step only when the formula has them (a tablet's and a hard capsule's has none).
-    const groups = [['p-disp-act@', 'act'], ['p-disp-exc@', 'exc'], ...(hasAid ? [['p-disp-aid@', 'aid'] as const] : [])] as const;
+    // The per-batch lines' step only when the formula has them (a tablet's and a hard capsule's has none); the other unit
+    // components' step only when it has them (a media fill's medium alone has none).
+    const hasExc = p.lots.some((l) => l.material.group === 'exc');
+    const groups = [['p-disp-act@', 'act'], ...(hasExc ? [['p-disp-exc@', 'exc'] as const] : []), ...(hasAid ? [['p-disp-aid@', 'aid'] as const] : [])] as const;
     for (const [key, group] of groups) {
       await as(disp, dispenser);
       await step(f, disp, key);
