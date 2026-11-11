@@ -134,14 +134,9 @@ export const MEDIA_FILL: Injectable = {
   name: 'Media fill of the RABS vial line, 2 mL vials (library)',
   strength: '2 mL',
   dosageForm: 'Injection',
-  targetMg: '76',
-  // The sterile medium in water for injection (about 30 g/L, 60 mg per 2 mL vial), with the routine product's tonicity
-  // excipient: the simulation imitates the routine process (its dispensing of the active and the other components), and
-  // sodium chloride at this level does not inhibit growth. DEMO-ONLY.
-  materials: [
-    { id: 'medium', name: 'Soybean-casein digest medium', mgPerUnit: '60', tare: '0.300', gross: '3.300' },
-    { id: 'nacl', name: 'Sodium chloride (tonicity)', mgPerUnit: '16', tare: '0.200', gross: '1.000' },
-  ],
+  targetMg: '60',
+  // The sterile medium in water for injection (about 30 g/L, 60 mg per 2 mL vial).
+  materials: [{ id: 'medium', name: 'Soybean-casein digest medium', mgPerUnit: '60', tare: '0.300', gross: '3.300' }],
   plant: [...ASEPTIC_VIAL.plant, unit('INCUBATOR', 'Microbiological incubator', 'TEST-INCUBATOR-01', 'Incubator')],
   components: ASEPTIC_VIAL.components,
   steps: [
