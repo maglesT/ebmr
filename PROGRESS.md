@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 9 November 2026 (MEDHANTA slice 2, deviations link).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 11 November 2026 (session 12 slices and follow-ups).
 
 ## What this is
 
@@ -43,6 +43,29 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   maglesT/deep-learning-for-earth-observation for this project.
 
 ## Where things stand
+
+**Session 12 (10 and 11 November 2026; owner retest and lean review).**
+- #210 N-1, N-2: the ERP production order names each material once (the master's lines summed, then scaled); a database
+  refusal after an earlier commit in the same request (withScopedCommand) is answered 422 with its reason, not 500.
+- #211 item 11 (recipe-core 1889): a market authorisation is activated by a QA person other than its proposer
+  (EBMR-RCP-434, trigger a3_not_proposer, PR-04); second QA persona approver2.
+- #212 N-3: a stage gets its own yield step in the designer; a library batch-size input may be read as the scaled sum of
+  named formula lines (`inputLines`); LIB-USE-INPUT-LINES refuses a master whose batch size does not convert and names
+  no lines (PR-31). No seeded or demo master uses a block with a batch-size input (CTRL-YIELD, PROC-REWORK, API-YIELD),
+  so none is refused (checked 11 November).
+- #213 kiosk: raising and linking a batch deviation carry the person's badge tap (INV-40); a raised deviation whose link
+  failed is linked on the next press, never raised twice (server and UI tests in the follow-up PR).
+- #214 E2E set-up: a stack's six ports are held until all are picked and drawn from 20000-31999 (EADDRINUSE).
+- #215 lean part 1 (recipe-core 1893): 1 to 200 formula lines; no overage cap (reason still required); Schedule M quote
+  paraphrased. GMP-RISK stays an error (IN-02).
+- #216 decision record 0029: release stays strict while a linked deviation is open (EBMR-DV-001 unchanged).
+  **D-0029-3:** tablets 1907's header grounds that refusal in 211.192 alone, which stretches the clause; its basis is
+  decision 0029 (supported by 211.192, 211.100(b) and Schedule M 18.2.2, 18.5.12 as IN-05 cites them). 1907 is not
+  edited; the next tablets migration (1909) says so in its header.
+- #219 owner acceptance E2E (group `library-bilayer`): a bilayer tablet with four stages built on screen to its released
+  lot; the weighing line choice names the line; designer MOVE_STEP_TO_STAGE fixed.
+- Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
+  changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 
 **Sandbox date-time (kernel 1406, lead 10 November 2026).** A typed ISO date-time (a DATE_TIME field with a time) is no
 longer read as a lot number by the sandbox identifier rule (it was refused with EBMR-SBX-024; no clause asked for it). Lot
