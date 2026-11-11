@@ -30,7 +30,7 @@ describe('a batch deviation raised on a shared kiosk', () => {
     const link = { subjectKind: 'BATCH' as const, subjectId: batch.id };
     const path = `/api/quality/deviations/${d.deviationId}/links`;
     expect(refusalOf(await kiosk.call(routes.quality.linkDeviation, { params: { deviationId: d.deviationId }, body: link }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
-    // With the tap the link to a real GMP batch succeeds, and the batch's deviation list names it.
+    // With the tap the link to a real GMP batch succeeds, and one link row joins the deviation to that batch.
     valueOf(await kiosk.call(routes.quality.linkDeviation, { params: { deviationId: d.deviationId }, body: link, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, link) }));
     const linkedTo = (await gmp.db.admin.query<{ n: string }>(
       "select count(*)::text as n from site.deviation_link l where l.deviation_id = $1 and l.subject_kind = 'BATCH' and l.subject_id = $2", [d.deviationId, batch.id])).rows[0]?.n;
