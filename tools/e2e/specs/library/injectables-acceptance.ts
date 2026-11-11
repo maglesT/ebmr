@@ -1211,6 +1211,14 @@ export function defineInjectablesGmp(product: string | Injectable): void {
         expect(href).not.toBe('');
         return { deviation: refs[0] ?? '', href };
       }, cockpit);
+      await evidence.step('The release is refused on screen while the deviation is open', 'The manufacturer release cannot be signed: its gate names G2.DEVIATIONS RED', async () => {
+        // Decision 0029 (release stays strict while a linked deviation is open): the gate refuses the signature, so the
+        // button is disabled and the gate says why.
+        const section = cockpit.getByTestId('manufacturer-release');
+        await expect(section.getByTestId('release-problems')).toContainText(/G-REL item G2\.DEVIATIONS is RED/);
+        await expect(section.getByRole('button', { name: 'Sign the manufacturer release' })).toBeDisabled();
+        return { refused: true };
+      }, cockpit);
       const qa = persona('GMP', 'qaInvestigator');
       const qa2 = persona('GMP', 'qaApprover2');
       const owner = await officePage('GMP', PC_QA2);
