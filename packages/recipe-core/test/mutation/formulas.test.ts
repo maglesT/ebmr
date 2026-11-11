@@ -1,7 +1,7 @@
 /**
  * The company formulation library, rule by rule (SQL mutation group "formulas": recipe-core 0640, 0642, 0690). These
  * tests close the gaps the Phase 3 exit SQL mutation run found in apps/tablets-server/test/master-data: each refusal
- * of a malformed formula or version on its own (whole units, 1 to 60 lines, decimal text, flags, basis, one draft at a
+ * of a malformed formula or version on its own (whole units, 1 to 200 lines (recipe-core 1893), decimal text, flags, basis, one draft at a
  * time, a compensating excipient only with an adjusted active), the state of a version read against its own formula, the readers' answers for
  * the formula named, the signed content of a version, and the row lock of an approval.
  *
@@ -115,7 +115,7 @@ describe('a formula and its versions are refused rule by rule', () => {
     expect(await createFormula({ productCode: p, strength: STRENGTH, batchSizeUnits: '1000' })).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('[INV-25] a version lists 1 to 200 lines (lean review: no clause sets a number; recipe-core 1893)', async () => {
+  it('[IN-13][INV-25] a version lists 1 to 200 lines (lean review: no clause sets a number; recipe-core 1893)', async () => {
     const f = await newFormula();
     expect(await refusal(addVersion(f.id, version('api')))).toMatch(/1 to 200 lines.*EBMR-FRM-005/);
     expect(await refusal(addVersion(f.id, version([])))).toMatch(/EBMR-FRM-005/);
@@ -125,12 +125,12 @@ describe('a formula and its versions are refused rule by rule', () => {
     expect(await refusal(addVersion(f.id, version(many.slice(0, 200))))).toMatch(/Line 1: material F-X0 is not in the ERP material master.*EBMR-FRM-008/);
   });
 
-  it('[INV-25] lean review (recipe-core 1893): an overage of 100 % or more is accepted with its reason; a negative one is still refused', async () => {
+  it('[IN-13][INV-25] lean review (recipe-core 1893): an overage of 100 % or more is accepted with its reason; a negative one is still refused', async () => {
     const f = await newFormula();
     const id = await addVersion(f.id, version([{ ...LINE, overagePercent: '120', overageReason: 'Loss on the film coating, justified in development' }, LINES[1]]));
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
     const f2 = await newFormula();
-    expect(await refusal(addVersion(f2.id, version([{ ...LINE, overagePercent: '-1', overageReason: 'none' }, LINES[1]])))).toMatch(/EBMR-FRM-0(07|10|61)/);
+    expect(await refusal(addVersion(f2.id, version([{ ...LINE, overagePercent: '-1', overageReason: 'none' }, LINES[1]])))).toMatch(/EBMR-FRM-007/);
   });
 
   it('[INV-25] each line: decimal text, an overage and salt factor that are decimal or null, both flags boolean, the basis per unit or per batch', async () => {
