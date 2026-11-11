@@ -482,7 +482,9 @@ export async function linkNewDeviation(office: Page, at: { base: string; runId: 
 export async function investigateAndClose(
   pages: { owner: Page; classifier: Page; second: Page },
   people: { owner: SeededPersona; second: SeededPersona },
-  d: { classification: 'MINOR' | 'MAJOR' | 'CRITICAL'; rationale: string; cause: string; causeKind: string; impact: string; rootCause: string; capa: string; others: string; othersReason: string },
+  d: { classification: 'MINOR' | 'MAJOR' | 'CRITICAL'; rationale: string; cause: string; causeKind: string; impact: string; rootCause: string; capa: string; others: string; othersReason: string;
+    // A human-error cause is concluded only with the process, procedure and system factors assessed (PR-50).
+    systemFactors?: { process: string; procedure: string; system: string } },
 ): Promise<void> {
   const url = pages.owner.url();
   await pages.classifier.goto(url);
@@ -510,6 +512,11 @@ export async function investigateAndClose(
   await explained(expect(impact.getByText('Impact recorded.')).toBeVisible(), impact);
   const closure = page.getByTestId('closure-form');
   await closure.getByRole('textbox', { name: 'Root-cause method' }).fill(d.rootCause);
+  if (d.systemFactors) {
+    await closure.getByRole('textbox', { name: 'System factor: process' }).fill(d.systemFactors.process);
+    await closure.getByRole('textbox', { name: 'System factor: procedure' }).fill(d.systemFactors.procedure);
+    await closure.getByRole('textbox', { name: 'System factor: system' }).fill(d.systemFactors.system);
+  }
   await closure.getByRole('textbox', { name: 'CAPA references' }).fill(d.capa);
   await closure.getByRole('radiogroup', { name: 'Regulatory notification required' }).getByRole('radio', { name: 'No' }).locator('xpath=ancestor::label[1]').click();
   await closure.getByRole('textbox', { name: 'Notification assessment' }).fill('No registered detail or licence condition is affected');

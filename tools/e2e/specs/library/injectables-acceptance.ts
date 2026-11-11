@@ -1227,6 +1227,11 @@ export function defineInjectablesGmp(product: string | Injectable): void {
           capa: `CAPA-${s.tag.toUpperCase()}`,
           others: 'Batches filled on the line since the last media fill',
           othersReason: 'Their EM results were within the alert level',
+          systemFactors: {
+            process: 'The intervention needs a reach over the open vials at the stopper bowl',
+            procedure: 'The intervention instruction does not say where to hold the forceps',
+            system: 'The glove change after an intervention is not prompted by the line',
+          },
         });
       }, second);
       await evidence.step('The checklist item is green again once the deviation is closed', 'G2.DEVIATIONS GREEN', async () => {
