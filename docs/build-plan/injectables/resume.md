@@ -77,6 +77,37 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   tools/e2e/specs/library/injectables-acceptance.ts:590 still says a second person verifies the post-use inspection
   (only a comment; the test still verifies, which stays allowed).
 
+### Session 11 (10 November 2026): I-3 lyophilisation blocks, I-4 blocks, lean review
+
+- **Lead:** session_01PybpFvEFaQZ3LEfnNdjBCE (from 10 November, 20:15); earlier rulings stand.
+- **Merged:**
+  - #204: INJ-LYO (INJ-17; 211.113(b), 211.188(b), 211.68(b)) and INJ-LYO-EU (Annex 1 8.122-8.126, 10.6(iii)), in
+    `seed/injectables-lyo.ts`;
+  - #207: the I-4 blocks in `seed/injectables-routes.ts` (INJ-HOMOGENISE, INJ-POWDER-FILL, INJ-PLUNGER, INJ-FFS and
+    INJ-FFS-EU, INJ-BFS and INJ-BFS-EU, INJ-RADIATION and INJ-RADIATION-EU from EU GMP Annex 12), and the unit `Gy`/`kGy`
+    (expr 0.2.0, exact pins raised). RTU tubs need no block (INJ-SUPPLIER-STERILE, INJ-ASEPTIC-TRANSFER); dual-chamber
+    needs none (INJ-FILL twice, INJ-LYO, INJ-PLUNGER).
+- **#217 (lean review, lead's over-compliance list):** no critical flag on the homogeniser's settings; the EU radiation
+  records signed by the operator alone; the fill weight recorded once (IPC-INJ-FILL-WEIGHT); the RTU wording after #206;
+  and a general engine capability: a library block with the role PACK_EXAMINATION completes a packaging record
+  (recipe-core 1892 `recipe.packaging_completion_types`; injectables 3020 `E.PACK_EXAMINATION` by type, judged by the
+  step's unresolved exceptions).
+- **Kept, with reason (lead):** INJ-LYO-EU types its load number and sterilisation cycle; a step value cannot read a
+  value inside a repeat or a TEXT value.
+- **Official texts read this session:** EU GMP Annex 1 (2022) 8.71, 8.96-8.126, 10.6; Annex 12; Schedule M Part II
+  6.11.1.8-6.11.1.14 and Part XIII (FFS/BFS) in `docs/regulatory/sources-extracted/`.
+- **Next (I-3b):** the lyophilised vial E2E = session 10's aseptic vial (`ASEPTIC_VIAL`,
+  `tools/e2e/specs/library/injectables-aseptic-acceptance.ts`) with INJ-LYO between filling and capping, in its own
+  `injectables-lyo-acceptance.ts` and group `library-inj-lyo` (ci.yml, ci-runners.test.ts, playwright config), after
+  I-2's E2E merges. The INJ-FILL "closures" label: a neutral v1 wording is approved (part-stoppered vials). The GMP half
+  takes the run's unconsumed containers (#205), so the lyophilised loads become the bulk.
+- **Learnt:**
+  - Two random ports of the E2E stack can collide (the scale simulator's MT-SICS port and a server port; route-s,
+    EADDRINUSE in global setup): logged by the lead as a test-infra defect; one re-run is allowed.
+  - A local PostgreSQL cluster can stop between turns: `pg_ctlcluster 16 <name> start` for each down cluster is enough
+    (no full setup).
+  - A new SQL function needs a group in `tools/sql-mutation/src/targets.ts` and the group in `.github/workflows/mutation.yml`.
+
 ### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
 
 - **Lead change:** the lead is now session_01PybpFvcfiLdV8mgoVVWXTk (owner confirmed); earlier rulings stand.

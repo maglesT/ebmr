@@ -445,6 +445,8 @@ export async function approve(app: DemoApp, content: flow.MbrContent, spec: Spec
 export async function approveVersion(app: DemoApp, versionId: string, spec: Spec): Promise<void> {
   const author = await app.browser('author');
   const qa = await app.browser('approver');
+  // A second QA person proposes the market authorisations; the proposer cannot authorise (owner item 11, recipe-core 1889).
+  const proposer = await app.browser('approver2');
   const cr = await app.as(qa, (c) => lifecycle.recordChangeRecord(c, { number: spec.changeRecord, title: spec.title, changeClass: 'MAJOR', processImpacting: true, validationRef: spec.validationRef }));
   const ra = await app.as(qa, (c) => lifecycle.recordRiskAssessment(c, { code: spec.riskAssessment, version: '1', title: `${spec.title}: risk assessment`, riskClass: 'MEDIUM', rationaleRef: spec.rationaleRef }));
   await app.as(author, async (c) => {
@@ -463,7 +465,7 @@ export async function approveVersion(app: DemoApp, versionId: string, spec: Spec
   const reg = await app.browser('regulatory');
   for (const market of spec.markets ?? ['IN', 'US', 'EU']) {
     const def: lifecycle.MarketAuthorisationDefinition = { versionId, market, kind: 'CURRENT', cells: [{ site: SITE, line: LINE, batch_size: spec.sizeId }], regulatoryBasis: `${market}: registration on file (invented product)` };
-    const maId = await app.as(qa, (c) => lifecycle.proposeMarketAuthorisation(c, def));
+    const maId = await app.as(proposer, (c) => lifecycle.proposeMarketAuthorisation(c, def));
     const qaSig = await app.signDirect(qa, lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
     const regSig = await app.signDirect(reg, lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'REGULATORY_CONFIRMED', 'PROPOSED');
     await app.as(qa, (c) => lifecycle.activateMarketAuthorisation(c, maId, qaSig, regSig), { reasonCode: 'MARKET_AUTHORISED', reasonText: `${market}: ${spec.title} authorised at SITE-1 L1` });

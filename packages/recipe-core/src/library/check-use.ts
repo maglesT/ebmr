@@ -27,7 +27,13 @@ function err(code: string, path: string, message: string, controls: string[] = [
  * names must be a line of that BOM: a line that is not there would leave a lot field with no material to check and a
  * FORMULA_LINE input with nothing to read (R3-ENG-3; PR-18, IN-23, INV-25).
  */
-export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: ExpressionService, bom?: readonly { readonly id: string }[]): LibraryProblem[] {
+export function checkBlockUse(
+  def: BlockDefinition,
+  use: BlockUse,
+  expr: ExpressionService,
+  bom?: readonly { readonly id: string; readonly quantity?: { readonly unit: string } }[],
+  batchSizes?: readonly { readonly id: string; readonly quantity: { readonly unit: string } }[],
+): LibraryProblem[] {
   const out: LibraryProblem[] = [];
   if (use.block.code !== def.code || use.block.version !== def.version) {
     return [err('LIB-USE-BLOCK', 'block', `The use names ${use.block.code}@${use.block.version} but was checked against ${def.code}@${def.version}`)];
@@ -64,6 +70,7 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
     if (typeof v !== 'string' || v.trim() === '') out.push(err('LIB-USE-BOM-LINE', `bomLines.${slot.name}`, `${def.title}: name the formula line ${slot.owner} reads`, ['DI-33']));
     else if (bom !== undefined && !bom.some((b) => b.id === v)) out.push(err('LIB-USE-BOM-LINE', `bomLines.${slot.name}`, `${def.title}: ${v} is not a line of the master's bill of materials, so ${slot.owner} would have no material to check [PR-18, IN-23]`, ['PR-18', 'IN-23', 'INV-25']));
   }
+  out.push(...checkInputLines(def, use, expr, bom, batchSizes));
   for (const slot of stepSlots.values()) {
     const v = use.stepValues?.[slot.name];
     if (!v || typeof v.step !== 'string' || v.step.trim() === '' || typeof v.field !== 'string' || v.field.trim() === '') out.push(err('LIB-USE-STEP-VALUE', `stepValues.${slot.name}`, `${def.title}: name the earlier step and field ${slot.owner} reads`, ['DI-33']));
@@ -105,6 +112,57 @@ export function checkBlockUse(def: BlockDefinition, use: BlockUse, expr: Express
   }
 
   out.push(...checkPoints(def, use, expr));
+  return out;
+}
+
+/**
+ * Owner retest N-3: a BATCH_SIZE input reads the batch's size in the input's unit. Where the master's batch size does not
+ * convert to it (a tablet master's size in tablets, a stage yield's theoretical quantity in kg), the use names the formula
+ * lines whose scaled sum is the quantity (`inputLines`); each must be a line of the master that converts to the input's
+ * unit. Without either, the step would have no theoretical quantity to calculate with (PR-31, 211.103).
+ */
+function checkInputLines(
+  def: BlockDefinition,
+  use: BlockUse,
+  expr: ExpressionService,
+  bom: readonly { readonly id: string; readonly quantity?: { readonly unit: string } }[] | undefined,
+  batchSizes: readonly { readonly id: string; readonly quantity: { readonly unit: string } }[] | undefined,
+): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  const inputs = new Map((def.inputs ?? []).map((i) => [i.id, i]));
+  for (const [id, lines] of Object.entries(use.inputLines ?? {})) {
+    const at = `inputLines.${id}`;
+    const input = inputs.get(id);
+    if (input?.kind !== 'BATCH_SIZE') {
+      out.push(err('LIB-USE-UNKNOWN-SLOT', at, `${def.code} has no batch-size input ${id} to read from formula lines`));
+      continue;
+    }
+    if (!Array.isArray(lines) || lines.length === 0) {
+      out.push(err('LIB-USE-INPUT-LINES', at, `${def.title}: name the formula lines whose sum is ${input.label}`, ['PR-31']));
+      continue;
+    }
+    for (const lineId of lines) {
+      const line = bom?.find((b) => b.id === lineId);
+      if (bom !== undefined && !line) out.push(err('LIB-USE-INPUT-LINES', at, `${def.title}: ${lineId} is not a line of the master's bill of materials`, ['PR-31']));
+      else if (line?.quantity && !commensurable(expr, line.quantity.unit, input.unit)) {
+        out.push(err('LIB-USE-INPUT-LINES', at, `${def.title}: line ${lineId} is in ${line.quantity.unit}, which does not convert to ${input.unit} for ${input.label}`, ['PR-31']));
+      }
+    }
+  }
+  for (const input of def.inputs ?? []) {
+    if (input.kind !== 'BATCH_SIZE' || use.inputLines?.[input.id] !== undefined) continue;
+    const off = (batchSizes ?? []).filter((b) => !commensurable(expr, b.quantity.unit, input.unit));
+    if (off.length > 0) {
+      out.push(
+        err(
+          'LIB-USE-INPUT-LINES',
+          `inputLines.${input.id}`,
+          `${def.title}: ${input.label} is in ${input.unit} and the batch size is in ${off[0]?.quantity.unit ?? '?'}, which does not convert; name the formula lines whose sum it is`,
+          ['PR-31'],
+        ),
+      );
+    }
+  }
   return out;
 }
 

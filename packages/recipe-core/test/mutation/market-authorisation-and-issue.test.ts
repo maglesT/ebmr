@@ -158,8 +158,11 @@ const bridging = (versionId: string, successorVersionId: string, cells: lc.Scope
   ...extra,
 });
 
-/** recipe.propose_market_authorisation with the definition exactly as given (malformed ones included), by QA. */
-async function propose(def: object, actor: SeededActor = w.cast.qa): Promise<string> {
+/**
+ * recipe.propose_market_authorisation with the definition exactly as given (malformed ones included), by the second QA
+ * person: the proposer cannot authorise, and `activate` is by w.cast.qa (owner item 11, recipe-core 1889).
+ */
+async function propose(def: object, actor: SeededActor = w.cast.qa2): Promise<string> {
   return w.run(actor, async (c) => (await c.query<{ r: string }>('select recipe.propose_market_authorisation($1::jsonb) as r', [JSON.stringify(def)])).rows[0]?.r ?? '');
 }
 

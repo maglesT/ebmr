@@ -459,8 +459,23 @@ export async function fourSignatures(pages: { author: Page; checker: Page; regul
   await expect(pages.qa.getByTestId('mbr-signing-state')).toContainText('Approved');
 }
 
-/** QA proposes the IN market authorisation for the site, line and batch size; the regulatory signer confirms; QA authorises. */
-export async function authoriseIn(qaPage: Page, regPage: Page, base: string, versionId: string, cell: { site: string; line: string; sizeId: string }, qa: SeededPersona, regulatory: SeededPersona, basis: string): Promise<void> {
+/**
+ * One QA person (qaPage, qa) proposes the IN market authorisation for the site, line and batch size; the regulatory
+ * signer confirms; a second QA person (authoriser) authorises it with their own reason and signature. The QA person who
+ * proposed may not authorise (owner item 11, recipe-core 1889, EBMR-RCP-434).
+ */
+export async function authoriseIn(
+  qaPage: Page,
+  regPage: Page,
+  base: string,
+  versionId: string,
+  cell: { site: string; line: string; sizeId: string },
+  qa: SeededPersona,
+  regulatory: SeededPersona,
+  basis: string,
+  authoriser: { page: Page; persona: SeededPersona },
+): Promise<void> {
+  void qa; // the proposal is not signed; the proposer is the person signed in on qaPage
   await load(qaPage, `${base}/mbr/versions/${versionId}/signing`);
   const form = qaPage.getByTestId('mbr-propose-market');
   await form.getByRole('textbox', { name: 'Site' }).fill(cell.site);
@@ -472,11 +487,12 @@ export async function authoriseIn(qaPage: Page, regPage: Page, base: string, ver
   await load(regPage, `${base}/mbr/versions/${versionId}/signing`);
   await regPage.getByTestId('market-IN').getByRole('button', { name: 'Confirm the registration for IN' }).click();
   await officeSign(regPage, /^Confirm the registration for IN/, regulatory);
-  await qaPage.reload();
-  const qi = qaPage.getByTestId('market-IN');
+  const aPage = authoriser.page;
+  await load(aPage, `${base}/mbr/versions/${versionId}/signing`);
+  const qi = aPage.getByTestId('market-IN');
   await qi.getByRole('textbox', { name: 'Reason (authorisation)' }).fill(`IN registration confirmed; ${cell.site} ${cell.line}`);
   await qi.getByRole('button', { name: 'Authorise for IN' }).click();
-  await officeSign(qaPage, /^Authorise for IN/, qa);
+  await officeSign(aPage, /^Authorise for IN/, authoriser.persona);
   await expect(qi).toHaveAttribute('data-state', 'ACTIVE');
 }
 

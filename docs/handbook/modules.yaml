@@ -450,7 +450,7 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql:
-        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_', '^1878_']
+        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_', '^1878_', '^1889_']
     src: [packages/recipe-core/src/lifecycle]
     tests:
       - 'packages/recipe-core/test/lifecycle/**'
@@ -537,7 +537,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_', '^1750_', '^1873_']
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_', '^1750_', '^1873_', '^1892_']
     tests:
       - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
       - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'

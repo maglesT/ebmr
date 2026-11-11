@@ -115,6 +115,11 @@ export const INJECTABLE_LYO_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-17, EU market: A1 8.122-8.126, 10.6(iii).
+    // The load number and the lyophiliser's sterilisation cycle are typed here, not read from INJ-LYO and INJ-SIP (lead,
+    // 10 November 2026): a step value reads only a number recorded once outside a loop (recipe-core #117,
+    // ENG-DEF-STEP-VALUE), and INJ-LYO's loads repeat while a cycle number is text. The load number ties each load's leak
+    // test and samples to its load; the cycle names the sterilisation before that load (8.123), which one INJ-SIP step
+    // per batch cannot record per load.
     definition: {
       code: 'INJ-LYO-EU',
       version: 1,

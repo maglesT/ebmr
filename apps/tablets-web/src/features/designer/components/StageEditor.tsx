@@ -1,19 +1,21 @@
 /**
  * Section 5, the stages (Phase 7 slice 7j, R4; D-7j-8): the author adds a stage (its name and room; it starts with the
- * room clearance and the equipment status check), renames it, binds its rooms, adds and removes its equipment by class
+ * room clearance and the equipment status check), renames it, binds its rooms, adds a yield step at its end and names
+ * the formula lines of its theoretical quantity (owner retest N-3), adds and removes its equipment by class
  * (the classes the document-management stand-in registers; the master pins the class it chooses), moves it up or down
  * and removes it. Each change is one undoable operation; the validator and the simulation judge the result as for any
  * other content.
  */
 import { useState } from 'react';
 import { routes } from '@ebmr/api-contract';
-import type { flow } from '@ebmr/recipe-core/pure';
+import { flow, type library } from '@ebmr/recipe-core/pure';
 import { Button } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { dcls } from '../classes.ts';
-import { newStage, type Content, type Op } from '../model/ops.ts';
+import { libraryDefinitionOf, newStage, type Content, type Op } from '../model/ops.ts';
 import type { PaletteItem } from '../model/types.ts';
 import { CommitText, Select } from './common.tsx';
+import { libraryStepId } from './LibraryBlocks.tsx';
 
 const KINDS: readonly flow.StageEquipment['kind'][] = ['PROCESS', 'INSTRUMENT', 'UTILITY'];
 
@@ -44,7 +46,76 @@ function EquipmentAdder({ stage, dispatch }: { stage: flow.StageNode; dispatch: 
   );
 }
 
-export function StageEditor({ stage, first, last, earlier, dispatch }: { stage: flow.StageNode; first: boolean; last: boolean; earlier: readonly flow.StageNode[]; dispatch: (op: Op) => boolean }) {
+/**
+ * Owner retest N-3: a stage's own yield. "Add a yield step" appends an approved yield or reconciliation library block at
+ * the end of the stage; for each library step of the stage with a batch-size input (the theoretical quantity), the author
+ * ticks the formula lines whose scaled sum it is, needed where the batch size (e.g. in tablets) does not convert to its
+ * unit. Nothing is ticked for the author: the validator names the step until the firm chooses (LIB-USE-INPUT-LINES).
+ */
+function StageYield({ content, stage, dispatch }: { content: Content; stage: flow.StageNode; dispatch: (op: Op) => boolean }) {
+  const q = useApiQuery(routes.library.list, { query: { state: 'APPROVED', edition: content.header.edition } });
+  const [chosen, setChosen] = useState('');
+  const yields = (q.data?.blocks ?? []).filter((b) => ((b.definition as unknown as library.BlockDefinition).roles ?? []).includes('YIELD_RECONCILIATION'));
+  const steps: flow.PhaseNode[] = [];
+  flow.walk(stage.body, (n) => {
+    if (n.kind === 'phase') steps.push(n);
+  });
+  const withSize = steps.flatMap((p) => {
+    const def = libraryDefinitionOf(content, p);
+    return (def?.inputs ?? []).filter((i) => i.kind === 'BATCH_SIZE').map((i) => ({ step: p, input: i }));
+  });
+  const add = (): void => {
+    const b = yields.find((x) => x.blockId === chosen);
+    if (!b || stage.body.kind !== 'sequence') return;
+    const ids = new Set<string>();
+    flow.walk(content.procedure.body, (n) => {
+      ids.add(n.id);
+    });
+    if (dispatch({ kind: 'ADD_LIBRARY_BLOCK', sequenceId: stage.body.id, index: stage.body.children.length, stepId: libraryStepId(content, b.code, (id) => ids.has(id)), definition: b.definition as unknown as library.BlockDefinition })) setChosen('');
+  };
+  return (
+    <div className={dcls('stack')} data-testid={`stage-yield-${stage.id}`}>
+      {stage.purpose === 'MATERIAL' && stage.body.kind === 'sequence' ? (
+        <div className={dcls('inline')}>
+          <Select
+            label={`Yield step for ${stage.name}`}
+            value={chosen}
+            options={[{ value: '', label: '— choose an approved yield block —' }, ...yields.map((b) => ({ value: b.blockId, label: `${b.code} v${String(b.version)}: ${b.title}` }))]}
+            onChange={setChosen}
+          />
+          <Button onPress={add} isDisabled={chosen === ''}>
+            Add a yield step to {stage.name}
+          </Button>
+        </div>
+      ) : null}
+      {withSize.map(({ step, input }) => {
+        const picked = ((step.config as { inputLines?: Record<string, string[]> }).inputLines ?? {})[input.id] ?? [];
+        const set = (lines: string[]): void => {
+          dispatch({ kind: 'SET_INPUT_LINES', stepId: step.id, inputId: input.id, lines });
+        };
+        return (
+          <fieldset key={`${step.id}:${input.id}`} className={dcls('fieldset')} data-testid={`input-lines-${step.id}-${input.id}`}>
+            <legend className={dcls('legend')}>{`${input.label} of ${step.name} (${input.unit}): the sum of these formula lines`}</legend>
+            <p className={dcls('small')}>{`Needed when the batch size does not convert to ${input.unit}; leave all unticked to use the batch size.`}</p>
+            {content.bom.map((b) => (
+              <label key={b.id} className={dcls('inline')}>
+                <input
+                  type="checkbox"
+                  aria-label={`${step.name}: ${b.id}`}
+                  checked={picked.includes(b.id)}
+                  onChange={(e) => set(e.target.checked ? [...picked, b.id] : picked.filter((x) => x !== b.id))}
+                />{' '}
+                {`${b.id} ${b.material} (${b.quantity.value} ${b.quantity.unit})`}
+              </label>
+            ))}
+          </fieldset>
+        );
+      })}
+    </div>
+  );
+}
+
+export function StageEditor({ content, stage, first, last, earlier, dispatch }: { content: Content; stage: flow.StageNode; first: boolean; last: boolean; earlier: readonly flow.StageNode[]; dispatch: (op: Op) => boolean }) {
   return (
     <div className={dcls('stack')} data-testid={`stage-editor-${stage.id}`}>
       <CommitText label={`Name of stage ${stage.id}`} value={stage.name} onCommit={(name) => dispatch({ kind: 'UPDATE_STAGE', stageId: stage.id, patch: { name } })} />
@@ -74,6 +145,7 @@ export function StageEditor({ stage, first, last, earlier, dispatch }: { stage: 
           </li>
         ))}
       </ul>
+      <StageYield content={content} stage={stage} dispatch={dispatch} />
       <EquipmentAdder stage={stage} dispatch={dispatch} />
       <div className={dcls('inline')}>
         <Button onPress={() => dispatch({ kind: 'MOVE_STAGE', stageId: stage.id, direction: -1 })} isDisabled={first}>

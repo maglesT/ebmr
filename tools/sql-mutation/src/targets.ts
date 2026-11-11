@@ -202,7 +202,9 @@ export const TARGETS: Target[] = [
                 'recipe.overdue_reviews', 'recipe.inv01_violations', 'recipe.inv02_violations', 'recipe.inv17_violations',
                 // recipe-core 0383 (defect D10): the activation and its cells only as the activation command writes them.
                 'recipe.market_authorisation_activation_guard', 'recipe.authorisation_cell_activation_guard',
-                'recipe.authorisation_cell_supersession_guard'],
+                'recipe.authorisation_cell_supersession_guard',
+                // recipe-core 1889 (owner item 11): the proposer never activates.
+                'recipe.market_authorisation_activation_not_proposer'],
     tests: [r('lifecycle/market.test.ts'), r('lifecycle/issue.test.ts'), r('lifecycle/selection.property.test.ts'),
             r('lifecycle/review-inventory.test.ts'), r('lifecycle/audit-reason.test.ts'), r('lifecycle/concurrency.test.ts'),
             r('lifecycle/authorization.test.ts')],
@@ -1017,6 +1019,14 @@ export const TARGETS: Target[] = [
     group: 'inj-release-items',
     functions: ['injectables.grel_edition_items', 'injectables.grel_pack_examination'],
     tests: [s('injectables/vial-chain.test.ts')],
+    threshold: 90,
+  },
+  // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
+  // 1892; editions/injectables/sql 3020 redefines injectables.grel_pack_examination, which stays in inj-release-items). ----
+  {
+    group: 'packaging-completion-by-role',
+    functions: ['recipe.packaging_completion_types', 'recipe.packaging_master_problem'],
+    tests: [s('injectables/vial-chain.test.ts'), r('lifecycle/packaging-issue.test.ts')],
     threshold: 90,
   },
   // ---- API plan A3: the certificate of analysis of a released API lot (editions/substance/sql 5005; AS-17). Its
