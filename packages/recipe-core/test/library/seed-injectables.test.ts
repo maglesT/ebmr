@@ -36,6 +36,7 @@ function withUse(item: SeedItem, change: { limits?: SeedItem['exampleUse']['limi
 }
 
 const I1_CODES = [
+  'INJ-INSPECT-LIGHT',
   'INJ-ROOM-READY', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
   'INJ-AMPOULE-SEAL', 'INJ-CAPPING', 'INJ-TERMINAL-STERILISE', 'INJ-VISUAL-INSPECT', 'INJ-CCI', 'INJ-UNIT-ACCOUNT', 'INJ-STERILITY-SAMPLE', 'TEST-INJ-RELEASE',
   // Slice I-1c2: the finished-pack examination that closes a packaging record of the edition.
@@ -43,7 +44,7 @@ const I1_CODES = [
 ];
 
 describe('the Injectables catalogue (slice I-1)', () => {
-  it('[PR-05] the catalogue holds the 17 blocks of I-1 (INJ-01, 04, 05, 06, 12, 14, 15, 18 to 27; INJ-02 dropped, its lots named where used), each of the injectables edition, loaded with the rest of the catalogue', () => {
+  it('[PR-05] the catalogue holds the 18 blocks of I-1 (INJ-01, 04, 05, 06, 12, 14, 15, 18 to 27 and the EU inspection-light block; INJ-02 dropped, its lots named where used), each of the injectables edition, loaded with the rest of the catalogue', () => {
     expect(INJECTABLE_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I1_CODES].sort());
     for (const s of INJECTABLE_CATALOGUE) {
       expect(blockEdition(s.definition), s.definition.code).toBe('injectables');
@@ -53,6 +54,12 @@ describe('the Injectables catalogue (slice I-1)', () => {
     // an injectables master.
     expect(editionFits('injectables', 'tablets')).toBe(false);
     expect(editionFits('tablets', 'injectables')).toBe(false);
+    // Lean review: the booth illumination is Annex 1 8.31 only, an EU-market block signed by the operator alone; the base
+    // inspection block keeps no illumination answer and no inspection timer (no limit, no clause).
+    expect(byCode('INJ-INSPECT-LIGHT').definition).toMatchObject({ markets: ['EU'], signatures: [{ meaning: 'PERFORMED' }] });
+    expect(byCode('INJ-VISUAL-INSPECT').definition.sections.flatMap((x) => x.fields).filter((f) => f.id === 'illuminationOk' || f.type === 'TIMER')).toEqual([]);
+    // No 211 or Schedule M clause names a process indicator: the base sterilisation blocks record none.
+    for (const code of ['INJ-PARTS-AUTOCLAVE', 'INJ-TERMINAL-STERILISE']) expect(byCode(code).definition.sections.flatMap((x) => x.fields).map((f) => f.id), code).not.toContain('indicator');
     expect(SEED_CATALOGUE.filter((s) => blockEdition(s.definition) === 'injectables')).toHaveLength(I1_CODES.length + INJECTABLE_ASEPTIC_CATALOGUE.length + INJECTABLE_LYO_CATALOGUE.length + INJECTABLE_ROUTE_CATALOGUE.length);
   });
 
@@ -88,10 +95,10 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(fieldOf(byCode('INJ-PARTS-AUTOCLAVE'), 'stopperLot').showWhen).toEqual({ field: 'loadPattern', equals: 'Stoppers' });
   });
 
-  it('[ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are critical with limits, and a second person of another role checks them against the printout', () => {
+  it('[ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are judged against the firm\'s limits, critical where a clause names the value (the sterilising temperature, hold time and F0, the depyrogenation temperature), and a second person of another role checks them against the printout', () => {
     const critical: Record<string, string[]> = {
-      'INJ-WASH': ['wfiTemp', 'wfiPressure'],
-      'INJ-DEPYRO': ['zoneTemp', 'beltSpeed'],
+      'INJ-WASH': [],
+      'INJ-DEPYRO': ['zoneTemp'],
       'INJ-PARTS-AUTOCLAVE': ['temperature', 'holdTime', 'f0'],
       'INJ-TERMINAL-STERILISE': ['temperature', 'holdTime', 'f0'],
     };
@@ -105,6 +112,11 @@ describe('the Injectables catalogue (slice I-1)', () => {
     }
     expect(judgedRun(byCode('INJ-DEPYRO'), { cycle: { zoneTemp: '280.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(byCode('INJ-DEPYRO'), { cycle: { beltSpeed: '130' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    // No clause names the rinse water or the belt speed: judged against the firm's limits, not critical (lean review).
+    for (const [code, id] of [['INJ-WASH', 'wfiTemp'], ['INJ-WASH', 'wfiPressure'], ['INJ-DEPYRO', 'beltSpeed']] as const) {
+      expect(fieldOf(byCode(code), id), `${code} ${id}`).toMatchObject({ type: 'NUMBER', limitSlot: id });
+      expect((fieldOf(byCode(code), id) as { critical?: boolean }).critical, `${code} ${id}`).toBeUndefined();
+    }
     expect(judgedRun(byCode('INJ-WASH'), { run: { wfiTemp: '65.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(byCode('INJ-WASH'), { run: { wfiPressure: '1.00' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(byCode('INJ-PARTS-AUTOCLAVE'), { cycle: { temperature: '120.5' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
@@ -132,16 +144,14 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(judgedRun(byCode('INJ-BULK-FILTER'), { filtration: { pressure: '2.50' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
-  it('[ST-56][ST-57] filling judges the fill weight at each round and the volume from the bulk density; the stopper-height check is asked for vials only; each unit\'s fill weight is judged on the mean and on every unit', () => {
+  it('[ST-56][ST-57] the fill weights are recorded once, in the fill weight check, each unit judged and the mean; filling checks the closures at each round; the stopper-height check is asked for vials only', () => {
     const fill = byCode('INJ-FILL');
     expect(fill.definition.sections.find((s) => s.id === 'round')?.repeat).toEqual({ kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' });
-    expect(fieldOf(fill, 'fillVolume')).toMatchObject({ type: 'CALC', critical: true, expression: 'convert(volume_from_mass(fillWeight, density), [mL])' });
+    // Recorded once (lean review): the filling round checks the closures; the weights are the fill weight check's.
+    expect(fill.definition.sections.find((s) => s.id === 'round')?.fields.map((f) => f.id)).toEqual(['closures']);
+    expect(fill.definition.inputs ?? []).toEqual([]);
     expect(fieldOf(fill, 'stopperCheck').showWhen).toEqual({ field: 'format', equals: 'Vial' });
-    // 2.040 g is below the fill-weight limit, and its volume (2.030 mL at 1.0050 g/mL) is just inside.
-    expect(judgedRun(fill, { round: { fillWeight: '2.040' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
-    // The volume is judged on its own: a denser bulk (1.0400 g/mL) puts 2.100 g inside its weight limit and its volume
-    // (2.019 mL) below the volume limit.
-    expect(judgedRun(withUse(fill, { inputs: { density: { value: '1.0400', unit: 'g/mL' } } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(judgedRun(fill, { round: { closures: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     // A vial line without the stopper-height check is an exception; an ampoule line records no such check.
     expect(judgedRun(fill, { setup: { stopperCheck: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     expect(judgedRun(fill, { setup: { format: 'Ampoule', stopperCheck: undefined } })).toEqual({ exceptions: [], status: 'COMPLETED' });
@@ -163,6 +173,19 @@ describe('the Injectables catalogue (slice I-1)', () => {
     // 300 rejects of 10,000 inspected: 3 %, above the 2 % limit.
     expect(judgedRun(item, { counts: { particles: '240' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(item, { aql: { aqlCritical: '1' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+  });
+
+  it('[ST-62] the booth illumination check is an EU-market block (Annex 1 8.31) signed by the operator alone: not in the IN or US base, which inspects without it; an illumination out of range is an exception', () => {
+    const light = byCode('INJ-INSPECT-LIGHT');
+    expect(light.definition.markets).toEqual(['EU']);
+    for (const m of ['IN', 'US']) expect(light.definition.markets, m).not.toContain(m);
+    expect(light.definition.signatures).toHaveLength(1);
+    expect(light.definition.signatures[0]).toMatchObject({ meaning: 'PERFORMED' });
+    expect(light.definition.sections.flatMap((x) => x.fields).map((f) => f.id)).toEqual(['illuminationOk']);
+    // The base inspection block, offered to every market, keeps no illumination answer.
+    expect(byCode('INJ-VISUAL-INSPECT').definition.markets).toBeUndefined();
+    expect(judgedRun(light, {})).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(judgedRun(light, { light: { illuminationOk: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
   it('[ST-64] one unit failing the container closure integrity test is an exception', () => {
