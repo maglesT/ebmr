@@ -145,3 +145,28 @@ describe('N-3: a stage\'s own yield step and its theoretical quantity', () => {
     expect((step().config as { inputLines?: unknown }).inputLines).toBeUndefined();
   });
 });
+
+/**
+ * Session 12 (owner acceptance): a step moved to the end of another stage, e.g. the release for packing to a coating
+ * stage the author adds after blending; a step already in that stage, or an unknown one, is refused and nothing changes.
+ */
+describe('a step moved to another stage', () => {
+  it('[PR-03] the last step of a stage moves to the end of a later stage the author added; refusals change nothing', () => {
+    const base = parsed(granulation);
+    const first = stagesOf(base)[0] as flow.StageNode;
+    const stage = newStage(base, PALETTE, 'Film coating', 'COAT-1');
+    let c = applyOp(base, { kind: 'ADD_STAGE', afterStageId: stagesOf(base).at(-1)?.id ?? null, stage });
+    const last = (s: flow.StageNode): flow.FlowNode | undefined => (s.body as flow.SequenceNode).children.at(-1);
+    let moving = undefined as unknown as flow.FlowNode;
+    flow.walk((stagesOf(c)[0] as flow.StageNode).body, (n) => {
+      if (n.kind === 'phase' || n.kind === 'holdPoint') moving = n;
+    });
+    c = applyOp(c, { kind: 'MOVE_STEP_TO_STAGE', nodeId: moving.id, stageId: stage.id });
+    wellFormed(c);
+    expect(last(stagesOf(c).find((s) => s.id === stage.id) as flow.StageNode)?.id).toBe(moving.id);
+    expect(JSON.stringify(stagesOf(c)[0])).not.toContain(`"id":"${moving.id}"`);
+    expect(first.id).toBe((stagesOf(c)[0] as flow.StageNode).id);
+    expect(() => applyOp(c, { kind: 'MOVE_STEP_TO_STAGE', nodeId: moving.id, stageId: stage.id })).toThrow(OpError);
+    expect(() => applyOp(c, { kind: 'MOVE_STEP_TO_STAGE', nodeId: 'p-none', stageId: first.id })).toThrow(OpError);
+  });
+});
