@@ -23,10 +23,10 @@ behaviour: |-
 catalog_test: Miss a 15-min fill-weight check → flagged. Record a manual weight check in ISO 5 → also logged as an intervention.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] the fill weights are recorded once, in the fill weight check, each unit judged and the mean; filling checks the closures at each round; the stopper-height check is asked for vials only"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [IN-41][ST-56] homogenisation of a bulk that cannot be filtered records the homogeniser in its room (the grade from the formulation), the speed and time against the validated settings, and the particle size of each sample against its limits; a value outside is an exception"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-56] plunger or middle-stopper placement names the lot used, verified by a second person, and judges the position of every unit measured at each round; a unit out of position is an exception"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-56][IN-41] sterile powder filling records the line in its room, the mean fill weight at each round against its limits and the closures, and registers the filled trays with the counts unit accountability reads; a fill weight outside its limits is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] the fill weights are recorded once, in the fill weight check, each unit judged and the mean; filling checks the closures at each round; the stopper-height check is asked for vials only"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
