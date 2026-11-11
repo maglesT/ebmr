@@ -35,11 +35,11 @@ import {
   planPackaging, postFinishedLot, pullReserveSample, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, investigateAndClose, linkNewDeviation, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, stepIdOf, type PlantUnit, type ProductBlock } from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
 
 
-interface Injectable {
+export interface Injectable {
   key: string;
   prefix: string;
   name: string;
@@ -67,7 +67,7 @@ interface Injectable {
   gmp?: InjectableGmp;
 }
 
-interface InjectableGmp {
+export interface InjectableGmp {
   /** The GMP plant's units of the classes the product's library steps name (registered on its screens in GMP 3). */
   plant: readonly PlantUnit[];
   /**
@@ -79,10 +79,17 @@ interface InjectableGmp {
    */
   outputStage: string;
   outputUnits: string;
+  /**
+   * A value the GMP batch records outside its action limit (`step`: the block code; `values` by section and field, over
+   * the product's own), e.g. an EM count after incubation. The step is blocked until the supervisor raises a deviation
+   * for the batch and links it (`rationale`); the lot's release checklist then stays red until QA has investigated and
+   * closed it (GMP 9).
+   */
+  breach?: { step: string; values: Readonly<Record<string, Readonly<Record<string, unknown>>>>; rationale: string };
 }
 
 /** A process unit of the sandbox plant (each class its own, as the blocks' examples name them), in the dispensing room. */
-const unit = (classCode: string, classDescription: string, code: string, name: string): PlantUnit => ({ classCode, classKind: 'PROCESS', classDescription, code, name, area: 'DISP-1' });
+export const unit = (classCode: string, classDescription: string, code: string, name: string): PlantUnit => ({ classCode, classKind: 'PROCESS', classDescription, code, name, area: 'DISP-1' });
 
 /** The sandbox's balance (tablets-server cli/sandbox-plant.ts): the fill weights are weighed on it. */
 const SANDBOX_BALANCE: Readonly<Record<string, string>> = { 'EQC-BAL': 'TEST-BAL-02' };
@@ -92,7 +99,7 @@ const SANDBOX_BALANCE: Readonly<Record<string, string>> = { 'EQC-BAL': 'TEST-BAL
  * inspection counts and finds no unit unaccounted for): 10,000 filled, 20 rejected at the line, 40 at capping or sealing, 9,800 inspected with 80 rejects
  * (9,720 accepted), 120 sampled and 20 documented losses.
  */
-const VIAL_COUNTS = {
+export const VIAL_COUNTS = {
   fill: { end: { filled: '10000', rejects: '20' }, tray: { units: '10000' } },
   capping: { round: { rejects: '40' } },
   inspect: { counts: { inspected: '9800', particles: '20', container: '30', fill: '25', closure: '5' } },
@@ -139,7 +146,7 @@ export const INJECTABLES: readonly Injectable[] = [
       productBlock('INJ-PARTS-AUTOCLAVE', 'STEAM-STERILISER'),
       productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
       productBlock('INJ-BULK-FILTER', { filterClass: 'FILTER-0_45UM', receiverClass: 'SS-VESSEL-200L' }),
-      { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C', balanceClass: 'EQC-BAL' }), values: VIAL_COUNTS.fill },
+      { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C' }), values: VIAL_COUNTS.fill },
       productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
       productBlock('INJ-STERILITY-SAMPLE', {}),
       { ...productBlock('INJ-CAPPING', 'VIAL-CAPPER'), values: VIAL_COUNTS.capping },
@@ -205,7 +212,7 @@ export const INJECTABLES: readonly Injectable[] = [
       { ...productBlock('INJ-PARTS-AUTOCLAVE', 'STEAM-STERILISER'), values: { cycle: { loadPattern: 'Filling machine parts' } } },
       productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
       productBlock('INJ-BULK-FILTER', { filterClass: 'FILTER-0_45UM', receiverClass: 'SS-VESSEL-200L' }),
-      { ...productBlock('INJ-FILL', { lineClass: 'AMPOULE-FILLING-LINE', roomClass: 'ROOM-GRADE-C', balanceClass: 'EQC-BAL' }), values: { ...VIAL_COUNTS.fill, setup: { format: 'Ampoule' } } },
+      { ...productBlock('INJ-FILL', { lineClass: 'AMPOULE-FILLING-LINE', roomClass: 'ROOM-GRADE-C' }), values: { ...VIAL_COUNTS.fill, setup: { format: 'Ampoule' } } },
       productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
       productBlock('INJ-STERILITY-SAMPLE', {}),
       { ...productBlock('INJ-AMPOULE-SEAL', 'AMPOULE-SEALER'), values: VIAL_COUNTS.capping },
@@ -221,9 +228,10 @@ export const INJECTABLES: readonly Injectable[] = [
 /** What a product's library steps name on the sandbox plant: the unit of each class. */
 const unitsOf = (t: Injectable): Record<string, string> => ({ ...SANDBOX_BALANCE, ...Object.fromEntries(t.plant.map((u) => [u.classCode, u.code])) });
 
-export function defineInjectablesAcceptance(productKey: string): void {
-  const t = INJECTABLES.find((x) => x.key === productKey);
-  if (!t) throw new Error(`no injectable ${productKey} in the acceptance`);
+export function defineInjectablesAcceptance(product: string | Injectable): void {
+  // A product of another slice's file (I-2 aseptic, I-3 lyo) is passed as data; the I-1 products by their key.
+  const t = typeof product === 'string' ? INJECTABLES.find((x) => x.key === product) : product;
+  if (!t) throw new Error(`no injectable ${typeof product === 'string' ? product : product.key} in the acceptance`);
   const codes = [...new Set(t.steps.map((b) => b.def.code))];
   test.describe.configure({ mode: 'serial' });
 
@@ -626,9 +634,9 @@ async function injPackagingRun(
   await page.context().close();
 }
 
-export function defineInjectablesGmp(productKey: string): void {
-  const t = INJECTABLES.find((x) => x.key === productKey);
-  if (!t) throw new Error(`no injectable ${productKey} in the acceptance`);
+export function defineInjectablesGmp(product: string | Injectable): void {
+  const t = typeof product === 'string' ? INJECTABLES.find((x) => x.key === product) : product;
+  if (!t) throw new Error(`no injectable ${typeof product === 'string' ? product : product.key} in the acceptance`);
   const gmp = t.gmp;
   if (!gmp) return;
   // Serial already: `defineInjectablesAcceptance` configures the file (Playwright allows one mode per scope).
@@ -832,7 +840,7 @@ export function defineInjectablesGmp(productKey: string): void {
     }, sp);
   });
 
-  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, persona, evidence, browser }) => {
+  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
     test.setTimeout(90 * 60_000);
     const s = loadProduct(e2e, key);
     const floor: Floor = {
@@ -852,7 +860,17 @@ export function defineInjectablesGmp(productKey: string): void {
           lots, discharge: { tare: '0', gross: '0' }, lubricantKg: '0', dispensingOnly: true,
           afterDispensing: async (page, ctx) => {
             for (const b of t.steps) {
-              await runLibraryStep(page, ctx, b, units, stepLots, 1, 'GMP-', pool);
+              const breach = gmp.breach?.step === b.def.code ? gmp.breach : undefined;
+              const recorded = breach ? { ...b, values: { ...b.values, ...breach.values } } : b;
+              await runLibraryStep(page, ctx, recorded, units, stepLots, 1, 'GMP-', pool, breach ? async (p) => {
+                const office = await officePage('GMP', PC_PLAN);
+                await signIn.office(office, floor.persona('supervisor1'));
+                const ref = await linkNewDeviation(office, { base: e2e.url('GMP'), runId: floor.batchId, stepKey: `${stepIdOf(b.def.code)}@` }, { classification: 'Major', rationale: breach.rationale });
+                await office.context().close();
+                await expect(p.getByTestId('step-card')).toBeVisible();
+                (s.marks ??= []).push(`deviation ${ref}`);
+                floor.save();
+              } : undefined);
               // 211.184(a), 211.188(b)(3): the record names the lot of each container and closure used. The step's
               // completed entry on the kiosk shows the released GMP lot its MATERIAL_LOT field named (the containers at
               // INJ-WASH, the stoppers at INJ-PARTS-AUTOCLAVE, the seals at INJ-CAPPING).
@@ -1169,6 +1187,74 @@ export function defineInjectablesGmp(productKey: string): void {
       await approveResults(hq, results.map(([c]) => c), persona('GMP', 'qcApprover'));
     }, hq);
   });
+
+  // I-2b: a product whose GMP batch recorded a value above its action limit (`gmp.breach`, an EM count after incubation):
+  // the lot's release checklist is red on the batch's open deviation until QA has investigated and closed it.
+  if (gmp.breach) {
+    test(`[ST-21][IN-42][IN-49] ${t.name}, GMP 8b: the EM count above the action limit holds the lot: its release checklist is red on the batch's open deviation until QA investigates, concludes and closes it @office`, async ({ e2e, officePage, persona, evidence }) => {
+      test.setTimeout(30 * 60_000);
+      const s = loadProduct(e2e, key);
+      const refs = (s.marks ?? []).filter((m) => m.startsWith('deviation ')).map((m) => m.slice('deviation '.length));
+      expect(refs).toHaveLength(1);
+      const cockpit = await officePage('GMP', PC_QA2);
+      await signIn.office(cockpit, persona('GMP', 'qcuAuthoriser'));
+      const item = cockpit.getByTestId('grel-checklist').getByTestId('grel-item-G2.DEVIATIONS');
+      let href = '';
+      await evidence.step('The lot cannot be released: its checklist is red on the batch\'s open deviation', 'G2.DEVIATIONS RED, naming the deviation; the lot is not ready', async () => {
+        await home(cockpit, /^Release cockpit/);
+        const row = cockpit.getByTestId(`release-lot-${s.lotCode ?? ''}`);
+        await expect(row).not.toContainText('Ready');
+        await row.getByRole('link', { name: s.lotCode ?? '' }).click();
+        await expect(item).toHaveAttribute('data-status', 'RED');
+        const link = item.locator('a[href*="/deviations/"]').first();
+        href = (await link.getAttribute('href')) ?? '';
+        expect(href).not.toBe('');
+        return { deviation: refs[0] ?? '', href };
+      }, cockpit);
+      await evidence.step('The release is refused on screen while the deviation is open', 'The manufacturer release cannot be signed: its gate names G2.DEVIATIONS RED', async () => {
+        // Decision 0029 (release stays strict while a linked deviation is open): the gate refuses the signature, so the
+        // button is disabled and the gate says why.
+        const section = cockpit.getByTestId('manufacturer-release');
+        await expect(section.getByTestId('release-problems')).toContainText(/G-REL item G2\.DEVIATIONS is RED/);
+        await expect(section.getByRole('button', { name: 'Sign the manufacturer release' })).toBeDisabled();
+        return { refused: true };
+      }, cockpit);
+      const qa = persona('GMP', 'qaInvestigator');
+      const qa2 = persona('GMP', 'qaApprover2');
+      const owner = await officePage('GMP', PC_QA2);
+      await signIn.office(owner, qa);
+      const second = await officePage('GMP', PC_QA2);
+      await signIn.office(second, qa2);
+      await evidence.step('QA investigates the deviation from the batch\'s record, concludes and closes it', 'The deviation is CLOSED', async () => {
+        // The deviation is the processing batch's (raised from its step); the checklist's link may name the lot's other
+        // record (the packaging order), so the record is opened under the processing batch (G2: /review/<batch>/deviations/<id>).
+        const deviationId = href.replace(/^.*\/deviations\//, '').replace(/[?#].*$/, '');
+        await owner.goto(`${e2e.url('GMP')}/review/${s.batchId ?? ''}/deviations/${deviationId}`);
+        await expect(owner.getByTestId('deviation-state')).toContainText('OPEN');
+        await investigateAndClose({ owner, classifier: cockpit, second }, { owner: qa, second: qa2 }, {
+          classification: 'MAJOR',
+          rationale: 'A Grade B count above the action limit during an aseptic fill; product sterility assurance to be assessed.',
+          cause: 'Operator glove print after the recorded intervention; organism identified as skin flora.',
+          causeKind: 'HUMAN_ERROR',
+          impact: 'The sterility test of the batch passed; the intervention was on the validated list; the media fill covers it.',
+          rootCause: 'Interview, video review of the intervention and the gowning record',
+          capa: `CAPA-${s.tag.toUpperCase()}`,
+          others: 'Batches filled on the line since the last media fill',
+          othersReason: 'Their EM results were within the alert level',
+          systemFactors: {
+            process: 'The intervention needs a reach over the open vials at the stopper bowl',
+            procedure: 'The intervention instruction does not say where to hold the forceps',
+            system: 'The glove change after an intervention is not prompted by the line',
+          },
+        });
+      }, second);
+      await evidence.step('The checklist item is green again once the deviation is closed', 'G2.DEVIATIONS GREEN', async () => {
+        await home(cockpit, /^Release cockpit/);
+        await cockpit.getByTestId(`release-lot-${s.lotCode ?? ''}`).getByRole('link', { name: s.lotCode ?? '' }).click();
+        await expect(item).toHaveAttribute('data-status', 'GREEN');
+      }, cockpit);
+    });
+  }
 
   test(`[INV-05][IN-05][DI-25][INV-48] ${t.name}, GMP 9: both records reviewed and the lot released for IN by the authorised person on a checklist with no red item @office`, async ({ e2e, officePage, persona, evidence }) => {
     test.setTimeout(40 * 60_000);
