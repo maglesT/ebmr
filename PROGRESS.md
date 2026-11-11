@@ -64,6 +64,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   edited; the next tablets migration (1909) says so in its header.
 - #219 owner acceptance E2E (group `library-bilayer`): a bilayer tablet with four stages built on screen to its released
   lot; the weighing line choice names the line; designer MOVE_STEP_TO_STAGE fixed.
+- #221 SITE-995 (session 12b; site-services 1736, substance 5009, tablets 1909): the person posting an API-edition
+  intermediate lot chooses its dates, EXPIRY (shelf life, optional retest), RETEST or NONE; only an in-house
+  intermediate may have no expiry (check plus deferred trigger, EBMR-SITE-999); no transfer package for an undated lot
+  (EBMR-XFR-043); FEFO takes undated lots after dated ones. Tablets 1909's header carries the D-0029-3 note.
 - Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
   changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 
@@ -76,9 +80,9 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 
 ## Next
 
-- SITE-995 (session 12b, site-services 1736): an in-house intermediate lot may carry a retest date or neither instead
-  of an expiry; every status, FEFO and label read checked.
-- The next tablets migration (1909) opens its header with the D-0029-3 note (tablets 1907's basis is decision 0029).
+- Residuals of SITE-995 (lead, 11 November): EBMR-SITE-180 says a lot's use "ends at its expiry", wrong for a lot with
+  no dates; an intermediate lot cannot be retested to a new date (its material code is the product code, which has no
+  ERP material retest interval).
 - Later CI slice: gate the E2E set-up's seeds per group (`gmpReviewBatch`, `gmpPackaging` in
   `tools/e2e/global-setup.ts`); needs a full E2E proof run.
 - Tablets to v1.0, then Injectables (decision 0010).
