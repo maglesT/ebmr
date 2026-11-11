@@ -160,7 +160,7 @@ describe('library blocks in the designer', () => {
     const onBoth = vi.fn();
     const ui2 = renderRouted(() => <LibraryValuesForm content={c} step={both} readOnly={false} onChange={onBoth} />);
     const f2 = await screen.findByTestId('library-values');
-    expect((within(f2).getByLabelText('Point 1: alert limit, lower')).value).toBe('80');
+    expect(within(f2).getByLabelText('Point 1: alert limit, lower')).toHaveProperty('value', '80');
     await userEvent.clear(within(f2).getByLabelText('Point 1: label'));
     await userEvent.type(within(f2).getByLabelText('Point 1: label'), '45 min');
     await userEvent.tab();
