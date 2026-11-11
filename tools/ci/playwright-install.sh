@@ -10,7 +10,14 @@ set -euo pipefail
 
 pw_install() { pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium; }
 
-if [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; then pw_install; exit 0; fi
+# GitHub-hosted: when the apt part of --with-deps fails (the Ubuntu mirror unreachable, as on 11 November 2026), fall
+# back to the browser alone: the runner image already carries Chrome and its system libraries.
+if [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; then
+  pw_install && exit 0
+  echo "playwright-install: --with-deps failed; installing chromium without system packages" >&2
+  pnpm --filter @ebmr/e2e exec playwright install chromium
+  exit 0
+fi
 
 [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] || { echo "playwright-install: PLAYWRIGHT_BROWSERS_PATH is not set (run tools/ci/runner-env.sh first)" >&2; exit 1; }
 
