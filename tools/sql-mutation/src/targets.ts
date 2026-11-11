@@ -1039,10 +1039,13 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // ---- API plan A2 (C1): an intermediate lot posted from a complete processing batch of the API edition only
-  // (site-services 1732, substance 5004) ---------------------------------------------------------------------------------
+  // (site-services 1732, substance 5004); SITE-995 dates (site-services 1736, substance 5009, tablets 1909) ----------------
   {
     group: 'api-intermediate-lots',
-    functions: ['site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'site.intermediate_lots_of', 'substance.post_intermediate_lot'],
+    functions: [
+      'site.create_intermediate_lot', 'site.intermediate_batch_facts', 'site.intermediate_lot_of', 'site.intermediate_lots_of', 'substance.post_intermediate_lot',
+      'site.material_lot_no_expiry_in_house', 'site.transfer_package_lot_has_expiry',
+    ],
     tests: [s('substance/intermediate-lots.test.ts')],
     threshold: 90,
   },
