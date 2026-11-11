@@ -73,7 +73,10 @@ export type Op =
   // Slice 7o (R4, R8 C3; D-7o-2): one more coat of the same tablets after a step (coating-layer.ts).
   | { kind: 'ADD_COATING_LAYER'; stepId: string; place: 'BEFORE' | 'AFTER'; layer: CoatingLayer }
   // Decision 0026 slice S9: an approved library block as a step, its snapshot carried by the master (pinned by hash).
-  | { kind: 'ADD_LIBRARY_BLOCK'; sequenceId: string; index: number; stepId: string; definition: library.BlockDefinition };
+  | { kind: 'ADD_LIBRARY_BLOCK'; sequenceId: string; index: number; stepId: string; definition: library.BlockDefinition }
+  // Owner retest N-3: a library step's batch-size input (a stage yield's theoretical quantity) read as the sum of formula
+  // lines; an empty list removes the binding.
+  | { kind: 'SET_INPUT_LINES'; stepId: string; inputId: string; lines: string[] };
 
 export const KNOWN_MARKETS = ['IN', 'US', 'EU'] as const;
 
@@ -222,6 +225,24 @@ function applyInPlace(c: Content, op: Op): void {
       }
       l.node.children.splice(op.index, 0, library.libraryPhase(op.definition, op.stepId, defaultRiskClass(c)));
       c.blockDefinitions = snapshots;
+      return;
+    }
+    case 'SET_INPUT_LINES': {
+      const l = locate(c, op.stepId);
+      const step = l?.node;
+      const def = step?.kind === 'phase' ? libraryDefinitionOf(c, step) : undefined;
+      if (!step || step.kind !== 'phase' || !def) throw new OpError(`There is no library step ${op.stepId}.`);
+      const input = (def.inputs ?? []).find((i) => i.id === op.inputId);
+      if (input?.kind !== 'BATCH_SIZE') throw new OpError(`${def.title} has no batch-size input ${op.inputId}.`);
+      const unknown = op.lines.filter((id) => !c.bom.some((b) => b.id === id));
+      if (unknown.length > 0) throw new OpError(`${unknown.join(', ')} is not a line of the bill of materials.`);
+      const config = step.config as { inputLines?: Record<string, string[]> };
+      const lines = [...new Set(op.lines)];
+      const next = { ...(config.inputLines ?? {}) };
+      if (lines.length === 0) delete next[op.inputId];
+      else next[op.inputId] = lines;
+      if (Object.keys(next).length === 0) delete config.inputLines;
+      else config.inputLines = next;
       return;
     }
     case 'SET_TITLE':
@@ -620,4 +641,9 @@ export function insertionPoint(c: Content, afterId: string): { sequenceId: strin
   if (l?.node.kind === 'sequence') return { sequenceId: l.node.id, index: 0 };
   if (l && (l.node.kind === 'operation' || l.node.kind === 'stage') && l.node.body.kind === 'sequence') return { sequenceId: l.node.body.id, index: 0 };
   return undefined;
+}
+
+/** The definition snapshot the master carries for library step `step`, or undefined when it is not a library step. */
+export function libraryDefinitionOf(c: Content, step: flow.PhaseNode): library.BlockDefinition | undefined {
+  return library.definitionsOf(c).find((d) => library.libraryBlockType(d.code) === step.block.type && String(d.version) === step.block.version);
 }

@@ -98,6 +98,7 @@ const CONFIG_SCHEMA: ObjectSchema = {
       values: { type: 'object', description: 'Market rule', fields: { key: { type: 'string', description: 'Rule key' }, bound: { type: 'string', enum: ['LOW', 'HIGH'], description: 'Bound' } } },
     },
     bomLines: { type: 'record', optional: true, values: { type: 'string', description: 'BOM line id' }, description: 'Formula lines by slot' },
+    inputLines: { type: 'record', optional: true, values: { type: 'array', minItems: 1, items: { type: 'string', description: 'BOM line id' }, description: 'Formula lines' }, description: 'Batch-size inputs read as the sum of formula lines (N-3)' },
     stepValues: { type: 'record', optional: true, values: { type: 'object', description: 'Earlier step value', fields: { step: { type: 'string', description: 'Step' }, field: { type: 'string', description: 'Field' } } }, description: 'Earlier-step values by slot' },
     points: {
       type: 'record',
@@ -603,7 +604,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         return sv ? [{ input: i.id, step: sv.step, field: sv.field, unit: i.unit }] : [];
       }),
     checkConfig: (_phase, config, mbr) =>
-      checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr, mbr.bom).map((p) => ({
+      checkBlockUse(def, { block: { code: def.code, version: def.version, ...(typeof config['hash'] === 'string' ? { hash: config['hash'] } : {}) }, ...(config as unknown as Config) }, expr, mbr.bom, mbr.header.batchSizes).map((p) => ({
         code: p.code,
         severity: p.severity,
         message: `${p.path}: ${p.message}`,

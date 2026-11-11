@@ -337,6 +337,12 @@ export interface BlockUse {
   justifications?: Record<string, string>;
   /** BOM line ids for FORMULA_LINE inputs, by slot. */
   bomLines?: Record<string, string>;
+  /**
+   * Owner retest N-3: a BATCH_SIZE input read instead as the sum of these formula lines for the batch (by input id), e.g.
+   * a stage yield's theoretical quantity in kg when the batch size is in tablets. The designer fills the lines the stage
+   * and the stages before it use; the author may change them.
+   */
+  inputLines?: Record<string, string[]>;
   /** Earlier step and field for STEP_VALUE inputs, by slot (resolved against the formulation in S9). */
   stepValues?: Record<string, { step: string; field: string }>;
   /** Time points or stages of a per-point test result, by field id. */
