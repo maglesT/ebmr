@@ -322,6 +322,7 @@ function applyInPlace(c: Content, op: Op): void {
         return;
       }
       if (!(flow.NON_PRODUCT_KINDS as readonly string[]).includes(op.nonProduct)) throw new OpError('A master that makes no product is a process simulation.');
+      if (c.header.edition !== 'injectables' || c.header.recordKind !== 'PROCESSING') throw new OpError('Only an injectables processing master may be a process simulation.');
       c.header.nonProduct = op.nonProduct;
       return;
     }

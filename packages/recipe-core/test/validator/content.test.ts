@@ -557,6 +557,7 @@ describe('GMP content gates', () => {
 describe('the process-simulation mark (nonProduct)', () => {
   it('[IN-45][ST-29] a master may be marked PROCESS_SIMULATION and nothing else: the parser and the validator refuse any other value, and the mark is part of the content hash', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
+    m.header.edition = 'injectables';
     const plain = mbrContentHash(m);
     m.header.nonProduct = 'PROCESS_SIMULATION';
     expect(errors(validate(m)).filter((f) => f.rule === 'GMP-HEADER')).toEqual([]);
@@ -570,6 +571,19 @@ describe('the process-simulation mark (nonProduct)', () => {
     expect(refused.ok ? [] : refused.problems.map((p) => `${p.path} ${p.message}`)).toEqual([expect.stringMatching(/header\.nonProduct must be one of PROCESS_SIMULATION/)]);
     (m.header as { nonProduct?: string }).nonProduct = 'ROUTINE_MONITORING';
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-HEADER')?.message).toMatch(/is a process simulation \(PROCESS_SIMULATION\), not ROUTINE_MONITORING/);
+  });
+
+  it('[IN-45][ST-29] only an injectables processing master may carry the mark: a tablets or substance master and a packaging master are refused', () => {
+    const header = (f: 'tablet-granulation-compression' | 'tablet-blister-packaging', edition: 'tablets' | 'injectables' | 'substance'): string[] => {
+      const m = clone(loadFixture(f));
+      m.header.edition = edition;
+      m.header.nonProduct = 'PROCESS_SIMULATION';
+      return errors(validate(m)).filter((x) => x.rule === 'GMP-HEADER').map((x) => x.message);
+    };
+    expect(header('tablet-granulation-compression', 'injectables')).toEqual([]);
+    expect(header('tablet-granulation-compression', 'tablets')).toEqual([expect.stringMatching(/Only an injectables processing master may be a process simulation; this master is tablets, processing/)]);
+    expect(header('tablet-granulation-compression', 'substance')).toEqual([expect.stringMatching(/this master is substance, processing/)]);
+    expect(header('tablet-blister-packaging', 'injectables')).toEqual([expect.stringMatching(/this master is injectables, packaging/)]);
   });
 });
 

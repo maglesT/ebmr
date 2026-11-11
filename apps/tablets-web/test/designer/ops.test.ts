@@ -202,13 +202,21 @@ describe('designer edit operations', () => {
   });
 
   it('[IN-45][ST-29] the author marks a master as a process simulation and clears the mark; the marked content parses and no other value is set', () => {
-    const c = FIXTURES[0] as Content;
+    const c: Content = { ...(FIXTURES[0] as Content), header: { ...(FIXTURES[0] as Content).header, edition: 'injectables' } };
     const marked = applyOp(c, { kind: 'SET_NON_PRODUCT', nonProduct: 'PROCESS_SIMULATION' });
     expect(marked.header.nonProduct).toBe('PROCESS_SIMULATION');
     expect(flow.parseMbr(JSON.parse(JSON.stringify(marked))).ok).toBe(true);
     expect(() => applyOp(c, { kind: 'SET_NON_PRODUCT', nonProduct: 'ROUTINE_MONITORING' as flow.NonProduct })).toThrow(/process simulation/);
     expect('nonProduct' in applyOp(marked, { kind: 'SET_NON_PRODUCT', nonProduct: null }).header).toBe(false);
     expect('nonProduct' in c.header).toBe(false);
+  });
+
+  it('[IN-45][ST-29] only an injectables processing master can be marked a process simulation: a tablets master and a packaging master are refused', () => {
+    const tablets = FIXTURES[0] as Content;
+    const packaging = { ...(FIXTURES[1] as Content), header: { ...(FIXTURES[1] as Content).header, edition: 'injectables' as const } };
+    for (const c of [tablets, packaging]) {
+      expect(() => applyOp(c, { kind: 'SET_NON_PRODUCT', nonProduct: 'PROCESS_SIMULATION' })).toThrow(/Only an injectables processing master/);
+    }
   });
 
   it('[DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)', () => {

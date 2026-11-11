@@ -65,9 +65,10 @@ function without(content: unknown, types: readonly string[]): unknown {
 }
 
 /** An effective master authorised for `markets`, with (licensed) or without its licence and export permissions. */
-async function effective(markets: string[], licensed: boolean, simulation = false): Promise<Master> {
+async function effective(markets: string[], licensed: boolean, simulation = false, injectables = simulation): Promise<Master> {
   const m = uniqueContent(FIXTURE, ['EU', 'IN', 'US']);
   m.header.product = { ...m.header.product, code: m.header.product.code.toUpperCase() };
+  if (injectables) m.header.edition = 'injectables';
   if (simulation) m.header.nonProduct = 'PROCESS_SIMULATION';
   const content = without(m, ['G-09', 'G-10']) as MbrContent;
   const v = await w.approvedVersion(content);
@@ -428,10 +429,63 @@ describe('the process-simulation mark (recipe-core 1888; injectables I-2, featur
     expect(hash).toBe(mbrContentHash(sim.content));
     expect(hash).not.toBe(mbrContentHash(unmarked));
     expect(await messageOf(w.run(w.cast.author, (c) => saveContent(c, sim.versionId, unmarked)))).toMatch(/APPROVED: its content can change only in DRAFT.*EBMR-RCP-021/);
-    const plain = await effective(['IN'], false);
+    const plain = await effective(['IN'], false, false, true);
     const marked = structuredClone(plain.content);
     marked.header.nonProduct = 'PROCESS_SIMULATION';
     expect(await messageOf(w.run(w.cast.author, (c) => saveContent(c, plain.versionId, marked)))).toMatch(/EBMR-RCP-021/);
+  });
+
+  it('[IN-45][ST-29] only an injectables processing master may carry the mark: the database refuses to save it on a tablets master or a packaging master', async () => {
+    for (const [fixture, edition] of [['tablet-granulation-compression', 'tablets'], ['tablet-blister-packaging', 'tablets'], ['tablet-blister-packaging', 'injectables']] as const) {
+      const m = uniqueContent(fixture, ['IN']);
+      m.header.product = { ...m.header.product, code: m.header.product.code.toUpperCase() };
+      m.header.edition = edition;
+      m.header.nonProduct = 'PROCESS_SIMULATION';
+      expect(await messageOf(w.newVersion(without(m, ['G-09', 'G-10']) as MbrContent))).toMatch(/is an aseptic process simulation \(PROCESS_SIMULATION\) of an injectables processing master.*EBMR-RCP-435/);
+    }
+  });
+
+  it('[IN-30][IN-45][ST-29] a mark found outside an injectables processing master never skips the licence: recipe.process_simulation_batch is false there', async () => {
+    const sim = await effective(['IN'], false, true);
+    const b = await plan(sim, ['IN']);
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      expect((await c.query<{ s: boolean }>('select recipe.process_simulation_batch($1) as s', [b])).rows[0]!.s).toBe(true);
+      // TEST FIXTURE: the family made a tablets one, then a packaging one (superuser, triggers off), read and rolled back.
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query("update recipe.mbr_family set edition = 'tablets' where id = $1", [sim.familyId]);
+      const tablets = (await c.query<{ s: boolean; p: string }>('select recipe.process_simulation_batch($1) as s, recipe.india_issue_problem($1) as p', [b])).rows[0]!;
+      expect(tablets.s).toBe(false);
+      expect(tablets.p).toMatch(/EBMR-IND-040/);
+      await c.query("update recipe.mbr_family set edition = 'injectables', record_kind = 'PACKAGING' where id = $1", [sim.familyId]);
+      expect((await c.query<{ s: boolean }>('select recipe.process_simulation_batch($1) as s', [b])).rows[0]!.s).toBe(false);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+
+  it('[IN-45][ST-29] no intermediate lot is posted from a process simulation, whoever writes it, so nothing of it reaches a real batch', async () => {
+    const sim = await effective(['IN'], false, true);
+    const b = await issue(await plan(sim, ['IN']));
+    // TEST FIXTURE: the material lot written with triggers off (superuser), then the intermediate lot row; rolled back.
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      const lot = randomUUID();
+      const person = randomUUID();
+      await c.query(`insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+                     values ($1, $2, 'SIM-INT-1', $3, 'Media fill', 'INTERMEDIATE', 100, 'kg', '2030-01-01T00:00:00Z', $4, $4, $4)`, [lot, SITE, sim.product, person]);
+      await c.query("set local session_replication_role = 'origin'");
+      expect(await messageOf(c.query(`insert into site.intermediate_lot (lot_id, batch_id, batch_number, edition, product_code, strength, posted_by_person, posted_by_account)
+                                      values ($1, $2, 'SIM-INT-1', 'SUBSTANCE', $3, $4, $5, $5)`, [lot, b, sim.product, sim.strength, person])))
+        .toMatch(/EBMR-IND-047 batch SIM-INT-1 is a process simulation/);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
   });
 });
 

@@ -11,8 +11,17 @@
 -- consignee. QA's review of the record is its end. The mark is part of the approved content and its hash (content
 -- revisions change only in DRAFT, 0110), so it changes only with a new master version.
 --
---   recipe.process_simulation_batch(batch)  true when the master version batch p_batch is pinned to (recipe.batch_mbr_pin,
---       the content of the pinned hash) carries the mark.
+--   The mark belongs to an injectables PROCESSING master only (lead audit of #230). Aseptic process simulation is a
+--   sterile-processing concept (Annex 1 section 9; 211.113(b) aseptic processes; Schedule M Part II on sterile products),
+--   and the licence skip must never reach product: a marked tablets or substance batch could post an intermediate lot a
+--   real batch consumes, and a marked packaging order of a normal parent would issue with no licence.
+--   recipe.mbr_content_non_product_guard (trigger a2_non_product on recipe.mbr_content, before insert): a content
+--       revision whose header carries nonProduct is saved only when it is PROCESS_SIMULATION on an injectables PROCESSING
+--       master (the header's edition and record kind are the family's, 0110); else EBMR-RCP-435. Every revision a version
+--       is approved on passes through it, so no other master can be approved with the mark.
+--   recipe.process_simulation_batch(batch)  true only for a batch of an injectables PROCESSING family whose pinned
+--       master version (recipe.batch_mbr_pin, the content of the pinned hash) carries the mark: a mark found anywhere
+--       else never skips a licence.
 --   recipe.batch_licence_basis  licence_id and licence_number become nullable, with a new column process_simulation:
 --       the licence columns are NULL exactly when it is set, and a process-simulation row names no loan licence either
 --       (check batch_licence_basis_process_simulation). Every earlier row keeps its licence (default false).
@@ -39,10 +48,12 @@
 --       finished lot of a process-simulation batch, nor of a packaging order of one (EBMR-IND-045).
 --   site.erp_shipment  trigger a00_process_simulation (before insert, before 0961's a0_ and 0870's a1_): no shipment of
 --       a lot of a process-simulation batch (EBMR-IND-046).
+--   site.intermediate_lot  trigger a0_process_simulation (before insert, every writer): no intermediate lot of a
+--       process-simulation batch, so nothing of it can be consumed by a real batch (EBMR-IND-047).
 -- Readers of recipe.batch_licence_basis with a NULL licence: the G-REL licence item (0892) and the contract giver's reads
 -- (1060) are never reached by such a batch (it has no lot; it has no loan licence); the allocation register (0895, 0913)
 -- shows it as issued, with no licence number and processSimulation true (above); the archive's licence form (tablets server) reads none.
--- Messages: EBMR-IND-045, EBMR-IND-046; EBMR-IND-050 and EBMR-EXE-198 reused.
+-- Messages: EBMR-RCP-435, EBMR-IND-045 to EBMR-IND-047; EBMR-IND-050 and EBMR-EXE-198 reused.
 
 set local role ebmr_owner;
 
@@ -51,10 +62,28 @@ create function recipe.process_simulation_batch(p_batch uuid) returns boolean
 language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
   select coalesce((select c.content -> 'header' ->> 'nonProduct' = 'PROCESS_SIMULATION'
                      from recipe.batch_mbr_pin p
+                     join recipe.mbr_family f on f.id = p.family_id and f.edition = 'injectables' and f.record_kind = 'PROCESSING'
                      join recipe.mbr_content c on c.version_id = p.version_id and c.content_hash = p.content_hash
                     where p.batch_id = p_batch
                     limit 1), false)
 $$;
+
+-- The mark only on an injectables processing master (header).
+create function recipe.mbr_content_non_product_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, recipe, pg_temp as $$
+declare
+  h jsonb := new.content -> 'header';
+begin
+  if h ? 'nonProduct' and (h ->> 'nonProduct' is distinct from 'PROCESS_SIMULATION' or h ->> 'edition' is distinct from 'injectables'
+                           or h ->> 'recordKind' is distinct from 'PROCESSING') then
+    raise exception using errcode = 'P0001',
+      message = format('A master that makes no product is an aseptic process simulation (PROCESS_SIMULATION) of an injectables processing master, not %s on a %s %s master: nothing was saved (IN-45, ST-29; EBMR-RCP-435)',
+                       coalesce(h ->> 'nonProduct', 'null'), coalesce(h ->> 'edition', '?'), coalesce(h ->> 'recordKind', '?'));
+  end if;
+  return new;
+end
+$$;
+create trigger a2_non_product before insert on recipe.mbr_content for each row execute function recipe.mbr_content_non_product_guard();
 
 alter table recipe.batch_licence_basis
   alter column licence_id drop not null,
@@ -250,6 +279,19 @@ end
 $$;
 create trigger a00_process_simulation before insert on site.erp_shipment for each row execute function recipe.shipment_process_simulation_guard();
 
+-- No intermediate lot of a process simulation, whoever writes it (header).
+create function recipe.intermediate_lot_process_simulation_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, recipe, pg_temp as $$
+begin
+  if recipe.process_simulation_batch(new.batch_id) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IND-047 batch %s is a process simulation (media fill): it makes no product, so no intermediate lot is posted from it (IN-45, ST-29)', new.batch_number);
+  end if;
+  return new;
+end
+$$;
+create trigger a0_process_simulation before insert on site.intermediate_lot for each row execute function recipe.intermediate_lot_process_simulation_guard();
+
 -- DI-15 (1260) for a process simulation: the site's licence holder (header).
 create or replace function recipe.us_esig_issue_entity(p_batch uuid) returns text
 language plpgsql stable security definer set search_path = pg_catalog, recipe, site, pg_temp as $$
@@ -308,7 +350,8 @@ end
 $$;
 
 revoke all on function recipe.process_simulation_batch(uuid), recipe.finished_lot_process_simulation_guard(),
-                       recipe.shipment_process_simulation_guard() from public;
+                       recipe.shipment_process_simulation_guard(), recipe.intermediate_lot_process_simulation_guard(),
+                       recipe.mbr_content_non_product_guard() from public;
 grant execute on function recipe.process_simulation_batch(uuid) to ebmr_app;
 
 reset role;

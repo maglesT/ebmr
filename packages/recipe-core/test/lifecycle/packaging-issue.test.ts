@@ -103,7 +103,10 @@ async function master(name: Fixture, product?: string, opts: { secondaryPacking?
   const m = uniqueContent(name, opts.markets ?? ['IN']);
   m.header.product = { ...m.header.product, code: (product ?? m.header.product.code).toUpperCase() };
   if (opts.packType) m.header.packType = opts.packType;
-  if (opts.simulation) m.header.nonProduct = 'PROCESS_SIMULATION';
+  if (opts.simulation) {
+    m.header.edition = 'injectables';
+    m.header.nonProduct = 'PROCESS_SIMULATION';
+  }
   if (opts.packSize) m.header.batchSizes = [{ id: opts.packSize.id, quantity: { value: opts.packSize.count, unit: '{tbl}' } }];
   const stripped = without(m, ['G-09', 'G-10']);
   const content = (name === 'tablet-blister-packaging' && opts.secondaryPacking !== false ? withSecondaryPacking(stripped) : stripped) as MbrContent;

@@ -306,7 +306,7 @@ export function DocumentView(props: DocumentProps) {
           <dt>Content hash</dt>
           <dd className={dcls('mono')}>{v.contentHash} (saved revision)</dd>
         </dl>
-        {readOnly ? null : (
+        {readOnly || ((h.edition !== 'injectables' || h.recordKind !== 'PROCESSING') && h.nonProduct === undefined) ? null : (
           <Check
             label="Process simulation (media fill): this master makes no product"
             description="Its batches need no product licence or export permission; nothing of them is packed, posted or shipped."
