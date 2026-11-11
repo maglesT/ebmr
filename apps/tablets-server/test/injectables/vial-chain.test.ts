@@ -157,6 +157,30 @@ describe('Injectables I-1c2: one vial batch from catalogue blocks to a released 
     expect(rows).toEqual([{ e: 'injectables', k: 'PROCESSING' }, { e: 'injectables', k: 'PACKAGING' }]);
   });
 
+  it('[PR-37][PR-05][IN-16] a firm\'s own finished-pack examination block completes an injectables packaging master by its role (PACK_EXAMINATION, recipe-core 1892) once QA approved it; the same block unapproved, or approved without the role, does not; the listed rows (INJ-PACK-EXAM here, TB-24 for tablets) still complete as before', async () => {
+    const problem = async (edition: string, content: flow.MbrContent) =>
+      (await gmp.db.admin.query<{ p: string | null }>('select recipe.packaging_master_problem($1, $2::jsonb) as p', [edition, JSON.stringify(content)])).rows[0]?.p ?? null;
+    const types = async (content: flow.MbrContent) =>
+      (await gmp.db.admin.query<{ t: string[] }>('select recipe.packaging_completion_types($1, $2::jsonb) as t', ['injectables', JSON.stringify(content)])).rows[0]?.t ?? [];
+    const own = (code: string, roles: NonNullable<library.BlockDefinition['roles']>): library.BlockDefinition => ({ ...EXAM.definition, code, title: 'Our finished-pack check', roles });
+    const withRole = own(`FIRMEXAM-${TAG}`, ['PARAMETER_RECORD', 'PACK_EXAMINATION']);
+    const noRole = own(`FIRMNOROLE-${TAG}`, ['PARAMETER_RECORD']);
+    const unapproved = own(`FIRMDRAFT-${TAG}`, ['PARAMETER_RECORD', 'PACK_EXAMINATION']);
+    const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
+    for (const def of [withRole, noRole, unapproved]) {
+      const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
+      if (def !== unapproved) await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
+    }
+    const packWith = (def: library.BlockDefinition) => vialMaster('PACKAGING', (like) => [stage(like, 'S-PACK', 'Labelling and packing', [phaseOf(def, 'p-exam', EXAM.exampleUse)])], [def]);
+    expect(await problem('injectables', packWith(withRole))).toBeNull();
+    expect(await types(packWith(withRole))).toEqual(expect.arrayContaining([`LIB-FIRMEXAM-${TAG}`, 'LIB-INJ-PACK-EXAM']));
+    expect(await problem('injectables', packWith(noRole))).toMatch(/has no LIB-INJ-PACK-EXAM step/);
+    expect(await problem('injectables', packWith(unapproved))).toMatch(/has no LIB-INJ-PACK-EXAM step/);
+    // The block's role counts only in its own edition's master.
+    expect(await problem('tablets', packWith(withRole))).toMatch(/has no TB-24 step/);
+    expect(await problem('injectables', packaging)).toBeNull();
+  });
+
   it('[PR-04][IN-18] the ERP simulator offers an order of the approved, ACTIVE-authorised injectables master (every edition, lead ruling I-1c2 P4a); an unapproved injectables master and an approved one with no authorisation are not offered', async () => {
     const steward = await gmp.asPersona('steward');
     const draft = { code: `INJD-${TAG}`, name: 'Demoinj draft vials', strength: '10 mg/2 mL' };
@@ -242,7 +266,7 @@ describe('Injectables I-1c2: one vial batch from catalogue blocks to a released 
     await d.signed('verifier1', { type: 'VERIFY', stepKey: 'p-exam@', meaning: 'VERIFIED' });
     const after = await exam();
     expect(after.status).toBe('RED');
-    expect(after.problem).toMatch(new RegExp(`found 2 unit\\(s\\) with a wrong or missing label, not resolved: the deviation ${dev.ref} of exception .+, not CLOSED$`));
+    expect(after.problem).toMatch(new RegExp(`found a failure, not resolved: the deviation ${dev.ref} of exception .+, not CLOSED$`));
   });
 
   it('[IN-05][INV-05][IN-17][PR-37] QC tests and samples the lot, QA reviews both records; G-REL for India is green with the injectables edition\'s items, the loads packed vouched for, and the authorised person releases the lot', async () => {

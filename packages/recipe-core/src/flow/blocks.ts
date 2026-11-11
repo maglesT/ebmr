@@ -31,6 +31,9 @@ export const BLOCK_ROLES = [
   'REPROCESSING',
   'SIGN_OFF',
   'PAT',
+  // A step that completes a packaging record by examining the finished packs (21 CFR 211.134(b), (c)): a library block
+  // with this role completes the record as a listed completion block does (recipe-core 1892).
+  'PACK_EXAMINATION',
 ] as const;
 export type BlockRole = (typeof BLOCK_ROLES)[number];
 

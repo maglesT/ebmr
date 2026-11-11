@@ -146,6 +146,19 @@ function IntermediateLot({ batchId }: { batchId: string }) {
           fields={[
             { name: 'quantity', label: 'Intermediate quantity', kind: 'decimal' },
             { name: 'unit', label: 'Unit', kind: 'text', description: 'e.g. kg' },
+            // SITE-995: the person chooses the lot's dates; nothing is chosen for them. EXPIRY takes the product master's
+            // shelf life (a retest date may be added); RETEST needs its date; NONE posts the lot without a date.
+            {
+              name: 'dating',
+              label: 'Dates of this lot',
+              kind: 'choice',
+              options: [
+                { value: 'EXPIRY', label: "Expiry date from the product's shelf life" },
+                { value: 'RETEST', label: 'Retest date only' },
+                { value: 'NONE', label: 'No date (kept in-house)' },
+              ],
+            },
+            { name: 'retestAt', label: 'Retest date', kind: 'instant', optional: true, description: 'Needed for "Retest date only"; optional with an expiry; ISO-8601 with offset, e.g. 2027-06-30T23:59:59+05:30' },
           ]}
         />
       ) : null}

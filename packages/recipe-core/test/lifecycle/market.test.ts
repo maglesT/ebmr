@@ -39,9 +39,12 @@ const current = (versionId: string, market: string, cells: lc.ScopeCell[], extra
   ...extra,
 });
 
-/** Proposes, signs (QA + regulatory) and activates a market authorisation with the QA person's own reason. */
+/**
+ * Proposes, signs (QA + regulatory) and activates a market authorisation with the QA person's own reason. A second QA
+ * person proposes: the proposer cannot authorise (owner item 11, recipe-core 1889).
+ */
 async function authorise(def: lc.MarketAuthorisationDefinition): Promise<lc.ActivationResult> {
-  const id = await w.run(w.cast.qa, (c) => lc.proposeMarketAuthorisation(c, def));
+  const id = await w.run(w.cast.qa2, (c) => lc.proposeMarketAuthorisation(c, def));
   const qaSig = await w.sign(w.cast.qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
   const regSig = await w.sign(w.cast.regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
   return w.run(w.cast.qa, (c) => lc.activateMarketAuthorisation(c, id, qaSig, regSig), reason(`${def.market}: ${def.regulatoryBasis ?? 'authorised'}`));
@@ -52,11 +55,28 @@ async function cellsOf(versionId: string): Promise<{ market: string; line: strin
 }
 
 describe('market authorisation through a signed record (ADR 0014, INV-17)', () => {
+  it('[PR-04][DI-14] the QA person who proposed a market authorisation cannot authorise it; a second QA person does (owner item 11, recipe-core 1889)', async () => {
+    const v = await w.approvedVersion(uniqueContent());
+    const id = await w.run(w.cast.qa, (c) => lc.proposeMarketAuthorisation(c, current(v.versionId, 'IN', [cell('S1', 'L1', BS)])));
+    const regSig = await w.sign(w.cast.regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
+    const ownSig = await w.sign(w.cast.qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
+    await expect(w.run(w.cast.qa, (c) => lc.activateMarketAuthorisation(c, id, ownSig, regSig), reason('registration on file'))).rejects.toThrow(/EBMR-RCP-434/);
+    // Nothing was activated; the refusal is the trigger on the activation row (every writer), not only the command.
+    const proposer = (await q<{ p: string }>('select proposed_by_person::text as p from recipe.market_authorisation where id = $1', [id]))[0]?.p;
+    expect(proposer).toBe(w.cast.qa.personId);
+    expect((await q('select 1 from recipe.market_authorisation_activation where authorisation_id = $1', [id])).length).toBe(0);
+    const qa2Sig = await w.sign(w.cast.qa2, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
+    const act = await w.run(w.cast.qa2, (c) => lc.activateMarketAuthorisation(c, id, qa2Sig, regSig), reason('registration on file'));
+    expect(act).toMatchObject({ market: 'IN', kind: 'CURRENT', versionId: v.versionId });
+    expect((await q<{ p: string }>('select person_id::text as p from recipe.market_authorisation_activation where authorisation_id = $1', [id]))[0]?.p).toBe(w.cast.qa2.personId);
+  });
+
   it('[INV-17][PR-04] an approved version becomes CURRENT for a market and scope only with the QA and regulatory signatures of two persons', async () => {
     const content = uniqueContent();
     const v = await w.approvedVersion(content);
     expect((await select(v.familyId, ['IN'])).ok).toBe(false);
-    const id = await w.run(w.cast.qa, (c) => lc.proposeMarketAuthorisation(c, current(v.versionId, 'IN', [cell('S1', 'L1', BS)])));
+    // A second QA person proposes; the proposer cannot authorise (owner item 11).
+    const id = await w.run(w.cast.qa2, (c) => lc.proposeMarketAuthorisation(c, current(v.versionId, 'IN', [cell('S1', 'L1', BS)])));
     // Without valid signatures of this record nothing is activated.
     await expect(w.run(w.cast.qa, (c) => lc.activateMarketAuthorisation(c, id, randomUUID(), randomUUID()), reason('registration on file'))).rejects.toThrow(/EBMR-ESIG-070/);
     const qaSig = await w.sign(w.cast.qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');

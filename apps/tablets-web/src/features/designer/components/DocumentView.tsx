@@ -533,7 +533,7 @@ export function DocumentView(props: DocumentProps) {
               ))}
             </ul>
             {!readOnly && c.procedure.body.kind === 'sequence' && c.procedure.body.children.includes(s) ? (
-              <StageEditor stage={s} first={stages[0]?.id === s.id} last={stages[stages.length - 1]?.id === s.id} earlier={stages.slice(0, stages.findIndex((x) => x.id === s.id))} dispatch={dispatch} />
+              <StageEditor content={c} stage={s} first={stages[0]?.id === s.id} last={stages[stages.length - 1]?.id === s.id} earlier={stages.slice(0, stages.findIndex((x) => x.id === s.id))} dispatch={dispatch} />
             ) : null}
           </div>
         ))}

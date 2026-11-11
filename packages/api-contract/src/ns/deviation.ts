@@ -9,7 +9,7 @@
  * owner), DEVIATION_CONCLUDE (IMPACT_ASSESSED -> PENDING_CLOSURE) and DEVIATION_CLOSE (PENDING_CLOSURE -> CLOSED).
  */
 import { z } from 'zod';
-import { Uuid } from '../common.ts';
+import { Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 /** The states of a record (site.deviation_state, 0820): deviation-lite's CONCLUDED reads as PENDING_CLOSURE (D-P4-2). */
@@ -194,8 +194,10 @@ export const deviationRoutes = {
     auth: 'SESSION',
     mutating: true,
     summary: 'Link a deviation raised in the Deviations product to a batch by its number (Deviations link only)',
+    // Linked from the kiosk's deviation dialog too: on a shared kiosk with the person's fresh badge tap (INV-40).
+    attribution: 'FRESH_ON_SHARED',
     params: batchParams,
-    body: z.strictObject({ number: z.string().trim().min(1).max(64) }),
+    body: withAttribution({ number: z.string().trim().min(1).max(64) }),
     response: z.strictObject({ deviations: z.array(LinkedDeviation) }),
   }),
 } as const;

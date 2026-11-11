@@ -758,13 +758,15 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     // INJ-27 (slice I-1c2): 211.134(b) (a representative sample of the units, collected at the completion of finishing,
     // visually examined for correct labelling) and 211.134(c) (the result recorded in the batch record); 211.130; EU
     // GMP 5.57-5.60; PR-37. The on-line label checks during the run are G-21's device challenges (211.134(a)). The block
-    // closes a packaging record of the edition (editions/injectables/sql 3000; release gate group 9).
+    // closes a packaging record of the edition by its role (recipe-core 1892, editions/injectables/sql 3020; release gate
+    // group 9): a firm's own examination block with the same role does too.
     definition: {
       code: 'INJ-PACK-EXAM',
       version: 1,
       title: 'Examination of the finished packs (completion of packaging)',
       category: 'PACKAGING',
       edition: EDITION,
+      roles: ['PARAMETER_RECORD', 'PACK_EXAMINATION'],
       description: 'INJ-27. At the completion of finishing, a representative sample of the labelled units and packs (its size the master\'s) is examined for the correct label: the batch number and expiry date as read on a unit, the units with a wrong or missing label, and other pack defects, each recorded as found.',
       instructions: 'Take the sample across the run. Read the label of a unit and type the batch number and expiry date as printed. Examine every unit of the sample for the correct label, leaflet and carton, and record what you found.',
       sections: [

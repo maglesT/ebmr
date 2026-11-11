@@ -113,7 +113,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       // Phase 6 slice 6a builder A: receipt, the receipt record and the approved-manufacturer register (receipt.ts).
       ...receiptHandlers(app, pool),
       raiseDeviation: async ({ body, actor, idempotencyKey, requestHash }) => {
-        const d = body;
+        // The badge tap of a shared kiosk (FRESH_ON_SHARED) is the command's attribution, not part of the record.
+        const { attribution: _a, ...d } = body;
+        void _a;
         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           const { rows } = await c.query<{ r: { deviationId: string } }>('select site.raise_deviation($1::jsonb) as r', [JSON.stringify(d)]);
           return rows[0]?.r.deviationId ?? '';

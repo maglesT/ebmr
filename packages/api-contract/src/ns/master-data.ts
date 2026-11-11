@@ -205,7 +205,7 @@ export const masterData = {
     params: formulaParams,
     body: withAttribution({
       changeReason: z.string().trim().min(1).max(2000),
-      lines: z.array(FormulaLineInput).min(1).max(60),
+      lines: z.array(FormulaLineInput).min(1).max(200),
       /** Slice 7j (recipe-core 1535): the tablet's target weight in mg and the batch sizes besides the formula's (units). */
       target: z.strictObject({ targetUnitMassMg: DecimalString, otherBatchSizesUnits: z.array(IntegerString).max(9) }).optional(),
     }),

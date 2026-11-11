@@ -12,8 +12,9 @@
  *  4. On the signing screen: the author signs Prepared; the author's own check is refused by the database (the screen
  *     shows its words); the checker signs Independently checked; the regulatory signer confirms the registration
  *     references; QA approves (INV-04, DI-35).
- *  5. QA proposes the IN market authorisation; the regulatory signer confirms its registration; QA authorises it with its
- *     own reason and it is ACTIVE (ADR 0014, PR-04).
+ *  5. QA proposes the IN market authorisation; the regulatory signer confirms its registration; a second QA person
+ *     authorises it with their own reason and it is ACTIVE (ADR 0014, PR-04; the proposer may not authorise: owner item 11,
+ *     recipe-core 1889).
  *  6. A labelling specimen the steward recorded is refused to the steward and approved by QA (SPECIMEN_APPROVED, DI-35).
  */
 import { randomBytes } from 'node:crypto';
@@ -29,6 +30,7 @@ test('[INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from 
   const checker = persona('GMP', 'checker');
   const regulatory = persona('GMP', 'regulatory');
   const qa = persona('GMP', 'approver');
+  const qa2 = persona('GMP', 'approver2');
   const steward = persona('GMP', 'steward');
   const tag = `S${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
 
@@ -186,16 +188,19 @@ test('[INV-04][DI-35][PR-04][PR-06][PR-07][DI-04][DI-05][INV-18] a new MBR from 
     return { confirmedBy: regulatory.loginName };
   }, r);
 
-  await evidence.step('QA authorises the version for IN with its own reason', 'MBR_MARKET_AUTHORISED; the authorisation is ACTIVE', async () => {
-    await q.reload();
-    const item = q.getByTestId('market-IN');
+  // A second QA person authorises: the one who proposed may not (owner item 11, recipe-core 1889).
+  const q2 = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(q2, qa2);
+  await evidence.step('A second QA person authorises the version for IN with their own reason', 'MBR_MARKET_AUTHORISED; the authorisation is ACTIVE', async () => {
+    await q2.goto(`${base}/mbr/versions/${versionId}/signing`);
+    const item = q2.getByTestId('market-IN');
     await item.getByRole('textbox', { name: 'Reason (authorisation)' }).fill('IN registration confirmed; SITE-1 L1');
     await item.getByRole('button', { name: 'Authorise for IN' }).click();
-    await officeSign(q, /^Authorise for IN/, qa);
+    await officeSign(q2, /^Authorise for IN/, qa2);
     await expect(item).toHaveAttribute('data-state', 'ACTIVE');
-    await expect(item).toContainText(`Authorised by ${qa.legalName}`);
+    await expect(item).toContainText(`Authorised by ${qa2.legalName}`);
     return { state: 'ACTIVE' };
-  }, q);
+  }, q2);
 
   const code = `SPC-${tag}`;
   await recordSpecimen(e2e, steward, code);

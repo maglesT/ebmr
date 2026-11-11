@@ -15,7 +15,7 @@ import { createServer } from 'node:net';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FullConfig } from '@playwright/test';
-import { buildWeb, REPO_ROOT, setupStack, startStack, WEB_DIST } from '@ebmr/demo';
+import { buildWeb, freeStackPorts, REPO_ROOT, setupStack, startStack, WEB_DIST } from '@ebmr/demo';
 import { identity } from '@ebmr/kernel';
 import { dropDatabase, openDatabase, type SiteSeed } from '@ebmr/test-kit';
 import { readFileSync } from 'node:fs';
@@ -143,7 +143,7 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
       procs.push(await startProcess('gw-gmp', 'site-gateway/src/main.ts', { EBMR_GW_CONFIG: join(dir, 'gateway.json') }, /site gateway \S+ \(GMP\): API on/));
     }
 
-    const ports = { gmp: await freePort(), sandbox: await freePort(), gatewayListener: await freePort(), gateway: await freePort(), simulatorTcp: await freePort(), simulatorHttp: await freePort() };
+    const ports = { ...(await freeStackPorts()) };
     stack = await startStack({ databases, keysDir, exchangeDir, ports, webDist: WEB_DIST, host: 'localhost', echo, logLevel: 'warn', env: { EBMR_L3_URL: sims.L3 } });
     const demo: DemoState = {
       sims, adapters,

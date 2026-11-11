@@ -192,8 +192,8 @@ describe('API plan A4b: recovery of materials and solvents (ICH Q7 14.4)', () =>
     await runUnit(d, 'p-crop2', 'S-CROP2');
     expect(await statusOf(gmp, batch.A.batchId)).toBe('EXECUTION_COMPLETE');
     const stores = await gmp.asPersona('stores');
-    const first = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.A.batchId, quantity: '42', unit: 'kg' } }));
-    const crop2 = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.A.batchId, quantity: '5.5', unit: 'kg' } }));
+    const first = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.A.batchId, quantity: '42', unit: 'kg', dating: 'EXPIRY' as const } }));
+    const crop2 = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.A.batchId, quantity: '5.5', unit: 'kg', dating: 'EXPIRY' as const } }));
     expect([first, crop2]).toMatchObject([
       { lotCode: batch.A.batchNumber, materialCode: INT_A.code, status: 'QUARANTINE', quantity: '42' },
       { lotCode: `${batch.A.batchNumber}-2`, batchId: batch.A.batchId, materialCode: INT_A.code, status: 'QUARANTINE', quantity: '5.5' },
@@ -219,7 +219,7 @@ describe('API plan A4b: recovery of materials and solvents (ICH Q7 14.4)', () =>
     await runUnit(await driverOf(gmp, batch.S.batchId), 'p-distil', 'S-DISTIL');
     expect(await statusOf(gmp, batch.S.batchId)).toBe('EXECUTION_COMPLETE');
     const stores = await gmp.asPersona('stores');
-    const lot = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.S.batchId, quantity: '30', unit: 'kg' } }));
+    const lot = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.S.batchId, quantity: '30', unit: 'kg', dating: 'EXPIRY' as const } }));
     recovered = lot.lotId;
     expect(lot).toMatchObject({ lotCode: batch.S.batchNumber, materialCode: SOLV.code, status: 'QUARANTINE', quantity: '30', unit: 'kg' });
     batch.B = await plannedAndIssued('B', masterB);

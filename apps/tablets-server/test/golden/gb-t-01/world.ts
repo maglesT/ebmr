@@ -147,7 +147,7 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
     throw e;
   }
   const b: Record<string, TestBrowser> = {};
-  for (const k of ['steward', 'approver', 'author', 'checker', 'regulatory', 'issuer']) b[k] = await server.asPersona(k);
+  for (const k of ['steward', 'approver', 'approver2', 'author', 'checker', 'regulatory', 'issuer']) b[k] = await server.asPersona(k);
   const s = (k: string): TestBrowser => {
     const x = b[k];
     if (!x) throw new Error(`no browser for ${k}`);
@@ -228,7 +228,8 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
 
   // The market authorisation for India at SITE-1, line L1, BS-200K; the batch-number rule of the product.
   const def: lifecycle.MarketAuthorisationDefinition = { versionId, market: 'IN', kind: 'CURRENT', cells: [{ site: SITE, line: LINE, batch_size: BATCH_SIZE_ID }], regulatoryBasis: 'IN: registration on file (invented product)' };
-  const maId = await asPersona(server, qa, 'approver', (c) => lifecycle.proposeMarketAuthorisation(c, def));
+  // A second QA person proposes; the proposer cannot authorise (owner item 11, recipe-core 1889).
+  const maId = await asPersona(server, s('approver2'), 'approver2', (c) => lifecycle.proposeMarketAuthorisation(c, def));
   const qaSig = await signDirect(server, seed, 'approver', lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
   const regSig = await signDirect(server, seed, 'regulatory', lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'REGULATORY_CONFIRMED', 'PROPOSED');
   signatures += 2;

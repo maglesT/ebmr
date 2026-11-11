@@ -101,7 +101,8 @@ describe('life-cycle commands racing each other', () => {
   it('[INV-17][PR-05] a market activation racing the retirement of its version never leaves a retired version CURRENT', async () => {
     const content = uniqueContent();
     const v = await w.approvedVersion(content);
-    const id = await w.run(w.cast.qa, (c) => lc.proposeMarketAuthorisation(c, { versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell('S1', 'L1', 'PO-20K')], regulatoryBasis: 'IN' }));
+    // A second QA person proposes; the proposer cannot authorise (owner item 11, recipe-core 1889).
+    const id = await w.run(w.cast.qa2, (c) => lc.proposeMarketAuthorisation(c, { versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell('S1', 'L1', 'PO-20K')], regulatoryBasis: 'IN' }));
     const qaSig = await w.sign(w.cast.qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
     const regSig = await w.sign(w.cast.regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
     const s = await w.state(v.versionId);
@@ -132,7 +133,9 @@ describe('life-cycle commands racing each other', () => {
     const v1 = await w.approvedVersion(content);
     const v2 = await w.approvedSuccessor(v1.versionId, (m) => (m.header.title = `${m.header.title} v2`));
     const prepared = async (versionId: string, qa: SeededActor) => {
-      const id = await w.run(qa, (c) => lc.proposeMarketAuthorisation(c, { versionId, market: 'IN', kind: 'CURRENT', cells: [cell('S1', 'L1', 'PO-20K')], regulatoryBasis: 'IN' }));
+      // The other QA person proposes; the proposer cannot authorise (owner item 11, recipe-core 1889).
+      const proposer = qa === w.cast.qa2 ? w.cast.qa : w.cast.qa2;
+      const id = await w.run(proposer, (c) => lc.proposeMarketAuthorisation(c, { versionId, market: 'IN', kind: 'CURRENT', cells: [cell('S1', 'L1', 'PO-20K')], regulatoryBasis: 'IN' }));
       const qaSig = await w.sign(qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
       const regSig = await w.sign(w.cast.regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
       return { id, qaSig, regSig };

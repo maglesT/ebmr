@@ -81,6 +81,7 @@ tests:
   - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] a dosage form containing \"capsule\" in any case is a capsule; hard and soft alike"
   - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] any other stated form is refused"
   - "packages/recipe-core/test/flow/dosage-form.test.ts > the unit form from the dosage form (Capsules edition, C2) > [PR-01] no dosage form, or a tablet form, is a tablet"
+  - "packages/recipe-core/test/library/scaling.test.ts > N-3: a batch-size input read as the sum of formula lines > [PR-31][PR-01][IN-13] the theoretical quantity is the scaled sum of the named lines in the input's unit, whatever the batch size's unit"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01] the inputs are given in the unit the definition declares"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13] the formula line scales exactly from the reference size (the first listed) to the batch size"
   - "packages/recipe-core/test/library/scaling.test.ts > batch generation with scaling > [PR-01][IN-13][DI-33] one approved master runs each listed size, and the calculation reads the quantity scaled to the issued size"

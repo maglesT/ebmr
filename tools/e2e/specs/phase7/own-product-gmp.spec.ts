@@ -266,7 +266,10 @@ test('[DI-04][DI-05][INV-18][PR-03] Demotab 3: the sandbox test run of the whole
   await signIn.office(q, persona('GMP', 'approver'));
   await evidence.step('The four signatures and the IN authorisation', 'APPROVED; the IN authorisation ACTIVE', async () => {
     await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author: persona('GMP', 'author'), checker: persona('GMP', 'checker'), regulatory: persona('GMP', 'regulatory'), qa: persona('GMP', 'approver') }, base, s.versionId ?? '');
-    await authoriseIn(q, r, base, s.versionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: SIZE_ID }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration on file (${s.tag})`);
+    // A second QA person authorises: the one who proposed may not (owner item 11, recipe-core 1889).
+    const q2 = await officePage('GMP', 'PC-QA-01');
+    await signIn.office(q2, persona('GMP', 'approver2'));
+    await authoriseIn(q, r, base, s.versionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: SIZE_ID }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration on file (${s.tag})`, { page: q2, persona: persona('GMP', 'approver2') });
   }, q);
 });
 
@@ -546,7 +549,10 @@ test('[DI-04][DI-05][INV-18][PR-03][IN-38] Demotab 9: the packaging master\'s sa
   await signIn.office(q, persona('GMP', 'approver'));
   await evidence.step('The four signatures and the IN authorisation of the packaging master', 'APPROVED; the IN authorisation ACTIVE', async () => {
     await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author: persona('GMP', 'author'), checker: persona('GMP', 'checker'), regulatory: persona('GMP', 'regulatory'), qa: persona('GMP', 'approver') }, base, s.packVersionId ?? '');
-    await authoriseIn(q, r, base, s.packVersionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: 'PK-1K' }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration of the pack on file (${s.tag})`);
+    // A second QA person authorises: the one who proposed may not (owner item 11, recipe-core 1889).
+    const q2 = await officePage('GMP', 'PC-QA-01');
+    await signIn.office(q2, persona('GMP', 'approver2'));
+    await authoriseIn(q, r, base, s.packVersionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: 'PK-1K' }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration of the pack on file (${s.tag})`, { page: q2, persona: persona('GMP', 'approver2') });
   }, q);
 });
 

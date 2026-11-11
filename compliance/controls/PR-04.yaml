@@ -26,6 +26,7 @@ behaviour: |-
 catalog_test: Widening a registered CPP range with no variation reference is blocked. Creating a batch for a market not linked to the master is refused.
 implemented_by:
   modules:
+    - "packages/recipe-core/sql/1889_market_authorisation_not_proposer.sql (owner ruling, item 11 of 10 November 2026: the QA person who proposed a market authorisation never activates it; EBMR-RCP-434)"
     - "packages/recipe-core/sql/0130_mbr_guards.sql (recipe.registered_ranges, recipe.registered_changes, guard registered_ranges_kept)"
     - "packages/recipe-core/sql/0110_mbr_family_version.sql (change_record_regulatory: reporting category and variation reference per market)"
     - "packages/recipe-core/sql/0160_market_authorisation.sql (authorisation per market with regulatory basis, QA and regulatory signatures)"
@@ -76,6 +77,7 @@ tests:
   - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-04] creating a batch for a market not linked to the master is refused, naming each market"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [INV-17][PR-04] an approved version becomes CURRENT for a market and scope only with the QA and regulatory signatures of two persons"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-04] a master is authorised only for markets it is linked to, and only once approved"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > market authorisation through a signed record (ADR 0014, INV-17) > [PR-04][DI-14] the QA person who proposed a market authorisation cannot authorise it; a second QA person does (owner item 11, recipe-core 1889)"
   - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the batch size of an ERP order (recipe-core 0602) > [PR-04][PR-17] the MBR states its reference size: none, not a decimal, zero, or in another unit than the batch size is refused"
   - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the batch size of an ERP order (recipe-core 0602) > [PR-04][PR-17] the order is for the approved size: an unknown size, another quantity or unit, or a size whose value is not a decimal is refused"
   - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the open order offered for a family, site and size (recipe-core 0602) > [PR-04][PR-17] the oldest open order of the family's product, strength, site, unit and size, in its latest version, not yet planned"
