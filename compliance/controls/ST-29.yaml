@@ -37,7 +37,12 @@ behaviour: |-
   - DESIGN-CHOICE: prompt for an APS after the last batch before a shutdown, long inactivity, decommissioning or relocation.
 catalog_test: Last successful night-shift APS 6 months + 3 weeks ago → night-shift batch start blocked. Add a new stopper type → "initial APS validation required" for that configuration.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [IN-45][ST-29] the author marks a master as a process simulation and clears the mark; the marked content parses and no other value is set"
+  - "packages/recipe-core/test/release/india.test.ts > the process-simulation mark (recipe-core 1888; injectables I-2, feature B) > [IN-30][ST-29][IN-45] a process-simulation batch is issued with no licence and no export permission for any market; its basis records no licence: process simulation; the same master unmarked is refused"
+  - "packages/recipe-core/test/release/india.test.ts > the process-simulation mark (recipe-core 1888; injectables I-2, feature B) > [IN-45][ST-29] a process-simulation batch is never labelled, packed, posted or shipped: the database refuses each, whoever writes it"
+  - "packages/recipe-core/test/release/india.test.ts > the process-simulation mark (recipe-core 1888; injectables I-2, feature B) > [IN-45][ST-29] the mark is approved content: it is in the content hash, and an approved version cannot be edited to add or remove it"
+  - "packages/recipe-core/test/validator/content.test.ts > the process-simulation mark (nonProduct) > [IN-45][ST-29] a master may be marked PROCESS_SIMULATION and nothing else: the parser and the validator refuse any other value, and the mark is part of the content hash"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

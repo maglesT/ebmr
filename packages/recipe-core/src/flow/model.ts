@@ -64,7 +64,18 @@ export interface MbrHeader {
    * may classify an item non-critical without a reduction of its own. Approved with the master.
    */
   criticalityAssessment?: string;
+  /**
+   * A master whose batches make no product: PROCESS_SIMULATION, an aseptic process simulation (media fill), run to qualify
+   * the aseptic process (21 CFR 211.113(b); Schedule M Part II 5.3-5.7; EU Annex 1 9.32). Its batches are issued without a
+   * product licence or export permission (the units are destroyed), and nothing of them is packed, posted or shipped; QA's
+   * review of the record is its end. Part of the approved content and its hash: it changes only with a new version.
+   */
+  nonProduct?: NonProduct;
 }
+
+/** What a non-product master is (MbrHeader.nonProduct). */
+export const NON_PRODUCT_KINDS = ['PROCESS_SIMULATION'] as const;
+export type NonProduct = (typeof NON_PRODUCT_KINDS)[number];
 
 /** A controlled, versioned risk scale (IN-02). */
 export interface RiskScale {

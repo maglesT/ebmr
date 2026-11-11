@@ -41,6 +41,8 @@ export type Op =
   | { kind: 'SET_TITLE'; title: string }
   | { kind: 'SET_MARKETS'; markets: string[] }
   | { kind: 'SET_CRITICALITY_ASSESSMENT'; reference: flow.Reference | null }
+  /** Marks the master as a process simulation (media fill) that makes no product, or clears the mark (null). */
+  | { kind: 'SET_NON_PRODUCT'; nonProduct: flow.NonProduct | null }
   | { kind: 'UPDATE_CALCULATION'; id: string; name?: string; expression?: string }
   | { kind: 'UPDATE_PARAMETER_NAME'; id: string; name: string }
   | { kind: 'UPDATE_YIELD'; id: string; name?: string; result?: string; theoretical?: string }
@@ -311,6 +313,16 @@ function applyInPlace(c: Content, op: Op): void {
       if (op.reference.kind !== 'RISK_ASSESSMENT') throw new OpError('The criticality assessment is a risk assessment.');
       if (!c.references.some((r) => r.id === op.reference?.id)) c.references.push(structuredClone(op.reference));
       c.header.criticalityAssessment = op.reference.id;
+      return;
+    }
+    // The process-simulation mark (media fill): part of the approved content, so it changes only in a draft, like any edit.
+    case 'SET_NON_PRODUCT': {
+      if (op.nonProduct === null) {
+        delete c.header.nonProduct;
+        return;
+      }
+      if (!(flow.NON_PRODUCT_KINDS as readonly string[]).includes(op.nonProduct)) throw new OpError('A master that makes no product is a process simulation.');
+      c.header.nonProduct = op.nonProduct;
       return;
     }
     case 'SET_MARKETS': {

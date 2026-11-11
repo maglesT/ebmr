@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { MbrContent, StageNode } from '../../src/flow/model.ts';
+import { mbrContentHash } from '../../src/flow/canonical.ts';
 import { parseMbr } from '../../src/flow/parse.ts';
 import { GENERIC_BLOCK_VERSIONS, MATERIAL_BLOCKS } from '../../src/blocks/generic/index.ts';
 import { checkMeaning } from '../../src/engine/actions.ts';
@@ -550,6 +551,25 @@ describe('GMP content gates', () => {
     const text = errors(validate(m)).map((f) => `${f.rule}: ${f.message}`).join('\n');
     expect(text).toMatch(/GMP-SYSTEMS: "Pre-lubrication blending" \(p-blend\) relies on automated equipment but names no computerised system/);
     expect(text).toMatch(/GMP-PAT: "Blend uniformity sampling" \(p-bu-sample\) is a PAT step without acceptance criteria; it cannot be approved/);
+  });
+});
+
+describe('the process-simulation mark (nonProduct)', () => {
+  it('[IN-45][ST-29] a master may be marked PROCESS_SIMULATION and nothing else: the parser and the validator refuse any other value, and the mark is part of the content hash', () => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    const plain = mbrContentHash(m);
+    m.header.nonProduct = 'PROCESS_SIMULATION';
+    expect(errors(validate(m)).filter((f) => f.rule === 'GMP-HEADER')).toEqual([]);
+    const parsed = parseMbr(JSON.parse(JSON.stringify(m)));
+    if (!parsed.ok) throw new Error(JSON.stringify(parsed.problems));
+    expect(parsed.mbr.header.nonProduct).toBe('PROCESS_SIMULATION');
+    expect(mbrContentHash(m)).not.toBe(plain);
+    const other = JSON.parse(JSON.stringify(m)) as { header: Record<string, unknown> };
+    other.header['nonProduct'] = 'ROUTINE_MONITORING';
+    const refused = parseMbr(other);
+    expect(refused.ok ? [] : refused.problems.map((p) => `${p.path} ${p.message}`)).toEqual([expect.stringMatching(/header\.nonProduct must be one of PROCESS_SIMULATION/)]);
+    (m.header as { nonProduct?: string }).nonProduct = 'ROUTINE_MONITORING';
+    expect(errors(validate(m)).find((f) => f.rule === 'GMP-HEADER')?.message).toMatch(/is a process simulation \(PROCESS_SIMULATION\), not ROUTINE_MONITORING/);
   });
 });
 

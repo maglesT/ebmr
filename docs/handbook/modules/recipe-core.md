@@ -736,6 +736,14 @@ nobody verified only for a stage without a checker. Such a CLEAN area moves to C
 **Known residual:** an area created before 1887 stays on version 1 and keeps the verified rule until the owner
 decides. No aggregate was migrated.
 
+**Process simulation (media fill) mark (1888; injectables I-2, feature B).** A master whose header carries
+`nonProduct: PROCESS_SIMULATION` makes no product. The mark is approved content, so it changes only with a new version.
+Its batches are issued without the licence check or any market's export permission, though the line's hazard
+dedication still applies (21 CFR 211.113(b); Schedule M Part II 5.3 to 5.7; EU Annex 1 9.32). The licence basis records
+`process_simulation` with no licence numbers. The database refuses a label (EBMR-IND-050), a packaging order of such a
+batch (EBMR-EXE-198), a finished lot from it (EBMR-IND-045) and its shipment (EBMR-IND-046). QA's review of the record
+is its end.
+
 **Pharma context.** Equipment must be clean, calibrated and fit before use, with its status visibly identified and
 its use logged (Schedule M, equipment section; 21 CFR 211.67, 211.68, 211.105, 211.182; EU GMP 3.36 to 3.44;
 [IN-25](../../../compliance/controls/IN-25.yaml), [PR-23](../../../compliance/controls/PR-23.yaml),

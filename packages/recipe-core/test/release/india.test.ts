@@ -19,6 +19,8 @@ import { withChangeRecord } from '../../../kernel/test/support/change-record.ts'
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
+import { saveContent } from '../../src/lifecycle/index.ts';
+import { mbrContentHash } from '../../src/flow/canonical.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
@@ -63,9 +65,10 @@ function without(content: unknown, types: readonly string[]): unknown {
 }
 
 /** An effective master authorised for `markets`, with (licensed) or without its licence and export permissions. */
-async function effective(markets: string[], licensed: boolean): Promise<Master> {
+async function effective(markets: string[], licensed: boolean, simulation = false): Promise<Master> {
   const m = uniqueContent(FIXTURE, ['EU', 'IN', 'US']);
   m.header.product = { ...m.header.product, code: m.header.product.code.toUpperCase() };
+  if (simulation) m.header.nonProduct = 'PROCESS_SIMULATION';
   const content = without(m, ['G-09', 'G-10']) as MbrContent;
   const v = await w.approvedVersion(content);
   w.autoLicence = licensed;
@@ -337,6 +340,81 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
     const older = await classify(m.product, 'STEROID', 'RA-X');
     await classify(m.product, 'NONE', 'RA-Y');
     expect(await messageOf(approve('hazard_classification', older))).toMatch(/EBMR-IND-061|EBMR-ESIG-\d{3}/);
+  });
+});
+
+describe('the process-simulation mark (recipe-core 1888; injectables I-2, feature B)', () => {
+  it('[IN-30][ST-29][IN-45] a process-simulation batch is issued with no licence and no export permission for any market; its basis records no licence: process simulation; the same master unmarked is refused', async () => {
+    const plain = await effective(['IN', 'EU'], false);
+    expect((await db.app.query<{ p: string }>('select recipe.india_issue_problem($1) as p', [await plan(plain, ['IN', 'EU'])])).rows[0]!.p).toMatch(/EBMR-IND-040/);
+    const sim = await effective(['IN', 'EU'], false, true);
+    expect((await db.app.query<{ r: string | null }>('select site.licence_problem($1, $2, $3, clock_timestamp()) as r', [SITE, sim.product, sim.strength])).rows[0]!.r).not.toBeNull();
+    const b = await issue(await plan(sim, ['IN', 'EU']));
+    expect((await db.app.query('select licence_id, licence_number, loan_licence_id, process_simulation, basis from recipe.batch_licence_basis where batch_id = $1', [b])).rows).toEqual([
+      { licence_id: null, licence_number: null, loan_licence_id: null, process_simulation: true, basis: { processSimulation: true, note: 'no licence: process simulation' } },
+    ]);
+    expect((await db.app.query<{ s: boolean }>('select recipe.process_simulation_batch($1) as s', [b])).rows[0]!.s).toBe(true);
+    // A row naming a licence and the mark at once, or neither, is refused by the table (superuser, triggers off, rolled back).
+    const c = await db.admin.connect();
+    try {
+      for (const [licenceId, number, flag] of [[randomUUID(), 'MFG-X', true], [null, null, false]] as const) {
+        await c.query('begin');
+        await c.query("set local session_replication_role = 'replica'");
+        expect(await messageOf(c.query("insert into recipe.batch_licence_basis (batch_id, licence_id, licence_number, basis, process_simulation) values ($1, $2, $3, '{}', $4)", [randomUUID(), licenceId, number, flag])))
+          .toMatch(/batch_licence_basis_process_simulation/);
+        await c.query('rollback');
+      }
+    } finally {
+      c.release();
+    }
+  });
+
+  it('[IN-27][IN-45] the hazard dedication of the line still applies to a process simulation', async () => {
+    const sim = await effective(['IN'], false, true);
+    await classify(sim.product, 'SEX_HORMONE', 'RA-MEDIA-FILL-01');
+    const b = await plan(sim, ['IN']);
+    expect((await db.app.query<{ p: string }>('select recipe.india_issue_problem($1) as p', [b])).rows[0]!.p).toMatch(/SEX_HORMONE.*EBMR-IND-042/);
+  });
+
+  it('[IN-45][ST-29] a process-simulation batch is never labelled, packed, posted or shipped: the database refuses each, whoever writes it', async () => {
+    const sim = await effective(['IN'], false, true);
+    const b = await issue(await plan(sim, ['IN']));
+    expect(await messageOf(db.app.query('select recipe.india_label_particulars($1)', [b]))).toMatch(/EBMR-IND-050 batch .* is a process simulation: it makes no product, so it has no label particulars/);
+    expect((await db.admin.query<{ p: string }>('select recipe.packaging_parent_problem($1, $2, $3) as p', [sim.product, SITE, b])).rows[0]!.p).toMatch(/is a process simulation \(media fill\): its units are destroyed, never packed/);
+    expect(await messageOf(finishedLot(b, sim, ['IN']))).toMatch(/EBMR-IND-045 batch .* is a process simulation/);
+    // TEST FIXTURE: a finished lot of the batch written with triggers off (superuser), then a shipment of it; rolled back.
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      const lot = randomUUID();
+      const person = randomUUID();
+      await c.query(`insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+                     values ($1, $2, 'SIM-LOT-1', $3, 'Media fill', 'FINISHED', 100, 'units', '2030-01-01T00:00:00Z', $4, $4, $4)`, [lot, SITE, sim.product, person]);
+      await c.query(`insert into site.finished_lot (lot_id, batch_id, batch_number, edition, product_code, strength, markets, posted_by_person, posted_by_account)
+                     values ($1, $2, 'SIM-LOT-1', 'TABLETS', $3, $4, '{IN}', $5, $5)`, [lot, b, sim.product, sim.strength, person]);
+      await c.query("set local session_replication_role = 'origin'");
+      expect(await messageOf(c.query(`insert into site.erp_shipment (shipment_no, lot_id, market, consignee_code, consignee_name, quantity, unit, quarantine, manufacturer_state, disposition_state, erp_reference, recorded_by_person, recorded_by_account, correlation_id)
+                                      values ('SHP-SIM-1', $1, 'IN', 'CUST-1', 'Customer', 1, 'units', false, 'RELEASED', 'RELEASED', 'ERP-1', $2, $2, $2)`, [lot, person])))
+        .toMatch(/EBMR-IND-046 lot SIM-LOT-1 comes from a process simulation/);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+
+  it('[IN-45][ST-29] the mark is approved content: it is in the content hash, and an approved version cannot be edited to add or remove it', async () => {
+    const sim = await effective(['IN'], false, true);
+    const unmarked = structuredClone(sim.content);
+    delete unmarked.header.nonProduct;
+    const hash = (await db.admin.query<{ h: string }>('select recipe.content_hash_of($1) as h', [sim.versionId])).rows[0]!.h;
+    expect(hash).toBe(mbrContentHash(sim.content));
+    expect(hash).not.toBe(mbrContentHash(unmarked));
+    expect(await messageOf(w.run(w.cast.author, (c) => saveContent(c, sim.versionId, unmarked)))).toMatch(/APPROVED: its content can change only in DRAFT.*EBMR-RCP-021/);
+    const plain = await effective(['IN'], false);
+    const marked = structuredClone(plain.content);
+    marked.header.nonProduct = 'PROCESS_SIMULATION';
+    expect(await messageOf(w.run(w.cast.author, (c) => saveContent(c, plain.versionId, marked)))).toMatch(/EBMR-RCP-021/);
   });
 });
 

@@ -30,6 +30,7 @@ tests:
   - "packages/recipe-core/test/mutation/india-issue-gate.test.ts > the hazard classes of a product and the dedication of a line (recipe-core 0890, 0912) > [IN-27] the refusal names the risk assessment of the product's own record of that class, not another product's"
   - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27] an unsigned downgrade or dedication does not take effect; the recorder cannot approve their own record; the approved change does"
   - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
+  - "packages/recipe-core/test/release/india.test.ts > the process-simulation mark (recipe-core 1888; injectables I-2, feature B) > [IN-27][IN-45] the hazard dedication of the line still applies to a process simulation"
   - "tools/e2e/specs/administration/screen-gaps.spec.ts > screens for the remaining routes (slice 7g-5) > [PR-43][IN-27][DI-08][IN-02] QA records a shelf-life basis and a hazard class, exports a report view, sees the reference documents, stores an evidence document and opens the equipment records"
 clauses:
   - clause: "classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps"

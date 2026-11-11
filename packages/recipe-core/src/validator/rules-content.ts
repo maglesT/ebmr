@@ -8,7 +8,7 @@ import { DEFAULT_POLICY } from '../engine/types.ts';
 import { CAPTURE_WORDS, CHECK_PERMISSIONS, capturedOtherwise, checkersInRun, checkRunsAsWitness, type CheckersInRun } from '../flow/check-in-release.ts';
 import { compareDecimal } from '../flow/decimal.ts';
 import type { GraphNode } from '../flow/graph.ts';
-import { childrenOf, isNodeEvent, type FlowNode, type PhaseNode, type ReferenceKind, type StageNode } from '../flow/model.ts';
+import { childrenOf, isNodeEvent, NON_PRODUCT_KINDS, type FlowNode, type PhaseNode, type ReferenceKind, type StageNode } from '../flow/model.ts';
 import { samplingShortfalls } from '../limits/all-apply.ts';
 import type { LimitSourceKind, LimitSpec } from '../limits/model.ts';
 import { checkLimitSpec, checkNestingAfterRounding } from '../limits/nesting.ts';
@@ -51,6 +51,10 @@ const header = defineRule('GMP-HEADER', 'Header, market set and batch sizes', ['
   for (const v of h.variants) {
     if (v.values.length < 2) out.push(error(v.id, `Variant ${v.id} needs at least two values`));
     if (new Set(v.values).size !== v.values.length) out.push(error(v.id, `Variant ${v.id} lists a value twice`));
+  }
+  // A non-product master is a process simulation (media fill) and nothing else (21 CFR 211.113(b); Annex 1 9.32).
+  if (h.nonProduct !== undefined && !(NON_PRODUCT_KINDS as readonly string[]).includes(h.nonProduct)) {
+    out.push(error('$', `A master that makes no product is a process simulation (PROCESS_SIMULATION), not ${String(h.nonProduct)}`));
   }
   return out;
 });

@@ -201,6 +201,16 @@ describe('designer edit operations', () => {
     expect('criticalityAssessment' in applyOp(set, { kind: 'SET_CRITICALITY_ASSESSMENT', reference: null }).header).toBe(false);
   });
 
+  it('[IN-45][ST-29] the author marks a master as a process simulation and clears the mark; the marked content parses and no other value is set', () => {
+    const c = FIXTURES[0] as Content;
+    const marked = applyOp(c, { kind: 'SET_NON_PRODUCT', nonProduct: 'PROCESS_SIMULATION' });
+    expect(marked.header.nonProduct).toBe('PROCESS_SIMULATION');
+    expect(flow.parseMbr(JSON.parse(JSON.stringify(marked))).ok).toBe(true);
+    expect(() => applyOp(c, { kind: 'SET_NON_PRODUCT', nonProduct: 'ROUTINE_MONITORING' as flow.NonProduct })).toThrow(/process simulation/);
+    expect('nonProduct' in applyOp(marked, { kind: 'SET_NON_PRODUCT', nonProduct: null }).header).toBe(false);
+    expect('nonProduct' in c.header).toBe(false);
+  });
+
   it('[DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)', () => {
     const c = FIXTURES[0] as Content;
     const phase = steps(c).find((id) => locate(c, id)?.node.kind === 'phase') as string;
