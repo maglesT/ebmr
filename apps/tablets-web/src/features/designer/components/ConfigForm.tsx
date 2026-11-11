@@ -3,10 +3,11 @@
  * schema is data, so the designer, engine and renderers read one definition). Strings with a list of values become
  * selects, a field named `sop` selects one of the MBR's SOP references, decimals go through DecimalField (text),
  * required booleans are checkboxes and optional ones a choice of block default (with its value), yes or no (review
- * F52), whole numbers are checked against the schema's range (review F53), nested objects are fieldsets. A G-21 step's printed items are edited element by element on a draft; other lists and maps
+ * F52), whole numbers are checked against the schema's range (review F53), nested objects are fieldsets. A G-21 step's printed items are added, removed and edited (with their artwork per market) on a draft; other lists and maps
  * are shown read-only and in full (review F51). An optional field left empty is removed from the
  * configuration.
  */
+import { useState } from 'react';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { Button } from '@ebmr/ui-kit';
 import { dcls } from '../classes.ts';
@@ -115,41 +116,53 @@ function FieldEditor({ name, schema, value, onChange, readOnly, sopOptions, path
       );
     }
     case 'array': {
-      // A list of objects (a G-21 step's printed items; injectables residual "edit a packaging master's printed items
-      // after create"): each element is edited in place with its own fields, so the firm's own values (limits,
-      // allowance, need, counting) can be set after the master was created. Adding or removing elements, and maps inside
-      // them (an item's artwork per market), stay read-only here.
+      // A G-21 step's printed items (injectables residual "edit a packaging master's printed items after create"): on a
+      // draft each item's own values are edited in place, items are added (empty: every value is the author's, nothing
+      // is filled in) or removed, and each item's artwork version per market is edited as a map. The block's checks and
+      // the validator judge the result as for a new master (an item without its id, material, unit, issue, counting or
+      // limits is refused there). A read-only step keeps the full table; other lists (clearance checklists, devices) keep
+      // their read-only view.
       const item = schema['items'] as Schema | undefined;
-      // Only the printed items (a G-21 step's `items`, each naming its printed material) and only on an editable draft;
-      // a read-only step keeps the full table, and other lists (clearance checklists, devices) keep their read-only view.
       const printed = name === 'items' && item?.['type'] === 'object' && 'material' in ((item['fields'] ?? {}) as Record<string, unknown>);
-      if (printed && !readOnly && Array.isArray(value) && value.length > 0) {
-        const fields = ((item?.['fields'] ?? {}) as Record<string, Schema>);
-        const list = value;
+      if (printed && !readOnly && (value === undefined || Array.isArray(value))) {
+        const fields = (item?.['fields'] ?? {}) as Record<string, Schema>;
+        const list: Json[] = Array.isArray(value) ? value : [];
+        const set = (next: Json[]) => onChange(next.length === 0 && optional ? undefined : next);
         return (
           <fieldset className={dcls('fieldset')}>
             <legend className={dcls('legend')}>{label}</legend>
             {help ? <p className={dcls('small')}>{help}</p> : null}
             {list.map((el, i) => {
               const obj = el !== null && typeof el === 'object' && !Array.isArray(el) ? el : {};
-              const id = typeof obj['id'] === 'string' ? `: ${obj['id']}` : '';
+              const id = typeof obj['id'] === 'string' && obj['id'] !== '' ? `: ${obj['id']}` : '';
+              const title = `${name} ${String(i + 1)}${id}`;
               return (
-                <fieldset key={`${path}[${String(i)}]`} className={dcls('fieldset')} aria-label={`${name} ${String(i + 1)}${id}`}>
-                  <legend className={dcls('legend')}>{`${name} ${String(i + 1)}${id}`}</legend>
+                <fieldset key={`${path}[${String(i)}]`} className={dcls('fieldset')} aria-label={title}>
+                  <legend className={dcls('legend')}>{title}</legend>
                   <ObjectFields
                     fields={fields}
                     value={obj}
                     readOnly={readOnly}
                     sopOptions={sopOptions}
                     path={`${path}[${String(i)}]`}
-                    onChange={(next) => onChange(list.map((x, j) => (j === i ? next : x)))}
+                    onChange={(next) => set(list.map((x, j) => (j === i ? next : x)))}
                   />
+                  <Button onPress={() => set(list.filter((_x, j) => j !== i))}>{`Remove ${title}`}</Button>
                 </fieldset>
               );
             })}
-            <p className={dcls('small')}>Items are added or removed with the master's template; their values are edited here.</p>
+            <Button onPress={() => set([...list, {}])}>Add a printed item</Button>
           </fieldset>
         );
+      }
+      return readOnlyValue(label, value, help);
+    }
+    case 'record': {
+      // A printed item's artwork version per market, on a draft: each market's version is edited, removed, or a market
+      // added by its code and version. No market or version is filled in; which markets a master needs is the block's
+      // and the validator's rule, not this form's.
+      if (!readOnly && /\.items\[\d+\]\.artwork$/.test(path) && (value === undefined || (value !== null && typeof value === 'object' && !Array.isArray(value)))) {
+        return <MarketMap label={label} help={help} value={value ?? {}} optional={optional} onChange={onChange} />;
       }
       return readOnlyValue(label, value, help);
     }
@@ -201,4 +214,39 @@ export function ConfigForm({ schema, value, onChange, readOnly, sopOptions }: { 
   const fields = (schema['fields'] ?? {}) as Record<string, Schema>;
   if (Object.keys(fields).length === 0) return <p className={dcls('small')}>This block has no configuration.</p>;
   return <ObjectFields fields={fields} value={value} onChange={onChange} readOnly={readOnly} sopOptions={sopOptions} path="config" />;
+}
+
+/** A map of market code to text (a printed item's artwork version per market), edited on a draft. */
+function MarketMap({ label, help, value, optional, onChange }: { label: string; help: string; value: Record<string, Json>; optional: boolean; onChange: (v: Json | undefined) => void }) {
+  const [market, setMarket] = useState('');
+  const [version, setVersion] = useState('');
+  const entries = Object.entries(value);
+  const set = (next: Record<string, Json>) => onChange(Object.keys(next).length === 0 && optional ? undefined : next);
+  const code = market.trim().toUpperCase();
+  return (
+    <fieldset className={dcls('fieldset')} aria-label={label}>
+      <legend className={dcls('legend')}>{label}</legend>
+      {help ? <p className={dcls('small')}>{help}</p> : null}
+      {entries.map(([m, v]) => (
+        <div key={m} className={dcls('inline')}>
+          <CommitText label={`${label}: ${m}`} value={typeof v === 'string' ? v : ''} onCommit={(t) => set(t.trim() === '' ? Object.fromEntries(entries.filter(([k]) => k !== m)) : { ...value, [m]: t.trim() })} />
+          <Button onPress={() => set(Object.fromEntries(entries.filter(([k]) => k !== m)))}>{`Remove market ${m}`}</Button>
+        </div>
+      ))}
+      <div className={dcls('inline')}>
+        <input aria-label={`${label}: new market code`} className={dcls('select')} value={market} onChange={(e) => setMarket(e.target.value)} />
+        <input aria-label={`${label}: its artwork version`} className={dcls('select')} value={version} onChange={(e) => setVersion(e.target.value)} />
+        <Button
+          isDisabled={code === '' || version.trim() === '' || code in value}
+          onPress={() => {
+            set({ ...value, [code]: version.trim() });
+            setMarket('');
+            setVersion('');
+          }}
+        >
+          Add the market
+        </Button>
+      </div>
+    </fieldset>
+  );
 }
