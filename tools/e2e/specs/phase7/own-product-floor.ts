@@ -176,10 +176,18 @@ export async function closeStage(f: Floor, page: Page, lastStep: string, back: S
     await as(page, qa);
     await marked.first().click();
     const exception = card(page).locator('[data-testid^="exception-"]').filter({ has: page.getByRole('button', { name: 'Disposition the exception (QA)' }) }).first();
+    // An exception that needs a deviation (a value outside its limit, PR-08) carries the deviation linked to it: QA's
+    // disposition is then "Deviation raised" ("no impact" is refused, EBMR-EXE-084); any other is "No impact".
+    const deviation = /Deviation (DEV-[A-Z0-9-]+)/.exec((await exception.textContent()) ?? '')?.[1];
     await exception.getByRole('button', { name: 'Disposition the exception (QA)' }).click();
     const dialog = page.getByRole('dialog', { name: /^Disposition: / });
-    await choose(dialog.getByRole('radio', { name: 'No impact' }));
-    await dialog.getByRole('textbox', { name: 'Justification' }).fill('Reviewed on the floor with the operator: values keyed by hand were checked by a second person at the time; no impact on the batch.');
+    if (deviation) {
+      await choose(dialog.getByRole('radio', { name: 'Deviation raised' }));
+      await dialog.getByRole('textbox', { name: 'Justification' }).fill(`Deviation ${deviation} is raised and linked to this exception; its impact on the batch is assessed there, and the release waits for it.`);
+    } else {
+      await choose(dialog.getByRole('radio', { name: 'No impact' }));
+      await dialog.getByRole('textbox', { name: 'Justification' }).fill('Reviewed on the floor with the operator: values keyed by hand were checked by a second person at the time; no impact on the batch.');
+    }
     await ready(page, qa);
     await dialog.getByRole('button', { name: 'Continue to signature' }).click();
     await sign(page, qa);

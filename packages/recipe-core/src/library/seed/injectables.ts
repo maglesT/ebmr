@@ -314,7 +314,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       category: 'PROCESS',
       edition: EDITION,
       description: 'INJ-15. The filling line in its room, the format, the closures checked at each round (the fill weights are recorded in the fill weight check), the stopper-height check for vials, the filled trays registered as containers (each later one sterilisation load or part of one), and each intervention, stoppage, glove change or alarm when it happens.',
-      instructions: 'Set the line for the format. Check the closures at each round; the fill weights are recorded in the fill weight check. Register each filled tray as a container. Record each intervention, stoppage, glove change or alarm as it happens; one not on the formulation\'s list is raised for QA.',
+      instructions: 'Set the line for the format. Check the closures at each round; the fill weights are recorded in the fill weight check. Register each filled tray as a container. Record each intervention, stoppage, glove change or alarm when it is over (the record keeps that time as its end) with how long it lasted; one not on the formulation\'s list is raised for QA.',
       sections: [
         {
           id: 'setup',
@@ -338,13 +338,14 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           id: 'event',
           title: 'Intervention or stoppage',
           required: false,
-          when: 'Only when an intervention, a stoppage, a glove change or an alarm happens during filling',
+          when: 'Only when an intervention, a stoppage, a glove change or an alarm happens during filling. Record it when the event is over: the record keeps that time as its end',
           repeat: { kind: 'PER_CONTAINER' },
           fields: [
             { id: 'eventKind', label: 'What happened', type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] },
             { id: 'eventWhat', label: 'What was done (the intervention as the list names it, or the cause)', type: 'TEXT', maxLength: 120 },
-            { id: 'eventStart', label: 'Started at', type: 'DATE_TIME' },
-            { id: 'eventEnd', label: 'Ended at', type: 'DATE_TIME' },
+            // When it ended is the entry's own trusted time (recorded when the event is over; lead, ALCOA accurate), and it
+            // lasted the typed minutes: no typed date and time.
+            { id: 'eventMinutes', label: 'How long it lasted', type: 'NUMBER', unit: 'min', decimals: 0 },
             { id: 'eventListed', label: 'On the formulation\'s list (validated interventions, known stoppages)', type: 'YES_NO', expected: true },
           ],
         },

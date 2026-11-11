@@ -14,7 +14,8 @@ sources: Schedule M Part II 2.1-2.3; 4.8.
 behaviour: "The record marks mandatory sterility-sample pulls: first and last units of an aseptic fill and after every significant interruption (logging an interruption automatically adds a pull after restart); for heat-sterilised loads, units from the potentially coolest position. The release review screen presents processing record, EM data (aseptic) and sterility result together and requires each to be opened and acknowledged. Parametric release mode is available only when the product licence permits it."
 catalog_test: log a significant stoppage; a sterility pull after restart becomes mandatory.
 implemented_by: {}
-tests: []
+tests:
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [ST-21][IN-42][IN-49] Libinj aseptic 10 mg/2 mL, solution for injection in vials (library), GMP 8b: the EM count above the action limit holds the lot: its release checklist is red on the batch's open deviation until QA investigates, concludes and closes it @office"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
