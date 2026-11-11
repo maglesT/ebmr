@@ -18,6 +18,7 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [ST-21][IN-42][IN-49] Libinj aseptic 10 mg/2 mL, solution for injection in vials (library), GMP 8b: the EM count above the action limit holds the lot: its release checklist is red on the batch's open deviation until QA investigates, concludes and closes it @office"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
