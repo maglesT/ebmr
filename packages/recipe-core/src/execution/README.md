@@ -1438,6 +1438,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   gross first, or readings named by an accepted weighing are refused (EBMR-EXE-124).
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
+- `weighing-line-choices.test.ts` (owner acceptance, session 12; PR-18, DI-33): on a weighing step whose material is on
+  two lines (a bilayer tablet's binder in each layer), each line is a choice of its own that names the line, so a
+  container is booked to the layer it is weighed for; a material on one line reads as before.
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and
   state, and of exceptions and decisions, reaches the person with its own guidance; a step screen outside the
   step's room offers none of its actions.
