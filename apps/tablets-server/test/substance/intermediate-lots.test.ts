@@ -370,6 +370,28 @@ describe('SITE-995: the dates of an in-house intermediate lot (site-services 173
     (await gmp.db.admin.query<{ exp: string | null; rt: string | null }>('select l.expires_at::text as exp, l.retest_at::text as rt from site.material_lot l where l.id = $1', [lotId])).rows[0]!;
   const lots: Record<'expiry' | 'retest' | 'none', { lotId: string; lotCode: string }> = { expiry: { lotId: '', lotCode: '' }, retest: { lotId: '', lotCode: '' }, none: { lotId: '', lotCode: '' } };
 
+  const refused = async (body: Record<string, unknown>): Promise<string> => {
+    const r = refusalOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: body as never }));
+    return `${r.code} ${r.why}`;
+  };
+
+  it('[AS-18] EBMR-SUB-005: the lot\'s dates are the person\'s choice and only a whole one is taken: no choice (the contract), RETEST without its date and NONE with a date are refused, nothing posted', async () => {
+    const base = { batchId: batch.A.batchId, quantity: '2', unit: 'kg' };
+    const before = (await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.intermediate_lot where batch_id = $1', [batch.A.batchId])).rows[0]?.n;
+    expect(refusalOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: base as never })).status).toBe(400);
+    expect(await refused({ ...base, dating: 'RETEST' })).toMatch(/^EBMR-SUB-005 /);
+    expect(await refused({ ...base, dating: 'NONE', retestAt: future(10) })).toMatch(/^EBMR-SUB-005 /);
+    expect(await refused({ ...base, dating: 'SHELF' })).toMatch(/^SCHEMA /);
+    const after = (await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.intermediate_lot where batch_id = $1', [batch.A.batchId])).rows[0]?.n;
+    expect(after).toBe(before);
+  });
+
+  it('[PR-18] EBMR-SUB-004: a retest date already reached is refused at the post, for a retest-dated lot and alongside an expiry', async () => {
+    const base = { batchId: batch.A.batchId, quantity: '2', unit: 'kg' };
+    expect(await refused({ ...base, dating: 'RETEST', retestAt: '2020-01-01T00:00:00+05:30' })).toMatch(/^EBMR-SUB-004 /);
+    expect(await refused({ ...base, dating: 'EXPIRY', retestAt: '2020-01-01T00:00:00+05:30' })).toMatch(/^EBMR-SUB-004 /);
+  });
+
   it('[PR-18][AS-18][INV-13] the person posting chooses the lot\'s dates: an expiry from the shelf life (with a retest date on or before it), a retest date only, or neither; nothing is chosen for them, and each refusal has its own code', async () => {
     const stores = await gmp.asPersona('stores');
     const base = { batchId: batch.A.batchId, quantity: '2', unit: 'kg' };
@@ -377,11 +399,6 @@ describe('SITE-995: the dates of an in-house intermediate lot (site-services 173
       const r = refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: body as never }));
       return `${r.code} ${r.whatHappened} ${r.why}`;
     };
-    // No choice made: the contract refuses the post (nothing defaulted).
-    expect(refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: base as never })).status).toBe(400);
-    expect(await why({ ...base, dating: 'RETEST' })).toMatch(/EBMR-SUB-005/);
-    expect(await why({ ...base, dating: 'NONE', retestAt: future(10) })).toMatch(/EBMR-SUB-005/);
-    expect(await why({ ...base, dating: 'RETEST', retestAt: '2020-01-01T00:00:00+05:30' })).toMatch(/EBMR-SUB-004/);
     expect(await why({ ...base, dating: 'EXPIRY', retestAt: '2099-01-01T00:00:00+05:30' })).toMatch(/EBMR-SITE-998/);
     // The quantity keeps its own code.
     expect(await why({ ...base, quantity: '0', dating: 'NONE' })).toMatch(/^EBMR-SITE-995 /);
@@ -397,7 +414,7 @@ describe('SITE-995: the dates of an in-house intermediate lot (site-services 173
     expect([e.exp !== null, e.rt !== null, r.exp, r.rt !== null, n.exp, n.rt]).toEqual([true, true, null, true, null, null]);
   });
 
-  it('[PR-18][INV-13] the database allows a lot without an expiry only for an intermediate made in-house: another kind is refused by its check, a bare INTERMEDIATE lot without its post at commit (EBMR-SITE-999)', async () => {
+  it('[PR-18][INV-13] the database allows a lot without an expiry only for an intermediate made in-house: another kind (an API or finished lot, so every CoA has its date) is refused by its check, a bare INTERMEDIATE lot without its post at commit (EBMR-SITE-999)', async () => {
     // As the stores person, in a command (the audit trail needs an actor), so only the dates rule can refuse.
     const stores = await gmp.asPersona('stores');
     const asStores = async (sql: string, args: unknown[]): Promise<void> => {
@@ -410,6 +427,8 @@ describe('SITE-995: the dates of an in-house intermediate lot (site-services 173
        select gen_random_uuid(), l.site_code, $2, l.material_code, l.material_name, $3, 1, 'kg', null, l.received_by_person, l.received_by_account, gen_random_uuid()
          from site.material_lot l where l.id = $1`, [lots.none.lotId, `NX-${TAG}-${kind.slice(0, 3)}`, kind]);
     await expect(insert('API')).rejects.toThrow(/material_lot_expiry_or_intermediate/);
+    // A finished lot (the only kind a certificate of analysis is issued for, substance 5005) is always dated.
+    await expect(insert('FINISHED')).rejects.toThrow(/material_lot_expiry_or_intermediate/);
     await expect(insert('INTERMEDIATE')).rejects.toThrow(/EBMR-SITE-999/);
     // A lot's dates are never changed afterwards (the table is insert-only), so a dated lot never loses its expiry.
     await expect(asStores('update site.material_lot set expires_at = null where id = $1', [lot.A])).rejects.toThrow(/EBMR-AUDIT-004 site.material_lot is insert-only/);

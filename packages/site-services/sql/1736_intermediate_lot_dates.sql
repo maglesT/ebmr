@@ -18,6 +18,9 @@
 --                           (EBMR-XFR-043). The receiving site records the lot as a received lot, which always carries an
 --                           expiry (and ICH Q7 11.6, paraphrased, asks for a date on an intermediate that leaves the firm's
 --                           own control); the package's hold limit (0980) is computed from that expiry.
+-- Unchanged by design: a reservation of a lot without an expiry (site.reserve_lot, 0752) is bounded by the lot's retest date
+-- when it has one, otherwise only by the reservation's own end the caller gives; there is no expiry to cap it. A certificate
+-- of analysis (substance 5005) is issued only for a finished API lot, and the check above keeps every finished lot dated.
 -- Messages: EBMR-SITE-993 to EBMR-SITE-995 and EBMR-SITE-997 (unchanged), EBMR-SITE-998, EBMR-SITE-999, EBMR-XFR-043.
 
 set local role ebmr_owner;
