@@ -192,7 +192,7 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
   it('[IN-05][PR-45][INV-27] step A runs to completion and the stores post its output as an INTERMEDIATE lot in quarantine, dated from the product master\'s shelf life; a second and a third post of the same batch are lots <batch>-2 and <batch>-3; an incomplete batch and a non-stores person are refused', async () => {
     batch.A = await plannedAndIssued('A', masterA);
     const stores = await gmp.asPersona('stores');
-    const post = { batchId: batch.A.batchId, quantity: '50', unit: 'kg' };
+    const post = { batchId: batch.A.batchId, quantity: '50', unit: 'kg', dating: 'EXPIRY' as const };
     expect(refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: post }))?.why).toMatch(/EBMR-SITE-994|execution is complete/);
     await runToComplete(batch.A.batchId);
     expect(refusalOf(await (await gmp.asPersona('qcAnalyst')).call(routes.specifications.postIntermediateLot, { body: post })).code).toMatch(/^EBMR-IAM/);
@@ -221,7 +221,7 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
   it('[INV-27][IN-18] a tablets batch never reaches the intermediate post: the site function refuses any batch that is not a complete processing batch of the API edition', async () => {
     const tablets = (await gmp.db.admin.query<{ id: string }>("select b.id from recipe.stub_batch b join recipe.mbr_family f on f.id = b.family_id where f.edition <> 'substance' limit 1")).rows[0]?.id;
     const stores = await gmp.asPersona('stores');
-    const r = await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: tablets ?? randomUUID(), quantity: '1', unit: 'kg' } });
+    const r = await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: tablets ?? randomUUID(), quantity: '1', unit: 'kg', dating: 'EXPIRY' as const } });
     expect(refusalOf(r)?.why).toMatch(/EBMR-SITE-99[34]|EBMR-SUB-001|not a GMP batch|API edition/);
     // The internal function is not the application role's.
     await expect(gmp.db.app.query("select site.create_intermediate_lot('{}'::jsonb)")).rejects.toThrow(/permission denied/);
@@ -264,7 +264,7 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     const offered = async (): Promise<boolean | undefined> =>
       (await new RunDriver(gmp, batch.B.batchId, { stores: await gmp.asPersona('stores') }).runView('stores')).header.postsIntermediateLot;
     expect(await offered()).toBe(true);
-    const posted = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '42.5', unit: 'kg' } }));
+    const posted = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '42.5', unit: 'kg', dating: 'EXPIRY' as const } }));
     lot.B = posted.lotId;
     expect(posted).toMatchObject({ lotCode: batch.B.batchNumber, materialCode: INT_B.code, status: 'QUARANTINE', quantity: '42.5' });
     expect(await offered()).toBe(true);
@@ -352,7 +352,7 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
     valueOf(await stores.call(routes.quality.receiveLot, {
       body: { materialCode: material, lotCode: `${batch.B.batchNumber}-2`, supplier: 'Demo Supplier', supplierLot: `S-${TAG}`, quantity: '5.000', expiresAt: '2029-09-30T00:00:00+05:30', retestAt: '2029-03-31T00:00:00+05:30' },
     }));
-    const next = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '1', unit: 'kg' } }));
+    const next = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: batch.B.batchId, quantity: '1', unit: 'kg', dating: 'EXPIRY' as const } }));
     expect(next).toMatchObject({ lotCode: `${batch.B.batchNumber}-3`, materialCode: INT_B.code, status: 'QUARANTINE' });
     const n = await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.intermediate_lot where batch_id = $1', [batch.B.batchId]);
     expect(n.rows[0]?.n).toBe('2');
@@ -361,5 +361,89 @@ describe('API plan A2: intermediate lots between synthesis steps (C1)', () => {
       `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
        select gen_random_uuid(), l.site_code, l.lot_code, l.material_code, l.material_name, l.material_kind, l.received_quantity, l.unit, l.expires_at, l.received_by_person, l.received_by_account, gen_random_uuid()
          from site.material_lot l where l.site_code = $1 and l.lot_code = $2`, [SITE, batch.B.batchNumber])).rejects.toThrow(/material_lot_site_code_lot_code_key/);
+  });
+});
+
+describe('SITE-995: the dates of an in-house intermediate lot (site-services 1736, substance 5009, tablets 1909)', () => {
+  const future = (days: number): string => new Date(Date.now() + days * 86_400_000).toISOString().replace('Z', '+00:00');
+  const datesOf = async (lotId: string): Promise<{ exp: string | null; rt: string | null }> =>
+    (await gmp.db.admin.query<{ exp: string | null; rt: string | null }>('select l.expires_at::text as exp, l.retest_at::text as rt from site.material_lot l where l.id = $1', [lotId])).rows[0]!;
+  const lots: Record<'expiry' | 'retest' | 'none', { lotId: string; lotCode: string }> = { expiry: { lotId: '', lotCode: '' }, retest: { lotId: '', lotCode: '' }, none: { lotId: '', lotCode: '' } };
+
+  it('[PR-18][AS-18][INV-13] the person posting chooses the lot\'s dates: an expiry from the shelf life (with a retest date on or before it), a retest date only, or neither; nothing is chosen for them, and each refusal has its own code', async () => {
+    const stores = await gmp.asPersona('stores');
+    const base = { batchId: batch.A.batchId, quantity: '2', unit: 'kg' };
+    const why = async (body: Record<string, unknown>): Promise<string> => {
+      const r = refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: body as never }));
+      return `${r.code} ${r.whatHappened} ${r.why}`;
+    };
+    // No choice made: the contract refuses the post (nothing defaulted).
+    expect(refusalOf(await stores.call(routes.specifications.postIntermediateLot, { body: base as never })).status).toBe(400);
+    expect(await why({ ...base, dating: 'RETEST' })).toMatch(/EBMR-SUB-005/);
+    expect(await why({ ...base, dating: 'NONE', retestAt: future(10) })).toMatch(/EBMR-SUB-005/);
+    expect(await why({ ...base, dating: 'RETEST', retestAt: '2020-01-01T00:00:00+05:30' })).toMatch(/EBMR-SUB-004/);
+    expect(await why({ ...base, dating: 'EXPIRY', retestAt: '2099-01-01T00:00:00+05:30' })).toMatch(/EBMR-SITE-998/);
+    // The quantity keeps its own code.
+    expect(await why({ ...base, quantity: '0', dating: 'NONE' })).toMatch(/^EBMR-SITE-995 /);
+
+    const expiry = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { ...base, dating: 'EXPIRY', retestAt: future(30) } }));
+    const retest = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { ...base, dating: 'RETEST', retestAt: future(60) } }));
+    const none = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { ...base, dating: 'NONE' } }));
+    lots.expiry = expiry;
+    lots.retest = retest;
+    lots.none = none;
+    expect([expiry.expiry !== null, expiry.retest !== null, retest.expiry, retest.retest !== null, none.expiry, none.retest]).toEqual([true, true, null, true, null, null]);
+    const [e, r, n] = await Promise.all([datesOf(expiry.lotId), datesOf(retest.lotId), datesOf(none.lotId)]);
+    expect([e.exp !== null, e.rt !== null, r.exp, r.rt !== null, n.exp, n.rt]).toEqual([true, true, null, true, null, null]);
+  });
+
+  it('[PR-18][INV-13] the database allows a lot without an expiry only for an intermediate made in-house: another kind is refused by its check, a bare INTERMEDIATE lot without its post at commit (EBMR-SITE-999)', async () => {
+    // As the stores person, in a command (the audit trail needs an actor), so only the dates rule can refuse.
+    const stores = await gmp.asPersona('stores');
+    const asStores = async (sql: string, args: unknown[]): Promise<void> => {
+      await withCommand(gmp.db.admin, { ...(await actorOfBrowser(gmp, stores, 'stores')), correlationId: randomUUID() }, async (c) => {
+        await c.query(sql, args);
+      });
+    };
+    const insert = (kind: string): Promise<void> => asStores(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+       select gen_random_uuid(), l.site_code, $2, l.material_code, l.material_name, $3, 1, 'kg', null, l.received_by_person, l.received_by_account, gen_random_uuid()
+         from site.material_lot l where l.id = $1`, [lots.none.lotId, `NX-${TAG}-${kind.slice(0, 3)}`, kind]);
+    await expect(insert('API')).rejects.toThrow(/material_lot_expiry_or_intermediate/);
+    await expect(insert('INTERMEDIATE')).rejects.toThrow(/EBMR-SITE-999/);
+    // A lot's dates are never changed afterwards (the table is insert-only), so a dated lot never loses its expiry.
+    await expect(asStores('update site.material_lot set expires_at = null where id = $1', [lot.A])).rejects.toThrow(/EBMR-AUDIT-004 site.material_lot is insert-only/);
+  });
+
+  it('[PR-18][INV-13] a lot without an expiry is never read as expired: its status checks pass until its retest date, and a retest date still stops its use', async () => {
+    const problem = async (lotId: string): Promise<string | null> =>
+      (await gmp.db.admin.query<{ p: string | null }>('select site.lot_dates_problem(l) as p from site.material_lot l where l.id = $1', [lotId])).rows[0]?.p ?? null;
+    expect([await problem(lots.none.lotId), await problem(lots.retest.lotId)]).toEqual([null, null]);
+    const usage = (await gmp.db.admin.query<{ s: string }>('select u.usage_status as s from site.material_lot_usage u where u.lot_id = $1', [lots.none.lotId])).rows[0]?.s;
+    expect(usage).toBe('QUARANTINE');
+    // The retest date still stops a lot without an expiry once it is reached: one posted due in three seconds.
+    const soon = new Date(Date.now() + 3_000).toISOString().replace('Z', '+00:00');
+    const due = valueOf(await (await gmp.asPersona('stores')).call(routes.specifications.postIntermediateLot, { body: { batchId: batch.A.batchId, quantity: '1', unit: 'kg', dating: 'RETEST', retestAt: soon } }));
+    expect(await problem(due.lotId)).toBeNull();
+    await new Promise((done) => setTimeout(done, 3_500));
+    expect(await problem(due.lotId)).toMatch(/due for retest/);
+    expect((await gmp.db.admin.query<{ s: string }>('select u.usage_status as s from site.material_lot_usage u where u.lot_id = $1', [due.lotId])).rows[0]?.s).toBe('RETEST_DUE');
+  });
+
+  it('[PR-18][IN-18] FEFO (tablets 1909): a released lot without an expiry is a first-expiring candidate, taken after every lot that expires', async () => {
+    await releaseForFurtherProcessing(lots.expiry.lotId, INT_A.code);
+    await releaseForFurtherProcessing(lots.none.lotId, INT_A.code);
+    const others = (await gmp.db.admin.query<{ c: string }>('select l.lot_code as c from site.material_lot l where l.material_code = $1 and l.id <> all ($2::uuid[])', [INT_A.code, [lots.expiry.lotId, lots.none.lotId]])).rows.map((r) => r.c);
+    const first = async (exclude: string[]): Promise<string | null> =>
+      (await gmp.db.admin.query<{ c: string | null }>('select tab.tb01_first_expiring($1, $2, $3, clock_timestamp()) as c', [batch.B.batchId, INT_A.code, exclude])).rows[0]?.c ?? null;
+    expect(await first(others)).toBe(lots.expiry.lotCode);
+    expect(await first([...others, lots.expiry.lotCode])).toBe(lots.none.lotCode);
+  });
+
+  it('[PR-18] a lot without an expiry is not sent to another site: the transfer package is refused (EBMR-XFR-043), saying it stays here', async () => {
+    await expect(gmp.db.admin.query(
+      `insert into site.transfer_package (id, package_no, lot_id, origin_installation, destination_installation, quantity, unit, payload, payload_sha256, prepared_by_person, prepared_by_account, correlation_id)
+       values (gen_random_uuid(), $2, $1, 'GMP-A', 'GMP-B', 1, 'kg', '{}', repeat('0', 64), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      [lots.none.lotId, `XP-${TAG}`])).rejects.toThrow(/EBMR-XFR-043 .*cannot be sent to another site.*Keep it at this site/);
   });
 });
