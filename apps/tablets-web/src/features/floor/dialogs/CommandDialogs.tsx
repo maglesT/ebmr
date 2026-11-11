@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { routes, type CallError, type ExceptionView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, Field, floor } from '@ebmr/ui-kit';
-import { api } from '../../../api/client.ts';
+import { useCommand } from '../../../app/acts.tsx';
 import { useDeviationsLinked } from '../../../app/boot.tsx';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { useSessionChange } from '../session.tsx';
@@ -105,17 +105,14 @@ function LinkDeviationForm({ exception, stepKey, gmp, ...p }: FormBase & { excep
  * number (quality.linkDeviationNumber, which checks the number is one Deviations publishes).
  */
 function LinkDeviationNumber({ runId, number }: { runId: string; number: string }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<CallError | null>(null);
+  // On a shared kiosk the link carries the person's fresh badge tap (INV-40); useCommand asks for it.
+  const linkCmd = useCommand(routes.quality.linkDeviationNumber, [], st('dialog.deviation.linkNumber'));
+  const busy = linkCmd.busy;
+  const error: CallError | null = linkCmd.error;
   const [linkedNumber, setLinkedNumber] = useState<string | null>(null);
   const link = async () => {
     if (number === '') return;
-    setBusy(true);
-    setError(null);
-    const r = await api.call(routes.quality.linkDeviationNumber, { params: { batchId: runId }, body: { number } });
-    setBusy(false);
-    if (!r.ok) return setError(r.error);
-    setLinkedNumber(number);
+    if (await linkCmd.run({ params: { batchId: runId }, body: { number } })) setLinkedNumber(number);
   };
   if (linkedNumber !== null && linkedNumber === number) return <p data-testid="deviation-number-linked">{st('dialog.deviation.numberLinked', { ref: linkedNumber })}</p>;
   return (
@@ -138,21 +135,25 @@ function LinkDeviationNumber({ runId, number }: { runId: string; number: string 
 function RaiseBatchDeviation({ runId, title, onRaised }: { runId: string; title: string; onRaised: (ref: string) => void }) {
   const [classification, setClassification] = useChoice();
   const [rationale, setRationale] = useTyped();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<CallError | null>(null);
+  // On a shared kiosk the raise and its link to the batch are each sent with the person's fresh badge tap (INV-40):
+  // useCommand asks for it; a cancelled tap sends nothing.
+  const raiseCmd = useCommand(routes.quality.raiseDeviation, [], st('dialog.deviation.raise'));
+  const linkCmd = useCommand(routes.quality.linkDeviation, [], st('dialog.deviation.raise'));
+  const busy = raiseCmd.busy || linkCmd.busy;
+  const error: CallError | null = raiseCmd.error ?? linkCmd.error;
   const [raised, setRaised] = useState<string | null>(null);
-  const ready = (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10;
+  // A deviation raised whose link was refused or not tapped: a second press links it, never raises a second one.
+  const [unlinked, setUnlinked] = useState<{ deviationId: string; ref: string } | null>(null);
+  const ready = unlinked !== null || ((classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10);
   const raise = async () => {
     if (!ready) return;
-    setBusy(true);
-    setError(null);
-    const r = await api.call(routes.quality.raiseDeviation, { body: { kind: 'DEVIATION', title: title.slice(0, 200), classification, riskRationale: rationale.trim() } });
-    const linked = r.ok ? await api.call(routes.quality.linkDeviation, { params: { deviationId: r.value.deviationId }, body: { subjectKind: 'BATCH', subjectId: runId } }) : null;
-    setBusy(false);
-    if (!r.ok) return setError(r.error);
-    if (linked && !linked.ok) return setError(linked.error);
-    setRaised(r.value.ref);
-    onRaised(r.value.ref);
+    const r = unlinked ?? (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL' ? await raiseCmd.run({ body: { kind: 'DEVIATION', title: title.slice(0, 200), classification, riskRationale: rationale.trim() } }) : null);
+    if (!r) return;
+    setUnlinked({ deviationId: r.deviationId, ref: r.ref });
+    const linked = await linkCmd.run({ params: { deviationId: r.deviationId }, body: { subjectKind: 'BATCH', subjectId: runId } });
+    if (!linked) return;
+    setRaised(r.ref);
+    onRaised(r.ref);
   };
   if (raised !== null) return <p data-testid="deviation-raised">{st('dialog.deviation.raised', { ref: raised })}</p>;
   return (

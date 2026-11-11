@@ -257,9 +257,11 @@ export type ExternalInput =
  * Validator roles a library block may take (decision 0026, S4): the ones whose meaning needs no block code. A line or
  * room clearance block is CLEARANCE, a yield or reconciliation block YIELD_RECONCILIATION (its phase names the
  * formulation's yield checkpoint), and so on. Automated phases, dispensing, charge-in, timers with time constraints,
- * printed materials, containers, returns and reprocessing stay with their system blocks.
+ * printed materials, containers, returns and reprocessing stay with their system blocks. A PACK_EXAMINATION block, the
+ * examination of the finished packs, completes a packaging record of its edition (recipe-core 1892; decision 0026: a
+ * firm's own QA-approved block counts without software).
  */
-export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION'] as const;
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
 /**
@@ -335,6 +337,12 @@ export interface BlockUse {
   justifications?: Record<string, string>;
   /** BOM line ids for FORMULA_LINE inputs, by slot. */
   bomLines?: Record<string, string>;
+  /**
+   * Owner retest N-3: a BATCH_SIZE input read instead as the sum of these formula lines for the batch (by input id), e.g.
+   * a stage yield's theoretical quantity in kg when the batch size is in tablets. The designer fills the lines the stage
+   * and the stages before it use; the author may change them.
+   */
+  inputLines?: Record<string, string[]>;
   /** Earlier step and field for STEP_VALUE inputs, by slot (resolved against the formulation in S9). */
   stepValues?: Record<string, { step: string; field: string }>;
   /** Time points or stages of a per-point test result, by field id. */

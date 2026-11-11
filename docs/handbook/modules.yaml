@@ -370,7 +370,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql:
-        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_', '^1734_']
+        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_', '^1734_', '^1736_']
     src: [packages/site-services/src/lots]
     tests: ['packages/site-services/test/lots/**', 'packages/site-services/test/mutation/lots-and-lims.test.ts']
 
@@ -450,7 +450,7 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql:
-        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_', '^1878_']
+        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_', '^1878_', '^1889_']
     src: [packages/recipe-core/src/lifecycle]
     tests:
       - 'packages/recipe-core/test/lifecycle/**'
@@ -537,7 +537,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_', '^1750_', '^1873_']
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_', '^1750_', '^1873_', '^1892_']
     tests:
       - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
       - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'
@@ -582,7 +582,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_', '^1877_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_', '^1877_', '^1893_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'
@@ -1113,7 +1113,7 @@ modules:
     package: apps/tablets-server
     migrations:
       apps/tablets-server/sql:
-        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_', '^1320_', '^1903_', '^1905_', '^1906_']
+        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_', '^1320_', '^1903_', '^1905_', '^1906_', '^1909_']
     server: [apps/tablets-server/src/features/execution]
     contract: [packages/api-contract/src/ns/execution.ts, packages/api-contract/src/ns/batches.ts]
     screens: [apps/tablets-web/src/features/floor]

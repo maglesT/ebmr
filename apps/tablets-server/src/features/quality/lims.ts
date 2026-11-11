@@ -186,15 +186,15 @@ async function finishedLot(app: AppContext, db: Db, lotId: string): Promise<Fini
 
 /** API plan A2: the intermediate lot as posted (site-services 1732). */
 async function intermediateLot(app: AppContext, db: Db, lotId: string): Promise<IntermediateLotView> {
-  const { rows } = await db.query<{ lot_code: string; batch_id: string; material_code: string; status: string; quantity: string; unit: string; exp_us: string }>(
+  const { rows } = await db.query<{ lot_code: string; batch_id: string; material_code: string; status: string; quantity: string; unit: string; exp_us: string | null; rt_us: string | null }>(
     `select l.lot_code, i.batch_id, l.material_code, (select s.state from platform.aggregate_state s where s.aggregate_type = 'material_lot' and s.aggregate_id = l.id) as status,
-            l.received_quantity::text as quantity, l.unit, ${usOf('l.expires_at')} as exp_us
+            l.received_quantity::text as quantity, l.unit, ${usOf('l.expires_at')} as exp_us, ${usOf('site.lot_retest_at(l.id)')} as rt_us
        from site.intermediate_lot i join site.material_lot l on l.id = i.lot_id where i.lot_id = $1`,
     [lotId],
   );
   const r = rows[0];
   if (!r) throw notFound('intermediate lot');
-  return { lotId, lotCode: r.lot_code, batchId: r.batch_id, materialCode: r.material_code, status: r.status, quantity: r.quantity, unit: r.unit, expiry: app.formatInstant(r.exp_us) };
+  return { lotId, lotCode: r.lot_code, batchId: r.batch_id, materialCode: r.material_code, status: r.status, quantity: r.quantity, unit: r.unit, expiry: r.exp_us === null ? null : app.formatInstant(r.exp_us), retest: r.rt_us === null ? null : app.formatInstant(r.rt_us) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -292,7 +292,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     postIntermediateLot: async ({ body, actor, idempotencyKey, requestHash }) => {
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        const { rows } = await c.query<{ id: string }>('select substance.post_intermediate_lot($1, $2, $3) as id', [body.batchId, body.quantity, body.unit]);
+        const { rows } = await c.query<{ id: string }>('select substance.post_intermediate_lot($1, $2, $3, $4, $5) as id', [body.batchId, body.quantity, body.unit, body.dating, body.retestAt ?? null]);
         return rows[0]?.id ?? '';
       });
       return intermediateLot(app, pool, out.result);

@@ -175,6 +175,19 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(judgedRun(item, { aql: { aqlCritical: '1' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
+  it('[ST-62] the booth illumination check is an EU-market block (Annex 1 8.31) signed by the operator alone: not in the IN or US base, which inspects without it; an illumination out of range is an exception', () => {
+    const light = byCode('INJ-INSPECT-LIGHT');
+    expect(light.definition.markets).toEqual(['EU']);
+    for (const m of ['IN', 'US']) expect(light.definition.markets, m).not.toContain(m);
+    expect(light.definition.signatures).toHaveLength(1);
+    expect(light.definition.signatures[0]).toMatchObject({ meaning: 'PERFORMED' });
+    expect(light.definition.sections.flatMap((x) => x.fields).map((f) => f.id)).toEqual(['illuminationOk']);
+    // The base inspection block, offered to every market, keeps no illumination answer.
+    expect(byCode('INJ-VISUAL-INSPECT').definition.markets).toBeUndefined();
+    expect(judgedRun(light, {})).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(judgedRun(light, { light: { illuminationOk: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+  });
+
   it('[ST-64] one unit failing the container closure integrity test is an exception', () => {
     expect(judgedRun(byCode('INJ-CCI'), { test: { failures: '1' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });

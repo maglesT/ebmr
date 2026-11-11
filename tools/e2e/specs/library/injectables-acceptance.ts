@@ -463,7 +463,10 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
     await evidence.step('QA proposes the IN market authorisation, the regulatory signer confirms it and QA authorises it', 'The authorisation is ACTIVE', async () => {
       const r = await officePage('GMP', 'PC-QA-02');
       await signIn.office(r, regulatory);
-      await authoriseIn(q, r, e2e.url('GMP'), versionId, { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, qa, regulatory, `IN: registration on file (${tag})`);
+      // A second QA person authorises: the one who proposed may not (owner item 11, recipe-core 1889).
+      const q2 = await officePage('GMP', 'PC-QA-01');
+      await signIn.office(q2, persona('GMP', 'approver2'));
+      await authoriseIn(q, r, e2e.url('GMP'), versionId, { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, qa, regulatory, `IN: registration on file (${tag})`, { page: q2, persona: persona('GMP', 'approver2') });
       return { state: 'ACTIVE' };
     }, q);
   });
@@ -1086,7 +1089,10 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     await signIn.office(q, persona('GMP', 'approver'));
     await evidence.step('The four signatures and the IN authorisation of the packaging master', 'APPROVED; the IN authorisation ACTIVE', async () => {
       await fourSignatures({ author: a, checker: c, regulatory: r, qa: q }, { author: persona('GMP', 'author'), checker: persona('GMP', 'checker'), regulatory: persona('GMP', 'regulatory'), qa: persona('GMP', 'approver') }, base, s.packVersionId ?? '');
-      await authoriseIn(q, r, base, s.packVersionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration of the pack on file (${s.tag})`);
+      // A second QA person authorises: the one who proposed may not (owner item 11, recipe-core 1889).
+      const q2 = await officePage('GMP', 'PC-QA-01');
+      await signIn.office(q2, persona('GMP', 'approver2'));
+      await authoriseIn(q, r, base, s.packVersionId ?? '', { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, persona('GMP', 'approver'), persona('GMP', 'regulatory'), `IN: registration of the pack on file (${s.tag})`, { page: q2, persona: persona('GMP', 'approver2') });
     }, q);
   });
 

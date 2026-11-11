@@ -82,7 +82,7 @@ export interface MasterSpec {
  * market (QA and regulatory) and the numbering rule.
  */
 export async function approveMaster(w: GoldenWorld, content: flow.MbrContent, spec: MasterSpec): Promise<PackMaster> {
-  for (const k of ['author', 'approver', 'checker', 'regulatory', 'steward']) w.b[k] = await w.server.asPersona(k);
+  for (const k of ['author', 'approver', 'approver2', 'checker', 'regulatory', 'steward']) w.b[k] = await w.server.asPersona(k);
   const author = w.b['author'] as TestBrowser;
   const qa = w.b['approver'] as TestBrowser;
   const familyId = await asPersona(w.server, author, 'author', (c) => lifecycle.defineFamily(c, lifecycle.familyOf(content)));
@@ -116,7 +116,8 @@ export async function approveMaster(w: GoldenWorld, content: flow.MbrContent, sp
   }
   for (const market of spec.markets) {
     const def: lifecycle.MarketAuthorisationDefinition = { versionId, market, kind: 'CURRENT', cells: [{ site: SITE, line: LINE, batch_size: spec.sizeId }], regulatoryBasis: `${market}: registration on file (invented product)` };
-    const maId = await asPersona(w.server, qa, 'approver', (c) => lifecycle.proposeMarketAuthorisation(c, def));
+    // A second QA person proposes; the proposer cannot authorise (owner item 11, recipe-core 1889).
+    const maId = await asPersona(w.server, w.b['approver2'] as TestBrowser, 'approver2', (c) => lifecycle.proposeMarketAuthorisation(c, def));
     const qaSig = await signDirect(w.server, w.seed, 'approver', lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
     const regSig = await signDirect(w.server, w.seed, 'regulatory', lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'REGULATORY_CONFIRMED', 'PROPOSED');
     await asPersona(w.server, qa, 'approver', (c) => lifecycle.activateMarketAuthorisation(c, maId, qaSig, regSig), { reasonCode: 'MARKET_AUTHORISED', reasonText: `${market}: ${spec.title} authorised at SITE-1 L1` });

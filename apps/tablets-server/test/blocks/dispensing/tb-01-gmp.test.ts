@@ -247,9 +247,11 @@ beforeAll(async () => {
   const author = await actorOf(gmp, 'author');
   const checker = await actorOf(gmp, 'checker');
   const qa = await actorOf(gmp, 'approver');
+  // The second QA person proposes market authorisations; the proposer cannot authorise (owner item 11, recipe-core 1889).
+  const qa2 = await actorOf(gmp, 'approver2');
   const regulatory = await actorOf(gmp, 'regulatory');
   const issuer = await actorOf(gmp, 'issuer');
-  world = new GmpWorld(db, { author, coAuthor: author, checker, checker2: checker, qa, qa2: qa, regulatory, issuer }, key);
+  world = new GmpWorld(db, { author, coAuthor: author, checker, checker2: checker, qa, qa2, regulatory, issuer }, key);
   const content = gmpContent();
   const v = await world.approvedVersion(content);
   await world.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, BATCH_SIZE)], regulatoryBasis: 'IN: registration on file' });

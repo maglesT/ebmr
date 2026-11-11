@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
-import { batchSizeOf, libraryBlockType, libraryBlockVersion, scaledInputs, scaledLine, type BlockDefinition } from '../../src/library/index.ts';
+import { batchSizeOf, checkBlockUse, libraryBlockType, libraryBlockVersion, scaledInputs, scaledLine, type BlockDefinition } from '../../src/library/index.ts';
 import { define, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 
@@ -87,5 +87,56 @@ describe('batch generation with scaling', () => {
 
   it('[IN-13] a size the master does not list is refused at issue: no free scaling', () => {
     expect(() => issuedAt('BS-300')).toThrow();
+  });
+});
+
+/**
+ * Owner retest N-3 (10 November 2026): a tablet master's batch size is in tablets, which do not convert to the kg of a
+ * stage yield's theoretical quantity. The use names the formula lines whose scaled sum is that quantity (`inputLines`);
+ * without them, or with a line that does not convert, the master is refused at design (PR-31: the yield is calculated
+ * against a theoretical quantity, 211.103).
+ */
+describe('N-3: a batch-size input read as the sum of formula lines', () => {
+  const TABLET_SIZES: MbrContent['header']['batchSizes'] = [
+    { id: 'BS-100K', quantity: { value: '100000', unit: '{tbl}' } },
+    { id: 'BS-200K', quantity: { value: '200000', unit: '{tbl}' } },
+  ];
+  const LINES: MbrContent['bom'] = [
+    { id: 'L1-PVP', material: 'MAT-PVP', role: 'EXCIPIENT', quantity: { value: '2000', unit: 'g' } },
+    { id: 'L2-PVP', material: 'MAT-PVP', role: 'EXCIPIENT', quantity: { value: '0.6', unit: 'kg' } },
+    { id: 'L-API', material: 'MAT-API', role: 'ACTIVE', quantity: { value: '50', unit: 'kg' } },
+    { id: 'L-BOX', material: 'MAT-BOX', role: 'EXCIPIENT', quantity: { value: '1000', unit: '{unit}' } },
+  ];
+  const yieldDef: BlockDefinition = {
+    code: 'CTRL-YIELD-TEST',
+    version: 1,
+    title: 'Stage yield',
+    category: 'CONTROL',
+    inputs: [{ id: 'theoretical', label: 'Theoretical quantity', kind: 'BATCH_SIZE', unit: 'kg' }],
+    sections: [{ id: 'y', title: 'Yield', fields: [{ id: 'output', label: 'Output', type: 'NUMBER', unit: 'kg' }, { id: 'yieldPct', label: 'Yield', type: 'CALC', expression: 'output / theoretical * 100 [%]', unit: '%' }] }],
+    signatures: [{ meaning: 'PERFORMED', role: 'OPERATOR' }],
+  };
+  const mbr = { header: { batchSizes: TABLET_SIZES }, bom: LINES } as unknown as MbrContent;
+  const use = (inputLines?: Record<string, string[]>) => ({ block: { code: yieldDef.code, version: 1 }, ...(inputLines ? { inputLines } : {}) });
+
+  it('[PR-31][PR-01][IN-13] the theoretical quantity is the scaled sum of the named lines in the input\'s unit, whatever the batch size\'s unit', () => {
+    expect(scaledInputs(yieldDef, { inputLines: { theoretical: ['L1-PVP', 'L2-PVP', 'L-API'] } }, mbr, 'BS-100K', expr)).toEqual({ theoretical: { value: '52.6', unit: 'kg' } });
+    expect(scaledInputs(yieldDef, { inputLines: { theoretical: ['L1-PVP', 'L2-PVP', 'L-API'] } }, mbr, 'BS-200K', expr)).toEqual({ theoretical: { value: '105.2', unit: 'kg' } });
+    // Without the lines the batch size (tablets) gives no kg: nothing is read.
+    expect(scaledInputs(yieldDef, {}, mbr, 'BS-100K', expr)).toEqual({});
+    // A line that does not convert gives no quantity, never a partial sum.
+    expect(scaledInputs(yieldDef, { inputLines: { theoretical: ['L-API', 'L-BOX'] } }, mbr, 'BS-100K', expr)).toEqual({});
+  });
+
+  it('[PR-31] a master is refused at design when the batch size does not convert and no lines are named, or a named line is unknown or does not convert', () => {
+    const codes = (inputLines?: Record<string, string[]>) => checkBlockUse(yieldDef, use(inputLines), expr, LINES, TABLET_SIZES).map((p) => `${p.code} ${p.path}`);
+    expect(codes()).toEqual(['LIB-USE-INPUT-LINES inputLines.theoretical']);
+    expect(codes({ theoretical: ['L1-PVP', 'L-API'] })).toEqual([]);
+    expect(codes({ theoretical: [] })).toEqual(['LIB-USE-INPUT-LINES inputLines.theoretical']);
+    expect(codes({ theoretical: ['L-NONE'] })).toEqual(['LIB-USE-INPUT-LINES inputLines.theoretical']);
+    expect(codes({ theoretical: ['L-BOX'] })).toEqual(['LIB-USE-INPUT-LINES inputLines.theoretical']);
+    expect(codes({ other: ['L-API'] })).toEqual(['LIB-USE-UNKNOWN-SLOT inputLines.other', 'LIB-USE-INPUT-LINES inputLines.theoretical']);
+    // A kg batch size needs no lines.
+    expect(checkBlockUse(yieldDef, use(), expr, LINES, [{ id: 'BS-1', quantity: { unit: 'kg' } }])).toEqual([]);
   });
 });

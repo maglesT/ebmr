@@ -117,6 +117,9 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'author', installation: 'GMP', legalName: 'Asha Rao', loginName: 'asha.rao', roleCode: 'MBR_AUTHOR', kiosk: false, homeTerminal: 'PC-DESIGN-01', title: 'MBR author', demo: { password: 'Demo-Author-2026!' } },
   { key: 'checker', installation: 'GMP', legalName: 'Vikram Shah', loginName: 'vikram.shah', roleCode: 'MBR_CHECKER', kiosk: false, homeTerminal: 'PC-DESIGN-01', title: 'MBR checker', demo: { password: 'Demo-Checker-2026!' } },
   { key: 'approver', installation: 'GMP', legalName: 'Meera Iyer', loginName: 'meera.iyer', roleCode: 'QA_MBR_APPROVER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA MBR approver', demo: { password: 'Demo-Approver-2026!' } },
+  // Owner retest item 11 (10 November 2026): a market authorisation is proposed by one QA person and authorised by another
+  // (recipe-core 1889, EBMR-RCP-434).
+  { key: 'approver2', installation: 'GMP', legalName: 'Ritu Banerjee', loginName: 'ritu.banerjee', roleCode: 'QA_MBR_APPROVER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA MBR approver (second QA person)', demo: { password: 'Demo-Approver2-2026!' } },
   { key: 'regulatory', installation: 'GMP', legalName: 'Rahul Menon', loginName: 'rahul.menon', roleCode: 'REGULATORY_SIGNER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'Regulatory signer', demo: { password: 'Demo-Regulatory-2026!' } },
   { key: 'steward', installation: 'GMP', legalName: 'Neha Joshi', loginName: 'neha.joshi', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'PC-QA-01', title: 'Master-data steward (reference documents)', demo: { password: 'Demo-Steward-2026!' } },
   // GMP (batch issue and execution; Phase 3 slice 2b)

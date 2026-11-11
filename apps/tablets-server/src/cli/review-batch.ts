@@ -257,7 +257,7 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   };
 
   const office: Record<string, Browser> = {};
-  for (const k of ['steward', 'approver', 'author', 'checker', 'regulatory', 'issuer', 'technician1', 'technician2']) office[k] = await browserOf(k);
+  for (const k of ['steward', 'approver', 'approver2', 'author', 'checker', 'regulatory', 'issuer', 'technician1', 'technician2']) office[k] = await browserOf(k);
   const o = (k: string): Browser => {
     const b = office[k];
     if (!b) throw new Error(`no browser for ${k}`);
@@ -308,7 +308,8 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   await sign(o('regulatory'), t('REGULATORY_CONFIRM'), 'REGULATORY_CONFIRMED');
   await sign(o('approver'), t('APPROVE'), 'APPROVED');
   const def: lifecycle.MarketAuthorisationDefinition = { versionId, market: 'IN', kind: 'CURRENT', cells: [{ site: SITE, line: LINE, batch_size: BATCH_SIZE_ID }], regulatoryBasis: 'IN: registration on file (invented product)' };
-  const maId = await withCommand(db.app, { ...o('approver').actor, correlationId: randomUUID() }, (c) => lifecycle.proposeMarketAuthorisation(c, def));
+  // A second QA person proposes; the proposer cannot authorise (owner item 11, recipe-core 1889).
+  const maId = await withCommand(db.app, { ...o('approver2').actor, correlationId: randomUUID() }, (c) => lifecycle.proposeMarketAuthorisation(c, def));
   const qaSig = await signDirect(o('approver'), lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
   const regSig = await signDirect(o('regulatory'), lifecycle.MARKET_AUTHORISATION_AGGREGATE, maId, 'REGULATORY_CONFIRMED', 'PROPOSED');
   await withCommand(db.app, { ...o('approver').actor, correlationId: randomUUID(), reasonCode: 'MARKET_AUTHORISED', reasonText: 'IN: GB-T-01 authorised at SITE-1 L1' }, (c) => lifecycle.activateMarketAuthorisation(c, maId, qaSig, regSig));

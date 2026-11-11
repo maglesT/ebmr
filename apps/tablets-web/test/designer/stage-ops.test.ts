@@ -3,7 +3,8 @@
  * equipment; the content stays well formed (parseMbr) with unique ids, every refusal leaves it as it was.
  */
 import { describe, expect, it } from 'vitest';
-import { flow } from '@ebmr/recipe-core/pure';
+import { flow, type library } from '@ebmr/recipe-core/pure';
+import { CONTROL_SEEDS } from '../../../../packages/recipe-core/src/library/seed/controls.ts';
 import granulation from '../../../../packages/recipe-core/test/fixtures/tablet-granulation-compression.mbr.json' with { type: 'json' };
 import dcMini from '../../../../packages/recipe-core/test/fixtures/dc-mini.mbr.json' with { type: 'json' };
 import newStageFixture from '../../../../packages/recipe-core/test/fixtures/designer-new-stage.json' with { type: 'json' };
@@ -105,5 +106,42 @@ describe('stage operations (slice 7j)', () => {
     expect(used).not.toBeNull();
     const u = used as unknown as { stage: string; ref: string };
     expect(() => applyOp(base, { kind: 'REMOVE_STAGE_EQUIPMENT', stageId: u.stage, ref: u.ref })).toThrow('still checks or uses');
+  });
+});
+
+/**
+ * Owner retest N-3 (10 November 2026): a new stage gets its own yield step (an approved yield library block appended at
+ * the stage's end), and the author names the formula lines whose scaled sum is its theoretical quantity when the batch
+ * size does not convert to the yield's unit (SET_INPUT_LINES); an empty choice removes the binding.
+ */
+describe('N-3: a stage\'s own yield step and its theoretical quantity', () => {
+  const yieldDef = CONTROL_SEEDS.find((x) => x.definition.code === 'CTRL-YIELD')?.definition as library.BlockDefinition;
+
+  it('[PR-03][PR-31] a yield step is added at the end of a new stage, and its theoretical quantity reads the lines the author names', () => {
+    const base = parsed(granulation);
+    const stage = newStage(base, PALETTE, 'Bilayer compression', 'COMP-1');
+    let c = applyOp(base, { kind: 'ADD_STAGE', afterStageId: null, stage });
+    const seq = stagesOf(c).find((s) => s.id === stage.id)?.body as flow.SequenceNode;
+    c = applyOp(c, { kind: 'ADD_LIBRARY_BLOCK', sequenceId: seq.id, index: seq.children.length, stepId: 'p-ctrl-yield', definition: yieldDef });
+    wellFormed(c);
+    const steps = (stagesOf(c).find((s) => s.id === stage.id)?.body as flow.SequenceNode).children;
+    expect(steps[steps.length - 1]?.id).toBe('p-ctrl-yield');
+    const step = (): flow.PhaseNode => {
+      let found: flow.PhaseNode | undefined;
+      flow.walk(c.procedure.body, (n) => {
+        if (n.id === 'p-ctrl-yield' && n.kind === 'phase') found = n;
+      });
+      return found as flow.PhaseNode;
+    };
+    c = applyOp(c, { kind: 'SET_INPUT_LINES', stepId: 'p-ctrl-yield', inputId: 'theoretical', lines: ['BOM-ATV', 'BOM-MCC', 'BOM-ATV'] });
+    expect((step().config as { inputLines?: unknown }).inputLines).toEqual({ theoretical: ['BOM-ATV', 'BOM-MCC'] });
+    wellFormed(c);
+    // Refusals change nothing: an unknown line, an input that is not a batch size, a step that is not a library step.
+    expect(() => applyOp(c, { kind: 'SET_INPUT_LINES', stepId: 'p-ctrl-yield', inputId: 'theoretical', lines: ['BOM-NONE'] })).toThrow(OpError);
+    expect(() => applyOp(c, { kind: 'SET_INPUT_LINES', stepId: 'p-ctrl-yield', inputId: 'output', lines: ['BOM-ATV'] })).toThrow(OpError);
+    const clearance = ((stage.body as flow.SequenceNode).children[0] as flow.OperationNode).body as flow.SequenceNode;
+    expect(() => applyOp(c, { kind: 'SET_INPUT_LINES', stepId: clearance.children[0]?.id ?? '', inputId: 'theoretical', lines: ['BOM-ATV'] })).toThrow(OpError);
+    c = applyOp(c, { kind: 'SET_INPUT_LINES', stepId: 'p-ctrl-yield', inputId: 'theoretical', lines: [] });
+    expect((step().config as { inputLines?: unknown }).inputLines).toBeUndefined();
   });
 });

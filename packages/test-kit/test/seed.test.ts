@@ -111,7 +111,10 @@ describe('test-kit installations', () => {
 
   it('[DI-14] seeds the persona catalogue, one set per E2E worker plus the demo set', async () => {
     expect(gmpSeed.personas.map((p) => `${p.legalName}:${p.roleCode}`)).toEqual([
-      'Asha Rao:MBR_AUTHOR', 'Vikram Shah:MBR_CHECKER', 'Meera Iyer:QA_MBR_APPROVER', 'Rahul Menon:REGULATORY_SIGNER', 'Neha Joshi:MASTER_DATA_STEWARD',
+      'Asha Rao:MBR_AUTHOR', 'Vikram Shah:MBR_CHECKER', 'Meera Iyer:QA_MBR_APPROVER',
+      // Owner item 11 (10 November 2026): the second QA person, who proposes the market authorisation another QA person authorises.
+      'Ritu Banerjee:QA_MBR_APPROVER',
+      'Rahul Menon:REGULATORY_SIGNER', 'Neha Joshi:MASTER_DATA_STEWARD',
       'Rohan Gupta:BATCH_ISSUER', 'Priya Nair:OPERATOR', 'Sunita Bose:QC_ANALYST', 'Karan Malhotra:HEAD_OF_QC', 'Divya Menon:QA_REVIEWER',
       'Arvind Rao:QA_REVIEWER', 'Shalini Kapoor:AUTHORISED_PERSON',
       // Slice 6c (backlog 3b): the GMP shop floor.

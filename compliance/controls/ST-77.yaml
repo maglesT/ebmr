@@ -46,7 +46,7 @@ behaviour: |-
 catalog_test: A 10-min mould-temperature excursion → units from that window segregated. A modified mould without closed CCI assessment → batch start blocked.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the fill weight and seals at each round, and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch's wall thickness; a value outside is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT's), and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch's wall thickness; a value outside is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

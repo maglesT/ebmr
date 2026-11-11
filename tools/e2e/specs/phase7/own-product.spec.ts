@@ -205,7 +205,10 @@ test('[DI-17][INV-25][PR-01][PR-06][DI-35][DI-04][DI-05] a company\'s own tablet
   await evidence.step('QA proposes the IN market authorisation, the regulatory signer confirms it and QA authorises it', 'The authorisation is ACTIVE', async () => {
     const r = await officePage('GMP', 'PC-QA-02');
     await signIn.office(r, regulatory);
-    await authoriseIn(q, r, e2e.url('GMP'), versionId, { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, qa, regulatory, `IN: registration on file (${tag})`);
+    // A second QA person authorises: the one who proposed may not (owner item 11, recipe-core 1889).
+    const q2 = await officePage('GMP', 'PC-QA-01');
+    await signIn.office(q2, persona('GMP', 'approver2'));
+    await authoriseIn(q, r, e2e.url('GMP'), versionId, { site: 'SITE-1', line: 'L1', sizeId: 'BS-100000U' }, qa, regulatory, `IN: registration on file (${tag})`, { page: q2, persona: persona('GMP', 'approver2') });
     return { state: 'ACTIVE' };
   }, q);
 });

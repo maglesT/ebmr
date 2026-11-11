@@ -295,10 +295,12 @@ export class World {
 
   /**
    * Proposes, signs (QA + regulatory) and activates a market authorisation. The activation carries the QA person's own
-   * reason, both halves (EBMR-AUDIT-002; migration 0290).
+   * reason, both halves (EBMR-AUDIT-002; migration 0290). A second QA person proposes it: the one who proposed cannot
+   * authorise (owner item 11, recipe-core 1889, EBMR-RCP-434).
    */
   async authorise(def: lc.MarketAuthorisationDefinition, qa: SeededActor = this.cast.qa, regulatory: SeededActor = this.cast.regulatory): Promise<lc.ActivationResult> {
-    const id = await this.run(qa, (c) => lc.proposeMarketAuthorisation(c, def));
+    const proposer = qa.personId === this.cast.qa2.personId ? this.cast.qa : this.cast.qa2;
+    const id = await this.run(proposer, (c) => lc.proposeMarketAuthorisation(c, def));
     const qaSig = await this.sign(qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
     const regSig = await this.sign(regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
     const activated = await this.run(qa, (c) => lc.activateMarketAuthorisation(c, id, qaSig, regSig), reason(`${def.market}: market authorised for the test`));

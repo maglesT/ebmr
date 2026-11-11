@@ -136,3 +136,49 @@ describe('a form empties when its command committed', () => {
     expect(listReads).toBe(2);
   });
 });
+
+describe('the intermediate lot post asks for its dates (SITE-995)', () => {
+  it('[PR-18][AS-18] the dates are a choice in plain words with nothing chosen: the post is not offered until the person picks one, and the choice is sent as its value', async () => {
+    const posts: unknown[] = [];
+    setTransport((url: string, init?: RequestInit) => {
+      const path = new URL(url, 'http://localhost').pathname;
+      if (path === '/api/session') return Promise.resolve(json(EXAMPLES['session-office'].data));
+      if (path === '/api/quality/intermediate-lots') {
+        posts.push(JSON.parse(typeof init?.body === 'string' ? init.body : '{}'));
+        return Promise.resolve(json(EXAMPLES['specifications-post-intermediate-lot'].data));
+      }
+      return Promise.resolve(new Response('{}', { status: 404 }));
+    });
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <DefineForm
+          title="Post the intermediate lot"
+          route={routes.specifications.postIntermediateLot}
+          fixed={{ batchId: '3d9a1e0f-2b4c-4d5e-8f6a-8b9c0d1e2f31' }}
+          refresh={[]}
+          submitLabel="Post the intermediate lot in quarantine"
+          fields={[
+            { name: 'quantity', label: 'Intermediate quantity', kind: 'decimal' },
+            { name: 'unit', label: 'Unit', kind: 'text' },
+            { name: 'dating', label: 'Dates of this lot', kind: 'choice', options: [{ value: 'EXPIRY', label: "Expiry date from the product's shelf life" }, { value: 'RETEST', label: 'Retest date only' }, { value: 'NONE', label: 'No date (kept in-house)' }] },
+            { name: 'retestAt', label: 'Retest date', kind: 'instant', optional: true },
+          ]}
+        />
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByRole('textbox', { name: /Intermediate quantity/ }), '12');
+    await user.type(screen.getByRole('textbox', { name: /^Unit/ }), 'kg');
+    const radios = screen.getAllByRole('radio');
+    expect(radios.map((r) => (r as HTMLInputElement).checked)).toEqual([false, false, false]);
+    expect(screen.getByRole('radio', { name: 'No date (kept in-house)' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Post the intermediate lot in quarantine' }));
+    expect(posts).toEqual([]);
+    await user.click(screen.getByRole('radio', { name: 'No date (kept in-house)' }));
+    await user.click(screen.getByRole('button', { name: 'Post the intermediate lot in quarantine' }));
+    await waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]).toMatchObject({ batchId: '3d9a1e0f-2b4c-4d5e-8f6a-8b9c0d1e2f31', quantity: '12', unit: 'kg', dating: 'NONE' });
+    expect(posts[0]).not.toHaveProperty('retestAt');
+  });
+});

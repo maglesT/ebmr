@@ -123,7 +123,7 @@ Component acceptance (211.84) is incoming QC's lot release, enforced at use by t
 | Parametric release | A1 8.54, 10.4 (refer to Annex 17) | not built until Annex 17 is checked (Q5); sterility test stays in the formulation | building it unchecked would be guidance dressed as law |
 | BFS run | A1 8.105-8.120; SM Part XIII (FFS section) | INJ-30: EQUIP, NUM (parison and mould temperatures, fill volume per interval), events repeat | |
 | FFS bags and bottles (LVP), overwrap | A1 8.96-8.104; SM Part XIII | INJ-29: as INJ-30 | |
-| RTU nested syringes, cartridges and vials: tub entry | 211.84, 211.113(b); A1 8.47-8.48 (transfers; EU market) | *Changed in I-4 (lead):* no own block. INJ-SUPPLIER-STERILE (tub lot on the formula line, method, certificate, packs intact); EU market: INJ-ASEPTIC-TRANSFER | the existing blocks already record it |
+| RTU nested syringes, cartridges and vials: tub entry | 211.84, 211.113(b); A1 8.47-8.48 (transfers; EU market) | *Changed in I-4 (lead):* no own block. INJ-SUPPLIER-STERILE (the tub lot named where used, released by QC and verified by a second person; method, certificate, packs intact); EU market: INJ-ASEPTIC-TRANSFER | the existing blocks already record it |
 | Plunger and middle stopper (PFS, cartridge, dual-chamber) | 211.100; A1 8.26 | INJ-28: EQUIP, TEST (position per interval) | |
 | Dual-chamber | as above | INJ-15 twice (diluent, drug), INJ-17 in-device lyo, INJ-28 | no extra block |
 | Sterile powder filling | 211.113(b); A1 8.7-8.21 | INJ-31: WEIGH (powder lots), INJ-15 in powder format, INJ-18 fill weight | |
