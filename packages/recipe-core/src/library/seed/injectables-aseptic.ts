@@ -117,7 +117,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           fields: [{ id: 'indicator', label: 'Sterilisation indicator on every pack changed', type: 'YES_NO', expected: true }],
         },
       ],
-      signatures: [OPERATOR, VERIFIER],
+      // One answer recorded by the person who did it: no clause asks a second person (lead, lean review).
+      signatures: [OPERATOR],
     },
     exampleUse: {},
   },
@@ -198,7 +199,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, VERIFIER],
+      // One answer recorded by the person who did it: no clause asks a second person (lead, lean review).
+      signatures: [OPERATOR],
     },
     exampleUse: {},
   },
@@ -308,7 +310,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, VERIFIER],
+      // One answer recorded by the person who did it: no clause asks a second person (lead, lean review).
+      signatures: [OPERATOR],
     },
     exampleUse: {},
   },
