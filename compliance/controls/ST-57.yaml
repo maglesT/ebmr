@@ -26,7 +26,7 @@ behaviour: |-
 catalog_test: Run clean-process capping without the stopper-height challenge → capping cannot start. Record a 3 h stopper-to-crimp gap against a 2 h limit → deviation.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] filling judges the fill weight at each round and the volume from the bulk density; the stopper-height check is asked for vials only; each unit's fill weight is judged on the mean and on every unit"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] the fill weights are recorded once, in the fill weight check, each unit judged and the mean; filling checks the closures at each round; the stopper-height check is asked for vials only"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-57] an ampoule seal or a vial crimp that fails at a round is an exception"
 expert_decision:
   status: MODIFY

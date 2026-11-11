@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@ebmr/api-contract": "workspace:0.1.0",
-    "@ebmr/expr": "workspace:0.1.0",
+    "@ebmr/expr": "workspace:0.2.0",
     "@fontsource-variable/noto-sans": "5.3.0",
     "@xstate/react": "6.1.0",
     "clsx": "2.1.1",

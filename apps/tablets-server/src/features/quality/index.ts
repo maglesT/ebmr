@@ -7,11 +7,11 @@
  * sweeper's session is opened), runs as that identity (source INTEGRATION, role ERP_INTERFACE) and ends the session.
  */
 import { routes, type DeviationView, type ErpCatalogue, type LotProfileView, type LotResultView } from '@ebmr/api-contract';
-import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
+import { identity, type ActorContext } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withIdempotentActorCommand, withScopedCommand } from '../../platform/db/commands.ts';
 import { bindRoutes, disconnected } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
@@ -89,7 +89,7 @@ export async function asErp<T>(app: AppContext, c: { loginName: string; serviceK
       personId: who.person_id, accountId: who.account_id, roleCode: 'ERP_INTERFACE', sessionId: s.sessionId, deviceId: s.deviceId, source: 'INTEGRATION',
       siteZone: app.siteZone.current(), legalName: who.legal_name, correlationId: crypto.randomUUID(),
     };
-    return await withCommand(app.pools.app, actor, work);
+    return await withScopedCommand(app.pools.app, actor, work);
   } finally {
     await identity.endSession(app.pools.app, s.sessionId);
   }

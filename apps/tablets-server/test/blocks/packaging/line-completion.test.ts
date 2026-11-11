@@ -4,7 +4,7 @@
  *   - start, middle and end coding specimens, in that order, each showing the record's coding (IN-16, IN-31);
  *   - a label specimen of every printed item before the G-21 step closes; a withdrawn specimen or a missing checker
  *     signature blocks the order's completion and names the gap (PR-16);
- *   - the post-use inspection, passed and verified by a second person, gates EXECUTION_COMPLETE (PR-34);
+ *   - a passed latest post-use inspection gates EXECUTION_COMPLETE (PR-34; tablets 1908: no second person, D-P6c-6 superseded);
  *   - a vision rejection of a wrong expiry, reported by the gateway, stops the line until QA resolves it (PR-36);
  *   - the reconciliation waiver needs a qualifying device and a qualifying declaration (PR-39);
  *   - a print job's layout is an approved template the master names, with every field it binds (D-P6c-16).
@@ -28,6 +28,7 @@ let gw: FakeGateway;
 const SERIAL = 'PRN-LC1';
 const GW_SESSION = randomUUID();
 let seq = 0;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const advance = (): void => {
   vi.advanceTimersByTime(7_000);
 };
@@ -49,11 +50,18 @@ interface Run {
   sql: <T>(text: string, params?: unknown[]) => Promise<T | null>;
 }
 
-async function run(phases: Json[], productCode?: string): Promise<Run> {
+async function run(phases: Json[], productCode?: string, edition?: 'injectables'): Promise<Run> {
   const issuer = await sbx.asPersona('issuer');
   const mbr = minimalMbr(phases);
   // Slice 7r: a product of its own (no product master in the sandbox, unlike the dc-mini product an earlier case arranges).
   if (productCode) mbr.header.product = { ...mbr.header.product, code: productCode };
+  if (edition) {
+    // As the injectables vial chain reshapes dc-mini (test/injectables/vial-chain.test.ts): the edition and its dosage form.
+    const header = mbr.header as unknown as Json;
+    header['edition'] = edition;
+    header['product'] = { ...(header['product'] as Json), dosageForm: 'Injection' };
+    delete header['unitMassMg'];
+  }
   const runId = await importAndIssue(sbx, issuer, writePackage(sbx, mbr), undefined, {}, ['IN', 'US']);
   const browsers: Record<string, Awaited<ReturnType<ExecServer['asPersona']>>> = { issuer };
   for (const p of ['operator1', 'operator2', 'verifier1', 'supervisor1', 'qa1']) browsers[p] = await sbx.asPersona(p, 'TEST-KIOSK-DISP-1');
@@ -222,7 +230,7 @@ describe('packaging line completion in the database (tablets 1230)', () => {
     expect(view).toMatchObject({ batchNumber: r.batchNumber, steps: [{ stepKey: 'p-g21@', status: 'COMPLETED', coding: false, items: ['CARTON'], problem: null, labelSpecimens: [{ item: 'CARTON' }] }], completionProblem: (expect.stringMatching(/post-use/) as string) });
   });
 
-  it('[PR-34] closing an order without the post-use inspection is blocked; a failed or unverified inspection blocks it too; the inspection is recorded after printing ended and verified by another person', async () => {
+  it('[PR-34] closing an order without the post-use inspection is blocked, and so is a failed latest one; a passed inspection completes it unverified (211.188(b)(6), no second person: tablets 1908); an optional verification is never the inspector\'s', async () => {
     const r = await run([packPhase('p-g21', 'G-21', { items: [CARTON(false)] })]);
     const checks = { noPrintedMaterial: true, noProduct: true, noDocuments: true, lineClean: true };
     const inspect = (c: Json, persona = 'operator1') => r.op<string>(persona, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [r.d.runId, JSON.stringify(c), null]);
@@ -238,6 +246,7 @@ describe('packaging line completion in the database (tablets 1230)', () => {
     expect(await inspect({ noPrintedMaterial: true, noProduct: true })).toMatch(/EBMR-LBL-042 /);
     const failed = await inspect({ ...checks, lineClean: false });
     expect(await complete(r)).toMatch(/EBMR-LBL-061.*did not pass/);
+    // A verified failed inspection still blocks: the latest inspection must pass.
     expect(await r.op('verifier1', 'select tab.verify_post_use_inspection($1) as r', [failed])).toBe(r.d.runId);
     expect(await complete(r)).toMatch(/EBMR-LBL-061.*did not pass/);
     // The inspector, though holding the verifier's right too, does not verify their own inspection.
@@ -246,14 +255,31 @@ describe('packaging line completion in the database (tablets 1230)', () => {
       return actorOfBrowser(sbx, await asPersonaInRole(sbx, 'operatorVerifier1', role, 'TEST-KIOSK-DISP-1'), 'operatorVerifier1');
     };
     const passed = await withCommand(sbx.db.app, await inRole('OPERATOR'), async (c) => (await c.query<{ r: string }>('select tab.record_post_use_inspection($1, $2::jsonb, null) as r', [r.d.runId, JSON.stringify(checks)])).rows[0]?.r ?? '');
-    expect(await complete(r)).toMatch(/EBMR-LBL-061.*not verified by a second person/);
     await expect(withCommand(sbx.db.app, await inRole('VERIFIER'), (c) => c.query('select tab.verify_post_use_inspection($1)', [passed]))).rejects.toThrow(/EBMR-LBL-044 /);
     expect(await r.op('operator2', 'select tab.verify_post_use_inspection($1) as r', [passed])).toMatch(/EBMR-IAM-040 /);
-    expect(await r.op('verifier1', 'select tab.verify_post_use_inspection($1) as r', [passed])).toBe(r.d.runId);
-    expect(await r.op('verifier1', 'select tab.verify_post_use_inspection($1) as r', [passed])).toMatch(/EBMR-LBL-043 .*already/);
+    // Removed refusal (lead ruling, 10 November 2026: no binding clause): the passed inspection, unverified, completes the order.
+    expect(await r.sql<string>('select count(*)::text as r from tab.post_use_inspection_verify where inspection_id = $1', [passed])).toBe('0');
     expect(await complete(r)).toBe('ok');
     expect((await stateOf(sbx, r.d.runId))['status']).toBe('EXECUTION_COMPLETE');
     await expect(sbx.db.app.query('insert into tab.post_use_inspection_verify (inspection_id, batch_id, verified_by_person, verified_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [failed, r.d.runId])).rejects.toThrow(/permission denied/);
+  });
+
+  it('[PR-34] an injectables packaging order completes on a passed post-use inspection without a second person (211.188(b)(6); tablets 1908), and not without the inspection', async () => {
+    const r = await run([packPhase('p-g21', 'G-21', { items: [CARTON(false)] })], 'INJ-PU-1', 'injectables');
+    expect(await r.sql<string>("select p.content -> 'header' ->> 'edition' as r from recipe.batch_execution b join recipe.test_package p on p.package_hash = b.package_hash where b.id = $1", [r.d.runId])).toBe('injectables');
+    await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
+    expect(await r.rec.record('p-g21', issueEntry)).toBe('ok');
+    expect(await r.rec.record('p-g21', reconcile(false))).toBe('ok');
+    await label(r, 'CARTON');
+    expect(await signed(r.d, 'operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-g21@' })).toBe('ok');
+    expect(await signed(r.d, 'verifier1', { type: 'VERIFY', stepKey: 'p-g21@', meaning: 'VERIFIED' })).toBe('ok');
+    expect(await complete(r)).toMatch(/EBMR-LBL-061.*no post-use inspection \(PR-34\)/);
+    const checks = { noPrintedMaterial: true, noProduct: true, noDocuments: true, lineClean: true };
+    expect(await r.op<string>('operator1', 'select tab.record_post_use_inspection($1, $2::jsonb, null) as r', [r.d.runId, JSON.stringify({ ...checks, noDocuments: false })])).toMatch(UUID_RE);
+    expect(await complete(r)).toMatch(/EBMR-LBL-061.*did not pass/);
+    expect(await r.op<string>('operator1', 'select tab.record_post_use_inspection($1, $2::jsonb, null) as r', [r.d.runId, JSON.stringify(checks)])).toMatch(UUID_RE);
+    expect(await complete(r)).toBe('ok');
+    expect((await stateOf(sbx, r.d.runId))['status']).toBe('EXECUTION_COMPLETE');
   });
 
   it('[PR-36] a wrong expiry on a test unit is rejected by vision and stops the line: the gateway\'s EXPIRY_REJECTED opens a line stop; no job is released and the step does not close until QA resolves it with a reason', async () => {

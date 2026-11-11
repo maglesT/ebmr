@@ -87,6 +87,46 @@ describe('library blocks in the designer', () => {
     expect(config['hash']).toBe(library.definitionHash(FRIAB));
   });
 
+  it('[PR-08] the values form takes the tiers the engine nests: an alert and an action limit inside the registered range are stored beside it, a tier that is not nested is a problem, and clearing a tier removes only that tier; the extra tiers show once the slot has one or the author opens them', async () => {
+    const c0 = applyOp(content(), { kind: 'ADD_LIBRARY_BLOCK', ...(insertionPoint(content(), firstPhase(content()).id) as { sequenceId: string; index: number }), stepId: 'p-ipc-friab', definition: FRIAB });
+    const step0 = byId(c0, 'p-ipc-friab');
+    if (!step0) throw new Error('no step');
+    const reg = { tier: 'REGISTERED', rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: 'FORMULATION' }, high: { value: '1.0', inclusive: true } };
+    const alert = { tier: 'ALERT', rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'COMPANY_STANDARD', ref: 'FORMULATION' }, high: { value: '0.6', inclusive: true } };
+    const step = { ...step0, config: { ...step0.config, limits: { loss: { unit: '%', ranges: [reg] } } } } as flow.PhaseNode;
+    const onChange = vi.fn();
+    const ui = renderRouted(() => <LibraryValuesForm content={c0} step={step} readOnly={false} onChange={onChange} />);
+    const form = await screen.findByTestId('library-values');
+    // The owner's simple form: a slot with the registered range only shows no extra tier until the author opens them.
+    expect(within(form).queryByLabelText('loss: alert limit, upper')).toBeNull();
+    await userEvent.click(within(form).getByRole('button', { name: 'More limits for loss (validated, action, alert)' }));
+    await userEvent.type(within(form).getByLabelText('loss: alert limit, upper'), '0.6');
+    await userEvent.tab();
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect((onChange.mock.calls.at(-1)?.[0] as Record<string, unknown>)['limits']).toEqual({ loss: { unit: '%', ranges: [reg, alert] } });
+    ui.unmount();
+
+    // A tier outside the registered range is the engine's nesting problem, shown as the author types (LIB-USE-LIMIT-NOT_NESTED).
+    const wide = { ...step0, config: { ...step0.config, limits: { loss: { unit: '%', ranges: [reg, { ...alert, high: { value: '1.2', inclusive: true } }] } } } } as flow.PhaseNode;
+    const ui2 = renderRouted(() => <LibraryValuesForm content={c0} step={wide} readOnly={false} onChange={vi.fn()} />);
+    expect(within(await screen.findByTestId('library-values-problems')).getByText(/alert limit/i)).toBeTruthy();
+    ui2.unmount();
+
+    // Clearing the alert's bound removes the alert only; editing the registered range keeps the alert.
+    const both = { ...step0, config: { ...step0.config, limits: { loss: { unit: '%', ranges: [reg, alert] } } } } as flow.PhaseNode;
+    const onBoth = vi.fn();
+    renderRouted(() => <LibraryValuesForm content={c0} step={both} readOnly={false} onChange={onBoth} />);
+    const f3 = await screen.findByTestId('library-values');
+    await userEvent.clear(within(f3).getByLabelText('loss: alert limit, upper'));
+    await userEvent.tab();
+    await waitFor(() => expect(onBoth).toHaveBeenCalled());
+    expect((onBoth.mock.calls.at(-1)?.[0] as Record<string, unknown>)['limits']).toEqual({ loss: { unit: '%', ranges: [reg] } });
+    await userEvent.clear(within(f3).getByLabelText('loss: upper limit'));
+    await userEvent.type(within(f3).getByLabelText('loss: upper limit'), '0.9');
+    await userEvent.tab();
+    await waitFor(() => expect((onBoth.mock.calls.at(-1)?.[0] as Record<string, unknown>)['limits']).toEqual({ loss: { unit: '%', ranges: [{ ...reg, high: { value: '0.9', inclusive: true } }, alert] } }));
+  });
+
   it('[PR-03] a field with several limits (a test\'s mean, minimum and maximum) names each limit by its slot, so the author can tell them apart (S11 finding)', async () => {
     const HARD: library.BlockDefinition = {
       code: 'IPC-HARD-T',

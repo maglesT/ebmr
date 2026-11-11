@@ -44,6 +44,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Sandbox date-time (kernel 1406, lead 10 November 2026).** A typed ISO date-time (a DATE_TIME field with a time) is no
+longer read as a lot number by the sandbox identifier rule (it was refused with EBMR-SBX-024; no clause asked for it). Lot
+and batch numbers next to, glued to or inside a date-time, and date-shaped invalid values, are still read. Not a hardening
+round of the frozen F12 rule (decision 0008): a false refusal removed.
+
+**Post-use inspection without a second person (lead ruling, 10 November 2026; tablets 1908).** No binding clause asks
+for a second person on the packaging line's after-use inspection (211.188(b)(6) asks only that it is recorded), so a
+passing latest inspection completes the order unverified in every edition; the optional verification is never the
+inspector's. D-P6c-6's second-person part is superseded.
+
 **MEDHANTA slice 2: deviations through the Deviations product (owner ruling, 9 November 2026; replaces D4-R5).** With a
 Deviations link (`DEVIATIONS_DATABASE_URL`, optional; second small pool `platform/deviations.ts`) a batch's deviation is
 stored only as its Deviations number (`dv.batch_number_link`, tablets 1907, `quality.linkDeviationNumber`); the release

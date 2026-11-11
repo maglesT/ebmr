@@ -47,6 +47,8 @@ export const CATALOGUE_ATOMS: readonly string[] = [
   'P',
   'S',
   'Ohm',
+  // absorbed dose of ionising radiation (radiation sterilisation; Revised Schedule M Part II 6.11.1.10)
+  'Gy',
   // arbitrary units
   '[CFU]',
   '[iU]',
@@ -99,6 +101,7 @@ export const QUANTITY_KINDS: Readonly<Record<string, { scale: 'LINEAR' | 'ABSOLU
   temperature_difference: { scale: 'LINEAR', units: ['K'] },
   pressure: { scale: 'LINEAR', units: ['Pa', 'kPa', 'MPa', 'hPa', 'bar', 'mbar', 'mm[Hg]', 'mm[H2O]', "[in_i'H2O]", '[psi]', 'kgf/cm2'] },
   force: { scale: 'LINEAR', units: ['N', 'kN', 'kgf'] },
+  absorbed_dose: { scale: 'LINEAR', units: ['Gy', 'kGy'] },
   volumetric_flow: { scale: 'LINEAR', units: ['L/min', 'mL/min', 'L/h', 'mL/h', 'm3/h'] },
   mass_flow: { scale: 'LINEAR', units: ['kg/h', 'kg/min', 'g/min', 'g/h'] },
   mass_concentration: { scale: 'LINEAR', units: ['mg/mL', 'g/L', 'ug/mL', 'mg/L', 'g/mL', 'kg/L', 'g/cm3', 'g/dL'] },

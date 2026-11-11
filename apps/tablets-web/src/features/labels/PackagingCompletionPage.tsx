@@ -4,8 +4,8 @@
  * database compares it with the record's coding, which the capture form does not show so it is read off the specimen,
  * not copied), a label specimen of each printed item, the line stops a vision
  * rejection opened (QA resolves them), the reconciliation waiver (QA, with a qualifying device); then the post-use
- * inspection of the line, verified by a second person. The gap that blocks the step's close or the order's completion
- * is the database's words.
+ * inspection of the line (its verification by a second person is optional since tablets 1908). The gap that blocks
+ * the step's close or the order's completion is the database's words.
  */
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';

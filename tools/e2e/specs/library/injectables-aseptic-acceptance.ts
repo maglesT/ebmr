@@ -19,7 +19,7 @@ import { productBlock, stepIdOf, type ProductBlock } from './library-support.ts'
 import { unit, VIAL_COUNTS, type Injectable } from './injectables-acceptance.ts';
 
 /** The intervention the operator records during filling: on the formulation's list, three vials removed (DEMO-ONLY). */
-const INTERVENTION = { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true, eventUnits: '3' } as const;
+const INTERVENTION = { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true } as const;
 
 /**
  * The product's sampling plan (DEMO-ONLY): one viable location, an active air sample at the filling point, and two particle
@@ -67,7 +67,7 @@ export const ASEPTIC_VIAL: Injectable = {
     productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
     productBlock('INJ-STERILE-FILTER', {}),
     productBlock('INJ-ASEPTIC-ASSEMBLY', {}),
-    { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B', balanceClass: 'EQC-BAL' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
+    { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
     productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
     plan(productBlock('INJ-EM', { roomClass: 'ROOM-GRADE-B', counterClass: 'PARTICLE-COUNTER' })),
     productBlock('INJ-STERILITY-SAMPLE', {}),
@@ -148,7 +148,7 @@ export const MEDIA_FILL: Injectable = {
     productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
     productBlock('INJ-STERILE-FILTER', {}),
     productBlock('INJ-ASEPTIC-ASSEMBLY', {}),
-    { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B', balanceClass: 'EQC-BAL' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
+    { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
     productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
     plan(productBlock('INJ-EM', { roomClass: 'ROOM-GRADE-B', counterClass: 'PARTICLE-COUNTER' })),
     { ...productBlock('INJ-CAPPING', 'VIAL-CAPPER'), values: VIAL_COUNTS.capping },
