@@ -39,7 +39,7 @@ import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct
 import { skeletonRun } from './skeleton-floor.ts';
 
 
-interface Injectable {
+export interface Injectable {
   key: string;
   prefix: string;
   name: string;
@@ -67,7 +67,7 @@ interface Injectable {
   gmp?: InjectableGmp;
 }
 
-interface InjectableGmp {
+export interface InjectableGmp {
   /** The GMP plant's units of the classes the product's library steps name (registered on its screens in GMP 3). */
   plant: readonly PlantUnit[];
   /**
@@ -82,7 +82,7 @@ interface InjectableGmp {
 }
 
 /** A process unit of the sandbox plant (each class its own, as the blocks' examples name them), in the dispensing room. */
-const unit = (classCode: string, classDescription: string, code: string, name: string): PlantUnit => ({ classCode, classKind: 'PROCESS', classDescription, code, name, area: 'DISP-1' });
+export const unit = (classCode: string, classDescription: string, code: string, name: string): PlantUnit => ({ classCode, classKind: 'PROCESS', classDescription, code, name, area: 'DISP-1' });
 
 /** The sandbox's balance (tablets-server cli/sandbox-plant.ts): the fill weights are weighed on it. */
 const SANDBOX_BALANCE: Readonly<Record<string, string>> = { 'EQC-BAL': 'TEST-BAL-02' };
@@ -92,7 +92,7 @@ const SANDBOX_BALANCE: Readonly<Record<string, string>> = { 'EQC-BAL': 'TEST-BAL
  * inspection counts and finds no unit unaccounted for): 10,000 filled, 20 rejected at the line, 40 at capping or sealing, 9,800 inspected with 80 rejects
  * (9,720 accepted), 120 sampled and 20 documented losses.
  */
-const VIAL_COUNTS = {
+export const VIAL_COUNTS = {
   fill: { end: { filled: '10000', rejects: '20' }, tray: { units: '10000' } },
   capping: { round: { rejects: '40' } },
   inspect: { counts: { inspected: '9800', particles: '20', container: '30', fill: '25', closure: '5' } },
@@ -221,9 +221,10 @@ export const INJECTABLES: readonly Injectable[] = [
 /** What a product's library steps name on the sandbox plant: the unit of each class. */
 const unitsOf = (t: Injectable): Record<string, string> => ({ ...SANDBOX_BALANCE, ...Object.fromEntries(t.plant.map((u) => [u.classCode, u.code])) });
 
-export function defineInjectablesAcceptance(productKey: string): void {
-  const t = INJECTABLES.find((x) => x.key === productKey);
-  if (!t) throw new Error(`no injectable ${productKey} in the acceptance`);
+export function defineInjectablesAcceptance(product: string | Injectable): void {
+  // A product of another slice's file (I-2 aseptic, I-3 lyo) is passed as data; the I-1 products by their key.
+  const t = typeof product === 'string' ? INJECTABLES.find((x) => x.key === product) : product;
+  if (!t) throw new Error(`no injectable ${typeof product === 'string' ? product : product.key} in the acceptance`);
   const codes = [...new Set(t.steps.map((b) => b.def.code))];
   test.describe.configure({ mode: 'serial' });
 
