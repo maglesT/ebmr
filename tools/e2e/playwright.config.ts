@@ -35,8 +35,8 @@ export const E2E_GROUPS: Record<string, string[]> = {
   // Injectables edition I-1c2 P4a: the vial's sandbox half, then its GMP processing batch to the release for packing.
   'library-inj-gmp': ['library/inj-vial-gmp.spec.ts'],
   // Injectables edition I-2b: an aseptically filled vial (RABS) from the catalogue to its released lot; an EM count above
-  // the action limit holds the release until its deviation is closed.
-  'library-inj-aseptic': ['library/inj-aseptic-vial.spec.ts'],
+  // the action limit holds the release until its deviation is closed. I-2c: the media fill of the same line (sandbox half).
+  'library-inj-aseptic': ['library/inj-aseptic-vial.spec.ts', 'library/inj-media-fill.spec.ts'],
 };
 const group = process.env['EBMR_E2E_GROUP'];
 if (group !== undefined && group !== 'rest' && !(group in E2E_GROUPS)) throw new Error(`EBMR_E2E_GROUP ${group} is not a group of playwright.config.ts`);

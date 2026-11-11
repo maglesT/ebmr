@@ -136,6 +136,7 @@ tests:
   - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libinj 10 mg/2 mL, solution for injection in ampoules (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libinj 10 mg/2 mL, solution for injection in vials (library) uses through the signature ceremony @office"
   - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Libinj aseptic 10 mg/2 mL, solution for injection in vials (library) uses through the signature ceremony @office"
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block Media fill of the RABS vial line, 2 mL vials (library) uses through the signature ceremony @office"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:
