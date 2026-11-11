@@ -52,6 +52,7 @@ function EquipmentAdder({ stage, dispatch }: { stage: flow.StageNode; dispatch: 
  */
 function StepMover({ content, stage, dispatch }: { content: Content; stage: flow.StageNode; dispatch: (op: Op) => boolean }) {
   const [chosen, setChosen] = useState('');
+  const [open, setOpen] = useState(false);
   const steps: { value: string; label: string }[] = [];
   if (content.procedure.body.kind === 'sequence') {
     for (const other of content.procedure.body.children) {
@@ -62,12 +63,25 @@ function StepMover({ content, stage, dispatch }: { content: Content; stage: flow
     }
   }
   if (steps.length === 0 || stage.body.kind !== 'sequence') return null;
+  // Shown on request only: the list names every step of the other stages.
+  if (!open) {
+    return (
+      <div data-testid={`stage-move-step-${stage.id}`}>
+        <Button variant="quiet" onPress={() => setOpen(true)}>
+          Move a step of another stage to {stage.name}
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className={dcls('inline')} data-testid={`stage-move-step-${stage.id}`}>
       <Select label={`Step to move to the end of ${stage.name}`} value={chosen} options={[{ value: '', label: '— choose a step of another stage —' }, ...steps]} onChange={setChosen} />
       <Button
         onPress={() => {
-          if (dispatch({ kind: 'MOVE_STEP_TO_STAGE', nodeId: chosen, stageId: stage.id })) setChosen('');
+          if (dispatch({ kind: 'MOVE_STEP_TO_STAGE', nodeId: chosen, stageId: stage.id })) {
+            setChosen('');
+            setOpen(false);
+          }
         }}
         isDisabled={chosen === ''}
       >
