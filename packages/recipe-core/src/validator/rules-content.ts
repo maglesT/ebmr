@@ -146,8 +146,8 @@ const significantSteps = defineRule('GMP-SIGNIFICANT-STEPS', 'Performer plus che
     // for the clearance and its record, not a second person; 211.188(b)(11) asks for one on a significant step, so a
     // clearance the author marks significant, or one with critical data typed by hand, keeps it. Revised Schedule M
     // (G.S.R. 922(E), 28 December 2023) Part VIII, which binds oral solid dosage forms (tablets and capsules: the
-    // tablets edition), 7.1: "There shall be an independent recorded check of the equipment before a new batch of
-    // tablets or capsules is handled" (counting, strip and blister equipment). The master does not say which machines
+    // tablets edition), 7.1 asks for a second person's recorded check of the counting, strip and blister equipment before
+    // each new batch of tablets or capsules is handled. The master does not say which machines
     // a packaging line has, so a tablets packaging clearance keeps its second person (or the declared S24 reduction for
     // a line without them).
     const oralSolidPacking = a.mbr.header.recordKind === 'PACKAGING' && a.mbr.header.edition === 'tablets';

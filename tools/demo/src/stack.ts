@@ -76,7 +76,6 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   });
 }
 
-/** `vite build` of the SPA (the demo and E2E serve the built output under the strict CSP). */
 /**
  * Free, distinct ports for one stack (lead queue: EADDRINUSE in E2E global set-up). Picking each port with a listen on
  * port 0 and closing it before the next pick could hand the same port out twice (the scale simulator's and a server's),
@@ -108,6 +107,7 @@ export async function freeStackPorts(lowest = 20_000, highest = 32_000): Promise
   }
 }
 
+/** `vite build` of the SPA (the demo and E2E serve the built output under the strict CSP). */
 export function buildWeb(echo = true): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn('pnpm', ['--filter', '@ebmr/tablets-web', 'build'], { cwd: REPO_ROOT, stdio: echo ? 'inherit' : 'ignore' });
