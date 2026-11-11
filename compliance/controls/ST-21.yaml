@@ -25,6 +25,7 @@ catalog_test: Enter an action result on day 5 for a sample taken on day 1 → al
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
+  - "tools/e2e/specs/library/injectables-acceptance.ts > [ST-21][IN-42][IN-49] Libinj aseptic 10 mg/2 mL, solution for injection in vials (library), GMP 8b: the EM count above the action limit holds the lot: its release checklist is red on the batch's open deviation until QA investigates, concludes and closes it @office"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
