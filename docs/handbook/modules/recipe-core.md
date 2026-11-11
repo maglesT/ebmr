@@ -742,7 +742,8 @@ Its batches are issued without the licence check or any market's export permissi
 dedication still applies (21 CFR 211.113(b); Schedule M Part II 5.3 to 5.7; EU Annex 1 9.32). The licence basis records
 `process_simulation` with no licence numbers. The database refuses a label (EBMR-IND-050), a packaging order of such a
 batch (EBMR-EXE-198), a finished lot from it (EBMR-IND-045) and its shipment (EBMR-IND-046). QA's review of the record
-is its end.
+is its end. A US-market simulation meets the 11.100(c) gate (1260) with the site's licence holder, and the allocation
+register shows `processSimulation`.
 
 **Pharma context.** Equipment must be clean, calibrated and fit before use, with its status visibly identified and
 its use logged (Schedule M, equipment section; 21 CFR 211.67, 211.68, 211.105, 211.182; EU GMP 3.36 to 3.44;

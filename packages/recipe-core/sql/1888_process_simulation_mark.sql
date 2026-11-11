@@ -26,13 +26,22 @@
 --   recipe.packaging_parent_problem  CREATE OR REPLACE from 0582 (the only definition): a process-simulation batch is
 --       never packed; prepare_gmp_issue and the link guard a2_packaging_parent both ask it, so a packaging order of it is
 --       refused whoever writes it (EBMR-EXE-198).
+--   recipe.us_esig_issue_entity  CREATE OR REPLACE from 1260 (the latest definition; lead ruling, 11 November 2026): the
+--       21 CFR 11.100(c) certification gate stays in force for a process simulation, whose record is still a GMP record
+--       signed electronically. The certification covers the organisation, not the product, so for a process-simulation
+--       batch the entity is the holder of the site's current manufacturing licence (the latest, any product), and ''
+--       (refused, EBMR-IAM-170) when the site has none. Both callers (recipe.gmp_issue_problem and the trigger
+--       a1_us_esig_certification_gate) take it from here.
+--   recipe.allocation_register  CREATE OR REPLACE from 0913 (the latest definition): each entry also carries
+--       processSimulation (recipe.batch_licence_basis.process_simulation), so the register says why an issued batch has
+--       no licence number (ALCOA: attributable, complete).
 --   site.finished_lot  trigger a0_process_simulation (before insert, every writer, tab.post_finished_lot included): no
 --       finished lot of a process-simulation batch, nor of a packaging order of one (EBMR-IND-045).
 --   site.erp_shipment  trigger a00_process_simulation (before insert, before 0961's a0_ and 0870's a1_): no shipment of
 --       a lot of a process-simulation batch (EBMR-IND-046).
 -- Readers of recipe.batch_licence_basis with a NULL licence: the G-REL licence item (0892) and the contract giver's reads
 -- (1060) are never reached by such a batch (it has no lot; it has no loan licence); the allocation register (0895, 0913)
--- shows it as issued with no licence number; the archive's licence form (tablets server) reads none.
+-- shows it as issued, with no licence number and processSimulation true (above); the archive's licence form (tablets server) reads none.
 -- Messages: EBMR-IND-045, EBMR-IND-046; EBMR-IND-050 and EBMR-EXE-198 reused.
 
 set local role ebmr_owner;
@@ -144,6 +153,8 @@ begin
   if lb.batch_id is null then
     select * into lb from recipe.batch_licence_basis where batch_id = recipe.packaging_parent_of(p_batch);
   end if;
+  -- The label particulars (and the H2 payload built from them) name the manufacturer's licence; a media fill was issued
+  -- under none (process_simulation, above), and its record ends with QA's review: its units are destroyed, never labelled.
   if lb.process_simulation then
     raise exception using errcode = 'P0001',
       message = format('EBMR-IND-050 batch %s is a process simulation: it makes no product, so it has no label particulars (IN-31, IN-45)', b.batch_number);
@@ -238,6 +249,63 @@ begin
 end
 $$;
 create trigger a00_process_simulation before insert on site.erp_shipment for each row execute function recipe.shipment_process_simulation_guard();
+
+-- DI-15 (1260) for a process simulation: the site's licence holder (header).
+create or replace function recipe.us_esig_issue_entity(p_batch uuid) returns text
+language plpgsql stable security definer set search_path = pg_catalog, recipe, site, pg_temp as $$
+declare
+  b recipe.stub_batch;
+  f recipe.mbr_family;
+begin
+  select * into b from recipe.stub_batch where id = p_batch;
+  if b.id is null or not ('US' = any(b.markets)) then
+    return null;
+  end if;
+  if recipe.process_simulation_batch(b.id) then
+    return coalesce((select btrim(l.holder_name) from site.manufacturing_licence l
+                      where l.site_code = b.site and l.licence_kind = 'MANUFACTURING' and site.licence_current(l.id, clock_timestamp())
+                      order by l.valid_from desc, l.recorded_at desc, l.id limit 1), '');
+  end if;
+  select * into f from recipe.mbr_family where id = b.family_id;
+  -- '' (never NULL) for a US-market batch whose licence holder is not resolvable: the callers refuse it (P7G-3).
+  return coalesce(btrim(site.licence_basis(b.site, f.product_code, f.strength, clock_timestamp()) ->> 'holderName'), '');
+end
+$$;
+
+-- As 0913, with processSimulation (header).
+create or replace function recipe.allocation_register(p_site text, p_from timestamptz default null, p_to timestamptz default null) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, recipe, site, iam, pg_temp as $$
+begin
+  perform iam.require_permission('RECORD.READ', jsonb_build_object('site', p_site));
+  return (
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'allocationId', a.id, 'batchNumber', a.batch_number, 'siteCode', a.site_code,
+           'allocatedAt', site.utc_text(a.recorded_at),
+           'allocationDate', to_char(a.recorded_at at time zone a.site_zone, 'YYYY-MM-DD'),
+           'productCode', a.product_code, 'productName', a.product_name, 'strength', f.strength,
+           'batchSize', a.batch_size::text, 'batchSizeUnit', a.batch_size_unit, 'edition', a.edition, 'kind', a.batch_kind,
+           'parentBatchNumber', pa.batch_number, 'source', a.source,
+           'use', case when v.allocation_id is not null then 'VOIDED'
+                       when sb.status = 'CANCELLED' then 'CANCELLED'
+                       when x.id is not null then 'ISSUED'
+                       when sb.id is not null then 'PLANNED'
+                       else 'UNUSED' end,
+           'voidReason', case when v.allocation_id is not null then v.reason_code || ': ' || v.reason_text end,
+           'batchId', l.batch_id, 'issuedAt', site.utc_text(x.issued_at),
+           'licenceNumber', lb.licence_number, 'loanLicenceNumber', lb.loan_licence_number,
+           'processSimulation', coalesce(lb.process_simulation, false))
+         order by a.recorded_at, a.batch_number), '[]'::jsonb)
+    from site.batch_number_allocation a
+    left join site.batch_number_allocation pa on pa.id = a.parent_allocation_id
+    left join site.batch_number_void v on v.allocation_id = a.id
+    left join recipe.batch_allocation_link l on l.allocation_id = a.id
+    left join recipe.stub_batch sb on sb.id = l.batch_id
+    left join recipe.mbr_family f on f.id = sb.family_id
+    left join recipe.batch_execution x on x.id = l.batch_id
+    left join recipe.batch_licence_basis lb on lb.batch_id = l.batch_id
+   where a.site_code = p_site and (p_from is null or a.recorded_at >= p_from) and (p_to is null or a.recorded_at < p_to));
+end
+$$;
 
 revoke all on function recipe.process_simulation_batch(uuid), recipe.finished_lot_process_simulation_guard(),
                        recipe.shipment_process_simulation_guard() from public;

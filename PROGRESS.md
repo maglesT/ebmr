@@ -48,8 +48,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 carry `nonProduct: PROCESS_SIMULATION` (a media fill). The mark is approved content and in the hash. Such a batch is issued
 without the licence or any market's export permission, and the hazard dedication still applies. Its licence basis
 records `process_simulation` with no licence. The database refuses its label (IND-050), a packaging order of it
-(EXE-198), a finished lot (IND-045) and a shipment (IND-046). Open: a US-market media fill still meets the 11.100(c) gate
-(1260), which needs a licence holder.
+(EXE-198), a finished lot (IND-045) and a shipment (IND-046). A US-market media fill meets the 11.100(c) gate with the site's
+licence holder (1260, lead ruling); the allocation register shows processSimulation.
 
 **Sandbox date-time (kernel 1406, lead 10 November 2026).** A typed ISO date-time (a DATE_TIME field with a time) is no
 longer read as a lot number by the sandbox identifier rule (it was refused with EBMR-SBX-024; no clause asked for it). Lot

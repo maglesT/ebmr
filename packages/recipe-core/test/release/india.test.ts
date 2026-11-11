@@ -369,6 +369,23 @@ describe('the process-simulation mark (recipe-core 1888; injectables I-2, featur
     }
   });
 
+  it('[IN-30][ST-29][DI-15] a US-market process simulation meets the 21 CFR 11.100(c) gate with the site\'s licence holder: refused while that holder is not certified, issued once it is', async () => {
+    const sim = await effective(['IN', 'US'], false, true);
+    // The site's latest current manufacturing licence, of another product: its holder is the organisation that signs.
+    const holder = `Media Fill Holder ${randomUUID().slice(0, 8)}`;
+    await approveLicence(await recordLicence({ ...licence({ ...sim, product: `MF-${randomUUID().slice(0, 8).toUpperCase()}` }), holderName: holder, validFrom: '2026-10-01T00:00:00Z' }));
+    expect((await db.admin.query<{ e: string }>('select recipe.us_esig_issue_entity($1) as e', [await plan(sim, ['IN', 'US'])])).rows[0]!.e).toBe(holder);
+    const b = await plan(sim, ['IN', 'US']);
+    expect(await messageOf(issue(b))).toMatch(new RegExp(`no 21 CFR 11\\.100\\(c\\) certification is on file for ${holder}.*EBMR-IAM-170`));
+    const { owner } = await seedAdministration(db);
+    await withCommand(db.app, withReason(owner), (c) => c.query("select iam.record_us_esig_certification($1, 'LTR-MEDIA-FILL', date '2026-03-01')", [holder]));
+    await issue(b);
+    expect((await db.app.query<{ s: boolean }>('select process_simulation as s from recipe.batch_licence_basis where batch_id = $1', [b])).rows[0]!.s).toBe(true);
+    const register = (await w.run(w.cast.qa, (c) => c.query<{ r: Record<string, unknown>[] }>('select recipe.allocation_register($1) as r', [SITE]))).rows[0]!.r;
+    expect(register.find((e) => e['batchId'] === b)).toMatchObject({ use: 'ISSUED', licenceNumber: null, processSimulation: true });
+    expect(register.filter((e) => e['batchId'] !== b && e['licenceNumber'] !== null).every((e) => e['processSimulation'] === false)).toBe(true);
+  });
+
   it('[IN-27][IN-45] the hazard dedication of the line still applies to a process simulation', async () => {
     const sim = await effective(['IN'], false, true);
     await classify(sim.product, 'SEX_HORMONE', 'RA-MEDIA-FILL-01');

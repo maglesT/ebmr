@@ -49,7 +49,7 @@ export function AllocationRegisterPage() {
                   {e.voidReason ? `: ${e.voidReason}` : ''}
                 </td>
                 <td>
-                  {e.licenceNumber ?? ''}
+                  {e.processSimulation ? 'Process simulation (no licence)' : (e.licenceNumber ?? '')}
                   {e.loanLicenceNumber ? ` / loan ${e.loanLicenceNumber}` : ''}
                 </td>
               </tr>
