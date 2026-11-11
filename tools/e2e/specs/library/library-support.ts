@@ -30,6 +30,8 @@ export interface ProductBlock {
    * id, then field id): an injectable's unit counts, which unit accountability reconciles to the unit.
    */
   values?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /** The master's id of this step when the block is used more than once (the designer numbers it: p-ctrl-yield-2). */
+  stepId?: string;
 }
 
 /**
@@ -99,6 +101,8 @@ function withoutLow<R extends { low?: unknown }>(r: R): Omit<R, 'low'> {
 
 /** The step id the designer gives the first library step of a code (designer LibraryBlocks.tsx libraryStepId). */
 export const stepIdOf = (code: string): string => `p-${code.toLowerCase()}`;
+/** The master's id of the step of `b`: its own (`stepId`) or the designer's first for its code. */
+export const stepOf = (b: ProductBlock): string => b.stepId ?? stepIdOf(b.def.code);
 
 // ---------------------------------------------------------------------------------------------
 // The library screen
@@ -253,7 +257,7 @@ export async function addLibraryBlocks(
     const adder = page.getByRole('group', { name: 'Add a library block' });
     await adder.getByRole('combobox', { name: 'Approved library block' }).selectOption({ label: `${b.def.code} v${String(b.def.version)}: ${b.def.title}` });
     await adder.getByRole('button', { name: 'Add the block' }).click();
-    row = stepIdOf(b.def.code);
+    row = stepOf(b);
     await stepRow(page, row).click();
     await fillValues(page, b, opts.consumeLines ?? true);
     await expect(page.getByTestId('library-values-ok')).toBeVisible();
@@ -273,11 +277,14 @@ export async function addStageWithYield(
   stage: { name: string; rooms: readonly string[]; equipment: { classCode: string; ref: string } },
   b: ProductBlock,
   theoreticalLines: readonly string[],
+  /** The id of the stage's equipment status step (p-g-09, numbered for a later added stage), the blocks of the stage
+   *  before its yield, typed with their values after that step, and where to place it (default: after the last stage). */
+  opts: { statusStep?: string; blocks?: readonly ProductBlock[]; afterIndex?: number } = {},
 ): Promise<void> {
   const add = page.getByTestId('add-stage');
   await add.getByRole('textbox', { name: 'New stage name' }).fill(stage.name);
   await add.getByRole('textbox', { name: 'New stage room' }).fill(stage.rooms[0] ?? '');
-  await add.getByRole('combobox', { name: 'Place it after' }).selectOption({ index: 0 });
+  if (opts.afterIndex !== undefined) await add.getByRole('combobox', { name: 'Place it after' }).selectOption({ index: opts.afterIndex });
   await add.getByRole('button', { name: 'Add the stage' }).click();
   const id = stageIdOf(stage.name);
   const editor = page.getByTestId(`stage-editor-${id}`);
@@ -294,12 +301,14 @@ export async function addStageWithYield(
   await adder.getByRole('button', { name: `Add the equipment to ${stage.name}` }).click();
   await expect(editor).toContainText(`${stage.equipment.ref}: ${stage.equipment.classCode}`);
   // The stage's equipment status step checks the unit bound to the stage (G-09@2 needs one to check).
-  await stepRow(page, 'p-g-09').click();
+  const status = opts.statusStep ?? 'p-g-09';
+  await stepRow(page, status).click();
   await page.getByRole('group', { name: 'Stage equipment' }).getByRole('checkbox', { name: 'checks its status' }).check();
+  if (opts.blocks && opts.blocks.length > 0) await addLibraryBlocks(page, status, opts.blocks);
   const y = editor.getByTestId(`stage-yield-${id}`);
   await y.getByRole('combobox', { name: `Yield step for ${stage.name}` }).selectOption({ label: `${b.def.code} v${String(b.def.version)}: ${b.def.title}` });
   await y.getByRole('button', { name: `Add a yield step to ${stage.name}` }).click();
-  const stepId = stepIdOf(b.def.code);
+  const stepId = stepOf(b);
   for (const line of theoreticalLines) await y.getByTestId(new RegExp(`^input-lines-${stepId}-`)).getByRole('checkbox', { name: `${b.def.title}: ${line}`, exact: true }).check();
   await stepRow(page, stepId).click();
   await fillValues(page, b, false);
@@ -382,7 +391,7 @@ export async function runLibraryStep(
    */
   pool?: string[],
 ): Promise<void> {
-  const key = `${stepIdOf(b.def.code)}@`;
+  const key = `${stepOf(b)}@`;
   await openStep(page, ctx.base, ctx.runId, key, b.def.title);
   await paceTaps(page, ctx.operator);
   await startStep(page, ctx.operator);
@@ -494,3 +503,14 @@ async function withTap(page: Page, who: SeededPersona, button: Locator): Promise
 }
 
 export { primary };
+
+/** Moves step `stepName` (as the stage editor lists it) of another stage to the end of stage `stage` (session 12). */
+export async function moveStepToStage(page: Page, stage: string, stepName: RegExp): Promise<void> {
+  const id = stageIdOf(stage);
+  const mover = page.getByTestId(`stage-move-step-${id}`);
+  await mover.getByRole('button', { name: `Move a step of another stage to ${stage}` }).click();
+  const select = mover.getByRole('combobox', { name: `Step to move to the end of ${stage}` });
+  const value = await select.locator('option').filter({ hasText: stepName }).first().getAttribute('value');
+  await select.selectOption(value ?? '');
+  await mover.getByRole('button', { name: `Move the step to ${stage}` }).click();
+}

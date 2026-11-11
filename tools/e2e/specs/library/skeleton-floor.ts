@@ -64,6 +64,11 @@ export interface SkeletonPlan {
   dispensingOnly?: boolean;
   /** Stages the master adds between dispensing and blending (owner acceptance, session 12), run on their own kiosks. */
   between?: (f: Floor) => Promise<void>;
+  /**
+   * Stages the master adds after blending, its release for packing (H-PACK) moved to the last of them (session 12): the
+   * blending stage then closes on its yield, and these run the bulk for packing and H-PACK; they give the bulk's label.
+   */
+  after?: (f: Floor) => Promise<string | undefined>;
 }
 
 /** "28.800" minus "1.000": the net of a typed tare and gross (exact, three decimals). */
@@ -243,6 +248,17 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await explained(performAndCheck(blend, op2, verifier, op2), blend.locator('main'));
   await completed(blend);
   let bulk: string | undefined;
+  if (p.after) {
+    await closeStage(f, blend, 'p-blend-yield@', op2);
+    await releasePlant(f, blend, { status: 'p-blend-status@', units: [['BLENDER', blender]], clear: 'p-blend-clear@', area: 'BLEND-1' }, op2);
+    await blend.context().close();
+    bulk = await p.after(f);
+    const office = await floorKiosk(f, 'BLEND-1', op2);
+    await load(office, `${base}/runs/${f.batchId}`);
+    await expect(office.getByText('Execution complete').first()).toBeVisible();
+    await office.context().close();
+    return { containers: [...containers, ...aidContainers, blendContainer], ...(bulk ? { bulk } : {}) };
+  }
   if (p.bulkNet) {
     bulk = await openContainer(f, blend, 'BULK', op2);
     await closeTyped(f, blend, bulk, p.bulkNet, op2, verifier);
