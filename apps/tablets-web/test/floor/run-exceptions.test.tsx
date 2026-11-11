@@ -11,7 +11,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { ActionView, RunView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
-import { fakeCeremony, renderFloor, RUN_ID, type Recorded } from './support.tsx';
+import { ATTRIBUTION, fakeCeremony, fakeTap, renderFloor, RUN_ID, type Recorded } from './support.tsx';
 
 const RUN_LEVEL = 'X-9';
 const runWith = (actions: ActionView[]): RunView => {
@@ -88,6 +88,41 @@ describe('run-level exceptions on the run overview (T3)', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
     expect(await within(dialog).findByText(/^Saved: /)).toBeTruthy();
     expect(ui.commands().map((c) => c.body?.['intent'])).toEqual([{ type: 'ATTACH_DEVIATION', exception: RUN_LEVEL, deviationRef: 'DEV-2026-0099' }]);
+  });
+
+  it('[INV-40][PR-49] on a shared kiosk a raised deviation whose link tap was cancelled is linked on the next press, after the badge tap, and never raised a second time', async () => {
+    const run = runWith([link, dispose(false)]);
+    const raised = { ...example('quality-deviations').deviations[0]!, ref: 'DEV-2026-0101' };
+    const tap = fakeTap();
+    // The raise is tapped; the link's tap is cancelled (nothing sent); the retry's tap is given.
+    tap.requestTap.mockResolvedValueOnce(ATTRIBUTION).mockResolvedValueOnce(null);
+    const ui = renderFloor(`/runs/${RUN_ID}`, {
+      installation: 'GMP',
+      session: { role: 'OPERATOR' },
+      tap,
+      fixtures: { 'session.get': () => example('session-kiosk'), 'batches.batch': () => ({ ...run, header: { ...run.header, watermark: null } }) },
+      intercept: (r: Recorded) =>
+        r.method === 'POST' && r.path.startsWith('/api/quality/deviations') ? { status: 200, body: raised } : undefined,
+    });
+    const exception = await screen.findByTestId(`exception-${RUN_LEVEL}`);
+    await userEvent.click(within(exception).getByRole('button', { name: 'Link a deviation' }));
+    const dialog = await screen.findByRole('dialog', { name: /^Link a deviation to: Wrong label roll/ });
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Minor' }));
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Risk rationale' }), 'Label roll swapped before use');
+    const raise = within(dialog).getByRole('button', { name: 'Raise and link to this batch' });
+    await userEvent.click(raise);
+    await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(2));
+    expect(within(dialog).queryByTestId('deviation-raised')).toBeNull();
+    const posts = () => ui.requests.filter((r) => r.method === 'POST' && r.path.startsWith('/api/quality/deviations')).map((r) => [r.path, r.body?.['attribution'] ?? null]);
+    expect(posts()).toEqual([['/api/quality/deviations', ATTRIBUTION]]);
+    await userEvent.click(raise);
+    expect((await within(dialog).findByTestId('deviation-raised')).textContent).toContain('DEV-2026-0101');
+    expect(tap.requestTap).toHaveBeenCalledTimes(3);
+    expect(tap.requestTap.mock.calls[2]?.[1]).toMatchObject({ method: 'POST', path: `/api/quality/deviations/${raised.deviationId}/links`, body: { subjectKind: 'BATCH', subjectId: run.header.runId } });
+    expect(posts()).toEqual([
+      ['/api/quality/deviations', ATTRIBUTION],
+      [`/api/quality/deviations/${raised.deviationId}/links`, ATTRIBUTION],
+    ]);
   });
 
   it('[PR-49] on a sandbox test run the link dialog offers no deviation to raise (its references are free text)', async () => {

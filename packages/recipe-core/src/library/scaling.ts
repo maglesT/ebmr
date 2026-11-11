@@ -40,12 +40,43 @@ export function scaledLine(mbr: Pick<MbrContent, 'header' | 'bom'>, lineId: stri
 }
 
 /**
- * The values of a library step's formula-line and batch-size inputs for a batch of size `sizeId`, by input id, each in
- * the input's declared unit (shown on the step screen; the handler computes the same).
+ * The theoretical quantity of formula lines `lineIds` for a batch of size `sizeId`, in `unit`: the sum of each line
+ * scaled for the batch and converted to `unit` (owner retest N-3: a stage's yield against the material it processes when
+ * the batch size, e.g. in tablets, does not convert to the yield's unit). Undefined when a line is unknown or does not
+ * convert, or no line is named.
  */
-export function scaledInputs(def: BlockDefinition, config: { bomLines?: Record<string, string> }, mbr: Pick<MbrContent, 'header' | 'bom'>, sizeId: string | undefined, expr: ExpressionService): Record<string, ScaledQuantity> {
+export function summedLines(mbr: Pick<MbrContent, 'header' | 'bom'>, lineIds: readonly string[] | undefined, sizeId: string | undefined, unit: string, expr: ExpressionService): ScaledQuantity | undefined {
+  if (!lineIds || lineIds.length === 0) return undefined;
+  let total = Dec.parse('0');
+  for (const id of lineIds) {
+    const q = scaledLine(mbr, id, sizeId, expr);
+    if (!q) return undefined;
+    const v = q.unit === unit ? q.value : expr.convert(q.value, q.unit, unit);
+    if (v === undefined) return undefined;
+    total = total.plus(Dec.parse(v));
+  }
+  return { value: total.toString(), unit };
+}
+
+/**
+ * The values of a library step's formula-line and batch-size inputs for a batch of size `sizeId`, by input id, each in
+ * the input's declared unit (shown on the step screen; the handler computes the same). A BATCH_SIZE input the use binds
+ * to formula lines (`inputLines`, N-3) reads their scaled sum instead of the batch size.
+ */
+export function scaledInputs(
+  def: BlockDefinition,
+  config: { bomLines?: Record<string, string>; inputLines?: Record<string, string[]> },
+  mbr: Pick<MbrContent, 'header' | 'bom'>,
+  sizeId: string | undefined,
+  expr: ExpressionService,
+): Record<string, ScaledQuantity> {
   const out: Record<string, ScaledQuantity> = {};
   for (const i of def.inputs ?? []) {
+    if (i.kind === 'BATCH_SIZE' && config.inputLines?.[i.id] !== undefined) {
+      const sum = summedLines(mbr, config.inputLines[i.id], sizeId, i.unit, expr);
+      if (sum) out[i.id] = sum;
+      continue;
+    }
     const q = i.kind === 'FORMULA_LINE' ? scaledLine(mbr, config.bomLines?.[i.slot], sizeId, expr) : i.kind === 'BATCH_SIZE' ? batchSizeOf(mbr, sizeId) : undefined;
     if (!q) continue;
     const value = q.unit === i.unit ? q.value : expr.convert(q.value, q.unit, i.unit);

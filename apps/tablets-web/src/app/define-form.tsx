@@ -13,7 +13,8 @@ export interface FormField {
   name: string;
   label: string;
   kind: 'text' | 'choice' | 'yesno' | 'int' | 'decimal' | 'instant';
-  options?: readonly string[];
+  /** A choice's options: a value shown as itself, or a value with its plain label. */
+  options?: readonly (string | { readonly value: string; readonly label: string })[];
   optional?: boolean;
   description?: string;
 }
@@ -50,7 +51,7 @@ export function FieldInput({ field, value, onChange }: { field: FormField; value
   const description = [field.description, field.optional ? 'optional' : ''].filter(Boolean).join(' · ');
   switch (field.kind) {
     case 'choice':
-      return <floor.ChoiceGroup label={field.label} description={description} options={(field.options ?? []).map((o) => ({ value: o, label: o }))} value={value === '' ? null : value} onChange={onChange} />;
+      return <floor.ChoiceGroup label={field.label} description={description} options={(field.options ?? []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))} value={value === '' ? null : value} onChange={onChange} />;
     case 'yesno':
       return (
         <floor.ChoiceGroup

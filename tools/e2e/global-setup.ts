@@ -5,25 +5,12 @@
  * State reaches the workers through EBMR_E2E_STATE (a JSON file).
  */
 import { randomBytes } from 'node:crypto';
-import { createServer } from 'node:net';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FullConfig } from '@playwright/test';
-import { buildWeb, REPO_ROOT, setupStack, startStack, WEB_DIST } from '@ebmr/demo';
+import { buildWeb, freeStackPorts, REPO_ROOT, setupStack, startStack, WEB_DIST } from '@ebmr/demo';
 import { dropDatabase } from '@ebmr/test-kit';
 import type { E2eState } from './fixtures/state.ts';
-
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const srv = createServer();
-    srv.once('error', reject);
-    srv.listen(0, '127.0.0.1', () => {
-      const address = srv.address();
-      const port = typeof address === 'object' && address ? address.port : 0;
-      srv.close(() => resolve(port));
-    });
-  });
-}
 
 export default async function globalSetup(config: FullConfig): Promise<() => Promise<void>> {
   const hex = randomBytes(5).toString('hex');
@@ -44,7 +31,7 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
     gmpSrProfile: group === undefined || group === 'rest', gmpP3Demo: group === undefined || group === 'p3-demo',
   });
   await buildWeb(echo);
-  const ports = { gmp: await freePort(), sandbox: await freePort(), gatewayListener: await freePort(), gateway: await freePort(), simulatorTcp: await freePort(), simulatorHttp: await freePort() };
+  const ports = { ...(await freeStackPorts()) };
   // Declutter D1: the library-dc group runs the kept path, from the catalogue to the released lot, with the disconnected
   // routes refused (410 DISCONNECTED, as on the platform build); the servers inherit this variable.
   if (group === 'library-dc') process.env['EBMR_DISCONNECT'] = '1';

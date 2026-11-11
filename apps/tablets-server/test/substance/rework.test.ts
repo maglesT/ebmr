@@ -174,9 +174,9 @@ describe('API plan A4a: rework and reprocessing of an API batch (ICH Q7 14.1 to 
     parentA = await plannedAndIssued('A', masterA);
     await runToComplete(parentA.batchId);
     const stores = await gmp.asPersona('stores');
-    const lot = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: parentA.batchId, quantity: '50', unit: 'kg' } }));
+    const lot = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: parentA.batchId, quantity: '50', unit: 'kg', dating: 'EXPIRY' as const } }));
     failedLot = lot.lotId;
-    const quarantined = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: parentA.batchId, quantity: '4', unit: 'kg' } }));
+    const quarantined = valueOf(await stores.call(routes.specifications.postIntermediateLot, { body: { batchId: parentA.batchId, quantity: '4', unit: 'kg', dating: 'EXPIRY' as const } }));
     expect([lot.status, quarantined.status]).toEqual(['QUARANTINE', 'QUARANTINE']);
     const [qc, head, qa] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover'), gmp.asPersona('qaInvestigator')]);
     const spec = valueOf(await qc.call(routes.specifications.draft, { body: {

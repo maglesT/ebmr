@@ -166,7 +166,9 @@ export const IntermediateLotView = z.strictObject({
   status: z.string(),
   quantity: DecimalString,
   unit: z.string(),
-  expiry: Instant,
+  /** SITE-995 (site-services 1736): an in-house intermediate carries the dates the firm set; null where it has none. */
+  expiry: Instant.nullable(),
+  retest: Instant.nullable(),
 });
 export type IntermediateLotView = z.infer<typeof IntermediateLotView>;
 
@@ -269,8 +271,15 @@ export const specifications = {
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
-    summary: 'Post the intermediate lot of a completed processing batch of the API edition, in quarantine (API plan A2, C1; AS-03, AS-09)',
-    body: withAttribution({ batchId: Uuid, quantity: DecimalString, unit: Unit }),
+    summary: 'Post the intermediate lot of a completed processing batch of the API edition, in quarantine, with the dates the person chooses (API plan A2, C1; AS-03, PR-18; SITE-995)',
+    body: withAttribution({
+      batchId: Uuid,
+      quantity: DecimalString,
+      unit: Unit,
+      /** SITE-995: the dates the person sets: EXPIRY (shelf life; retestAt optional), RETEST (retestAt required) or NONE. */
+      dating: z.enum(['EXPIRY', 'RETEST', 'NONE']),
+      retestAt: z.iso.datetime({ offset: true }).optional(),
+    }),
     response: IntermediateLotView,
   }),
 } as const;
