@@ -22,10 +22,13 @@
  *
  * Not new blocks (plan section 1: the existing block does the job):
  *  - RTU nested syringes, cartridges and vials (INJ-27): supplier-sterilised components, recorded by INJ-SUPPLIER-STERILE
- *    (its lot on the formula line, method, certificate, packs intact); for the EU market the transfer into Grade A
- *    (Annex 1 8.47-8.48) is INJ-ASEPTIC-TRANSFER.
+ *    (the tub lot named where it is used, released by QC and verified by a second person; method, certificate, packs
+ *    intact); for the EU market the transfer into Grade A (Annex 1 8.47-8.48) is INJ-ASEPTIC-TRANSFER.
  *  - Dual-chamber products: INJ-FILL twice (diluent and drug), INJ-LYO for the in-device drying, INJ-PLUNGER.
  *  - The fill weight of individual units is IPC-INJ-FILL-WEIGHT; container closure integrity is INJ-CCI.
+ *
+ * The fill weight of the units is recorded in one place only, IPC-INJ-FILL-WEIGHT (each unit, mean and individual limits):
+ * the filling blocks record the closures and rejects at each round.
  *
  * The output of every filling block is registered as containers with the same field ids as INJ-FILL (`end.filled`,
  * `end.rejects`, `tray.units`), so unit accountability (INJ-UNIT-ACCOUNT) reads them by its step-value slots.
@@ -81,8 +84,8 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'homogeniser', label: 'Homogeniser', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'homogeniserClass' },
             { id: 'room', label: 'Room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
-            { id: 'speed', label: 'Homogeniser speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'speed', critical: true },
-            { id: 'time', label: 'Homogenisation time', type: 'TIMER', durationUnit: 'min', limitSlot: 'time', critical: true },
+            { id: 'speed', label: 'Homogeniser speed', type: 'NUMBER', unit: '/min', decimals: 0, limitSlot: 'speed' },
+            { id: 'time', label: 'Homogenisation time', type: 'TIMER', durationUnit: 'min', limitSlot: 'time' },
           ],
         },
         {
@@ -121,8 +124,8 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
       title: 'Sterile powder filling and stoppering',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-31. The powder filling line in its room, the mean fill weight at each round against its limits, the closures, and the filled trays registered as containers.',
-      instructions: 'Set the line for the format. Weigh filled units at each round. Register each filled tray as a container.',
+      description: 'INJ-31. The powder filling line in its room, the closures at each round, and the filled trays registered as containers. The fill weights are IPC-INJ-FILL-WEIGHT\'s.',
+      instructions: 'Set the line for the format. Check the closures at each round. Register each filled tray as a container.',
       sections: [
         {
           id: 'setup',
@@ -130,7 +133,6 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'line', label: 'Powder filling line', type: 'EQUIPMENT', kind: 'LINE', classSlot: 'lineClass' },
             { id: 'room', label: 'Filling room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
-            { id: 'weighBalance', label: 'Balance for the fill weights', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
           ],
         },
         {
@@ -138,7 +140,6 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'fillWeight', label: 'Mean fill weight of the units weighed', type: 'NUMBER', unit: 'mg', decimals: 1, limitSlot: 'fillWeight', critical: true },
             { id: 'closures', label: 'Units closed correctly', type: 'YES_NO', expected: true },
           ],
         },
@@ -155,9 +156,7 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      equipmentClasses: { lineClass: 'POWDER-FILLING-LINE', roomClass: 'ROOM-GRADE-B', balanceClass: 'ANALYTICAL-BALANCE' },
-      limits: { fillWeight: spec('mg', '485.0', '515.0') },
-      targets: { fillWeight: '500.0' },
+      equipmentClasses: { lineClass: 'POWDER-FILLING-LINE', roomClass: 'ROOM-GRADE-B' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
     },
   },
@@ -220,8 +219,8 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
       title: 'Form-fill-seal (bags and bottles)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-29. The form-fill-seal machine in its room and the film lot (released by QC; checked by a second person), the mean fill weight and the seals at each round, the rejects, and the filled units registered as containers.',
-      instructions: 'Set the machine to the validated settings. At each round weigh the units the formulation names and examine the seals.',
+      description: 'INJ-29. The form-fill-seal machine in its room and the film lot (released by QC; checked by a second person), the seals at each round, the rejects, and the filled units registered as containers. The fill weights are IPC-INJ-FILL-WEIGHT\'s.',
+      instructions: 'Set the machine to the validated settings. At each round examine the seals.',
       sections: [
         {
           id: 'setup',
@@ -237,7 +236,6 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'fillWeight', label: 'Mean fill weight of the units weighed', type: 'NUMBER', unit: 'g', decimals: 1, limitSlot: 'fillWeight', critical: true },
             { id: 'sealsOk', label: 'Seals complete, no leak', type: 'YES_NO', expected: true },
             { id: 'roundRejects', label: 'Units rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
@@ -256,8 +254,6 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
     },
     exampleUse: {
       equipmentClasses: { machineClass: 'FFS-MACHINE', roomClass: 'ROOM-GRADE-C' },
-      limits: { fillWeight: spec('g', '100.0', '106.0') },
-      targets: { fillWeight: '103.0' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
     },
   },
@@ -313,8 +309,8 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
       title: 'Blow-fill-seal',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-30. The blow-fill-seal machine in its room and the polymer lot (released by QC; checked by a second person), the mean fill weight and the seals at each round, the rejects, and the filled units registered as containers.',
-      instructions: 'Set the machine to the validated settings. At each round weigh the units the formulation names and examine the seals.',
+      description: 'INJ-30. The blow-fill-seal machine in its room and the polymer lot (released by QC; checked by a second person), the seals at each round, the rejects, and the filled units registered as containers. The fill weights are IPC-INJ-FILL-WEIGHT\'s.',
+      instructions: 'Set the machine to the validated settings. At each round examine the seals.',
       sections: [
         {
           id: 'setup',
@@ -330,7 +326,6 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'fillWeight', label: 'Mean fill weight of the units weighed', type: 'NUMBER', unit: 'g', decimals: 2, limitSlot: 'fillWeight', critical: true },
             { id: 'sealsOk', label: 'Units sealed, flash removed cleanly, no leak', type: 'YES_NO', expected: true },
             { id: 'roundRejects', label: 'Units rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
@@ -349,8 +344,6 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
     },
     exampleUse: {
       equipmentClasses: { machineClass: 'BFS-MACHINE', roomClass: 'ROOM-GRADE-C' },
-      limits: { fillWeight: spec('g', '5.05', '5.25') },
-      targets: { fillWeight: '5.15' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
     },
   },
@@ -472,7 +465,9 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           ],
         },
       ],
-      signatures: [OPERATOR, CHECKER],
+      // Nothing is typed from a device here: the operator's signature records the checks (Annex 12 asks for no second
+      // person of the firm; 12.44's signature is the plant's nominated person's, recorded as checked).
+      signatures: [OPERATOR],
     },
     exampleUse: {},
   },

@@ -257,9 +257,11 @@ export type ExternalInput =
  * Validator roles a library block may take (decision 0026, S4): the ones whose meaning needs no block code. A line or
  * room clearance block is CLEARANCE, a yield or reconciliation block YIELD_RECONCILIATION (its phase names the
  * formulation's yield checkpoint), and so on. Automated phases, dispensing, charge-in, timers with time constraints,
- * printed materials, containers, returns and reprocessing stay with their system blocks.
+ * printed materials, containers, returns and reprocessing stay with their system blocks. A PACK_EXAMINATION block, the
+ * examination of the finished packs, completes a packaging record of its edition (recipe-core 1892; decision 0026: a
+ * firm's own QA-approved block counts without software).
  */
-export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION'] as const;
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
 /**

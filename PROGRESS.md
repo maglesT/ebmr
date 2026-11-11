@@ -190,7 +190,10 @@ clearance needs a second person only where its step names a checker (recipe-core
 before 1887 stay on area_status v1). P4a (#198): the vial's GMP half to H-PACK (E2E group library-inj-gmp). P3c (#200):
 the skeleton takes the firm's printed-item limits and specimens at create. P4b (#201, merged): GMP 5-9,
 the packaging master, its sandbox run, the GMP packaging order, QC and the IN release; the skeleton runs G-21 in
-parallel with packing (lead, session 8). Next: the post-use inspection's second person on injectables (session 9). Notes:
+parallel with packing (lead, session 8). Session 11 (10 November): I-3 lyophilisation blocks (#204) and I-4 blocks
+(#207: suspensions, powder, plungers, FFS, BFS, radiation; the unit Gy/kGy, expr 0.2.0); #217 lean review (a block with
+the role PACK_EXAMINATION completes a packaging record: recipe-core 1892, injectables 3020). Next for I-3: the lyophilised
+vial E2E on session 10's aseptic vial. Notes:
 `docs/build-plan/injectables/resume.md`. Migrations: `injectables` 3000-3999 (editions/README.md).
 
 **Capsules edition (owner, 4 November 2026):** hard capsules and soft gels as library data inside the oral-solid build;
