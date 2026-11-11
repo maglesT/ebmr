@@ -3,8 +3,8 @@
  * schema is data, so the designer, engine and renderers read one definition). Strings with a list of values become
  * selects, a field named `sop` selects one of the MBR's SOP references, decimals go through DecimalField (text),
  * required booleans are checkboxes and optional ones a choice of block default (with its value), yes or no (review
- * F52), whole numbers are checked against the schema's range (review F53), nested objects are fieldsets. Lists and maps are shown read-only and in full in A1 (their
- * editors come with construct editing in A2; review F51). An optional field left empty is removed from the
+ * F52), whole numbers are checked against the schema's range (review F53), nested objects are fieldsets. A G-21 step's printed items are edited element by element on a draft; other lists and maps
+ * are shown read-only and in full (review F51). An optional field left empty is removed from the
  * configuration.
  */
 import type { flow } from '@ebmr/recipe-core/pure';
@@ -114,20 +114,63 @@ function FieldEditor({ name, schema, value, onChange, readOnly, sopOptions, path
         </fieldset>
       );
     }
+    case 'array': {
+      // A list of objects (a G-21 step's printed items; injectables residual "edit a packaging master's printed items
+      // after create"): each element is edited in place with its own fields, so the firm's own values (limits,
+      // allowance, need, counting) can be set after the master was created. Adding or removing elements, and maps inside
+      // them (an item's artwork per market), stay read-only here.
+      const item = schema['items'] as Schema | undefined;
+      // Only the printed items (a G-21 step's `items`, each naming its printed material) and only on an editable draft;
+      // a read-only step keeps the full table, and other lists (clearance checklists, devices) keep their read-only view.
+      const printed = name === 'items' && item?.['type'] === 'object' && 'material' in ((item['fields'] ?? {}) as Record<string, unknown>);
+      if (printed && !readOnly && Array.isArray(value) && value.length > 0) {
+        const fields = ((item?.['fields'] ?? {}) as Record<string, Schema>);
+        const list = value;
+        return (
+          <fieldset className={dcls('fieldset')}>
+            <legend className={dcls('legend')}>{label}</legend>
+            {help ? <p className={dcls('small')}>{help}</p> : null}
+            {list.map((el, i) => {
+              const obj = el !== null && typeof el === 'object' && !Array.isArray(el) ? el : {};
+              const id = typeof obj['id'] === 'string' ? `: ${obj['id']}` : '';
+              return (
+                <fieldset key={`${path}[${String(i)}]`} className={dcls('fieldset')} aria-label={`${name} ${String(i + 1)}${id}`}>
+                  <legend className={dcls('legend')}>{`${name} ${String(i + 1)}${id}`}</legend>
+                  <ObjectFields
+                    fields={fields}
+                    value={obj}
+                    readOnly={readOnly}
+                    sopOptions={sopOptions}
+                    path={`${path}[${String(i)}]`}
+                    onChange={(next) => onChange(list.map((x, j) => (j === i ? next : x)))}
+                  />
+                </fieldset>
+              );
+            })}
+            <p className={dcls('small')}>Items are added or removed with the master's template; their values are edited here.</p>
+          </fieldset>
+        );
+      }
+      return readOnlyValue(label, value, help);
+    }
     default:
-      // Lists and maps: shown in full, read-only (never cut; review F51); their editors come with A2.
-      return (
-        <div>
-          <p>
-            <strong>{label}</strong>: {value === undefined ? 'the block default' : null}
-          </p>
-          {value !== undefined ? <ConfigValue value={value} label={label} /> : null}
-          <p className={dcls('small')}>
-            {help} Shown in full; edited in a later release.
-          </p>
-        </div>
-      );
+      return readOnlyValue(label, value, help);
   }
+}
+
+/** Lists and maps without an editor: shown in full, read-only (never cut; review F51). */
+function readOnlyValue(label: string, value: Json | undefined, help: string) {
+  return (
+    <div>
+      <p>
+        <strong>{label}</strong>: {value === undefined ? 'the block default' : null}
+      </p>
+      {value !== undefined ? <ConfigValue value={value} label={label} /> : null}
+      <p className={dcls('small')}>
+        {help} Shown in full; edited in a later release.
+      </p>
+    </div>
+  );
 }
 
 function ObjectFields({ fields, value, onChange, readOnly, sopOptions, path }: { fields: Record<string, Schema>; value: Record<string, Json>; onChange: (v: Record<string, Json>) => void; readOnly: boolean; sopOptions: readonly Option[]; path: string }) {

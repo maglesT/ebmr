@@ -9,7 +9,7 @@
  * The review's reproducers (designer-ui-config-form, verify-designer-ui-optional-boolean-default,
  * verify-designer-ui-integer-field-silent-drop) are ported here.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -208,5 +208,30 @@ describe('an optional group is removed as a whole (slice 7o, found by the R4 bro
     await userEvent.click(screen.getByRole('button', { name: 'Remove acidTime' }));
     await waitFor(() => expect(seen.at(-1)).toEqual({ timeLimit: { value: '30', unit: 'min' } }));
     expect(screen.queryByRole('button', { name: 'Remove acidTime' })).toBeNull();
+  });
+});
+
+describe('the printed items of a G-21 step after create (injectables residual P3c)', () => {
+  const ITEMS = [
+    { id: 'CARTON', material: 'MAT-CTN-10', artwork: { IN: 'ART-7' }, unit: '1', issue: { need: '1000', allowancePercent: '2' }, counting: 'MANUAL_COUNT', limits: { maxUnexplained: '0' } },
+    { id: 'LEAFLET', material: 'MAT-LFT-1', artwork: { IN: 'ART-9' }, unit: '1', issue: { need: '1000', allowancePercent: '2' }, counting: 'MANUAL_COUNT', limits: { maxUnexplained: '0' } },
+  ];
+
+  it('[PR-32][PR-39] on a draft each printed item\'s own values are edited in place: the limit of one item changes, the other item and its artwork stay as they were', async () => {
+    const seen: Record<string, Json>[] = [];
+    render(<Host type="G-21" initial={{ items: structuredClone(ITEMS) }} seen={seen} />);
+    const leaflet = screen.getByRole('group', { name: 'items 2: LEAFLET' });
+    const max = within(leaflet).getByRole('textbox', { name: /maxUnexplained \(optional\)/ });
+    await userEvent.clear(max);
+    await userEvent.type(max, '5');
+    await userEvent.tab();
+    await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    expect(seen.at(-1)?.['items']).toEqual([ITEMS[0], { ...ITEMS[1], limits: { maxUnexplained: '5' } }]);
+  });
+
+  it('[PR-03][PR-32] on a read-only step the printed items stay shown in full, not as editable fields', () => {
+    render(<ConfigForm schema={schemaOf('G-21')} value={{ items: ITEMS }} onChange={() => undefined} readOnly sopOptions={[]} />);
+    expect(screen.queryByRole('group', { name: 'items 1: CARTON' })).toBeNull();
+    expect(document.body.textContent).toContain('MAT-LFT-1');
   });
 });
