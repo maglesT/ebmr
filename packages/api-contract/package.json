@@ -10,7 +10,7 @@
     "./strict-csp": "./src/strict-csp.ts"
   },
   "dependencies": {
-    "@ebmr/expr": "workspace:0.1.0",
+    "@ebmr/expr": "workspace:0.2.0",
     "@ebmr/recipe-core": "workspace:0.1.0",
     "zod": "4.6.7"
   }

@@ -257,6 +257,7 @@ tests:
   - "packages/expr/test/units.property.test.ts > unit conversion properties > [DI-33] absolute temperatures round-trip exactly between Cel and [degF] for values of up to 2 decimals"
   - "packages/expr/test/units.property.test.ts > unit conversion properties > [DI-33] every conversion is the exact value correctly rounded once, and preserves the quantity exactly when marked exact"
   - "packages/expr/test/units.property.test.ts > unit conversion properties > [DI-33] round trips between units whose factors terminate both ways return exactly the original value"
+  - "packages/expr/test/units.test.ts > absorbed dose (radiation sterilisation) > [DI-33] the gray is a catalogue unit of its own kind: kGy converts exactly to Gy, and a dose never converts to another kind"
   - "packages/expr/test/units.test.ts > exact conversions > [DI-33] a non-terminating factor is exact as a rational and rounded once at 34 digits"
   - "packages/expr/test/units.test.ts > exact conversions > [DI-33] kgf to N uses the exact standard gravity 9.80665 (tablets spec C.0, C-17)"
   - "packages/expr/test/units.test.ts > exact conversions > [DI-33] metric conversions are exact decimal factors"

@@ -25,15 +25,31 @@ type Drafts = Record<string, string>;
 
 const EXPR = flow.createExprService();
 
-/** The innermost tier of a limit as people read it, e.g. "≤ 1.0 %" or "55 to 65 Cel". */
+const TIER_ORDER = ['ALERT', 'INTERNAL_ACTION', 'VALIDATED', 'REGISTERED'] as const;
+const TIER_WORD: Record<(typeof TIER_ORDER)[number], string> = { ALERT: 'alert', INTERNAL_ACTION: 'action limit', VALIDATED: 'validated', REGISTERED: 'registered' };
+
+function rangeText(r: limits.LimitRange): string | null {
+  if (r.low && r.high) return `${r.low.value} to ${r.high.value}`;
+  if (r.low) return `${r.low.inclusive ? '≥' : '>'} ${r.low.value}`;
+  if (r.high) return `${r.high.inclusive ? '≤' : '<'} ${r.high.value}`;
+  return null;
+}
+
+/**
+ * A limit as people read it. One tier: its range, e.g. "≤ 1.0 %" or "55 to 65 Cel". Several tiers (PR-08: nested alert,
+ * action and registered limits): each named, innermost first, e.g. "alert 55 to 65; action limit 50 to 70; registered
+ * 45 to 75 Cel".
+ */
 export function limitText(spec: limits.LimitSpec | undefined): string | null {
   if (!spec) return null;
-  const r = (['ALERT', 'INTERNAL_ACTION', 'REGISTERED', 'VALIDATED'] as const).map((t) => spec.ranges.find((x) => x.tier === t)).find((x) => x !== undefined);
-  if (!r) return null;
-  if (r.low && r.high) return `${r.low.value} to ${r.high.value} ${spec.unit}`;
-  if (r.low) return `${r.low.inclusive ? '≥' : '>'} ${r.low.value} ${spec.unit}`;
-  if (r.high) return `${r.high.inclusive ? '≤' : '<'} ${r.high.value} ${spec.unit}`;
-  return null;
+  const parts = TIER_ORDER.flatMap((t) => {
+    const r = spec.ranges.find((x) => x.tier === t);
+    const text = r ? rangeText(r) : null;
+    return text ? [{ t, text }] : [];
+  });
+  if (parts.length === 0) return null;
+  if (parts.length === 1) return `${String(parts[0]?.text)} ${spec.unit}`;
+  return `${parts.map((p) => `${TIER_WORD[p.t]} ${p.text}`).join('; ')} ${spec.unit}`;
 }
 
 /** The tier a typed value breaches (display only), or null. */

@@ -10,7 +10,7 @@
   "dependencies": {
     "@ebmr/analytics": "workspace:0.1.0",
     "@ebmr/api-contract": "workspace:0.1.0",
-    "@ebmr/expr": "workspace:0.1.0",
+    "@ebmr/expr": "workspace:0.2.0",
     "@ebmr/integration-sdk": "workspace:0.1.0",
     "@ebmr/kernel": "workspace:0.1.0",
     "@ebmr/recipe-core": "workspace:0.1.0",

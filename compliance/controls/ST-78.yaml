@@ -31,7 +31,8 @@ behaviour: |-
   - **Rejects** by reason (forming, sealing, cutting) go into reconciliation. Sealing issues above a threshold open an investigation. Tooling inspection status is checked at start.
 catalog_test: Omit the batch seal-strength test → batch cannot close. Change a sealing set point outside range on the HMI → recorded with user and time and justification required.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the fill weight and seals at each round, and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch's seal strength; a value outside is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

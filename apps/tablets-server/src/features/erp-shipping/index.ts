@@ -6,11 +6,12 @@
  * its host terminal, DEMO stub); the session ends after the request.
  */
 import { routes, type ShipmentView } from '@ebmr/api-contract';
-import { commands, identity, withCommand, type ActorContext } from '@ebmr/kernel';
+import { commands, identity, type ActorContext } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import { withScopedCommand } from '../../platform/db/commands.ts';
 import { usOf } from '../common/people.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
@@ -30,7 +31,7 @@ async function asErp<T>(app: AppContext, c: { loginName: string; serviceKey: str
       personId: who.person_id, accountId: who.account_id, roleCode: 'ERP_INTERFACE', sessionId: s.sessionId, deviceId: s.deviceId, source: 'INTEGRATION',
       siteZone: app.siteZone.current(), legalName: who.legal_name, correlationId: crypto.randomUUID(),
     };
-    return await withCommand(app.pools.app, actor, work);
+    return await withScopedCommand(app.pools.app, actor, work);
   } catch (error) {
     throw commands.asKernelError(error);
   } finally {

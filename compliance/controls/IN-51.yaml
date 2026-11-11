@@ -14,7 +14,9 @@ sources: Schedule M Part XIII (parenteral preparations section; FFS section).
 behaviour: The Injectables edition ships area types (water management, container/closure preparation, solution preparation, filling/capping/sealing, sterilisation, quarantine, visual inspection, packaging; separate FFS/BFS set) and equipment classes (RO/EDI plus multi-column distillation, SS 316L tank and circulating loop, washers, double-ended dryer/steriliser, filtration, filling under laminar flow, steam and hot-air sterilisers, pressure leak tester, visual inspection units with white and black backgrounds, batch coding and labelling). Leak-test steps may only reference the pressure-leak-tester class; each water draw records the WFI loop/point of use. Recommended minimum areas (SVI 150 m2 basic plus 100 m2 ancillary; LVP 150 m2 each; LVP packaging materials 100 m2; FFS LVP 250 m2 plus 150 m2) are stored as site-profile information, not enforced.
 catalog_test: build an SVI MBR using only shipped classes; every needed area type exists.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the fill weight and seals at each round, and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch's wall thickness; a value outside is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the fill weight and seals at each round, and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch's seal strength; a value outside is an exception"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

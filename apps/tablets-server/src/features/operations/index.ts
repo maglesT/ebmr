@@ -19,7 +19,7 @@ import { refusal } from '../../platform/http/refusal.ts';
 import { assertBackupRunnable, backupFile, backupsView, requestedRun, runRequestedBackup } from './backups.ts';
 import { credentialCardView } from './credential-card.ts';
 import { DemoJobs, recreateInstallation } from './demo.ts';
-import { orderTemplates, postProductionOrder, prepareProductionOrder } from './erp-orders.ts';
+import { checkProductionOrder, orderTemplates, postProductionOrder, prepareProductionOrder } from './erp-orders.ts';
 import { assertDrillRunnable, DRILL_REASON, DrillJobs, drillsView, runHardeningCheck, startRestoreDrill, startUpgradeDrill } from './drills.ts';
 import { OPERATIONS_GUIDANCE } from './guidance.ts';
 import { completeRestore, recordRestoreEvent, RESTORE_REASON, restoreApproveHandler, restoreView, secureIdentifiers } from './restore.ts';
@@ -254,6 +254,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         // On an installation that refuses demo conveniences the database's refusal (EBMR-OPS-010) comes first.
         if ((await demoProblem(app)) !== null) await recordDemoAct(ctx, 'ERP_ORDER_SENT', `${ctx.body.productCode}:${ctx.body.kind}`, ctx.body.reason);
         const prepared = await prepareProductionOrder(app, ctx.body.productCode, ctx.body.kind, ctx.idempotencyKey);
+        // N-2: an order the database refuses is refused here, before the demo act commits (rolled back, nothing saved).
+        await checkProductionOrder(app, prepared);
         // A resend of a request already recorded (its idempotency key) answers the same order and posts nothing again.
         const replayed = await recordDemoAct(ctx, 'ERP_ORDER_SENT', `${ctx.body.productCode}:${ctx.body.kind}`, ctx.body.reason);
         return replayed ? prepared.view : postProductionOrder(app, prepared);

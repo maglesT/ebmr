@@ -4,6 +4,6 @@ import { PACKAGE } from '../src/index.ts';
 describe('@ebmr/expr', () => {
   it('[meta] exposes its package identity', () => {
     expect(PACKAGE.name).toBe('@ebmr/expr');
-    expect(PACKAGE.version).toBe('0.1.0');
+    expect(PACKAGE.version).toBe('0.2.0');
   });
 });
