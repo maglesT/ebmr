@@ -925,7 +925,6 @@ describe('the release gate on the sterile release tests and an open deviation (I
   const STERILE_TESTS = [
     { testCode: 'STERILITY', methodReference: 'STP-STER', unit: '{unit}', upperLimit: '0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '20', sampleUnit: 'units' },
     { testCode: 'ENDOTOXIN', methodReference: 'STP-BET', unit: '[EU]/mL', upperLimit: '0.50', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '3', sampleUnit: 'units' },
-    { testCode: 'BIOBURDEN', methodReference: 'STP-BB', unit: '{CFU}/100mL', upperLimit: '10', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '1', sampleUnit: 'units' },
   ];
   let sterile: { familyId: string; versionId: string; content: MbrContent };
 
@@ -943,21 +942,18 @@ describe('the release gate on the sterile release tests and an open deviation (I
     await productAndSpecification(sterile.content, STERILE_TESTS);
   }, 300_000);
 
-  it('[ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed', async () => {
+  it('[ST-65] release waits for every sterile release test: with sterility passed and endotoxin pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when both have passed', async () => {
     const batchId = await issuedBatch(undefined, sterile);
     await review(batchId);
     const lotId = await finishedLot(batchId, sterile);
     await reserve(lotId);
     await passed(lotId, 'STERILITY', '0');
-    let g = await grel(lotId);
+    const g = await grel(lotId);
     expect(red(g)).toEqual(['G3.LIMS']);
-    expect(item(g, 'G3.LIMS').problem).toMatch(/the required test (ENDOTOXIN|BIOBURDEN) of the specification in effect .* has no current RELEASE result for the lot/);
+    expect(item(g, 'G3.LIMS').problem).toMatch(/the required test ENDOTOXIN of the specification in effect .* has no current RELEASE result for the lot/);
     await acknowledgeAll(ap, lotId, g);
     expect(await codeOf(record(ap, lotId, 'RELEASE', await signDecision(ap, lotId, 'RELEASE'), g.epoch))).toBe('EBMR-REL-020');
     await passed(lotId, 'ENDOTOXIN', '0.10');
-    g = await grel(lotId);
-    expect(item(g, 'G3.LIMS').problem).toMatch(/the required test BIOBURDEN .* has no current RELEASE result/);
-    await passed(lotId, 'BIOBURDEN', '2');
     expect(red(await grel(lotId))).toEqual([]);
   });
 
@@ -966,7 +962,7 @@ describe('the release gate on the sterile release tests and an open deviation (I
     await review(batchId);
     const lotId = await finishedLot(batchId, sterile);
     await reserve(lotId);
-    for (const [code, value] of [['STERILITY', '0'], ['ENDOTOXIN', '0.10'], ['BIOBURDEN', '2']] as const) await passed(lotId, code, value);
+    for (const [code, value] of [['STERILITY', '0'], ['ENDOTOXIN', '0.10']] as const) await passed(lotId, code, value);
     await deviationOn('DEVIATION', 'BATCH', batchId);
     await deltaReview(batchId);
     const g = await grel(lotId);
@@ -978,11 +974,11 @@ describe('the release gate on the sterile release tests and an open deviation (I
     expect(await lotState(lotId)).toBe('QUARANTINE');
   });
 
-  it('[ST-70] a record with a step not yet signed is not complete: G1 is red and the lot cannot be released, though every release test passed', async () => {
+  it('[ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed', async () => {
     const batchId = await issuedBatch(undefined, sterile);
     const lotId = await finishedLot(batchId, sterile);
     await reserve(lotId);
-    for (const [code, value] of [['STERILITY', '0'], ['ENDOTOXIN', '0.10'], ['BIOBURDEN', '2']] as const) await passed(lotId, code, value);
+    for (const [code, value] of [['STERILITY', '0'], ['ENDOTOXIN', '0.10']] as const) await passed(lotId, code, value);
     const g = await grel(lotId);
     expect(red(g)).toEqual(['G1.REVIEW_1']);
     expect(item(g, 'G1.REVIEW_1').problem).toMatch(/is ISSUED; a disposition follows the completed QA review/);

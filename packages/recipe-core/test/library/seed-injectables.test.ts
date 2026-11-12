@@ -416,4 +416,40 @@ describe('what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.
     expect(unlabelled.exceptions.length).toBeGreaterThan(0);
     expect(new Set(unlabelled.exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
   });
+
+  // The one due date of a unit (decision 0030; injectables plan 4.1): the site sets the calibration due date of a unit to
+  // the earliest of its calibration, requalification and, for a steriliser, leak test; past it the plant reports the
+  // unit CALIBRATION_OVERDUE, and the step refuses it. A unit within a week of it is still usable.
+  it('[ST-43] a steriliser whose leak test has lapsed is past its one due date and is not selectable: the parts sterilisation refuses it', () => {
+    const item = byCode('INJ-PARTS-AUTOCLAVE');
+    expect(judgedRun(item, { cycle: { equipment: unit('autoclave', 'STEAM-STERILISER', 'CALIBRATION_DUE_SOON') } }).exceptions).toEqual([]);
+    expect(() => judgedRun(item, { cycle: { equipment: unit('autoclave', 'STEAM-STERILISER', 'CALIBRATION_OVERDUE') } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+  });
+
+  it('[IN-43] a room past its one due date (its requalification lapsed: 12 months for India, earlier where the site sets it for an EU profile) is refused, with no warning stage before it', () => {
+    const item = byCode('INJ-ROOM-READY');
+    expect(() => judgedRun(item, { clearance: { equipment: unit('room', 'ROOM-GRADE-C', 'CALIBRATION_OVERDUE') } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+    // Before the due date the room is usable and nothing is raised: there is no warning in between.
+    expect(judgedRun(item, { clearance: { equipment: unit('room', 'ROOM-GRADE-C', 'QUALIFIED') } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
+  it('[IN-47] a steriliser past its one due date (its revalidation lapsed) is refused by terminal sterilisation; a cycle with an alarm (not answered passed) is an exception that holds the step and the release until QA dispositions it', () => {
+    const item = byCode('INJ-TERMINAL-STERILISE');
+    expect(() => judgedRun(item, { setup: { equipment: unit('steriliser', 'STEAM-STERILISER', 'CALIBRATION_OVERDUE') } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+    const alarm = judgedRun(item, { load: { cyclePassed: false } });
+    expect(alarm.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(alarm.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-67] a failing release test is an exception that holds the QC step until QA dispositions it under a deviation', () => {
+    const growth = judgedRun(byCode('TEST-INJ-RELEASE'), { sterility: { noGrowth: false } });
+    expect(growth.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(growth.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-54][IN-46] compounding records the pre-filtration bioburden sample: an entry without it is refused, so the step, and the record the gate waits for, cannot be completed without the sample', () => {
+    const item = byCode('INJ-COMPOUND');
+    expect(fieldOf(item, 'bioburdenSample')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'bioburdenSamples' });
+    expect(() => judgedRun(item, { makeUp: { bioburdenSample: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+  });
 });

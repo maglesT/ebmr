@@ -10,7 +10,7 @@ import { blockEdition, checkBlockDefinition, checkBlockUse } from '../../src/lib
 import { INJECTABLE_ASEPTIC_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { byCode, configOf, fieldOf, judgedRun, nominalRun, recordNominal, type CatalogueStep } from './seed-support.ts';
 import { libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
+import { define, OP1, Run, sig, T0, testRegistry } from '../engine/support.ts';
 import { mbrWith, phase } from '../flow/support.ts';
 import type { BlockUse } from '../../src/library/model.ts';
 
@@ -371,5 +371,47 @@ describe('what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.
     expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     const rejected = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'REJECTED', identityTested: true } };
     expect(() => judgedRun(item, { filter: { lots: rejected } })).toThrow(/G07-LOT-STATUS/);
+  });
+
+  it('[ST-50] the registered sterilising filter is verified by a second person: the filter step waits for the verification, and its own performer cannot give it', () => {
+    const item = byCode('INJ-STERILE-FILTER');
+    const def = item.definition;
+    expect(def.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: item.exampleUse as never }), phase('after')] });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), {}, T0);
+    run.start('p');
+    recordNominal(run, 'p', def, item.exampleUse, mbr);
+    run.perform('p');
+    expect(run.status('p')).toBe('AWAITING_VERIFICATION');
+    // The performer, even holding the verifier's role, cannot verify the filter of their own step.
+    const sameOperator = { ...OP1, roles: [...OP1.roles, 'PRODUCTION_VERIFIER', 'VERIFIER'] };
+    run.refused({ type: 'VERIFY', actor: sameOperator, step: 'p', context: [], signature: sig('VERIFIED', sameOperator) }, 'ENG-SEGREGATION');
+    expect(run.status('p')).toBe('AWAITING_VERIFICATION');
+    run.verify('p');
+    expect(run.status('p')).toBe('COMPLETED');
+  });
+
+  it('[ST-73] the interventions of a fill are kept as structured entries (what, kind, duration, listed), so an extract per line reads them as recorded', () => {
+    const item = byCode('INJ-FILL');
+    const def = item.definition;
+    const config = item.exampleUse as Record<string, unknown>;
+    const inputs = Object.entries(item.exampleInputs ?? {});
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: '1' }, config: config as never, reads: inputs.map(([k]) => k) }), phase('after')] }, {
+      inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
+    });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), { inputs: Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }])) }, T0);
+    run.start('p');
+    recordNominal(run, 'p', { ...def, sections: def.sections.filter((x) => x.id !== 'event') }, config, mbr);
+    const recorded = [
+      { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true },
+      { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventMinutes: '6', eventListed: true },
+    ];
+    for (const e of recorded) {
+      run.entry('p', { kind: 'event', ...e });
+      run.minutes(1);
+    }
+    const extract = Object.values(run.state.entries).filter((x) => x.kind === 'event').map((x) => ({ eventKind: x.data['eventKind'], eventWhat: x.data['eventWhat'], eventMinutes: x.data['eventMinutes'], eventListed: x.data['eventListed'] }));
+    expect(extract).toEqual(recorded);
+    expect(extract.filter((x) => x.eventKind === 'Intervention')).toHaveLength(1);
   });
 });
