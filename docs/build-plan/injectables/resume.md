@@ -55,7 +55,7 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 
 ### Session 14 handover (12 November 2026): I-6, the injectables edition exit
 
-Lead: session_01PybpFvEFaQZ3LEfnNdjBCE. Owner's exit list: injectables in phase.yaml, the trace gate green for the
+Lead: session_01PybpFvEFaQZ3LEfnNdjBCE until 19:27, then session_01PybpFrP72XuwyG8S3H3NJS (has all I-6 rulings). Owner's exit list: injectables in phase.yaml, the trace gate green for the
 injectables controls, a golden batch, the browser suite, one review pass.
 
 - **Measured:** main's reports with `editions: [tablets, injectables]` gave 129 new trace errors. 90 controls (IN-40..51,
