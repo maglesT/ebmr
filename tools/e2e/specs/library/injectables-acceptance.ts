@@ -86,7 +86,13 @@ export interface InjectableGmp {
    * for the batch and links it (`rationale`); the lot's release checklist then stays red until QA has investigated and
    * closed it (GMP 9).
    */
-  breach?: { step: string; values: Readonly<Record<string, Readonly<Record<string, unknown>>>>; rationale: string };
+  breach?: {
+    step: string;
+    values: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    rationale: string;
+    /** How the engine classes the breach, in the blocked exception's words (the tier the value is outside). */
+    exception: string;
+  };
 }
 
 /** A process unit of the sandbox plant (each class its own, as the blocks' examples name them), in the dispensing room. */
@@ -870,7 +876,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
               await runLibraryStep(page, ctx, recorded, units, stepLots, 1, 'GMP-', pool, breach ? async (p) => {
                 const office = await officePage('GMP', PC_PLAN);
                 await signIn.office(office, floor.persona('supervisor1'));
-                const ref = await linkNewDeviation(office, { base: e2e.url('GMP'), runId: floor.batchId, stepKey: `${stepIdOf(b.def.code)}@` }, { classification: 'Major', rationale: breach.rationale });
+                const ref = await linkNewDeviation(office, { base: e2e.url('GMP'), runId: floor.batchId, stepKey: `${stepIdOf(b.def.code)}@` }, { classification: 'Major', rationale: breach.rationale, exception: breach.exception });
                 await office.context().close();
                 await expect(p.getByTestId('step-card')).toBeVisible();
                 (s.marks ??= []).push(`deviation ${ref}`);

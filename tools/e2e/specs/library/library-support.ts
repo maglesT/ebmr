@@ -260,6 +260,9 @@ export async function addLibraryBlocks(
   }
 }
 
+/** The designer's words for a limit tier other than the registered range (LibraryBlocks.tsx EXTRA_TIERS). */
+const TIER_LABEL = { REGISTERED: '', VALIDATED: 'validated range', INTERNAL_ACTION: 'action limit', ALERT: 'alert limit' } as const;
+
 /** The values form of the selected library step, from the block's slots (the same labels the form derives). */
 async function fillValues(page: Page, b: ProductBlock, consumeLines = true): Promise<void> {
   const form = page.getByTestId('library-values');
@@ -272,11 +275,19 @@ async function fillValues(page: Page, b: ProductBlock, consumeLines = true): Pro
     switch (s.kind) {
       case 'LIMIT': {
         const l = use.limits?.[s.name];
-        const range = l?.ranges.find((r) => r.tier === 'REGISTERED') ?? l?.ranges[0];
         const who = shared.has(s.owner) ? `${s.owner}, ${s.name}` : s.owner;
         const box = form.getByRole('group', { name: `Limits of ${who}`, exact: true });
-        if (range?.low) await commit(box, `${who}: lower limit`, range.low.value);
-        if (range?.high) await commit(box, `${who}: upper limit`, range.high.value);
+        // Each tier into its own boxes: the registered range in the first pair, the others behind "More limits" (an EM
+        // count's action limit and alert level are the formulation's tiers, not a registered range).
+        for (const range of l?.ranges ?? []) {
+          const tier = range.tier === 'REGISTERED' ? '' : `: ${TIER_LABEL[range.tier]}`;
+          if (tier !== '') {
+            const more = box.getByRole('button', { name: `More limits for ${who} (validated, action, alert)` });
+            if ((await more.count()) > 0) await more.click();
+          }
+          if (range.low) await commit(box, tier === '' ? `${who}: lower limit` : `${who}${tier}, lower`, range.low.value);
+          if (range.high) await commit(box, tier === '' ? `${who}: upper limit` : `${who}${tier}, upper`, range.high.value);
+        }
         const target = use.targets?.[s.name];
         if (target) await commit(box, `${who}: target`, target);
         const why = use.justifications?.[s.name];
@@ -451,9 +462,15 @@ export async function runLibraryStep(
  * Returns the deviation's reference (DEV-...). On an office terminal no badge is asked; the kiosk's own dialog cannot
  * raise one (its raise call carries no badge attribution on a shared terminal, logged with the lead).
  */
-export async function linkNewDeviation(office: Page, at: { base: string; runId: string; stepKey: string }, d: { classification: 'Minor' | 'Major' | 'Critical'; rationale: string }): Promise<string> {
+export async function linkNewDeviation(
+  office: Page,
+  at: { base: string; runId: string; stepKey: string },
+  /** `exception`: words the blocked exception must show (the limit tier it breached), checked before the link. */
+  d: { classification: 'Minor' | 'Major' | 'Critical'; rationale: string; exception?: string },
+): Promise<string> {
   await office.goto(`${at.base}/runs/${at.runId}/steps/${encodeURIComponent(at.stepKey)}`);
   const exception = card(office).locator('[data-testid^="exception-"]').filter({ has: office.getByRole('button', { name: 'Link a deviation' }) }).first();
+  if (d.exception) await expect(exception).toContainText(d.exception);
   await exception.getByRole('button', { name: 'Link a deviation' }).click();
   const dialog = office.getByRole('dialog', { name: /^Link a deviation to/ });
   const raise = dialog.getByRole('region', { name: 'No deviation yet? Raise one for this batch' });
