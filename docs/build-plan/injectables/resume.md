@@ -59,6 +59,13 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 10c, the dual-chamber cartridge (12 November 2026, branch `inj/i4-dual-chamber`)
+
+- Sandbox half in group library-inj-routes, data only (`DUAL_CHAMBER` in injectables-routes-acceptance.ts): drug fill,
+  INJ-LYO (the middle stopper seated in the chamber), a second INJ-STERILE-FILTER and INJ-FILL for the diluent (step ids
+  `p-inj-sterile-filter-2`, `p-inj-fill-2`), INJ-PLUNGER as the closing; 2 tests passed locally (32 min).
+- The diluent is water for injection from the point of use, with no step of its own beyond its filtration (DEMO data).
+
 ### Session 10c handover (12 November 2026): I-2d and the EM tiers
 
 - **#234 (I-2d):** the media fill's GMP run to QA's record review (E2E). The sandbox half ticks the process-simulation
