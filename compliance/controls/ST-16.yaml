@@ -25,7 +25,16 @@ behaviour: |-
   - After line clearance or any disruption, a clean-up timer set to the room's qualified period must elapse before the next batch or before aseptic work resumes. Optionally, the timer also waits until particle counts are back within at-rest limits.
 catalog_test: Log an HVAC shutdown without a return-to-service record → line clearance fails. Finish line clearance and try to start the next batch immediately → blocked until the clean-up period elapses.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-16] line clearance refuses a room taken out of service (an HVAC shutdown) until it is returned to service"
+clauses:
+  - clause: "Log an HVAC shutdown without a return-to-service record → line clearance fails."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-16] line clearance refuses a room taken out of service (an HVAC shutdown) until it is returned to service"
+  - clause: "Finish line clearance and try to start the next batch immediately → blocked until the clean-up period elapses."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "clean-up timer blocking the next batch"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

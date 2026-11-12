@@ -38,6 +38,19 @@ behaviour: |-
 catalog_test: APS included 3 needle changes and the routine batch records 5 → flag. APS covered 6 h lyo loading and routine takes 7 h → flag. With a 3,000-unit APS, create a 3,500-unit batch → flagged/blocked.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "APS included 3 needle changes and the routine batch records 5 → flag."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Envelope comparison engine (interventions, duration, batch size)"
+  - clause: "APS covered 6 h lyo loading and routine takes 7 h → flag."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Envelope comparison engine (interventions, duration, batch size)"
+  - clause: "With a 3,000-unit APS, create a 3,500-unit batch → flagged/blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Envelope comparison engine (interventions, duration, batch size)"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

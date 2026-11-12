@@ -17,7 +17,8 @@ behaviour: |-
   - MBRs cannot be executed until QA has approved them.
 catalog_test: Sign a step 3 h after the activity → flagged "late" and a reason required. Execute step 7 before step 6 → deviation required.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [ST-04] every act carries the server's time and follows the approved master: a person-claimed earlier time is refused, and a step cannot start before the one before it is done"
 clauses:
   - clause: "Sign a step 3 h after the activity → flagged \"late\" and a reason required."
     not_required:

@@ -17,7 +17,8 @@ behaviour: |-
   - If not, the cycle is flagged as "unverified steam" and deviation-gated.
 catalog_test: Make the dryness test overdue → the autoclave run is flagged.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-25][ST-26][ST-27] a point of use (WFI outlet, nitrogen drop, clean-steam point) is a unit whose status follows QC: taken out of service on a failed result it may not be used, returned to service on a passing one it may"
 clauses:
   - clause: "Make the dryness test overdue → the autoclave run is flagged."
     not_required:

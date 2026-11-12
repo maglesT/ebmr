@@ -25,7 +25,18 @@ behaviour: |-
   - **Tank vent filter.** Integrity is tested before installation and after use. A failed post-use test lists every batch supplied during the filter's service window.
 catalog_test: Draw water after chemical release but before microbial release → that batch's certification is blocked until approval. An action TAMC result on outlet 12 → batches that drew from outlet 12 are listed and held.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-25][ST-26] compounding refuses water from a WFI point of use that is out of service (QC has not released it); a released point is used"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-25][ST-26][ST-27] a point of use (WFI outlet, nitrogen drop, clean-steam point) is a unit whose status follows QC: taken out of service on a failed result it may not be used, returned to service on a passing one it may"
+clauses:
+  - clause: "Draw water after chemical release but before microbial release → that batch's certification is blocked until approval."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-25][ST-26][ST-27] a point of use (WFI outlet, nitrogen drop, clean-steam point) is a unit whose status follows QC: taken out of service on a failed result it may not be used, returned to service on a passing one it may"
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-25][ST-26] compounding refuses water from a WFI point of use that is out of service (QC has not released it); a released point is used"
+  - clause: "An action TAMC result on outlet 12 → batches that drew from outlet 12 are listed and held."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "automatic batch linking to outlet excursions"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

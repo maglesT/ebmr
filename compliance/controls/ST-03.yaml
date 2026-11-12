@@ -18,7 +18,8 @@ behaviour: |-
   - Changes tagged "affects aseptic process" feed the APS status engine (ST-29).
 catalog_test: Open a change control on filling line 2 with "requalification required" → batch start on line 2 is blocked. Close it → start allowed, citing the change-control ID.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-03] a filling line past its requalification due date is blocked; once the due date is reset after the change, a batch may use it"
 clauses:
   - clause: "Open a change control on filling line 2 with \"requalification required\" → batch start on line 2 is blocked."
     not_required:

@@ -17,7 +17,8 @@ behaviour: |-
   - An operator cannot sign a manual aseptic step for a combination not currently qualified.
 catalog_test: An operator qualified on 10 mL vials is assigned a manual 50 mL fill → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [ST-07][ST-08][ST-30][INV-26] the authorisation of a Grade A/B room (its gowning, aseptic training and APS) counts until its valid-to: a day after the 12 months it covers, signing there is refused"
 clauses:
   - clause: "An operator qualified on 10 mL vials is assigned a manual 50 mL fill → refused."
     not_required:

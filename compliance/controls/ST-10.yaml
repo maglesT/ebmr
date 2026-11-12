@@ -24,6 +24,7 @@ implemented_by: {}
 tests:
   - "apps/tablets-server/test/market/market-config-routes.test.ts > the EU qualified-person register (QP_REGISTER) > [ST-10][DI-37] QA registers the EU QP on a registered importer's authorisation with QP_REGISTERED; a QA MBR approver may not sign it; nobody registers themselves; the same registration twice is refused"
   - "apps/tablets-web/test/market/market-screens.test.tsx > the QP register and the compendial rule sets > [ST-10] QA signs a QP register entry for a person of the EU QP role on an importer's authorisation (QP_REGISTER)"
+  - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [ST-09][ST-10][INV-26] after QA withdraws a person's authorisation of an aseptic area, the signature there is refused until a new authorisation (after requalification) is recorded"
 clauses:
   - clause: "Set a medical exclusion → filling signatures refused until clearance."
     not_required:
