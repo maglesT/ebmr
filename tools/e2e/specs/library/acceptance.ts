@@ -28,8 +28,10 @@ import type { Page } from '@playwright/test';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
-import { reviewRecord } from '../phase7/kiosk-batch-support.ts';
-import { closeFloor, packagingRun, type Floor } from '../phase7/own-product-floor.ts';
+import { act, as, completed, performAndCheck, reviewRecord, startStep } from '../phase7/kiosk-batch-support.ts';
+import {
+  balanceOf, baseOf, clearance, closeFloor, closeStage, closeTyped, floorKiosk, holdPoint, openContainer, packagingRun, releasePlant, statusStep, step as floorStep, type Floor,
+} from '../phase7/own-product-floor.ts';
 import {
   authoriseIn, changeControl, checksPass, confirmMasters, enterMaterials, exportTestResult, fourSignatures, home, importEvidence, issueTestBatch, load, loadProduct, packagingCopy,
   registerTestLots as registerArtworkTestLots, saveProduct, saveRevision, sendToSandbox, type ProductState,
@@ -39,7 +41,9 @@ import {
   receiveDelivery, recordArtwork, recordIdentity, recordResults, releaseFinishedLot, releaseLot, reserveLots, sendOrder,
 } from '../phase7/own-product-gmp-flow.ts';
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial, type StageCtx } from '../phase7/own-product-support.ts';
-import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, type PlantUnit, type ProductBlock } from './library-support.ts';
+import {
+  addLibraryBlocks, addStageWithYield, approveBlocks, definePlantClasses, definePlantProduct, loadCatalogue, moveStepToStage, productBlock, registerPlantUnits, runLibraryStep, stepIdOf, stepOf, type PlantUnit, type ProductBlock,
+} from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
 
 
@@ -92,6 +96,8 @@ interface Tablet {
     /** A per-batch line (kg per reference batch, `mgPerUnit` unused): role EXCIPIENT on a capsule (recipe-core 1875), dispensed in its own step and
      *  not charged to the blender; a soft gel's gel-mass components (C6b, D-C6b-1). */
     perBatchKg?: string;
+    /** An active (API) other than the first (the first material is always the active). */
+    api?: boolean;
   }[];
   discharge: { tare: string; gross: string };
   afterDispensing: readonly ProductBlock[];
@@ -110,9 +116,101 @@ interface Tablet {
    *  net of the bulk for packing (kg). Each material's container there holds twice the sandbox's net, on the same tare. */
   gmpDischarge: { tare: string; gross: string };
   gmpBulkNet: string;
+  /**
+   * Owner acceptance (session 12): the formula's lines when a material is on more than one line (a bilayer tablet's
+   * binder and lubricant in each layer). Each line names a material of `materials` (whose own mgPerUnit, tare and gross
+   * are then unused) and is weighed on its own from that material's lot: tare and gross (kg) of its container at the
+   * sandbox's further size; the GMP batch weighs twice the net on the same tare. The first line is potency adjusted, the
+   * second its compensating excipient. Without it, one line per material, as before.
+   */
+  lines?: readonly { id: string; material: string; mgPerUnit: string; tare: string; gross: string }[];
+  /** Stages the author adds on screen after blending, in order, run on their kiosks after it; the last takes QA's
+   *  release for packing (H-PACK), moved there on screen, and the bulk for packing. */
+  addedStages?: readonly AddedStage[];
+  /** The name the author gives the skeleton's blending stage (S-BLEND) on screen. */
+  blendingName?: string;
+}
+
+/**
+ * A stage the author adds with "Add the stage" after blending (owner acceptance, session 12): its rooms (the first is where its kiosk
+ * stands; each room is cleared and recorded in the stage's clearance step, N-4), a unit class bound to it for its
+ * equipment status step, and its own yield step added with "Add a yield step" (N-3), whose theoretical quantity is the
+ * sum of the formula lines `yieldLines` (line ids). `yieldValues` are the weights the operator records at each
+ * installation's batch size.
+ */
+export interface AddedStage {
+  name: string;
+  /** Library blocks of the stage before its yield (code and the plant class of their equipment). */
+  blocks?: readonly { code: string; cls: string }[];
+  rooms: readonly string[];
+  equipment: { classCode: string; ref: string };
+  yieldBlock: string;
+  yieldLines: readonly string[];
+  yieldValues: { sandbox: Readonly<Record<string, string>>; gmp: Readonly<Record<string, string>> };
 }
 
 export const TABLETS: readonly Tablet[] = [
+  {
+    // Owner acceptance (session 12, owner retest of 10 November 2026): a bilayer tablet built on screen like the owner's
+    // MGL-SR-BL: metformin HCl 500 mg (sustained-release layer) and glimepiride 2 mg (immediate-release layer), with the
+    // binder (PVP K30) and the lubricant (magnesium stearate) each on a line of its own per layer; four stages as the
+    // owner's master, two of them added on screen. Illustrative quantities; DEMO-ONLY.
+    key: 'bilayer',
+    prefix: 'LBL500',
+    name: 'Metformin HCl 500 mg SR and glimepiride 2 mg bilayer film-coated tablet (library, illustrative)',
+    strength: '500 mg + 2 mg',
+    dosageForm: 'Film-coated bilayer tablet',
+    targetMg: '814.5',
+    materials: [
+      { id: 'met', name: 'Metformin hydrochloride', mgPerUnit: '0', tare: '0', gross: '0' },
+      { id: 'hpmc', name: 'Hypromellose K100M', mgPerUnit: '0', tare: '0', gross: '0' },
+      { id: 'pvp', name: 'Povidone K30', mgPerUnit: '0', tare: '0', gross: '0' },
+      { id: 'glim', name: 'Glimepiride', mgPerUnit: '0', tare: '0', gross: '0', api: true },
+      { id: 'lac', name: 'Lactose monohydrate (bilayer)', mgPerUnit: '0', tare: '0', gross: '0' },
+      { id: 'mgst', name: 'Magnesium stearate (bilayer lubricant)', mgPerUnit: '0', tare: '0', gross: '0' },
+    ],
+    // Per tablet (mg); weighed at 50,000 tablets (net = mg x 0.05 kg).
+    lines: [
+      { id: 'l1-met', material: 'met', mgPerUnit: '500', tare: '1.250', gross: '26.250' },
+      { id: 'l1-hpmc', material: 'hpmc', mgPerUnit: '200', tare: '1.000', gross: '11.000' },
+      { id: 'l1-pvp', material: 'pvp', mgPerUnit: '20.0', tare: '0.200', gross: '1.200' },
+      { id: 'l1-mgst', material: 'mgst', mgPerUnit: '5.0', tare: '0.100', gross: '0.350' },
+      { id: 'l2-glim', material: 'glim', mgPerUnit: '2', tare: '0.100', gross: '0.200' },
+      { id: 'l2-lac', material: 'lac', mgPerUnit: '80', tare: '1.000', gross: '5.000' },
+      { id: 'l2-pvp', material: 'pvp', mgPerUnit: '6.0', tare: '0.100', gross: '0.400' },
+      { id: 'l2-mgst', material: 'mgst', mgPerUnit: '1.5', tare: '0.100', gross: '0.175' },
+    ],
+    // The owner's four stages: Dispensing; Granulation and blending (the skeleton's blending, renamed); Bilayer
+    // compression (two rooms, its own yield); Film coating (its coating step, its own yield, then QA's release for
+    // packing moved here). Each yield's theoretical quantity is the formula's eight lines: 814.5 mg a tablet, 40.725 kg
+    // at 50,000 tablets, 81.45 kg at 1,00,000.
+    blendingName: 'Granulation and blending',
+    addedStages: [
+      {
+        name: 'Bilayer compression',
+        rooms: ['COMP-1', 'GRAN-1'],
+        equipment: { classCode: 'EQC-BAL', ref: 'BAL' },
+        blocks: [{ code: 'PROC-COMPRESS', cls: 'EQC-PRESS-GBT' }],
+        yieldBlock: 'CTRL-YIELD',
+        yieldLines: ['l1-met', 'l1-hpmc', 'l1-pvp', 'l1-mgst', 'l2-glim', 'l2-lac', 'l2-pvp', 'l2-mgst'],
+        yieldValues: { sandbox: { output: '40.300', samples: '0.100', rejects: '0.200' }, gmp: { output: '80.600', samples: '0.200', rejects: '0.400' } },
+      },
+      {
+        name: 'Film coating',
+        rooms: ['COAT-1'],
+        equipment: { classCode: 'EQC-BAL', ref: 'BAL' },
+        blocks: [{ code: 'COAT-FILM', cls: 'EQC-COATER' }],
+        yieldBlock: 'CTRL-YIELD',
+        yieldLines: ['l1-met', 'l1-hpmc', 'l1-pvp', 'l1-mgst', 'l2-glim', 'l2-lac', 'l2-pvp', 'l2-mgst'],
+        yieldValues: { sandbox: { output: '40.200', samples: '0.100', rejects: '0.200' }, gmp: { output: '80.400', samples: '0.200', rejects: '0.400' } },
+      },
+    ],
+    discharge: { tare: '1.000', gross: '41.725' },
+    gmpDischarge: { tare: '1.000', gross: '82.450' },
+    gmpBulkNet: '81.250',
+    afterDispensing: [],
+    afterDischarge: [],
+  },
   {
     key: 'wg-fc',
     prefix: 'LWG400',
@@ -365,11 +463,108 @@ function gmpShells(t: Tablet, tag: string): GmpMaterial[] {
 /** The tablet's materials as the GMP batch weighs them (the codes the S11a test entered with this run's tag). */
 function gmpMaterials(t: Tablet, tag: string): GmpMaterial[] {
   return t.materials.map((m, i) => {
-    const net = (milli(m.gross) - milli(m.tare)) * 2n;
+    // With per-line weighings the material's net is the sum of its lines' nets.
+    const own = t.lines?.filter((l) => l.material === m.id);
+    const net = (own ? own.reduce((n, l) => n + milli(l.gross) - milli(l.tare), 0n) : milli(m.gross) - milli(m.tare)) * 2n;
     return {
-      id: m.id, code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, active: i === 0,
+      id: m.id, code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, active: isApi(t, i),
       tare: m.tare, gross: kg(milli(m.tare) + net), net: kg(net), reserve: kg(net + 1000n), delivery: kg(net * 2n + 10_000n),
     };
+  });
+}
+
+/** The yield block of an added stage with the weights its operator records at the installation's size. */
+function yieldOf(st: AddedStage, at: 'sandbox' | 'gmp', k: number): ProductBlock {
+  const b = productBlock(st.yieldBlock, st.equipment.classCode);
+  const section = b.def.sections[0]?.id ?? '';
+  return { ...b, values: { [section]: st.yieldValues[at] }, stepId: `${stepIdOf(b.def.code)}${suffixOf(k)}` };
+}
+
+/** The designer numbers the steps of the k-th added stage (0-based): p-g-10, then p-g-10-2 and so on. */
+const suffixOf = (k: number): string => (k === 0 ? '' : `-${String(k + 1)}`);
+const blocksOf = (st: AddedStage): ProductBlock[] => (st.blocks ?? []).map((x) => productBlock(x.code, x.cls));
+
+/**
+ * The floor of an added stage on the kiosk of its first room: each room cleared on Plant and verified, then recorded in
+ * the stage's one clearance step (N-4: a two-room stage clears each room it uses), the bound unit checked and booked, the
+ * yield step with its weights, the stage signed off, the unit and every room released.
+ */
+async function addedStageRun(f: Floor, st: AddedStage, b: ProductBlock, k: number, units: Readonly<Record<string, string>>, last?: { bulkNet?: string }): Promise<string | undefined> {
+  const op = f.persona('operator2');
+  const verifier = f.persona('verifier1');
+  const qa = f.persona('qa1');
+  const room = st.rooms[0] ?? '';
+  const unit = balanceOf(f, room);
+  const clear = `p-g-10${suffixOf(k)}@`;
+  const status = `p-g-09${suffixOf(k)}@`;
+  const page = await floorKiosk(f, room, op);
+  for (const r of st.rooms) await clearance(f, page, r, op, verifier);
+  await as(page, op);
+  await floorStep(f, page, clear);
+  await startStep(page, op);
+  const plant = page.getByTestId('plant-area');
+  for (const r of st.rooms) {
+    await act(page, plant.getByRole('button', { name: `Start using room ${r} and record it in this step` }), op);
+    await expect(plant.getByTestId(`occupancy-${r}`).getByText('Recorded in this step.')).toBeVisible();
+  }
+  await performAndCheck(page, op, verifier, op);
+  await completed(page);
+  await statusStep(f, page, status, [{ ref: st.equipment.ref, code: unit, instrument: true }], op);
+  const ctx = { base: baseOf(f), runId: f.batchId, operator: op, verifier };
+  const prefix = f.inst === 'GMP' ? 'GMP-' : 'TEST-';
+  for (const x of blocksOf(st)) await runLibraryStep(page, ctx, x, units, {}, 1, prefix);
+  await runLibraryStep(page, ctx, b, { ...units, [st.equipment.classCode]: unit }, {}, 1, prefix);
+  let bulk: string | undefined;
+  if (last) {
+    // The bulk for packing and QA's release for packing (H-PACK), moved to this last stage on screen.
+    if (last.bulkNet) {
+      bulk = await openContainer(f, page, 'BULK', op);
+      await closeTyped(f, page, bulk, last.bulkNet, op, verifier);
+    }
+    await holdPoint(f, page, 'H-PACK@', qa);
+    await closeStage(f, page, 'H-PACK@', op);
+  } else {
+    await closeStage(f, page, `${stepOf(b)}@`, op);
+  }
+  // An instrument's booking ends by itself (no "End the use"); only the rooms are released.
+  await releasePlant(f, page, { status, units: [], clear, area: room }, op);
+  for (const r of st.rooms.slice(1)) {
+    await act(page, plant.getByRole('button', { name: `End the use of ${r}` }), op);
+    await expect(page.getByTestId(`occupancy-${r}`)).toHaveCount(0);
+  }
+  await page.context().close();
+  return bulk;
+}
+
+/** Runs the added stages in order after blending; the last gives the bulk. */
+async function addedStagesRun(f: Floor, t: Tablet, at: 'sandbox' | 'gmp', units: Readonly<Record<string, string>>, bulkNet?: string): Promise<string | undefined> {
+  const stages = t.addedStages ?? [];
+  let bulk: string | undefined;
+  for (const [k, st] of stages.entries()) {
+    const last = k === stages.length - 1 ? (bulkNet ? { bulkNet } : {}) : undefined;
+    bulk = await addedStageRun(f, st, yieldOf(st, at, k), k, units, last);
+  }
+  return bulk;
+}
+
+/** Whether material `i` of the tablet is an active (the first always is). */
+const isApi = (t: Tablet, i: number): boolean => i === 0 || t.materials[i]?.api === true;
+
+/** The BOM id the designer gives formula line `id` (upper-cased). */
+const bomIdOf = (id: string): string => `BOM-${id.toUpperCase()}`;
+
+/**
+ * What the skeleton's dispensing weighs: one container per material, or with `lines` one per line, from the lot of its
+ * material (`lotOf` its index in `materials`), at the sandbox's size or (`gmp`) twice its net on the same tare.
+ */
+function weighings(t: Tablet, mats: readonly OwnMaterial[], lotOf: (i: number) => string, gmp: boolean): { lotCode: string; material: OwnMaterial }[] {
+  const scaled = (tare: string, gross: string): string => (gmp ? kg(milli(tare) + (milli(gross) - milli(tare)) * 2n) : gross);
+  if (!t.lines) return t.materials.map((m, i) => ({ lotCode: lotOf(i), material: { ...(mats[i] as OwnMaterial), tare: m.tare, gross: scaled(m.tare, m.gross) } }));
+  return t.lines.map((l) => {
+    const i = t.materials.findIndex((m) => m.id === l.material);
+    // The weighing names the line where the material is on more than one (views.ts bomLineOptions).
+    const shared = (t.lines ?? []).filter((x) => x.material === l.material).length > 1;
+    return { lotCode: lotOf(i), material: { ...(mats[i] as OwnMaterial), tare: l.tare, gross: scaled(l.tare, l.gross), ...(shared ? { line: `Line ${bomIdOf(l.id)}:` } : {}) } };
   });
 }
 
@@ -379,7 +574,7 @@ function gmpMaterials(t: Tablet, tag: string): GmpMaterial[] {
 export function defineAcceptance(tabletKey: string): void {
   const t = TABLETS.find((x) => x.key === tabletKey);
   if (!t) throw new Error(`no tablet ${tabletKey} in the acceptance`);
-  const codes = [...new Set([...t.afterDispensing, ...t.afterDischarge].map((b) => b.def.code))];
+  const codes = [...new Set([...t.afterDispensing, ...t.afterDischarge].map((b) => b.def.code).concat((t.addedStages ?? []).flatMap((x) => [x.yieldBlock, ...(x.blocks ?? []).map((y) => y.code)])))];
   test.describe.configure({ mode: 'serial' });
 
   test(`[PR-05][DI-04] the library: the author loads the ready-made catalogue as drafts; QA approves each block ${t.name} uses through the signature ceremony @office`, async ({ e2e, officePage, persona, evidence }) => {
@@ -408,7 +603,7 @@ export function defineAcceptance(tabletKey: string): void {
     const regulatory = persona('GMP', 'regulatory');
     const tag = `R${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
     const product = { code: `${t.prefix}-${tag}`, strength: t.strength, name: t.name };
-    const materials: OwnMaterial[] = t.materials.map((m, i) => ({ code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, tare: m.tare, gross: m.gross, group: i === 0 ? 'act' : m.perBatchKg ? 'aid' : 'exc' }));
+    const materials: OwnMaterial[] = t.materials.map((m, i) => ({ code: `${t.prefix}-${m.id.toUpperCase()}-${tag}`, name: m.name, tare: m.tare, gross: m.gross, group: isApi(t, i) ? 'act' : m.perBatchKg ? 'aid' : 'exc' }));
     // The empty shells are entered and confirmed like any material; the formula does not hold them.
     if (t.shells) materials.push({ code: `${t.prefix}-SHELL-${tag}`, name: t.shells, tare: '0', gross: '0', group: 'exc' });
 
@@ -421,10 +616,10 @@ export function defineAcceptance(tabletKey: string): void {
       for (const [i, mat] of materials.entries()) {
         await m.getByRole('textbox', { name: 'Material code' }).fill(mat.code);
         await m.getByRole('textbox', { name: 'Material name' }).fill(mat.name);
-        await choose(m.getByRole('radio', { name: i === 0 ? 'API' : 'EXCIPIENT', exact: true }));
+        await choose(m.getByRole('radio', { name: isApi(t, i) ? 'API' : 'EXCIPIENT', exact: true }));
         await m.getByRole('textbox', { name: 'Stock unit' }).fill('kg');
-        await m.getByRole('textbox', { name: 'Grade' }).fill(i === 0 ? 'Micronised' : 'Pharma grade');
-        await choose(m.getByRole('radio', { name: i === 0 ? 'IP' : 'BP', exact: true }));
+        await m.getByRole('textbox', { name: 'Grade' }).fill(isApi(t, i) ? 'Micronised' : 'Pharma grade');
+        await choose(m.getByRole('radio', { name: isApi(t, i) ? 'IP' : 'BP', exact: true }));
         await m.getByRole('textbox', { name: 'Maximum retest interval (months)' }).fill('24');
         await m.getByRole('textbox', { name: 'Reason for the entry' }).fill('New in-house product; the ERP item is not created yet');
         await m.getByRole('button', { name: 'Enter the material' }).click();
@@ -470,10 +665,15 @@ export function defineAcceptance(tabletKey: string): void {
       await s.getByTestId(`formula-${product.code}-${product.strength}`).getByRole('link').click();
       const v = s.getByTestId('new-formula-version');
       // A per-batch line (a soft gel's gel mass, D-C6b-1) is an EXCIPIENT in kg per batch: a capsule's shell components (1875).
-      const lines = t.materials.map((m, i) => ({
-        id: m.id, mat: materials[i] as OwnMaterial, role: i === 0 ? 'ACTIVE' : 'EXCIPIENT', basis: m.perBatchKg ? 'PER_BATCH' : 'PER_UNIT',
-        qty: m.perBatchKg ?? m.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No',
-      }));
+      const lines = t.lines
+        ? t.lines.map((l, i) => {
+          const at = t.materials.findIndex((m) => m.id === l.material);
+          return { id: l.id, mat: materials[at] as OwnMaterial, role: isApi(t, at) ? 'ACTIVE' : 'EXCIPIENT', basis: 'PER_UNIT', qty: l.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No' };
+        })
+        : t.materials.map((m, i) => ({
+          id: m.id, mat: materials[i] as OwnMaterial, role: isApi(t, i) ? 'ACTIVE' : 'EXCIPIENT', basis: m.perBatchKg ? 'PER_BATCH' : 'PER_UNIT',
+          qty: m.perBatchKg ?? m.mgPerUnit, potency: i === 0 ? 'Yes' : 'No', comp: i === 1 ? 'Yes' : 'No',
+        }));
       // A capsule's empty shells: the unit's outer part, a COATING line per unit (C2).
       if (t.shells) lines.push({ id: 'shell', mat: materials[t.materials.length] as OwnMaterial, role: 'COATING', basis: 'PER_UNIT', qty: t.shellMg ?? '96', potency: 'No', comp: 'No' });
       for (const [i, l] of lines.entries()) {
@@ -558,6 +758,19 @@ export function defineAcceptance(tabletKey: string): void {
     await evidence.step('The author adds the product\'s library blocks in the designer with the product\'s values; the checks pass', 'Each block pinned with its version and content hash; the values form shows no problem; the revision saved', async () => {
       if (t.afterDispensing.length > 0) await addLibraryBlocks(a, 'p-disp-exc', t.afterDispensing);
       if (t.afterDischarge.length > 0) await addLibraryBlocks(a, 'p-blend-out', t.afterDischarge);
+      // Owner acceptance (session 12): the stages the author adds, each with its rooms and its own yield step (N-3).
+      if (t.blendingName) {
+        const name = a.getByRole('textbox', { name: 'Name of stage S-BLEND' });
+        await name.fill(t.blendingName);
+        await name.press('Tab');
+      }
+      const added = t.addedStages ?? [];
+      for (const [k, st] of added.entries()) {
+        await addStageWithYield(a, st, yieldOf(st, 'sandbox', k), st.yieldLines.map(bomIdOf), { statusStep: `p-g-09${suffixOf(k)}`, blocks: blocksOf(st) });
+      }
+      // The release for packing closes the last stage the author added (a coated tablet is released after coating).
+      const lastStage = added.at(-1);
+      if (lastStage) await moveStepToStage(a, lastStage.name, /^Bulk released for packing/);
       await saveRevision(a, `${product.name}: its library blocks and values`);
       await checksPass(a);
       return { blocks: [...t.afterDispensing, ...t.afterDischarge].map((b) => b.def.code).join(', ') };
@@ -592,7 +805,7 @@ export function defineAcceptance(tabletKey: string): void {
       if (t.plant) await registerPlantUnits(sp, e2e.url('SANDBOX'), t.plant);
       await sp.context().close();
       const shellLot = stepLotsOf(t, (id) => lots[id === 'shell' ? t.materials.length : t.materials.findIndex((m) => m.id === id)]?.lotCode ?? '');
-      const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona, browser }, packageHash, lots.slice(0, t.materials.length), t.discharge, {
+      const run = await runSkeletonTestBatch(e2e, { officePage, kioskPage, persona, browser }, packageHash, weighings(t, materials, (i) => lots[i]?.lotCode ?? '', false), t.discharge, {
         // S10: the batch is issued at the further size (not the reference size); every quantity is scaled to it.
         sizeIndex: 1,
         sizeUnits: '50000',
@@ -602,6 +815,7 @@ export function defineAcceptance(tabletKey: string): void {
         afterDischarge: async (page, ctx) => {
           for (const b of t.afterDischarge) await runLibraryStep(page, ctx, b, SANDBOX_UNITS, shellLot);
         },
+        ...(t.addedStages ? { after: (f: Floor) => addedStagesRun(f, t, 'sandbox', SANDBOX_UNITS) } : {}),
       });
       batchNumber = run.batchNumber;
       return run;
@@ -833,7 +1047,8 @@ export function defineAcceptance(tabletKey: string): void {
     await evidence.step('GMP floor: the plant cleaned for the batch; dispensing, the product\'s library steps, blending, the bulk for packing; each person by the Tap button of the demo reader', 'Both stages signed off; H-BLEND and H-PACK approved by QA; the run is Execution complete', async () => {
       const ms = mats(s);
       const group = (m: GmpMaterial): OwnMaterial['group'] => (m.active ? 'act' : t.materials.find((x) => x.id === m.id)?.perBatchKg ? 'aid' : 'exc');
-      const lots = ms.map((m) => ({ lotCode: s.lots?.[m.id] ?? '', material: { code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: group(m) } }));
+      const own = ms.map((m) => ({ code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: group(m) }));
+      const lots = t.lines ? weighings(t, own, (i) => s.lots?.[ms[i]?.id ?? ''] ?? '', true) : ms.map((m, i) => ({ lotCode: s.lots?.[m.id] ?? '', material: own[i] as OwnMaterial }));
       const step = (blocks: readonly ProductBlock[]) => async (page: Page, ctx: StageCtx): Promise<void> => {
         for (const b of blocks) await runLibraryStep(page, ctx, b, GMP_UNITS, stepLotsOf(t, (id) => s.lots?.[id] ?? ''), 1, 'GMP-');
       };
@@ -842,6 +1057,7 @@ export function defineAcceptance(tabletKey: string): void {
           // TB-07's late addition: the last unit component (a per-batch line is not charged to the blender).
           lots, discharge: t.gmpDischarge, lubricantKg: ms.filter((m) => !t.materials.find((x) => x.id === m.id)?.perBatchKg).at(-1)?.net ?? '0.600',
           afterDispensing: step(t.afterDispensing), afterDischarge: step(t.afterDischarge), bulkNet: t.gmpBulkNet,
+          ...(t.addedStages ? { after: (fl: Floor) => addedStagesRun(fl, t, 'gmp', GMP_UNITS, t.gmpBulkNet) } : {}),
         });
         floor.containers['bulk'] = run.bulk ?? '';
         floor.save();

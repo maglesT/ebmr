@@ -99,10 +99,14 @@ function withSecondaryPacking(content: unknown): unknown {
 }
 
 /** An effective master of `name` for IN at SITE-1/L1 with a numbering rule of its kind; the product given or its own. */
-async function master(name: Fixture, product?: string, opts: { secondaryPacking?: boolean; packType?: string; markets?: ('IN' | 'US' | 'EU')[]; packSize?: { id: string; count: string } } = {}): Promise<{ familyId: string; product: string; versionId: string }> {
+async function master(name: Fixture, product?: string, opts: { secondaryPacking?: boolean; packType?: string; markets?: ('IN' | 'US' | 'EU')[]; packSize?: { id: string; count: string }; simulation?: boolean } = {}): Promise<{ familyId: string; product: string; versionId: string }> {
   const m = uniqueContent(name, opts.markets ?? ['IN']);
   m.header.product = { ...m.header.product, code: (product ?? m.header.product.code).toUpperCase() };
   if (opts.packType) m.header.packType = opts.packType;
+  if (opts.simulation) {
+    m.header.edition = 'injectables';
+    m.header.nonProduct = 'PROCESS_SIMULATION';
+  }
   if (opts.packSize) m.header.batchSizes = [{ id: opts.packSize.id, quantity: { value: opts.packSize.count, unit: '{tbl}' } }];
   const stripped = without(m, ['G-09', 'G-10']);
   const content = (name === 'tablet-blister-packaging' && opts.secondaryPacking !== false ? withSecondaryPacking(stripped) : stripped) as MbrContent;
@@ -148,6 +152,18 @@ async function issue(batchId: string, name: Fixture): Promise<void> {
 }
 
 describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
+  it('[IN-45][ST-29] a packaging order of an issued process simulation (media fill) is refused through the planning path: its units are destroyed, never packed (recipe-core 1896)', async () => {
+    const proc = await master('tablet-granulation-compression', undefined, { simulation: true });
+    const pack = await master('tablet-blister-packaging', proc.product);
+    const parent = randomUUID();
+    await plan(parent, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(parent, 'tablet-granulation-compression');
+    const order = randomUUID();
+    await expect(plan(order, { familyId: pack.familyId, batchSize: SIZE['tablet-blister-packaging'], parentBatch: parent }))
+      .rejects.toThrow(/is a process simulation \(media fill\): its units are destroyed, never packed.*EBMR-EXE-198/);
+    expect(await q('select 1 from recipe.stub_batch where id = $1', [order])).toEqual([]);
+  });
+
   it('[INV-27][IN-18][IN-16] a packaging order is planned with the issued processing batch it packs: its number is the register\'s PACKAGING number of that batch, linked once, and it is issued like any GMP batch', async () => {
     const proc = await master('tablet-granulation-compression');
     const pack = await master('tablet-blister-packaging', proc.product);

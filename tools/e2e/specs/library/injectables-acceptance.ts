@@ -20,7 +20,7 @@
  * Only a product with GMP data (`gmp`) runs it: the vial now; the ampoule's is enabled by data when wanted.
  * DEMO-ONLY data; every code is unique per run.
  */
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
@@ -63,6 +63,13 @@ export interface Injectable {
   /** The product's library steps, in order, after the dispensing of the other components (before the reconciliation). */
   steps: readonly ProductBlock[];
   /**
+   * A media fill (aseptic process simulation; the master's process-simulation mark, recipe-core 1896): the author ticks
+   * the mark on screen and removes the release for packing, since its units are incubated, read and destroyed. Its GMP
+   * half needs no licence, printed items or product specification, and ends at QA's review of the record, where it
+   * checks that nothing of the batch can be packed, posted or shipped.
+   */
+  processSimulation?: true;
+  /**
    * The GMP half's data (I-1c2 P4a); a product without it runs the sandbox half only. Its presence is the switch: the
    * ampoule's GMP half is enabled by data when wanted.
    */
@@ -77,10 +84,11 @@ export interface InjectableGmp {
    * later step consumed (the sterilised loads, the filled trays of an aseptic fill, the lyophiliser loads). Each is also a
    * physical output container of the batch, opened on the containers screen in the stage `outputStage` and closed with
    * `outputUnits` units (typed, a second person verifies it): the units the inspection accepts from the counts of the
-   * run (`VIAL_COUNTS`), the physical bulk the packaging order takes later.
+   * run (`VIAL_COUNTS`), the physical bulk the packaging order takes later. A media fill has none: its units are
+   * incubated and destroyed, never bulk for packing.
    */
-  outputStage: string;
-  outputUnits: string;
+  outputStage?: string;
+  outputUnits?: string;
   /**
    * A value the GMP batch records outside its action limit (`step`: the block code; `values` by section and field, over
    * the product's own), e.g. an EM count after incubation. The step is blocked until the supervisor raises a deviation
@@ -391,12 +399,28 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
     }
 
     await evidence.step('The author adds the product\'s library blocks after the dispensing of the other components with the product\'s values; the checks pass', 'Each block pinned with its version and content hash; the values form shows no problem; the revision saved', async () => {
-      // The skeleton has a step for the other components only when the formula has them (a media fill's medium alone has not).
-      await addLibraryBlocks(a, t.materials.length > 1 ? 'p-disp-exc' : 'p-disp-act', t.steps);
+      // The skeleton has a step for the other components only when the formula has them (from-formula; a media fill's
+      // medium alone has not): the same fact the floor uses, an `exc` lot among the materials (skeleton-floor.ts).
+      await addLibraryBlocks(a, materials.some((m) => m.group === 'exc') ? 'p-disp-exc' : 'p-disp-act', t.steps);
       await saveRevision(a, `${product.name}: its library blocks and values`);
       await checksPass(a);
       return { blocks: codes.join(', ') };
     }, a);
+
+    if (t.processSimulation) {
+      await evidence.step('The author marks the master a process simulation (media fill) and removes its release for packing; the checks pass', 'The header says the master makes no product; no release-for-packing stage; the revision saved', async () => {
+        // recipe-core 1896: the mark is approved content, in the hash, so it is set in the draft before the test run.
+        await a.getByRole('checkbox', { name: 'Process simulation (media fill): this master makes no product' }).check();
+        await expect(a.getByText(/^None: a process simulation \(media fill\)/)).toBeVisible();
+        // Records hold what is done: a media fill is never released for packing, so its master has no such stage.
+        const remove = a.getByRole('button', { name: 'Remove stage Release for packing' });
+        await remove.click();
+        await expect(remove).toHaveCount(0);
+        await saveRevision(a, `${product.name}: a process simulation, no release for packing`);
+        await checksPass(a);
+        return { nonProduct: 'PROCESS_SIMULATION' };
+      }, a);
+    }
 
     const changeRecord = `CC-${tag}`;
     const risk = `RA-${tag}`;
@@ -424,7 +448,7 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
     }));
     const stepLots = Object.fromEntries(t.components.flatMap((c, i) => [c.field, ...(c.alsoIn ?? [])].map((f) => [f, (componentLots[i] as { lotCode: string }).lotCode])));
     let batchNumber = '';
-    await evidence.step('Sandbox: the steward registers TEST- lots of the new materials and the product\'s units; the test batch, issued at the further size, runs the dispensing, every library step and the release for packing on the kiosk to Execution complete; its result is exported for GMP', 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
+    await evidence.step(`Sandbox: the steward registers TEST- lots of the new materials and the product's units; the test batch, issued at the further size, runs the dispensing, every library step${t.processSimulation ? '' : ' and the release for packing'} on the kiosk to Execution complete; its result is exported for GMP`, 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
       await registerTestLots({ officePage, kioskPage, persona }, [...lots, ...componentLots]);
       const sp = await officePage('SANDBOX', 'TEST-PC-01');
       await signIn.office(sp, persona('SANDBOX', 'steward'));
@@ -439,6 +463,7 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
         sizeIndex: 1,
         sizeUnits: '50000',
         dispensingOnly: true,
+        ...(t.processSimulation ? { noPackRelease: true } : {}),
         afterDispensing: async (page, ctx) => {
           for (const b of t.steps) await runLibraryStep(page, ctx, b, units, stepLots, 1, 'TEST-', pool);
         },
@@ -656,7 +681,8 @@ export function defineInjectablesGmp(product: string | Injectable): void {
   const mats = (s: ProductState): GmpMaterial[] => gmpMaterials(t, s.tag);
   /** The primary components on the GMP site: materials of their own (no formula line), named by the library steps' lot fields. */
   const components = (s: ProductState) => t.components.map((c) => ({ ...c, code: `${t.prefix}-${c.id.toUpperCase()}-${s.tag}` }));
-  const printedOf = (s: ProductState) => [
+  // A media fill is never labelled or packed (IND-050, EXE-198): it has no printed items.
+  const printedOf = (s: ProductState) => t.processSimulation ? [] : [
     // No product prefix in what a later sandbox entry names: the sandbox refuses a word shaped like a real batch or lot
     // number (DI-05); the run's tag keeps each unique.
     { role: 'label', material: `LBL-${s.tag}`, name: `Printed vial label, ${t.strength} (invented)`, artwork: `ART-LBL-${s.tag}-1`, delivery: '20000' },
@@ -711,8 +737,8 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       // DEMO-ONLY: the finished product's tests, methods, limits and samples are invented values, not a pharmacopoeia's.
       // STERILITY: each batch purporting to be sterile is tested (211.167(a)); the limit is the count of containers with
       // growth. PARTICULATE MATTER: the compendial test for injections (211.160(b)), here particles of 10 µm and above per
-      // container. Their results are QC's, recorded on the lot (D-S11-R1).
-      await draftSpecification(qc, { material: s.product.code, title: s.product.name, monograph: `In-house finished-product specification STP-${t.prefix}-FP, version 1 (${s.tag})`, tests: [
+      // container. Their results are QC's, recorded on the lot (D-S11-R1). A media fill has no finished lot to test.
+      if (!t.processSimulation) await draftSpecification(qc, { material: s.product.code, title: s.product.name, monograph: `In-house finished-product specification STP-${t.prefix}-FP, version 1 (${s.tag})`, tests: [
         { code: 'ASSAY', method: `STP-${t.prefix}-AS-02`, unit: '%', lower: '95.0', upper: '105.0', sample: { quantity: '1', unit: 'packs' } },
         { code: 'BACTERIAL_ENDOTOXINS', method: `STP-${t.prefix}-BET-01`, unit: 'EU/mL', upper: '17.5', sample: { quantity: '1', unit: 'packs' } },
         { code: 'STERILITY', method: `STP-${t.prefix}-STE-01`, unit: '1', upper: '0', sample: { quantity: '20', unit: 'packs' } },
@@ -722,13 +748,16 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     const hq = await officePage('GMP', PC_QC);
     await signIn.office(hq, persona('GMP', 'qcApprover'));
     await evidence.step('The head of QC approves the specifications', 'Each APPROVED and in effect', async () => {
-      await approveSpecifications(hq, [...mats(s).map((m) => m.code), ...comps.map((c) => c.code), ...pr.map((p) => p.material), s.product.code], persona('GMP', 'qcApprover'));
+      await approveSpecifications(hq, [...mats(s).map((m) => m.code), ...comps.map((c) => c.code), ...pr.map((p) => p.material), ...(t.processSimulation ? [] : [s.product.code])], persona('GMP', 'qcApprover'));
     }, hq);
-    const rg = await officePage('GMP', PC_QA);
-    await signIn.office(rg, persona('GMP', 'regulatory'));
-    await evidence.step('The regulatory signer records the site\'s manufacturing licence endorsing the product; QA approves it', 'The issue gate says the product may be issued (IN-30)', async () => {
-      await endorseOnLicence(rg, q, { number: `MH/26/${t.prefix}-${s.tag}`, product: s.product.code, strength: s.product.strength }, persona('GMP', 'approver'));
-    }, q);
+    // A media fill makes no product, so no licence endorses it (recipe-core 1896): GMP 3 issues it without one.
+    if (!t.processSimulation) {
+      const rg = await officePage('GMP', PC_QA);
+      await signIn.office(rg, persona('GMP', 'regulatory'));
+      await evidence.step('The regulatory signer records the site\'s manufacturing licence endorsing the product; QA approves it', 'The issue gate says the product may be issued (IN-30)', async () => {
+        await endorseOnLicence(rg, q, { number: `MH/26/${t.prefix}-${s.tag}`, product: s.product.code, strength: s.product.strength }, persona('GMP', 'approver'));
+      }, q);
+    }
     const qa = await officePage('GMP', PC_QA2);
     await signIn.office(qa, persona('GMP', 'qaInvestigator'));
     await evidence.step('QA proposes and approves the manufacturer of each material, component and printed material', 'APPROVED entries of the register (PR-17)', async () => {
@@ -784,7 +813,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
         await approveResults(hq, [o.test], persona('GMP', 'qcApprover'));
       }
     }, hq);
-    await evidence.step('QC records the artwork version of each printed lot (label, leaflet, carton)', 'The artwork versions G-21 checks', async () => {
+    if (pr.length > 0) await evidence.step('QC records the artwork version of each printed lot (label, leaflet, carton)', 'The artwork versions G-21 checks', async () => {
       for (const p of pr) {
         await openLot(qc, lots[p.role] ?? '');
         await recordArtwork(qc, lots[p.role] ?? '', p.artwork);
@@ -810,7 +839,8 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     await evidence.step('The steward defines the product\'s numbering rules at SITE-1 (processing and packaging, IN-18)', 'Both rules listed on Batch numbers', async () => {
       await home(st, /^Batch numbers/);
       await defineNumberingRule(st, { ruleCode: `${t.prefix}-PROC-${s.tag}`, kind: 'PROCESSING', format: `V${s.tag}{SEQ:3}`, product: s.product.code });
-      await defineNumberingRule(st, { ruleCode: `${t.prefix}-PACK-${s.tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', product: s.product.code });
+      // A media fill is never packed: no packaging numbers.
+      if (!t.processSimulation) await defineNumberingRule(st, { ruleCode: `${t.prefix}-PACK-${s.tag}`, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', product: s.product.code });
     }, st);
     await evidence.step('The steward lists the product in the GMP plant\'s product list (a room\'s clearance names it)', 'The product is listed on Plant definitions', async () => {
       await definePlantProduct(st, base, s.product);
@@ -838,6 +868,13 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       saveProduct(e2e, key, s);
       return b;
     }, ip);
+    if (t.processSimulation) {
+      await evidence.step('The allocation register lists the media fill\'s batch as issued with no licence', 'Its row says "Process simulation (no licence)" in place of a licence number (IN-30, recipe-core 1896)', async () => {
+        await load(ip, `${base}/india/register`);
+        await expect(ip.getByTestId(`allocation-${s.batchNumber ?? ''}`)).toContainText('Process simulation (no licence)');
+        return { batch: s.batchNumber ?? '', licence: 'none: process simulation' };
+      }, ip);
+    }
     await ip.context().close();
     const sp = await officePage('GMP', PC_PLAN);
     await signIn.office(sp, persona('GMP', 'stores'));
@@ -846,7 +883,9 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     }, sp);
   });
 
-  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
+  // What the run ends with, in the product's words: a media fill has no output and no release for packing.
+  const gmp4End = t.processSimulation ? 'no output containers and no release for packing (a process simulation)' : 'the sterilised loads as verified output containers in units; QA\'s release for packing (H-PACK)';
+  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; ${gmp4End} @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
     test.setTimeout(90 * 60_000);
     const s = loadProduct(e2e, key);
     const floor: Floor = {
@@ -855,7 +894,10 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     };
     const units = { ...GMP_BALANCE, ...Object.fromEntries(gmp.plant.map((u) => [u.classCode, u.code])) };
     const stepLots = Object.fromEntries(t.components.flatMap((c) => [c.field, ...(c.alsoIn ?? [])].map((f) => [f, s.lots?.[c.id] ?? ''])));
-    await evidence.step('GMP floor: the plant cleaned for the batch; dispensing, the product\'s library steps, the sterilised loads into output containers (units, the net verified), the reconciliation, QA\'s release for packing; each person by the Tap button of the demo reader', 'Both stages signed off; H-PACK approved by QA; the run is Execution complete', async () => {
+    const floorStep = t.processSimulation
+      ? ['GMP floor: the plant cleaned for the batch; dispensing, the media fill\'s library steps through incubation and reading, the reconciliation; each person by the Tap button of the demo reader', 'The dispensing stage signed off; no release for packing; the run is Execution complete'] as const
+      : ['GMP floor: the plant cleaned for the batch; dispensing, the product\'s library steps, the sterilised loads into output containers (units, the net verified), the reconciliation, QA\'s release for packing; each person by the Tap button of the demo reader', 'Both stages signed off; H-PACK approved by QA; the run is Execution complete'] as const;
+    await evidence.step(floorStep[0], floorStep[1], async () => {
       const lots = mats(s).map((m) => ({ lotCode: s.lots?.[m.id] ?? '', material: { code: m.code, name: m.name, tare: m.tare, gross: m.gross, group: m.active ? ('act' as const) : ('exc' as const) } }));
       // The containers the run's steps hand on: filling's trays, consumed into sterilisation's loads.
       const pool: string[] = [];
@@ -863,7 +905,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       const lotsShown: string[] = [];
       try {
         await skeletonRun(floor, {
-          lots, discharge: { tare: '0', gross: '0' }, lubricantKg: '0', dispensingOnly: true,
+          lots, discharge: { tare: '0', gross: '0' }, lubricantKg: '0', dispensingOnly: true, ...(t.processSimulation ? { noPackRelease: true } : {}),
           afterDispensing: async (page, ctx) => {
             for (const b of t.steps) {
               const breach = gmp.breach?.step === b.def.code ? gmp.breach : undefined;
@@ -891,9 +933,11 @@ export function defineInjectablesGmp(product: string | Injectable): void {
             // sterilised loads here; filled trays or lyophiliser loads in other forms) is also a physical output container of
             // the batch (units), opened on the containers screen and closed with its typed net, which a second person
             // verifies. The packaging order takes these after H-PACK (injectables resume notes, learnt in P2).
-            for (let i = 0; i < pool.length; i += 1) {
-              const c = await openContainer(floor, page, gmp.outputStage, ctx.operator, 'units');
-              await closeTyped(floor, page, c, gmp.outputUnits, ctx.operator, ctx.verifier);
+            // A media fill has no output: its units are incubated, read and destroyed.
+            const { outputStage, outputUnits } = gmp;
+            for (let i = 0; outputStage && outputUnits && i < pool.length; i += 1) {
+              const c = await openContainer(floor, page, outputStage, ctx.operator, 'units');
+              await closeTyped(floor, page, c, outputUnits, ctx.operator, ctx.verifier);
               loads.push(c);
             }
           },
@@ -903,12 +947,65 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       } finally {
         await closeFloor();
       }
-      expect(loads.length).toBeGreaterThan(0);
+      if (gmp.outputStage) expect(loads.length).toBeGreaterThan(0);
       // Every component's lot (vial, stopper, seal) was shown as used, once each.
       expect(lotsShown.map((x) => x.split('=')[1]).sort()).toEqual(Object.values(stepLots).sort());
       return { loads: loads.join(', '), componentLots: lotsShown.join(', ') };
     });
   });
+  if (t.processSimulation) {
+    // A media fill ends at QA's review of its record (recipe-core 1896): its units are incubated, read and destroyed, so
+    // nothing of it is packed, posted as a lot or shipped, and the GMP half has no GMP 6 to 9.
+    test(`[IN-45][ST-29][INV-05][DI-25] ${t.name}, GMP 5: QA reviews the media fill's record, the end of a process simulation; no finished lot can be posted from it @office`, async ({ e2e, officePage, persona, evidence }) => {
+      test.setTimeout(30 * 60_000);
+      const s = loadProduct(e2e, key);
+      const base = e2e.url('GMP');
+      const head = persona('GMP', 'head1');
+      const qa = persona('GMP', 'qaInvestigator');
+      const qa2 = persona('GMP', 'qaApprover2');
+      const production = await officePage('GMP', PC_PLAN);
+      await signIn.office(production, head);
+      const qaPage = await officePage('GMP', PC_QA2);
+      await signIn.office(qaPage, qa);
+      const qa2Page = await officePage('GMP', PC_QA2);
+      await signIn.office(qa2Page, qa2);
+      await evidence.step('The media fill\'s record reviewed', 'The processing batch is QA reviewed', async () => ({ concluded: await reviewRecord(e2e, { production, qa: qaPage, qa2: qa2Page }, { head, qa, qa2 }, s.batchId ?? '') }), qa2Page);
+      await evidence.step('QA signs the delta audit-trail review of the record if one became due', 'The record is covered by its last signed mark', async () => {
+        await load(qaPage, `${base}/review/${s.batchId ?? ''}`);
+        const panel = qaPage.getByTestId('audit-trail-review');
+        await expect(panel.getByTestId('audit-trail-marks')).toBeVisible();
+        const button = panel.getByRole('button', { name: 'Sign the delta review' });
+        if ((await button.count()) > 0 && (await button.isEnabled())) {
+          await button.click();
+          await officeSign(qaPage, /^Delta review /, qa);
+        }
+        await expect(panel.getByText('Covered by the last signed mark')).toBeVisible();
+      }, qaPage);
+      const sp = await officePage('GMP', PC_PLAN);
+      await signIn.office(sp, persona('GMP', 'stores'));
+      await evidence.step('Stores try to post a finished lot of the media fill through the finished-lot service', 'Refused; nothing is posted', async () => {
+        // No screen offers it: the finished-lot form is on a packaging order's page, and no packaging order of a media
+        // fill can be planned (EXE-198). The service the form calls refuses it with its general rule (TAB-850: a finished
+        // lot comes from a completed packaging order); the process-simulation refusals themselves (IND-045 to IND-047,
+        // EXE-198) are proven by the database tests of recipe-core 1896.
+        const session = await sp.request.get(`${base}/api/session`);
+        const { csrfToken } = (await session.json()) as { csrfToken: string };
+        const r = await sp.request.post(`${base}/api/quality/finished-lots`, {
+          headers: { origin: base, 'sec-fetch-site': 'same-origin', 'x-csrf-token': csrfToken, 'idempotency-key': randomUUID(), 'content-type': 'application/json' },
+          data: { batchId: s.batchId ?? '', quantity: '9840', unit: 'packs' },
+        });
+        expect(r.status()).toBe(422);
+        const body = JSON.stringify(await r.json());
+        expect(body).toContain('a finished lot is posted from a packaging order');
+        await home(sp, /^Quality/);
+        await sp.getByRole('link', { name: 'Material lots', exact: true }).click();
+        await expect(sp.getByTestId(`lot-${s.batchNumber ?? ''}`)).toHaveCount(0);
+        return { status: r.status() };
+      }, sp);
+    });
+    return;
+  }
+
   /** The packing library steps an injectables packaging master adds to the skeleton (lead P3 ruling; PACK-SHIPPER is
    *  optional and left out: the skeleton's bill of materials has no shipper line). */
   const cartoning = productBlock('PACK-CARTON', 'EQC-CARTONER', { cartonLine: 'BOM-CARTON', leafletLine: 'BOM-LEAFLET' });
@@ -1109,7 +1206,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
    */
   const packCounts = (s: ProductState) => {
     const loads = Object.entries(s.gmpContainers ?? {}).filter(([k]) => k.startsWith('output-')).map(([, c]) => c);
-    const received = BigInt(gmp.outputUnits) * BigInt(loads.length);
+    const received = BigInt(gmp.outputUnits ?? '0') * BigInt(loads.length);
     const packed = received - 20n * BigInt(loads.length);
     return { loads, received: received.toString(), packed: packed.toString(), cartons: (packed / 10n).toString() };
   };

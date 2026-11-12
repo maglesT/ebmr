@@ -121,6 +121,8 @@ export const AllocationEntryView = z.strictObject({
   issuedAt: z.string().nullable(),
   licenceNumber: z.string().nullable(),
   loanLicenceNumber: z.string().nullable(),
+  /** The batch is a process simulation (media fill), issued under no licence (recipe-core 1896): why licenceNumber is null. */
+  processSimulation: z.boolean(),
 });
 export type AllocationEntryView = z.infer<typeof AllocationEntryView>;
 

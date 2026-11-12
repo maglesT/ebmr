@@ -41,6 +41,8 @@ export type Op =
   | { kind: 'SET_TITLE'; title: string }
   | { kind: 'SET_MARKETS'; markets: string[] }
   | { kind: 'SET_CRITICALITY_ASSESSMENT'; reference: flow.Reference | null }
+  /** Marks the master as a process simulation (media fill) that makes no product, or clears the mark (null). */
+  | { kind: 'SET_NON_PRODUCT'; nonProduct: flow.NonProduct | null }
   | { kind: 'UPDATE_CALCULATION'; id: string; name?: string; expression?: string }
   | { kind: 'UPDATE_PARAMETER_NAME'; id: string; name: string }
   | { kind: 'UPDATE_YIELD'; id: string; name?: string; result?: string; theoretical?: string }
@@ -48,6 +50,9 @@ export type Op =
   | { kind: 'ADD_LIMIT_RANGE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: limits.LimitTier; unit: string; kindOfSource: limits.LimitSourceKind; reference: flow.Reference }
   | { kind: 'INSERT_STEP'; sequenceId: string; index: number; step: Step }
   | { kind: 'MOVE_STEP'; nodeId: string; direction: -1 | 1 }
+  // Session 12 (owner acceptance): a step moved to the end of another stage, e.g. the skeleton's release for packing
+  // (H-PACK) to the last stage the author added after blending (a coating stage).
+  | { kind: 'MOVE_STEP_TO_STAGE'; nodeId: string; stageId: string }
   | { kind: 'DELETE_STEP'; nodeId: string }
   | { kind: 'UPDATE_PHASE'; nodeId: string; patch: PhasePatch }
   | { kind: 'UPDATE_HOLD'; nodeId: string; patch: Partial<Pick<flow.HoldPointNode, 'name' | 'role'>> }
@@ -313,6 +318,17 @@ function applyInPlace(c: Content, op: Op): void {
       c.header.criticalityAssessment = op.reference.id;
       return;
     }
+    // The process-simulation mark (media fill): part of the approved content, so it changes only in a draft, like any edit.
+    case 'SET_NON_PRODUCT': {
+      if (op.nonProduct === null) {
+        delete c.header.nonProduct;
+        return;
+      }
+      if (!(flow.NON_PRODUCT_KINDS as readonly string[]).includes(op.nonProduct)) throw new OpError('A master that makes no product is a process simulation.');
+      if (c.header.edition !== 'injectables' || c.header.recordKind !== 'PROCESSING') throw new OpError('Only an injectables processing master may be a process simulation.');
+      c.header.nonProduct = op.nonProduct;
+      return;
+    }
     case 'SET_MARKETS': {
       if (!op.markets.includes('IN')) throw new OpError('India (IN) stays in every market set (Revised Schedule M always applies).');
       const unknown = op.markets.filter((m) => !(KNOWN_MARKETS as readonly string[]).includes(m));
@@ -339,6 +355,21 @@ function applyInPlace(c: Content, op: Op): void {
       if (to < 0 || to >= l.parent.children.length) throw new OpError(op.direction < 0 ? 'The step is already first in its sequence.' : 'The step is already last in its sequence.');
       const [moved] = l.parent.children.splice(l.index, 1);
       l.parent.children.splice(to, 0, moved as flow.FlowNode);
+      return;
+    }
+    case 'MOVE_STEP_TO_STAGE': {
+      const l = locate(c, op.nodeId);
+      if (!l || (l.node.kind !== 'phase' && l.node.kind !== 'holdPoint')) throw new OpError(`There is no step ${op.nodeId}.`);
+      if (!l.parent) throw new OpError('This step is not in a sequence, so it cannot be moved.');
+      const { stage } = stageAt(c, op.stageId);
+      if (stage.body.kind !== 'sequence') throw new OpError(`Stage ${stage.name} has no sequence to take the step.`);
+      let inside = false;
+      flow.walk(stage.body, (n) => {
+        if (n.id === op.nodeId) inside = true;
+      });
+      if (inside) throw new OpError(`The step is already in stage ${stage.name}.`);
+      const [moved] = l.parent.children.splice(l.index, 1);
+      stage.body.children.push(moved as flow.FlowNode);
       return;
     }
     case 'DELETE_STEP': {

@@ -63,10 +63,11 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 
 - **Merged:** #228 (ac5e975): the FFS bag, BFS ampoule and radiation-sterilised vial in `library-inj-routes`; the
   INJ-FFS/INJ-BFS v1 seal counts (typed `sealRejects` per round, typed `rejects` at filling, CALC `totalRejects`).
-- **Open, audited PASS:** #231 (branch `inj/i3-powder-lyo-e2e`): the sterile powder vial (I-4, `library-inj-powder`,
-  sandbox) and the lyophilised vial to release (I-3, `library-inj-lyo`, sandbox + GMP; the lyophilised loads are the
-  output, stage `LYOPHILISATION`); the INJ-FILL closures label in the approved neutral wording. Merge on a green full run.
-- **Open:** branch `inj/i4-emulsion-syringe-e2e`, on main after #228: an emulsion in vials (I-1 vial route + INJ-HOMOGENISE,
+- **Merged:** #231 (a7e4e69): the sterile powder vial (I-4, `library-inj-powder`, sandbox) and the lyophilised vial to
+  release (I-3, `library-inj-lyo`, sandbox + GMP; the lyophilised loads are the output, stage `LYOPHILISATION`); the
+  INJ-FILL closures label in the approved neutral wording. Its library-bilayer job failed once (closeStage, "Signed." not
+  shown) and passed on its one re-run; main's bilayer was green.
+- **#232** (branch `inj/i4-emulsion-syringe-e2e`, audited PASS): an emulsion in vials (I-1 vial route + INJ-HOMOGENISE,
   a 5 micrometre filter) and a prefilled syringe from ready-to-use tubs (I-2b RABS set-up, INJ-SUPPLIER-STERILE,
   INJ-ASEPTIC-TRANSFER, INJ-PLUNGER as the closing rejects, no capping), both in `library-inj-routes` (now 5 products,
   about 50 min). It needs:
@@ -75,8 +76,7 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     load and at placement).
   Both pass locally 4/4. The lead accepted both in principle; the PR body must show the in-place INJ-FILL edit is safe
   (as #231's does: nothing pins INJ-FILL by hash; library, demo-catalogue, demo-seed and entry-data tests pass; the
-  golden batches are tablets-only). After #231 merges: merge main in (the group and control lists overlap; keep both
-  sides), full run, audit, merge.
+  golden batches are tablets-only). Main (with #231) merged in; merge on a green full run.
 - **Next (lead, 12 November 2026):** dual-chamber (INJ-FILL twice, INJ-LYO, INJ-PLUNGER; no new block), then I-5
   (automated inspection, deterministic CCIT, RMM in INJ-26).
 - **Learnt:**
@@ -91,6 +91,22 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     `apps/*/src/main.ts` before the next run.
   - `manual-weighing-gate.test.ts` failed twice on one GitHub shard during the Actions outage, then passed on the next
     run and locally 9/9 (heartbeat-window timing under load). Logged to the lead; not changed.
+
+### Session 10c (12 November 2026): the media fill's GMP run, the EM tiers, routine EM
+
+- **I-2d (branch `inj/i2-d-media-fill-gmp`):** the media fill's GMP run to QA's record review, group `library-inj-aseptic`
+  (7 tests, 35 min locally). The sandbox half ticks the process-simulation mark on screen and removes the release for
+  packing; the GMP half records no licence, printed items or product specification, issues the batch (the allocation
+  register shows "Process simulation (no licence)"), runs the kiosks with no output containers, and GMP 5 ends with QA's
+  review and a refused finished-lot post (the service the form calls; the DB refusals are #230's tests).
+  - Lead rulings (12 November): the master-version market authorisation stays (PR-04 market validity applies to a media-fill master; GMP 3's issue, listed under PR-04, proves it;
+    this supersedes the I-2c ruling about skipping it); the author deletes H-PACK on screen; the API-level refusal is enough.
+  - **Residual (lead):** from-formula or the validator could drop H-PACK, or warn, on a PROCESS_SIMULATION master.
+- **Item 2 (branch `inj/i2-e-em-alert-tier`):** the values helper types each limit tier into its own boxes ("More limits");
+  GMP 8b's EM breach is then an action-tier breach (asserted on the blocked exception), not registration-relevant. It
+  touches every library group's values, so its full run is the test.
+- **Item 3, routine EM:** a formula needs 1 to 200 lines (EBMR-FRM-005) and the issue gate a licence; anything beyond an
+  on-screen try goes to the lead as a design first.
 
 ### Session 10b (11 November 2026): lean merged, I-2b merged, I-2c and B open
 
@@ -444,7 +460,7 @@ Lead rulings of 9 November 2026, evening (binding; session 6 starts at P3c):
     - The new-master screen gets those fields.
     - No defaults, no invented values. Missing values are refused by the existing validator codes (G21-NO-LIMITS, GMP-SPECIMENS).
   - Tests by control ID: PR-32, PR-39, PR-31 and the GMP-* validator codes.
-  - **Residual:** "edit a packaging master's printed items after create". Partly done (session 12b, 11 November): on a draft, ConfigForm edits each G-21 printed item's own values in place (limits, issue need and allowance, counting, unit). Still open: adding or removing an item, and an item's artwork per market (a map), which stay read-only.
+  - **Residual:** "edit a packaging master's printed items after create". Done (session 12b, 11 November): on a draft, ConfigForm adds (empty, nothing filled in), removes and edits each G-21 printed item, including its artwork version per market.
 - **P4b, GMP 8:** add STERILITY (211.167(a): each batch purporting to be sterile is tested) and PARTICULATE MATTER (the compendial test for injections; 211.160(b)) to the product specification, marked DEMO-ONLY. Results stay QC results (D-S11-R1).
 - **Order:** P3c, then P4b. Rebase nothing: merge main into `inj/i1c2-p4b-gmp-packaging` after P3c merges.
 
