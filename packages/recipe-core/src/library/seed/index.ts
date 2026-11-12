@@ -7,6 +7,7 @@ import { COATING_SEEDS } from './coating.ts';
 import { CONTROL_SEEDS } from './controls.ts';
 import { INJECTABLE_RELEASE_SEEDS, INJECTABLE_SEEDS } from './injectables.ts';
 import { INJECTABLE_ASEPTIC_SEEDS } from './injectables-aseptic.ts';
+import { INJECTABLE_INSPECTION_SEEDS } from './injectables-inspection.ts';
 import { INJECTABLE_LYO_SEEDS } from './injectables-lyo.ts';
 import { INJECTABLE_ROUTE_SEEDS } from './injectables-routes.ts';
 import { PACKAGING_SEEDS } from './packaging.ts';
@@ -49,6 +50,9 @@ export const SEED_GROUPS: Readonly<Record<string, readonly SeedItem[]>> = {
   // Injectables edition, slice I-4 (plan v2): other containers and routes (suspensions, powder, syringes, FFS, BFS,
   // radiation) and their EU-market blocks.
   'injectables routes': INJECTABLE_ROUTE_SEEDS,
+  // Injectables edition, slice I-5 (plan v2): automated visual inspection, deterministic 100 % integrity testing and
+  // the EU-market inspection challenge.
+  'injectables inspection': INJECTABLE_INSPECTION_SEEDS,
   'release tests': [...RELEASE_TEST_SEEDS, ...CAPSULE_RELEASE_SEEDS, ...INJECTABLE_RELEASE_SEEDS],
   // API edition (plan A1b): catalogue v1 of the `substance` edition. The blocks carry their edition, so the library
   // offers them only to API masters (recipe.library_block_edition).
@@ -71,3 +75,5 @@ export const INJECTABLE_ASEPTIC_CATALOGUE: readonly SeedItem[] = [...INJECTABLE_
 export const INJECTABLE_LYO_CATALOGUE: readonly SeedItem[] = [...INJECTABLE_LYO_SEEDS];
 /** The Injectables edition's blocks of slice I-4 (other containers and routes). */
 export const INJECTABLE_ROUTE_CATALOGUE: readonly SeedItem[] = [...INJECTABLE_ROUTE_SEEDS];
+/** The Injectables edition's blocks of slice I-5 (automated inspection, deterministic integrity testing). */
+export const INJECTABLE_INSPECTION_CATALOGUE: readonly SeedItem[] = [...INJECTABLE_INSPECTION_SEEDS];

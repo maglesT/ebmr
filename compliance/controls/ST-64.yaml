@@ -26,6 +26,8 @@ behaviour: |-
 catalog_test: Configure a 2 mL ampoule with sampled CCI → MBR rejected. Choose "visual inspection" as the CCI method → option unavailable.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-64] the sampled integrity test offers laser headspace analysis among its methods"
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-64][IN-50] the 100 % integrity test names the tester by its class, records the units tested and the leakers from the machine report, checked by a second person; a leaker is a counted reject, not an exception; no report attached is one"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-64] one unit failing the container closure integrity test is an exception"
 expert_decision:
   status: MODIFY

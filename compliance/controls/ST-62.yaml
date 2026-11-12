@@ -31,6 +31,8 @@ behaviour: |-
 catalog_test: An inspector with VI qualification 13 months old → sign-on refused. A failed mid-batch AVI challenge → units since the last pass held.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-62] for the EU market, the inspection machine is challenged with the defect test set before start-up and at the formulation's intervals, recorded by the operator alone; a defect of the test set not rejected is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-62][ST-63][IN-50] automated inspection names the machine by its class, records the counts by defect category from the machine report, checked by a second person, and judges the reject rate; a reject rate above its limit or no report attached is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62] the booth illumination check is an EU-market block (Annex 1 8.31) signed by the operator alone: not in the IN or US base, which inspects without it; an illumination out of range is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
