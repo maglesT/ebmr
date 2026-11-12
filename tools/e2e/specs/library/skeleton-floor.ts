@@ -26,6 +26,8 @@ export interface OwnMaterial {
    * lines: dispensed in their own step and not charged to the blender; a soft gel's gel-mass components, C6b).
    */
   group: 'act' | 'exc' | 'aid';
+  /** The BOM line this container is weighed for, when the material is on more than one line (a bilayer's layers). */
+  line?: string;
 }
 
 /** Where a master built on the skeleton runs its own further steps (decision 0026 S11: library blocks added on screen). */
@@ -65,6 +67,13 @@ export interface SkeletonPlan {
    * removes that stage, since its units are incubated and destroyed, never packed). The run ends with the dispensing stage.
    */
   noPackRelease?: boolean;
+  /** Stages the master adds between dispensing and blending (owner acceptance, session 12), run on their own kiosks. */
+  between?: (f: Floor) => Promise<void>;
+  /**
+   * Stages the master adds after blending, its release for packing (H-PACK) moved to the last of them (session 12): the
+   * blending stage then closes on its yield, and these run the bulk for packing and H-PACK; they give the bulk's label.
+   */
+  after?: (f: Floor) => Promise<string | undefined>;
 }
 
 /** "28.800" minus "1.000": the net of a typed tare and gross (exact, three decimals). */
@@ -130,7 +139,9 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const bal = balanceOf(f, 'DISP-1');
   const weigh = async (l: { lotCode: string; material: OwnMaterial }): Promise<void> => {
     const form = disp.getByTestId('form-CONTAINER_WEIGHING');
-    await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(l.material.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }));
+    const esc = (x: string): string => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // A material on two lines is weighed for each line on its own: the line is chosen by its BOM id.
+    await choose(form.getByRole('radiogroup', { name: 'Material' }).getByRole('radio', { name: new RegExp(esc(l.material.line ?? l.material.name)) }));
     const lotField = form.getByRole('textbox', { name: 'Lot' });
     await lotField.fill(l.lotCode);
     await lotField.press('Enter');
@@ -191,6 +202,7 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
     return { containers: [...containers, ...aidContainers] };
   }
   await disp.context().close();
+  if (p.between) await p.between(f);
 
   // Stage 2: blending and lubrication (TB-07) on the trusted clock, the QA hold point, the hand-typed discharge.
   const blend = await floorKiosk(f, 'BLEND-1', op2);
@@ -245,6 +257,17 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await explained(performAndCheck(blend, op2, verifier, op2), blend.locator('main'));
   await completed(blend);
   let bulk: string | undefined;
+  if (p.after) {
+    await closeStage(f, blend, 'p-blend-yield@', op2);
+    await releasePlant(f, blend, { status: 'p-blend-status@', units: [['BLENDER', blender]], clear: 'p-blend-clear@', area: 'BLEND-1' }, op2);
+    await blend.context().close();
+    bulk = await p.after(f);
+    const office = await floorKiosk(f, 'BLEND-1', op2);
+    await load(office, `${base}/runs/${f.batchId}`);
+    await expect(office.getByText('Execution complete').first()).toBeVisible();
+    await office.context().close();
+    return { containers: [...containers, ...aidContainers, blendContainer], ...(bulk ? { bulk } : {}) };
+  }
   if (p.bulkNet) {
     bulk = await openContainer(f, blend, 'BULK', op2);
     await closeTyped(f, blend, bulk, p.bulkNet, op2, verifier);

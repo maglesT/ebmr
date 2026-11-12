@@ -51,6 +51,10 @@ export interface SkeletonExtras {
   dispensingOnly?: boolean;
   /** With `dispensingOnly`: the master has no release for packing (a media fill; library/skeleton-floor.ts). */
   noPackRelease?: boolean;
+  /** Stages the master adds between dispensing and blending, run on their own kiosks (library/skeleton-floor.ts). */
+  between?: (f: Floor) => Promise<void>;
+  /** Stages the master adds after blending, H-PACK in the last (library/skeleton-floor.ts). */
+  after?: (f: Floor) => Promise<string | undefined>;
 }
 
 /**
@@ -96,6 +100,8 @@ export async function runSkeletonTestBatch(
       ...(extra.afterDischarge ? { afterDischarge: extra.afterDischarge } : {}),
       ...(extra.dispensingOnly ? { dispensingOnly: extra.dispensingOnly } : {}),
       ...(extra.noPackRelease ? { noPackRelease: extra.noPackRelease } : {}),
+      ...(extra.between ? { between: extra.between } : {}),
+      ...(extra.after ? { after: extra.after } : {}),
     });
   } finally {
     await closeFloor();
