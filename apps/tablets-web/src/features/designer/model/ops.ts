@@ -50,6 +50,9 @@ export type Op =
   | { kind: 'ADD_LIMIT_RANGE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: limits.LimitTier; unit: string; kindOfSource: limits.LimitSourceKind; reference: flow.Reference }
   | { kind: 'INSERT_STEP'; sequenceId: string; index: number; step: Step }
   | { kind: 'MOVE_STEP'; nodeId: string; direction: -1 | 1 }
+  // Session 12 (owner acceptance): a step moved to the end of another stage, e.g. the skeleton's release for packing
+  // (H-PACK) to the last stage the author added after blending (a coating stage).
+  | { kind: 'MOVE_STEP_TO_STAGE'; nodeId: string; stageId: string }
   | { kind: 'DELETE_STEP'; nodeId: string }
   | { kind: 'UPDATE_PHASE'; nodeId: string; patch: PhasePatch }
   | { kind: 'UPDATE_HOLD'; nodeId: string; patch: Partial<Pick<flow.HoldPointNode, 'name' | 'role'>> }
@@ -352,6 +355,21 @@ function applyInPlace(c: Content, op: Op): void {
       if (to < 0 || to >= l.parent.children.length) throw new OpError(op.direction < 0 ? 'The step is already first in its sequence.' : 'The step is already last in its sequence.');
       const [moved] = l.parent.children.splice(l.index, 1);
       l.parent.children.splice(to, 0, moved as flow.FlowNode);
+      return;
+    }
+    case 'MOVE_STEP_TO_STAGE': {
+      const l = locate(c, op.nodeId);
+      if (!l || (l.node.kind !== 'phase' && l.node.kind !== 'holdPoint')) throw new OpError(`There is no step ${op.nodeId}.`);
+      if (!l.parent) throw new OpError('This step is not in a sequence, so it cannot be moved.');
+      const { stage } = stageAt(c, op.stageId);
+      if (stage.body.kind !== 'sequence') throw new OpError(`Stage ${stage.name} has no sequence to take the step.`);
+      let inside = false;
+      flow.walk(stage.body, (n) => {
+        if (n.id === op.nodeId) inside = true;
+      });
+      if (inside) throw new OpError(`The step is already in stage ${stage.name}.`);
+      const [moved] = l.parent.children.splice(l.index, 1);
+      stage.body.children.push(moved as flow.FlowNode);
       return;
     }
     case 'DELETE_STEP': {
