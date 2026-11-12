@@ -46,6 +46,13 @@ const machineSteps = (machine: 'INJ-FFS' | 'INJ-BFS', machineClass: string): Inj
   { ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { filling: machine, capping: machine }), values: VIAL_COUNTS.account },
 ];
 
+/** The aseptic vial's step of block `code` (its equipment classes and values as I-2b set them). */
+const asepticStep = (code: string): ProductBlock => {
+  const b = ASEPTIC_VIAL.steps.find((x) => x.def.code === code);
+  if (!b) throw new Error(`the aseptic vial has no ${code} step`);
+  return b;
+};
+
 const found = INJECTABLES.find((x) => x.key === 'vial');
 if (!found) throw new Error('the I-1 vial is not in the acceptance');
 // The sandbox half only (plan section 6): the vial's GMP data is not carried over.
@@ -129,7 +136,7 @@ export const DUAL_CHAMBER: Injectable = {
     unit('CARTRIDGE-WASHER', 'Cartridge washing machine', 'TEST-CART-WASHER-01', 'Cartridge washer'),
     unit('CARTRIDGE-FILLING-RABS', 'Cartridge filling line in a RABS', 'TEST-CART-LINE-01', 'RABS cartridge filling line'),
     unit('LYOPHILISER', 'Lyophiliser (freeze dryer)', 'TEST-LYO-01', 'Lyophiliser'),
-    unit('PLUNGER-PLACER', 'Plunger placement machine', 'TEST-PLUNGER-01', 'Plunger placer'),
+    unit('PLUNGER-PLACER', 'Plunger stopper placement machine', 'TEST-PLACER-01', 'Plunger placer'),
   ],
   components: [
     { id: 'cartridge', name: 'Dual-chamber glass cartridge with bypass, 2 mL, type I', field: 'containerLot' },
@@ -179,6 +186,80 @@ export const ROUTE_PRODUCTS: readonly Injectable[] = [
     prefix: 'LIR10',
     name: 'Libinj 10 mg/2 mL, solution for injection in vials, sterilised by radiation (library)',
     steps: vial.steps.map((b) => (b.def.code === 'INJ-TERMINAL-STERILISE' ? productBlock('INJ-RADIATION', {}) : b)),
+  },
+  {
+    // An oil-in-water emulsion in vials, terminally sterilised by moist heat: the I-1 vial's route with the high-pressure
+    // homogenisation after compounding (INJ-16; droplet size against its limits) and a 5 micrometre filter in place of the
+    // 0.45 micrometre one (an emulsion's droplets would not pass it).
+    ...vial,
+    key: 'emulsion-vial',
+    prefix: 'LIE20',
+    name: 'Libinj 20 mg/2 mL, emulsion for injection in vials (library)',
+    strength: '20 mg/2 mL',
+    targetMg: '244',
+    // The active, the oil phase (the compensating excipient) and the emulsifier, per vial; the aqueous phase is WFI.
+    materials: [
+      { id: 'api', name: 'Libinj emulsion active', mgPerUnit: '20', tare: '0.200', gross: '1.200' },
+      { id: 'oil', name: 'Medium-chain triglycerides (oil phase)', mgPerUnit: '200', tare: '1.000', gross: '11.000' },
+      { id: 'lec', name: 'Egg lecithin (emulsifier)', mgPerUnit: '24', tare: '0.200', gross: '1.400' },
+    ],
+    plant: [
+      ...vial.plant.filter((u) => u.classCode !== 'FILTER-0_45UM'),
+      unit('HIGH-PRESSURE-HOMOGENISER', 'High-pressure homogeniser', 'TEST-HOMOGENISER-01', 'Homogeniser'),
+      unit('FILTER-5UM', 'Emulsion filter assembly, 5 micrometre', 'TEST-FILTER-5-01', 'Emulsion filter'),
+    ],
+    steps: vial.steps.flatMap((b) => {
+      if (b.def.code === 'INJ-COMPOUND') return [b, productBlock('INJ-HOMOGENISE', { homogeniserClass: 'HIGH-PRESSURE-HOMOGENISER', roomClass: 'ROOM-GRADE-C' })];
+      if (b.def.code === 'INJ-BULK-FILTER') return [productBlock('INJ-BULK-FILTER', { filterClass: 'FILTER-5UM', receiverClass: 'SS-VESSEL-200L' })];
+      return [b];
+    }),
+  },
+  {
+    // A prefilled syringe filled aseptically from ready-to-use nested tubs (I-2b's RABS set-up): the tubs' supplier
+    // sterilisation recorded (INJ-SUPPLIER-STERILE) and their transfer into Grade A (INJ-ASEPTIC-TRANSFER) in place of
+    // washing and depyrogenation; the plunger stoppers sterilised in the parts autoclave, then placed (INJ-28), whose
+    // rejects are the units rejected at closing. No capping.
+    key: 'syringe',
+    prefix: 'LIS10',
+    name: 'Libinj 10 mg/2 mL, solution for injection in prefilled syringes (library)',
+    strength: '10 mg/2 mL',
+    dosageForm: 'Injection',
+    targetMg: '28',
+    materials: [
+      { id: 'api', name: 'Libinj syringe active', mgPerUnit: '10', tare: '0.200', gross: '0.700' },
+      { id: 'nacl', name: 'Sodium chloride (tonicity)', mgPerUnit: '16', tare: '0.200', gross: '1.000' },
+      { id: 'buf', name: 'Sodium citrate dihydrate (buffer)', mgPerUnit: '2', tare: '0.050', gross: '0.150' },
+    ],
+    plant: [
+      ...ASEPTIC_VIAL.plant.filter((u) => !['VIAL-WASHER', 'DEPYRO-TUNNEL', 'VIAL-FILLING-RABS', 'VIAL-CAPPER'].includes(u.classCode)),
+      unit('SYRINGE-FILLING-RABS', 'Syringe filling line in a RABS', 'TEST-RABS-SYR-01', 'RABS syringe filling line'),
+      unit('PLUNGER-PLACER', 'Plunger stopper placement machine', 'TEST-PLACER-01', 'Plunger placer'),
+    ],
+    components: [
+      { id: 'syringe', name: 'Glass syringe barrel, 2.25 mL, staked needle, in nested tubs (sterile)', field: 'componentLot' },
+      { id: 'plunger', name: 'Bromobutyl plunger stopper', field: 'stopperLot', alsoIn: ['plungerLot'] },
+      { id: 'filter', name: 'Sterilising filter cartridge, 0.2 micrometre', field: 'filterLot' },
+    ],
+    steps: [
+      asepticStep('INJ-ROOM-READY'),
+      asepticStep('INJ-PARTS-AUTOCLAVE'),
+      asepticStep('INJ-SIP'),
+      asepticStep('INJ-COMPOUND'),
+      asepticStep('INJ-STERILE-FILTER'),
+      asepticStep('INJ-ASEPTIC-ASSEMBLY'),
+      productBlock('INJ-SUPPLIER-STERILE', {}),
+      productBlock('INJ-ASEPTIC-TRANSFER', {}),
+      { ...productBlock('INJ-FILL', { lineClass: 'SYRINGE-FILLING-RABS', roomClass: 'ROOM-GRADE-B' }), values: { ...VIAL_COUNTS.fill, setup: { format: 'Syringe' } } },
+      { ...productBlock('INJ-PLUNGER', 'PLUNGER-PLACER'), values: VIAL_COUNTS.capping },
+      asepticStep('IPC-INJ-FILL-WEIGHT'),
+      asepticStep('INJ-EM'),
+      asepticStep('INJ-STERILITY-SAMPLE'),
+      { ...productBlock('INJ-VISUAL-INSPECT', 'INSPECTION-BOOTH'), values: VIAL_COUNTS.inspect },
+      asepticStep('INJ-CCI'),
+      asepticStep('INJ-EM-COUNTS'),
+      // Filled and rejected at filling from INJ-FILL; rejected at closing from the plunger placement.
+      { ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { capping: 'INJ-PLUNGER' }), values: VIAL_COUNTS.account },
+    ],
   },
   DUAL_CHAMBER,
 ];
