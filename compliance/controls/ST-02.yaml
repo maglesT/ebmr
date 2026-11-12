@@ -26,6 +26,15 @@ behaviour: |-
 catalog_test: Submit an aseptic product master with no route justification → approval refused. Open an executed batch → every CCP step shows the CCS ID and version effective on that date.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Submit an aseptic product master with no route justification → approval refused."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "refusing approval of an aseptic master that carries no route justification"
+  - clause: "Open an executed batch → every CCP step shows the CCS ID and version effective on that date."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "CCS ID and version on every critical step, blocking MBR approval"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

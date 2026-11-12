@@ -25,6 +25,15 @@ behaviour: |-
 catalog_test: Scan a gown pack past its sterile hold → rejected. Log a torn glove during filling → change record and impact assessment required.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Scan a gown pack past its sterile hold → rejected."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Per-entry garment scan, wear timer, RFID cycle count"
+  - clause: "Log a torn glove during filling → change record and impact assessment required."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "a separate glove-change record with an impact assessment after a torn glove"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

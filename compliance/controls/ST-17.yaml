@@ -33,6 +33,14 @@ catalog_test: Replay an 8 Pa dip for 5 min during filling → the batch shows th
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-17] depyrogenation refuses a tunnel whose HEPA test (its due date) has expired"
+clauses:
+  - clause: "Replay an 8 Pa dip for 5 min during filling → the batch shows the excursion, the next aseptic step needs a restoration record, and release is blocked until assessed."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "the restoration record after a pressure-difference dip is beyond the clause"
+  - clause: "Set the tunnel HEPA test as expired → the depyrogenation step is blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-17] depyrogenation refuses a tunnel whose HEPA test (its due date) has expired"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

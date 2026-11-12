@@ -31,6 +31,15 @@ catalog_test: Close a corrective critical intervention and attempt the next step
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch"
+clauses:
+  - clause: "Close a corrective critical intervention and attempt the next step without a glove-change entry → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "anti-masking rule (FDA-AP, 8a); glove-change block"
+  - clause: "Four operators on the roster but only three glove samples → review flags the missing sample."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "the per-operator flag (every operator on the roster must have a glove sample)"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
