@@ -297,6 +297,8 @@ export function DocumentView(props: DocumentProps) {
           <dd>
             {h.edition}, {h.recordKind.toLowerCase()} record
           </dd>
+          <dt>Product</dt>
+          <dd>{h.nonProduct === 'PROCESS_SIMULATION' ? 'None: a process simulation (media fill); its units are destroyed, never packed, posted or shipped' : 'Product batches'}</dd>
           <dt>Content format</dt>
           <dd>
             {c.format}, version {c.formatVersion}
@@ -304,6 +306,14 @@ export function DocumentView(props: DocumentProps) {
           <dt>Content hash</dt>
           <dd className={dcls('mono')}>{v.contentHash} (saved revision)</dd>
         </dl>
+        {readOnly || ((h.edition !== 'injectables' || h.recordKind !== 'PROCESSING') && h.nonProduct === undefined) ? null : (
+          <Check
+            label="Process simulation (media fill): this master makes no product"
+            description="Its batches need no product licence or export permission; nothing of them is packed, posted or shipped."
+            checked={h.nonProduct === 'PROCESS_SIMULATION'}
+            onChange={(on) => dispatch({ kind: 'SET_NON_PRODUCT', nonProduct: on ? 'PROCESS_SIMULATION' : null })}
+          />
+        )}
         <table className={dcls('grid')} aria-label="Signatures">
           <thead>
             <tr>

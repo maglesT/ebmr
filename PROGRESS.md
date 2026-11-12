@@ -44,6 +44,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Process-simulation mark (injectables I-2 feature B, recipe-core 1896, lead design 11 November 2026).** A master header may
+carry `nonProduct: PROCESS_SIMULATION` (a media fill), on an injectables processing master only (EBMR-RCP-435). The mark is
+approved content and in the hash. Such a batch is issued
+without the licence or any market's export permission, and the hazard dedication still applies. Its licence basis
+records `process_simulation` with no licence. The database refuses its label (IND-050), a packaging order of it
+(EXE-198), a finished lot (IND-045) and a shipment (IND-046). A US-market media fill meets the 11.100(c) gate with the site's
+licence holder (1260, lead ruling); the allocation register shows processSimulation.
+
 **Session 12 (10 and 11 November 2026; owner retest and lean review).**
 - #210 N-1, N-2: the ERP production order names each material once (the master's lines summed, then scaled); a database
   refusal after an earlier commit in the same request (withScopedCommand) is answered 422 with its reason, not 500.

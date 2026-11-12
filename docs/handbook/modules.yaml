@@ -638,7 +638,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0891_', '^0894_', '^1060_']
+      packages/recipe-core/sql: ['^0891_', '^0894_', '^1060_', '^1896_']
     tests:
       - 'packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts'
       - 'packages/recipe-core/test/mutation/india-issue-gate.test.ts'

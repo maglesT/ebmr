@@ -632,7 +632,7 @@ export const EXAMPLES = {
     routeId: r.india.suspendExportPermission.id,
   },
   'india-check': { schema: r.india.check.response, data: ind.check, routeId: r.india.check.id },
-  'india-allocation-register': { schema: r.india.allocationRegister.response, data: { siteCode: 'SITE-1', entries: [ind.entry, ind.voided] }, routeId: r.india.allocationRegister.id },
+  'india-allocation-register': { schema: r.india.allocationRegister.response, data: { siteCode: 'SITE-1', entries: [ind.entry, ind.voided, ind.simulation] }, routeId: r.india.allocationRegister.id },
   'india-label': { schema: r.india.label.response, data: ind.label, routeId: r.india.label.id },
   'india-label-problem': { schema: r.india.label.response, data: ind.labelProblem },
   'india-issue-h2': { schema: r.india.issueH2.response, data: ind.h2, routeId: r.india.issueH2.id },
