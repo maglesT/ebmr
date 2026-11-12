@@ -96,11 +96,14 @@ export const ASEPTIC_VIAL: Injectable = {
     outputStage: 'FILLING',
     outputUnits: '9720',
     // The GMP batch's air sample at the filling point counts 12 CFU/m3 after incubation, above the Grade B action limit of
-    // 10 (Schedule M Table 3; the formulation's limit): the step is blocked until the supervisor raises the deviation.
+    // 10 (Schedule M Table 3) and the alert level of 5, both the formulation's tiers (the block's example, typed into their
+    // own boxes): an action-tier breach, so the step and the ones after it wait until the supervisor links a deviation. The
+    // blocked exception names the limit breached (`exception`, checked on screen): the internal action limit.
     breach: {
       step: 'INJ-EM-COUNTS',
       values: { count: { method: 'Active air sample', cfuAir: '12' } },
       rationale: 'Grade B air count above the action limit during the aseptic fill; sterility assurance to be assessed.',
+      exception: 'is outside its internal action limit',
     },
   },
 };

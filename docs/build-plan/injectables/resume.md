@@ -76,7 +76,10 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     load and at placement).
   Both pass locally 4/4. The lead accepted both in principle; the PR body must show the in-place INJ-FILL edit is safe
   (as #231's does: nothing pins INJ-FILL by hash; library, demo-catalogue, demo-seed and entry-data tests pass; the
-  golden batches are tablets-only). Main (with #231) merged in; merge on a green full run.
+  golden batches are tablets-only). Merged on a green full run whose head contained current main.
+- **Merged:** #237 (621671d): main's tsc failed after #234 (InjectableGmp.outputUnits optional) and #231 (which copied
+  it into a required field) merged in that order; the lyo product now requires the aseptic vial's value. Lesson (lead):
+  merge only when the green run's head contains the current main (`git merge-base --is-ancestor origin/main <head>`).
 - **Next (lead, 12 November 2026):** dual-chamber (INJ-FILL twice, INJ-LYO, INJ-PLUNGER; no new block), then I-5
   (automated inspection, deterministic CCIT, RMM in INJ-26).
 - **Learnt:**
@@ -92,6 +95,27 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - `manual-weighing-gate.test.ts` failed twice on one GitHub shard during the Actions outage, then passed on the next
     run and locally 9/9 (heartbeat-window timing under load). Logged to the lead; not changed.
 
+### Session 10c handover (12 November 2026): I-2d and the EM tiers
+
+- **#234 (I-2d):** the media fill's GMP run to QA's record review (E2E). The sandbox half ticks the process-simulation
+  mark on screen and deletes the release for packing; the GMP half records no licence, printed items or product
+  specification, issues the batch (the allocation register: "Process simulation (no licence)"), runs the kiosks with no
+  output containers, and GMP 5 is QA's record review plus a refused finished-lot post (TAB-850, the general rule; the 1896
+  refusals are its database tests). Lead rulings: the master-version market authorisation stays (PR-04; GMP 3's issue,
+  listed under PR-04, proves it); H-PACK is deleted on screen; the API-level refusal is enough.
+- **#235:** the values helper types each limit tier into its own boxes ("More limits"); GMP 8b checks that the blocked
+  exception says "is outside its internal action limit" (the tier the engine breached). Early full run green on every group.
+- **Routine EM (item 3), lead ruling:** not a batch record and no ROUTINE_MONITORING kind. An on-screen try (a one-line
+  "product" of agar plates with INJ-ROOM-READY, INJ-EM, INJ-EM-COUNTS) ran its sandbox half, but a GMP batch would need a
+  made-up product and licence entry (false records). Release reads the EM taken during the fill; routine EM belongs to the
+  site's EM programme. Dropped from the injectables scope.
+- **Residuals:**
+  - H-PACK on a PROCESS_SIMULATION master: from-formula or the validator could drop it, or warn (lead).
+  - A counted formula line (units, not kg): the skeleton weighs every line; plates or other counted consumables would
+    need it.
+  - **Owner question:** a room-level EM logbook (an area or plant record with the EM blocks) as a future feature, if wanted.
+- Local notes: the E2E of the media fill spec alone takes 35 min; a scratch spec in the main tree must be excluded in
+  `.git/info/exclude`, never committed.
 ### Session 10c (12 November 2026): the media fill's GMP run, the EM tiers, routine EM
 
 - **I-2d (branch `inj/i2-d-media-fill-gmp`):** the media fill's GMP run to QA's record review, group `library-inj-aseptic`
@@ -105,8 +129,7 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Item 2 (branch `inj/i2-e-em-alert-tier`):** the values helper types each limit tier into its own boxes ("More limits");
   GMP 8b's EM breach is then an action-tier breach (asserted on the blocked exception), not registration-relevant. It
   touches every library group's values, so its full run is the test.
-- **Item 3, routine EM:** a formula needs 1 to 200 lines (EBMR-FRM-005) and the issue gate a licence; anything beyond an
-  on-screen try goes to the lead as a design first.
+- **Item 3, routine EM:** see the handover above (dropped; an owner question).
 
 ### Session 10b (11 November 2026): lean merged, I-2b merged, I-2c and B open
 
