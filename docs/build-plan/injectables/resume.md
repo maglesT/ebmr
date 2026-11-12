@@ -194,6 +194,33 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     (no full setup).
   - A new SQL function needs a group in `tools/sql-mutation/src/targets.ts` and the group in `.github/workflows/mutation.yml`.
 
+### Session 11 → Handover (11 November 2026, 20:00; session 11b continues)
+
+- **Merged by session 11:** #204 (INJ-LYO, INJ-LYO-EU), #207 (I-4 blocks; Gy/kGy, expr 0.2.0), #217 (lean review; the
+  role PACK_EXAMINATION, recipe-core 1892, injectables 3020).
+- **Open branch `inj/i4-e2e` (no PR yet):**
+  - three I-4 sandbox products as data in `tools/e2e/specs/library/injectables-routes-acceptance.ts`: an FFS bag, a BFS
+    ampoule, and the I-1 vial terminally sterilised by radiation; spec files `inj-ffs-bag`, `inj-bfs-ampoule`,
+    `inj-radiation-vial`; E2E group `library-inj-routes` (playwright config, ci.yml);
+  - `defineInjectablesAcceptance(product: string | Injectable)` and the exports (`Injectable`, `InjectableGmp`, `unit`,
+    `VIAL_COUNTS`): the same hunks as session 10's I-2b branch, so the two merge without conflict;
+  - INJ-FFS and INJ-BFS, a v1 data edit (safe: nothing but their own tests and this E2E references them; library,
+    block-version and demo-catalogue tests pass): the rounds record `sealRejects` (typed), the end `rejects` (typed, at
+    filling) and `totalRejects` (CALC, the sum at sealing), which INJ-UNIT-ACCOUNT reads as the closing rejects;
+  - the sandbox E2E titles listed in DI-04, DI-05, DI-17, IN-13, PR-01, PR-03, PR-05;
+  - the handbook prose the lead asked for after #217 (recipe-core.md: packaging completion by role; injectables.md: the
+    edition's migrations 3000 and 3020).
+- **CI:** the narrowed runs 43040612521 (two attempts) and 43059672827 died in the Playwright install (Ubuntu mirror DNS)
+  before any test; #222 fixed that. Main (with #222) is merged in at 058c752, and a narrowed run of
+  `library-inj-routes` (runner=github) was dispatched at 19:55: its result is the first real test of the three products.
+- **Left to do:**
+  1. Finish the I-4 E2E: read that run; fix; then open the PR (state the v1-edit safety and that the seal counts are
+     typed), full run, lead audit, merge.
+  2. Powder fill (INJ-POWDER-FILL) E2E: after I-2b merges (its sterility rests on the aseptic Grade A/B set-up).
+  3. The lyophilised vial E2E (I-3b): session 10's aseptic vial + INJ-LYO between filling and capping, own file and group
+     `library-inj-lyo`, after I-2b merges; the INJ-FILL "closures" label in neutral wording (lead-approved).
+- **Free numbers:** injectables 3040-3049; recipe-core 1896 (ask the lead first).
+
 ### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
 
 - **Lead change:** the lead is now session_01PybpFvcfiLdV8mgoVVWXTk (owner confirmed); earlier rulings stand.
