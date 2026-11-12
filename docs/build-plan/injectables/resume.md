@@ -59,6 +59,39 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 11b (11-12 November 2026): I-4 routes merged; powder, lyo, emulsion and syringe E2E
+
+- **Merged:** #228 (ac5e975): the FFS bag, BFS ampoule and radiation-sterilised vial in `library-inj-routes`; the
+  INJ-FFS/INJ-BFS v1 seal counts (typed `sealRejects` per round, typed `rejects` at filling, CALC `totalRejects`).
+- **Open, audited PASS:** #231 (branch `inj/i3-powder-lyo-e2e`): the sterile powder vial (I-4, `library-inj-powder`,
+  sandbox) and the lyophilised vial to release (I-3, `library-inj-lyo`, sandbox + GMP; the lyophilised loads are the
+  output, stage `LYOPHILISATION`); the INJ-FILL closures label in the approved neutral wording. Merge on a green full run.
+- **Open:** branch `inj/i4-emulsion-syringe-e2e`, on main after #228: an emulsion in vials (I-1 vial route + INJ-HOMOGENISE,
+  a 5 micrometre filter) and a prefilled syringe from ready-to-use tubs (I-2b RABS set-up, INJ-SUPPLIER-STERILE,
+  INJ-ASEPTIC-TRANSFER, INJ-PLUNGER as the closing rejects, no capping), both in `library-inj-routes` (now 5 products,
+  about 50 min). It needs:
+  - INJ-FILL v1, additive: the format also offers Syringe, Cartridge and Bottle (the plan's INJ-15 row);
+  - `alsoIn` on an acceptance component (one physical lot named in several steps: the plunger stoppers in the autoclave
+    load and at placement).
+  Both pass locally 4/4. The lead accepted both in principle; the PR body must show the in-place INJ-FILL edit is safe
+  (as #231's does: nothing pins INJ-FILL by hash; library, demo-catalogue, demo-seed and entry-data tests pass; the
+  golden batches are tablets-only). After #231 merges: merge main in (the group and control lists overlap; keep both
+  sides), full run, audit, merge.
+- **Next (lead, 12 November 2026):** dual-chamber (INJ-FILL twice, INJ-LYO, INJ-PLUNGER; no new block), then I-5
+  (automated inspection, deterministic CCIT, RMM in INJ-26).
+- **Learnt:**
+  - Two PRs that each add an E2E group and control titles always conflict in `playwright.config.ts`, `ci.yml` and the
+    controls. Keep both sides. Then dedupe the control lists (the conflict's context line comes twice), run
+    `register:sort-tests`, and check each control equals the union of both sides. Watch for a group key defined twice in
+    the config (TypeScript does not flag it).
+  - Local E2E in a fresh container: create the role `ebmr_dev` (as `tools/ci/start-postgres.sh` does). The pre-installed
+    Chromium is newer than the pinned Playwright's (1194 against 1243): point `PLAYWRIGHT_BROWSERS_PATH` at a directory
+    with `chromium_headless_shell-1194/chrome-linux/headless_shell` linked to the installed one. A killed run leaves the
+    stack's node processes holding connections ("too many connections for role ebmr_sandbox_listener"): kill
+    `apps/*/src/main.ts` before the next run.
+  - `manual-weighing-gate.test.ts` failed twice on one GitHub shard during the Actions outage, then passed on the next
+    run and locally 9/9 (heartbeat-window timing under load). Logged to the lead; not changed.
+
 ### Session 10b (11 November 2026): lean merged, I-2b merged, I-2c and B open
 
 - **Merged:** #218 (lean review; no volume CALC, the lead's ruling), #227 (I-2b, the aseptic vial E2E; GMP 8b also tries the
