@@ -37,7 +37,7 @@ export function traceMatrix(b: Bundle): Doc {
       .flatMap(([m, files]) => (files.length > 0 ? files.map((f) => `${m}: ${f}`) : [m]))
       .join('\n') || '-';
     for (const k of c.clauses) {
-      const st = status.get(`${c.id}\u0000${k.clause}`) ?? (k.deferred ? 'DEFERRED' : 'MISSING');
+      const st = status.get(`${c.id}\u0000${k.clause}`) ?? (k.deferred ? 'DEFERRED' : k.notRequired ? 'NOT_REQUIRED' : 'MISSING');
       const tests = k.tests.length > 0 ? k.tests : [''];
       for (const t of tests) {
         const r = t === '' ? { verdict: '-' as const, runs: [] } : verdictOf(v, t);
@@ -46,7 +46,7 @@ export function traceMatrix(b: Bundle): Doc {
           c.id,
           urOf(c.id),
           design,
-          t === '' ? (k.deferred ? `deferred to phase ${String(k.deferred.phase)}: ${k.deferred.reason}` : 'no test listed') : t,
+          t === '' ? (k.deferred ? `deferred to phase ${String(k.deferred.phase)}: ${k.deferred.reason}` : k.notRequired ? `not required by ${k.notRequired.decision}: "${k.notRequired.reason}"` : 'no test listed') : t,
           r.verdict,
           r.runs.join(', ') || '-',
           st,
@@ -74,7 +74,7 @@ export function traceMatrix(b: Bundle): Doc {
     title: 'Trace matrix',
     status: 'RELEASED',
     blocks: [
-      para(`Generated from the linked ids of the register, the trace of phase ${String(b.trace.phase)} (${b.trace.ok ? 'ok' : 'NOT OK'}) and the test reports of the bundle's runs. A clause is PROVEN when a listed test passed, DEFERRED when the register defers it with a reason, MISSING otherwise.`),
+      para(`Generated from the linked ids of the register, the trace of phase ${String(b.trace.phase)} (${b.trace.ok ? 'ok' : 'NOT OK'}) and the test reports of the bundle's runs. A clause is PROVEN when a listed test passed, DEFERRED when the register defers it with a reason, NOT_REQUIRED when the owner's approved MODIFY decision left it out of the control's minimum (the decision is quoted), MISSING otherwise.`),
       heading('Critical limits and their boundary tests (DI-06)'),
       para('Every critical limit lists its boundary tests (just inside, on and just outside the limit) with their results. A limit is EVIDENCED only when every boundary test is listed and passed.'),
       table(['Limit', 'Description', 'Controls', 'Boundary test', 'Result', 'Evidence'], limitRows),

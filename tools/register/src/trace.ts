@@ -116,8 +116,11 @@ export interface ClauseStatus {
   clause: ClauseRecord;
   /** Listed tests of the clause that passed in this run. */
   passing: string[];
-  /** TESTED: a listed test passed; DEFERRED: deferred to a later phase; NO_TEST: neither (or not in this run). */
-  state: 'TESTED' | 'DEFERRED' | 'NO_TEST';
+  /**
+   * TESTED: a listed test passed; DEFERRED: deferred to a later phase; NOT_REQUIRED: left out of the minimum by the
+   * approved MODIFY decision it cites; NO_TEST: none of these (or not in this run).
+   */
+  state: 'TESTED' | 'DEFERRED' | 'NOT_REQUIRED' | 'NO_TEST';
 }
 
 export interface TraceRow {
@@ -234,9 +237,16 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     // Each clause of the catalog test: a listed test passed, or it is deferred to a phase not yet started (F14).
     row.clauses = (c.clauses ?? []).map((k) => {
       const passing = (k.tests ?? []).filter(passed);
-      return { clause: k, passing, state: k.deferred ? 'DEFERRED' : passing.length > 0 ? 'TESTED' : 'NO_TEST' };
+      // A clause the approved MODIFY decision left out (validate.ts checks the decision) is shown and counted as
+      // NOT_REQUIRED, never as tested; the control still needs a passing test of what it keeps (above).
+      const state: ClauseStatus['state'] = k.deferred ? 'DEFERRED' : k.not_required ? 'NOT_REQUIRED' : passing.length > 0 ? 'TESTED' : 'NO_TEST';
+      return { clause: k, passing, state };
     });
     if (due && !c.clauses) errors.push(`${c.id} (target phase ${c.target_phase}) does not map its catalog test to clauses with tests or deferrals`);
+    // The trace refuses what validate.ts refuses too, so a register that skipped validation cannot pass the gate on it.
+    (c.clauses ?? []).forEach((k, i) => {
+      if (k.not_required && c.expert_decision.status !== 'MODIFY') errors.push(`${c.id} clause ${i + 1} is marked not required, but its expert decision is ${c.expert_decision.status}, not MODIFY`);
+    });
     for (const d of c.deferred_scope ?? []) {
       if (gated && started(d.phase)) errors.push(`${c.id} scope "${d.scope}" is deferred to phase ${d.phase}, which has started`);
     }
@@ -259,7 +269,7 @@ function clauseSummary(r: TraceRow): string {
   const scope = r.control.deferred_scope?.length ? `; ${r.control.deferred_scope.length} scope deferred` : '';
   if (r.clauses.length === 0) return `not mapped${scope}`;
   const n = (s: ClauseStatus['state']): number => r.clauses.filter((k) => k.state === s).length;
-  return [`${n('TESTED')} tested`, n('DEFERRED') ? `${n('DEFERRED')} deferred` : '', n('NO_TEST') ? `${n('NO_TEST')} with no test` : ''].filter(Boolean).join(', ') + scope;
+  return [`${n('TESTED')} tested`, n('DEFERRED') ? `${n('DEFERRED')} deferred` : '', n('NOT_REQUIRED') ? `${n('NOT_REQUIRED')} not required (MODIFY)` : '', n('NO_TEST') ? `${n('NO_TEST')} with no test` : ''].filter(Boolean).join(', ') + scope;
 }
 
 export function writeMatrix(report: TraceReport, phase: number, file: string, editions?: readonly EditionName[]): void {
@@ -278,14 +288,15 @@ export function writeMatrix(report: TraceReport, phase: number, file: string, ed
     '',
     '## Catalog-test clauses',
     '',
-    'Each clause of a control\'s catalog test, word for word, with the listed tests of it that passed in this run, or the phase it is deferred to and why.',
+    'Each clause of a control\'s catalog test, word for word, with the listed tests of it that passed in this run, the phase it is deferred to and why, or the approved MODIFY decision that left it out of the minimum (NOT_REQUIRED).',
     '',
     '| Control | Clause | State | Evidence |',
     '|---|---|---|---|',
     ...mapped.flatMap((r) =>
       r.clauses.map((k, i) => {
         const d = k.clause.deferred;
-        const evidence = d ? `phase ${d.phase}: ${d.reason}` : `${k.passing.length} of ${k.clause.tests?.length ?? 0} listed tests passed`;
+        const nr = k.clause.not_required;
+        const evidence = d ? `phase ${d.phase}: ${d.reason}` : nr ? `${nr.decision}: "${nr.reason}"` : `${k.passing.length} of ${k.clause.tests?.length ?? 0} listed tests passed`;
         return `| ${r.control.id} | ${i + 1}. ${cell(k.clause.clause)} | ${k.state === 'DEFERRED' ? `DEFERRED to phase ${d?.phase ?? ''}` : k.state} | ${cell(evidence)} |`;
       }),
     ),
