@@ -354,7 +354,7 @@ describe('what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.
     expect(one.status).not.toBe('COMPLETED');
   });
 
-  it('[ST-74][IN-41] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused', () => {
+  it('[ST-74][IN-41][ST-55] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused', () => {
     const fill = byCode('INJ-FILL');
     const rabs: SeedItem = { ...fill, exampleUse: { ...fill.exampleUse, equipmentClasses: { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' } } };
     const units = (roomClass: string) => ({

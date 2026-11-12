@@ -16,13 +16,13 @@ catalog_test: map an aseptic filling step to a Grade C room; MBR validation fail
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-74][IN-41] the open Grade A, RABS and isolator set-ups are formulations of the same blocks: each names its background room and line by class; the isolator adds bio-decontamination and the glove test; EU-market blocks appear only in the EU set-up"
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-74][IN-41] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-74][IN-41][ST-55] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [IN-41][ST-56] homogenisation of a bulk that cannot be filtered records the homogeniser in its room (the grade from the formulation), the speed and time against the validated settings (not critical: no clause names them), and the particle size of each sample against its limits; a value outside is an exception"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-56][IN-41] sterile powder filling records the line in its room and the closures at each round, and registers the filled trays with the counts unit accountability reads; the fill weights are recorded once, by IPC-INJ-FILL-WEIGHT; a closure fault is an exception"
 clauses:
   - clause: "map an aseptic filling step to a Grade C room; MBR validation fails."
     tests:
-      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-74][IN-41] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused"
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-74][IN-41][ST-55] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
