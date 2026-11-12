@@ -52,6 +52,10 @@ records `process_simulation` with no licence. The database refuses its label (IN
 (EXE-198), a finished lot (IND-045) and a shipment (IND-046). A US-market media fill meets the 11.100(c) gate with the site's
 licence holder (1260, lead ruling); the allocation register shows processSimulation.
 
+**Injectables EM tiers (12 November 2026, session 10c).** The library E2E types each limit tier into its own boxes; the
+aseptic vial's EM breach is an action-tier breach. Routine EM is not a batch record (lead): owner question, a room-level
+EM logbook as a future feature, if wanted.
+
 **Session 12 (10 and 11 November 2026; owner retest and lean review).**
 - #210 N-1, N-2: the ERP production order names each material once (the master's lines summed, then scaled); a database
   refusal after an earlier commit in the same request (withScopedCommand) is answered 422 with its reason, not 500.
