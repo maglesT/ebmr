@@ -29,6 +29,9 @@ const steps = (): Injectable['steps'] => {
 
 const gmp = ASEPTIC_VIAL.gmp;
 if (!gmp) throw new Error('the aseptic vial has no GMP half');
+// The lyophilised loads hold the units the aseptic vial's inspection accepts (its counts are the same).
+const outputUnits = gmp.outputUnits;
+if (outputUnits === undefined) throw new Error('the aseptic vial has no output units');
 
 export const LYO_VIAL: Injectable = {
   key: 'lyo-vial',
@@ -51,6 +54,6 @@ export const LYO_VIAL: Injectable = {
     // The lyophilised loads are the output: 10,000 filled, less 20 rejected at the line, 40 at capping, 120 sampled, 20
     // lost and 80 rejected at inspection.
     outputStage: 'LYOPHILISATION',
-    outputUnits: gmp.outputUnits,
+    outputUnits,
   },
 };
