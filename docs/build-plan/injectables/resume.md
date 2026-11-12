@@ -61,7 +61,7 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 
 ### Session 10c, the dual-chamber cartridge (12 November 2026, branch `inj/i4-dual-chamber`)
 
-- Sandbox half in group library-inj-routes, data only (`DUAL_CHAMBER` in injectables-routes-acceptance.ts): drug fill,
+- Sandbox half in its own group library-inj-cartridge (lead: keeps the full run's wall time down), data only (`DUAL_CHAMBER` in injectables-routes-acceptance.ts): drug fill,
   INJ-LYO (the middle stopper seated in the chamber), a second INJ-STERILE-FILTER and INJ-FILL for the diluent (step ids
   `p-inj-sterile-filter-2`, `p-inj-fill-2`), INJ-PLUNGER as the closing; 2 tests passed locally (32 min).
 - The diluent is water for injection from the point of use, with no step of its own beyond its filtration (DEMO data).
