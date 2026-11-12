@@ -309,6 +309,18 @@ describe('the Injectables catalogue (slice I-1)', () => {
   });
 });
 
+describe('formulation maxima on calculated values (I-6.2)', () => {
+  it('[ST-31] a maximum the formulation sets on a calculated value (here the reject rate of the inspection) is judged like any limit: above it the step stops on an exception, within it the step completes', () => {
+    const item = byCode('INJ-VISUAL-INSPECT');
+    expect(fieldOf(item, 'rejectRate')).toMatchObject({ type: 'CALC', limitSlot: 'rejectRate', critical: true });
+    // Nominal: 80 rejects of 10 000 inspected, 0.8 %, within the formulation's maximum of 2.0 %.
+    expect(judgedRun(item, {})).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const over = judgedRun(item, { counts: { particles: '200' } });
+    expect(over.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(over.status).not.toBe('COMPLETED');
+  });
+});
+
 /**
  * The equipment an injectables block names (a room, a tunnel, a balance, a point of use) is read with its fitness from
  * the plant register (step entry facts, plant.equipment_fitness): a unit that is not fit is refused at the entry, before
