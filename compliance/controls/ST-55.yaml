@@ -18,6 +18,11 @@ behaviour: |-
 catalog_test: Route open vials through a zone not classified Grade A in the line map → MBR rejected.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Route open vials through a zone not classified Grade A in the line map → MBR rejected."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Validated line-map checker"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

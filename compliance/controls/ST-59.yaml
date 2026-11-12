@@ -34,6 +34,15 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-58][ST-59][ST-66] for the EU market, its own block records the trays checked, the Grade A transfer means, sterile utensils, the vent filter sterilised and its integrity by the formulation's method, and per load the lyophiliser's sterilisation cycle, the leak test against the firm's maximum and the load's sterility samples; a failed check is an exception"
   - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-59][ST-72] lyophilisation consumes every filled tray into its numbered load and, for each load, records the programme and the cycle values from the printout as critical values with the firm's limits, checked by a second person, and registers the lyophilised load; a value outside its limit, stoppers not seated or an alarm is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release"
+clauses:
+  - clause: "Load with an unqualified transfer cart → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Transfer-cart qualification; shelf maps; partial-stopper timer engine"
+  - clause: "Exceed the partial-stopper exposure limit → deviation."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

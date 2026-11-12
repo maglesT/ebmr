@@ -26,6 +26,15 @@ catalog_test: Filtration start without a bioburden sample → blocked. Release w
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-54] compounding takes the pre-filtration bioburden sample and judges the final volume and density; the bioburden-reducing filtration judges its pressure"
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed"
+clauses:
+  - clause: "Filtration start without a bioburden sample → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Sampling-sequence check"
+  - clause: "Release with the result pending → blocked."
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

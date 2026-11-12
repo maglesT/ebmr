@@ -15,7 +15,12 @@ sources: Schedule M Part II 3.1-3.4 (more than one type of disinfectant; sporici
 behaviour: Cleaning/disinfection records for Grade A-D rooms record agent, lot, dilution preparation time and use-by, sterility status for Grade A/B use, and the rotation (at least two agent types, including a sporicidal agent). A dilution past its defined storage period, or a non-sterile agent in Grade A/B, is rejected. The batch record links the cleaning events covering its window. Water results (WFI endotoxin, microbial, chemical) for the points used by the batch are visible at release relative to batch dates.
 catalog_test: record use of a dilution past its storage period; refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-44] a disinfectant dilution used past its use-by time is an exception that holds the room clearance until QA dispositions it"
+clauses:
+  - clause: "record use of a dilution past its storage period; refused."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-44] a disinfectant dilution used past its use-by time is an exception that holds the room clearance until QA dispositions it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

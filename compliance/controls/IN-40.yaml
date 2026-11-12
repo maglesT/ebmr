@@ -17,7 +17,12 @@ behaviour: "(a) Room/zone master data carry grade A-D and a market-keyed limit t
 catalog_test: "import a Grade B in-operation 5.0 micrometre count of 2,910/m3: it exceeds the India limit (2,900) and therefore fails for every profile, although it would pass the EU-only value (2,930)."
 implemented_by: {}
 tests:
+  - "packages/kernel/test/market/engine.test.ts > floors and India-first results from table B > [IN-40] a Grade B in-operation 5 micrometre count of 2,910/m3 fails in every profile: the India limit of 2,900 governs each, though the EU value alone (2,930) would pass it"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
+clauses:
+  - clause: "import a Grade B in-operation 5.0 micrometre count of 2,910/m3: it exceeds the India limit (2,900) and therefore fails for every profile, although it would pass the EU-only value (2,930)."
+    tests:
+      - "packages/kernel/test/market/engine.test.ts > floors and India-first results from table B > [IN-40] a Grade B in-operation 5 micrometre count of 2,910/m3 fails in every profile: the India limit of 2,900 governs each, though the EU value alone (2,930) would pass it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

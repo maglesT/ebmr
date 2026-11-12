@@ -18,6 +18,11 @@ behaviour: |-
 catalog_test: A 12-month extract of interventions per line matches the source batch records.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "A 12-month extract of interventions per line matches the source batch records."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Cross-batch dashboards and exports"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
