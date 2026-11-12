@@ -13,6 +13,7 @@ import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/reg
 import { appendListedTests, compareEntries, firstDuplicate, firstUnsorted, sortListedTests, testsToAdd } from '../src/sync.ts';
 import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
 import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
+import { rowsOf } from '../src/not-required.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
 
 const control = (id: string): ControlRecord => {
@@ -572,7 +573,7 @@ describe('catalog-test clauses the approved MODIFY decision left out (not_requir
       'ST-02: clause 2 is marked not required, but its decision document docs/decisions/9999-no-such-decision.md does not exist',
     ]);
     expect(clauseErrors(st02({ decision: DECISION, reason: 'the whole control is not needed' }))).toEqual([
-      'ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from docs/build-plan/injectables/control-decisions.md: "the whole control is not needed"',
+      'ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from the row of ST-02 in docs/build-plan/injectables/control-decisions.md: "the whole control is not needed"',
     ]);
     // The schema: the decision and the reason are both required, and a clause is tested, deferred or not required, never two.
     const noDecision = st02();
@@ -591,16 +592,27 @@ describe('catalog-test clauses the approved MODIFY decision left out (not_requir
     }
   });
 
-  it('[meta] a not-required reason quotes at least five words of the cited document on whole-word boundaries, and the document names the control (lead audit of #241, items 2 and 3)', () => {
-    const tooShort = (n: number, r: string): string => `ST-02: clause 2 is marked not required, but its reason quotes ${n} word(s); at least 5 are needed: "${r}"`;
+  it('[meta] a not-required reason quotes at least two whole words from the control\'s own row of the cited document (lead audit and ruling on #241)', () => {
+    // A short cell of the control's own row is a real quote.
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS link' }))).toEqual([]);
+    const tooShort = (n: number, r: string): string => `ST-02: clause 2 is marked not required, but its reason quotes ${n} word(s); at least 2 are needed: "${r}"`;
     expect(clauseErrors(st02({ decision: DECISION, reason: '         x' }))).toEqual([tooShort(1, '         x')]);
     expect(clauseErrors(st02({ decision: DECISION, reason: '' }))).toEqual([tooShort(0, '')]);
-    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS ID and version' }))).toEqual([tooShort(4, 'CCS ID and version')]);
-    // A quote that starts or ends inside a word is refused, though the letters are in the document.
-    const partial = (r: string): string => `ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from docs/build-plan/injectables/control-decisions.md: "${r}"`;
-    for (const r of ['CS ID and version on every critical step', 'CCS ID and version on every critical st']) expect(clauseErrors(st02({ decision: DECISION, reason: r })), r).toEqual([partial(r)]);
-    // The document must name the control: the same quote for a control the decision never addressed is refused.
-    expect(clauseErrors({ ...st02(), id: 'ST-99' })).toEqual(['ST-99: clause 2 is marked not required, but its decision document docs/build-plan/injectables/control-decisions.md does not name ST-99']);
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS' }))).toEqual([tooShort(1, 'CCS')]);
+    const notInRow = (r: string): string => `ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from the row of ST-02 in docs/build-plan/injectables/control-decisions.md: "${r}"`;
+    // A quote that starts or ends inside a word is refused, though the letters are in the row.
+    for (const r of ['CS ID and version on every critical step', 'CCS ID and version on every critical st']) expect(clauseErrors(st02({ decision: DECISION, reason: r })), r).toEqual([notInRow(r)]);
+    // A quote from another control's row (ST-03's) is refused, though it is in the same document.
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS-impact assessment workflow' }))).toEqual([notInRow('CCS-impact assessment workflow')]);
+    // The document must have a row of the control: the same quote for a control the decision never addressed is refused.
+    expect(clauseErrors({ ...st02(), id: 'ST-99' })).toEqual([
+      'ST-99: clause 2 is marked not required, but its decision document docs/build-plan/injectables/control-decisions.md has no row or paragraph of ST-99 (a table row whose first cell, or a paragraph whose first line, names it)',
+    ]);
+  });
+
+  it('[meta] a control\'s rows are the table rows whose first cell names it and the paragraphs whose first line names it, nothing else', () => {
+    const doc = ['# ST-02 in a heading', '', '| Control | Note |', '|---|---|', '| ST-02 | its own row |', '| ST-03 | names ST-02 later |', '', 'ST-02: a paragraph', 'on two lines.', '', 'A paragraph that names', 'ST-02 only on its second line.', '', 'ST-020 is another id.'].join('\n');
+    expect(rowsOf(doc, 'ST-02')).toEqual(['# ST-02 in a heading', '| ST-02 | its own row |', 'ST-02: a paragraph\non two lines.']);
   });
 
   it('[meta] the trace refuses what validate refuses: a quote taken from another document than the one cited (lead audit of #241)', () => {
@@ -610,7 +622,7 @@ describe('catalog-test clauses the approved MODIFY decision left out (not_requir
     const elsewhere = words(plan).split('. ').map((x) => x.split(' ').slice(0, 8).join(' ')).find((x) => x.split(' ').length === 8 && !words(decisions).includes(x)) ?? '';
     expect(elsewhere.split(' ')).toHaveLength(8);
     const c = st02({ decision: DECISION, reason: elsewhere });
-    const refused = `ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from docs/build-plan/injectables/control-decisions.md: "${elsewhere}"`;
+    const refused = `ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from the row of ST-02 in docs/build-plan/injectables/control-decisions.md: "${elsewhere}"`;
     expect(clauseErrors(c)).toEqual([refused]);
     expect(buildTrace([c], [result(KEPT)], 7).errors).toEqual([refused]);
   });
