@@ -111,6 +111,8 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const qa = f.persona('qa1');
   const sim = f.e2e.state.urls.simulatorConsole;
   const hasAid = p.lots.some((l) => l.material.group === 'aid');
+  // The other unit components' step only when the formula has them (a media fill's medium alone has none).
+  const hasExc = p.lots.some((l) => l.material.group === 'exc');
   await cleanForBatch(f);
 
   // Stage 1: dispensing.
@@ -161,7 +163,7 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
     await simulator(sim, 'clear-faults');
     await simulator(sim, 'remove');
     // The per-batch lines' step only when the formula has them (a tablet's and a hard capsule's has none).
-    const groups = [['p-disp-act@', 'act'], ['p-disp-exc@', 'exc'], ...(hasAid ? [['p-disp-aid@', 'aid'] as const] : [])] as const;
+    const groups = [['p-disp-act@', 'act'], ...(hasExc ? [['p-disp-exc@', 'exc'] as const] : []), ...(hasAid ? [['p-disp-aid@', 'aid'] as const] : [])] as const;
     for (const [key, group] of groups) {
       await as(disp, dispenser);
       await step(f, disp, key);
@@ -180,7 +182,7 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await closeStage(f, disp, 'p-disp-recon@', op1);
   await releasePlant(f, disp, { status: 'p-disp-bal@', units: [], clear: 'p-disp-clear@', area: 'DISP-1' }, op1);
   // The blender takes the unit components only; the per-batch lines' containers go to the product's own steps.
-  const containers = await dispensedContainers(f, disp, ['p-disp-act@', 'p-disp-exc@']);
+  const containers = await dispensedContainers(f, disp, ['p-disp-act@', ...(hasExc ? ['p-disp-exc@'] : [])]);
   expect(containers).toHaveLength(p.lots.filter((l) => l.material.group !== 'aid').length);
   const aidContainers = hasAid ? await dispensedContainers(f, disp, ['p-disp-aid@']) : [];
   if (p.dispensingOnly) {

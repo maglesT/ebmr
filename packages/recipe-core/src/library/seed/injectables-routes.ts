@@ -31,7 +31,9 @@
  * the filling blocks record the closures and rejects at each round.
  *
  * The output of every filling block is registered as containers with the same field ids as INJ-FILL (`end.filled`,
- * `end.rejects`, `tray.units`), so unit accountability (INJ-UNIT-ACCOUNT) reads them by its step-value slots.
+ * `end.rejects`, `tray.units`), so unit accountability (INJ-UNIT-ACCOUNT) reads them by its step-value slots. FFS and BFS
+ * close the container in the machine, so they also give the units rejected at closing as `end.totalRejects`, the field
+ * capping and ampoule sealing give.
  *
  * Invented example values (DEMO-ONLY): the firm sets every limit, count and class in its formulation.
  */
@@ -237,7 +239,7 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
             { id: 'sealsOk', label: 'Seals complete, no leak', type: 'YES_NO', expected: true },
-            { id: 'roundRejects', label: 'Units rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'sealRejects', label: 'Units rejected at sealing since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
         },
         OUTPUT,
@@ -246,7 +248,9 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           title: 'End of filling',
           fields: [
             { id: 'filled', label: 'Units filled', type: 'NUMBER', unit: UNITS, decimals: 0 },
-            { id: 'rejects', label: 'Units rejected at the machine', type: 'CALC', expression: 'sum(roundRejects)', unit: UNITS },
+            { id: 'rejects', label: 'Units rejected at filling (set-up, fill)', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            // The rounds' sealing rejects added up once: unit accountability reads them as the units rejected at closing.
+            { id: 'totalRejects', label: 'Units rejected at sealing', type: 'CALC', expression: 'sum(sealRejects)', unit: UNITS },
           ],
         },
       ],
@@ -327,7 +331,7 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
             { id: 'sealsOk', label: 'Units sealed, flash removed cleanly, no leak', type: 'YES_NO', expected: true },
-            { id: 'roundRejects', label: 'Units rejected since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            { id: 'sealRejects', label: 'Units rejected at sealing since the last round', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
         },
         OUTPUT,
@@ -336,7 +340,9 @@ export const INJECTABLE_ROUTE_SEEDS: readonly SeedItem[] = [
           title: 'End of filling',
           fields: [
             { id: 'filled', label: 'Units filled', type: 'NUMBER', unit: UNITS, decimals: 0 },
-            { id: 'rejects', label: 'Units rejected at the machine', type: 'CALC', expression: 'sum(roundRejects)', unit: UNITS },
+            { id: 'rejects', label: 'Units rejected at filling (set-up, fill)', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            // The rounds' sealing rejects added up once: unit accountability reads them as the units rejected at closing.
+            { id: 'totalRejects', label: 'Units rejected at sealing', type: 'CALC', expression: 'sum(sealRejects)', unit: UNITS },
           ],
         },
       ],

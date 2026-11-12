@@ -229,6 +229,39 @@ describe('the printed items of a G-21 step after create (injectables residual P3
     expect(seen.at(-1)?.['items']).toEqual([ITEMS[0], { ...ITEMS[1], limits: { maxUnexplained: '5' } }]);
   });
 
+  it('[PR-32][PR-39] on a draft a printed item is added empty (nothing filled in for the author) and removed; removing the last leaves no items member', async () => {
+    const seen: Record<string, Json>[] = [];
+    render(<Host type="G-21" initial={{ items: structuredClone(ITEMS.slice(0, 1)) }} seen={seen} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Add a printed item' }));
+    expect(seen.at(-1)?.['items']).toEqual([ITEMS[0], {}]);
+    expect(screen.getByRole('group', { name: 'items 2' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove items 1: CARTON' }));
+    expect(seen.at(-1)?.['items']).toEqual([{}]);
+    await userEvent.click(screen.getByRole('button', { name: 'Remove items 1' }));
+    expect(seen.at(-1)).toEqual({});
+    expect(screen.getByRole('button', { name: 'Add a printed item' })).toBeTruthy();
+  });
+
+  it('[PR-32][PR-39] on a draft a printed item\'s artwork version per market is edited, a market added by its code and version, and a market removed; nothing is filled in', async () => {
+    const seen: Record<string, Json>[] = [];
+    render(<Host type="G-21" initial={{ items: structuredClone(ITEMS.slice(0, 1)) }} seen={seen} />);
+    const artwork = screen.getByRole('group', { name: 'artwork' });
+    const add = within(artwork).getByRole('button', { name: 'Add the market' });
+    expect(add.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(artwork).getByLabelText('artwork: new market code'), 'us');
+    expect(add.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(artwork).getByLabelText('artwork: its artwork version'), 'ART-US-3');
+    await userEvent.click(add);
+    expect((seen.at(-1)?.['items'] as Json[])[0]).toEqual({ ...ITEMS[0], artwork: { IN: 'ART-7', US: 'ART-US-3' } });
+    const inVersion = within(artwork).getByRole('textbox', { name: 'artwork: IN' });
+    await userEvent.clear(inVersion);
+    await userEvent.type(inVersion, 'ART-8');
+    await userEvent.tab();
+    await waitFor(() => expect(((seen.at(-1)?.['items'] as Json[])[0] as Record<string, Json>)['artwork']).toEqual({ IN: 'ART-8', US: 'ART-US-3' }));
+    await userEvent.click(within(screen.getByRole('group', { name: 'artwork' })).getByRole('button', { name: 'Remove market US' }));
+    expect(((seen.at(-1)?.['items'] as Json[])[0] as Record<string, Json>)['artwork']).toEqual({ IN: 'ART-8' });
+  });
+
   it('[PR-03][PR-32] on a read-only step the printed items stay shown in full, not as editable fields', () => {
     render(<ConfigForm schema={schemaOf('G-21')} value={{ items: ITEMS }} onChange={() => undefined} readOnly sopOptions={[]} />);
     expect(screen.queryByRole('group', { name: 'items 1: CARTON' })).toBeNull();
