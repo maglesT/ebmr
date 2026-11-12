@@ -20,6 +20,9 @@ const COUNTS = {
   inspect: { counts: { inspected: '9790', particles: '20', container: '30', fill: '25', closure: '5' } },
 } as const;
 
+/** A calculated value as the entry list shows it: the label, the exact value (no decimals or zeros only) and its unit. */
+const calc = (label: string, value: string): RegExp => new RegExp(`${label.replace(/[()]/g, '\\$&')} ${value}(\\.0+)? \\{unit\\} \\(calculated`);
+
 const found = INJECTABLES.find((x) => x.key === 'vial');
 if (!found) throw new Error('the I-1 vial is not in the acceptance');
 // The sandbox half only (plan section 6): the vial's GMP data is not carried over.
@@ -29,14 +32,30 @@ const steps: Injectable['steps'] = vial.steps.flatMap((b): Injectable['steps'] =
   switch (b.def.code) {
     // The 100 % integrity test follows capping and reads its rejects; the sampled test is not used.
     case 'INJ-CAPPING':
-      return [b, { ...productBlock('INJ-CCIT-100', 'CCI-TESTER'), values: COUNTS.ccit }];
+      // The counts typed from the report are checked by a second person; 9,790 passed and 50 rejected in all (40 at
+      // capping, read from that step, and 10 leakers).
+      return [b, {
+        ...productBlock('INJ-CCIT-100', 'CCI-TESTER'),
+        values: COUNTS.ccit,
+        expect: { verified: true, entries: [calc('Units passed', '9790'), calc('Units rejected at closing and at the integrity test', '50')] },
+      }];
     case 'INJ-CCI':
       return [];
     case 'INJ-VISUAL-INSPECT':
-      return [{ ...productBlock('INJ-AVI', 'AVI-MACHINE'), values: COUNTS.inspect }];
+      return [{
+        ...productBlock('INJ-AVI', 'AVI-MACHINE'),
+        values: COUNTS.inspect,
+        expect: { verified: true, entries: [calc('Units rejected', '80'), calc('Units accepted', '9710')] },
+      }];
     // The closing rejects from the integrity test's total, the units accepted and rejected at inspection from INJ-AVI.
     case 'INJ-UNIT-ACCOUNT':
-      return [{ ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { capping: 'INJ-CCIT-100', inspection: 'INJ-AVI' }), values: VIAL_COUNTS.account }];
+      // 150 rejected (20 at the line, 50 at closing and the integrity test, 80 at inspection): the integrity test's total
+      // is the one read; nothing is unaccounted for.
+      return [{
+        ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { capping: 'INJ-CCIT-100', inspection: 'INJ-AVI' }),
+        values: VIAL_COUNTS.account,
+        expect: { entries: [calc('Units rejected (line, closing and inspection)', '150'), calc('Units not accounted for', '0')] },
+      }];
     default:
       return [b];
   }
