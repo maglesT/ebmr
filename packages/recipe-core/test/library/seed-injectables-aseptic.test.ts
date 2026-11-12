@@ -332,3 +332,44 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     expect(codes('RABS').filter((c) => byCode(c).definition.markets !== undefined)).toEqual([]);
   });
 });
+
+describe('what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3)', () => {
+  it('[ST-46] for the EU market, an item not transferred into Grade A/B by the validated method (only disinfected, say) is an exception that holds the step until QA dispositions it', () => {
+    const transfer = byCode('INJ-ASEPTIC-TRANSFER');
+    expect(transfer.definition.markets).toEqual(['EU']);
+    expect(fieldOf(transfer, 'transferred')).toMatchObject({ type: 'YES_NO', expected: true });
+    const not = judgedRun(transfer, { transfer: { transferred: false } });
+    expect(not.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(not.status).not.toBe('COMPLETED');
+  });
+
+  it('[IN-42] a Grade A settle plate of 1 CFU during a fill is above the Grade A action limit (no growth): an exception that stops the step until a deviation is opened', () => {
+    const gradeA = withLimits(byCode('INJ-EM-COUNTS'), {
+      cfuSettle: { unit: '{CFU}', ranges: [{ tier: 'INTERNAL_ACTION', high: { value: '0', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'RULE_TABLE', ref: 'B-12' } }] },
+    });
+    const plate = { method: 'Settle plate', cfuAir: undefined };
+    expect(judgedRun(gradeA, { count: { ...plate, cfuSettle: '0' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const one = judgedRun(gradeA, { count: { ...plate, cfuSettle: '1' } });
+    expect(new Set(one.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+    expect(one.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-74][IN-41] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused', () => {
+    const fill = byCode('INJ-FILL');
+    const rabs: SeedItem = { ...fill, exampleUse: { ...fill.exampleUse, equipmentClasses: { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' } } };
+    const units = (roomClass: string) => ({
+      line: { code: 'SIM-LINE', classCode: 'VIAL-FILLING-RABS', fitness: 'QUALIFIED' },
+      room: { code: 'SIM-ROOM', classCode: roomClass, fitness: 'QUALIFIED' },
+    });
+    expect(judgedRun(rabs, { setup: { equipment: units('ROOM-GRADE-B') } }).exceptions).toEqual([]);
+    expect(() => judgedRun(rabs, { setup: { equipment: units('ROOM-GRADE-C') } })).toThrow(/LIB-EQUIPMENT-CLASS/);
+  });
+
+  it('[ST-53] each sterilising filter is a lot named in the step that uses it, verified by a second person; a lot QC rejected cannot be used', () => {
+    const item = byCode('INJ-STERILE-FILTER');
+    expect(fieldOf(item, 'filterLot').type).toBe('MATERIAL_LOT');
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const rejected = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'REJECTED', identityTested: true } };
+    expect(() => judgedRun(item, { filter: { lots: rejected } })).toThrow(/G07-LOT-STATUS/);
+  });
+});
