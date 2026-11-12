@@ -65,6 +65,13 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   INJ-LYO (the middle stopper seated in the chamber), a second INJ-STERILE-FILTER and INJ-FILL for the diluent (step ids
   `p-inj-sterile-filter-2`, `p-inj-fill-2`), INJ-PLUNGER as the closing; 2 tests passed locally (32 min).
 - The diluent is water for injection from the point of use, with no step of its own beyond its filtration (DEMO data).
+- **Lead audit of #239: PASS on scope and data; before merge:**
+  1. after #232 lands (it edits the routes data) and #238 lands (it adds the optional `expect` on ProductBlock: entries
+     and verified values), merge main in (union of the routes data, the playwright group list and ci.yml's ALL list);
+  2. assert, for the cartridge: the diluent INJ-FILL's (`p-inj-fill-2`) and INJ-PLUNGER's computed rejected/accepted,
+     and INJ-UNIT-ACCOUNT's outcome (nothing unaccounted for: 10,000 = 20 + 40 + 9,720 + 80 + 120 + 20);
+  3. run the cartridge spec locally (32 min), then a full run (runner=github) on a head containing current main; merge
+     on green (no re-audit if only these change).
 
 ### Session 10c handover (12 November 2026): I-2d and the EM tiers
 
