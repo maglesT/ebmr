@@ -331,7 +331,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'closures', label: 'Units closed correctly (stoppers seated, ampoules sealed)', type: 'YES_NO', expected: true },
+            { id: 'closures', label: 'Units closed as the process sets (stoppers seated or part-seated for lyophilisation, ampoules sealed)', type: 'YES_NO', expected: true },
           ],
         },
         {
