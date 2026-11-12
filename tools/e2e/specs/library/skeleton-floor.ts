@@ -62,6 +62,11 @@ export interface SkeletonPlan {
    * `lubricantKg` and `afterDischarge` are not used.
    */
   dispensingOnly?: boolean;
+  /**
+   * With `dispensingOnly`: the master has no release for packing (a media fill, the process-simulation mark: its author
+   * removes that stage, since its units are incubated and destroyed, never packed). The run ends with the dispensing stage.
+   */
+  noPackRelease?: boolean;
   /** Stages the master adds between dispensing and blending (owner acceptance, session 12), run on their own kiosks. */
   between?: (f: Floor) => Promise<void>;
   /**
@@ -187,8 +192,10 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   const aidContainers = hasAid ? await dispensedContainers(f, disp, ['p-disp-aid@']) : [];
   if (p.dispensingOnly) {
     // The release for packing is a stage of its own with no room (NON_MATERIAL): QA decides it on the same kiosk.
-    await holdPoint(f, disp, 'H-PACK@', qa);
-    await closeStage(f, disp, 'H-PACK@', op1);
+    if (!p.noPackRelease) {
+      await holdPoint(f, disp, 'H-PACK@', qa);
+      await closeStage(f, disp, 'H-PACK@', op1);
+    }
     await load(disp, `${base}/runs/${f.batchId}`);
     await expect(disp.getByText('Execution complete').first()).toBeVisible();
     await disp.context().close();
