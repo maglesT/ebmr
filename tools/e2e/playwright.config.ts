@@ -34,6 +34,9 @@ export const E2E_GROUPS: Record<string, string[]> = {
   'library-inj-amp': ['library/inj-ampoule.spec.ts'],
   // Injectables edition I-1c2 P4a: the vial's sandbox half, then its GMP processing batch to the release for packing.
   'library-inj-gmp': ['library/inj-vial-gmp.spec.ts'],
+  // Injectables edition I-2b: an aseptically filled vial (RABS) from the catalogue to its released lot; an EM count above
+  // the action limit holds the release until its deviation is closed.
+  'library-inj-aseptic': ['library/inj-aseptic-vial.spec.ts'],
   // Owner acceptance (session 12): a bilayer tablet built on screen (a material on two lines, an added two-room stage
   // with its own yield, two QA persons authorising) to its released lot.
   'library-bilayer': ['library/tablet-bilayer.spec.ts'],

@@ -130,8 +130,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             // use, no formula line.
             { id: 'containerLot', label: 'Vial or ampoule lot', type: 'MATERIAL_LOT' },
             { id: 'programme', label: 'Washing programme', type: 'TEXT', maxLength: 40 },
-            { id: 'wfiTemp', label: 'Final rinse WFI temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp', critical: true },
-            { id: 'wfiPressure', label: 'Final rinse WFI pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'wfiPressure', critical: true },
+            { id: 'wfiTemp', label: 'Final rinse WFI temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp' },
+            { id: 'wfiPressure', label: 'Final rinse WFI pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'wfiPressure' },
             { id: 'washing', label: 'Washing time', type: 'TIMER', durationUnit: 'min' },
             { id: 'siliconisation', label: 'Siliconisation', type: 'CHOICE', options: ['Not required by the product', 'Applied'] },
             { id: 'siliconeRef', label: 'Silicone emulsion lot or preparation', type: 'TEXT', maxLength: 40, showWhen: { field: 'siliconisation', equals: 'Applied' } },
@@ -168,7 +168,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'tunnel', label: 'Depyrogenation tunnel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'tunnelClass' },
             { id: 'cycleNumber', label: 'Cycle number (from the printout)', type: 'TEXT', maxLength: 40 },
             { id: 'zoneTemp', label: 'Lowest sterilising-zone temperature', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'zoneTemp', critical: true },
-            { id: 'beltSpeed', label: 'Belt speed', type: 'NUMBER', unit: 'mm/min', decimals: 0, limitSlot: 'beltSpeed', critical: true },
+            { id: 'beltSpeed', label: 'Belt speed', type: 'NUMBER', unit: 'mm/min', decimals: 0, limitSlot: 'beltSpeed' },
             { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
             { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
           ],
@@ -206,7 +206,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'temperature', label: 'Lowest temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
             { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
             { id: 'f0', label: 'Lowest F0 of the load', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'f0', critical: true },
-            { id: 'indicator', label: 'Process indicator changed', type: 'YES_NO', expected: true },
             { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
             { id: 'printoutAttached', label: 'Printout attached to the record', type: 'YES_NO', expected: true },
           ],
@@ -240,9 +239,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'vessel', label: 'Compounding vessel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'vesselClass' },
             { id: 'wfiPoint', label: 'WFI point of use', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'wfiPointClass' },
             { id: 'wfiVolume', label: 'WFI charged first', type: 'NUMBER', unit: 'L', decimals: 1, limitSlot: 'wfiVolume' },
-            { id: 'wfiTemp', label: 'WFI temperature at charging', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp', critical: true },
+            { id: 'wfiTemp', label: 'WFI temperature at charging', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp' },
             { id: 'additionOrder', label: 'Materials added in the order of the formulation', type: 'YES_NO', expected: true },
-            { id: 'mixing', label: 'Mixing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixingTime', critical: true },
+            { id: 'mixing', label: 'Mixing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixingTime' },
             { id: 'nitrogen', label: 'Nitrogen overlay', type: 'CHOICE', options: ['Not required by the product', 'Applied'] },
           ],
         },
@@ -250,9 +249,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           id: 'makeUp',
           title: 'Make-up and checks',
           fields: [
-            { id: 'finalVolume', label: 'Final volume after make-up', type: 'NUMBER', unit: 'L', decimals: 1, limitSlot: 'finalVolume', critical: true },
+            { id: 'finalVolume', label: 'Final volume after make-up', type: 'NUMBER', unit: 'L', decimals: 1, limitSlot: 'finalVolume' },
             { id: 'ph', label: 'pH of the bulk', type: 'TEST_RESULT', unit: '1', replicatesSlot: 'phReadings', statistics: [{ statistic: 'MEAN', limitSlot: 'ph' }] },
-            { id: 'density', label: 'Density of the bulk', type: 'NUMBER', unit: 'g/mL', decimals: 4, limitSlot: 'density', critical: true },
+            { id: 'density', label: 'Density of the bulk', type: 'NUMBER', unit: 'g/mL', decimals: 4, limitSlot: 'density' },
             { id: 'bioburdenSample', label: 'Pre-filtration bioburden sample', type: 'SAMPLE', unitsSlot: 'bioburdenSamples', purpose: 'Pre-filtration bioburden' },
           ],
         },
@@ -290,7 +289,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'filter', label: 'Filter assembly', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'filterClass' },
             { id: 'receiver', label: 'Receiving vessel', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'receiverClass' },
-            { id: 'pressure', label: 'Highest filtration pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'pressure', critical: true },
+            { id: 'pressure', label: 'Highest filtration pressure', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'pressure' },
           ],
         },
       ],
@@ -314,9 +313,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Filling and stoppering (vials and ampoules)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-15. The filling line in its room, the format, the fill weight and volume at each round against limits, the stopper-height check for vials, the filled trays registered as containers (each later one sterilisation load or part of one), and each intervention, stoppage, glove change or alarm when it happens.',
-      instructions: 'Set the line for the format. Weigh filled units at each round; the volume follows from the bulk density. Register each filled tray as a container. Record each intervention, stoppage, glove change or alarm as it happens; one not on the formulation\'s list is raised for QA.',
-      inputs: [{ id: 'density', label: 'Density of the bulk (from compounding)', kind: 'STEP_VALUE', unit: 'g/mL', slot: 'densitySource' }],
+      description: 'INJ-15. The filling line in its room, the format, the closures checked at each round (the fill weights are recorded in the fill weight check), the stopper-height check for vials, the filled trays registered as containers (each later one sterilisation load or part of one), and each intervention, stoppage, glove change or alarm when it happens.',
+      instructions: 'Set the line for the format. Check the closures at each round; the fill weights are recorded in the fill weight check. Register each filled tray as a container. Record each intervention, stoppage, glove change or alarm when it is over (the record keeps that time as its end) with how long it lasted; one not on the formulation\'s list is raised for QA.',
       sections: [
         {
           id: 'setup',
@@ -325,7 +323,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'line', label: 'Filling line', type: 'EQUIPMENT', kind: 'LINE', classSlot: 'lineClass' },
             { id: 'room', label: 'Filling room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
             { id: 'format', label: 'Container format', type: 'CHOICE', options: ['Vial', 'Ampoule'] },
-            { id: 'weighBalance', label: 'Balance for the fill weights', type: 'EQUIPMENT', kind: 'BALANCE', classSlot: 'balanceClass' },
             { id: 'stopperCheck', label: 'Stopper-height check active', type: 'YES_NO', expected: true, showWhen: { field: 'format', equals: 'Vial' } },
           ],
         },
@@ -334,8 +331,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Filling round',
           repeat: { kind: 'PER_INTERVAL', intervalSlot: 'roundInterval' },
           fields: [
-            { id: 'fillWeight', label: 'Mean fill weight of the units weighed', type: 'NUMBER', unit: 'g', decimals: 3, limitSlot: 'fillWeight', critical: true },
-            { id: 'fillVolume', label: 'Mean fill volume', type: 'CALC', expression: 'convert(volume_from_mass(fillWeight, density), [mL])', unit: 'mL', limitSlot: 'fillVolume', critical: true },
             { id: 'closures', label: 'Units closed correctly (stoppers seated, ampoules sealed)', type: 'YES_NO', expected: true },
           ],
         },
@@ -343,15 +338,15 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           id: 'event',
           title: 'Intervention or stoppage',
           required: false,
-          when: 'Only when an intervention, a stoppage, a glove change or an alarm happens during filling',
+          when: 'Only when an intervention, a stoppage, a glove change or an alarm happens during filling. Record it when the event is over: the record keeps that time as its end',
           repeat: { kind: 'PER_CONTAINER' },
           fields: [
             { id: 'eventKind', label: 'What happened', type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] },
             { id: 'eventWhat', label: 'What was done (the intervention as the list names it, or the cause)', type: 'TEXT', maxLength: 120 },
-            { id: 'eventStart', label: 'Started at', type: 'DATE_TIME' },
-            { id: 'eventEnd', label: 'Ended at', type: 'DATE_TIME' },
+            // When it ended is the entry's own trusted time (recorded when the event is over; lead, ALCOA accurate), and it
+            // lasted the typed minutes: no typed date and time.
+            { id: 'eventMinutes', label: 'How long it lasted', type: 'NUMBER', unit: 'min', decimals: 0 },
             { id: 'eventListed', label: 'On the formulation\'s list (validated interventions, known stoppages)', type: 'YES_NO', expected: true },
-            { id: 'eventUnits', label: 'Units removed because of it (counted in the line rejects)', type: 'NUMBER', unit: UNITS, decimals: 0 },
           ],
         },
         {
@@ -375,13 +370,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       signatures: [OPERATOR, VERIFIER],
     },
     exampleUse: {
-      equipmentClasses: { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C', balanceClass: 'ANALYTICAL-BALANCE' },
-      limits: { fillWeight: spec('g', '2.050', '2.150'), fillVolume: spec('mL', '2.030', '2.140') },
-      targets: { fillWeight: '2.100' },
+      equipmentClasses: { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
-      stepValues: { densitySource: { step: 'compounding', field: 'density' } },
     },
-    exampleInputs: { density: { value: '1.0050', unit: 'g/mL' } },
   },
   {
     // INJ-18: 211.110(a); A1 8.101.
@@ -439,8 +430,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           title: 'Set-up',
           fields: [
             { id: 'sealer', label: 'Ampoule sealing station', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'sealerClass' },
-            { id: 'gasFlow', label: 'Fuel gas flow', type: 'NUMBER', unit: 'L/min', decimals: 2, limitSlot: 'gasFlow', critical: true },
-            { id: 'oxygenFlow', label: 'Oxygen flow', type: 'NUMBER', unit: 'L/min', decimals: 2, limitSlot: 'oxygenFlow', critical: true },
+            { id: 'gasFlow', label: 'Fuel gas flow', type: 'NUMBER', unit: 'L/min', decimals: 2, limitSlot: 'gasFlow' },
+            { id: 'oxygenFlow', label: 'Oxygen flow', type: 'NUMBER', unit: 'L/min', decimals: 2, limitSlot: 'oxygenFlow' },
           ],
         },
         {
@@ -519,7 +510,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Terminal sterilisation by moist heat (per load)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-21. Each load is a container of the batch: every filled tray is consumed into its numbered load; each load records its cycle values typed from the printout once (checked by a second person), the indicator and the load\'s sterility samples, and registers the sterilised load.',
+      description: 'INJ-21. Each load is a container of the batch: every filled tray is consumed into its numbered load; each load records its cycle values typed from the printout once (checked by a second person) and the load\'s sterility samples, and registers the sterilised load.',
       instructions: 'Load to the validated pattern. For each load, read the values from its cycle printout and attach it, take the load\'s sterility samples from the coldest positions, and register the sterilised load.',
       sections: [
         {
@@ -548,7 +539,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'temperature', label: 'Lowest product temperature during exposure', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'temperature', critical: true },
             { id: 'holdTime', label: 'Exposure time', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'holdTime', critical: true },
             { id: 'f0', label: 'Lowest F0 of the load', type: 'NUMBER', unit: 'min', decimals: 1, limitSlot: 'f0', critical: true },
-            { id: 'indicator', label: 'Process indicator changed', type: 'YES_NO', expected: true },
             { id: 'cyclePassed', label: 'Cycle passed (no alarm on the printout)', type: 'YES_NO', expected: true },
             { id: 'sterilitySample', label: 'Sterility samples of the load', type: 'SAMPLE', unitsSlot: 'loadSterilitySamples', purpose: 'Sterility test, per load' },
             { id: 'loadOut', label: 'Sterilised load', type: 'CONTAINER', action: 'REGISTER' },
@@ -574,8 +564,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['OBSERVATION'],
-      description: 'INJ-22. Every unit inspected at the booth by a qualified inspector (the eyesight and inspection qualifications are checked at the signature): the rejects by defect category, the reject rate against its limit, the inspection time, and the AQL check of the accepted units on the formulation\'s sampling plan.',
-      instructions: 'Inspect every unit against the black and the white background at the booth\'s checked illumination, within the inspector\'s validated time. Then take the AQL sample from the accepted units and inspect it again.',
+      description: 'INJ-22. Every unit inspected at the booth by a qualified inspector (the eyesight and inspection qualifications are checked at the signature): the rejects by defect category, the reject rate against its limit, and the AQL check of the accepted units on the formulation\'s sampling plan.',
+      instructions: 'Inspect every unit against the black and the white background at the booth. Then take the AQL sample from the accepted units and inspect it again.',
       sections: [
         {
           id: 'setup',
@@ -583,7 +573,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'mode', label: 'Inspection mode', type: 'CHOICE', options: ['Manual (static booth)', 'Semi-automatic (rollers, inspector)'] },
             { id: 'booth', label: 'Inspection booth', type: 'EQUIPMENT', kind: 'EQUIPMENT', classSlot: 'boothClass' },
-            { id: 'illuminationOk', label: 'Booth illumination checked in range today', type: 'YES_NO', expected: true },
           ],
         },
         {
@@ -598,7 +587,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'rejected', label: 'Units rejected', type: 'CALC', expression: 'particles + container + fill + closure', unit: UNITS },
             { id: 'rejectRate', label: 'Reject rate', type: 'CALC', expression: 'rejected / inspected * 100 [%]', unit: '%', limitSlot: 'rejectRate', critical: true },
             { id: 'accepted', label: 'Units accepted', type: 'CALC', expression: 'inspected - rejected', unit: UNITS },
-            { id: 'inspecting', label: 'Inspection time (for the inspector\'s validated rate)', type: 'TIMER', durationUnit: 'min' },
           ],
         },
         {
@@ -628,6 +616,29 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       targets: { inspected: '10000', particles: '20', containerDefects: '30', fillDefects: '25', closureDefects: '5', aqlCritical: '0', aqlMajor: '0' },
       counts: { aqlSampleUnits: '200' },
     },
+  },
+  {
+    // INJ-22 (EU): A1 8.31 (manual inspection under suitable, controlled illumination, checked at intervals); EU market
+    // only (owner Q0): the base inspection block cites no 211 or Schedule M clause for it (lean review, lead).
+    definition: {
+      code: 'INJ-INSPECT-LIGHT',
+      version: 1,
+      title: 'Inspection booth illumination (EU market)',
+      category: 'CONTROL',
+      edition: EDITION,
+      markets: ['EU'],
+      description: 'INJ-22, EU market. The illumination of the inspection booth checked in its range before the manual inspection.',
+      instructions: 'Check the booth illumination with the meter before inspecting and record the answer.',
+      sections: [
+        {
+          id: 'light',
+          title: 'Illumination',
+          fields: [{ id: 'illuminationOk', label: 'Booth illumination checked in range today', type: 'YES_NO', expected: true }],
+        },
+      ],
+      signatures: [OPERATOR],
+    },
+    exampleUse: {},
   },
   {
     // INJ-23 (dye and other methods; deterministic machines in I-5): SM 10.3-10.8; A1 8.22-8.25.

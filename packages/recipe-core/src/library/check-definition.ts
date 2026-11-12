@@ -216,9 +216,11 @@ function checkOptionalSections(def: BlockDefinition): LibraryProblem[] {
     else if (s.repeat !== undefined && s.repeat.kind !== 'ONCE' && s.repeat.kind !== 'PER_CONTAINER') {
       out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} repeats ${s.repeat.kind === 'UNTIL_PASS' ? 'until it passes' : s.repeat.kind === 'COUNT' ? 'a planned number of times' : 'at planned intervals'}; a planned check is part of the step's record, so it stays required [PR-03]`, ['PR-03']));
     } else {
-      // A judged value (a CPP or IPC, a field with limits, a test result) is the step's record, never an event.
+      // A judged value (a CPP or IPC, a field with limits, a test result) in an event section is judged when it is
+      // recorded, as anywhere else; no clause makes the section required for it, so the author is only warned to check
+      // that the value is not a planned part of the step's record (lean review, lead, 10 November 2026).
       const judged = (s.fields ?? []).find((f) => ('critical' in f && f.critical === true) || ('limitSlot' in f && f.limitSlot !== undefined) || f.type === 'TEST_RESULT');
-      if (judged) out.push(err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} holds ${judged.id}, a value judged against limits; it is part of the step's record, so the section stays required [PR-03, PR-08]`, ['PR-03', 'PR-08']));
+      if (judged) out.push({ ...err('LIB-SECTION-OPTIONAL', at, `Section ${s.id} is recorded only when its event happens and holds ${judged.id}, a value judged against limits: check that the value is not a planned part of the step's record [PR-03, PR-08]`, ['PR-03', 'PR-08']), severity: 'WARNING' });
     }
   });
   // 21 CFR 211.188(b): the record documents that each significant step was accomplished, so a block (other than a

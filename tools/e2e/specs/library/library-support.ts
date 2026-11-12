@@ -390,6 +390,11 @@ export async function runLibraryStep(
    * container field gets a fresh name.
    */
   pool?: string[],
+  /**
+   * Acts before the step is signed as performed (e.g. a value outside its limit: the step is blocked until a deviation is
+   * linked, `linkNewDeviation` on an office page); the kiosk's step is reloaded afterwards, the operator still signed in.
+   */
+  beforePerform?: (page: Page) => Promise<void>,
 ): Promise<void> {
   const key = `${stepOf(b)}@`;
   await openStep(page, ctx.base, ctx.runId, key, b.def.title);
@@ -475,6 +480,11 @@ export async function runLibraryStep(
     }
     await withTap(page, ctx.operator, form.getByRole('button', { name: `Save ${section.title}` }));
   }
+  if (beforePerform) {
+    await beforePerform(page);
+    await page.reload();
+    await expect(card(page)).toBeVisible();
+  }
   await paceTaps(page, ctx.operator);
   await signPrimary(page, 'Sign as performed', ctx.operator);
   // A step with a check (or a hand-keyed weighing) waits for its verifier; one without completes.
@@ -487,6 +497,103 @@ export async function runLibraryStep(
     await switchUser(page, ctx.operator);
   }
   await expect(card(page)).toContainText('Completed');
+}
+
+/**
+ * A step blocked by an exception that needs a deviation (a value outside its limit): the supervisor, on an office page
+ * (`office`, signed in), opens the step and raises a deviation for the batch from the exception's "Link a deviation"
+ * dialog (G2: a deviation exists only for a batch), then links it to the exception, which then no longer blocks.
+ * Returns the deviation's reference (DEV-...). On an office terminal no badge is asked; the kiosk's own dialog cannot
+ * raise one (its raise call carries no badge attribution on a shared terminal, logged with the lead).
+ */
+export async function linkNewDeviation(office: Page, at: { base: string; runId: string; stepKey: string }, d: { classification: 'Minor' | 'Major' | 'Critical'; rationale: string }): Promise<string> {
+  await office.goto(`${at.base}/runs/${at.runId}/steps/${encodeURIComponent(at.stepKey)}`);
+  const exception = card(office).locator('[data-testid^="exception-"]').filter({ has: office.getByRole('button', { name: 'Link a deviation' }) }).first();
+  await exception.getByRole('button', { name: 'Link a deviation' }).click();
+  const dialog = office.getByRole('dialog', { name: /^Link a deviation to/ });
+  const raise = dialog.getByRole('region', { name: 'No deviation yet? Raise one for this batch' });
+  await choose(raise.getByRole('radio', { name: d.classification, exact: true }));
+  await raise.getByRole('textbox', { name: 'Risk rationale' }).fill(d.rationale);
+  await raise.getByRole('button', { name: 'Raise and link to this batch' }).click();
+  const raised = dialog.getByTestId('deviation-raised');
+  await explained(expect(raised).toBeVisible(), dialog);
+  const ref = /DEV-[A-Z0-9-]+/.exec((await raised.textContent()) ?? '')?.[0];
+  if (!ref) throw new Error(`no deviation reference in: ${(await raised.textContent()) ?? ''}`);
+  await expect(dialog.getByRole('textbox', { name: 'Deviation number' })).toHaveValue(ref);
+  await dialog.getByRole('button', { name: 'Send' }).click();
+  await explained(expect(dialog.getByText(/Saved/)).toBeVisible(), dialog);
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(card(office)).toContainText(`Deviation ${ref}`);
+  return ref;
+}
+
+/**
+ * QA takes a batch's deviation (open on its record page, `page` signed in as its owner `owner`) through the deviation
+ * screens to CLOSED, as the quality flow does (quality/deviation-flow.spec.ts): the quality unit's authorised person
+ * (`classifier`, on its own page) classifies it and starts the investigation; the owner records the finding, the impact
+ * for India and the closure basis; a second QA person (`second`, on its own page) signs the impact, concludes and closes.
+ * The words are the caller's (`d`). DEMO-ONLY.
+ */
+export async function investigateAndClose(
+  pages: { owner: Page; classifier: Page; second: Page },
+  people: { owner: SeededPersona; second: SeededPersona },
+  d: { classification: 'MINOR' | 'MAJOR' | 'CRITICAL'; rationale: string; cause: string; causeKind: string; impact: string; rootCause: string; capa: string; others: string; othersReason: string;
+    // A human-error cause is concluded only with the process, procedure and system factors assessed (PR-50).
+    systemFactors?: { process: string; procedure: string; system: string } },
+): Promise<void> {
+  const url = pages.owner.url();
+  await pages.classifier.goto(url);
+  const start = pages.classifier.getByTestId('form-Classify and start the investigation');
+  await start.getByRole('radio', { name: d.classification }).locator('xpath=ancestor::label[1]').click();
+  await start.getByRole('textbox', { name: 'Risk rationale' }).fill(d.rationale);
+  await start.getByRole('textbox', { name: 'Owner (person id)' }).fill(people.owner.personId);
+  await start.getByRole('textbox', { name: 'Due date' }).fill(new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10));
+  await start.getByRole('button', { name: 'Start the investigation' }).click();
+  await explained(expect(pages.classifier.getByTestId('deviation-state')).toContainText('UNDER_INVESTIGATION'), pages.classifier.locator('main'));
+
+  const page = pages.owner;
+  await page.reload();
+  const finding = page.getByTestId('form-Record the finding');
+  await finding.getByRole('radio', { name: 'Yes' }).locator('xpath=ancestor::label[1]').click();
+  await finding.getByRole('textbox', { name: 'Cause' }).fill(d.cause);
+  await finding.getByRole('radio', { name: d.causeKind }).locator('xpath=ancestor::label[1]').click();
+  await finding.getByRole('button', { name: 'Record the finding' }).click();
+  await explained(expect(finding.getByText('Saved.')).toBeVisible(), finding);
+  const impact = page.getByTestId('impact-form');
+  await impact.getByRole('radio', { name: 'IN' }).locator('xpath=ancestor::label[1]').click();
+  await impact.getByRole('radio', { name: 'NONE' }).locator('xpath=ancestor::label[1]').click();
+  await impact.getByRole('textbox', { name: 'Rationale of the impact' }).fill(d.impact);
+  await impact.getByRole('button', { name: 'Record the impact' }).click();
+  await explained(expect(impact.getByText('Impact recorded.')).toBeVisible(), impact);
+  const closure = page.getByTestId('closure-form');
+  await closure.getByRole('textbox', { name: 'Root-cause method' }).fill(d.rootCause);
+  if (d.systemFactors) {
+    await closure.getByRole('textbox', { name: 'System factor: process' }).fill(d.systemFactors.process);
+    await closure.getByRole('textbox', { name: 'System factor: procedure' }).fill(d.systemFactors.procedure);
+    await closure.getByRole('textbox', { name: 'System factor: system' }).fill(d.systemFactors.system);
+  }
+  await closure.getByRole('textbox', { name: 'CAPA references' }).fill(d.capa);
+  await closure.getByRole('radiogroup', { name: 'Regulatory notification required' }).getByRole('radio', { name: 'No' }).locator('xpath=ancestor::label[1]').click();
+  await closure.getByRole('textbox', { name: 'Notification assessment' }).fill('No registered detail or licence condition is affected');
+  const row = closure.getByTestId('other-batch-0');
+  await row.getByRole('radio', { name: 'PRODUCT' }).locator('xpath=ancestor::label[1]').click();
+  await row.getByRole('textbox', { name: 'Reference 1' }).fill(d.others);
+  await row.getByRole('radiogroup', { name: 'Included in the deviation 1' }).getByRole('radio', { name: 'No' }).locator('xpath=ancestor::label[1]').click();
+  await row.getByRole('textbox', { name: 'Reason 1' }).fill(d.othersReason);
+  await closure.getByRole('button', { name: 'Record the closure basis' }).click();
+  await explained(expect(closure.getByText('Closure basis recorded.')).toBeVisible(), closure);
+
+  const second = pages.second;
+  await second.goto(url);
+  await second.getByRole('button', { name: 'Sign the impact assessment (QA signature)' }).click();
+  await officeSign(second, /^Impact of DEV-/, people.second);
+  await expect(second.getByTestId('deviation-state')).toContainText('IMPACT_ASSESSED');
+  await second.getByRole('button', { name: 'Conclude (QA signature)' }).click();
+  await officeSign(second, /^Conclude DEV-/, people.second);
+  await expect(second.getByTestId('deviation-state')).toContainText('PENDING_CLOSURE');
+  await second.getByRole('button', { name: 'Close (QA signature)' }).click();
+  await officeSign(second, /^Close DEV-/, people.second);
+  await expect(second.getByTestId('deviation-state')).toContainText('CLOSED');
 }
 
 /** A kiosk act sent with the person's badge tap; it is recorded when the entries list grows. */

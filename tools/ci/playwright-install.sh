@@ -10,7 +10,16 @@ set -euo pipefail
 
 pw_install() { pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium; }
 
-if [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; then pw_install; exit 0; fi
+# GitHub-hosted: when the apt part of --with-deps fails (the Ubuntu mirror unreachable, as on 11 November 2026), fall
+# back to the browser alone: the runner image already carries Chrome and its system libraries. The apt step can also
+# hang rather than fail (two E2E jobs of #219 sat in it until the job's 150-minute timeout), so --with-deps gets
+# EBMR_PW_DEPS_TIMEOUT seconds (default 900; SIGKILL 30 s after the TERM) and a hang takes the same fallback.
+if [ "${RUNNER_ENVIRONMENT:-}" = github-hosted ] || [ "${EBMR_CI_HOST:-}" = ubicloud ]; then
+  timeout --kill-after=30 "${EBMR_PW_DEPS_TIMEOUT:-900}" pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium && exit 0
+  echo "playwright-install: --with-deps failed or did not finish in ${EBMR_PW_DEPS_TIMEOUT:-900} s; installing chromium without system packages" >&2
+  pnpm --filter @ebmr/e2e exec playwright install chromium
+  exit 0
+fi
 
 [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] || { echo "playwright-install: PLAYWRIGHT_BROWSERS_PATH is not set (run tools/ci/runner-env.sh first)" >&2; exit 1; }
 

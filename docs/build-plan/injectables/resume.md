@@ -59,6 +59,65 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 10 (10 November 2026): I-2, aseptic fill, EM and media fill
+
+- **PRs:** #205 (GMP half's output = the run's unconsumed containers: `outputStage`, `outputUnits`, keys `output-N`;
+  test only) and #206 (I-2a data) passed the lead's audit; each merges on a full green run (decision 0027 V5: every
+  code PR, all E2E groups). I-2b (aseptic vial E2E, branch `inj/i2-b-aseptic-e2e`, group `library-inj-aseptic`) opens
+  as a PR after both merge.
+- **Lead rulings (10 November 2026):**
+  - Interventions are an optional event section in INJ-FILL (R-flow item 3; no new repeat kind). It is recorded when the
+    event is over: the entry's trusted time is its end, the operator types how long it lasted (ALCOA accurate). No typed
+    date and time (the sandbox guard refuses an ISO date-time as a lot-number word; the lead gave that defect to
+    another session).
+  - INJ-EM records sampling and particles during the operation; INJ-EM-COUNTS (before the accountability) takes the
+    counts after incubation, so incubation does not hold the batch.
+  - The filter, single-use assembly and supplier-sterilised component lots are named where used, as the I-1 components:
+    no formula line, released lot (G07 checks), VERIFIED second person.
+  - Media fill: in the sandbox now (I-2c); its GMP run needs B below. Putting it on the licence register (option A) is out.
+- **Designer gap (logged with the lead):** the values form takes one range per limit and stores it as REGISTERED, so
+  an EM alert level or action tier cannot be set on screen; a count above the limit is a registration-relevant
+  deviation (stricter; it still blocks the step and the release).
+- **B, the process-simulation mark (approved; engine, general; its own PR after I-2b; migration recipe-core 1888
+  cleared; worktree `../ebmr-sim`, branch `inj/i2-sim-mark`):**
+  - `MbrHeader.nonProduct?: 'PROCESS_SIMULATION'` (parse.ts header keys, model.ts, validator rules-content.ts, designer
+    header ops.ts and DocumentView.tsx). It is in the approved content and its hash, so it changes only by a new master
+    version: a test must show that. ROUTINE_MONITORING only if routine EM really needs it (no unused values).
+  - 1888: `recipe.india_issue_problem` (0891) skips the licence (site.licence_problem) and every market's export
+    permission for such a batch (one rule, every market); the hazard-area check stays. `recipe.record_batch_licence_basis`
+    must then record "no licence: process simulation" instead of a licence row (licence_number is not null today).
+    Comment cites 211.113(b), SM Part II 5.3-5.7, A1 9.32 (EU).
+  - Refused for record integrity (the units are destroyed): posting a finished lot, planning a packaging order (0582),
+    shipping. QA's review of the record is its end. Tests [IN-30][ST-29][IN-45].
+- **Handover (session 10 ends at about 380k context; the next session continues in this order):**
+  1. #206: merge on its full green run (run 42885506188 on 6434e6d; main was merged in for conflicts in the PR-03 and
+     PR-05 lists). Squash with the full SHA, then cancel the main push run.
+  2. The lean PR from branch `inj/i2-lean` (19ac2c1; the list of changes and kept items was sent to the lead). Open it
+     after #206 merges: merge main in, run the library tests and register:validate, PR, full run, audit.
+  3. I-2b (`inj/i2-b-aseptic-e2e`): merge main in after the lean PR. Conflicts are expected in INJ-FILL's event section
+     (I-2b: eventMinutes in place of eventStart/eventEnd; lean: eventUnits dropped) and in the event tests. Drop
+     `eventUnits` from `INTERVENTION` in injectables-aseptic-acceptance.ts, and drop INJ-FILL's `balanceClass` from the
+     products (harmless, but now unused).
+     - Last iteration run 42893281643 (group library-inj-aseptic only). Before it, the sandbox half, GMP 1-8 and GMP 8b's
+       red checklist passed. GMP 8b now opens the deviation under the processing batch (the checklist link names the
+       wrong batch, a shared defect logged). Read that run first: the blob artifact's `report.jsonl`; for 4xx bodies,
+       the output artifact's trace `*.network` plus `resources/`.
+     - Then: list the new E2E titles in their controls (trace:e2e names them), open the PR (the body says the deviation
+       is raised on an office page because the kiosk dialog cannot raise one, the lead's condition), full run, audit.
+  4. I-2c: a spec for MEDIA_FILL's sandbox half (defineInjectablesAcceptance only), in group library-inj-aseptic.
+     The data is in injectables-aseptic-acceptance.ts, never run yet.
+  5. B (the process-simulation mark), as below; then the media fill's GMP run to QA's record review.
+  6. Routine EM: try a formula with no product on screen; anything that needs code goes to the lead first.
+  - Shared defects logged with the lead (for session 9): the sandbox guard refuses ISO date-times; the values form
+    stores only REGISTERED tiers (add the EM alert tier to the aseptic vial once that is fixed); the kiosk's "raise a
+    deviation" carries no badge attribution; the G2.DEVIATIONS checklist link names the wrong batch.
+  - The lead is now session_01PybpFvEFaQZ3LEfnNdjBCE.
+- **E2E helpers added (generic test code):** `runLibraryStep(..., beforePerform)`; `linkNewDeviation` (the supervisor
+  raises and links a batch deviation from the blocked exception, badge-confirmed); `investigateAndClose`;
+  `gmp.breach` (a step value above its limit in GMP 4; GMP 8b shows G2.DEVIATIONS red, closes it, then green).
+  `ASEPTIC_VIAL` and `MEDIA_FILL` are exported from `injectables-aseptic-acceptance.ts` (session 11 builds its lyo vial on
+  ASEPTIC_VIAL).
+
 ### Session 9 (10 November 2026): the post-use inspection without a second person (branch `inj/i1c2-postuse-verifier`)
 
 - **Lead ruling (10 November 2026):** no binding clause asks for a second person on the packaging line's post-use
@@ -298,7 +357,7 @@ Lead rulings of 9 November 2026, evening (binding; session 6 starts at P3c):
     - The new-master screen gets those fields.
     - No defaults, no invented values. Missing values are refused by the existing validator codes (G21-NO-LIMITS, GMP-SPECIMENS).
   - Tests by control ID: PR-32, PR-39, PR-31 and the GMP-* validator codes.
-  - **Residual:** "edit a packaging master's printed items after create". There is no G-21 items editor in the designer now (ConfigForm shows `items[]` read-only).
+  - **Residual:** "edit a packaging master's printed items after create". Partly done (session 12b, 11 November): on a draft, ConfigForm edits each G-21 printed item's own values in place (limits, issue need and allowance, counting, unit). Still open: adding or removing an item, and an item's artwork per market (a map), which stay read-only.
 - **P4b, GMP 8:** add STERILITY (211.167(a): each batch purporting to be sterile is tested) and PARTICULATE MATTER (the compendial test for injections; 211.160(b)) to the product specification, marked DEMO-ONLY. Results stay QC results (D-S11-R1).
 - **Order:** P3c, then P4b. Rebase nothing: merge main into `inj/i1c2-p4b-gmp-packaging` after P3c merges.
 

@@ -31,6 +31,7 @@ behaviour: |-
 catalog_test: An inspector with VI qualification 13 months old → sign-on refused. A failed mid-batch AVI challenge → units since the last pass held.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62] the booth illumination check is an EU-market block (Annex 1 8.31) signed by the operator alone: not in the IN or US base, which inspects without it; an illumination out of range is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
   status: MODIFY
