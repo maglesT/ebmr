@@ -310,6 +310,11 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     for (const f of event?.fields ?? []) expect('limitSlot' in f ? f.limitSlot : undefined, f.id).toBeUndefined();
   });
 
+  it('[ST-11] a torn glove is recorded as a glove-change event of the filling, with what happened; the fill then completes', () => {
+    expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: expect.arrayContaining(['Glove change']) as unknown });
+    expect(fillWithEvents([{ eventKind: 'Glove change', eventWhat: 'Right glove of port 2 torn and changed', eventMinutes: '3' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
   it('[ST-34][ST-36] an event not on the formulation\'s list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)', () => {
     const run = fillWithEvents([{ eventListed: false, eventWhat: 'Unlisted: stopper chute cleared by hand' }]);
     expect(run.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
@@ -331,6 +336,15 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const run = judgedRun(byCode('INJ-APS-READ'), { reading: { contaminated: '1', identification: 'Staphylococcus sp.' } });
     expect(new Set(run.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(run.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-02] the sterility-assurance route is the formulation\'s choice of blocks: every aseptic set-up filters to sterility and assembles aseptically and has no terminal sterilisation, which is a block of its own', () => {
+    for (const setUp of SET_UPS) {
+      const codes = setUp.steps.map((x) => x.code);
+      expect(codes, setUp.name).toEqual(expect.arrayContaining(['INJ-STERILE-FILTER', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-SIP']));
+      expect(codes, setUp.name).not.toContain('INJ-TERMINAL-STERILISE');
+    }
+    expect(SEED_CATALOGUE.map((s) => s.definition.code)).toContain('INJ-TERMINAL-STERILISE');
   });
 
   it('[ST-74][IN-41] the open Grade A, RABS and isolator set-ups are formulations of the same blocks: each names its background room and line by class; the isolator adds bio-decontamination and the glove test; EU-market blocks appear only in the EU set-up', () => {

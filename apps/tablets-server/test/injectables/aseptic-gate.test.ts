@@ -43,6 +43,7 @@ const seed = (code: string) => {
 };
 const FILL = seed('INJ-FILL');
 const COUNTS = seed('INJ-EM-COUNTS');
+const ROOM = seed('INJ-ROOM-READY');
 
 const processing: flow.MbrContent = gmpContent((m) => {
   const header = m['header'] as Json;
@@ -58,9 +59,11 @@ const processing: flow.MbrContent = gmpContent((m) => {
     stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)]),
     // The plates of the filling window are read after their incubation, days later, in a stage of their own.
     stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
+    // The filling room's readiness block, here read after the filling (a stage of its own): its pressure difference.
+    stage(like, 'S-ROOM', 'Filling room check', [phaseOf(ROOM.definition, 'p-room', ROOM.exampleUse)]),
   ];
   for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
-  m['blockDefinitions'] = [FILL.definition, COUNTS.definition];
+  m['blockDefinitions'] = [FILL.definition, COUNTS.definition, ROOM.definition];
 });
 
 let gmp: ExecServer;
@@ -149,7 +152,7 @@ beforeAll(async () => {
   } }));
   await signAs(gmp, await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
-  for (const def of [FILL.definition, COUNTS.definition]) {
+  for (const def of [FILL.definition, COUNTS.definition, ROOM.definition]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
     await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
@@ -207,5 +210,34 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
     expect(view.state).toBe('NOT_READY');
     expect(view.items['G2.DEVIATIONS']).toMatchObject({ status: 'RED' });
     expect(view.items['G2.DEVIATIONS']?.problem).toContain(dev.ref);
+  });
+
+  it('[ST-17] a pressure difference typed below its limit is an exception on the batch: the step cannot be signed, and while the exception is not dispositioned the record is not complete and the lot is not ready', async () => {
+    const b = await issued();
+    const d = await driverOf(gmp, b.batchId);
+    await record(d, 'p-fill@', FILL);
+    await signed(d, 'p-fill@');
+    await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-FILL@' });
+    await record(d, 'p-counts@', COUNTS);
+    await signed(d, 'p-counts@');
+    await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-EM@' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-room@' });
+    const entries = library.nominalEntries(ROOM.definition, ROOM.exampleUse as never);
+    for (const kind of ['clearance', 'readings']) {
+      const e = entries.find((x) => x.kind === kind);
+      if (!e) throw new Error(`no nominal ${kind} entry`);
+      const data: Json = Object.fromEntries(Object.entries(e).filter(([k]) => k !== 'kind' && k !== 'equipment'));
+      if (kind === 'clearance') data['room'] = FILL_ROOM;
+      if (kind === 'readings') data['pressureDiff'] = '8';
+      await d.ok('operator1', libraryEntry('p-room@', kind, data));
+    }
+    const state = (await gmp.db.admin.query<{ s: { exceptions: Record<string, { type: string; status?: string }> } }>('select state as s from recipe.execution_state where batch_id = $1', [b.batchId])).rows[0]!.s;
+    expect(Object.values(state.exceptions).filter((x) => x.type === 'LIB_LIMIT_BREACH')).toHaveLength(1);
+    const refused = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-room@' });
+    expect(refused.result.ok).toBe(false);
+    const lotId = await lotOf(b);
+    const view = await releaseView(lotId);
+    expect(view.state).toBe('NOT_READY');
+    expect(view.items['G1.REVIEW_1']).toMatchObject({ status: 'RED' });
   });
 });

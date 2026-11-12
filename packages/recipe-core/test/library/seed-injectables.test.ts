@@ -354,6 +354,14 @@ describe('equipment named by an injectables block is refused when it is not fit 
     expect(judgedRun(item, { clearance: unit(item, 'room', 'QUALIFIED') }).exceptions).toEqual([]);
   });
 
+  it('[ST-17] a pressure difference typed below its limit at room readiness is an exception: the record shows the excursion and the step stops until it is handled', () => {
+    const item = byCode('INJ-ROOM-READY');
+    expect(fieldOf(item, 'pressureDiff')).toMatchObject({ type: 'NUMBER', unit: 'Pa' });
+    const dip = judgedRun(item, { readings: { pressureDiff: '8' } });
+    expect(dip.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(dip.status).not.toBe('COMPLETED');
+  });
+
   it('[ST-17] depyrogenation refuses a tunnel whose HEPA test (its due date) has expired', () => {
     const item = byCode('INJ-DEPYRO');
     expect(() => judgedRun(item, { cycle: unit(item, 'tunnel', 'CALIBRATION_OVERDUE') })).toThrow(/calibration overdue and may not be used \(LIB-EQUIPMENT-FITNESS/);
