@@ -322,7 +322,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'line', label: 'Filling line', type: 'EQUIPMENT', kind: 'LINE', classSlot: 'lineClass' },
             { id: 'room', label: 'Filling room', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
-            { id: 'format', label: 'Container format', type: 'CHOICE', options: ['Vial', 'Ampoule'] },
+            { id: 'format', label: 'Container format', type: 'CHOICE', options: ['Vial', 'Ampoule', 'Syringe', 'Cartridge', 'Bottle'] },
             { id: 'stopperCheck', label: 'Stopper-height check active', type: 'YES_NO', expected: true, showWhen: { field: 'format', equals: 'Vial' } },
           ],
         },
