@@ -39,6 +39,18 @@ catalog_test: Leave a 15-min gap between Grade A plates → coverage exception. 
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-18] the product-contact surfaces (needles, stopper bowl, feed tracks) are sampled in their own step after filling: before filling has ended the step cannot be started, after it the surfaces are sampled and the step completes"
+clauses:
+  - clause: "Leave a 15-min gap between Grade A plates → coverage exception."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "coverage-gap engine"
+  - clause: "Log a plate exposed for 4 h 20 min → flagged invalid."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-18][ST-22][IN-42] EM records each viable location of the formulation's plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch"
+  - clause: "Try a needle-surface sample before fill end → blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-18] the product-contact surfaces (needles, stopper bowl, feed tracks) are sampled in their own step after filling: before filling has ended the step cannot be started, after it the surfaces are sampled and the step completes"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

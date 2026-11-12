@@ -24,7 +24,24 @@ behaviour: |-
   - Release is blocked while any alarm in the window is unassessed.
 catalog_test: Inject a 2 s power dip on the filler feed → deviation auto-created. Leave one of three alarms unassessed → release blocked. Cut the EMS feed for 30 min → a gap item appears.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] an alarm recorded during filling carries its assessment (its cause and its impact on the batch) on its own entry: an alarm entry without it is refused, an assessed alarm lets the fill complete, and no other event is asked for one"
+clauses:
+  - clause: "Inject a 2 s power dip on the filler feed → deviation auto-created."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "every power dip a deviation"
+  - clause: "Leave one of three alarms unassessed →"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] an alarm recorded during filling carries its assessment (its cause and its impact on the batch) on its own entry: an alarm entry without it is refused, an assessed alarm lets the fill complete, and no other event is asked for one"
+  - clause: "release blocked."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "blocking release while a typed alarm is unassessed is beyond the clause"
+  - clause: "Cut the EMS feed for 30 min → a gap item appears."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "EMS/SCADA import, feed-gap alarm"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

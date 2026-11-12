@@ -378,6 +378,15 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             // lasted the typed minutes: no typed date and time.
             { id: 'eventMinutes', label: 'How long it lasted', type: 'NUMBER', unit: 'min', decimals: 0 },
             { id: 'eventListed', label: 'On the formulation\'s list (validated interventions, known stoppages)', type: 'YES_NO', expected: true },
+            // ST-06: process and equipment alarms are acknowledged and evaluated, critical ones at once (A1 5.2, EU market).
+            // No field carries a market tag, so the assessment is asked of every alarm recorded here: an alarm entry
+            // without it is refused, and it is made when the alarm is over.
+            { id: 'alarmAssessment', label: 'Assessment of the alarm (its cause and its impact on the batch)', type: 'TEXT', maxLength: 200, showWhen: { field: 'eventKind', equals: 'Alarm' } },
+            // ST-34: personnel are monitored after taking part in a critical intervention, at least their gloves (A1 9.25;
+            // SM Part II 4.8 asks personnel monitored after critical operations). Only a critical intervention (one that
+            // enters the critical zone) asks for the glove sample; answered no, it is an exception.
+            { id: 'eventCritical', label: 'Critical intervention (entered the critical zone)', type: 'YES_NO', showWhen: { field: 'eventKind', equals: 'Intervention' } },
+            { id: 'gloveSampled', label: 'Gloves of each person who made it sampled (glove print) after the intervention', type: 'YES_NO', expected: true, showWhen: { field: 'eventCritical', equals: true } },
           ],
         },
         {

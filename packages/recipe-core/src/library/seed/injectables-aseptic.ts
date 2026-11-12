@@ -485,6 +485,10 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
             // culture media verified with positive controls): the plates' lot is named, so a lot not released (its test
             // not passed) is refused by the lot checks of every MATERIAL_LOT field (G07).
             { id: 'mediaLot', label: 'Media lot of the plates (released after its growth-promotion test)', type: 'MATERIAL_LOT' },
+            // ST-19: Grade A particle monitoring covers the full duration of critical processing, equipment assembly
+            // included (A1 9.16; SM Part II 4.7.1 in the same terms). Counting that started after the assembly began
+            // leaves a gap, so the answer no is an exception.
+            { id: 'countingFromAssembly', label: 'Grade A particle counting started before the aseptic equipment assembly began', type: 'YES_NO', expected: true },
           ],
         },
         {
@@ -526,6 +530,37 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
         particles50: { key: 'sterile.particles.gradeB.inOperation.max5_0um', bound: 'HIGH' },
       },
       counts: { viableLocations: '4', platesPerLocation: '1', particleLocations: '2' },
+    },
+  },
+  {
+    // INJ-32 (surfaces at the end): ST-18. Equipment surfaces are monitored at the end of the operation (A1 9.22; SM Part
+    // II 4.8 asks surfaces monitored after critical operations). The master places this block after the filling step in
+    // its sequence, so the engine does not open it, and no product-contact surface can be sampled, before filling has
+    // ended. The plates' counts after incubation are entered in INJ-EM-COUNTS as contact-plate locations.
+    definition: {
+      code: 'INJ-EM-SURFACES',
+      version: 1,
+      title: 'Environmental monitoring: product-contact surfaces at the end of filling',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['ENVIRONMENT_CHECK'],
+      description: 'INJ-32. Each product-contact surface of the sampling plan (filling needles, stopper bowl, feed tracks) sampled once filling has ended, with the plates or swabs taken. The counts after incubation are entered in the step "Environmental monitoring: counts after incubation".',
+      instructions: 'After the end of filling, sample each product-contact surface of the plan and label the plates with the batch, the surface and the time.',
+      sections: [
+        {
+          id: 'surface',
+          title: 'Product-contact surface',
+          repeat: { kind: 'COUNT', countSlot: 'surfaceLocations' },
+          fields: [
+            { id: 'surface', label: 'Surface (from the sampling plan)', type: 'TEXT', maxLength: 60 },
+            { id: 'sample', label: 'Plates or swabs taken', type: 'SAMPLE', unitsSlot: 'platesPerSurface', purpose: 'Environmental monitoring' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR],
+    },
+    exampleUse: {
+      counts: { surfaceLocations: '3', platesPerSurface: '1' },
     },
   },
   {
