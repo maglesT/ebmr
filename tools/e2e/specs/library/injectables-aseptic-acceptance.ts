@@ -96,11 +96,14 @@ export const ASEPTIC_VIAL: Injectable = {
     outputStage: 'FILLING',
     outputUnits: '9720',
     // The GMP batch's air sample at the filling point counts 12 CFU/m3 after incubation, above the Grade B action limit of
-    // 10 (Schedule M Table 3; the formulation's limit): the step is blocked until the supervisor raises the deviation.
+    // 10 (Schedule M Table 3) and the alert level of 5, both the formulation's tiers (the block's example, typed into their
+    // own boxes): an action-tier breach, so the step and the ones after it wait until the supervisor links a deviation. The
+    // blocked exception names the limit breached (`exception`, checked on screen): the internal action limit.
     breach: {
       step: 'INJ-EM-COUNTS',
       values: { count: { method: 'Active air sample', cfuAir: '12' } },
       rationale: 'Grade B air count above the action limit during the aseptic fill; sterility assurance to be assessed.',
+      exception: 'is outside its internal action limit',
     },
   },
 };
@@ -111,6 +114,8 @@ export const ASEPTIC_VIAL: Injectable = {
  * includes the line's interventions), then incubation and reading (INJ-APS-READ) in place of inspection, the EM counts and
  * the unit accountability, which reads the units incubated and removed from the reading. DEMO-ONLY values.
  * 10,000 filled = 9,840 incubated + 20 rejected at the line + 40 at capping + 80 removed before incubation + 20 lost.
+ * The master carries the process-simulation mark (recipe-core 1896): its GMP batch is issued with no product licence and
+ * ends at QA's review of the record.
  */
 const MEDIA_FILL_COUNTS = {
   read: { incubation: { unitsRemoved: '80', removedReason: 'Cracked or without a crimp, removed before incubation', unitsIncubated: '9840' } },
@@ -157,4 +162,8 @@ export const MEDIA_FILL: Injectable = {
     plan(productBlock('INJ-EM-COUNTS', {})),
     mediaFillAccount(),
   ],
+  processSimulation: true,
+  // The GMP run (recipe-core 1896): the aseptic vial's line, the same GMP units, and the incubator. No output containers:
+  // the units are incubated, read and destroyed.
+  gmp: { plant: [...(ASEPTIC_VIAL.gmp?.plant ?? []), unit('INCUBATOR', 'Microbiological incubator', 'INCUBATOR-01', 'Incubator')] },
 };
