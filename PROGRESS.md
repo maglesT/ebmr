@@ -52,6 +52,10 @@ records `process_simulation` with no licence. The database refuses its label (IN
 (EXE-198), a finished lot (IND-045) and a shipment (IND-046). A US-market media fill meets the 11.100(c) gate with the site's
 licence holder (1260, lead ruling); the allocation register shows processSimulation.
 
+**Injectables EM tiers (12 November 2026, session 10c).** The library E2E types each limit tier into its own boxes; the
+aseptic vial's EM breach is an action-tier breach. Routine EM is not a batch record (lead): owner question, a room-level
+EM logbook as a future feature, if wanted.
+
 **Injectables I-2d (12 November 2026, session 10c).** The media fill's GMP run, E2E: the mark set on screen, the batch issued
 with no licence (the register says so), run on the kiosks with no release for packing, ended by QA's record review; a
 finished lot of it is refused. The master-version market authorisation stays (lead).
