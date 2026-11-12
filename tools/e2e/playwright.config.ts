@@ -39,6 +39,9 @@ export const E2E_GROUPS: Record<string, string[]> = {
   // Injectables edition I-2b: an aseptically filled vial (RABS) from the catalogue to its released lot; an EM count above
   // the action limit holds the release until its deviation is closed. I-2c: the media fill of the same line (sandbox half).
   'library-inj-aseptic': ['library/inj-aseptic-vial.spec.ts', 'library/inj-media-fill.spec.ts'],
+  // Injectables edition I-5: the vial with the 100 % deterministic integrity test and the automated visual inspection
+  // (sandbox half).
+  'library-inj-inspection': ['library/inj-inspection-vial.spec.ts'],
   // Owner acceptance (session 12): a bilayer tablet built on screen (a material on two lines, an added two-room stage
   // with its own yield, two QA persons authorising) to its released lot.
   'library-bilayer': ['library/tablet-bilayer.spec.ts'],
