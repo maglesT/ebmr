@@ -18,6 +18,11 @@ behaviour: |-
 catalog_test: Make the dryness test overdue → the autoclave run is flagged.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Make the dryness test overdue → the autoclave run is flagged."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Pre-cycle check of steam tests; \"unverified steam\" flag"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

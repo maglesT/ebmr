@@ -18,6 +18,11 @@ behaviour: |-
 catalog_test: An operator qualified on 10 mL vials is assigned a manual 50 mL fill → refused.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "An operator qualified on 10 mL vials is assigned a manual 50 mL fill → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Tracking per operator, container, closure and equipment train"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

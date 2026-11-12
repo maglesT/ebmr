@@ -18,6 +18,11 @@ behaviour: |-
 catalog_test: Put an adverse-trend flag on nitrogen drop N-3 → every batch that used N-3 shows a review item.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Put an adverse-trend flag on nitrogen drop N-3 → every batch that used N-3 shows a review item."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Trend flag per point and review items on every batch that used it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

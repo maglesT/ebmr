@@ -19,6 +19,15 @@ behaviour: |-
 catalog_test: Open a change control on filling line 2 with "requalification required" → batch start on line 2 is blocked. Close it → start allowed, citing the change-control ID.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Open a change control on filling line 2 with \"requalification required\" → batch start on line 2 is blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "CCS-impact assessment workflow; asset blocked by an open change"
+  - clause: "Close it → start allowed, citing the change-control ID."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "CCS-impact assessment workflow; asset blocked by an open change"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

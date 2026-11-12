@@ -21,6 +21,11 @@ behaviour: |-
 catalog_test: APS qualified 4 people and 5 are present during filling → deviation, with the peak shown on the timeline.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "APS qualified 4 people and 5 are present during filling → deviation, with the peak shown on the timeline."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Access-control import, peak headcount against room maximum, transfer count"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

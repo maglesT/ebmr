@@ -18,6 +18,15 @@ behaviour: |-
 catalog_test: Sign a step 3 h after the activity → flagged "late" and a reason required. Execute step 7 before step 6 → deviation required.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Sign a step 3 h after the activity → flagged \"late\" and a reason required."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Late-entry window (design choice, 15 min) with reason"
+  - clause: "Execute step 7 before step 6 → deviation required."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "with reason; forced deviation for out-of-sequence steps"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
