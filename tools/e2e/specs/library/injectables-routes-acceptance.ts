@@ -5,13 +5,16 @@
  * product passed as data):
  *  - a large-volume infusion in form-fill-seal bags, terminally sterilised by moist heat (INJ-FFS, INJ-TERMINAL-STERILISE);
  *  - a small-volume injection in blow-fill-seal ampoules, terminally sterilised by moist heat (INJ-BFS);
- *  - the I-1 vial terminally sterilised by gamma radiation at a contract steriliser instead of moist heat (INJ-RADIATION).
+ *  - the I-1 vial terminally sterilised by gamma radiation at a contract steriliser instead of moist heat (INJ-RADIATION);
+ *  - a dual-chamber cartridge, aseptically filled: the drug solution filled and lyophilised in the front chamber, the
+ *    diluent sterile filtered and filled into the rear chamber, then the plunger placed (INJ-FILL twice, INJ-LYO,
+ *    INJ-PLUNGER; the library's dual-chamber note).
  * Each filling block registers its trays and gives the counts unit accountability reads (filled and rejected at filling,
  * rejected at closing: the FFS and BFS machines close the units themselves). Masters for India: the EU-market blocks
  * (INJ-FFS-EU, INJ-BFS-EU, INJ-RADIATION-EU) are left out.
  * DEMO-ONLY data; every code is unique per run.
  */
-import { productBlock, type ProductBlock } from './library-support.ts';
+import { productBlock, stepIdOf, type ProductBlock } from './library-support.ts';
 import { INJECTABLES, unit, VIAL_COUNTS, type Injectable } from './injectables-acceptance.ts';
 import { ASEPTIC_VIAL } from './injectables-aseptic-acceptance.ts';
 
@@ -54,6 +57,95 @@ const found = INJECTABLES.find((x) => x.key === 'vial');
 if (!found) throw new Error('the I-1 vial is not in the acceptance');
 // The sandbox half only (plan section 6): the vial's GMP data is not carried over.
 const vial: Injectable = Object.fromEntries(Object.entries(found).filter(([k]) => k !== 'gmp')) as unknown as Injectable;
+
+/**
+ * The dual-chamber cartridge's steps (DEMO-ONLY values), the aseptic vial's line with its own machines:
+ *  - room, cartridge washing and depyrogenation, the parts autoclave (the middle stoppers and plungers), sterilisation
+ *    in place, compounding, the sterilising filtration of the drug solution, the aseptic assembly;
+ *  - the drug solution filled into the front chambers on the RABS line (the first INJ-FILL) and its fill weights, the EM
+ *    sampling during filling;
+ *  - lyophilisation: the filled trays loaded, the cycle, the middle stoppers seated in the chamber, the loads unloaded;
+ *  - the diluent (water for injection) sterile filtered (a second INJ-STERILE-FILTER) and filled into the rear chambers
+ *    (the second INJ-FILL), then the plungers placed (INJ-PLUNGER, the closing of the unit);
+ *  - the sterility samples, inspection, container closure integrity, the EM counts after incubation and the unit
+ *    accountability: the drug fill's filled and rejected counts, the plunger placement's rejects as the closing rejects.
+ * 10,000 filled = 20 rejected at the drug fill + 40 at plunger placement + 9,720 accepted + 80 rejected at inspection +
+ * 120 sampled + 20 lost; the diluent is filled into the 9,980 units the drug fill passed, with no reject.
+ */
+const second = (b: ProductBlock): ProductBlock => ({ ...b, stepId: `${stepIdOf(b.def.code)}-2` });
+/** A value the server calculated, as the kiosk's entry list shows it (injectables-inspection-acceptance.ts). */
+const calc = (label: string, value: string): RegExp => new RegExp(`${label.replace(/[().]/g, '\\$&')} ${value}(\\.0+)? \\{unit\\} \\(calculated`);
+/** A typed count as the entry list shows it. */
+const typed = (label: string, value: string): RegExp => new RegExp(`${label.replace(/[().]/g, '\\$&')}\\D*${value}\\b`);
+const cartridgeSteps = (): Injectable['steps'] => {
+  const from = (code: string): ProductBlock => {
+    const b = ASEPTIC_VIAL.steps.find((x) => x.def.code === code);
+    if (!b) throw new Error(`the aseptic vial has no ${code} step`);
+    return b;
+  };
+  const fill = { lineClass: 'CARTRIDGE-FILLING-RABS', roomClass: 'ROOM-GRADE-B' };
+  return [
+    from('INJ-ROOM-READY'),
+    productBlock('INJ-WASH', 'CARTRIDGE-WASHER'),
+    from('INJ-DEPYRO'),
+    from('INJ-PARTS-AUTOCLAVE'),
+    from('INJ-SIP'),
+    from('INJ-COMPOUND'),
+    from('INJ-STERILE-FILTER'),
+    from('INJ-ASEPTIC-ASSEMBLY'),
+    { ...productBlock('INJ-FILL', fill), values: VIAL_COUNTS.fill },
+    from('IPC-INJ-FILL-WEIGHT'),
+    from('INJ-EM'),
+    productBlock('INJ-LYO', 'LYOPHILISER'),
+    second(productBlock('INJ-STERILE-FILTER', {})),
+    {
+      ...second(productBlock('INJ-FILL', fill)),
+      values: { end: { filled: '9980', rejects: '0' }, tray: { units: '9980' } },
+      expect: { entries: [typed('Units filled', '9980'), typed('Units rejected at the line (incl. stopper height)', '0')] },
+    },
+    { ...productBlock('INJ-PLUNGER', 'PLUNGER-PLACER'), values: VIAL_COUNTS.capping, expect: { entries: [calc('Units rejected at placement', '40')] } },
+    from('INJ-STERILITY-SAMPLE'),
+    { ...productBlock('INJ-VISUAL-INSPECT', 'INSPECTION-BOOTH'), values: VIAL_COUNTS.inspect },
+    from('INJ-CCI'),
+    from('INJ-EM-COUNTS'),
+    // 20 at the drug fill + 40 at plunger placement + 80 at inspection; nothing unaccounted for.
+    {
+      ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { filling: 'INJ-FILL', capping: 'INJ-PLUNGER' }),
+      values: VIAL_COUNTS.account,
+      expect: { entries: [calc('Units rejected (line, closing and inspection)', '140'), calc('Units not accounted for', '0')] },
+    },
+  ];
+};
+
+const cartridgeUnits = (key: string): boolean => !['VIAL-WASHER', 'VIAL-FILLING-RABS', 'VIAL-CAPPER'].includes(key);
+
+export const DUAL_CHAMBER: Injectable = {
+  key: 'dual-chamber',
+  prefix: 'LDC20',
+  name: 'Libinj 20 mg, powder and solvent for solution for injection in a dual-chamber cartridge (library)',
+  strength: '20 mg',
+  dosageForm: 'Injection',
+  targetMg: '62',
+  materials: [
+    { id: 'api', name: 'Libinj dual-chamber active', mgPerUnit: '20', tare: '0.200', gross: '1.200' },
+    { id: 'mann', name: 'Mannitol (bulking agent)', mgPerUnit: '40', tare: '0.200', gross: '2.200' },
+    { id: 'buf', name: 'Sodium dihydrogen phosphate dihydrate (buffer)', mgPerUnit: '2', tare: '0.050', gross: '0.150' },
+  ],
+  plant: [
+    ...ASEPTIC_VIAL.plant.filter((u) => cartridgeUnits(u.classCode)),
+    unit('CARTRIDGE-WASHER', 'Cartridge washing machine', 'TEST-CART-WASHER-01', 'Cartridge washer'),
+    unit('CARTRIDGE-FILLING-RABS', 'Cartridge filling line in a RABS', 'TEST-CART-LINE-01', 'RABS cartridge filling line'),
+    unit('LYOPHILISER', 'Lyophiliser (freeze dryer)', 'TEST-LYO-01', 'Lyophiliser'),
+    unit('PLUNGER-PLACER', 'Plunger stopper placement machine', 'TEST-PLACER-01', 'Plunger placer'),
+  ],
+  components: [
+    { id: 'cartridge', name: 'Dual-chamber glass cartridge with bypass, 2 mL, type I', field: 'containerLot' },
+    { id: 'stopper', name: 'Bromobutyl middle stopper for cartridges', field: 'stopperLot' },
+    { id: 'filter', name: 'Sterilising filter cartridge, 0.2 micrometre', field: 'filterLot' },
+    { id: 'plunger', name: 'Bromobutyl plunger for cartridges', field: 'plungerLot' },
+  ],
+  steps: cartridgeSteps(),
+};
 
 export const ROUTE_PRODUCTS: readonly Injectable[] = [
   {
@@ -169,6 +261,7 @@ export const ROUTE_PRODUCTS: readonly Injectable[] = [
       { ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { capping: 'INJ-PLUNGER' }), values: VIAL_COUNTS.account },
     ],
   },
+  DUAL_CHAMBER,
 ];
 
 /** The route product `key`. */

@@ -37,6 +37,7 @@ export const E2E_GROUPS: Record<string, string[]> = {
   // Injectables edition I-4: one sandbox batch per form (FFS bags, BFS ampoules, a radiation-sterilised vial, an emulsion,
   // a prefilled syringe from ready-to-use tubs).
   'library-inj-routes': ['library/inj-ffs-bag.spec.ts', 'library/inj-bfs-ampoule.spec.ts', 'library/inj-radiation-vial.spec.ts', 'library/inj-emulsion-vial.spec.ts', 'library/inj-syringe.spec.ts'],
+  'library-inj-cartridge': ['library/inj-dual-chamber.spec.ts'],
   // Injectables edition I-2b: an aseptically filled vial (RABS) from the catalogue to its released lot; an EM count above
   // the action limit holds the release until its deviation is closed. I-2c: the media fill of the same line (sandbox half).
   'library-inj-aseptic': ['library/inj-aseptic-vial.spec.ts', 'library/inj-media-fill.spec.ts'],
