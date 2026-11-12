@@ -24,7 +24,7 @@ function fillsLikeInjFill(item: SeedItem): void {
   const code = item.definition.code;
   expect(fieldOf(item, 'trayOut'), code).toMatchObject({ type: 'CONTAINER', action: 'REGISTER' });
   expect(item.definition.sections.find((s) => s.id === 'tray')?.repeat, code).toEqual({ kind: 'PER_CONTAINER' });
-  expect(item.definition.sections.find((s) => s.id === 'end')?.fields.map((f) => f.id), code).toEqual(['filled', 'rejects']);
+  expect(item.definition.sections.find((s) => s.id === 'end')?.fields.map((f) => f.id).slice(0, 2), code).toEqual(['filled', 'rejects']);
   expect(fieldOf(item, 'room'), code).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM' });
   // The fill weight is recorded once, by IPC-INJ-FILL-WEIGHT.
   expect(item.definition.sections.flatMap((s) => s.fields).map((f) => f.id), code).not.toContain('fillWeight');
@@ -73,6 +73,8 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
   it('[ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT\'s), and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch\'s seal strength; a value outside is an exception', () => {
     const item = byCode('INJ-FFS');
     fillsLikeInjFill(item);
+    // Closing happens in the machine: the sealing rejects are the units rejected at closing that accountability reads.
+    expect(fieldOf(item, 'totalRejects')).toMatchObject({ type: 'CALC', expression: 'sum(sealRejects)' });
     expect(fieldOf(item, 'filmLot').type).toBe('MATERIAL_LOT');
     expect(judgedRun(item, { round: { sealsOk: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     const eu = byCode('INJ-FFS-EU');
@@ -85,6 +87,8 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
   it('[ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT\'s), and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch\'s wall thickness; a value outside is an exception', () => {
     const item = byCode('INJ-BFS');
     fillsLikeInjFill(item);
+    // Closing happens in the machine: the sealing rejects are the units rejected at closing that accountability reads.
+    expect(fieldOf(item, 'totalRejects')).toMatchObject({ type: 'CALC', expression: 'sum(sealRejects)' });
     expect(fieldOf(item, 'polymerLot').type).toBe('MATERIAL_LOT');
     expect(judgedRun(item, { round: { sealsOk: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     const eu = byCode('INJ-BFS-EU');

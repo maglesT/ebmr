@@ -59,6 +59,33 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 10b (11 November 2026): lean merged, I-2b merged, I-2c and B open
+
+- **Merged:** #218 (lean review; no volume CALC, the lead's ruling), #227 (I-2b, the aseptic vial E2E; GMP 8b also tries the
+  release on screen and finds it refused, decision 0029; a human-error deviation is concluded with the PR-50 system factors).
+- **I-2c (this branch, `inj/i2-c-media-fill`):** the media fill's sandbox half, group `library-inj-aseptic`, green on
+  209ce54. It is medium-only (lead: a new formulation never needs software). The fix was in the E2E helpers only; the
+  product skeleton already omits the "other components" step for a one-line formula (from-formula.ts). Blocks go after
+  `p-disp-act`, the floor weighs and lists only the groups the lots have (`hasExc`), and `potencyAdjusted: false` on a
+  material. Still to do for the media fill's GMP run: `phase7/own-product-floor.ts:518` assumes `p-disp-exc` too.
+  - Lead ruling: the sandbox half keeps the IN market authorisation for now. Once B lands, a PROCESS_SIMULATION master skips
+    it, and the E2E must assert the skip.
+- **B, `inj/i2-sim-mark` (recipe-core 1888; local CI green, 734 files / 5475 tests):** the mark is in the header, the
+  validator, the designer and the content hash.
+  - 1888 skips the licence and export permission at issue, records "no licence: process simulation" in
+    batch_licence_basis (licence columns nullable plus a check), and refuses the label (IND-050), a packaging order
+    (EXE-198), a finished lot (IND-045) and a shipment (IND-046).
+  - Lead rulings: the US 11.100(c) gate uses the site's licence holder (latest current licence); the allocation register
+    shows "Process simulation (no licence)"; the packaging refusal has a full-path test. No later migration redefines a
+    function 1888 replaces (checked at 1893).
+  - Next: open its PR, run the full CI, get the audit.
+- **Then:** the media fill's GMP run to QA's record review (needs B); the EM alert tier on the aseptic vial (item 5: the
+  E2E values helper types only the first tier into the registered boxes; type each tier into its own boxes with "More
+  limits", and check how GMP 8b's breach is then classed); routine EM (item 6).
+- **Local environment:** PostgreSQL stops when the container restarts. Run `sudo pg_ctlcluster 16 main start` and
+  re-create the role ebmr_dev/ebmr_dev, then run vitest from the repo root (the template database comes from the root
+  global setup). GitHub E2E needs `runner=github`; the pod queue was stuck on 11 November.
+
 ### Session 10 (10 November 2026): I-2, aseptic fill, EM and media fill
 
 - **PRs:** #205 (GMP half's output = the run's unconsumed containers: `outputStage`, `outputUnits`, keys `output-N`;
@@ -166,6 +193,33 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - A local PostgreSQL cluster can stop between turns: `pg_ctlcluster 16 <name> start` for each down cluster is enough
     (no full setup).
   - A new SQL function needs a group in `tools/sql-mutation/src/targets.ts` and the group in `.github/workflows/mutation.yml`.
+
+### Session 11 → Handover (11 November 2026, 20:00; session 11b continues)
+
+- **Merged by session 11:** #204 (INJ-LYO, INJ-LYO-EU), #207 (I-4 blocks; Gy/kGy, expr 0.2.0), #217 (lean review; the
+  role PACK_EXAMINATION, recipe-core 1892, injectables 3020).
+- **Open branch `inj/i4-e2e` (no PR yet):**
+  - three I-4 sandbox products as data in `tools/e2e/specs/library/injectables-routes-acceptance.ts`: an FFS bag, a BFS
+    ampoule, and the I-1 vial terminally sterilised by radiation; spec files `inj-ffs-bag`, `inj-bfs-ampoule`,
+    `inj-radiation-vial`; E2E group `library-inj-routes` (playwright config, ci.yml);
+  - `defineInjectablesAcceptance(product: string | Injectable)` and the exports (`Injectable`, `InjectableGmp`, `unit`,
+    `VIAL_COUNTS`): the same hunks as session 10's I-2b branch, so the two merge without conflict;
+  - INJ-FFS and INJ-BFS, a v1 data edit (safe: nothing but their own tests and this E2E references them; library,
+    block-version and demo-catalogue tests pass): the rounds record `sealRejects` (typed), the end `rejects` (typed, at
+    filling) and `totalRejects` (CALC, the sum at sealing), which INJ-UNIT-ACCOUNT reads as the closing rejects;
+  - the sandbox E2E titles listed in DI-04, DI-05, DI-17, IN-13, PR-01, PR-03, PR-05;
+  - the handbook prose the lead asked for after #217 (recipe-core.md: packaging completion by role; injectables.md: the
+    edition's migrations 3000 and 3020).
+- **CI:** the narrowed runs 43040612521 (two attempts) and 43059672827 died in the Playwright install (Ubuntu mirror DNS)
+  before any test; #222 fixed that. Main (with #222) is merged in at 058c752, and a narrowed run of
+  `library-inj-routes` (runner=github) was dispatched at 19:55: its result is the first real test of the three products.
+- **Left to do:**
+  1. Finish the I-4 E2E: read that run; fix; then open the PR (state the v1-edit safety and that the seal counts are
+     typed), full run, lead audit, merge.
+  2. Powder fill (INJ-POWDER-FILL) E2E: after I-2b merges (its sterility rests on the aseptic Grade A/B set-up).
+  3. The lyophilised vial E2E (I-3b): session 10's aseptic vial + INJ-LYO between filling and capping, own file and group
+     `library-inj-lyo`, after I-2b merges; the INJ-FILL "closures" label in neutral wording (lead-approved).
+- **Free numbers:** injectables 3040-3049; recipe-core 1896 (ask the lead first).
 
 ### Session 8 (10 November 2026): P4b, GMP 6 to 9 run
 

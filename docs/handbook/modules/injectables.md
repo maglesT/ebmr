@@ -29,6 +29,17 @@ depends on kernel, site-services, expr, recipe-core and integration-sdk; the web
 identity is right. The apps exist so that the dependency boundaries, the exact pins and the CI checks cover both
 editions from the start: a shared-package change that would break the Injectables wiring fails now, not in Phase 5.
 
+## The edition's database migrations (editions/injectables/sql)
+
+The edition is data on the shared kernel (library blocks, formulations, masters); its own migrations are few:
+
+- 3000: a packaging record of the edition ends with the finished-pack examination, and the release gate G-REL has the
+  edition's items (printed materials and yields reconciled, held containers, rule sets, and `E.PACK_EXAMINATION`).
+- 3020: `E.PACK_EXAMINATION` takes every step that completes the packaging record (recipe-core 1892: a listed block or a
+  library block with the role `PACK_EXAMINATION`), not only the catalogue block INJ-PACK-EXAM. An examination that ran
+  and is not completed is red; a failed one stays red until each critical breach or unexpected answer of the step is
+  dispositioned and its deviation closed (21 CFR 211.134(b), (c)).
+
 ## Pharma context: why a second edition
 
 Injectables are sterile medicines given by injection (vials, ampoules, prefilled syringes). They follow the same data

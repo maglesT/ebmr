@@ -136,7 +136,8 @@ export const MEDIA_FILL: Injectable = {
   dosageForm: 'Injection',
   targetMg: '60',
   // The sterile medium in water for injection (about 30 g/L, 60 mg per 2 mL vial).
-  materials: [{ id: 'medium', name: 'Soybean-casein digest medium', mgPerUnit: '60', tare: '0.300', gross: '3.300' }],
+  // The medium alone: no potency to adjust, and no other components (the generic flow skips their dispensing step).
+  materials: [{ id: 'medium', name: 'Soybean-casein digest medium', mgPerUnit: '60', tare: '0.300', gross: '3.300', potencyAdjusted: false }],
   plant: [...ASEPTIC_VIAL.plant, unit('INCUBATOR', 'Microbiological incubator', 'TEST-INCUBATOR-01', 'Incubator')],
   components: ASEPTIC_VIAL.components,
   steps: [
