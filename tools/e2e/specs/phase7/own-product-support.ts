@@ -49,6 +49,8 @@ export interface SkeletonExtras {
   lubricantKg?: string;
   /** An injectables master: the dispensing stage with the product's steps, then H-PACK (library/skeleton-floor.ts). */
   dispensingOnly?: boolean;
+  /** With `dispensingOnly`: the master has no release for packing (a media fill; library/skeleton-floor.ts). */
+  noPackRelease?: boolean;
 }
 
 /**
@@ -93,6 +95,7 @@ export async function runSkeletonTestBatch(
       ...(extra.afterDispensing ? { afterDispensing: extra.afterDispensing } : {}),
       ...(extra.afterDischarge ? { afterDischarge: extra.afterDischarge } : {}),
       ...(extra.dispensingOnly ? { dispensingOnly: extra.dispensingOnly } : {}),
+      ...(extra.noPackRelease ? { noPackRelease: extra.noPackRelease } : {}),
     });
   } finally {
     await closeFloor();

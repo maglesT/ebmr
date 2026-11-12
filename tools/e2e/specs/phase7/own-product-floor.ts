@@ -515,7 +515,8 @@ export async function dispensing(f: Floor, plan: ProcessPlan): Promise<void> {
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }
-  if (!(await done(f, page, 'p-disp-exc@'))) {
+  // The other components' step only when the formula has them (from-formula makes it for those lines alone).
+  if (plan.others.length > 0 && !(await done(f, page, 'p-disp-exc@'))) {
     await as(page, dispenser);
     await step(f, page, 'p-disp-exc@');
     await begin(page, dispenser);
