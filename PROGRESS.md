@@ -52,6 +52,10 @@ records `process_simulation` with no licence. The database refuses its label (IN
 (EXE-198), a finished lot (IND-045) and a shipment (IND-046). A US-market media fill meets the 11.100(c) gate with the site's
 licence holder (1260, lead ruling); the allocation register shows processSimulation.
 
+**Injectables I-2d (12 November 2026, session 10c).** The media fill's GMP run, E2E: the mark set on screen, the batch issued
+with no licence (the register says so), run on the kiosks with no release for packing, ended by QA's record review; a
+finished lot of it is refused. The master-version market authorisation stays (lead).
+
 **Session 12 (10 and 11 November 2026; owner retest and lean review).**
 - #210 N-1, N-2: the ERP production order names each material once (the master's lines summed, then scaled); a database
   refusal after an earlier commit in the same request (withScopedCommand) is answered 422 with its reason, not 500.
