@@ -556,7 +556,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-22 (manual and semi-automatic; automated in I-5): SM 10.3-10.8, Part I 11.5.1; A1 8.30-8.33.
+    // INJ-22 (manual and semi-automatic; automated is INJ-AVI): SM 10.3-10.8, Part I 11.5.1; A1 8.30-8.33.
     definition: {
       code: 'INJ-VISUAL-INSPECT',
       version: 1,
@@ -641,7 +641,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     exampleUse: {},
   },
   {
-    // INJ-23 (dye and other methods; deterministic machines in I-5): SM 10.3-10.8; A1 8.22-8.25.
+    // INJ-23 (sampled, dye and deterministic methods; the 100 % in-line test is INJ-CCIT-100): SM 10.3-10.8; A1 8.22-8.25.
     definition: {
       code: 'INJ-CCI',
       version: 1,
@@ -655,7 +655,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           id: 'test',
           title: 'Integrity test',
           fields: [
-            { id: 'method', label: 'Method', type: 'CHOICE', options: ['Dye ingress (vacuum)', 'Vacuum decay', 'High-voltage leak detection', 'Helium leak'] },
+            { id: 'method', label: 'Method', type: 'CHOICE', options: ['Dye ingress (vacuum)', 'Vacuum decay', 'High-voltage leak detection', 'Helium leak', 'Laser headspace analysis'] },
             { id: 'units', label: 'Units tested', type: 'SAMPLE', unitsSlot: 'cciUnits', purpose: 'Container closure integrity' },
             { id: 'failures', label: 'Units that failed', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'failures', critical: true },
           ],
@@ -680,12 +680,12 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['YIELD_RECONCILIATION'],
-      description: 'INJ-24. Every unit filled is accounted for: accepted, rejected at the line, at capping or sealing and at inspection, sampled and documented losses. The units filled and rejected at the line are read from the filling step, the units rejected at closing from the capping (vials) or sealing (ampoules) step, the units accepted and rejected at inspection from the inspection step. A unit not accounted for is an exception.',
+      description: 'INJ-24. Every unit filled is accounted for: accepted, rejected at the line, at capping or sealing and at inspection, sampled and documented losses. The units filled and rejected at the line are read from the filling step, the units rejected at closing from the capping (vials) or sealing (ampoules) step, or from the 100 % integrity test\'s total when one follows, the units accepted and rejected at inspection from the inspection step. A unit not accounted for is an exception.',
       instructions: 'Enter the units sampled and the documented losses; the other counts come from the filling, capping or sealing, and inspection steps. Explain any unit not accounted for before signing.',
       inputs: [
         { id: 'filled', label: 'Units filled (from filling)', kind: 'STEP_VALUE', unit: UNITS, slot: 'filledSource' },
         { id: 'lineRejects', label: 'Units rejected at the line (from filling)', kind: 'STEP_VALUE', unit: UNITS, slot: 'lineRejectsSource' },
-        { id: 'closingRejects', label: 'Units rejected at closing (from capping or sealing)', kind: 'STEP_VALUE', unit: UNITS, slot: 'closingRejectsSource' },
+        { id: 'closingRejects', label: 'Units rejected at closing (from capping or sealing, or integrity testing)', kind: 'STEP_VALUE', unit: UNITS, slot: 'closingRejectsSource' },
         { id: 'accepted', label: 'Units accepted after inspection (from inspection)', kind: 'STEP_VALUE', unit: UNITS, slot: 'acceptedSource' },
         { id: 'inspectionRejects', label: 'Units rejected at inspection (from inspection)', kind: 'STEP_VALUE', unit: UNITS, slot: 'inspectionRejectsSource' },
       ],
@@ -813,7 +813,10 @@ export const INJECTABLE_RELEASE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'sterilityMethod', label: 'Method', type: 'CHOICE', options: ['Membrane filtration', 'Direct inoculation', 'Validated rapid microbial method'] },
             { id: 'unitsTested', label: 'Units tested', type: 'SAMPLE', unitsSlot: 'sterilityUnits', purpose: 'Sterility' },
-            { id: 'noGrowth', label: 'No growth in any medium at the end of incubation', type: 'YES_NO', expected: true },
+            { id: 'noGrowth', label: 'No growth or microbial detection at the end of the test', type: 'YES_NO', expected: true },
+            // A rapid method's result is typed from the instrument report and checked by the QC reviewer (SM Part I 5.4.6;
+            // 211.68(b)); the method's validation against the pharmacopoeial one is outside the record (SM 2.5, A1 10.11).
+            { id: 'rmmReportAttached', label: 'Instrument report of the rapid method attached to the record', type: 'YES_NO', expected: true, showWhen: { field: 'sterilityMethod', equals: 'Validated rapid microbial method' } },
           ],
         },
         {

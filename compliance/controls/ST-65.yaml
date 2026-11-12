@@ -28,6 +28,7 @@ behaviour: |-
 catalog_test: Release with sterility present and endotoxin pending → refused. A sterility result whose method suitability used the old formulation → refused.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-65][ST-20] a sterility test by a validated rapid method asks for the instrument report, checked by the QC reviewer; a compendial method does not; no report attached is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-65][ST-68] the release tests are QC's: growth in the sterility test, or endotoxin above the product limit, is an exception"
 expert_decision:
   status: MODIFY

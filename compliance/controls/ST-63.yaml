@@ -22,6 +22,7 @@ behaviour: |-
 catalog_test: One cracked vial in the AQL sample → automatic investigation and release block. Ten batches with rising glass rejects → trend rule fires.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-62][ST-63][IN-50] automated inspection names the machine by its class, records the counts by defect category from the machine report, checked by a second person, and judges the reject rate; a reject rate above its limit or no report attached is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-62][ST-63] 100 % inspection counts the rejects by defect category and judges the reject rate; one critical defect in the AQL sample is an exception"
 expert_decision:
   status: MODIFY

@@ -44,6 +44,15 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Injectables I-5 (session 13, 12 November 2026).** #236 merged:
+- INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
+- INJ-AVI-CHALLENGE-EU: the Annex 1 8.32 challenge, EU only.
+- INJ-CCIT-100: deterministic 100 % CCIT; a leaker is a counted reject, accounted through `totalRejects`.
+- RMM: `rmmReportAttached` in TEST-INJ-RELEASE.
+
+The E2E (group `library-inj-inspection`) takes the vial with these blocks through its sandbox half to IN authorisation. The
+RMM end to end is a residual for the I-6 golden batch or a GMP half (`docs/build-plan/injectables/resume.md`).
+
 **Process-simulation mark (injectables I-2 feature B, recipe-core 1896, lead design 11 November 2026).** A master header may
 carry `nonProduct: PROCESS_SIMULATION` (a media fill), on an injectables processing master only (EBMR-RCP-435). The mark is
 approved content and in the hash. Such a batch is issued

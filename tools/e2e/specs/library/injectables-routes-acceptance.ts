@@ -66,6 +66,10 @@ const vial: Injectable = Object.fromEntries(Object.entries(found).filter(([k]) =
  * 120 sampled + 20 lost; the diluent is filled into the 9,980 units the drug fill passed, with no reject.
  */
 const second = (b: ProductBlock): ProductBlock => ({ ...b, stepId: `${stepIdOf(b.def.code)}-2` });
+/** A value the server calculated, as the kiosk's entry list shows it (injectables-inspection-acceptance.ts). */
+const calc = (label: string, value: string): RegExp => new RegExp(`${label.replace(/[().]/g, '\\$&')} ${value}(\\.0+)? \\{unit\\} \\(calculated`);
+/** A typed count as the entry list shows it. */
+const typed = (label: string, value: string): RegExp => new RegExp(`${label.replace(/[().]/g, '\\$&')}\\D*${value}\\b`);
 const cartridgeSteps = (): Injectable['steps'] => {
   const from = (code: string): ProductBlock => {
     const b = ASEPTIC_VIAL.steps.find((x) => x.def.code === code);
@@ -87,13 +91,22 @@ const cartridgeSteps = (): Injectable['steps'] => {
     from('INJ-EM'),
     productBlock('INJ-LYO', 'LYOPHILISER'),
     second(productBlock('INJ-STERILE-FILTER', {})),
-    { ...second(productBlock('INJ-FILL', fill)), values: { end: { filled: '9980', rejects: '0' }, tray: { units: '9980' } } },
-    { ...productBlock('INJ-PLUNGER', 'PLUNGER-PLACER'), values: VIAL_COUNTS.capping },
+    {
+      ...second(productBlock('INJ-FILL', fill)),
+      values: { end: { filled: '9980', rejects: '0' }, tray: { units: '9980' } },
+      expect: { entries: [typed('Units filled', '9980'), typed('Units rejected at the line (incl. stopper height)', '0')] },
+    },
+    { ...productBlock('INJ-PLUNGER', 'PLUNGER-PLACER'), values: VIAL_COUNTS.capping, expect: { entries: [calc('Units rejected at placement', '40')] } },
     from('INJ-STERILITY-SAMPLE'),
     { ...productBlock('INJ-VISUAL-INSPECT', 'INSPECTION-BOOTH'), values: VIAL_COUNTS.inspect },
     from('INJ-CCI'),
     from('INJ-EM-COUNTS'),
-    { ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { filling: 'INJ-FILL', capping: 'INJ-PLUNGER' }), values: VIAL_COUNTS.account },
+    // 20 at the drug fill + 40 at plunger placement + 80 at inspection; nothing unaccounted for.
+    {
+      ...productBlock('INJ-UNIT-ACCOUNT', {}, undefined, { filling: 'INJ-FILL', capping: 'INJ-PLUNGER' }),
+      values: VIAL_COUNTS.account,
+      expect: { entries: [calc('Units rejected (line, closing and inspection)', '140'), calc('Units not accounted for', '0')] },
+    },
   ];
 };
 

@@ -30,6 +30,7 @@ behaviour: |-
 catalog_test: An open deviation plus a yield outside limits → release refused, listing both. Close an investigation with the "other batches" field empty → refused.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-71] with the 100 % integrity test and automated inspection, unit accountability reads the closing rejects from the integrity test's total and the units accepted from the last step, in either order; one unit missing is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] every unit filled is accounted for: one unit missing from the counts is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] unit accountability reads the units filled and rejected at the line from the filling step, the units rejected at closing from the capping or sealing total, and the units accepted and rejected at inspection from the inspection step, never typed again; one unit missing is an exception"
 expert_decision:

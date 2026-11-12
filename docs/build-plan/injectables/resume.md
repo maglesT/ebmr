@@ -72,6 +72,18 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
      and INJ-UNIT-ACCOUNT's outcome (nothing unaccounted for: 10,000 = 20 + 40 + 9,720 + 80 + 120 + 20);
   3. run the cartridge spec locally (32 min), then a full run (runner=github) on a head containing current main; merge
      on green (no re-audit if only these change).
+### Session 13 (12 November 2026): I-5, automated inspection, deterministic CCIT and RMM
+
+- **Lead design approval (12 November):**
+  - INJ-AVI: automated visual inspection, every market. The counts are typed from the machine report and CHECKED (SM Part I 5.4.6, 211.68(b)). The machine's due date meets SM 10.8's check at intervals. There is no AQL section.
+  - INJ-AVI-CHALLENGE-EU: Annex 1 8.32; the operator signs alone.
+  - INJ-CCIT-100: a 100 % deterministic in-line test. A leaker is a counted reject, not a batch failure. Its `totalRejects` (the closing rejects plus the leakers) is read by INJ-UNIT-ACCOUNT as its closing rejects, in either step order.
+  - v1 edits: INJ-CCI gains "Laser headspace analysis"; INJ-UNIT-ACCOUNT's closing-rejects label is reworded; TEST-INJ-RELEASE gains `rmmReportAttached`, shown when the sterility method is a validated rapid method.
+  - Seed file `seed/injectables-inspection.ts`, blocks PR #236.
+- **E2E (group `library-inj-inspection`, sandbox half):** the I-1 vial with INJ-CCIT-100 after capping and INJ-AVI in place of the booth. Data in `injectables-inspection-acceptance.ts`. Green on run 43180982902.
+  - Lead ruling: the EU challenge block is left out of the IN master; the seed tests cover it.
+- **Residual (lead, 12 November):** RMM is covered at seed and unit level only. No E2E uses TEST-INJ-RELEASE, because release results are QC results on the lot (D-S11-R1). RMM runs end to end when the I-6 golden batch or a GMP half records a sterility result by the rapid method; check then whether the lot's results screen needs a method field.
+- **Learnt:** merge main in before the full run that decides a merge. The lead's rule is that the green run's head must contain the current main (main went red on tsc when #231 merged on a stale run).
 
 ### Session 10c handover (12 November 2026): I-2d and the EM tiers
 
