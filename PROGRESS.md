@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 11 November 2026 (session 12 slices and follow-ups).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 12 November 2026 (session 12b handover).
 
 ## What this is
 
@@ -68,6 +68,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   intermediate lot chooses its dates, EXPIRY (shelf life, optional retest), RETEST or NONE; only an in-house
   intermediate may have no expiry (check plus deferred trigger, EBMR-SITE-999); no transfer package for an undated lot
   (EBMR-XFR-043); FEFO takes undated lots after dated ones. Tablets 1909's header carries the D-0029-3 note.
+- Session 12b, after #221 (11-12 November):
+  - #224: per-point limit tiers (validated, action, alert) behind "More limits" in the library values form. Editing a
+    point keeps its other tiers.
+  - #225: CI. On GitHub-hosted runners `playwright install --with-deps` gets 900 s; a hang takes the no-apt fallback.
+  - #226: G-21 printed items on a draft. Items are added (empty), removed and edited, with their artwork per market.
+    Site-services 1737 rewords EBMR-SITE-180 and -185 for a lot without dates.
+  - #219 (session 12's acceptance E2E): two follow-up commits. The register now lists the 42 library-bilayer tests the
+    trace found. Main is merged in, and the library-bilayer group sits beside the injectables groups.
+  - Local container: apt mirrors may answer 503. `runpod-setup.sh` works with `apt-get` stubbed out; PostgreSQL stops
+    when the container restarts (`pg_ctlcluster 16 main start`, plus ci, ci2, ci3 and golden).
 - Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
   changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 
@@ -80,9 +90,8 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 
 ## Next
 
-- Residuals of SITE-995 (lead, 11 November): EBMR-SITE-180 says a lot's use "ends at its expiry", wrong for a lot with
-  no dates; an intermediate lot cannot be retested to a new date (its material code is the product code, which has no
-  ERP material retest interval).
+- Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
+  the product code, which has no ERP material retest interval).
 - Later CI slice: gate the E2E set-up's seeds per group (`gmpReviewBatch`, `gmpPackaging` in
   `tools/e2e/global-setup.ts`); needs a full E2E proof run.
 - Tablets to v1.0, then Injectables (decision 0010).
