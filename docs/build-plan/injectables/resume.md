@@ -104,6 +104,10 @@ injectables controls, a golden batch, the browser suite, one review pass.
     the ST-68 gate test; INV-45 by ST-64.
   - ST-02's "CCS reference TXT where a block needs it": none needs one (lead ruling ii).
   - The demo fresh install.
+- **Step 8 also (lead):** two intermittent failures, root cause not loosening:
+  - a GMP 1 `endorseOnLicence` fill timeout at tools/e2e own-product-gmp-flow.ts:119-120 (library-wg-fc, library-inj-aseptic);
+  - the [DI-20] opcua-endpoint-identity.test.ts enrolment, which expected EBMR-EQD-032 but got a duplicate-key violation (shard 7).
+  - A small fix PR first if they block full runs.
 - **Local:**
   - Run the trace with editions extended against CI reports: download the trace-matrix, e2e-reports and vitest-golden
     artifacts, then `sed -i 's#/home/runner/work/ebmr/ebmr#/home/user/ebmr#g'` on the JSON.
