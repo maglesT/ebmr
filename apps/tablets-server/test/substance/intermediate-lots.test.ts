@@ -459,6 +459,15 @@ describe('SITE-995: the dates of an in-house intermediate lot (site-services 173
     expect(await first([...others, lots.expiry.lotCode])).toBe(lots.none.lotCode);
   });
 
+  it('[PR-18] EBMR-SITE-180 for a lot kept without dates says so (site-services 1737): it is not retested to a date, and the message no longer speaks of an expiry it does not have', async () => {
+    const qc = await gmp.asPersona('qcApprover');
+    const refusalText = await withCommand(gmp.db.admin, { ...(await actorOfBrowser(gmp, qc, 'qcApprover')), correlationId: randomUUID() }, async (c) =>
+      c.query("select site.record_lot_retest($1, clock_timestamp() + interval '30 days', $2::uuid[])", [lots.none.lotId, [randomUUID()]]),
+    ).then(() => '', (e: unknown) => (e instanceof Error ? e.message : String(e)));
+    expect(refusalText).toMatch(/^EBMR-SITE-180 lot .* has no retest date and no expiry date: it was kept without dates, so it is not retested to a date/);
+    expect(refusalText).not.toMatch(/its use ends at its expiry/);
+  });
+
   it('[PR-18] a lot without an expiry is not sent to another site: the transfer package is refused (EBMR-XFR-043), saying it stays here', async () => {
     await expect(gmp.db.admin.query(
       `insert into site.transfer_package (id, package_no, lot_id, origin_installation, destination_installation, quantity, unit, payload, payload_sha256, prepared_by_person, prepared_by_account, correlation_id)

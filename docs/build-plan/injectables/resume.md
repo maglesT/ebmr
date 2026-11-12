@@ -411,7 +411,7 @@ Lead rulings of 9 November 2026, evening (binding; session 6 starts at P3c):
     - The new-master screen gets those fields.
     - No defaults, no invented values. Missing values are refused by the existing validator codes (G21-NO-LIMITS, GMP-SPECIMENS).
   - Tests by control ID: PR-32, PR-39, PR-31 and the GMP-* validator codes.
-  - **Residual:** "edit a packaging master's printed items after create". Partly done (session 12b, 11 November): on a draft, ConfigForm edits each G-21 printed item's own values in place (limits, issue need and allowance, counting, unit). Still open: adding or removing an item, and an item's artwork per market (a map), which stay read-only.
+  - **Residual:** "edit a packaging master's printed items after create". Done (session 12b, 11 November): on a draft, ConfigForm adds (empty, nothing filled in), removes and edits each G-21 printed item, including its artwork version per market.
 - **P4b, GMP 8:** add STERILITY (211.167(a): each batch purporting to be sterile is tested) and PARTICULATE MATTER (the compendial test for injections; 211.160(b)) to the product specification, marked DEMO-ONLY. Results stay QC results (D-S11-R1).
 - **Order:** P3c, then P4b. Rebase nothing: merge main into `inj/i1c2-p4b-gmp-packaging` after P3c merges.
 
