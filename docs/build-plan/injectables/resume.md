@@ -94,6 +94,37 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     `apps/*/src/main.ts` before the next run.
   - `manual-weighing-gate.test.ts` failed twice on one GitHub shard during the Actions outage, then passed on the next
     run and locally 9/9 (heartbeat-window timing under load). Logged to the lead; not changed.
+- **Residuals (lead, 12 November 2026; root cause assigned by the lead):**
+  - The GMP 1 licence step `endorseOnLicence` (tools/e2e/specs/phase7/own-product-gmp-flow.ts:119-120) timed out on a fill
+    (30 s) twice: `library-wg-fc` in run 43227171720 (head 864ff23), and `library-inj-aseptic` in run 43266879234 (head
+    9ab0790). Both groups passed in the other run on the same head. It's intermittent and in shared tablets and injectables
+    code.
+  - `packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts` [DI-20] enrolment: expected EBMR-EQD-032,
+    got a duplicate-key violation (shard 7 of run 43266879234). Intermittent.
+
+### Session 13 → Handover (12 November 2026, 17:10; I-6 is a fresh session)
+
+- **I-5 done:** #236 (blocks, f7f47be) and #238 (E2E, group `library-inj-inspection`, dab3f29) are merged. No I-5 branch is
+  open.
+- **For I-6 (injectables edition exit; the owner's list: injectables in phase.yaml, the trace gate green for the
+  injectables controls, an injectables golden batch, the browser suite, one review pass):**
+  - The **RMM residual** belongs in the golden batch if it fits. Record the lot's STERILITY result as made by the validated
+    rapid method, and check first whether the lot's results screen (`recordResults`, D-S11-R1) can carry the method. If it
+    cannot, raise that with the lead before adding a field. TEST-INJ-RELEASE (with `rmmReportAttached`) is used by no E2E.
+  - INJ-AVI-CHALLENGE-EU and the other EU-market blocks are covered by seed tests only, because the sandbox authorises IN
+    only.
+- **E2E helper (`library-support.ts`):** `ProductBlock.expect` is optional; nothing is asserted by default.
+  - `verified`: the step must reach "waiting for verification", and the signed result must name the verifier, who is
+    another person.
+  - `entries`: each pattern must appear in the step's entry list. Calculated values show as `label value unit (calculated)`;
+    `injectables-inspection-acceptance.ts` has a `calc()` helper for them.
+  - Use it so that a broken calculation or step-value wiring fails the run.
+- **Lead merge rule:** squash-merge only when the green full run's head contains the current main. The exception: when
+  the commits added since that run touch files disjoint from the PR's, the merge is conflict-free, and tsc and register
+  pass on the merged head, the earlier green run counts.
+- **Local:** a full `pnpm run ci` takes more than 30 minutes here, so run `pnpm test:json` and `pnpm trace` as separate
+  background steps. Locally the kernel DI-13 TLS test fails (it depends on how the local PostgreSQL is set up), and trace
+  lists DI-51, IN-16 and PR-22, which need the E2E and golden-batch reports; neither is a defect.
 
 ### Session 13 (12 November 2026): I-5, automated inspection, deterministic CCIT and RMM
 
