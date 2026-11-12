@@ -23,6 +23,11 @@ catalog_test: Scan a 0.45 µm or non-registered part for final filtration → re
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-50] the registered sterilising filter is verified by a second person: the filter step waits for the verification, and its own performer cannot give it"
+clauses:
+  - clause: "Scan a 0.45 µm or non-registered part for final filtration → refused."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-50] the registered sterilising filter is verified by a second person: the filter step waits for the verification, and its own performer cannot give it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

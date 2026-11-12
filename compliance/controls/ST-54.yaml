@@ -26,7 +26,8 @@ catalog_test: Filtration start without a bioburden sample → blocked. Release w
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-54] compounding takes the pre-filtration bioburden sample and judges the final volume and density; the bioburden-reducing filtration judges its pressure"
-  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-54][IN-46] compounding records the pre-filtration bioburden sample: an entry without it is refused, so the step, and the record the gate waits for, cannot be completed without the sample"
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
 clauses:
   - clause: "Filtration start without a bioburden sample → blocked."
     not_required:
@@ -34,7 +35,8 @@ clauses:
       reason: "Sampling-sequence check"
   - clause: "Release with the result pending → blocked."
     tests:
-      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed"
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-54][IN-46] compounding records the pre-filtration bioburden sample: an entry without it is refused, so the step, and the record the gate waits for, cannot be completed without the sample"
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

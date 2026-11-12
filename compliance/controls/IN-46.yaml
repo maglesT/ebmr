@@ -16,14 +16,16 @@ catalog_test: let the preparation-to-filtration timer exceed its maximum; a devi
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release"
-  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-54][IN-46] compounding records the pre-filtration bioburden sample: an entry without it is refused, so the step, and the record the gate waits for, cannot be completed without the sample"
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
 clauses:
   - clause: "let the preparation-to-filtration timer exceed its maximum; a deviation is forced."
     tests:
       - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release"
   - clause: "Close a batch without a bioburden result; blocked."
     tests:
-      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed"
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-54][IN-46] compounding records the pre-filtration bioburden sample: an entry without it is refused, so the step, and the record the gate waits for, cannot be completed without the sample"
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
