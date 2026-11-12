@@ -25,6 +25,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { inGateEditions, ROOT, type ClauseRecord, type ControlRecord, type EditionName } from './register.ts';
+import { notRequiredErrors } from './not-required.ts';
 import { declaredIn, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest, type TestPath } from './test-index.ts';
 
 const CONTROL_TAG = /\[((?:DI|PR|ST|IN|AS)-\d{2})\]/g;
@@ -243,9 +244,10 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
       return { clause: k, passing, state };
     });
     if (due && !c.clauses) errors.push(`${c.id} (target phase ${c.target_phase}) does not map its catalog test to clauses with tests or deferrals`);
-    // The trace refuses what validate.ts refuses too, so a register that skipped validation cannot pass the gate on it.
+    // The trace runs validate.ts's check of a not-required clause too (the decision, the document and the quote), so a
+    // register that skipped validation cannot pass the gate on it.
     (c.clauses ?? []).forEach((k, i) => {
-      if (k.not_required && c.expert_decision.status !== 'MODIFY') errors.push(`${c.id} clause ${i + 1} is marked not required, but its expert decision is ${c.expert_decision.status}, not MODIFY`);
+      if (k.not_required) errors.push(...notRequiredErrors(c, i, k.not_required));
     });
     for (const d of c.deferred_scope ?? []) {
       if (gated && started(d.phase)) errors.push(`${c.id} scope "${d.scope}" is deferred to phase ${d.phase}, which has started`);

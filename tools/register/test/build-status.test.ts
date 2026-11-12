@@ -62,6 +62,9 @@ describe('the build statuses of D-P7-2 (register:status, register:validate)', ()
       status: 'SPECIFIED',
       reasons: ['every clause is not required by its MODIFY decision, so no clause proves what it keeps'],
     });
+    // The static check says the same, so no control is held VERIFIED on clauses that are all left out (lead audit of #241).
+    expect(staticProblems(control({ expert_decision: modify, clauses: [{ clause: 'It is refused.', not_required: left }] }), ctx())).toContain('every clause is not required by its MODIFY decision, so no clause proves what it keeps');
+    expect(staticProblems(control({ expert_decision: modify, clauses: [{ clause: 'It is refused.', tests: [dbTest, appTest] }, { clause: 'It is shown.', not_required: left }] }), ctx())).toEqual([]);
     // IMPLEMENTED, not VERIFIED: one listed test did not pass, the run is of another commit, or the static conditions fail.
     const implemented = (c: ControlRecord, b: Bundle, x: StatusContext) => {
       const r = computeStatus(c, b, x);
