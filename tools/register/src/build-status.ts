@@ -81,6 +81,7 @@ export function staticProblems(c: ControlRecord, ctx: StatusContext): string[] {
   const out: string[] = [];
   const clauses = c.clauses ?? [];
   if (clauses.length === 0) out.push('it has no clauses');
+  else if (clauses.every((k) => k.not_required)) out.push('every clause is not required by its MODIFY decision, so no clause proves what it keeps');
   for (const k of clauses) {
     if (k.deferred) out.push(`clause "${k.clause}" is deferred to phase ${String(k.deferred.phase)}`);
     else if (k.not_required) continue;
