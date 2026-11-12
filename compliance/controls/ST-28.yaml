@@ -22,7 +22,16 @@ behaviour: |-
   - A sterilised holding tank must stay under positive pressure, or sealed, from sterilisation to end of use. Loss of pressure is a deviation.
 catalog_test: Complete a batch without the overlay filter's post-use test → certification blocked. Record a tank pressure drop to 0 during a hold → deviation required.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] with a nitrogen overlay the gas filter's integrity after use is a critical value with its limit: below it is an exception that stops the step, and without the result the step cannot complete; without an overlay it is not asked"
+clauses:
+  - clause: "Complete a batch without the overlay filter's post-use test → certification blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] with a nitrogen overlay the gas filter's integrity after use is a critical value with its limit: below it is an exception that stops the step, and without the result the step cannot complete; without an overlay it is not asked"
+  - clause: "Record a tank pressure drop to 0 during a hold → deviation required."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "tank-pressure monitoring"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -64,6 +64,13 @@ describe('tighten only', () => {
     await expect(set({ key: 'sterile.particles.gradeB.inOperation.max5_0um', value: '2930' })).rejects.toThrow('EBMR-MKT-060');
   });
 
+  it('[ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 binds 10 for an EU batch, and a site value can only tighten it', async () => {
+    const e = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableAll);
+    expect([e.resolvedValue, e.governingMarkets, e.floorType]).toEqual(['10', ['EU', 'IN'], 'HARD']);
+    await expect(set({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
+    await expect(set({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
+  });
+
   it('[IN-52] a site value looser than a DESIGN value is refused (APS tiers are out of v1; HEPA A/B is six months by design)', async () => {
     await expect(set({ key: 'sterile.aps.acceptance', value: 'TIERED_BY_RUN_SIZE', justificationRef: 'CCS-1', qaApprovalId: randomUUID() })).rejects.toThrow(
       /EBMR-MKT-06[01]/,

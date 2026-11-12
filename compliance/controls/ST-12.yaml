@@ -20,7 +20,16 @@ behaviour: |-
   - The roster is printable in the batch report.
 catalog_test: APS qualified 4 people and 5 are present during filling → deviation, with the peak shown on the timeline.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-12] filling records the most people present in the filling room at once; more than the formulation's maximum (the number qualified in the process simulation) is an exception that stops the step"
+clauses:
+  - clause: "APS qualified 4 people and 5 are present during filling → deviation,"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-12] filling records the most people present in the filling room at once; more than the formulation's maximum (the number qualified in the process simulation) is an exception that stops the step"
+  - clause: "with the peak shown on the timeline."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Access-control import"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

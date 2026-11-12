@@ -376,3 +376,26 @@ describe('equipment named by an injectables block is refused when it is not fit 
     expect(judgedRun(item, { preparation: units('QUALIFIED') }).exceptions).toEqual([]);
   });
 });
+
+/** The binding minimum of ST-12 and ST-28 (lead ruling I-6 B1, 12 November 2026). */
+describe('aseptic headcount and the overlay gas filter (I-6 B1)', () => {
+  it('[ST-12] filling records the most people present in the filling room at once; more than the formulation\'s maximum (the number qualified in the process simulation) is an exception that stops the step', () => {
+    const item = byCode('INJ-FILL');
+    expect(fieldOf(item, 'peoplePresent')).toMatchObject({ type: 'NUMBER', limitSlot: 'peoplePresent' });
+    expect(judgedRun(item, { end: { peoplePresent: '4' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const five = judgedRun(item, { end: { peoplePresent: '5' } });
+    expect(five.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(five.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-28] with a nitrogen overlay the gas filter\'s integrity after use is a critical value with its limit: below it is an exception that stops the step, and without the result the step cannot complete; without an overlay it is not asked', () => {
+    const item = byCode('INJ-COMPOUND');
+    expect(fieldOf(item, 'gasFilterPost')).toMatchObject({ type: 'NUMBER', limitSlot: 'gasFilterPost', critical: true, showWhen: { field: 'nitrogen', equals: 'Applied' } });
+    expect(judgedRun(item, { preparation: { nitrogen: 'Not required by the product', gasFilterPost: undefined } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(judgedRun(item, { preparation: { nitrogen: 'Applied', gasFilterPost: '1.20' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const failed = judgedRun(item, { preparation: { nitrogen: 'Applied', gasFilterPost: '0.80' } });
+    expect(failed.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(failed.status).not.toBe('COMPLETED');
+    expect(() => judgedRun(item, { preparation: { nitrogen: 'Applied', gasFilterPost: undefined } })).toThrow(/is required \(LIB-ENTRY-REQUIRED/);
+  });
+});
