@@ -272,7 +272,9 @@ async function setOpenInvestigationPath(value: 'ON' | 'OFF'): Promise<void> {
 }
 
 /** The product master (QA confirms a new code) and the finished product's specification: ASSAY 95 to 105 %, 20 units a run. */
-async function productAndSpecification(content: MbrContent): Promise<void> {
+const ASSAY_TEST = { testCode: 'ASSAY', methodReference: 'STP-AS', unit: '%', lowerLimit: '95.0', upperLimit: '105.0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '20', sampleUnit: 'units' };
+
+async function productAndSpecification(content: MbrContent, tests: readonly Json[] = [ASSAY_TEST]): Promise<void> {
   const product = content.header.product;
 
   const productVersion = await withCommand(db.app, { ...erp, correlationId: randomUUID() }, async (c) =>
@@ -286,9 +288,7 @@ async function productAndSpecification(content: MbrContent): Promise<void> {
     await w.run(w.cast.qa, (c) => c.query("select site.confirm_erp_master('PRODUCT', $1, $2)", [productVersion, confirmation]));
   }
   const spec = await sqlAs<{ specificationId: string }>(analyst, 'select site.draft_specification($1::jsonb) as r', [
-    JSON.stringify({ materialCode: product.code, title: 'Finished product specification', monographReference: 'IP 2022 monograph', tests: [
-      { testCode: 'ASSAY', methodReference: 'STP-AS', unit: '%', lowerLimit: '95.0', upperLimit: '105.0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '20', sampleUnit: 'units' },
-    ] }),
+    JSON.stringify({ materialCode: product.code, title: 'Finished product specification', monographReference: 'IP 2022 monograph', tests }),
   ]);
   const specSig = await signFor(db, qcHead, { type: 'specification', id: spec.specificationId }, 'SPECIFICATION_APPROVED', 'DRAFT');
   await w.run(qcHead, (c) => c.query('select site.approve_specification($1, $2)', [spec.specificationId, specSig]));
@@ -415,8 +415,7 @@ describe('G-REL and the manufacturer release (outline 5.2.6, 5.2.7; IN-05, INV-0
     await pull('1');
     g = await grel(lotId);
     expect(item(g, 'G3.SAMPLES').status).toBe('GREEN');
-    await release(ap, { batchId, lotId });
-    expect(await lotState(lotId)).toBe('RELEASED');
+    expect(red(await grel(lotId))).toEqual([]);
   });
 
   it('[IN-05] the four refusals of the catalog test: an open deviation, no head-of-QC approval, an unsigned step (record not QA reviewed) and a signer who is no AP or delegate', async () => {
@@ -913,5 +912,80 @@ describe('a dissolution profile and content uniformity on the release checklist 
     g = await grel(good.lotId);
     expect(red(g)).toEqual([]);
     await release(ap, good);
+  });
+});
+
+/**
+ * Slice I-6.3: the release refusals that the approved MODIFY decisions of the Injectables controls keep (control
+ * decisions of 5 November 2026: "INJ-26 TEST by QC roles; gate waits", "Gate refuses release while any exception or
+ * deviation is open", "Existing release review and gate; every block complete"). The gate is the edition-independent
+ * G-REL, so a product whose specification holds the sterile release tests stands in for an injectable.
+ */
+describe('the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3)', () => {
+  const STERILE_TESTS = [
+    { testCode: 'STERILITY', methodReference: 'STP-STER', unit: '{unit}', upperLimit: '0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '20', sampleUnit: 'units' },
+    { testCode: 'ENDOTOXIN', methodReference: 'STP-BET', unit: '[EU]/mL', upperLimit: '0.50', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '3', sampleUnit: 'units' },
+    { testCode: 'BIOBURDEN', methodReference: 'STP-BB', unit: '{CFU}/100mL', upperLimit: '10', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '1', sampleUnit: 'units' },
+  ];
+  let sterile: { familyId: string; versionId: string; content: MbrContent };
+
+  /** A passing release result of one test, approved by the head of QC. */
+  async function passed(lotId: string, testCode: string, value: string): Promise<void> {
+    const r = await sqlAs<{ resultId: string }>(analyst, 'select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify({ testCode, purpose: 'RELEASE', value })]);
+    const sig = await signFor(db, qcHead, { type: 'lot_test_result', id: r.resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
+    await w.run(qcHead, (c) => c.query('select site.approve_lot_test_result($1, $2)', [r.resultId, sig]));
+  }
+  const reserve = (lotId: string) =>
+    w.run(analyst, (c) => c.query('select site.pull_lot_sample($1, $2::jsonb)', [lotId, JSON.stringify({ kind: 'RESERVE', quantity: '60', container: 'Marketed vial in carton', storageLocation: 'Reserve room R-2' })]));
+
+  beforeAll(async () => {
+    sterile = await effective();
+    await productAndSpecification(sterile.content, STERILE_TESTS);
+  }, 300_000);
+
+  it('[ST-54][ST-65][IN-46] release waits for every sterile release test: with sterility passed and endotoxin and bioburden pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when all have passed', async () => {
+    const batchId = await issuedBatch(undefined, sterile);
+    await review(batchId);
+    const lotId = await finishedLot(batchId, sterile);
+    await reserve(lotId);
+    await passed(lotId, 'STERILITY', '0');
+    let g = await grel(lotId);
+    expect(red(g)).toEqual(['G3.LIMS']);
+    expect(item(g, 'G3.LIMS').problem).toMatch(/the required test (ENDOTOXIN|BIOBURDEN) of the specification in effect .* has no current RELEASE result for the lot/);
+    await acknowledgeAll(ap, lotId, g);
+    expect(await codeOf(record(ap, lotId, 'RELEASE', await signDecision(ap, lotId, 'RELEASE'), g.epoch))).toBe('EBMR-REL-020');
+    await passed(lotId, 'ENDOTOXIN', '0.10');
+    g = await grel(lotId);
+    expect(item(g, 'G3.LIMS').problem).toMatch(/the required test BIOBURDEN .* has no current RELEASE result/);
+    await passed(lotId, 'BIOBURDEN', '2');
+    expect(red(await grel(lotId))).toEqual([]);
+  });
+
+  it('[ST-68][INV-37] a passing sterility result never overrides a process failure: with every release test passed and a sterilisation-cycle deviation open on the batch, the lot stays not releasable', async () => {
+    const batchId = await issuedBatch(undefined, sterile);
+    await review(batchId);
+    const lotId = await finishedLot(batchId, sterile);
+    await reserve(lotId);
+    for (const [code, value] of [['STERILITY', '0'], ['ENDOTOXIN', '0.10'], ['BIOBURDEN', '2']] as const) await passed(lotId, code, value);
+    await deviationOn('DEVIATION', 'BATCH', batchId);
+    await deltaReview(batchId);
+    const g = await grel(lotId);
+    expect(red(g)).toEqual(['G2.DEVIATIONS']);
+    expect(item(g, 'G3.LIMS').status).toBe('GREEN');
+    await acknowledgeAll(ap, lotId, g);
+    expect(await codeOf(record(ap, lotId, 'RELEASE', await signDecision(ap, lotId, 'RELEASE'), g.epoch))).toBe('EBMR-REL-020');
+    expect(await releaseState(lotId)).toBe('NOT_READY');
+    expect(await lotState(lotId)).toBe('QUARANTINE');
+  });
+
+  it('[ST-70] a record with a step not yet signed is not complete: G1 is red and the lot cannot be released, though every release test passed', async () => {
+    const batchId = await issuedBatch(undefined, sterile);
+    const lotId = await finishedLot(batchId, sterile);
+    await reserve(lotId);
+    for (const [code, value] of [['STERILITY', '0'], ['ENDOTOXIN', '0.10'], ['BIOBURDEN', '2']] as const) await passed(lotId, code, value);
+    const g = await grel(lotId);
+    expect(red(g)).toEqual(['G1.REVIEW_1']);
+    expect(item(g, 'G1.REVIEW_1').problem).toMatch(/is ISSUED; a disposition follows the completed QA review/);
+    expect(await releaseState(lotId)).toBe('NOT_READY');
   });
 });
