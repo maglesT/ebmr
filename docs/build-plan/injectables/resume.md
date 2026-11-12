@@ -53,6 +53,62 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Session 14 handover (12 November 2026): I-6, the injectables edition exit
+
+Lead: session_01PybpFvEFaQZ3LEfnNdjBCE. Owner's exit list: injectables in phase.yaml, the trace gate green for the
+injectables controls, a golden batch, the browser suite, one review pass.
+
+- **Measured:** main's reports with `editions: [tablets, injectables]` gave 129 new trace errors. 90 controls (IN-40..51,
+  ST-01..79 except ST-69) had no clauses; PR-15's scope and PR-26/PR-28's clauses were deferred to phase 5.
+- **#241 (I-6.1, branch inj/i6-1-not-required):** a clause kind `not_required: {decision, reason}`.
+  - Allowed only on a MODIFY control. The decision is docs/decisions/*.md or docs/build-plan/**/control-decisions.md.
+  - The reason is at least 2 whole words quoted from the control's own row or paragraph (`rowsOf` in
+    tools/register/src/not-required.ts).
+  - It shows as NOT_REQUIRED in the trace, the matrix and the bundle. A due control still needs a passing test.
+  - Lead audit fixes are in, with no re-audit needed. It merges on a full green run.
+- **Decision 0030 (this branch, inj/i6-0030-unbuilt-minimum):** lead rulings under the owner's minimum-compliance rule.
+  - Left out: ST-02, ST-06 (release-block part), ST-11, ST-17 (restoration record), ST-20 (viable alert), ST-22
+    (per-operator), ST-67, ST-71 (listing both), ST-72 (naming), ST-75, ST-76, IN-45 (listing).
+  - One due date per unit (plan 4.1): the site sets it to the earliest of calibration, requalification and leak test.
+- **Mapping and tests (pushed, PRs after #241 and 0030):**
+  - inj/i6-2-clauses-st01-40 @2d30260e: open only for build PRs.
+  - inj/i6-3-clauses-st41-in @49915f91: open ST-52 and IN-48.
+  - Test code and control YAML only.
+- **Build PRs (lead order B1 to B4, at most 2 open at once):**
+  - B1, branch inj/i6-b1-minimum (local in the agent's worktree, built on I-6.2):
+    - ST-01/20: Grade B viable HARD rows in sterile.v1.yaml, EU and India (v1 edit approved). Existing demo databases need
+      a fresh install (EBMR-MKT-035); say so in the PR body and PROGRESS.
+    - ST-12: people present in INJ-FILL against a formulation maximum (A1 7.2).
+    - ST-23: INJ-EM media lot as a MATERIAL_LOT (A1 10.9, SM I 14.39).
+    - ST-28: post-use integrity of the gas filter (SM II 6.11.2.7, A1 8.88), every market, its limit only where an overlay
+      exists.
+  - B2: ST-06 alarm assessment (A1 5.2); ST-18 (A1 9.22); ST-19 (A1 9.16/9.24); ST-34 (A1 9.25). All EU-only, EU-block
+    pattern.
+  - B3: ST-29 (A1 9.38, SM II 5.5: a change marked "APS required" lapses APS.<line> until QA extends it); ST-33 (A1 9.46(iii),
+    EU); ST-52 (A1 8.87 PUPSIT, EU, with a waiver field).
+  - B4: IN-48 (lead's option 1).
+    - `firstUseToday` on every market (SM II 6.11.2.8, A1 8.94). On "No", a validation reference (TXT); without one, a
+      critical exception.
+    - `newFilter` EU-only.
+    - Both under the existing verifier; v1-edit safety evidence in the PR body.
+- **Then:**
+  - GB-I-01: the aseptic vial to a released lot, with sterility by RMM. A method field on the results screen goes to the
+    lead first.
+  - PR-15: test the area refusal on an injectables filling room and remove its deferred_scope.
+  - PR-26 clause 2 (hose scan) and PR-28 clause 2 (EM excursion on the QP screen): owner write-up, not a deferral.
+    PR-28 clause 1 (failed autoclave cycle): a test.
+  - The exit PR: injectables in phase.yaml once #232/#239 merge, a full run with trace:e2e.
+  - One review pass.
+- **PROGRESS notes due:**
+  - INV-23, INV-36, INV-44: residuals for the owner. The exit list supersedes outline 11's INV list. INV-37 is proven by
+    the ST-68 gate test; INV-45 by ST-64.
+  - ST-02's "CCS reference TXT where a block needs it": none needs one (lead ruling ii).
+  - The demo fresh install.
+- **Local:**
+  - Run the trace with editions extended against CI reports: download the trace-matrix, e2e-reports and vitest-golden
+    artifacts, then `sed -i 's#/home/runner/work/ebmr/ebmr#/home/user/ebmr#g'` on the JSON.
+  - Agents use the spare clusters ci2 (5434) and ci3 (5436).
+
 ### Residuals (lead, 9 November 2026)
 
 - **EU-market ampoule:** INJ-CCI-100, the 100 % integrity test of fusion-sealed ampoules of 100 mL or less (EU GMP Annex 1
