@@ -4,38 +4,16 @@
  * control's clauses are its catalog test word for word, each proven by listed tests or deferred to a later phase
  * (review F14). Whether the listed tests ran and passed is the trace's check (trace.ts), after the tests have run.
  */
-import { existsSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { Ajv2020 } from 'ajv/dist/2020.js';
-import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ClauseRecord, type ControlRecord } from './register.ts';
+import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord } from './register.ts';
+import { notRequiredErrors, words } from './not-required.ts';
 import { missingListedTests, type DeclaredTest } from './test-index.ts';
 import { firstDuplicate, firstUnsorted } from './sync.ts';
 
 export const EXPECTED_COUNTS = { DI: 53, PR: 61, ST: 79, IN: 53 } as const;
 
-/** Text compared word for word: runs of white space count as one space. */
-export const words = (s: string): string => s.replace(/\s+/g, ' ').trim();
-
-/** The repository path a not-required clause's decision starts with: a document under docs/. */
-const DECISION_PATH = /^(docs\/[\w./-]+\.md)\b/;
-
-/**
- * The problems with a clause the approved decision left out (lead ruling, I-6): it is allowed on a MODIFY control
- * only, its decision starts with the path of a document in the repository, and its reason is quoted from that
- * document word for word, so the register cannot claim a decision the document does not hold.
- */
-function notRequiredErrors(c: ControlRecord, i: number, n: NonNullable<ClauseRecord['not_required']>, root: string): string[] {
-  const at = `${c.id}: clause ${i + 1} is marked not required`;
-  if (c.expert_decision.status !== 'MODIFY') return [`${at}, but its expert decision is ${c.expert_decision.status}, not MODIFY`];
-  // A malformed entry is the schema's error (reported above); this check reads only the strings it holds.
-  if (typeof n.decision !== 'string' || typeof n.reason !== 'string') return [];
-  const path = DECISION_PATH.exec(n.decision.trim())?.[1];
-  if (path === undefined) return [`${at}, but its decision does not start with the path of a decision document under docs/: "${n.decision}"`];
-  const file = join(root, path);
-  if (!existsSync(file) || !statSync(file).isFile()) return [`${at}, but its decision document ${path} does not exist`];
-  if (!words(readFileSync(file, 'utf8')).includes(words(n.reason))) return [`${at}, but its reason is not quoted word for word from ${path}: "${n.reason}"`];
-  return [];
-}
+export { words } from './not-required.ts';
 
 /** The problems with a control's clauses and deferred scope (review F14). */
 export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {
