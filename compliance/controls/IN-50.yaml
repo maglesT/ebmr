@@ -15,7 +15,9 @@ sources: Schedule M Part II 10.3-10.8; Part I 11.5.1 (periodic eye checks for vi
 behaviour: "(a) Capping records the station (separate, with extraction), confirms Grade A air supply to vials until crimped when capping is outside the aseptic core, and counts vials rejected for missing/displaced stoppers before capping. (b) Vacuum-sealed containers get a vacuum-hold test after a predetermined period. (c) 100% inspection step records inspector identity, booth lighting/background check, start/stop times with enforced breaks, quantities inspected and rejects by defect category. (d) Sign-on is refused if the inspector's eyesight check (with their own corrective lenses) or inspection qualification has lapsed; EU-profile batches require inspection qualification renewed at least yearly. (e) Automated inspection machines: validation reference and challenge-set results at start and at intervals; a missed challenge flags the lot."
 catalog_test: assign an inspector with an expired eye check; sign-on refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-62][ST-63][IN-50] automated inspection names the machine by its class, records the counts by defect category from the machine report, checked by a second person, and judges the reject rate; a reject rate above its limit or no report attached is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-64][IN-50] the 100 % integrity test names the tester by its class, records the units tested and the leakers from the machine report, checked by a second person; a leaker is a counted reject, not an exception; no report attached is one"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
