@@ -882,7 +882,9 @@ export function defineInjectablesGmp(product: string | Injectable): void {
     }, sp);
   });
 
-  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; the sterilised loads as verified output containers in units; QA's release for packing (H-PACK) @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
+  // What the run ends with, in the product's words: a media fill has no output and no release for packing.
+  const gmp4End = t.processSimulation ? 'no output containers and no release for packing (a process simulation)' : 'the sterilised loads as verified output containers in units; QA\'s release for packing (H-PACK)';
+  test(`[DI-30][INV-40][PR-20][INV-27][PR-14][PR-19] ${t.name}, GMP 4: the GMP batch on the kiosks: the skeleton's dispensing and every library step with the GMP plant's units; ${gmp4End} @office`, async ({ e2e, officePage, persona, evidence, browser }) => {
     test.setTimeout(90 * 60_000);
     const s = loadProduct(e2e, key);
     const floor: Floor = {
@@ -982,7 +984,9 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       await signIn.office(sp, persona('GMP', 'stores'));
       await evidence.step('Stores try to post a finished lot of the media fill through the finished-lot service', 'Refused; nothing is posted', async () => {
         // No screen offers it: the finished-lot form is on a packaging order's page, and no packaging order of a media
-        // fill can be planned (EXE-198). The service the form calls refuses it too (TAB-850 first; IND-045 on any insert).
+        // fill can be planned (EXE-198). The service the form calls refuses it with its general rule (TAB-850: a finished
+        // lot comes from a completed packaging order); the process-simulation refusals themselves (IND-045 to IND-047,
+        // EXE-198) are proven by the database tests of recipe-core 1896.
         const session = await sp.request.get(`${base}/api/session`);
         const { csrfToken } = (await session.json()) as { csrfToken: string };
         const r = await sp.request.post(`${base}/api/quality/finished-lots`, {

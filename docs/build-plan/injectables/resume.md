@@ -66,7 +66,7 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   packing; the GMP half records no licence, printed items or product specification, issues the batch (the allocation
   register shows "Process simulation (no licence)"), runs the kiosks with no output containers, and GMP 5 ends with QA's
   review and a refused finished-lot post (the service the form calls; the DB refusals are #230's tests).
-  - Lead rulings (12 November): the master-version market authorisation stays (PR-04, PR-05 apply to a media-fill master;
+  - Lead rulings (12 November): the master-version market authorisation stays (PR-04 market validity applies to a media-fill master; GMP 3's issue, listed under PR-04, proves it;
     this supersedes the I-2c ruling about skipping it); the author deletes H-PACK on screen; the API-level refusal is enough.
   - **Residual (lead):** from-formula or the validator could drop H-PACK, or warn, on a PROCESS_SIMULATION master.
 - **Item 2 (branch `inj/i2-e-em-alert-tier`):** the values helper types each limit tier into its own boxes ("More limits");
