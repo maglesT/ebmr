@@ -93,8 +93,15 @@ const EXTRA_TIERS: readonly { tier: limits.LimitTier; label: string; source: lim
  */
 function withTier(config: Config, slot: string, unit: string, tier: limits.LimitTier, low: string, high: string, source: limits.LimitRange['source']): Config {
   const all = { ...((config['limits'] as unknown as Record<string, Limit> | undefined) ?? {}) };
-  const others = (all[slot]?.ranges ?? []).filter((r) => r.tier !== tier);
-  const ranges = [...others];
+  const next = tieredLimit(all[slot], unit, tier, low, high, source);
+  if (next === undefined) delete all[slot];
+  else all[slot] = next;
+  return { ...config, limits: all as unknown as flow.JsonValue };
+}
+
+/** A limit with one tier's range set from its two bounds (the rules of withTier); undefined once no tier is left. */
+function tieredLimit(l: Limit | undefined, unit: string, tier: limits.LimitTier, low: string, high: string, source: limits.LimitRange['source']): Limit | undefined {
+  const ranges = (l?.ranges ?? []).filter((r) => r.tier !== tier);
   if (low.trim() !== '' || high.trim() !== '') {
     const range: limits.LimitRange = { tier, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source };
     if (low.trim() !== '') range.low = { value: low.trim(), inclusive: true };
@@ -103,9 +110,7 @@ function withTier(config: Config, slot: string, unit: string, tier: limits.Limit
   }
   const order: readonly limits.LimitTier[] = ['REGISTERED', 'VALIDATED', 'INTERNAL_ACTION', 'ALERT'];
   ranges.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
-  if (ranges.length === 0) delete all[slot];
-  else all[slot] = { ...(all[slot] ?? {}), unit: all[slot]?.unit ?? unit, ranges };
-  return { ...config, limits: all as unknown as flow.JsonValue };
+  return ranges.length === 0 ? undefined : { ...(l ?? {}), unit: l?.unit ?? unit, ranges };
 }
 
 /** The registered range of a slot from its two bounds (empty bounds left out); the slot's other tiers are kept. */
@@ -220,24 +225,45 @@ export function LibraryValuesForm({ content, step, readOnly, onChange }: { conte
       {perPoint.map((f) => {
         const points = ((config['points'] as Record<string, { id: string; label: string; limits: Limit }[]> | undefined)?.[f.id] ?? []) as { id: string; label: string; limits: Limit }[];
         const setPoints = (next: typeof points) => onChange(withMember(config, 'points', f.id, next.length > 0 ? (next as unknown as flow.JsonValue) : undefined));
-        const point = (i: number, low: string, high: string, label: string) => {
-          const range: limits.LimitRange = { tier: 'REGISTERED', rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'REGISTRATION', ref: 'FORMULATION' } };
-          if (low.trim() !== '') range.low = { value: low.trim(), inclusive: true };
-          if (high.trim() !== '') range.high = { value: high.trim(), inclusive: true };
-          return { id: `t${String(i + 1)}`, label, limits: { unit: f.unit, ranges: [range] } };
-        };
+        // A point's tiers (#209 residual): the registered range, and behind "More limits" the validated, action and alert
+        // ranges, as for a slot's limits; editing one tier or the label keeps the others.
+        const REG: limits.LimitRange['source'] = { kind: 'REGISTRATION', ref: 'FORMULATION' };
+        const setPoint = (i: number, change: (x: { id: string; label: string; limits: Limit }) => { id: string; label: string; limits: Limit }) =>
+          setPoints(points.map((x, j) => (j === i ? change(x) : x)));
+        const tier = (x: { id: string; label: string; limits: Limit }, t: limits.LimitTier, low: string, high: string, source: limits.LimitRange['source']) => ({
+          ...x,
+          limits: tieredLimit(x.limits, f.unit, t, low, high, source) ?? { unit: f.unit, ranges: [] },
+        });
+        const point = (i: number, label: string) => ({ id: `t${String(i + 1)}`, label, limits: { unit: f.unit, ranges: [] } as Limit });
         return (
           <fieldset key={f.id} aria-label={`Time points of ${f.label}`} className={dcls('stack')}>
             <legend>Time points or stages of {f.label} ({f.unit})</legend>
-            {points.map((p, i) => (
-              <div key={p.id} className={dcls('inline')}>
-                <CommitText label={`Point ${String(i + 1)}: label`} value={p.label} readOnly={readOnly} onCommit={(v) => setPoints(points.map((x, j) => (j === i ? point(i, boundOf(x.limits, 'low'), boundOf(x.limits, 'high'), v) : x)))} />
-                <CommitText label={`Point ${String(i + 1)}: lower limit`} value={boundOf(p.limits, 'low')} readOnly={readOnly} onCommit={(v) => setPoints(points.map((x, j) => (j === i ? point(i, v, boundOf(x.limits, 'high'), x.label) : x)))} />
-                <CommitText label={`Point ${String(i + 1)}: upper limit`} value={boundOf(p.limits, 'high')} readOnly={readOnly} onCommit={(v) => setPoints(points.map((x, j) => (j === i ? point(i, boundOf(x.limits, 'low'), v, x.label) : x)))} />
-              </div>
-            ))}
+            {points.map((p, i) => {
+              const key = `${f.id}.${p.id}`;
+              const n = `Point ${String(i + 1)}`;
+              const showTiers = moreOpen.has(key) || (p.limits?.ranges ?? []).some((r) => r.tier !== 'REGISTERED');
+              return (
+                <div key={p.id} className={dcls('stack')}>
+                  <div className={dcls('inline')}>
+                    <CommitText label={`${n}: label`} value={p.label} readOnly={readOnly} onCommit={(v) => setPoint(i, (x) => ({ ...x, label: v }))} />
+                    <CommitText label={`${n}: lower limit`} value={boundOf(p.limits, 'low')} readOnly={readOnly} onCommit={(v) => setPoint(i, (x) => tier(x, 'REGISTERED', v, boundOf(x.limits, 'high'), REG))} />
+                    <CommitText label={`${n}: upper limit`} value={boundOf(p.limits, 'high')} readOnly={readOnly} onCommit={(v) => setPoint(i, (x) => tier(x, 'REGISTERED', boundOf(x.limits, 'low'), v, REG))} />
+                  </div>
+                  {!showTiers ? (
+                    readOnly ? null : <Button onPress={() => setMoreOpen(new Set([...moreOpen, key]))}>More limits for {n} (validated, action, alert)</Button>
+                  ) : (
+                    EXTRA_TIERS.map((t) => (
+                      <div key={t.tier} className={dcls('inline')}>
+                        <CommitText label={`${n}: ${t.label}, lower`} value={boundOf(p.limits, 'low', t.tier)} readOnly={readOnly} onCommit={(v) => setPoint(i, (x) => tier(x, t.tier, v, boundOf(x.limits, 'high', t.tier), { kind: t.source, ref: 'FORMULATION' }))} />
+                        <CommitText label={`${n}: ${t.label}, upper`} value={boundOf(p.limits, 'high', t.tier)} readOnly={readOnly} onCommit={(v) => setPoint(i, (x) => tier(x, t.tier, boundOf(x.limits, 'low', t.tier), v, { kind: t.source, ref: 'FORMULATION' }))} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              );
+            })}
             {readOnly ? null : (
-              <Button onPress={() => setPoints([...points, point(points.length, '', '', `Point ${String(points.length + 1)}`)])}>Add a time point</Button>
+              <Button onPress={() => setPoints([...points, point(points.length, `Point ${String(points.length + 1)}`)])}>Add a time point</Button>
             )}
           </fieldset>
         );

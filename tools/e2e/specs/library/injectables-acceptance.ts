@@ -602,8 +602,9 @@ async function injPackagingRun(
   }
   await explained(performAndCheck(page, op, verifier, op), page.locator('main'));
   await completed(page);
-  // The line after use, once G-21 is done: no printed material, product or documents left, the line clean; a second
-  // person verifies it before the order can complete (EBMR-LBL-061, PR-34), as on the tablets packaging line.
+  // The line after use, once G-21 is done: no printed material, product or documents left, the line clean. A passing
+  // inspection completes the order on its own (tablets 1908: no second person is needed, EBMR-LBL-061); the optional
+  // verification below is a second person's, never the inspector's, as on the tablets packaging line.
   await load(page, `${base}/labels/packaging/${f.batchId}`);
   const postUse = page.getByTestId('post-use-inspection');
   const postUseForm = postUse.getByTestId('post-use-form');
