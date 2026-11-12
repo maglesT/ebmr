@@ -152,7 +152,7 @@ async function issue(batchId: string, name: Fixture): Promise<void> {
 }
 
 describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
-  it('[IN-45][ST-29] a packaging order of an issued process simulation (media fill) is refused through the planning path: its units are destroyed, never packed (recipe-core 1888)', async () => {
+  it('[IN-45][ST-29] a packaging order of an issued process simulation (media fill) is refused through the planning path: its units are destroyed, never packed (recipe-core 1896)', async () => {
     const proc = await master('tablet-granulation-compression', undefined, { simulation: true });
     const pack = await master('tablet-blister-packaging', proc.product);
     const parent = randomUUID();

@@ -44,7 +44,7 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
-**Process-simulation mark (injectables I-2 feature B, recipe-core 1888, lead design 11 November 2026).** A master header may
+**Process-simulation mark (injectables I-2 feature B, recipe-core 1896, lead design 11 November 2026).** A master header may
 carry `nonProduct: PROCESS_SIMULATION` (a media fill), on an injectables processing master only (EBMR-RCP-435). The mark is
 approved content and in the hash. Such a batch is issued
 without the licence or any market's export permission, and the hazard dedication still applies. Its licence basis

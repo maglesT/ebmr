@@ -344,7 +344,7 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
   });
 });
 
-describe('the process-simulation mark (recipe-core 1888; injectables I-2, feature B)', () => {
+describe('the process-simulation mark (recipe-core 1896; injectables I-2, feature B)', () => {
   it('[IN-30][ST-29][IN-45] a process-simulation batch is issued with no licence and no export permission for any market; its basis records no licence: process simulation; the same master unmarked is refused', async () => {
     const plain = await effective(['IN', 'EU'], false);
     expect((await db.app.query<{ p: string }>('select recipe.india_issue_problem($1) as p', [await plan(plain, ['IN', 'EU'])])).rows[0]!.p).toMatch(/EBMR-IND-040/);

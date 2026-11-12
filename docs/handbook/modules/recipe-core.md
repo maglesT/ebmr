@@ -737,7 +737,7 @@ nobody verified only for a stage without a checker. Such a CLEAN area moves to C
 **Known residual:** an area created before 1887 stays on version 1 and keeps the verified rule until the owner
 decides. No aggregate was migrated.
 
-**Process simulation (media fill) mark (1888; injectables I-2, feature B).** A master whose header carries
+**Process simulation (media fill) mark (1896; injectables I-2, feature B).** A master whose header carries
 `nonProduct: PROCESS_SIMULATION` makes no product. Only an injectables processing master may carry it (EBMR-RCP-435 at save); the mark is approved
 content, so it changes only with a new version. No intermediate lot is posted from such a batch (EBMR-IND-047).
 Its batches are issued without the licence check or any market's export permission, though the line's hazard

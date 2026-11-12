@@ -57,7 +57,7 @@ const header = defineRule('GMP-HEADER', 'Header, market set and batch sizes', ['
     out.push(error('$', `A master that makes no product is a process simulation (PROCESS_SIMULATION), not ${String(h.nonProduct)}`));
   }
   // Aseptic process simulation is a sterile-processing concept (Annex 1 section 9), and its licence skip must never reach
-  // product: the mark belongs to an injectables processing master only (recipe-core 1888, EBMR-RCP-435).
+  // product: the mark belongs to an injectables processing master only (recipe-core 1896, EBMR-RCP-435).
   if (h.nonProduct !== undefined && (h.edition !== 'injectables' || h.recordKind !== 'PROCESSING')) {
     out.push(error('$', `Only an injectables processing master may be a process simulation; this master is ${h.edition}, ${h.recordKind.toLowerCase()}`));
   }
