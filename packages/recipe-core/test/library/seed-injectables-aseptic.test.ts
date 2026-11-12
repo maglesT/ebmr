@@ -71,6 +71,13 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(item, { component: { packsIntact: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
+  it('[ST-40] a supplier-sterilised lot cannot be accepted without its sterility certificate: the entry is refused and nothing is recorded', () => {
+    const item = byCode('INJ-SUPPLIER-STERILE');
+    expect(() => judgedRun(item, { component: { certificate: undefined } })).toThrow(/Sterilisation certificate reference is required \(LIB-ENTRY-REQUIRED/);
+    expect(() => judgedRun(item, { component: { certificate: '' } })).toThrow(/ENG-ENTRY-SCHEMA/);
+    expect(judgedRun(item, {}).exceptions).toEqual([]);
+  });
+
   it('[ST-48][ST-42] sterilisation in place records the cycle values from the printout as critical values with limits, checked by a second person; a temperature or exposure below the minimum is an exception', () => {
     const item = byCode('INJ-SIP');
     for (const id of ['temperature', 'holdTime']) expect(fieldOf(item, id), id).toMatchObject({ type: 'NUMBER', critical: true });
@@ -191,6 +198,17 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     const alert = judgedRun(item, { count: { cfuAir: '7' } });
     expect(new Set(alert.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(alert.status).toBe('COMPLETED');
+  });
+
+  it('[ST-21] for a Grade A location, whose action limit is no growth, one colony on a settle plate is an exception that stops the step until it is handled', () => {
+    // A Grade A use of the block: the formulation sets the grade's action limit (A1 Table 6: no growth) as its maximum 0.
+    const gradeA = withLimits(byCode('INJ-EM-COUNTS'), {
+      cfuSettle: { unit: '{CFU}', ranges: [{ tier: 'INTERNAL_ACTION', high: { value: '0', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'RULE_TABLE', ref: 'A1-TABLE-6' } }] },
+    });
+    const one = judgedRun(gradeA, { count: { method: 'Settle plate', cfuAir: undefined, cfuSettle: '1' } });
+    expect(new Set(one.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+    expect(one.status).not.toBe('COMPLETED');
+    expect(judgedRun(gradeA, { count: { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 
   it('[ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade\'s keys of the sterile rule table; a count above the limit is an exception', () => {

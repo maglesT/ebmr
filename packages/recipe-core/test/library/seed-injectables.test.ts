@@ -308,3 +308,51 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(judgedRun(item, { particulates: { particles10: Array.from({ length: 10 }, () => '6500') } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 });
+
+/**
+ * The equipment an injectables block names (a room, a tunnel, a balance, a point of use) is read with its fitness from
+ * the plant register (step entry facts, plant.equipment_fitness): a unit that is not fit is refused at the entry, before
+ * anything is recorded (plan section 4.1; the MODIFY decisions of I-6).
+ */
+describe('equipment named by an injectables block is refused when it is not fit (I-6.2)', () => {
+  /** The facts the server would read for the field: a unit of the formulation's class, with the given fitness. */
+  const unit = (item: SeedItem, id: string, fitness: string): Record<string, unknown> => {
+    const f = fieldOf(item, id);
+    const classCode = f.type === 'EQUIPMENT' ? item.exampleUse.equipmentClasses?.[f.classSlot] : undefined;
+    return { equipment: { [id]: { code: `SIM-${id.toUpperCase()}`, classCode, fitness } } };
+  };
+
+  it('[ST-05] the fill-weight check on a balance whose calibration has expired is refused; one due soon is still used', () => {
+    const item = byCode('IPC-INJ-FILL-WEIGHT');
+    expect(() => judgedRun(item, { check: unit(item, 'weighBalance', 'CALIBRATION_OVERDUE') })).toThrow(/calibration overdue and may not be used \(LIB-EQUIPMENT-FITNESS/);
+    expect(judgedRun(item, { check: unit(item, 'weighBalance', 'CALIBRATION_DUE_SOON') }).exceptions).toEqual([]);
+  });
+
+  it('[ST-14] room readiness refuses a room past its requalification due date, an unqualified room and a room of another grade class', () => {
+    const item = byCode('INJ-ROOM-READY');
+    // A room's requalification is its due date in the plant register (plan 4.1): past it, the unit is overdue.
+    expect(() => judgedRun(item, { clearance: unit(item, 'room', 'CALIBRATION_OVERDUE') })).toThrow(/calibration overdue and may not be used \(LIB-EQUIPMENT-FITNESS/);
+    expect(() => judgedRun(item, { clearance: unit(item, 'room', 'NOT_QUALIFIED') })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+    expect(() => judgedRun(item, { clearance: { equipment: { room: { code: 'SIM-ROOM', classCode: 'ROOM-GRADE-D', fitness: 'QUALIFIED' } } } })).toThrow(/LIB-EQUIPMENT-CLASS/);
+  });
+
+  it('[ST-16] line clearance refuses a room taken out of service (an HVAC shutdown) until it is returned to service', () => {
+    const item = byCode('INJ-ROOM-READY');
+    expect(() => judgedRun(item, { clearance: unit(item, 'room', 'OUT_OF_SERVICE') })).toThrow(/out of service and may not be used \(LIB-EQUIPMENT-FITNESS/);
+    expect(judgedRun(item, { clearance: unit(item, 'room', 'QUALIFIED') }).exceptions).toEqual([]);
+  });
+
+  it('[ST-17] depyrogenation refuses a tunnel whose HEPA test (its due date) has expired', () => {
+    const item = byCode('INJ-DEPYRO');
+    expect(() => judgedRun(item, { cycle: unit(item, 'tunnel', 'CALIBRATION_OVERDUE') })).toThrow(/calibration overdue and may not be used \(LIB-EQUIPMENT-FITNESS/);
+    expect(judgedRun(item, { cycle: unit(item, 'tunnel', 'QUALIFIED') }).exceptions).toEqual([]);
+  });
+
+  it('[ST-25][ST-26] compounding refuses water from a WFI point of use that is out of service (QC has not released it); a released point is used', () => {
+    const item = byCode('INJ-COMPOUND');
+    // The vessel named in the same section stays fit; only the point of use changes.
+    const units = (fitness: string) => ({ equipment: { ...unit(item, 'vessel', 'QUALIFIED')['equipment'] as object, ...unit(item, 'wfiPoint', fitness)['equipment'] as object } });
+    expect(() => judgedRun(item, { preparation: units('OUT_OF_SERVICE') })).toThrow(/WFI point of use: .* out of service and may not be used \(LIB-EQUIPMENT-FITNESS/);
+    expect(judgedRun(item, { preparation: units('QUALIFIED') }).exceptions).toEqual([]);
+  });
+});

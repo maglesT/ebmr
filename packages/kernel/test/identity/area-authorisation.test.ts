@@ -54,6 +54,30 @@ describe('area authorisation (kernel 1190)', () => {
     expect(await problem(area, beforeWithdrawal)).toBeNull();
   });
 
+  it('[ST-07][ST-08][ST-30][INV-26] the authorisation of a Grade A/B room (its gowning, aseptic training and APS) counts until its valid-to: a day after the 12 months it covers, signing there is refused', async () => {
+    const area = `GB-${randomBytes(2).toString('hex').toUpperCase()}`;
+    const code = await asTc(async (c) => (await c.query<{ r: string }>('select iam.create_area_authorisation_type($1, $2) as r', [area, 'Grade B filling room'])).rows[0]?.r);
+    const now = await dbNow(db);
+    const plusDays = (d: number): string => new Date(new Date(now).getTime() + d * 86_400_000).toISOString();
+    await asTc((c) => c.query('select iam.record_qualification($1, $2, $3::timestamptz, $4::timestamptz)', [op.personId, code, plusDays(-1), plusDays(365)]));
+    expect(await problem(area)).toBeNull();
+    expect(await problem(area, plusDays(364))).toBeNull();
+    expect(await problem(area, plusDays(366))).toMatch(new RegExp(`^EBMR-IAM-202 Asha Operator holds no current authorisation AREA\\.${area}`));
+  });
+
+  it('[ST-09][ST-10][INV-26] after QA withdraws a person\'s authorisation of an aseptic area, the signature there is refused until a new authorisation (after requalification) is recorded', async () => {
+    const area = `GA-${randomBytes(2).toString('hex').toUpperCase()}`;
+    const code = await asTc(async (c) => (await c.query<{ r: string }>('select iam.create_area_authorisation_type($1, $2) as r', [area, 'Grade A filling line'])).rows[0]?.r);
+    const record = async (): Promise<string> =>
+      String(await asTc(async (c) => (await c.query<{ r: string }>("select iam.record_qualification($1, $2, clock_timestamp() - interval '1 hour', null) as r", [op.personId, code])).rows[0]?.r));
+    const first = await record();
+    expect(await problem(area)).toBeNull();
+    await asTc((c) => c.query('select iam.withdraw_qualification($1, $2)', [first, 'Media fill failed: restricted pending investigation']));
+    expect(await problem(area)).toMatch(/^EBMR-IAM-202 /);
+    await record();
+    expect(await problem(area)).toBeNull();
+  });
+
   it('[PR-15][INV-26] an authorisation mirrored from the LMS counts only while the mirror is fresh', async () => {
     const area = `PS-${randomBytes(2).toString('hex').toUpperCase()}`;
     const code = await asTc(async (c) => (await c.query<{ r: string }>('select iam.create_area_authorisation_type($1, $2) as r', [area, 'Mirrored suite'])).rows[0]?.r);
