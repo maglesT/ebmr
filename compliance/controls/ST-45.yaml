@@ -21,6 +21,11 @@ behaviour: |-
 catalog_test: Scan a tray whose cycle is unreviewed at Grade A entry → refused.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Scan a tray whose cycle is unreviewed at Grade A entry → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Carrier state scanning; packing-to-sterilisation timer"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

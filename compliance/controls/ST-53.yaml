@@ -27,6 +27,15 @@ behaviour: |-
 catalog_test: Scan a filter serial used yesterday → refused. Run a tank vent filter beyond its maximum SIP cycles → blocked.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Scan a filter serial used yesterday → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Serial bound to one batch; FDA lot counting; vent-filter lifecycle"
+  - clause: "Run a tank vent filter beyond its maximum SIP cycles → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Serial bound to one batch; FDA lot counting; vent-filter lifecycle"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

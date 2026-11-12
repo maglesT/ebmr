@@ -30,6 +30,15 @@ behaviour: |-
 catalog_test: Flag a terminal product as growth-supporting → a Grade D preparation room is rejected. Set container type "wide-neck" → filling demands Grade A in a Grade C background.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Flag a terminal product as growth-supporting → a Grade D preparation room is rejected."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Product risk flags raising grades automatically"
+  - clause: "Set container type \"wide-neck\" → filling demands Grade A in a Grade C background."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Product risk flags raising grades automatically"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

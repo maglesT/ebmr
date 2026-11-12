@@ -16,6 +16,11 @@ catalog_test: log a significant stoppage; a sterility pull after restart becomes
 implemented_by: {}
 tests:
   - "tools/e2e/specs/library/injectables-acceptance.ts > [ST-21][IN-42][IN-49] Libinj aseptic 10 mg/2 mL, solution for injection in vials (library), GMP 8b: the EM count above the action limit holds the lot: its release checklist is red on the batch's open deviation until QA investigates, concludes and closes it @office"
+clauses:
+  - clause: "log a significant stoppage; a sterility pull after restart becomes mandatory."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Automatic pull after each interruption; forced open-and-acknowledge screen"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
