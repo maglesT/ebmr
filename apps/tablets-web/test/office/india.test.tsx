@@ -70,6 +70,14 @@ describe('the allocation register and the label particulars', () => {
     expect(voided.textContent).toContain('ORDER_CANCELLED: ERP order cancelled before issue');
   });
 
+  it('[IN-18][IN-45] the register says why an issued process simulation has no licence number', async () => {
+    office('/india/register', 'QA_REVIEWER');
+    const simulation = await screen.findByTestId('allocation-PCM2600014');
+    expect(simulation.getAttribute('data-use')).toBe('ISSUED');
+    expect(simulation.textContent).toContain('Process simulation (no licence)');
+    expect((await screen.findByTestId('allocation-PCM2600012')).textContent).not.toContain('Process simulation');
+  });
+
   it('[IN-31] a batch\'s label particulars and its H2 payload are shown as the server computed them', async () => {
     office(`/india/batches/${label.batchId}`, 'QA_REVIEWER');
     expect((await screen.findByTestId('label-mfg')).textContent).toBe('10/2026');

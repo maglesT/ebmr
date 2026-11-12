@@ -370,7 +370,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql:
-        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_', '^1734_', '^1736_']
+        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_', '^1103_', '^1732_', '^1734_', '^1736_', '^1737_']
     src: [packages/site-services/src/lots]
     tests: ['packages/site-services/test/lots/**', 'packages/site-services/test/mutation/lots-and-lims.test.ts']
 
@@ -638,7 +638,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0891_', '^0894_', '^1060_']
+      packages/recipe-core/sql: ['^0891_', '^0894_', '^1060_', '^1896_']
     tests:
       - 'packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts'
       - 'packages/recipe-core/test/mutation/india-issue-gate.test.ts'
