@@ -225,14 +225,14 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-12: 211.101, 211.103, 211.111; SM 5.12-5.17; the overlay gas filter: SM Part II 6.11.2.7, A1 8.88 (ST-28).
+    // INJ-12: 211.101, 211.103, 211.111; SM 5.12-5.17. The overlay's gas filter is the block INJ-GAS-FILTER (ST-28).
     definition: {
       code: 'INJ-COMPOUND',
       version: 1,
       title: 'Solution preparation (compounding)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-12. The vessel, water for injection from its point of use, mixing time, nitrogen overlay where the product needs it (with its gas filter\'s integrity after use), volume make-up, pH and density of the bulk, and the pre-filtration bioburden sample.',
+      description: 'INJ-12. The vessel, water for injection from its point of use, mixing time, nitrogen overlay where the product needs it (its gas filter is the block INJ-GAS-FILTER), volume make-up, pH and density of the bulk, and the pre-filtration bioburden sample.',
       instructions: 'Charge the water for injection, add the dispensed materials in the order of the formulation and mix. Make up to the final volume. Take the pH, the density and the bioburden sample before filtration.',
       sections: [
         {
@@ -246,9 +246,6 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'additionOrder', label: 'Materials added in the order of the formulation', type: 'YES_NO', expected: true },
             { id: 'mixing', label: 'Mixing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixingTime' },
             { id: 'nitrogen', label: 'Nitrogen overlay', type: 'CHOICE', options: ['Not required by the product', 'Applied'] },
-            // ST-28: the integrity of a critical gas filter is confirmed after use (SM Part II 6.11.2.7; A1 8.88 for the EU
-            // market), so every market: asked when the overlay is applied, judged against the filter's limit.
-            { id: 'gasFilterPost', label: 'Nitrogen filter integrity after use (bubble point)', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'gasFilterPost', critical: true, showWhen: { field: 'nitrogen', equals: 'Applied' } },
           ],
         },
         {
@@ -270,13 +267,40 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
         wfiVolume: pv('L', '140.0', '160.0'),
         wfiTemp: pv('Cel', '20.0', '30.0'),
         mixingTime: pv('min', '30'),
-        gasFilterPost: pv('bar', '1.00'),
         finalVolume: spec('L', '199.0', '201.0'),
         ph: spec('1', '6.5', '7.5'),
         density: spec('g/mL', '1.0000', '1.0100'),
       },
       targets: { wfiVolume: '150.0', wfiTemp: '25.0', finalVolume: '200.0', ph: '7.0', density: '1.0050' },
       counts: { phReadings: '2', bioburdenSamples: '1' },
+    },
+  },
+  {
+    // ST-28: the integrity of a critical gas filter is confirmed after use (SM Part II 6.11.2.7; A1 8.88 for the EU market),
+    // so every market. A formulation that applies a nitrogen overlay adds this block after compounding; one without an
+    // overlay leaves it out and sets no gas-filter limit.
+    definition: {
+      code: 'INJ-GAS-FILTER',
+      version: 1,
+      title: 'Nitrogen overlay gas filter integrity after use',
+      category: 'CONTROL',
+      edition: EDITION,
+      description: 'ST-28. The integrity of the sterilising gas filter of the nitrogen overlay, tested after use by bubble point against its limit.',
+      instructions: 'After compounding, test the integrity of the nitrogen overlay gas filter, still in its housing, and record the bubble point.',
+      sections: [
+        {
+          id: 'gasFilter',
+          title: 'Gas filter after use',
+          fields: [
+            { id: 'gasFilterPost', label: 'Nitrogen filter integrity after use (bubble point)', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'gasFilterPost', critical: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { gasFilterPost: pv('bar', '1.00') },
+      targets: { gasFilterPost: '1.20' },
     },
   },
   {

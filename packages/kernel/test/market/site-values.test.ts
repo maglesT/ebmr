@@ -64,11 +64,23 @@ describe('tighten only', () => {
     await expect(set({ key: 'sterile.particles.gradeB.inOperation.max5_0um', value: '2930' })).rejects.toThrow('EBMR-MKT-060');
   });
 
-  it('[ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 binds 10 for an EU batch, and a site value can only tighten it', async () => {
+  it('[ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 and Schedule M Table 3 bind 10 for an EU and an India batch, and a site value can only tighten it', async () => {
     const e = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableAll);
     expect([e.resolvedValue, e.governingMarkets, e.floorType]).toEqual(['10', ['EU', 'IN'], 'HARD']);
+    const india = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableIn);
+    expect([india.resolvedValue, india.governingMarkets, india.floorType]).toEqual(['10', ['IN'], 'HARD']);
     await expect(set({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
     await expect(set({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
+    // A site that serves India only (no product qualified there): the India value alone binds, and 15 is refused.
+    const indiaSite = await asApp(
+      db,
+      async (c) => (await c.query<{ id: string }>('insert into market.stub_site (code, markets) values ($1, $2) returning id', [`SITE-IN-${randomUUID().slice(0, 8)}`, ['IN']])).rows[0]?.id ?? '',
+      { roleCode: MARKET_ROLES.stubs },
+    );
+    const setIndia = (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'>) =>
+      asApp(db, (c) => setSiteValue(c, { siteId: indiaSite, effectiveFrom: '2026-01-01', ...request }), { roleCode: MARKET_ROLES.siteValues });
+    await expect(setIndia({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
+    await expect(setIndia({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
   });
 
   it('[IN-52] a site value looser than a DESIGN value is refused (APS tiers are out of v1; HEPA A/B is six months by design)', async () => {

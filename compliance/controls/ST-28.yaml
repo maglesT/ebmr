@@ -23,11 +23,12 @@ behaviour: |-
 catalog_test: Complete a batch without the overlay filter's post-use test → certification blocked. Record a tank pressure drop to 0 during a hold → deviation required.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] with a nitrogen overlay the gas filter's integrity after use is a critical value with its limit: below it is an exception that stops the step, and without the result the step cannot complete; without an overlay it is not asked"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] a compounding use without a nitrogen overlay needs no gas-filter limit: compounding has no gas-filter field, and its use passes the checker without one"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] the overlay gas filter's integrity after use is a critical value with its limit (every market): below it is an exception that stops the step, and without the result the step cannot complete"
 clauses:
   - clause: "Complete a batch without the overlay filter's post-use test → certification blocked."
     tests:
-      - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] with a nitrogen overlay the gas filter's integrity after use is a critical value with its limit: below it is an exception that stops the step, and without the result the step cannot complete; without an overlay it is not asked"
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] the overlay gas filter's integrity after use is a critical value with its limit (every market): below it is an exception that stops the step, and without the result the step cannot complete"
   - clause: "Record a tank pressure drop to 0 during a hold → deviation required."
     not_required:
       decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"

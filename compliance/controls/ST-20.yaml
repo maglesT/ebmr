@@ -54,7 +54,7 @@ behaviour: |-
 catalog_test: Configure a Grade B air action limit of 15 → rejected. The Grade A viable alert field is absent. Three low-level recoveries at one ISO 7 location in 10 days → the frequency trend rule fires and links to batches.
 implemented_by: {}
 tests:
-  - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 binds 10 for an EU batch, and a site value can only tighten it"
+  - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 and Schedule M Table 3 bind 10 for an EU and an India batch, and a site value can only tighten it"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6), so the master validator refuses a looser action limit"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
@@ -62,7 +62,7 @@ tests:
 clauses:
   - clause: "Configure a Grade B air action limit of 15 → rejected."
     tests:
-      - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 binds 10 for an EU batch, and a site value can only tighten it"
+      - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 and Schedule M Table 3 bind 10 for an EU and an India batch, and a site value can only tighten it"
   - clause: "The Grade A viable alert field is absent."
     not_required:
       decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"

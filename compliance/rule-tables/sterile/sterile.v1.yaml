@@ -51,8 +51,9 @@ keys:
     orderedValues: [BELOW_1_CFU_PER_SAMPLE, NO_GROWTH]
     indiaGoverns: true
     catalogRefs: [B-12, IN-42]
-  # --- Grade B viable action limits (ST-01, ST-20): EU Annex 1 Table 6 is binding (HARD), so a site value can only
-  # tighten it; Schedule M Part II Table 3 gives the same numbers as average values for information only (its 4.9).
+  # --- Grade B viable action limits (ST-01, ST-20): EU Annex 1 Table 6 and Schedule M Part II Table 3 (counted as
+  # binding under docs/build-plan/injectables/control-decisions.md (Q0; IN-42); lead ruling, I-6 B1) give the same
+  # numbers; both are HARD, so a site value can only tighten them.
   - {key: sterile.viable.gradeB.airMax, title: 'Grade B viable action limit, active air sample', method: SMALLER_STRICTER, valueType: DECIMAL, unit: '{CFU}/m3', indiaGoverns: true, catalogRefs: [B-12, ST-01, ST-20]}
   - {key: sterile.viable.gradeB.settlePlateMax, title: 'Grade B viable action limit, settle plate of 90 mm over 4 hours', method: SMALLER_STRICTER, valueType: DECIMAL, unit: '{CFU}', indiaGoverns: true, catalogRefs: [B-12, ST-01, ST-20]}
   - {key: sterile.viable.gradeB.contactPlateMax, title: 'Grade B viable action limit, contact plate of 55 mm', method: SMALLER_STRICTER, valueType: DECIMAL, unit: '{CFU}', indiaGoverns: true, catalogRefs: [B-12, ST-01, ST-20]}
@@ -121,14 +122,14 @@ rows:
     note: India catalog G-11 asks inspectors to confirm the per-sample evaluation.
   - {ref: B-12.US.A.viable, key: sterile.viable.gradeA.acceptance, market: US, value: BELOW_1_CFU_PER_SAMPLE, unit: '{category}', floor: GUIDANCE, source: 'FDA 2004 aseptic processing guidance Table 1 (ISO 5 action level)', verification: CHK, effectiveFrom: '2004-09-01'}
   - {ref: B-12.EU.A.viable, key: sterile.viable.gradeA.acceptance, market: EU, value: NO_GROWTH, unit: '{category}', floor: HARD, source: 'EU GMP Annex 1 (2022) 9.30 and Table 6', verification: CHK, effectiveFrom: '2023-08-25'}
-  # Grade B viable action limits (ST-01, ST-20): Annex 1 Table 6 maxima, binding for the EU market.
-  - {ref: ST-20.IN.B.air, key: sterile.viable.gradeB.airMax, market: IN, value: '10', unit: '{CFU}/m3', floor: GUIDANCE, source: 'Schedule M Part II 4.9 and Table 3 (average values, for information only)', verification: P, effectiveFrom: '2023-12-28'}
+  # Grade B viable action limits (ST-01, ST-20): Annex 1 Table 6 and Schedule M Table 3, both HARD.
+  - {ref: ST-20.IN.B.air, key: sterile.viable.gradeB.airMax, market: IN, value: '10', unit: '{CFU}/m3', floor: HARD, source: 'Schedule M Part II 4.9 and Table 3; binding per docs/build-plan/injectables/control-decisions.md (Q0; IN-42)', verification: P, effectiveFrom: '2023-12-28'}
   - {ref: ST-20.EU.B.air, key: sterile.viable.gradeB.airMax, market: EU, value: '10', unit: '{CFU}/m3', floor: HARD, source: 'EU GMP Annex 1 (2022) 9.30 and Table 6', verification: CHK, effectiveFrom: '2023-08-25'}
-  - {ref: ST-20.IN.B.settle, key: sterile.viable.gradeB.settlePlateMax, market: IN, value: '5', unit: '{CFU}', floor: GUIDANCE, source: 'Schedule M Part II 4.9 and Table 3 (average values, for information only)', verification: P, effectiveFrom: '2023-12-28'}
+  - {ref: ST-20.IN.B.settle, key: sterile.viable.gradeB.settlePlateMax, market: IN, value: '5', unit: '{CFU}', floor: HARD, source: 'Schedule M Part II 4.9 and Table 3; binding per docs/build-plan/injectables/control-decisions.md (Q0; IN-42)', verification: P, effectiveFrom: '2023-12-28'}
   - {ref: ST-20.EU.B.settle, key: sterile.viable.gradeB.settlePlateMax, market: EU, value: '5', unit: '{CFU}', floor: HARD, source: 'EU GMP Annex 1 (2022) 9.30 and Table 6', verification: CHK, effectiveFrom: '2023-08-25'}
-  - {ref: ST-20.IN.B.contact, key: sterile.viable.gradeB.contactPlateMax, market: IN, value: '5', unit: '{CFU}', floor: GUIDANCE, source: 'Schedule M Part II 4.9 and Table 3 (average values, for information only)', verification: P, effectiveFrom: '2023-12-28'}
+  - {ref: ST-20.IN.B.contact, key: sterile.viable.gradeB.contactPlateMax, market: IN, value: '5', unit: '{CFU}', floor: HARD, source: 'Schedule M Part II 4.9 and Table 3; binding per docs/build-plan/injectables/control-decisions.md (Q0; IN-42)', verification: P, effectiveFrom: '2023-12-28'}
   - {ref: ST-20.EU.B.contact, key: sterile.viable.gradeB.contactPlateMax, market: EU, value: '5', unit: '{CFU}', floor: HARD, source: 'EU GMP Annex 1 (2022) 9.30 and Table 6', verification: CHK, effectiveFrom: '2023-08-25'}
-  - {ref: ST-20.IN.B.glove, key: sterile.viable.gradeB.glovePrintMax, market: IN, value: '5', unit: '{CFU}', floor: GUIDANCE, source: 'Schedule M Part II 4.9 and Table 3 (average values, for information only)', verification: P, effectiveFrom: '2023-12-28'}
+  - {ref: ST-20.IN.B.glove, key: sterile.viable.gradeB.glovePrintMax, market: IN, value: '5', unit: '{CFU}', floor: HARD, source: 'Schedule M Part II 4.9 and Table 3; binding per docs/build-plan/injectables/control-decisions.md (Q0; IN-42)', verification: P, effectiveFrom: '2023-12-28'}
   - {ref: ST-20.EU.B.glove, key: sterile.viable.gradeB.glovePrintMax, market: EU, value: '5', unit: '{CFU}', floor: HARD, source: 'EU GMP Annex 1 (2022) 9.30 and Table 6', verification: CHK, effectiveFrom: '2023-08-25'}
   # B-16 HEPA leak tests. Six months for A/B in every profile is a product choice (outline 5.9 item 17).
   - ref: B-16.IN.AB
