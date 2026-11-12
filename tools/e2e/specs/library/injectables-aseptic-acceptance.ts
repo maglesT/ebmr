@@ -114,6 +114,8 @@ export const ASEPTIC_VIAL: Injectable = {
  * includes the line's interventions), then incubation and reading (INJ-APS-READ) in place of inspection, the EM counts and
  * the unit accountability, which reads the units incubated and removed from the reading. DEMO-ONLY values.
  * 10,000 filled = 9,840 incubated + 20 rejected at the line + 40 at capping + 80 removed before incubation + 20 lost.
+ * The master carries the process-simulation mark (recipe-core 1896): its GMP batch is issued with no product licence and
+ * ends at QA's review of the record.
  */
 const MEDIA_FILL_COUNTS = {
   read: { incubation: { unitsRemoved: '80', removedReason: 'Cracked or without a crimp, removed before incubation', unitsIncubated: '9840' } },
@@ -160,4 +162,8 @@ export const MEDIA_FILL: Injectable = {
     plan(productBlock('INJ-EM-COUNTS', {})),
     mediaFillAccount(),
   ],
+  processSimulation: true,
+  // The GMP run (recipe-core 1896): the aseptic vial's line, the same GMP units, and the incubator. No output containers:
+  // the units are incubated, read and destroyed.
+  gmp: { plant: [...(ASEPTIC_VIAL.gmp?.plant ?? []), unit('INCUBATOR', 'Microbiological incubator', 'INCUBATOR-01', 'Incubator')] },
 };

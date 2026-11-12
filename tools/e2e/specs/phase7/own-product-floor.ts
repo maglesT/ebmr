@@ -285,6 +285,9 @@ export async function statusStep(f: Floor, page: Page, key: string, units: reado
     const box = page.getByTestId(`plant-unit-${u.ref}`);
     if (process.env['EBMR_E2E_RESUME'] === '1' && (await box.getByText(`Recorded in this step for ${u.ref}.`).count()) > 0) continue;
     const pick = box.getByRole('radio', { name: new RegExp(`^${u.code} `) });
+    // The unit's panel lists its choices (a class with units in two rooms of the stage) or, with one unit, its acts:
+    // wait for either before deciding whether to choose.
+    await explained(expect(pick.or(box.getByRole('button', { name: new RegExp(`^(Book|Per-use check of) ${u.code} `) })).or(box.getByTestId(`use-${u.code}`)).first()).toBeVisible(), page.locator('main'));
     if ((await pick.count()) > 0) await choose(pick);
     if (u.instrument) {
       await act(page, box.getByRole('button', { name: `Per-use check of ${u.code} passed` }), op);
@@ -515,7 +518,8 @@ export async function dispensing(f: Floor, plan: ProcessPlan): Promise<void> {
     await performAndCheck(page, dispenser, verifier, op);
     await completed(page);
   }
-  if (!(await done(f, page, 'p-disp-exc@'))) {
+  // The other components' step only when the formula has them (from-formula makes it for those lines alone).
+  if (plan.others.length > 0 && !(await done(f, page, 'p-disp-exc@'))) {
     await as(page, dispenser);
     await step(f, page, 'p-disp-exc@');
     await begin(page, dispenser);

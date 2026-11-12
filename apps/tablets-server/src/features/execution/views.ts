@@ -759,11 +759,7 @@ export function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDe
   for (const kind of kinds) {
     switch (kind) {
       case 'CONTAINER_WEIGHING': {
-        const bom = phase.consumes.map((b) => {
-          const line = def.mbr.bom.find((x) => x.id === b);
-          const ref = line ? def.mbr.references.find((r) => r.id === line.material) : undefined;
-          return { value: b, label: ref ? `${ref.title} (${ref.code})` : (line?.material ?? b) };
-        });
+        const bom = bomLineOptions(def.mbr, phase.consumes);
         out.push({
           kind,
           title: 'Weigh one container',
@@ -1367,4 +1363,22 @@ export function timeline(app: AppContext, rows: RunRows, def: engine.BatchDefini
     accepted: r.accepted,
     refusal: r.refusal ? say(r.refusal.message || r.refusal.code) : null,
   }));
+}
+
+/**
+ * The choices of a weighing's "Material": one per BOM line the step consumes, named by the material's title and code.
+ * Owner acceptance (session 12): a material on more than one line of the step (a bilayer tablet's binder in each layer)
+ * is weighed for each line on its own, at the line's quantity (D-2), so its choices also name the line; otherwise the
+ * operator would see two identical choices and could record a container against the other layer's line. The label still
+ * ends with the material's code in brackets (the kiosk picks a line from a scanned lot only when one line matches).
+ */
+export function bomLineOptions(mbr: Pick<flow.MbrContent, 'bom' | 'references'>, consumes: readonly string[]): { value: string; label: string }[] {
+  const materialOf = (b: string): string | undefined => mbr.bom.find((x) => x.id === b)?.material;
+  return consumes.map((b) => {
+    const line = mbr.bom.find((x) => x.id === b);
+    const ref = line ? mbr.references.find((r) => r.id === line.material) : undefined;
+    const name = ref ? `${ref.title} (${ref.code})` : (line?.material ?? b);
+    const shared = line !== undefined && consumes.filter((c) => materialOf(c) === line.material).length > 1;
+    return { value: b, label: shared ? `Line ${b}: ${name}` : name };
+  });
 }

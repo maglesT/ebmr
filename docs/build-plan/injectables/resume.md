@@ -80,6 +80,20 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - **Owner question:** a room-level EM logbook (an area or plant record with the EM blocks) as a future feature, if wanted.
 - Local notes: the E2E of the media fill spec alone takes 35 min; a scratch spec in the main tree must be excluded in
   `.git/info/exclude`, never committed.
+### Session 10c (12 November 2026): the media fill's GMP run, the EM tiers, routine EM
+
+- **I-2d (branch `inj/i2-d-media-fill-gmp`):** the media fill's GMP run to QA's record review, group `library-inj-aseptic`
+  (7 tests, 35 min locally). The sandbox half ticks the process-simulation mark on screen and removes the release for
+  packing; the GMP half records no licence, printed items or product specification, issues the batch (the allocation
+  register shows "Process simulation (no licence)"), runs the kiosks with no output containers, and GMP 5 ends with QA's
+  review and a refused finished-lot post (the service the form calls; the DB refusals are #230's tests).
+  - Lead rulings (12 November): the master-version market authorisation stays (PR-04 market validity applies to a media-fill master; GMP 3's issue, listed under PR-04, proves it;
+    this supersedes the I-2c ruling about skipping it); the author deletes H-PACK on screen; the API-level refusal is enough.
+  - **Residual (lead):** from-formula or the validator could drop H-PACK, or warn, on a PROCESS_SIMULATION master.
+- **Item 2 (branch `inj/i2-e-em-alert-tier`):** the values helper types each limit tier into its own boxes ("More limits");
+  GMP 8b's EM breach is then an action-tier breach (asserted on the blocked exception), not registration-relevant. It
+  touches every library group's values, so its full run is the test.
+- **Item 3, routine EM:** see the handover above (dropped; an owner question).
 
 ### Session 10b (11 November 2026): lean merged, I-2b merged, I-2c and B open
 
