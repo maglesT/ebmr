@@ -32,6 +32,13 @@ export interface ProductBlock {
   values?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   /** The master's id of this step when the block is used more than once (the designer numbers it: p-ctrl-yield-2). */
   stepId?: string;
+  /**
+   * What a product's spec asserts of this step on the kiosk (optional; nothing is asserted by default):
+   *  - `verified`: once signed as performed, the step waits for its verification, and a second person signs it;
+   *  - `entries`: text each recorded entry list must show once the step is completed (a calculated value as the server
+   *    computed it, so a broken calculation or step-value wiring fails the run).
+   */
+  expect?: { verified?: true; entries?: readonly RegExp[] };
 }
 
 /**
@@ -498,15 +505,23 @@ export async function runLibraryStep(
   await paceTaps(page, ctx.operator);
   await signPrimary(page, 'Sign as performed', ctx.operator);
   // A step with a check (or a hand-keyed weighing) waits for its verifier; one without completes.
+  if (b.expect?.verified) await expect(card(page)).toContainText('waiting for verification');
   await expect(card(page)).toContainText(/waiting for verification|Completed/);
   if (/waiting for verification/.test((await card(page).textContent()) ?? '')) {
     await paceTaps(page, ctx.verifier);
     await switchUser(page, ctx.verifier);
     await signPrimary(page, 'Verify', ctx.verifier);
+    // The product asks for it: the verification is signed by the verifier, a person other than the operator.
+    if (b.expect?.verified) {
+      expect(ctx.verifier.loginName).not.toBe(ctx.operator.loginName);
+      // The signed result names the signer (sign.done: meaning, person, time).
+      await expect(page.getByRole('status').filter({ hasText: ctx.verifier.legalName }).first()).toBeVisible();
+    }
     await paceTaps(page, ctx.operator);
     await switchUser(page, ctx.operator);
   }
   await expect(card(page)).toContainText('Completed');
+  for (const text of b.expect?.entries ?? []) await expect(page.locator('[data-testid^="entry-"]').filter({ hasText: text }).first()).toBeVisible();
 }
 
 /**
