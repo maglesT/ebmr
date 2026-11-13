@@ -672,8 +672,9 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-13 (single batch): IN-48, A1 8.94 (EU market only): a liquid sterilising-grade filter is discarded after the
-    // processing of a single batch. Schedule M (6.11.2.8) and 21 CFR 211 limit only the working day, so other markets
-    // leave the block out (lead's option 1, I-6 B4). The master places it before each filtration step on an EU master
+    // processing of a single batch. Schedule M Part II 6.11.2.8, which binds every batch manufactured in India whatever
+    // its market, limits only the working day (asked in INJ-STERILE-FILTER on every market), so other markets leave the
+    // block out (lead's option 1, I-6 B4). The master places it before each filtration step on an EU master
     // (MKT-REQUIRED-BLOCKS). The answer no stops the step until a deviation is linked; campaign use that the CCS justifies
     // and validation supports (A1 8.95) is that deviation's case for QA. A second person verifies the answer, as the
     // filtration step's own filter answers.

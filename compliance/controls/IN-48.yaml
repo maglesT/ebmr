@@ -43,5 +43,7 @@ expert_decision:
   date: "2026-11-05"
   comment: "INJ-13 (4.3)"
 build_status: SPECIFIED
+# Built minimum (I-6 B4): Schedule M Part II 6.11.2.8 binds every batch (manufactured in India, all markets), so the
+# first-use-today question is asked on every market; Annex 1 8.94 additionally requires the single-batch check for EU.
 jurisdiction: pre-use testing **stricter** than FDA 2004 (pre-use test may be performed; post-use testing routine) [chk]; **weaker** than EU Annex 1 (2022) 8.87 (pre-use post-sterilisation integrity test unless justified by risk; post-use before removal from housing) [chk] and 8.94 (single batch and at most one working day) [chk].
 notes: "Source check: P (6.11.2.5-6.11.2.8 re-read)."
