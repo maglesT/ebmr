@@ -15,6 +15,7 @@ interface RecordRow {
   title: string;
   description: string;
   areas: string[];
+  aps_lines: string[];
   state: ChangeRecordView['state'];
   raised_by: string;
   raised_us: string;
@@ -26,6 +27,8 @@ interface RecordRow {
 export async function changeRecordViews(app: AppContext, db: Db, filter: { number?: string; state?: string }): Promise<ChangeRecordView[]> {
   const { rows } = await db.query<RecordRow>(
     `select c.id, c.number, c.title, c.description, c.areas, platform.change_record_state(c.id) as state,
+            array(select e.code from plant.aps_required_line l join plant.equipment e on e.id = l.equipment_id
+                   where l.change_record_id = c.id order by e.code) as aps_lines,
             c.raised_by_person::text as raised_by, ${usOf('c.raised_at')} as raised_us,
             a.person_id::text as approved_by, case when a.id is null then null else ${usOf('a.recorded_at')} end as approved_us,
             case when x.id is null then null else ${usOf('x.recorded_at')} end as closed_us
@@ -44,6 +47,7 @@ export async function changeRecordViews(app: AppContext, db: Db, filter: { numbe
     title: r.title,
     description: r.description,
     areas: r.areas,
+    apsLines: r.aps_lines,
     state: r.state,
     raisedBy: personRef(people, r.raised_by, ''),
     raisedAt: app.formatInstant(r.raised_us),

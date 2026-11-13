@@ -53,6 +53,67 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Session 15 (13 November 2026): I-6 exit, continued (session_01PybpFuMPRb1RHpjkTuiuVZ)
+
+- **CI:** `ubuntu-latest` moved to Ubuntu 26.04. Playwright 1.56 installs no Chromium there, and the image adds PostgreSQL 18,
+  which broke the F55 restore test. The GitHub-hosted jobs are pinned to `ubuntu-24.04`, and `start-postgres.sh` puts PG16's
+  bin dir first on the PATH (#242).
+- **Market-required blocks (lead ruling, B2):**
+  - A block's `markets` tag stays metadata (owner Q0).
+  - The master validator reads one table, `MARKET_REQUIRED_BLOCKS` in recipe-core `validator/rules-content.ts`, through the
+    rule MKT-REQUIRED-BLOCKS (validator 1.3.0).
+  - Each entry is {market, trigger block, required block, AFTER or BEFORE, control, clause}. On a master for that market,
+    each trigger step has the required step after it (or before it) on every path.
+  - First entry, ST-06: on an EU master, INJ-FILL is followed by INJ-ALARM-ASSESSMENT (A1 5.2). At run time, an alarm entry
+    without its assessment is refused. INJ-FILL itself asks no assessment on any market.
+- **B5 (after B4; lead ruling):**
+  - A binding EU clause with no enforcement is a defect. Add one table entry for each EU-tagged block that a binding clause
+    makes mandatory (INJ-PUPSIT, INJ-GLOVE-TEST, INJ-VHP, INJ-SUS-INTEGRITY, INJ-ASEPTIC-TRANSFER,
+    INJ-STERILE-PACK-INDICATOR, INJ-RADIATION-EU, the EU inspection and route blocks).
+  - Give each entry its trigger, its clause and a test by control ID. A block with no binding "must" stays optional, with
+    a one-line note.
+  - Check that the E2E masters still validate; today they are all India.
+- **B3 (lead OK):**
+  - ST-29: a change record's optional, firm-set "APS required" list of lines. Approval records QUALIFICATION_WITHDRAWN on
+    each line, and fitness then refuses the line until QA requalifies it. Database-enforced.
+  - ST-33: check A1 9.46 and Schedule M's sterile part first. If either binds, a failed media fill withdraws the line for
+    those markets.
+  - ST-52: INJ-PUPSIT gets a waiver path (risk-assessment reference), as a v1 edit with safety evidence. The table gets an
+    EU entry for INJ-PUPSIT before INJ-STERILE-FILTER. The redundant train is not_required.
+
+### Session 15 handover (13 November 2026, about 07:40): the next session continues here
+
+- **PRs:**
+  - #242 (0030 branch + CI pin to ubuntu-24.04): a full run was in progress. Everything was green except E2E own-p3 and
+    own-demotab, still running after more than 65 min. It merges on a full green run whose head contains main (lead).
+    Then send "#242 ready for audit".
+  - #243 (I-6.2): its CI was in progress. Send "ready for audit" when it is green. Merge main in after #242 lands.
+- **Branches waiting (each is merged with the one before it, all pushed):**
+  - inj/i6-3-clauses-st41-in
+  - inj/i6-b1-minimum
+  - inj/i6-b2-eu-em: ST-06 ruling (b), the EU block INJ-ALARM-ASSESSMENT, MKT-REQUIRED-BLOCKS, validator 1.3.0
+  - inj/i6-b3-aps-pupsit: ST-29 (1910), ST-52 (INJ-PUPSIT waiver plus a BEFORE table entry), ST-33 (1911)
+- **Open PRs one at a time, at most 2 open:** 6.3, then B1, B2, B3. Each one: merge main in, get a full green run, send
+  "#N ready for audit", squash-merge after the lead's OK.
+- **Squash-merge messages:** the B3 commits 9132828, 80ea269 and 6919381 carry a model name in their Co-Authored-By
+  trailer, and force-push is refused here. Write the squash message with the plain trailers
+  `Co-Authored-By: Claude <noreply@anthropic.com>` and `Claude-Session: ...`.
+- **B3 points for the lead's audit:**
+  - ST-29: the "APS required" list is firm-set. QA's signed change content includes it (1910 replaces
+    platform.change_record_content). Approval withdraws the lines in a DB trigger. In the tests, the master-data steward
+    requalifies, because QA personas lack MASTERDATA.CHANGE.
+  - ST-33 (EU only; Schedule M 5.6(i) asks an investigation only): a trigger on recipe.execution_state reacts to
+    contaminated > 0 in INJ-APS-READ.
+    - It keys on the catalogue code only; a site copy under another code would escape.
+    - "3 repeat runs" is mapped although the repeats are not counted (QA requalification stands in).
+    - Quarantine and the impact list are not_required. A1 9.46(iv) asks a review of batches since the last good APS:
+      the lead to confirm.
+  - ST-52: the waiver is a YES_NO with no expected answer (default no), plus a required riskAssessmentRef. The v1-edit
+    evidence: the nominal run is unchanged, and seeding keeps existing copies.
+- **Then:** B4 (IN-48), B5 (one MKT-REQUIRED-BLOCKS entry per EU block a binding clause makes mandatory), GB-I-01,
+  PR-15/26/28, the phase.yaml exit PR (PROGRESS: INV residuals, the demo fresh install, the room EM logbook deferred by
+  the owner), the review pass.
+
 ### Session 14 handover (12 November 2026): I-6, the injectables edition exit
 
 Lead: session_01PybpFvEFaQZ3LEfnNdjBCE until 19:27, then session_01PybpFrP72XuwyG8S3H3NJS (has all I-6 rulings). Owner's exit list: injectables in phase.yaml, the trace gate green for the
@@ -100,6 +161,10 @@ injectables controls, a golden batch, the browser suite, one review pass.
     pattern.
   - B3: ST-29 (A1 9.38, SM II 5.5: a change marked "APS required" lapses APS.<line> until QA extends it); ST-33 (A1 9.46(iii),
     EU); ST-52 (A1 8.87 PUPSIT, EU, with a waiver field).
+  - B5 also (lead ruling on #245, 13 November): ST-28's remaining gap. An overlay is chosen at run time, so no master
+    table entry can require INJ-GAS-FILTER. Build a database guard on all markets: a batch that recorded a gas overlay as
+    applied and has no passing INJ-GAS-FILTER post-use result is refused certification and release, tested [ST-28]. B1
+    proves only the case where the block is present (the lot stays NOT_READY until the post-use result is in).
   - B4: IN-48 (lead's option 1).
     - `firstUseToday` on every market (SM II 6.11.2.8, A1 8.94). On "No", a validation reference (TXT); without one, a
       critical exception.
@@ -117,7 +182,11 @@ injectables controls, a golden batch, the browser suite, one review pass.
   - INV-23, INV-36, INV-44: residuals for the owner. The exit list supersedes outline 11's INV list. INV-37 is proven by
     the ST-68 gate test; INV-45 by ST-64.
   - ST-02's "CCS reference TXT where a block needs it": none needs one (lead ruling ii).
-  - The demo fresh install.
+  - The demo fresh install (lead ruling on #245): the hosted demo needs a fresh install after the I-6 merges.
+  - Owner residual: the upgrade path for existing installs needs a sterile v2 rule table and a library v2 publish. B1
+    edits sterile.v1, INJ-EM, INJ-FILL and INJ-COMPOUND in place. An existing database keeps the old library v1
+    (draftSeedCatalogue skips codes already held), and publishRuleTables refuses the new sterile v1 (EBMR-MKT-035).
+  - ST-12 "peak shown on the timeline": not_required under decision 0030 (lead ruling, owner may veto).
 - **Step 8 also (lead):** two intermittent failures, root cause not loosening:
   - a GMP 1 `endorseOnLicence` fill timeout at tools/e2e own-product-gmp-flow.ts:119-120 (library-wg-fc, library-inj-aseptic);
   - the [DI-20] opcua-endpoint-identity.test.ts enrolment, which expected EBMR-EQD-032 but got a duplicate-key violation (shard 7).

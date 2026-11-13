@@ -4,7 +4,7 @@
 - **Decided by:** the lead (session_01PybpFvEFaQZ3LEfnNdjBCE), as a ruling under the owner's standing minimum-compliance
   rule (only binding clauses, cited and checked against the official text; no clause, no requirement). Reported to the
   owner, who may veto it. Prepared by build session 14 (I-6, the injectables edition exit).
-- **Concerns:** controls ST-02, ST-06, ST-11, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75, ST-76 and IN-45; their catalog-test clauses marked `not_required` cite this
+- **Concerns:** controls ST-02, ST-06, ST-11, ST-12, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75 and ST-76; their catalog-test clauses marked `not_required` cite this
   record (the register's rule: a quote of at least two whole words from the control's own paragraph below).
 
 ## Context
@@ -35,19 +35,29 @@ ST-76: no binding clause found for blocking settle-plate exposure before the end
 Annex 1 4.36 asks only that the effectiveness of fumigation or vapour disinfection be understood and validated, and 4.22
 covers decontamination methods; neither sets when environmental sampling may start.
 
-IN-45: the automatic listing of all batches since the previous passing process simulation is beyond the clause. For EU
+IN-45 (superseded in B3, 13 November 2026: the listing is now built for EU masters with ST-33, as the record review
+of Annex 1 9.46(iv) needs it, and IN-45 no longer cites this record; the original paragraph follows): the automatic listing of all batches since the previous passing process simulation is beyond the clause. For EU
 markets Annex 1 9.46(iv) requires a prompt review of the records of aseptic production since the last successful
 simulation, with a risk assessment of the batches made since then; it requires the review, not a system listing. The
 review is recorded in the investigation of the failed simulation's deviation. Schedule M Part II 5.5 asks for an
 investigation that considers a repeat media fill.
 
 ST-06: blocking release while a typed alarm is unassessed is beyond the clause. Annex 1 5.2 asks that process and
-equipment alarms be acknowledged and evaluated, critical ones immediately; the minimum built is an assessment required on
-the alarm event itself. Release then follows the existing gate and record review.
+equipment alarms be acknowledged and evaluated, critical ones immediately; the minimum built is, on the EU market only
+(no clause of Schedule M or 21 CFR 211 asks it), an assessment required for each alarm the filling step recorded, in an EU
+block placed after filling (INJ-ALARM-ASSESSMENT; lead ruling, 13 November 2026), which the master validator requires
+on every EU master with a filling step (MKT-REQUIRED-BLOCKS). Release then follows the existing gate
+and record review.
 
 ST-11: no binding clause found for a separate glove-change record with an impact assessment after a torn glove. Annex 1
 4.21 asks for glove integrity testing and a defined replacement frequency, and 7.16 for gloves disinfected during work; a
 breach is recorded as an event and, where it matters, a deviation.
+
+ST-12: peak headcount on the timeline: display only; no binding clause; the recorded people-present value with its limit
+is the control. Annex 1 7.2 asks that only the minimum number of people be present in cleanrooms and that their maximum
+be set, documented and considered in qualification and the process simulation; it does not ask for a timeline display.
+The filling step records the most people present at once against the maximum qualified in the simulation, and more is an
+exception that stops the step (added by the lead in B1, 13 November 2026; the owner may veto it).
 
 ST-17: the restoration record after a pressure-difference dip is beyond the clause. Annex 1 4.16 asks for indicators and
 alarms that warn of a reduction below set limits; a dip typed below its limit already raises an exception, which the

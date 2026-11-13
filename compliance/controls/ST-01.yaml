@@ -19,17 +19,40 @@ behaviour: |-
 catalog_test: Configure a Grade B active-air action limit of 15 CFU/m³ → rejected. Configure a 7 Pa B/C differential → accepted only with a CCS reference and QA e-signature.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] EU: an EU-market master with a Grade B active-air action limit of 15 CFU/m3 is refused by Annex 1 Table 6 (10, governed by EU and IN); exactly 10 is accepted"
+  - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] India: an India-only master with a Grade B active-air action limit of 15 CFU/m3 is refused by Schedule M Table 3 (10, governed by IN); exactly 10 is accepted"
   - "apps/tablets-server/test/market/market-config-routes.test.ts > site values > [IN-52][ST-01][DI-09] the steward sets a tighter site value under an approved change record; a loosening of a guidance value needs a justification and QA's signature of exactly it; QA holds no MARKET.SITE_VALUE_SET"
   - "apps/tablets-web/test/market/market-screens.test.tsx > site values > [IN-52][ST-01][DI-09] previews a site value; a loosening with a justification offers QA's approval through the ceremony; the value is set under a change record"
   - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01] an approved loosening applies only while the resolution departs from the approved value; after a tightened table it is flagged, not applied, and listed on the impact list"
   - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01] an operator cannot sign a site-value loosening approval: only the quality unit can"
   - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01][DI-09] the person who sets the loosening cannot approve it, even holding a QA role"
   - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01][DI-35] the QA approval is a real e-signature of exactly that loosening: an unknown id, or the signature of another value, date or justification is refused"
+  - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] EU: Annex 1 Table 6 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for a site and a batch serving the EU; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
+  - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] India: Schedule M Part II Table 3 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for an India-only site and batch; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
   - "packages/kernel/test/review/f20.test.ts > F20: ALL_APPLY strictness must compare criterion content, not only ids > [IN-52][INV-28][IN-34][ST-01] a HARD India criterion cannot be weakened under the same id, by a site value or by an UPDATE"
   - "packages/kernel/test/review/f21.test.ts > F21: the site applied to an evaluation is the scope's site, never the caller's choice > [IN-52][ST-01][INV-29] siteId null, a random siteId or another site's id cannot drop the site's tighter value or import another site's loosening"
   - "packages/kernel/test/review/f24.test.ts > F24: approvals behind a loosening must be verified e-signatures, not free UUIDs > [IN-52][DI-35][DI-09][INV-47][ST-01] source correction, site-value loosening and policy loosening are refused without real signed approvals"
   - "packages/kernel/test/review/f25.test.ts > F25 approved site loosening bound to the resolution it was approved against > [IN-52] [ST-01] an approved loosening is not re-applied after a new table version tightens the value it loosens, and it appears on the change-impact list"
   - "packages/kernel/test/review/f76.test.ts > F76: market-engine loosening approvals must be real, verified approvals > [IN-52][ST-01] loosening a GUIDANCE site value is refused when its QA approval id is the UUID of nothing"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6, Schedule M Part II Table 3), so the master validator refuses a looser action limit"
+clauses:
+  - clause: "Configure a Grade B active-air action limit of 15 CFU/m³ → rejected."
+    # Binding per market (paraphrased; checked against docs/regulatory/sources-extracted/):
+    #   EU (EU-market batches): EU GMP Annex 1 (2022) 9.30 and Table 6 set the Grade B maximum action limits for
+    #     viable contamination: active air 10 CFU/m3; settle plate (90 mm, 4 h), contact plate (55 mm) and glove
+    #     print (5 fingers) 5 CFU each.
+    #   India (every batch): Schedule M Part II 4.9 and Table 3 give the same Grade B numbers (10, 5, 5, 5), counted
+    #     as binding under docs/build-plan/injectables/control-decisions.md (Q0; IN-42).
+    #   Both rows are HARD in compliance/rule-tables/sterile/sterile.v1.yaml (ST-20.EU.B.*, ST-20.IN.B.*).
+    tests:
+      - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] EU: an EU-market master with a Grade B active-air action limit of 15 CFU/m3 is refused by Annex 1 Table 6 (10, governed by EU and IN); exactly 10 is accepted"
+      - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] India: an India-only master with a Grade B active-air action limit of 15 CFU/m3 is refused by Schedule M Table 3 (10, governed by IN); exactly 10 is accepted"
+      - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] EU: Annex 1 Table 6 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for a site and a batch serving the EU; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
+      - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] India: Schedule M Part II Table 3 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for an India-only site and batch; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
+  - clause: "Configure a 7 Pa B/C differential → accepted only with a CCS reference and QA e-signature."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "guidance values (10 Pa, clean-up time, UDAF speed) with CCS and QA loosening"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

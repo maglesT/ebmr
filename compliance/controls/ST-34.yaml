@@ -32,6 +32,14 @@ catalog_test: "Record an intervention: only entries qualified in a valid APS for
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-34][ST-36] an event not on the formulation's list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-34] a critical intervention (one that entered the critical zone) asks for the glove sample of the people who made it, and a glove sample not taken is an exception; a non-critical intervention does not ask for it"
+clauses:
+  - clause: "Record an intervention: only entries qualified in a valid APS for this line can be selected."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-34][ST-36] an event not on the formulation's list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)"
+  - clause: "Post-intervention glove sampling fires for an inherent *critical* entry and not for a corrective *non-critical* one."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-34] a critical intervention (one that entered the critical zone) asks for the glove sample of the people who made it, and a glove sample not taken is an exception; a non-critical intervention does not ask for it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

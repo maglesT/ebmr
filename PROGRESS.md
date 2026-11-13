@@ -47,7 +47,7 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 **Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
 A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
 and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
-GMP-EQUIPMENT-STATUS-UNITS (validator 1.3.0; PR-23, PR-03) refuses a G-09 step from version 2 that checks no unit, naming
+GMP-EQUIPMENT-STATUS-UNITS (validator 1.4.0; PR-23, PR-03) refuses a G-09 step from version 2 that checks no unit, naming
 the stage and what to add (the stage's equipment, then "checks its status" on the step; both already on screen). G-09@1
 (sandbox, any unit) is unchanged. Open: masters already approved with this shape stay stuck (revising them is r13 bug 2);
 the packaging skeleton from a formula now shows this error until the author binds the line's units.
@@ -122,6 +122,11 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 6, 6A and 7 (Tablets v1.0.0-rc.1, 19 October) and the hosted-demo slices 7h to 7u.
 
 ## Next
+
+- Injectables I-6 (lead rulings on #245, 13 November): after the I-6 merges, the hosted demo needs a fresh install. Owner
+  residual: upgrading an existing install needs a sterile v2 rule table and a library v2 publish (B1 edits sterile.v1 and
+  INJ-EM, INJ-FILL and INJ-COMPOUND v1 in place; an existing database refuses the new sterile v1 with EBMR-MKT-035).
+  B5 gains a DB guard for ST-28 (an applied gas overlay without a passing post-use filter test blocks certification).
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).

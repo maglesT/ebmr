@@ -169,6 +169,7 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   // An INSTRUCTION or SIGN_OFF block may hold no field: its PERFORMED signature is the record (R-flow item 5).
   if (fieldCount === 0 && !fieldlessBlock(def)) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one, unless the block is an instruction or a sign-off (roles INSTRUCTION, SIGN_OFF)'));
   problems.push(...checkOptionalSections(def));
+  problems.push(...checkApsReading(def));
 
   // An UNTIL_PASS repeat ends only on a field with a pass/fail meaning in the same section.
   def.sections.forEach((s, si) => {
@@ -458,5 +459,36 @@ function checkSignatures(def: BlockDefinition): LibraryProblem[] {
     meanings.add(s.meaning);
     if (typeof s.role !== 'string' || s.role.trim() === '') out.push(err('LIB-SIGNATURE-ROLE', `signatures[${i}].role`, `The ${s.meaning} signature needs a role that may sign`, ['DI-35']));
   });
+  return out;
+}
+
+/**
+ * ST-33 (tablets 1912): a block with the role APS_READING (the reading of a media fill) marks the count of contaminated
+ * units on exactly one NUMBER field (`contaminatedCount`), in whole units (decimals 0), for the database reads the count
+ * by that mark; the mark is refused on a block without the role (LIB-APS-READING).
+ */
+function checkApsReading(def: BlockDefinition): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  const role = Array.isArray(def.roles) && def.roles.includes('APS_READING');
+  const marked: { path: string; field: FieldDef }[] = [];
+  def.sections.forEach((s, si) =>
+    (s.fields ?? []).forEach((f, fi) => {
+      if ((f as { contaminatedCount?: unknown }).contaminatedCount !== undefined) marked.push({ path: `sections[${si}].fields[${fi}].contaminatedCount`, field: f });
+    }),
+  );
+  if (!role) {
+    for (const { path, field } of marked) out.push(err('LIB-APS-READING', path, `Field ${field.id} marks the count of contaminated units, which only a block with the role APS_READING (a media-fill reading) carries [ST-33]`, ['ST-33']));
+    return out;
+  }
+  if (marked.length !== 1) {
+    out.push(err('LIB-APS-READING', 'roles', `A media-fill reading (role APS_READING) marks exactly one NUMBER field as the count of contaminated units (contaminatedCount); this block marks ${marked.length} [ST-33]`, ['ST-33']));
+  }
+  for (const { path, field } of marked) {
+    if (field.type !== 'NUMBER' || field.contaminatedCount !== true) {
+      out.push(err('LIB-APS-READING', path, `Field ${field.id}: the count of contaminated units is a NUMBER field marked contaminatedCount: true [ST-33]`, ['ST-33']));
+    } else if (field.decimals !== 0) {
+      out.push(err('LIB-APS-READING', path, `Field ${field.id}: the count of contaminated units is in whole units (decimals 0) [ST-33]`, ['ST-33']));
+    }
+  }
   return out;
 }

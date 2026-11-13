@@ -314,6 +314,41 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       );
       return { id: out, equipmentCode: ctx.params.code, recorded: b.event === 'REPAIR' || kind === undefined ? ('REPAIR_RECORDED' as const) : kind };
     },
+    // ST-33 (tablets 1912): the line's open withdrawal after a failed media fill, its impact list and whether it is reviewed.
+    apsFailure: async ({ requireSession, params }) => {
+      requireSession();
+      const { rows } = await pool.query<{ event_id: string; failed: string; good: string | null; us: string; reviewed: boolean }>(
+        `select w.event_id, w.failed_batch_number as failed, w.last_good_aps_batch as good, ${usOf('w.recorded_at')} as us,
+                exists (select 1 from plant.aps_failure_review r where r.event_id = w.event_id) as reviewed
+           from plant.equipment e cross join lateral plant.open_aps_failure(e.id) w where e.code = $1 and w.event_id is not null`,
+        [params.code],
+      );
+      const w = rows[0];
+      if (!w) return { withdrawal: null };
+      const { rows: batches } = await pool.query<{ batch_number: string; us: string }>(
+        `select i.batch_number, ${usOf('i.last_used_at')} as us from plant.aps_failure_impact i where i.event_id = $1 order by i.last_used_at, i.batch_number`,
+        [w.event_id],
+      );
+      return {
+        withdrawal: {
+          failedBatch: w.failed,
+          lastSuccessfulAps: w.good,
+          withdrawnAt: app.formatInstant(w.us),
+          batches: batches.map((b) => ({ batchNumber: b.batch_number, lastUsedAt: app.formatInstant(b.us) })),
+          reviewed: w.reviewed,
+        },
+      };
+    },
+    apsFailureReview: async (ctx) => {
+      ctx.requireSession();
+      const b = ctx.body;
+      const id = await write(ctx, async (c) =>
+        String(
+          (await c.query<{ id: string }>('select plant.record_aps_failure_review($1, $2, $3::text[], $4) as id', [ctx.params.code, b.riskAssessmentRef, b.repeatApsRefs, b.justification ?? null])).rows[0]?.id,
+        ),
+      );
+      return { equipmentCode: ctx.params.code, withdrawalEventId: id };
+    },
     pendingVerifications: async ({ requireSession }) => {
       requireSession();
       const { rows } = await pool.query<{ act: 'CLEANING' | 'CLEARANCE' | 'REPAIR'; id: string; subject: string; summary: string; by: string; us: string }>(

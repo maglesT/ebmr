@@ -66,6 +66,8 @@ export const POWDER_VIAL: Injectable = {
     { id: 'vial', name: 'Glass vial, 10 mL, type I', field: 'containerLot' },
     { id: 'stopper', name: 'Bromobutyl rubber stopper, 20 mm', field: 'stopperLot' },
     { id: 'seal', name: 'Aluminium flip-off seal, 20 mm', field: 'sealLot' },
+    // The EM plates' media lot, released after its growth-promotion test (ST-23).
+    { id: 'media', name: 'Environmental monitoring plates, tryptone soya agar', field: 'mediaLot' },
   ],
   steps: [
     productBlock('INJ-ROOM-READY', 'ROOM-GRADE-B'),

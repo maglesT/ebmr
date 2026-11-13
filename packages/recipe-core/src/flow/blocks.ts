@@ -34,6 +34,10 @@ export const BLOCK_ROLES = [
   // A step that completes a packaging record by examining the finished packs (21 CFR 211.134(b), (c)): a library block
   // with this role completes the record as a listed completion block does (recipe-core 1892).
   'PACK_EXAMINATION',
+  // The reading of a media fill (aseptic process simulation; EU GMP Annex 1 9.46): on an EU master, a library block with
+  // this role whose `contaminatedCount` field is above zero withdraws the filling line's qualification (ST-33; tablets
+  // 1912), so a firm's own QA-approved reading block counts without software (decision 0026).
+  'APS_READING',
 ] as const;
 export type BlockRole = (typeof BLOCK_ROLES)[number];
 
