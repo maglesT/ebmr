@@ -19,6 +19,15 @@ catalog_test: Consume stoppers from an unreviewed cycle → certification blocke
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-59][ST-72] lyophilisation consumes every filled tray into its numbered load and, for each load, records the programme and the cycle values from the printout as critical values with the firm's limits, checked by a second person, and registers the lyophilised load; a value outside its limit, stoppers not seated or an alarm is an exception"
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
+clauses:
+  - clause: "Consume stoppers from an unreviewed cycle → certification blocked,"
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
+  - clause: "with the cycle listed as open."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "naming each unreviewed sterilisation cycle on the release screen is beyond the clause"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

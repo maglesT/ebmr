@@ -10,7 +10,7 @@ import { blockEdition, checkBlockDefinition, checkBlockUse } from '../../src/lib
 import { INJECTABLE_ASEPTIC_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { byCode, configOf, fieldOf, judgedRun, nominalRun, recordNominal, type CatalogueStep } from './seed-support.ts';
 import { libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
+import { define, OP1, Run, sig, T0, testRegistry } from '../engine/support.ts';
 import { mbrWith, phase } from '../flow/support.ts';
 import type { BlockUse } from '../../src/library/model.ts';
 
@@ -362,5 +362,88 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const codes = (name: string) => SET_UPS.find((x) => x.name === name)?.steps.map((x) => x.code) ?? [];
     expect(codes('isolator')).toEqual(expect.arrayContaining(['INJ-VHP', 'INJ-GLOVE-TEST']));
     expect(codes('RABS').filter((c) => byCode(c).definition.markets !== undefined)).toEqual([]);
+  });
+});
+
+describe('what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3)', () => {
+  it('[ST-46] for the EU market, an item not transferred into Grade A/B by the validated method (only disinfected, say) is an exception that holds the step until QA dispositions it', () => {
+    const transfer = byCode('INJ-ASEPTIC-TRANSFER');
+    expect(transfer.definition.markets).toEqual(['EU']);
+    expect(fieldOf(transfer, 'transferred')).toMatchObject({ type: 'YES_NO', expected: true });
+    const not = judgedRun(transfer, { transfer: { transferred: false } });
+    expect(not.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(not.status).not.toBe('COMPLETED');
+  });
+
+  it('[IN-42] a Grade A settle plate of 1 CFU during a fill is above the Grade A action limit (no growth): an exception that stops the step until a deviation is opened', () => {
+    const gradeA = withLimits(byCode('INJ-EM-COUNTS'), {
+      cfuSettle: { unit: '{CFU}', ranges: [{ tier: 'INTERNAL_ACTION', high: { value: '0', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'RULE_TABLE', ref: 'B-12' } }] },
+    });
+    const plate = { method: 'Settle plate', cfuAir: undefined };
+    expect(judgedRun(gradeA, { count: { ...plate, cfuSettle: '0' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const one = judgedRun(gradeA, { count: { ...plate, cfuSettle: '1' } });
+    expect(new Set(one.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+    expect(one.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-74][IN-41][ST-55] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused', () => {
+    const fill = byCode('INJ-FILL');
+    const rabs: SeedItem = { ...fill, exampleUse: { ...fill.exampleUse, equipmentClasses: { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' } } };
+    const units = (roomClass: string) => ({
+      line: { code: 'SIM-LINE', classCode: 'VIAL-FILLING-RABS', fitness: 'QUALIFIED' },
+      room: { code: 'SIM-ROOM', classCode: roomClass, fitness: 'QUALIFIED' },
+    });
+    expect(judgedRun(rabs, { setup: { equipment: units('ROOM-GRADE-B') } }).exceptions).toEqual([]);
+    expect(() => judgedRun(rabs, { setup: { equipment: units('ROOM-GRADE-C') } })).toThrow(/LIB-EQUIPMENT-CLASS/);
+  });
+
+  it('[ST-53] each sterilising filter is a lot named in the step that uses it, verified by a second person; a lot QC rejected cannot be used', () => {
+    const item = byCode('INJ-STERILE-FILTER');
+    expect(fieldOf(item, 'filterLot').type).toBe('MATERIAL_LOT');
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const rejected = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'REJECTED', identityTested: true } };
+    expect(() => judgedRun(item, { filter: { lots: rejected } })).toThrow(/G07-LOT-STATUS/);
+  });
+
+  it('[ST-50] the registered sterilising filter is verified by a second person: the filter step waits for the verification, and its own performer cannot give it', () => {
+    const item = byCode('INJ-STERILE-FILTER');
+    const def = item.definition;
+    expect(def.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: item.exampleUse as never }), phase('after')] });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), {}, T0);
+    run.start('p');
+    recordNominal(run, 'p', def, item.exampleUse, mbr);
+    run.perform('p');
+    expect(run.status('p')).toBe('AWAITING_VERIFICATION');
+    // The performer, even holding the verifier's role, cannot verify the filter of their own step.
+    const sameOperator = { ...OP1, roles: [...OP1.roles, 'PRODUCTION_VERIFIER', 'VERIFIER'] };
+    run.refused({ type: 'VERIFY', actor: sameOperator, step: 'p', context: [], signature: sig('VERIFIED', sameOperator) }, 'ENG-SEGREGATION');
+    expect(run.status('p')).toBe('AWAITING_VERIFICATION');
+    run.verify('p');
+    expect(run.status('p')).toBe('COMPLETED');
+  });
+
+  it('[ST-73] the interventions of a fill are kept as structured entries (what, kind, duration, listed), so an extract per line reads them as recorded', () => {
+    const item = byCode('INJ-FILL');
+    const def = item.definition;
+    const config = item.exampleUse as Record<string, unknown>;
+    const inputs = Object.entries(item.exampleInputs ?? {});
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: '1' }, config: config as never, reads: inputs.map(([k]) => k) }), phase('after')] }, {
+      inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
+    });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), { inputs: Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }])) }, T0);
+    run.start('p');
+    recordNominal(run, 'p', { ...def, sections: def.sections.filter((x) => x.id !== 'event') }, config, mbr);
+    const recorded = [
+      { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true },
+      { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventMinutes: '6', eventListed: true },
+    ];
+    for (const e of recorded) {
+      run.entry('p', { kind: 'event', ...e });
+      run.minutes(1);
+    }
+    const extract = Object.values(run.state.entries).filter((x) => x.kind === 'event').map((x) => ({ eventKind: x.data['eventKind'], eventWhat: x.data['eventWhat'], eventMinutes: x.data['eventMinutes'], eventListed: x.data['eventListed'] }));
+    expect(extract).toEqual(recorded);
+    expect(extract.filter((x) => x.eventKind === 'Intervention')).toHaveLength(1);
   });
 });

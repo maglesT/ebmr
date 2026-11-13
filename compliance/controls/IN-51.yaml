@@ -17,6 +17,11 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT's), and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch's wall thickness; a value outside is an exception"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT's), and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch's seal strength; a value outside is an exception"
+clauses:
+  - clause: "build an SVI MBR using only shipped classes; every needed area type exists."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Shipped area types and equipment classes; minimum areas as information"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

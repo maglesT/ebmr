@@ -26,7 +26,17 @@ behaviour: |-
   - A "defective/contaminated" flag retires a filter permanently.
 catalog_test: Scan a filter serial used yesterday → refused. Run a tank vent filter beyond its maximum SIP cycles → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-53] each sterilising filter is a lot named in the step that uses it, verified by a second person; a lot QC rejected cannot be used"
+clauses:
+  - clause: "Scan a filter serial used yesterday → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Serial bound to one batch; FDA lot counting; vent-filter lifecycle"
+  - clause: "Run a tank vent filter beyond its maximum SIP cycles → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Serial bound to one batch; FDA lot counting; vent-filter lifecycle"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

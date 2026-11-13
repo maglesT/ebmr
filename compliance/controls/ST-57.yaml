@@ -28,6 +28,15 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-56][ST-57] the fill weights are recorded once, in the fill weight check, each unit judged and the mean; filling checks the closures at each round; the stopper-height check is asked for vials only"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-57] an ampoule seal or a vial crimp that fails at a round is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release"
+clauses:
+  - clause: "Run clean-process capping without the stopper-height challenge → capping cannot start."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Zone-type master data; air-supply loss event; challenge before capping"
+  - clause: "Record a 3 h stopper-to-crimp gap against a 2 h limit → deviation."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

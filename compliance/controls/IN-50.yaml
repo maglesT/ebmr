@@ -16,8 +16,13 @@ behaviour: "(a) Capping records the station (separate, with extraction), confirm
 catalog_test: assign an inspector with an expired eye check; sign-on refused.
 implemented_by: {}
 tests:
+  - "packages/kernel/test/identity/authority.test.ts > qualification at the moment of action (DI-21, INV-26) > [ST-62][IN-50] an eyesight qualification required for work in the inspection area: an inspector whose check is 13 months old (valid 12) cannot work or sign there; with a current one the inspector may"
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-62][ST-63][IN-50] automated inspection names the machine by its class, records the counts by defect category from the machine report, checked by a second person, and judges the reject rate; a reject rate above its limit or no report attached is an exception"
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-64][IN-50] the 100 % integrity test names the tester by its class, records the units tested and the leakers from the machine report, checked by a second person; a leaker is a counted reject, not an exception; no report attached is one"
+clauses:
+  - clause: "assign an inspector with an expired eye check; sign-on refused."
+    tests:
+      - "packages/kernel/test/identity/authority.test.ts > qualification at the moment of action (DI-21, INV-26) > [ST-62][IN-50] an eyesight qualification required for work in the inspection area: an inspector whose check is 13 months old (valid 12) cannot work or sign there; with a current one the inspector may"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

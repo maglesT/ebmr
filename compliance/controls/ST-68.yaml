@@ -20,6 +20,11 @@ catalog_test: A passing sterility result with an open sterilisation-cycle deviat
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-65][ST-68] the release tests are QC's: growth in the sterility test, or endotoxin above the product limit, is an exception"
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-68][INV-37] a passing sterility result never overrides a process failure: with every release test passed and a sterilisation-cycle deviation open on the batch, the lot stays not releasable"
+clauses:
+  - clause: "A passing sterility result with an open sterilisation-cycle deviation → status stays \"not releasable\"."
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-68][INV-37] a passing sterility result never overrides a process failure: with every release test passed and a sterilisation-cycle deviation open on the batch, the lot stays not releasable"
 expert_decision:
   status: FOLLOW
   pack_version: "0.9"

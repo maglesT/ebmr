@@ -15,7 +15,19 @@ sources: Schedule M Part II 4.5 (ISO leak test, recommended every 6 months, not 
 behaviour: Room/HEPA master data hold last and next installed-filter leak-test dates; the test aerosol must be non-nutritive. A batch cannot start in a room whose HEPA test is overdue under the resolved interval (section B row B-16); a warning appears at the recommended interval.
 catalog_test: "India-only profile, Grade B room tested 13 months ago: batch start blocked; tested 7 months ago: warning only. India+EU profile, same 7-month case: blocked."
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-43] a room past its one due date (its requalification lapsed: 12 months for India, earlier where the site sets it for an EU profile) is refused, with no warning stage before it"
+clauses:
+  - clause: "India-only profile, Grade B room tested 13 months ago: batch start blocked;"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-43] a room past its one due date (its requalification lapsed: 12 months for India, earlier where the site sets it for an EU profile) is refused, with no warning stage before it"
+  - clause: "tested 7 months ago: warning only."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Warning at the recommended 6 months"
+  - clause: "India+EU profile, same 7-month case: blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-43] a room past its one due date (its requalification lapsed: 12 months for India, earlier where the site sets it for an EU profile) is refused, with no warning stage before it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -30,9 +30,22 @@ behaviour: |-
 catalog_test: An open deviation plus a yield outside limits → release refused, listing both. Close an investigation with the "other batches" field empty → refused.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/injectables/unit-account-gate.test.ts > Injectables I-6.3: the release gate on an unbalanced unit accountability and an open deviation > [ST-71] units not accounted for raise a critical exception the step cannot be signed past; QA dispositions it under a deviation, and with that deviation and another one open on the batch the lot is not releasable (G2.DEVIATIONS RED)"
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-71] with the 100 % integrity test and automated inspection, unit accountability reads the closing rejects from the integrity test's total and the units accepted from the last step, in either order; one unit missing is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] every unit filled is accounted for: one unit missing from the counts is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-71] unit accountability reads the units filled and rejected at the line from the filling step, the units rejected at closing from the capping or sealing total, and the units accepted and rejected at inspection from the inspection step, never typed again; one unit missing is an exception"
+clauses:
+  - clause: "An open deviation plus a yield outside limits → release refused,"
+    tests:
+      - "apps/tablets-server/test/injectables/unit-account-gate.test.ts > Injectables I-6.3: the release gate on an unbalanced unit accountability and an open deviation > [ST-71] units not accounted for raise a critical exception the step cannot be signed past; QA dispositions it under a deviation, and with that deviation and another one open on the batch the lot is not releasable (G2.DEVIATIONS RED)"
+  - clause: "listing both."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "listing an open deviation and a yield outside its limits as two separate items on the release screen is beyond the clause"
+  - clause: "Close an investigation with the \"other batches\" field empty → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Fixed investigation-closure fields; storage-excursion link"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
