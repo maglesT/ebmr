@@ -748,43 +748,51 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
 });
 
 /**
- * Blocks only Annex 1 asks for, which an EU-market master must place after a given block (lead ruling, I-6 B2). A block's
- * `markets` tag is metadata (owner Q0), so the requirement is stated here: on a master whose market set includes the EU,
- * each step of `after` is followed, on every path, by a step of `block`. ST-06: each alarm the filling step records is
- * assessed (A1 5.2) in INJ-ALARM-ASSESSMENT; outside the EU no clause asks it, so nothing is required there.
+ * Blocks a market's binding clause makes mandatory on a master, stated as data (lead ruling, I-6 B2). A block's `markets`
+ * tag is metadata the engine does not read (owner Q0), so this table says when a master for a market must carry a block:
+ * each step of `trigger` has a step of `required` on every path AFTER it (the required block follows) or BEFORE it (the
+ * required block precedes). A block no binding clause makes mandatory stays optional and has no entry.
  */
-const EU_BLOCKS_AFTER: readonly { after: string; block: string; control: string; clause: string }[] = [
-  { after: 'INJ-FILL', block: 'INJ-ALARM-ASSESSMENT', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
+export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string; required: string; relation: 'AFTER' | 'BEFORE'; control: string; clause: string }[] = [
+  // ST-06: process and equipment alarms are acknowledged and evaluated (A1 5.2); the filling step records them and the
+  // assessment block after it evaluates each one. No clause of Schedule M or 21 CFR 211 asks it, so only the EU.
+  { market: 'EU', trigger: 'INJ-FILL', required: 'INJ-ALARM-ASSESSMENT', relation: 'AFTER', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
 ];
 
 function libraryCode(p: PhaseNode): string | undefined {
   return p.block.type.startsWith('LIB-') ? p.block.type.slice('LIB-'.length) : undefined;
 }
 
-const euBlocksAfter = defineRule('MKT-EU-BLOCKS-AFTER', 'An EU-market master places the Annex 1 blocks its steps call for', ['PR-03', 'ST-06'], (a) => {
-  if (!a.mbr.header.marketSet.includes('EU')) return [];
+const requiredBlocks = defineRule('MKT-REQUIRED-BLOCKS', 'A master carries the blocks its market set makes mandatory', ['PR-03', 'IN-52', ...new Set(MARKET_REQUIRED_BLOCKS.map((e) => e.control))], (a) => {
   const out: RuleFinding[] = [];
-  for (const rule of EU_BLOCKS_AFTER) {
-    const firsts = a.phases.filter((p) => libraryCode(p) === rule.after);
-    if (firsts.length === 0) continue;
-    const facts = a.mustBefore([], (n) => {
-      const p = a.phaseOf(n);
-      return p !== undefined && libraryCode(p) === rule.after ? [p.id] : [];
-    });
-    const seconds = a.phases.filter((p) => libraryCode(p) === rule.block);
-    for (const f of firsts) {
-      const followed = seconds.some((s) => {
-        const t = a.taskOf(s.id);
-        return t !== undefined && facts?.get(t.id)?.has(f.id) === true;
+  for (const entry of MARKET_REQUIRED_BLOCKS) {
+    if (!a.mbr.header.marketSet.includes(entry.market)) continue;
+    const triggers = a.phases.filter((p) => libraryCode(p) === entry.trigger);
+    if (triggers.length === 0) continue;
+    // The facts before each task: the phases of the code that ran on every path to it.
+    const before = (code: string) =>
+      a.mustBefore([], (n) => {
+        const p = a.phaseOf(n);
+        return p !== undefined && libraryCode(p) === code ? [p.id] : [];
       });
-      if (!followed) out.push(error(f.id, `${label(a, f.id)} uses ${rule.after} on a master for the EU market, which needs a step of ${rule.block} after it on every path (${rule.control}; ${rule.clause})`));
+    const required = a.phases.filter((p) => libraryCode(p) === entry.required);
+    const ran = (facts: Map<string, Set<string>> | undefined, at: PhaseNode, earlier: PhaseNode) => {
+      const t = a.taskOf(at.id);
+      return t !== undefined && facts?.get(t.id)?.has(earlier.id) === true;
+    };
+    const facts = before(entry.relation === 'AFTER' ? entry.trigger : entry.required);
+    for (const t of triggers) {
+      const met = entry.relation === 'AFTER' ? required.some((r) => ran(facts, r, t)) : required.some((r) => ran(facts, t, r));
+      if (!met) {
+        out.push(error(t.id, `${label(a, t.id)} uses ${entry.trigger} on a master for the ${entry.market} market, which needs a step of ${entry.required} ${entry.relation === 'AFTER' ? 'after' : 'before'} it on every path (${entry.control}; ${entry.clause})`));
+      }
     }
   }
   return out;
 });
 
 export const CONTENT_RULES: readonly Rule[] = [
-  euBlocksAfter,
+  requiredBlocks,
   header,
   plantClasses,
   typedFields,

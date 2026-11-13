@@ -58,6 +58,7 @@ implemented_by:
     - "sterile.filter.preUseTestAfterSterilisation"
     - "sterile.filter.singleBatchUse"
 tests:
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [PR-03][IN-52] each entry of the table names blocks of the catalogue, cites its control and clause, and its required block is tagged for the market that requires it"
   - "apps/tablets-server/test/designer/market-set.test.ts > market set of an MBR (INV-34, IN-52, F12) > [INV-34][IN-52] the database refuses content with a market the engine does not know, whoever writes it (EBMR-TAB-165)"
   - "apps/tablets-server/test/designer/market-set.test.ts > market set of an MBR (INV-34, IN-52, F12) > [INV-34][IN-52] {IN, JP} on an MBR without bound rule keys neither passes the gate nor enters verification"
   - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [INV-34][IN-52] a limit bound to a market rule key is checked against the minimum the kernel market engine resolves"

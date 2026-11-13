@@ -26,7 +26,7 @@ catalog_test: Inject a 2 s power dip on the filler feed → deviation auto-creat
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one"
-  - "packages/recipe-core/test/validator/eu-blocks.test.ts > the Annex 1 blocks an EU-market master places (I-6 B2) > [ST-06][PR-03] a master for the EU market whose filling step is not followed by the assessment of its alarms is refused; with the assessment after filling it passes; a master for India and the US needs none"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [ST-06][PR-03] a master for the EU market whose filling step is not followed by the assessment of its alarms is refused; with the assessment after filling it passes; a master for India and the US needs none"
 clauses:
   - clause: "Inject a 2 s power dip on the filler feed → deviation auto-created."
     not_required:
@@ -35,7 +35,7 @@ clauses:
   - clause: "Leave one of three alarms unassessed →"
     tests:
       - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one"
-      - "packages/recipe-core/test/validator/eu-blocks.test.ts > the Annex 1 blocks an EU-market master places (I-6 B2) > [ST-06][PR-03] a master for the EU market whose filling step is not followed by the assessment of its alarms is refused; with the assessment after filling it passes; a master for India and the US needs none"
+      - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [ST-06][PR-03] a master for the EU market whose filling step is not followed by the assessment of its alarms is refused; with the assessment after filling it passes; a master for India and the US needs none"
   - clause: "release blocked."
     not_required:
       decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
