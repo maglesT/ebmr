@@ -26,10 +26,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM', 'INJ-EM-SURFACES'];
+const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM', 'INJ-EM-SURFACES', 'INJ-ALARM-ASSESSMENT'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 15 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 26 for the media fill, 32 with its surfaces at the end of filling and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
+  it('[PR-05][PR-03] the catalogue holds the 16 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 15 with its EU assessment of the alarms raised during filling, 26 for the media fill, 32 with its surfaces at the end of filling and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -50,7 +50,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     // blocks carry no tag (every market) and no PUPSIT field.
     const tagged = INJECTABLE_ASEPTIC_CATALOGUE.filter((s) => s.definition.markets !== undefined);
     expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({
-      'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-STERILE-PACK-INDICATOR': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
+      'INJ-ALARM-ASSESSMENT': ['EU'], 'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-STERILE-PACK-INDICATOR': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
     });
     expect(byCode('INJ-STERILE-FILTER').definition.sections.map((x) => x.id)).toEqual(['filter', 'preUse', 'filtration', 'postUse']);
     expect(byCode('INJ-STERILE-FILTER').definition.sections.flatMap((x) => x.fields).filter((f) => /pupsit/i.test(f.id))).toEqual([]);
@@ -242,11 +242,17 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
 });
 
 describe('the monitoring minimum of Annex 1 (I-6 B2)', () => {
-  it('[ST-06] an alarm recorded during filling carries its assessment (its cause and its impact on the batch) on its own entry: an alarm entry without it is refused, an assessed alarm lets the fill complete, and no other event is asked for one', () => {
-    expect(fieldOf(byCode('INJ-FILL'), 'alarmAssessment')).toMatchObject({ type: 'TEXT', showWhen: { field: 'eventKind', equals: 'Alarm' } });
-    expect(() => fillWithEvents([{ eventKind: 'Alarm', eventWhat: 'Filler door opened during filling' }])).toThrow(/Assessment of the alarm .* is required/);
-    expect(fillWithEvents([{ eventKind: 'Alarm', eventWhat: 'Filler door opened during filling', alarmAssessment: 'Door closed within 10 s; no unit exposed; no impact' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
-    expect(() => fillWithEvents([{ eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', alarmAssessment: 'Not an alarm' }])).toThrow(/applies only when eventKind is Alarm/);
+  it('[ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one', () => {
+    const item = byCode('INJ-ALARM-ASSESSMENT');
+    expect(item.definition.markets).toEqual(['EU']);
+    expect(item.definition.sections.find((x) => x.id === 'alarm')).toMatchObject({ required: false, repeat: { kind: 'PER_CONTAINER' } });
+    expect(fieldOf(item, 'assessment')).toMatchObject({ type: 'TEXT' });
+    expect(fieldOf(item, 'assessment').required).not.toBe(false);
+    expect(() => judgedRun(item, { alarm: { alarm: 'Filler door opened during filling', assessment: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    expect(judgedRun(item, { alarm: { alarm: 'Filler door opened during filling', assessment: 'Door closed within 10 s; no unit exposed; no impact' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // The base filling block (every market) carries no assessment: no clause of Schedule M or 21 CFR 211 asks it.
+    expect(byCode('INJ-FILL').definition.sections.flatMap((x) => x.fields).map((f) => f.id)).not.toContain('alarmAssessment');
+    expect(fillWithEvents([{ eventKind: 'Alarm', eventWhat: 'Filler door opened during filling' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 
   it('[ST-34] a critical intervention (one that entered the critical zone) asks for the glove sample of the people who made it, and a glove sample not taken is an exception; a non-critical intervention does not ask for it', () => {
@@ -375,7 +381,7 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     expect(event?.when).toMatch(/intervention/);
     // The entry is made when the event is over, so its trusted time is the event's end (lead, ALCOA accurate).
     expect(event?.when).toMatch(/when the event is over/);
-    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventMinutes', 'eventListed', 'alarmAssessment', 'eventCritical', 'gloveSampled']);
+    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventMinutes', 'eventListed', 'eventCritical', 'gloveSampled']);
     // When it happened is the entry's trusted time, not a typed date and time.
     expect(event?.fields.filter((f) => f.type === 'DATE_TIME')).toEqual([]);
     expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] });

@@ -25,7 +25,7 @@ behaviour: |-
 catalog_test: Inject a 2 s power dip on the filler feed → deviation auto-created. Leave one of three alarms unassessed → release blocked. Cut the EMS feed for 30 min → a gap item appears.
 implemented_by: {}
 tests:
-  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] an alarm recorded during filling carries its assessment (its cause and its impact on the batch) on its own entry: an alarm entry without it is refused, an assessed alarm lets the fill complete, and no other event is asked for one"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one"
 clauses:
   - clause: "Inject a 2 s power dip on the filler feed → deviation auto-created."
     not_required:
@@ -33,7 +33,7 @@ clauses:
       reason: "every power dip a deviation"
   - clause: "Leave one of three alarms unassessed →"
     tests:
-      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] an alarm recorded during filling carries its assessment (its cause and its impact on the batch) on its own entry: an alarm entry without it is refused, an assessed alarm lets the fill complete, and no other event is asked for one"
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one"
   - clause: "release blocked."
     not_required:
       decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
