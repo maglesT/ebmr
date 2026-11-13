@@ -21,12 +21,12 @@ behaviour: |-
   - [T] Masters may define microbial controls, such as aqueous granulation hold limits and water-system status. Rooms and times used stay traceable so EM data can be retrieved.
 catalog_test: A failed autoclave cycle prevents issue of the load's items. An open EM excursion appears on the QP screen.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > a failed parts sterilisation holds the aseptic filling that uses the load (PR-28) > [PR-28] a failed autoclave cycle (answered not passed, or its temperature below the minimum) prevents use of the load's items: the load cannot be signed and the filling cannot start; once QA has dispositioned the exception the load completes and the filling runs"
 clauses:
   - clause: "A failed autoclave cycle prevents issue of the load's items."
-    deferred:
-      phase: 5
-      reason: "Autoclave loads and sterilisation cycles are Injectables edition functions (Phase 5, after Phase 7 per decision 0010); the Tablets edition has no sterile items."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > a failed parts sterilisation holds the aseptic filling that uses the load (PR-28) > [PR-28] a failed autoclave cycle (answered not passed, or its temperature below the minimum) prevents use of the load's items: the load cannot be signed and the filling cannot start; once QA has dispositioned the exception the load completes and the filling runs"
   - clause: "An open EM excursion appears on the QP screen."
     deferred:
       phase: 5
