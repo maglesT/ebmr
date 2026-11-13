@@ -15,9 +15,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { identity } from '@ebmr/kernel';
 import { routes, type VersionView } from '@ebmr/api-contract';
-import { lifecycle } from '@ebmr/recipe-core';
+import { library, lifecycle, librarySeed } from '@ebmr/recipe-core';
 import { openPersonaSession } from '@ebmr/test-kit';
 import { resolveMinima } from '../../src/features/designer/adapters/market-minima.ts';
+import { analyse } from '../../src/features/designer/validation.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { createFamily, edited, refusalOf, saveContent, startDesignerServer, templateMbr, valueOf } from './support.ts';
 
@@ -79,5 +80,56 @@ describe('market set of an MBR (INV-34, IN-52, F12)', () => {
     const unknown = await resolveMinima(server.db.app, { ...base, marketSet: ['IN', 'JP'] });
     expect(unknown).toEqual([expect.objectContaining({ kind: 'UNRESOLVED', ruleKey: 'market-set', problem: expect.stringMatching(/JP/) as unknown })]);
     expect(await resolveMinima(server.db.app, { ...base, marketSet: ['IN', 'US', 'EU'] })).toEqual([]);
+  });
+});
+
+/**
+ * The Grade B viable action limits of an injectables master, per market (ST-01, ST-20): the EM counts step (INJ-EM-COUNTS)
+ * binds its action limits to the sterile rule table's Grade B viable keys, and the designer's validation resolves them
+ * from the published table for the master's market set. India (Schedule M Part II Table 3) binds every master, the EU
+ * (Annex 1 Table 6) an EU-market one; both give 10 CFU/m3 for an active air sample.
+ */
+describe('Grade B viable action limits of an injectables master, per market (ST-01, ST-20)', () => {
+  const COUNTS = librarySeed.INJECTABLE_ASEPTIC_CATALOGUE.find((s) => s.definition.code === 'INJ-EM-COUNTS');
+  /** An injectables master whose one step counts the EM plates, with the active-air action limit `air` and market set `markets`. */
+  const master = (markets: string[], air: string) =>
+    templateMbr((j) => {
+      if (!COUNTS) throw new Error('INJ-EM-COUNTS is not in the catalogue');
+      type Json = Record<string, unknown>;
+      const header = j['header'] as Json;
+      header['edition'] = 'injectables';
+      header['marketSet'] = markets;
+      delete header['unitMassMg'];
+      const use = structuredClone(COUNTS.exampleUse) as unknown as { limits: { cfuAir: { ranges: { tier: string; high: { value: string } }[] } } };
+      for (const r of use.limits.cfuAir.ranges) if (r.tier === 'INTERNAL_ACTION') r.high.value = air;
+      const p = library.libraryPhase(COUNTS.definition, 'p-counts', 'HIGH') as unknown as Json;
+      const body = (j['procedure'] as Json)['body'] as Json;
+      const like = (body['children'] as Json[])[0];
+      body['children'] = [{ ...like, id: 'S-EM', name: 'EM counts', body: { kind: 'sequence', id: 'seq-S-EM', children: [{ ...p, config: { ...(p['config'] as Json), ...use } }] } }];
+      for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) j[k] = [];
+      j['blockDefinitions'] = [COUNTS.definition];
+    });
+  /** The market-minima findings of the validation about the Grade B viable keys. */
+  const viableFindings = async (markets: string[], air: string): Promise<string[]> =>
+    (await analyse(server.db.app, master(markets, air), [])).report.findings
+      .filter((f) => f.rule === 'MKT-MINIMA' && /sterile\.viable\.gradeB/.test(f.message))
+      .map((f) => `${f.severity}: ${f.message}`);
+
+  it('[ST-01][ST-20] India: an India-only master with a Grade B active-air action limit of 15 CFU/m3 is refused by Schedule M Table 3 (10, governed by IN); exactly 10 is accepted', async () => {
+    const minima = await resolveMinima(server.db.app, { edition: 'injectables', recordKind: 'PROCESSING', marketSet: ['IN'], predicates: {}, asOf: '2026-09-29', ruleKeys: ['sterile.viable.gradeB.airMax'] });
+    expect(minima).toEqual([expect.objectContaining({ kind: 'LIMIT', ruleKey: 'sterile.viable.gradeB.airMax', bound: 'HIGH', value: '10', governingMarkets: ['IN'] })]);
+    const refused = await viableFindings(['IN'], '15');
+    expect(refused).toHaveLength(1);
+    expect(refused[0]).toMatch(/^ERROR: .*cfuAir \(15 \{CFU\}\/m3\) is looser than the maximum of 10 \{CFU\}\/m3 required by IN \(rule sterile\.viable\.gradeB\.airMax/);
+    expect(await viableFindings(['IN'], '10')).toEqual([]);
+  });
+
+  it('[ST-01][ST-20] EU: an EU-market master with a Grade B active-air action limit of 15 CFU/m3 is refused by Annex 1 Table 6 (10, governed by EU and IN); exactly 10 is accepted', async () => {
+    const minima = await resolveMinima(server.db.app, { edition: 'injectables', recordKind: 'PROCESSING', marketSet: ['IN', 'EU'], predicates: {}, asOf: '2026-09-29', ruleKeys: ['sterile.viable.gradeB.airMax'] });
+    expect(minima).toEqual([expect.objectContaining({ kind: 'LIMIT', ruleKey: 'sterile.viable.gradeB.airMax', bound: 'HIGH', value: '10', governingMarkets: ['EU', 'IN'] })]);
+    const refused = await viableFindings(['IN', 'EU'], '15');
+    expect(refused).toHaveLength(1);
+    expect(refused[0]).toMatch(/^ERROR: .*cfuAir \(15 \{CFU\}\/m3\) is looser than the maximum of 10 \{CFU\}\/m3 required by EU, IN \(rule sterile\.viable\.gradeB\.airMax/);
+    expect(await viableFindings(['IN', 'EU'], '10')).toEqual([]);
   });
 });

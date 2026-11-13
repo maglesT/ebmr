@@ -219,7 +219,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(() => judgedRun(item, { area: { lots: quarantined } })).toThrow(/G07-LOT-STATUS/);
   });
 
-  it('[ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6), so the master validator refuses a looser action limit', () => {
+  it('[ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6, Schedule M Part II Table 3), so the master validator refuses a looser action limit', () => {
     expect(byCode('INJ-EM-COUNTS').exampleUse.marketRules).toEqual({
       cfuAir: { key: 'sterile.viable.gradeB.airMax', bound: 'HIGH' },
       cfuSettle: { key: 'sterile.viable.gradeB.settlePlateMax', bound: 'HIGH' },

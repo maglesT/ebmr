@@ -28,8 +28,8 @@ clauses:
       - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-12] filling records the most people present in the filling room at once; more than the formulation's maximum (the number qualified in the process simulation) is an exception that stops the step"
   - clause: "with the peak shown on the timeline."
     not_required:
-      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
-      reason: "Access-control import"
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 13 November 2026)"
+      reason: "peak headcount on the timeline: display only; no binding clause"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

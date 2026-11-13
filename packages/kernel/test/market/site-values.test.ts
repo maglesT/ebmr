@@ -64,23 +64,64 @@ describe('tighten only', () => {
     await expect(set({ key: 'sterile.particles.gradeB.inOperation.max5_0um', value: '2930' })).rejects.toThrow('EBMR-MKT-060');
   });
 
-  it('[ST-01][ST-20] a Grade B active-air action limit of 15 CFU/m3 is refused: Annex 1 Table 6 and Schedule M Table 3 bind 10 for an EU and an India batch, and a site value can only tighten it', async () => {
-    const e = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableAll);
-    expect([e.resolvedValue, e.governingMarkets, e.floorType]).toEqual(['10', ['EU', 'IN'], 'HARD']);
-    const india = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableIn);
-    expect([india.resolvedValue, india.governingMarkets, india.floorType]).toEqual(['10', ['IN'], 'HARD']);
-    await expect(set({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
-    await expect(set({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
-    // A site that serves India only (no product qualified there): the India value alone binds, and 15 is refused.
-    const indiaSite = await asApp(
+  /**
+   * The Grade B viable action limits (ST-01, ST-20) per market: Annex 1 Table 6 binds EU-market batches and Schedule M
+   * Part II Table 3 binds every batch (India always applies); both give the same numbers, as HARD values. India is in
+   * every site's market set (INV-28), so the EU's own row is shown by its contribution to the resolution.
+   */
+  const GRADE_B_VIABLE: readonly [key: string, row: string, limit: string, over: string][] = [
+    ['sterile.viable.gradeB.airMax', 'air', '10', '11'],
+    ['sterile.viable.gradeB.settlePlateMax', 'settle', '5', '6'],
+    ['sterile.viable.gradeB.contactPlateMax', 'contact', '5', '6'],
+    ['sterile.viable.gradeB.glovePrintMax', 'glove', '5', '6'],
+  ];
+  /** A new site serving `markets` (no product qualified there), and site-value setting and preview at it. */
+  const siteServing = async (markets: string[]) => {
+    const siteId = await asApp(
       db,
-      async (c) => (await c.query<{ id: string }>('insert into market.stub_site (code, markets) values ($1, $2) returning id', [`SITE-IN-${randomUUID().slice(0, 8)}`, ['IN']])).rows[0]?.id ?? '',
+      async (c) => (await c.query<{ id: string }>('insert into market.stub_site (code, markets) values ($1, $2) returning id', [`SITE-${markets.join('')}-${randomUUID().slice(0, 8)}`, markets])).rows[0]?.id ?? '',
       { roleCode: MARKET_ROLES.stubs },
     );
-    const setIndia = (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'>) =>
-      asApp(db, (c) => setSiteValue(c, { siteId: indiaSite, effectiveFrom: '2026-01-01', ...request }), { roleCode: MARKET_ROLES.siteValues });
-    await expect(setIndia({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
-    await expect(setIndia({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
+    const at = { siteId, effectiveFrom: '2026-01-01' };
+    return {
+      set: (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'>) => asApp(db, (c) => setSiteValue(c, { ...at, ...request }), { roleCode: MARKET_ROLES.siteValues }),
+      preview: (key: string, value: string) => asApp(db, (c) => siteValuePreview(c, { ...at, key, value }), { roleCode: MARKET_ROLES.siteValues }),
+    };
+  };
+  /** Each market's row behind a resolution: its reference, value and floor. */
+  const rowsOf = (contributions: readonly { market: string; rowRef: string; value: unknown; floorType: string }[]) =>
+    contributions.map((x) => [x.market, x.rowRef, x.value, x.floorType]).sort();
+
+  it('[ST-01][ST-20] EU: Annex 1 Table 6 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for a site and a batch serving the EU; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted', async () => {
+    const e = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableAll);
+    expect([e.resolvedValue, e.governingMarkets, e.floorType]).toEqual(['10', ['EU', 'IN'], 'HARD']);
+    const site = await siteServing(['IN', 'EU']);
+    await expect(site.set({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
+    await expect(site.set({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
+    for (const [key, row, limit, over] of GRADE_B_VIABLE) {
+      const p = await site.preview(key, limit);
+      // The EU row is the Annex 1 Table 6 value, HARD; the India row (Schedule M Table 3) gives the same number.
+      expect(rowsOf(p.resolution.contributions), key).toEqual([['EU', `ST-20.EU.B.${row}`, limit, 'HARD'], ['IN', `ST-20.IN.B.${row}`, limit, 'HARD']]);
+      expect([p.outcome, p.resolution.governingMarkets], key).toEqual(['EQUAL', ['EU', 'IN']]);
+      await expect(site.set({ key, value: over }), key).rejects.toThrow('EBMR-MKT-060');
+      expect((await site.set({ key, value: limit })).outcome, key).toBe('EQUAL');
+    }
+  });
+
+  it('[ST-01][ST-20] India: Schedule M Part II Table 3 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for an India-only site and batch; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted', async () => {
+    const india = await evaluateBatch('sterile.viable.gradeB.airMax', world.batch.injectableIn);
+    expect([india.resolvedValue, india.governingMarkets, india.floorType]).toEqual(['10', ['IN'], 'HARD']);
+    const site = await siteServing(['IN']);
+    await expect(site.set({ key: 'sterile.viable.gradeB.airMax', value: '15' })).rejects.toThrow('EBMR-MKT-060');
+    await expect(site.set({ key: 'sterile.viable.gradeB.airMax', value: '15', justificationRef: 'CCS-15', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
+    for (const [key, row, limit, over] of GRADE_B_VIABLE) {
+      const p = await site.preview(key, limit);
+      // Only the India row binds this site: Schedule M Table 3's value, HARD (not the EU's).
+      expect(rowsOf(p.resolution.contributions), key).toEqual([['IN', `ST-20.IN.B.${row}`, limit, 'HARD']]);
+      expect([p.outcome, p.resolution.governingMarkets], key).toEqual(['EQUAL', ['IN']]);
+      await expect(site.set({ key, value: over }), key).rejects.toThrow('EBMR-MKT-060');
+      expect((await site.set({ key, value: limit })).outcome, key).toBe('EQUAL');
+    }
   });
 
   it('[IN-52] a site value looser than a DESIGN value is refused (APS tiers are out of v1; HEPA A/B is six months by design)', async () => {

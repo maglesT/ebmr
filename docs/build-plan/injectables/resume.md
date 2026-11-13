@@ -128,6 +128,10 @@ injectables controls, a golden batch, the browser suite, one review pass.
     pattern.
   - B3: ST-29 (A1 9.38, SM II 5.5: a change marked "APS required" lapses APS.<line> until QA extends it); ST-33 (A1 9.46(iii),
     EU); ST-52 (A1 8.87 PUPSIT, EU, with a waiver field).
+  - B5 also (lead ruling on #245, 13 November): ST-28's remaining gap. An overlay is chosen at run time, so no master
+    table entry can require INJ-GAS-FILTER. Build a database guard on all markets: a batch that recorded a gas overlay as
+    applied and has no passing INJ-GAS-FILTER post-use result is refused certification and release, tested [ST-28]. B1
+    proves only the case where the block is present (the lot stays NOT_READY until the post-use result is in).
   - B4: IN-48 (lead's option 1).
     - `firstUseToday` on every market (SM II 6.11.2.8, A1 8.94). On "No", a validation reference (TXT); without one, a
       critical exception.
@@ -145,7 +149,11 @@ injectables controls, a golden batch, the browser suite, one review pass.
   - INV-23, INV-36, INV-44: residuals for the owner. The exit list supersedes outline 11's INV list. INV-37 is proven by
     the ST-68 gate test; INV-45 by ST-64.
   - ST-02's "CCS reference TXT where a block needs it": none needs one (lead ruling ii).
-  - The demo fresh install.
+  - The demo fresh install (lead ruling on #245): the hosted demo needs a fresh install after the I-6 merges.
+  - Owner residual: the upgrade path for existing installs needs a sterile v2 rule table and a library v2 publish. B1
+    edits sterile.v1, INJ-EM, INJ-FILL and INJ-COMPOUND in place. An existing database keeps the old library v1
+    (draftSeedCatalogue skips codes already held), and publishRuleTables refuses the new sterile v1 (EBMR-MKT-035).
+  - ST-12 "peak shown on the timeline": not_required under decision 0030 (lead ruling, owner may veto).
 - **Step 8 also (lead):** two intermittent failures, root cause not loosening:
   - a GMP 1 `endorseOnLicence` fill timeout at tools/e2e own-product-gmp-flow.ts:119-120 (library-wg-fc, library-inj-aseptic);
   - the [DI-20] opcua-endpoint-identity.test.ts enrolment, which expected EBMR-EQD-032 but got a duplicate-key violation (shard 7).
