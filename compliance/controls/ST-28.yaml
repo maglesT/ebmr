@@ -23,11 +23,13 @@ behaviour: |-
 catalog_test: Complete a batch without the overlay filter's post-use test → certification blocked. Record a tank pressure drop to 0 during a hold → deviation required.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-28] a batch whose overlay gas filter has no post-use integrity test cannot be certified: the step cannot be signed without the result, so the record is not complete and the lot is not ready; with the result in, the record completes"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] a compounding use without a nitrogen overlay needs no gas-filter limit: compounding has no gas-filter field, and its use passes the checker without one"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] the overlay gas filter's integrity after use is a critical value with its limit (every market): below it is an exception that stops the step, and without the result the step cannot complete"
 clauses:
   - clause: "Complete a batch without the overlay filter's post-use test → certification blocked."
     tests:
+      - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-28] a batch whose overlay gas filter has no post-use integrity test cannot be certified: the step cannot be signed without the result, so the record is not complete and the lot is not ready; with the result in, the record completes"
       - "packages/recipe-core/test/library/seed-injectables.test.ts > aseptic headcount and the overlay gas filter (I-6 B1) > [ST-28] the overlay gas filter's integrity after use is a critical value with its limit (every market): below it is an exception that stops the step, and without the result the step cannot complete"
   - clause: "Record a tank pressure drop to 0 during a hold → deviation required."
     not_required:

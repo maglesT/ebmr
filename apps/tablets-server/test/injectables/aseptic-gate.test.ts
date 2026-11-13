@@ -4,6 +4,8 @@
  * signatures. A processing master of catalogue blocks: the filling (INJ-FILL, with its event section) and, in a stage of
  * its own, the counts of the EM plates after incubation (INJ-EM-COUNTS). The finished lot is posted on the processing
  * batch as the edition's definer posts it (as the release gate's own tests do), so the gate is evaluated on that record.
+ * A second master of the same product holds the nitrogen overlay gas filter's post-use integrity test (INJ-GAS-FILTER,
+ * ST-28), so a batch without that test is shown not certifiable.
  *
  * Arranged outside the routes, as the vial chain (vial-chain.test.ts): the product, the licence, the plant units the
  * filling names (test arrangement of master data), the ERP order and the numbering rule.
@@ -30,6 +32,7 @@ import { driverOf, issueBatch, libraryEntry, phaseOf, signAs, stage, type BatchR
 const SITE = 'SITE-1';
 const LINE = 'L1';
 const SIZE = 'BS-100K';
+const GAS_SIZE = 'BS-50K';
 const TAG = randomUUID().slice(0, 6).toUpperCase();
 const PRODUCT = { code: `INJAG-${TAG}`, name: 'Demoinj aseptic 10 mg/2 mL vials', strength: '10 mg/2 mL' };
 const REASON = 'Injectables I-6.2 aseptic gate';
@@ -44,6 +47,7 @@ const seed = (code: string) => {
 const FILL = seed('INJ-FILL');
 const COUNTS = seed('INJ-EM-COUNTS');
 const ROOM = seed('INJ-ROOM-READY');
+const GAS = seed('INJ-GAS-FILTER');
 
 const processing: flow.MbrContent = gmpContent((m) => {
   const header = m['header'] as Json;
@@ -66,9 +70,31 @@ const processing: flow.MbrContent = gmpContent((m) => {
   m['blockDefinitions'] = [FILL.definition, COUNTS.definition, ROOM.definition];
 });
 
+/**
+ * A second processing master of the same product (ST-28): the compounding's nitrogen overlay and, as the step after it,
+ * the overlay gas filter's integrity test after use (INJ-GAS-FILTER). Its own family, so its batches hold only these steps.
+ */
+const overlay: flow.MbrContent = gmpContent((m) => {
+  const header = m['header'] as Json;
+  header['family'] = `INJ-GAS-${TAG}`;
+  header['edition'] = 'injectables';
+  header['recordKind'] = 'PROCESSING';
+  header['title'] = `${PRODUCT.name}: overlay gas filter`;
+  // Another batch size than the first master's, so the family is another one (one family per product, form and sizes).
+  header['batchSizes'] = (header['batchSizes'] as Json[]).filter((x) => x['id'] === GAS_SIZE);
+  header['product'] = { code: PRODUCT.code, name: PRODUCT.name, strength: PRODUCT.strength, dosageForm: 'Injection' };
+  delete header['unitMassMg'];
+  const body = (m['procedure'] as Json)['body'] as Json;
+  const like = (body['children'] as Json[])[0] as Json;
+  body['children'] = [stage(like, 'S-GAS', 'Overlay gas filter after use', [phaseOf(GAS.definition, 'p-gas', GAS.exampleUse)])];
+  for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
+  m['blockDefinitions'] = [GAS.definition];
+});
+
 let gmp: ExecServer;
 let world: World;
 let proc: { familyId: string; versionId: string };
+let procGas: { familyId: string; versionId: string };
 let n = 0;
 
 /** The plant units the filling names (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
@@ -92,10 +118,10 @@ async function arrangeUnits(): Promise<void> {
 }
 
 /** A processing batch of the master, planned from its ERP order and issued. */
-async function issued(): Promise<BatchRef> {
+async function issued(content: flow.MbrContent = processing, familyId: string = proc.familyId, size: string = SIZE): Promise<BatchRef> {
   const issuer = await gmp.asPersona('issuer');
-  await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), processing, SIZE);
-  const planned = valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId: proc.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: SIZE } }));
+  await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), content, size);
+  const planned = valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: size } }));
   await issueBatch(gmp, planned.batchId, { code: 'PRODUCTION_PLAN', text: 'Issued for the plan' });
   return { batchId: planned.batchId, batchNumber: planned.batchNumber };
 }
@@ -152,7 +178,7 @@ beforeAll(async () => {
   } }));
   await signAs(gmp, await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
-  for (const def of [FILL.definition, COUNTS.definition, ROOM.definition]) {
+  for (const def of [FILL.definition, COUNTS.definition, ROOM.definition, GAS.definition]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
     await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
@@ -160,6 +186,8 @@ beforeAll(async () => {
   world = await gmpLifecycleWorld(gmp);
   proc = await world.approvedVersion(processing);
   await world.authorise({ versionId: proc.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
+  procGas = await world.approvedVersion(overlay);
+  await world.authorise({ versionId: procGas.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, GAS_SIZE)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
   await world.run(await actorOf(gmp, 'steward'), (c) =>
     c.query('select site.define_batch_number_rule($1::jsonb)', [JSON.stringify({ rule_code: `INJAG-${TAG}`, site_code: SITE, product_code: PRODUCT.code, batch_kind: 'PROCESSING', format: 'A{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' })]),
     reason('Injectables I-6.2 numbering'),
@@ -210,6 +238,29 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
     expect(view.state).toBe('NOT_READY');
     expect(view.items['G2.DEVIATIONS']).toMatchObject({ status: 'RED' });
     expect(view.items['G2.DEVIATIONS']?.problem).toContain(dev.ref);
+  });
+
+  it('[ST-28] a batch whose overlay gas filter has no post-use integrity test cannot be certified: the step cannot be signed without the result, so the record is not complete and the lot is not ready; with the result in, the record completes', async () => {
+    const b = await issued(overlay, procGas.familyId, GAS_SIZE);
+    const d = await driverOf(gmp, b.batchId);
+    // The gas filter step is started, but its post-use test is not recorded: it cannot be signed.
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-gas@' });
+    const refused = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-gas@' });
+    expect(refused.result.ok).toBe(false);
+    const lotId = await lotOf(b);
+    const before = await releaseView(lotId);
+    expect(before.state).toBe('NOT_READY');
+    expect(before.items['G1.REVIEW_1']).toMatchObject({ status: 'RED' });
+    expect(before.items['G1.REVIEW_1']?.problem).toMatch(/IN_PROGRESS/);
+    // With the post-use test recorded and signed, the record completes: the missing test was the only thing holding it.
+    for (const e of library.nominalEntries(GAS.definition, GAS.exampleUse as never)) {
+      const { kind, ...data } = e;
+      await d.ok('operator1', libraryEntry('p-gas@', kind, data));
+    }
+    await signed(d, 'p-gas@');
+    await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-GAS@' });
+    const after = await releaseView(lotId);
+    expect(after.items['G1.REVIEW_1']?.problem ?? '').not.toMatch(/IN_PROGRESS/);
   });
 
   it('[ST-17] a pressure difference typed below its limit is an exception on the batch: the step cannot be signed, and while the exception is not dispositioned the record is not complete and the lot is not ready', async () => {
