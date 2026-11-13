@@ -29,6 +29,15 @@ tests:
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-64] the sampled integrity test offers laser headspace analysis among its methods"
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-64][IN-50] the 100 % integrity test names the tester by its class, records the units tested and the leakers from the machine report, checked by a second person; a leaker is a counted reject, not an exception; no report attached is one"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-64] one unit failing the container closure integrity test is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-64][INV-45] visual inspection is never a container closure integrity method: the methods offered are physical tests only"
+clauses:
+  - clause: "Configure a 2 mL ampoule with sampled CCI → MBR rejected."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "MBR validator for the 100 mL rule"
+  - clause: "Choose \"visual inspection\" as the CCI method → option unavailable."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-64][INV-45] visual inspection is never a container closure integrity method: the methods offered are physical tests only"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

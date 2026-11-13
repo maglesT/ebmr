@@ -20,6 +20,11 @@ catalog_test: Import a post-SIP pressure trend that falls to ambient before use 
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-48][ST-42] sterilisation in place records the cycle values from the printout as critical values with limits, checked by a second person; a temperature or exposure below the minimum is an exception"
+clauses:
+  - clause: "Import a post-SIP pressure trend that falls to ambient before use → SIP invalid, transfer blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Pressure-trend import; automatic invalidation"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

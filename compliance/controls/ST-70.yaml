@@ -34,7 +34,15 @@ behaviour: |-
   - **QP/QA access.** QP/QA users reach every linked source from one screen. The certifier role requires a sterile-products training record.
 catalog_test: Leave the WFI section unsigned → release refused. Remove the link to the post-use filter test → completeness check fails.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
+clauses:
+  - clause: "Leave the WFI section unsigned → release refused."
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
+  - clause: "Remove the link to the post-use filter test → completeness check fails."
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-70][ST-72][ST-54][IN-46] a record with a step not complete (a section unsigned, the post-use filter test not recorded, a sterilisation cycle not checked by a second person, compounding without its bioburden sample) is not complete: G1 is red and the lot cannot be released, though every release test passed"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

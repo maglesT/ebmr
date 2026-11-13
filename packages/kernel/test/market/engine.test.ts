@@ -214,6 +214,23 @@ describe('floors and India-first results from table B', () => {
     expect(eu.floorType).toBe('HARD');
   });
 
+  it('[IN-40] a Grade B in-operation 5 micrometre count of 2,910/m3 fails in every profile: the India limit of 2,900 governs each, though the EU value alone (2,930) would pass it', () => {
+    const key = 'sterile.particles.gradeB.inOperation.max5_0um';
+    for (const marketSet of [['IN'], ['IN', 'US'], ['IN', 'EU'], ALL]) {
+      const r = resolve(sterile, { key, marketSet, asOf: '2026-01-15' });
+      expect(r.value, marketSet.join('+')).toBe('2900');
+      expect(compareDecimal('2910', r.value as string), marketSet.join('+')).toBe(1);
+    }
+    expect(compareDecimal('2910', '2930')).toBe(-1);
+  });
+
+  it('[IN-42] a Grade A viable count of 1 CFU fails in every profile: the Grade A acceptance is below 1 CFU per sample (India, US) or no growth (EU), each sample judged on its own', () => {
+    for (const marketSet of [['IN'], ['IN', 'US'], ['IN', 'EU'], ALL]) {
+      const r = resolve(sterile, { key: 'sterile.viable.gradeA.acceptance', marketSet, asOf: '2026-01-15' });
+      expect(['BELOW_1_CFU_PER_SAMPLE', 'NO_GROWTH'], marketSet.join('+')).toContain(r.value);
+    }
+  });
+
   it('[IN-52] APS acceptance is "any contaminated unit fails" in every profile (Decision 2)', () => {
     for (const marketSet of [['IN'], ['IN', 'US'], ['IN', 'EU'], ALL]) {
       expect(resolve(sterile, { key: 'sterile.aps.acceptance', marketSet, asOf: '2026-01-15' }).value).toBe('ANY_CONTAMINATED_UNIT_FAILS');

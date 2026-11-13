@@ -36,6 +36,15 @@ catalog_test: A VHP cycle with no prior cleaning record → invalid for batch us
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-76] isolator bio-decontamination (EU market) records the cycle values from the printout with their limits, checked by a second person; its validity is a time constraint of the master, not a typed date"
+clauses:
+  - clause: "A VHP cycle with no prior cleaning record → invalid for batch use."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Clean-before-VHP sequence rule; FDA-AP 4-6 log value"
+  - clause: "Settle-plate exposure logged before aeration end → blocked."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "no binding clause found for blocking settle-plate exposure before the end of vapour-decontamination aeration"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

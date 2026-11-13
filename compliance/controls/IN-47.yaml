@@ -16,6 +16,14 @@ catalog_test: select a steriliser whose annual revalidation lapsed; blocked. Imp
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-49][ST-61][IN-47] terminal sterilisation by radiation consumes every filled tray into its numbered load and, per load, records the certificate, the lowest and highest dose measured against the firm's limits (checked by a second person), the dosimeters read, the dose within its period and the package indicators, and registers the irradiated load; ultraviolet is not offered; for the EU market its own block records each load's loading pattern, reconciliation and the plant's signed records, signed by the operator; a dose outside its limits or a failed check is an exception"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-47] a steriliser past its one due date (its revalidation lapsed) is refused by terminal sterilisation; a cycle with an alarm (not answered passed) is an exception that holds the step and the release until QA dispositions it"
+clauses:
+  - clause: "select a steriliser whose annual revalidation lapsed; blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-47] a steriliser past its one due date (its revalidation lapsed) is refused by terminal sterilisation; a cycle with an alarm (not answered passed) is an exception that holds the step and the release until QA dispositions it"
+  - clause: "Import a cycle with an alarm; release is blocked until the alarm is dispositioned."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [IN-47] a steriliser past its one due date (its revalidation lapsed) is refused by terminal sterilisation; a cycle with an alarm (not answered passed) is an exception that holds the step and the release until QA dispositions it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

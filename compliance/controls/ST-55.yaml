@@ -17,7 +17,13 @@ behaviour: |-
   - The closure step records the validated closing method or equipment and its key settings.
 catalog_test: Route open vials through a zone not classified Grade A in the line map → MBR rejected.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-74][IN-41][ST-55] aseptic filling on a RABS line takes a room of the Grade B class the formulation names: a Grade C room is refused"
+clauses:
+  - clause: "Route open vials through a zone not classified Grade A in the line map → MBR rejected."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Validated line-map checker"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

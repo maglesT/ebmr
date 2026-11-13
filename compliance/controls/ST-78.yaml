@@ -33,6 +33,15 @@ catalog_test: Omit the batch seal-strength test → batch cannot close. Change a
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-78][IN-51] form-fill-seal records the machine in its room and the film lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT's), and registers the filled units; for the EU market its own block judges the forming and sealing settings and the batch's seal strength; a value outside is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > what the approved MODIFY decisions keep, in the I-4 blocks (slice I-6.3) > [ST-78] for the EU market, the batch's seal-strength test is required: form-fill-seal cannot be signed performed while it is not recorded"
+clauses:
+  - clause: "Omit the batch seal-strength test → batch cannot close."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > what the approved MODIFY decisions keep, in the I-4 blocks (slice I-6.3) > [ST-78] for the EU market, the batch's seal-strength test is required: form-fill-seal cannot be signed performed while it is not recorded"
+  - clause: "Change a sealing set point outside range on the HMI → recorded with user and time and justification required."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "HMI set-point change import"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

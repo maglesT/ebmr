@@ -30,7 +30,16 @@ behaviour: |-
   - **Unload.** Load dryness check and per-item inspection for damage, wet packs or breached packaging. Rejects are removed and investigated, and the load cannot be released without the unload record.
 catalog_test: Import a cycle with heating phase 20% longer than validated but passing exposure → quarantined. Enter passing BIs on a cycle with a failed temperature → load stays rejected.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-44] a parts-sterilisation cycle whose temperature failed stays an exception when every other value passed and the cycle is answered passed: the load cannot complete until QA dispositions it"
+clauses:
+  - clause: "Import a cycle with heating phase 20% longer than validated but passing exposure → quarantined."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Cycle import with phase-by-phase and duplex-channel comparison"
+  - clause: "Enter passing BIs on a cycle with a failed temperature → load stays rejected."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3) > [ST-44] a parts-sterilisation cycle whose temperature failed stays an exception when every other value passed and the cycle is answered passed: the load cannot complete until QA dispositions it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
