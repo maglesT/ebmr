@@ -216,7 +216,7 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
   it('[ST-36] an intervention not on the validated list raises an exception; QA dispositions it under a deviation linked to the batch, and while that deviation is open G2.DEVIATIONS is RED and the lot is not ready', async () => {
     const b = await issued();
     const d = await driverOf(gmp, b.batchId);
-    await record(d, 'p-fill@', FILL, {}, [['event', { eventKind: 'Intervention', eventWhat: 'Unlisted: stopper chute cleared by hand', eventMinutes: '4', eventListed: false }]]);
+    await record(d, 'p-fill@', FILL, {}, [['event', { eventKind: 'Intervention', eventWhat: 'Unlisted: stopper chute cleared by hand', eventMinutes: '4', eventListed: false, eventCritical: false }]]);
     const state = (await gmp.db.admin.query<{ s: { exceptions: Record<string, { type: string }> } }>('select state as s from recipe.execution_state where batch_id = $1', [b.batchId])).rows[0]!.s;
     const unlisted = Object.entries(state.exceptions).filter(([, x]) => x.type === 'LIB_UNEXPECTED_ANSWER').map(([id]) => id);
     expect(unlisted).toHaveLength(1);

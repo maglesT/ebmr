@@ -37,6 +37,15 @@ catalog_test: Replay three consecutive samples with 1–2 counts at 5 µm in Gra
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-19] EM answers whether Grade A particle counting started before the aseptic equipment assembly began: counting that started after it is an exception that stops the step"
+clauses:
+  - clause: "Replay three consecutive samples with 1–2 counts at 5 µm in Grade A → investigation event."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Continuous count import, alert-alarm engine"
+  - clause: "Start the Grade A counter 20 min after assembly began → coverage gap."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-19] EM answers whether Grade A particle counting started before the aseptic equipment assembly began: counting that started after it is an exception that stops the step"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

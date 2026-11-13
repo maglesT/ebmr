@@ -378,6 +378,13 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             // lasted the typed minutes: no typed date and time.
             { id: 'eventMinutes', label: 'How long it lasted', type: 'NUMBER', unit: 'min', decimals: 0 },
             { id: 'eventListed', label: 'On the formulation\'s list (validated interventions, known stoppages)', type: 'YES_NO', expected: true },
+            // ST-06: the assessment of an alarm is asked only on the EU market (A1 5.2), in the EU block INJ-ALARM-ASSESSMENT
+            // the master places after filling; no clause of Schedule M or 21 CFR 211 asks it here (lead ruling, I-6 B2).
+            // ST-34: personnel are monitored after taking part in a critical intervention, at least their gloves (A1 9.25;
+            // SM Part II 4.8 asks personnel monitored after critical operations). Only a critical intervention (one that
+            // enters the critical zone) asks for the glove sample; answered no, it is an exception.
+            { id: 'eventCritical', label: 'Critical intervention (entered the critical zone)', type: 'YES_NO', showWhen: { field: 'eventKind', equals: 'Intervention' } },
+            { id: 'gloveSampled', label: 'Gloves of each person who made it sampled (glove print) after the intervention', type: 'YES_NO', expected: true, showWhen: { field: 'eventCritical', equals: true } },
           ],
         },
         {

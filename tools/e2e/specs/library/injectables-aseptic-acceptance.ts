@@ -19,7 +19,7 @@ import { productBlock, stepIdOf, type ProductBlock } from './library-support.ts'
 import { unit, VIAL_COUNTS, type Injectable } from './injectables-acceptance.ts';
 
 /** The intervention the operator records during filling: on the formulation's list, three vials removed (DEMO-ONLY). */
-const INTERVENTION = { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true } as const;
+const INTERVENTION = { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true, eventCritical: false } as const;
 
 /**
  * The product's sampling plan (DEMO-ONLY): one viable location, an active air sample at the filling point, and two particle

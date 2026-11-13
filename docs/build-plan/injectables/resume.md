@@ -53,6 +53,34 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Session 15 (13 November 2026): I-6 exit, continued (session_01PybpFuMPRb1RHpjkTuiuVZ)
+
+- **CI:** `ubuntu-latest` moved to Ubuntu 26.04. Playwright 1.56 installs no Chromium there, and the image adds PostgreSQL 18,
+  which broke the F55 restore test. The GitHub-hosted jobs are pinned to `ubuntu-24.04`, and `start-postgres.sh` puts PG16's
+  bin dir first on the PATH (#242).
+- **Market-required blocks (lead ruling, B2):**
+  - A block's `markets` tag stays metadata (owner Q0).
+  - The master validator reads one table, `MARKET_REQUIRED_BLOCKS` in recipe-core `validator/rules-content.ts`, through the
+    rule MKT-REQUIRED-BLOCKS (validator 1.3.0).
+  - Each entry is {market, trigger block, required block, AFTER or BEFORE, control, clause}. On a master for that market,
+    each trigger step has the required step after it (or before it) on every path.
+  - First entry, ST-06: on an EU master, INJ-FILL is followed by INJ-ALARM-ASSESSMENT (A1 5.2). At run time, an alarm entry
+    without its assessment is refused. INJ-FILL itself asks no assessment on any market.
+- **B5 (after B4; lead ruling):**
+  - A binding EU clause with no enforcement is a defect. Add one table entry for each EU-tagged block that a binding clause
+    makes mandatory (INJ-PUPSIT, INJ-GLOVE-TEST, INJ-VHP, INJ-SUS-INTEGRITY, INJ-ASEPTIC-TRANSFER,
+    INJ-STERILE-PACK-INDICATOR, INJ-RADIATION-EU, the EU inspection and route blocks).
+  - Give each entry its trigger, its clause and a test by control ID. A block with no binding "must" stays optional, with
+    a one-line note.
+  - Check that the E2E masters still validate; today they are all India.
+- **B3 (lead OK):**
+  - ST-29: a change record's optional, firm-set "APS required" list of lines. Approval records QUALIFICATION_WITHDRAWN on
+    each line, and fitness then refuses the line until QA requalifies it. Database-enforced.
+  - ST-33: check A1 9.46 and Schedule M's sterile part first. If either binds, a failed media fill withdraws the line for
+    those markets.
+  - ST-52: INJ-PUPSIT gets a waiver path (risk-assessment reference), as a v1 edit with safety evidence. The table gets an
+    EU entry for INJ-PUPSIT before INJ-STERILE-FILTER. The redundant train is not_required.
+
 ### Session 14 handover (12 November 2026): I-6, the injectables edition exit
 
 Lead: session_01PybpFvEFaQZ3LEfnNdjBCE until 19:27, then session_01PybpFrP72XuwyG8S3H3NJS (has all I-6 rulings). Owner's exit list: injectables in phase.yaml, the trace gate green for the
