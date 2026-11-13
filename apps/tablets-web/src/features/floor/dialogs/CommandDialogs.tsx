@@ -97,7 +97,10 @@ function LinkDeviationForm({ exception, stepKey, gmp, ...p }: FormBase & { excep
   // batch and attached to the exception by the one Send (one command, one transaction): nothing is left raised and
   // unattached. A number typed wins; the raise is offered only while the number is empty.
   const raising = gmp && !linked && ref.trim() === '';
-  const raise = raising && (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10 ? { classification, riskRationale: rationale.trim() } : null;
+  const raise =
+    raising && (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10
+      ? { classification: classification as 'MINOR' | 'MAJOR' | 'CRITICAL', riskRationale: rationale.trim() }
+      : null;
   const intent = nonEmpty(ref)
     ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, deviationRef: ref.trim() } as const)
     : raise

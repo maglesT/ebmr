@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 12 November 2026 (session 12b handover).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 13 November 2026 (owner retest items 7 to 9).
 
 ## What this is
 
@@ -43,6 +43,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   maglesT/deep-learning-for-earth-observation for this project.
 
 ## Where things stand
+
+**Owner retest 13 November 2026, items 7 to 9 (branch fix-floor-messages-and-deviation).** A GMP weighing step lists
+per line the lots reserved for the batch and warns before the first weighing when stores must reserve one (item 7). A
+deviation raised from an exception is raised, linked to the batch and attached in one command (ATTACH_DEVIATION with
+`raise`); the dialog offers the batch's open deviations so an orphan is attached, not raised again; titles show values
+at their judged precision (item 8). The title block shows its signatures; a stale GMP signing says "batch" (9a, 9b).
+9c (MGL260051 then MGL260101) is by design: a server start retires the rest of a 50-number block (kernel 0600, ADR 0007,
+`docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner question in the report: show retired ranges.
 
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
