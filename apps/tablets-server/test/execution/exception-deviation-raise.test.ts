@@ -114,3 +114,16 @@ describe('GMP values in exception and deviation titles (owner retest item 8)', (
     expect(exceptionTitleAtPrecision('pH -0.123456 1 (compared as -0.12) low')).toBe('pH -0.12 1 low');
   });
 });
+
+describe('the wording of a stale signing on a GMP batch (owner retest item 9b)', () => {
+  it('[DI-05][DI-34] a disposition signed from a screen that shows an older version says the batch changed, never the test run', async () => {
+    const exception = await openException('Label roll left open at the line');
+    const old = await d.version('supervisor1');
+    await d.ok('supervisor1', { type: 'RAISE_EXCEPTION', description: 'A later exception moves the batch on', severity: 'ALERT' });
+    const qa = new RunDriver(w.gmp, batchId, { qa1: await w.gmp.asPersona('qa1') });
+    const r = await qa.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception, outcome: 'NO_IMPACT', justification: 'Roll closed at once; no labels lost' }, { expectedVersion: old });
+    const refusal = refusalOf(r.result);
+    expect(refusal?.code).toBe('ENG-STALE');
+    expect(refusal?.whatHappened).toBe('The batch changed since this screen was loaded. Nothing was signed.');
+  });
+});

@@ -73,7 +73,7 @@ function viewerOf(s: ResolvedSession | null): ViewerInfo | null {
 export async function viewContextFor(app: AppContext, db: Db, runId: string, s: ResolvedSession | null): Promise<ViewContext> {
   const run = await runContext(db, runId);
   const stored = await execution.loadState(db, runId);
-  if (!stored) throw notFound('test run');
+  if (!stored) throw notFound(app.installation === 'GMP' ? 'batch' : 'test run');
   runCache(app).set(runId, { def: run.def, state: stored.state });
   const viewer = viewerOf(s);
   return {
