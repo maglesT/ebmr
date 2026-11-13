@@ -44,6 +44,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { signaturesOf as recordSignaturesOf } from '../esig/views.ts';
 import { parseStepKey, stepRoomReason, wireOf } from './intents.ts';
 import { peopleText } from './people-text.ts';
+import { exceptionTitleAtPrecision } from './exception-deviation.ts';
 import { bomMaterialName, potencyFromCalculation, potencyOf, withPotencyTargets } from './potency-view.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
@@ -874,7 +875,8 @@ export function exceptionView(ctx: ViewContext, e: engine.ExceptionRecord): Exce
   return {
     exceptionId: e.id,
     type: e.type,
-    title: raisedBy ? e.title.split(e.raisedBy).join(raisedBy.legalName) : e.title,
+    // Owner retest item 8: a value is shown at the precision it was judged at (the stored title keeps the exact value).
+    title: exceptionTitleAtPrecision(raisedBy ? e.title.split(e.raisedBy).join(raisedBy.legalName) : e.title),
     category: e.category,
     severity: e.severity,
     tier: e.tier ?? null,

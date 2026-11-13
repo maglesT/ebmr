@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { routes, type CallError, type ExceptionView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, Field, floor } from '@ebmr/ui-kit';
+import { useApiQuery } from '../../../api/hooks.ts';
 import { useCommand } from '../../../app/acts.tsx';
 import { useDeviationsLinked } from '../../../app/boot.tsx';
 import { RefusalMessage } from '../../../app/refusal.tsx';
@@ -89,14 +90,66 @@ export function LinkDeviationDialog({ isOpen, ...p }: Base & { exception: Deviat
 
 function LinkDeviationForm({ exception, stepKey, gmp, ...p }: FormBase & { exception: DeviationTarget; stepKey: string | null; gmp: boolean }) {
   const [ref, setRef] = useTyped();
+  const [classification, setClassification] = useChoice();
+  const [rationale, setRationale] = useTyped();
   const linked = useDeviationsLinked();
-  const intent = nonEmpty(ref) ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, deviationRef: ref.trim() } as const) : null;
+  // Owner retest item 8: on a GMP batch without the Deviations link, a deviation not raised yet is raised, linked to the
+  // batch and attached to the exception by the one Send (one command, one transaction): nothing is left raised and
+  // unattached. A number typed wins; the raise is offered only while the number is empty.
+  const raising = gmp && !linked && ref.trim() === '';
+  const raise = raising && (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10 ? { classification, riskRationale: rationale.trim() } : null;
+  const intent = nonEmpty(ref)
+    ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, deviationRef: ref.trim() } as const)
+    : raise
+      ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, raise } as const)
+      : null;
   return (
-    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.ATTACH_DEVIATION')} intent={intent} draft={ref !== ''} {...p}>
-      <Field label={st('dialog.deviation.ref')} name="deviationRef" value={ref} onChange={setRef} description={st('dialog.deviation.help')} isRequired autoComplete="off" />
+    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.ATTACH_DEVIATION')} intent={intent} draft={ref !== '' || classification !== null || rationale !== ''} {...p}>
+      <Field label={st('dialog.deviation.ref')} name="deviationRef" value={ref} onChange={setRef} description={st(gmp && !linked ? 'dialog.deviation.helpOrRaise' : 'dialog.deviation.help')} isRequired={!(gmp && !linked)} autoComplete="off" />
       {gmp && linked ? <LinkDeviationNumber runId={p.runId} number={ref.trim()} /> : null}
-      {gmp && !linked ? <RaiseBatchDeviation runId={p.runId} title={exception.title} onRaised={setRef} /> : null}
+      {gmp && !linked ? <BatchDeviations runId={p.runId} onUse={setRef} /> : null}
+      {raising ? (
+        <section aria-label={st('dialog.deviation.raise')} data-testid="deviation-raise">
+          <h3>{st('dialog.deviation.raise')}</h3>
+          <floor.ChoiceGroup
+            label={st('dialog.deviation.classification')}
+            options={[
+              { value: 'MINOR', label: st('dialog.deviation.MINOR') },
+              { value: 'MAJOR', label: st('dialog.deviation.MAJOR') },
+              { value: 'CRITICAL', label: st('dialog.deviation.CRITICAL') },
+            ]}
+            value={classification}
+            onChange={setClassification}
+          />
+          <Field label={st('dialog.deviation.rationale')} name="riskRationale" value={rationale} onChange={setRationale} description={st('dialog.deviation.rationaleHelp')} autoComplete="off" />
+          <p>{st('dialog.deviation.raiseOnSend')}</p>
+        </section>
+      ) : null}
     </CommandBody>
+  );
+}
+
+/**
+ * Owner retest item 8: the open deviations already linked to this batch (one raised before whose attachment never
+ * happened, such as DEV-SITE-1-2026-00004 on the demo), each with a button that puts its number in the field, so it is
+ * attached instead of raising another.
+ */
+function BatchDeviations({ runId, onUse }: { runId: string; onUse: (ref: string) => void }) {
+  const list = useApiQuery(routes.quality.deviations, { query: { batchId: runId, kind: 'DEVIATION' } }, { retry: false });
+  const open = (list.data?.deviations ?? []).filter((d) => d.state !== 'CLOSED' && d.state !== 'CANCELLED');
+  if (open.length === 0) return null;
+  return (
+    <section aria-label={st('dialog.deviation.ofBatch')} data-testid="batch-deviations">
+      <h3>{st('dialog.deviation.ofBatch')}</h3>
+      <ul>
+        {open.map((d) => (
+          <li key={d.deviationId} data-testid={`batch-deviation-${d.ref}`}>
+            {d.ref}: {d.title}{' '}
+            <Button onPress={() => onUse(d.ref)}>{st('dialog.deviation.use')}</Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -121,58 +174,6 @@ function LinkDeviationNumber({ runId, number }: { runId: string; number: string 
       {error ? <RefusalMessage error={error} /> : null}
       <Button onPress={() => void link()} isDisabled={number === '' || busy}>
         {st('dialog.deviation.linkNumberButton')}
-      </Button>
-    </section>
-  );
-}
-
-/**
- * Owner report item 2: on a GMP batch the link names a deviation record of this installation linked to the batch
- * (recipe-core 0601, EBMR-EXE-600), and with the deviation screens off (EBMR_DISCONNECT) nothing else raises one. The
- * served routes raiseDeviation and linkDeviation (api-contract disconnected.ts keeps both) raise it here and link it to
- * the batch; its reference fills the field. The person chooses the classification and writes the risk rationale.
- */
-function RaiseBatchDeviation({ runId, title, onRaised }: { runId: string; title: string; onRaised: (ref: string) => void }) {
-  const [classification, setClassification] = useChoice();
-  const [rationale, setRationale] = useTyped();
-  // On a shared kiosk the raise and its link to the batch are each sent with the person's fresh badge tap (INV-40):
-  // useCommand asks for it; a cancelled tap sends nothing.
-  const raiseCmd = useCommand(routes.quality.raiseDeviation, [], st('dialog.deviation.raise'));
-  const linkCmd = useCommand(routes.quality.linkDeviation, [], st('dialog.deviation.raise'));
-  const busy = raiseCmd.busy || linkCmd.busy;
-  const error: CallError | null = raiseCmd.error ?? linkCmd.error;
-  const [raised, setRaised] = useState<string | null>(null);
-  // A deviation raised whose link was refused or not tapped: a second press links it, never raises a second one.
-  const [unlinked, setUnlinked] = useState<{ deviationId: string; ref: string } | null>(null);
-  const ready = unlinked !== null || ((classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL') && rationale.trim().length >= 10);
-  const raise = async () => {
-    if (!ready) return;
-    const r = unlinked ?? (classification === 'MINOR' || classification === 'MAJOR' || classification === 'CRITICAL' ? await raiseCmd.run({ body: { kind: 'DEVIATION', title: title.slice(0, 200), classification, riskRationale: rationale.trim() } }) : null);
-    if (!r) return;
-    setUnlinked({ deviationId: r.deviationId, ref: r.ref });
-    const linked = await linkCmd.run({ params: { deviationId: r.deviationId }, body: { subjectKind: 'BATCH', subjectId: runId } });
-    if (!linked) return;
-    setRaised(r.ref);
-    onRaised(r.ref);
-  };
-  if (raised !== null) return <p data-testid="deviation-raised">{st('dialog.deviation.raised', { ref: raised })}</p>;
-  return (
-    <section aria-label={st('dialog.deviation.raise')}>
-      <h3>{st('dialog.deviation.raise')}</h3>
-      <floor.ChoiceGroup
-        label={st('dialog.deviation.classification')}
-        options={[
-          { value: 'MINOR', label: st('dialog.deviation.MINOR') },
-          { value: 'MAJOR', label: st('dialog.deviation.MAJOR') },
-          { value: 'CRITICAL', label: st('dialog.deviation.CRITICAL') },
-        ]}
-        value={classification}
-        onChange={setClassification}
-      />
-      <Field label={st('dialog.deviation.rationale')} name="riskRationale" value={rationale} onChange={setRationale} description={st('dialog.deviation.rationaleHelp')} autoComplete="off" />
-      {error ? <RefusalMessage error={error} /> : null}
-      <Button onPress={() => void raise()} isDisabled={!ready || busy}>
-        {st('dialog.deviation.raiseButton')}
       </Button>
     </section>
   );
