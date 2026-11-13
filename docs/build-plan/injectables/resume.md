@@ -137,6 +137,10 @@ injectables controls, a golden batch, the browser suite, one review pass.
       critical exception.
     - `newFilter` EU-only.
     - Both under the existing verifier; v1-edit safety evidence in the PR body.
+    - Built (inj/i6-b4-in48): INJ-STERILE-FILTER v1 in place, `firstUseToday`; on no, `extendedUseValidated` (no is
+      critical: the new YES_NO mark `unexpectedCritical`) and `validationRef`. `newFilter` is the EU block
+      INJ-FILTER-SINGLE-BATCH (OPERATOR + VERIFIER) before each filtration step on an EU master (MKT-REQUIRED-BLOCKS):
+      no field-level market tag exists. The database does not re-judge yes/no answers (as for every LIB_UNEXPECTED_ANSWER).
 - **Then:**
   - GB-I-01: the aseptic vial to a released lot, with sterility by RMM. A method field on the results screen goes to the
     lead first.
