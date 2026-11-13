@@ -6,6 +6,8 @@
  * the discharge configuration of a press (MASTERDATA.CHANGE); the unit is chosen from the plant list, never typed.
  * Slice 7h (gap report D2): the per-use check and the booking for a batch of an instrument the batch uses without a status
  * step naming it (a closure torque tester on a bottle line: TB23-TESTER), chosen from the plant list (STEP.EXECUTE).
+ * ST-33 (tablets 1912): a line withdrawn after a failed media fill shows the batches made on it since its last successful
+ * APS; QA records the review (the risk assessment and the repeat APS runs) before the line can be qualified again.
  */
 import { useState } from 'react';
 import { routes, type RouteResponse } from '@ebmr/api-contract';
@@ -53,6 +55,9 @@ export function PlantPage() {
       </Section>
       <Section title="Equipment logbook" testId="equipment-event">
         <EquipmentEventForm />
+      </Section>
+      <Section title="Failed media fill: review before requalification" testId="aps-failure-review">
+        <ApsFailureReviewForm />
       </Section>
       <Section title="Instrument check and booking for a batch" testId="instrument-use">
         <InstrumentUseForm />
@@ -266,6 +271,64 @@ function EquipmentEventForm() {
         disabled={!parsed?.success || code.trim() === '' || cmd.busy || ((values['kind'] === 'QUALIFIED' || values['kind'] === 'REPAIRED') && event === 'EVENT' && (values['reference'] ?? '').trim() === '')}
       />
       <ActResult error={cmd.error} done={cmd.done} label={event === 'REPAIR' ? 'Repair recorded: a second person verifies it.' : 'Recorded.'} />
+    </>
+  );
+}
+
+/**
+ * ST-33 (tablets 1912): the open withdrawal of a line after a failed media fill and QA's review of it (RECORD.QA_REVIEW).
+ * Every value is the firm's: the risk-assessment reference, the repeat APS run references (separated by commas), and, with
+ * fewer than three runs, the justification. The database refuses anything short of that.
+ */
+function ApsFailureReviewForm() {
+  const units = useUnits('PROCESS');
+  const [code, setCode] = useState<string | null>(null);
+  const [risk, setRisk] = useState('');
+  const [runs, setRuns] = useState('');
+  const [justification, setJustification] = useState('');
+  const open = useApiQuery(routes.plant.apsFailure, { params: { code: code ?? 'X' } }, { enabled: code !== null });
+  const cmd = useCommand(routes.plant.apsFailureReview, [...PENDING, routes.plant.apsFailure.id], 'the review of a failed media fill');
+  const refs = runs.split(',').map((x) => x.trim()).filter((x) => x !== '');
+  const body = { riskAssessmentRef: risk.trim(), repeatApsRefs: refs, ...(justification.trim() ? { justification: justification.trim() } : {}) };
+  const parsed = routes.plant.apsFailureReview.body?.safeParse(body);
+  const w = open.data?.withdrawal ?? null;
+  return (
+    <>
+      <floor.ChoiceGroup label="Filling line" options={units} value={code} onChange={setCode} />
+      {open.error ? <RefusalMessage error={open.error.error} /> : null}
+      {code && open.data && !w ? <p>{code} has no open withdrawal after a failed media fill.</p> : null}
+      {w ? (
+        <div data-testid="aps-failure">
+          <p>
+            Failed media fill {w.failedBatch}, withdrawn {w.withdrawnAt.text}. Last successful APS: {w.lastSuccessfulAps ?? 'none on record (every batch on the line is listed)'}.
+          </p>
+          <p>Batches made on the line since: {w.batches.length === 0 ? 'none' : w.batches.map((b) => `${b.batchNumber} (${b.lastUsedAt.text})`).join(', ')}</p>
+          {w.reviewed ? (
+            <p>The review is recorded; the line may be qualified again in the equipment logbook.</p>
+          ) : (
+            <>
+              <Field name="riskAssessmentRef" label="Risk assessment of these batches (reference)" value={risk} onChange={setRisk} isRequired />
+              <Field name="repeatApsRefs" label="Successful repeat APS runs (references, separated by commas)" value={runs} onChange={setRuns} isRequired />
+              <Field name="justification" label="Justification (required with fewer than three runs)" value={justification} onChange={setJustification} isRequired={refs.length > 0 && refs.length < 3} />
+              <ActButton
+                label="Record the review"
+                onPress={async () => {
+                  if (parsed?.success && code) {
+                    const r = await cmd.run({ params: { code }, body: parsed.data });
+                    if (r) {
+                      setRisk('');
+                      setRuns('');
+                      setJustification('');
+                    }
+                  }
+                }}
+                disabled={!parsed?.success || cmd.busy}
+              />
+            </>
+          )}
+        </div>
+      ) : null}
+      <ActResult error={cmd.error} done={cmd.done} label="Review recorded." />
     </>
   );
 }
