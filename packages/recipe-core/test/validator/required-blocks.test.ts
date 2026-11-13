@@ -52,3 +52,22 @@ describe('the blocks a market set makes mandatory on a master (I-6 B2)', () => {
     expect(findings(master(['IN', 'US'], [fill, phase('after')]))).toEqual([]);
   });
 });
+
+describe('the single-batch check of the sterilising filter on an EU master (I-6 B4)', () => {
+  const filterMaster = (marketSet: string[], children: FlowNode[]): MbrContent => {
+    const base = mbrWith({ kind: 'sequence', id: 'ops', children });
+    return { ...base, header: { ...base.header, edition: 'injectables', marketSet }, blockDefinitions: [definition('INJ-STERILE-FILTER'), definition('INJ-FILTER-SINGLE-BATCH')] as never };
+  };
+
+  it('[IN-48][PR-03] a master for the EU market whose filtration step has no single-batch check of its filter before it is refused (A1 8.94); with the check before it passes; a master for India and the US needs none', () => {
+    const filtration = step('filtration', 'INJ-STERILE-FILTER');
+    const without = findings(filterMaster(['IN', 'EU'], [filtration, phase('after')]));
+    expect(without).toHaveLength(1);
+    expect(without[0]).toMatchObject({ severity: 'ERROR', subject: 'filtration' });
+    expect(without[0]?.message).toMatch(/INJ-FILTER-SINGLE-BATCH before it .*IN-48/);
+    expect(findings(filterMaster(['IN', 'EU'], [step('single', 'INJ-FILTER-SINGLE-BATCH'), filtration, phase('after')]))).toEqual([]);
+    // The check placed after the filtration does not come before it.
+    expect(findings(filterMaster(['IN', 'EU'], [filtration, step('single', 'INJ-FILTER-SINGLE-BATCH'), phase('after')]))).toHaveLength(1);
+    expect(findings(filterMaster(['IN', 'US'], [filtration, phase('after')]))).toEqual([]);
+  });
+});

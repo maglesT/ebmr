@@ -15,9 +15,25 @@ behaviour: The filtration step records filter ID/lot and pore rating (0.22 micro
 catalog_test: "enter a failing post-use result; the batch goes on hold. Reuse a filter on day 2 without validation; blocked. EU profile, same filter for a second batch on day 1: blocked."
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [IN-48] EU market: the same sterilising filter is not used for a second batch (A1 8.94): an EU block before each filtration step asks it, verified by a second person, and the answer no stops the step until a deviation is linked; other markets leave it out"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [IN-48] a failing post-use integrity result holds the batch: the filtration step and the steps after it wait for a deviation, which the batch cannot be released without"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [IN-48] a filter not used for the first time today needs its use beyond one working day validated, with the reference of that validation (SM Part II 6.11.2.8, A1 8.94): an unvalidated reuse is a critical exception that stops the step for QA, on every market; the answers are verified by a second person"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use and after use by the formulation's method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the single-batch check of the sterilising filter on an EU master (I-6 B4) > [IN-48][PR-03] a master for the EU market whose filtration step has no single-batch check of its filter before it is refused (A1 8.94); with the check before it passes; a master for India and the US needs none"
+clauses:
+  - clause: "enter a failing post-use result; the batch goes on hold."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [IN-48] a failing post-use integrity result holds the batch: the filtration step and the steps after it wait for a deviation, which the batch cannot be released without"
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use and after use by the formulation's method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception"
+  - clause: "Reuse a filter on day 2 without validation; blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [IN-48] a filter not used for the first time today needs its use beyond one working day validated, with the reference of that validation (SM Part II 6.11.2.8, A1 8.94): an unvalidated reuse is a critical exception that stops the step for QA, on every market; the answers are verified by a second person"
+  - clause: "EU profile, same filter for a second batch on day 1: blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [IN-48] EU market: the same sterilising filter is not used for a second batch (A1 8.94): an EU block before each filtration step asks it, verified by a second person, and the answer no stops the step until a deviation is linked; other markets leave it out"
+      - "packages/recipe-core/test/validator/required-blocks.test.ts > the single-batch check of the sterilising filter on an EU master (I-6 B4) > [IN-48][PR-03] a master for the EU market whose filtration step has no single-batch check of its filter before it is refused (A1 8.94); with the check before it passes; a master for India and the US needs none"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

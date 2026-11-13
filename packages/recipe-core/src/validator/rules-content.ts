@@ -757,6 +757,10 @@ export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string;
   // ST-06: process and equipment alarms are acknowledged and evaluated (A1 5.2); the filling step records them and the
   // assessment block after it evaluates each one. No clause of Schedule M or 21 CFR 211 asks it, so only the EU.
   { market: 'EU', trigger: 'INJ-FILL', required: 'INJ-ALARM-ASSESSMENT', relation: 'AFTER', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
+  // IN-48: a liquid sterilising filter serves a single batch (A1 8.94). Schedule M 6.11.2.8 limits only the working day,
+  // which INJ-STERILE-FILTER asks on every market; so on an EU master each filtration step has the single-batch check of
+  // its filter before it. Only the EU asks it.
+  { market: 'EU', trigger: 'INJ-STERILE-FILTER', required: 'INJ-FILTER-SINGLE-BATCH', relation: 'BEFORE', control: 'IN-48', clause: 'EU GMP Annex 1 8.94: a liquid sterilising filter discarded after a single batch' },
 ];
 
 function libraryCode(p: PhaseNode): string | undefined {

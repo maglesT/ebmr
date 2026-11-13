@@ -26,10 +26,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM', 'INJ-EM-SURFACES', 'INJ-ALARM-ASSESSMENT'];
+const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-FILTER-SINGLE-BATCH', 'INJ-PUPSIT', 'INJ-EM', 'INJ-EM-SURFACES', 'INJ-ALARM-ASSESSMENT'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 16 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 15 with its EU assessment of the alarms raised during filling, 26 for the media fill, 32 with its surfaces at the end of filling and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
+  it('[PR-05][PR-03] the catalogue holds the 17 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT and single-batch blocks, 15 with its EU assessment of the alarms raised during filling, 26 for the media fill, 32 with its surfaces at the end of filling and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -50,7 +50,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     // blocks carry no tag (every market) and no PUPSIT field.
     const tagged = INJECTABLE_ASEPTIC_CATALOGUE.filter((s) => s.definition.markets !== undefined);
     expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({
-      'INJ-ALARM-ASSESSMENT': ['EU'], 'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-STERILE-PACK-INDICATOR': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
+      'INJ-ALARM-ASSESSMENT': ['EU'], 'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-FILTER-SINGLE-BATCH': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-STERILE-PACK-INDICATOR': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
     });
     expect(byCode('INJ-STERILE-FILTER').definition.sections.map((x) => x.id)).toEqual(['filter', 'preUse', 'filtration', 'postUse']);
     expect(byCode('INJ-STERILE-FILTER').definition.sections.flatMap((x) => x.fields).filter((f) => /pupsit/i.test(f.id))).toEqual([]);
@@ -130,7 +130,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
   it('[ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it', () => {
     const item = byCode('INJ-STERILE-FILTER');
     expect(fieldOf(item, 'filterLot')).toEqual({ id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' });
-    expect(item.definition.sections.find((x) => x.id === 'filter')?.fields.map((f) => f.id)).toEqual(['filterLot']);
+    expect(item.definition.sections.find((x) => x.id === 'filter')?.fields.map((f) => f.id)).toEqual(['filterLot', 'firstUseToday', 'extendedUseValidated', 'validationRef']);
     expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     // 211.84: only a released lot may be used (the engine's lot checks of every MATERIAL_LOT field).
     const quarantined = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } };
@@ -165,6 +165,62 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(item, { filtration: { pressure: '2.50' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     // The nominal run holds the timer about an hour: a 30-minute maximum is breached.
     expect(judgedRun(withLimits(item, { filtrationTime: { unit: 'min', ranges: [{ tier: 'VALIDATED', high: { value: '30', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'PV-REF' } }] } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+  });
+
+  /** A batch of the filtration step `item` with a step after it, its entries recorded (some sections changed) and performed. */
+  function filtered(item: SeedItem, overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>>): Run {
+    const def = item.definition;
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: item.exampleUse as never }), phase('after')] });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), {}, T0);
+    run.start('p');
+    recordNominal(run, 'p', def, item.exampleUse, mbr, overrides);
+    return run;
+  }
+
+  it('[IN-48] a failing post-use integrity result holds the batch: the filtration step and the steps after it wait for a deviation, which the batch cannot be released without', () => {
+    const run = filtered(byCode('INJ-STERILE-FILTER'), { postUse: { postBubblePoint: '3.10' } });
+    const [x] = run.exceptions();
+    expect(x?.type).toBe('LIB_LIMIT_BREACH');
+    expect([x?.deviationRequired, x?.block?.until, x?.block?.steps, x?.block?.downstream?.node]).toEqual([true, 'DEVIATION', ['p@'], 'task:p']);
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
+    expect(run.status('after')).not.toBe('COMPLETED');
+  });
+
+  it('[IN-48] a filter not used for the first time today needs its use beyond one working day validated, with the reference of that validation (SM Part II 6.11.2.8, A1 8.94): an unvalidated reuse is a critical exception that stops the step for QA, on every market; the answers are verified by a second person', () => {
+    const item = byCode('INJ-STERILE-FILTER');
+    expect(item.definition.markets).toBeUndefined();
+    expect(fieldOf(item, 'firstUseToday')).toEqual({ id: 'firstUseToday', label: 'This filter is used for the first time today', type: 'YES_NO' });
+    expect(fieldOf(item, 'extendedUseValidated')).toMatchObject({ type: 'YES_NO', expected: true, unexpectedCritical: true, showWhen: { field: 'firstUseToday', equals: false } });
+    expect(fieldOf(item, 'validationRef')).toMatchObject({ type: 'TEXT', showWhen: { field: 'extendedUseValidated', equals: true } });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    // First used today: nothing more is asked, and a validation reference typed anyway is refused.
+    const firstUse = { filter: { firstUseToday: true, extendedUseValidated: undefined, validationRef: undefined } };
+    expect(judgedRun(item, firstUse)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(item, { filter: { ...firstUse.filter, validationRef: 'VAL-FLT-01' } })).toThrow(/LIB-ENTRY-HIDDEN/);
+    // Used on an earlier day, its longer use validated: the reference is required.
+    expect(judgedRun(item, { filter: { firstUseToday: false, extendedUseValidated: true, validationRef: 'VAL-FLT-01' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(item, { filter: { firstUseToday: false, extendedUseValidated: true, validationRef: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    // Reused on day 2 without validation: a critical exception; the step and the steps after it wait, QA only, release blocked.
+    const run = filtered(item, { filter: { firstUseToday: false, extendedUseValidated: false, validationRef: undefined } });
+    const [x] = run.exceptions();
+    expect([x?.type, x?.severity, x?.qaOnly, x?.releaseBlocking, x?.deviationRequired, x?.block?.until]).toEqual(['LIB_UNEXPECTED_ANSWER', 'CRITICAL', true, true, true, 'DEVIATION']);
+    expect([x?.block?.steps, x?.block?.downstream?.node]).toEqual([['p@'], 'task:p']);
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
+    // The checker: a critical answer names the expected one, or nothing would be critical.
+    const bare = { ...item.definition, sections: [{ id: 's', title: 'S', fields: [{ id: 'q', label: 'Q', type: 'YES_NO' as const, unexpectedCritical: true }] }] };
+    expect(checkBlockDefinition(bare, expr).map((p) => p.code)).toContain('LIB-FIELD-EXPECTED');
+  });
+
+  it('[IN-48] EU market: the same sterilising filter is not used for a second batch (A1 8.94): an EU block before each filtration step asks it, verified by a second person, and the answer no stops the step until a deviation is linked; other markets leave it out', () => {
+    const item = byCode('INJ-FILTER-SINGLE-BATCH');
+    expect(item.definition.markets).toEqual(['EU']);
+    expect(fieldOf(item, 'newFilter')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    expect(judgedRun(item, {})).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const run = filtered(item, { singleBatch: { newFilter: false } });
+    const [x] = run.exceptions();
+    expect([x?.type, x?.deviationRequired, x?.block?.until]).toEqual(['LIB_UNEXPECTED_ANSWER', true, 'DEVIATION']);
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
   });
 
   it('[ST-18][ST-22][IN-42] EM records each viable location of the formulation\'s plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch', () => {
