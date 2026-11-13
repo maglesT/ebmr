@@ -109,13 +109,31 @@ export const StepPlantView = z.strictObject({
   lineClearances: z.array(z.strictObject({ areaCode: z.string(), order: z.string(), artworkSet: z.string() })),
   /** The batch's occupancies still open. */
   occupancies: z.array(OccupancyView.extend({ mine: z.boolean() })),
-  /** The units the step checks (STATUS_CHECK equipment of the phase), each with the plant units of its class. */
+  /**
+   * The units the step checks (STATUS_CHECK equipment of the phase), each with the plant units of its class offered for it:
+   * the units in the stage's rooms; when none of them can be used now, also the units of the class in other rooms that
+   * can (or, when none can anywhere, every unit of the class, each with why); and any unit with an open use of the batch.
+   */
   equipment: z.array(
     z.strictObject({
       ref: z.string(),
       kind: z.enum(['PROCESS', 'INSTRUMENT', 'UTILITY']),
       classCode: z.string(),
-      units: z.array(z.strictObject({ code: z.string(), name: z.string(), areaCode: z.string().nullable(), fitness: z.string().nullable(), lastCheck: z.strictObject({ result: z.enum(['PASS', 'FAIL']), at: Instant, mine: z.boolean() }).nullable() })),
+      units: z.array(
+        z.strictObject({
+          code: z.string(),
+          name: z.string(),
+          areaCode: z.string().nullable(),
+          /** Whether the unit is installed in a room of the step's stage. */
+          inStageRoom: z.boolean(),
+          fitness: z.string().nullable(),
+          /** Why the unit cannot be used for the batch now (the plant's own reasons), or empty. Advisory: the database checks again at the act. */
+          problems: z.array(z.string()),
+          lastCheck: z.strictObject({ result: z.enum(['PASS', 'FAIL']), at: Instant, mine: z.boolean() }).nullable(),
+        }),
+      ),
+      /** Why units of other rooms are offered, or why none can be used and what to do; null when a stage-room unit can be used. */
+      note: z.string().nullable(),
     }),
   ),
   /** The batch's uses still open (equipment uses not ended, instrument bookings before their planned end). */

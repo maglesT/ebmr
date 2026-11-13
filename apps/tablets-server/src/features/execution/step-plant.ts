@@ -37,6 +37,54 @@ export function stageClearanceChecked(steps: Iterable<ClearanceStep>, stage: str
   return g10.length === 0 || g10.some((s) => s.node.kind === 'phase' && s.node.signatures?.check !== undefined);
 }
 
+/** A plant unit of a class a step checks, as the step's plant read finds it. */
+export interface UnitFact {
+  code: string;
+  class_code: string;
+  area: string | null;
+  problems: string[];
+}
+
+const unitText = (u: UnitFact): string => `${u.code} (${u.area ?? 'no room'}${u.problems.length > 0 ? `: ${u.problems.join('; ')}` : ''})`;
+
+/**
+ * The units of class `classCode` a status step offers (retest of 13 November 2026, bug 5), and why when it is not simply
+ * the stage's own. Neither the controls nor the database tie a unit to the stage's room (plant.start_equipment_use and the
+ * entry guard of recipe-core 0521 check the class, the batch, the person and the unit's status), so a unit elsewhere may
+ * be used when the stage's own cannot:
+ *  - a unit in the stage's rooms that can be used now: the stage's units only;
+ *  - none there can: the stage's units, then the class's units in other rooms that can, with a note naming why;
+ *  - none can anywhere (or the class has no unit in the stage's rooms): every unit of the class, the stage's first, with
+ *    a note naming why each cannot be used and what to do;
+ *  - and always any unit with an open use of the batch (`inUse`), so a use started on the Plant screen is recorded or
+ *    ended from the step without its identifier.
+ */
+export function offeredUnits<U extends UnitFact>(classCode: string, rooms: readonly string[], all: readonly U[], inUse: ReadonlySet<string>): { offered: U[]; note: string | null } {
+  const ofClass = all.filter((u) => u.class_code === classCode);
+  const inRoom = (u: U) => u.area !== null && rooms.includes(u.area);
+  const usable = (u: U) => u.problems.length === 0;
+  const here = ofClass.filter(inRoom);
+  const elsewhere = ofClass.filter((u) => !inRoom(u));
+  const withOpenUses = (list: U[]): U[] => [...list, ...ofClass.filter((u) => inUse.has(u.code) && !list.includes(u))];
+  const roomText = rooms.length > 0 ? rooms.join(', ') : 'no room';
+  if (here.some(usable)) return { offered: withOpenUses(here), note: null };
+  const others = elsewhere.filter(usable);
+  if (here.length > 0 && others.length > 0) {
+    return {
+      offered: withOpenUses([...here, ...others]),
+      note: `${here.map(unitText).join('; ')}: cannot be used now. Units of class ${classCode} in other rooms that can be used are offered: ${others.map(unitText).join(', ')}. The stage's room does not restrict the unit; its status is checked again when its use starts.`,
+    };
+  }
+  if (ofClass.length === 0) return { offered: withOpenUses([]), note: null };
+  if (others.length > 0) {
+    return { offered: withOpenUses(ofClass), note: `No unit of class ${classCode} is installed in the stage's rooms (${roomText}); the units of the class in other rooms are offered.` };
+  }
+  return {
+    offered: withOpenUses([...here, ...elsewhere]),
+    note: `No unit of class ${classCode} can be used now: ${[...here, ...elsewhere].map(unitText).join('; ')}. Have a unit cleaned (and the cleaning verified), its status restored or its use by another batch ended, then reload this step; or tell your supervisor.`,
+  };
+}
+
 export async function stepPlantView(app: AppContext, db: Db, batchId: string, stepKey: string, viewer: string): Promise<StepPlantView> {
   const run = await runContext(db, batchId);
   const stepId = stepKey.split('@')[0] ?? stepKey;
@@ -64,8 +112,16 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
          from plant.area_occupancy_status o join plant.area a on a.id = o.area_id where o.batch_id = $1 and o.ended_at is null order by o.started_at`,
       [batchId],
     ),
-    db.query<{ code: string; name: string; class_code: string; area: string | null; fitness: string | null; result: 'PASS' | 'FAIL' | null; check_us: string | null; check_by: string | null }>(
-      `select e.code, e.name, e.class_code, a.code as area, plant.equipment_fitness(e.id) as fitness, k.result, ${usOf('k.recorded_at')} as check_us, k.person_id::text as check_by
+    // Retest of 13 November 2026 (bug 5): why each unit cannot be used for the batch now, in the plant's own words: a
+    // process unit's use assessment (fitness, cleanliness, clean hold, in use by a batch, cleaning level) for the shortest
+    // planned use the screen offers (4 h); another unit's fitness. Advisory only: the act's database function checks again.
+    db.query<{ code: string; name: string; class_code: string; area: string | null; fitness: string | null; problems: string[]; result: 'PASS' | 'FAIL' | null; check_us: string | null; check_by: string | null }>(
+      `select e.code, e.name, e.class_code, a.code as area, plant.equipment_fitness(e.id) as fitness,
+              case when e.kind = 'PROCESS'
+                   then array(select jsonb_array_elements_text(plant.equipment_use_assessment(e.id, coalesce(recipe.batch_product($2) ->> 'code', ''), clock_timestamp() + interval '4 hours') -> 'problems'))
+                   when plant.equipment_fitness(e.id) in ('QUALIFIED', 'CALIBRATION_DUE_SOON') then '{}'::text[]
+                   else array[format('it is %s', coalesce(plant.equipment_fitness(e.id), 'of no known fitness'))] end as problems,
+              k.result, ${usOf('k.recorded_at')} as check_us, k.person_id::text as check_by
          from plant.equipment e left join plant.area a on a.id = e.area_id
          left join lateral (select c.result, c.recorded_at, c.person_id from plant.instrument_check c
                              where c.equipment_id = e.id and (c.batch_id = $2 or c.regime = 'DAILY') order by c.recorded_at desc, c.id desc limit 1) k on true
@@ -137,15 +193,14 @@ export async function stepPlantView(app: AppContext, db: Db, batchId: string, st
       occupancyId: o.id, areaCode: o.area, batchNumber: o.batch, stage: o.stage, startedBy: personRef(people, o.by, 'OPERATOR'), startedAt: app.formatInstant(o.us), ended: null, mine: o.by === viewer,
     })),
     equipment: wanted.map((w) => {
-      const ofClass = units.rows.filter((u) => u.class_code === w.classCode);
-      // The units of the step's rooms first; a class with none there offers every unit of the class.
-      const here = ofClass.filter(inRooms);
+      const { offered, note } = offeredUnits(w.classCode, codes, units.rows, new Set(uses.rows.map((u) => u.code)));
       return {
         ...w,
-        units: (here.length > 0 ? here : ofClass).map((u) => ({
-          code: u.code, name: u.name, areaCode: u.area, fitness: u.fitness,
+        units: offered.map((u) => ({
+          code: u.code, name: u.name, areaCode: u.area, inStageRoom: inRooms(u), fitness: u.fitness, problems: u.problems,
           lastCheck: u.result && u.check_us ? { result: u.result, at: app.formatInstant(u.check_us), mine: u.check_by === viewer } : null,
         })),
+        note,
       };
     }),
     uses: uses.rows.map((u) => ({
