@@ -52,7 +52,7 @@ clauses:
   - clause: "Configure a 7 Pa B/C differential → accepted only with a CCS reference and QA e-signature."
     not_required:
       decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
-      reason: "guidance values are plain formulation values"
+      reason: "guidance values (10 Pa, clean-up time, UDAF speed) with CCS and QA loosening"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
