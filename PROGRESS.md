@@ -50,7 +50,8 @@ deviation raised from an exception is raised, linked to the batch and attached i
 `raise`); the dialog offers the batch's open deviations so an orphan is attached, not raised again; titles show values
 at their judged precision (item 8). The title block shows its signatures; a stale GMP signing says "batch" (9a, 9b).
 9c (MGL260051 then MGL260101) is by design: a server start retires the rest of a 50-number block (kernel 0600, ADR 0007,
-`docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner question in the report: show retired ranges.
+`docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner decision (13 November): the register screen now
+lists each skipped range with its numbers, reason and time (site-services 1924, read from `continuity.sequence_bump`).
 
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.

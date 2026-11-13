@@ -232,6 +232,31 @@ describe('the batch-number register', () => {
     });
   });
 
+  it('[IN-18] the register lists the serials each rule skipped and never gave, with the reason and time the database recorded (owner decision 13 November 2026, retest item 9c)', async () => {
+    const at = { us: '1794556800000000', text: '13-NOV-2026 08:30:00 +05:30 (Asia/Kolkata)' };
+    renderOffice('/planning/batch-numbers', {
+      role: 'BATCH_ISSUER',
+      fixtures: {
+        'planning.batchNumbers': {
+          numbers: example('planning-batch-numbers').numbers,
+          retired: [
+            { ruleCode: 'MGL', firstSerial: '52', lastSerial: '100', firstNumber: 'MGL260052', lastNumber: 'MGL260100', reason: 'SERVER_RESTART', recordedAt: at },
+            { ruleCode: 'MGL-PACK', firstSerial: '7', lastSerial: '9', firstNumber: null, lastNumber: null, reason: 'LEDGER_AHEAD', recordedAt: at },
+          ],
+        },
+      },
+    });
+    const list = await screen.findByTestId('retired-ranges');
+    expect(within(list).getByTestId('retired-MGL-52').textContent).toBe(`MGL260052–MGL260100 (rule MGL): retired after a server start (the rest of a reserved block may have been given before a rollback, so it is never given), ${at.text}`);
+    expect(within(list).getByTestId('retired-MGL-PACK-7').textContent).toMatch(/^Serials 7–9 \(rule MGL-PACK\): skipped because the external number ledger was ahead/);
+  });
+
+  it('[IN-18] a register with no skipped serial shows no such list', async () => {
+    renderOffice('/planning/batch-numbers', { role: 'BATCH_ISSUER' });
+    await screen.findByTestId('number-B26-0002');
+    expect(screen.queryByTestId('retired-ranges')).toBeNull();
+  });
+
   it('[IN-18] slice 7h (gap C1): lists the numbering rules; the master-data steward defines a rule with its format and reason; the issuer is not offered the form', async () => {
     const rule = example('planning-batch-number-rules').rules[0];
     const ui = renderOffice('/planning/batch-numbers', { role: 'MASTER_DATA_STEWARD' });

@@ -320,7 +320,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0600_', '^0690_', '^0700_', '^1731_']
+      packages/site-services/sql: ['^0600_', '^0690_', '^0700_', '^1731_', '^1924_']
       packages/recipe-core/sql: ['^1790_']
     src: [packages/site-services/src/batch-numbers]
     tests: ['packages/site-services/test/batch-number-register.test.ts']
