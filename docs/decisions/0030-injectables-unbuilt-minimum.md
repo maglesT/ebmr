@@ -4,7 +4,7 @@
 - **Decided by:** the lead (session_01PybpFvEFaQZ3LEfnNdjBCE), as a ruling under the owner's standing minimum-compliance
   rule (only binding clauses, cited and checked against the official text; no clause, no requirement). Reported to the
   owner, who may veto it. Prepared by build session 14 (I-6, the injectables edition exit).
-- **Concerns:** controls ST-02, ST-06, ST-11, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75, ST-76 and IN-45; their catalog-test clauses marked `not_required` cite this
+- **Concerns:** controls ST-02, ST-06, ST-11, ST-12, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75, ST-76 and IN-45; their catalog-test clauses marked `not_required` cite this
   record (the register's rule: a quote of at least two whole words from the control's own paragraph below).
 
 ## Context
@@ -51,6 +51,12 @@ and record review.
 ST-11: no binding clause found for a separate glove-change record with an impact assessment after a torn glove. Annex 1
 4.21 asks for glove integrity testing and a defined replacement frequency, and 7.16 for gloves disinfected during work; a
 breach is recorded as an event and, where it matters, a deviation.
+
+ST-12: peak headcount on the timeline: display only; no binding clause; the recorded people-present value with its limit
+is the control. Annex 1 7.2 asks that only the minimum number of people be present in cleanrooms and that their maximum
+be set, documented and considered in qualification and the process simulation; it does not ask for a timeline display.
+The filling step records the most people present at once against the maximum qualified in the simulation, and more is an
+exception that stops the step (added by the lead in B1, 13 November 2026; the owner may veto it).
 
 ST-17: the restoration record after a pressure-difference dip is beyond the clause. Annex 1 4.16 asks for indicators and
 alarms that warn of a reduction below set limits; a dip typed below its limit already raises an exception, which the
