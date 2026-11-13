@@ -5,7 +5,7 @@
  */
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ManifestationView } from '@ebmr/api-contract';
+import type { ManifestationView, VersionView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { TitleBlockSignatures } from '../../src/features/designer/components/DocumentView.tsx';
 import { fixtureVersion, installFixtures, renderRouted, VERSION_ID } from './support.tsx';
@@ -22,8 +22,8 @@ const sig = (meaning: string, name: string, text: string, valid = true): Manifes
   signedAt: { us: '1790580603000000', text },
 });
 
-function renderBlock(state: string): void {
-  const version = fixtureVersion({ state: state as never });
+function renderBlock(state: VersionView['state']): void {
+  const version = fixtureVersion({ state });
   renderRouted(() => (
     <table>
       <tbody>

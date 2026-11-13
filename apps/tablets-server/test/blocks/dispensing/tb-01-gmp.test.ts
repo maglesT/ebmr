@@ -744,7 +744,8 @@ describe('the lots reserved for the batch on a GMP weighing step (owner retest 1
     let d = await dispenser(b4.batchId);
     const view = async (key: string) => valueOf(await d.browser('operator1').call(routes.batches.step, { params: { batchId: b4.batchId, stepKey: key } }));
     // Nothing reserved yet: every line of both weighing steps is listed with no lot (the first weighing would be EBMR-EXE-245).
-    expect((await view(G07_KEY)).reservations).toEqual([{ bomLine: 'BOM-MGS', material: expect.stringContaining('MAT-MGS'), lots: [] }]);
+    const g07 = (await view(G07_KEY)).reservations;
+    expect(g07?.map((l) => [l.bomLine, l.material.includes('MAT-MGS'), l.lots])).toEqual([['BOM-MGS', true, []]]);
     expect((await view(KEY)).reservations?.map((l) => [l.bomLine, l.lots])).toEqual([
       ['BOM-PCM', []],
       ['BOM-MCC', []],
@@ -756,7 +757,7 @@ describe('the lots reserved for the batch on a GMP weighing step (owner retest 1
       const r = (await c.query<{ id: string }>('select id::text from site.lot_reservation where batch_id = $1 and lot_id = $2', [b4.batchId, lotIds.get('L26-0202')])).rows[0]?.id;
       await c.query("insert into site.lot_reservation_revocation (reservation_id, kind, cause, reason_text, revoked_by_person, revoked_by_account) values ($1, 'CANCELLED', 'test', 'not needed', gen_random_uuid(), gen_random_uuid())", [r]);
     });
-    expect((await view(G07_KEY)).reservations).toEqual([{ bomLine: 'BOM-MGS', material: expect.stringContaining('MAT-MGS'), lots: [{ lotCode: 'L26-0401', remaining: '60', unit: 'kg' }] }]);
+    expect((await view(G07_KEY)).reservations?.map((l) => [l.bomLine, l.lots])).toEqual([['BOM-MGS', [{ lotCode: 'L26-0401', remaining: '60', unit: 'kg' }]]]);
     expect((await view(KEY)).reservations?.map((l) => [l.bomLine, l.lots.map((x) => x.lotCode)])).toEqual([
       ['BOM-PCM', ['L26-0201']],
       ['BOM-MCC', ['L26-0301']],
