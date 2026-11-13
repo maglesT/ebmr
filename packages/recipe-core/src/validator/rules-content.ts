@@ -437,6 +437,34 @@ const equipmentStatus = defineRule('GMP-EQUIPMENT-STATUS', 'Equipment use is pre
 });
 
 /**
+ * Demo finding of 13 November 2026 (MGL-SR-BL, r13 bug 1): the site-services equipment status step (G-09 from version 2)
+ * starts the use of each unit it checks, its STATUS_CHECK equipment, and the database accepts only a unit the stage
+ * binds (recipe-core 0521; EBMR-EXE-210). A step that checks no unit offers nothing on the floor and can never be signed
+ * (G09-INCOMPLETE), so the batch stops there. Version 1, the sandbox attestation, takes any unit the person names.
+ */
+const equipmentStatusUnits = defineRule('GMP-EQUIPMENT-STATUS-UNITS', 'An equipment status step checks at least one unit its stage binds', ['PR-23', 'PR-03'], (a) => {
+  const out: RuleFinding[] = [];
+  const never = 'on the floor the step would offer no unit to start and could never be signed';
+  for (const p of a.phases) {
+    if (p.block.type !== 'G-09' || p.block.version === '1' || p.equipment.some((e) => e.use === 'STATUS_CHECK')) continue;
+    const sid = a.nodes.get(p.id)?.stage;
+    const stage = sid ? a.nodes.get(sid)?.node : undefined;
+    const what = `${label(a, p.id)} checks the status of no unit`;
+    if (stage?.kind !== 'stage') {
+      out.push(error(p.id, `${what} and belongs to no stage that could bind one; ${never}`));
+      continue;
+    }
+    const refs = stage.binding.equipment.map((e) => e.ref);
+    if (refs.length === 0) {
+      out.push(error(p.id, `${what}, and its stage ${label(a, stage.id)} binds no equipment: add the stage's equipment (each unit the stage uses, with its equipment class) and tick "checks its status" for it on this step; ${never}`));
+    } else {
+      out.push(error(p.id, `${what}: tick "checks its status" on this step for the stage's ${refs.join(', ')} that it must check before use; ${never}`));
+    }
+  }
+  return out;
+});
+
+/**
  * D-6 (owner's MGL-SR-BL report, item 9): a library block's equipment class is one of the plant's classes. The binding
  * duty is that the instructions name the principal equipment (LIB-USE-EQUIPMENT-CLASS, 21 CFR 211.186(b)(9)); no clause
  * refuses a master over a class missing from the plant register, and the run refuses a unit of another class
@@ -761,6 +789,7 @@ export const CONTENT_RULES: readonly Rule[] = [
   stageYield,
   nonMaterialStages,
   equipmentStatus,
+  equipmentStatusUnits,
   bomConsumed,
   yields,
   intermediates,
