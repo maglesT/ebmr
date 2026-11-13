@@ -28,7 +28,7 @@ describe('CI runner labels', () => {
     const sizes: Record<string, number | 'github'> = {};
     for (const [id, text] of jobs) {
       expect(text, id).not.toMatch(/github\.job|format\(|fromJSON\(/);
-      expect(text, id).toContain('ubuntu-latest');
+      expect(text, id).toContain('ubuntu-24.04');
       const size = ubicloudSize(text);
       if (size !== undefined) sizes[id] = size;
       else {
@@ -59,12 +59,12 @@ describe('CI runner labels', () => {
       if (!text.includes("'ebmr-pod'")) {
         // Never the pod: a literal GitHub-hosted label, or Ubicloud's size else GitHub-hosted.
         expect(text, id).not.toContain('ebmr-pod');
-        expect(text === 'ubuntu-latest' || text.endsWith("|| 'ubuntu-latest' }}"), id).toBe(true);
+        expect(text === 'ubuntu-24.04' || text.endsWith("|| 'ubuntu-24.04' }}"), id).toBe(true);
         continue;
       }
       onPod.push(id);
       expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'pod' && 'ebmr-pod' \|\|/);
-      expect(text, id).toMatch(/\|\| 'ubuntu-latest' \}\}$/);
+      expect(text, id).toMatch(/\|\| 'ubuntu-24.04' \}\}$/);
     }
     expect(onPod.sort()).toEqual(['e2e', 'golden']);
   });
@@ -73,7 +73,7 @@ describe('CI runner labels', () => {
     for (const [id, text] of runsOn('mutation.yml')) {
       expect(text, id).not.toMatch(/github\.job|format\(|fromJSON\(/);
       expect(ubicloudSize(text), id).toBe(8);
-      expect(text, id).toContain("'ubuntu-latest'");
+      expect(text, id).toContain("'ubuntu-24.04'");
     }
   });
 
