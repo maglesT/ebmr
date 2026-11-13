@@ -27,8 +27,8 @@
 --                             section named 'reading'), and with each withdrawal recorded in plant.aps_failure_withdrawal
 --                             and its impact list in plant.aps_failure_impact.
 --
--- (b) The impact list. plant.line_batch_uses(code): each batch whose execution state names the unit in a LINE field, with
---     its last such use and whether it holds an APS_READING reading of zero (a successful APS on the line). At a
+-- (b) The impact list. plant.line_batch_uses(code): each batch whose execution state names the unit, whole and in an
+--     EQUIPMENT field of kind LINE as 1911 reads them (never a code another code starts with), with its last such use and whether it holds an APS_READING reading of zero (a successful APS on the line). At a
 --     withdrawal, the last successful APS is the latest such batch (by its use of the line) other than the failed one; the
 --     list is every other batch whose last use of the line is after that one's use, or, with no successful APS on record,
 --     every batch that recorded the line. The failed media fill itself is NOT listed: it is the withdrawal's own batch
@@ -168,6 +168,8 @@ declare
   e         jsonb;
   v_field   text;
 begin
+  -- The text test only narrows the states to read (the quoted JSON string, so LINE-1 does not match LINE-10); which
+  -- batches recorded the unit is decided by plant.line_uses, the EQUIPMENT fields of kind LINE 1911 reads, compared whole.
   for r in select s.batch_id as id, s.state, b.batch_number as number
              from recipe.execution_state s join recipe.batch_execution b on b.id = s.batch_id
             where strpos(s.state::text, to_jsonb(p_code)::text) > 0

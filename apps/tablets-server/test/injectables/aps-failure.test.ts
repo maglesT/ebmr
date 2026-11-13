@@ -73,13 +73,19 @@ const PLAIN_READ: Item = {
   exampleUse: READ.exampleUse,
 };
 
+/** A filling line class whose units are calibrated (the catalogue's own needs no calibration). */
+const LINE_CLASS_CAL = `VIAL-LINE-CAL-${TAG}`;
+/** The catalogue's filling step on a line of that class: the same block, the formulation's class slot changed. */
+const FILL_CAL: Item = { definition: FILL.definition, exampleUse: { ...(FILL.exampleUse as Json), equipmentClasses: { ...((FILL.exampleUse as Json)['equipmentClasses'] as Json), lineClass: LINE_CLASS_CAL } } };
+
 /** The media-fill masters (one product each: a family is one product, edition and record kind) and the product master. */
-type Key = 'EU' | 'IN' | 'SITE' | 'PLAIN';
-const MF: Record<Key, { markets: string[]; read: Item; letter: string }> = {
-  EU: { markets: ['IN', 'EU'], read: READ, letter: 'E' },
-  IN: { markets: ['IN'], read: READ, letter: 'I' },
-  SITE: { markets: ['IN', 'EU'], read: SITE_READ, letter: 'S' },
-  PLAIN: { markets: ['IN', 'EU'], read: PLAIN_READ, letter: 'P' },
+type Key = 'EU' | 'IN' | 'SITE' | 'PLAIN' | 'CAL';
+const MF: Record<Key, { markets: string[]; read: Item; letter: string; fill: Item }> = {
+  EU: { markets: ['IN', 'EU'], read: READ, letter: 'E', fill: FILL },
+  IN: { markets: ['IN'], read: READ, letter: 'I', fill: FILL },
+  SITE: { markets: ['IN', 'EU'], read: SITE_READ, letter: 'S', fill: FILL },
+  PLAIN: { markets: ['IN', 'EU'], read: PLAIN_READ, letter: 'P', fill: FILL },
+  CAL: { markets: ['IN', 'EU'], read: READ, letter: 'C', fill: FILL_CAL },
 };
 const productOf = (k: Key) => ({ code: `INJMF${MF[k].letter}-${TAG}`, name: `Media fill (TSB) 2 mL vials ${k}`, strength: '2 mL' });
 const PRODUCT = { code: `INJAPS-${TAG}`, name: 'Demoinj aseptic 10 mg/2 mL vials (ST-33)', strength: '10 mg/2 mL' };
@@ -87,7 +93,7 @@ const PRODUCT = { code: `INJAPS-${TAG}`, name: 'Demoinj aseptic 10 mg/2 mL vials
 /** A media-fill master (process simulation) for the market set: filling, (EU) the alarms' assessment, the reading. */
 const mediaFill = (k: Key): flow.MbrContent =>
   gmpContent((m) => {
-    const { markets, read } = MF[k];
+    const { markets, read, fill } = MF[k];
     const P = productOf(k);
     const header = m['header'] as Json;
     header['family'] = `INJ-MF-${k}-${TAG}`;
@@ -102,7 +108,7 @@ const mediaFill = (k: Key): flow.MbrContent =>
     const like = (body['children'] as Json[])[0] as Json;
     const eu = markets.includes('EU');
     body['children'] = [
-      stage(like, 'S-FILL', 'Aseptic filling with growth medium', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)]),
+      stage(like, 'S-FILL', 'Aseptic filling with growth medium', [phaseOf(fill.definition, 'p-fill', fill.exampleUse as never)]),
       ...(eu ? [stage(like, 'S-ALARMS', 'Alarms raised during filling', [phaseOf(ALARMS.definition, 'p-alarms', ALARMS.exampleUse)])] : []),
       stage(like, 'S-READ', 'Incubation and reading', [phaseOf(read.definition, 'p-read', read.exampleUse as never)]),
     ];
@@ -135,27 +141,56 @@ const versions: Partial<Record<Key | 'PRODUCT', { familyId: string; versionId: s
 
 type Units = { line: string; room: string; incubator: string };
 
-/** The plant units a media fill names (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
-async function arrangeUnits(): Promise<Units> {
+/**
+ * The plant units a media fill names (test arrangement of master data, triggers off): qualified, of the formulation's
+ * classes. `line` names the filling line itself (two lines whose codes share a prefix), and `calibrated` puts it in the
+ * calibrated class with a calibration that passed and is not yet due.
+ */
+async function arrangeUnits(opts: { line?: string; calibrated?: boolean } = {}): Promise<Units> {
   const t = randomUUID().slice(0, 6).toUpperCase();
-  const units = { line: `VIAL-LINE-${t}`, room: `ROOM-C-${t}`, incubator: `INCUB-${t}` };
+  const units = { line: opts.line ?? `VIAL-LINE-${t}`, room: `ROOM-C-${t}`, incubator: `INCUB-${t}` };
+  const lineClass = opts.calibrated ? LINE_CLASS_CAL : 'VIAL-FILLING-LINE';
   const c = await gmp.db.admin.connect();
   try {
     await c.query('begin');
     await c.query('set local session_replication_role = replica');
-    for (const [cls, code, name] of [['VIAL-FILLING-LINE', units.line, 'Vial filling line'], ['ROOM-GRADE-C', units.room, 'Grade C filling room'], ['INCUBATOR', units.incubator, 'Media fill incubator']] as const) {
+    for (const [cls, code, name] of [[lineClass, units.line, 'Vial filling line'], ['ROOM-GRADE-C', units.room, 'Grade C filling room'], ['INCUBATOR', units.incubator, 'Media fill incubator']] as const) {
       await c.query(
-        "insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by) values ($1, 'PROCESS', $2, interval '3 days', interval '2 days', false, gen_random_uuid()) on conflict do nothing",
-        [cls, name],
+        'insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by)'
+          + " values ($1, 'PROCESS', $2, interval '3 days', interval '2 days', $3, gen_random_uuid()) on conflict do nothing",
+        [cls, name, cls === LINE_CLASS_CAL],
       );
       const { rows } = await c.query<{ id: string }>("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ($1, $2, $3, 'PROCESS', gen_random_uuid()) returning id", [code, name, cls]);
       await c.query("insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id) values ($1, 'QUALIFIED', 'QUAL-INJ', 'IQ/OQ/PQ and APS approved', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
+      if (cls === LINE_CLASS_CAL) {
+        await c.query(
+          "insert into plant.calibration (equipment_id, due_at, as_found, as_left, reference, person_id, account_id) values ($1, clock_timestamp() + interval '180 days', 'PASS', 'PASS', 'CAL-INJ', gen_random_uuid(), gen_random_uuid())",
+          [rows[0]?.id],
+        );
+      }
     }
     await c.query('commit');
   } finally {
     c.release();
   }
   return units;
+}
+
+/** The line's calibration moved into the past (recorded three days ago, due yesterday): the unit is overdue. */
+async function expireCalibration(code: string): Promise<void> {
+  const c = await gmp.db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    await c.query(
+      `update plant.calibration v set recorded_at = clock_timestamp() - interval '3 days', due_at = clock_timestamp() - interval '1 day'
+         from plant.equipment e where e.id = v.equipment_id and e.code = $1`,
+      [code],
+    );
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
 }
 
 /** A batch of the master, planned from its ERP order and issued. */
@@ -190,7 +225,7 @@ async function signed(d: RunDriver, stepKey: string, verify = true): Promise<voi
 async function filled(k: Key | 'PRODUCT', units: Units): Promise<{ batchId: string; batchNumber: string; d: RunDriver }> {
   const b = await issued(k);
   const d = await driverOf(gmp, b.batchId);
-  await record(d, 'p-fill@', FILL, units);
+  await record(d, 'p-fill@', k === 'PRODUCT' ? FILL : MF[k].fill, units);
   await signed(d, 'p-fill@');
   return { ...b, d };
 }
@@ -215,7 +250,8 @@ async function setupOn(k: Key | 'PRODUCT', units: Units) {
   const b = await issued(k);
   const d = await driverOf(gmp, b.batchId);
   await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-fill@' });
-  const setup = library.nominalEntries(FILL.definition, FILL.exampleUse as never).find((e) => e.kind === 'setup')!;
+  const fill = k === 'PRODUCT' ? FILL : MF[k].fill;
+  const setup = library.nominalEntries(fill.definition, fill.exampleUse as never).find((e) => e.kind === 'setup')!;
   const data: Json = Object.fromEntries(Object.entries(setup).filter(([x]) => x !== 'kind' && x !== 'equipment'));
   return d.command('operator1', libraryEntry('p-fill@', 'setup', { ...data, line: units.line, room: units.room }));
 }
@@ -351,7 +387,7 @@ describe('a failed media fill on an EU master withdraws the filling line (ST-33;
 });
 
 describe('the review of a failed media fill before the line is qualified again (ST-33; tablets 1912)', () => {
-  it('[ST-33] the withdrawal records the impact list: the batches made on the line since its last successful APS (one before it is not listed, one after it is), not the failed media fill itself', async () => {
+  it('[ST-33][IN-45] the withdrawal records the impact list: the batches made on the line since its last successful APS (one before it is not listed, one after it is), not the failed media fill itself', async () => {
     const units = await arrangeUnits();
     const before = await filled('PRODUCT', units);
     const good = await mediaFillRead('EU', units, '0');
@@ -370,6 +406,24 @@ describe('the review of a failed media fill before the line is qualified again (
     expect(view.withdrawal?.batches.map((b) => b.batchNumber)).toEqual([after.batchNumber]);
     // The list is insert-only, whoever writes it.
     await expect(gmp.db.admin.query('delete from plant.aps_failure_impact i using plant.equipment e where e.id = i.equipment_id and e.code = $1', [units.line])).rejects.toThrow();
+  });
+
+  it('[ST-33][IN-45] the impact list names the batches of the failed line only: a line whose code starts with another line\'s code is a different line, and its batches are not listed', async () => {
+    const t = randomUUID().slice(0, 6).toUpperCase();
+    const one = await arrangeUnits({ line: `MFLINE-${t}-1` });
+    const ten = await arrangeUnits({ line: `MFLINE-${t}-10` });
+    const onOne = await filled('PRODUCT', one);
+    const onTen = await filled('PRODUCT', ten);
+    const failed = await mediaFillRead('EU', one, '1');
+    const { rows } = await gmp.db.admin.query<{ batches: string[] }>(
+      `select array(select i.batch_number from plant.aps_failure_impact i where i.event_id = w.event_id order by i.batch_number) as batches
+         from plant.aps_failure_withdrawal w join plant.equipment e on e.id = w.equipment_id where e.code = $1`,
+      [one.line],
+    );
+    expect(rows).toEqual([{ batches: [onOne.batchNumber] }]);
+    expect(rows[0]!.batches).not.toContain(onTen.batchNumber);
+    expect((await fitness(ten.line)).fit).toBe('QUALIFIED');
+    expect(failed.batchNumber).not.toBe(onOne.batchNumber);
   });
 
   it('[ST-33] requalification is refused before QA records the review, by the route and by a direct write; it is accepted after it, and the review stands once', async () => {
@@ -462,6 +516,26 @@ describe('the repeat media fills run on the line withdrawn for them (ST-29, ST-3
     const afterChange = await setupOn('IN', changed);
     expect(afterChange.ok, errorText(afterChange)).toBe(true);
     expect((await setupOn('PRODUCT', changed)).ok).toBe(false);
+  });
+
+  it('[ST-29][ST-33] a media fill is refused on an APS-withdrawn line whose calibration is overdue: the repeat APS runs only while the withdrawal pending the APS is the unit\'s one problem', async () => {
+    const units = await arrangeUnits({ calibrated: true });
+    expect((await fitness(units.line)).fit).toBe('QUALIFIED');
+    const mf = await mediaFillRead('CAL', units, '1');
+    expect((await fitness(units.line)).fit).toBe('NOT_QUALIFIED');
+    const allowed = await setupOn('CAL', units);
+    expect(allowed.ok, errorText(allowed)).toBe(true);
+    // The same line, its calibration now overdue: the unit has a second problem, so no media fill names it.
+    await expireCalibration(units.line);
+    expect((await fitness(units.line)).fit).toBe('NOT_QUALIFIED');
+    const { rows } = await gmp.db.admin.query<{ repeat: boolean }>(
+      'select plant.aps_repeat_use(e.id, $2::uuid) as repeat from plant.equipment e where e.code = $1',
+      [units.line, mf.batchId],
+    );
+    expect(rows[0]?.repeat).toBe(false);
+    const refused = await setupOn('CAL', units);
+    expect(refused.ok).toBe(false);
+    expect(errorText(refused)).toMatch(/not qualified|NOT_QUALIFIED/i);
   });
 
   it('[ST-29][ST-33] a media fill is still refused on a line withdrawn for another reason, and on an APS-withdrawn line with a second problem (in maintenance)', async () => {
