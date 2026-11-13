@@ -33,6 +33,7 @@ implemented_by:
     - "packages/recipe-core/sql/0150_mbr_commands.sql (derive_version; create_version refused once a version was approved)"
     - "packages/recipe-core/src/lifecycle/change.ts (versionDiff with the flow model diffMbr, processImpact mirror, bulkApprovalPackage)"
     - "apps/tablets-server/src/features/designer/index.ts (saveContent: DRAFT only, a revision only on the latest base revision, else 409; no revision without a change)"
+    - "apps/tablets-server/src/features/designer/index.ts (deriveVersion: the next version of an approved master as a derived DRAFT with the author's reason; returnToDraft: a version in verification back to DRAFT with a reason; demo report r13)"
     - "apps/tablets-web/src/features/designer (read-only unless DRAFT; stale-revision refusal shown; unsaved edits kept as a local draft only, decision D7)"
   guards:
     - "recipe.assert_draft: an APPROVED or CURRENT version never changes (EBMR-RCP-021); a change is a new DRAFT derived from an approved version"

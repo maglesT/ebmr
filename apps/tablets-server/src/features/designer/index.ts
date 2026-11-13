@@ -12,6 +12,9 @@
  *  - justify: a recorded justification of a warning of the saved revision the author was shown (baseRevision and
  *    contentHash, 409 when stale), bound to that content (IN-02, DI-04);
  *  - startVerification: lifecycle.validateAndStartVerification (evidence bound to the content hash, DI-04);
+ *  - deriveVersion: the next version of an APPROVED or RETIRED master as a DRAFT derived from it, with the author's reason
+ *    (recipe.derive_version; PR-06); one open version per family; returnToDraft: a version IN_VERIFICATION, SUBMITTED or
+ *    CHECKED back to DRAFT with the person's reason (recipe.return_to_draft; DI-22, DI-37) (demo report r13, bug 2);
  *  - testPackage: the write-once exchange file for a sandbox test run, recorded on the version's audit chain (D5);
  *    recorded only once the inbox proved it takes the file and no earlier recorded export is left unpublished (one
  *    export at a time passes that gate), and a recorded export always gets its file (published after the commit; a
@@ -234,6 +237,33 @@ function notDraft(state: string, what: string): HttpRefusal {
     controls: ['PR-06'],
     whatYouCanDo: ['Open the DRAFT version of this family, or derive a new version from the approved one.'],
     whoCanHelp: ['The QA MBR approver'],
+  });
+}
+
+/** The states a version returns to DRAFT from (the machine's RETURN transitions). */
+const RETURNABLE = new Set(['IN_VERIFICATION', 'SUBMITTED', 'CHECKED']);
+
+function notReturnable(state: string): HttpRefusal {
+  const approved = state === 'APPROVED' || state === 'RETIRED';
+  return refusal(422, {
+    code: 'EBMR-RCP-021',
+    kind: 'NOT_ALLOWED',
+    whatHappened: `This version is ${state}: only a version in verification, submitted or checked returns to DRAFT.`,
+    why: approved ? 'An approved master never changes; a change is a new version derived from it (PR-06).' : 'A DRAFT is edited as it is; a withdrawn version stays as it was (PR-06).',
+    controls: ['PR-06'],
+    whatYouCanDo: approved ? ['Start a new version of this master ("Start a new version…").'] : ["Open the version and edit it, or open the family's current version."],
+  });
+}
+
+function openVersion(familyCode: string, number: number, state: string): HttpRefusal {
+  return refusal(409, {
+    code: 'DESIGNER_OPEN_VERSION',
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'No new version was started.',
+    why: `Family ${familyCode} already has version ${String(number)} open (${state}); a family has one version in preparation at a time.`,
+    controls: ['PR-06'],
+    whatYouCanDo: [`Open version ${String(number)} and continue it; if it is no longer wanted, return it to DRAFT, discard it and start the new version.`],
+    whoCanHelp: ['The MBR author of the open version'],
   });
 }
 
@@ -890,6 +920,49 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         const st = await lifecycle.versionState(c, id);
         if (st?.state !== 'DRAFT') throw notDraft(st?.state ?? 'unknown', 'a version is discarded');
         await lifecycle.withdrawVersion(c, id, st.version);
+        return id;
+      });
+      return versionView(pool, app, id);
+    },
+    async deriveVersion(ctx) {
+      // Demo report r13 bug 2 (PR-06): the next version of an APPROVED or RETIRED master is a new DRAFT derived from it
+      // (recipe.derive_version decides: MBR.AUTHOR, a reason, an approved source). The approved version is not touched
+      // and stays in force until its successor is approved and authorised for its markets (ADR 0014); the successor
+      // goes through validation, verification, change control and the signatures as any version. One open version per
+      // family at a time, so nobody prepares two competing drafts of one master: refused here under a family lock,
+      // naming the open one (a usability check; the database rules are unchanged).
+      ctx.requireRole(...AUTHOR_ROLES);
+      const id = ctx.params.versionId;
+      const head = await requireHead(pool, id);
+      const actor = ctx.actor({ reasonCode: ctx.body.reason.code, reasonText: ctx.body.reason.text });
+      const { result: created } = await withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
+        await c.query('select pg_advisory_xact_lock(hashtext($1))', [`mbr_family:${head.familyId}`]);
+        const { rows } = await c.query<{ version_number: number; state: string }>(
+          `select v.version_number, recipe.version_state(v.id) as state from recipe.mbr_version v
+            where v.family_id = $1 and recipe.version_state(v.id) in ('DRAFT', 'IN_VERIFICATION', 'SUBMITTED', 'CHECKED')
+            order by v.version_number limit 1`,
+          [head.familyId],
+        );
+        const open = rows[0];
+        // From a version that is not approved the database refuses with its own reason (EBMR-RCP-027).
+        if (open && (head.state === 'APPROVED' || head.state === 'RETIRED')) throw openVersion(head.familyCode, open.version_number, open.state);
+        return (await lifecycle.deriveVersion(c, id, ctx.body.reason.text)).versionId;
+      });
+      return versionView(pool, app, created);
+    },
+    async returnToDraft(ctx) {
+      // Demo report r13 bug 2: a version IN_VERIFICATION (the author), SUBMITTED (the checker) or CHECKED (QA) returns to
+      // DRAFT with the person's own reason (recipe.return_to_draft decides: the permission of that state, the reason, a
+      // new draft cycle that supersedes every signature; DI-22, DI-37). The DRAFT is then edited, or discarded.
+      ctx.requireRole(...SIMULATION_ROLES);
+      const id = ctx.params.versionId;
+      const head = await requireHead(pool, id);
+      if (!RETURNABLE.has(head.state)) throw notReturnable(head.state);
+      const actor = ctx.actor({ reasonCode: ctx.body.reason.code, reasonText: ctx.body.reason.text });
+      await withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
+        const st = await lifecycle.versionState(c, id);
+        if (!st || !RETURNABLE.has(st.state)) throw notReturnable(st?.state ?? 'unknown');
+        await lifecycle.returnToDraft(c, id, st.version);
         return id;
       });
       return versionView(pool, app, id);

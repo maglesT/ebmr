@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components';
 import { routes, type VersionView } from '@ebmr/api-contract';
 import { flow } from '@ebmr/recipe-core/pure';
@@ -54,10 +54,15 @@ export function DesignerPage() {
 
 /** The justify dialog keeps the warning and the saved revision (with its content hash) it was opened on. */
 type JustifyDialog = { justify: FindingItem; revision: number; contentHash: string };
-type Dialogs = 'save' | 'start' | 'package' | 'discard' | JustifyDialog | null;
+type Dialogs = 'save' | 'start' | 'package' | 'discard' | 'derive' | 'return' | JustifyDialog | null;
+
+/** The states a version returns to DRAFT from (the life-cycle machine's RETURN), and those a new version derives from. */
+const RETURNABLE: ReadonlySet<string> = new Set(['IN_VERIFICATION', 'SUBMITTED', 'CHECKED']);
+const DERIVABLE: ReadonlySet<string> = new Set(['APPROVED', 'RETIRED']);
 
 export function DesignerEditor({ initial, palette, personId }: { initial: VersionView; palette: readonly PaletteItem[]; personId: string }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [saved, setSaved] = useState<VersionView>(initial);
   const [history, setHistory] = useState<History>(() => initHistory(fromWire(initial.content)));
   const [selected, setSelected] = useState<string | null>(null);
@@ -218,6 +223,8 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
             Send to sandbox…
           </Button>
           {saved.state === 'DRAFT' ? <Button onPress={() => setDialog('discard')}>Discard draft…</Button> : null}
+          {RETURNABLE.has(saved.state) ? <Button onPress={() => setDialog('return')}>Return to draft…</Button> : null}
+          {DERIVABLE.has(saved.state) ? <Button onPress={() => setDialog('derive')}>Start a new version…</Button> : null}
           <a href={auditLink(saved.versionId)}>Audit trail</a>
           <a href={`/mbr/versions/${saved.versionId}/review`}>Change control and evidence</a>
           <a href={`/mbr/versions/${saved.versionId}/signing`}>Signatures and markets</a>
@@ -421,6 +428,31 @@ export function DesignerEditor({ initial, palette, personId }: { initial: Versio
         }}
       />
 
+      <ReturnToDraftDialog
+        open={dialog === 'return'}
+        versionId={saved.versionId}
+        number={saved.number}
+        state={saved.state}
+        onClose={() => setDialog(null)}
+        onDone={(v) => {
+          afterServerChange(v);
+          setDialog(null);
+        }}
+      />
+
+      <DeriveVersionDialog
+        open={dialog === 'derive'}
+        versionId={saved.versionId}
+        number={saved.number}
+        onClose={() => setDialog(null)}
+        onDone={(v) => {
+          setDialog(null);
+          void queryClient.invalidateQueries({ queryKey: [routes.designer.families.id] });
+          queryClient.setQueryData([routes.designer.version.id, { versionId: v.versionId }, {}], v);
+          void navigate({ to: '/mbr/versions/$versionId', params: { versionId: v.versionId } });
+        }}
+      />
+
       <CommandDialog
         title="Send to a sandbox test run"
         open={dialog === 'package'}
@@ -541,6 +573,64 @@ function DiscardDraftDialog({ open, versionId, number, onClose, onDone }: { open
         the family again under the same family code.
       </p>
       <NoteField label="Why is this draft discarded?" value={why} onChange={setWhy} max={2000} />
+    </CommandDialog>
+  );
+}
+
+/**
+ * Demo report r13 bug 2: a version in verification, submitted or checked returns to DRAFT with the person's own reason
+ * (the author from IN VERIFICATION, the checker from SUBMITTED, QA from CHECKED; the server decides). Every signature
+ * on it is superseded; the DRAFT is then edited, or discarded.
+ */
+function ReturnToDraftDialog({ open, versionId, number, state, onClose, onDone }: {
+  open: boolean;
+  versionId: string;
+  number: string;
+  state: string;
+  onClose: () => void;
+  onDone: (v: VersionView) => void;
+}) {
+  const [why, setWhy] = useState('');
+  return (
+    <CommandDialog
+      title={`Return version ${number} to draft`}
+      open={open}
+      onClose={onClose}
+      confirmLabel="Return to draft"
+      canConfirm={why.trim().length > 0}
+      run={(idempotencyKey) => api.call(routes.designer.returnToDraft, { params: { versionId }, body: { reason: { code: 'RETURNED_TO_DRAFT', text: why.trim() } }, idempotencyKey })}
+      onDone={onDone}
+    >
+      <p>
+        The version leaves {state.replace(/_/g, ' ')} and becomes a DRAFT again: it can be edited, or discarded. Every signature given on it no longer
+        counts, and it goes through validation, verification and the signatures again. Your reason is recorded in the audit trail.
+      </p>
+      <NoteField label="Why is this version returned to draft?" value={why} onChange={setWhy} max={2000} />
+    </CommandDialog>
+  );
+}
+
+/**
+ * Demo report r13 bug 2 (PR-06): the next version of an approved master, a DRAFT derived from it with the author's
+ * reason. The approved version stays in force until the new one is approved and authorised for its markets.
+ */
+function DeriveVersionDialog({ open, versionId, number, onClose, onDone }: { open: boolean; versionId: string; number: string; onClose: () => void; onDone: (v: VersionView) => void }) {
+  const [why, setWhy] = useState('');
+  return (
+    <CommandDialog
+      title={`Start a new version from version ${number}`}
+      open={open}
+      onClose={onClose}
+      confirmLabel="Start the new version"
+      canConfirm={why.trim().length > 0}
+      run={(idempotencyKey) => api.call(routes.designer.deriveVersion, { params: { versionId }, body: { reason: { code: 'MBR_REVISION', text: why.trim() } }, idempotencyKey })}
+      onDone={onDone}
+    >
+      <p>
+        A new DRAFT starts with this version&apos;s content. Version {number} is not changed and stays in force until the new version is approved and
+        authorised. The new version needs its change record, validation, verification and signatures as any version.
+      </p>
+      <NoteField label="What changes, and why (name the change record)" value={why} onChange={setWhy} max={2000} />
     </CommandDialog>
   );
 }

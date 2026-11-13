@@ -11,6 +11,7 @@
  * limit bound says in words whether its value passes. test/designer/document-complete.test.tsx walks every member.
  */
 import { useState, type ReactNode } from 'react';
+import { Button } from '@ebmr/ui-kit';
 import { flow, library } from '@ebmr/recipe-core/pure';
 import type { VersionView } from '@ebmr/api-contract';
 import { dcls } from '../classes.ts';
@@ -258,6 +259,91 @@ function Calculations({ c, dispatch, readOnly }: { c: Content; dispatch: (op: Op
 }
 
 const MARKET_NAMES: Readonly<Record<string, string>> = { IN: 'India (IN)', US: 'United States (US)', EU: 'European Union (EU)' };
+
+/**
+ * A golden test case (outline 6.4, 6.5; DI-04). Demo report r13 bug 3: in a DRAFT the author changes a decimal value,
+ * removes an entry or adds one, so a case follows the calculation it tests; the saved revision voids the earlier
+ * evidence and verification runs every case again.
+ */
+function GoldenCase({ c, g, dispatch, readOnly }: { c: Content; g: flow.GoldenCase; dispatch: (op: Op) => boolean; readOnly: boolean }) {
+  const [side, setSide] = useState<'inputs' | 'expected'>('inputs');
+  const items = [...c.inputs, ...c.parameters, ...c.calculations].filter((k) => g[side][k.id] === undefined);
+  const [key, setKey] = useState('');
+  const [text, setText] = useState('');
+  const entries = (s: 'inputs' | 'expected') => Object.entries(g[s]);
+  const cell = (s: 'inputs' | 'expected', entry: [string, flow.GoldenValue] | undefined) => {
+    if (!entry) return <td />;
+    const [k, v] = entry;
+    if (readOnly || !('value' in v)) return <td>{goldenValueText(v)}</td>;
+    const what = s === 'inputs' ? 'Given' : 'Expected';
+    return (
+      <td>
+        <CommitText label={`${what} ${k} in ${g.id}`} value={goldenValueText(v)} onCommit={(t) => dispatch({ kind: 'SET_GOLDEN_VALUE', caseId: g.id, side: s, key: k, text: t })} />
+        <Button onPress={() => dispatch({ kind: 'SET_GOLDEN_VALUE', caseId: g.id, side: s, key: k, text: null })}>Remove {k}</Button>
+      </td>
+    );
+  };
+  return (
+    <div id={`mbr-item-${g.id}`} tabIndex={-1}>
+      <p>
+        <span className={dcls('mono')}>{g.id}</span>: {g.description}
+      </p>
+      <table className={dcls('grid')} aria-label={`Golden case ${g.id}`}>
+        <thead>
+          <tr>
+            <th scope="col">Given (input)</th>
+            <th scope="col">Value</th>
+            <th scope="col">Expected (result)</th>
+            <th scope="col">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: Math.max(entries('inputs').length, entries('expected').length) }, (_, i) => {
+            const input = entries('inputs')[i];
+            const expected = entries('expected')[i];
+            return (
+              <tr key={i}>
+                <td>{input ? itemLabel(c, input[0]) : ''}</td>
+                {cell('inputs', input)}
+                <td>{expected ? itemLabel(c, expected[0]) : ''}</td>
+                {cell('expected', expected)}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {readOnly ? null : (
+        <div className={dcls('inline')}>
+          <Select
+            label={`Add to ${g.id}`}
+            value={side}
+            options={[
+              { value: 'inputs', label: 'a given input' },
+              { value: 'expected', label: 'an expected result' },
+            ]}
+            onChange={(v) => setSide(v === 'expected' ? 'expected' : 'inputs')}
+          />
+          <Select label={`Item to add to ${g.id}`} value={key} options={[{ value: '', label: '(choose)' }, ...items.map((k) => ({ value: k.id, label: `${k.name} (${k.id})` }))]} onChange={setKey} />
+          <div className={dcls('stack')}>
+            <label htmlFor={`golden-add-${g.id}`}>Value with unit for {g.id}</label>
+            <input id={`golden-add-${g.id}`} className={dcls('select')} value={text} onChange={(e) => setText(e.target.value)} />
+          </div>
+          <Button
+            isDisabled={key === '' || text.trim() === ''}
+            onPress={() => {
+              if (dispatch({ kind: 'SET_GOLDEN_VALUE', caseId: g.id, side, key, text })) {
+                setKey('');
+                setText('');
+              }
+            }}
+          >
+            Add to {g.id}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function timeBoundWords(side: 'min' | 'max', q: { value: string; unit: string } | undefined): string {
   if (!q) return side === 'min' ? 'no minimum' : 'no maximum';
@@ -713,35 +799,7 @@ export function DocumentView(props: DocumentProps) {
         )}
         <h3 className={dcls('panelTitle')}>Golden test cases</h3>
         {c.goldenCases.map((g) => (
-          <div key={g.id} id={`mbr-item-${g.id}`} tabIndex={-1}>
-            <p>
-              <span className={dcls('mono')}>{g.id}</span>: {g.description}
-            </p>
-            <table className={dcls('grid')} aria-label={`Golden case ${g.id}`}>
-              <thead>
-                <tr>
-                  <th scope="col">Given (input)</th>
-                  <th scope="col">Value</th>
-                  <th scope="col">Expected (result)</th>
-                  <th scope="col">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: Math.max(Object.keys(g.inputs).length, Object.keys(g.expected).length) }, (_, i) => {
-                  const input = Object.entries(g.inputs)[i];
-                  const expected = Object.entries(g.expected)[i];
-                  return (
-                    <tr key={i}>
-                      <td>{input ? itemLabel(c, input[0]) : ''}</td>
-                      <td>{input ? goldenValueText(input[1]) : ''}</td>
-                      <td>{expected ? itemLabel(c, expected[0]) : ''}</td>
-                      <td>{expected ? goldenValueText(expected[1]) : ''}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <GoldenCase key={g.id} c={c} g={g} dispatch={dispatch} readOnly={readOnly} />
         ))}
       </Section>
     </div>

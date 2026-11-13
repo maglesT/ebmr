@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 12 November 2026 (session 12b handover).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 13 November 2026 (demo report r13 bugs 2 and 3).
 
 ## What this is
 
@@ -43,6 +43,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   maglesT/deep-learning-for-earth-observation for this project.
 
 ## Where things stand
+
+**Demo report r13 bugs 2 and 3 (13 November 2026, branch fix-revise-approved-master).** The database had
+`recipe.derive_version` and `recipe.return_to_draft`, but no route or screen called them. Now:
+- `designer.deriveVersion`: "Start a new version…" on an APPROVED or RETIRED master. The MBR author gives a reason and gets a
+  derived DRAFT; the approved version stays in force. One open version per family; a second is refused 409 DESIGNER_OPEN_VERSION.
+- `designer.returnToDraft`: "Return to draft…" from IN_VERIFICATION (author), SUBMITTED (checker) or CHECKED (QA), with a reason.
+  Every signature is superseded; the DRAFT is then edited or discarded.
+- Golden cases are edited in a DRAFT (SET_GOLDEN_VALUE: a decimal value changed, added or removed). No migration.
+- Open: the one-open-version rule is server-only (owner question). Demo family MGL-SR-BL-B can now be returned to draft
+  and fixed, or discarded, on screen once this is deployed.
 
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
