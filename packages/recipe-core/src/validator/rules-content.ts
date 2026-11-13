@@ -747,7 +747,44 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
   return out;
 });
 
+/**
+ * Blocks only Annex 1 asks for, which an EU-market master must place after a given block (lead ruling, I-6 B2). A block's
+ * `markets` tag is metadata (owner Q0), so the requirement is stated here: on a master whose market set includes the EU,
+ * each step of `after` is followed, on every path, by a step of `block`. ST-06: each alarm the filling step records is
+ * assessed (A1 5.2) in INJ-ALARM-ASSESSMENT; outside the EU no clause asks it, so nothing is required there.
+ */
+const EU_BLOCKS_AFTER: readonly { after: string; block: string; control: string; clause: string }[] = [
+  { after: 'INJ-FILL', block: 'INJ-ALARM-ASSESSMENT', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
+];
+
+function libraryCode(p: PhaseNode): string | undefined {
+  return p.block.type.startsWith('LIB-') ? p.block.type.slice('LIB-'.length) : undefined;
+}
+
+const euBlocksAfter = defineRule('MKT-EU-BLOCKS-AFTER', 'An EU-market master places the Annex 1 blocks its steps call for', ['PR-03', 'ST-06'], (a) => {
+  if (!a.mbr.header.marketSet.includes('EU')) return [];
+  const out: RuleFinding[] = [];
+  for (const rule of EU_BLOCKS_AFTER) {
+    const firsts = a.phases.filter((p) => libraryCode(p) === rule.after);
+    if (firsts.length === 0) continue;
+    const facts = a.mustBefore([], (n) => {
+      const p = a.phaseOf(n);
+      return p !== undefined && libraryCode(p) === rule.after ? [p.id] : [];
+    });
+    const seconds = a.phases.filter((p) => libraryCode(p) === rule.block);
+    for (const f of firsts) {
+      const followed = seconds.some((s) => {
+        const t = a.taskOf(s.id);
+        return t !== undefined && facts?.get(t.id)?.has(f.id) === true;
+      });
+      if (!followed) out.push(error(f.id, `${label(a, f.id)} uses ${rule.after} on a master for the EU market, which needs a step of ${rule.block} after it on every path (${rule.control}; ${rule.clause})`));
+    }
+  }
+  return out;
+});
+
 export const CONTENT_RULES: readonly Rule[] = [
+  euBlocksAfter,
   header,
   plantClasses,
   typedFields,
