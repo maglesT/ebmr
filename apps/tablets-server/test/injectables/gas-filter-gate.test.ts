@@ -9,7 +9,7 @@
  *
  * Two processing masters of the same product: compounding alone (no gas filter step), and compounding followed by the
  * gas filter's post-use test; and a master of the firm's own blocks (another product), read by the marks
- * gasOverlayApplied and postUseIntegrity and the role GAS_FILTER_INTEGRITY (3060; lead ruling on B5). The finished lot is posted on the processing batch as the edition's definer posts it.
+ * gasOverlayApplied and postUseIntegrity and the role GAS_FILTER_INTEGRITY (3040; lead ruling on B5). The finished lot is posted on the processing batch as the edition's definer posts it.
  * Arranged outside the routes: the product, the licence, the compounding vessel and WFI point (test arrangement of
  * master data), the ERP order and the numbering rule.
  */

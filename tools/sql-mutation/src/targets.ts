@@ -1022,8 +1022,8 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // ---- Injectables I-6 B5: an applied nitrogen overlay needs its gas filter's passing post-use result for release (ST-28;
-  // editions/injectables/sql 3040, which also redefines injectables.grel_edition_items, kept in inj-release-items; 3060
-  // reads marks and a role instead of block codes). ----
+  // editions/injectables/sql 3040, which also redefines injectables.grel_edition_items, kept in inj-release-items;
+  // it reads marks and a role, not block codes). ----
   {
     group: 'inj-gas-filter',
     functions: ['injectables.grel_gas_filter'],

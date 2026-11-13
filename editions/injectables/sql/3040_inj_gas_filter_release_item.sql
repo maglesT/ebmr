@@ -1,21 +1,26 @@
--- Injectables I-6 B5 (lead ruling on #245, 13 November 2026; ST-28): a batch that applied a nitrogen overlay is not
--- certified or released without a passing post-use integrity result of the overlay's gas filter, on every market.
--- The integrity of a critical gas filter is confirmed after use (Schedule M Part II 6.11.2.7; EU GMP Annex 1 8.88).
--- Whether an overlay is applied is an answer at run time (INJ-COMPOUND, field preparation.nitrogen), so no master
--- rule can require the INJ-GAS-FILTER step; this release item reads the answer and the result where they are stored.
+-- Injectables I-6 B5 (lead rulings on #245 and on the B5 report, 13 November 2026; ST-28): a batch that applied a
+-- nitrogen overlay is not certified or released without a passing post-use integrity result of the overlay's gas
+-- filter, on every market (Schedule M Part II 6.11.2.7; EU GMP Annex 1 8.88). The item keys on no block code, so a
+-- firm's own QA-approved compounding and gas-filter blocks gate release the same way. It reads marks and a role from
+-- each batch's master snapshot (recipe.batch_mbr_content, its blockDefinitions; recipe.library_definition, 1810):
+--   * the overlay: a field marked `gasOverlayApplied` (a CHOICE field names the option that records an applied overlay,
+--     a YES_NO field is marked true) whose recorded value in an entry of its section equals the mark;
+--   * the test: a step whose block definition has the role GAS_FILTER_INTEGRITY; its result is the NUMBER field marked
+--     `postUseIntegrity: true` (recipe-core library check LIB-GAS-FILTER: exactly one, critical, with a limit slot),
+--     judged against the step's limit for that slot (recipe.limit_reading, 0305).
+-- The catalogue blocks carry the marks and the role (INJ-COMPOUND's nitrogen option 'Applied'; INJ-GAS-FILTER's role
+-- and its gasFilterPost field), set by their v1 edit in place.
 --
 -- Handbook: modules/injectables.md
 --
---   injectables.grel_gas_filter(batches)  new: the release item E.GAS_FILTER (group 10) over the processing batch and
---       the packaging order of the lot.
---       NA      no INJ-COMPOUND step of the batches has a preparation entry answering 'Applied' to the nitrogen overlay.
---       RED     an overlay was applied, and the batches have no INJ-GAS-FILTER step (the master has none, or none ran);
---               or an INJ-GAS-FILTER step that ran is not COMPLETED; or it has no post-use result; or a result is not
---               within its limit as the database judges it (recipe.limit_reading against the step's limit in the
---               master's snapshot, 0305; a value it cannot judge, or a missing limit, does not pass). A failing result
---               stays RED after its exception is dispositioned: the lead's ruling asks a passing result.
---       GREEN   otherwise, with the gas-filter steps as evidence.
---     The answer and the result are read from the execution state (recipe.execution_state), as every edition item.
+--   injectables.grel_gas_filter(batches)  new: the release item E.GAS_FILTER (group 10) over the processing batch and the
+--       packaging order of the lot. Fails closed:
+--       NA      no entry of the batches records an applied overlay by a marked field.
+--       RED     an overlay was applied and no GAS_FILTER_INTEGRITY step ran; or such a step is not COMPLETED; or its
+--               definition marks no result field; or it has no result; or a result is not within its limit (a value the
+--               database cannot judge, or a missing limit, does not pass; a dispositioned failure stays RED).
+--       GREEN   otherwise.
+--
 --   injectables.grel_edition_items(lot, market)  CREATE OR REPLACE from 3000: the same items, and E.GAS_FILTER after
 --       E.PACK_EXAMINATION. A RED item keeps the lot NOT_READY, so the manufacturer release is refused with
 --       EBMR-REL-020 naming the item (recipe-core 0781, 0823), and the release view shows its problem.
@@ -34,8 +39,10 @@ declare
   v_probs   jsonb := '[]'::jsonb;
   v_ev      jsonb := '[]'::jsonb;
   v_content jsonb;
+  v_state   jsonb;
   v_def     jsonb;
   v_node    jsonb;
+  v_field   jsonb;
   v_spec    jsonb;
   v_reading jsonb;
   v_results integer;
@@ -44,10 +51,16 @@ declare
   s         jsonb;
   e         jsonb;
 begin
-  -- The overlay: any preparation entry of a compounding step that answered 'Applied' (fails closed: one is enough).
+  -- The overlay: an entry whose section has a field marked gasOverlayApplied holding the marked value (one is enough).
   foreach b in array coalesce(p_batches, '{}'::uuid[]) loop
-    for k, s in select g.step_key, g.step from tab.grel_steps(b, 'LIB-INJ-COMPOUND') g loop
-      if exists (select 1 from jsonb_array_elements(tab.grel_entries(b, k, 'preparation')) x where x -> 'data' ->> 'nitrogen' = 'Applied') then
+    v_content := recipe.batch_mbr_content(b);
+    select st.state into v_state from recipe.execution_state st where st.batch_id = b;
+    for e in select x.value from jsonb_each(case when jsonb_typeof(v_state -> 'entries') = 'object' then v_state -> 'entries' else '{}'::jsonb end) x loop
+      v_def := recipe.library_definition(v_content, recipe.step_node(v_content, v_state -> 'steps' -> (e ->> 'stepKey') ->> 'step') -> 'block');
+      if exists (select 1
+                   from jsonb_array_elements(case when jsonb_typeof(v_def -> 'sections') = 'array' then v_def -> 'sections' else '[]'::jsonb end) sec,
+                        jsonb_array_elements(case when jsonb_typeof(sec -> 'fields') = 'array' then sec -> 'fields' else '[]'::jsonb end) f
+                  where sec ->> 'id' = e ->> 'kind' and f ? 'gasOverlayApplied' and e -> 'data' -> (f ->> 'id') = f -> 'gasOverlayApplied') then
         v_applied := true;
       end if;
     end loop;
@@ -57,27 +70,39 @@ begin
   end if;
   foreach b in array p_batches loop
     v_content := recipe.batch_mbr_content(b);
-    for k, s in select g.step_key, g.step from tab.grel_steps(b, 'LIB-INJ-GAS-FILTER') g where g.step ->> 'status' is distinct from 'NOT_APPLICABLE' loop
+    select st.state into v_state from recipe.execution_state st where st.batch_id = b;
+    for k, s in select x.key, x.value from jsonb_each(case when jsonb_typeof(v_state -> 'steps') = 'object' then v_state -> 'steps' else '{}'::jsonb end) x order by x.key loop
+      v_node := recipe.step_node(v_content, s ->> 'step');
+      v_def := recipe.library_definition(v_content, v_node -> 'block');
+      if jsonb_typeof(v_def -> 'roles') is distinct from 'array' or not (v_def -> 'roles' ? 'GAS_FILTER_INTEGRITY') or s ->> 'status' = 'NOT_APPLICABLE' then
+        continue;
+      end if;
       v_ran := true;
       v_ev := v_ev || tab.grel_batch_ev(b);
       if s ->> 'status' is distinct from 'COMPLETED' then
         v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the overlay gas filter''s post-use integrity test %s is %s, not COMPLETED', k, coalesce(s ->> 'status', 'of no status')), tab.grel_batch_ev(b)));
         continue;
       end if;
-      v_node := recipe.step_node(v_content, s ->> 'step');
-      v_def := recipe.library_definition(v_content, v_node -> 'block');
-      v_spec := v_node -> 'config' -> 'limits' -> (
-        select f ->> 'limitSlot' from jsonb_array_elements(coalesce(v_def -> 'sections', '[]'::jsonb)) sec, jsonb_array_elements(coalesce(sec -> 'fields', '[]'::jsonb)) f
-         where f ->> 'id' = 'gasFilterPost' limit 1);
+      select jsonb_build_object('section', sec ->> 'id', 'field', f) into v_field
+        from jsonb_array_elements(case when jsonb_typeof(v_def -> 'sections') = 'array' then v_def -> 'sections' else '[]'::jsonb end) sec,
+             jsonb_array_elements(case when jsonb_typeof(sec -> 'fields') = 'array' then sec -> 'fields' else '[]'::jsonb end) f
+       where f ->> 'type' = 'NUMBER' and f -> 'postUseIntegrity' = 'true'::jsonb
+       limit 1;
+      if v_field is null then
+        v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the overlay gas filter''s post-use integrity test %s marks no result field', k), tab.grel_batch_ev(b)));
+        continue;
+      end if;
+      v_spec := v_node -> 'config' -> 'limits' -> (v_field -> 'field' ->> 'limitSlot');
       v_results := 0;
-      for e in select x from jsonb_array_elements(tab.grel_entries(b, k, 'gasFilter')) x loop
-        if e -> 'data' ->> 'gasFilterPost' is null then
+      for e in select x from jsonb_array_elements(tab.grel_entries(b, k, v_field ->> 'section')) x loop
+        if e -> 'data' ->> (v_field -> 'field' ->> 'id') is null then
           continue;
         end if;
         v_results := v_results + 1;
-        v_reading := case when v_spec is not null then recipe.limit_reading(v_spec, e -> 'data' ->> 'gasFilterPost') end;
+        v_reading := case when v_spec is not null then recipe.limit_reading(v_spec, e -> 'data' ->> (v_field -> 'field' ->> 'id')) end;
         if v_reading is null or v_reading ->> 'breached' is not null then
-          v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the overlay gas filter''s post-use integrity result %s bar of %s does not pass its limit', e -> 'data' ->> 'gasFilterPost', k), tab.grel_batch_ev(b)));
+          v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the overlay gas filter''s post-use integrity result %s %s of %s does not pass its limit',
+                                                   e -> 'data' ->> (v_field -> 'field' ->> 'id'), coalesce(v_field -> 'field' ->> 'unit', ''), k), tab.grel_batch_ev(b)));
         end if;
       end loop;
       if v_results = 0 then
@@ -86,7 +111,7 @@ begin
     end loop;
   end loop;
   if not v_ran then
-    v_probs := jsonb_build_array(tab.grel_problem('a nitrogen overlay was applied and no post-use integrity test of its gas filter (INJ-GAS-FILTER) ran', tab.grel_batch_ev(p_batches[1])));
+    v_probs := jsonb_build_array(tab.grel_problem('a nitrogen overlay was applied and no post-use integrity test of its gas filter (a block with the role GAS_FILTER_INTEGRITY) ran', tab.grel_batch_ev(p_batches[1])));
   end if;
   return tab.grel_item_of('E.GAS_FILTER', '10', v_title, v_probs, v_ev);
 end

@@ -241,6 +241,8 @@ injectables controls, a golden batch, the browser suite, one review pass.
     the ST-68 gate test; INV-45 by ST-64.
   - ST-02's "CCS reference TXT where a block needs it": none needs one (lead ruling ii).
   - The demo fresh install (lead ruling on #245): the hosted demo needs a fresh install after the I-6 merges.
+    B5 adds two in-place v1 edits (INJ-COMPOUND's `gasOverlayApplied` mark; INJ-GAS-FILTER's role GAS_FILTER_INTEGRITY
+    and `postUseIntegrity` mark): an existing database keeps the old v1, so the same fresh install applies.
   - Owner residual: the upgrade path for existing installs needs a sterile v2 rule table and a library v2 publish. B1
     edits sterile.v1, INJ-EM, INJ-FILL and INJ-COMPOUND in place. An existing database keeps the old library v1
     (draftSeedCatalogue skips codes already held), and publishRuleTables refuses the new sterile v1 (EBMR-MKT-035).
