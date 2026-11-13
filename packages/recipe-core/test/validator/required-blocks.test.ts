@@ -5,7 +5,8 @@
  * EU market the filling step (INJ-FILL) is followed by the assessment of its alarms (INJ-ALARM-ASSESSMENT, A1 5.2).
  * Second, ST-52: on the EU market the sterilising filtration (INJ-STERILE-FILTER) has PUPSIT (INJ-PUPSIT, A1 8.87)
  * before it. I-6 B5 adds the entries whose condition is the technology a trigger step uses: single-use systems (ST-79),
- * lyophilisation (ST-58), manual inspection (ST-62), form-fill-seal (ST-78) and blow-fill-seal (ST-77).
+ * lyophilisation (ST-58), manual inspection (ST-62), form-fill-seal (ST-78) and blow-fill-seal (ST-77), and automated
+ * inspection (ST-62), whose machine challenge the clause places in no order to the inspection (PRESENT).
  */
 import { describe, expect, it } from 'vitest';
 import { genericBlockCatalog } from '../../src/flow/blocks.ts';
@@ -142,5 +143,21 @@ describe('the blocks a clause asks where the master uses its technology (I-6 B5)
 
   it('[ST-77][PR-03] a master for the EU market that fills by blow-fill-seal (INJ-BFS) without the EU record of its settings and batch wall-thickness test (INJ-BFS-EU) after it is refused (A1 8.115(vi), 8.116); with it after it passes, before it is refused; a master for India and the US needs none', () => {
     fourCases('INJ-BFS', 'INJ-BFS-EU', 'AFTER', 'ST-77', /8\.116/);
+  });
+
+  it('[ST-62][PR-03] a master for the EU market whose automated inspection (INJ-AVI) has no challenge of the machine (INJ-AVI-CHALLENGE-EU) anywhere in it is refused (A1 8.32); with the challenge before it, after it or on a parallel branch beside it, it passes; a master for India and the US needs none', () => {
+    const codes = ['INJ-AVI', 'INJ-AVI-CHALLENGE-EU'];
+    const avi = step('trigger', 'INJ-AVI');
+    const challenge = step('required', 'INJ-AVI-CHALLENGE-EU');
+    const without = findings(techMaster(['IN', 'EU'], codes, [phase('before'), avi, phase('after')]));
+    expect(without).toHaveLength(1);
+    expect(without[0]).toMatchObject({ severity: 'ERROR', subject: 'trigger' });
+    expect(without[0]?.message).toMatch(/INJ-AVI-CHALLENGE-EU in the master .*ST-62.*8\.32/);
+    // The clause fixes no order to the inspection step: before, after or alongside it on a parallel branch all pass.
+    expect(findings(techMaster(['IN', 'EU'], codes, [phase('before'), challenge, avi, phase('after')]))).toEqual([]);
+    expect(findings(techMaster(['IN', 'EU'], codes, [phase('before'), avi, challenge, phase('after')]))).toEqual([]);
+    const parallel: FlowNode = { kind: 'parallel', id: 'inspection', branches: [{ id: 'b-avi', name: 'Inspection', body: avi }, { id: 'b-challenge', name: 'Challenges', body: challenge }] };
+    expect(findings(techMaster(['IN', 'EU'], codes, [phase('before'), parallel, phase('after')]))).toEqual([]);
+    expect(findings(techMaster(['IN', 'US'], codes, [phase('before'), avi, phase('after')]))).toEqual([]);
   });
 });

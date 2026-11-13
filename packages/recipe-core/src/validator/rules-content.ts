@@ -751,9 +751,11 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
  * Blocks a market's binding clause makes mandatory on a master, stated as data (lead ruling, I-6 B2). A block's `markets`
  * tag is metadata the engine does not read (owner Q0), so this table says when a master for a market must carry a block:
  * each step of `trigger` has a step of `required` on every path AFTER it (the required block follows) or BEFORE it (the
- * required block precedes). A block no binding clause makes mandatory stays optional and has no entry.
+ * required block precedes), or (PRESENT; lead, B5) the master has a step of `required` anywhere, a parallel branch
+ * included, where the clause fixes no order to the trigger. A block no binding clause makes mandatory stays optional and
+ * has no entry.
  */
-export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string; required: string; relation: 'AFTER' | 'BEFORE'; control: string; clause: string }[] = [
+export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string; required: string; relation: 'AFTER' | 'BEFORE' | 'PRESENT'; control: string; clause: string }[] = [
   // ST-06: process and equipment alarms are acknowledged and evaluated (A1 5.2); the filling step records them and the
   // assessment block after it evaluates each one. No clause of Schedule M or 21 CFR 211 asks it, so only the EU.
   { market: 'EU', trigger: 'INJ-FILL', required: 'INJ-ALARM-ASSESSMENT', relation: 'AFTER', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
@@ -784,12 +786,15 @@ export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string;
   // ST-77: blow-fill-seal critical parameters, a batch-specific wall-thickness test among them, are verified and recorded
   // during production (A1 8.115(vi), 8.116). INJ-BFS-EU reads the settings and measures the units made, after INJ-BFS.
   { market: 'EU', trigger: 'INJ-BFS', required: 'INJ-BFS-EU', relation: 'AFTER', control: 'ST-77', clause: 'EU GMP Annex 1 8.115(vi), 8.116: BFS critical parameters recorded, batch-specific wall-thickness test' },
+  // ST-62: an automated inspection machine is challenged with representative defects before start-up and at intervals
+  // through the batch (A1 8.32). INJ-AVI-CHALLENGE-EU records both, so it runs before and alongside INJ-AVI: the master
+  // has it anywhere, a parallel branch included (PRESENT; lead, B5).
+  { market: 'EU', trigger: 'INJ-AVI', required: 'INJ-AVI-CHALLENGE-EU', relation: 'PRESENT', control: 'ST-62', clause: 'EU GMP Annex 1 8.32: automated inspection challenged with representative defects before start-up and through the batch' },
   // Not entries (I-6 B5): INJ-STERILE-PACK-INDICATOR (A1 8.44 allows indicators, asks none); INJ-ASEPTIC-TRANSFER (A1
   // 8.47 applies to items sterilised in sealed packs and passed into Grade A, not through a double-ended steriliser
-  // (4.11): no block of the master says which); INJ-VHP (A1 4.22(i): an isolator's decontamination, and no other block
-  // says an isolator is used); INJ-GLOVE-TEST (A1 4.21: at the start and end of each batch or campaign, in no order to a
-  // block); INJ-AVI-CHALLENGE-EU (A1 8.32: before start-up and through the batch, so neither before nor after INJ-AVI);
-  // INJ-RADIATION-EU (EU GMP Annex 12, whose text is not among the checked sources).
+  // (4.11): no block of the master says which); INJ-VHP and INJ-GLOVE-TEST (A1 4.22(i), 4.21: isolators and RABS, and no
+  // block of a master declares an isolator or RABS, so neither is required automatically for the EU: owner residual,
+  // lead ruling); INJ-RADIATION-EU (EU GMP Annex 12, not yet extracted among the checked sources: owner residual).
 ];
 
 function libraryCode(p: PhaseNode): string | undefined {
@@ -813,11 +818,13 @@ const requiredBlocks = defineRule('MKT-REQUIRED-BLOCKS', 'A master carries the b
       const t = a.taskOf(at.id);
       return t !== undefined && facts?.get(t.id)?.has(earlier.id) === true;
     };
-    const facts = before(entry.relation === 'AFTER' ? entry.trigger : entry.required);
+    const facts = entry.relation === 'PRESENT' ? undefined : before(entry.relation === 'AFTER' ? entry.trigger : entry.required);
     for (const t of triggers) {
-      const met = entry.relation === 'AFTER' ? required.some((r) => ran(facts, r, t)) : required.some((r) => ran(facts, t, r));
+      const met =
+        entry.relation === 'PRESENT' ? required.length > 0 : entry.relation === 'AFTER' ? required.some((r) => ran(facts, r, t)) : required.some((r) => ran(facts, t, r));
       if (!met) {
-        out.push(error(t.id, `${label(a, t.id)} uses ${entry.trigger} on a master for the ${entry.market} market, which needs a step of ${entry.required} ${entry.relation === 'AFTER' ? 'after' : 'before'} it on every path (${entry.control}; ${entry.clause})`));
+        const where = entry.relation === 'PRESENT' ? 'in the master' : `${entry.relation === 'AFTER' ? 'after' : 'before'} it on every path`;
+        out.push(error(t.id, `${label(a, t.id)} uses ${entry.trigger} on a master for the ${entry.market} market, which needs a step of ${entry.required} ${where} (${entry.control}; ${entry.clause})`));
       }
     }
   }
