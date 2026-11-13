@@ -520,7 +520,8 @@ describe('what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.
       { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventMinutes: '6', eventListed: true },
     ];
     for (const e of recorded) {
-      run.entry('p', { kind: 'event', ...e });
+      // An intervention answers whether it was critical (I-6 B2, ST-34); this one was not.
+      run.entry('p', { kind: 'event', ...e, ...(e.eventKind === 'Intervention' ? { eventCritical: false } : {}) });
       run.minutes(1);
     }
     const extract = Object.values(run.state.entries).filter((x) => x.kind === 'event').map((x) => ({ eventKind: x.data['eventKind'], eventWhat: x.data['eventWhat'], eventMinutes: x.data['eventMinutes'], eventListed: x.data['eventListed'] }));
