@@ -108,8 +108,26 @@ async function draft(name: Parameters<typeof uniqueContent>[0] = 'tablet-blister
   return { ...v, content };
 }
 
+/**
+ * Withdraws, with a reason, every version of `from`'s family still in preparation that an earlier test left open: a
+ * family holds one version in preparation at a time (recipe-core 1914, EBMR-RCP-436).
+ */
+async function closeOpenVersions(from: string): Promise<void> {
+  const { rows } = await db.admin.query<{ id: string }>(
+    `select v.id from recipe.mbr_version v where v.family_id = (select family_id from recipe.mbr_version where id = $1)
+        and recipe.version_state(v.id) in ('DRAFT', 'IN_VERIFICATION', 'SUBMITTED', 'CHECKED')`,
+    [from],
+  );
+  for (const { id } of rows) {
+    const s = await w.state(id);
+    const who = s.state === 'DRAFT' || s.state === 'IN_VERIFICATION' ? w.cast.author : w.cast.qa;
+    await w.run(who, (c) => lc.withdrawVersion(c, id, s.version), reason('left open by an earlier test'));
+  }
+}
+
 /** A version derived from `from` by the author, with `edit` applied to its content (still in DRAFT). */
 async function derived(from: string, edit?: (m: MbrContent) => void) {
+  await closeOpenVersions(from);
   const v = await w.run(w.cast.author, (c) => lc.deriveVersion(c, from, 'change under test'));
   const content = (await lc.loadContent(db.app, v.versionId)).content;
   if (edit) {
@@ -377,6 +395,9 @@ describe('first versions and derived versions (PR-06)', () => {
     await w.startVerification(v1.versionId);
     // v1 has a history (DRAFT, IN_VERIFICATION) and other masters are approved, but no version of this family was.
     expect(await count("select count(*) as n from platform.state_history where aggregate_type = 'mbr_version' and to_state = 'APPROVED'")).toBeGreaterThan(0);
+    // While v1 is in preparation the family takes no other version (recipe-core 1914); withdrawn, it is not in the way.
+    expect(await refusal(w.run(w.cast.author, (c) => lc.createVersion(c, v1.familyId, content, 'second draft')))).toMatch(/EBMR-RCP-436/);
+    await closeOpenVersions(v1.versionId);
     const v2 = await w.run(w.cast.author, (c) => lc.createVersion(c, v1.familyId, content, 'second draft'));
     expect(v2).toMatchObject({ versionNumber: 2, state: 'DRAFT' });
     expect(await q('select version_number, derived_from from recipe.mbr_version where family_id = $1 order by version_number', [v1.familyId])).toEqual([
@@ -836,6 +857,7 @@ describe('baselines and process impact (PR-06)', () => {
   });
 
   it('[PR-06][PR-04] a version derived from an older master is compared with it and with the newest approved master of its family', async () => {
+    await closeOpenVersions(base.versionId);
     const v2 = await w.approvedSuccessor(base.versionId, (m) => (m.header.title = `${m.header.title} (v2)`));
     const v3 = await derived(base.versionId);
     const baselines = (await db.app.query<{ b: string }>('select b::text from recipe.baseline_versions($1) b order by 1', [v3.versionId])).rows.map((r) => r.b);

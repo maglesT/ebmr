@@ -13,8 +13,9 @@
  *    contentHash, 409 when stale), bound to that content (IN-02, DI-04);
  *  - startVerification: lifecycle.validateAndStartVerification (evidence bound to the content hash, DI-04);
  *  - deriveVersion: the next version of an APPROVED or RETIRED master as a DRAFT derived from it, with the author's reason
- *    (recipe.derive_version; PR-06); one open version per family; returnToDraft: a version IN_VERIFICATION, SUBMITTED or
- *    CHECKED back to DRAFT with the person's reason (recipe.return_to_draft; DI-22, DI-37) (demo report r13, bug 2);
+ *    (recipe.derive_version; PR-06); one open version per family (recipe-core 1914); returnToDraft: a version
+ *    IN_VERIFICATION, SUBMITTED or CHECKED back to DRAFT with the person's reason (recipe.return_to_draft; DI-22,
+ *    DI-37) (demo report r13, bug 2);
  *  - testPackage: the write-once exchange file for a sandbox test run, recorded on the version's audit chain (D5);
  *    recorded only once the inbox proved it takes the file and no earlier recorded export is left unpublished (one
  *    export at a time passes that gate), and a recorded export always gets its file (published after the commit; a
@@ -930,7 +931,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       // and stays in force until its successor is approved and authorised for its markets (ADR 0014); the successor
       // goes through validation, verification, change control and the signatures as any version. One open version per
       // family at a time, so nobody prepares two competing drafts of one master: refused here under a family lock,
-      // naming the open one (a usability check; the database rules are unchanged).
+      // naming the open one; the database refuses it too, for every writer (recipe-core 1914, EBMR-RCP-436).
       ctx.requireRole(...AUTHOR_ROLES);
       const id = ctx.params.versionId;
       const head = await requireHead(pool, id);

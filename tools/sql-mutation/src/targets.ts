@@ -177,7 +177,9 @@ export const TARGETS: Target[] = [
                 'recipe.record_evidence', 'recipe.return_to_draft', 'recipe.record_change_record', 'recipe.inv04_violations',
                 'recipe.approved_content_violations',
                 // Demo finding D-3 (recipe-core 1878): a new draft in a family whose drafts were all discarded.
-                'recipe.reopen_family'],
+                'recipe.reopen_family',
+                // Owner decision 13 November 2026 (recipe-core 1914): one version in preparation per family.
+                'recipe.insert_version'],
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
             r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.

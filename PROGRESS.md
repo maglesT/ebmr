@@ -50,9 +50,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   derived DRAFT; the approved version stays in force. One open version per family; a second is refused 409 DESIGNER_OPEN_VERSION.
 - `designer.returnToDraft`: "Return to draft…" from IN_VERIFICATION (author), SUBMITTED (checker) or CHECKED (QA), with a reason.
   Every signature is superseded; the DRAFT is then edited or discarded.
-- Golden cases are edited in a DRAFT (SET_GOLDEN_VALUE: a decimal value changed, added or removed). No migration.
-- Open: the one-open-version rule is server-only (owner question). Demo family MGL-SR-BL-B can now be returned to draft
-  and fixed, or discarded, on screen once this is deployed.
+- Golden cases are edited in a DRAFT (SET_GOLDEN_VALUE: a decimal value changed, added or removed).
+- One open version per family is also a database rule (owner, 13 November; recipe-core 1914, EBMR-RCP-436). It governs
+  new versions only; existing rows are untouched. Demo family MGL-SR-BL-B can be returned to draft and fixed, or
+  discarded, on screen once this is deployed.
 
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
