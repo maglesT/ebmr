@@ -157,6 +157,22 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(pupsit, { pupsitTest: { ...byDiffusion.pupsitTest, pupsitDiffusion: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
+  it('[ST-52] where PUPSIT is not feasible (A1 8.87), the EU block records the reference of the documented risk assessment instead of the test values: without the reference the entry is refused; with it the step completes and no test value is asked; a test value given with the waiver is refused', () => {
+    const pupsit = byCode('INJ-PUPSIT');
+    expect(fieldOf(pupsit, 'pupsitNotFeasible')).toMatchObject({ type: 'YES_NO' });
+    expect(fieldOf(pupsit, 'pupsitNotFeasible').required).not.toBe(false);
+    expect(fieldOf(pupsit, 'riskAssessmentRef')).toMatchObject({ type: 'TEXT', showWhen: { field: 'pupsitNotFeasible', equals: true } });
+    expect(fieldOf(pupsit, 'riskAssessmentRef').required).not.toBe(false);
+    expect(fieldOf(pupsit, 'pupsitMethod').showWhen).toEqual({ field: 'pupsitNotFeasible', equals: false });
+    const waived = { pupsitNotFeasible: true, pupsitMethod: undefined, pupsitBubblePoint: undefined, pupsitDiffusion: undefined };
+    expect(() => judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    expect(judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: 'QRM-PUPSIT-012' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: 'QRM-PUPSIT-012', pupsitMethod: 'Bubble point', pupsitBubblePoint: '3.60' } })).toThrow(/LIB-ENTRY-HIDDEN|applies only when/);
+    // Without the waiver (the nominal answer), the test is asked and judged as before, and no reference is taken.
+    expect(nominalRun(pupsit)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(pupsit, { pupsitTest: { riskAssessmentRef: 'QRM-PUPSIT-012' } })).toThrow(/applies only when/);
+  });
+
   it('[ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum', () => {
     const item = byCode('INJ-STERILE-FILTER');
     expect(fieldOf(item, 'filtrationTime')).toMatchObject({ type: 'TIMER', limitSlot: 'filtrationTime' });
@@ -473,6 +489,27 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const run = judgedRun(byCode('INJ-APS-READ'), { reading: { contaminated: '1', identification: 'Staphylococcus sp.' } });
     expect(new Set(run.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(run.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-33] the media-fill reading carries the role APS_READING and marks its count of contaminated units, in whole units, as the one count the database reads (tablets 1912); a block marking a count must have the role, and the role needs exactly one marked whole-number count (LIB-APS-READING)', () => {
+    const read = byCode('INJ-APS-READ').definition;
+    expect(read.roles).toEqual(['OBSERVATION', 'APS_READING']);
+    expect(fieldOf(byCode('INJ-APS-READ'), 'contaminated')).toMatchObject({ type: 'NUMBER', decimals: 0, contaminatedCount: true });
+    const marked = read.sections.flatMap((s) => s.fields).filter((f) => f.type === 'NUMBER' && f.contaminatedCount === true);
+    expect(marked.map((f) => f.id)).toEqual(['contaminated']);
+    expect(checkBlockDefinition(read, expr)).toEqual([]);
+    const codes = (def: typeof read) => checkBlockDefinition(def, expr).map((p) => p.code);
+    const mapNumbers = (fn: (f: Extract<(typeof read)['sections'][number]['fields'][number], { type: 'NUMBER' }>) => object) => ({
+      ...read,
+      sections: read.sections.map((s) => ({ ...s, fields: s.fields.map((f) => (f.type === 'NUMBER' ? fn(f) : f)) })),
+    }) as typeof read;
+    // The mark without the role.
+    expect(codes({ ...read, roles: ['OBSERVATION'] })).toEqual(['LIB-APS-READING']);
+    // The role without a mark, or with two.
+    expect(codes(mapNumbers((f) => { const c = { ...f }; delete c.contaminatedCount; return c; }))).toEqual(['LIB-APS-READING']);
+    expect(codes(mapNumbers((f) => (f.id === 'unitsIncubated' ? { ...f, contaminatedCount: true } : f)))).toEqual(['LIB-APS-READING']);
+    // A count in decimals.
+    expect(codes(mapNumbers((f) => (f.id === 'contaminated' ? { ...f, decimals: 1 } : f)))).toEqual(['LIB-APS-READING']);
   });
 
   it('[ST-02] the sterility-assurance route is the formulation\'s choice of blocks: every aseptic set-up filters to sterility and assembles aseptically and has no terminal sterilisation, which is a block of its own', () => {

@@ -86,6 +86,11 @@ export interface NumberField extends FieldBase {
   limitSlot?: string;
   /** A CPP or IPC: must have a limit slot (PR-03). */
   critical?: boolean;
+  /**
+   * The number of contaminated units of a media fill (ST-33): only on a block with the role APS_READING, which has
+   * exactly one such field, in whole units (decimals 0). The database reads it by this mark, never by a field id.
+   */
+  contaminatedCount?: true;
 }
 
 export interface TextField extends FieldBase {
@@ -265,9 +270,11 @@ export type ExternalInput =
  * formulation's yield checkpoint), and so on. Automated phases, dispensing, charge-in, timers with time constraints,
  * printed materials, containers, returns and reprocessing stay with their system blocks. A PACK_EXAMINATION block, the
  * examination of the finished packs, completes a packaging record of its edition (recipe-core 1892; decision 0026: a
- * firm's own QA-approved block counts without software).
+ * firm's own QA-approved block counts without software). An APS_READING block, the reading of a media fill (aseptic
+ * process simulation), carries exactly one NUMBER field marked `contaminatedCount`: on an EU master a count above zero
+ * withdraws the filling line's qualification (ST-33, tablets 1912), whatever the block's code.
  */
-export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION'] as const;
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION', 'APS_READING'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
 /**

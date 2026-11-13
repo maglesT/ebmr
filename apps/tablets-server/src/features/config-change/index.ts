@@ -8,7 +8,7 @@
  * signable action CONFIG_CHANGE_ACT (signables.ts).
  */
 import { routes, type PlatformSettingView, type RbeRuleView } from '@ebmr/api-contract';
-import { config as kernelConfig, type commands } from '@ebmr/kernel';
+import { config as kernelConfig } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
@@ -18,8 +18,6 @@ import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { CONFIG_GUIDANCE } from './guidance.ts';
 import { changeRecordViews, platformSettingViews, rbeRuleViews } from './reads.ts';
 import { configChangeActHandler } from './signables.ts';
-
-type JsonValue = commands.JsonValue;
 
 export const guidance = CONFIG_GUIDANCE;
 
@@ -49,9 +47,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return { changeRecords: await changeRecordViews(app, pool, query.state !== undefined ? { state: query.state } : {}) };
     },
     raiseChangeRecord: async ({ body, actor, idempotencyKey, requestHash }) => {
-      const { attribution: _a, ...def } = body;
+      const { attribution: _a, apsLines, ...def } = body;
       void _a;
-      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => (await kernelConfig.raiseChangeRecord(c, def)) as JsonValue);
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const id = await kernelConfig.raiseChangeRecord(c, def);
+        // ST-29 (tablets 1910): the units the firm names for an APS; QA's approval withdraws their qualification.
+        if (apsLines !== undefined && apsLines.length > 0) await c.query('select plant.require_aps_after_change($1, $2::text[])', [def.number, apsLines]);
+        return id;
+      });
       return recordView(def.number);
     },
     closeChangeRecord: async ({ params, body, actor, idempotencyKey, requestHash }) => {

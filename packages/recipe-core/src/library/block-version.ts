@@ -177,6 +177,17 @@ const EQUIPMENT_FACTS: FieldSchema = {
 /** Fitness states in which equipment may be used (plant.equipment_fitness). */
 export const USABLE_FITNESS = ['QUALIFIED', 'CALIBRATION_DUE_SOON'];
 
+/**
+ * Whether the engine lets an entry name the unit (tablets 1806, 1913): a usable fitness, or NOT_QUALIFIED in a process
+ * simulation (media fill), which may run its repeat APS on a line withdrawn for that APS (ST-29, ST-33). Whether the
+ * withdrawal is such a one, and the unit's only problem, is the database's decision (plant.aps_repeat_use in
+ * tab.library_smart_problem), which refuses the entry otherwise; the facts and plant.equipment_fitness are unchanged.
+ */
+export function equipmentUsable(facts: Readonly<Record<string, unknown>>, mbr: Pick<MbrContent, 'header'>): boolean {
+  if (USABLE_FITNESS.includes(String(facts['fitness']))) return true;
+  return facts['fitness'] === 'NOT_QUALIFIED' && mbr.header.nonProduct === 'PROCESS_SIMULATION';
+}
+
 function sectionSchema(s: SectionDef): ObjectSchema {
   const fields: Record<string, FieldSchema> = {};
   for (const f of s.fields) {
@@ -457,7 +468,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         const wanted = config.equipmentClasses?.[f.classSlot];
         if (!e || e['code'] !== data[f.id]) problems.push(problem('LIB-EQUIPMENT-FACTS', `${f.label}: the plant register has no equipment ${text(data[f.id])}`, ['PR-23', 'IN-25']));
         else if (wanted !== undefined && e['classCode'] !== wanted) problems.push(problem('LIB-EQUIPMENT-CLASS', `${f.label}: ${text(e['code'])} is of class ${text(e['classCode'])}, not ${wanted} as the formulation requires`, ['PR-23', 'IN-25']));
-        else if (!USABLE_FITNESS.includes(text(e['fitness']))) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-23', 'IN-25']));
+        else if (!equipmentUsable(e, view.mbr)) problems.push(problem('LIB-EQUIPMENT-FITNESS', `${f.label}: ${text(e['code'])} is ${text(e['fitness']).toLowerCase().replace(/_/g, ' ')} and may not be used`, ['PR-23', 'IN-25']));
       }
       // Every library weighing is keyed by hand (balances join in a later slice): two-person verification (DI-30, PR-14).
       if (f.type === 'WEIGHING') manualWeighing = true;

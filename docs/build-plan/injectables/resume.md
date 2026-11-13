@@ -81,6 +81,39 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - ST-52: INJ-PUPSIT gets a waiver path (risk-assessment reference), as a v1 edit with safety evidence. The table gets an
     EU entry for INJ-PUPSIT before INJ-STERILE-FILTER. The redundant train is not_required.
 
+### Session 15 handover (13 November 2026, about 07:40): the next session continues here
+
+- **PRs:**
+  - #242 (0030 branch + CI pin to ubuntu-24.04): a full run was in progress. Everything was green except E2E own-p3 and
+    own-demotab, still running after more than 65 min. It merges on a full green run whose head contains main (lead).
+    Then send "#242 ready for audit".
+  - #243 (I-6.2): its CI was in progress. Send "ready for audit" when it is green. Merge main in after #242 lands.
+- **Branches waiting (each is merged with the one before it, all pushed):**
+  - inj/i6-3-clauses-st41-in
+  - inj/i6-b1-minimum
+  - inj/i6-b2-eu-em: ST-06 ruling (b), the EU block INJ-ALARM-ASSESSMENT, MKT-REQUIRED-BLOCKS, validator 1.3.0
+  - inj/i6-b3-aps-pupsit: ST-29 (1910), ST-52 (INJ-PUPSIT waiver plus a BEFORE table entry), ST-33 (1911)
+- **Open PRs one at a time, at most 2 open:** 6.3, then B1, B2, B3. Each one: merge main in, get a full green run, send
+  "#N ready for audit", squash-merge after the lead's OK.
+- **Squash-merge messages:** the B3 commits 9132828, 80ea269 and 6919381 carry a model name in their Co-Authored-By
+  trailer, and force-push is refused here. Write the squash message with the plain trailers
+  `Co-Authored-By: Claude <noreply@anthropic.com>` and `Claude-Session: ...`.
+- **B3 points for the lead's audit:**
+  - ST-29: the "APS required" list is firm-set. QA's signed change content includes it (1910 replaces
+    platform.change_record_content). Approval withdraws the lines in a DB trigger. In the tests, the master-data steward
+    requalifies, because QA personas lack MASTERDATA.CHANGE.
+  - ST-33 (EU only; Schedule M 5.6(i) asks an investigation only): a trigger on recipe.execution_state reacts to
+    contaminated > 0 in INJ-APS-READ.
+    - It keys on the catalogue code only; a site copy under another code would escape.
+    - "3 repeat runs" is mapped although the repeats are not counted (QA requalification stands in).
+    - Quarantine and the impact list are not_required. A1 9.46(iv) asks a review of batches since the last good APS:
+      the lead to confirm.
+  - ST-52: the waiver is a YES_NO with no expected answer (default no), plus a required riskAssessmentRef. The v1-edit
+    evidence: the nominal run is unchanged, and seeding keeps existing copies.
+- **Then:** B4 (IN-48), B5 (one MKT-REQUIRED-BLOCKS entry per EU block a binding clause makes mandatory), GB-I-01,
+  PR-15/26/28, the phase.yaml exit PR (PROGRESS: INV residuals, the demo fresh install, the room EM logbook deferred by
+  the owner), the review pass.
+
 ### Session 14 handover (12 November 2026): I-6, the injectables edition exit
 
 Lead: session_01PybpFvEFaQZ3LEfnNdjBCE until 19:27, then session_01PybpFrP72XuwyG8S3H3NJS (has all I-6 rulings). Owner's exit list: injectables in phase.yaml, the trace gate green for the
@@ -148,7 +181,12 @@ injectables controls, a golden batch, the browser suite, one review pass.
   - PR-26 clause 2 (hose scan) and PR-28 clause 2 (EM excursion on the QP screen): owner write-up, not a deferral.
     PR-28 clause 1 (failed autoclave cycle): a test.
   - The exit PR: injectables in phase.yaml once #232/#239 merge, a full run with trace:e2e.
-  - One review pass.
+  - One review pass. Items added by the lead (13 November):
+    - Kernel platform.change_record_content now reads plant.aps_required_line (tablets 1910). Check whether
+      register_content_provider could let the plant module add aps_lines without replacing the kernel function.
+    - The database does not re-judge expected yes/no answers (only limits, recipe-core 1862), so a raw write that omits
+      the exception is not caught. Assess a general database re-check of expected answers, like 1862's, for all library
+      blocks.
 - **PROGRESS notes due:**
   - INV-23, INV-36, INV-44: residuals for the owner. The exit list supersedes outline 11's INV list. INV-37 is proven by
     the ST-68 gate test; INV-45 by ST-64.
