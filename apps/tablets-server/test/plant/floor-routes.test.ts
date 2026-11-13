@@ -206,7 +206,7 @@ describe('press tooling and the press discharge (gap report A6, A7)', () => {
 });
 
 describe('a unit in use that no step of the batch names (demo report 13 November 2026, bug 4)', () => {
-  it('[INV-12][IN-25][DI-17][INV-40] the Plant screen lists every unit still in use, of any batch; another operator ends it with a fresh tap, the shift supervisor is refused (STEP.EXECUTE), and the unit is free for the next use once cleaned', async () => {
+  it('[INV-12][IN-25][DI-17][DI-22][INV-40] the Plant screen lists every unit still in use, of any batch; another operator ends it with a fresh tap and a reason, the shift supervisor is refused (STEP.EXECUTE), and the unit is free for the next use once cleaned', async () => {
     const press = `PR2-${TAG}`;
     valueOf(await act('steward', P.defineEquipment, { body: { code: press, name: 'Bilayer press (test)', classCode: `PRS${TAG}`, areaCode: ROOM } }));
     valueOf(await act('steward', P.equipmentEvent, { params: { code: press }, body: { event: 'EVENT', kind: 'QUALIFIED', detail: 'IQ/OQ/PQ approved', reference: `QUAL-${press}` } }));
@@ -223,8 +223,11 @@ describe('a unit in use that no step of the batch names (demo report 13 November
     // Ending is a floor act (STEP.EXECUTE): the supervisor who signs a stage off is refused in the database's words.
     expect(refusalOf(await act('supervisor1', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))?.code).toBe('EBMR-IAM-040');
     expect(refusalOf(await (b['operator2'] as TestBrowser).call(P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
-    const ended = valueOf(await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }));
-    expect(ended.ended?.by.personId).toBe(personaIn(w.gmp, 'operator2').personId);
+    // Owner decision of 13 November 2026: the Plant screen's end states a reason (recipe-core 1922); a blank one is refused.
+    expect((await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: { reason: '   ' } })).ok).toBe(false);
+    const reason = 'Left open on the Plant screen; the batch no longer uses the press';
+    const ended = valueOf(await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: { reason } }));
+    expect(ended.ended).toMatchObject({ by: { personId: personaIn(w.gmp, 'operator2').personId }, reason });
     expect(await listed('operator2')).toBeUndefined();
     expect(refused(await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))).toMatch(/EBMR-PLANT-063/);
     // The ended use is in the audit trail, attributed to the person who ended it.
@@ -239,6 +242,28 @@ describe('a unit in use that no step of the batch names (demo report 13 November
     await clean('EQUIPMENT', press);
     const next = valueOf(await act('operator1', P.startEquipmentUse, start));
     valueOf(await act('operator1', P.endEquipmentUse, { params: { useId: next.useId }, body: {} }));
+  }, 240_000);
+});
+
+describe('a room in use that no step of the batch names (owner decision of 13 November 2026 on demo report bug 4)', () => {
+  it('[IN-21][PR-34][DI-17][DI-22][INV-40] the Plant screen lists every room still in use, of any batch; another operator ends it with a fresh tap and a reason (a blank one refused), the shift supervisor is refused, and the room is released', async () => {
+    const room = `RB${TAG}`;
+    valueOf(await act('steward', P.defineArea, { body: { code: room, kind: 'ROOM', name: 'Blending room (test)' } }));
+    await clean('AREA', room);
+    const clearance = valueOf(await act('operator1', P.recordClearance, { body: { areaCode: room, type: 'PRODUCT_CHANGE', batchId, result: 'PASSED' } }));
+    await signedOk(kioskSign('verifier1', { kind: 'PLANT_VERIFY', act: 'CLEARANCE', id: clearance.clearanceId }));
+    const occ = valueOf(await act('operator1', P.startAreaOccupancy, { body: { areaCode: room, batchId, stage: 'S-NONE' } }));
+    const listed = (key: string) => (b[key] as TestBrowser).call(P.openAreaOccupancies, {}).then((r) => valueOf(r).occupancies.find((o) => o.occupancyId === occ.occupancyId));
+    expect(await listed('operator2')).toMatchObject({ areaCode: room, batchNumber, stage: 'S-NONE', ended: null, mine: false });
+    expect((await listed('operator1'))?.mine).toBe(true);
+    expect(refusalOf(await act('supervisor1', P.endAreaOccupancy, { params: { occupancyId: occ.occupancyId }, body: { reason: 'Stage done' } }))?.code).toBe('EBMR-IAM-040');
+    expect((await act('operator2', P.endAreaOccupancy, { params: { occupancyId: occ.occupancyId }, body: { reason: '' } })).ok).toBe(false);
+    const reason = 'Room left in use from the Plant screen; the stage is over';
+    const ended = valueOf(await act('operator2', P.endAreaOccupancy, { params: { occupancyId: occ.occupancyId }, body: { reason } }));
+    expect(ended.ended).toMatchObject({ by: { personId: personaIn(w.gmp, 'operator2').personId }, reason });
+    expect(await listed('operator2')).toBeUndefined();
+    const { rows } = await w.gmp.db.admin.query<{ reason: string }>('select reason from plant.area_occupancy_end where occupancy_id = $1', [occ.occupancyId]);
+    expect(rows).toEqual([{ reason }]);
   }, 240_000);
 });
 

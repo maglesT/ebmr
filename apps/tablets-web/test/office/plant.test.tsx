@@ -132,16 +132,19 @@ describe('units in use (demo report 13 November 2026, bug 4)', () => {
   if (!use) throw new Error('no open use example');
   const uses = { uses: [{ ...use, equipmentCode: 'BLPRESS-02', batchNumber: 'MGL260051' }, { ...use, useId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c99', equipmentCode: 'BLPRESS-01', batchNumber: 'MGL260101' }] };
 
-  it('[INV-12][DI-17][INV-40] an operator ends, on the Plant screen, the use of a unit no step of the batch names, whatever the state of its batch, with a fresh badge tap on a kiosk', async () => {
+  it('[INV-12][DI-17][DI-22][INV-40] an operator ends, on the Plant screen, the use of a unit no step of the batch names, whatever the state of its batch, with a reason and a fresh badge tap on a kiosk', async () => {
     const ui = renderOffice('/plant', { role: 'OPERATOR', attribution: 'TAP', fixtures: { 'plant.openEquipmentUses': uses } });
     const section = await screen.findByTestId('units-in-use');
     const row = await within(section).findByTestId('unit-use-BLPRESS-01');
     expect(row.textContent).toContain('MGL260101');
     expect(within(section).getByTestId('unit-use-BLPRESS-02').textContent).toContain('MGL260051');
+    // Owner decision of 13 November 2026: no end without the person's reason.
+    expect(within(row).getByRole('button', { name: 'End the use of BLPRESS-01' }).hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(section).getByRole('textbox', { name: 'Reason for ending the use' }), 'Batch MGL260101 finished; use left open');
     await userEvent.click(within(row).getByRole('button', { name: 'End the use of BLPRESS-01' }));
     const path = '/api/plant/equipment-uses/7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c99/end';
     await waitFor(() => expect(ui.posts(path)).toHaveLength(1));
-    expect(ui.tap.requestTap.mock.calls[0]?.[1]).toEqual({ method: 'POST', path, body: {} });
+    expect(ui.tap.requestTap.mock.calls[0]?.[1]).toEqual({ method: 'POST', path, body: { reason: 'Batch MGL260101 finished; use left open' } });
     expect(ui.posts(path)[0]?.body).toMatchObject({ attribution: { method: 'BADGE_TAP' } });
   });
 
@@ -154,5 +157,27 @@ describe('units in use (demo report 13 November 2026, bug 4)', () => {
     cleanup();
     renderOffice('/plant', { role: 'OPERATOR', fixtures: { 'plant.openEquipmentUses': { uses: [] } } });
     expect(await within(await screen.findByTestId('units-in-use')).findByText('No process unit is in use.')).toBeTruthy();
+  });
+
+  it('[IN-21][DI-17][DI-22][INV-40] an operator ends, on the Plant screen, the use of a room no step of the batch names, with a reason and a fresh badge tap; a supervisor is offered no end', async () => {
+    const occ = example('plant-open-area-occupancies').occupancies[0];
+    if (!occ) throw new Error('no open occupancy example');
+    const rooms = { occupancies: [{ ...occ, areaCode: 'COMP-2', batchNumber: 'MGL260101', stage: 'S-COMP' }] };
+    const ui = renderOffice('/plant', { role: 'OPERATOR', attribution: 'TAP', fixtures: { 'plant.openAreaOccupancies': rooms } });
+    const section = await screen.findByTestId('rooms-in-use');
+    const row = await within(section).findByTestId('room-use-COMP-2');
+    expect(row.textContent).toContain('MGL260101');
+    expect(within(row).getByRole('button', { name: 'End the use of COMP-2' }).hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(section).getByRole('textbox', { name: 'Reason for ending the use' }), 'Stage over; room left in use');
+    await userEvent.click(within(row).getByRole('button', { name: 'End the use of COMP-2' }));
+    const path = `/api/plant/occupancies/${occ.occupancyId}/end`;
+    await waitFor(() => expect(ui.posts(path)).toHaveLength(1));
+    expect(ui.tap.requestTap.mock.calls[0]?.[1]).toEqual({ method: 'POST', path, body: { reason: 'Stage over; room left in use' } });
+    cleanup();
+    renderOffice('/plant', { role: 'SHIFT_SUPERVISOR', fixtures: { 'plant.openAreaOccupancies': rooms } });
+    const other = await screen.findByTestId('rooms-in-use');
+    await within(other).findByTestId('room-use-COMP-2');
+    expect(within(other).queryByRole('button', { name: /^End the use of/ })).toBeNull();
+    expect(within(other).queryByRole('textbox')).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
-import { PlantWorld, seedPlantCast } from './support.ts';
+import { finishBatch, PlantWorld, seedPlantCast } from './support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -138,6 +138,35 @@ describe('starting in a room needs a passed clearance of the required type (INV-
     await w.clean('AREA', room.code, 'MAJOR');
     await w.clear(room.code, 'CAMPAIGN', { batch: 'B-1', product: b });
     await expect(start(room.code, { batch: 'B-1', product: b })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch TEST-B-1-.*product change from/);
+  });
+});
+
+describe('the end of a room\'s use records a reason (owner decision of 13 November 2026 on demo report bug 4; recipe-core 1922)', () => {
+  it('[DI-22][IN-21][PR-34] a room\'s use ended with a reason keeps it on its end row and in the audit trail; a blank reason is refused; the use of a finished or cancelled batch is ended only with a reason, and the room stays in use until then', async () => {
+    const room = await w.room();
+    const a = await w.product();
+    await w.clean('AREA', room.code, 'MAJOR');
+    await w.clear(room.code, 'PRODUCT_CHANGE', { batch: 'B-RR1', product: a });
+    const o1 = await start(room.code, { batch: 'B-RR1', product: a });
+    const endWith = (occupancy: string, reason: string | null) => w.run(w.cast.operator2, (c) => c.query('select plant.end_area_occupancy($1, $2) as r', [occupancy, reason]));
+    await expect(endWith(o1, '')).rejects.toThrow(/EBMR-PLANT-065/);
+    await finishBatch(db, (await w.batch('B-RR1', a)).id, 'CANCELLED');
+    await expect(end(o1)).rejects.toThrow(/batch TEST-B-RR1-\w+ is CANCELLED.*EBMR-PLANT-065/);
+    expect(await w.state('area', room.id)).toBe('IN_USE');
+    await endWith(o1, 'Batch cancelled; room left in use from the Plant screen');
+    expect(await w.state('area', room.id)).toBe('DIRTY');
+    const { rows } = await db.admin.query<{ reason: string; ended_by: string }>('select reason, ended_by::text from plant.area_occupancy_end where occupancy_id = $1', [o1]);
+    expect(rows).toEqual([{ reason: 'Batch cancelled; room left in use from the Plant screen', ended_by: w.cast.operator2.personId }]);
+    const audit = await db.admin.query<{ reason: string; person: string }>(
+      `select payload -> 'body' -> 'details' ->> 'reason' as reason, payload -> 'actor' ->> 'person_id' as person from kernel.audit_event where action = 'BUSINESS' and chain_key = $1`,
+      [`plant_area:${o1}`],
+    );
+    expect(audit.rows).toEqual([{ reason: 'Batch cancelled; room left in use from the Plant screen', person: w.cast.operator2.personId }]);
+    // A running batch's room is ended without a reason, as the clearance step does.
+    await w.clean('AREA', room.code, 'MAJOR');
+    await w.clear(room.code, 'PRODUCT_CHANGE', { batch: 'B-RR2', product: a });
+    await end(await start(room.code, { batch: 'B-RR2', product: a }));
+    expect(await w.state('area', room.id)).toBe('DIRTY');
   });
 });
 
