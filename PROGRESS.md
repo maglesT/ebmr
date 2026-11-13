@@ -128,6 +128,11 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 
 ## Next
 
+- Injectables I-6 (lead rulings on #245, 13 November): after the I-6 merges, the hosted demo needs a fresh install. Owner
+  residual: upgrading an existing install needs a sterile v2 rule table and a library v2 publish (B1 edits sterile.v1 and
+  INJ-EM, INJ-FILL and INJ-COMPOUND v1 in place; an existing database refuses the new sterile v1 with EBMR-MKT-035).
+  B5 gains a DB guard for ST-28 (an applied gas overlay without a passing post-use filter test blocks certification).
+
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).
 - Later CI slice: gate the E2E set-up's seeds per group (`gmpReviewBatch`, `gmpPackaging` in

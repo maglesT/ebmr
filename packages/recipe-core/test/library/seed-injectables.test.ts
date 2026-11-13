@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { FlowNode, MbrContent, TimeConstraint } from '../../src/flow/model.ts';
-import { libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
+import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { blockEdition, editionFits } from '../../src/library/model.ts';
 import { INJECTABLE_ASEPTIC_CATALOGUE, INJECTABLE_CATALOGUE, INJECTABLE_INSPECTION_CATALOGUE, INJECTABLE_LYO_CATALOGUE, INJECTABLE_ROUTE_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
@@ -37,7 +37,7 @@ function withUse(item: SeedItem, change: { limits?: SeedItem['exampleUse']['limi
 
 const I1_CODES = [
   'INJ-INSPECT-LIGHT',
-  'INJ-ROOM-READY', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
+  'INJ-ROOM-READY', 'INJ-WASH', 'INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-COMPOUND', 'INJ-GAS-FILTER', 'INJ-BULK-FILTER', 'INJ-FILL', 'IPC-INJ-FILL-WEIGHT',
   'INJ-AMPOULE-SEAL', 'INJ-CAPPING', 'INJ-TERMINAL-STERILISE', 'INJ-VISUAL-INSPECT', 'INJ-CCI', 'INJ-UNIT-ACCOUNT', 'INJ-STERILITY-SAMPLE', 'TEST-INJ-RELEASE',
   // Slice I-1c2: the finished-pack examination that closes a packaging record of the edition.
   'INJ-PACK-EXAM',
@@ -519,5 +519,36 @@ describe('equipment named by an injectables block is refused when it is not fit 
     const units = (fitness: string) => ({ equipment: { ...unit(item, 'vessel', 'QUALIFIED')['equipment'] as object, ...unit(item, 'wfiPoint', fitness)['equipment'] as object } });
     expect(() => judgedRun(item, { preparation: units('OUT_OF_SERVICE') })).toThrow(/WFI point of use: .* out of service and may not be used \(LIB-EQUIPMENT-FITNESS/);
     expect(judgedRun(item, { preparation: units('QUALIFIED') }).exceptions).toEqual([]);
+  });
+});
+
+/** The binding minimum of ST-12 and ST-28 (lead ruling I-6 B1, 12 November 2026). */
+describe('aseptic headcount and the overlay gas filter (I-6 B1)', () => {
+  it('[ST-12] filling records the most people present in the filling room at once; more than the formulation\'s maximum (the number qualified in the process simulation) is an exception that stops the step', () => {
+    const item = byCode('INJ-FILL');
+    expect(fieldOf(item, 'peoplePresent')).toMatchObject({ type: 'NUMBER', limitSlot: 'peoplePresent' });
+    expect(judgedRun(item, { end: { peoplePresent: '4' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const five = judgedRun(item, { end: { peoplePresent: '5' } });
+    expect(five.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(five.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-28] the overlay gas filter\'s integrity after use is a critical value with its limit (every market): below it is an exception that stops the step, and without the result the step cannot complete', () => {
+    const item = byCode('INJ-GAS-FILTER');
+    expect(item.definition.markets).toBeUndefined();
+    expect(fieldOf(item, 'gasFilterPost')).toMatchObject({ type: 'NUMBER', limitSlot: 'gasFilterPost', critical: true });
+    expect(judgedRun(item, { gasFilter: { gasFilterPost: '1.20' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const failed = judgedRun(item, { gasFilter: { gasFilterPost: '0.80' } });
+    expect(failed.exceptions).toEqual(['LIB_LIMIT_BREACH']);
+    expect(failed.status).not.toBe('COMPLETED');
+    expect(() => judgedRun(item, { gasFilter: { gasFilterPost: undefined } })).toThrow(/is required \(LIB-ENTRY-REQUIRED/);
+  });
+
+  it('[ST-28] a compounding use without a nitrogen overlay needs no gas-filter limit: compounding has no gas-filter field, and its use passes the checker without one', () => {
+    const item = byCode('INJ-COMPOUND');
+    expect(item.definition.sections.flatMap((x) => x.fields).filter((f) => /gas/i.test(f.id))).toEqual([]);
+    expect(Object.keys(item.exampleUse.limits ?? {}).filter((k) => /gas/i.test(k))).toEqual([]);
+    expect(checkBlockUse(item.definition, { block: { code: 'INJ-COMPOUND', version: item.definition.version }, ...item.exampleUse }, expr)).toEqual([]);
+    expect(judgedRun(item, { preparation: { nitrogen: 'Not required by the product' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 });

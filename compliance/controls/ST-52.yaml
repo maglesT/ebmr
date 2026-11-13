@@ -26,7 +26,18 @@ behaviour: |-
 catalog_test: Start filtration without PUPSIT on a product with no waiver → blocked. A redundant train with the primary failing post-use → the backup test step appears, an investigation is created, and the batch is blocked until both are complete.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52] where PUPSIT is not feasible (A1 8.87), the EU block records the reference of the documented risk assessment instead of the test values: without the reference the entry is refused; with it the step completes and no test value is asked; a test value given with the waiver is refused"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52][IN-48] filter integrity is judged before use and after use by the formulation's method and, for the EU market, after sterilisation in its own PUPSIT block; a result outside its limit is an exception"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [ST-52][PR-03] a master for the EU market whose sterilising filtration has no PUPSIT step before it is refused; with PUPSIT before filtration it passes, PUPSIT after filtration is refused; a master for India and the US needs none"
+clauses:
+  - clause: "Start filtration without PUPSIT on a product with no waiver → blocked."
+    tests:
+      - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [ST-52][PR-03] a master for the EU market whose sterilising filtration has no PUPSIT step before it is refused; with PUPSIT before filtration it passes, PUPSIT after filtration is refused; a master for India and the US needs none"
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-52] where PUPSIT is not feasible (A1 8.87), the EU block records the reference of the documented risk assessment instead of the test values: without the reference the entry is refused; with it the step completes and no test value is asked; a test value given with the waiver is refused"
+  - clause: "A redundant train with the primary failing post-use → the backup test step appears, an investigation is created, and the batch is blocked until both are complete."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "backup-filter logic"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

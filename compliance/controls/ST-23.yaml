@@ -21,7 +21,12 @@ behaviour: |-
   - Sterility-sample exterior decontamination (VHP/UV) must be a validated method that does not reduce test sensitivity (ST-65).
 catalog_test: Scan a settle-plate lot without GPT release at the Grade A station → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-23] the EM sampling names the media lot of its plates: a settle-plate lot not released after its growth-promotion test is refused at the entry, a released one is accepted"
+clauses:
+  - clause: "Scan a settle-plate lot without GPT release at the Grade A station → refused."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-23] the EM sampling names the media lot of its plates: a settle-plate lot not released after its growth-promotion test is refused at the entry, a released one is accepted"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

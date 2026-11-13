@@ -93,6 +93,21 @@ describe('calibration and press discharge (slice 7h, A7 and A9)', () => {
     expect(ui.posts('/api/plant/equipment/PRESS-01/press-discharge')[0]?.body).toEqual({ separateStreams: true });
   });
 
+  it('[ST-33] QA sees a line with an open withdrawal after a failed media fill, the batches made on it since its last successful APS, and records the review: the risk-assessment reference and the repeat runs, a justification with fewer than three', async () => {
+    const ui = renderOffice('/plant', { role: 'QA_REVIEWER', fixtures: { 'plant.equipment': units } });
+    const section = await screen.findByTestId('aps-failure-review');
+    await userEvent.click(await within(section).findByRole('radio', { name: /^PRESS-01/ }));
+    const shown = await within(section).findByTestId('aps-failure');
+    expect(shown.textContent).toContain('MF2600004');
+    expect(shown.textContent).toContain('INJ2600011');
+    await userEvent.type(within(section).getByRole('textbox', { name: /Risk assessment/ }), 'QRM-APS-07');
+    await userEvent.type(within(section).getByRole('textbox', { name: /repeat APS runs/ }), 'APS-R1, APS-R2');
+    await userEvent.type(within(section).getByRole('textbox', { name: /Justification/ }), 'Root cause found and corrected');
+    await userEvent.click(within(section).getByRole('button', { name: 'Record the review' }));
+    await waitFor(() => expect(ui.posts('/api/plant/equipment/PRESS-01/aps-failure-review')).toHaveLength(1));
+    expect(ui.posts('/api/plant/equipment/PRESS-01/aps-failure-review')[0]?.body).toEqual({ riskAssessmentRef: 'QRM-APS-07', repeatApsRefs: ['APS-R1', 'APS-R2'], justification: 'Root cause found and corrected' });
+  });
+
   // Slice 7h (gap report D2): an instrument no status step names (a closure torque tester, TB23-TESTER).
   it('[PR-23][IN-25][INV-40] an operator checks an instrument chosen from the plant list for an open batch and books it, each with a fresh badge tap on a kiosk; only instruments are offered', async () => {
     const batch = example('batches-list').batches[0];
