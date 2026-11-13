@@ -108,12 +108,12 @@ finished lot of it is refused. The master-version market authorisation stays (le
     never offered. No control or database rule ties a unit to the stage's room. Default taken: the stage room's units
     come first. When none of them can be used now, usable units of the class in other rooms are offered with their room
     and a note says why. When no unit can be used anywhere, every unit is listed with the plant's reason and what to do.
-    A unit with an open use of the batch is always offered. The raw EQUIPMENT_USE and PRESS_SETUP forms now offer the
-    person's open uses to pick, so nobody types a use id.
+    A unit with an open use of the batch is always offered. Raw EQUIPMENT_USE/PRESS_SETUP forms pick an open use.
   - Bug 6: recipe-core 1921 makes the planning read list every matching master in `matches`. When more than one
-    matches, `match` is null and `noMatch` names them; the planning screen asks the planner to choose. Owner question:
-    should twin families (the same size inside a wider batch-size set, INV-17 / D-0 M2) be refused at authorisation
-    instead?
+    matches, `match` is null and `noMatch` names them; the planning screen asks the planner to choose. Owner, 13
+    November: a twin family is refused at authorisation (recipe-core 1923, EBMR-RCP-438: another family of the same
+    product with an active authorisation for the same market, site, line and batch quantity); the planner's choice stays
+    for twins already in a database and on different lines. Owner: a unit of another room may be used (no guard).
 - Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
   changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 

@@ -52,29 +52,50 @@ function gmp(m: MbrContent): MbrContent {
   return strip(m) as MbrContent;
 }
 
-async function authorised(content: MbrContent): Promise<{ familyId: string }> {
+async function approved(content: MbrContent): Promise<{ familyId: string; versionId: string }> {
   const v = await w.approvedVersion(content);
-  await w.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, 'L1', SIZE)], regulatoryBasis: 'IN: registration on file' });
+  return { familyId: v.familyId, versionId: v.versionId };
+}
+
+const authorise = (versionId: string, line: string, size = SIZE) =>
+  w.authorise({ versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, line, size)], regulatoryBasis: 'IN: registration on file' });
+
+async function authorised(content: MbrContent, line = 'L1'): Promise<{ familyId: string }> {
+  const v = await approved(content);
+  await authorise(v.versionId, line);
   return { familyId: v.familyId };
+}
+
+/** A GMP master of a new product (upper-case code, as the ERP gives it). */
+function product(): MbrContent {
+  const a = gmp(uniqueContent('tablet-granulation-compression', ['IN']));
+  a.header.product = { ...a.header.product, code: a.header.product.code.toUpperCase() };
+  return a;
+}
+
+/** A second family of the same product and strength: the same batch size among a wider set (another identity, INV-17). */
+function twin(a: MbrContent): MbrContent {
+  const b = structuredClone(a);
+  b.header.family = `${a.header.family}-B`.slice(0, 64);
+  b.header.batchSizes = [...a.header.batchSizes, { id: 'BS-400K', quantity: { value: '102.4', unit: 'kg' } }];
+  return b;
 }
 
 const orders = async (): Promise<Order[]> => (await db.admin.query<{ r: Order[] }>('select recipe.planning_orders($1) as r', [SITE])).rows[0]?.r ?? [];
 
 describe('an ERP order that more than one master matches (retest 13 November 2026, bug 6)', () => {
   it('[PR-01][INV-01] one matching master is the match; with two the read names none as the match, lists both by family code and says the planner chooses', async () => {
-    const a = gmp(uniqueContent('tablet-granulation-compression', ['IN']));
-    a.header.product = { ...a.header.product, code: a.header.product.code.toUpperCase() };
+    const a = product();
     const famA = await authorised(a);
     const orderNo = await postOrder(db.app, erp, a, SIZE);
     const one = (await orders()).find((o) => o.orderNo === orderNo);
     expect(one?.match?.familyId).toBe(famA.familyId);
     expect(one?.matches?.map((m) => m.familyId)).toEqual([famA.familyId]);
     expect(one?.noMatch).toBeNull();
-    // A second family of the same product and strength, with the same batch size among a wider set, authorised too.
-    const b = structuredClone(a);
-    b.header.family = `${a.header.family}-B`.slice(0, 64);
-    b.header.batchSizes = [...a.header.batchSizes, { id: 'BS-400K', quantity: { value: '102.4', unit: 'kg' } }];
-    const famB = await authorised(b);
+    // A twin family authorised for the same batch size on another line (the twin guard, 1923, is per line): the order
+    // names no line, so both match it.
+    const b = twin(a);
+    const famB = await authorised(b, 'L2');
     const two = (await orders()).find((o) => o.orderNo === orderNo);
     expect(two?.match).toBeNull();
     const byCode = [
@@ -83,5 +104,30 @@ describe('an ERP order that more than one master matches (retest 13 November 202
     ].sort((x, y) => (x.code < y.code ? -1 : 1));
     expect(two?.matches?.map((m) => [m.familyId, m.batchSizeId])).toEqual(byCode.map((f) => [f.id, SIZE]));
     expect(two?.noMatch).toMatch(/2 master records match this order .*choose/);
+  }, 300_000);
+});
+
+describe('a twin family is refused at authorisation (owner decision of 13 November 2026 on bug 6; recipe-core 1923)', () => {
+  it('[PR-01][INV-01][INV-17] a second family of the same product authorised for the same market, site, line and batch quantity as an active one is refused naming that family; another line or another batch quantity is authorised', async () => {
+    const a = product();
+    const famA = await authorised(a);
+    const b = twin(a);
+    const vB = await approved(b);
+    const refused = await authorise(vB.versionId, 'L1').then(
+      () => 'authorised',
+      (e: Error) => e.message,
+    );
+    expect(refused).toMatch(new RegExp(`^MBR family ${a.header.family} version 1 is already authorised .* line L1 and batch size ${SIZE} .*EBMR-RCP-438`));
+    const cells = await db.admin.query('select 1 from recipe.authorisation_cell where family_id = $1', [vB.familyId]);
+    expect(cells.rows).toEqual([]);
+    // Its other batch size (102.4 kg) on the same line, and the shared size on another line, are authorised.
+    await authorise(vB.versionId, 'L1', 'BS-400K');
+    await authorise(vB.versionId, 'L3');
+    const open = await db.admin.query<{ line: string; batch_size: string }>(
+      "select line, batch_size from recipe.authorisation_cell where family_id = $1 and status = 'CURRENT' order by line, batch_size",
+      [vB.familyId],
+    );
+    expect(open.rows).toEqual([{ line: 'L1', batch_size: 'BS-400K' }, { line: 'L3', batch_size: SIZE }]);
+    expect(famA.familyId).not.toBe(vB.familyId);
   }, 300_000);
 });

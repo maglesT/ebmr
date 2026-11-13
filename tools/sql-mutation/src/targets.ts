@@ -204,10 +204,12 @@ export const TARGETS: Target[] = [
                 'recipe.market_authorisation_activation_guard', 'recipe.authorisation_cell_activation_guard',
                 'recipe.authorisation_cell_supersession_guard',
                 // recipe-core 1889 (owner item 11): the proposer never activates.
-                'recipe.market_authorisation_activation_not_proposer'],
+                'recipe.market_authorisation_activation_not_proposer',
+                // recipe-core 1923 (owner, 13 November 2026): a twin family is refused at authorisation.
+                'recipe.authorisation_cell_twin_guard'],
     tests: [r('lifecycle/market.test.ts'), r('lifecycle/issue.test.ts'), r('lifecycle/selection.property.test.ts'),
             r('lifecycle/review-inventory.test.ts'), r('lifecycle/audit-reason.test.ts'), r('lifecycle/concurrency.test.ts'),
-            r('lifecycle/authorization.test.ts')],
+            r('lifecycle/authorization.test.ts'), r('lifecycle/planning-several-masters.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: the commands (sql 0210, 0240, 0270, 0295, 0298, 0299) ----------------
