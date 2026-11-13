@@ -13,6 +13,7 @@ import { useOffered } from '../../app/roles.ts';
 import { CONFIG_READS, words } from './reads.ts';
 
 const NUMBER = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/;
+const UNIT = /^[A-Z0-9][A-Z0-9_-]{0,63}$/;
 
 export function ChangeRecordsPage() {
   const q = useApiQuery(routes.config.changeRecords, { query: {} });
@@ -40,7 +41,10 @@ function Raise() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [chosen, setChosen] = useState<string[]>([]);
-  const ok = NUMBER.test(num.trim()) && title.trim() !== '' && description.trim() !== '' && chosen.length > 0;
+  // ST-29: left empty unless the firm names the lines for which this change requires an APS (never pre-filled).
+  const [aps, setAps] = useState('');
+  const apsLines = aps.split(',').map((x) => x.trim()).filter((x) => x !== '');
+  const ok = NUMBER.test(num.trim()) && title.trim() !== '' && description.trim() !== '' && chosen.length > 0 && apsLines.every((x) => UNIT.test(x));
   return (
     <Section title="Raise a change record" testId="config-raise">
       <Field name="crNumber" label="Change-record number (e.g. CR-2026-014)" value={num} onChange={setNum} />
@@ -60,9 +64,19 @@ function Raise() {
           </label>
         ))}
       </fieldset>
+      <Field
+        name="crApsLines"
+        label="Lines for which this change requires an APS (equipment codes, comma-separated; QA's approval withdraws their qualification)"
+        value={aps}
+        onChange={setAps}
+      />
       <ActButton
         label="Raise the change record"
-        onPress={() => (ok ? raise.run({ body: { number: num.trim(), title: title.trim(), description: description.trim(), areas: chosen } }) : undefined)}
+        onPress={() =>
+          ok
+            ? raise.run({ body: { number: num.trim(), title: title.trim(), description: description.trim(), areas: chosen, ...(apsLines.length > 0 ? { apsLines } : {}) } })
+            : undefined
+        }
         disabled={!ok || raise.busy}
       />
       <ActResult error={raise.error} done={raise.done} label="The change record is raised; QA approves it next." />
@@ -83,7 +97,7 @@ function Record({ r }: { r: ChangeRecordView }) {
       </h3>
       <p>{r.description}</p>
       <p>
-        Areas: {r.areas.map(words).join(', ')}. Raised by {r.raisedBy.legalName} at {r.raisedAt.text}
+        Areas: {r.areas.map(words).join(', ')}.{r.apsLines.length > 0 ? ` APS required for: ${r.apsLines.join(', ')}.` : ''} Raised by {r.raisedBy.legalName} at {r.raisedAt.text}
         {r.approvedBy && r.approvedAt ? `; approved by ${r.approvedBy.legalName} at ${r.approvedAt.text}` : ''}
         {r.closedAt ? `; closed at ${r.closedAt.text}` : ''}.
       </p>
