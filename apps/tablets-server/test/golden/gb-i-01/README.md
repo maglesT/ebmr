@@ -49,3 +49,5 @@ person, approves each result. The lot's results screen shows each result's metho
 Production approves both records; QA concludes their registers, reviews their audit trails and signs the QA review; G-REL
 for India is GREEN or NA on every item (none RED; `expected.json`, `fromTheRun.release.ready`), and the authorised person
 signs the manufacturer's release: the lot is RELEASED for India.
+
+Handbook: [06-testing-and-debugging.md](../../../../../docs/handbook/06-testing-and-debugging.md)
