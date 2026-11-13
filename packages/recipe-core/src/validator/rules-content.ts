@@ -757,6 +757,11 @@ export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string;
   // ST-06: process and equipment alarms are acknowledged and evaluated (A1 5.2); the filling step records them and the
   // assessment block after it evaluates each one. No clause of Schedule M or 21 CFR 211 asks it, so only the EU.
   { market: 'EU', trigger: 'INJ-FILL', required: 'INJ-ALARM-ASSESSMENT', relation: 'AFTER', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
+  // ST-52: the sterilised filter assembly is integrity tested before use (PUPSIT, A1 8.87). INJ-PUPSIT is its own step,
+  // after the filter's sterilisation and before the filtration step; INJ-STERILE-FILTER's own pre-use test is the base
+  // test of every market and is not PUPSIT. So on an EU master each filtration step has a PUPSIT step before it (where
+  // PUPSIT is not feasible, the block itself records the risk assessment's reference). Only the EU asks it.
+  { market: 'EU', trigger: 'INJ-STERILE-FILTER', required: 'INJ-PUPSIT', relation: 'BEFORE', control: 'ST-52', clause: 'EU GMP Annex 1 8.87: sterilised filter assembly integrity tested before use (PUPSIT)' },
 ];
 
 function libraryCode(p: PhaseNode): string | undefined {

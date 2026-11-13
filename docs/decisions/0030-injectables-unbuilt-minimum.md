@@ -4,7 +4,7 @@
 - **Decided by:** the lead (session_01PybpFvEFaQZ3LEfnNdjBCE), as a ruling under the owner's standing minimum-compliance
   rule (only binding clauses, cited and checked against the official text; no clause, no requirement). Reported to the
   owner, who may veto it. Prepared by build session 14 (I-6, the injectables edition exit).
-- **Concerns:** controls ST-02, ST-06, ST-11, ST-12, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75, ST-76 and IN-45; their catalog-test clauses marked `not_required` cite this
+- **Concerns:** controls ST-02, ST-06, ST-11, ST-12, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75 and ST-76; their catalog-test clauses marked `not_required` cite this
   record (the register's rule: a quote of at least two whole words from the control's own paragraph below).
 
 ## Context
@@ -35,7 +35,8 @@ ST-76: no binding clause found for blocking settle-plate exposure before the end
 Annex 1 4.36 asks only that the effectiveness of fumigation or vapour disinfection be understood and validated, and 4.22
 covers decontamination methods; neither sets when environmental sampling may start.
 
-IN-45: the automatic listing of all batches since the previous passing process simulation is beyond the clause. For EU
+IN-45 (superseded in B3, 13 November 2026: the listing is now built for EU masters with ST-33, as the record review
+of Annex 1 9.46(iv) needs it, and IN-45 no longer cites this record; the original paragraph follows): the automatic listing of all batches since the previous passing process simulation is beyond the clause. For EU
 markets Annex 1 9.46(iv) requires a prompt review of the records of aseptic production since the last successful
 simulation, with a risk assessment of the batches made since then; it requires the review, not a system listing. The
 review is recorded in the investigation of the failed simulation's deviation. Schedule M Part II 5.5 asks for an

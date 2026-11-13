@@ -317,6 +317,21 @@ export const EXAMPLES = {
   'plant-complete-cleaning': { schema: r.plant.completeCleaning.response, data: s6.plant.cleaning, routeId: r.plant.completeCleaning.id },
   'plant-record-clearance': { schema: r.plant.recordClearance.response, data: s6.plant.clearance, routeId: r.plant.recordClearance.id },
   'plant-equipment-event': { schema: r.plant.equipmentEvent.response, data: s6.plant.equipmentEvent, routeId: r.plant.equipmentEvent.id },
+  // ST-33 (tablets 1912): a line withdrawn after a failed media fill, its impact list and QA's review.
+  'plant-aps-failure': {
+    schema: r.plant.apsFailure.response,
+    data: {
+      withdrawal: {
+        failedBatch: 'MF2600004',
+        lastSuccessfulAps: 'MF2600002',
+        withdrawnAt: { us: '1790580903000000', text: '28-SEP-2026 13:05:03 +05:30 (Asia/Kolkata)' },
+        batches: [{ batchNumber: 'INJ2600011', lastUsedAt: { us: '1790494503000000', text: '27-SEP-2026 13:05:03 +05:30 (Asia/Kolkata)' } }],
+        reviewed: false,
+      },
+    },
+    routeId: r.plant.apsFailure.id,
+  },
+  'plant-aps-failure-review': { schema: r.plant.apsFailureReview.response, data: { equipmentCode: 'VIAL-LINE-1', withdrawalEventId: 'e2f3a4b5-c6d7-4e8f-8a9b-0c1d2e3f4a5d' }, routeId: r.plant.apsFailureReview.id },
   // Phase 7 slice 7h (WP-A): the plant acts of the floor and what the step screen offers them from.
   'batches-step-plant': { schema: r.batches.stepPlant.response, data: PF_STEP_PLANT, routeId: r.batches.stepPlant.id },
   // Phase 7 slice 7k (R3.3, R3.10): the plant act recorded in its step as one act, and a batch's cleaning needs.

@@ -3,6 +3,8 @@
  * metadata the engine does not read (owner Q0), so the validator reads a table (MARKET_REQUIRED_BLOCKS): on a master for
  * the market, each trigger step has the required block after it (or before it) on every path. First entry, ST-06: on the
  * EU market the filling step (INJ-FILL) is followed by the assessment of its alarms (INJ-ALARM-ASSESSMENT, A1 5.2).
+ * Second, ST-52: on the EU market the sterilising filtration (INJ-STERILE-FILTER) has PUPSIT (INJ-PUPSIT, A1 8.87)
+ * before it.
  */
 import { describe, expect, it } from 'vitest';
 import { genericBlockCatalog } from '../../src/flow/blocks.ts';
@@ -21,7 +23,7 @@ const step = (id: string, code: string) => phase(id, { block: { type: libraryBlo
 
 function master(marketSet: string[], children: FlowNode[]): MbrContent {
   const base = mbrWith({ kind: 'sequence', id: 'ops', children });
-  return { ...base, header: { ...base.header, edition: 'injectables', marketSet }, blockDefinitions: [definition('INJ-FILL'), definition('INJ-ALARM-ASSESSMENT')] as never };
+  return { ...base, header: { ...base.header, edition: 'injectables', marketSet }, blockDefinitions: ['INJ-FILL', 'INJ-ALARM-ASSESSMENT', 'INJ-STERILE-FILTER', 'INJ-PUPSIT'].map(definition) as never };
 }
 const findings = (mbr: MbrContent) =>
   validate(mbr, { blocks: catalogWithLibrary(genericBlockCatalog, mbr) }).findings.filter((f) => f.rule === 'MKT-REQUIRED-BLOCKS');
@@ -50,5 +52,20 @@ describe('the blocks a market set makes mandatory on a master (I-6 B2)', () => {
     // The assessment placed before filling does not follow it.
     expect(findings(master(['IN', 'EU'], [step('alarms', 'INJ-ALARM-ASSESSMENT'), fill, phase('after')]))).toHaveLength(1);
     expect(findings(master(['IN', 'US'], [fill, phase('after')]))).toEqual([]);
+  });
+
+  it('[ST-52][PR-03] a master for the EU market whose sterilising filtration has no PUPSIT step before it is refused; with PUPSIT before filtration it passes, PUPSIT after filtration is refused; a master for India and the US needs none', () => {
+    const filter = step('filtration', 'INJ-STERILE-FILTER');
+    const pupsit = step('pupsit', 'INJ-PUPSIT');
+    const without = findings(master(['IN', 'EU'], [phase('before'), filter, phase('after')]));
+    expect(without).toHaveLength(1);
+    expect(without[0]).toMatchObject({ severity: 'ERROR', subject: 'filtration' });
+    expect(without[0]?.message).toMatch(/INJ-PUPSIT before it .*ST-52.*8\.87/);
+    expect(findings(master(['IN', 'EU'], [phase('before'), pupsit, filter, phase('after')]))).toEqual([]);
+    // PUPSIT placed after filtration does not precede it.
+    const late = findings(master(['IN', 'EU'], [phase('before'), filter, pupsit, phase('after')]));
+    expect(late).toHaveLength(1);
+    expect(late[0]).toMatchObject({ severity: 'ERROR', subject: 'filtration' });
+    expect(findings(master(['IN', 'US'], [phase('before'), filter, phase('after')]))).toEqual([]);
   });
 });

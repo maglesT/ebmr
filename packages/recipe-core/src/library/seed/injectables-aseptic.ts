@@ -377,7 +377,11 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-13 (PUPSIT): A1 8.87 (EU market only). Added by a formulation for the EU market after the filter's
-    // sterilisation and before filtration.
+    // sterilisation and before filtration (the master validator requires it before INJ-STERILE-FILTER on an EU master,
+    // MKT-REQUIRED-BLOCKS, ST-52). A1 8.87 accepts that PUPSIT is not always possible after sterilisation (process
+    // constraints, e.g. very small volumes) when a thorough risk assessment is in place with controls against a
+    // non-integral filtration system: the waiver answer then asks for that assessment's reference instead of the test
+    // values, and the entry is refused without it.
     definition: {
       code: 'INJ-PUPSIT',
       version: 1,
@@ -385,14 +389,16 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'PROCESS',
       edition: EDITION,
       markets: ['EU'],
-      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit.',
-      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation.',
+      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit; or, where PUPSIT is not feasible, the reference of the documented risk assessment of the alternative approach.',
+      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation. Only where the formulation documents that PUPSIT is not feasible, answer yes and give the reference of its risk assessment.',
       sections: [
         {
           id: 'pupsitTest',
           title: 'Integrity after sterilisation, before use',
           fields: [
-            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
+            { id: 'pupsitNotFeasible', label: 'PUPSIT not feasible (documented risk-based alternative)', type: 'YES_NO' },
+            { id: 'riskAssessmentRef', label: 'Risk assessment reference (alternative to PUPSIT)', type: 'TEXT', maxLength: 80, showWhen: { field: 'pupsitNotFeasible', equals: true } },
+            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'], showWhen: { field: 'pupsitNotFeasible', equals: false } },
             { id: 'pupsitBubblePoint', label: 'Bubble point after sterilisation', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Bubble point' } },
             { id: 'pupsitDiffusion', label: 'Diffusion after sterilisation', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Diffusion' } },
           ],
@@ -410,14 +416,16 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     // media); for EU batches A1 9.41-9.47 (accountability, incubation, reading, the zero target). The incubation conditions
     // are the ones the site validated, entered as the formulation's limits (plan 8a: no fixed FDA scheme). A contaminated
     // unit is a critical breach: its exception and deviation reach QA, who then does not extend the line's and the people's
-    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet).
+    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet). Its role APS_READING
+    // and the contaminatedCount mark on 'contaminated' are what the database reads on an EU master (tablets 1912): a count
+    // above zero withdraws the filling line's qualification.
     definition: {
       code: 'INJ-APS-READ',
       version: 1,
       title: 'Media fill: incubation and reading',
       category: 'CONTROL',
       edition: EDITION,
-      roles: ['OBSERVATION'],
+      roles: ['OBSERVATION', 'APS_READING'],
       description: 'INJ-26, media fill. The filled units incubated, the units removed before incubation with the reason, the incubation temperature and time of each period against the site\'s validated conditions, and the units read as contaminated after incubation against the acceptance limit.',
       instructions: 'Inspect the filled units and remove only those that are not integral, recording why. Incubate them in the validated scheme and read every unit at its end. Record any contaminated unit and send it for identification.',
       sections: [
@@ -440,7 +448,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           id: 'reading',
           title: 'Reading',
           fields: [
-            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true },
+            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true, contaminatedCount: true },
             { id: 'identification', label: 'Organisms identified (for a contaminated unit)', type: 'TEXT', maxLength: 120, required: false },
           ],
         },
