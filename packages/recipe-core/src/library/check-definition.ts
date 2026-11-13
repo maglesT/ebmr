@@ -286,6 +286,8 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: 
       break;
     case 'YES_NO':
       if (f.expected !== undefined && typeof f.expected !== 'boolean') out.push(err('LIB-FIELD-EXPECTED', `${fp}.expected`, `Field ${f.id}: the expected answer is yes or no`));
+      if (f.unexpectedCritical !== undefined && f.unexpectedCritical !== true) out.push(err('LIB-FIELD-EXPECTED', `${fp}.unexpectedCritical`, `Field ${f.id}: unexpectedCritical is true or absent`));
+      if (f.unexpectedCritical === true && typeof f.expected !== 'boolean') out.push(err('LIB-FIELD-EXPECTED', `${fp}.unexpectedCritical`, `Field ${f.id}: a critical answer needs the expected answer, so the other one is the critical exception`, ['PR-29']));
       break;
     case 'CHOICE': {
       const opts = Array.isArray(f.options) ? f.options : [];

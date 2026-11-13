@@ -68,8 +68,9 @@ existing engine runs it with no code of its own:
   written for the first listed size) and the batch size is that size (`scaling.ts`); lot assay and earlier-step inputs
   are read from the phase's targets (`view.target(id)`).
 - Each value with a limit is evaluated against the formulation's tiered limit and a breach raises
-  `LIB_LIMIT_BREACH` with the consequences the engine gives that tier (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER`; a
-  not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.
+  `LIB_LIMIT_BREACH` with the consequences the engine gives that tier (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER` (with
+  `unexpectedCritical`, as a critical exception: QA only, the step and those after it wait for a deviation, release
+  blocked; IN-48); a not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.
 - Repeats: ONCE and COUNT sections refuse an extra entry. In an UNTIL_PASS loop, a value that does not pass is a repeat,
   not a breach, and the step cannot be signed until it passes. The last allowed repeat without a pass raises
   `LIB_REPEAT_LIMIT_REACHED`, which holds the following steps until a deviation is linked. A PER_INTERVAL round recorded
