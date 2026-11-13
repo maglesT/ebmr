@@ -27,7 +27,16 @@ behaviour: |-
 catalog_test: Issue RTU syringe tubs after the CoA-reliability confirmation has lapsed → blocked. Add a sterile API lot without a sterility certificate → blocked.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-40] a supplier-sterilised lot cannot be accepted without its sterility certificate: the entry is refused and nothing is recorded"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-40][ST-49] a supplier-sterilised component is accepted by its released lot, named where it is used and verified by a second person, with its sterilisation method (no UV), certificate and dose or cycle reference; a damaged wrap, or for the EU market an indicator that has not changed, is an exception"
+clauses:
+  - clause: "Issue RTU syringe tubs after the CoA-reliability confirmation has lapsed → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Currency checks on contractor validation and CoA reliability"
+  - clause: "Add a sterile API lot without a sterility certificate → blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-40] a supplier-sterilised lot cannot be accepted without its sterility certificate: the entry is refused and nothing is recorded"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

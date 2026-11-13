@@ -18,7 +18,16 @@ behaviour: |-
   - Particle-counter records carry counter and probe ID. The ≤1 m tubing guidance is a qualification item and is not re-checked per batch.
 catalog_test: Record a fill-weight check on a balance whose calibration expired yesterday → refused or deviation-gated. Enter an as-found failure on an integrity tester → the impacted results list is generated.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-05] the fill-weight check on a balance whose calibration has expired is refused; one due soon is still used"
+clauses:
+  - clause: "Record a fill-weight check on a balance whose calibration expired yesterday → refused or deviation-gated."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-05] the fill-weight check on a balance whose calibration has expired is refused; one due soon is still used"
+  - clause: "Enter an as-found failure on an integrity tester → the impacted results list is generated."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "As-found failure builds a list of affected batches"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -52,6 +52,14 @@ describe('device registry (DI-20)', () => {
     expect(alerts.rows[0]).toEqual({ n: 2 });
   });
 
+  it('[ST-13] a login from a tablet that is not in the device registry is refused; a registered Grade A/B terminal is accepted only in its own room', async () => {
+    const op = await seedActor(db, { acknowledgeEsig: false });
+    await expect(passwordAuth(op, 'LOGIN', fingerprint())).rejects.toMatchObject({ reason: 'UNREGISTERED_DEVICE' });
+    const gradeB = await seedActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'FILL-B1', acknowledgeEsig: false });
+    await assertDeviceLocation(db.app, gradeB.deviceId ?? '', 'FILL-B1');
+    await expectRefused(assertDeviceLocation(db.app, gradeB.deviceId ?? '', 'FILL-B2'), 'EBMR-IAM-073');
+  });
+
   it('[DI-20] data from a relocated balance is rejected with an alert until the registry is updated', async () => {
     const fp = fingerprint();
     const balance = await asAdmin((c) =>

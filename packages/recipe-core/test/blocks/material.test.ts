@@ -62,6 +62,15 @@ describe('G-07 weighing and dispensing', () => {
     expect(entry(run, weigh({}, { retestAtUs: String(T0 + DAY) })).accepted).toBe(true);
   });
 
+  it('[ST-39] an excipient whose endotoxin result is pending (its lot still in quarantine until QC releases it) is hard-stopped at dispensing', () => {
+    const mbr = dispensing();
+    mbr.bom = mbr.bom.map((b) => ({ ...b, role: 'EXCIPIENT' as const }));
+    const run = Run.issue(define(mbr), { inputs: { target: { value: { kind: 'DECIMAL', value: '8.000', unit: 'kg' }, source: 'calc' } }, marketSet: ['IN'] }, T0);
+    run.start('d');
+    expect(entry(run, weigh({}, { status: 'QUARANTINE' })).refusal?.code).toBe('G07-LOT-STATUS');
+    expect(entry(run, weigh({}, { status: 'RELEASED' })).accepted).toBe(true);
+  });
+
   it('[IN-24] for a batch with a US market, a lot without an identity-test result is blocked', () => {
     const run = issueDispensing(['IN', 'US']);
     expect(entry(run, weigh({}, { identityTested: false })).refusal?.code).toBe('G07-LOT-IDENTITY');

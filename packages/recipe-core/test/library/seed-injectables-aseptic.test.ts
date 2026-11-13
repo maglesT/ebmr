@@ -71,6 +71,13 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(item, { component: { packsIntact: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
   });
 
+  it('[ST-40] a supplier-sterilised lot cannot be accepted without its sterility certificate: the entry is refused and nothing is recorded', () => {
+    const item = byCode('INJ-SUPPLIER-STERILE');
+    expect(() => judgedRun(item, { component: { certificate: undefined } })).toThrow(/Sterilisation certificate reference is required \(LIB-ENTRY-REQUIRED/);
+    expect(() => judgedRun(item, { component: { certificate: '' } })).toThrow(/ENG-ENTRY-SCHEMA/);
+    expect(judgedRun(item, {}).exceptions).toEqual([]);
+  });
+
   it('[ST-48][ST-42] sterilisation in place records the cycle values from the printout as critical values with limits, checked by a second person; a temperature or exposure below the minimum is an exception', () => {
     const item = byCode('INJ-SIP');
     for (const id of ['temperature', 'holdTime']) expect(fieldOf(item, id), id).toMatchObject({ type: 'NUMBER', critical: true });
@@ -193,6 +200,17 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(alert.status).toBe('COMPLETED');
   });
 
+  it('[ST-21] for a Grade A location, whose action limit is no growth, one colony on a settle plate is an exception that stops the step until it is handled', () => {
+    // A Grade A use of the block: the formulation sets the grade's action limit (A1 Table 6: no growth) as its maximum 0.
+    const gradeA = withLimits(byCode('INJ-EM-COUNTS'), {
+      cfuSettle: { unit: '{CFU}', ranges: [{ tier: 'INTERNAL_ACTION', high: { value: '0', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'RULE_TABLE', ref: 'A1-TABLE-6' } }] },
+    });
+    const one = judgedRun(gradeA, { count: { method: 'Settle plate', cfuAir: undefined, cfuSettle: '1' } });
+    expect(new Set(one.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
+    expect(one.status).not.toBe('COMPLETED');
+    expect(judgedRun(gradeA, { count: { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
   it('[ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade\'s keys of the sterile rule table; a count above the limit is an exception', () => {
     const item = byCode('INJ-EM');
     checkedBySecondPerson(item);
@@ -292,6 +310,11 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     for (const f of event?.fields ?? []) expect('limitSlot' in f ? f.limitSlot : undefined, f.id).toBeUndefined();
   });
 
+  it('[ST-11] a torn glove is recorded as a glove-change event of the filling, with what happened; the fill then completes', () => {
+    expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: expect.arrayContaining(['Glove change']) as unknown });
+    expect(fillWithEvents([{ eventKind: 'Glove change', eventWhat: 'Right glove of port 2 torn and changed', eventMinutes: '3' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
   it('[ST-34][ST-36] an event not on the formulation\'s list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)', () => {
     const run = fillWithEvents([{ eventListed: false, eventWhat: 'Unlisted: stopper chute cleared by hand' }]);
     expect(run.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
@@ -313,6 +336,15 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const run = judgedRun(byCode('INJ-APS-READ'), { reading: { contaminated: '1', identification: 'Staphylococcus sp.' } });
     expect(new Set(run.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(run.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-02] the sterility-assurance route is the formulation\'s choice of blocks: every aseptic set-up filters to sterility and assembles aseptically and has no terminal sterilisation, which is a block of its own', () => {
+    for (const setUp of SET_UPS) {
+      const codes = setUp.steps.map((x) => x.code);
+      expect(codes, setUp.name).toEqual(expect.arrayContaining(['INJ-STERILE-FILTER', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-SIP']));
+      expect(codes, setUp.name).not.toContain('INJ-TERMINAL-STERILISE');
+    }
+    expect(SEED_CATALOGUE.map((s) => s.definition.code)).toContain('INJ-TERMINAL-STERILISE');
   });
 
   it('[ST-74][IN-41] the open Grade A, RABS and isolator set-ups are formulations of the same blocks: each names its background room and line by class; the isolator adds bio-decontamination and the glove test; EU-market blocks appear only in the EU set-up', () => {

@@ -25,7 +25,17 @@ behaviour: |-
   - DESIGN-CHOICE: Grade A/B steps are paperless, using cleanroom-rated devices (see ST-13), because paper sheds fibres.
 catalog_test: Submit an aseptic product master with no route justification → approval refused. Open an executed batch → every CCP step shows the CCS ID and version effective on that date.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-02] the sterility-assurance route is the formulation's choice of blocks: every aseptic set-up filters to sterility and assembles aseptically and has no terminal sterilisation, which is a block of its own"
+clauses:
+  - clause: "Submit an aseptic product master with no route justification → approval refused."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "refusing approval of an aseptic master that carries no route justification"
+  - clause: "Open an executed batch → every CCP step shows the CCS ID and version effective on that date."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "CCS ID and version on every critical step, blocking MBR approval"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -21,7 +21,17 @@ behaviour: |-
 catalog_test: Record an "other" intervention → QA sign-off required before continuing, deviation auto-created, certification blocked while open.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-36] an intervention not on the validated list raises an exception; QA dispositions it under a deviation linked to the batch, and while that deviation is open G2.DEVIATIONS is RED and the lot is not ready"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-34][ST-36] an event not on the formulation's list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)"
+clauses:
+  - clause: "Record an \"other\" intervention → QA sign-off required before continuing,"
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Real-time QA signature before continuing"
+  - clause: "deviation auto-created, certification blocked while open."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-34][ST-36] an event not on the formulation's list of validated interventions is an exception that keeps the filling step from being signed until it is handled (then the gate waits for its deviation)"
+      - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-36] an intervention not on the validated list raises an exception; QA dispositions it under a deviation linked to the batch, and while that deviation is open G2.DEVIATIONS is RED and the lot is not ready"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

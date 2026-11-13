@@ -17,7 +17,14 @@ behaviour: |-
   - An open excursion or adverse trend on a used point becomes a review item.
 catalog_test: Put an adverse-trend flag on nitrogen drop N-3 → every batch that used N-3 shows a review item.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-25][ST-26] compounding refuses water from a WFI point of use that is out of service (QC has not released it); a released point is used"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-25][ST-26][ST-27] a point of use (WFI outlet, nitrogen drop, clean-steam point) is a unit whose status follows QC: taken out of service on a failed result it may not be used, returned to service on a passing one it may"
+clauses:
+  - clause: "Put an adverse-trend flag on nitrogen drop N-3 → every batch that used N-3 shows a review item."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Trend flag per point and review items on every batch that used it"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

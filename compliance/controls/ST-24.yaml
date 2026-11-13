@@ -19,7 +19,12 @@ behaviour: |-
   - Exception: the short-shelf-life path (ST-69).
 catalog_test: Attempt certification while two filling-window plates are still incubating → blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-24] a lot whose filling-window plates are still incubating (the EM counts step not done) is not ready: the record is not complete, so G-REL is RED and the release cannot be signed"
+clauses:
+  - clause: "Attempt certification while two filling-window plates are still incubating → blocked."
+    tests:
+      - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-24] a lot whose filling-window plates are still incubating (the EM counts step not done) is not ready: the record is not complete, so G-REL is RED and the release cannot be signed"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

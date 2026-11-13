@@ -31,7 +31,25 @@ behaviour: |-
   - Media-fill and sterility-failure investigation templates generate a HEPA retest task.
 catalog_test: Replay an 8 Pa dip for 5 min during filling → the batch shows the excursion, the next aseptic step needs a restoration record, and release is blocked until assessed. Set the tunnel HEPA test as expired → the depyrogenation step is blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-17] a pressure difference typed below its limit is an exception on the batch: the step cannot be signed, and while the exception is not dispositioned the record is not complete and the lot is not ready"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-17] a pressure difference typed below its limit at room readiness is an exception: the record shows the excursion and the step stops until it is handled"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-17] depyrogenation refuses a tunnel whose HEPA test (its due date) has expired"
+clauses:
+  - clause: "Replay an 8 Pa dip for 5 min during filling → the batch shows the excursion,"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-17] a pressure difference typed below its limit at room readiness is an exception: the record shows the excursion and the step stops until it is handled"
+      - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-17] a pressure difference typed below its limit is an exception on the batch: the step cannot be signed, and while the exception is not dispositioned the record is not complete and the lot is not ready"
+  - clause: "the next aseptic step needs a restoration record,"
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "the restoration record after a pressure-difference dip is beyond the clause"
+  - clause: "and release is blocked until assessed."
+    tests:
+      - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6.2: the release gate waits for the EM counts and for the deviation of an unlisted intervention > [ST-17] a pressure difference typed below its limit is an exception on the batch: the step cannot be signed, and while the exception is not dispositioned the record is not complete and the lot is not ready"
+  - clause: "Set the tunnel HEPA test as expired → the depyrogenation step is blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-17] depyrogenation refuses a tunnel whose HEPA test (its due date) has expired"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
