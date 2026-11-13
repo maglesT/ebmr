@@ -56,9 +56,10 @@ export interface Injectable {
   plant: readonly PlantUnit[];
   /**
    * The primary components: no formula line and nothing dispensed (lead, 6 November 2026). Each has a released TEST- lot
-   * named by the library step that uses it (`field`: its lot field's id).
+   * named by the library step that uses it (`field`: its lot field's id), and by any later step that names the same lot
+   * again (`alsoIn`: those lot fields' ids, e.g. a syringe's plunger stoppers sterilised in the parts autoclave, then placed).
    */
-  components: readonly { id: string; name: string; field: string }[];
+  components: readonly { id: string; name: string; field: string; alsoIn?: readonly string[] }[];
   /** The product's library steps, in order, after the dispensing of the other components (before the reconciliation). */
   steps: readonly ProductBlock[];
   /**
@@ -451,7 +452,7 @@ export function defineInjectablesAcceptance(product: string | Injectable): void 
       lotCode: `TEST-L26-${tag}-${String(materials.length + i + 1)}`,
       material: { code: `TEST-${c.id.toUpperCase()}-${tag}`, name: c.name, tare: '0', gross: '0', group: 'exc' } satisfies OwnMaterial,
     }));
-    const stepLots = Object.fromEntries(componentLots.map((c) => [c.field, c.lotCode]));
+    const stepLots = Object.fromEntries(t.components.flatMap((c, i) => [c.field, ...(c.alsoIn ?? [])].map((f) => [f, (componentLots[i] as { lotCode: string }).lotCode])));
     let batchNumber = '';
     await evidence.step(`Sandbox: the steward registers TEST- lots of the new materials and the product's units; the test batch, issued at the further size, runs the dispensing, every library step${t.processSimulation ? '' : ' and the release for packing'} on the kiosk to Execution complete; its result is exported for GMP`, 'The run passed; its result is in to-gmp with the sandbox stamp', async () => {
       await registerTestLots({ officePage, kioskPage, persona }, [...lots, ...componentLots]);
@@ -898,7 +899,7 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       persona: (k) => persona('GMP', k), containers: (s.gmpContainers ??= {}), save: () => saveProduct(e2e, key, s),
     };
     const units = { ...GMP_BALANCE, ...Object.fromEntries(gmp.plant.map((u) => [u.classCode, u.code])) };
-    const stepLots = Object.fromEntries(t.components.map((c) => [c.field, s.lots?.[c.id] ?? '']));
+    const stepLots = Object.fromEntries(t.components.flatMap((c) => [c.field, ...(c.alsoIn ?? [])].map((f) => [f, s.lots?.[c.id] ?? ''])));
     const floorStep = t.processSimulation
       ? ['GMP floor: the plant cleaned for the batch; dispensing, the media fill\'s library steps through incubation and reading, the reconciliation; each person by the Tap button of the demo reader', 'The dispensing stage signed off; no release for packing; the run is Execution complete'] as const
       : ['GMP floor: the plant cleaned for the batch; dispensing, the product\'s library steps, the sterilised loads into output containers (units, the net verified), the reconciliation, QA\'s release for packing; each person by the Tap button of the demo reader', 'Both stages signed off; H-PACK approved by QA; the run is Execution complete'] as const;

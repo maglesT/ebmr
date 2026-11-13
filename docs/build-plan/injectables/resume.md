@@ -131,6 +131,86 @@ injectables controls, a golden batch, the browser suite, one review pass.
   8.22), with the leakers counted as rejects in INJ-UNIT-ACCOUNT. Build it only when an EU-market ampoule product is in
   scope. The IN ampoule (#193) uses INJ-CCI as a sample.
 
+### Session 10c, the dual-chamber cartridge (12 November 2026, branch `inj/i4-dual-chamber`)
+
+- Sandbox half in its own group library-inj-cartridge (lead: keeps the full run's wall time down), data only (`DUAL_CHAMBER` in injectables-routes-acceptance.ts): drug fill,
+  INJ-LYO (the middle stopper seated in the chamber), a second INJ-STERILE-FILTER and INJ-FILL for the diluent (step ids
+  `p-inj-sterile-filter-2`, `p-inj-fill-2`), INJ-PLUNGER as the closing; 2 tests passed locally (32 min).
+- The diluent is water for injection from the point of use, with no step of its own beyond its filtration (DEMO data).
+- **Lead audit of #239: PASS on scope and data; before merge:**
+  1. after #232 lands (it edits the routes data) and #238 lands (it adds the optional `expect` on ProductBlock: entries
+     and verified values), merge main in (union of the routes data, the playwright group list and ci.yml's ALL list);
+  2. assert, for the cartridge: the diluent INJ-FILL's (`p-inj-fill-2`) and INJ-PLUNGER's computed rejected/accepted,
+     and INJ-UNIT-ACCOUNT's outcome (nothing unaccounted for: 10,000 = 20 + 40 + 9,720 + 80 + 120 + 20);
+  3. run the cartridge spec locally (32 min), then a full run (runner=github) on a head containing current main; merge
+     on green (no re-audit if only these change).
+### Session 11b (11-12 November 2026): I-4 routes merged; powder, lyo, emulsion and syringe E2E
+
+- **Merged:** #228 (ac5e975): the FFS bag, BFS ampoule and radiation-sterilised vial in `library-inj-routes`; the
+  INJ-FFS/INJ-BFS v1 seal counts (typed `sealRejects` per round, typed `rejects` at filling, CALC `totalRejects`).
+- **Merged:** #231 (a7e4e69): the sterile powder vial (I-4, `library-inj-powder`, sandbox) and the lyophilised vial to
+  release (I-3, `library-inj-lyo`, sandbox + GMP; the lyophilised loads are the output, stage `LYOPHILISATION`); the
+  INJ-FILL closures label in the approved neutral wording. Its library-bilayer job failed once (closeStage, "Signed." not
+  shown) and passed on its one re-run; main's bilayer was green.
+- **#232** (branch `inj/i4-emulsion-syringe-e2e`, audited PASS): an emulsion in vials (I-1 vial route + INJ-HOMOGENISE,
+  a 5 micrometre filter) and a prefilled syringe from ready-to-use tubs (I-2b RABS set-up, INJ-SUPPLIER-STERILE,
+  INJ-ASEPTIC-TRANSFER, INJ-PLUNGER as the closing rejects, no capping), both in `library-inj-routes` (now 5 products,
+  about 50 min). It needs:
+  - INJ-FILL v1, additive: the format also offers Syringe, Cartridge and Bottle (the plan's INJ-15 row);
+  - `alsoIn` on an acceptance component (one physical lot named in several steps: the plunger stoppers in the autoclave
+    load and at placement).
+  Both pass locally 4/4. The lead accepted both in principle; the PR body must show the in-place INJ-FILL edit is safe
+  (as #231's does: nothing pins INJ-FILL by hash; library, demo-catalogue, demo-seed and entry-data tests pass; the
+  golden batches are tablets-only). Merged on a green full run whose head contained current main.
+- **Merged:** #237 (621671d): main's tsc failed after #234 (InjectableGmp.outputUnits optional) and #231 (which copied
+  it into a required field) merged in that order; the lyo product now requires the aseptic vial's value. Lesson (lead):
+  merge only when the green run's head contains the current main (`git merge-base --is-ancestor origin/main <head>`).
+- **Next (lead, 12 November 2026):** dual-chamber (INJ-FILL twice, INJ-LYO, INJ-PLUNGER; no new block), then I-5
+  (automated inspection, deterministic CCIT, RMM in INJ-26).
+- **Learnt:**
+  - Two PRs that each add an E2E group and control titles always conflict in `playwright.config.ts`, `ci.yml` and the
+    controls. Keep both sides. Then dedupe the control lists (the conflict's context line comes twice), run
+    `register:sort-tests`, and check each control equals the union of both sides. Watch for a group key defined twice in
+    the config (TypeScript does not flag it).
+  - Local E2E in a fresh container: create the role `ebmr_dev` (as `tools/ci/start-postgres.sh` does). The pre-installed
+    Chromium is newer than the pinned Playwright's (1194 against 1243): point `PLAYWRIGHT_BROWSERS_PATH` at a directory
+    with `chromium_headless_shell-1194/chrome-linux/headless_shell` linked to the installed one. A killed run leaves the
+    stack's node processes holding connections ("too many connections for role ebmr_sandbox_listener"): kill
+    `apps/*/src/main.ts` before the next run.
+  - `manual-weighing-gate.test.ts` failed twice on one GitHub shard during the Actions outage, then passed on the next
+    run and locally 9/9 (heartbeat-window timing under load). Logged to the lead; not changed.
+- **Residuals (lead, 12 November 2026; root cause assigned by the lead):**
+  - The GMP 1 licence step `endorseOnLicence` (tools/e2e/specs/phase7/own-product-gmp-flow.ts:119-120) timed out on a fill
+    (30 s) twice: `library-wg-fc` in run 43227171720 (head 864ff23), and `library-inj-aseptic` in run 43266879234 (head
+    9ab0790). Both groups passed in the other run on the same head. It's intermittent and in shared tablets and injectables
+    code.
+  - `packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts` [DI-20] enrolment: expected EBMR-EQD-032,
+    got a duplicate-key violation (shard 7 of run 43266879234). Intermittent.
+
+### Session 13 → Handover (12 November 2026, 17:10; I-6 is a fresh session)
+
+- **I-5 done:** #236 (blocks, f7f47be) and #238 (E2E, group `library-inj-inspection`, dab3f29) are merged. No I-5 branch is
+  open.
+- **For I-6 (injectables edition exit; the owner's list: injectables in phase.yaml, the trace gate green for the
+  injectables controls, an injectables golden batch, the browser suite, one review pass):**
+  - The **RMM residual** belongs in the golden batch if it fits. Record the lot's STERILITY result as made by the validated
+    rapid method, and check first whether the lot's results screen (`recordResults`, D-S11-R1) can carry the method. If it
+    cannot, raise that with the lead before adding a field. TEST-INJ-RELEASE (with `rmmReportAttached`) is used by no E2E.
+  - INJ-AVI-CHALLENGE-EU and the other EU-market blocks are covered by seed tests only, because the sandbox authorises IN
+    only.
+- **E2E helper (`library-support.ts`):** `ProductBlock.expect` is optional; nothing is asserted by default.
+  - `verified`: the step must reach "waiting for verification", and the signed result must name the verifier, who is
+    another person.
+  - `entries`: each pattern must appear in the step's entry list. Calculated values show as `label value unit (calculated)`;
+    `injectables-inspection-acceptance.ts` has a `calc()` helper for them.
+  - Use it so that a broken calculation or step-value wiring fails the run.
+- **Lead merge rule:** squash-merge only when the green full run's head contains the current main. The exception: when
+  the commits added since that run touch files disjoint from the PR's, the merge is conflict-free, and tsc and register
+  pass on the merged head, the earlier green run counts.
+- **Local:** a full `pnpm run ci` takes more than 30 minutes here, so run `pnpm test:json` and `pnpm trace` as separate
+  background steps. Locally the kernel DI-13 TLS test fails (it depends on how the local PostgreSQL is set up), and trace
+  lists DI-51, IN-16 and PR-22, which need the E2E and golden-batch reports; neither is a defect.
+
 ### Session 13 (12 November 2026): I-5, automated inspection, deterministic CCIT and RMM
 
 - **Lead design approval (12 November):**

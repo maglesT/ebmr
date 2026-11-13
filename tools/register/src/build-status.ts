@@ -81,8 +81,10 @@ export function staticProblems(c: ControlRecord, ctx: StatusContext): string[] {
   const out: string[] = [];
   const clauses = c.clauses ?? [];
   if (clauses.length === 0) out.push('it has no clauses');
+  else if (clauses.every((k) => k.not_required)) out.push('every clause is not required by its MODIFY decision, so no clause proves what it keeps');
   for (const k of clauses) {
     if (k.deferred) out.push(`clause "${k.clause}" is deferred to phase ${String(k.deferred.phase)}`);
+    else if (k.not_required) continue;
     else if ((k.tests ?? []).length === 0) out.push(`clause "${k.clause}" lists no test`);
   }
   if ((c.deferred_scope ?? []).length > 0) out.push('part of its behaviour is deferred (deferred_scope)');
@@ -117,8 +119,11 @@ export function computeStatus(c: ControlRecord, bundle: Bundle, ctx: StatusConte
   const reasons: string[] = [];
   // IMPLEMENTED: every clause has a listed test that passed in the run, nothing deferred.
   if (clauses.length === 0) reasons.push('it has no clauses');
+  else if (clauses.every((k) => k.not_required)) reasons.push('every clause is not required by its MODIFY decision, so no clause proves what it keeps');
   for (const k of clauses) {
     if (k.deferred) reasons.push(`clause "${k.clause}" is deferred to phase ${String(k.deferred.phase)}`);
+    // A clause the approved MODIFY decision left out has nothing to prove; the control's kept clauses carry its status.
+    else if (k.not_required) continue;
     else if (!(k.tests ?? []).some((t) => passedIn(t, false))) reasons.push(`clause "${k.clause}" has no listed test that passed`);
   }
   if ((c.deferred_scope ?? []).length > 0) reasons.push('part of its behaviour is deferred (deferred_scope)');

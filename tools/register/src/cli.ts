@@ -103,7 +103,8 @@ switch (command) {
     }
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;
-    console.log(`traceability ok for phase ${phase} (editions: ${editions.join(', ')}): ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
+    const notRequired = report.rows.flatMap((r) => r.clauses).filter((k) => k.state === 'NOT_REQUIRED').length;
+    console.log(`traceability ok for phase ${phase} (editions: ${editions.join(', ')}): ${covered}/${report.rows.length} controls have passing tests; ${notRequired} catalog-test clause(s) not required by an approved MODIFY decision; matrix in .reports/trace-matrix.md`);
     break;
   }
   case 'sync-tests': {
