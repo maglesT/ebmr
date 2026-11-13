@@ -211,6 +211,23 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(gradeA, { count: { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 
+  it('[ST-23] the EM sampling names the media lot of its plates: a settle-plate lot not released after its growth-promotion test is refused at the entry, a released one is accepted', () => {
+    const item = byCode('INJ-EM');
+    expect(fieldOf(item, 'mediaLot')).toMatchObject({ type: 'MATERIAL_LOT' });
+    expect(nominalRun(item)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const quarantined = { mediaLot: { id: 'SIM-MEDIALOT', material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } };
+    expect(() => judgedRun(item, { area: { lots: quarantined } })).toThrow(/G07-LOT-STATUS/);
+  });
+
+  it('[ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6, Schedule M Part II Table 3), so the master validator refuses a looser action limit', () => {
+    expect(byCode('INJ-EM-COUNTS').exampleUse.marketRules).toEqual({
+      cfuAir: { key: 'sterile.viable.gradeB.airMax', bound: 'HIGH' },
+      cfuSettle: { key: 'sterile.viable.gradeB.settlePlateMax', bound: 'HIGH' },
+      cfuContact: { key: 'sterile.viable.gradeB.contactPlateMax', bound: 'HIGH' },
+      cfuGlove: { key: 'sterile.viable.gradeB.glovePrintMax', bound: 'HIGH' },
+    });
+  });
+
   it('[ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade\'s keys of the sterile rule table; a count above the limit is an exception', () => {
     const item = byCode('INJ-EM');
     checkedBySecondPerson(item);

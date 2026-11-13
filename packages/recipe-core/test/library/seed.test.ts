@@ -42,6 +42,13 @@ describe('the ready-made catalogue', () => {
           expect(item.definition.signatures.some((sg) => sg.meaning === 'VERIFIED'), where).toBe(true);
           continue;
         }
+        // The EM plates' media lot (ST-23) is no formula line either: its lot is checked as released at use, and the second
+        // person who checks the sampling record (CHECKED) checks it with the rest.
+        if (where === 'INJ-EM mediaLot') {
+          expect(f.bomLineSlot, where).toBeUndefined();
+          expect(item.definition.signatures.some((sg) => sg.meaning === 'CHECKED'), where).toBe(true);
+          continue;
+        }
         expect(f.bomLineSlot, where).toBeDefined();
         expect(item.exampleUse.bomLines?.[f.bomLineSlot ?? ''], where).toBeDefined();
       }

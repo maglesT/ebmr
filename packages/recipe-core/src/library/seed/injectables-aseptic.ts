@@ -24,8 +24,9 @@
  *  - Environmental monitoring limits are tiered: the action limit (from Schedule M Table 3 and, for EU batches,
  *    Annex 1 Tables 5 and 6) as the internal action tier, which stops the step until a deviation is opened, and the
  *    site's alert level inside it. Particle limits are bound to the keys of the sterile rule table, so the master
- *    validator refuses a limit looser than the market's value; the table has no keys for microbial counts, so those
- *    are the formulation's values from the binding tables.
+ *    validator refuses a limit looser than the market's value. The Grade B viable action limits are keys of the table
+ *    too (EU Annex 1 Table 6 is binding, ST-01 and ST-20); the other grades' microbial counts are the formulation's
+ *    values from the binding tables.
  *  - An item only Annex 1 asks for is a block of its own tagged for the EU market (`markets: ['EU']`, metadata the
  *    engine does not read; owner Q0, lead 6 November 2026): a master for other markets leaves the block out, and the
  *    base blocks keep their 21 CFR 211 and Schedule M content. So PUPSIT (A1 8.87) is INJ-PUPSIT, the pack's sterilisation
@@ -471,7 +472,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['ENVIRONMENT_CHECK'],
-      description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
+      description: 'INJ-32. The released media lot of the plates; each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
       instructions: 'Sample each location of the plan during the operation and label the plates with the batch, the location and the time. Settle plates are exposed no longer than their limit. Type the particle counts from the counter report and attach it.',
       sections: [
         {
@@ -480,6 +481,10 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'room', label: 'Room or zone monitored (of the grade the formulation names)', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
             { id: 'counter', label: 'Particle counter', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'counterClass' },
+            // ST-23: EM media are tested for growth promotion before use (A1 10.9; SM Part I 14.39 asks the suitability of
+            // culture media verified with positive controls): the plates' lot is named, so a lot not released (its test
+            // not passed) is refused by the lot checks of every MATERIAL_LOT field (G07).
+            { id: 'mediaLot', label: 'Media lot of the plates (released after its growth-promotion test)', type: 'MATERIAL_LOT' },
           ],
         },
         {
@@ -563,6 +568,14 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
         cfuGlove: em(CFU, '5', '3'),
       },
       targets: { cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0' },
+      // Bound to the Grade B keys of the sterile rule table (EU Annex 1 Table 6 binding: ST-01, ST-20), so the master
+      // validator refuses an action limit looser than the market's value.
+      marketRules: {
+        cfuAir: { key: 'sterile.viable.gradeB.airMax', bound: 'HIGH' },
+        cfuSettle: { key: 'sterile.viable.gradeB.settlePlateMax', bound: 'HIGH' },
+        cfuContact: { key: 'sterile.viable.gradeB.contactPlateMax', bound: 'HIGH' },
+        cfuGlove: { key: 'sterile.viable.gradeB.glovePrintMax', bound: 'HIGH' },
+      },
       counts: { viableLocations: '4' },
     },
   },

@@ -54,9 +54,36 @@ behaviour: |-
 catalog_test: Configure a Grade B air action limit of 15 → rejected. The Grade A viable alert field is absent. Three low-level recoveries at one ISO 7 location in 10 days → the frequency trend rule fires and links to batches.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] EU: an EU-market master with a Grade B active-air action limit of 15 CFU/m3 is refused by Annex 1 Table 6 (10, governed by EU and IN); exactly 10 is accepted"
+  - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] India: an India-only master with a Grade B active-air action limit of 15 CFU/m3 is refused by Schedule M Table 3 (10, governed by IN); exactly 10 is accepted"
+  - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] EU: Annex 1 Table 6 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for a site and a batch serving the EU; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
+  - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] India: Schedule M Part II Table 3 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for an India-only site and batch; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade's keys of the sterile rule table; a count above the limit is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6, Schedule M Part II Table 3), so the master validator refuses a looser action limit"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-20][ST-21][IN-42] a count above the action limit is an exception that stops the step until a deviation is opened (the gate then waits); a count above the alert level only is recorded as an alert"
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-65][ST-20] a sterility test by a validated rapid method asks for the instrument report, checked by the QC reviewer; a compendial method does not; no report attached is an exception"
+clauses:
+  - clause: "Configure a Grade B air action limit of 15 → rejected."
+    # Binding per market (paraphrased; checked against docs/regulatory/sources-extracted/):
+    #   EU (EU-market batches): EU GMP Annex 1 (2022) 9.30 and Table 6 set the Grade B maximum action limits for
+    #     viable contamination: active air 10 CFU/m3; settle plate (90 mm, 4 h), contact plate (55 mm) and glove
+    #     print (5 fingers) 5 CFU each.
+    #   India (every batch): Schedule M Part II 4.9 and Table 3 give the same Grade B numbers (10, 5, 5, 5), counted
+    #     as binding under docs/build-plan/injectables/control-decisions.md (Q0; IN-42).
+    #   Both rows are HARD in compliance/rule-tables/sterile/sterile.v1.yaml (ST-20.EU.B.*, ST-20.IN.B.*).
+    tests:
+      - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] EU: an EU-market master with a Grade B active-air action limit of 15 CFU/m3 is refused by Annex 1 Table 6 (10, governed by EU and IN); exactly 10 is accepted"
+      - "apps/tablets-server/test/designer/market-set.test.ts > Grade B viable action limits of an injectables master, per market (ST-01, ST-20) > [ST-01][ST-20] India: an India-only master with a Grade B active-air action limit of 15 CFU/m3 is refused by Schedule M Table 3 (10, governed by IN); exactly 10 is accepted"
+      - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] EU: Annex 1 Table 6 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for a site and a batch serving the EU; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
+      - "packages/kernel/test/market/site-values.test.ts > tighten only > [ST-01][ST-20] India: Schedule M Part II Table 3 binds a Grade B active-air action limit of 10 CFU/m3 (settle, contact and glove 5) as HARD for an India-only site and batch; 15 is refused with or without a CCS reference and QA approval, one above each limit is refused, and exactly the limit is accepted"
+  - clause: "The Grade A viable alert field is absent."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "no binding clause found for leaving out the alert level of Grade A viable monitoring"
+  - clause: "Three low-level recoveries at one ISO 7 location in 10 days → the frequency trend rule fires and links to batches."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "automatic trend rules"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

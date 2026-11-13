@@ -59,6 +59,9 @@ const PRODUCT_LOADS = ['Full load (validated maximum)', 'Partial load (validated
 /** Units counted (containers): a plain count. */
 const UNITS = '{unit}';
 
+/** People present in a room: a plain count. */
+const PEOPLE = '{person}';
+
 export const INJECTABLE_SEEDS: readonly SeedItem[] = [
   {
     // INJ-01: SM 3.1-3.4, 4.5-4.6, 4.11; 211.42(c)(10), 211.56(b); A1 4.33-4.36.
@@ -222,14 +225,14 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     },
   },
   {
-    // INJ-12: 211.101, 211.103, 211.111; SM 5.12-5.17.
+    // INJ-12: 211.101, 211.103, 211.111; SM 5.12-5.17. The overlay's gas filter is the block INJ-GAS-FILTER (ST-28).
     definition: {
       code: 'INJ-COMPOUND',
       version: 1,
       title: 'Solution preparation (compounding)',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-12. The vessel, water for injection from its point of use, mixing time, nitrogen overlay where the product needs it, volume make-up, pH and density of the bulk, and the pre-filtration bioburden sample.',
+      description: 'INJ-12. The vessel, water for injection from its point of use, mixing time, nitrogen overlay where the product needs it (its gas filter is the block INJ-GAS-FILTER), volume make-up, pH and density of the bulk, and the pre-filtration bioburden sample.',
       instructions: 'Charge the water for injection, add the dispensed materials in the order of the formulation and mix. Make up to the final volume. Take the pH, the density and the bioburden sample before filtration.',
       sections: [
         {
@@ -270,6 +273,34 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       },
       targets: { wfiVolume: '150.0', wfiTemp: '25.0', finalVolume: '200.0', ph: '7.0', density: '1.0050' },
       counts: { phReadings: '2', bioburdenSamples: '1' },
+    },
+  },
+  {
+    // ST-28: the integrity of a critical gas filter is confirmed after use (SM Part II 6.11.2.7; A1 8.88 for the EU market),
+    // so every market. A formulation that applies a nitrogen overlay adds this block after compounding; one without an
+    // overlay leaves it out and sets no gas-filter limit.
+    definition: {
+      code: 'INJ-GAS-FILTER',
+      version: 1,
+      title: 'Nitrogen overlay gas filter integrity after use',
+      category: 'CONTROL',
+      edition: EDITION,
+      description: 'ST-28. The integrity of the sterilising gas filter of the nitrogen overlay, tested after use by bubble point against its limit.',
+      instructions: 'After compounding, test the integrity of the nitrogen overlay gas filter, still in its housing, and record the bubble point.',
+      sections: [
+        {
+          id: 'gasFilter',
+          title: 'Gas filter after use',
+          fields: [
+            { id: 'gasFilterPost', label: 'Nitrogen filter integrity after use (bubble point)', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'gasFilterPost', critical: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {
+      limits: { gasFilterPost: pv('bar', '1.00') },
+      targets: { gasFilterPost: '1.20' },
     },
   },
   {
@@ -364,6 +395,10 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'filled', label: 'Units filled', type: 'NUMBER', unit: UNITS, decimals: 0 },
             { id: 'rejects', label: 'Units rejected at the line (incl. stopper height)', type: 'NUMBER', unit: UNITS, decimals: 0 },
+            // ST-12: the maximum number of operators in the cleanroom is determined and documented (A1 7.2, EU market; Schedule
+            // M has no parallel maximum). The formulation of an EU-market product sets it as this field's maximum, so more
+            // people than that is a limit exception; without a maximum the number is recorded only.
+            { id: 'peoplePresent', label: 'Most people present in the filling room at once', type: 'NUMBER', unit: PEOPLE, decimals: 0, limitSlot: 'peoplePresent' },
           ],
         },
       ],
@@ -372,6 +407,9 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
     exampleUse: {
       equipmentClasses: { lineClass: 'VIAL-FILLING-LINE', roomClass: 'ROOM-GRADE-C' },
       intervals: { roundInterval: { value: '30', unit: 'min' } },
+      // The maximum qualified in the line's process simulation (invented example value).
+      limits: { peoplePresent: pv(PEOPLE, undefined, '4') },
+      targets: { peoplePresent: '3' },
     },
   },
   {

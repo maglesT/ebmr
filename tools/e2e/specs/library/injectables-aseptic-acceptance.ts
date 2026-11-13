@@ -57,6 +57,8 @@ export const ASEPTIC_VIAL: Injectable = {
     { id: 'stopper', name: 'Bromobutyl rubber stopper, 13 mm', field: 'stopperLot' },
     { id: 'filter', name: 'Sterilising filter cartridge, 0.2 micrometre', field: 'filterLot' },
     { id: 'seal', name: 'Aluminium flip-off seal, 13 mm', field: 'sealLot' },
+    // The EM plates' media lot, released after its growth-promotion test (ST-23).
+    { id: 'media', name: 'Environmental monitoring plates, tryptone soya agar', field: 'mediaLot' },
   ],
   steps: [
     productBlock('INJ-ROOM-READY', 'ROOM-GRADE-B'),
