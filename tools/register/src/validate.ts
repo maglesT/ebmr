@@ -4,7 +4,8 @@
  * control's clauses are its catalog test word for word, each proven by listed tests or deferred to a later phase
  * (review F14). Whether the listed tests ran and passed is the trace's check (trace.ts), after the tests have run.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord } from './register.ts';
 import { notRequiredErrors, words } from './not-required.ts';
@@ -15,10 +16,27 @@ export const EXPECTED_COUNTS = { DI: 53, PR: 61, ST: 79, IN: 53 } as const;
 
 export { words } from './not-required.ts';
 
+/**
+ * Phase 8 is no build phase (target phases stop at 7): it holds an open owner question or a deployment item after the
+ * editions' exit, never a gap the lead can decide (lead ruling, 13 November 2026, decision 0031). So a phase-8 deferral's
+ * reason must name an existing decision record under docs/decisions/.
+ */
+export const OWNER_QUESTION_PHASE = 8;
+
+function ownerQuestionErrors(at: string, phase: number, reason: string, root: string): string[] {
+  if (phase !== OWNER_QUESTION_PHASE) return [];
+  const path = /docs\/decisions\/[\w.-]+\.md/.exec(reason)?.[0];
+  if (!path) return [`${at} is deferred to phase ${OWNER_QUESTION_PHASE} (owner question) but its reason cites no decision record (docs/decisions/<file>.md)`];
+  const file = join(root, path);
+  if (!existsSync(file) || !statSync(file).isFile()) return [`${at} is deferred to phase ${OWNER_QUESTION_PHASE} (owner question) but its decision record ${path} does not exist`];
+  return [];
+}
+
 /** The problems with a control's clauses and deferred scope (review F14). */
 export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {
   const errors: string[] = [];
   for (const d of c.deferred_scope ?? []) {
+    errors.push(...ownerQuestionErrors(`${c.id}: deferred scope "${d.scope}"`, d.phase, d.reason, root));
     if (d.phase <= c.target_phase) errors.push(`${c.id}: deferred scope "${d.scope}" is deferred to phase ${d.phase}, not after the control's target phase ${c.target_phase}`);
   }
   const clauses = c.clauses ?? [];
@@ -29,6 +47,7 @@ export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {
   clauses.forEach((k, i) => {
     for (const t of k.tests ?? []) if (!listed.has(t)) errors.push(`${c.id}: clause ${i + 1} names a test that is not in its tests list: "${t}"`);
     if (k.not_required) errors.push(...notRequiredErrors(c, i, k.not_required, root));
+    if (k.deferred) errors.push(...ownerQuestionErrors(`${c.id}: clause ${i + 1}`, k.deferred.phase, k.deferred.reason, root));
     if (k.deferred && k.deferred.phase <= c.target_phase) {
       errors.push(`${c.id}: clause ${i + 1} is deferred to phase ${k.deferred.phase}, not after the control's target phase ${c.target_phase}`);
     }

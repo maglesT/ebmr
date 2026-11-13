@@ -26,6 +26,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { inGateEditions, ROOT, type ClauseRecord, type ControlRecord, type EditionName } from './register.ts';
 import { notRequiredErrors } from './not-required.ts';
+import { OWNER_QUESTION_PHASE } from './validate.ts';
 import { declaredIn, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest, type TestPath } from './test-index.ts';
 
 const CONTROL_TAG = /\[((?:DI|PR|ST|IN|AS)-\d{2})\]/g;
@@ -299,7 +300,7 @@ export function writeMatrix(report: TraceReport, phase: number, file: string, ed
         const d = k.clause.deferred;
         const nr = k.clause.not_required;
         const evidence = d ? `phase ${d.phase}: ${d.reason}` : nr ? `${nr.decision}: "${nr.reason}"` : `${k.passing.length} of ${k.clause.tests?.length ?? 0} listed tests passed`;
-        return `| ${r.control.id} | ${i + 1}. ${cell(k.clause.clause)} | ${k.state === 'DEFERRED' ? `DEFERRED to phase ${d?.phase ?? ''}` : k.state} | ${cell(evidence)} |`;
+        return `| ${r.control.id} | ${i + 1}. ${cell(k.clause.clause)} | ${k.state === 'DEFERRED' ? (d?.phase === OWNER_QUESTION_PHASE ? `DEFERRED (owner question, phase ${d.phase})` : `DEFERRED to phase ${d?.phase ?? ''}`) : k.state} | ${cell(evidence)} |`;
       }),
     ),
     '',
