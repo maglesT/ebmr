@@ -170,6 +170,10 @@ injectables controls, a golden batch, the browser suite, one review pass.
       critical exception.
     - `newFilter` EU-only.
     - Both under the existing verifier; v1-edit safety evidence in the PR body.
+    - Built (inj/i6-b4-in48): INJ-STERILE-FILTER v1 in place, `firstUseToday`; on no, `extendedUseValidated` (no is
+      critical: the new YES_NO mark `unexpectedCritical`) and `validationRef`. `newFilter` is the EU block
+      INJ-FILTER-SINGLE-BATCH (OPERATOR + VERIFIER) before each filtration step on an EU master (MKT-REQUIRED-BLOCKS):
+      no field-level market tag exists. The database does not re-judge yes/no answers (as for every LIB_UNEXPECTED_ANSWER).
 - **Then:**
   - GB-I-01: the aseptic vial to a released lot, with sterility by RMM. A method field on the results screen goes to the
     lead first.
@@ -177,7 +181,12 @@ injectables controls, a golden batch, the browser suite, one review pass.
   - PR-26 clause 2 (hose scan) and PR-28 clause 2 (EM excursion on the QP screen): owner write-up, not a deferral.
     PR-28 clause 1 (failed autoclave cycle): a test.
   - The exit PR: injectables in phase.yaml once #232/#239 merge, a full run with trace:e2e.
-  - One review pass.
+  - One review pass. Items added by the lead (13 November):
+    - Kernel platform.change_record_content now reads plant.aps_required_line (tablets 1910). Check whether
+      register_content_provider could let the plant module add aps_lines without replacing the kernel function.
+    - The database does not re-judge expected yes/no answers (only limits, recipe-core 1862), so a raw write that omits
+      the exception is not caught. Assess a general database re-check of expected answers, like 1862's, for all library
+      blocks.
 - **PROGRESS notes due:**
   - INV-23, INV-36, INV-44: residuals for the owner. The exit list supersedes outline 11's INV list. INV-37 is proven by
     the ST-68 gate test; INV-45 by ST-64.

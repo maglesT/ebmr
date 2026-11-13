@@ -23,7 +23,7 @@ const step = (id: string, code: string) => phase(id, { block: { type: libraryBlo
 
 function master(marketSet: string[], children: FlowNode[]): MbrContent {
   const base = mbrWith({ kind: 'sequence', id: 'ops', children });
-  return { ...base, header: { ...base.header, edition: 'injectables', marketSet }, blockDefinitions: ['INJ-FILL', 'INJ-ALARM-ASSESSMENT', 'INJ-STERILE-FILTER', 'INJ-PUPSIT'].map(definition) as never };
+  return { ...base, header: { ...base.header, edition: 'injectables', marketSet }, blockDefinitions: ['INJ-FILL', 'INJ-ALARM-ASSESSMENT', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-FILTER-SINGLE-BATCH'].map(definition) as never };
 }
 const findings = (mbr: MbrContent) =>
   validate(mbr, { blocks: catalogWithLibrary(genericBlockCatalog, mbr) }).findings.filter((f) => f.rule === 'MKT-REQUIRED-BLOCKS');
@@ -57,15 +57,38 @@ describe('the blocks a market set makes mandatory on a master (I-6 B2)', () => {
   it('[ST-52][PR-03] a master for the EU market whose sterilising filtration has no PUPSIT step before it is refused; with PUPSIT before filtration it passes, PUPSIT after filtration is refused; a master for India and the US needs none', () => {
     const filter = step('filtration', 'INJ-STERILE-FILTER');
     const pupsit = step('pupsit', 'INJ-PUPSIT');
-    const without = findings(master(['IN', 'EU'], [phase('before'), filter, phase('after')]));
+    // The single-batch check of IN-48 stands before the filtration on every EU master here, so only PUPSIT is at issue.
+    const single = step('single', 'INJ-FILTER-SINGLE-BATCH');
+    const without = findings(master(['IN', 'EU'], [phase('before'), single, filter, phase('after')]));
     expect(without).toHaveLength(1);
     expect(without[0]).toMatchObject({ severity: 'ERROR', subject: 'filtration' });
     expect(without[0]?.message).toMatch(/INJ-PUPSIT before it .*ST-52.*8\.87/);
-    expect(findings(master(['IN', 'EU'], [phase('before'), pupsit, filter, phase('after')]))).toEqual([]);
+    expect(findings(master(['IN', 'EU'], [phase('before'), single, pupsit, filter, phase('after')]))).toEqual([]);
     // PUPSIT placed after filtration does not precede it.
-    const late = findings(master(['IN', 'EU'], [phase('before'), filter, pupsit, phase('after')]));
+    const late = findings(master(['IN', 'EU'], [phase('before'), single, filter, pupsit, phase('after')]));
     expect(late).toHaveLength(1);
     expect(late[0]).toMatchObject({ severity: 'ERROR', subject: 'filtration' });
     expect(findings(master(['IN', 'US'], [phase('before'), filter, phase('after')]))).toEqual([]);
+  });
+});
+
+describe('the single-batch check of the sterilising filter on an EU master (I-6 B4)', () => {
+  const filterMaster = (marketSet: string[], children: FlowNode[]): MbrContent => {
+    const base = mbrWith({ kind: 'sequence', id: 'ops', children });
+    return { ...base, header: { ...base.header, edition: 'injectables', marketSet }, blockDefinitions: [definition('INJ-STERILE-FILTER'), definition('INJ-FILTER-SINGLE-BATCH'), definition('INJ-PUPSIT')] as never };
+  };
+
+  it('[IN-48][PR-03] a master for the EU market whose filtration step has no single-batch check of its filter before it is refused (A1 8.94); with the check before it passes; a master for India and the US needs none', () => {
+    const filtration = step('filtration', 'INJ-STERILE-FILTER');
+    // PUPSIT (ST-52) stands before the filtration on every EU master here, so only the single-batch check is at issue.
+    const pupsit = step('pupsit', 'INJ-PUPSIT');
+    const without = findings(filterMaster(['IN', 'EU'], [pupsit, filtration, phase('after')]));
+    expect(without).toHaveLength(1);
+    expect(without[0]).toMatchObject({ severity: 'ERROR', subject: 'filtration' });
+    expect(without[0]?.message).toMatch(/INJ-FILTER-SINGLE-BATCH before it .*IN-48/);
+    expect(findings(filterMaster(['IN', 'EU'], [step('single', 'INJ-FILTER-SINGLE-BATCH'), pupsit, filtration, phase('after')]))).toEqual([]);
+    // The check placed after the filtration does not come before it.
+    expect(findings(filterMaster(['IN', 'EU'], [pupsit, filtration, step('single', 'INJ-FILTER-SINGLE-BATCH'), phase('after')]))).toHaveLength(1);
+    expect(findings(filterMaster(['IN', 'US'], [filtration, phase('after')]))).toEqual([]);
   });
 });

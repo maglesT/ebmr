@@ -318,20 +318,29 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-13: 211.113(b); SM Part II 6.11.2. PUPSIT (A1 8.87, EU market) is the block INJ-PUPSIT.
+    // IN-48 (I-6 B4, lead's option 1): the same filter is not used for more than one working day unless that use has
+    // been validated (SM Part II 6.11.2.8; A1 8.94 in the same terms), on every market. The filter section asks whether
+    // the filter is used for the first time today; if not, whether its longer use is validated, and that validation's
+    // reference. An unvalidated longer use is a critical exception: QA dispositions it, the step waits for a deviation
+    // and release is blocked. The EU single-batch rule (A1 8.94) is the EU block INJ-FILTER-SINGLE-BATCH. These answers
+    // are signed and verified with the rest of the step.
     definition: {
       code: 'INJ-STERILE-FILTER',
       version: 1,
       title: 'Sterilising filtration and filter integrity',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
-      instructions: 'Use only the filter registered for the product. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
+      description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product; whether it is used for the first time today and, if not, the reference of the validation of its longer use), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
+      instructions: 'Use only the filter registered for the product. A filter first used on an earlier day may be used only where that longer use is validated: give the validation\'s reference. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [
         {
           id: 'filter',
           title: 'Filter',
           fields: [
             { id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' },
+            { id: 'firstUseToday', label: 'This filter is used for the first time today', type: 'YES_NO' },
+            { id: 'extendedUseValidated', label: 'Its use beyond one working day is validated', type: 'YES_NO', expected: true, unexpectedCritical: true, showWhen: { field: 'firstUseToday', equals: false } },
+            { id: 'validationRef', label: 'Validation reference (use beyond one working day)', type: 'TEXT', maxLength: 80, showWhen: { field: 'extendedUseValidated', equals: true } },
           ],
         },
         {
@@ -660,5 +669,36 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       },
       counts: { viableLocations: '4' },
     },
+  },
+  {
+    // INJ-13 (single batch): IN-48, A1 8.94 (EU market only): a liquid sterilising-grade filter is discarded after the
+    // processing of a single batch. Schedule M Part II 6.11.2.8, which binds every batch manufactured in India whatever
+    // its market, limits only the working day (asked in INJ-STERILE-FILTER on every market), so other markets leave the
+    // block out (lead's option 1, I-6 B4). The master places it before each filtration step on an EU master
+    // (MKT-REQUIRED-BLOCKS). The answer no stops the step until a deviation is linked; campaign use that the CCS justifies
+    // and validation supports (A1 8.95) is that deviation's case for QA. A second person verifies the answer, as the
+    // filtration step's own filter answers.
+    definition: {
+      code: 'INJ-FILTER-SINGLE-BATCH',
+      version: 1,
+      title: 'Sterilising filter new for this batch, EU market',
+      category: 'PROCESS',
+      edition: EDITION,
+      markets: ['EU'],
+      roles: ['VERIFICATION'],
+      description: 'INJ-13, EU market. The liquid sterilising filter of the next filtration step is new for this batch: it has not filtered an earlier batch.',
+      instructions: 'Before the filtration step, check that the sterilising filter to be used has not been used for an earlier batch.',
+      sections: [
+        {
+          id: 'singleBatch',
+          title: 'Single batch',
+          fields: [
+            { id: 'newFilter', label: 'The sterilising filter is new: not used for an earlier batch', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {},
   },
 ];

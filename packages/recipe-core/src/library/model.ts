@@ -104,6 +104,12 @@ export interface YesNoField extends FieldBase {
   type: 'YES_NO';
   /** The expected answer; the other answer raises an exception. */
   expected?: boolean;
+  /**
+   * The other answer (not `expected`) is a critical exception: QA dispositions it, the step and the steps after it wait
+   * for a deviation, and release is blocked, as a registered-tier limit breach. For an answer a binding clause forbids
+   * outright, e.g. a sterilising filter used beyond one working day without validation (SM Part II 6.11.2.8, IN-48).
+   */
+  unexpectedCritical?: boolean;
 }
 
 export interface ChoiceField extends FieldBase {

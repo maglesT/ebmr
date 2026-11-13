@@ -762,6 +762,10 @@ export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string;
   // test of every market and is not PUPSIT. So on an EU master each filtration step has a PUPSIT step before it (where
   // PUPSIT is not feasible, the block itself records the risk assessment's reference). Only the EU asks it.
   { market: 'EU', trigger: 'INJ-STERILE-FILTER', required: 'INJ-PUPSIT', relation: 'BEFORE', control: 'ST-52', clause: 'EU GMP Annex 1 8.87: sterilised filter assembly integrity tested before use (PUPSIT)' },
+  // IN-48: a liquid sterilising filter serves a single batch (A1 8.94). Schedule M 6.11.2.8 limits only the working day,
+  // which INJ-STERILE-FILTER asks on every market; so on an EU master each filtration step has the single-batch check of
+  // its filter before it. Only the EU asks it.
+  { market: 'EU', trigger: 'INJ-STERILE-FILTER', required: 'INJ-FILTER-SINGLE-BATCH', relation: 'BEFORE', control: 'IN-48', clause: 'EU GMP Annex 1 8.94: a liquid sterilising filter discarded after a single batch' },
 ];
 
 function libraryCode(p: PhaseNode): string | undefined {
