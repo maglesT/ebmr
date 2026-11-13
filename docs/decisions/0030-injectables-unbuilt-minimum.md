@@ -44,7 +44,8 @@ investigation that considers a repeat media fill.
 ST-06: blocking release while a typed alarm is unassessed is beyond the clause. Annex 1 5.2 asks that process and
 equipment alarms be acknowledged and evaluated, critical ones immediately; the minimum built is, on the EU market only
 (no clause of Schedule M or 21 CFR 211 asks it), an assessment required for each alarm the filling step recorded, in an EU
-block placed after filling (INJ-ALARM-ASSESSMENT; lead ruling, 13 November 2026). Release then follows the existing gate
+block placed after filling (INJ-ALARM-ASSESSMENT; lead ruling, 13 November 2026), which the master validator requires
+on every EU master with a filling step (MKT-REQUIRED-BLOCKS). Release then follows the existing gate
 and record review.
 
 ST-11: no binding clause found for a separate glove-change record with an impact assessment after a torn glove. Annex 1
