@@ -28,6 +28,9 @@
 --
 -- Not built here (ST-33's other consequences): the quarantine of product made after the failure, the list of batches since
 -- the last passing APS, the investigation record and the count of three repeat runs; QA's requalification stands for them.
+-- Later (lead rulings, 13 November 2026): tablets 1912 finds the reading by its block's role APS_READING and marked count
+-- instead of the code INJ-APS-READ, records the impact list at the withdrawal and requires QA's review (risk assessment,
+-- repeat APS runs) before the line is QUALIFIED again; tablets 1913 lets the repeat media fills run on the withdrawn line.
 
 set local role ebmr_owner;
 

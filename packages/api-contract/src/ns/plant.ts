@@ -370,6 +370,47 @@ export const plant = {
     }),
     response: z.strictObject({ id: Uuid, equipmentCode: z.string(), recorded: z.enum([...EquipmentEventKind.options, 'REPAIR_RECORDED']) }),
   }),
+  // ST-33 (tablets 1912): after a failed media fill withdrew a line, the batches made on it since its last successful
+  // APS (the impact list) and QA's review of them with the repeat APS runs, which comes before the line is QUALIFIED again.
+  apsFailure: defineRoute({
+    id: 'plant.apsFailure',
+    method: 'GET',
+    path: '/api/plant/equipment/:code/aps-failure',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The open withdrawal of a line after a failed media fill (ST-33): the failed batch, the last successful APS, the batches made on the line since, and whether QA has reviewed them; null when there is none',
+    params: z.strictObject({ code: Code }),
+    response: z.strictObject({
+      withdrawal: z
+        .strictObject({
+          failedBatch: z.string(),
+          lastSuccessfulAps: z.string().nullable(),
+          withdrawnAt: Instant,
+          batches: z.array(z.strictObject({ batchNumber: z.string(), lastUsedAt: Instant })),
+          reviewed: z.boolean(),
+        })
+        .nullable(),
+    }),
+  }),
+  apsFailureReview: defineRoute({
+    id: 'plant.apsFailureReview',
+    method: 'POST',
+    path: '/api/plant/equipment/:code/aps-failure-review',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'QA records the review of a line\'s open withdrawal after a failed media fill (ST-33): the risk assessment of the batches made since the last successful APS, and the successful repeat APS runs (three, or fewer with a justification)',
+    params: z.strictObject({ code: Code }),
+    body: withAttribution({
+      riskAssessmentRef: z.string().trim().min(1).max(128),
+      repeatApsRefs: z.array(z.string().trim().min(1).max(128)).min(1).max(50),
+      /** Required by the database when fewer than three runs are cited. */
+      justification: z.string().trim().min(1).max(2000).optional(),
+    }),
+    response: z.strictObject({ equipmentCode: z.string(), withdrawalEventId: Uuid }),
+  }),
   pendingVerifications: defineRoute({
     id: 'plant.pendingVerifications',
     method: 'GET',

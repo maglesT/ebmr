@@ -236,7 +236,7 @@ describe('route table', () => {
       'people.rehirePerson', 'people.renamePerson', 'people.requestBreakGlass', 'people.requestGrant', 'people.reviewBreakGlass',
       'people.revokeGrant', 'people.setAccountStatus', 'people.unlockAccount', 'people.verifyIdentity', 'people.withdrawBadge',
       'planning.defineBatchNumberRule', 'planning.planPackagingOrder', 'planning.recoverBatchNumber', 'planning.registerExternalBatchNumber',
-      'planning.voidBatchNumber', 'plant.chargeContainer', 'plant.completeCleaning', 'plant.configurePressDischarge', 'plant.defineArea',
+      'planning.voidBatchNumber', 'plant.apsFailureReview', 'plant.chargeContainer', 'plant.completeCleaning', 'plant.configurePressDischarge', 'plant.defineArea',
       'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineProduct', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.endAreaOccupancy', 'plant.endEquipmentUse', 'plant.equipmentEvent',
       'plant.inspectTooling', 'plant.issueTooling', 'plant.recordCalibration', 'plant.recordClearance', 'plant.recordInstrumentCheck',

@@ -416,14 +416,16 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     // media); for EU batches A1 9.41-9.47 (accountability, incubation, reading, the zero target). The incubation conditions
     // are the ones the site validated, entered as the formulation's limits (plan 8a: no fixed FDA scheme). A contaminated
     // unit is a critical breach: its exception and deviation reach QA, who then does not extend the line's and the people's
-    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet).
+    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet). Its role APS_READING
+    // and the contaminatedCount mark on 'contaminated' are what the database reads on an EU master (tablets 1912): a count
+    // above zero withdraws the filling line's qualification.
     definition: {
       code: 'INJ-APS-READ',
       version: 1,
       title: 'Media fill: incubation and reading',
       category: 'CONTROL',
       edition: EDITION,
-      roles: ['OBSERVATION'],
+      roles: ['OBSERVATION', 'APS_READING'],
       description: 'INJ-26, media fill. The filled units incubated, the units removed before incubation with the reason, the incubation temperature and time of each period against the site\'s validated conditions, and the units read as contaminated after incubation against the acceptance limit.',
       instructions: 'Inspect the filled units and remove only those that are not integral, recording why. Incubate them in the validated scheme and read every unit at its end. Record any contaminated unit and send it for identification.',
       sections: [
@@ -446,7 +448,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           id: 'reading',
           title: 'Reading',
           fields: [
-            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true },
+            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true, contaminatedCount: true },
             { id: 'identification', label: 'Organisms identified (for a contaminated unit)', type: 'TEXT', maxLength: 120, required: false },
           ],
         },

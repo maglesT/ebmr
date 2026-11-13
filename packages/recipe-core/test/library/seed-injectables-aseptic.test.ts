@@ -435,6 +435,27 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     expect(run.status).not.toBe('COMPLETED');
   });
 
+  it('[ST-33] the media-fill reading carries the role APS_READING and marks its count of contaminated units, in whole units, as the one count the database reads (tablets 1912); a block marking a count must have the role, and the role needs exactly one marked whole-number count (LIB-APS-READING)', () => {
+    const read = byCode('INJ-APS-READ').definition;
+    expect(read.roles).toEqual(['OBSERVATION', 'APS_READING']);
+    expect(fieldOf(byCode('INJ-APS-READ'), 'contaminated')).toMatchObject({ type: 'NUMBER', decimals: 0, contaminatedCount: true });
+    const marked = read.sections.flatMap((s) => s.fields).filter((f) => f.type === 'NUMBER' && f.contaminatedCount === true);
+    expect(marked.map((f) => f.id)).toEqual(['contaminated']);
+    expect(checkBlockDefinition(read, expr)).toEqual([]);
+    const codes = (def: typeof read) => checkBlockDefinition(def, expr).map((p) => p.code);
+    const mapNumbers = (fn: (f: Extract<(typeof read)['sections'][number]['fields'][number], { type: 'NUMBER' }>) => object) => ({
+      ...read,
+      sections: read.sections.map((s) => ({ ...s, fields: s.fields.map((f) => (f.type === 'NUMBER' ? fn(f) : f)) })),
+    }) as typeof read;
+    // The mark without the role.
+    expect(codes({ ...read, roles: ['OBSERVATION'] })).toEqual(['LIB-APS-READING']);
+    // The role without a mark, or with two.
+    expect(codes(mapNumbers((f) => { const c = { ...f }; delete c.contaminatedCount; return c; }))).toEqual(['LIB-APS-READING']);
+    expect(codes(mapNumbers((f) => (f.id === 'unitsIncubated' ? { ...f, contaminatedCount: true } : f)))).toEqual(['LIB-APS-READING']);
+    // A count in decimals.
+    expect(codes(mapNumbers((f) => (f.id === 'contaminated' ? { ...f, decimals: 1 } : f)))).toEqual(['LIB-APS-READING']);
+  });
+
   it('[ST-02] the sterility-assurance route is the formulation\'s choice of blocks: every aseptic set-up filters to sterility and assembles aseptically and has no terminal sterilisation, which is a block of its own', () => {
     for (const setUp of SET_UPS) {
       const codes = setUp.steps.map((x) => x.code);
