@@ -737,3 +737,29 @@ describe('R13: the potency before dispensing (lot view, preview, a QC change and
     expect(after.exceptions.filter((e) => e.type === 'POTENCY_RECALCULATED').map((e) => [e.severity, e.title])).toEqual([['ALERT', expect.stringMatching(/L26-0201 98\.5 % before, L26-0201 99 % now/) as unknown]]);
   });
 });
+
+describe('the lots reserved for the batch on a GMP weighing step (owner retest 13 November 2026, item 7)', () => {
+  it('[INV-13][INV-14] before any weighing the step lists, per dispensed line, the lots with an open reservation for this batch and what is left; a line with none is listed empty', async () => {
+    const b4 = await issued();
+    let d = await dispenser(b4.batchId);
+    const view = async (key: string) => valueOf(await d.browser('operator1').call(routes.batches.step, { params: { batchId: b4.batchId, stepKey: key } }));
+    // Nothing reserved yet: every line of both weighing steps is listed with no lot (the first weighing would be EBMR-EXE-245).
+    expect((await view(G07_KEY)).reservations).toEqual([{ bomLine: 'BOM-MGS', material: expect.stringContaining('MAT-MGS'), lots: [] }]);
+    expect((await view(KEY)).reservations?.map((l) => [l.bomLine, l.lots])).toEqual([
+      ['BOM-PCM', []],
+      ['BOM-MCC', []],
+    ]);
+    await prepareBatch(b4);
+    d = await dispenser(b4.batchId);
+    // A cancelled reservation is not offered.
+    await arrange(async (c) => {
+      const r = (await c.query<{ id: string }>('select id::text from site.lot_reservation where batch_id = $1 and lot_id = $2', [b4.batchId, lotIds.get('L26-0202')])).rows[0]?.id;
+      await c.query("insert into site.lot_reservation_revocation (reservation_id, kind, cause, reason_text, revoked_by_person, revoked_by_account) values ($1, 'CANCELLED', 'test', 'not needed', gen_random_uuid(), gen_random_uuid())", [r]);
+    });
+    expect((await view(G07_KEY)).reservations).toEqual([{ bomLine: 'BOM-MGS', material: expect.stringContaining('MAT-MGS'), lots: [{ lotCode: 'L26-0401', remaining: '60', unit: 'kg' }] }]);
+    expect((await view(KEY)).reservations?.map((l) => [l.bomLine, l.lots.map((x) => x.lotCode)])).toEqual([
+      ['BOM-PCM', ['L26-0201']],
+      ['BOM-MCC', ['L26-0301']],
+    ]);
+  });
+});

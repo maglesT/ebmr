@@ -312,6 +312,21 @@ export const StepScreenView = z.strictObject({
     )
     .optional(),
   /**
+   * Owner retest of 13 November 2026, item 7: on a GMP weighing step, each BOM line the step dispenses with the lots of its
+   * material that have an open reservation for this batch and what is left of it (in the lot's unit). A line with no lot
+   * listed cannot be weighed until stores reserve a lot for the batch (EBMR-EXE-245; INV-13, INV-14); the screen says so
+   * before the first weighing. Advisory: the database decides at the weighing.
+   */
+  reservations: z
+    .array(
+      z.strictObject({
+        bomLine: z.string(),
+        material: z.string(),
+        lots: z.array(z.strictObject({ lotCode: z.string(), remaining: DecimalString, unit: z.string() })),
+      }),
+    )
+    .optional(),
+  /**
    * R10 #1 (owner's rabeprazole demo): the result of the step's governing potency calculation (TB-01), read from its
    * stored entry: each lot with its approved assay and as-is potency, the active's and the compensating excipient's
    * targets, the total, and the summary sentence. Display only; the entry is the record.
