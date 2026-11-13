@@ -58,7 +58,7 @@ function controlOf(c: ControlRecord, cls: 'core' | 'other'): Control {
     catalogTest: c.catalog_test || '(none)',
     requirementRows: [...c.requirement_rows],
     implementedBy: Object.fromEntries(Object.entries(c.implemented_by).sort(([a], [b]) => compareText(a, b))),
-    clauses: (c.clauses ?? []).map((k) => ({ clause: k.clause, tests: [...(k.tests ?? [])], ...(k.deferred ? { deferred: { phase: k.deferred.phase, reason: k.deferred.reason } } : {}) })),
+    clauses: (c.clauses ?? []).map((k) => ({ clause: k.clause, tests: [...(k.tests ?? [])], ...(k.deferred ? { deferred: { phase: k.deferred.phase, reason: k.deferred.reason } } : {}), ...(k.not_required ? { notRequired: { decision: k.not_required.decision, reason: k.not_required.reason } } : {}) })),
     deferredScope: (c.deferred_scope ?? []).map((d) => ({ scope: d.scope, phase: d.phase, reason: d.reason })),
     expertDecision: { status: c.expert_decision.status, reviewer: c.expert_decision.reviewer || null, date: dateOrNull(c.expert_decision.date), packVersion: c.expert_decision.pack_version },
     buildStatus: c.build_status,
@@ -136,7 +136,7 @@ export async function buildBundle(inp: BundleInputs): Promise<Bundle> {
         .map((row) => ({
           control: row.control.id,
           passing: [...row.passing].sort(compareText),
-          clauses: row.clauses.map((k) => ({ clause: k.clause.clause, status: k.state === 'TESTED' ? ('PROVEN' as const) : k.state === 'DEFERRED' ? ('DEFERRED' as const) : ('MISSING' as const) })),
+          clauses: row.clauses.map((k) => ({ clause: k.clause.clause, status: k.state === 'TESTED' ? ('PROVEN' as const) : k.state === 'DEFERRED' ? ('DEFERRED' as const) : k.state === 'NOT_REQUIRED' ? ('NOT_REQUIRED' as const) : ('MISSING' as const) })),
         }))
         .sort((a, b) => compareText(a.control, b.control)),
     },

@@ -7,16 +7,16 @@
 import { readFileSync } from 'node:fs';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord } from './register.ts';
+import { notRequiredErrors, words } from './not-required.ts';
 import { missingListedTests, type DeclaredTest } from './test-index.ts';
 import { firstDuplicate, firstUnsorted } from './sync.ts';
 
 export const EXPECTED_COUNTS = { DI: 53, PR: 61, ST: 79, IN: 53 } as const;
 
-/** Text compared word for word: runs of white space count as one space. */
-export const words = (s: string): string => s.replace(/\s+/g, ' ').trim();
+export { words } from './not-required.ts';
 
 /** The problems with a control's clauses and deferred scope (review F14). */
-export function clauseErrors(c: ControlRecord): string[] {
+export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {
   const errors: string[] = [];
   for (const d of c.deferred_scope ?? []) {
     if (d.phase <= c.target_phase) errors.push(`${c.id}: deferred scope "${d.scope}" is deferred to phase ${d.phase}, not after the control's target phase ${c.target_phase}`);
@@ -28,6 +28,7 @@ export function clauseErrors(c: ControlRecord): string[] {
   const listed = new Set(c.tests);
   clauses.forEach((k, i) => {
     for (const t of k.tests ?? []) if (!listed.has(t)) errors.push(`${c.id}: clause ${i + 1} names a test that is not in its tests list: "${t}"`);
+    if (k.not_required) errors.push(...notRequiredErrors(c, i, k.not_required, root));
     if (k.deferred && k.deferred.phase <= c.target_phase) {
       errors.push(`${c.id}: clause ${i + 1} is deferred to phase ${k.deferred.phase}, not after the control's target phase ${c.target_phase}`);
     }
@@ -70,7 +71,7 @@ export function validateRegister(controls: ControlRecord[] = loadControls(), row
     const duplicate = Array.isArray(c.tests) ? firstDuplicate(c.tests) : -1;
     if (duplicate >= 0) errors.push(`${c.id}: its tests list names a test twice, at entry ${duplicate + 1} ("${c.tests[duplicate]}"); remove the repeat`);
     for (const m of missingListedTests(c.tests, root, declared)) errors.push(`${c.id}: lists a test that does not exist (${m.reason}): "${m.entry}"`);
-    errors.push(...clauseErrors(c));
+    errors.push(...clauseErrors(c, root));
   }
   return errors;
 }

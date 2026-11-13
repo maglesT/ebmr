@@ -53,6 +53,18 @@ describe('the build statuses of D-P7-2 (register:status, register:validate)', ()
     expect(computeStatus(control({ clauses: [{ clause: 'It is refused.', deferred: { phase: 9, reason: 'later' } }] }), allPass(), ctx()).status).toBe('SPECIFIED');
     expect(computeStatus(control(), bundle([{ test: dbTest, status: 'skipped' }, { test: appTest, status: 'skipped' }]), ctx()).status).toBe('SPECIFIED');
     expect(computeStatus(control({ deferred_scope: [{ scope: 'x', phase: 9, reason: 'later' }] }), allPass(), ctx()).status).toBe('SPECIFIED');
+    // A clause the approved MODIFY decision left out needs no test, but a control whose every clause is left out proves
+    // nothing it keeps: SPECIFIED (lead ruling, I-6).
+    const modify = { status: 'MODIFY' as const, pack_version: '0.9', comment: 'kept part only' };
+    const left = { decision: 'docs/build-plan/injectables/control-decisions.md', reason: 'beyond the binding minimum' };
+    expect(computeStatus(control({ expert_decision: modify, clauses: [{ clause: 'It is refused.', tests: [dbTest, appTest] }, { clause: 'It is shown.', not_required: left }] }), allPass(), ctx())).toEqual({ status: 'VERIFIED', reasons: [] });
+    expect(computeStatus(control({ expert_decision: modify, clauses: [{ clause: 'It is refused.', not_required: left }] }), allPass(), ctx())).toEqual({
+      status: 'SPECIFIED',
+      reasons: ['every clause is not required by its MODIFY decision, so no clause proves what it keeps'],
+    });
+    // The static check says the same, so no control is held VERIFIED on clauses that are all left out (lead audit of #241).
+    expect(staticProblems(control({ expert_decision: modify, clauses: [{ clause: 'It is refused.', not_required: left }] }), ctx())).toContain('every clause is not required by its MODIFY decision, so no clause proves what it keeps');
+    expect(staticProblems(control({ expert_decision: modify, clauses: [{ clause: 'It is refused.', tests: [dbTest, appTest] }, { clause: 'It is shown.', not_required: left }] }), ctx())).toEqual([]);
     // IMPLEMENTED, not VERIFIED: one listed test did not pass, the run is of another commit, or the static conditions fail.
     const implemented = (c: ControlRecord, b: Bundle, x: StatusContext) => {
       const r = computeStatus(c, b, x);

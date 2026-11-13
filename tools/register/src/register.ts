@@ -19,14 +19,26 @@ export type ExpertStatus = 'PENDING' | 'FOLLOW' | 'DONT_FOLLOW' | 'MODIFY';
 
 /**
  * One clause of a control's catalog test (review F14): its words, in order, and either the listed tests that prove
- * it or the later phase it is deferred to, with the reason. The clauses of a control are its catalog_test, word for
- * word (validate.ts), so no clause can be left out; the trace refuses a due control whose clause has no passing test
- * and no deferral, and a deferral whose phase has started (trace.ts).
+ * it, the later phase it is deferred to with the reason, or (a MODIFY control only) the approved decision that left it
+ * out of the control's minimum. The clauses of a control are its catalog_test, word for word (validate.ts), so no
+ * clause can be left out; the trace refuses a due control whose clause has no passing test, no deferral and no
+ * decision, and a deferral whose phase has started (trace.ts).
  */
 export interface ClauseRecord {
   clause: string;
   tests?: string[];
   deferred?: { phase: number; reason: string };
+  not_required?: NotRequired;
+}
+
+/**
+ * A clause the owner's approved MODIFY decision left out of the control's minimum (lead ruling, I-6, 12 November
+ * 2026). `decision` starts with the repository path of the decision document; `reason` is quoted word for word from
+ * it (validate.ts). The trace and the matrix show the clause as NOT_REQUIRED, counted on its own.
+ */
+export interface NotRequired {
+  decision: string;
+  reason: string;
 }
 
 /** A part of a control's behaviour beyond its catalog test that a later phase builds (e.g. DI-33 reprocessing). */

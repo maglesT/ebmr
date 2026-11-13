@@ -13,6 +13,7 @@ import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/reg
 import { appendListedTests, compareEntries, firstDuplicate, firstUnsorted, sortListedTests, testsToAdd } from '../src/sync.ts';
 import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
 import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
+import { rowsOf } from '../src/not-required.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
 
 const control = (id: string): ControlRecord => {
@@ -527,5 +528,123 @@ describe('catalog-test clauses (review F14)', () => {
     expect(md).toMatch(/\| PR-01 \| 1\. Creating a batch at a size that no approved master lists is refused\. \| TESTED \| 2 of 2 listed tests passed \|/);
     expect(md).toMatch(/\| DI-33 \| Reprocessing and recovery[^|]*\| 3 \|/);
     expect(md).toMatch(/^\| DI-33 \| Calculations and reprocessing \|.*\| SPECIFIED \| \d+ \| 2 tested; 1 scope deferred \|$/m);
+  });
+});
+
+/**
+ * A clause the owner's approved MODIFY decision left out of the control's minimum (lead ruling, I-6, 12 November 2026):
+ * it cites the decision document and quotes its words, it is allowed on a MODIFY control only, and the trace and the
+ * matrix show it as NOT_REQUIRED, counted on its own, never as tested.
+ */
+describe('catalog-test clauses the approved MODIFY decision left out (not_required)', () => {
+  const DECISION = 'docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)';
+  const QUOTE = 'CCS ID and version on every critical step, blocking MBR approval';
+  const KEPT = "x/st02.test.ts > [ST-02] the route is the formulation's choice of blocks";
+  /** ST-02 (MODIFY) with its first clause tested and its second left out by the decision. */
+  function st02(notRequired: { decision: string; reason: string } = { decision: DECISION, reason: QUOTE }): ControlRecord {
+    const c = control('ST-02');
+    const [first = '', second = ''] = c.catalog_test.split(/(?<=refused\.) /);
+    return { ...c, tests: [KEPT], clauses: [{ clause: first, tests: [KEPT] }, { clause: second, not_required: notRequired }] };
+  }
+
+  it('[meta] a not-required clause is accepted on a MODIFY control that cites the decision document and quotes it word for word', () => {
+    const c = st02();
+    expect(c.expert_decision.status).toBe('MODIFY');
+    expect(clauseErrors(c)).toEqual([]);
+    // White space in the quote is compared as in the clauses: a run of spaces or a line break counts as one space.
+    expect(clauseErrors(st02({ decision: DECISION, reason: QUOTE.replace(/ /g, '\n  ') }))).toEqual([]);
+    // The made-up listed test does not exist; everything else about the control is valid.
+    expect(validateRegister([c]).filter((e) => e.startsWith('ST-02') && !e.includes('does not exist (no such file x/st02.test.ts)'))).toEqual([]);
+  });
+
+  it('[meta] a not-required clause is refused on a control whose expert decision is not MODIFY, by the validator and by the trace', () => {
+    for (const status of ['PENDING', 'FOLLOW', 'DONT_FOLLOW'] as const) {
+      const c = { ...st02(), expert_decision: { ...control('ST-02').expert_decision, status } };
+      expect(clauseErrors(c)).toEqual([`ST-02: clause 2 is marked not required, but its expert decision is ${status}, not MODIFY`]);
+    }
+    const pending = { ...st02(), expert_decision: { ...control('ST-02').expert_decision, status: 'PENDING' as const } };
+    expect(buildTrace([pending], [result(KEPT)], 7).errors).toContain('ST-02: clause 2 is marked not required, but its expert decision is PENDING, not MODIFY');
+  });
+
+  it('[meta] a not-required clause on a MODIFY control is refused without a decision citation, with a document that does not exist, or with a reason the document does not hold', () => {
+    const notADecision = (d: string): string => `ST-02: clause 2 is marked not required, but its decision does not start with the path of an owner decision (docs/decisions/) or a control-decisions.md (docs/build-plan/): "${d}"`;
+    expect(clauseErrors(st02({ decision: 'the owner said so in a chat', reason: QUOTE }))).toEqual([notADecision('the owner said so in a chat')]);
+    expect(clauseErrors(st02({ decision: 'docs/decisions/9999-no-such-decision.md', reason: QUOTE }))).toEqual([
+      'ST-02: clause 2 is marked not required, but its decision document docs/decisions/9999-no-such-decision.md does not exist',
+    ]);
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'the whole control is not needed' }))).toEqual([
+      'ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from the row of ST-02 in docs/build-plan/injectables/control-decisions.md: "the whole control is not needed"',
+    ]);
+    // The schema: the decision and the reason are both required, and a clause is tested, deferred or not required, never two.
+    const noDecision = st02();
+    (noDecision.clauses?.[1] as { not_required?: object }).not_required = { reason: QUOTE };
+    expect(validateRegister([noDecision]).join('\n')).toMatch(/ST-02: \/clauses\/1\/not_required must have required property 'decision'/);
+    const both = st02();
+    const [first, second] = both.clauses ?? [];
+    both.clauses = [first ?? { clause: '' }, { ...(second ?? { clause: '' }), tests: [KEPT] }];
+    expect(validateRegister([both]).join('\n')).toMatch(/ST-02: \/clauses\/1 must match exactly one schema in oneOf/);
+  });
+
+  it('[meta] a not-required clause cites only an owner decision or a control-decisions.md, and no path leaves docs/ (lead audit of #241, item 1)', () => {
+    const notADecision = (d: string): string => `ST-02: clause 2 is marked not required, but its decision does not start with the path of an owner decision (docs/decisions/) or a control-decisions.md (docs/build-plan/): "${d}"`;
+    for (const d of ['docs/../CLAUDE.md', 'docs/../../../tmp/x.md', 'docs/build-plan/../decisions/control-decisions.md', 'docs/build-plan/../../control-decisions.md', 'docs/build-plan/injectables/plan.md', 'PROGRESS.md', '/home/user/ebmr/docs/decisions/0008-x.md']) {
+      expect(clauseErrors(st02({ decision: d, reason: QUOTE })), d).toEqual([notADecision(d)]);
+    }
+  });
+
+  it('[meta] a not-required reason quotes at least two whole words from the control\'s own row of the cited document (lead audit and ruling on #241)', () => {
+    // A short cell of the control's own row is a real quote.
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS link' }))).toEqual([]);
+    const tooShort = (n: number, r: string): string => `ST-02: clause 2 is marked not required, but its reason quotes ${n} word(s); at least 2 are needed: "${r}"`;
+    expect(clauseErrors(st02({ decision: DECISION, reason: '         x' }))).toEqual([tooShort(1, '         x')]);
+    expect(clauseErrors(st02({ decision: DECISION, reason: '' }))).toEqual([tooShort(0, '')]);
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS' }))).toEqual([tooShort(1, 'CCS')]);
+    const notInRow = (r: string): string => `ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from the row of ST-02 in docs/build-plan/injectables/control-decisions.md: "${r}"`;
+    // A quote that starts or ends inside a word is refused, though the letters are in the row.
+    for (const r of ['CS ID and version on every critical step', 'CCS ID and version on every critical st']) expect(clauseErrors(st02({ decision: DECISION, reason: r })), r).toEqual([notInRow(r)]);
+    // A quote from another control's row (ST-03's) is refused, though it is in the same document.
+    expect(clauseErrors(st02({ decision: DECISION, reason: 'CCS-impact assessment workflow' }))).toEqual([notInRow('CCS-impact assessment workflow')]);
+    // The document must have a row of the control: the same quote for a control the decision never addressed is refused.
+    expect(clauseErrors({ ...st02(), id: 'ST-99' })).toEqual([
+      'ST-99: clause 2 is marked not required, but its decision document docs/build-plan/injectables/control-decisions.md has no row or paragraph of ST-99 (a table row whose first cell, or a paragraph whose first line, names it)',
+    ]);
+  });
+
+  it('[meta] a control\'s rows are the table rows whose first cell names it and the paragraphs whose first line names it, nothing else', () => {
+    const doc = ['# ST-02 in a heading', '', '| Control | Note |', '|---|---|', '| ST-02 | its own row |', '| ST-03 | names ST-02 later |', '', 'ST-02: a paragraph', 'on two lines.', '', 'A paragraph that names', 'ST-02 only on its second line.', '', 'ST-020 is another id.'].join('\n');
+    expect(rowsOf(doc, 'ST-02')).toEqual(['# ST-02 in a heading', '| ST-02 | its own row |', 'ST-02: a paragraph\non two lines.']);
+  });
+
+  it('[meta] the trace refuses what validate refuses: a quote taken from another document than the one cited (lead audit of #241)', () => {
+    // These words are in the injectables plan, not in control-decisions.md, which the clause cites.
+    const plan = readFileSync(join(ROOT, 'docs/build-plan/injectables/plan.md'), 'utf8');
+    const decisions = readFileSync(join(ROOT, 'docs/build-plan/injectables/control-decisions.md'), 'utf8');
+    const elsewhere = words(plan).split('. ').map((x) => x.split(' ').slice(0, 8).join(' ')).find((x) => x.split(' ').length === 8 && !words(decisions).includes(x)) ?? '';
+    expect(elsewhere.split(' ')).toHaveLength(8);
+    const c = st02({ decision: DECISION, reason: elsewhere });
+    const refused = `ST-02: clause 2 is marked not required, but its reason is not quoted word for word, on whole words, from the row of ST-02 in docs/build-plan/injectables/control-decisions.md: "${elsewhere}"`;
+    expect(clauseErrors(c)).toEqual([refused]);
+    expect(buildTrace([c], [result(KEPT)], 7).errors).toEqual([refused]);
+  });
+
+  it('[meta] the trace shows a not-required clause as NOT_REQUIRED, never as tested, and a due control still needs a passing test of what it keeps', () => {
+    const c = st02();
+    const ok = buildTrace([c], [result(KEPT)], 7);
+    expect(ok.errors).toEqual([]);
+    expect(ok.rows[0]?.clauses.map((k) => k.state)).toEqual(['TESTED', 'NOT_REQUIRED']);
+    // Every clause left out and nothing passing: the control is due, so it fails the gate all the same.
+    const none: ControlRecord = { ...c, tests: [], clauses: [{ clause: c.catalog_test, not_required: { decision: DECISION, reason: QUOTE } }] };
+    expect(buildTrace([none], [], 7).errors).toEqual(['ST-02 (target phase 5) has no passing test']);
+    // Out of the gate's editions, it is not due.
+    expect(buildTrace([none], [], 7, { editions: ['tablets'] }).errors).toEqual([]);
+  });
+
+  it('[meta] the matrix counts not-required clauses on their own and prints the decision and its quoted words', () => {
+    const report = buildTrace([st02()], [result(KEPT)], 7);
+    const file = join(mkdtempSync(join(tmpdir(), 'ebmr-matrix-')), 'm.md');
+    writeMatrix(report, 7, file);
+    const md = readFileSync(file, 'utf8');
+    expect(md).toMatch(/^\| ST-02 \|.*\| MODIFY \| \w+ \| 1 \| 1 tested, 1 not required \(MODIFY\) \|$/m);
+    expect(md).toContain(`| NOT_REQUIRED | ${DECISION}: "${QUOTE}" |`);
   });
 });
