@@ -11,7 +11,7 @@ export type Severity = 'critical' | 'high' | 'medium' | 'low';
 export type ControlType = 'ENFORCED' | 'CONFIGURABLE' | 'DESIGN_CHOICE';
 export type RunKind = 'vitest' | 'golden' | 'playwright' | 'load' | 'drill' | 'security' | 'accessibility' | 'mutation';
 export type ResultStatus = 'passed' | 'failed' | 'skipped';
-export type ClauseTraceStatus = 'PROVEN' | 'DEFERRED' | 'MISSING';
+export type ClauseTraceStatus = 'PROVEN' | 'DEFERRED' | 'NOT_REQUIRED' | 'MISSING';
 export type ControlClass = 'core' | 'other';
 export type ExpertStatus = 'PENDING' | 'FOLLOW' | 'DONT_FOLLOW' | 'MODIFY';
 export type BuildStatus = 'SPECIFIED' | 'IMPLEMENTED' | 'VERIFIED';
@@ -35,10 +35,17 @@ export interface Deferral {
   reason: string;
 }
 
+/** A clause the owner's approved MODIFY decision left out of the control's minimum, with the decision and its words. */
+export interface NotRequired {
+  decision: string;
+  reason: string;
+}
+
 export interface Clause {
   clause: string;
   tests: string[];
   deferred?: Deferral;
+  notRequired?: NotRequired;
 }
 
 export interface DeferredScope {

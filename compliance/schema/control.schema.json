@@ -45,7 +45,8 @@
         "required": ["clause"],
         "oneOf": [
           { "properties": { "tests": true }, "required": ["tests"] },
-          { "properties": { "deferred": true }, "required": ["deferred"] }
+          { "properties": { "deferred": true }, "required": ["deferred"] },
+          { "properties": { "not_required": true }, "required": ["not_required"] }
         ],
         "properties": {
           "clause": { "type": "string", "minLength": 1 },
@@ -56,6 +57,15 @@
             "required": ["phase", "reason"],
             "properties": {
               "phase": { "type": "integer", "minimum": 1, "maximum": 7 },
+              "reason": { "type": "string", "minLength": 10 }
+            }
+          },
+          "not_required": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["decision", "reason"],
+            "properties": {
+              "decision": { "type": "string", "minLength": 10 },
               "reason": { "type": "string", "minLength": 10 }
             }
           }

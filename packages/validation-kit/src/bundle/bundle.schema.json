@@ -87,7 +87,17 @@
       "properties": {
         "clause": { "$ref": "#/$defs/Text" },
         "tests": { "$ref": "#/$defs/Texts" },
-        "deferred": { "$ref": "#/$defs/Deferral" }
+        "deferred": { "$ref": "#/$defs/Deferral" },
+        "notRequired": { "$ref": "#/$defs/NotRequired" }
+      }
+    },
+    "NotRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reason"],
+      "properties": {
+        "decision": { "$ref": "#/$defs/Text" },
+        "reason": { "$ref": "#/$defs/Text" }
       }
     },
     "Deferral": {
@@ -198,7 +208,7 @@
       "required": ["clause", "status"],
       "properties": {
         "clause": { "$ref": "#/$defs/Text" },
-        "status": { "enum": ["PROVEN", "DEFERRED", "MISSING"] }
+        "status": { "enum": ["PROVEN", "DEFERRED", "NOT_REQUIRED", "MISSING"] }
       }
     },
     "Inventory": {
