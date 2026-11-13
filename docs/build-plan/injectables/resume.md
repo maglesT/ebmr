@@ -66,6 +66,18 @@ injectables controls, a golden batch, the browser suite, one review pass.
     tools/register/src/not-required.ts).
   - It shows as NOT_REQUIRED in the trace, the matrix and the bundle. A due control still needs a passing test.
   - Lead audit fixes are in, with no re-audit needed. It merges on a full green run.
+- **State at handover (13 November 2026, 05:40):**
+  - #241 is merged (998eb7b).
+  - Next PR: this branch (0030 and these notes), docs only; merge main in first.
+  - Then I-6.2, I-6.3, B1 and B2 in that order, at most 2 open at once. Each branch is built on the previous one, so merge
+    main in (merge commit) as each one lands.
+  - Send "#N ready for audit" to the lead.
+  - B2 (inj/i6-b2-eu-em @6da5b348):
+    - ST-18, ST-19 and ST-34 stay on every market (accepted; SM Part II 4.8 and the sterile part).
+    - ST-06, lead ruling (b): the alarmAssessment refusal applies only on EU markets (a separate EU block, or the simplest
+      equivalent). Outside the EU, no refusal: a refusal with no binding clause is a defect.
+    - If (b) costs more than half a day: keep the field optional everywhere, cite A1 5.2 for the EU, and list "EU hard
+      refusal for an unassessed alarm" as a residual for the owner.
 - **Decision 0030 (this branch, inj/i6-0030-unbuilt-minimum):** lead rulings under the owner's minimum-compliance rule.
   - Left out: ST-02, ST-06 (release-block part), ST-11, ST-17 (restoration record), ST-20 (viable alert), ST-22
     (per-operator), ST-67, ST-71 (listing both), ST-72 (naming), ST-75, ST-76, IN-45 (listing).
