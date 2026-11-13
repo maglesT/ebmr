@@ -43,6 +43,9 @@ The edition is data on the shared kernel (library blocks, formulations, masters)
   the nitrogen overlay was applied is red until every INJ-GAS-FILTER step that ran is completed with a post-use result
   within its limit (judged in the database against the master's limit); no such step, a missing result or a failing one
   (even once dispositioned) is red, so the manufacturer release is refused (EBMR-REL-020). No overlay: NA.
+- 3060: `E.GAS_FILTER` reads marks and a role from the master's snapshot, not block codes (lead ruling on B5): the overlay
+  is a field marked `gasOverlayApplied` holding the marked answer, the test a step whose block has the role
+  `GAS_FILTER_INTEGRITY`, its result the NUMBER field marked `postUseIntegrity`; a firm's own blocks gate release the same way.
 
 ## Pharma context: why a second edition
 

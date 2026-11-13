@@ -8,7 +8,8 @@
  * signatures, as the aseptic gate (aseptic-gate.test.ts) and the filter reuse gate (filter-reuse-gate.test.ts).
  *
  * Two processing masters of the same product: compounding alone (no gas filter step), and compounding followed by the
- * gas filter's post-use test. The finished lot is posted on the processing batch as the edition's definer posts it.
+ * gas filter's post-use test; and a master of the firm's own blocks (another product), read by the marks
+ * gasOverlayApplied and postUseIntegrity and the role GAS_FILTER_INTEGRITY (3060; lead ruling on B5). The finished lot is posted on the processing batch as the edition's definer posts it.
  * Arranged outside the routes: the product, the licence, the compounding vessel and WFI point (test arrangement of
  * master data), the ERP order and the numbering rule.
  */
@@ -36,6 +37,8 @@ const SIZE_PLAIN = 'BS-100K';
 const SIZE_GAS = 'BS-50K';
 const TAG = randomUUID().slice(0, 6).toUpperCase();
 const PRODUCT = { code: `INJGF-${TAG}`, name: 'Demoinj overlaid 10 mg/2 mL vials', strength: '10 mg/2 mL' };
+/** A second product, whose master is made of the firm's own blocks (one family per product, form and sizes). */
+const PRODUCT_OWN = { code: `INJGO-${TAG}`, name: 'Demoinj own-block overlaid 5 mg/1 mL vials', strength: '5 mg/1 mL' };
 const REASON = 'Injectables I-6 B5 overlay gas filter';
 const VESSEL = `VESSEL-${TAG}`;
 const WFI_POINT = `WFI-POU-${TAG}`;
@@ -61,16 +64,16 @@ const COMPOUND_USE: Json = (() => {
 })();
 
 /** A processing master of the product: its family, its batch size and its steps (one stage each). */
-function master(family: string, size: string, title: string, phases: [string, string, Json][], defs: library.BlockDefinition[]): flow.MbrContent {
+function master(family: string, size: string, title: string, phases: [string, string, Json][], defs: library.BlockDefinition[], product: typeof PRODUCT = PRODUCT): flow.MbrContent {
   return gmpContent((m) => {
     const header = m['header'] as Json;
     header['family'] = family;
     header['edition'] = 'injectables';
     header['recordKind'] = 'PROCESSING';
-    header['title'] = `${PRODUCT.name}: ${title}`;
+    header['title'] = `${product.name}: ${title}`;
     // One family per product, form and sizes: each master has a batch size of its own.
     header['batchSizes'] = (header['batchSizes'] as Json[]).filter((x) => x['id'] === size);
-    header['product'] = { code: PRODUCT.code, name: PRODUCT.name, strength: PRODUCT.strength, dosageForm: 'Injection' };
+    header['product'] = { code: product.code, name: product.name, strength: product.strength, dosageForm: 'Injection' };
     delete header['unitMassMg'];
     const body = (m['procedure'] as Json)['body'] as Json;
     const like = (body['children'] as Json[])[0] as Json;
@@ -88,10 +91,42 @@ const withFilter = master(`INJ-GFF-${TAG}`, SIZE_GAS, 'compounding and overlay g
   ['S-GAS', 'Overlay gas filter after use', phaseOf(GAS.definition, 'p-gas', GAS.exampleUse)],
 ], [COMPOUND.definition, GAS.definition]);
 
+/**
+ * The firm's own blocks (lead ruling on B5, as B3 (a)): a compounding block whose yes/no answer marks the overlay
+ * applied, and a gas filter test with the role GAS_FILTER_INTEGRITY whose one critical result is marked. No catalogue
+ * code, no catalogue field id: the database reads the marks and the role from the master's snapshot.
+ */
+const OWN_COMPOUND: library.BlockDefinition = {
+  // A role of its own (not GAS_FILTER_INTEGRITY): only the role makes a step the overlay's filter test.
+  code: `FIRMMIX-${TAG}`, version: 1, title: 'Our compounding', category: 'PROCESS', edition: 'injectables', roles: ['PARAMETER_RECORD'],
+  description: 'Our compounding of the bulk solution, with or without the nitrogen blanket.', instructions: 'Compound as the formulation states.',
+  sections: [{ id: 'mix', title: 'Mixing', fields: [
+    { id: 'mixedPerSop', label: 'Mixed as the formulation states', type: 'YES_NO', expected: true },
+    { id: 'blanket', label: 'Nitrogen blanket used', type: 'YES_NO', gasOverlayApplied: true },
+  ] }],
+  signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }, { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' }],
+};
+const OWN_GAS: library.BlockDefinition = {
+  code: `FIRMN2F-${TAG}`, version: 1, title: 'Our nitrogen filter test after use', category: 'CONTROL', edition: 'injectables', roles: ['GAS_FILTER_INTEGRITY'],
+  description: 'The nitrogen blanket filter tested after use.', instructions: 'Test the filter in its housing after use.',
+  // The test pressure comes first and is not the result: only the mark postUseIntegrity names the result.
+  sections: [{ id: 'after', title: 'After use', fields: [
+    { id: 'testPressure', label: 'Test pressure applied', type: 'NUMBER', unit: 'bar', decimals: 2 },
+    { id: 'bp', label: 'Bubble point after use', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bpAfter', critical: true, postUseIntegrity: true },
+  ] }],
+  signatures: [{ meaning: 'PERFORMED', role: 'PRODUCTION_OPERATOR' }, { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' }],
+};
+const OWN_GAS_USE: Json = { limits: { bpAfter: (GAS.exampleUse.limits as Json)['gasFilterPost'] as Json } };
+const own = master(`INJ-GFO-${TAG}`, SIZE_GAS, 'own compounding and gas filter test', [
+  ['S-MIX', 'Compounding', phaseOf(OWN_COMPOUND, 'p-mix', {})],
+  ['S-N2F', 'Nitrogen filter after use', phaseOf(OWN_GAS, 'p-n2f', OWN_GAS_USE)],
+], [OWN_COMPOUND, OWN_GAS], PRODUCT_OWN);
+
 let gmp: ExecServer;
 let world: World;
 let procPlain: { familyId: string; versionId: string };
 let procGas: { familyId: string; versionId: string };
+let procOwn: { familyId: string; versionId: string };
 
 /** The compounding vessel and WFI point the compounding names (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
 async function arrangeUnits(): Promise<void> {
@@ -150,12 +185,12 @@ async function compounded(b: BatchRef, nitrogen: 'Applied' | 'Not required by th
 }
 
 /** The finished lot of the batch, posted as the edition's definer posts it (site.create_finished_lot is not granted). */
-async function lotOf(b: BatchRef): Promise<string> {
+async function lotOf(b: BatchRef, product: typeof PRODUCT = PRODUCT): Promise<string> {
   const stores = { ...(await actorOf(gmp, 'stores')), reasonCode: 'TEST_SETUP', reasonText: 'finished lot of the processing record', correlationId: randomUUID() };
   return withCommand(gmp.db.admin, stores, async (c) =>
     String((await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
-      JSON.stringify({ batchId: b.batchId, batchNumber: b.batchNumber, edition: 'INJECTABLES', siteCode: SITE, productCode: PRODUCT.code, productName: PRODUCT.name,
-                       strength: PRODUCT.strength, markets: ['IN'], quantity: '9600', unit: 'units', expiresAt: '2028-10-31T23:59:59Z' }),
+      JSON.stringify({ batchId: b.batchId, batchNumber: b.batchNumber, edition: 'INJECTABLES', siteCode: SITE, productCode: product.code, productName: product.name,
+                       strength: product.strength, markets: ['IN'], quantity: '9600', unit: 'units', expiresAt: '2028-10-31T23:59:59Z' }),
     ])).rows[0]?.id),
   );
 }
@@ -175,16 +210,18 @@ beforeAll(async () => {
   gmp = Object.assign(await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } }), { exchangeDir: ledgerDir });
   vi.useFakeTimers({ toFake: ['performance'] });
   const steward = await gmp.asPersona('steward');
-  valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  for (const p of [PRODUCT, PRODUCT_OWN]) {
+    valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: p.code, strength: p.strength, productName: p.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
+  }
   await confirmErpPending(gmp);
   const regulatory = await gmp.asPersona('regulatory');
   const licence = valueOf(await regulatory.call(routes.india.recordLicence, { body: {
     licenceKind: 'MANUFACTURING', form: '25', licenceNumber: `MFG/INJ/${TAG}`, holderName: 'Demo Parenterals Pvt Ltd', holderAddress: 'Plot 9, Pharma City, Hyderabad 500078',
-    validFrom: '2020-01-01T00:00:00+05:30', products: [{ productCode: PRODUCT.code, strength: PRODUCT.strength }],
+    validFrom: '2020-01-01T00:00:00+05:30', products: [PRODUCT, PRODUCT_OWN].map((p) => ({ productCode: p.code, strength: p.strength })),
   } }));
   await signAs(gmp, await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
-  for (const def of [COMPOUND.definition, GAS.definition]) {
+  for (const def of [COMPOUND.definition, GAS.definition, OWN_COMPOUND, OWN_GAS]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
     await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
@@ -194,10 +231,14 @@ beforeAll(async () => {
   await world.authorise({ versionId: procPlain.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE_PLAIN)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
   procGas = await world.approvedVersion(withFilter);
   await world.authorise({ versionId: procGas.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE_GAS)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
-  await world.run(await actorOf(gmp, 'steward'), (c) =>
-    c.query('select site.define_batch_number_rule($1::jsonb)', [JSON.stringify({ rule_code: `INJGF-${TAG}`, site_code: SITE, product_code: PRODUCT.code, batch_kind: 'PROCESSING', format: 'A{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' })]),
-    reason('Injectables I-6 B5 numbering'),
-  );
+  procOwn = await world.approvedVersion(own);
+  await world.authorise({ versionId: procOwn.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE_GAS)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
+  for (const p of [PRODUCT, PRODUCT_OWN]) {
+    await world.run(await actorOf(gmp, 'steward'), (c) =>
+      c.query('select site.define_batch_number_rule($1::jsonb)', [JSON.stringify({ rule_code: `${p.code}-NUM`, site_code: SITE, product_code: p.code, batch_kind: 'PROCESSING', format: 'A{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' })]),
+      reason('Injectables I-6 B5 numbering'),
+    );
+  }
 }, 900_000);
 afterAll(async () => {
   vi.useRealTimers();
@@ -262,5 +303,29 @@ describe('Injectables I-6 B5: an applied overlay needs its gas filter\'s passing
     const g = await gate(await lotOf(b));
     expect(g.item).toMatchObject({ status: 'NA' });
     expect(g.refusal ?? '').not.toMatch(/E\.GAS_FILTER/);
+  });
+
+  it('[ST-28] the firm\'s own blocks gate release the same way, read by their marks and role, not by code: an overlay its compounding marks applied with its own filter test missing is RED and refused; with a passing result GREEN; with the overlay not used NA', async () => {
+    const run = async (blanket: boolean, filter: 'missing' | 'passing'): Promise<Awaited<ReturnType<typeof gate>>> => {
+      const b = await issued(own, procOwn.familyId, SIZE_GAS);
+      const d = await driverOf(gmp, b.batchId);
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-mix@' });
+      await d.ok('operator1', libraryEntry('p-mix@', 'mix', { mixedPerSop: true, blanket }));
+      await signed(d, 'p-mix@', 'S-MIX@');
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-n2f@' });
+      if (filter === 'passing') {
+        await d.ok('operator1', libraryEntry('p-n2f@', 'after', { testPressure: '0.50', bp: '1.20' }));
+        await signed(d, 'p-n2f@', 'S-N2F@');
+      }
+      return gate(await lotOf(b, PRODUCT_OWN));
+    };
+    const missing = await run(true, 'missing');
+    expect(missing.item).toMatchObject({ status: 'RED' });
+    expect(missing.item?.problem).toMatch(/post-use integrity test p-n2f@ is IN_PROGRESS, not COMPLETED/);
+    expect(missing.refusal).toMatch(/EBMR-REL-020.*E\.GAS_FILTER/);
+    const passing = await run(true, 'passing');
+    expect(passing.item).toMatchObject({ status: 'GREEN', problem: null });
+    expect(passing.refusal ?? '').not.toMatch(/E\.GAS_FILTER/);
+    expect((await run(false, 'missing')).item).toMatchObject({ status: 'NA' });
   });
 });

@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { FlowNode, MbrContent, TimeConstraint } from '../../src/flow/model.ts';
-import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
+import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { blockEdition, editionFits } from '../../src/library/model.ts';
 import { INJECTABLE_ASEPTIC_CATALOGUE, INJECTABLE_CATALOGUE, INJECTABLE_INSPECTION_CATALOGUE, INJECTABLE_LYO_CATALOGUE, INJECTABLE_ROUTE_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
@@ -550,5 +550,27 @@ describe('aseptic headcount and the overlay gas filter (I-6 B1)', () => {
     expect(Object.keys(item.exampleUse.limits ?? {}).filter((k) => /gas/i.test(k))).toEqual([]);
     expect(checkBlockUse(item.definition, { block: { code: 'INJ-COMPOUND', version: item.definition.version }, ...item.exampleUse }, expr)).toEqual([]);
     expect(judgedRun(item, { preparation: { nitrogen: 'Not required by the product' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
+  it('[ST-28] the database reads the overlay and its gas filter test by marks, not codes (lead, B5): compounding marks the option recording an applied overlay, the gas filter test has the role GAS_FILTER_INTEGRITY and marks its one critical result; a mark out of place is refused', () => {
+    expect(fieldOf(byCode('INJ-COMPOUND'), 'nitrogen')).toMatchObject({ type: 'CHOICE', gasOverlayApplied: 'Applied' });
+    const gas = byCode('INJ-GAS-FILTER').definition;
+    expect(gas.roles).toEqual(['GAS_FILTER_INTEGRITY']);
+    expect(fieldOf(byCode('INJ-GAS-FILTER'), 'gasFilterPost')).toMatchObject({ type: 'NUMBER', critical: true, limitSlot: 'gasFilterPost', postUseIntegrity: true });
+    expect(checkBlockDefinition(byCode('INJ-COMPOUND').definition, expr)).toEqual([]);
+    expect(checkBlockDefinition(gas, expr)).toEqual([]);
+    const codes = (def: library) => checkBlockDefinition(def, expr).map((p) => p.code);
+    type library = typeof gas;
+    const mapFields = (def: library, fn: (f: FieldDef) => object): library => ({ ...def, sections: def.sections.map((x) => ({ ...x, fields: x.fields.map((f) => fn(f) as FieldDef) })) });
+    const compound = byCode('INJ-COMPOUND').definition;
+    // An option the field does not have; the mark on a field of another type; a yes/no marked with anything but true.
+    expect(codes(mapFields(compound, (f) => (f.id === 'nitrogen' ? { ...f, gasOverlayApplied: 'Yes' } : f)))).toEqual(['LIB-GAS-OVERLAY']);
+    expect(codes(mapFields(compound, (f) => (f.id === 'wfiVolume' ? { ...f, gasOverlayApplied: 'Applied' } : f)))).toEqual(['LIB-GAS-OVERLAY']);
+    expect(codes(mapFields(compound, (f) => (f.id === 'additionOrder' ? { ...f, gasOverlayApplied: true } : f)))).toEqual([]);
+    expect(codes(mapFields(compound, (f) => (f.id === 'additionOrder' ? { ...f, gasOverlayApplied: 'true' } : f)))).toEqual(['LIB-GAS-OVERLAY']);
+    // The result mark without the role; the role without the mark; the mark on a value that is not critical.
+    expect(codes({ ...gas, roles: ['OBSERVATION'] })).toEqual(['LIB-GAS-FILTER']);
+    expect(codes(mapFields(gas, (f) => { const c = { ...f } as Record<string, unknown>; delete c['postUseIntegrity']; return c; }))).toEqual(['LIB-GAS-FILTER']);
+    expect(codes(mapFields(gas, (f) => ({ ...f, critical: false })))).toEqual(['LIB-GAS-FILTER']);
   });
 });

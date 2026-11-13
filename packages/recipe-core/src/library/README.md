@@ -52,6 +52,7 @@ responsibility (decision 0026 point 3).
 | Inputs from outside the step (formula line, batch size, lot assay, earlier step's value): known kind, unit; a lot assay names a lot or weighing field; a use names the line and the step | LIB-INPUT-*, LIB-USE-BOM-LINE, LIB-USE-STEP-VALUE | DI-33 |
 | Conditional fields: shown when an earlier yes/no or choice field has one of its answers; a calculation reads one only under the same condition; a repeat never waits on one | LIB-SHOW-WHEN, LIB-CALC-CONDITIONAL, LIB-REPEAT-UNTIL | DI-33, INV-20 |
 | A media-fill reading (role APS_READING) marks exactly one NUMBER field, in whole units (decimals 0), as the count of contaminated units (`contaminatedCount`); the mark is refused on a block without the role (the database reads the count by it, tablets 1912) | LIB-APS-READING | ST-33 |
+| A gas overlay's filter test (role GAS_FILTER_INTEGRITY) marks exactly one critical NUMBER field with a limit slot as its post-use result (`postUseIntegrity`), refused on a block without the role; an applied overlay is marked `gasOverlayApplied` on a choice field (one of its options) or a yes/no field (`true`) | LIB-GAS-FILTER, LIB-GAS-OVERLAY | ST-28 |
 | The content hash pinned at formulation approval matches the library version (`definitionHash`) | LIB-USE-HASH | PR-05, DI-10 |
 
 ## The generic handler (`block-version.ts`, slice S2)

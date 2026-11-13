@@ -77,10 +77,16 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
     ST-79 INJ-SUS-INTEGRITY before INJ-SUS (A1 8.138), ST-58 INJ-LYO-EU after INJ-LYO (8.124), ST-62 INJ-INSPECT-LIGHT
     before INJ-VISUAL-INSPECT (8.31), ST-78 INJ-FFS-EU after INJ-FFS (8.101(v), 8.102), ST-77 INJ-BFS-EU after INJ-BFS
     (8.115(vi), 8.116). Not entries, with reasons in the table: STERILE-PACK-INDICATOR, ASEPTIC-TRANSFER, VHP,
-    GLOVE-TEST, AVI-CHALLENGE-EU, RADIATION-EU (open questions for the lead in the B5 report).
+    GLOVE-TEST, RADIATION-EU. Lead ruling on the B5 report: a third relation PRESENT (the required block anywhere, a
+    parallel branch included), used for INJ-AVI-CHALLENGE-EU on an EU master with INJ-AVI (ST-62, A1 8.32); INJ-LYO-EU
+    AFTER INJ-LYO accepted.
+  - Owner residuals (lead, B5): masters do not declare isolator/RABS, so the glove test and VHP are not required
+    automatically for EU. EU radiation-sterilised product: Annex 12 not yet extracted.
   - Built: ST-28's database guard, the release item E.GAS_FILTER (editions/injectables/sql 3040, every market): an
-    overlay answered 'Applied' in INJ-COMPOUND needs a completed INJ-GAS-FILTER step with a passing post-use result, or
-    the lot is NOT_READY and the release is refused (EBMR-REL-020).
+    overlay recorded as applied needs a completed gas-filter test step with a passing post-use result, or the lot is
+    NOT_READY and the release is refused (EBMR-REL-020). Keyed on marks, not codes (lead ruling, as B3 (a)): the field
+    mark `gasOverlayApplied` (INJ-COMPOUND's nitrogen option 'Applied', v1 edit in place), the role GAS_FILTER_INTEGRITY
+    and its result field's mark `postUseIntegrity` (INJ-GAS-FILTER, v1 edit in place), read from the master's snapshot.
 - **B3 (lead OK):**
   - ST-29: a change record's optional, firm-set "APS required" list of lines. Approval records QUALIFICATION_WITHDRAWN on
     each line, and fitness then refuses the line until QA requalifies it. Database-enforced.
