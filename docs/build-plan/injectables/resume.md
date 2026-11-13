@@ -1,4 +1,4 @@
-# Injectables: resume notes (I-1c2 P4a merged; P3c next, then P4b, 9 November 2026)
+# Injectables: resume notes (I-6 exit; session 16 handover, 13 November 2026)
 
 Read these instead of the session history. The rules in force are:
 - `plan.md` (approved v2; the block-version rule is in it);
@@ -95,7 +95,46 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - ST-52: INJ-PUPSIT gets a waiver path (risk-assessment reference), as a v1 edit with safety evidence. The table gets an
     EU entry for INJ-PUPSIT before INJ-STERILE-FILTER. The redundant train is not_required.
 
-### Session 15 handover (13 November 2026, about 07:40): the next session continues here
+### Session 16 handover (13 November 2026, about 21:45): the next session continues here
+
+- **Merged in session 16:**
+
+  | PR | Squash commit |
+  |---|---|
+  | #244 (I-6.3) | 7fbfafb |
+  | #245 (B1) | fd06a59 |
+  | #246 (B2) | a5fa1f1 |
+  | #247 (B3) | 69d8ff1 |
+  | #248 (B4) | 9c149d9 |
+
+- **Open:** #252 (B5, `inj/i6-b5-eu-required`).
+  1. When its full CI run is green (all E2E groups, ubuntu-24.04, head contains main), send the lead "#252 ready for audit".
+  2. After the lead's OK, squash-merge it with expectedHeadSha set to the full SHA.
+  3. The squash message carries exactly the plain trailers `Co-Authored-By: Claude <noreply@anthropic.com>` and
+     `Claude-Session: <the session URL>`, and no model name.
+- **Rules for every PR:**
+  - Report to the lead (session_01PybpFrP72XuwyG8S3H3NJS): "#N ready for audit" when green, then "#N green, merged <sha>,
+    run <id>".
+  - Ask the lead only decisions that are the lead's.
+  - Minimum compliance: binding clauses only, cited and paraphrased. Never default values the firm must set.
+  - Never change `expert_decision`.
+- **Stacked merges after a squash:** re-resolve the conflicts 3-way, using the old upstream head as the base. Check that the
+  merge's diff against the branch's own head equals only the upstream's unseen commits.
+  - Grep the whole tree for conflict markers before committing. A conflict hunk can sit in a file git reports as auto-merged.
+- **Next, in order:**
+  1. **GB-I-01:** the sterility method field goes to the lead first.
+  2. **PR-15, PR-26, PR-28.**
+  3. **The phase.yaml exit PR, with a full run.** PROGRESS.md gets: the INV-23, INV-36 and INV-44 residuals; the demo fresh
+     install; the room EM logbook deferred by the owner; the B5 owner residuals (isolator/RABS, Annex 12).
+  4. **The review pass:**
+     - the items under "One review pass." below;
+     - root-cause the E2E click and fill stalls, then fix them in general. Two seen so far:
+       - the endorseOnLicence fill timeout (tools/e2e own-product-gmp-flow.ts:119-120);
+       - #248 attempt 1, library-inj-gmp, injectables-acceptance.ts:271: a click on the 'Enter a material' API radio stalled
+         until the 1h test timeout and passed on rerun.
+     - the [DI-20] OPC UA duplicate key (E2E shard 7).
+
+### Session 15 handover (13 November 2026, about 07:40)
 
 - **PRs:**
   - #242 (0030 branch + CI pin to ubuntu-24.04): a full run was in progress. Everything was green except E2E own-p3 and
