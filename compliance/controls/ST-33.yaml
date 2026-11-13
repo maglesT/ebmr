@@ -37,7 +37,26 @@ behaviour: |-
 catalog_test: Enter one turbid unit in a 12,000-unit APS on a line with an EU product → failed, line suspended, quarantine and impact list created, 3 repeat runs required. On a US-only line → investigation only.
 implemented_by: {}
 tests:
+  - "apps/tablets-server/test/injectables/aps-failure.test.ts > a failed media fill on an EU master withdraws the filling line (ST-33; tablets 1911) > [ST-33] an EU media fill read with one contaminated unit raises its critical exception and withdraws the qualification of the filling line it used: the line is NOT_QUALIFIED and refused in a step of another batch until QA records it QUALIFIED again, after which it is usable"
+  - "apps/tablets-server/test/injectables/aps-failure.test.ts > a failed media fill on an EU master withdraws the filling line (ST-33; tablets 1911) > [ST-33] an India-only media fill read with one contaminated unit raises the critical exception (its deviation holds the step) but does not withdraw the line; an EU media fill read with no contaminated unit withdraws nothing"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-33][IN-45] one contaminated media-fill unit is a critical breach of the acceptance limit: the reading cannot be signed until it is handled, and its deviation holds the record"
+clauses:
+  - clause: "Enter one turbid unit in a 12,000-unit APS on a line with an EU product → failed, line suspended,"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-33][IN-45] one contaminated media-fill unit is a critical breach of the acceptance limit: the reading cannot be signed until it is handled, and its deviation holds the record"
+      - "apps/tablets-server/test/injectables/aps-failure.test.ts > a failed media fill on an EU master withdraws the filling line (ST-33; tablets 1911) > [ST-33] an EU media fill read with one contaminated unit raises its critical exception and withdraws the qualification of the filling line it used: the line is NOT_QUALIFIED and refused in a step of another batch until QA records it QUALIFIED again, after which it is usable"
+      - "apps/tablets-server/test/injectables/aps-failure.test.ts > a failed media fill on an EU master withdraws the filling line (ST-33; tablets 1911) > [ST-33] an India-only media fill read with one contaminated unit raises the critical exception (its deviation holds the step) but does not withdraw the line; an EU media fill read with no contaminated unit withdraws nothing"
+  - clause: "quarantine and impact list created,"
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "quarantine, impact list"
+  - clause: "3 repeat runs required."
+    tests:
+      - "apps/tablets-server/test/injectables/aps-failure.test.ts > a failed media fill on an EU master withdraws the filling line (ST-33; tablets 1911) > [ST-33] an EU media fill read with one contaminated unit raises its critical exception and withdraws the qualification of the filling line it used: the line is NOT_QUALIFIED and refused in a step of another batch until QA records it QUALIFIED again, after which it is usable"
+  - clause: "On a US-only line → investigation only."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026); owner decision 0001 #2: any contaminated unit fails the APS on every line"
+      reason: "FDA-AP tiers on US-only lines"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
