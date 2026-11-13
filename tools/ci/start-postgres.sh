@@ -89,6 +89,9 @@ hosted_start() {
   fi
   put EBMR_PG_ADMIN_URL "postgres://ebmr_dev:ebmr_dev@localhost:$port/postgres"
   put PGPORT "$port"
+  # pg_config, pg_basebackup and pg_ctl of this major version first on the PATH: an image that also ships a newer
+  # major (PostgreSQL 18) would otherwise answer pg_config with that one (the F55 restore test).
+  put_path "/usr/lib/postgresql/$PG_MAJOR/bin"
 }
 
 # --- Self-hosted (and local): a private cluster of this job ----------------------------------------------------------
