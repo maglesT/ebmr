@@ -46,6 +46,18 @@ catalog_test: Record 12 units removed for an intervention whose catalogue value 
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-32][IN-45] the media fill reading records the units removed before incubation and why, the units incubated, each incubation period against the site's validated conditions, and the contaminated units; the second period is asked only for a two-temperature scheme"
+clauses:
+  - clause: "Record 12 units removed for an intervention whose catalogue value is 8 → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "GPT inoculum check; catalogue removal counts"
+  - clause: "A 6-day + 8-day two-temperature scheme → phase rule fails."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-32][IN-45] the media fill reading records the units removed before incubation and why, the units incubated, each incubation period against the site's validated conditions, and the contaminated units; the second period is asked only for a two-temperature scheme"
+  - clause: "A GPT inoculum of 150 CFU → invalid."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "FDA-AP incubation scheme (8a); GPT inoculum check"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

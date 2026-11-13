@@ -21,7 +21,16 @@ behaviour: |-
   - Device rules: only registered, grade-rated tablets and scanners may open sessions in classified areas, with a disinfection record at transfer-in. Station layout keeps data entry out of first-air paths. Entry after the activity is allowed where the MBR permits it.
 catalog_test: A user without the expert role creates an observation → refused. Log in from an unregistered tablet in Grade B → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/identity/devices-sessions.test.ts > device registry (DI-20) > [ST-13] a login from a tablet that is not in the device registry is refused; a registered Grade A/B terminal is accepted only in its own room"
+clauses:
+  - clause: "A user without the expert role creates an observation → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Observation record, next-observation due"
+  - clause: "Log in from an unregistered tablet in Grade B → refused."
+    tests:
+      - "packages/kernel/test/identity/devices-sessions.test.ts > device registry (DI-20) > [ST-13] a login from a tablet that is not in the device registry is refused; a registered Grade A/B terminal is accepted only in its own room"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -21,7 +21,16 @@ behaviour: |-
   - **Re-sterilisation.** Product-contact equipment gets a fresh sterilisation per batch by default. A campaign is allowed only with a validated MBR rule (maximum batches or hours plus validation reference); exceeding it is refused.
 catalog_test: Assign a vessel past its clean-hold → blocked. With a validated 3-batch campaign rule, the 4th batch → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-38] a compounding vessel past its clean-hold cannot be assigned to a batch until it is cleaned again"
+clauses:
+  - clause: "Assign a vessel past its clean-hold → blocked."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [ST-38] a compounding vessel past its clean-hold cannot be assigned to a batch until it is cleaned again"
+  - clause: "With a validated 3-batch campaign rule, the 4th batch → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Five-state equipment machine; campaign counter"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

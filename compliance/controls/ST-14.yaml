@@ -37,7 +37,20 @@ behaviour: |-
 catalog_test: A Grade B room last requalified 6 months + 1 day ago → step start blocked. Set a "final filter changed" flag → blocked until requalification is recorded. An aseptic connection step mapped to a Grade C room → MBR validation rejects it.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-14] room readiness refuses a room past its requalification due date, an unqualified room and a room of another grade class"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-14][ST-15] room readiness names the room by the class of its grade, records the disinfectant and its lot, holds its validated contact time, and judges the pressure difference"
+clauses:
+  - clause: "A Grade B room last requalified 6 months + 1 day ago → step start blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > equipment named by an injectables block is refused when it is not fit (I-6.2) > [ST-14] room readiness refuses a room past its requalification due date, an unqualified room and a room of another grade class"
+  - clause: "Set a \"final filter changed\" flag → blocked until requalification is recorded."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "\"final filter changed\" flag"
+  - clause: "An aseptic connection step mapped to a Grade C room → MBR validation rejects it."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "step-level MBR validator"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

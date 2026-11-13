@@ -407,6 +407,38 @@ describe('fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d
     expect(rows.map((r) => r.batch_ref)).toEqual([(await w.batch('B-A1', product)).number, (await w.batch('B-A2', product)).number]);
   });
 
+  it('[ST-03] a filling line past its requalification due date is blocked; once the due date is reset after the change, a batch may use it', async () => {
+    // The line's requalification is its due date in the plant register (plan 4.1); after a change, QA resets it.
+    const line = await w.press({ calibrationRequired: true, calibratedForSeconds: 1 });
+    const product = await w.product();
+    await w.clean('EQUIPMENT', line.code, 'MAJOR');
+    await sleep(db, 1.2);
+    expect(await plant.equipmentFitness(db.app, line.id)).toBe('CALIBRATION_OVERDUE');
+    await expect(w.startUse(line.code, 'B-RQ', product)).rejects.toThrow(/the unit is CALIBRATION_OVERDUE/);
+    await w.calibrate(line.code, 180 * DAY);
+    expect(await plant.equipmentFitness(db.app, line.id)).toBe('QUALIFIED');
+    await expect(w.startUse(line.code, 'B-RQ', product)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[ST-38] a compounding vessel past its clean-hold cannot be assigned to a batch until it is cleaned again', async () => {
+    const vessel = await w.press({ cleanHold: '4 seconds' });
+    const product = await w.product();
+    await w.clean('EQUIPMENT', vessel.code, 'MAJOR');
+    await sleep(db, 4.2);
+    await expect(w.startUse(vessel.code, 'B-V1', product)).rejects.toThrow(/clean-hold expired at .*EBMR-PLANT-061/);
+    await w.clean('EQUIPMENT', vessel.code, 'MAJOR');
+    await expect(w.startUse(vessel.code, 'B-V1', product)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[ST-25][ST-26][ST-27] a point of use (WFI outlet, nitrogen drop, clean-steam point) is a unit whose status follows QC: taken out of service on a failed result it may not be used, returned to service on a passing one it may', async () => {
+    const point = await w.equipment({ kind: 'UTILITY', calibrationRequired: false });
+    expect(await plant.equipmentFitness(db.app, point.id)).toBe('QUALIFIED');
+    await w.run(w.cast.tech, (c) => plant.recordEquipmentEvent(c, point.code, 'TAKEN_OUT_OF_SERVICE', 'QC: action-level result at the outlet'));
+    expect(await plant.equipmentFitness(db.app, point.id)).toBe('OUT_OF_SERVICE');
+    await w.run(w.cast.tech, (c) => plant.recordEquipmentEvent(c, point.code, 'RETURNED_TO_SERVICE', 'QC: resampling passed'));
+    expect(await plant.equipmentFitness(db.app, point.id)).toBe('QUALIFIED');
+  });
+
   it('[IN-25] a failure signalled from a step removes the unit from use until it is repaired', async () => {
     const press = await w.press();
     const product = await w.product();

@@ -24,7 +24,17 @@ behaviour: |-
   - Quick-log events cover glove sanitisation, glove change, gown change, gown or glove breach and instrument replacement. A breach during exposed-product work requires an immediate change record and an assessment of units exposed in the breach window.
 catalog_test: Scan a gown pack past its sterile hold → rejected. Log a torn glove during filling → change record and impact assessment required.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > aseptic filling events, the media fill and the aseptic set-ups (slice I-2a) > [ST-11] a torn glove is recorded as a glove-change event of the filling, with what happened; the fill then completes"
+clauses:
+  - clause: "Scan a gown pack past its sterile hold → rejected."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Per-entry garment scan, wear timer, RFID cycle count"
+  - clause: "Log a torn glove during filling → change record and impact assessment required."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "a separate glove-change record with an impact assessment after a torn glove"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

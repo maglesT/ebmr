@@ -23,7 +23,16 @@ behaviour: |-
   - Clearing the status needs QA sign-off referencing linked retraining, a gowning assessment and (default on) a successful APS.
 catalog_test: Mark an APS failed → all implicated operators become restricted and their aseptic signatures are refused until the requalification records, including a successful APS, are linked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [ST-09][ST-10][INV-26] after QA withdraws a person's authorisation of an aseptic area, the signature there is refused until a new authorisation (after requalification) is recorded"
+clauses:
+  - clause: "Mark an APS failed → all implicated operators become restricted"
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Five-state person status changed automatically by PM, APS and breach results"
+  - clause: "and their aseptic signatures are refused until the requalification records, including a successful APS, are linked."
+    tests:
+      - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [ST-09][ST-10][INV-26] after QA withdraws a person's authorisation of an aseptic area, the signature there is refused until a new authorisation (after requalification) is recorded"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

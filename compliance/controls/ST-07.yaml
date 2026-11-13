@@ -22,7 +22,16 @@ behaviour: |-
   - A snapshot of training status at signing is stored in the batch record.
 catalog_test: A maintenance technician with expired cleanroom training signs an in-room repair step → refused. An EM task completed by a user without the sampler qualification → refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [ST-07][ST-08][ST-30][INV-26] the authorisation of a Grade A/B room (its gowning, aseptic training and APS) counts until its valid-to: a day after the 12 months it covers, signing there is refused"
+clauses:
+  - clause: "A maintenance technician with expired cleanroom training signs an in-room repair step → refused."
+    tests:
+      - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [ST-07][ST-08][ST-30][INV-26] the authorisation of a Grade A/B room (its gowning, aseptic training and APS) counts until its valid-to: a day after the 12 months it covers, signing there is refused"
+  - clause: "An EM task completed by a user without the sampler qualification → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "aseptic-sampler qualification"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -21,7 +21,12 @@ behaviour: |-
 catalog_test: Dispense an excipient with its endotoxin result pending → hard stop.
 implemented_by: {}
 tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [ST-39] an excipient whose endotoxin result is pending (its lot still in quarantine until QC releases it) is hard-stopped at dispensing"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-39] each primary component lot is named where it is used (vial or ampoule at washing, stopper in a stopper load, seal at capping), not as a formula line; a second person verifies it, and a lot QC has not released is refused (G07-LOT-STATUS)"
+clauses:
+  - clause: "Dispense an excipient with its endotoxin result pending → hard stop."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [ST-39] an excipient whose endotoxin result is pending (its lot still in quarantine until QC releases it) is hard-stopped at dispensing"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -38,7 +38,16 @@ behaviour: |-
   - A time-limit compliance summary is part of batch review.
 catalog_test: Configure a 24 h preparation-to-fill-end limit and run 25 h → next step blocked until a QA-approved deviation. An MBR timer without a validation reference → approval refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [ST-37][INV-20] a 24 h limit from the start of preparation to the end of filling, run to 25 h: the next step is blocked until QA dispositions the exception under a deviation"
+clauses:
+  - clause: "Configure a 24 h preparation-to-fill-end limit and run 25 h → next step blocked until a QA-approved deviation."
+    tests:
+      - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [ST-37][INV-20] a 24 h limit from the start of preparation to the end of filling, run to 25 h: the next step is blocked until QA dispositions the exception under a deviation"
+  - clause: "An MBR timer without a validation reference → approval refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Engine with validation reference"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

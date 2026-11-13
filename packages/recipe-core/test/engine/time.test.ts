@@ -136,6 +136,38 @@ describe('time constraints (INV-20)', () => {
     run.start('use');
   });
 
+  it('[ST-37][INV-20] a 24 h limit from the start of preparation to the end of filling, run to 25 h: the next step is blocked until QA dispositions the exception under a deviation', () => {
+    const mbr = mbrWith(seq('ops', phase('prep'), phase('fill'), phase('cap')), { timeConstraints: [timer('TC-PREP-FILL', 'prep', 'START', 'fill', 'END', undefined, '1440', { breach: 'EXCEPTION_AND_BLOCK' })] });
+    const def = define(mbr);
+    const run = Run.issue(def);
+    done(run, 'prep');
+    run.start('fill');
+    run.minutes(25 * 60);
+    // The sweeper raises the breach without any command.
+    run.state = sweep(def, run.state, { nowUs: run.nowUs }).state;
+    const ex = run.exceptions('TIME_MAX_BREACH');
+    expect(ex).toHaveLength(1);
+    expect(ex[0]?.source.constraint).toBe('TC-PREP-FILL');
+    // The filling step cannot be completed, so the run cannot move on to the next step.
+    run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'fill', signature: sig('PERFORMED', OP1) }, 'ENG-BLOCKED');
+    run.refused({ type: 'START_STEP', actor: OP1, step: 'cap' });
+    // A supervisor cannot lift it; QA does, under a linked deviation.
+    run.refused({ type: 'DISPOSITION_EXCEPTION', actor: SUP1, exception: ex[0]?.id ?? '', outcome: 'DEVIATION_RAISED', justification: 'x', signature: sig('EXCEPTION_DISPOSITIONED', SUP1) });
+    run.ok({ type: 'ATTACH_DEVIATION', actor: SUP1, exception: ex[0]?.id ?? '', deviationRef: 'DEV-37' });
+    run.ok({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: ex[0]?.id ?? '', outcome: 'DEVIATION_RAISED', justification: 'Time limit exceeded; assessed under DEV-37', signature: sig('EXCEPTION_DISPOSITIONED', QA1) });
+    run.perform('fill');
+    if (run.status('fill') === 'AWAITING_VERIFICATION') run.verify('fill');
+    run.start('cap');
+  });
+
+  it('[ST-04] every act carries the server\'s time and follows the approved master: a person-claimed earlier time is refused, and a step cannot start before the one before it is done', () => {
+    const run = Run.issue(define(mbrWith(seq('ops', phase('s6'), phase('s7')))));
+    run.refused({ type: 'START_STEP', actor: OP1, step: 's6', occurredAt: { us: run.nowUs - 180n * MIN, trust: 'USER_CLAIMED' } }, 'ENG-BACKDATING');
+    run.refused({ type: 'START_STEP', actor: OP1, step: 's7' });
+    done(run, 's6');
+    run.start('s7');
+  });
+
   it('[INV-20] a constraint whose end lies in a branch that was not taken is void and never breaches', () => {
     const mbr = mbrWith(
       seq(
