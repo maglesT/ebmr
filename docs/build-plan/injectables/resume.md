@@ -78,6 +78,8 @@ injectables controls, a golden batch, the browser suite, one review pass.
       equivalent). Outside the EU, no refusal: a refusal with no binding clause is a defect.
     - If (b) costs more than half a day: keep the field optional everywhere, cite A1 5.2 for the EU, and list "EU hard
       refusal for an unassessed alarm" as a residual for the owner.
+- **Owner, 13 November 2026 (via the lead):** "not now" to a room-level EM logbook between batches. It is deferred by the
+  owner and not built; note it in PROGRESS.md with the exit PR.
 - **Decision 0030 (this branch, inj/i6-0030-unbuilt-minimum):** lead rulings under the owner's minimum-compliance rule.
   - Left out: ST-02, ST-06 (release-block part), ST-11, ST-17 (restoration record), ST-20 (viable alert), ST-22
     (per-operator), ST-67, ST-71 (listing both), ST-72 (naming), ST-75, ST-76, IN-45 (listing).
