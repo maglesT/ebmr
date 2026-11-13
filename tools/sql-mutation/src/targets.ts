@@ -71,7 +71,7 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
       'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents',
-      'recipe.packaging_order_bulk'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'recipe.packaging_order_bulk', 'recipe.planning_orders'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
