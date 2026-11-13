@@ -143,6 +143,8 @@ export const DUAL_CHAMBER: Injectable = {
     { id: 'stopper', name: 'Bromobutyl middle stopper for cartridges', field: 'stopperLot' },
     { id: 'filter', name: 'Sterilising filter cartridge, 0.2 micrometre', field: 'filterLot' },
     { id: 'plunger', name: 'Bromobutyl plunger for cartridges', field: 'plungerLot' },
+    // The EM plates' media lot, released after its growth-promotion test (ST-23).
+    { id: 'media', name: 'Environmental monitoring plates, tryptone soya agar', field: 'mediaLot' },
   ],
   steps: cartridgeSteps(),
 };
@@ -239,6 +241,8 @@ export const ROUTE_PRODUCTS: readonly Injectable[] = [
       { id: 'syringe', name: 'Glass syringe barrel, 2.25 mL, staked needle, in nested tubs (sterile)', field: 'componentLot' },
       { id: 'plunger', name: 'Bromobutyl plunger stopper', field: 'stopperLot', alsoIn: ['plungerLot'] },
       { id: 'filter', name: 'Sterilising filter cartridge, 0.2 micrometre', field: 'filterLot' },
+      // The EM plates' media lot, released after its growth-promotion test (ST-23).
+      { id: 'media', name: 'Environmental monitoring plates, tryptone soya agar', field: 'mediaLot' },
     ],
     steps: [
       asepticStep('INJ-ROOM-READY'),
