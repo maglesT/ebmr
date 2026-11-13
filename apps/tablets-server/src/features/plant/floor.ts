@@ -101,6 +101,23 @@ export function plantFloorHandlers(app: AppContext) {
       const id = await write(app, ctx, 'select plant.start_equipment_use($1, $2::uuid, clock_timestamp() + make_interval(hours => $3::int)) as r', [ctx.params.code, ctx.body.batchId, ctx.body.plannedHours]);
       return useView(app, pool, text(id));
     },
+    // Demo report 13 November 2026 (bug 4): every process unit's use not ended, of any batch in any state, for the Plant
+    // screen's "Units in use" (each ended there with endEquipmentUse below).
+    openEquipmentUses: async (ctx: Ctx<'openEquipmentUses'>): Promise<{ uses: (PlantUseView & { mine: boolean })[] }> => {
+      const viewer = ctx.requireSession().personId;
+      const { rows } = await pool.query<{ id: string; code: string; batch: string; by: string; us: string; end_us: string }>(
+        `select u.id, e.code, u.batch_ref as batch, u.started_by as by, ${usOf('u.started_at')} as us, ${usOf('u.planned_end')} as end_us
+           from plant.equipment_use_status u join plant.equipment e on e.id = u.equipment_id
+          where u.ended_at is null order by u.started_at, u.id`,
+      );
+      const people = await peopleOf(pool, rows.map((r) => r.by));
+      return {
+        uses: rows.map((r) => ({
+          useId: r.id, kind: 'PROCESS' as const, equipmentCode: r.code, batchNumber: r.batch, startedBy: personRef(people, r.by, 'OPERATOR'), startedAt: app.formatInstant(r.us),
+          plannedEnd: app.formatInstant(r.end_us), ended: null, mine: r.by === viewer,
+        })),
+      };
+    },
     endEquipmentUse: async (ctx: Ctx<'endEquipmentUse'>): Promise<PlantUseView> => {
       await write(app, ctx, 'select plant.end_equipment_use($1) as r', [ctx.params.useId]);
       return useView(app, pool, ctx.params.useId);

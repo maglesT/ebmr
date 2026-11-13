@@ -44,6 +44,24 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     await expect(w.startUse(press.code, 'B-2', product)).rejects.toThrow(/DIRTY: to be cleaned/);
   });
 
+  // Demo report 13 November 2026 (bug 4): a use no step of its batch names is ended from the Plant screen by whoever is on
+  // the floor, not only by the person who started it; the right stays STEP.EXECUTE, whatever the batch's state.
+  it('[INV-12][IN-25][DI-17] an open use is ended by any person holding STEP.EXECUTE for its product, not only the one who started it; a person without it is refused and the use stays open; ended, the unit is cleaned and used again', async () => {
+    const press = await w.press();
+    const product = await w.product();
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    const use = await w.startUse(press.code, 'B-1', product);
+    await expect(w.run(w.cast.verifier, (c) => plant.endEquipmentUse(c, use))).rejects.toThrow(/EBMR-IAM-040/);
+    expect(await w.state('equipment', press.id)).toBe('IN_PRODUCT');
+    await expect(w.startUse(press.code, 'B-2', product)).rejects.toThrow(/EBMR-PLANT-061/);
+    await w.run(w.cast.operator2, (c) => plant.endEquipmentUse(c, use));
+    const { rows } = await db.admin.query<{ ended_by: string }>('select ended_by::text from plant.equipment_use_end where use_id = $1', [use]);
+    expect(rows).toEqual([{ ended_by: w.cast.operator2.personId }]);
+    await expect(w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, use))).rejects.toThrow(/EBMR-PLANT-063/);
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    expect(await w.startUse(press.code, 'B-2', product)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
   it('[INV-12] overlapping occupancies of one PROCESS unit are refused by the database even for owner-level writes: the use chain admits one open use, and the exclusion constraint refuses overlapping closed intervals with every trigger off', async () => {
     const press = await w.press();
     const product = await w.product();

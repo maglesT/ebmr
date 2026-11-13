@@ -369,7 +369,7 @@ test('[INV-40][PR-34][PR-23][PR-20] R3.2 to R3.9, R3.11: the dispensing stage on
       return {};
     }, page);
 
-    await evidence.step('QA dispositions the stage\'s open exceptions; R3.9: the sign-off lists DISP-1 still in use and the supervisor ends it there', 'The room\'s use is ended from the sign-off dialog; the stage is signed off', async () => {
+    await evidence.step('QA dispositions the stage\'s open exceptions; R3.9: the sign-off lists DISP-1 still in use and says an operator ends it', 'The operator ends the room\'s use on the clearance step; the stage is signed off', async () => {
       for (;;) {
         // The overview read afresh (the page's reload, as a person does when a list looks stale), then the batch.
         await page.reload();
@@ -393,10 +393,11 @@ test('[INV-40][PR-34][PR-23][PR-20] R3.2 to R3.9, R3.11: the dispensing stage on
       const inUse = dialog.getByTestId('stage-in-use');
       await expect(inUse.getByTestId('in-use-DISP-1')).toBeVisible();
       await expect(inUse.getByTestId('in-use-BAL-DISP-01')).toContainText('booked until');
-      // Ending a room's use is a floor act (STEP.EXECUTE): the supervisor's own tap is refused in the database's words,
-      // and the operator ends it, here from the clearance step's plant panel.
-      await act(page, inUse.getByRole('button', { name: 'End the use of DISP-1' }), supervisor);
-      await expect(inUse.getByText(/lacks permission STEP\.EXECUTE/)).toBeVisible();
+      // Ending a room's use is a floor act (STEP.EXECUTE, which the supervisor lacks): the dialog no longer offers it to
+      // the supervisor (demo report 13 November 2026, bug 4) and says who ends it; the operator ends it, here from the
+      // clearance step's plant panel.
+      await expect(inUse.getByRole('button', { name: 'End the use of DISP-1' })).toHaveCount(0);
+      await expect(inUse.getByTestId('stage-in-use-who')).toContainText('An operator ends these uses');
       await dialog.getByRole('button', { name: 'Cancel' }).click();
       await as(page, op);
       await step(page, 'p-disp-clear@');

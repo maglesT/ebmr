@@ -44,6 +44,19 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Fix: a unit in use that no step names can be ended (demo report 13 November 2026, bug 4; branch fix-end-equipment-use).**
+A unit's use started on the Plant screen for a batch whose master binds no step to the unit had no screen to end it, so
+the unit stayed in use and every later batch was refused (EBMR-PLANT-061). The stage sign-off offered "End the use" to
+the supervisor, whom the database refuses (STEP.EXECUTE is the operator's).
+- New read `plant.openEquipmentUses` (GET /api/plant/equipment-uses): every process unit's use not ended, of any batch in
+  any state. The Plant screen's "Units in use" lists them and offers the operator the existing end act
+  (`plant.endEquipmentUse`: same right, fresh badge tap, audit row). No database change: `plant.end_equipment_use` never
+  read the batch's state, so a finished or abandoned batch's use was always endable there.
+- The stage sign-off offers "End the use" only to a role holding STEP.EXECUTE (web `STEP_EXECUTE` group); others are told
+  who ends it and where. The presenter-floor E2E now checks that instead of the supervisor's refusal.
+- Open for the owner: should a shift supervisor end a use at stage sign-off (a new grant), and should ending a use
+  record a reason (none is stored today)? Rooms (`plant.end_area_occupancy`) still have no Plant-screen end.
+
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
 - INJ-AVI-CHALLENGE-EU: the Annex 1 8.32 challenge, EU only.

@@ -188,6 +188,23 @@ export const plantFloor = {
     { batchId: Uuid, plannedHours: PlannedHours },
     PlantUseView,
   ),
+  /**
+   * Demo report of 13 November 2026 (bug 4): a unit's use started on the Plant screen for a batch whose master binds no
+   * step to the unit had no screen to end it, so the unit stayed in use and every later batch was refused
+   * (EBMR-PLANT-061). This lists every process unit's use not ended, of any batch whatever its state (a finished,
+   * stuck or abandoned batch included), oldest first, so the Plant screen offers each one's end (endEquipmentUse: the
+   * same act, rights and audit as on the step screen). `mine`: the viewer started it.
+   */
+  openEquipmentUses: defineRoute({
+    id: 'plant.openEquipmentUses',
+    method: 'GET',
+    path: '/api/plant/equipment-uses',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The process units in use now: every equipment use not ended, of any batch, oldest first',
+    response: z.strictObject({ uses: z.array(PlantUseView.extend({ mine: z.boolean() })) }),
+  }),
   endEquipmentUse: post('plant.endEquipmentUse', '/api/plant/equipment-uses/:useId/end', 'End the use of a process unit: it becomes dirty and its dirty-hold clock starts (STEP.EXECUTE)', { useId: Uuid }, {}, PlantUseView),
   chargeContainer: post(
     'plant.chargeContainer',

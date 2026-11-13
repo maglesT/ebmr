@@ -111,3 +111,33 @@ describe('calibration and press discharge (slice 7h, A7 and A9)', () => {
     expect(ui.tap.requestTap).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('units in use (demo report 13 November 2026, bug 4)', () => {
+  const use = example('plant-open-equipment-uses').uses[0];
+  if (!use) throw new Error('no open use example');
+  const uses = { uses: [{ ...use, equipmentCode: 'BLPRESS-02', batchNumber: 'MGL260051' }, { ...use, useId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c99', equipmentCode: 'BLPRESS-01', batchNumber: 'MGL260101' }] };
+
+  it('[INV-12][DI-17][INV-40] an operator ends, on the Plant screen, the use of a unit no step of the batch names, whatever the state of its batch, with a fresh badge tap on a kiosk', async () => {
+    const ui = renderOffice('/plant', { role: 'OPERATOR', attribution: 'TAP', fixtures: { 'plant.openEquipmentUses': uses } });
+    const section = await screen.findByTestId('units-in-use');
+    const row = await within(section).findByTestId('unit-use-BLPRESS-01');
+    expect(row.textContent).toContain('MGL260101');
+    expect(within(section).getByTestId('unit-use-BLPRESS-02').textContent).toContain('MGL260051');
+    await userEvent.click(within(row).getByRole('button', { name: 'End the use of BLPRESS-01' }));
+    const path = '/api/plant/equipment-uses/7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c99/end';
+    await waitFor(() => expect(ui.posts(path)).toHaveLength(1));
+    expect(ui.tap.requestTap.mock.calls[0]?.[1]).toEqual({ method: 'POST', path, body: {} });
+    expect(ui.posts(path)[0]?.body).toMatchObject({ attribution: { method: 'BADGE_TAP' } });
+  });
+
+  it('[DI-17] a person not offered the floor acts (a shift supervisor) sees the units in use but no end act, and is told who ends it; with none in use the screen says so', async () => {
+    renderOffice('/plant', { role: 'SHIFT_SUPERVISOR', fixtures: { 'plant.openEquipmentUses': uses } });
+    const section = await screen.findByTestId('units-in-use');
+    await within(section).findByTestId('unit-use-BLPRESS-02');
+    expect(within(section).queryByRole('button', { name: /^End the use of/ })).toBeNull();
+    expect(section.textContent).toContain('An operator ends a unit\'s use');
+    cleanup();
+    renderOffice('/plant', { role: 'OPERATOR', fixtures: { 'plant.openEquipmentUses': { uses: [] } } });
+    expect(await within(await screen.findByTestId('units-in-use')).findByText('No process unit is in use.')).toBeTruthy();
+  });
+});

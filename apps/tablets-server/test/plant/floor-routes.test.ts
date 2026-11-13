@@ -95,7 +95,7 @@ beforeAll(async () => {
   const run = valueOf(await issuer.call(routes.batches.batch, { params: { batchId } }));
   batchNumber = run.header.batchNumber;
   stepKey = run.stages[0]?.steps[0]?.stepKey ?? '';
-  for (const key of ['operator1', 'verifier1', 'steward', 'technician1', 'technician2', 'stores']) b[key] = await w.gmp.asPersona(key);
+  for (const key of ['operator1', 'operator2', 'supervisor1', 'verifier1', 'steward', 'technician1', 'technician2', 'stores']) b[key] = await w.gmp.asPersona(key);
   vi.useFakeTimers({ toFake: ['performance'] });
   // The plant's product list names the batch's product (master data the GB-T-02 demo load also writes as the steward).
   const product = w.content.header.product;
@@ -202,6 +202,43 @@ describe('press tooling and the press discharge (gap report A6, A7)', () => {
     const ended = valueOf(await act('operator1', P.endEquipmentUse, { params: { useId: use?.useId ?? '' }, body: {} }));
     expect(ended.ended?.by.personId).toBe(personaIn(w.gmp, 'operator1').personId);
     expect(refused(await act('operator1', P.endEquipmentUse, { params: { useId: use?.useId ?? '' }, body: {} }))).toMatch(/EBMR-PLANT-063/);
+  }, 240_000);
+});
+
+describe('a unit in use that no step of the batch names (demo report 13 November 2026, bug 4)', () => {
+  it('[INV-12][IN-25][DI-17][INV-40] the Plant screen lists every unit still in use, of any batch; another operator ends it with a fresh tap, the shift supervisor is refused (STEP.EXECUTE), and the unit is free for the next use once cleaned', async () => {
+    const press = `PR2-${TAG}`;
+    valueOf(await act('steward', P.defineEquipment, { body: { code: press, name: 'Bilayer press (test)', classCode: `PRS${TAG}`, areaCode: ROOM } }));
+    valueOf(await act('steward', P.equipmentEvent, { params: { code: press }, body: { event: 'EVENT', kind: 'QUALIFIED', detail: 'IQ/OQ/PQ approved', reference: `QUAL-${press}` } }));
+    await clean('EQUIPMENT', press);
+    // Started on the Plant screen: the batch's master binds no step to this unit, so no step screen offers its end.
+    const start = { params: { code: press }, body: { batchId, plannedHours: '4' } };
+    const use = valueOf(await act('operator1', P.startEquipmentUse, start));
+    const listed = (key: string) => (b[key] as TestBrowser).call(P.openEquipmentUses, {}).then((r) => valueOf(r).uses.find((u) => u.useId === use.useId));
+    expect(await listed('operator2')).toMatchObject({ kind: 'PROCESS', equipmentCode: press, batchNumber, ended: null, mine: false, startedBy: { personId: personaIn(w.gmp, 'operator1').personId } });
+    expect((await listed('operator1'))?.mine).toBe(true);
+    expect(await listed('supervisor1')).toMatchObject({ equipmentCode: press });
+    // While open, the unit refuses another use (the demo's EBMR-PLANT-061).
+    expect(refused(await act('operator1', P.startEquipmentUse, start))).toMatch(/EBMR-PLANT-061/);
+    // Ending is a floor act (STEP.EXECUTE): the supervisor who signs a stage off is refused in the database's words.
+    expect(refusalOf(await act('supervisor1', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))?.code).toBe('EBMR-IAM-040');
+    expect(refusalOf(await (b['operator2'] as TestBrowser).call(P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
+    const ended = valueOf(await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }));
+    expect(ended.ended?.by.personId).toBe(personaIn(w.gmp, 'operator2').personId);
+    expect(await listed('operator2')).toBeUndefined();
+    expect(refused(await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))).toMatch(/EBMR-PLANT-063/);
+    // The ended use is in the audit trail, attributed to the person who ended it.
+    const { rows } = await w.gmp.db.admin.query<{ n: string }>(
+      `select count(*)::text as n from kernel.audit_event
+        where table_name = 'plant.equipment_use_end' and action = 'INSERT' and record_id = (select u.equipment_id::text from plant.equipment_use u where u.id = $1) and payload -> 'actor' ->> 'person_id' = $2`,
+      [use.useId, personaIn(w.gmp, 'operator2').personId],
+    );
+    expect(rows[0]?.n).toBe('1');
+    // Dirty now; cleaned and verified, it is used again.
+    expect(refused(await act('operator1', P.startEquipmentUse, start))).toMatch(/DIRTY.*EBMR-PLANT-061/);
+    await clean('EQUIPMENT', press);
+    const next = valueOf(await act('operator1', P.startEquipmentUse, start));
+    valueOf(await act('operator1', P.endEquipmentUse, { params: { useId: next.useId }, body: {} }));
   }, 240_000);
 });
 

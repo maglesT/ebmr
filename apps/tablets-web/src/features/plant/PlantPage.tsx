@@ -6,6 +6,7 @@
  * the discharge configuration of a press (MASTERDATA.CHANGE); the unit is chosen from the plant list, never typed.
  * Slice 7h (gap report D2): the per-use check and the booking for a batch of an instrument the batch uses without a status
  * step naming it (a closure torque tester on a bottle line: TB23-TESTER), chosen from the plant list (STEP.EXECUTE).
+ * Demo report 13 November 2026 (bug 4): every process unit still in use, of any batch, with its end (STEP.EXECUTE).
  */
 import { useState } from 'react';
 import { routes, type RouteResponse } from '@ebmr/api-contract';
@@ -59,6 +60,9 @@ export function PlantPage() {
       </Section>
       <Section title="Room or unit in use for a batch" testId="plant-use">
         <PlantUseForm />
+      </Section>
+      <Section title="Units in use" testId="units-in-use">
+        <OpenUnitUses />
       </Section>
       <Section title="Calibration" testId="calibration">
         <CalibrationForm />
@@ -346,6 +350,35 @@ function PlantUseForm() {
       ) : (
         <p>Choose the batch.</p>
       )}
+    </>
+  );
+}
+
+/**
+ * Demo report 13 November 2026 (bug 4): a unit's use started here for a batch whose master binds no step to the unit had
+ * no screen to end it, so the unit stayed in use and every later batch was refused (EBMR-PLANT-061). Every process unit
+ * still in use is listed, whatever the state of its batch (finished, stuck or abandoned included), and a person offered
+ * the floor's acts ends it here: the same act as on the step screen (the person's own command, a fresh badge tap on a
+ * kiosk; the database checks STEP.EXECUTE, ends the use once and starts the unit's dirty-hold clock).
+ */
+function OpenUnitUses() {
+  const q = useApiQuery(routes.plant.openEquipmentUses);
+  const may = useOffered('STEP_EXECUTE');
+  const end = useCommand(routes.plant.endEquipmentUse, [routes.plant.openEquipmentUses.id, ...PENDING], 'ending the use of the unit');
+  const uses = q.data?.uses ?? [];
+  return (
+    <>
+      {uses.length === 0 ? <p>No process unit is in use.</p> : null}
+      <ul>
+        {uses.map((u) => (
+          <li key={u.useId} data-testid={`unit-use-${u.equipmentCode}`}>
+            <StatusChip tone="warning" label={`${u.equipmentCode} in use`} /> by batch {u.batchNumber} since {u.startedAt.text}, planned to end {u.plannedEnd.text}{' '}
+            {may ? <ActButton label={`End the use of ${u.equipmentCode}`} onPress={() => end.run({ params: { useId: u.useId }, body: {} })} disabled={end.busy} /> : null}
+          </li>
+        ))}
+      </ul>
+      {uses.length > 0 && !may ? <p>An operator ends a unit's use (STEP.EXECUTE).</p> : null}
+      <ActResult error={end.error} done={end.done} label={end.done ? `The use of ${end.done.equipmentCode} by ${end.done.batchNumber} ended; the unit is to be cleaned.` : ''} />
     </>
   );
 }

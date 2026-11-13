@@ -362,3 +362,39 @@ describe('a plant act pressed before the session is read (slice 7m, route W 6 in
     await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(1));
   });
 });
+
+describe('the stage sign-off offers only the acts the viewer may do (demo report 13 November 2026, bug 4)', () => {
+  const signOffView = (): StepScreenView => {
+    const v = gmpView('G-20@1', 'p-disp-recon@', []);
+    v.step.status = 'COMPLETED';
+    v.actions = [{ action: 'SIGN_OFF_STAGE', available: true, primary: true, requires: 'SIGNATURE', meaning: 'STAGE_SIGNED_OFF', reason: null, target: 'S-DISP@', whoCanHelp: [] }];
+    return v;
+  };
+  const inUse = plant({
+    occupancies: [{ occupancyId: OCC, areaCode: 'DISP-1', batchNumber: 'B26-0007', stage: 'S-DISP', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), ended: null, mine: false }],
+    uses: [{ useId: USE_PRESS, kind: 'PROCESS', equipmentCode: 'PRESS-01', batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null, mine: false }],
+  });
+  const open = async (role: string) => {
+    const view = signOffView();
+    const ui = renderFloor(stepPath(view.step.stepKey), { installation: 'GMP', session: { role }, fixtures: { 'batches.step': () => view, ...stepFixtures(view), 'batches.stepPlant': () => inUse } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign off the stage' }));
+    const section = await screen.findByTestId('stage-in-use');
+    await within(section).findByTestId('in-use-PRESS-01');
+    return { ui, section };
+  };
+
+  it('[DI-17] the shift supervisor who signs the stage off is shown the room and unit still in use without an act to end them (the database grants it on STEP.EXECUTE, which the supervisor lacks) and is told who ends them', async () => {
+    const { section } = await open('SHIFT_SUPERVISOR');
+    expect(within(section).getByTestId('in-use-DISP-1')).toBeTruthy();
+    expect(within(section).queryByRole('button', { name: /^End the use of/ })).toBeNull();
+    expect(within(section).getByTestId('stage-in-use-who').textContent).toContain('Plant screen');
+  });
+
+  it('[DI-17][INV-40] an operator viewing the dialog is offered the end of each, sent as the existing end act', async () => {
+    const { ui, section } = await open('OPERATOR');
+    expect(within(section).queryByTestId('stage-in-use-who')).toBeNull();
+    expect(within(section).getByRole('button', { name: 'End the use of DISP-1' })).toBeTruthy();
+    await userEvent.click(within(section).getByRole('button', { name: 'End the use of PRESS-01' }));
+    await waitFor(() => expect(posts(ui, `/api/plant/equipment-uses/${USE_PRESS}/end`)).toHaveLength(1));
+  });
+});
