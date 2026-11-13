@@ -31,6 +31,15 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-42][ST-46] aseptic assembly records each connection of the formulation's list as made under Grade A and, for the EU market in its own block, the transfer into Grade A/B by the validated method; either answered no is an exception"
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-48][ST-42] sterilisation in place records the cycle values from the printout as critical values with limits, checked by a second person; a temperature or exposure below the minimum is an exception"
+clauses:
+  - clause: "Leave one pump head without an autoclave link → fill start blocked with the item named."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Every listed item resolved to a cycle at fill start"
+  - clause: "Assign VHP to a stainless needle → MBR approval refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "6-log VHP rule"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

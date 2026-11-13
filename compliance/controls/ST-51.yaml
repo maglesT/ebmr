@@ -29,6 +29,13 @@ catalog_test: Import a DP above the validated maximum → automatic deviation. R
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum"
+clauses:
+  - clause: "Import a DP above the validated maximum → automatic deviation."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum"
+  - clause: "Record filtration 08:00–16:30 against an 8 h maximum → deviation."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

@@ -29,6 +29,15 @@ catalog_test: Stoppers sterilised at T0 with a 72 h hold are used at T0+73 h →
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-41][ST-43][ST-47][ST-61] values typed from a device printout (washer, depyrogenation, parts and terminal sterilisation) are judged against the firm's limits, critical where a clause names the value (the sterilising temperature, hold time and F0, the depyrogenation temperature), and a second person of another role checks them against the printout"
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-41] stoppers sterilised with a 72 h use-by and used 73 h later: the use-by is breached, filling cannot start, and the exception needs a deviation and QA's disposition"
+clauses:
+  - clause: "Stoppers sterilised at T0 with a 72 h hold are used at T0+73 h → blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > the master's time limits between injectables steps (slice I-6.3) > [ST-41] stoppers sterilised with a 72 h use-by and used 73 h later: the use-by is breached, filling cannot start, and the exception needs a deviation and QA's disposition"
+  - clause: "A stopper load with a wash record but no sterilisation cycle → refused at the filler."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Full preparation record gating the filler"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

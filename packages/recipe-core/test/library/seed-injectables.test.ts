@@ -5,12 +5,12 @@
  * block. Every block also runs nominally to completion in seed.test.ts.
  */
 import { describe, expect, it } from 'vitest';
-import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
+import type { FlowNode, MbrContent, TimeConstraint } from '../../src/flow/model.ts';
 import { checkBlockUse, libraryBlockType, libraryBlockVersion } from '../../src/library/index.ts';
 import type { FieldDef } from '../../src/library/model.ts';
 import { blockEdition, editionFits } from '../../src/library/model.ts';
 import { INJECTABLE_ASEPTIC_CATALOGUE, INJECTABLE_CATALOGUE, INJECTABLE_INSPECTION_CATALOGUE, INJECTABLE_LYO_CATALOGUE, INJECTABLE_ROUTE_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
-import { define, Run, T0, testRegistry } from '../engine/support.ts';
+import { define, done, OP1, Run, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
 import { judgedRun, recordNominal } from './seed-support.ts';
 
@@ -306,6 +306,151 @@ describe('the Injectables catalogue (slice I-1)', () => {
     expect(judgedRun(item, { sterility: { noGrowth: false } }).exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
     expect(judgedRun(item, { endotoxin: { endotoxin: ['0.20', '0.60'] } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     expect(judgedRun(item, { particulates: { particles10: Array.from({ length: 10 }, () => '6500') } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+  });
+});
+
+/** A time limit of the master between two injectables steps (the plan's way to hold a time: seed header above). */
+function limit(id: string, kind: TimeConstraint['kind'], from: [string, 'START' | 'END'], to: [string, 'START' | 'END'], max: string, unit: string, breach: TimeConstraint['breach']): TimeConstraint {
+  return {
+    id, name: `Limit ${id}`, kind, from: { node: from[0], event: from[1] }, to: { node: to[0], event: to[1] },
+    max: { value: max, unit }, source: { kind: 'VALIDATION_REPORT', ref: 'VR-INJ' }, breach, pauses: 'INCLUDED',
+  };
+}
+
+describe('the master\'s time limits between injectables steps (slice I-6.3)', () => {
+  const seq = (...ids: string[]): FlowNode => ({ kind: 'sequence', id: 'ops', children: ids.map((x) => phase(x)) });
+
+  it('[ST-41] stoppers sterilised with a 72 h use-by and used 73 h later: the use-by is breached, filling cannot start, and the exception needs a deviation and QA\'s disposition', () => {
+    const mbr = mbrWith(seq('stopper-autoclave', 'filling'), { timeConstraints: [limit('TC-STOPPER-USE-BY', 'USE_BY', ['stopper-autoclave', 'END'], ['filling', 'START'], '72', 'h', 'EXCEPTION_AND_BLOCK')] });
+    const within = Run.issue(define(mbr));
+    done(within, 'stopper-autoclave');
+    within.minutes(72 * 60);
+    within.start('filling');
+    expect(within.exceptions()).toEqual([]);
+    const late = Run.issue(define(mbr));
+    done(late, 'stopper-autoclave');
+    late.minutes(73 * 60);
+    late.refused({ type: 'START_STEP', actor: OP1, step: 'filling' }, 'ENG-BLOCKED');
+    const [breach, ...more] = late.exceptions('TIME_MAX_BREACH');
+    expect(more).toEqual([]);
+    expect(breach).toMatchObject({ deviationRequired: true, qaOnly: true, releaseBlocking: true });
+    expect(breach?.source.constraint).toBe('TC-STOPPER-USE-BY');
+  });
+
+  it('[ST-57][ST-59][IN-46] a time limit beyond its maximum (stoppering to capping 3 h against 2 h, part-stoppered vials exposed past their limit before the lyophiliser is loaded, compounding to filtration past its maximum) is an exception that needs a deviation and holds the release', () => {
+    const cases: [string, string, string, TimeConstraint['kind'], string, number][] = [
+      ['filling', 'capping', 'TC-STOPPER-TO-CRIMP', 'HOLD', '2', 3 * 60],
+      ['filling', 'lyo-loading', 'TC-PART-STOPPERED', 'EXPOSURE', '4', 4 * 60 + 1],
+      ['compounding', 'filtration', 'TC-PREP-TO-FILTRATION', 'PROCESS_WINDOW', '8', 8 * 60 + 1],
+    ];
+    for (const [from, to, id, kind, max, minutes] of cases) {
+      const mbr = mbrWith(seq(from, to), { timeConstraints: [limit(id, kind, [from, 'END'], [to, 'START'], max, 'h', 'EXCEPTION')] });
+      const ok = Run.issue(define(mbr));
+      done(ok, from);
+      ok.minutes(Number(max) * 60);
+      done(ok, to);
+      expect(ok.exceptions(), id).toEqual([]);
+      const run = Run.issue(define(mbr));
+      done(run, from);
+      run.minutes(minutes);
+      run.start(to);
+      const breaches = run.exceptions('TIME_MAX_BREACH');
+      expect(breaches.map((b) => b.source.constraint), id).toEqual([id]);
+      expect(breaches[0], id).toMatchObject({ deviationRequired: true, releaseBlocking: true });
+    }
+  });
+});
+
+describe('what the approved MODIFY decisions keep, in the I-1 blocks (slice I-6.3)', () => {
+  /** The facts the plant reports for one equipment field, in place of the nominal ones. */
+  const unit = (id: string, classCode: string, fitness = 'QUALIFIED') => ({ [id]: { code: `SIM-${id.toUpperCase()}`, classCode, fitness } });
+
+  it('[ST-44] a parts-sterilisation cycle whose temperature failed stays an exception when every other value passed and the cycle is answered passed: the load cannot complete until QA dispositions it', () => {
+    for (const code of ['INJ-PARTS-AUTOCLAVE', 'INJ-TERMINAL-STERILISE']) {
+      const section = code === 'INJ-PARTS-AUTOCLAVE' ? 'cycle' : 'load';
+      const failed = judgedRun(byCode(code), { [section]: { temperature: '120.5', cyclePassed: true } });
+      expect(failed.exceptions, code).toEqual(['LIB_LIMIT_BREACH']);
+      expect(failed.status, code).not.toBe('COMPLETED');
+    }
+  });
+
+  it('[ST-45] each sterilisation and depyrogenation cycle block is signed by the operator and checked or verified by a second person of another role, so a cycle is not complete until it is reviewed', () => {
+    for (const code of ['INJ-DEPYRO', 'INJ-PARTS-AUTOCLAVE', 'INJ-TERMINAL-STERILISE']) {
+      const [performed, second, ...more] = byCode(code).definition.signatures;
+      expect(performed?.meaning, code).toBe('PERFORMED');
+      expect(['CHECKED', 'VERIFIED'], code).toContain(second?.meaning);
+      expect(second?.role, code).not.toBe(performed?.role);
+      expect(more, code).toEqual([]);
+    }
+  });
+
+  it('[ST-60] the preparation room is of the class the formulation names for its grade: a room of another class (a lower grade) is refused', () => {
+    const item = byCode('INJ-ROOM-READY');
+    expect(fieldOf(item, 'room')).toMatchObject({ type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' });
+    expect(item.exampleUse.equipmentClasses).toEqual({ roomClass: 'ROOM-GRADE-C' });
+    expect(judgedRun(item, {}).exceptions).toEqual([]);
+    expect(() => judgedRun(item, { clearance: { equipment: unit('room', 'ROOM-GRADE-D') } })).toThrow(/LIB-EQUIPMENT-CLASS/);
+  });
+
+  it('[IN-44] a disinfectant dilution used past its use-by time is an exception that holds the room clearance until QA dispositions it', () => {
+    const late = judgedRun(byCode('INJ-ROOM-READY'), { disinfection: { agentInDate: false } });
+    expect(late.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(late.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-64][INV-45] visual inspection is never a container closure integrity method: the methods offered are physical tests only', () => {
+    const method = fieldOf(byCode('INJ-CCI'), 'method');
+    expect(method.type).toBe('CHOICE');
+    const options = method.type === 'CHOICE' ? method.options : [];
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.filter((o) => /visual|inspect/i.test(o))).toEqual([]);
+  });
+
+  it('[IN-49] sterility sampling takes a sample at each point of the formulation\'s plan, which may name a point after an intervention or stoppage', () => {
+    const item = byCode('INJ-STERILITY-SAMPLE');
+    expect(item.definition.sections[0]?.repeat).toEqual({ kind: 'COUNT', countSlot: 'samplingPoints' });
+    const point = fieldOf(item, 'point');
+    expect(point.type === 'CHOICE' ? point.options : []).toContain('After an intervention');
+    expect(fieldOf(item, 'units')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'unitsPerPoint' });
+    const unlabelled = judgedRun(item, { point: { labelled: false } });
+    expect(unlabelled.exceptions.length).toBeGreaterThan(0);
+    expect(new Set(unlabelled.exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
+  });
+
+  // The one due date of a unit (decision 0030; injectables plan 4.1): the site sets the calibration due date of a unit to
+  // the earliest of its calibration, requalification and, for a steriliser, leak test; past it the plant reports the
+  // unit CALIBRATION_OVERDUE, and the step refuses it. A unit within a week of it is still usable.
+  it('[ST-43] a steriliser whose leak test has lapsed is past its one due date and is not selectable: the parts sterilisation refuses it', () => {
+    const item = byCode('INJ-PARTS-AUTOCLAVE');
+    expect(judgedRun(item, { cycle: { equipment: unit('autoclave', 'STEAM-STERILISER', 'CALIBRATION_DUE_SOON') } }).exceptions).toEqual([]);
+    expect(() => judgedRun(item, { cycle: { equipment: unit('autoclave', 'STEAM-STERILISER', 'CALIBRATION_OVERDUE') } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+  });
+
+  it('[IN-43] a room past its one due date (its requalification lapsed: 12 months for India, earlier where the site sets it for an EU profile) is refused, with no warning stage before it', () => {
+    const item = byCode('INJ-ROOM-READY');
+    expect(() => judgedRun(item, { clearance: { equipment: unit('room', 'ROOM-GRADE-C', 'CALIBRATION_OVERDUE') } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+    // Before the due date the room is usable and nothing is raised: there is no warning in between.
+    expect(judgedRun(item, { clearance: { equipment: unit('room', 'ROOM-GRADE-C', 'QUALIFIED') } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
+  it('[IN-47] a steriliser past its one due date (its revalidation lapsed) is refused by terminal sterilisation; a cycle with an alarm (not answered passed) is an exception that holds the step and the release until QA dispositions it', () => {
+    const item = byCode('INJ-TERMINAL-STERILISE');
+    expect(() => judgedRun(item, { setup: { equipment: unit('steriliser', 'STEAM-STERILISER', 'CALIBRATION_OVERDUE') } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+    const alarm = judgedRun(item, { load: { cyclePassed: false } });
+    expect(alarm.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(alarm.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-67] a failing release test is an exception that holds the QC step until QA dispositions it under a deviation', () => {
+    const growth = judgedRun(byCode('TEST-INJ-RELEASE'), { sterility: { noGrowth: false } });
+    expect(growth.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(growth.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-54][IN-46] compounding records the pre-filtration bioburden sample: an entry without it is refused, so the step, and the record the gate waits for, cannot be completed without the sample', () => {
+    const item = byCode('INJ-COMPOUND');
+    expect(fieldOf(item, 'bioburdenSample')).toMatchObject({ type: 'SAMPLE', unitsSlot: 'bioburdenSamples' });
+    expect(() => judgedRun(item, { makeUp: { bioburdenSample: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
   });
 });
 

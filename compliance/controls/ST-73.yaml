@@ -17,7 +17,13 @@ behaviour: |-
   - Cross-batch exports and dashboards are available per product and line, so the review of at least annual frequency, the PQR, CCS effectiveness review and management review need no re-keying.
 catalog_test: A 12-month extract of interventions per line matches the source batch records.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-73] the interventions of a fill are kept as structured entries (what, kind, duration, listed), so an extract per line reads them as recorded"
+clauses:
+  - clause: "A 12-month extract of interventions per line matches the source batch records."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Cross-batch dashboards and exports"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

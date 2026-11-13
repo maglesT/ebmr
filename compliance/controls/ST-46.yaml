@@ -26,6 +26,15 @@ catalog_test: Use a tool in the filling zone with only a disinfection record →
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-42][ST-46] aseptic assembly records each connection of the formulation's list as made under Grade A and, for the EU market in its own block, the transfer into Grade A/B by the validated method; either answered no is an exception"
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-46] for the EU market, an item not transferred into Grade A/B by the validated method (only disinfected, say) is an exception that holds the step until QA dispositions it"
+clauses:
+  - clause: "Use a tool in the filling zone with only a disinfection record → blocked."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.3) > [ST-46] for the EU market, an item not transferred into Grade A/B by the validated method (only disinfected, say) is an exception that holds the step until QA dispositions it"
+  - clause: "Scan an unlisted tool at the Grade B hatch → blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Approved transfer-list engine with QA exceptions"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

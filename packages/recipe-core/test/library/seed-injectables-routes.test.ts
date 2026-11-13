@@ -9,6 +9,9 @@ import { expr } from '../flow/support.ts';
 import { blockEdition, checkBlockDefinition, checkBlockUse } from '../../src/library/index.ts';
 import { INJECTABLE_ROUTE_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { byCode, fieldOf, judgedRun, nominalRun } from './seed-support.ts';
+import { libraryBlockVersion, libraryBlockType, nominalEntries } from '../../src/library/index.ts';
+import { define, Run, T0, testRegistry } from '../engine/support.ts';
+import { mbrWith, phase } from '../flow/support.ts';
 
 const I4_CODES = ['INJ-HOMOGENISE', 'INJ-POWDER-FILL', 'INJ-PLUNGER', 'INJ-FFS', 'INJ-FFS-EU', 'INJ-BFS', 'INJ-BFS-EU', 'INJ-RADIATION', 'INJ-RADIATION-EU'];
 
@@ -113,5 +116,40 @@ describe('the Injectables catalogue (slice I-4, other containers and routes)', (
     expect(eu.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED']);
     expect(eu.definition.sections.map((s) => [s.id, s.repeat?.kind])).toEqual([['load', 'PER_CONTAINER']]);
     for (const id of ['loadingPattern', 'reconciled', 'plantRecordsSigned']) expect(judgedRun(eu, { load: { [id]: false } }).exceptions, id).toEqual(['LIB_UNEXPECTED_ANSWER']);
+  });
+});
+
+/** Runs a block with its nominal entries except those of one section, and tries to sign it performed: the refusal, if any. */
+function performWithout(item: SeedItem, skipped: string): string {
+  const def = item.definition;
+  const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: item.exampleUse as never }), phase('after')] });
+  const batch = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), {}, T0);
+  batch.start('p');
+  for (const e of nominalEntries(def, item.exampleUse as never, mbr)) {
+    if (e.kind === skipped) continue;
+    batch.entry('p', e);
+    batch.minutes(1);
+  }
+  try {
+    batch.perform('p');
+    return batch.status('p') ?? 'performed';
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+describe('what the approved MODIFY decisions keep, in the I-4 blocks (slice I-6.3)', () => {
+  it('[ST-77] a blow-fill-seal machine whose qualification QA withdrew (after a mould change, until its assessment closes) cannot be used: the step refuses it', () => {
+    const item = byCode('INJ-BFS');
+    expect(fieldOf(item, 'machine')).toMatchObject({ type: 'EQUIPMENT', classSlot: 'machineClass' });
+    const machine = { machine: { code: 'SIM-MACHINE', classCode: 'BFS-MACHINE', fitness: 'NOT_QUALIFIED' }, room: { code: 'SIM-ROOM', classCode: 'ROOM-GRADE-C', fitness: 'QUALIFIED' } };
+    expect(() => judgedRun(item, { setup: { equipment: machine } })).toThrow(/LIB-EQUIPMENT-FITNESS/);
+  });
+
+  it('[ST-78] for the EU market, the batch\'s seal-strength test is required: form-fill-seal cannot be signed performed while it is not recorded', () => {
+    const eu = byCode('INJ-FFS-EU');
+    expect(eu.definition.sections.find((s) => s.id === 'sealStrength')?.required).not.toBe(false);
+    expect(performWithout(eu, 'nothing')).toBe('AWAITING_VERIFICATION');
+    expect(performWithout(eu, 'sealStrength')).toMatch(/LIB-PERFORM-SECTION/);
   });
 });

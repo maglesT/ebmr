@@ -68,6 +68,25 @@ describe('qualification at the moment of action (DI-21, INV-26)', () => {
     expect((await evaluateAuthority(db.app, { personId: op.personId, accountId: op.accountId, permission: 'STEP.EXECUTE', scope: { site: 'SITE-1' } })).allowed).toBe(true);
   });
 
+  it('[ST-62][IN-50] an eyesight qualification required for work in the inspection area: an inspector whose check is 13 months old (valid 12) cannot work or sign there; with a current one the inspector may', async () => {
+    const site = `SITE-E${randomBytes(2).toString('hex')}`;
+    const area = 'VISUAL-INSPECTION';
+    const code = `EYESIGHT-${randomBytes(3).toString('hex').toUpperCase()}`;
+    await asTraining(async (c) => {
+      await c.query("select iam.create_qualification_type($1, 'Eyesight check', 'near vision and colour vision of a visual inspector')", [code]);
+      await c.query("select iam.add_qualification_requirement($1, null, 'STEP.EXECUTE', $2::jsonb, 'eyesight checked yearly for visual inspection')", [code, JSON.stringify({ site, area })]);
+    });
+    const inspector = await seedActor(db, { scope: { site }, acknowledgeEsig: false });
+    const check = (permission: string) => evaluateAuthority(db.app, { personId: inspector.personId, accountId: inspector.accountId, permission, scope: { site, area } });
+    const now = await dbNow(db);
+    const day = 86400;
+    await asTraining((c) => recordQualification(c, { personId: inspector.personId, qualification: code, validFrom: plusSeconds(now, -395 * day), validTo: plusSeconds(now, -30 * day) }));
+    expect(await check('STEP.EXECUTE')).toMatchObject({ allowed: false, reasons: [`MISSING_QUALIFICATION:${code}`] });
+    await expectRefused(withCommand(db.app, inspector, (c) => requirePermission(c, 'STEP.EXECUTE', { site, area })), 'EBMR-IAM-040', new RegExp(`MISSING_QUALIFICATION:${code}`));
+    await asTraining((c) => recordQualification(c, { personId: inspector.personId, qualification: code, validFrom: plusSeconds(now, -day), validTo: plusSeconds(now, 364 * day) }));
+    expect(await check('STEP.EXECUTE')).toMatchObject({ allowed: true });
+  });
+
   it('[INV-26] every evaluation is stored with the instant, the grant and the qualification evidence it used', async () => {
     const site = `SITE-Q${randomBytes(2).toString('hex')}`;
     const code = await requirement(site, ['STEP.EXECUTE']);

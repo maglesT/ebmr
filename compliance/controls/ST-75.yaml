@@ -33,6 +33,18 @@ catalog_test: Enter a failed end-of-batch test on port 3 → deviation plus impa
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-75] glove and sleeve integrity is recorded per port of the formulation's count, with the tester; a port that fails is an exception"
+clauses:
+  - clause: "Enter a failed end-of-batch test on port 3 → deviation"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-75] glove and sleeve integrity is recorded per port of the formulation's count, with the tester; a port that fails is an exception"
+  - clause: "plus impact window since the last pass."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "the impact-window listing (the batches made since the last passing glove test) is beyond the clause"
+  - clause: "Log a RABS door opening with glove exposure and no disinfection → next aseptic step blocked."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Port register with replacement dates; RABS disinfection block"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

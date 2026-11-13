@@ -4,7 +4,7 @@
 - **Decided by:** the lead (session_01PybpFvEFaQZ3LEfnNdjBCE), as a ruling under the owner's standing minimum-compliance
   rule (only binding clauses, cited and checked against the official text; no clause, no requirement). Reported to the
   owner, who may veto it. Prepared by build session 14 (I-6, the injectables edition exit).
-- **Concerns:** controls ST-02, ST-06, ST-11, ST-17, ST-20, ST-22, ST-67, ST-72, ST-75, ST-76 and IN-45; their catalog-test clauses marked `not_required` cite this
+- **Concerns:** controls ST-02, ST-06, ST-11, ST-17, ST-20, ST-22, ST-67, ST-71, ST-72, ST-75, ST-76 and IN-45; their catalog-test clauses marked `not_required` cite this
   record (the register's rule: a quote of at least two whole words from the control's own paragraph below).
 
 ## Context
@@ -60,6 +60,10 @@ levels for Grade A on total particles only and does not forbid a viable alert; t
 
 ST-67: no binding clause found for an inconclusive sterility outcome that offers only rejection. Neither Annex 1 nor
 21 CFR 211.165 and 211.167 define an inconclusive state; a failing result is an exception and a deviation.
+
+ST-71: listing an open deviation and a yield outside its limits as two separate items on the release screen is beyond
+the clause. 21 CFR 211.192 and Schedule M ask that any discrepancy, a yield outside its limits included, be investigated
+and the investigation recorded before release; release stays refused while either is open, which the gate already shows.
 
 ST-72: naming each unreviewed sterilisation cycle on the release screen is beyond the clause. Annex 1 and 21 CFR 211.192
 ask for the records to be reviewed before release; the gate already shows the record incomplete until the cycle block is

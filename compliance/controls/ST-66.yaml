@@ -30,6 +30,14 @@ tests:
   - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-58][ST-59][ST-66] for the EU market, its own block records the trays checked, the Grade A transfer means, sterile utensils, the vent filter sterilised and its integrity by the formulation's method, and per load the lyophiliser's sterilisation cycle, the leak test against the firm's maximum and the load's sterility samples; a failed check is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-61][ST-66] terminal sterilisation runs per load: every filled tray is consumed into its numbered load, and each load records its cycle once, takes its own sterility samples and registers the sterilised load; F0, temperature or time below the minimum is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-66] sterility sampling records each point of the formulation's plan (count of points, units per point, time)"
+clauses:
+  - clause: "A terminally sterilised batch in 3 autoclave loads → 3 cold-spot sample sets required."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-61][ST-66] terminal sterilisation runs per load: every filled tray is consumed into its numbered load, and each load records its cycle once, takes its own sterility samples and registers the sterilised load; F0, temperature or time below the minimum is an exception"
+  - clause: "A corrective intervention at 40% fill → an extra sample task is generated."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Automatic pull after each intervention; FDA middle pull"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

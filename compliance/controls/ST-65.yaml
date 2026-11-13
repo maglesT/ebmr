@@ -30,6 +30,15 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-inspection.test.ts > the Injectables catalogue (slice I-5, automated inspection and integrity testing) > [ST-65][ST-20] a sterility test by a validated rapid method asks for the instrument report, checked by the QC reviewer; a compendial method does not; no report attached is an exception"
   - "packages/recipe-core/test/library/seed-injectables.test.ts > the Injectables catalogue (slice I-1) > [ST-65][ST-68] the release tests are QC's: growth in the sterility test, or endotoxin above the product limit, is an exception"
+  - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-65] release waits for every sterile release test: with sterility passed and endotoxin pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when both have passed"
+clauses:
+  - clause: "Release with sterility present and endotoxin pending → refused."
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > the release gate on the sterile release tests and an open deviation (Injectables slice I-6.3) > [ST-65] release waits for every sterile release test: with sterility passed and endotoxin pending, G3 is red and names the test that has no result, and the release is refused; the gate is green only when both have passed"
+  - clause: "A sterility result whose method suitability used the old formulation → refused."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "Method-suitability link per formulation version; environment, media and analyst per result"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
