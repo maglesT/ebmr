@@ -377,7 +377,11 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-13 (PUPSIT): A1 8.87 (EU market only). Added by a formulation for the EU market after the filter's
-    // sterilisation and before filtration.
+    // sterilisation and before filtration (the master validator requires it before INJ-STERILE-FILTER on an EU master,
+    // MKT-REQUIRED-BLOCKS, ST-52). A1 8.87 accepts that PUPSIT is not always possible after sterilisation (process
+    // constraints, e.g. very small volumes) when a thorough risk assessment is in place with controls against a
+    // non-integral filtration system: the waiver answer then asks for that assessment's reference instead of the test
+    // values, and the entry is refused without it.
     definition: {
       code: 'INJ-PUPSIT',
       version: 1,
@@ -385,14 +389,16 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'PROCESS',
       edition: EDITION,
       markets: ['EU'],
-      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit.',
-      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation.',
+      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit; or, where PUPSIT is not feasible, the reference of the documented risk assessment of the alternative approach.',
+      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation. Only where the formulation documents that PUPSIT is not feasible, answer yes and give the reference of its risk assessment.',
       sections: [
         {
           id: 'pupsitTest',
           title: 'Integrity after sterilisation, before use',
           fields: [
-            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
+            { id: 'pupsitNotFeasible', label: 'PUPSIT not feasible (documented risk-based alternative)', type: 'YES_NO' },
+            { id: 'riskAssessmentRef', label: 'Risk assessment reference (alternative to PUPSIT)', type: 'TEXT', maxLength: 80, showWhen: { field: 'pupsitNotFeasible', equals: true } },
+            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'], showWhen: { field: 'pupsitNotFeasible', equals: false } },
             { id: 'pupsitBubblePoint', label: 'Bubble point after sterilisation', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Bubble point' } },
             { id: 'pupsitDiffusion', label: 'Diffusion after sterilisation', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Diffusion' } },
           ],

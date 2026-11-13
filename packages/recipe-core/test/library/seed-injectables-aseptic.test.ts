@@ -157,6 +157,22 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(pupsit, { pupsitTest: { ...byDiffusion.pupsitTest, pupsitDiffusion: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
+  it('[ST-52] where PUPSIT is not feasible (A1 8.87), the EU block records the reference of the documented risk assessment instead of the test values: without the reference the entry is refused; with it the step completes and no test value is asked; a test value given with the waiver is refused', () => {
+    const pupsit = byCode('INJ-PUPSIT');
+    expect(fieldOf(pupsit, 'pupsitNotFeasible')).toMatchObject({ type: 'YES_NO' });
+    expect(fieldOf(pupsit, 'pupsitNotFeasible').required).not.toBe(false);
+    expect(fieldOf(pupsit, 'riskAssessmentRef')).toMatchObject({ type: 'TEXT', showWhen: { field: 'pupsitNotFeasible', equals: true } });
+    expect(fieldOf(pupsit, 'riskAssessmentRef').required).not.toBe(false);
+    expect(fieldOf(pupsit, 'pupsitMethod').showWhen).toEqual({ field: 'pupsitNotFeasible', equals: false });
+    const waived = { pupsitNotFeasible: true, pupsitMethod: undefined, pupsitBubblePoint: undefined, pupsitDiffusion: undefined };
+    expect(() => judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    expect(judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: 'QRM-PUPSIT-012' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: 'QRM-PUPSIT-012', pupsitMethod: 'Bubble point', pupsitBubblePoint: '3.60' } })).toThrow(/LIB-ENTRY-HIDDEN|applies only when/);
+    // Without the waiver (the nominal answer), the test is asked and judged as before, and no reference is taken.
+    expect(nominalRun(pupsit)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(pupsit, { pupsitTest: { riskAssessmentRef: 'QRM-PUPSIT-012' } })).toThrow(/applies only when/);
+  });
+
   it('[ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum', () => {
     const item = byCode('INJ-STERILE-FILTER');
     expect(fieldOf(item, 'filtrationTime')).toMatchObject({ type: 'TIMER', limitSlot: 'filtrationTime' });
