@@ -88,6 +88,23 @@ export const PackagingParentView = z.strictObject({
 });
 export type PackagingParentView = z.infer<typeof PackagingParentView>;
 
+/** An effective MBR that matches an ERP order (family and version, the approved batch size it names). */
+export const PlanningMatchView = z.strictObject({
+  familyId: Uuid,
+  familyCode: z.string(),
+  versionId: Uuid,
+  versionNumber: z.string(),
+  batchSizeId: z.string(),
+  markets: z.array(z.string()),
+  /** PROCESSING, PACKAGING or REPROCESSING: a PACKAGING match plans a packaging order of one of `parents`. */
+  recordKind: z.string(),
+  /** A packaging family's pack type (D-P4-13), or null. */
+  packType: z.string().nullable(),
+  /** For a packaging match: the processing batches it may pack (newest first); otherwise empty. */
+  parents: z.array(PackagingParentView),
+});
+export type PlanningMatchView = z.infer<typeof PlanningMatchView>;
+
 export const PlanningOrderView = z.strictObject({
   orderNo: z.string(),
   productCode: z.string(),
@@ -96,24 +113,14 @@ export const PlanningOrderView = z.strictObject({
   batchSize: DecimalString,
   batchSizeUnit: z.string(),
   bom: z.array(z.strictObject({ materialCode: z.string(), quantity: DecimalString, unit: z.string() })),
-  /** The matching effective MBR (family and version, the approved batch size it names), or null with `noMatch`. */
-  match: z
-    .strictObject({
-      familyId: Uuid,
-      familyCode: z.string(),
-      versionId: Uuid,
-      versionNumber: z.string(),
-      batchSizeId: z.string(),
-      markets: z.array(z.string()),
-      /** PROCESSING, PACKAGING or REPROCESSING: a PACKAGING match plans a packaging order of one of `parents`. */
-      recordKind: z.string(),
-      /** A packaging family's pack type (D-P4-13), or null. */
-      packType: z.string().nullable(),
-      /** For a packaging match: the processing batches it may pack (newest first); otherwise empty. */
-      parents: z.array(PackagingParentView),
-    })
-    .nullable(),
-  /** Why no MBR matches (no effective version, no approved batch size of that quantity, BOM differs). */
+  /** The one matching effective MBR, or null with `noMatch` (none matches, or several do and the planner chooses). */
+  match: PlanningMatchView.nullable(),
+  /** Every matching effective MBR, by family code (recipe-core 1921): the read never chooses between several. */
+  matches: z.array(PlanningMatchView),
+  /**
+   * Why no MBR is the match: none matches (no effective version, no approved batch size of that quantity, BOM differs),
+   * or several do (named) and the planner chooses one of `matches`.
+   */
   noMatch: z.string().nullable(),
   /** GMP batches already planned or issued for the order. */
   batches: z.array(z.strictObject({ batchId: Uuid, batchNumber: z.string(), status: z.string() })),
