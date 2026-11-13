@@ -58,7 +58,6 @@ implemented_by:
     - "sterile.filter.preUseTestAfterSterilisation"
     - "sterile.filter.singleBatchUse"
 tests:
-  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [PR-03][IN-52] each entry of the table names blocks of the catalogue, cites its control and clause, and its required block is tagged for the market that requires it"
   - "apps/tablets-server/test/designer/market-set.test.ts > market set of an MBR (INV-34, IN-52, F12) > [INV-34][IN-52] the database refuses content with a market the engine does not know, whoever writes it (EBMR-TAB-165)"
   - "apps/tablets-server/test/designer/market-set.test.ts > market set of an MBR (INV-34, IN-52, F12) > [INV-34][IN-52] {IN, JP} on an MBR without bound rule keys neither passes the gate nor enters verification"
   - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [INV-34][IN-52] a limit bound to a market rule key is checked against the minimum the kernel market engine resolves"
@@ -272,6 +271,7 @@ tests:
   - "packages/kernel/test/review/f76.test.ts > F76: market-engine loosening approvals must be real, verified approvals > [IN-52][ST-01] loosening a GUIDANCE site value is refused when its QA approval id is the UUID of nothing"
   - "packages/kernel/test/review/f80.test.ts > F80: an evaluation of a batch applies the batch's own site value > [INV-29][IN-52] a siteId in the request cannot replace the site the batch scope fixes"
   - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [IN-52][PR-10] India is in every market set, and a batch cannot target a market the MBR is not approved for"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [PR-03][IN-52] each entry of the table names blocks of the catalogue, cites its control and clause, and its required block is tagged for the market that requires it"
 clauses:
   - clause: "set up one tablet and one injectable product, each with a batch for {India} and a batch for {India, US, EU}. The {India, US, EU} batches resolve to: retention max(expiry + 1 y, mfg + 5 y, QP certification + 5 y); reference samples expiry + 1 y; annual self-inspection; new number on rework; identity test per excipient lot; plus, for the tablet, the 30-minute compression IPC and IP weight bands; and, for the injectable, any contaminated APS unit fails, Grade A viable no growth, PUPSIT and a single-batch sterilising filter."
     tests:
