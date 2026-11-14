@@ -21,6 +21,7 @@ import pg from 'pg';
 import { ADMIN_URL, dropDatabase, urlFor } from '@ebmr/test-kit';
 import { axe, cspViolations, expect, pickTerminal, signIn, test, VIEWPORTS } from '../../fixtures/index.ts';
 import { administration, endSessions, envelope, occupancyWindow, openTile, receive, registerAdapter, withDb } from './support.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 const TAG = 'room.rh_pct';
 
@@ -193,6 +194,7 @@ test('[DI-32] the trend viewer draws a batch\'s room series from the native samp
     });
 
     const context = await browser.newContext({ viewport: VIEWPORTS.office, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+    watchPages(context);
     const again = await context.newPage();
     try {
       await pickTerminal(again, origin, 'PC-QA-01');

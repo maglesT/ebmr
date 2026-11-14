@@ -518,7 +518,9 @@ export const TARGETS: Target[] = [
                 'site.allocate_batch_number', 'site.register_external_batch_number', 'site.void_batch_number', 'site.batch_number_pattern',
                 'site.recover_batch_number', 'site.batch_number_invariant_violations',
                 // recipe-core 1790: {SEQ:n} of a packaging number counted per parent batch (owner report #19).
-                'site.counts_per_parent', 'site.next_parent_serial'],
+                'site.counts_per_parent', 'site.next_parent_serial',
+                // site-services 1924: the serials each rule skipped, for the register screen (owner decision on retest item 9c).
+                'site.batch_number_retired_ranges'],
     tests: [site('batch-number-register.test.ts')],
     threshold: 90,
   },

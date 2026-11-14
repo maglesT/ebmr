@@ -317,6 +317,46 @@ describe('batch-number register', () => {
     }
     expect(await batchNumberInvariantViolations(db.app)).toEqual([]);
   });
+
+  it('[IN-18][INV-27] the serials a server start retired are listed with their numbers, reason and time, and never given (owner decision 13 November 2026, retest item 9c)', async () => {
+    type Range = { rule_code: string; first_serial: string; last_serial: string; first_number: string | null; last_number: string | null; reason: string; recorded_at: Date };
+    const ranges = async () => (await db.app.query<Range>("select rule_code, first_serial::text, last_serial::text, first_number, last_number, reason, recorded_at from site.batch_number_retired_ranges($1) where rule_code = 'AT-TAB'", [SITE])).rows;
+    const before = (await ranges()).length;
+    const a = await allocate(atv);
+    const ceiling = (await db.admin.query<{ v: string }>("select reserved_ceiling::text as v from continuity.counter where sequence_key = 'site.batch_number:AT-TAB'")).rows[0]?.v ?? '';
+    const c = await db.admin.connect();
+    try {
+      // Test arrangement: the block in force was reserved under an earlier server start (as after a restart of PostgreSQL).
+      await c.query("begin; set local session_replication_role = replica; update continuity.counter set ceiling_started_at = ceiling_started_at - interval '1 hour' where sequence_key = 'site.batch_number:AT-TAB'; commit");
+    } finally {
+      c.release();
+    }
+    const b = await allocate(atv);
+    const after = await ranges();
+    expect(after).toHaveLength(before + 1);
+    const r = after.at(-1);
+    const pad = (n: number) => `AT${yy}${String(n).padStart(4, '0')}`;
+    expect(r).toMatchObject({ rule_code: 'AT-TAB', first_serial: String(Number(a.serial) + 1), last_serial: ceiling, first_number: pad(Number(a.serial) + 1), last_number: pad(Number(ceiling)), reason: 'SERVER_RESTART' });
+    expect(r?.recorded_at).toBeInstanceOf(Date);
+    // The next number comes after the retired range; none of the retired numbers is in the register.
+    expect(b.serial).toBe(String(Number(ceiling) + 1));
+    const given = (await exportBatchNumberRegister(db.app, { siteCode: SITE })).map((x) => x.batchNumber);
+    for (let n = Number(a.serial) + 1; n <= Number(ceiling); n++) expect(given).not.toContain(pad(n));
+    // A packaging rule's skip ({PARENT} format) lists its serials only (test arrangement: a recorded skip of its counter).
+    const c2 = await db.admin.connect();
+    try {
+      await c2.query(
+        "begin; set local session_replication_role = replica; insert into continuity.sequence_bump (sequence_key, source_kind, reason, value_before, value_after, correlation_id) values ('site.batch_number:AT-PACK', 'COUNTER', 'LEDGER_AHEAD', 300, 303, gen_random_uuid()); commit",
+      );
+    } finally {
+      c2.release();
+    }
+    const pack = (await db.app.query<Range>("select * from site.batch_number_retired_ranges($1) where rule_code = 'AT-PACK'", [SITE])).rows;
+    expect(pack.map((x) => [x.first_serial, x.last_serial, x.first_number, x.reason])).toContainEqual(['301', '303', null, 'LEDGER_AHEAD']);
+    // Another site's ranges are not listed.
+    expect((await db.app.query('select * from site.batch_number_retired_ranges($1)', ['OTHER-SITE'])).rows).toEqual([]);
+    expect(await batchNumberInvariantViolations(db.app)).toEqual([]);
+  });
 });
 
 describe('batch-number register across a restore', () => {

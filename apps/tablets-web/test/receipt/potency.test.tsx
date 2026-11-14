@@ -98,4 +98,29 @@ describe('R13: the potency of a lot', () => {
     expect(p.textContent).toContain('preview: the weighing step recalculates');
     expect(within(p).getByTestId('potency-preview-lot-RAB-API-0001').textContent).toBe('Lot RAB-API-0001: as-is potency 98.8036 % → Rabeprazole sodium (MAT-RAB) 3.037 kg; Microcrystalline cellulose (MAT-MCC) 4.464 kg');
   });
+
+  it('[PR-19] the quantity and the reserve button appear only once the chosen batch\'s preview has arrived, so the preview never moves them under a press (E2E Demotab 6: the Quantity label took the press)', async () => {
+    const listed = example('batches-list').batches[0];
+    if (!listed) throw new Error('no batch example');
+    const batches = { batches: [{ ...listed, batchNumber: 'RAB26004', status: 'ISSUED' as const }] };
+    let answer: (v: unknown) => void = () => undefined;
+    const held = new Promise((resolve) => {
+      answer = resolve;
+    });
+    renderOffice(lotPath, {
+      role: 'WAREHOUSE_LABELLING',
+      fixtures: { 'quality.lots': { lots: [base] }, 'quality.lotResults': { results: [] }, 'quality.lotHandling': { lotId: base.lotId, destruction: null, witness: null, reservations: [], locationExceptions: [] }, 'batches.list': batches, 'batches.potencyPreview': () => held, 'execution.lotQuality': quality },
+    });
+    const form = await screen.findByTestId('reserve-lot');
+    await userEvent.click(await within(form).findByRole('radio', { name: /^RAB26004/ }));
+    expect(await within(form).findByText('Loading…')).toBeTruthy();
+    expect(within(form).queryByRole('textbox', { name: /^Quantity/ })).toBeNull();
+    expect(within(form).queryByRole('button', { name: 'Reserve the lot' })).toBeNull();
+    answer(example('batches-potency-preview'));
+    const button = await within(form).findByRole('button', { name: 'Reserve the lot' });
+    // The preview is already above the controls when they appear: nothing is inserted above them afterwards.
+    expect(within(form).getByTestId('potency-preview').compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(form).getByTestId('potency-preview').compareDocumentPosition(within(form).getByRole('textbox', { name: /^Quantity/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(form).queryByText('Loading…')).toBeNull();
+  });
 });
