@@ -61,6 +61,24 @@ const numberIdentity = {
  * site-wide or for one product, for processing or packaging batches, from a date, with the person's reason. The site and
  * its zone are the session's; the database checks the right (BATCH_NUMBER.RULE_DEFINE) and every rule of the format.
  */
+/**
+ * Owner decision of 13 November 2026 (retest item 9c; IN-18, INV-27): serials a numbering rule skipped and never gave,
+ * with the reason the database recorded (site-services 1924, from continuity.sequence_bump): SERVER_RESTART (the rest of
+ * a block reserved before a server start is retired, since it may have been given before a rollback), LEDGER_AHEAD,
+ * RESTORE_EVENT or IDENTIFIERS_SECURED. Display and audit only; the numbers are never given again. `firstNumber` and
+ * `lastNumber` are the numbers those serials render to at the time of the skip (null when the format needs a parent).
+ */
+export const RetiredSerialRangeView = z.strictObject({
+  ruleCode: z.string(),
+  firstSerial: z.string(),
+  lastSerial: z.string(),
+  firstNumber: z.string().nullable(),
+  lastNumber: z.string().nullable(),
+  reason: z.enum(['SERVER_RESTART', 'LEDGER_AHEAD', 'RESTORE_EVENT', 'IDENTIFIERS_SECURED']),
+  recordedAt: Instant,
+});
+export type RetiredSerialRangeView = z.infer<typeof RetiredSerialRangeView>;
+
 export const BatchNumberRuleView = z.strictObject({
   ruleId: Uuid,
   ruleCode: z.string(),
@@ -249,7 +267,7 @@ export const planning = {
     auth: 'SESSION',
     mutating: false,
     summary: 'The batch-number allocation register of the session\'s site: every number given, registered or recovered, with its status (voided numbers stay listed and are never given again)',
-    response: z.strictObject({ numbers: z.array(BatchNumberView) }),
+    response: z.strictObject({ numbers: z.array(BatchNumberView), retired: z.array(RetiredSerialRangeView).optional() }),
   }),
   registerExternalBatchNumber: defineRoute({
     id: 'planning.registerExternalBatchNumber',
