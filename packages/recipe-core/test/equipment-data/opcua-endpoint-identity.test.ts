@@ -13,7 +13,7 @@ import { seedAdministration, withReason } from '../../../kernel/test/identity/se
 import { envelopeFor, nowUs, receive, recordRefusal, registerAdapter, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { PlantWorld, seedPlantCast } from '../plant/support.ts';
-import { enrol, enrolEndpoint, reportSession, sessionPayload, type TestEndpoint } from './support.ts';
+import { endpointCode, enrol, enrolEndpoint, registerEndpoint, reportSession, sessionPayload, type TestEndpoint } from './support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -152,8 +152,9 @@ describe('OPC UA endpoint identity (DI-20)', () => {
     // A unit is served by one enrolled endpoint at a time.
     const room2 = await w.room();
     await expectRefused(enrolEndpoint(db, room2, [press.code]), 'EBMR-EQD-037');
-    // An endpoint registered on no plant room or line cannot be enrolled.
-    await expectRefused(enrolEndpoint(db, { code: 'RM-NOT-A-PLANT-ROOM' }, [press.code]), 'EBMR-EQD-032');
+    // An endpoint registered on no plant room or line cannot be enrolled (the registration is a separate command and succeeds).
+    const stray = await registerEndpoint(db, { code: 'RM-NOT-A-PLANT-ROOM' }, [press.code]);
+    await expectRefused(enrol(db, stray.code, stray.url, [press.code]), 'EBMR-EQD-032', /is registered in room RM-NOT-A-PLANT-ROOM/);
     for (const t of ['plant.opcua_endpoint', 'plant.opcua_endpoint_unit', 'plant.opcua_endpoint_session']) {
       await expect(db.app.query(`delete from ${t}`), t).rejects.toThrow(/permission denied/);
       await expect(db.app.query(`truncate ${t}`), t).rejects.toThrow(/permission denied/);
@@ -168,6 +169,22 @@ describe('OPC UA endpoint identity (DI-20)', () => {
       await c.query('reset role');
       c.release();
     }
+  });
+
+  it('[DI-20] a second registration under an enrolled endpoint\'s code is refused by the registry and leaves its enrolment as it was; test endpoint codes carry 64 random bits', async () => {
+    const { press, room } = await pressIn();
+    const ep = await enrolEndpoint(db, room, [press.code]);
+    // The registry refuses the duplicate code before any enrolment runs: the enrolment in force is untouched.
+    await expect(registerEndpoint(db, { code: 'RM-NOT-A-PLANT-ROOM' }, [press.code], { code: ep.code })).rejects.toThrow(/device_code_key/);
+    const current = (await db.app.query<{ version: number; status: string; area: string }>(
+      'select c.version, c.status, a.code as area from plant.opcua_endpoint_current c join plant.area a on a.id = c.area_id where c.device_code = $1', [ep.code],
+    )).rows;
+    expect(current).toEqual([{ version: 1, status: 'ENROLLED', area: room.code }]);
+    expect(await reportSession(db, opcua, ep)).toMatchObject({ applied: 'SESSION_VALID' });
+    // The cause of the shard 7 failure: 24-bit codes. The helper now draws 16 hex digits, distinct over many draws.
+    const codes = Array.from({ length: 10_000 }, endpointCode);
+    expect(codes.every((c) => /^OPC-[0-9A-F]{16}$/.test(c))).toBe(true);
+    expect(new Set(codes).size).toBe(codes.length);
   });
 
   it('[DI-32] a chunk is held as received and as the checked series row; the audit trail holds the row hash only (D-P6b-A-1)', async () => {

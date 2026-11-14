@@ -20,10 +20,25 @@ export interface TestEndpoint {
   units: string[];
 }
 
+/**
+ * A fresh endpoint code, 64 random bits. With the earlier 24 bits (`randomBytes(3)`) two registrations in one test
+ * database could draw the same code, and the registry's unique code (iam.device, device_code_key) refused the second
+ * registration before the enrolment command under test ran (CI shard 7, run 43266879234: the "[DI-20] enrolment" test
+ * expected EBMR-EQD-032 and got the duplicate key).
+ */
+export const endpointCode = (): string => `OPC-${randomBytes(8).toString('hex').toUpperCase()}`;
+
 /** Registers an INSTRUMENT for the endpoint in `area` and enrols it for `units` (Basic256Sha256). */
 export async function enrolEndpoint(db: TestDatabase, area: { code: string; kind?: 'ROOM' | 'LINE' }, units: string[], opts: { code?: string; thumbprint?: string } = {}): Promise<TestEndpoint> {
+  const ep = await registerEndpoint(db, area, units, opts);
+  await enrol(db, ep.code, ep.url, units);
+  return ep;
+}
+
+/** Registers an INSTRUMENT for the endpoint in `area` in the device registry only (no enrolment). */
+export async function registerEndpoint(db: TestDatabase, area: { code: string; kind?: 'ROOM' | 'LINE' }, units: string[], opts: { code?: string; thumbprint?: string } = {}): Promise<TestEndpoint> {
   const { admin } = await seedAdministration(db);
-  const code = opts.code ?? `OPC-${randomBytes(3).toString('hex').toUpperCase()}`;
+  const code = opts.code ?? endpointCode();
   const thumbprint = opts.thumbprint ?? randomBytes(32).toString('hex');
   const url = `opc.tcp://${code.toLowerCase()}.plant.local:4840/ebmr`;
   const deviceId = await withCommand(db.app, withReason(admin), (c) =>
@@ -32,7 +47,6 @@ export async function enrolEndpoint(db: TestDatabase, area: { code: string; kind
       description: `OPC UA endpoint ${code}`,
     }),
   );
-  await enrol(db, code, url, units);
   return { code, deviceId, thumbprint, url, areaCode: area.code, units };
 }
 
