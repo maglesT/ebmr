@@ -19,6 +19,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   integrations, QP package, contract giver, EU importer register, PQR, dashboards, CAPA, training, incidents,
   alarms, kiosk extras, the sandbox evidence package and the Phase 7 product backlog (R7, R8, R11, R12). Plan:
   `docs/build-plan/dynamic-library/plan.html`.
+- **Decision 0032 (14 November 2026): the faster merge loop.** PRs merge on their gate (selected tests, `tools/ci/src/select.ts`);
+  full runs on main after every merge and nightly; a red main stops merges. Review: `docs/reviews/2026-11-build-speed.md`.
 - Owner, 19 October: the focus is functionality; open questions take the less strict option, the minimum compliance
   that keeps the product usable (within the CLAUDE.md hard rules). Load test and soak move to deployment (D-P7R-7).
 
@@ -125,11 +127,9 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
     unique-violation error (review pass residual; not needed now).
   - Owner question pending: the Tablets v1.0.0 tag.
 - **Demo:** fresh install after the I-6 merges (lead ruling on #245).
-- **Next (I-6):** #259 (kernel content-extension point) merged. (1) #261, the expected-answer database re-check
-  (recipe-core 1927). (2) #260, the [DI-48] drill's fixed spot-check seed. (3) The hidden-field follow-up (recipe-core
-  1928, this branch). (4) Lead ruling of 14 November on the invariant residuals: INV-23 (b) monitoring required with
-  filling and (c) a firm-set APS interval through the planned fill end, and INV-36 (release item E.STERILE_FILTER) are
-  built to their binding clauses with one end-to-end test each; INV-44 and the should-only clauses are write-ups.
+- **Next (I-6):** #259 and #260 merged. (1) #261, the expected-answer re-check (recipe-core 1927), waits for #270's gate
+  fix. (2) The hidden-field follow-up (recipe-core 1928, this branch). (3) INV-23 (b) monitoring with filling, (c) a
+  firm-set APS interval, and INV-36 E.STERILE_FILTER, built to their binding clauses; INV-44 a write-up (lead, 14 Nov).
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).

@@ -1,0 +1,43 @@
+name: Main is green
+
+# Decision 0032 (the faster merge loop): a red main stops every merge until it is fixed or reverted. This check fails a
+# pull request while the newest finished full run of ci.yml on main (a push or the nightly run) failed. The pull request
+# that fixes or reverts main carries the label `fixes-main`, and the check then passes with a notice; that pull request
+# still needs its gate green. A separate workflow, so that adding the label does not start the gate again.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: main-green-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  main-green:
+    name: Main is green (decision 0032)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          FIXES_MAIN: ${{ contains(github.event.pull_request.labels.*.name, 'fixes-main') }}
+        run: |
+          set -euo pipefail
+          # The newest completed full run on main: a push or the schedule; cancelled and skipped runs prove nothing.
+          last=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=main&status=completed&per_page=30" \
+            --jq '[.workflow_runs[] | select((.event == "push" or .event == "schedule") and (.conclusion == "success" or .conclusion == "failure" or .conclusion == "timed_out"))][0] | "\(.conclusion) \(.html_url) \(.head_sha)"')
+          echo "newest finished full run on main: ${last:-none}"
+          case "$last" in
+            success*|'') exit 0 ;;
+          esac
+          if [ "$FIXES_MAIN" = true ]; then
+            echo "::notice::main is red ($last); this pull request is labelled fixes-main, so it may merge once its gate is green"
+            exit 0
+          fi
+          echo "::error::main is red ($last). No merge until it is fixed or reverted (decision 0032); a pull request that fixes or reverts it carries the label fixes-main."
+          exit 1
