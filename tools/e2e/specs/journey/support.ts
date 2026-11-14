@@ -8,6 +8,7 @@ import { dirname } from 'node:path';
 import type { Locator, Page, TestInfo } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, pin, readerTap } from '../../fixtures/index.ts';
+import { waitFor } from '../../fixtures/waits.ts';
 
 /** A badge tap into the badge prompt that is open now (entry, challenge or switch). */
 export async function tap(page: Page, who: SeededPersona): Promise<void> {
@@ -43,7 +44,7 @@ export async function paceTaps(page: Page, who: SeededPersona): Promise<void> {
   const recent = recentTaps(page, who.badgeUid);
   if (recent.length < TAP_BUDGET) return;
   const oldest = recent[recent.length - TAP_BUDGET] ?? Date.now();
-  await page.waitForTimeout(Math.max(0, 60_000 - (Date.now() - oldest)) + 250);
+  await waitFor(page, Math.max(0, 60_000 - (Date.now() - oldest)) + 250, 'badge-pace');
 }
 
 /** Chooses a react-aria radio the way a person does: its label covers the input, so the label is tapped. */

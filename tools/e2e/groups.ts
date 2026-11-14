@@ -47,7 +47,18 @@ export const E2E_GROUPS: Record<string, string[]> = {
   // Owner acceptance (session 12): a bilayer tablet built on screen (a material on two lines, an added two-room stage
   // with its own yield, two QA persons authorising) to its released lot.
   'library-bilayer': ['library/tablet-bilayer.spec.ts'],
+  // Session 19 (E2E speed): the specs that need the set-up's DEMO-ONLY review batch, its packaging order or the SR
+  // profile product. Only this group (and a run of every spec) builds them, about 10 minutes of signed acts; every other
+  // group starts from the set-up without them.
+  records: [
+    'planning/packaging-order.spec.ts', 'phase6a/analytics.spec.ts', 'phase7/sr-profile.spec.ts', 'review/review-flow.spec.ts',
+    'india/india-flow.spec.ts', 'release/release-green.spec.ts', 'release/release-flow.spec.ts', 'release/archive-flow.spec.ts',
+    'phase6/alarms.spec.ts', 'phase6/trends.spec.ts', 'pqr/pqr-flow.spec.ts',
+  ],
 };
+
+/** The groups whose set-up builds the review batch, the packaging order and the SR profile product. */
+export const RECORDS_GROUPS: readonly string[] = ['records'];
 
 /** Every group CI knows: the named groups, then 'rest' (every spec no group names). */
 export const ALL_E2E_GROUPS: readonly string[] = [...Object.keys(E2E_GROUPS), 'rest'];
