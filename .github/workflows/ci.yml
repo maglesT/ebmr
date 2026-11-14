@@ -112,7 +112,9 @@ jobs:
   # needs PostgreSQL 16 and the kernel's template database. About 3 minutes of mutants after the template build.
   rules-mutation:
     name: Mutation (packages/rules, no survivor)
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
+    needs: [changes]
+    # A pull request's gate runs it when packages/rules' tests are selected (tools/ci/src/select.ts); the full run always.
+    if: ${{ (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') && needs.changes.outputs.rules_mutation == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -379,6 +381,7 @@ jobs:
       unit_all: ${{ steps.plan.outputs.unit_all }}
       unit_paths: ${{ steps.plan.outputs.unit_paths }}
       golden: ${{ steps.plan.outputs.golden }}
+      rules_mutation: ${{ steps.plan.outputs.rules_mutation }}
       groups: ${{ steps.plan.outputs.groups }}
       all_groups: ${{ steps.plan.outputs.all_groups }}
       sql_functions: ${{ steps.plan.outputs.sql_functions }}
@@ -416,7 +419,7 @@ jobs:
             pnpm -s exec tsx tools/ci/src/select.ts --base "$BASE" --head "$HEAD" --github-output "$GITHUB_OUTPUT"
           else
             echo "mode=full" >> "$GITHUB_OUTPUT"
-            { echo unit_all=true; echo unit_paths=; echo golden=true; echo groups=; echo sql_functions=; } >> "$GITHUB_OUTPUT"
+            { echo unit_all=true; echo unit_paths=; echo golden=true; echo rules_mutation=true; echo groups=; echo sql_functions=; } >> "$GITHUB_OUTPUT"
           fi
 
   e2e-plan:

@@ -41,6 +41,11 @@ export interface Plan {
   /** The test directories to run when unitAll is false (e.g. packages/kernel/test). */
   unitPaths: string[];
   golden: boolean;
+  /**
+   * Stryker on packages/rules (ADR 0023, decision 9; CI job rules-mutation): when every test runs or the package's tests
+   * are selected (it changed, a dependency changed, or a path its code names changed, recipe-core's migrations among them).
+   */
+  rulesMutation: boolean;
   e2eGroups: string[];
   /** Guard functions (schema.name) the change defines that a mutation target holds. */
   sqlFunctions: string[];
@@ -209,7 +214,7 @@ export function select(input: SelectInput): Plan {
 
   if (input.changed.length === 0) {
     reasons.push('no changed files could be read: everything runs');
-    return { unitAll: true, unitPaths: [], golden: true, e2eGroups: [...ALL_E2E_GROUPS], sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
+    return { unitAll: true, unitPaths: [], golden: true, rulesMutation: true, e2eGroups: [...ALL_E2E_GROUPS], sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
   }
   for (const path of input.changed) {
     const owner = input.workspaces.find((w) => under(path, w.dir));
@@ -247,8 +252,10 @@ export function select(input: SelectInput): Plan {
   const unitPaths = unitAll ? [] : [...selected].sort().filter((d) => existsSync(join(ROOT, d, 'test'))).map((d) => `${d}/test`);
   const golden = unitAll || selected.has('apps/tablets-server');
   if (golden) reasons.push('the tablets server is among the tested packages: the golden batches run');
+  const rulesMutation = unitAll || selected.has('packages/rules');
+  if (rulesMutation) reasons.push('packages/rules is among the tested packages: Stryker runs on it (rules-mutation)');
   const e2eGroups = e2eAll ? [...ALL_E2E_GROUPS] : ALL_E2E_GROUPS.filter((g) => e2e.has(g));
-  return { unitAll, unitPaths, golden, e2eGroups, sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
+  return { unitAll, unitPaths, golden, rulesMutation, e2eGroups, sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
 }
 
 /** The files a pull request changes: the diff from the merge base of base and head (a merge of main adds none). */
@@ -281,6 +288,7 @@ function main(args: string[]): void {
       `unit_all=${plan.unitAll}`,
       `unit_paths=${plan.unitPaths.join(' ')}`,
       `golden=${plan.golden}`,
+      `rules_mutation=${plan.rulesMutation}`,
       `groups=${JSON.stringify(plan.e2eGroups)}`,
       `sql_functions=${plan.sqlFunctions.join(',')}`,
       '',
