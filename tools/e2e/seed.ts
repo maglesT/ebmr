@@ -1,20 +1,29 @@
 /**
  * The end-to-end set-up built once per CI run (Stage C part 2, lead approval of 14 November 2026). `setupStack` with the
  * packaging option takes about 13 minutes of signed acts; 23 of the 25 groups need exactly the same set-up, so one job
- * builds it, dumps it and every group restores it in about a minute.
+ * builds it and every group starts from it.
  *
- * A seed directory holds: globals.sql (the cluster's roles, pg_dumpall --globals-only: the kernel's login roles are
- * cluster objects a database dump leaves out), one custom-format dump per database (pg_dump -Fc, restored with --create
- * under the same name: each group's job has its own PostgreSQL, so the names need not differ), the keys and exchange
- * directories as files, and meta.json (the options it was built with, its databases, and its fingerprint).
+ * The seed is a physical snapshot of the cluster (lead ruling on #268, 14 November 2026). The seed job builds the set-up
+ * (`build`), then tools/ci/start-postgres.sh `snapshot` stops PostgreSQL cleanly and tars its data directory into the
+ * seed directory as cluster.tar; each group starts its cluster with `start --from-seed`, the snapshot in place of its
+ * data directory, and `attachSeed` checks that the cluster is the seed. A logical dump and restore (pg_dump/pg_restore,
+ * the first version of this file) gave every database a new oid and so a new incarnation (kernel 0600:
+ * continuity.current_incarnation(), the system identifier, timeline, database oid and continuity.counter's oid): the
+ * numbering ceilings the set-up had reserved were then refused, rightly, with EBMR-CONT-012 until the restore procedure
+ * ran (DI-45, INV-27; seen as [IN-53] controlled.spec.ts in group rest). The groups never run that procedure, and the
+ * incarnation is never faked: the physical copy simply is the same incarnation.
+ *
+ * A seed directory holds cluster.tar and cluster.tar.env (the snapshot, written by start-postgres.sh), the keys and
+ * exchange directories as files (files/), and meta.json: the options it was built with, its databases, each database's
+ * incarnation and the set-up's fingerprint.
  *
  * The fingerprint (row counts of every table, the value of every sequence, a SHA-256 of every key and exchange file) is
- * taken at build time and again after each restore; a restore that differs fails the group's set-up. A main full run
- * also compares the seed with a set-up built fresh in the same run (seed-cli.ts check; the lead's condition 3).
+ * taken at build time and again when a group attaches the seed; a cluster that differs fails the group's set-up. A
+ * main full run also compares the seed with a set-up built fresh in the same run (seed-cli.ts check; the lead's
+ * condition 3).
  *
- * Usage: seed-cli.ts build <dir> | restore <dir> | check <seed dir> <fresh dir>.
+ * Usage: seed-cli.ts build <dir> | check <dir>.
  */
-import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -38,6 +47,8 @@ export interface SeedMeta {
   options: typeof SEED_OPTIONS;
   personaSets: number;
   databases: { GMP: string; SANDBOX: string };
+  /** continuity.current_incarnation() of each database when the seed was built; a group's must be the same. */
+  incarnations: { GMP: string; SANDBOX: string };
   /** The keys and exchange directories, relative to the repository root (var/e2e/<hex>/...). */
   keysDir: string;
   exchangeDir: string;
@@ -109,10 +120,26 @@ export function differences(a: Fingerprint, b: Fingerprint, opts: { files?: bool
   return out;
 }
 
-const run = (cmd: string, args: string[], input?: string): string =>
-  execFileSync(cmd, args, { encoding: 'utf8', input, stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 256 * 1024 * 1024 });
+/** The kernel's incarnation of each database (kernel 0600), as the numbering ceilings were reserved under it. */
+export async function incarnations(databases: { GMP: string; SANDBOX: string }): Promise<{ GMP: string; SANDBOX: string }> {
+  const out = { GMP: '', SANDBOX: '' };
+  for (const kind of ['GMP', 'SANDBOX'] as const) {
+    const c = new pg.Client({ connectionString: urlOf(databases[kind]) });
+    await c.connect();
+    try {
+      out[kind] = (await c.query<{ i: string }>('select continuity.current_incarnation() as i')).rows[0]?.i ?? '';
+    } finally {
+      await c.end();
+    }
+  }
+  return out;
+}
 
-/** Builds the base set-up under fresh names and writes it, dumped, with its fingerprint, to `dir`. */
+/**
+ * Builds the base set-up under fresh names and writes its files, incarnations and fingerprint to `dir`. The cluster
+ * itself goes into the seed next, as its snapshot (start-postgres.sh snapshot <dir>/cluster.tar, the seed job's next
+ * step), so nothing may write to it in between.
+ */
 export async function buildSeed(dir: string, personaSets: number): Promise<SeedMeta> {
   const hex = randomBytes(5).toString('hex');
   const databases = { GMP: `ebmr_tablets_e2e_${hex}`, SANDBOX: `ebmr_sandbox_tablets_e2e_${hex}` };
@@ -122,11 +149,9 @@ export async function buildSeed(dir: string, personaSets: number): Promise<SeedM
   mkdirSync(keysDir, { recursive: true });
   await setupStack({ databases, keysDir, exchangeDir, personaSets, echo: false, ...SEED_OPTIONS });
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'globals.sql'), run('pg_dumpall', ['--globals-only', `--dbname=${ADMIN_URL}`]));
-  for (const [kind, database] of Object.entries(databases)) run('pg_dump', ['-Fc', '--create', `--file=${join(dir, `${kind}.dump`)}`, `--dbname=${urlOf(database)}`]);
   cpSync(root, join(dir, 'files'), { recursive: true });
   const meta: SeedMeta = {
-    options: SEED_OPTIONS, personaSets, databases,
+    options: SEED_OPTIONS, personaSets, databases, incarnations: await incarnations(databases),
     keysDir: relative(REPO_ROOT, keysDir), exchangeDir: relative(REPO_ROOT, exchangeDir),
     fingerprint: await fingerprint(databases, root),
   };
@@ -139,21 +164,32 @@ export function readSeedMeta(dir: string): SeedMeta {
 }
 
 /**
- * Restores a seed into this job's cluster under its own names and paths and checks that its fingerprint is the one the
- * seed recorded. Returns the set-up's databases and directories (absolute), as setupStack's caller knows them.
+ * Attaches the seed in this job's cluster, which start-postgres.sh started from the seed's snapshot: checks that the
+ * cluster holds the seed's databases under the seed's incarnations and the seed's fingerprint, then puts the keys and
+ * exchange files back where the set-up keeps them. Returns the set-up's databases and directories (absolute), as
+ * setupStack's caller knows them. A cluster that is not the seed fails here, loudly: it is never patched to look like it.
  */
-export async function restoreSeed(dir: string): Promise<{ databases: SeedMeta['databases']; keysDir: string; exchangeDir: string }> {
+export async function attachSeed(dir: string): Promise<{ databases: SeedMeta['databases']; keysDir: string; exchangeDir: string }> {
   const meta = readSeedMeta(dir);
-  // The roles: a role that already exists (the cluster's own superuser) is reported and left as it is.
-  run('psql', ['-q', '-v', 'ON_ERROR_STOP=0', `--dbname=${ADMIN_URL}`, '-f', join(dir, 'globals.sql')]);
+  const c = new pg.Client({ connectionString: ADMIN_URL });
+  await c.connect();
+  let present: string[];
+  try {
+    present = (await c.query<{ d: string }>('select datname as d from pg_database where datname = any($1::text[])', [Object.values(meta.databases)])).rows.map((r) => r.d);
+  } finally {
+    await c.end();
+  }
+  const missing = Object.values(meta.databases).filter((d) => !present.includes(d));
+  if (missing.length > 0) throw new Error(`this cluster was not started from the seed in ${dir} (start-postgres.sh start --from-seed): no ${missing.join(', ')}`);
+  const now = await incarnations(meta.databases);
   for (const kind of ['GMP', 'SANDBOX'] as const) {
-    run('pg_restore', ['--create', '--exit-on-error', `--dbname=${ADMIN_URL}`, join(dir, `${kind}.dump`)]);
+    if (now[kind] !== meta.incarnations[kind]) throw new Error(`the ${kind} database's incarnation is ${now[kind]}, the seed's was ${meta.incarnations[kind]}: not the seed's cluster`);
   }
   const keysDir = resolve(REPO_ROOT, meta.keysDir);
   const exchangeDir = resolve(REPO_ROOT, meta.exchangeDir);
   const root = resolve(keysDir, '..');
   cpSync(join(dir, 'files'), root, { recursive: true });
   const diff = differences(meta.fingerprint, await fingerprint(meta.databases, root));
-  if (diff.length > 0) throw new Error(`the restored set-up differs from the seed (${diff.length}):\n${diff.slice(0, 40).join('\n')}`);
+  if (diff.length > 0) throw new Error(`the seed's cluster differs from the seed (${diff.length}):\n${diff.slice(0, 40).join('\n')}`);
   return { databases: meta.databases, keysDir, exchangeDir };
 }
