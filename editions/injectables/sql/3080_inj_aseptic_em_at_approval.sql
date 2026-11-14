@@ -36,9 +36,10 @@ declare
   id       text;
   f        text;
 begin
-  -- No block snapshot with the role FILLING: not concerned (every tablets master, for one), whatever its procedure.
+  -- No block snapshot with the role FILLING: not concerned (every tablets master, for one), whatever its procedure. A
+  -- coarse filter: the loop below decides by each step's own snapshot, roles read only from an array.
   if not exists (select 1 from jsonb_array_elements(case when jsonb_typeof(p_content -> 'blockDefinitions') = 'array' then p_content -> 'blockDefinitions' else '[]'::jsonb end) d
-                  where jsonb_typeof(d -> 'roles') = 'array' and d -> 'roles' ? 'FILLING') then
+                  where d -> 'roles' ? 'FILLING') then
     return null;
   end if;
   if v_tree ? 'bad' then
