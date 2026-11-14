@@ -90,7 +90,8 @@ async function problem(content: Json, old: Json, next: Json): Promise<string | n
 
 describe('the database refuses a value in a field its condition hides, as the engine does (recipe-core 1925)', () => {
   it('[PR-03][PR-29] parity over every condition of the seed catalogue: with it met and not met the engine\'s row is accepted; not met, the engine refuses a value in the field (LIB-ENTRY-HIDDEN) and the database refuses the engine\'s row with that value put back, naming the field', async () => {
-    expect(CASES.length).toBeGreaterThan(0);
+    // The catalogue holds 36 conditions (14 November 2026), none on a calculated field or a timer; every one is swept.
+    expect(CASES.length).toBeGreaterThanOrEqual(36);
     const mismatches: string[] = [];
     let runs = 0;
     for (const c of CASES) {
