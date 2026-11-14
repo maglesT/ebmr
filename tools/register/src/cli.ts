@@ -95,7 +95,10 @@ switch (command) {
     const editions = gateEditions();
     const { results, e2e } = runResults();
     // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
-    const report = buildTrace(loadControls(), results, phase, { e2e, editions });
+    // --partial: a pull request's gate (decision 0032), whose run holds only the selected tests.
+    const partial = args.includes('--partial');
+    const report = buildTrace(loadControls(), results, phase, { e2e, editions, partial });
+    if (partial) console.log('partial run (decision 0032): controls, listed tests and clauses whose test files did not run are left to the full run on main');
     writeMatrix(report, phase, '.reports/trace-matrix.md', editions);
     if (report.skipped.length) {
       console.log(`${report.skipped.length} listed test(s) skipped themselves in this run, as their source allows (they prove nothing here):`);

@@ -15,7 +15,8 @@ import { tabletsMigrationSources } from '../src/sources.ts';
 import { startServer } from '../../../apps/tablets-server/test/support/harness.ts';
 import { readManifest, releaseSources } from '../src/release-manifest.ts';
 import { runRecordedRestoreDrill } from '../src/restore.ts';
-import { runUpgradeDrill, type UpgradeOutcome } from '../src/upgrade.ts';
+import { connect, withDatabase } from '../src/db.ts';
+import { runUpgradeDrill, takeSamples, type UpgradeOutcome } from '../src/upgrade.ts';
 import { buildDrillDatabase, type DrillDatabase } from './fixture.ts';
 
 const manifest = readManifest();
@@ -23,6 +24,13 @@ const reports = mkdtempSync(join(tmpdir(), 'ebmr-drill-reports-'));
 let old: DrillDatabase;
 let upgraded: string;
 let upgrade: UpgradeOutcome;
+/**
+ * The spot-check seed of the unit-change test. With a random seed the unit spot check (6 rows of each unit table at 24
+ * spot checks) could draw only rows of platform.setting_definition without a unit, which the test's change leaves as
+ * they are, and miss it. This seed draws 4 of its 6 sampled rows with a unit (15 of the table's 28 rows have one in the
+ * Phase 6A database); the seed test below proves it on the drill's database.
+ */
+const UNIT_SEED = 'di48-unit-8';
 
 /** A server on `database` (prepared: the harness drops it when it closes) and the PDF true copy of a batch as QA. */
 async function renderThroughRoute(database: string, d: DrillDatabase, batchId: string) {
@@ -102,7 +110,7 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     writeFileSync(join(dir, 'sql', '9999_bad_rewrite.sql'), "-- Handbook: test only\nupdate platform.setting_definition set unit = unit || 'x' where unit is not null;\n");
     const bad = await runUpgradeDrill({
       adminUrl: ADMIN_URL, sourceDatabase: old.database, sources: [...tabletsMigrationSources(), { namespace: 'drill-test', directory: join(dir, 'sql') }],
-      fromRelease: manifest.release, reportDir: reports, spotChecks: 24, renderLimit: 2,
+      fromRelease: manifest.release, reportDir: reports, spotChecks: 24, renderLimit: 2, sampleSeed: UNIT_SEED,
     });
     rmSync(dir, { recursive: true, force: true });
     const changed = bad.report.tables.find((t) => t.table === '"platform"."setting_definition"');
@@ -113,6 +121,27 @@ describe('upgrade drill and migration dry run from the Phase 6A exit (slice 7d)'
     // The spot check of the unit reads the change too.
     expect(bad.report.spotChecks.some((x) => x.kind === 'UNIT_VALUE' && x.table === 'platform.setting_definition' && !x.same)).toBe(true);
     expect(bad.report.copy.dropped).toBe(true);
+  });
+
+  it('[DI-48] the same seed gives the same spot-check sample, and the unit-change test\'s seed samples rows of platform.setting_definition that hold a unit', async () => {
+    const c = await connect(withDatabase(ADMIN_URL, old.database));
+    try {
+      const key = (x: { kind: string; table: string; key: string }): string => `${x.kind} ${x.table} ${x.key}`;
+      const a = await takeSamples(c, 24, UNIT_SEED);
+      const b = await takeSamples(c, 24, UNIT_SEED);
+      expect(b.map(key)).toEqual(a.map(key));
+      expect(b.map((x) => x.value)).toEqual(a.map((x) => x.value));
+      for (const kind of ['SIGNATURE', 'AUDIT_EVENT', 'UNIT_VALUE']) expect(a.some((x) => x.kind === kind), kind).toBe(true);
+      // Another seed orders the rows otherwise (the drill's default is a random seed per run).
+      const other = await takeSamples(c, 24, `${UNIT_SEED}-other`);
+      expect(other.map(key)).not.toEqual(a.map(key));
+      // The unit-change test's rewrite changes every row with a unit; this seed samples at least one.
+      const units = a.filter((x) => x.kind === 'UNIT_VALUE' && x.table === 'platform.setting_definition');
+      expect(units.length).toBeGreaterThan(0);
+      expect(units.some((x) => (JSON.parse(x.value) as { unit: string | null }).unit !== null)).toBe(true);
+    } finally {
+      await c.end();
+    }
   });
 
   it('[DI-48] a migration that drops or renames a database table holding records fails the dry run and names the table (R3-VAL-1)', async () => {

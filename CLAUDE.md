@@ -19,6 +19,10 @@ Hard rules:
 - No `Date.now()` or JavaScript `number` for GMP values in domain code.
 - Paraphrase regulations in docs and code comments; never paste more than a short phrase of regulation text.
 - Run `pnpm run ci` before pushing. Work on a branch; update `PROGRESS.md` at each milestone.
+- Merge loop (decision 0032): a PR merges on its gate (the tests its change selects, `tools/ci/src/select.ts`), green on
+  a head that contains main; main gets a full run after every merge and nightly; a red main stops merges until fixed or
+  reverted (`fixes-main`); phase exits and releases need a full run by hand. Never narrow the gate by hand, and never add
+  an `e2e-map.json` rule without its reason.
 - Cadence and depth follow owner decision 0008: the goal here is software that works properly with no major
   defects; validation-grade testing (mutation targets, multi-round adversarial review) belongs to deployment. Tests
   with every feature and green CI always; one review pass per feature; a quick review at the Phase 3 exit; at the
