@@ -423,10 +423,85 @@ jobs:
           echo "groups=[$json]" >> "$GITHUB_OUTPUT"
           echo "end-to-end groups: [$json]"
 
+  # Stage C part 2 (lead approval, 14 November 2026): the base end-to-end set-up (setupStack with the packaging option,
+  # about 13 minutes of signed acts) built once per run and dumped (tools/e2e/seed.ts); every group whose set-up is the
+  # same restores it in about a minute and checks it against the seed's fingerprint. A full run (push to main, nightly,
+  # by hand) always builds it fresh; only a pull request's gate may take it from the cache, whose key covers everything
+  # the set-up reads, so the evidence runs never depend on a cache. A group that finds no seed builds its own set-up.
+  e2e-seed:
+    name: End-to-end set-up, built once
+    needs: [changes, e2e-plan]
+    if: ${{ needs.e2e-plan.outputs.groups != '[]' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Per-runner directories (self-hosted pod)
+        run: bash tools/ci/runner-env.sh
+      - name: Start PostgreSQL 16
+        run: bash tools/ci/start-postgres.sh start
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: The seed from the cache (a pull request's gate only)
+        id: cache
+        if: ${{ needs.changes.outputs.mode == 'gate' }}
+        uses: actions/cache@v4
+        with:
+          path: .reports/e2e-seed
+          key: e2e-seed-v1-${{ hashFiles('**/sql/**/*.sql', 'packages/*/src/**', 'packages/*/package.json', 'apps/*/src/**', 'apps/*/package.json', 'editions/**', 'compliance/rule-tables/**', 'compliance/validation/**', 'tools/demo/**', 'tools/e2e/*.ts', 'tools/e2e/fixtures/**', 'tools/e2e/package.json', 'pnpm-lock.yaml', 'package.json', '.nvmrc', 'tools/ci/start-postgres.sh') }}
+      - name: Build the seed
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        run: rm -rf .reports/e2e-seed && pnpm --filter @ebmr/e2e exec tsx seed-cli.ts build ../../.reports/e2e-seed
+      - name: Stop PostgreSQL
+        if: always()
+        run: bash tools/ci/start-postgres.sh stop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-seed
+          path: .reports/e2e-seed
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  # The lead's condition 3: on a full run, the seed restored into a fresh cluster equals the same set-up built fresh
+  # (row counts of every table, every sequence's value); the restore itself is checked against the seed's fingerprint,
+  # files included.
+  seed-check:
+    name: End-to-end seed equals a fresh set-up
+    needs: [changes, e2e-seed]
+    if: ${{ needs.changes.outputs.mode == 'full' && needs.e2e-seed.result == 'success' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Per-runner directories (self-hosted pod)
+        run: bash tools/ci/runner-env.sh
+      - name: Start PostgreSQL 16
+        run: bash tools/ci/start-postgres.sh start
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-seed
+          path: .reports/e2e-seed
+      - run: pnpm --filter @ebmr/e2e exec tsx seed-cli.ts check ../../.reports/e2e-seed
+      - name: Stop PostgreSQL
+        if: always()
+        run: bash tools/ci/start-postgres.sh stop
+
   e2e:
     name: End-to-end (Playwright, chromium, ${{ matrix.group }})
-    needs: [e2e-plan]
-    if: ${{ needs.e2e-plan.outputs.groups != '[]' }}
+    needs: [e2e-plan, e2e-seed]
+    # Runs when the seed job failed too: a group with no seed builds its own set-up (global-setup.ts).
+    if: ${{ !cancelled() && needs.e2e-plan.result == 'success' && needs.e2e-plan.outputs.groups != '[]' }}
     runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
@@ -460,7 +535,15 @@ jobs:
       # into this runner's own browsers directory, with the apt part serialised across the eight runners.
       - name: Playwright chromium and its system libraries
         run: bash tools/ci/playwright-install.sh
+      - name: The run's end-to-end seed (absent when its job failed; the group then builds its own set-up)
+        if: ${{ needs.e2e-seed.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-seed
+          path: .reports/e2e-seed
       - run: pnpm --filter @ebmr/e2e test --pass-with-no-tests
+        env:
+          EBMR_E2E_SEED_DIR: ${{ needs.e2e-seed.result == 'success' && format('{0}/.reports/e2e-seed', github.workspace) || '' }}
       - name: Stop PostgreSQL
         if: always()
         run: bash tools/ci/start-postgres.sh stop

@@ -52,6 +52,9 @@ describe('CI runner labels', () => {
       traceability: 'github',
       // Decision 0032: a pull request's SQL mutation of its changed guards, sized as mutation.yml's groups (long).
       'sql-mutation': 8,
+      // Stage C part 2: the end-to-end seed (built once per run) and its check on a full run, sized as the groups.
+      'e2e-seed': 4,
+      'seed-check': 4,
       // Decision 0032: main-green.yml's check is a separate workflow.
     });
   });
@@ -69,7 +72,7 @@ describe('CI runner labels', () => {
       expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'pod' && 'ebmr-pod' \|\|/);
       expect(text, id).toMatch(/\|\| 'ubuntu-24.04' \}\}$/);
     }
-    expect(onPod.sort()).toEqual(['e2e', 'golden']);
+    expect(onPod.sort()).toEqual(['e2e', 'e2e-seed', 'golden', 'seed-check']);
   });
 
   it('[meta] the mutation workflow runs its jobs on Ubicloud standard-8 or GitHub-hosted, the size written out', () => {
