@@ -25,6 +25,7 @@ import { esig, identity, records, withCommand, type ActorContext } from '@ebmr/k
 import { REPO_ROOT } from '@ebmr/demo';
 import { addPersona, openDatabase, openPersonaSession, terminalOf, type SiteSeed } from '@ebmr/test-kit';
 import { axe, expect, test } from '../../fixtures/index.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -94,6 +95,7 @@ test('[DI-08] a full export re-opens in the stand-alone viewer with audit trails
     });
 
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+    watchPages(context);
     await context.addInitScript(LISTENER);
     const requests: string[] = [];
     context.on('request', (r) => requests.push(r.url()));
