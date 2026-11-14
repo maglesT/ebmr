@@ -4,33 +4,19 @@
  * control's clauses are its catalog test word for word, each proven by listed tests or deferred to a later phase
  * (review F14). Whether the listed tests ran and passed is the trace's check (trace.ts), after the tests have run.
  */
-import { existsSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord } from './register.ts';
 import { notRequiredErrors, words } from './not-required.ts';
 import { missingListedTests, type DeclaredTest } from './test-index.ts';
 import { firstDuplicate, firstUnsorted } from './sync.ts';
+import { ownerQuestionErrors } from './owner-question.ts';
 
 export const EXPECTED_COUNTS = { DI: 53, PR: 61, ST: 79, IN: 53 } as const;
 
 export { words } from './not-required.ts';
 
-/**
- * Phase 8 is no build phase (target phases stop at 7): it holds an open owner question or a deployment item after the
- * editions' exit, never a gap the lead can decide (lead ruling, 13 November 2026, decision 0031). So a phase-8 deferral's
- * reason must name an existing decision record under docs/decisions/.
- */
-export const OWNER_QUESTION_PHASE = 8;
-
-function ownerQuestionErrors(at: string, phase: number, reason: string, root: string): string[] {
-  if (phase !== OWNER_QUESTION_PHASE) return [];
-  const path = /docs\/decisions\/[\w.-]+\.md/.exec(reason)?.[0];
-  if (!path) return [`${at} is deferred to phase ${OWNER_QUESTION_PHASE} (owner question) but its reason cites no decision record (docs/decisions/<file>.md)`];
-  const file = join(root, path);
-  if (!existsSync(file) || !statSync(file).isFile()) return [`${at} is deferred to phase ${OWNER_QUESTION_PHASE} (owner question) but its decision record ${path} does not exist`];
-  return [];
-}
+export { OWNER_QUESTION_PHASE } from './owner-question.ts';
 
 /** The problems with a control's clauses and deferred scope (review F14). */
 export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {

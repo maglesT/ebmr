@@ -26,7 +26,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { inGateEditions, ROOT, type ClauseRecord, type ControlRecord, type EditionName } from './register.ts';
 import { notRequiredErrors } from './not-required.ts';
-import { OWNER_QUESTION_PHASE } from './validate.ts';
+import { OWNER_QUESTION_PHASE } from './owner-question.ts';
 import { declaredIn, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest, type TestPath } from './test-index.ts';
 
 const CONTROL_TAG = /\[((?:DI|PR|ST|IN|AS)-\d{2})\]/g;
