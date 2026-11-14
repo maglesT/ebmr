@@ -1413,7 +1413,8 @@ export const TARGETS: Target[] = [
                 'recipe.rbe_rule_guard', 'recipe.severity_rank', 'recipe.set_rbe_rule', 'recipe.rbe_reduction_problems',
                 'recipe.notify_departments_of_excursion', 'recipe.pqr_cpp_of', 'recipe.pqr_extract_v2'],
     tests: [k('config/change-control.test.ts'), r('review/rbe-rules.test.ts'), r('release/pqr-extract.test.ts'),
-            s('config/config-routes.test.ts'), s('notifications/excursion-notifications.test.ts')],
+            s('config/config-routes.test.ts'), s('notifications/excursion-notifications.test.ts'),
+            k('esig/content-extension.test.ts'), s('config/aps-required.test.ts')],
     threshold: 90,
   },
   // ---- 6f, governance: vendor support grants and the sessions they open (kernel 1202, re-creating iam.session_state and
@@ -1802,6 +1803,15 @@ export const TARGETS: Target[] = [
                 'plant.aps_refs_well_formed', 'plant.open_aps_failure', 'plant.record_aps_failure_review', 'plant.aps_requalification_guard',
                 'plant.aps_repeat_use'],
     tests: [s('config/aps-required.test.ts'), s('injectables/aps-failure.test.ts')],
+    threshold: 90,
+  },
+  // Injectables review pass I-6, item 2 (lead's option (a)): the e-signature content-extension catalogue, its guard and
+  // the merge a provider calls (kernel 1407, DI-37), and plant's APS-lines extension of config_change_record (tablets
+  // 1914, ST-29). platform.change_record_content, re-created by both, stays in governance-change-control.
+  {
+    group: 'esig-content-extension',
+    functions: ['esig.content_extension_guard', 'esig.register_content_extension', 'esig.extend_content', 'plant.change_record_aps_lines'],
+    tests: [k('esig/content-extension.test.ts'), s('config/aps-required.test.ts')],
     threshold: 90,
   },
 ];
