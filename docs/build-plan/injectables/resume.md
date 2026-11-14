@@ -89,6 +89,30 @@ Session 21 was session_01PybpFuJqP4hQevvyU4YWWS. The lead is session_01PybpFrP72
     only after #270 has merged.
 - The write-ups (no build) are as in session 18's handover, including all of INV-44 and the trace-gate note.
 
+**Later rulings (14 November, 22:00 to 22:17) and their state:**
+- **(b)** is built on the local branch `inj/i6-inv23b-em-with-fill` (worktree /home/user/wt-inv23). The roles are
+  FILLING, TERMINAL_STERILISATION, EM_IN_OPERATION and EM_COUNTS: v1 edits in place, each block keeping its old role,
+  with absent roles defaulting to PARAMETER_RECORD. The rule applies only to aseptic fills, so a terminally sterilised
+  master is accepted. The pieces:
+  - validator INJ-ASEPTIC-EM;
+  - injectables 3080, EBMR-RCP-439;
+  - the tests aseptic-em.test.ts and aseptic-em-approval.test.ts;
+  - mutation group inj-aseptic-em, not yet run.
+  - A subagent is adding INJ-EM to the aps-failure, aseptic-gate and unit-account-gate test masters and to GB-I-01.
+  - Lead: rebaseline GB-I-01. The diff may only add the new step and what follows from it. The PR body lists the
+    changed lines and says the owner's golden batch was rebaselined, and why.
+- **(c)** will be built on top of (b), keyed on the LINE field, not on FILLING.
+  - Scope: injectables edition, recordKind PROCESSING, no TERMINAL_STERILISATION step, and not a process-simulation
+    batch (1896).
+  - Skip the LINE fields of steps whose definition has category PACKAGING: the generic PACK-* blocks have LINE fields
+    and can sit in a processing master.
+  - The last passing APS is max(used_us) over good_aps.
+  - Tests: refusal with no interval; refusal for a lapsed APS; the sign-off exception; a database bypass case; the PACK
+    step not guarded; a tablets packaging line accepted; and a process-simulation batch cannot be released as product
+    (or cite the existing control test that proves it).
+- **INV-36:** the mutation scores 100 % (30/30, 0 equivalent). The PR body is drafted in the session scratchpad;
+  rewrite it from the commits if the scratchpad is lost.
+
 ### Session 17 handover (14 November 2026, about 12:30): session 18 continues here
 
 Session 17 was session_01PybpFuhBnYXh9yvdSzZcJc. The lead is session_01PybpFrP72XuwyG8S3H3NJS: report there with
