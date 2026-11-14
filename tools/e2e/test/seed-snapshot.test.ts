@@ -23,6 +23,7 @@ import { migrate } from '../../../packages/kernel/src/db/migrate.ts';
 import { withCommand } from '../../../packages/kernel/src/db/command.ts';
 import { INCARNATION_CHANGED, withProtectedNumbers } from '../../../packages/kernel/src/continuity/numbers.ts';
 import { installNumberStub, tempLedger, testActor } from '../../../packages/kernel/test/continuity/helpers.ts';
+import { endPool, openPool, urlOn } from '../../../packages/kernel/test/harness/pools.ts';
 import type { TestDatabase } from '../../../packages/kernel/test/support/db.ts';
 import { templateSources } from '../../../packages/kernel/test/support/global-setup.ts';
 
@@ -47,25 +48,15 @@ function script(args: string[], env: Record<string, string>): Record<string, str
   return out;
 }
 
-const urlOn = (admin: string, database: string, user?: string): string => {
-  const u = new URL(admin);
-  u.pathname = `/${database}`;
-  if (user) {
-    u.username = user;
-    u.password = user;
-  }
-  return u.toString();
-};
-
+/** The test database's pools, opened and ended as every test's are (kernel test harness pools.ts). */
 function open(admin: string, database: string): TestDatabase {
   const db = {
     name: database,
-    admin: new pg.Pool({ connectionString: urlOn(admin, database), max: 2 }),
-    app: new pg.Pool({ connectionString: urlOn(admin, database, 'ebmr_app'), max: 2 }),
+    admin: openPool({ connectionString: urlOn(admin, database), max: 2 }),
+    app: openPool({ connectionString: urlOn(admin, database, { name: 'ebmr_app', password: 'ebmr_app' }), max: 2 }),
     async drop() {
-      for (const p of [db.admin, db.app]) p.on('error', () => undefined);
-      await db.admin.end();
-      await db.app.end();
+      await endPool(db.admin);
+      await endPool(db.app);
     },
   };
   return db;
