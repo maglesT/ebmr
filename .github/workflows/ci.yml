@@ -192,7 +192,7 @@ jobs:
     name: Golden batches (golden clock cluster)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
     runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-24.04' }}
-    # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8.
+    # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8, GB-I-01 (injectables) about 1.5.
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4

@@ -21,6 +21,8 @@ import { defineRoute } from '../route.ts';
 export const ChangeRecordNumber = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/, 'a change-record number (letters, digits, . _ / -)');
 export const ConfigAreaCode = z.string().regex(/^[A-Z][A-Z0-9_]{1,39}$/);
 export const ChangeRecordState = z.enum(['OPEN', 'APPROVED', 'CLOSED']);
+/** An equipment unit's code (recipe-core 0400). */
+export const ApsLineCode = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/, 'an equipment unit code');
 /** An instant as ISO 8601 with its offset, e.g. 2026-10-15T09:30:00+05:30. */
 export const IsoInstant = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/, 'an ISO 8601 instant with its offset');
 export const RbeSeverity = z.enum(['ALERT', 'ACTION', 'CRITICAL']);
@@ -31,6 +33,8 @@ export const ChangeRecordView = z.strictObject({
   title: z.string(),
   description: z.string(),
   areas: z.array(ConfigAreaCode),
+  /** The units for which the change requires an APS (ST-29; tablets 1910): QA's approval withdraws their qualification. */
+  apsLines: z.array(ApsLineCode),
   state: ChangeRecordState,
   raisedBy: PersonRef,
   raisedAt: Instant,
@@ -134,6 +138,8 @@ export const config = {
       title: z.string().trim().min(1).max(500),
       description: z.string().trim().min(1).max(4000),
       areas: z.array(ConfigAreaCode).min(1),
+      /** Optional, named by the firm (never pre-filled): the units for which the change requires an APS (ST-29). */
+      apsLines: z.array(ApsLineCode).min(1).max(50).optional(),
     }),
     response: ChangeRecordView,
   }),

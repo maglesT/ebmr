@@ -169,6 +169,8 @@ export function checkBlockDefinition(def: BlockDefinition, expr: ExpressionServi
   // An INSTRUCTION or SIGN_OFF block may hold no field: its PERFORMED signature is the record (R-flow item 5).
   if (fieldCount === 0 && !fieldlessBlock(def)) problems.push(err('LIB-NO-FIELDS', 'sections', 'The block has no fields; a form needs at least one, unless the block is an instruction or a sign-off (roles INSTRUCTION, SIGN_OFF)'));
   problems.push(...checkOptionalSections(def));
+  problems.push(...checkApsReading(def));
+  problems.push(...checkGasOverlay(def));
 
   // An UNTIL_PASS repeat ends only on a field with a pass/fail meaning in the same section.
   def.sections.forEach((s, si) => {
@@ -286,6 +288,8 @@ function checkField(f: FieldDef, fp: string, expr: ExpressionService, inRepeat: 
       break;
     case 'YES_NO':
       if (f.expected !== undefined && typeof f.expected !== 'boolean') out.push(err('LIB-FIELD-EXPECTED', `${fp}.expected`, `Field ${f.id}: the expected answer is yes or no`));
+      if (f.unexpectedCritical !== undefined && f.unexpectedCritical !== true) out.push(err('LIB-FIELD-EXPECTED', `${fp}.unexpectedCritical`, `Field ${f.id}: unexpectedCritical is true or absent`));
+      if (f.unexpectedCritical === true && typeof f.expected !== 'boolean') out.push(err('LIB-FIELD-EXPECTED', `${fp}.unexpectedCritical`, `Field ${f.id}: a critical answer needs the expected answer, so the other one is the critical exception`, ['PR-29']));
       break;
     case 'CHOICE': {
       const opts = Array.isArray(f.options) ? f.options : [];
@@ -458,5 +462,73 @@ function checkSignatures(def: BlockDefinition): LibraryProblem[] {
     meanings.add(s.meaning);
     if (typeof s.role !== 'string' || s.role.trim() === '') out.push(err('LIB-SIGNATURE-ROLE', `signatures[${i}].role`, `The ${s.meaning} signature needs a role that may sign`, ['DI-35']));
   });
+  return out;
+}
+
+/**
+ * ST-33 (tablets 1912): a block with the role APS_READING (the reading of a media fill) marks the count of contaminated
+ * units on exactly one NUMBER field (`contaminatedCount`), in whole units (decimals 0), for the database reads the count
+ * by that mark; the mark is refused on a block without the role (LIB-APS-READING).
+ */
+function checkApsReading(def: BlockDefinition): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  const role = Array.isArray(def.roles) && def.roles.includes('APS_READING');
+  const marked: { path: string; field: FieldDef }[] = [];
+  def.sections.forEach((s, si) =>
+    (s.fields ?? []).forEach((f, fi) => {
+      if ((f as { contaminatedCount?: unknown }).contaminatedCount !== undefined) marked.push({ path: `sections[${si}].fields[${fi}].contaminatedCount`, field: f });
+    }),
+  );
+  if (!role) {
+    for (const { path, field } of marked) out.push(err('LIB-APS-READING', path, `Field ${field.id} marks the count of contaminated units, which only a block with the role APS_READING (a media-fill reading) carries [ST-33]`, ['ST-33']));
+    return out;
+  }
+  if (marked.length !== 1) {
+    out.push(err('LIB-APS-READING', 'roles', `A media-fill reading (role APS_READING) marks exactly one NUMBER field as the count of contaminated units (contaminatedCount); this block marks ${marked.length} [ST-33]`, ['ST-33']));
+  }
+  for (const { path, field } of marked) {
+    if (field.type !== 'NUMBER' || field.contaminatedCount !== true) {
+      out.push(err('LIB-APS-READING', path, `Field ${field.id}: the count of contaminated units is a NUMBER field marked contaminatedCount: true [ST-33]`, ['ST-33']));
+    } else if (field.decimals !== 0) {
+      out.push(err('LIB-APS-READING', path, `Field ${field.id}: the count of contaminated units is in whole units (decimals 0) [ST-33]`, ['ST-33']));
+    }
+  }
+  return out;
+}
+
+/**
+ * ST-28 (injectables 3040): the gas overlay and its filter's post-use test are read by marks, whatever the blocks' codes.
+ * `gasOverlayApplied` is on a CHOICE field, naming one of its options, or on a YES_NO field as `true` (LIB-GAS-OVERLAY).
+ * A block with the role GAS_FILTER_INTEGRITY marks exactly one NUMBER field `postUseIntegrity`, critical and with a
+ * limit slot, so the database judges the result against the step's limit; the mark is refused on a block without the
+ * role (LIB-GAS-FILTER).
+ */
+function checkGasOverlay(def: BlockDefinition): LibraryProblem[] {
+  const out: LibraryProblem[] = [];
+  const role = Array.isArray(def.roles) && def.roles.includes('GAS_FILTER_INTEGRITY');
+  const marked: { path: string; field: FieldDef }[] = [];
+  def.sections.forEach((s, si) =>
+    (s.fields ?? []).forEach((f, fi) => {
+      const fp = `sections[${si}].fields[${fi}]`;
+      const overlay = (f as { gasOverlayApplied?: unknown }).gasOverlayApplied;
+      if (overlay !== undefined) {
+        const ok = f.type === 'CHOICE' ? typeof overlay === 'string' && f.options.includes(overlay) : f.type === 'YES_NO' && overlay === true;
+        if (!ok) out.push(err('LIB-GAS-OVERLAY', `${fp}.gasOverlayApplied`, `Field ${f.id}: an applied gas overlay is marked on a choice field as one of its options, or on a yes/no field as true [ST-28]`, ['ST-28']));
+      }
+      if ((f as { postUseIntegrity?: unknown }).postUseIntegrity !== undefined) marked.push({ path: `${fp}.postUseIntegrity`, field: f });
+    }),
+  );
+  if (!role) {
+    for (const { path, field } of marked) out.push(err('LIB-GAS-FILTER', path, `Field ${field.id} marks a gas filter's post-use integrity result, which only a block with the role GAS_FILTER_INTEGRITY carries [ST-28]`, ['ST-28']));
+    return out;
+  }
+  if (marked.length !== 1) {
+    out.push(err('LIB-GAS-FILTER', 'roles', `A gas filter's post-use integrity test (role GAS_FILTER_INTEGRITY) marks exactly one NUMBER field as its result (postUseIntegrity); this block marks ${marked.length} [ST-28]`, ['ST-28']));
+  }
+  for (const { path, field } of marked) {
+    if (field.type !== 'NUMBER' || field.postUseIntegrity !== true || field.critical !== true || typeof field.limitSlot !== 'string') {
+      out.push(err('LIB-GAS-FILTER', path, `Field ${field.id}: the post-use integrity result is a critical NUMBER field with a limit slot, marked postUseIntegrity: true [ST-28]`, ['ST-28']));
+    }
+  }
   return out;
 }

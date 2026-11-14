@@ -6,7 +6,7 @@
  * Slice 7h WP-C (gap C1): the site's numbering rules and the master-data steward's definition of a rule.
  */
 import { useState } from 'react';
-import { routes, type BatchNumberView } from '@ebmr/api-contract';
+import { routes, type BatchNumberView, type RetiredSerialRangeView } from '@ebmr/api-contract';
 import { Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
@@ -24,6 +24,32 @@ const IDENTITY: readonly FormField[] = [
   { name: 'batchSizeUnit', label: 'Batch size unit (e.g. {tbl}, kg)', kind: 'text' },
   { name: 'parentBatchNumber', label: 'Processing batch number (a packaging number only)', kind: 'text', optional: true },
 ];
+
+const RETIRED_WHY: Readonly<Record<RetiredSerialRangeView['reason'], string>> = {
+  SERVER_RESTART: 'retired after a server start (the rest of a reserved block may have been given before a rollback, so it is never given)',
+  LEDGER_AHEAD: 'skipped because the external number ledger was ahead of the database',
+  RESTORE_EVENT: 'skipped by a completed restore (a number issued in the lost window is re-entered under "Recover a number")',
+  IDENTIFIERS_SECURED: 'skipped when a copy of the database secured its identifiers',
+};
+
+/**
+ * Owner decision of 13 November 2026 (retest item 9c; IN-18): the serials each numbering rule skipped, with why and when,
+ * as the database recorded them. They were never given and never will be; a gap in the register is explained here.
+ */
+function RetiredRanges({ ranges }: { ranges: readonly RetiredSerialRangeView[] }) {
+  if (ranges.length === 0) return null;
+  return (
+    <Section title="Numbers skipped and never given" testId="retired-ranges">
+      <ul>
+        {ranges.map((r) => (
+          <li key={`${r.ruleCode}-${r.firstSerial}`} data-testid={`retired-${r.ruleCode}-${r.firstSerial}`}>
+            {r.firstNumber && r.lastNumber ? `${r.firstNumber}–${r.lastNumber}` : `Serials ${r.firstSerial}–${r.lastSerial}`} (rule {r.ruleCode}): {RETIRED_WHY[r.reason]}, {r.recordedAt.text}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
 
 export function BatchNumbersPage() {
   const q = useApiQuery(routes.planning.batchNumbers);
@@ -50,6 +76,7 @@ export function BatchNumbersPage() {
           ))}
         </tbody>
       </table>
+      <RetiredRanges ranges={q.data?.retired ?? []} />
       {issuer ? (
         <>
           <Section title="Register a number issued outside the system" testId="register-external">

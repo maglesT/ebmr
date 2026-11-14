@@ -1,7 +1,7 @@
 /**
  * Owner decision, 13 November 2026 (demo report r13 bug 2): a master family has at most one version in preparation
  * (DRAFT, IN_VERIFICATION, SUBMITTED or CHECKED) at a time, enforced by the database for every writer (recipe-core
- * 1914, EBMR-RCP-436): recipe.create_version and recipe.derive_version refuse a new version while one is open, under
+ * 1925, EBMR-RCP-436): recipe.create_version and recipe.derive_version refuse a new version while one is open, under
  * the family's row lock. A withdrawn version is not open; an approved one is in force, not in preparation. Rows that
  * existed before the rule are not changed.
  */
@@ -25,7 +25,7 @@ afterAll(async () => {
 const derive = (from: string, why = 'change under test') => w.run(w.cast.author, (c) => lc.deriveVersion(c, from, why));
 const OPEN = /EBMR-RCP-436/;
 
-describe('one version in preparation per master family (recipe-core 1914)', () => {
+describe('one version in preparation per master family (recipe-core 1925)', () => {
   it('[PR-06][DI-22] a second version derived while one is in DRAFT or in verification is refused by the database; once it is withdrawn or approved, the next one starts', async () => {
     const v1 = await w.approvedVersion(uniqueContent());
     const v2 = await derive(v1.versionId);

@@ -24,7 +24,26 @@ behaviour: |-
   - Release is blocked while any alarm in the window is unassessed.
 catalog_test: Inject a 2 s power dip on the filler feed → deviation auto-created. Leave one of three alarms unassessed → release blocked. Cut the EMS feed for 30 min → a gap item appears.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [ST-06][PR-03] a master for the EU market whose filling step is not followed by the assessment of its alarms is refused; with the assessment after filling it passes; a master for India and the US needs none"
+clauses:
+  - clause: "Inject a 2 s power dip on the filler feed → deviation auto-created."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "every power dip a deviation"
+  - clause: "Leave one of three alarms unassessed →"
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the monitoring minimum of Annex 1 (I-6 B2) > [ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one"
+      - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a market set makes mandatory on a master (I-6 B2) > [ST-06][PR-03] a master for the EU market whose filling step is not followed by the assessment of its alarms is refused; with the assessment after filling it passes; a master for India and the US needs none"
+  - clause: "release blocked."
+    not_required:
+      decision: "docs/decisions/0030-injectables-unbuilt-minimum.md (lead ruling under the owner's minimum-compliance rule, 12 November 2026)"
+      reason: "blocking release while a typed alarm is unassessed is beyond the clause"
+  - clause: "Cut the EMS feed for 30 min → a gap item appears."
+    not_required:
+      decision: "docs/build-plan/injectables/control-decisions.md (approved by the owner via the lead, 5 November 2026)"
+      reason: "EMS/SCADA import, feed-gap alarm"
 expert_decision:
   status: MODIFY
   pack_version: "0.9"

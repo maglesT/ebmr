@@ -784,6 +784,8 @@ repairs. A second person verifies cleanings, clearances and repairs through the 
 | POST | `/api/plant/cleanings/:id/complete` | `plant.completeCleaning` |
 | POST | `/api/plant/clearances` | `plant.recordClearance` |
 | POST | `/api/plant/equipment/:code/events` | `plant.equipmentEvent` |
+| GET | `/api/plant/equipment/:code/aps-failure` | `plant.apsFailure` |
+| POST | `/api/plant/equipment/:code/aps-failure-review` | `plant.apsFailureReview` |
 | GET | `/api/plant/pending-verifications` | `plant.pendingVerifications` |
 
 **Handler.** [plant/index.ts](../../../apps/tablets-server/src/features/plant/index.ts). Most SQL is recipe-core's
@@ -804,6 +806,21 @@ repairs. A second person verifies cleanings, clearances and repairs through the 
 >   recipe-core (`packages/recipe-core/test/plant/`).
 > - **Error:** `EBMR-PLANT-046` to `EBMR-PLANT-048`, `EBMR-PLANT-104`, `EBMR-PLANT-106`, `EBMR-PLANT-032`,
 >   `EBMR-TAB-1040` (a detector of the wrong kind).
+
+> **Why this exists (a failed media fill, ST-33; tablets 1911 to 1913)**
+> - **Pharma reason:** after a failed aseptic process simulation, EU GMP Annex 1 9.46 wants the batches made since the
+>   last successful APS reviewed with a sterility-risk assessment, and successful repeat simulations (normally at least
+>   three) before the line is back in routine use. On an EU master a reading of a block with the role `APS_READING` whose
+>   `contaminatedCount` field is above zero withdraws the filling line (1911, 1912: by the block's role, so a firm's own
+>   approved block counts) and records the impact list. QA records the review (`plant.apsFailureReview`, RECORD.QA_REVIEW:
+>   the risk-assessment reference, the repeat-run references, a justification below three); until then the database
+>   refuses QUALIFIED for the line, whoever writes it. The repeat media fills may run on the withdrawn line (1913: a
+>   process-simulation batch, and the withdrawal pending an APS is the unit's only problem; ST-29's withdrawals too).
+> - **Control:** [ST-33](../../../compliance/controls/ST-33.yaml), [ST-29](../../../compliance/controls/ST-29.yaml).
+> - **Code:** [1912_aps_failure_review.sql](../../../apps/tablets-server/sql/1912_aps_failure_review.sql),
+>   [1913_aps_repeat_on_withdrawn_line.sql](../../../apps/tablets-server/sql/1913_aps_repeat_on_withdrawn_line.sql).
+> - **Tests:** [injectables/aps-failure.test.ts](../../../apps/tablets-server/test/injectables/aps-failure.test.ts).
+> - **Error:** `EBMR-PLANT-070` to `EBMR-PLANT-074`, `EBMR-TAB-480`, `EBMR-TAB-490`.
 
 ## ts-execution: execution on the shop floor (batches, entries, lots)
 

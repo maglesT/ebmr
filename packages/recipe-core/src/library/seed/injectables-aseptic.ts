@@ -24,8 +24,9 @@
  *  - Environmental monitoring limits are tiered: the action limit (from Schedule M Table 3 and, for EU batches,
  *    Annex 1 Tables 5 and 6) as the internal action tier, which stops the step until a deviation is opened, and the
  *    site's alert level inside it. Particle limits are bound to the keys of the sterile rule table, so the master
- *    validator refuses a limit looser than the market's value; the table has no keys for microbial counts, so those
- *    are the formulation's values from the binding tables.
+ *    validator refuses a limit looser than the market's value. The Grade B viable action limits are keys of the table
+ *    too (EU Annex 1 Table 6 is binding, ST-01 and ST-20); the other grades' microbial counts are the formulation's
+ *    values from the binding tables.
  *  - An item only Annex 1 asks for is a block of its own tagged for the EU market (`markets: ['EU']`, metadata the
  *    engine does not read; owner Q0, lead 6 November 2026): a master for other markets leaves the block out, and the
  *    base blocks keep their 21 CFR 211 and Schedule M content. So PUPSIT (A1 8.87) is INJ-PUPSIT, the pack's sterilisation
@@ -317,20 +318,29 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-13: 211.113(b); SM Part II 6.11.2. PUPSIT (A1 8.87, EU market) is the block INJ-PUPSIT.
+    // IN-48 (I-6 B4, lead's option 1): the same filter is not used for more than one working day unless that use has
+    // been validated (SM Part II 6.11.2.8; A1 8.94 in the same terms), on every market. The filter section asks whether
+    // the filter is used for the first time today; if not, whether its longer use is validated, and that validation's
+    // reference. An unvalidated longer use is a critical exception: QA dispositions it, the step waits for a deviation
+    // and release is blocked. The EU single-batch rule (A1 8.94) is the EU block INJ-FILTER-SINGLE-BATCH. These answers
+    // are signed and verified with the rest of the step.
     definition: {
       code: 'INJ-STERILE-FILTER',
       version: 1,
       title: 'Sterilising filtration and filter integrity',
       category: 'PROCESS',
       edition: EDITION,
-      description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
-      instructions: 'Use only the filter registered for the product. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
+      description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product; whether it is used for the first time today and, if not, the reference of the validation of its longer use), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
+      instructions: 'Use only the filter registered for the product. A filter first used on an earlier day may be used only where that longer use is validated: give the validation\'s reference. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [
         {
           id: 'filter',
           title: 'Filter',
           fields: [
             { id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' },
+            { id: 'firstUseToday', label: 'This filter is used for the first time today', type: 'YES_NO' },
+            { id: 'extendedUseValidated', label: 'Its use beyond one working day is validated', type: 'YES_NO', expected: true, unexpectedCritical: true, showWhen: { field: 'firstUseToday', equals: false } },
+            { id: 'validationRef', label: 'Validation reference (use beyond one working day)', type: 'TEXT', maxLength: 80, showWhen: { field: 'extendedUseValidated', equals: true } },
           ],
         },
         {
@@ -376,7 +386,11 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
   },
   {
     // INJ-13 (PUPSIT): A1 8.87 (EU market only). Added by a formulation for the EU market after the filter's
-    // sterilisation and before filtration.
+    // sterilisation and before filtration (the master validator requires it before INJ-STERILE-FILTER on an EU master,
+    // MKT-REQUIRED-BLOCKS, ST-52). A1 8.87 accepts that PUPSIT is not always possible after sterilisation (process
+    // constraints, e.g. very small volumes) when a thorough risk assessment is in place with controls against a
+    // non-integral filtration system: the waiver answer then asks for that assessment's reference instead of the test
+    // values, and the entry is refused without it.
     definition: {
       code: 'INJ-PUPSIT',
       version: 1,
@@ -384,14 +398,16 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'PROCESS',
       edition: EDITION,
       markets: ['EU'],
-      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit.',
-      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation.',
+      description: 'INJ-13, EU market. The integrity of the sterilising filter tested after its sterilisation and before use, by the formulation\'s method, against its limit; or, where PUPSIT is not feasible, the reference of the documented risk assessment of the alternative approach.',
+      instructions: 'After the filter is sterilised and before filtration, test its integrity by the method of the formulation. Only where the formulation documents that PUPSIT is not feasible, answer yes and give the reference of its risk assessment.',
       sections: [
         {
           id: 'pupsitTest',
           title: 'Integrity after sterilisation, before use',
           fields: [
-            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
+            { id: 'pupsitNotFeasible', label: 'PUPSIT not feasible (documented risk-based alternative)', type: 'YES_NO' },
+            { id: 'riskAssessmentRef', label: 'Risk assessment reference (alternative to PUPSIT)', type: 'TEXT', maxLength: 80, showWhen: { field: 'pupsitNotFeasible', equals: true } },
+            { id: 'pupsitMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'], showWhen: { field: 'pupsitNotFeasible', equals: false } },
             { id: 'pupsitBubblePoint', label: 'Bubble point after sterilisation', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Bubble point' } },
             { id: 'pupsitDiffusion', label: 'Diffusion after sterilisation', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPupsit', critical: true, showWhen: { field: 'pupsitMethod', equals: 'Diffusion' } },
           ],
@@ -409,14 +425,16 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     // media); for EU batches A1 9.41-9.47 (accountability, incubation, reading, the zero target). The incubation conditions
     // are the ones the site validated, entered as the formulation's limits (plan 8a: no fixed FDA scheme). A contaminated
     // unit is a critical breach: its exception and deviation reach QA, who then does not extend the line's and the people's
-    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet).
+    // APS qualification (ST-33). Signed by production roles, as EM (QC roles are not engine roles yet). Its role APS_READING
+    // and the contaminatedCount mark on 'contaminated' are what the database reads on an EU master (tablets 1912): a count
+    // above zero withdraws the filling line's qualification.
     definition: {
       code: 'INJ-APS-READ',
       version: 1,
       title: 'Media fill: incubation and reading',
       category: 'CONTROL',
       edition: EDITION,
-      roles: ['OBSERVATION'],
+      roles: ['OBSERVATION', 'APS_READING'],
       description: 'INJ-26, media fill. The filled units incubated, the units removed before incubation with the reason, the incubation temperature and time of each period against the site\'s validated conditions, and the units read as contaminated after incubation against the acceptance limit.',
       instructions: 'Inspect the filled units and remove only those that are not integral, recording why. Incubate them in the validated scheme and read every unit at its end. Record any contaminated unit and send it for identification.',
       sections: [
@@ -439,7 +457,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           id: 'reading',
           title: 'Reading',
           fields: [
-            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true },
+            { id: 'contaminated', label: 'Units contaminated (growth seen)', type: 'NUMBER', unit: UNITS, decimals: 0, limitSlot: 'contaminated', critical: true, contaminatedCount: true },
             { id: 'identification', label: 'Organisms identified (for a contaminated unit)', type: 'TEXT', maxLength: 120, required: false },
           ],
         },
@@ -471,7 +489,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       category: 'CONTROL',
       edition: EDITION,
       roles: ['ENVIRONMENT_CHECK'],
-      description: 'INJ-32. Each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
+      description: 'INJ-32. The released media lot of the plates; each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
       instructions: 'Sample each location of the plan during the operation and label the plates with the batch, the location and the time. Settle plates are exposed no longer than their limit. Type the particle counts from the counter report and attach it.',
       sections: [
         {
@@ -480,6 +498,14 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           fields: [
             { id: 'room', label: 'Room or zone monitored (of the grade the formulation names)', type: 'EQUIPMENT', kind: 'ROOM', classSlot: 'roomClass' },
             { id: 'counter', label: 'Particle counter', type: 'EQUIPMENT', kind: 'INSTRUMENT', classSlot: 'counterClass' },
+            // ST-23: EM media are tested for growth promotion before use (A1 10.9; SM Part I 14.39 asks the suitability of
+            // culture media verified with positive controls): the plates' lot is named, so a lot not released (its test
+            // not passed) is refused by the lot checks of every MATERIAL_LOT field (G07).
+            { id: 'mediaLot', label: 'Media lot of the plates (released after its growth-promotion test)', type: 'MATERIAL_LOT' },
+            // ST-19: Grade A particle monitoring covers the full duration of critical processing, equipment assembly
+            // included (A1 9.16; SM Part II 4.7.1 in the same terms). Counting that started after the assembly began
+            // leaves a gap, so the answer no is an exception.
+            { id: 'countingFromAssembly', label: 'Grade A particle counting started before the aseptic equipment assembly began', type: 'YES_NO', expected: true },
           ],
         },
         {
@@ -524,6 +550,76 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
     },
   },
   {
+    // INJ-32 (surfaces at the end): ST-18. Equipment surfaces are monitored at the end of the operation (A1 9.22; SM Part
+    // II 4.8 asks surfaces monitored after critical operations). The master places this block after the filling step in
+    // its sequence, so the engine does not open it, and no product-contact surface can be sampled, before filling has
+    // ended. The plates' counts after incubation are entered in INJ-EM-COUNTS as contact-plate locations.
+    definition: {
+      code: 'INJ-EM-SURFACES',
+      version: 1,
+      title: 'Environmental monitoring: product-contact surfaces at the end of filling',
+      category: 'CONTROL',
+      edition: EDITION,
+      roles: ['ENVIRONMENT_CHECK'],
+      description: 'INJ-32. Each product-contact surface of the sampling plan (filling needles, stopper bowl, feed tracks) sampled once filling has ended, with the plates or swabs taken. The counts after incubation are entered in the step "Environmental monitoring: counts after incubation".',
+      instructions: 'After the end of filling, sample each product-contact surface of the plan and label the plates with the batch, the surface and the time.',
+      sections: [
+        {
+          id: 'surface',
+          title: 'Product-contact surface',
+          repeat: { kind: 'COUNT', countSlot: 'surfaceLocations' },
+          fields: [
+            { id: 'surface', label: 'Surface (from the sampling plan)', type: 'TEXT', maxLength: 60 },
+            { id: 'sample', label: 'Plates or swabs taken', type: 'SAMPLE', unitsSlot: 'platesPerSurface', purpose: 'Environmental monitoring' },
+          ],
+        },
+      ],
+      signatures: [OPERATOR],
+    },
+    exampleUse: {
+      counts: { surfaceLocations: '3', platesPerSurface: '1' },
+    },
+  },
+  {
+    // INJ-15 (alarm assessment, after filling): ST-06, A1 5.2 (EU market only): process and equipment alarms are acknowledged and
+    // evaluated, critical ones at once. The filling step records each alarm as an event (when it ended, what it was);
+    // the master places this block after filling in an EU master, so each of those alarms is assessed here, and an alarm
+    // entry without its assessment is refused. No clause of Schedule M or 21 CFR 211 asks it, so other markets leave the
+    // block out (lead ruling, I-6 B2).
+    definition: {
+      code: 'INJ-ALARM-ASSESSMENT',
+      version: 1,
+      title: 'Assessment of the alarms raised during filling, EU market',
+      category: 'CONTROL',
+      edition: EDITION,
+      markets: ['EU'],
+      roles: ['VERIFICATION'],
+      description: 'INJ-15, EU market. Whether process or equipment alarms were raised during filling and, for each alarm the filling step recorded, its assessment: its cause and its impact on the batch.',
+      instructions: 'Answer whether any alarm was raised during filling. For each alarm the filling step recorded, name it as recorded there and write its cause and its impact on the batch.',
+      sections: [
+        {
+          id: 'alarms',
+          title: 'Alarms during filling',
+          fields: [{ id: 'alarmsRaised', label: 'Process or equipment alarms raised during filling (as the filling step recorded them)', type: 'YES_NO' }],
+        },
+        {
+          id: 'alarm',
+          title: 'Alarm assessed',
+          required: false,
+          when: 'For each alarm the filling step recorded',
+          repeat: { kind: 'PER_CONTAINER' },
+          fields: [
+            { id: 'alarm', label: 'Alarm (as the filling step recorded it)', type: 'TEXT', maxLength: 120 },
+            { id: 'assessment', label: 'Assessment of the alarm (its cause and its impact on the batch)', type: 'TEXT', maxLength: 200 },
+          ],
+        },
+      ],
+      // Recorded by the person who assessed it: no clause asks a second person.
+      signatures: [OPERATOR],
+    },
+    exampleUse: {},
+  },
+  {
     // INJ-32 (counts): SM Part II 4.7-4.10 with Table 3, 4.8 (EM results are considered in the batch release review);
     // 211.42(c)(10)(iv), 211.113(b); A1 9.4-9.31, Tables 6 (EU). Placed by the master after the batch's last process step
     // and before the accountability: the plates' counts after incubation. A count above the action limit stops the step
@@ -563,7 +659,46 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
         cfuGlove: em(CFU, '5', '3'),
       },
       targets: { cfuAir: '0', cfuSettle: '0', cfuContact: '0', cfuGlove: '0' },
+      // Bound to the Grade B keys of the sterile rule table (EU Annex 1 Table 6 binding: ST-01, ST-20), so the master
+      // validator refuses an action limit looser than the market's value.
+      marketRules: {
+        cfuAir: { key: 'sterile.viable.gradeB.airMax', bound: 'HIGH' },
+        cfuSettle: { key: 'sterile.viable.gradeB.settlePlateMax', bound: 'HIGH' },
+        cfuContact: { key: 'sterile.viable.gradeB.contactPlateMax', bound: 'HIGH' },
+        cfuGlove: { key: 'sterile.viable.gradeB.glovePrintMax', bound: 'HIGH' },
+      },
       counts: { viableLocations: '4' },
     },
+  },
+  {
+    // INJ-13 (single batch): IN-48, A1 8.94 (EU market only): a liquid sterilising-grade filter is discarded after the
+    // processing of a single batch. Schedule M Part II 6.11.2.8, which binds every batch manufactured in India whatever
+    // its market, limits only the working day (asked in INJ-STERILE-FILTER on every market), so other markets leave the
+    // block out (lead's option 1, I-6 B4). The master places it before each filtration step on an EU master
+    // (MKT-REQUIRED-BLOCKS). The answer no stops the step until a deviation is linked; campaign use that the CCS justifies
+    // and validation supports (A1 8.95) is that deviation's case for QA. A second person verifies the answer, as the
+    // filtration step's own filter answers.
+    definition: {
+      code: 'INJ-FILTER-SINGLE-BATCH',
+      version: 1,
+      title: 'Sterilising filter new for this batch, EU market',
+      category: 'PROCESS',
+      edition: EDITION,
+      markets: ['EU'],
+      roles: ['VERIFICATION'],
+      description: 'INJ-13, EU market. The liquid sterilising filter of the next filtration step is new for this batch: it has not filtered an earlier batch.',
+      instructions: 'Before the filtration step, check that the sterilising filter to be used has not been used for an earlier batch.',
+      sections: [
+        {
+          id: 'singleBatch',
+          title: 'Single batch',
+          fields: [
+            { id: 'newFilter', label: 'The sterilising filter is new: not used for an earlier batch', type: 'YES_NO', expected: true },
+          ],
+        },
+      ],
+      signatures: [OPERATOR, VERIFIER],
+    },
+    exampleUse: {},
   },
 ];

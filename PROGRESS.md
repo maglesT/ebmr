@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 13 November 2026 (demo report r13 bugs 2 and 3).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 17, injectables edition exit).
 
 ## What this is
 
@@ -44,16 +44,28 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
-**Demo report r13 bugs 2 and 3 (13 November 2026, branch fix-revise-approved-master).** The database had
-`recipe.derive_version` and `recipe.return_to_draft`, but no route or screen called them. Now:
-- `designer.deriveVersion`: "Start a new version…" on an APPROVED or RETIRED master. The MBR author gives a reason and gets a
-  derived DRAFT; the approved version stays in force. One open version per family; a second is refused 409 DESIGNER_OPEN_VERSION.
-- `designer.returnToDraft`: "Return to draft…" from IN_VERIFICATION (author), SUBMITTED (checker) or CHECKED (QA), with a reason.
-  Every signature is superseded; the DRAFT is then edited or discarded.
-- Golden cases are edited in a DRAFT (SET_GOLDEN_VALUE: a decimal value changed, added or removed).
-- One open version per family is also a database rule (owner, 13 November; recipe-core 1914, EBMR-RCP-436). It governs
-  new versions only; existing rows are untouched. Demo family MGL-SR-BL-B can be returned to draft and fixed, or
-  discarded, on screen once this is deployed.
+**Demo report r13 bugs 2 and 3 (13-14 November 2026, branch fix-revise-approved-master).** "Start a new version…"
+(designer.deriveVersion, recipe.derive_version) derives a DRAFT from an APPROVED or RETIRED master; "Return to draft…"
+(designer.returnToDraft) takes a version out of verification with a reason, superseding every signature; golden cases are
+edited in a DRAFT. One version in preparation per family: server 409 DESIGNER_OPEN_VERSION and database rule (owner,
+13 November; recipe-core 1925, EBMR-RCP-436; new versions only, no row changed).
+
+**Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
+A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
+and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
+GMP-EQUIPMENT-STATUS-UNITS (validator 1.4.0; PR-23, PR-03) refuses a G-09 step from version 2 that checks no unit, naming
+the stage and what to add (the stage's equipment, then "checks its status" on the step; both already on screen). G-09@1
+(sandbox, any unit) is unchanged. Open: masters already approved with this shape stay stuck (revising them is r13 bug 2);
+the packaging skeleton from a formula now shows this error until the author binds the line's units.
+
+**Owner retest 13 November 2026, items 7 to 9 (branch fix-floor-messages-and-deviation).** A GMP weighing step lists
+per line the lots reserved for the batch and warns before the first weighing when stores must reserve one (item 7). A
+deviation raised from an exception is raised, linked to the batch and attached in one command (ATTACH_DEVIATION with
+`raise`); the dialog offers the batch's open deviations so an orphan is attached, not raised again; titles show values
+at their judged precision (item 8). The title block shows its signatures; a stale GMP signing says "batch" (9a, 9b).
+9c (MGL260051 then MGL260101) is by design: a server start retires the rest of a 50-number block (kernel 0600, ADR 0007,
+`docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner decision (13 November): the register screen now
+lists each skipped range with its numbers, reason and time (site-services 1924, read from `continuity.sequence_bump`).
 
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
@@ -114,6 +126,17 @@ finished lot of it is refused. The master-version market authorisation stays (le
     trace found. Main is merged in, and the library-bilayer group sits beside the injectables groups.
   - Local container: apt mirrors may answer 503. `runpod-setup.sh` works with `apt-get` stubbed out; PostgreSQL stops
     when the container restarts (`pg_ctlcluster 16 main start`, plus ci, ci2, ci3 and golden).
+- MGL-SR-BL retest of 13 November, bugs 5 and 6 (branch fix-unit-choice-and-planning):
+  - Bug 5: a status step (G-09@2) offered only the stage room's units, so a usable unit of the class in another room was
+    never offered. No control or database rule ties a unit to the stage's room. Default taken: the stage room's units
+    come first. When none of them can be used now, usable units of the class in other rooms are offered with their room
+    and a note says why. When no unit can be used anywhere, every unit is listed with the plant's reason and what to do.
+    A unit with an open use of the batch is always offered. Raw EQUIPMENT_USE/PRESS_SETUP forms pick an open use.
+  - Bug 6: recipe-core 1921 makes the planning read list every matching master in `matches`. When more than one
+    matches, `match` is null and `noMatch` names them; the planning screen asks the planner to choose. Owner, 13
+    November: a twin family is refused at authorisation (recipe-core 1923, EBMR-RCP-438: another family of the same
+    product with an active authorisation for the same market, site, line and batch quantity); the planner's choice stays
+    for twins already in a database and on different lines. Owner: a unit of another room may be used (no guard).
 - Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
   changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 
@@ -126,11 +149,34 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 
 ## Next
 
+- **Injectables I-6, edition exit (14 November 2026).** `compliance/phase.yaml` lists `injectables`, so the trace gate
+  covers both editions. Merged: B1 to B5 (#245 to #248, #252), PR-15/PR-28 (#253), GB-I-01 (#254). The golden batch
+  GB-I-01 takes the aseptic vial to a released lot with sterility by the validated rapid method; the lot result shows
+  the method the QA-approved specification fixes (IN-33).
+- **Owner residuals and questions (injectables):**
+  - INV-23, INV-36, INV-44: owner residuals (the exit list supersedes outline 11's); INV-37 by ST-68, INV-45 by ST-64.
+  - Decision 0031: PR-26 clause 2 (transfer-route scan) and PR-28 clause 2 (EM excursion at certification) are owner
+    questions, deferred to phase 8 (register: phase 8 = an open owner question, citing a decision record).
+  - The room-level EM logbook between batches: deferred by the owner ("not now", 13 November 2026); not built.
+  - B5: masters do not declare isolator/RABS, so the glove test and VHP are not required automatically for EU; EU
+    radiation-sterilised product waits for Annex 12 to be extracted.
+  - Upgrading an existing install needs a sterile v2 rule table and a library v2 publish: B1 and B5 edit sterile.v1 and
+    INJ-EM, INJ-FILL, INJ-COMPOUND and INJ-GAS-FILTER v1 in place (an existing database refuses the new sterile v1 with
+    EBMR-MKT-035 and keeps the old library v1).
+  - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
+    unique-violation error (review pass residual; not needed now).
+  - Owner question pending: the Tablets v1.0.0 tag.
+- **Demo:** fresh install after the I-6 merges (lead ruling on #245).
+- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (tablets
+  migration 1914, the `plant.change_record_content` provider for the APS lines, and the [DI-20] 64-bit endpoint codes)
+  plus `inj/i6-review-e2e-stalls` (the renderer watchdog and the Demotab 12 race). (2) The expected-answer database
+  re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
+  engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage.
+
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).
 - Later CI slice: gate the E2E set-up's seeds per group (`gmpReviewBatch`, `gmpPackaging` in
   `tools/e2e/global-setup.ts`); needs a full E2E proof run.
-- Tablets to v1.0, then Injectables (decision 0010).
 
 ## How to work here
 

@@ -1,4 +1,5 @@
 -- One version in preparation per MBR family (owner decision, 13 November 2026; demo report r13 bug 2; PR-06).
+-- (Numbered 1914 on its branch until main took 1921 and 1923; never applied to an installation under that number.)
 -- Handbook: modules/recipe-core.md
 --
 -- Since the designer derives the next version of an approved master on screen (designer.deriveVersion), a family must

@@ -71,7 +71,7 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
       'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents',
-      'recipe.packaging_order_bulk'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'recipe.packaging_order_bulk', 'recipe.planning_orders'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
@@ -178,7 +178,7 @@ export const TARGETS: Target[] = [
                 'recipe.approved_content_violations',
                 // Demo finding D-3 (recipe-core 1878): a new draft in a family whose drafts were all discarded.
                 'recipe.reopen_family',
-                // Owner decision 13 November 2026 (recipe-core 1914): one version in preparation per family.
+                // Owner decision 13 November 2026 (recipe-core 1925): one version in preparation per family.
                 'recipe.insert_version'],
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
             r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
@@ -206,10 +206,12 @@ export const TARGETS: Target[] = [
                 'recipe.market_authorisation_activation_guard', 'recipe.authorisation_cell_activation_guard',
                 'recipe.authorisation_cell_supersession_guard',
                 // recipe-core 1889 (owner item 11): the proposer never activates.
-                'recipe.market_authorisation_activation_not_proposer'],
+                'recipe.market_authorisation_activation_not_proposer',
+                // recipe-core 1923 (owner, 13 November 2026): a twin family is refused at authorisation.
+                'recipe.authorisation_cell_twin_guard'],
     tests: [r('lifecycle/market.test.ts'), r('lifecycle/issue.test.ts'), r('lifecycle/selection.property.test.ts'),
             r('lifecycle/review-inventory.test.ts'), r('lifecycle/audit-reason.test.ts'), r('lifecycle/concurrency.test.ts'),
-            r('lifecycle/authorization.test.ts')],
+            r('lifecycle/authorization.test.ts'), r('lifecycle/planning-several-masters.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: the commands (sql 0210, 0240, 0270, 0295, 0298, 0299) ----------------
@@ -514,7 +516,9 @@ export const TARGETS: Target[] = [
                 'site.allocate_batch_number', 'site.register_external_batch_number', 'site.void_batch_number', 'site.batch_number_pattern',
                 'site.recover_batch_number', 'site.batch_number_invariant_violations',
                 // recipe-core 1790: {SEQ:n} of a packaging number counted per parent batch (owner report #19).
-                'site.counts_per_parent', 'site.next_parent_serial'],
+                'site.counts_per_parent', 'site.next_parent_serial',
+                // site-services 1924: the serials each rule skipped, for the register screen (owner decision on retest item 9c).
+                'site.batch_number_retired_ranges'],
     tests: [site('batch-number-register.test.ts')],
     threshold: 90,
   },
@@ -1021,6 +1025,15 @@ export const TARGETS: Target[] = [
     group: 'inj-release-items',
     functions: ['injectables.grel_edition_items', 'injectables.grel_pack_examination'],
     tests: [s('injectables/vial-chain.test.ts')],
+    threshold: 90,
+  },
+  // ---- Injectables I-6 B5: an applied nitrogen overlay needs its gas filter's passing post-use result for release (ST-28;
+  // editions/injectables/sql 3040, which also redefines injectables.grel_edition_items, kept in inj-release-items;
+  // it reads marks and a role, not block codes). ----
+  {
+    group: 'inj-gas-filter',
+    functions: ['injectables.grel_gas_filter'],
+    tests: [s('injectables/gas-filter-gate.test.ts')],
     threshold: 90,
   },
   // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
@@ -1781,6 +1794,18 @@ export const TARGETS: Target[] = [
     group: 'platform-deviation-numbers',
     functions: ['dv.link_number', 'dv.record_status', 'dv.release_problem', 'dv.subject_batches', 'dv.guard_release', 'site.deviation_ref_problem'],
     tests: [s('medhanta/platform-deviations.test.ts'), s('medhanta/platform-deviations-release.test.ts'), s('declutter/exception-deviation-ref.test.ts')],
+    threshold: 90,
+  },
+  // Injectables I-6 B3: a filling line's qualification withdrawn for an APS (ST-29, tablets 1910) or after a failed media
+  // fill (ST-33, tablets 1911, 1912: the reading by role, the impact list, QA's review before requalification), and the
+  // repeat media fills on the withdrawn line (tablets 1913).
+  {
+    group: 'aps-line-qualification',
+    functions: ['plant.aps_line_open_guard', 'plant.require_aps_after_change', 'plant.withdraw_aps_lines', 'plant.aps_failure_lines',
+                'plant.withdraw_lines_on_aps_failure', 'plant.aps_reading_field', 'plant.aps_count', 'plant.line_uses', 'plant.line_batch_uses',
+                'plant.aps_refs_well_formed', 'plant.open_aps_failure', 'plant.record_aps_failure_review', 'plant.aps_requalification_guard',
+                'plant.aps_repeat_use'],
+    tests: [s('config/aps-required.test.ts'), s('injectables/aps-failure.test.ts')],
     threshold: 90,
   },
 ];

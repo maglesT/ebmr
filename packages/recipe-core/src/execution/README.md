@@ -1467,6 +1467,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   a kiosk session ended by a sign-in on another kiosk.
 - `gmp-wording.test.ts` (slice 7u, R10 #10): the GMP installation's refusals and hints never speak of a test run or of
   TEST- lots.
+- `exception-deviation-raise.test.ts` (owner retest 13 November 2026, items 8 and 9b): ATTACH_DEVIATION with `raise`
+  raises the deviation, links it to the batch and attaches it in one command (a refused attachment raises nothing, a
+  refused row rolls the raise back); titles show values at their judged precision; a stale GMP signing says "batch".
 - `plain-words.test.ts` (slice 7u, R10 #14, #15): MBR step numbers and names, process tags and states in plain words,
   and unit words instead of placeholders.
 - `value-display.test.ts` (slice 7u, R10 #11): a computed value shown at its limits' precision, the stored value

@@ -3,6 +3,8 @@ current_phase: 7
 # whose target_phase is at or before this number (unless the expert chose DONT_FOLLOW).
 editions:
   - tablets
+  - injectables
 # The editions the trace gate covers (decision 0010: Tablets to v1.0 first, Injectables after Phase 7). A control is
 # due only when one of its editions is listed, so the injectables-only controls stay out of the gate while that edition
-# is deferred; controls shared by both editions are always due. Add injectables when that edition is built.
+# is deferred; controls shared by both editions are always due. Injectables added at its edition exit (I-6, 14 November 2026);
+# its owner questions stay DEFERRED at phase 8 (decision 0031).

@@ -36,7 +36,7 @@ implemented_by:
     - "apps/tablets-server/src/features/designer/index.ts (deriveVersion: the next version of an approved master as a derived DRAFT with the author's reason; returnToDraft: a version in verification back to DRAFT with a reason; demo report r13)"
     - "apps/tablets-web/src/features/designer (read-only unless DRAFT; stale-revision refusal shown; unsaved edits kept as a local draft only, decision D7)"
   guards:
-    - "recipe.insert_version (recipe-core 1914): one version in preparation (DRAFT to CHECKED) per family; create_version and derive_version refuse another under the family lock (EBMR-RCP-436)"
+    - "recipe.insert_version (recipe-core 1925): one version in preparation (DRAFT to CHECKED) per family; create_version and derive_version refuse another under the family lock (EBMR-RCP-436)"
     - "recipe.assert_draft: an APPROVED or CURRENT version never changes (EBMR-RCP-021); a change is a new DRAFT derived from an approved version"
     - "mbr_version.change_record_linked (SUBMIT) and mbr_version.change_control_complete (APPROVE): a process-impacting change (computed against the baselines, or so classified by the change owner) needs a validation link; a first version is a new process"
   db_constraints:
@@ -69,9 +69,9 @@ tests:
   - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] the diff report lists exactly the changed fields"
   - "packages/recipe-core/test/lifecycle/concurrency.test.ts > [PR-06] the start of verification racing a content edit: the edit waits and is then refused (the candidate is frozen)"
   - "packages/recipe-core/test/lifecycle/concurrency.test.ts > [PR-06][DI-04] a content edit racing the start of verification: verification waits and then refuses the unverified content"
-  - "packages/recipe-core/test/lifecycle/one-open-version.test.ts > one version in preparation per master family (recipe-core 1914) > [PR-06] a first version is not created twice in one family: create_version is refused while the family has an open version"
-  - "packages/recipe-core/test/lifecycle/one-open-version.test.ts > one version in preparation per master family (recipe-core 1914) > [PR-06] two derivations at the same time: exactly one succeeds (the family row lock)"
-  - "packages/recipe-core/test/lifecycle/one-open-version.test.ts > one version in preparation per master family (recipe-core 1914) > [PR-06][DI-22] a second version derived while one is in DRAFT or in verification is refused by the database; once it is withdrawn or approved, the next one starts"
+  - "packages/recipe-core/test/lifecycle/one-open-version.test.ts > one version in preparation per master family (recipe-core 1925) > [PR-06] a first version is not created twice in one family: create_version is refused while the family has an open version"
+  - "packages/recipe-core/test/lifecycle/one-open-version.test.ts > one version in preparation per master family (recipe-core 1925) > [PR-06] two derivations at the same time: exactly one succeeds (the family row lock)"
+  - "packages/recipe-core/test/lifecycle/one-open-version.test.ts > one version in preparation per master family (recipe-core 1925) > [PR-06][DI-22] a second version derived while one is in DRAFT or in verification is refused by the database; once it is withdrawn or approved, the next one starts"
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a command on an unknown family or version is refused as unknown (DI-17) > [DI-17][PR-06] every command names the unknown family or version (EBMR-RCP-010, -020) before it checks a permission, a reason or a kind, and writes nothing"
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a command on one version never waits for a command on another (decision 0003) > [PR-07][PR-06] a risk link of one version is recorded while another version's content revision is still open"
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > baselines and process impact (PR-06) > [PR-06] a derived version is compared with every top-level area it changed, not as a new master"

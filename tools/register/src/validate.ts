@@ -10,15 +10,19 @@ import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord }
 import { notRequiredErrors, words } from './not-required.ts';
 import { missingListedTests, type DeclaredTest } from './test-index.ts';
 import { firstDuplicate, firstUnsorted } from './sync.ts';
+import { ownerQuestionErrors } from './owner-question.ts';
 
 export const EXPECTED_COUNTS = { DI: 53, PR: 61, ST: 79, IN: 53 } as const;
 
 export { words } from './not-required.ts';
 
+export { OWNER_QUESTION_PHASE } from './owner-question.ts';
+
 /** The problems with a control's clauses and deferred scope (review F14). */
 export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {
   const errors: string[] = [];
   for (const d of c.deferred_scope ?? []) {
+    errors.push(...ownerQuestionErrors(`${c.id}: deferred scope "${d.scope}"`, d.phase, d.reason, root));
     if (d.phase <= c.target_phase) errors.push(`${c.id}: deferred scope "${d.scope}" is deferred to phase ${d.phase}, not after the control's target phase ${c.target_phase}`);
   }
   const clauses = c.clauses ?? [];
@@ -29,6 +33,7 @@ export function clauseErrors(c: ControlRecord, root: string = ROOT): string[] {
   clauses.forEach((k, i) => {
     for (const t of k.tests ?? []) if (!listed.has(t)) errors.push(`${c.id}: clause ${i + 1} names a test that is not in its tests list: "${t}"`);
     if (k.not_required) errors.push(...notRequiredErrors(c, i, k.not_required, root));
+    if (k.deferred) errors.push(...ownerQuestionErrors(`${c.id}: clause ${i + 1}`, k.deferred.phase, k.deferred.reason, root));
     if (k.deferred && k.deferred.phase <= c.target_phase) {
       errors.push(`${c.id}: clause ${i + 1} is deferred to phase ${k.deferred.phase}, not after the control's target phase ${c.target_phase}`);
     }

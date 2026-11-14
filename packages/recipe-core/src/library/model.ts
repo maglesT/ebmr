@@ -86,6 +86,17 @@ export interface NumberField extends FieldBase {
   limitSlot?: string;
   /** A CPP or IPC: must have a limit slot (PR-03). */
   critical?: boolean;
+  /**
+   * The number of contaminated units of a media fill (ST-33): only on a block with the role APS_READING, which has
+   * exactly one such field, in whole units (decimals 0). The database reads it by this mark, never by a field id.
+   */
+  contaminatedCount?: true;
+  /**
+   * The post-use integrity result of the gas filter of a product's gas overlay (ST-28): only on a block with the role
+   * GAS_FILTER_INTEGRITY, which has exactly one such field, critical and with a limit slot. The database reads the result
+   * by this mark and judges it against the step's limit (injectables 3040), never by a block code or field id.
+   */
+  postUseIntegrity?: true;
 }
 
 export interface TextField extends FieldBase {
@@ -99,6 +110,18 @@ export interface YesNoField extends FieldBase {
   type: 'YES_NO';
   /** The expected answer; the other answer raises an exception. */
   expected?: boolean;
+  /**
+   * The other answer (not `expected`) is a critical exception: QA dispositions it, the step and the steps after it wait
+   * for a deviation, and release is blocked, as a registered-tier limit breach. For an answer a binding clause forbids
+   * outright, e.g. a sterilising filter used beyond one working day without validation (SM Part II 6.11.2.8, IN-48).
+   */
+  unexpectedCritical?: boolean;
+  /**
+   * ST-28 (injectables 3040): the answer `yes` records that a gas overlay was applied to the product, so the batch needs a
+   * passing post-use result of a GAS_FILTER_INTEGRITY block before release. The database reads this mark from the master's
+   * snapshot, never a block code or field id.
+   */
+  gasOverlayApplied?: true;
 }
 
 export interface ChoiceField extends FieldBase {
@@ -106,6 +129,12 @@ export interface ChoiceField extends FieldBase {
   options: string[];
   /** Options that may be recorded but raise an exception (e.g. "Damaged"). */
   notAllowed?: string[];
+  /**
+   * ST-28 (injectables 3040): the option (one of `options`) that records a gas overlay applied to the product, so the batch
+   * needs a passing post-use result of a GAS_FILTER_INTEGRITY block before release. Read by the database from the master's
+   * snapshot, never by a block code or field id.
+   */
+  gasOverlayApplied?: string;
 }
 
 export interface DateTimeField extends FieldBase {
@@ -259,9 +288,14 @@ export type ExternalInput =
  * formulation's yield checkpoint), and so on. Automated phases, dispensing, charge-in, timers with time constraints,
  * printed materials, containers, returns and reprocessing stay with their system blocks. A PACK_EXAMINATION block, the
  * examination of the finished packs, completes a packaging record of its edition (recipe-core 1892; decision 0026: a
- * firm's own QA-approved block counts without software).
+ * firm's own QA-approved block counts without software). An APS_READING block, the reading of a media fill (aseptic
+ * process simulation), carries exactly one NUMBER field marked `contaminatedCount`: on an EU master a count above zero
+ * withdraws the filling line's qualification (ST-33, tablets 1912), whatever the block's code. A GAS_FILTER_INTEGRITY
+ * block, the post-use integrity test of a gas overlay's filter, carries exactly one critical NUMBER field marked
+ * `postUseIntegrity`: a batch whose record marks an overlay applied (`gasOverlayApplied`) is not released without a
+ * passing result of it (ST-28, injectables 3040), whatever the blocks' codes.
  */
-export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION'] as const;
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION', 'APS_READING', 'GAS_FILTER_INTEGRITY'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
 /**

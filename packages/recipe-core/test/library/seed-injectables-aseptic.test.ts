@@ -26,10 +26,10 @@ function checkedBySecondPerson(item: SeedItem): void {
   expect(checked?.role, item.definition.code).not.toBe(performed?.role);
 }
 
-const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-PUPSIT', 'INJ-EM'];
+const I2_CODES = ['INJ-APS-READ', 'INJ-EM-COUNTS', 'INJ-SUPPLIER-STERILE', 'INJ-STERILE-PACK-INDICATOR', 'INJ-SIP', 'INJ-ASEPTIC-ASSEMBLY', 'INJ-VHP', 'INJ-GLOVE-TEST', 'INJ-SUS', 'INJ-SUS-INTEGRITY', 'INJ-ASEPTIC-TRANSFER', 'INJ-STERILE-FILTER', 'INJ-FILTER-SINGLE-BATCH', 'INJ-PUPSIT', 'INJ-EM', 'INJ-EM-SURFACES', 'INJ-ALARM-ASSESSMENT'];
 
 describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () => {
-  it('[PR-05][PR-03] the catalogue holds the 14 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT block, 26 for the media fill, 32 and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
+  it('[PR-05][PR-03] the catalogue holds the 17 blocks of I-2 (INJ-03 and its indicator block, 07, 08 and its transfer block, 09, 10, 11 and its integrity block, 13 and its PUPSIT and single-batch blocks, 15 with its EU assessment of the alarms raised during filling, 26 for the media fill, 32 with its surfaces at the end of filling and its counts after incubation), each of the injectables edition, loaded with the rest of the catalogue, passing the library checker and the formulation checks, and completed by a nominal batch; only the Annex 1 items are tagged for the EU market', () => {
     expect(INJECTABLE_ASEPTIC_CATALOGUE.map((s) => s.definition.code).sort()).toEqual([...I2_CODES].sort());
     for (const s of INJECTABLE_ASEPTIC_CATALOGUE) {
       const code = s.definition.code;
@@ -50,7 +50,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     // blocks carry no tag (every market) and no PUPSIT field.
     const tagged = INJECTABLE_ASEPTIC_CATALOGUE.filter((s) => s.definition.markets !== undefined);
     expect(Object.fromEntries(tagged.map((s) => [s.definition.code, s.definition.markets]))).toEqual({
-      'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-STERILE-PACK-INDICATOR': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
+      'INJ-ALARM-ASSESSMENT': ['EU'], 'INJ-ASEPTIC-TRANSFER': ['EU'], 'INJ-FILTER-SINGLE-BATCH': ['EU'], 'INJ-GLOVE-TEST': ['EU'], 'INJ-PUPSIT': ['EU'], 'INJ-STERILE-PACK-INDICATOR': ['EU'], 'INJ-SUS-INTEGRITY': ['EU'], 'INJ-VHP': ['EU'],
     });
     expect(byCode('INJ-STERILE-FILTER').definition.sections.map((x) => x.id)).toEqual(['filter', 'preUse', 'filtration', 'postUse']);
     expect(byCode('INJ-STERILE-FILTER').definition.sections.flatMap((x) => x.fields).filter((f) => /pupsit/i.test(f.id))).toEqual([]);
@@ -130,7 +130,7 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
   it('[ST-50][IN-48] the sterilising filter is its released lot, named where it is used, and a second person verifies it is the filter registered for the product; a lot that is not released is refused; no typed type can stand in for it', () => {
     const item = byCode('INJ-STERILE-FILTER');
     expect(fieldOf(item, 'filterLot')).toEqual({ id: 'filterLot', label: 'Sterilising filter lot', type: 'MATERIAL_LOT' });
-    expect(item.definition.sections.find((x) => x.id === 'filter')?.fields.map((f) => f.id)).toEqual(['filterLot']);
+    expect(item.definition.sections.find((x) => x.id === 'filter')?.fields.map((f) => f.id)).toEqual(['filterLot', 'firstUseToday', 'extendedUseValidated', 'validationRef']);
     expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
     // 211.84: only a released lot may be used (the engine's lot checks of every MATERIAL_LOT field).
     const quarantined = { filterLot: { id: 'SIM-FILTERLOT', material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } };
@@ -157,6 +157,22 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(pupsit, { pupsitTest: { ...byDiffusion.pupsitTest, pupsitDiffusion: '25.0' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
   });
 
+  it('[ST-52] where PUPSIT is not feasible (A1 8.87), the EU block records the reference of the documented risk assessment instead of the test values: without the reference the entry is refused; with it the step completes and no test value is asked; a test value given with the waiver is refused', () => {
+    const pupsit = byCode('INJ-PUPSIT');
+    expect(fieldOf(pupsit, 'pupsitNotFeasible')).toMatchObject({ type: 'YES_NO' });
+    expect(fieldOf(pupsit, 'pupsitNotFeasible').required).not.toBe(false);
+    expect(fieldOf(pupsit, 'riskAssessmentRef')).toMatchObject({ type: 'TEXT', showWhen: { field: 'pupsitNotFeasible', equals: true } });
+    expect(fieldOf(pupsit, 'riskAssessmentRef').required).not.toBe(false);
+    expect(fieldOf(pupsit, 'pupsitMethod').showWhen).toEqual({ field: 'pupsitNotFeasible', equals: false });
+    const waived = { pupsitNotFeasible: true, pupsitMethod: undefined, pupsitBubblePoint: undefined, pupsitDiffusion: undefined };
+    expect(() => judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    expect(judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: 'QRM-PUPSIT-012' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(pupsit, { pupsitTest: { ...waived, riskAssessmentRef: 'QRM-PUPSIT-012', pupsitMethod: 'Bubble point', pupsitBubblePoint: '3.60' } })).toThrow(/LIB-ENTRY-HIDDEN|applies only when/);
+    // Without the waiver (the nominal answer), the test is asked and judged as before, and no reference is taken.
+    expect(nominalRun(pupsit)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(pupsit, { pupsitTest: { riskAssessmentRef: 'QRM-PUPSIT-012' } })).toThrow(/applies only when/);
+  });
+
   it('[ST-51][IN-48] the filtration pressure is judged against its limit and the filtration time, on a timer, against its validated maximum', () => {
     const item = byCode('INJ-STERILE-FILTER');
     expect(fieldOf(item, 'filtrationTime')).toMatchObject({ type: 'TIMER', limitSlot: 'filtrationTime' });
@@ -165,6 +181,62 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(item, { filtration: { pressure: '2.50' } }).exceptions).toEqual(['LIB_LIMIT_BREACH']);
     // The nominal run holds the timer about an hour: a 30-minute maximum is breached.
     expect(judgedRun(withLimits(item, { filtrationTime: { unit: 'min', ranges: [{ tier: 'VALIDATED', high: { value: '30', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'PV-REF' } }] } }), {}).exceptions).toEqual(['LIB_LIMIT_BREACH']);
+  });
+
+  /** A batch of the filtration step `item` with a step after it, its entries recorded (some sections changed) and performed. */
+  function filtered(item: SeedItem, overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>>): Run {
+    const def = item.definition;
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('p', { block: { type: libraryBlockType(def.code), version: String(def.version) }, config: item.exampleUse as never }), phase('after')] });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) }), {}, T0);
+    run.start('p');
+    recordNominal(run, 'p', def, item.exampleUse, mbr, overrides);
+    return run;
+  }
+
+  it('[IN-48] a failing post-use integrity result holds the batch: the filtration step and the steps after it wait for a deviation, which the batch cannot be released without', () => {
+    const run = filtered(byCode('INJ-STERILE-FILTER'), { postUse: { postBubblePoint: '3.10' } });
+    const [x] = run.exceptions();
+    expect(x?.type).toBe('LIB_LIMIT_BREACH');
+    expect([x?.deviationRequired, x?.block?.until, x?.block?.steps, x?.block?.downstream?.node]).toEqual([true, 'DEVIATION', ['p@'], 'task:p']);
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
+    expect(run.status('after')).not.toBe('COMPLETED');
+  });
+
+  it('[IN-48] a filter not used for the first time today needs its use beyond one working day validated, with the reference of that validation (SM Part II 6.11.2.8, A1 8.94): an unvalidated reuse is a critical exception that stops the step for QA, on every market; the answers are verified by a second person', () => {
+    const item = byCode('INJ-STERILE-FILTER');
+    expect(item.definition.markets).toBeUndefined();
+    expect(fieldOf(item, 'firstUseToday')).toEqual({ id: 'firstUseToday', label: 'This filter is used for the first time today', type: 'YES_NO' });
+    expect(fieldOf(item, 'extendedUseValidated')).toMatchObject({ type: 'YES_NO', expected: true, unexpectedCritical: true, showWhen: { field: 'firstUseToday', equals: false } });
+    expect(fieldOf(item, 'validationRef')).toMatchObject({ type: 'TEXT', showWhen: { field: 'extendedUseValidated', equals: true } });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    // First used today: nothing more is asked, and a validation reference typed anyway is refused.
+    const firstUse = { filter: { firstUseToday: true, extendedUseValidated: undefined, validationRef: undefined } };
+    expect(judgedRun(item, firstUse)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(item, { filter: { ...firstUse.filter, validationRef: 'VAL-FLT-01' } })).toThrow(/LIB-ENTRY-HIDDEN/);
+    // Used on an earlier day, its longer use validated: the reference is required.
+    expect(judgedRun(item, { filter: { firstUseToday: false, extendedUseValidated: true, validationRef: 'VAL-FLT-01' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => judgedRun(item, { filter: { firstUseToday: false, extendedUseValidated: true, validationRef: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    // Reused on day 2 without validation: a critical exception; the step and the steps after it wait, QA only, release blocked.
+    const run = filtered(item, { filter: { firstUseToday: false, extendedUseValidated: false, validationRef: undefined } });
+    const [x] = run.exceptions();
+    expect([x?.type, x?.severity, x?.qaOnly, x?.releaseBlocking, x?.deviationRequired, x?.block?.until]).toEqual(['LIB_UNEXPECTED_ANSWER', 'CRITICAL', true, true, true, 'DEVIATION']);
+    expect([x?.block?.steps, x?.block?.downstream?.node]).toEqual([['p@'], 'task:p']);
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
+    // The checker: a critical answer names the expected one, or nothing would be critical.
+    const bare = { ...item.definition, sections: [{ id: 's', title: 'S', fields: [{ id: 'q', label: 'Q', type: 'YES_NO' as const, unexpectedCritical: true }] }] };
+    expect(checkBlockDefinition(bare, expr).map((p) => p.code)).toContain('LIB-FIELD-EXPECTED');
+  });
+
+  it('[IN-48] EU market: the same sterilising filter is not used for a second batch (A1 8.94): an EU block before each filtration step asks it, verified by a second person, and the answer no stops the step until a deviation is linked; other markets leave it out', () => {
+    const item = byCode('INJ-FILTER-SINGLE-BATCH');
+    expect(item.definition.markets).toEqual(['EU']);
+    expect(fieldOf(item, 'newFilter')).toMatchObject({ type: 'YES_NO', expected: true });
+    expect(item.definition.signatures.map((x) => x.meaning)).toEqual(['PERFORMED', 'VERIFIED']);
+    expect(judgedRun(item, {})).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const run = filtered(item, { singleBatch: { newFilter: false } });
+    const [x] = run.exceptions();
+    expect([x?.type, x?.deviationRequired, x?.block?.until]).toEqual(['LIB_UNEXPECTED_ANSWER', true, 'DEVIATION']);
+    expect(() => run.perform('p')).toThrow(/ENG-BLOCKED/);
   });
 
   it('[ST-18][ST-22][IN-42] EM records each viable location of the formulation\'s plan (air, settle plate, contact plate, glove print) with its plates while the operation runs and limits the settle plate exposure; the counts after incubation are a later step of their own, so incubation does not hold the batch', () => {
@@ -211,6 +283,23 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     expect(judgedRun(gradeA, { count: { method: 'Settle plate', cfuAir: undefined, cfuSettle: '0' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
   });
 
+  it('[ST-23] the EM sampling names the media lot of its plates: a settle-plate lot not released after its growth-promotion test is refused at the entry, a released one is accepted', () => {
+    const item = byCode('INJ-EM');
+    expect(fieldOf(item, 'mediaLot')).toMatchObject({ type: 'MATERIAL_LOT' });
+    expect(nominalRun(item)).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const quarantined = { mediaLot: { id: 'SIM-MEDIALOT', material: 'SIM-MATERIAL', status: 'QUARANTINE', identityTested: true } };
+    expect(() => judgedRun(item, { area: { lots: quarantined } })).toThrow(/G07-LOT-STATUS/);
+  });
+
+  it('[ST-20][ST-01] the counts after incubation are bound to the Grade B viable keys of the sterile rule table (EU Annex 1 Table 6, Schedule M Part II Table 3), so the master validator refuses a looser action limit', () => {
+    expect(byCode('INJ-EM-COUNTS').exampleUse.marketRules).toEqual({
+      cfuAir: { key: 'sterile.viable.gradeB.airMax', bound: 'HIGH' },
+      cfuSettle: { key: 'sterile.viable.gradeB.settlePlateMax', bound: 'HIGH' },
+      cfuContact: { key: 'sterile.viable.gradeB.contactPlateMax', bound: 'HIGH' },
+      cfuGlove: { key: 'sterile.viable.gradeB.glovePrintMax', bound: 'HIGH' },
+    });
+  });
+
   it('[ST-19][ST-20][IN-40] particle counts per size, typed from the counter report and checked by a second person, are bound to the grade\'s keys of the sterile rule table; a count above the limit is an exception', () => {
     const item = byCode('INJ-EM');
     checkedBySecondPerson(item);
@@ -221,6 +310,67 @@ describe('the Injectables catalogue (slice I-2, aseptic processing and EM)', () 
     for (const id of ['particles05', 'particles50']) expect(fieldOf(item, id), id).toMatchObject({ type: 'NUMBER', unit: '{particles}/m3', critical: true });
     expect(new Set(judgedRun(item, { particles: { particles50: '3000' } }).exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(new Set(judgedRun(item, { particles: { reportAttached: false } }).exceptions)).toEqual(new Set(['LIB_UNEXPECTED_ANSWER']));
+  });
+});
+
+describe('the monitoring minimum of Annex 1 (I-6 B2)', () => {
+  it('[ST-06] on the EU market each alarm recorded during filling is assessed (its cause and its impact on the batch) in the EU block after filling: an alarm entry without its assessment is refused, an assessed one completes the step; the filling block itself asks no assessment, so outside the EU an alarm is recorded without one', () => {
+    const item = byCode('INJ-ALARM-ASSESSMENT');
+    expect(item.definition.markets).toEqual(['EU']);
+    expect(item.definition.sections.find((x) => x.id === 'alarm')).toMatchObject({ required: false, repeat: { kind: 'PER_CONTAINER' } });
+    expect(fieldOf(item, 'assessment')).toMatchObject({ type: 'TEXT' });
+    expect(fieldOf(item, 'assessment').required).not.toBe(false);
+    expect(() => judgedRun(item, { alarm: { alarm: 'Filler door opened during filling', assessment: undefined } })).toThrow(/LIB-ENTRY-REQUIRED/);
+    expect(judgedRun(item, { alarm: { alarm: 'Filler door opened during filling', assessment: 'Door closed within 10 s; no unit exposed; no impact' } })).toEqual({ exceptions: [], status: 'COMPLETED' });
+    // The base filling block (every market) carries no assessment: no clause of Schedule M or 21 CFR 211 asks it.
+    expect(byCode('INJ-FILL').definition.sections.flatMap((x) => x.fields).map((f) => f.id)).not.toContain('alarmAssessment');
+    expect(fillWithEvents([{ eventKind: 'Alarm', eventWhat: 'Filler door opened during filling' }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+  });
+
+  it('[ST-34] a critical intervention (one that entered the critical zone) asks for the glove sample of the people who made it, and a glove sample not taken is an exception; a non-critical intervention does not ask for it', () => {
+    expect(fieldOf(byCode('INJ-FILL'), 'eventCritical')).toMatchObject({ type: 'YES_NO', showWhen: { field: 'eventKind', equals: 'Intervention' } });
+    expect(fieldOf(byCode('INJ-FILL'), 'gloveSampled')).toMatchObject({ type: 'YES_NO', expected: true, showWhen: { field: 'eventCritical', equals: true } });
+    const critical = { eventWhat: 'Needle adjusted in the critical zone', eventCritical: true };
+    expect(() => fillWithEvents([critical])).toThrow(/Gloves of each person .* is required/);
+    expect(fillWithEvents([{ ...critical, gloveSampled: true }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+    const notSampled = fillWithEvents([{ ...critical, gloveSampled: false }]);
+    expect(notSampled.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(notSampled.status).not.toBe('COMPLETED');
+    expect(fillWithEvents([{ eventCritical: false }])).toEqual({ exceptions: [], status: 'COMPLETED' });
+    expect(() => fillWithEvents([{ eventCritical: false, gloveSampled: true }])).toThrow(/applies only when eventCritical is true/);
+  });
+
+  it('[ST-19] EM answers whether Grade A particle counting started before the aseptic equipment assembly began: counting that started after it is an exception that stops the step', () => {
+    const item = byCode('INJ-EM');
+    expect(fieldOf(item, 'countingFromAssembly')).toMatchObject({ type: 'YES_NO', expected: true });
+    const late = judgedRun(item, { area: { countingFromAssembly: false } });
+    expect(late.exceptions).toEqual(['LIB_UNEXPECTED_ANSWER']);
+    expect(late.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-18] the product-contact surfaces (needles, stopper bowl, feed tracks) are sampled in their own step after filling: before filling has ended the step cannot be started, after it the surfaces are sampled and the step completes', () => {
+    const fill = byCode('INJ-FILL');
+    const surfaces = byCode('INJ-EM-SURFACES');
+    expect(surfaces.definition.sections.map((x) => [x.id, x.repeat])).toEqual([['surface', { kind: 'COUNT', countSlot: 'surfaceLocations' }]]);
+    const inputs = Object.entries(fill.exampleInputs ?? {});
+    const step = (id: string, item: SeedItem, reads: string[] = []) => phase(id, { block: { type: libraryBlockType(item.definition.code), version: '1' }, config: item.exampleUse as never, reads });
+    const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [step('filling', fill, inputs.map(([k]) => k)), step('surfaces', surfaces), phase('after')] }, {
+      inputs: inputs.map(([id, v]) => ({ id, name: id, source: 'MASTER_DATA' as const, valueType: 'DECIMAL' as const, unit: v.unit })),
+    });
+    const run = Run.issue(define(mbr, { registry: testRegistry().extend(...[fill, surfaces].map((i) => libraryBlockVersion(i.definition, expr))) }), { inputs: Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }])) }, T0);
+    run.start('filling');
+    expect(run.status('surfaces')).not.toBe('ENABLED');
+    expect(() => run.start('surfaces')).toThrow(/START_STEP was refused/);
+    recordNominal(run, 'filling', { ...fill.definition, sections: fill.definition.sections.filter((x) => x.id !== 'event') }, fill.exampleUse, mbr);
+    run.perform('filling');
+    expect(() => run.start('surfaces')).toThrow(/START_STEP was refused/);
+    run.verify('filling');
+    expect(run.status('filling')).toBe('COMPLETED');
+    run.start('surfaces');
+    recordNominal(run, 'surfaces', surfaces.definition, surfaces.exampleUse, mbr);
+    run.perform('surfaces');
+    if (run.status('surfaces') === 'AWAITING_VERIFICATION') run.verify('surfaces');
+    expect(run.status('surfaces')).toBe('COMPLETED');
   });
 });
 
@@ -242,7 +392,10 @@ function fillWithEvents(events: readonly Readonly<Record<string, unknown>>[]): {
   run.start('p');
   recordNominal(run, 'p', noEvent, config, mbr);
   for (const e of events) {
-    run.entry('p', { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true, ...e });
+    // An intervention answers whether it was critical (non-critical unless the event says so); no other event is asked.
+    const entry: Record<string, unknown> & { kind: string } = { kind: 'event', eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true, ...e };
+    if (entry['eventKind'] === 'Intervention' && !('eventCritical' in e)) entry['eventCritical'] = false;
+    run.entry('p', entry);
     run.minutes(1);
   }
   try {
@@ -300,7 +453,7 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     expect(event?.when).toMatch(/intervention/);
     // The entry is made when the event is over, so its trusted time is the event's end (lead, ALCOA accurate).
     expect(event?.when).toMatch(/when the event is over/);
-    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventMinutes', 'eventListed']);
+    expect(event?.fields.map((f) => f.id)).toEqual(['eventKind', 'eventWhat', 'eventMinutes', 'eventListed', 'eventCritical', 'gloveSampled']);
     // When it happened is the entry's trusted time, not a typed date and time.
     expect(event?.fields.filter((f) => f.type === 'DATE_TIME')).toEqual([]);
     expect(fieldOf(byCode('INJ-FILL'), 'eventKind')).toMatchObject({ type: 'CHOICE', options: ['Intervention', 'Stoppage', 'Glove change', 'Alarm'] });
@@ -336,6 +489,27 @@ describe('aseptic filling events, the media fill and the aseptic set-ups (slice 
     const run = judgedRun(byCode('INJ-APS-READ'), { reading: { contaminated: '1', identification: 'Staphylococcus sp.' } });
     expect(new Set(run.exceptions)).toEqual(new Set(['LIB_LIMIT_BREACH']));
     expect(run.status).not.toBe('COMPLETED');
+  });
+
+  it('[ST-33] the media-fill reading carries the role APS_READING and marks its count of contaminated units, in whole units, as the one count the database reads (tablets 1912); a block marking a count must have the role, and the role needs exactly one marked whole-number count (LIB-APS-READING)', () => {
+    const read = byCode('INJ-APS-READ').definition;
+    expect(read.roles).toEqual(['OBSERVATION', 'APS_READING']);
+    expect(fieldOf(byCode('INJ-APS-READ'), 'contaminated')).toMatchObject({ type: 'NUMBER', decimals: 0, contaminatedCount: true });
+    const marked = read.sections.flatMap((s) => s.fields).filter((f) => f.type === 'NUMBER' && f.contaminatedCount === true);
+    expect(marked.map((f) => f.id)).toEqual(['contaminated']);
+    expect(checkBlockDefinition(read, expr)).toEqual([]);
+    const codes = (def: typeof read) => checkBlockDefinition(def, expr).map((p) => p.code);
+    const mapNumbers = (fn: (f: Extract<(typeof read)['sections'][number]['fields'][number], { type: 'NUMBER' }>) => object) => ({
+      ...read,
+      sections: read.sections.map((s) => ({ ...s, fields: s.fields.map((f) => (f.type === 'NUMBER' ? fn(f) : f)) })),
+    }) as typeof read;
+    // The mark without the role.
+    expect(codes({ ...read, roles: ['OBSERVATION'] })).toEqual(['LIB-APS-READING']);
+    // The role without a mark, or with two.
+    expect(codes(mapNumbers((f) => { const c = { ...f }; delete c.contaminatedCount; return c; }))).toEqual(['LIB-APS-READING']);
+    expect(codes(mapNumbers((f) => (f.id === 'unitsIncubated' ? { ...f, contaminatedCount: true } : f)))).toEqual(['LIB-APS-READING']);
+    // A count in decimals.
+    expect(codes(mapNumbers((f) => (f.id === 'contaminated' ? { ...f, decimals: 1 } : f)))).toEqual(['LIB-APS-READING']);
   });
 
   it('[ST-02] the sterility-assurance route is the formulation\'s choice of blocks: every aseptic set-up filters to sterility and assembles aseptically and has no terminal sterilisation, which is a block of its own', () => {
@@ -439,7 +613,8 @@ describe('what the approved MODIFY decisions keep, in the I-2 blocks (slice I-6.
       { eventKind: 'Stoppage', eventWhat: 'Stopper bowl empty', eventMinutes: '6', eventListed: true },
     ];
     for (const e of recorded) {
-      run.entry('p', { kind: 'event', ...e });
+      // An intervention answers whether it was critical (I-6 B2, ST-34); this one was not.
+      run.entry('p', { kind: 'event', ...e, ...(e.eventKind === 'Intervention' ? { eventCritical: false } : {}) });
       run.minutes(1);
     }
     const extract = Object.values(run.state.entries).filter((x) => x.kind === 'event').map((x) => ({ eventKind: x.data['eventKind'], eventWhat: x.data['eventWhat'], eventMinutes: x.data['eventMinutes'], eventListed: x.data['eventListed'] }));

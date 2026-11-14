@@ -19,12 +19,18 @@ import { productBlock, stepIdOf, type ProductBlock } from './library-support.ts'
 import { unit, VIAL_COUNTS, type Injectable } from './injectables-acceptance.ts';
 
 /** The intervention the operator records during filling: on the formulation's list, three vials removed (DEMO-ONLY). */
-const INTERVENTION = { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true } as const;
+const INTERVENTION = { eventKind: 'Intervention', eventWhat: 'Fallen vial removed with sterile forceps', eventMinutes: '2', eventListed: true, eventCritical: false } as const;
 
 /**
  * The product's sampling plan (DEMO-ONLY): one viable location, an active air sample at the filling point, and two particle
  * locations. The count of locations is the formulation's, the same in the EM sampling and the counts after incubation.
  */
+/**
+ * The sterilising filtration (IN-48, I-6 B4): the filter is used for the first time today, so its longer use needs no
+ * validation reference (the block's nominal entry takes the other path). These products are for India: the EU's
+ * single-batch block is not in their masters.
+ */
+export const sterileFilter = (): ProductBlock => ({ ...productBlock('INJ-STERILE-FILTER', {}), values: { filter: { firstUseToday: true, extendedUseValidated: undefined, validationRef: undefined } } });
 const plan = (b: ProductBlock): ProductBlock => ({ ...b, use: { ...b.use, counts: { ...b.use.counts, viableLocations: '1' } } });
 
 export const ASEPTIC_VIAL: Injectable = {
@@ -57,6 +63,8 @@ export const ASEPTIC_VIAL: Injectable = {
     { id: 'stopper', name: 'Bromobutyl rubber stopper, 13 mm', field: 'stopperLot' },
     { id: 'filter', name: 'Sterilising filter cartridge, 0.2 micrometre', field: 'filterLot' },
     { id: 'seal', name: 'Aluminium flip-off seal, 13 mm', field: 'sealLot' },
+    // The EM plates' media lot, released after its growth-promotion test (ST-23).
+    { id: 'media', name: 'Environmental monitoring plates, tryptone soya agar', field: 'mediaLot' },
   ],
   steps: [
     productBlock('INJ-ROOM-READY', 'ROOM-GRADE-B'),
@@ -65,7 +73,7 @@ export const ASEPTIC_VIAL: Injectable = {
     productBlock('INJ-PARTS-AUTOCLAVE', 'STEAM-STERILISER'),
     productBlock('INJ-SIP', 'SIP-VESSEL-FILTER'),
     productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
-    productBlock('INJ-STERILE-FILTER', {}),
+    sterileFilter(),
     productBlock('INJ-ASEPTIC-ASSEMBLY', {}),
     { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
     productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),
@@ -152,7 +160,7 @@ export const MEDIA_FILL: Injectable = {
     productBlock('INJ-PARTS-AUTOCLAVE', 'STEAM-STERILISER'),
     productBlock('INJ-SIP', 'SIP-VESSEL-FILTER'),
     productBlock('INJ-COMPOUND', { vesselClass: 'SS-VESSEL-200L', wfiPointClass: 'WFI-POINT-OF-USE' }),
-    productBlock('INJ-STERILE-FILTER', {}),
+    sterileFilter(),
     productBlock('INJ-ASEPTIC-ASSEMBLY', {}),
     { ...productBlock('INJ-FILL', { lineClass: 'VIAL-FILLING-RABS', roomClass: 'ROOM-GRADE-B' }), values: { ...VIAL_COUNTS.fill, event: INTERVENTION } },
     productBlock('IPC-INJ-FILL-WEIGHT', 'EQC-BAL'),

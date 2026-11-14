@@ -110,7 +110,7 @@ async function draft(name: Parameters<typeof uniqueContent>[0] = 'tablet-blister
 
 /**
  * Withdraws, with a reason, every version of `from`'s family still in preparation that an earlier test left open: a
- * family holds one version in preparation at a time (recipe-core 1914, EBMR-RCP-436).
+ * family holds one version in preparation at a time (recipe-core 1925, EBMR-RCP-436).
  */
 async function closeOpenVersions(from: string): Promise<void> {
   const { rows } = await db.admin.query<{ id: string }>(
@@ -395,7 +395,7 @@ describe('first versions and derived versions (PR-06)', () => {
     await w.startVerification(v1.versionId);
     // v1 has a history (DRAFT, IN_VERIFICATION) and other masters are approved, but no version of this family was.
     expect(await count("select count(*) as n from platform.state_history where aggregate_type = 'mbr_version' and to_state = 'APPROVED'")).toBeGreaterThan(0);
-    // While v1 is in preparation the family takes no other version (recipe-core 1914); withdrawn, it is not in the way.
+    // While v1 is in preparation the family takes no other version (recipe-core 1925); withdrawn, it is not in the way.
     expect(await refusal(w.run(w.cast.author, (c) => lc.createVersion(c, v1.familyId, content, 'second draft')))).toMatch(/EBMR-RCP-436/);
     await closeOpenVersions(v1.versionId);
     const v2 = await w.run(w.cast.author, (c) => lc.createVersion(c, v1.familyId, content, 'second draft'));
