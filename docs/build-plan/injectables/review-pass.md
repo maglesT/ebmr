@@ -117,3 +117,21 @@ the same function and the same clauses. It passes the owner's test of minimum co
 whether a failed check holds release, which is the threat 1862 already closes for numeric limits). It adds no new
 refusal for the operator: the engine already raises these exceptions. The database would only refuse a write that
 leaves them out.
+
+**Lead's ruling (14 November 2026).** Build item 3 as its own PR after the injectables exit PR. Three conditions:
+- 1862's body is carried forward, and the diff against it shows nothing removed.
+- A parity test shows the engine and the database agree on every seeded expected answer, hidden-field cases included.
+- The SQL mutation group covers the new branch.
+
+## Item 2 addendum: signatures given before 1914
+
+Test `[ST-29][DI-37] a change record approved under the 1910 content keeps its signed content and hash under the 1914
+provider, with and without listed units`. It registers 1910's own function text (read from that migration) as the
+provider and has QA approve a record with units and one without. It then restores the 1914 provider. Both records give
+the same content and the same e-signature content hash (`esig.content_hash_of`) as the stored signatures, and
+`esig.verify_signatures()` reports no problem for either.
+
+## Residuals
+
+- Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
+  unique-violation error. Not needed now (lead, 14 November 2026).
