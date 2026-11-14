@@ -1794,13 +1794,14 @@ export const TARGETS: Target[] = [
   },
   // Injectables I-6 B3: a filling line's qualification withdrawn for an APS (ST-29, tablets 1910) or after a failed media
   // fill (ST-33, tablets 1911, 1912: the reading by role, the impact list, QA's review before requalification), and the
-  // repeat media fills on the withdrawn line (tablets 1913).
+  // repeat media fills on the withdrawn line (tablets 1913), and the APS lines a change record's signed content lists
+  // (plant.change_record_content, the content provider of tablets 1914).
   {
     group: 'aps-line-qualification',
     functions: ['plant.aps_line_open_guard', 'plant.require_aps_after_change', 'plant.withdraw_aps_lines', 'plant.aps_failure_lines',
                 'plant.withdraw_lines_on_aps_failure', 'plant.aps_reading_field', 'plant.aps_count', 'plant.line_uses', 'plant.line_batch_uses',
                 'plant.aps_refs_well_formed', 'plant.open_aps_failure', 'plant.record_aps_failure_review', 'plant.aps_requalification_guard',
-                'plant.aps_repeat_use'],
+                'plant.aps_repeat_use', 'plant.change_record_content'],
     tests: [s('config/aps-required.test.ts'), s('injectables/aps-failure.test.ts')],
     threshold: 90,
   },
