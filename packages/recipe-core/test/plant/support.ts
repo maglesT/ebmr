@@ -69,6 +69,24 @@ export async function sleep(db: TestDatabase, seconds: number): Promise<void> {
 
 export const DAY = 86_400;
 
+/** Test setup (superuser, triggers off for this statement): the batch's execution state as the engine leaves it at `status`. */
+export async function finishBatch(db: TestDatabase, batchId: string, status: 'EXECUTION_COMPLETE' | 'ABORTED' | 'CANCELLED'): Promise<void> {
+  const c = await db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    await c.query(
+      `insert into recipe.execution_state (batch_id, state, state_version, state_hash, last_seq, last_row_hash, status) values ($1, '{}', 1, repeat('0', 64), 1, repeat('0', 64), $2)
+       on conflict (batch_id) do update set status = excluded.status`,
+      [batchId, status],
+    );
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
+}
+
+
 export interface Batch {
   id: string;
   number: string;
