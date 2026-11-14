@@ -54,75 +54,74 @@ describe('run-level exceptions on the run overview (T3)', () => {
     ]);
   });
 
-  it('[PR-49][PR-08] on a GMP batch the link dialog raises a deviation of this installation, links it to the batch and fills its number, so the exception can be linked with the deviation screens off (owner report item 2)', async () => {
+  it('[PR-49][PR-08] on a GMP batch one Send raises a deviation of this installation, links it to the batch and attaches it to the exception as one command, so none is left raised and unattached (owner retest item 8)', async () => {
     const run = runWith([link, dispose(false)]);
-    const raised = { ...example('quality-deviations').deviations[0]!, ref: 'DEV-2026-0099' };
     const ui = renderFloor(`/runs/${RUN_ID}`, {
       installation: 'GMP',
       session: { role: 'OPERATOR' },
-      fixtures: { 'batches.batch': () => ({ ...run, header: { ...run.header, watermark: null } }) },
-      intercept: (r: Recorded) =>
-        r.method === 'POST' && r.path === '/api/quality/deviations'
-          ? { status: 200, body: raised }
-          : r.method === 'POST' && r.path === `/api/quality/deviations/${raised.deviationId}/links`
-            ? { status: 200, body: raised }
-            : r.path.endsWith('/commands')
-              ? { status: 200, body: { accepted: true, version: run.header.version + 1, step: null } }
-              : undefined,
+      fixtures: { 'batches.batch': () => ({ ...run, header: { ...run.header, watermark: null } }), 'quality.deviations': () => ({ deviations: [] }) },
+      intercept: (r: Recorded) => (r.path.endsWith('/commands') ? { status: 200, body: { accepted: true, version: run.header.version + 1, step: null } } : undefined),
     });
     const exception = await screen.findByTestId(`exception-${RUN_LEVEL}`);
     await userEvent.click(within(exception).getByRole('button', { name: 'Link a deviation' }));
     const dialog = await screen.findByRole('dialog', { name: /^Link a deviation to: Wrong label roll/ });
-    const raise = within(dialog).getByRole('button', { name: 'Raise and link to this batch' });
-    expect(raise.hasAttribute('disabled')).toBe(true);
+    const send = within(dialog).getByRole('button', { name: 'Send' });
+    expect(send.hasAttribute('disabled')).toBe(true);
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Major' }));
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'Risk rationale' }), 'Blend time beyond the validated range');
-    await userEvent.click(raise);
-    expect((await within(dialog).findByTestId('deviation-raised')).textContent).toContain('DEV-2026-0099');
-    expect(within(dialog).getByRole('textbox', { name: 'Deviation number' })).toHaveProperty('value', 'DEV-2026-0099');
-    const posts = ui.requests.filter((r) => r.method === 'POST' && r.path.startsWith('/api/quality/deviations'));
-    expect(posts.map((r) => [r.path, r.body])).toEqual([
-      ['/api/quality/deviations', { kind: 'DEVIATION', title: 'Wrong label roll delivered to the line', classification: 'MAJOR', riskRationale: 'Blend time beyond the validated range' }],
-      [`/api/quality/deviations/${raised.deviationId}/links`, { subjectKind: 'BATCH', subjectId: run.header.runId }],
-    ]);
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
+    await userEvent.click(send);
     expect(await within(dialog).findByText(/^Saved: /)).toBeTruthy();
-    expect(ui.commands().map((c) => c.body?.['intent'])).toEqual([{ type: 'ATTACH_DEVIATION', exception: RUN_LEVEL, deviationRef: 'DEV-2026-0099' }]);
+    // Nothing is raised or linked by a request of its own: the one command carries the raise.
+    expect(ui.requests.filter((r) => r.method === 'POST' && r.path.startsWith('/api/quality/deviations'))).toEqual([]);
+    expect(ui.commands().map((c) => c.body?.['intent'])).toEqual([{ type: 'ATTACH_DEVIATION', exception: RUN_LEVEL, raise: { classification: 'MAJOR', riskRationale: 'Blend time beyond the validated range' } }]);
   });
 
-  it('[INV-40][PR-49] on a shared kiosk a raised deviation whose link tap was cancelled is linked on the next press, after the badge tap, and never raised a second time', async () => {
+  it('[PR-49][PR-08] a deviation of the batch raised before but never attached (an orphan) is offered in the dialog and attached by its number, not raised again (owner retest item 8)', async () => {
     const run = runWith([link, dispose(false)]);
-    const raised = { ...example('quality-deviations').deviations[0]!, ref: 'DEV-2026-0101' };
+    const orphan = { ...example('quality-deviations').deviations[0]!, ref: 'DEV-SITE-1-2026-00004', title: 'Batch MGL260051: blend yield', state: 'OPEN' as const };
+    const ui = renderFloor(`/runs/${RUN_ID}`, {
+      installation: 'GMP',
+      session: { role: 'OPERATOR' },
+      fixtures: { 'batches.batch': () => ({ ...run, header: { ...run.header, watermark: null } }), 'quality.deviations': () => ({ deviations: [orphan] }) },
+      intercept: (r: Recorded) => (r.path.endsWith('/commands') ? { status: 200, body: { accepted: true, version: run.header.version + 1, step: null } } : undefined),
+    });
+    const exception = await screen.findByTestId(`exception-${RUN_LEVEL}`);
+    await userEvent.click(within(exception).getByRole('button', { name: 'Link a deviation' }));
+    const dialog = await screen.findByRole('dialog', { name: /^Link a deviation to: Wrong label roll/ });
+    const offered = await within(dialog).findByTestId('batch-deviation-DEV-SITE-1-2026-00004');
+    await userEvent.click(within(offered).getByRole('button', { name: 'Link this one' }));
+    expect(within(dialog).getByRole('textbox', { name: 'Deviation number' })).toHaveProperty('value', 'DEV-SITE-1-2026-00004');
+    // With a number given, nothing is raised.
+    expect(within(dialog).queryByTestId('deviation-raise')).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
+    expect(await within(dialog).findByText(/^Saved: /)).toBeTruthy();
+    expect(ui.commands().map((c) => c.body?.['intent'])).toEqual([{ type: 'ATTACH_DEVIATION', exception: RUN_LEVEL, deviationRef: 'DEV-SITE-1-2026-00004' }]);
+  });
+
+  it('[INV-40][PR-49] on a shared kiosk the raise and its attachment are one command under one badge tap; a cancelled tap sends nothing and raises nothing', async () => {
+    const run = runWith([link, dispose(false)]);
     const tap = fakeTap();
-    // The raise is tapped; the link's tap is cancelled (nothing sent); the retry's tap is given.
-    tap.requestTap.mockResolvedValueOnce(ATTRIBUTION).mockResolvedValueOnce(null);
+    tap.requestTap.mockResolvedValueOnce(null);
     const ui = renderFloor(`/runs/${RUN_ID}`, {
       installation: 'GMP',
       session: { role: 'OPERATOR' },
       tap,
-      fixtures: { 'session.get': () => example('session-kiosk'), 'batches.batch': () => ({ ...run, header: { ...run.header, watermark: null } }) },
-      intercept: (r: Recorded) =>
-        r.method === 'POST' && r.path.startsWith('/api/quality/deviations') ? { status: 200, body: raised } : undefined,
+      fixtures: { 'session.get': () => example('session-kiosk'), 'batches.batch': () => ({ ...run, header: { ...run.header, watermark: null } }), 'quality.deviations': () => ({ deviations: [] }) },
+      intercept: (r: Recorded) => (r.path.endsWith('/commands') ? { status: 200, body: { accepted: true, version: run.header.version + 1, step: null } } : undefined),
     });
     const exception = await screen.findByTestId(`exception-${RUN_LEVEL}`);
     await userEvent.click(within(exception).getByRole('button', { name: 'Link a deviation' }));
     const dialog = await screen.findByRole('dialog', { name: /^Link a deviation to: Wrong label roll/ });
     await userEvent.click(within(dialog).getByRole('radio', { name: 'Minor' }));
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'Risk rationale' }), 'Label roll swapped before use');
-    const raise = within(dialog).getByRole('button', { name: 'Raise and link to this batch' });
-    await userEvent.click(raise);
-    await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(2));
-    expect(within(dialog).queryByTestId('deviation-raised')).toBeNull();
-    const posts = () => ui.requests.filter((r) => r.method === 'POST' && r.path.startsWith('/api/quality/deviations')).map((r) => [r.path, r.body?.['attribution'] ?? null]);
-    expect(posts()).toEqual([['/api/quality/deviations', ATTRIBUTION]]);
-    await userEvent.click(raise);
-    expect((await within(dialog).findByTestId('deviation-raised')).textContent).toContain('DEV-2026-0101');
-    expect(tap.requestTap).toHaveBeenCalledTimes(3);
-    expect(tap.requestTap.mock.calls[2]?.[1]).toMatchObject({ method: 'POST', path: `/api/quality/deviations/${raised.deviationId}/links`, body: { subjectKind: 'BATCH', subjectId: run.header.runId } });
-    expect(posts()).toEqual([
-      ['/api/quality/deviations', ATTRIBUTION],
-      [`/api/quality/deviations/${raised.deviationId}/links`, ATTRIBUTION],
-    ]);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(tap.requestTap).toHaveBeenCalledTimes(1));
+    expect(ui.commands()).toEqual([]);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
+    expect(await within(dialog).findByText(/^Saved: /)).toBeTruthy();
+    expect(tap.requestTap).toHaveBeenCalledTimes(2);
+    expect(ui.commands().map((c) => [c.body?.['intent'], c.body?.['attribution']])).toEqual([[{ type: 'ATTACH_DEVIATION', exception: RUN_LEVEL, raise: { classification: 'MINOR', riskRationale: 'Label roll swapped before use' } }, ATTRIBUTION]]);
+    expect(ui.requests.filter((r) => r.method === 'POST' && r.path.startsWith('/api/quality/deviations'))).toEqual([]);
   });
 
   it('[PR-49] on a sandbox test run the link dialog offers no deviation to raise (its references are free text)', async () => {
@@ -130,7 +129,8 @@ describe('run-level exceptions on the run overview (T3)', () => {
     const exception = await screen.findByTestId(`exception-${RUN_LEVEL}`);
     await userEvent.click(within(exception).getByRole('button', { name: 'Link a deviation' }));
     const dialog = await screen.findByRole('dialog', { name: /^Link a deviation to: Wrong label roll/ });
-    expect(within(dialog).queryByRole('button', { name: 'Raise and link to this batch' })).toBeNull();
+    expect(within(dialog).queryByTestId('deviation-raise')).toBeNull();
+    expect(within(dialog).queryByTestId('batch-deviations')).toBeNull();
   });
 
   it('[PR-49][DI-37] QA dispositions a run-level exception from the overview through the signature ceremony, on the exception\'s own record', async () => {

@@ -52,6 +52,15 @@ the stage and what to add (the stage's equipment, then "checks its status" on th
 (sandbox, any unit) is unchanged. Open: masters already approved with this shape stay stuck (revising them is r13 bug 2);
 the packaging skeleton from a formula now shows this error until the author binds the line's units.
 
+**Owner retest 13 November 2026, items 7 to 9 (branch fix-floor-messages-and-deviation).** A GMP weighing step lists
+per line the lots reserved for the batch and warns before the first weighing when stores must reserve one (item 7). A
+deviation raised from an exception is raised, linked to the batch and attached in one command (ATTACH_DEVIATION with
+`raise`); the dialog offers the batch's open deviations so an orphan is attached, not raised again; titles show values
+at their judged precision (item 8). The title block shows its signatures; a stale GMP signing says "batch" (9a, 9b).
+9c (MGL260051 then MGL260101) is by design: a server start retires the rest of a 50-number block (kernel 0600, ADR 0007,
+`docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner decision (13 November): the register screen now
+lists each skipped range with its numbers, reason and time (site-services 1924, read from `continuity.sequence_bump`).
+
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
 - INJ-AVI-CHALLENGE-EU: the Annex 1 8.32 challenge, EU only.

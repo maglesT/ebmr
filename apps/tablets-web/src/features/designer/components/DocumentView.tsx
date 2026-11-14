@@ -12,7 +12,8 @@
  */
 import { useState, type ReactNode } from 'react';
 import { flow, library } from '@ebmr/recipe-core/pure';
-import type { VersionView } from '@ebmr/api-contract';
+import { routes, type ManifestationView, type VersionView } from '@ebmr/api-contract';
+import { useApiQuery } from '../../../api/hooks.ts';
 import { dcls } from '../classes.ts';
 import { KNOWN_MARKETS, type Content, type Op } from '../model/ops.ts';
 import { documentNumbering } from '../model/numbering.ts';
@@ -264,6 +265,33 @@ function timeBoundWords(side: 'min' | 'max', q: { value: string; unit: string } 
   return `${side === 'min' ? 'at least' : 'at most'} ${q.value} ${q.unit}`;
 }
 
+/** The title block's three life-cycle signatures, by meaning (MbrSigningPage signs them). */
+const TITLE_BLOCK_MEANINGS = ['PREPARED', 'CHECKED', 'APPROVED'] as const;
+
+/**
+ * Owner retest of 13 November 2026, item 9a: the title block shows who prepared, checked and approved this version and
+ * when, from the version's valid signatures (the e-signature register, read only); "not signed" only where none is. A
+ * draft has none, so it is not asked.
+ */
+export function TitleBlockSignatures({ version }: { version: VersionView }) {
+  const draft = version.state === 'DRAFT';
+  const sigs = useApiQuery(routes.esig.signatures, { query: { aggregateType: 'mbr_version', aggregateId: version.versionId } }, { enabled: !draft, retry: false });
+  const signed = (meaning: string): ManifestationView | undefined =>
+    draft ? undefined : (sigs.data?.signatures ?? []).filter((g) => g.meaning === meaning && g.valid).sort((a, b) => (BigInt(a.signedAt.us) < BigInt(b.signedAt.us) ? 1 : -1))[0];
+  return (
+    <tr>
+      {TITLE_BLOCK_MEANINGS.map((m) => {
+        const g = signed(m);
+        return (
+          <td key={m} data-testid={`title-block-${m}`}>
+            {g ? `${g.signer.legalName}, ${g.signedAt.text}` : draft ? 'not signed' : sigs.isError ? 'signatures not readable' : sigs.isPending ? '…' : 'not signed'}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
 export function DocumentView(props: DocumentProps) {
   const { content: c, version: v, dispatch, readOnly } = props;
   const { numbering, problem: numberingProblem } = documentNumbering(c);
@@ -323,11 +351,7 @@ export function DocumentView(props: DocumentProps) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>not signed</td>
-              <td>not signed</td>
-              <td>not signed</td>
-            </tr>
+            <TitleBlockSignatures version={v} />
           </tbody>
         </table>
         <p className={dcls('small')}>Electronic signatures (prepared, checked, approved) are applied after verification, with the approval rendition.</p>

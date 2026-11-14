@@ -38,6 +38,7 @@ import type { AppContext } from '../../platform/context.ts';
 import type { ClaimedReading } from '../../platform/ports.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import { resolveBlockEntry } from './block-entries.ts';
+import { raiseForException } from './exception-deviation.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
 import { tb01Consumption, tb01FefoCheck, tb01Lots } from './tb01.ts';
 
@@ -629,8 +630,20 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
       const t = intent.stepKey !== undefined ? stepTarget(ctx.state, intent.stepKey) : undefined;
       return { command: { ...base, type: 'RAISE_EXCEPTION', ...(t ? { step: t.step, context: t.context } : {}), description: intent.description, severity: intent.severity }, evidence: {} };
     }
-    case 'ATTACH_DEVIATION':
-      return { command: { ...base, type: 'ATTACH_DEVIATION', exception: intent.exception, deviationRef: intent.deviationRef }, evidence: {} };
+    case 'ATTACH_DEVIATION': {
+      if ((intent.raise === undefined) === (intent.deviationRef === undefined)) {
+        throw refuse(
+          'EBMR-API-DEVIATION-REF',
+          'Name the deviation to link, or ask for one to be raised; not both and not neither. Nothing was saved.',
+          'An exception is linked to one deviation: an existing one by its number, or one raised for it in the same act (PR-49).',
+          ['PR-49'],
+          ['Type the deviation number, or leave it empty and fill in the classification and the risk rationale.'],
+        );
+      }
+      // Owner retest item 8: raised, linked to the batch and attached in this command's transaction.
+      const deviationRef = intent.raise ? await raiseForException(ctx, intent.exception, intent.raise) : (intent.deviationRef ?? '');
+      return { command: { ...base, type: 'ATTACH_DEVIATION', exception: intent.exception, deviationRef }, evidence: {} };
+    }
     case 'HOLD_BATCH':
       return { command: { ...base, type: 'HOLD_BATCH', holdType: intent.holdType, reason: intent.reason }, evidence: {} };
     case 'RELEASE_HOLD':

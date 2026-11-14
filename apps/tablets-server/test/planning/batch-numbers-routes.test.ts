@@ -73,4 +73,26 @@ describe('the batch-number register (IN-18)', () => {
     expect(refused(await issuer.call(P.recoverBatchNumber, { body: { ...body, ruleCode } }))).toMatch(/EBMR-SITE-016 recovery needs a completed restore event/);
     expect(valueOf(await issuer.call(P.batchNumbers)).numbers.some((x) => x.batchNumber === n)).toBe(false);
   }, 120_000);
+
+  it('[IN-18] the register lists the serials a rule skipped and never gave, with the numbers, the reason and the time (owner decision 13 November 2026, retest item 9c)', async () => {
+    const steward = await gmp.asPersona('steward');
+    const code = `RT-${randomUUID().slice(0, 6).toUpperCase()}`;
+    valueOf(await steward.call(P.defineBatchNumberRule, { body: { ruleCode: code, batchKind: 'PROCESSING', format: 'RT{YY}{SEQ:4}', reason: 'Numbering SOP-QA-017 rev 4' } }));
+    // Test arrangement: the database recorded that a server start retired serials 52 to 100 of the rule's counter.
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query("insert into continuity.sequence_bump (sequence_key, source_kind, reason, value_before, value_after, correlation_id) values ($1, 'COUNTER', 'SERVER_RESTART', 51, 100, gen_random_uuid())", [`site.batch_number:${code}`]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const retired = (valueOf(await issuer.call(P.batchNumbers)).retired ?? []).filter((r) => r.ruleCode === code);
+    expect(retired).toHaveLength(1);
+    expect(retired[0]).toMatchObject({ firstSerial: '52', lastSerial: '100', reason: 'SERVER_RESTART' });
+    expect(retired[0]?.firstNumber).toMatch(/^RT\d{2}0052$/);
+    expect(retired[0]?.lastNumber).toMatch(/^RT\d{2}0100$/);
+    expect(retired[0]?.recordedAt.text).toMatch(/\d{2}-[A-Z]{3}-\d{4}/);
+  }, 120_000);
 });

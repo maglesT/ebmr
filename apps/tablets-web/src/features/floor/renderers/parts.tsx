@@ -587,6 +587,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
     return (
       <section className={wcls('formCard')} aria-label={form.title} data-testid={`form-${form.kind}`} data-closed="true">
         <h3 className={wcls('formTitle')}>{form.title}</h3>
+        {form.kind === 'CONTAINER_WEIGHING' ? <LotReservations view={view} /> : null}
         {form.kind === 'CONTAINER_WEIGHING' ? <StillToWeigh view={view} /> : null}
         <EntryStatus call={cmd} />
         {cmd.state !== 'saved' || cmd.savedNoteExpired ? <p className={wcls('muted')}>{st('form.savedListed')}</p> : null}
@@ -600,6 +601,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
     <section className={wcls('formCard')} aria-label={form.title} data-testid={`form-${form.kind}`}>
       <h3 className={wcls('formTitle')}>{form.title}</h3>
       <p className={wcls('muted')}>{form.description}</p>
+      {form.kind === 'CONTAINER_WEIGHING' ? <LotReservations view={view} /> : null}
       {form.kind === 'CONTAINER_WEIGHING' ? <StillToWeigh view={view} /> : null}
       {!record.available ? (
         <p className={wcls('muted')}>
@@ -697,6 +699,31 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
         <EntryStatus call={cmd} />
       </div>
     </section>
+  );
+}
+
+/**
+ * Owner retest of 13 November 2026, item 7: on a GMP batch each container is consumed from the batch's reservation of its
+ * lot (EBMR-EXE-245), so the form says up front which lots of each line are reserved for this batch, and that stores
+ * reserve one before a line without any can be weighed. The server lists it for GMP weighing steps only.
+ */
+function LotReservations({ view }: { view: StepScreenView }) {
+  const lines = view.reservations ?? [];
+  if (lines.length === 0) return null;
+  return (
+    <ul data-testid="lot-reservations" aria-label={st('reserve.title')}>
+      {lines.map((l) =>
+        l.lots.length === 0 ? (
+          <li key={l.bomLine} data-testid={`lot-reservations-${l.bomLine}`} data-reserved="no" role="alert">
+            {st('reserve.none', { material: l.material })}
+          </li>
+        ) : (
+          <li key={l.bomLine} data-testid={`lot-reservations-${l.bomLine}`} data-reserved="yes">
+            {st('reserve.lots', { material: l.material, lots: l.lots.map((x) => st('reserve.lot', { lot: x.lotCode, remaining: x.remaining, unit: x.unit })).join(', ') })}
+          </li>
+        ),
+      )}
+    </ul>
   );
 }
 
