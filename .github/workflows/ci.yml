@@ -39,9 +39,10 @@ env:
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
-  # A pull request's newer push cancels its older run; a full run on main is never cancelled by the next merge (decision
-  # 0032: each merge gets its full run; a newer one waits, and GitHub keeps only the newest waiting).
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Each branch and pull request has its own group (the event and the ref). A newer pull-request push or run by hand
+  # cancels the older run of its group; only a push to main is never cancelled by the next merge (decision 0032: each
+  # merge gets its full run; a newer one waits, and GitHub keeps only the newest waiting).
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 # Where the jobs run: CI_RUNNER 'ubicloud' (or the run-by-hand input runner=ubicloud) puts only the long jobs on
 # Ubicloud's managed runners (the Ubicloud GitHub app on this repository; owner): the end-to-end groups on
