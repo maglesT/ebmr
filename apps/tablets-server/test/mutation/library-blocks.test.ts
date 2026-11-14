@@ -713,7 +713,7 @@ describe('release review R3: the database judges library values as the engine do
       // No value of the row is outside its limit: the exception is not one it requires.
       expect(await limits(c, {}, { entries: { E1: entry('run', { w: '5' }) }, exceptions: { X1: breach('p-lib.w') } })).toBe('adds exception X1 (LIB_LIMIT_BREACH, severity CRITICAL, item p-lib.w), which no value of the row requires with these facts');
       expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w') } })).toMatch(/^adds exception X1 /);
-      // Another type of exception is not a library limit exception (since 1924 an answer exception is judged too: no
+      // Another type of exception is not a library limit exception (since 1927 an answer exception is judged too: no
       // unexpected answer of the row requires this one).
       expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w', { type: 'LATE_ENTRY' }) } })).toBeNull();
       expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w', { type: 'LIB_UNEXPECTED_ANSWER' }) } })).toMatch(/^adds exception X1 \(LIB_UNEXPECTED_ANSWER/);
@@ -898,7 +898,7 @@ describe('the snapshots against the library (recipe-core 1810)', () => {
   });
 });
 
-describe('expected answers and allowed choices in the database (recipe-core 1924)', () => {
+describe('expected answers and allowed choices in the database (recipe-core 1927)', () => {
   /** An answer exception of the KILL-LIM step as the engine records it (tx.ts raise of an ACTION draft blocking the step). */
   const answer = (type: string, item: string, id = 'X1'): Json => ({
     id, type, category: 'OUT_OF_LIMIT', title: `Limits, Confirm: ${item}`, controls: ['PR-29'], severity: 'ACTION',

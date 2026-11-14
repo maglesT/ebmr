@@ -1,10 +1,10 @@
 --- 1862_library_limits_judgement.sql
-+++ 1924_library_expected_answers.sql
++++ 1927_library_expected_answers.sql
 @@ -178,6 +178,17 @@
          v_used := v_used || false;
        end if;
      end loop;
-+    -- Expected answers and allowed choices (1924): a YES_NO field the entry shows, answered other than its expected answer,
++    -- Expected answers and allowed choices (1927): a YES_NO field the entry shows, answered other than its expected answer,
 +    -- requires its LIB_UNEXPECTED_ANSWER, and a CHOICE the formulation does not allow its LIB_NOT_ALLOWED_CHOICE
 +    -- (block-version.ts accept; recipe.library_answer_records).
 +    for x in select r from jsonb_array_elements(recipe.library_answer_records(s, e -> 'data', v_until, v_exhausted, v_inst, recipe.step_graph_node(p_content, v_step), v_step, e ->> 'enteredBy')) r loop

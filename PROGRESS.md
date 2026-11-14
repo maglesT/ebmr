@@ -70,7 +70,7 @@ the supervisor, whom the database refuses (STEP.EXECUTE is the operator's).
   `plant.openAreaOccupancies`; both end routes take an optional `reason`, and the Plant screen always asks for it.
 
 **Injectables I-6 item 3: the database re-checks expected answers (14 November 2026; branch inj/i6-expected-answer-db, no
-PR yet).** recipe-core 1924: `recipe.library_answer_records` gives the LIB_UNEXPECTED_ANSWER (critical when
+PR yet).** recipe-core 1927: `recipe.library_answer_records` gives the LIB_UNEXPECTED_ANSWER (critical when
 `unexpectedCritical`) and LIB_NOT_ALLOWED_CHOICE records an entry's answers require, with the engine's facts; a field
 its condition hides and a loop's YES_NO endpoint are not judged, as in the engine. `library_limits_problem` and
 `library_limits_check` are carried forward from 1862 with nothing removed (`docs/build-plan/injectables/expected-answer-db-1862.diff`,
@@ -150,7 +150,7 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
 - **Next (I-6):** the review pass merged (#258). (1) The kernel content-extension point (this PR: kernel 1407,
   `platform.content_extension` with `esig.register_content_extension` and `esig.extend_content`; tablets 1914 registers
   the plant APS-lines extension; the `config_change_record` provider row unchanged; lead ruling on the DI-48 drill,
-  14 November 2026). (2) The expected-answer database re-check PR (recipe-core 1924, built on
+  14 November 2026). (2) The expected-answer database re-check PR (recipe-core 1927, built on
   `inj/i6-expected-answer-db`), on the lead's conditions: 1862's body carried forward with a diff showing nothing
   removed, an engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation
   coverage. (3) Its follow-up: the database refuses a value in a field its condition hides (LIB-ENTRY-HIDDEN), with a
