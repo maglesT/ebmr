@@ -1,4 +1,5 @@
 -- One version in preparation per MBR family (owner decision, 13 November 2026; demo report r13 bug 2; PR-06).
+-- Handbook: modules/recipe-core.md
 --
 -- Since the designer derives the next version of an approved master on screen (designer.deriveVersion), a family must
 -- not hold two competing versions in preparation: two drafts of one master, each approved on its own, would each claim
