@@ -1,0 +1,7 @@
+{
+  "name": "@ebmr/tool-ci",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CI support: the pull-request gate's test selection (decision 0032) and the runner scripts",
+  "type": "module"
+}
