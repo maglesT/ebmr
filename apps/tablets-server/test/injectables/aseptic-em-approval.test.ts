@@ -7,6 +7,9 @@
  * The bypass: the lifecycle world records the validator's evidence as a passing report (stub evidence, as a client
  * that skipped or forged the validator would), so only the database stands between the master and its approval.
  */
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { routes } from '@ebmr/api-contract';
@@ -77,7 +80,8 @@ async function approval(content: flow.MbrContent): Promise<string | null> {
 }
 
 beforeAll(async () => {
-  gmp = await startSigningServer('GMP', { stub: false });
+  const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-inj-em-'));
+  gmp = Object.assign(await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } }), { exchangeDir: ledgerDir });
   vi.useFakeTimers({ toFake: ['performance'] });
   const steward = await gmp.asPersona('steward');
   for (const p of PRODUCTS) {
