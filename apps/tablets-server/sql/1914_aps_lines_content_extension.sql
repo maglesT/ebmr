@@ -3,6 +3,8 @@
 -- function. Tablets 1910 replaced the kernel's platform.change_record_content with a copy that reads
 -- plant.aps_required_line; on a fresh installation that copy also replaces kernel 1407's definition, since the kernel's
 -- migrations run first. The provider row of config_change_record (the kernel's function) is not touched.
+-- From here on, 1910 no longer defines the final text of the kernel function: this file and kernel 1407 do, and a fresh
+-- installation and an upgrade end with the same body (tools/drills/test/content-extension-upgrade.test.ts).
 --
 -- Handbook: modules/tablets-server.md
 --

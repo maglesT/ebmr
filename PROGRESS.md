@@ -152,9 +152,11 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
     unique-violation error (review pass residual; not needed now).
   - Owner question pending: the Tablets v1.0.0 tag.
 - **Demo:** fresh install after the I-6 merges (lead ruling on #245).
-- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (tablets
-  migration 1914, the `plant.change_record_content` provider for the APS lines, and the [DI-20] 64-bit endpoint codes)
-  plus `inj/i6-review-e2e-stalls` (the renderer watchdog and the Demotab 12 race). (2) The expected-answer database
+- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (the
+  [DI-20] 64-bit endpoint codes) plus `inj/i6-review-e2e-stalls` (the renderer watchdog and the Demotab 12 race). The
+  content-extension PR is built on `inj/i6-content-extension-v2` (lead's option (a): kernel 1407
+  `platform.content_extension` with `esig.extend_content`, tablets 1914 the `aps_lines` extension; provider row and
+  DI-48 drill unchanged); it replaces 1914's provider re-registration on `inj/i6-content-extension`. (2) The expected-answer database
   re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
   engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage.
 

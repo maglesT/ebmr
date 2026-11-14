@@ -57,6 +57,7 @@ tests:
   - "packages/recipe-core/test/release/india.test.ts > the process-simulation mark (recipe-core 1896; injectables I-2, feature B) > [IN-45][ST-29] the mark is approved content: it is in the content hash, and an approved version cannot be edited to add or remove it"
   - "packages/recipe-core/test/validator/content.test.ts > the process-simulation mark (nonProduct) > [IN-45][ST-29] a master may be marked PROCESS_SIMULATION and nothing else: the parser and the validator refuse any other value, and the mark is part of the content hash"
   - "packages/recipe-core/test/validator/content.test.ts > the process-simulation mark (nonProduct) > [IN-45][ST-29] only an injectables processing master may carry the mark: a tablets or substance master and a packaging master are refused"
+  - "tools/drills/test/content-extension-upgrade.test.ts > the change record content provider after a fresh installation and after an upgrade (kernel 1407, tablets 1914) > [ST-29][DI-37][DI-48] a fresh installation and an upgrade from the earlier release end with the same definitions of platform.change_record_content, esig.extend_content and plant.change_record_aps_lines"
   - "tools/e2e/specs/library/injectables-acceptance.ts > [IN-45][ST-29][INV-05][DI-25] Media fill of the RABS vial line, 2 mL vials (library), GMP 5: QA reviews the media fill's record, the end of a process simulation; no finished lot can be posted from it @office"
 clauses:
   - clause: "Last successful night-shift APS 6 months + 3 weeks ago → night-shift batch start blocked."

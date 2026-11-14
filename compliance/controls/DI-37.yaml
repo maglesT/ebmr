@@ -371,6 +371,7 @@ tests:
   - "packages/ui-kit/test/identity/signed-content.test.tsx > what is shown as signed, and what is shown beside it (CN1) > [DI-37][DI-36] CN1: a stage shows its steps as signed without open counts; its exceptions and open counts are shown apart"
   - "packages/ui-kit/test/identity/signed-content.test.tsx > what is shown as signed, and what is shown beside it (CN1) > [DI-37][DI-36] CN1: a step shows as signed only the exception its content holds, as raised; its status and the act exception are shown apart, labelled not signed"
   - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-37] content whose text does not hash to the server's hash is never signed; a changed record leads to \"changed\", then back to review"
+  - "tools/drills/test/content-extension-upgrade.test.ts > the change record content provider after a fresh installation and after an upgrade (kernel 1407, tablets 1914) > [ST-29][DI-37][DI-48] a fresh installation and an upgrade from the earlier release end with the same definitions of platform.change_record_content, esig.extend_content and plant.change_record_aps_lines"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
