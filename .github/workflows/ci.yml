@@ -207,9 +207,13 @@ jobs:
     # A pull request's gate runs them when the tablets server's tests are selected (the engine, recipe-core, edition SQL
     # or anything they depend on changed); the full run always (decision 0032).
     if: ${{ (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') && needs.changes.outputs.golden == 'true' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-24.04' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2404' || 'ubuntu-24.04' }}
     # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8, GB-I-01 (injectables) about 1.5.
     timeout-minutes: 60
+    env:
+      # Decision 0032 (owner, 14 November 2026): E2E_RUNNER=ubicloud puts this job on Ubicloud, whose VMs may report
+      # RUNNER_ENVIRONMENT=self-hosted, so the scripts in tools/ci are told it is a one-job machine (EBMR_CI_HOST).
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
     steps:
       - uses: actions/checkout@v4
       - name: Per-runner directories (self-hosted pod)
@@ -433,8 +437,12 @@ jobs:
     name: End-to-end set-up, built once
     needs: [changes, e2e-plan]
     if: ${{ needs.e2e-plan.outputs.groups != '[]' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 45
+    env:
+      # Decision 0032 (owner, 14 November 2026): E2E_RUNNER=ubicloud puts this job on Ubicloud, whose VMs may report
+      # RUNNER_ENVIRONMENT=self-hosted, so the scripts in tools/ci are told it is a one-job machine (EBMR_CI_HOST).
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
     steps:
       - uses: actions/checkout@v4
       - name: Per-runner directories (self-hosted pod)
@@ -503,7 +511,7 @@ jobs:
     needs: [e2e-plan, e2e-seed]
     # Runs when the seed job failed too: a group with no seed builds its own set-up (global-setup.ts).
     if: ${{ !cancelled() && needs.e2e-plan.result == 'success' && needs.e2e-plan.outputs.groups != '[]' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
     # set-up on its own PostgreSQL and the spec files tools/e2e/playwright.config.ts (E2E_GROUPS) names; 'rest' runs
@@ -516,6 +524,9 @@ jobs:
       matrix:
         group: ${{ fromJSON(needs.e2e-plan.outputs.groups) }}
     env:
+      # Decision 0032 (owner, 14 November 2026): E2E_RUNNER=ubicloud puts this job on Ubicloud, whose VMs may report
+      # RUNNER_ENVIRONMENT=self-hosted, so the scripts in tools/ci are told it is a one-job machine (EBMR_CI_HOST).
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
       CI: 'true'
       EBMR_E2E_BLOB: '1'
       EBMR_E2E_GROUP: ${{ matrix.group }}
