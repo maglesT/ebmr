@@ -321,4 +321,38 @@ describe('Injectables I-6: the sterilising filter is integrity tested before and
     expect(none.item).toMatchObject({ status: 'NA' });
     expect(none.refusal ?? '').not.toMatch(/E\.STERILE_FILTER/);
   });
+  it('[INV-36] database bypass: a filter step whose definition reached the batch without its post-use mark (past the library check) has no passing post-use result, so E.STERILE_FILTER is RED (fails closed)', async () => {
+    const b = await issued(ownFiltered, procOwn.familyId, SIZE_OWN);
+    const d = await driverOf(gmp, b.batchId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-own@' });
+    await d.ok('operator1', libraryEntry('p-own@', 'before', { bpIn: '3.60' }));
+    await d.ok('operator1', libraryEntry('p-own@', 'run', { filtered: true }));
+    await d.ok('operator1', libraryEntry('p-own@', 'after', { bpOut: '3.50' }));
+    await signed(d, 'p-own@', 'S-OWN@');
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      const item = async (): Promise<{ status: string; problem: string | null }> =>
+        (await c.query<{ i: { status: string; problem: string | null } }>('select injectables.grel_sterile_filter(array[$1::uuid]) as i', [b.batchId])).rows[0]!.i;
+      expect(await item()).toMatchObject({ status: 'GREEN' });
+      // The batch's snapshot of the block loses the mark, as if a definition had been stored past the library check.
+      await c.query('set local session_replication_role = replica');
+      await c.query(
+        `update recipe.control_recipe cr
+            set snapshot = jsonb_set(cr.snapshot, '{mbr,content,blockDefinitions}',
+                  (select jsonb_agg(case when d ->> 'code' = $2
+                                         then jsonb_set(d, '{sections}', (select jsonb_agg(jsonb_set(sec, '{fields}', (select jsonb_agg(f - 'postUseIntegrity') from jsonb_array_elements(sec -> 'fields') f))) from jsonb_array_elements(d -> 'sections') sec))
+                                         else d end)
+                     from jsonb_array_elements(cr.snapshot -> 'mbr' -> 'content' -> 'blockDefinitions') d))
+          from recipe.batch_execution be where be.id = $1 and cr.id = be.control_recipe_id`,
+        [b.batchId, OWN_FILTER.code],
+      );
+      const bypassed = await item();
+      expect(bypassed).toMatchObject({ status: 'RED' });
+      expect(bypassed.problem).toMatch(/sterilising filter integrity test p-own@ has no passing post-use result/);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
 });

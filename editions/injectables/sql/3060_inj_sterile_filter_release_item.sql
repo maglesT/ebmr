@@ -51,9 +51,9 @@ declare
   v_reading jsonb;
   v_value   text;
   v_pass    text[];
-  v_post    jsonb;
-  v_first   numeric;
-  v_last    numeric;
+  v_has_post boolean;
+  v_after   boolean;
+  v_late    boolean;
   b         uuid;
   k         text;
   s         jsonb;
@@ -83,15 +83,19 @@ begin
              (values ('preUseIntegrity'), ('postUseIntegrity')) mk (mark)
        where fl ->> 'type' = 'NUMBER' and fl -> mk.mark = 'true'::jsonb;
       v_pass := '{}'::text[];
-      v_post := '[]'::jsonb;
+      v_after := false;
+      v_late := false;
+      -- In recording order (recordedSeq): a data entry with no post-use result after one with a post-use result means the
+      -- post-use test was not done after use. A timer's start and stop are not data entries here.
       for e in select x from jsonb_array_elements(tab.grel_entries(b, k, null)) x loop
+        v_has_post := false;
         for f in select x from jsonb_array_elements(v_fields) x where x ->> 'section' = e ->> 'kind' loop
           v_value := e -> 'data' ->> (f -> 'field' ->> 'id');
           if v_value is null then
             continue;
           end if;
           if f ->> 'mark' = 'postUseIntegrity' then
-            v_post := v_post || jsonb_build_array(e -> 'recordedSeq');
+            v_has_post := true;
           end if;
           v_spec := v_node -> 'config' -> 'limits' -> (f -> 'field' ->> 'limitSlot');
           v_reading := case when v_spec is not null then recipe.limit_reading(v_spec, v_value) end;
@@ -102,6 +106,11 @@ begin
             v_pass := v_pass || (f ->> 'mark');
           end if;
         end loop;
+        if v_has_post then
+          v_after := true;
+        elsif v_after and e ->> 'kind' not in ('TIMER_START', 'TIMER_STOP') then
+          v_late := true;
+        end if;
       end loop;
       foreach m in array array['preUseIntegrity', 'postUseIntegrity'] loop
         -- A definition that marks no such field has no passing result either (fails closed).
@@ -109,14 +118,7 @@ begin
           v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the sterilising filter integrity test %s has no passing %s result', k, case m when 'preUseIntegrity' then 'pre-use' else 'post-use' end), tab.grel_batch_ev(b)));
         end if;
       end loop;
-      -- Immediately after use: every post-use result is recorded after every other data entry of the step.
-      select min((x #>> '{}')::numeric) into v_first from jsonb_array_elements(v_post) x where jsonb_typeof(x) = 'number';
-      select max((x ->> 'recordedSeq')::numeric) into v_last
-        from jsonb_array_elements(tab.grel_entries(b, k, null)) x
-       where x ->> 'kind' not in ('TIMER_START', 'TIMER_STOP')
-         and not exists (select 1 from jsonb_array_elements(v_fields) y
-                          where y ->> 'mark' = 'postUseIntegrity' and y ->> 'section' = x ->> 'kind' and x -> 'data' ->> (y -> 'field' ->> 'id') is not null);
-      if v_first is not null and v_last is not null and v_first < v_last then
+      if v_late then
         v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the sterilising filter''s post-use integrity result of %s is recorded before the step''s other entries, not after use', k), tab.grel_batch_ev(b)));
       end if;
     end loop;
