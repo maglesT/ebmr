@@ -1,0 +1,47 @@
+{
+  "$comment": "Decision 0032: which end-to-end groups a pull request's changed path needs. A path takes the union of the groups of every rule it matches; a path no rule matches runs every group, never none. \"groups\": \"spec\" means the group that runs that spec file (or 'rest'). \"groups\": [] means the path cannot change what an end-to-end test sees. The full run on main and the nightly run every group whatever this file says. Patterns: * is any run of characters but /, ** any run including /. Every rule is checked by tools/ci/test/select.test.ts against the repository.",
+  "rules": [
+    {
+      "why": "Documentation, the control register, the requirements and the decisions: no screen, server or database reads them (compliance/rule-tables and compliance/validation are read by the server, so they are not here and run every group).",
+      "paths": ["docs/**", "**/*.md", "compliance/controls/**", "compliance/requirements/**", "compliance/schema/**", "compliance/phase.yaml", "LICENSE", ".claude/**", ".graphifyignore", ".editorconfig"],
+      "groups": []
+    },
+    {
+      "why": "Unit and database tests and their fixtures: the end-to-end stack does not load them.",
+      "paths": ["packages/*/test/**", "apps/*/test/**", "tools/*/test/**"],
+      "groups": []
+    },
+    {
+      "why": "Tools the end-to-end stack does not import (tools/e2e imports @ebmr/demo, api-contract, kernel, recipe-core and test-kit only).",
+      "paths": [
+        "tools/boundaries/**", "tools/drills/**", "tools/guides/**", "tools/handbook/**", "tools/install/**", "tools/load/**",
+        "tools/platform/**", "tools/register/**", "tools/regulatory/**", "tools/security/**", "tools/sql-mutation/**", "tools/validation/**",
+        ".github/workflows/mutation.yml", "vitest.mutation.config.ts", "vitest.stryker-phase6.config.ts", "stryker*.config.mjs"
+      ],
+      "groups": []
+    },
+    {
+      "why": "A spec file runs in its own group.",
+      "paths": ["tools/e2e/specs/**"],
+      "groups": "spec"
+    },
+    {
+      "why": "The injectables edition: its database namespace, its apps and its library blocks are exercised by the injectables groups; gmp-batches is the tablets canary for edition SQL that the shared database also loads.",
+      "paths": ["editions/injectables/**", "apps/injectables-server/**", "apps/injectables-web/**", "packages/recipe-core/src/library/seed/injectables*.ts"],
+      "groups": [
+        "library-inj-vial", "library-inj-amp", "library-inj-gmp", "library-inj-aseptic", "library-inj-routes", "library-inj-cartridge",
+        "library-inj-powder", "library-inj-lyo", "library-inj-inspection", "gmp-batches"
+      ]
+    },
+    {
+      "why": "Capsule library blocks: the two capsule groups.",
+      "paths": ["packages/recipe-core/src/library/seed/capsules.ts", "packages/recipe-core/src/library/seed/capsule-fill.ts"],
+      "groups": ["library-caps", "library-softgel"]
+    },
+    {
+      "why": "Soft gelatin capsule library blocks.",
+      "paths": ["packages/recipe-core/src/library/seed/softgels.ts"],
+      "groups": ["library-softgel"]
+    }
+  ]
+}

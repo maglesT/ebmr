@@ -11,6 +11,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, signIn, type E2eWorld } from '../../fixtures/index.ts';
 import { gmpKiosk, officeSign } from '../../fixtures/slice6.ts';
 import { addAnother, card, choose, openStep, primary, sign as sign0, signPrimary as signPrimary0, startStep as startStep0, switchUser as switchUser0, tap as tap0 } from '../journey/support.ts';
+import { waitFor } from '../../fixtures/waits.ts';
 
 /** What the serial tests hand on: the orders, the batch, its bulk containers, the packaging order and the lot. */
 export interface FlowState {
@@ -51,7 +52,7 @@ async function pace(page: Page, who: SeededPersona, below: number, record: boole
   const recent = (taps.get(who.key) ?? []).filter((t) => now - t < 60_000);
   if (recent.length >= below) {
     const wait = 60_000 - (now - (recent[recent.length - below] ?? now)) + 250;
-    await page.waitForTimeout(wait);
+    await waitFor(page, wait, 'badge-pace');
   }
   const kept = recent.filter((t) => performance.now() - t < 60_000);
   taps.set(who.key, record ? [...kept, performance.now()] : kept);
@@ -113,7 +114,7 @@ export async function officeSignPaced(page: Page, open: () => Promise<void>, tit
     expect(attempt).toBeLessThan(3);
     await dialog.getByRole('button', { name: 'Close' }).click();
     await expect(dialog).toHaveCount(0);
-    await page.waitForTimeout(61_000);
+    await waitFor(page, 61_000, 'rate-limit');
   }
 }
 
@@ -258,7 +259,7 @@ export async function closeStage(page: Page, e2e: E2eWorld, batchId: string, qa:
     } catch (e) {
       if (!(await limited.isVisible())) throw e;
       await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
-      await page.waitForTimeout(61_000);
+      await waitFor(page, 61_000, 'rate-limit');
       continue;
     }
     done += 1;
