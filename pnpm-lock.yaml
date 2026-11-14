@@ -477,6 +477,8 @@ importers:
 
   tools/boundaries: {}
 
+  tools/ci: {}
+
   tools/demo:
     dependencies:
       '@ebmr/kernel':

@@ -21,6 +21,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { expect, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
+import { waitFor } from '../../fixtures/waits.ts';
 
 // ---------------------------------------------------------------------------------------------
 // State handed between the serial tests of one product
@@ -97,7 +98,7 @@ export async function load(page: Page, url: string): Promise<void> {
     await expect(ready.or(limited).first()).toBeVisible();
     if (await ready.isVisible()) return;
     test.info().setTimeout(test.info().timeout + 65_000);
-    await page.waitForTimeout(61_000);
+    await waitFor(page, 61_000, 'rate-limit');
     await page.reload();
   }
   await expect(ready).toBeVisible();
