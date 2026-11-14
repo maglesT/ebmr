@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 12 November 2026 (session 12b handover).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 17, injectables edition exit).
 
 ## What this is
 
@@ -134,24 +134,34 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 
 ## Next
 
-- Injectables I-6 (lead rulings on #245, 13 November): after the I-6 merges, the hosted demo needs a fresh install. Owner
-  residual: upgrading an existing install needs a sterile v2 rule table and a library v2 publish (B1 edits sterile.v1 and
-  INJ-EM, INJ-FILL and INJ-COMPOUND v1 in place; an existing database refuses the new sterile v1 with EBMR-MKT-035).
-  B5 (inj/i6-b5-eu-required): five MKT-REQUIRED-BLOCKS entries (ST-79, ST-58, ST-62, ST-78, ST-77) and the ST-28 release
-  item E.GAS_FILTER (injectables 3040): an applied gas overlay without a passing post-use filter test blocks release.
-  B5 also edits INJ-COMPOUND (the `gasOverlayApplied` mark on the nitrogen option) and INJ-GAS-FILTER (the role
-  GAS_FILTER_INTEGRITY and the `postUseIntegrity` mark) v1 in place: existing demo databases keep the old v1 and need the
-  same fresh install; the upgrade path is the same owner residual (a library v2 publish).
-  B5 also: the relation PRESENT (INJ-AVI-CHALLENGE-EU anywhere on an EU master with INJ-AVI, ST-62); E.GAS_FILTER reads
-  the marks gasOverlayApplied and postUseIntegrity and the role GAS_FILTER_INTEGRITY, not block codes.
-  Owner residuals (lead, B5): masters do not declare isolator/RABS, so the glove test and VHP are not required
-  automatically for EU; EU radiation-sterilised product: Annex 12 not yet extracted.
+- **Injectables I-6, edition exit (14 November 2026).** `compliance/phase.yaml` lists `injectables`, so the trace gate
+  covers both editions. Merged: B1 to B5 (#245 to #248, #252), PR-15/PR-28 (#253), GB-I-01 (#254). The golden batch
+  GB-I-01 takes the aseptic vial to a released lot with sterility by the validated rapid method; the lot result shows
+  the method the QA-approved specification fixes (IN-33).
+- **Owner residuals and questions (injectables):**
+  - INV-23, INV-36, INV-44: owner residuals (the exit list supersedes outline 11's); INV-37 by ST-68, INV-45 by ST-64.
+  - Decision 0031: PR-26 clause 2 (transfer-route scan) and PR-28 clause 2 (EM excursion at certification) are owner
+    questions, deferred to phase 8 (register: phase 8 = an open owner question, citing a decision record).
+  - The room-level EM logbook between batches: deferred by the owner ("not now", 13 November 2026); not built.
+  - B5: masters do not declare isolator/RABS, so the glove test and VHP are not required automatically for EU; EU
+    radiation-sterilised product waits for Annex 12 to be extracted.
+  - Upgrading an existing install needs a sterile v2 rule table and a library v2 publish: B1 and B5 edit sterile.v1 and
+    INJ-EM, INJ-FILL, INJ-COMPOUND and INJ-GAS-FILTER v1 in place (an existing database refuses the new sterile v1 with
+    EBMR-MKT-035 and keeps the old library v1).
+  - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
+    unique-violation error (review pass residual; not needed now).
+  - Owner question pending: the Tablets v1.0.0 tag.
+- **Demo:** fresh install after the I-6 merges (lead ruling on #245).
+- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (tablets
+  migration 1914, the `plant.change_record_content` provider for the APS lines, and the [DI-20] 64-bit endpoint codes)
+  plus `inj/i6-review-e2e-stalls` (the renderer watchdog and the Demotab 12 race). (2) The expected-answer database
+  re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
+  engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage.
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).
 - Later CI slice: gate the E2E set-up's seeds per group (`gmpReviewBatch`, `gmpPackaging` in
   `tools/e2e/global-setup.ts`); needs a full E2E proof run.
-- Tablets to v1.0, then Injectables (decision 0010).
 
 ## How to work here
 
