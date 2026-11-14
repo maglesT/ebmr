@@ -443,7 +443,7 @@ describe('the end of a finished batch\'s use states why (owner decision of 13 No
     const view = gmpView('G-09@2', 'p-comp-status@', []);
     view.run.status = 'EXECUTION_COMPLETE';
     const use = { useId: USE_PRESS, kind: 'PROCESS' as const, equipmentCode: 'PRESS-01', batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null, mine: true };
-    const current = plant({ block: 'G-09@2', equipment: [{ ref: 'PRESS', kind: 'PROCESS', classCode: 'PRS', units: [{ code: 'PRESS-01', name: 'Press', areaCode: null, fitness: null, lastCheck: null }] }], uses: [use] });
+    const current = plant({ block: 'G-09@2', equipment: [{ ref: 'PRESS', kind: 'PROCESS', classCode: 'PRS', units: [{ code: 'PRESS-01', name: 'Press', areaCode: null, inStageRoom: true, fitness: null, problems: [], lastCheck: null }], note: null }], uses: [use] });
     const ui = render(view, () => current, {});
     const unit = await screen.findByTestId('plant-unit-PRESS');
     const button = within(unit).getByRole('button', { name: 'End the use of PRESS-01' });
