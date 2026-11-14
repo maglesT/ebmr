@@ -6,7 +6,7 @@
  */
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
-import { routes, type DataValueWire, type PlannedBatchView, type PlanningOrderView } from '@ebmr/api-contract';
+import { routes, type DataValueWire, type PlannedBatchView, type PlanningMatchView, type PlanningOrderView } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, useCommand, useSignedAct } from '../../app/acts.tsx';
@@ -43,17 +43,26 @@ export function PlanningPage() {
 
 function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: string | null; canPlan: boolean }) {
   const [planned, setPlanned] = useState<PlannedBatchView | null>(null);
+  // Retest of 13 November 2026 (bug 6; recipe-core 1921): when several masters match, the server names none as the match
+  // and the planner chooses one; nothing is chosen for them.
+  const [picked, setPicked] = useState<string | null>(null);
+  const several = order.matches.length > 1;
+  const match = order.match ?? (several ? (order.matches.find((m) => m.familyId === picked) ?? null) : null);
   return (
     <article aria-label={`Order ${order.orderNo}`}>
       <h2>
         {order.orderNo} · {order.productName ?? order.productCode} {order.strength} · {floor.quantityText(order.batchSize, order.batchSizeUnit)}
       </h2>
       <p>Bill of materials: {order.bom.map((b) => `${b.materialCode} ${floor.quantityText(b.quantity, b.unit)}`).join('; ')}</p>
-      {order.match ? (
-        <p data-testid="match">
-          MBR {order.match.familyCode} version {order.match.versionNumber} (batch size {order.match.batchSizeId}; markets {order.match.markets.join(', ')})
-          {order.match.recordKind === 'PACKAGING' ? `; packaging order, pack type ${order.match.packType ?? 'not named'}` : ''}
-        </p>
+      {several ? (
+        <div data-testid="matches">
+          <Banner tone="warning" title="More than one master record matches this order: choose the one to plan with.">
+            {order.noMatch}
+          </Banner>
+          <floor.ChoiceGroup label="Master record for this order" options={order.matches.map((m) => ({ value: m.familyId, label: matchText(m) }))} value={picked} onChange={setPicked} />
+        </div>
+      ) : order.match ? (
+        <p data-testid="match">{matchText(order.match)}</p>
       ) : (
         <Banner tone="warning" title="No master record matches this order.">
           {order.noMatch}
@@ -65,13 +74,21 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
             .filter((b) => b.status === 'PLANNED')
             .map((b) => <PlannedRow key={b.batchId} batchId={b.batchId} batchNumber={b.batchNumber} />)
         : null}
-      {order.match && canPlan && !planned && !order.batches.some((b) => b.status === 'PLANNED') ? (
-        order.match.recordKind === 'PACKAGING' ? <PackagingPlanForm order={order} site={site} onPlanned={setPlanned} /> : <PlanForm order={order} site={site} onPlanned={setPlanned} />
+      {match && canPlan && !planned && !order.batches.some((b) => b.status === 'PLANNED') ? (
+        match.recordKind === 'PACKAGING' ? (
+          <PackagingPlanForm key={match.familyId} order={order} match={match} site={site} onPlanned={setPlanned} />
+        ) : (
+          <PlanForm key={match.familyId} order={order} match={match} site={site} onPlanned={setPlanned} />
+        )
       ) : null}
       {planned ? <IssueForm batch={planned} /> : null}
       {planned ? <PotencyPreview batchId={planned.batchId} /> : null}
     </article>
   );
+}
+
+function matchText(m: PlanningMatchView): string {
+  return `MBR ${m.familyCode} version ${m.versionNumber} (batch size ${m.batchSizeId}; markets ${m.markets.join(', ')})${m.recordKind === 'PACKAGING' ? `; packaging order, pack type ${m.packType ?? 'not named'}` : ''}`;
 }
 
 /**
@@ -94,20 +111,18 @@ function PlannedRow({ batchId, batchNumber }: { batchId: string; batchNumber: st
   );
 }
 
-function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: string | null; onPlanned: (b: PlannedBatchView) => void }) {
-  const match = order.match;
+function PlanForm({ order, match, site, onPlanned }: { order: PlanningOrderView; match: PlanningMatchView; site: string | null; onPlanned: (b: PlannedBatchView) => void }) {
   const [siteCode, setSite] = useState('');
   const [line, setLine] = useState('');
   const plan = useCommand(routes.execution.planBatch, REFRESH);
   const areas = useApiQuery(routes.plant.areas);
   const lines = areas.data?.areas.filter((a) => a.kind === 'LINE') ?? [];
   // Phase 7 slice 7g (WP4; PR-47): a REPROCESSING master is planned with the quality unit's authorised request.
-  const reprocessing = match?.recordKind === 'REPROCESSING';
+  const reprocessing = match.recordKind === 'REPROCESSING';
   const requests = useApiQuery(routes.quality.reprocessingRequests, {}, { enabled: reprocessing });
   const [request, setRequest] = useState<string | null>(null);
-  const authorised = requests.data?.requests.filter((r) => r.familyId === match?.familyId && r.authorisedBy !== null) ?? [];
+  const authorised = requests.data?.requests.filter((r) => r.familyId === match.familyId && r.authorisedBy !== null) ?? [];
   const chosenSite = siteCode.trim() || site || '';
-  if (!match) return null;
   const go = async () => {
     const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, erpOrder: order.orderNo, ...(reprocessing && request ? { reprocessingRequest: request } : {}) } });
     if (b) onPlanned(b);
@@ -146,8 +161,7 @@ function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: 
  * server's candidates, each shown with the database's reason it is not released for packing yet (the order can be planned
  * and issued before; bulk is issued only after QA's release for packing). The register gives the packaging number.
  */
-function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: string | null; onPlanned: (b: PlannedBatchView) => void }) {
-  const match = order.match;
+function PackagingPlanForm({ order, match, site, onPlanned }: { order: PlanningOrderView; match: PlanningMatchView; site: string | null; onPlanned: (b: PlannedBatchView) => void }) {
   const [siteCode, setSite] = useState('');
   const [line, setLine] = useState('');
   const [parent, setParent] = useState<string | null>(null);
@@ -158,7 +172,6 @@ function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderVie
   const areas = useApiQuery(routes.plant.areas);
   const lines = areas.data?.areas.filter((a) => a.kind === 'LINE') ?? [];
   const chosenSite = siteCode.trim() || site || '';
-  if (!match) return null;
   const markets = match.markets.filter((m) => !unpicked.has(m));
   const toggle = (m: string) =>
     setUnpicked((u) => {

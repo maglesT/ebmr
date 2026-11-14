@@ -56,6 +56,25 @@ describe('planning', () => {
     expect(ui.ceremony.sign.mock.calls[0]?.[0]).toMatchObject({ aggregateType: 'test_aggregate', meaning: 'TEST_MEANING', action: { kind: 'GMP_BATCH_ISSUE' } });
   });
 
+  it('[PR-01][INV-01] an order that two masters match names none as the match: the planner chooses one, and the plan names the master chosen (retest 13 November 2026, bug 6)', async () => {
+    const base = example('planning-orders');
+    const a = base.orders[0]?.match;
+    if (!a) throw new Error('the example order has no match');
+    const b = { ...a, familyId: 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e70', familyCode: 'GBT01-WG-B', versionId: 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f80', versionNumber: '1' };
+    const order = { ...base.orders[0], match: null, matches: [a, b], noMatch: '2 master records match this order (GBT01-WG version 1.0, GBT01-WG-B version 1): choose the one to plan with; none is chosen for you (PR-01, INV-01)' };
+    const ui = renderOffice('/planning', { role: 'BATCH_ISSUER', fixtures: { 'planning.orders': { orders: [order] }, 'execution.planBatch': planned, 'plant.areas': { areas: [] } } });
+    const card = await screen.findByTestId('order-PO-2026-0101');
+    expect(within(card).getByTestId('matches').textContent).toContain('choose the one to plan with');
+    expect(within(card).queryByTestId('match')).toBeNull();
+    expect(within(card).queryByTestId('plan-form')).toBeNull();
+    await userEvent.click(within(card).getByRole('radio', { name: /GBT01-WG-B version 1/ }));
+    await userEvent.type(within(card).getByRole('textbox', { name: 'Site' }), 'SITE-1');
+    await userEvent.type(within(card).getByRole('textbox', { name: 'Line' }), 'LINE-1');
+    await userEvent.click(within(card).getByRole('button', { name: 'Plan a batch for PO-2026-0101' }));
+    await waitFor(() => expect(ui.posts('/api/batches')).toHaveLength(1));
+    expect(ui.posts('/api/batches')[0]?.body).toMatchObject({ familyId: b.familyId, batchSize: b.batchSizeId, erpOrder: 'PO-2026-0101' });
+  });
+
   it('a refused plan is shown with the server\'s words', async () => {
     renderOffice('/planning', { role: 'BATCH_ISSUER', fixtures: { 'execution.planBatch': refusal('EBMR-EXE-200', 'The batch size is not an approved size.', 'PR-01'), 'plant.areas': { areas: [] } } });
     const order = await screen.findByTestId('order-PO-2026-0101');
