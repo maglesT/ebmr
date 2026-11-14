@@ -125,4 +125,31 @@ describe('an APS required by an approved change (ST-29; tablets 1910)', () => {
     expect((await server.db.admin.query(`select 1 ${sel}`, [open])).rowCount).toBe(1);
     expect((await fitness(late)).fit).toBe('QUALIFIED');
   }, 300_000);
+
+  it('[ST-29] the APS list reaches the signed content through the plant content provider; the kernel content of a change record reads no module table (tablets 1914)', async () => {
+    const [b, a] = [await qualifiedLine(), await qualifiedLine()];
+    const listed = `CR-APS-${tag()}`;
+    const plain = `CR-NOAPS-${tag()}`;
+    await raise(listed, [b, a]);
+    await raise(plain);
+    const q = async (sql: string, id: string): Promise<Record<string, unknown>> => (await server.db.admin.query<{ v: Record<string, unknown> }>(sql, [id])).rows[0]!.v;
+    const provided = (id: string) => q("select esig.provide('config_change_record', $1) as v", id);
+    const kernel = (id: string) => q('select platform.change_record_content($1) as v', id);
+
+    expect((await server.db.admin.query("select function_oid::text as f from esig.content_provider where aggregate_type = 'config_change_record'")).rows).toEqual([
+      { f: 'plant.change_record_content(text)' },
+    ]);
+    // The kernel's answer is 1195's content: no aps_lines, for either record.
+    const k = await kernel(listed);
+    expect(k['content']).not.toHaveProperty('aps_lines');
+    expect(Object.keys(k['content'] as object).sort()).toEqual(['areas', 'description', 'number', 'raised_at', 'raised_by', 'title']);
+    // The provider adds the sorted list to the kernel's content and nothing else; a record without a list is the kernel's content exactly.
+    const p = await provided(listed);
+    expect(p).toEqual({ ...k, content: { ...(k['content'] as object), aps_lines: [b, a].sort() }, provider: true });
+    expect(await provided(plain)).toEqual({ ...(await kernel(plain)), provider: true });
+    expect(await provided('CR-NO-SUCH-RECORD')).toEqual({ exists: false, provider: true });
+    // QA signs the provider's content: the approval goes through and withdraws both lines.
+    await approve(listed);
+    expect([(await fitness(a)).fit, (await fitness(b)).fit]).toEqual(['NOT_QUALIFIED', 'NOT_QUALIFIED']);
+  }, 300_000);
 });
