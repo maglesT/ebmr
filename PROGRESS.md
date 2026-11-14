@@ -44,6 +44,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
+A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
+and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
+GMP-EQUIPMENT-STATUS-UNITS (validator 1.4.0; PR-23, PR-03) refuses a G-09 step from version 2 that checks no unit, naming
+the stage and what to add (the stage's equipment, then "checks its status" on the step; both already on screen). G-09@1
+(sandbox, any unit) is unchanged. Open: masters already approved with this shape stay stuck (revising them is r13 bug 2);
+the packaging skeleton from a formula now shows this error until the author binds the line's units.
+
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
 - INJ-AVI-CHALLENGE-EU: the Annex 1 8.32 challenge, EU only.
